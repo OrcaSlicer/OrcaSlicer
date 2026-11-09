@@ -1045,40 +1045,51 @@ the dialogs, and their descriptions point at `generate_calibration_test`.
 
 ### Design tab: `call_cad_tool`
 
-`call_cad_tool {method, params}` reaches the Design tab's control surface (`Mcp/McpToolsCad.cpp`), the
-same methods the `ORCA_CAD_MCP` socket serves, as one generic tool rather than a schema per
-method, so agents that never open the Design tab pay nothing for it. It needs the CAD feature on
-(Preferences > Features), which the app reads only at startup; `get_app_state.design_tab` says whether
-this session built the tab. One table, `kCadMethods`, declares
-every method's name, access and handler; the dispatcher, the busy gate and `describe_tools` all
-read it. `describe_tools` is the parameter schema of record: one row per method with typed params,
-units and defaults, and its access. `params.method` (a name or a list) and `params.query` (text in a
-name or summary, any case) narrow the reply; an unknown name fails with the close ones.
+`call_cad_tool {method, params}` is the one way into the Design tab. Its CAD tools
+(`Mcp/McpToolsCad.cpp`) sit behind one generic tool rather than a schema each, so agents that never
+open the Design tab pay nothing for them. One table, `kCadTools`, declares every CAD tool's name,
+access and handler; `run_cad_tool()`, the busy gate and `describe_tools` all read it.
+`describe_tools` is the parameter schema of record: one row per CAD tool with typed params, units
+and defaults, and its access. `params.method` (a name or a list) and `params.query` (text in a name
+or summary, any case) narrow the reply; an unknown name fails with the close ones.
 
-Access decides what `DesignPanel::mcp_busy()` lets through. `read` methods run under an open
-feature card or sketch session, `sketch` methods drive the live sketch session, and `change`
-methods are refused under either, as the GUI would not let the edit land there. Neither `change`
-nor `sketch` methods run while a body Move is open, since its session holds a body index that a
+`run_cad_tool()` runs the CAD tool on the UI thread, inside `call_cad_tool`'s mutate guard, and
+refuses a call by its cause, in this order. The MCP server is up before the main window, so first
+come `ui_plater()`'s "shutting down" and "still starting" refusals, as for any tool. Then the G-code
+viewer, which has no Design tab (`-32001`); the CAD feature off (Preferences > Features, which the
+app reads only at startup, so turning it on takes a restart); and a Design panel that cannot be
+built (`-32001`: no page was made at startup, the page is mid-build, or its build failed), whose
+message says to retry and then restart. The panel is otherwise built on the first call, since in a
+headless session nobody clicks the tab; `get_app_state.design_tab` says whether this session built
+it. Then come an unknown CAD tool (`-32601`, with the close names), a busy Design tab (`-32002`), and
+a `generation` that is not an unsigned integer (`-32602`) or not the model's (`-32010`). Before the
+generation is read, the project's recipe is loaded into an empty document
+(`DesignPanel::hydrate_from_model()`), as showing the tab would.
+
+Access decides what `DesignPanel::mcp_busy()` lets through. `read` CAD tools run under an open
+feature card or sketch session, `sketch` CAD tools drive the live sketch session, and `change`
+CAD tools are refused under either, as the GUI would not let the edit land there. Neither `change`
+nor `sketch` CAD tools run while a body Move is open, since its session holds a body index that a
 change could point at another body. Nothing runs while a rebuild's worker owns the document.
 
-A method that fails is an error (`CadCallError` → `isError`) and leaves the design as it was, so
-`export_replay` drops it and a replay never repeats a call that did nothing. That holds for
-argument errors and for a rebuild the kernel rejects alike. The exceptions are the older methods
-`describe_tools` lists in `legacy_ok_false` (`fillet`, `chamfer`, `boolean`, `pattern`, `mirror`,
-`shell`, the surface methods, `import_step`, `set_variable` and others): they report a rejected
-rebuild in their reply, `{ok: false, error}`, after the same rollback, so such a call is journaled
-and replays the same rejection. `extrude`, `revolve`, the `hole` methods, `split` and `sketch_add`
-are not on that list, so none of them fails two ways depending on its arguments. The feature
-methods off the list add through `add_feature()`: one checkpoint, a rebuild, and on failure
-`CadDocument::rollback()`, which restores the checkpoint without leaving the refused recipe on the
-redo stack and with the redo branch the checkpoint cleared, then "Edit rejected" on the status line
-as for a refused GUI edit. Features made through `call_cad_tool` are named as the cards name them
-("Extrude 3"), from the panel's own counter.
+A CAD tool that fails is an error (an `isError` result with `code` `-32000`, `OCCT: …` for a kernel
+exception) and leaves the design as it was, so `export_replay` drops it and a replay never repeats a
+call that did nothing. That holds for argument errors and for a rebuild the kernel rejects alike.
+The exceptions are the older CAD tools `describe_tools` lists in `legacy_ok_false` (`fillet`,
+`chamfer`, `boolean`, `pattern`, `mirror`, `shell`, the surface tools, `import_step`,
+`set_variable` and others): they report a rejected rebuild in their reply, `{ok: false, error}`,
+after the same rollback, so such a call is journaled and replays the same rejection. `extrude`,
+`revolve`, the `hole` tools, `split` and `sketch_add` are not on that list, so none of them fails
+two ways depending on its arguments. The feature tools off the list add through `add_feature()`:
+one checkpoint, a rebuild, and on failure `CadDocument::rollback()`, which restores the checkpoint
+without leaving the refused recipe on the redo stack and with the redo branch the checkpoint
+cleared, then "Edit rejected" on the status line as for a refused GUI edit. Features made through
+`call_cad_tool` are named as the cards name them ("Extrude 3"), from the panel's own counter.
 
 `generation` guards face and edge ids within a session, but its value depends on the session's
 history, so the journal records `call_cad_tool` without it and a replay rebuilds the same ids.
 
-The plane-taking methods (`sketch_begin`, `extrude`, `revolve`, the `hole` methods, `thread`,
+The plane-taking CAD tools (`sketch_begin`, `extrude`, `revolve`, the `hole` tools, `thread`,
 `split`, `pattern`, `mirror`, `helix`, `project`) share one resolver, `cad_resolve_plane()`: `"XY"`,
 `"XZ"` or `"YZ"` through `modeling_origin`, `{"datum": i}` for a Plane feature, or
 `{"body": b, "face": f}` for a planar face. A face plane for sketching is
@@ -1161,7 +1172,7 @@ indices move down. `sketch_constraints` reads the open sketch's constraints, or 
 by `sketch`. Live sketch edits are not on the Design undo stack until the commit, as in the GUI.
 
 `query_topology` reads a body from one enumeration (`faces_of()`, `edges_of()`, whose ordinals are
-the ids every other method takes). A face's kind is its OCCT surface type, from
+the ids every other CAD tool takes). A face's kind is its OCCT surface type, from
 `GeometryEngine::surface_info()`, with its area and the numbers that define it: a cylinder's radius
 and axis, a cone's apex, axis into its opening, half angle and the radii the face reaches, a
 sphere's centre and radius, a torus's centre, axis and radii; `internal` marks a bore or a
@@ -1182,7 +1193,7 @@ OCCT's `BRepExtrema_DistShapeShape`), and `parallel_gap` across two parallel pla
 may name its own body, and `{"face": f, "axis": true}` stands for a cylinder's axis over the face's
 length, so a hole's height or spacing is one call.
 
-The hole methods drill a face plane's own body, or the body `body` names, else the last body, and
+The hole tools drill a face plane's own body, or the body `body` names, else the last body, and
 take `at` instead of `x`/`y`: a world point projected onto the plane along its normal (the reply's
 `off_plane` says how far), or a cylindrical face or circular edge whose axis the hole shares, which
 replays on any printer. `cad_hole_placement()` resolves all of it before the checkpoint. `extrude
@@ -1216,15 +1227,15 @@ that appears after 300 ms. A long thread or sweep takes seconds, and meanwhile t
 and inspection tools answer from inside that loop: `get_app_state`, `list_widgets` (the dialog is a
 non-modal `wxProgressDialog` titled "Design") and `screenshot`, of the window or of the dialog's own
 ref. On Windows the dialog is the system's task dialog, run on a thread of its own, so it is no wx
-window and `list_widgets` does not list it; the other tools answer as elsewhere. Mutating calls are refused by `UiInvoker` as running inside `call_cad_tool`, and the `ORCA_CAD_MCP`
-socket's requests by `mcp_busy()`, since the worker owns the document. A call past the reply budget
-becomes a running job; the socket waits on such a request past its 15 s queue timeout once it has
-started.
+window and `list_widgets` does not list it; the other tools answer as elsewhere. Mutating calls,
+another `call_cad_tool` among them, are refused by `UiInvoker` as running inside `call_cad_tool`, and
+`mcp_busy()` refuses every CAD tool while a rebuild's worker owns the document, the GUI's own
+rebuilds included. A call past the reply budget becomes a running job.
 
 `undo` and `redo` are Edit > Undo and Redo with the Design tab shown (`menu_undo_redo()`, behind
 the same `menu_can_undo_redo()` gate): the Design history, or inside a sketch session the sketch's
 own, which takes off or puts back the last drawn shape. `run_action undo` stays Prepare's history.
-They have sketch access, so they run in a sketch session, and like every changing method they are
+They have sketch access, so they run in a sketch session, and like every changing CAD tool they are
 refused under an open card, Constrain mode or a pending body Move. The Design history is not saved
 with a project.
 
@@ -1252,16 +1263,17 @@ List's delete path, under one outer snapshot so the commit and the deletions are
 step. It refuses before anything changes: an index out of range or repeated, an object that is
 part of a cut (deleting one asks the person first), an open gizmo, a design with no body, or every
 body hidden. The reply gives the new objects' `list_objects` indices after the deletions.
-`commit` is the one method that changes Prepare's model, so the `ORCA_CAD_MCP` socket refuses it:
-the socket has no mutate guard, no modal check, and runs requests inside any nested event loop.
+`commit` is the one CAD tool that changes Prepare's model. It needs no refusal of its own:
+`call_cad_tool`'s mutate guard keeps every CAD tool out of a modal dialog and out of another call's
+nested event loop.
 
 `new_design {discard_changes}` is New Design without its confirmation: `clear_document()`, which
 also clears the Design undo history and leaves committed objects on the plate. A design with
 features, bodies or variables needs `discard_changes: true`. `export_step {path, overwrite}` is
 Export STEP… without its file dialog (`DesignPanel::export_step_to()`, shared with it): every
-body as native B-rep at its Move-gizmo position, under the server's output-path rules. The
-socket takes it with the same checks. `import_step`, `import_mesh` and `validate_against`'s
-`reference.step` take an absolute, existing path, like every file the server reads.
+body as native B-rep at its Move-gizmo position, under the server's output-path rules.
+`import_step`, `import_mesh` and `validate_against`'s `reference.step` take an absolute, existing
+path, like every file the server reads.
 
 `set_view {tab: "design"}` shows the Design tab, and while it is shown `camera` points the Design
 view as its own controls do: a direction through `DesignCanvas::set_view()`, `default` its Home

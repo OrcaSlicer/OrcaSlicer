@@ -102,7 +102,6 @@
 #include "Plater.hpp"
 #ifdef SLIC3R_CAD
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
-#include "slic3r/GUI/Mcp/McpToolsCad.hpp"
 #endif
 #include "WebViewDialog.hpp"
 #include "../Utils/Process.hpp"
@@ -1637,12 +1636,11 @@ void MainFrame::init_tabpanel() {
     // The experimental feature is off by default, and when it is off the page is never
     // created, so the tab does not appear at all (the preference takes effect on the next
     // start, like the other feature toggles). Nor in the G-code viewer, which has no Design tab to put
-    // it in — and no business opening a control socket onto one.
+    // it in.
     if (wxGetApp().is_enable_cad_feature() && wxGetApp().is_editor()) {
         // Experimental and heavy enough that building it unasked would cost more than it saves.
         m_design_page = new LazyPage<DesignPanel>(this, TAB_ID_DESIGN, -1);
         m_lazy_pages.push_back(m_design_page);
-        Mcp::start_mcp_control_if_enabled();   // opens the MCP socket iff ORCA_CAD_MCP is set
     }
 #endif
 

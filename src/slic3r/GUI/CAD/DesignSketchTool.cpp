@@ -294,7 +294,7 @@ void DesignSketchTool::set_tool(Mode mode)
     // the offer; Width commits, the status line reads "Line — click start, then end", and the
     // rectangle's Height field is sitting over it. (The keyboard cannot reproduce it: in_text
     // includes inline_busy(), so letters are swallowed while a field is open — the switch has to
-    // come from the menu, the toolbar or the MCP socket.)
+    // come from the menu, the toolbar or the MCP server's call_cad_tool.)
     //
     // reset_autoedit() is the existing helper for exactly this and its comment already says it
     // "mirrors set_tool's resync" — the three lines that used to be here were that mirror drifting
@@ -747,10 +747,9 @@ void DesignSketchTool::apply_angle_between(int ia, int ib, double deg)
 void DesignSketchTool::apply_dimension(double v)
 {
     // Refuse BEFORE moving or recording. Each case below has its own threshold (positive for
-    // length / radius / diameter, non-negative for a distance) and the constraint used to be
-    // recorded UNCONDITIONALLY after them — so a value that moved nothing was still handed to
-    // the solver, which then had to satisfy something it never could. The socket guarded against
-    // this and said so; now the tool does too, and it says why.
+    // length / radius / diameter, non-negative for a distance), but the constraint is recorded
+    // UNCONDITIONALLY after them — so a value that moved nothing would still be handed to the
+    // solver, which would then have to satisfy something it never could. The refusal says why.
     const DimType kind = dimension_kind();
     const bool needs_positive = (kind == DimType::Length || kind == DimType::Radius ||
                                  kind == DimType::Diameter);
@@ -2798,7 +2797,7 @@ void DesignSketchTool::infer_auto_constraints(int base, double ang_tol_rad, doub
     // NO one-at-a-time fallback here, unlike the two batches above. Relations are a
     // convenience: nothing is incorrect without them. The fallback costs one SOLVE PER
     // CONSTRAINT, which is what the warning on the axes batch is about, and paying it for
-    // optional constraints is how a bulk add pins the app at 100% CPU with the MCP socket
+    // optional constraints is how a bulk add pins the app at 100% CPU and leaves it
     // unresponsive (measured 2026-08-31). If the batch conflicts, drop the batch.
     if (!rels.empty()) try_add_constraints(rels);
 

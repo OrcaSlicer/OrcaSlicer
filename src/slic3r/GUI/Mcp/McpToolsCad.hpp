@@ -1,25 +1,16 @@
 #pragma once
 
-// MCP control surface: a local JSON-RPC 2.0 server, line-delimited over a Unix domain
-// socket, that lets an external MCP bridge drive and perceive the Design tab. Off unless the
-// CAD feature is enabled in Preferences AND the env var ORCA_CAD_MCP is set:
-//   ORCA_CAD_MCP=1                -> socket at /tmp/orca-cad-mcp.sock
-//   ORCA_CAD_MCP=/path/to.sock    -> socket at that path (an existing non-socket file there is
-//                                    left alone and the server does not start)
-// The socket is created 0600 and removed at exit. All CAD work is marshalled onto the wx main
-// thread and runs through the SAME CadDocument kernel the GUI uses (no parallel engine);
-// describe_tools lists the methods. Every method is refused (-32002) during a rebuild, whose
-// worker owns the document; one that changes the document is also refused while the Design tab
-// is busy with it — an open feature card, a sketch session. `commit` changes Prepare's model, so
-// the socket refuses it: only the MCP server runs it, under its mutate guard.
-//
-// The socket is POSIX only; on Windows the same methods are reached through the app's MCP server
-// (its call_cad_tool tool), which calls cad_control_call().
+// The CAD tools behind the MCP server's call_cad_tool: the Design tab's sketches, features,
+// measurements and edits. They run on the UI thread through the GUI's own CadDocument (no engine of
+// their own). Every CAD tool is refused (-32002) during a rebuild, whose worker owns the document;
+// one that changes the document is also refused while the Design tab is busy with it — an open
+// feature card, a sketch session. Face and edge ids read at another generation are refused (-32010).
+// The header exists for McpToolsApi.cpp, which reads the table for search_tools, and for the unit
+// tests, which call the cad_* helpers directly.
 
 #include <nlohmann/json.hpp>
 
 #include <functional>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -38,22 +29,14 @@ class DesignSketchTool;
 
 namespace Mcp {
 
-// Start the server thread iff ORCA_CAD_MCP is set. Safe to call once the MainFrame exists —
-// the Design panel is built on the first request. No-op when the env var is unset or on Windows.
-void start_mcp_control_if_enabled();
+// Runs CAD tool `tool` with `args` and returns its result. It is refused while the main window is
+// not up, in the G-code viewer (-32001), with the CAD feature off, and while the Design panel cannot
+// be built (-32001); then for an unknown tool (-32601), a busy Design tab (-32002), and a
+// `generation` that is not an unsigned integer (-32602) or not the model's (-32010). A tool that
+// fails is -32000. Throws ToolFailure, whose details carry the code. UI thread only.
+nlohmann::json run_cad_tool(const std::string& tool, const nlohmann::json& args);
 
-// A control-surface method's JSON-RPC error.
-struct CadCallError : std::runtime_error
-{
-    int code;
-    CadCallError(int code, const std::string& message) : std::runtime_error(message), code(code) {}
-};
-
-// Runs one control-surface method (describe_tools lists them) with the socket's busy and stale-id
-// checks and returns its result. Throws CadCallError. UI thread only.
-nlohmann::json cad_control_call(const std::string& method, const nlohmann::json& params);
-
-// The names of every method cad_control_call() dispatches.
+// The names of every CAD tool run_cad_tool() dispatches.
 std::vector<std::string> cad_control_methods();
 
 // describe_tools' reply: one row per method with its params and access (read, change or sketch),

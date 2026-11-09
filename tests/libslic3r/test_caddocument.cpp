@@ -5161,8 +5161,8 @@ TEST_CASE("unknown identifier fails recompute", "[CadDocument][variables]")
 }
 
 // The checkpoint -> mutate -> recompute -> undo-on-failure pattern is what both the GUI and
-// McpControl use to keep a bad edit out of the document. It only works if the snapshot covers
-// `variables` as well as `features`: undo() used to restore features alone, so a bad variable
+// Mcp/McpToolsCad.cpp use to keep a bad edit out of the document. It only works if the snapshot
+// covers `variables` as well as `features`: undo() used to restore features alone, so a bad variable
 // survived the rollback and every later recompute failed — the document was left unusable.
 TEST_CASE("undo rolls back a bad variable, not just features", "[CadDocument][variables]")
 {
@@ -7982,9 +7982,9 @@ TEST_CASE("dressup: four chamfer ids captured up-front drift as earlier chamfers
     // Documents a defect, not a desired result. Measured on this fixture: [0.4, 0.008324,
     // 0.397333, 0.280405] mm^3 — the second chamfer's stale id landed on a nearly-consumed
     // edge and cut ~2% of the intended volume. Ids captured once and replayed against an
-    // evolving edge map DRIFT; that is the degeneration the socket chamfers showed, and it is
-    // a driver artefact (wrong usage), not a kernel defect — Test 1 proves the kernel stays
-    // uniform when ids are re-read.
+    // evolving edge map DRIFT; that is what four chamfers driven with up-front ids showed in the
+    // app, and it is a driver artefact (wrong usage), not a kernel defect — Test 1 proves the
+    // kernel stays uniform when ids are re-read.
     REQUIRE_FALSE(threw);            // currently it does NOT throw: it silently drifts
     REQUIRE(rmv.size() == 4);
     double mn = rmv[0], mx = rmv[0];

@@ -2330,7 +2330,7 @@ TEST_CASE("sketch_constrain solves with the new constraint or rolls it back, and
     CHECK(r.at("dof") == free_dof - 2);
     CHECK_THAT(failure([&] { sketch(tool, "sketch_unconstrain", {{"index", 99}}); }), ContainsSubstring("out of range"));
     CHECK_THAT(failure([&] { sketch(tool, "sketch_unconstrain", json::object()); }), ContainsSubstring("index must be"));
-    CHECK_THAT(failure([&] { sketch(tool, "sketch_move", json::object()); }), ContainsSubstring("not a method of the open sketch"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_move", json::object()); }), ContainsSubstring("not a CAD tool of the open sketch"));
 }
 
 TEST_CASE("the rows for the sketch's shapes, edit ops and constraints", "[Mcp][CAD]")

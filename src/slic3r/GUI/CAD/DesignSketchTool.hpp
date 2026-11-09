@@ -431,11 +431,11 @@ public:
         m_datum_planes = std::move(planes); m_datum_sizes = std::move(sizes);
     }
 
-    // Mate connectors. Until now a connector was visible only to a program — resolve_datum_coordsys
-    // had exactly one consumer, the MCP socket — so the frame a mate is built on could not be seen
-    // at all. The glyph has to answer two questions on sight (wgsc): which way does Z point
-    // (the VERSE), and which of the pair is anchored versus driven (the POLARITY). Nothing in any
-    // surveyed CAD system encodes the second one.
+    // Mate connectors. Without a glyph a connector is visible only to a program —
+    // resolve_datum_coordsys's one other consumer is the MCP server's call_cad_tool — so the frame
+    // a mate is built on could not be seen at all. The glyph has to answer two questions on sight
+    // (wgsc): which way does Z point (the VERSE), and which of the pair is anchored versus driven
+    // (the POLARITY). Nothing in any surveyed CAD system encodes the second one.
     struct MateConnectorGlyph {
         Vec3d origin{0, 0, 0};
         Vec3d x{1, 0, 0};          // roll reference; the filled quadrant spans x -> y

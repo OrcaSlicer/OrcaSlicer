@@ -116,7 +116,7 @@ public:
     void set_body_color(int b, const ColorRGBA& color);
     void show_body(int b, bool shown);
 
-    // MCP control hooks: let the external control server (McpControl.cpp) drive and
+    // MCP hooks: let the MCP server's call_cad_tool (Mcp/McpToolsCad.cpp) drive and
     // perceive the SAME kernel the GUI uses. Called only on the wx main thread.
     CadDocument& mcp_doc()        { return m_doc; }            // live document (read + mutate)
     // Refresh tree + viewport + status after a change; `ok` false says "Edit rejected: <m_doc.error>".
@@ -158,14 +158,14 @@ public:
     // Defined out of line in DesignPanel.cpp: it needs kOfferVerbs, which this header deliberately
     // does not include (the table is generated and belongs to the offer-menu code).
     bool mcp_run_verb(const char* verb_id);
-    // Would a request from the control socket collide with what the GUI is doing — a rebuild
-    // in progress, an open feature card, a sketch session? A rebuild refuses every request, since
-    // its worker owns the document; the rest refuse only one that changes something
+    // Would a call from the MCP server's call_cad_tool collide with what the GUI is doing — a
+    // rebuild in progress, an open feature card, a sketch session? A rebuild refuses every call,
+    // since its worker owns the document; the rest refuse only one that changes something
     // (`read_only` false). `sketch_method` = it drives the live sketch rather than the feature
     // list. Fills `why` when it would.
     bool mcp_busy(bool read_only, bool sketch_method, std::string& why) const;
-    // Load the project's recipe into an empty document, as showing the tab does. The control
-    // socket may be the first thing to touch the Design tab after a project was opened.
+    // Load the project's recipe into an empty document, as showing the tab does. The MCP server's
+    // call_cad_tool may be the first thing to touch the Design tab after a project was opened.
     void hydrate_from_model();
 
 private:

@@ -1,4 +1,9 @@
-#include "slic3r/GUI/Mcp/McpToolsCad.hpp"
+// The CAD tools behind the MCP server's call_cad_tool, and its registration. kCadTools declares
+// every CAD tool's name, access and handler; run_cad_tool() runs one on the UI thread, through the
+// GUI's own CadDocument and DesignPanel's mcp_* hooks, behind the Design tab's busy and stale-id
+// checks. tool_rows() describes them.
+
+#include "McpToolsCad.hpp"
 #include "libslic3r/Point.hpp"
 #include <stdexcept>
 #include <math.h>
@@ -7,24 +12,13 @@
 #include <exception>
 #include <cstdint>
 
-#ifndef _WIN32  // the Unix-domain-socket transport is POSIX only
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <sys/stat.h>   // umask/chmod: the socket's file mode IS its access control
-#include <unistd.h>
-#endif
 #include <cstdlib>
 #include <cstring>
 #include <string>
 #include <vector>
-#include <thread>
-#include <future>
-#include <chrono>
-#include <memory>
 #include <cmath>
 #include <algorithm>
 #include <utility>
-#include <atomic>
 #include <cctype>
 #include <functional>
 #include <iterator>
@@ -33,7 +27,6 @@
 #include <tuple>
 
 #include <nlohmann/json.hpp>
-#include <boost/log/trivial.hpp>
 #include <wx/string.h>
 #include <Standard_Failure.hxx>   // OCCT base error
 
@@ -48,8 +41,8 @@
 #include "McpService.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
-#include "slic3r/GUI/Mcp/McpPaths.hpp"
-#include "slic3r/GUI/Mcp/UiInspector.hpp"   // gizmo_name: the name get_app_state reports
+#include "McpPaths.hpp"
+#include "UiInspector.hpp"   // gizmo_name: the name get_app_state reports
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #include "slic3r/GUI/CAD/DesignCanvas.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
@@ -143,17 +136,6 @@ const char* feature_type_name(CadFeatureType t)
     return "Unknown";
 }
 
-// --- JSON-RPC envelope helpers -------------------------------------------------
-std::string rpc_result(const json& id, const json& result)
-{
-    return json{{"jsonrpc", "2.0"}, {"id", id}, {"result", result}}.dump();
-}
-std::string rpc_error(const json& id, int code, const std::string& msg)
-{
-    return json{{"jsonrpc", "2.0"}, {"id", id},
-                {"error", {{"code", code}, {"message", msg}}}}.dump();
-}
-
 // --- describe_tools: the parameter schema of record ------------------------------
 
 // The `plane` param. A face resolves differently for drilling than for anything else (see
@@ -170,9 +152,8 @@ json plane_param(const json& def, bool drill)
                        "body, x from the world axes). The reply's frame gives the axes."}};
 }
 
-// One row per dispatched method (kCadMethods); each row's `access` is added from that table.
-// The bridge turns these rows into MCP tool schemas, and treats a param without a default as
-// required.
+// One row per dispatched CAD tool (kCadTools); each row's `access` is added from that table.
+// A param without a default is one the tool requires.
 json tool_rows()
 {
     return json{
@@ -782,7 +763,7 @@ json describe_scene(DesignPanel* panel)
         {"bodies", std::move(bodies)},
         {"error", doc.error},
         // Pass this back as "generation" on any call that takes a face or edge id and the call
-        // is refused if the topology has moved on. See the note on the dispatcher.
+        // is refused if the topology has moved on. See the stale-id guard in run_cad_tool().
         {"generation", doc.topo_generation},
         {"undo_depth", doc.undo_depth()},
         {"redo_depth", doc.redo_depth()},
@@ -885,7 +866,7 @@ json add_feature(DesignPanel* panel, const char* index_key, const std::function<
         doc.rollback();
         doc.error = why;   // the rollback's rebuild cleared it; the status line reads it
         panel->mcp_after_change(false);
-        throw CadCallError(-32000, why);
+        throw ToolFailure(why, {{"code", -32000}});
     }
     panel->mcp_after_change();
     return json{{"ok", true}, {index_key, idx}, {"bodies", int(doc.bodies.size())}};
@@ -2153,7 +2134,7 @@ json action_set_feature(DesignPanel* panel, const json& params)
         doc.rollback();
         doc.error = why;
         panel->mcp_after_change(false);
-        throw CadCallError(-32000, why);
+        throw ToolFailure(why, {{"code", -32000}});
     }
     panel->mcp_after_change();
     const json after   = feature_card(doc.features[fi])["params"];
@@ -2434,12 +2415,9 @@ json action_sketch_set_value(DesignPanel* panel, const json& params)
     default: break;
     }
 
-    // Validate BEFORE apply_dimension, at the socket boundary. The tool only MOVES geometry when
-    // the value passes its own per-case thresholds, but it records the driving constraint
-    // UNCONDITIONALLY afterwards — a negative/zero/NaN value that moved nothing would still be
-    // pushed to the solver as a constraint it must satisfy and cannot, silently corrupting the
-    // sketch rather than failing. (apply_dimension has the same flaw for any other caller; this
-    // guard protects the socket, not the tool.) Fail loudly instead of recording a poison value.
+    // Validate BEFORE apply_dimension. The sketch tool refuses a value outside its thresholds
+    // itself, but only on its status line and without telling its caller, so this call would
+    // report the value as set. Fail loudly instead, with the reason.
     if (!std::isfinite(value))
         throw std::runtime_error("dimension must be finite — NaN or infinity is not a dimension");
     switch (kind) {
@@ -2626,13 +2604,14 @@ json action_extrude(DesignPanel* panel, const json& params)
         try {
             r = add_feature(panel, "extrude_index",
                             [&] { return add(panel->mcp_feature_name(_L_CONTEXT("Extrude", "Design"))); });
-        } catch (const CadCallError& e) {
+        } catch (const ToolFailure& e) {
             // A whole sketch builds one region, with the loops inside it as holes. When the rebuild
             // refused a sketch of several, name the way to take one.
             if (!loop.is_null() || separate_regions(vp->mcp_sketch_tool(), doc.features[sketch.get<int>()].entities) < 2)
                 throw;
-            throw CadCallError(e.code, std::string(e.what()) +
-                                           "; pass \"loop\" to extrude one of its regions (closed_loops of sketch_describe {sketch})");
+            throw ToolFailure(std::string(e.what()) +
+                                  "; pass \"loop\" to extrude one of its regions (closed_loops of sketch_describe {sketch})",
+                              e.details);
         }
         r = solid_reply(std::move(r), doc, "extrude_index", sketch.get<int>());
         r["end"] = kExtrudeEnds[int(end)];
@@ -2715,12 +2694,10 @@ json action_revolve(DesignPanel* panel, const json& params)
     return r;
 }
 
-// Verbs whose handler opens a MODAL dialog. This matters more than it looks: the socket thread
-// posts the call to the wx main thread and waits 15 s on a future, so a verb that blocks that
-// thread inside ShowModal() times the RPC out AND leaves the main thread blocked until a human
-// dismisses the dialog — every later call then times out too, 15 s at a time. Which is exactly
-// the trap for the deck user this surface exists for: one button press and the app is modal,
-// waiting for a mouse they may not be reaching for.
+// Verbs whose handler opens a MODAL dialog. This matters more than it looks: a verb run inline
+// would hold the call inside ShowModal() until a human dismisses the dialog, and every later call
+// would wait behind it. Which is exactly the trap for a deck user: one button press and the app
+// is modal, waiting for a mouse they may not be reaching for.
 //
 // So run_verb NEVER dispatches inline. The list here is only so list_verbs can label the keys
 // that will want a mouse; re-derive it with
@@ -2736,8 +2713,8 @@ bool verb_is_modal(const char* id)
 
 // Why list_verbs exists: the deck profile in VSD_n1_streamcontroller is built by parsing
 // DesignPanel's key tables out of the SOURCE, so a verb without a keyboard shortcut is invisible
-// to it. Serving the whole offer table over the socket lets the profile be generated from the
-// running app instead, and lets a deck key name a verb rather than spend a letter.
+// to it. Serving the whole offer table lets the profile be generated from the running app
+// instead, and lets a deck key name a verb rather than spend a letter.
 json action_list_verbs(DesignPanel* panel, const json& params)
 {
     const int      kind      = panel->mcp_offer_selection_kind();
@@ -2794,7 +2771,7 @@ json action_run_verb(DesignPanel* panel, const json& params)
     if (!has_action) throw std::runtime_error("run_verb: '" + verb + "' has no GUI path yet");
 
     // Whether the verb would be OFFERED for the current selection. Not a refusal: the GUI lets
-    // you press a tool's shortcut whatever is selected, and refusing here would make the socket
+    // you press a tool's shortcut whatever is selected, and refusing here would make run_verb
     // stricter than the keyboard for no reason. Reported so a caller can tell "did nothing
     // because it did not apply" from "did nothing because it is broken".
     const int      kind    = panel->mcp_offer_selection_kind();
@@ -2803,12 +2780,12 @@ json action_run_verb(DesignPanel* panel, const json& params)
     for (int i = 0; i < kOfferVerbCount; ++i)
         if (std::strcmp(kOfferVerbs[i].id, verb.c_str()) == 0) { applies = (kOfferVerbs[i].accepts & bit) != 0; break; }
 
-    // The rule is not "validate more", it is "the socket should offer exactly what the GUI
+    // The rule is not "validate more", it is "run_verb should offer exactly what the GUI
     // offers, no more and no less". A "btn:"/"fly:" verb is reachable in the GUI ONLY through
     // the offer menu, which GREYS its row when it does not apply to the current selection — so
-    // a socket caller must not be able to fire it either. But a "key:" verb is reachable from
-    // the KEYBOARD whatever is selected, and the app permits that, so refusing it would make
-    // the socket stricter than the keyboard for no reason. Refuse only the menu-only verbs.
+    // a caller must not be able to fire it either. But a "key:" verb is reachable from the
+    // KEYBOARD whatever is selected, and the app permits that, so refusing it would make
+    // run_verb stricter than the keyboard for no reason. Refuse only the menu-only verbs.
     if (!applies && action &&
         (std::strncmp(action, "btn:", 4) == 0 || std::strncmp(action, "fly:", 4) == 0)) {
         throw std::runtime_error("run_verb: '" + verb +
@@ -2817,9 +2794,9 @@ json action_run_verb(DesignPanel* panel, const json& params)
     }
 
     // Dispatch on the NEXT turn of the event loop, never inline. See verb_is_modal above: a verb
-    // that opens a dialog would otherwise block the thread this call is running on. Deferring
-    // costs the ability to report the verb's outcome — which run_offer_action never returned
-    // anyway — and buys a socket that cannot be wedged by any verb in the table.
+    // that opens a modal would otherwise hold this call inside ShowModal(). Deferring costs the
+    // ability to report the verb's outcome — which run_offer_action does not return anyway — and
+    // buys a call that no verb in the table can wedge.
     wxGetApp().CallAfter([panel, verb]() { panel->mcp_run_verb(verb.c_str()); });
 
     return json{{"ok", true}, {"verb", verb}, {"dispatched", true},
@@ -3202,7 +3179,7 @@ json undo_redo(DesignPanel* panel, bool redo)
 // kernel refuses one; the call then fails with the kernel's reason.
 [[noreturn]] void tree_edit_refused(const CadDocument& doc)
 {
-    throw CadCallError(-32000, doc.error.empty() ? "the Design tab refused the edit" : doc.error);
+    throw ToolFailure(doc.error.empty() ? "the Design tab refused the edit" : doc.error, {{"code", -32000}});
 }
 
 json tree_edit_reply(const CadDocument& doc, json reply)
@@ -4003,19 +3980,16 @@ json action_sketch_constraints(DesignPanel* panel, const json& params)
 // which neither a card nor a sketch session may have changed under it.
 enum class CadAccess { Read, Change, Sketch };
 
-struct CadMethod
+struct CadTool
 {
     const char* name;
     CadAccess   access;
     bool        ok_false;   // legacy: a rejected rebuild is reported in the reply, not as an error
     json (*run)(DesignPanel* panel, const json& params);
-    // It changes Prepare's model, so only the MCP server's call_cad_tool, under its mutate guard, may
-    // run it; the socket would run it with no modal check, inside any nested event loop.
-    bool        prepare = false;
 };
 
-// Every method, declared once: the dispatcher, the busy gate and describe_tools all read this.
-const CadMethod kCadMethods[] = {
+// Every CAD tool, declared once: run_cad_tool(), the busy gate and describe_tools all read this.
+const CadTool kCadTools[] = {
     {"describe_tools",      CadAccess::Read,   false, [](DesignPanel*, const json& p) { return cad_describe_tools(p); }},
     {"describe_scene",      CadAccess::Read,   false, [](DesignPanel* panel, const json&) { return describe_scene(panel); }},
     {"describe_feature",    CadAccess::Read,   false, action_describe_feature},
@@ -4068,7 +4042,7 @@ const CadMethod kCadMethods[] = {
     {"feature_rename",      CadAccess::Change, false, action_feature_rename},
     {"body_set",            CadAccess::Change, false, action_body_set},
     {"body_delete",         CadAccess::Change, false, action_body_delete},
-    {"commit",              CadAccess::Change, false, action_commit, true},
+    {"commit",              CadAccess::Change, false, action_commit},
     {"new_design",          CadAccess::Change, false, action_new_design},
     {"export_step",         CadAccess::Change, false, action_export_step},
     {"surface_extrude",     CadAccess::Change, true,  action_surface_extrude},
@@ -4100,10 +4074,10 @@ const CadMethod kCadMethods[] = {
     {"sketch_unconstrain",  CadAccess::Sketch, false, [](DesignPanel* p, const json& a) { return on_open_sketch(p, "sketch_unconstrain", a); }},
 };
 
-const CadMethod* find_method(const std::string& name)
+const CadTool* find_cad_tool(const std::string& name)
 {
-    for (const CadMethod& m : kCadMethods)
-        if (name == m.name) return &m;
+    for (const CadTool& t : kCadTools)
+        if (name == t.name) return &t;
     return nullptr;
 }
 
@@ -4129,13 +4103,13 @@ std::string lower(std::string s)
     return s;
 }
 
-// "; did you mean a, b?" for a mistyped method name, or nothing when no name is close.
-std::string close_methods(const std::string& name)
+// "; did you mean a, b?" for a mistyped CAD tool name, or nothing when no name is close.
+std::string close_cad_tools(const std::string& name)
 {
     const std::string want = lower(name);
     std::string close;
-    for (const CadMethod& m : kCadMethods) {
-        const std::string n = m.name;
+    for (const CadTool& t : kCadTools) {
+        const std::string n = t.name;
         if ((!want.empty() && (n.find(want) != std::string::npos || want.find(n) != std::string::npos))
             || edit_distance(n, want) <= 2 + want.size() / 4)
             close += (close.empty() ? "" : ", ") + n;
@@ -4143,26 +4117,35 @@ std::string close_methods(const std::string& name)
     return close.empty() ? std::string() : "; did you mean " + close + "?";
 }
 
-// Dispatch one parsed request ON THE MAIN THREAD. Returns a JSON-RPC reply string.
-std::string handle_on_main(const std::string& method, const json& params, const json& id)
+} // namespace
+
+json run_cad_tool(const std::string& tool, const json& args)
 {
-    // The panel is built on first use, and in a headless session nobody clicks the tab that
-    // would build it -- so build it here rather than refusing. Safe: this runs on the main
-    // thread (see the CallAfter that dispatches us).
+    // The MCP server answers before the main window exists and while the app closes.
+    ui_plater();
+    if (!wxGetApp().is_editor())
+        throw ToolFailure("The G-code viewer has no Design tab", {{"code", -32001}});
+    if (!wxGetApp().is_enable_cad_feature())
+        throw ToolFailure("The CAD feature is off; enable it in Preferences > Features and restart OrcaSlicer");
+    // The panel is built on first use, and in a headless session nobody clicks the tab that would
+    // build it, so it is built here rather than refused. It is null when no page was made at startup
+    // (the CAD feature was turned on later), while the page is mid-build, and after its build failed.
     DesignPanel* panel = DesignPanel::ensure();
-    if (!panel)
-        return rpc_error(id, -32001, "Design panel not ready");
+    if (panel == nullptr)
+        throw ToolFailure("The Design tab isn't available in this window yet; retry, and if it stays unavailable restart "
+                          "OrcaSlicer (turning the CAD feature on takes effect after a restart)",
+                          {{"code", -32001}});
 
-    const CadMethod* m = find_method(method);
-    if (m == nullptr)
-        return rpc_error(id, -32601, "Unknown method: " + method + close_methods(method));
+    const CadTool* t = find_cad_tool(tool);
+    if (t == nullptr)
+        throw ToolFailure("Unknown CAD tool: " + tool + close_cad_tools(tool), {{"code", -32601}});
 
-    // Only Read methods may run under a GUI editor or a sketch session they do not own. No method
-    // may run during a rebuild, not even these: the rebuild's busy loop runs this request while
-    // the GUI's worker thread holds the document. Checked before hydrating, which writes it.
+    // Only Read tools may run under a GUI editor or a sketch session they do not own. No tool may
+    // run during a rebuild, not even these: the rebuild's busy loop runs this call while the GUI's
+    // worker thread holds the document. Checked before hydrating, which writes it.
     std::string why;
-    if (panel->mcp_busy(m->access == CadAccess::Read, m->access == CadAccess::Sketch, why))
-        return rpc_error(id, -32002, "Design tab busy: " + why);
+    if (panel->mcp_busy(t->access == CadAccess::Read, t->access == CadAccess::Sketch, why))
+        throw ToolFailure("Design tab busy: " + why, {{"code", -32002}});
 
     // A project opened without ever showing the Design tab has its recipe only in the Model;
     // load it, as showing the tab would, before anything reads or writes the document.
@@ -4172,212 +4155,47 @@ std::string handle_on_main(const std::string& method, const json& params, const 
     //
     // Global face and edge ids are indices into TopExp::MapShapes, valid only against the
     // topology that produced them. Every dress-up rewrites those maps, so the natural way to
-    // drive this socket — read the scene once, then issue several operations — silently
+    // drive the Design tab — read the scene once, then issue several operations — silently
     // addresses the WRONG edge on every call after the first. Measured on a box: four chamfers
     // with ids re-read each time remove 0.400/0.397/0.397/0.395 mm3; the same four with ids
     // captured up front remove 0.400/0.008/0.397/0.280. Neither run errors, because a stale id
     // still resolves to a real edge — just not the one that was asked for.
     //
     // So a caller may pass back the "generation" it got from describe_scene or query_topology,
-    // and a mismatch is refused instead of silently obeyed. Optional by design: omitting it
-    // keeps every existing replay and caller working exactly as before, and supplying it is what buys the
-    // guarantee. One check at the dispatcher rather than one per handler, so a method added
-    // later cannot forget it.
+    // and a mismatch is refused instead of silently obeyed. Optional by design: a call without it
+    // is not checked, and supplying it is what buys the guarantee. One check here rather than one
+    // per handler, so a CAD tool added later cannot forget it.
     //
-    // The type check is not decoration: this runs OUTSIDE the try below, and a bare
-    // get<uint64_t>() on `"generation": "x"` throws nlohmann::type_error straight out of
-    // the CallAfter lambda that invoked us — through a wx event loop, which does not catch,
-    // so the whole GUI went down on one malformed line. Refuse it as a parameter error.
-    if (params.is_object() && params.contains("generation")) {
-        if (!params["generation"].is_number_unsigned())
-            return rpc_error(id, -32602, "generation must be an unsigned integer");
-        const uint64_t want = params["generation"].get<uint64_t>();
+    // The type is checked first because this runs outside the try below: a bare get<uint64_t>()
+    // on `"generation": "x"` would surface as an internal error instead of a parameter error.
+    if (args.is_object() && args.contains("generation")) {
+        if (!args["generation"].is_number_unsigned())
+            throw ToolFailure("generation must be an unsigned integer", {{"code", -32602}});
+        const uint64_t want = args["generation"].get<uint64_t>();
         const uint64_t have = panel->mcp_doc().topo_generation;
         if (want != have)
-            return rpc_error(id, -32010,
-                "stale face/edge ids: they were read at generation " + std::to_string(want)
-                + " but the model is now at " + std::to_string(have)
-                + ". Re-read query_topology and use the new ids — the old ones still name real "
-                  "edges, just not the ones you measured.");
+            throw ToolFailure("stale face/edge ids: they were read at generation " + std::to_string(want)
+                                  + " but the model is now at " + std::to_string(have)
+                                  + ". Re-read query_topology and use the new ids — the old ones still name real "
+                                    "edges, just not the ones you measured.",
+                              {{"code", -32010}});
     }
 
     try {
-        return rpc_result(id, m->run(panel, params));
-    } catch (const CadCallError& ex) {
-        return rpc_error(id, ex.code, ex.what());
+        return t->run(panel, args);
+    } catch (const ToolFailure&) {
+        throw;   // a handler's own refusal, code included
     } catch (const Standard_Failure& ex) {   // derives from std::exception, so it comes first
-        return rpc_error(id, -32000, std::string("OCCT: ") + (*ex.what() ? ex.what() : "failure"));
+        throw ToolFailure(std::string("OCCT: ") + (*ex.what() ? ex.what() : "failure"), {{"code", -32000}});
     } catch (const std::exception& ex) {
-        return rpc_error(id, -32000, ex.what());
+        throw ToolFailure(ex.what(), {{"code", -32000}});
     }
-}
-
-#ifndef _WIN32
-// Marshal a request to the main thread and block (with a timeout) for the reply.
-std::string dispatch_request(const std::string& line)
-{
-    json req;
-    try { req = json::parse(line); }
-    catch (const std::exception& ex) { return rpc_error(nullptr, -32700, std::string("parse error: ") + ex.what()); }
-
-    json id           = req.contains("id") ? req["id"] : json(nullptr);
-    std::string method = req.value("method", std::string());
-    json params        = req.contains("params") ? req["params"] : json::object();
-    if (method.empty()) return rpc_error(id, -32600, "missing method");
-    if (const CadMethod* m = find_method(method); m != nullptr && m->prepare)
-        return rpc_error(id, -32601, method + " changes the plate; call it through the app's MCP server (call_cad_tool)");
-
-    auto prom = std::make_shared<std::promise<std::string>>();
-    auto fut  = prom->get_future();
-    // 0 = queued, 1 = running, 2 = abandoned. A request that timed out while still QUEUED must
-    // never run: the client has been told it failed, and a retry would otherwise apply it twice.
-    auto state = std::make_shared<std::atomic<int>>(0);
-    // Nothing may escape this lambda. It is invoked by the wx event loop, which has no
-    // handler of its own, so an escaping exception is std::terminate — the socket would
-    // become a way for any client to kill the application. handle_on_main() catches what
-    // it knows about; this catches what it does not, and still answers the caller.
-    wxGetApp().CallAfter([prom, state, method, params, id]() {
-        int queued = 0;
-        if (!state->compare_exchange_strong(queued, 1)) return;   // abandoned by a timeout
-        try {
-            prom->set_value(handle_on_main(method, params, id));
-        } catch (const std::exception& ex) {
-            prom->set_value(rpc_error(id, -32000, std::string("internal error: ") + ex.what()));
-        } catch (...) {
-            prom->set_value(rpc_error(id, -32000, "internal error: unknown exception"));
-        }
-    });
-    if (fut.wait_for(std::chrono::seconds(15)) != std::future_status::ready) {
-        int queued = 0;
-        if (state->compare_exchange_strong(queued, 2))
-            return rpc_error(id, -32000, "main-thread timeout: the command was NOT run");
-        // Already running: it will finish, so wait for its real answer rather than report a
-        // failure for a command that is in fact being applied.
-        fut.wait();
-    }
-    return fut.get();
-}
-
-// Read newline-delimited requests off one client connection until EOF. A line may not grow
-// past kMaxLine: a client that never sends a newline would otherwise grow this buffer until the
-// process runs out of memory.
-void serve_client(int cfd)
-{
-    constexpr size_t kMaxLine = 16u << 20;   // 16 MB — far above any real request
-    std::string buf;
-    char chunk[4096];
-    for (;;) {
-        ssize_t n = ::read(cfd, chunk, sizeof(chunk));
-        if (n <= 0) break;
-        buf.append(chunk, size_t(n));
-        if (buf.size() > kMaxLine && buf.find('\n') == std::string::npos) {
-            BOOST_LOG_TRIVIAL(error) << "MCP: request line over " << kMaxLine << " bytes; closing the connection";
-            return;
-        }
-        size_t nl;
-        while ((nl = buf.find('\n')) != std::string::npos) {
-            std::string line = buf.substr(0, nl);
-            buf.erase(0, nl + 1);
-            if (line.empty()) continue;
-            std::string reply = dispatch_request(line);
-            reply.push_back('\n');
-            // Never a bare write(): a client that hangs up between its request and our
-            // reply raises SIGPIPE, whose default action kills the process — so closing
-            // a socket mid-call would take the GUI with it.
-#ifdef MSG_NOSIGNAL
-            if (::send(cfd, reply.data(), reply.size(), MSG_NOSIGNAL) < 0) return;
-#else
-            if (::write(cfd, reply.data(), reply.size()) < 0) return;   // SO_NOSIGPIPE set at accept
-#endif
-        }
-    }
-}
-
-// Where the socket lives, for the exit handler.
-std::string g_sock_path;
-
-void remove_socket_at_exit()
-{
-    struct stat st{};
-    if (!g_sock_path.empty() && ::lstat(g_sock_path.c_str(), &st) == 0 && S_ISSOCK(st.st_mode))
-        ::unlink(g_sock_path.c_str());
-}
-
-void server_thread(std::string sock_path)
-{
-    // Clear a stale socket from an earlier run — and ONLY a socket. ORCA_CAD_MCP names a path,
-    // and unlinking it unconditionally deleted whatever file that path happened to be.
-    {
-        struct stat st{};
-        if (::lstat(sock_path.c_str(), &st) == 0) {
-            if (!S_ISSOCK(st.st_mode)) {
-                BOOST_LOG_TRIVIAL(error) << "MCP: " << sock_path << " exists and is not a socket; refusing to replace it";
-                return;
-            }
-            ::unlink(sock_path.c_str());
-        }
-    }
-    int sfd = ::socket(AF_UNIX, SOCK_STREAM, 0);
-    if (sfd < 0) { BOOST_LOG_TRIVIAL(error) << "MCP: socket() failed"; return; }
-
-    sockaddr_un addr{};
-    addr.sun_family = AF_UNIX;
-    std::strncpy(addr.sun_path, sock_path.c_str(), sizeof(addr.sun_path) - 1);
-    // The socket is the full CAD command surface, including import_step on absolute paths.
-    // It lands in a world-writable directory by default (/tmp), so its access control is
-    // its file mode and nothing else — leaving that to the ambient umask means any local
-    // process may drive the modeller. umask around bind() makes it 0600 with no window in
-    // which a wider mode exists; the chmod afterwards covers platforms that do not apply
-    // umask to sockets.
-    const mode_t old_umask = ::umask(0177);
-    const int bind_rc = ::bind(sfd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
-    ::umask(old_umask);
-    if (bind_rc < 0) {
-        BOOST_LOG_TRIVIAL(error) << "MCP: bind() failed on " << sock_path;
-        ::close(sfd); return;
-    }
-    if (::chmod(sock_path.c_str(), S_IRUSR | S_IWUSR) < 0) {
-        BOOST_LOG_TRIVIAL(error) << "MCP: cannot restrict " << sock_path << " to the owner; refusing to listen";
-        ::close(sfd); ::unlink(sock_path.c_str()); return;
-    }
-    if (::listen(sfd, 1) < 0) { BOOST_LOG_TRIVIAL(error) << "MCP: listen() failed"; ::close(sfd); return; }
-    g_sock_path = sock_path;
-    std::atexit(remove_socket_at_exit);   // do not leave the socket file behind
-    BOOST_LOG_TRIVIAL(info) << "MCP control listening on " << sock_path;
-
-    for (;;) {
-        int cfd = ::accept(sfd, nullptr, nullptr);
-        if (cfd < 0) continue;
-#if !defined(MSG_NOSIGNAL) && defined(SO_NOSIGPIPE)
-        const int on = 1;                                   // macOS/BSD equivalent of MSG_NOSIGNAL
-        ::setsockopt(cfd, SOL_SOCKET, SO_NOSIGPIPE, &on, sizeof(on));
-#endif
-        serve_client(cfd);
-        ::close(cfd);
-    }
-}
-
-#endif // !_WIN32
-
-} // namespace
-
-void start_mcp_control_if_enabled()
-{
-#ifndef _WIN32
-    const char* env = std::getenv("ORCA_CAD_MCP");
-    if (!env || !*env) return;
-    std::string path = (std::strcmp(env, "1") == 0) ? "/tmp/orca-cad-mcp.sock" : env;
-    static bool started = false;
-    if (started) return;
-    started = true;
-    std::thread(server_thread, path).detach();
-#endif
 }
 
 std::vector<std::string> cad_control_methods()
 {
     std::vector<std::string> out;
-    for (const CadMethod& m : kCadMethods) out.emplace_back(m.name);
+    for (const CadTool& t : kCadTools) out.emplace_back(t.name);
     return out;
 }
 
@@ -4385,8 +4203,8 @@ json cad_describe_tools(const json& params)
 {
     json out = tool_rows();
     json legacy = json::array();
-    for (const CadMethod& m : kCadMethods)
-        if (m.ok_false) legacy.push_back(m.name);
+    for (const CadTool& t : kCadTools)
+        if (t.ok_false) legacy.push_back(t.name);
     out["errors"] = "A call that fails is an error and leaves the design as it was. The methods in "
                     "legacy_ok_false report a rejected rebuild in their reply instead (ok false, or "
                     "a non-empty error).";
@@ -4405,8 +4223,8 @@ json cad_describe_tools(const json& params)
         throw std::runtime_error("describe_tools: method takes a name or a list of names");
     }
     for (const std::string& n : names)
-        if (find_method(n) == nullptr)
-            throw std::runtime_error("describe_tools: unknown method '" + n + "'" + close_methods(n));
+        if (find_cad_tool(n) == nullptr)
+            throw std::runtime_error("describe_tools: unknown method '" + n + "'" + close_cad_tools(n));
     const json q = params.is_object() ? params.value("query", json("")) : json("");
     if (!q.is_string()) throw std::runtime_error("describe_tools: query must be a string");
     const std::string query = lower(q.get<std::string>());
@@ -4416,8 +4234,8 @@ json cad_describe_tools(const json& params)
         const std::string name = row.value("name", std::string());
         if (!names.empty() && std::find(names.begin(), names.end(), name) == names.end()) continue;
         if (!query.empty() && lower(name + " " + row.value("summary", std::string())).find(query) == std::string::npos) continue;
-        if (const CadMethod* m = find_method(name))
-            row["access"] = m->access == CadAccess::Read ? "read" : m->access == CadAccess::Sketch ? "sketch" : "change";
+        if (const CadTool* t = find_cad_tool(name))
+            row["access"] = t->access == CadAccess::Read ? "read" : t->access == CadAccess::Sketch ? "sketch" : "change";
         rows.push_back(std::move(row));
     }
     out["tools"] = std::move(rows);
@@ -4636,7 +4454,7 @@ json cad_sketch_call(DesignSketchTool& tool, const std::string& method, const js
     if (method == "sketch_constrain")   return sketch_constrain(tool, p);
     if (method == "sketch_constraints") return sketch_constraints(tool, p);
     if (method == "sketch_unconstrain") return sketch_unconstrain(tool, p);
-    throw std::runtime_error(method + " is not a method of the open sketch");
+    throw std::runtime_error(method + " is not a CAD tool of the open sketch");
 }
 
 std::vector<SketchEntityConstraintDef> cad_constraint_defs(const json& params, const std::vector<SketchEntity>& ents,
@@ -5459,14 +5277,6 @@ std::function<int(const std::string& name)> cad_split(CadDocument& doc, const js
     };
 }
 
-json cad_control_call(const std::string& method, const json& params)
-{
-    const json reply = json::parse(handle_on_main(method, params, json(1)));
-    if (reply.contains("error"))
-        throw CadCallError(reply["error"].value("code", -32000), reply["error"].value("message", std::string("CAD call failed")));
-    return reply.value("result", json());
-}
-
 // call_cad_tool: the Design tab's control surface (sketches, features, measurements) through MCP.
 void register_cad_tools(McpService& service)
 {
@@ -5498,15 +5308,7 @@ void register_cad_tools(McpService& service)
                 recorded["params"].erase("generation");
                 ctx.set_journal_args(std::move(recorded));
             }
-            json result = ctx.run_ui([&] {
-                if (!wxGetApp().is_enable_cad_feature())
-                    throw ToolFailure("The CAD feature is off; enable it in Preferences > Features and restart OrcaSlicer");
-                try {
-                    return cad_control_call(method, params);
-                } catch (const CadCallError& e) {
-                    throw ToolFailure(e.what(), {{"code", e.code}});
-                }
-            });
+            json result = ctx.run_ui([&] { return run_cad_tool(method, params); });
             settle(ctx);
             return ToolResult::ok({{"result", std::move(result)}});
         }));

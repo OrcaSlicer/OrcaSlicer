@@ -4793,8 +4793,8 @@ void DesignPanel::on_import_svg()
 // touched while the worker owns it. Exceptions must not escape the worker: `work` is expected
 // to swallow them.
 // True while a worker owns the document. wxYield below runs pending events — and a queued MCP
-// request is one — so the control socket must check this and refuse rather than read or change
-// the document under the worker (DesignPanel::mcp_busy).
+// call is one — so the MCP server's call_cad_tool must check this and refuse rather than read or
+// change the document under the worker (DesignPanel::mcp_busy).
 static std::atomic<int> s_doc_worker_busy{0};
 
 static void run_off_ui_thread(wxWindow* parent, const wxString& message, const std::function<void()>& work)
@@ -5903,7 +5903,7 @@ void DesignPanel::on_check_interference()
 void DesignPanel::on_mass_properties()
 {
     // This bounds check is not defensive padding — it is what makes the verb safe to fire from
-    // the socket, which has no offer menu to grey the row out.
+    // call_cad_tool's run_verb, which has no offer menu to grey the row out.
     if (m_sel_solid_body < 0 || m_sel_solid_body >= int(m_doc.bodies.size())) {
         set_status(StatusKind::Info, _L("Select a body to measure it"));
         return;
@@ -7337,9 +7337,9 @@ void DesignPanel::on_sys_color_changed()
 
 // Rehydrate the parametric model from a freshly loaded project (the 3MF carried the recipe in
 // Metadata/orca_cad.bin). Only into an EMPTY document, so an active design is never clobbered
-// when the user toggles back to the tab. Called on tab show and by the control socket — which
-// used to skip it, work on an empty document, and then overwrite the project's recipe with
-// just its own features.
+// when the user toggles back to the tab. Called on tab show and by the MCP server's
+// call_cad_tool before every CAD tool, which would otherwise work on an empty document and then
+// overwrite the project's recipe with just its own features.
 void DesignPanel::hydrate_from_model()
 {
     if (!m_doc.features.empty()) return;
@@ -7352,7 +7352,7 @@ void DesignPanel::hydrate_from_model()
     // datum planes off the geometry. A loaded project brings its own (load_recipe).
     // The centre of the Design bed, not the plater's: the plater moves its bed onto the current
     // plate, so on plate 2+ the origin would land one plate stride away from the bed drawn here.
-    // Re-synced first because the control socket calls this without on_tab_shown().
+    // Re-synced first because call_cad_tool calls this without on_tab_shown().
     if (!m_doc.origin_from_recipe) {
         m_viewport->refresh_bed();
         const Vec2d bc = m_viewport->bed_center();
@@ -7466,8 +7466,8 @@ void DesignPanel::load_recipe(const std::string& blob)
         // very differently to the person reading this — saved by a NEWER build, saved by an
         // OLDER one, or genuinely unreadable — and replacing all three with one sentence left
         // the user unable to tell "update OrcaSlicer" from "your file is damaged". Same
-        // error-loss class as the 31 McpControl sites (1de72de9ed): the message exists, it was
-        // simply not passed on.
+        // error-loss class as the 31 Mcp/McpToolsCad.cpp sites (1de72de9ed): the message
+        // exists, it was simply not passed on.
         set_status(StatusKind::Error, m_doc.error.empty()
                    ? _L("Could not restore the CAD model from this project")
                    : wxString::Format(_L("Could not restore the CAD model: %s"), wxString::FromUTF8(m_doc.error)));
@@ -8085,7 +8085,7 @@ bool DesignPanel::begin_renumber()
 
 void DesignPanel::after_tree_edit(bool ok)
 {
-    // Any edit of the history (undo, delete, show/hide, a socket call...) writes the status line
+    // Any edit of the history (undo, delete, show/hide, a CAD tool call...) writes the status line
     // over the plane prompt, so it ends the choice rather than leave it waiting unannounced.
     end_sketch_plane_choice();
     update_undo_redo_buttons();
