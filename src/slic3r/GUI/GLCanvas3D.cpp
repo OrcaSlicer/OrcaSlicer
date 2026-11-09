@@ -2878,7 +2878,8 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         const bool show_exclusion_intersections = m_show_bed &&
             (!m_main_toolbar.is_enabled() ||
              (gizmo_type != GLGizmosManager::FdmSupports && gizmo_type != GLGizmosManager::Seam &&
-              gizmo_type != GLGizmosManager::MmSegmentation && gizmo_type != GLGizmosManager::FuzzySkin));
+              gizmo_type != GLGizmosManager::MmSegmentation && gizmo_type != GLGizmosManager::FuzzySkin &&
+              gizmo_type != GLGizmosManager::PaintedModifier));
         if (show_exclusion_intersections)
             wxGetApp().plater()->get_partplate_list().render_exclusion_volume_intersections(
                 camera.get_view_matrix(), camera.get_projection_matrix());
