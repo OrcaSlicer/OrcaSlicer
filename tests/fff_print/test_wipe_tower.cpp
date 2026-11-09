@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <numeric>
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/Config.hpp"
@@ -429,8 +428,8 @@ static DynamicPrintConfig tower_estimate_config(const char *wall_type, unsigned 
         { "raft_layers",                    "0"       } });
 }
 
-// The filament a Type 1 tower uses on a 20 mm cube whose outer wall is on filament 2, so every layer
-// changes filament, given the process prime volume and the prime volume of each filament.
+// The filament a Type 1 tower extrudes for two 20 mm cubes on filaments 1 and 2, so every layer changes
+// filament, given the process prime volume and the prime volume of each filament.
 static double type1_tower_filament(const char *prime_volume, const char *filament_prime_volume)
 {
     DynamicPrintConfig config = tower_estimate_config("rectangle");
@@ -439,13 +438,25 @@ static double type1_tower_filament(const char *prime_volume, const char *filamen
                                     { "filament_prime_volume", filament_prime_volume },
                                     { "wipe_tower_x",          "120" },
                                     { "wipe_tower_y",          "120" } });
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides = { {}, { { "extruder", "2" } } };
     Print print;
     Model model;
-    init_print({ cube(20) }, print, model, config);
-    print.process();
-    REQUIRE(print.is_step_done(psWipeTower));
-    const std::vector<float> &used = print.wipe_tower_data().used_filament;
-    return std::accumulate(used.begin(), used.end(), 0.);
+    init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    // The filament extruded under the prime tower's role tag.
+    double      extruded = 0.;
+    bool        in_tower = false;
+    GCodeReader parser;
+    parser.apply_config(print.config());
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view raw = line.raw();
+        if (raw.rfind(";TYPE:", 0) == 0 || raw.rfind("; FEATURE: ", 0) == 0)
+            in_tower = raw.find("Prime tower") != std::string_view::npos;
+        else if (in_tower && line.extruding(self))
+            extruded += line.dist_E(self);
+    });
+    return extruded;
 }
 
 TEST_CASE("The Type 1 tower purges the prime volume of each filament, not the process one", "[WipeTower]")
