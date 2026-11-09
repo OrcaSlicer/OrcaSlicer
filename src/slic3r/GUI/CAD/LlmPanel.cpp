@@ -4,6 +4,7 @@
 #include "slic3r/GUI/Preferences.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include <regex>
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <wx/button.h>
@@ -173,6 +174,7 @@ void LlmPanel::append(const wxString& text, const wxColour& colour, bool bold)
     attr.SetFont(f);
     m_log->SetDefaultStyle(attr);
     m_log->AppendText(text);
+    if (!m_restoring) m_hist.push_back({text, colour.GetRGB(), bold});
     m_log->ShowPosition(m_log->GetLastPosition());
 }
 
@@ -252,14 +254,53 @@ void LlmPanel::on_tool(const std::string& raw)
     if (m_raw->GetValue()) append(wxString("      ") + wxString::FromUTF8(raw) + "\n", wxColour(160, 160, 160));
 }
 
+void LlmPanel::save_chat()
+{
+    AppConfig* c = wxGetApp().app_config;
+    std::string out;
+    if (!(c && c->get("llm_no_chat_save") == "1") && !m_hist.empty()) {
+        // Keep the tail: a long session must not bloat every save of the project.
+        size_t total = 0, from = m_hist.size();
+        while (from > 0 && total < 200000) total += m_hist[--from].text.length();
+        nlohmann::json j = nlohmann::json::array();
+        for (size_t i = from; i < m_hist.size(); ++i) j.push_back({std::string(m_hist[i].text.ToUTF8()), m_hist[i].rgb, m_hist[i].bold});
+        out = j.dump();
+    }
+    m_chat_json = out;
+    if (m_chat_sink) m_chat_sink(out);
+}
+
+void LlmPanel::load_chat(const std::string& json)
+{
+    if (m_busy || json == m_chat_json) return;   // the project we already show (this runs every time the tab is shown)
+    m_chat_json = json;
+    m_hist.clear();
+    m_log->Clear();
+    m_session_id.clear();   // an agent session belongs to one conversation on one machine
+    m_result->Hide();
+    const nlohmann::json j = nlohmann::json::parse(json, nullptr, false);
+    m_restoring = true;
+    if (j.is_array())
+        for (const auto& e : j)
+            if (e.is_array() && e.size() == 3 && e[0].is_string() && e[1].is_number_unsigned() && e[2].is_boolean()) {
+                const unsigned long rgb = e[1].get<unsigned long>();
+                append(wxString::FromUTF8(e[0].get<std::string>()), wxColour(rgb), e[2].get<bool>());
+                m_hist.push_back({wxString::FromUTF8(e[0].get<std::string>()), rgb, e[2].get<bool>()});
+            }
+    m_restoring = false;
+    show_examples(m_hist.empty());
+}
+
 void LlmPanel::new_chat()
 {
     m_session_id.clear();
+    m_hist.clear();
     m_result->Hide();
     show_examples(true);
     m_files.clear();
     refresh_attachments();
     m_log->Clear();
+    save_chat();
 }
 
 void LlmPanel::stop()
@@ -317,6 +358,7 @@ void LlmPanel::send()
             append("\n", m_log->GetForegroundColour());
             m_run.reset();
             set_busy(false);
+            save_chat();
             if (m_undo_depth() > m_undo_at_start) {   // agy streams no tool events, so the undo stack is the source of truth
                 m_result_lbl->SetLabel(m_turn_edits > 0 ? wxString::Format(_L("%d edits in this turn"), m_turn_edits) : _L("This turn changed the design"));
                 m_result->Show();

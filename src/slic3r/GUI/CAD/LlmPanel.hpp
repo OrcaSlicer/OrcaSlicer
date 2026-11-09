@@ -29,6 +29,9 @@ public:
     ~LlmPanel() override;
 
     void focus_input();
+    // The chat as JSON for the project file (empty when the user chose not to save it), and the way back in.
+    void set_chat_sink(std::function<void(const std::string&)> sink) { m_chat_sink = std::move(sink); }
+    void load_chat(const std::string& json);
 
 private:
     void send();
@@ -42,6 +45,7 @@ private:
     void refresh_header();   // agent + model, ready dot, setup hint
     void show_examples(bool on);
     void on_tool(const std::string& raw);
+    void save_chat();
 
     wxTextCtrl*   m_log    = nullptr;
     wxTextCtrl*   m_input  = nullptr;
@@ -61,6 +65,11 @@ private:
     wxPanel*      m_result    = nullptr;   // end of turn: "N edits" + Undo this turn
     wxStaticText* m_result_lbl = nullptr;
     int           m_turn_edits = 0;
+    struct Line { wxString text; unsigned long rgb; bool bold; };
+    std::vector<Line> m_hist;            // what the log shows, so it can be saved and restored
+    bool          m_restoring = false;
+    std::string   m_chat_json;           // last chat handed to / received from the project
+    std::function<void(const std::string&)> m_chat_sink;
 
     std::function<size_t()>     m_undo_depth;
     std::function<void(size_t)> m_drop_undo_to;

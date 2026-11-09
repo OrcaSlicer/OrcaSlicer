@@ -2526,6 +2526,7 @@ void PreferencesDialog::create_items()
     g_sizer->Add(create_item_title(_L("Agent")), 1, wxEXPAND);
     g_sizer->Add(create_item_combobox(_L("Agent"), _L("The CLI that drives the design. Claude Code runs with only the orca-cad tools and file reading. opencode and agy run with their own private config: every tool is denied except the orca-cad tools and reading files (no shell)."), "llm_agent",
                                       std::vector<wxString>{"Claude Code", "opencode", "Antigravity (agy)"}, std::vector<std::string>{"claude", "opencode", "agy"}));
+    g_sizer->Add(create_item_checkbox(_L("Do not save the chat in the project file"), _L("By default the assistant chat is saved inside the project (.3mf) so it comes back when you reopen it. Tick this to keep it out of saved files."), "llm_no_chat_save"));
     g_sizer->Add(create_item_text(_L("Executable"), _L("Full path of the agent CLI. Leave empty to find it on PATH."), "llm_cli_path", "claude"));
     g_sizer->Add(create_item_text(_L("Model"), _L("Claude Code: passed as --model, empty for its default. opencode: required, written provider/model (see `opencode models`)."), "llm_model"));
     g_sizer->Add(create_item_text(_L("Extra arguments"), _L("Appended to the command line, split on spaces."), "llm_cli_args"));

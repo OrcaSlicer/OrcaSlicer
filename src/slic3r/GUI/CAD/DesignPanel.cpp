@@ -4383,6 +4383,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // The assistant chat: docks on the right or drags out as its own window; every turn is one undo step.
     m_llm_panel = new LlmPanel(body_panel, [this] { return m_doc.undo_depth(); }, [this](size_t d) { m_doc.drop_undo_to(d); },
                                 [this] { do_undo_redo(false); });
+    // The chat lives in the project file next to the recipe; a changed chat marks the project unsaved like a design edit does.
+    m_llm_panel->set_chat_sink([](const std::string& json) {
+        Plater* p = wxGetApp().plater();
+        if (p == nullptr || p->model().cad_chat == json) return;
+        p->model().cad_chat = json;
+        Slic3r::put_other_changes();
+    });
     m_aui.AddPane(m_llm_panel, wxAuiPaneInfo().Name("assistant").Caption(_L("Assistant")).Right().Layer(1)
                                               .BestSize(FromDIP(380), FromDIP(520)).MinSize(FromDIP(260), FromDIP(240))
                                               .FloatingSize(FromDIP(420), FromDIP(560)).CloseButton(true).Floatable(true).Hide());
@@ -8039,6 +8046,7 @@ void DesignPanel::hydrate_from_model()
     }
     const std::string& blob = plater->model().cad_recipe;
     if (!blob.empty()) load_recipe(blob);
+    if (m_llm_panel) m_llm_panel->load_chat(plater->model().cad_chat);
 }
 
 // Application close / language switch, from the plater's canvas teardown.
