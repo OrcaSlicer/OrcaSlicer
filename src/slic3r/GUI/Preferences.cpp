@@ -2524,8 +2524,10 @@ void PreferencesDialog::create_items()
 
     //// LLM / MCP > Agent
     g_sizer->Add(create_item_title(_L("Agent")), 1, wxEXPAND);
-    g_sizer->Add(create_item_text(_L("Executable"), _L("Full path of the agent CLI. Leave empty to use `claude` from PATH."), "llm_cli_path", "claude"));
-    g_sizer->Add(create_item_text(_L("Model"), _L("Passed as --model. Leave empty for the CLI's own default."), "llm_model"));
+    g_sizer->Add(create_item_combobox(_L("Agent"), _L("The CLI that drives the design. Claude Code runs with only the orca-cad tools and file reading. opencode runs with its own empty config: every tool is denied except reading files and the orca-cad tools (it has no shell here)."), "llm_agent",
+                                      std::vector<wxString>{"Claude Code", "opencode"}, std::vector<std::string>{"claude", "opencode"}));
+    g_sizer->Add(create_item_text(_L("Executable"), _L("Full path of the agent CLI. Leave empty to find it on PATH."), "llm_cli_path", "claude"));
+    g_sizer->Add(create_item_text(_L("Model"), _L("Claude Code: passed as --model, empty for its default. opencode: required, written provider/model (see `opencode models`)."), "llm_model"));
     g_sizer->Add(create_item_text(_L("Extra arguments"), _L("Appended to the command line, split on spaces."), "llm_cli_args"));
     g_sizer->Add(create_item_button(_L("Test the agent"), _L("Test"), _L("Starts the agent against this app's MCP and asks it to read the open document."), "", []() {
         llm_agent_run("Use the orca-cad MCP tools: call inspect_design once, then reply with one short sentence saying how many bodies the open document has.",

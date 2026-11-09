@@ -16,6 +16,7 @@
 #include <fstream>
 #include <mutex>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <vector>
@@ -77,15 +78,18 @@ std::atomic<bool> g_busy{false};
 
 } // namespace
 
+static bool llm_agent_is_opencode() { return pref("llm_agent") == "opencode"; }
+
 std::string llm_agent_executable()
 {
+    const std::string name = llm_agent_is_opencode() ? "opencode" : "claude";
     fs::path exe = pref("llm_cli_path");
-    if (exe.empty()) exe = bp::search_path("claude");
+    if (exe.empty()) exe = bp::search_path(name);
     // A desktop launcher does not run the shell profile, so PATH often lacks where the installer put the CLI.
     if (exe.empty())
-        for (const char* d : {"/.local/bin", "/.claude/local", "/.npm-global/bin", "/.bun/bin"})
-            if (const char* home = std::getenv("HOME"); home && fs::exists(fs::path(home + std::string(d)) / "claude")) { exe = fs::path(home + std::string(d)) / "claude"; break; }
-    if (exe.empty() && fs::exists("/usr/local/bin/claude")) exe = "/usr/local/bin/claude";
+        for (const char* d : {"/.local/bin", "/.claude/local", "/.npm-global/bin", "/.bun/bin", "/.opencode/bin"})
+            if (const char* home = std::getenv("HOME"); home && fs::exists(fs::path(home + std::string(d)) / name)) { exe = fs::path(home + std::string(d)) / name; break; }
+    if (exe.empty() && fs::exists("/usr/local/bin/" + name)) exe = "/usr/local/bin/" + name;
     return (!exe.empty() && fs::exists(exe)) ? exe.string() : std::string();
 }
 
@@ -96,13 +100,15 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
     if (g_busy.exchange(true)) { done(false, "an agent run is already in progress"); return nullptr; }
 
     // Everything read from Preferences is copied here: the worker must not touch app_config.
+    const bool        oc     = llm_agent_is_opencode();
     const std::string exe    = llm_agent_executable();
     const std::string model  = pref("llm_model");
     const std::string extra  = pref("llm_cli_args");
     const std::string sock   = mcp_socket_path();
     const std::string bridge = bridge_script();
     std::string problem;
-    if (exe.empty())                     problem = "Claude Code was not found: install it so that `claude` is on PATH, or set its path in Preferences > LLM / MCP";
+    if (exe.empty())                     problem = std::string(oc ? "opencode" : "Claude Code") + " was not found: install it so that `" + (oc ? "opencode" : "claude") + "` is on PATH, or set its path in Preferences > LLM / MCP";
+    else if (oc && model.empty())        problem = "opencode needs a model in Preferences > LLM / MCP, written provider/model (see `opencode models`)";
     else if (sock.empty())               problem = "the MCP socket is off (ORCA_CAD_MCP=0)";
     else if (!fs::exists(bridge))        problem = "the MCP bridge script is missing: " + bridge;
     else if (bp::search_path("python3").empty()) problem = "python3 is needed to run the MCP bridge and was not found on PATH";
@@ -118,25 +124,72 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
         auto post = [](std::function<void()> f) { wxGetApp().CallAfter(std::move(f)); };
         bool got_result = false;
         try {
+            std::vector<std::string> args;
+            std::vector<std::string> env_kv;   // opencode only
+            fs::path start_dir;
+            if (oc) {
+                // The isolation below (--standalone + private config) exists from opencode 2; v1 would run with the user's global config.
+                bp::ipstream vout;
+                bp::child vc(fs::path(exe), "--version", bp::std_out > vout, bp::std_err > bp::null, bp::std_in.close());
+                std::string ver; std::getline(vout, ver); vc.wait();
+                const size_t digit = ver.find_first_of("0123456789");
+                if (digit == std::string::npos || std::atoi(ver.c_str() + digit) < 2)
+                    throw std::runtime_error("opencode 2 or newer is required (found '" + ver + "'); set the path of a newer one in Preferences > LLM / MCP");
+                // opencode reads ONLY this config (its own XDG_CONFIG_HOME): the user's global servers and shell access are not in play.
+                // Everything is denied except reading and the orca-cad MCP, whose tools opencode exposes through its sandboxed
+                // JavaScript `execute` tool (no shell, no require, no filesystem). Verified with opencode 2.2.5.
+                fs::create_directories(tmp.string() + ".oc/opencode");
+                nlohmann::json ext = {{"/tmp/**", "allow"}};
+                for (const std::string& d : read_dirs) ext[d + "/**"] = "allow";
+                nlohmann::json oj = {
+                    {"permission", {{"bash", "deny"}, {"edit", "deny"}, {"write", "deny"}, {"patch", "deny"}, {"webfetch", "deny"},
+                                    {"websearch", "deny"}, {"task", "deny"}, {"todowrite", "deny"}, {"skill", "deny"},
+                                    {"read", "allow"}, {"glob", "allow"}, {"grep", "allow"}, {"external_directory", ext}}},
+                    {"mcp", {{"orca-cad", {{"type", "local"}, {"command", {"python3", bridge, sock}}, {"enabled", true}}}}},
+                    {"autoupdate", false}};
+                std::ofstream((tmp.string() + ".oc/opencode/opencode.json").c_str()) << oj.dump();
+                start_dir = tmp.string() + ".oc";
+                args = {"run", "--standalone", "--format", "json", "--model", model};
+                if (!session_id.empty()) { args.push_back("--session"); args.push_back(session_id); }
+                args.push_back(std::string(kSystemPrompt) + "\n\n" + prompt);
+            } else {
             nlohmann::json j = {{"mcpServers", {{"orca-cad", {{"command", "python3"}, {"args", {bridge, sock}}}}}}};
             std::ofstream(cfg.string()) << j.dump();
-            std::vector<std::string> args = {"-p", prompt, "--output-format", "stream-json", "--verbose",
+            args = {"-p", prompt, "--output-format", "stream-json", "--verbose",
                                              "--mcp-config", cfg.string(), "--strict-mcp-config", "--allowedTools", "mcp__orca-cad,Read",
                                              "--append-system-prompt", kSystemPrompt};
             for (const std::string& d : read_dirs) { args.push_back("--add-dir"); args.push_back(d); }
             if (!session_id.empty()) { args.push_back("--resume"); args.push_back(session_id); }
             if (!model.empty()) { args.push_back("--model"); args.push_back(model); }
+            }
             for (const std::string& a : split_args(extra)) args.push_back(a);
 
             bp::ipstream out;
-            bp::child c(fs::path(exe), bp::args(args), bp::std_out > out, bp::std_err > errf.string(), bp::std_in.close());
+            bp::environment env = boost::this_process::environment();
+            if (oc) env["XDG_CONFIG_HOME"] = tmp.string() + ".oc";
+            bp::child c(fs::path(exe), bp::args(args), bp::env = env, bp::start_dir = start_dir.empty() ? fs::temp_directory_path() : start_dir,
+                        bp::std_out > out, bp::std_err > errf.string(), bp::std_in.close());
             run->set_child(&c);
-            std::string line;
+            std::string line, oc_session, oc_text;
             while (std::getline(out, line)) {
                 if (line.empty() || line[0] != '{') continue;
                 nlohmann::json ev = nlohmann::json::parse(line, nullptr, false);
                 if (ev.is_discarded()) continue;
                 const std::string type = ev.value("type", "");
+                if (oc) {
+                    // opencode --format json: step_start / text / tool_use / step_finish, each with sessionID and a "part".
+                    oc_session = ev.value("sessionID", oc_session);
+                    const nlohmann::json part = ev.contains("part") ? ev["part"] : nlohmann::json::object();
+                    LlmEvent e;
+                    if (type == "text") { e.kind = LlmEvent::Text; e.text = part.value("text", ""); oc_text = e.text; }
+                    else if (type == "tool_use") {
+                        e.kind = LlmEvent::Tool;
+                        const nlohmann::json in = part.contains("state") && part["state"].contains("input") ? part["state"]["input"] : nlohmann::json::object();
+                        e.text = part.value("tool", "") + "  " + clip(in.value("code", in.dump()), 200);
+                    } else continue;
+                    if (!e.text.empty()) post([on_event, e]() { on_event(e); });
+                    continue;
+                }
                 if (type == "assistant" && ev.contains("message") && ev["message"].contains("content") && ev["message"]["content"].is_array()) {
                     for (const auto& blk : ev["message"]["content"]) {
                         const std::string bt = blk.value("type", "");
@@ -162,6 +215,11 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
             }
             c.wait();
             run->set_child(nullptr);
+            if (oc && !oc_text.empty() && !run->cancelled()) {
+                // opencode has no final "result" event: its last text is the reply.
+                LlmEvent e; e.kind = LlmEvent::Result; e.text = oc_text; e.session_id = oc_session; got_result = true;
+                post([on_event, e]() { on_event(e); });
+            }
             ok = got_result && c.exit_code() == 0;
             if (run->cancelled()) err = "stopped";
             else if (!ok) {
@@ -174,7 +232,7 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
             err = e.what();
         }
         boost::system::error_code ec;
-        fs::remove(cfg, ec); fs::remove(errf, ec);
+        fs::remove(cfg, ec); fs::remove(errf, ec); fs::remove_all(tmp.string() + ".oc", ec);
         g_busy = false;
         post([done, ok, err]() { done(ok, err); });
     }).detach();
