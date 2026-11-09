@@ -38,5 +38,7 @@
 	"preheat_time": "90",
 	"filename_format": "{input_filename_base}_{layer_height}mm_{print_time}_J1.gcode",
 	"small_perimeter_threshold": "0",
-	"support_material_synchronize_layers": "1"
+	"support_material_synchronize_layers": "1",
+	"top_color_penetration_layers": "4",
+	"bottom_color_penetration_layers": "3"
 }

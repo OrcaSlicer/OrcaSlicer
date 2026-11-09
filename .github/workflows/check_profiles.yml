@@ -1,5 +1,7 @@
 name: Check profiles
 on:
+  # approve_pr_checks.yml approves these runs for first-time contributors and finds this
+  # workflow by its file name.
   pull_request:
     # release/* is included because pr-merge-bot.yml lets delegates merge into
     # it, and it gates on this workflow's result. Without it a delegated merge
@@ -13,6 +15,7 @@ on:
     # both it and its tests live in scripts/, so a PR touching only those must still run
     # this workflow.
     - 'resources/printers/**'
+    - 'resources/info/legacy_compatible_printers.json'
     - 'scripts/**'
     # orca_profile_tool.py reads the variant key sets from PrintConfig.cpp, and its
     # tests the obsolete keys, so a PR changing either must be checked against the profiles.
@@ -36,6 +39,9 @@ jobs:
     # delegated merge. Renaming it silently disables that gate.
     name: Check profiles
     runs-on: ubuntu-24.04
+    # approve_pr_checks.yml starts first-time contributors' runs without a maintainer looking
+    # at the pull request first. A run takes 2-6 minutes; this bounds a runaway one.
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -59,6 +65,36 @@ jobs:
           python3 ./scripts/orca_profile_tool.py check 2>&1 | tee ${{ runner.temp }}/profile_tool.log
           exit ${PIPESTATUS[0]}
 
+      # The app installs a bundled profile only when its version is newer than the installed
+      # one, and the OTA profile update is named after it, so a changed bundle whose
+      # <Vendor>.json keeps its version never reaches users. HEAD is the PR's merge commit, so
+      # HEAD^1 is the base it merges onto.
+      - name: Check that changed bundles bumped their version
+        id: version_bump
+        if: ${{ github.event_name == 'pull_request' }}
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          {
+            git fetch --no-tags --depth=2 origin "$(git rev-parse HEAD)" &&
+            python3 ./scripts/orca_profile_tool.py version-check --base HEAD^1 --head HEAD
+          } 2>&1 | tee ${{ runner.temp }}/version_bump.log
+
+      # The app migrates user filament presets made against 2.4.2 back to the printers their
+      # parent listed then, from resources/info/legacy_compatible_printers.json. A PR that
+      # renames a filament preset or narrows its compatible_printers changes what that map
+      # must say, so it has to regenerate it.
+      - name: Check the legacy compatible printers map
+        id: legacy_compat
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          base="${{ runner.temp }}/v2.4.2"
+          git fetch --no-tags --depth=1 origin refs/tags/v2.4.2:refs/tags/v2.4.2
+          mkdir -p "$base"
+          git archive v2.4.2 resources/profiles | tar -x -C "$base"
+          python3 ./scripts/orca_profile_tool.py legacy-compat --base "$base/resources/profiles" --check 2>&1 | tee ${{ runner.temp }}/legacy_compat.log
+
       # download
       - name: Download
         working-directory: ${{ github.workspace }}
@@ -74,12 +110,26 @@ jobs:
           set +e
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_system.log
           exit ${PIPESTATUS[0]}
+      # The validator above is the nightly build of main, so it cannot slice profiles that use
+      # settings a PR adds to the engine: it reports their placeholders as undefined. A PR that
+      # changes src/ also runs Build all, whose Slice check runs this same sweep with the
+      # validator built from the PR, so the sweep below only runs for the other PRs.
+      - name: Detect engine changes
+        id: engine_changes
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          base=${{ github.event.pull_request.base.sha }}
+          if git fetch --no-tags --depth=1 origin "$base" && ! git diff --quiet "$base" HEAD -- src/; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::This PR changes src/, so Build all's Slice check slices the profiles with the PR-built validator."
+          fi
       # Slice a two-colour cube through every printer, and through every system process/filament whose
       # templates no printer's own slice reaches, so every custom g-code and filename_format shipped is
       # expanded (names in {if} branches not taken included) - catches undefined-placeholder /
       # invalid-flow bugs the static checks above cannot see.
       - name: validate slice (expand custom g-code)
         id: validate_slice
+        if: ${{ steps.engine_changes.outputs.changed != 'true' }}
         continue-on-error: true
         run: |
           set +e
@@ -202,8 +252,33 @@ jobs:
           mkdir -p ${{ runner.temp }}/profile-check-results
           echo "${{ github.event.pull_request.number }}" > ${{ runner.temp }}/profile-check-results/pr_number.txt
 
+      # Builds a readable diff of the custom G-code the PR changes, which GitHub shows as
+      # one long line per setting, for check_profiles_comment.yml to post.
+      - name: Diff custom G-code
+        if: ${{ always() && github.event_name == 'pull_request' }}
+        continue-on-error: true
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git fetch --no-tags --depth=2 origin "$(git rev-parse HEAD)"
+          results=${{ runner.temp }}/profile-check-results
+          diff=${{ runner.temp }}/gcode_diff.md
+          # HEAD is the PR's merge commit, so HEAD^1 is the base it merges onto.
+          python3 ./scripts/orca_profile_tool.py gcode-diff --base HEAD^1 --head HEAD > "$diff"
+          if [ -s "$diff" ]; then
+            {
+              echo "<!-- profile-gcode-diff-comment -->"
+              cat "$diff"
+              echo ""
+              # The comment workflow finds this line as the only one starting with <sub>.
+              echo "<sub>For commit ${PR_HEAD_SHA} of this PR.</sub>"
+            } > "$results/gcode_diff.md"
+          fi
+          # Tells the comment workflow that a missing gcode_diff.md means no G-code changed.
+          touch "$results/gcode_diff_done.txt"
+
       - name: Prepare comment artifact
-        if: ${{ always() && github.event_name == 'pull_request' && (steps.profile_tool.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_slice.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.profile_tool.outcome == 'failure' || steps.version_bump.outcome == 'failure' || steps.legacy_compat.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_slice.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           {
             # Marker matched by check_profiles_comment.yml to delete prior comments.
@@ -217,6 +292,28 @@ jobs:
               echo '```'
               head -c 30000 ${{ runner.temp }}/profile_tool.log || echo "No output captured"
               echo '```'
+              echo ""
+            fi
+
+            if [ "${{ steps.version_bump.outcome }}" = "failure" ]; then
+              echo "### Profile Version Not Bumped"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/version_bump.log || echo "No output captured"
+              echo '```'
+              echo ""
+              echo 'Every changed bundle needs a newer `version` in its `resources/profiles/<Vendor>.json`, or the app never installs the change.'
+              echo ""
+            fi
+
+            if [ "${{ steps.legacy_compat.outcome }}" = "failure" ]; then
+              echo "### Legacy Compatible Printers Map Out of Date"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/legacy_compat.log || echo "No output captured"
+              echo '```'
+              echo ""
+              echo 'Regenerate it: `git archive v2.4.2 resources/profiles | tar -x -C /tmp/v2.4.2`, then `python3 scripts/orca_profile_tool.py legacy-compat --base /tmp/v2.4.2/resources/profiles`.'
               echo ""
             fi
 
@@ -269,7 +366,7 @@ jobs:
           retention-days: 1
 
       - name: Fail if any check failed
-        if: ${{ always() && (steps.profile_tool.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_slice.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && (steps.profile_tool.outcome == 'failure' || steps.version_bump.outcome == 'failure' || steps.legacy_compat.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_slice.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           echo "One or more profile checks failed; see the step logs above."
           echo 'Reproduce the whole run locally with scripts/check_profile.sh (scripts\check_profile.bat on Windows).'

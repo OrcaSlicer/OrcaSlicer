@@ -45,7 +45,6 @@
 #include "MainFrame.hpp"
 #include "MediaPlayCtrl.h"
 #include "MediaFilePanel.h"
-#include "Plater.hpp"
 #include "BindDialog.hpp"
 
 #include "DeviceCore/DevManager.h"

@@ -31,6 +31,8 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 
+using namespace Slic3r;
+
 namespace {
 
 const char *const BELOW_PAD_TEST_OBJECTS[] = {

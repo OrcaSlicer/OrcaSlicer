@@ -252,8 +252,8 @@ bool GLGizmoBrimEars::unproject_on_mesh2(const Vec2d &mouse_pos, std::pair<Vec3f
     double               clp_dist        = m_c->object_clipper()->get_position();
     const ClippingPlane *clp             = m_c->object_clipper()->get_clipping_plane();
     bool                 mouse_on_object = false;
-    Vec3f                position_on_model {};
-    Vec3f                normal_on_model {};
+    Vec3f                position_on_model { Vec3f::Zero() };
+    Vec3f                normal_on_model   { Vec3f::Zero() };
     double               closest_hit_distance = std::numeric_limits<double>::max();
 
     for (auto item : m_mesh_raycaster_map) {
@@ -818,7 +818,8 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
         }
 
         if (has_invalid_ears) {
-            wxString out = _L("Warning") + ": " + std::to_string(m_single_brim.size()) + " " + _L("invalid brim ears");
+            const int n_invalid = int(m_single_brim.size());
+            wxString out = _L("Warning") + ": " + wxString::Format(_L_PLURAL("%d invalid brim ear", "%d invalid brim ears", n_invalid), n_invalid);
             m_imgui->text_wrapped(out, parent_width);
         }
 

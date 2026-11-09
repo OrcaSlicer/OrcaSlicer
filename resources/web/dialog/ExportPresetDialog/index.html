@@ -10,7 +10,7 @@
     <link rel="stylesheet" type="text/css" href="../css/theme.css" />
     <script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
     <script type="text/javascript" src="../js/json2.js"></script>	
-    <script type="text/javascript" src="../../data/text.js"></script>	
+    <script type="text/javascript" src="../../include/i18n.js"></script>	
     <script type="text/javascript" src="../js/globalapi.js"></script>	
     <script type="text/javascript" src="../js/common.js"></script>
      <script src="./index.js"></script>
@@ -23,14 +23,14 @@
 		<div class="cbr-column-title-container">
 			<div class="search-icon"></div>
 			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="1"/>
-			<span class="cbr-search-placeholder trans" tid="t15">printer</span>
+			<span class="cbr-search-placeholder" data-i18n="printer">Printer</span>
 			<div class="clear-icon"></div>
 		</div>
 		<div class="cbr-content thin-scroll" id="MachineList">
 			<div class="CValues">
-				<label><input type="checkbox" mode="all" onClick="ChooseAllMachine()"  /><span class="trans" tid="t11">all</span></label>
+				<label><input type="checkbox" mode="all" onClick="ChooseAllMachine()"  /><span data-i18n="all">All</span></label>
 			</div>
-			<div class="cbr-no-items">No items</div>
+			<div class="cbr-no-items" data-i18n="no_items">No items</div>
 		</div>
 	</div>
 
@@ -38,14 +38,14 @@
 		<div class="cbr-column-title-container">
 			<div class="search-icon"></div>
 			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="2"/>
-			<span class="cbr-search-placeholder trans" tid="t16">filament</span>
+			<span class="cbr-search-placeholder" data-i18n="filament">Filament</span>
 			<div class="clear-icon"></div>
 		</div>
 		<div class="cbr-content thin-scroll" id="FilatypeList">
 			<div class="CValues">
-				<label><input type="checkbox" class="trans" tid="t11" onClick="ChooseAllFilament()" /><span class="trans" tid="t11">all</span></label>	
+				<label><input type="checkbox" onClick="ChooseAllFilament()" /><span data-i18n="all">All</span></label>	
 			</div>
-			<div class="cbr-no-items">No items</div>
+			<div class="cbr-no-items" data-i18n="no_items">No items</div>
 		</div>
 	</div>
 
@@ -53,22 +53,22 @@
 		<div class="cbr-column-title-container">
 			<div class="search-icon"></div>
 			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="3"/>
-			<span class="cbr-search-placeholder trans" tid="t17">presets</span>
+			<span class="cbr-search-placeholder" data-i18n="process">Process</span>
 			<div class="clear-icon"></div>
 		</div>
 		<div class="cbr-content thin-scroll" id="PresetList">
 			<div class="CValues">
-				<label><input type="checkbox" class="trans" tid="t11" onClick="ChooseAllPreset()" /><span class="trans" tid="t11">all</span></label>
+				<label><input type="checkbox" onClick="ChooseAllPreset()" /><span data-i18n="all">All</span></label>
 			</div>
-			<div class="cbr-no-items">No items</div>
+			<div class="cbr-no-items" data-i18n="no_items">No items</div>
 		</div>
 	</div>
 </div>
 
 <div id="AcceptArea">
-    <div id="export_cloud_btn" class="ButtonStyleConfirm ButtonTypeChoice">Export to OrcaCloud</div>
-    <div id="export_local_btn" class="ButtonStyleRegular ButtonTypeChoice">Export to folder</div>
-    <div id="close_btn" class="ButtonStyleRegular ButtonTypeChoice">Close</div>
+    <div id="export_cloud_btn" class="ButtonStyleConfirm ButtonTypeChoice" data-i18n="export_cloud">Export to OrcaCloud</div>
+    <div id="export_local_btn" class="ButtonStyleRegular ButtonTypeChoice" data-i18n="export_folder">Export to folder</div>
+    <div id="close_btn" class="ButtonStyleRegular ButtonTypeChoice" data-i18n="close">Close</div>
 </div>
 
 </body>

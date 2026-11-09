@@ -13,8 +13,8 @@
 #include "assign_scalar.h"
 
 #include <CGAL/AABB_tree.h>
-#include <CGAL/AABB_traits.h>
-#include <CGAL/AABB_triangle_primitive.h>
+#include <CGAL/AABB_traits_3.h>
+#include <CGAL/AABB_triangle_primitive_3.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 
 #include <cassert>
@@ -35,8 +35,8 @@ namespace igl {
             typedef Kernel::Triangle_3 Triangle;
             typedef Kernel::Plane_3 Plane_3;
             typedef std::vector<Triangle>::iterator Iterator;
-            typedef CGAL::AABB_triangle_primitive<Kernel, Iterator> Primitive;
-            typedef CGAL::AABB_traits<Kernel, Primitive> AABB_triangle_traits;
+            typedef CGAL::AABB_triangle_primitive_3<Kernel, Iterator> Primitive;
+            typedef CGAL::AABB_traits_3<Kernel, Primitive> AABB_triangle_traits;
             typedef CGAL::AABB_tree<AABB_triangle_traits> Tree;
 
             template<typename DerivedF, typename DerivedI>

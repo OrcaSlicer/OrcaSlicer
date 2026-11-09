@@ -5,6 +5,7 @@
 #include "slic3r/GUI/CAD/SketchInlineEditor.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include "libslic3r/format.hpp"
 #include "libslic3r/Utils.hpp"
 
@@ -902,8 +903,11 @@ void DesignSketchTool::resolve_live_drag(int dragged_ei, SketchPointRole dragged
         if (int(r.skipped.size()) != m_skipped_last) {
             m_skipped_last = int(r.skipped.size());
             if (m_skipped_last > 0)
-                notify(format(_u8L("%1% constraint(s) cannot act on this geometry (an ellipse or spline curve, "
-                                   "or a zero-size circle) and are ignored"), m_skipped_last), false);
+                notify(format(into_u8(_L_PLURAL("%1% constraint cannot act on this geometry (an ellipse or spline curve, "
+                                                "or a zero-size circle) and is ignored",
+                                                "%1% constraints cannot act on this geometry (an ellipse or spline curve, "
+                                                "or a zero-size circle) and are ignored", m_skipped_last)),
+                              m_skipped_last), false);
         }
         // Flag every entity referenced by a conflicting constraint so render() can
         // tint it red (Onshape/SolveSpace over-constrained feedback), and remember which
@@ -8978,7 +8982,8 @@ void DesignSketchTool::confirm_op()
                 || self_len(d, a) || self_len(d, b);
         });
         if (released > 0)
-            notify(format(_u8L("%1% constraint(s) the fillet/chamfer invalidated were removed"), released), false);
+            notify(format(into_u8(_L_PLURAL("%1% constraint the fillet/chamfer invalidated was removed",
+                                            "%1% constraints the fillet/chamfer invalidated were removed", released)), released), false);
         auto coin = [&](R xr, int ln, R lr) {
             SketchEntityConstraintDef d; d.type = CT::Coincident; d.ea = xi; d.ra = xr; d.eb = ln; d.rb = lr; return d; };
         if (fillet) {
@@ -9427,7 +9432,8 @@ void DesignSketchTool::confirm_transform()
             }
         });
         if (released > 0)
-            notify(format(_u8L("%1% constraint(s) released by the transform"), released), false);
+            notify(format(into_u8(_L_PLURAL("%1% constraint released by the transform",
+                                            "%1% constraints released by the transform", released)), released), false);
     } else if (m_mode == Mode::Array || m_mode == Mode::PolarArray) {
         // ADDITIVE: append copies of each subject, then bind each copy to its source. Lines
         // get Parallel+EqualLength (linear) or EqualLength only (polar — rotation breaks

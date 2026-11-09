@@ -25,6 +25,7 @@ public:
     //       pattern is placed on top of previous layers
     bool use_bridge_flow() const override { return false; }
     bool is_self_crossing() override { return false; }
+    bool aligned_to_origin() const override { return true; }
 
 protected:
 	void _fill_surface_single(

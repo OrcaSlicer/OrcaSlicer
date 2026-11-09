@@ -50,7 +50,6 @@
 #include "AboutDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Plater.hpp"
-#include "format.hpp"
 
 #include "WebUserLoginDialog.hpp"
 
@@ -264,8 +263,18 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 			}
 			break;
 		case coPoints:{
+			if (opt_key == "bed_exclude_area" && boost::any_cast<std::string>(&value) != nullptr) {
+				// Tab handles pasted volume syntax after this callback. Do not
+				// deserialize it as points: failure would erase the saved area
+				// before the user can accept or cancel the copy operation.
+				break;
+			}
 			if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area" ) {
 				config.option<ConfigOptionPoints>(opt_key)->values = boost::any_cast<std::vector<Vec2d>>(value);
+				if (opt_key == "bed_exclude_area") {
+					ConfigOptionPoints normalized(boost::any_cast<std::vector<Vec2d>>(value));
+					config.option<ConfigOptionPoints>(opt_key)->deserialize(normalized.serialize());
+				}
 				break;
 			}
             auto vec_new = std::make_unique<ConfigOptionPoint>(boost::any_cast<Vec2d>(value));

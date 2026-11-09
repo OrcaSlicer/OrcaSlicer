@@ -20,6 +20,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/FilamentLoad.hpp
     GUI/AboutDialog.cpp
     GUI/AboutDialog.hpp
+    GUI/AnimatedTexture.cpp
+    GUI/AnimatedTexture.hpp
     GUI/AmsMappingPopup.cpp
     GUI/AmsMappingPopupUpdate.cpp
     GUI/AmsMappingPopup.hpp
@@ -99,6 +101,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/ConfigValueFormatter.hpp
     GUI/ConfigWizard.cpp
     GUI/ConfigWizard.hpp
+    GUI/ConfigWizardTypes.hpp
     GUI/ConfigWizard_private.hpp
     GUI/ConnectPrinter.cpp
     GUI/ConnectPrinter.hpp
@@ -121,12 +124,16 @@ set(SLIC3R_GUI_SOURCES
     GUI/PluginStatus.hpp
     GUI/PluginPickerDialog.cpp
     GUI/PluginPickerDialog.hpp
+    GUI/PluginPermissionValidation.cpp
+    GUI/PluginPermissionValidation.hpp
     GUI/PluginsDialog.cpp
     GUI/PluginsDialog.hpp
     GUI/Shortcuts.cpp
     GUI/Shortcuts.hpp
     GUI/SpeedDialDialog.cpp
     GUI/SpeedDialDialog.hpp
+    GUI/ColorPickerDialog.cpp
+    GUI/ColorPickerDialog.hpp
     GUI/ActionRegistry.cpp
     GUI/ActionRegistry.hpp
     GUI/NativeCommands.cpp
@@ -174,6 +181,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoAssembly.hpp
     GUI/Gizmos/GLGizmoBase.cpp
     GUI/Gizmos/GLGizmoBase.hpp
+    GUI/Gizmos/GLGizmoAlignment.cpp
+    GUI/Gizmos/GLGizmoAlignment.hpp
     GUI/Gizmos/GLGizmoBrimEars.cpp
     GUI/Gizmos/GLGizmoBrimEars.hpp
     GUI/Gizmos/GLGizmoCut.cpp
@@ -216,6 +225,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoUtils.hpp
     GUI/GLCanvas3D.cpp
     GUI/GLCanvas3D.hpp
+    GUI/SequentialPrintClearance.hpp
     GUI/GLModel.cpp
     GUI/GLModel.hpp
     GUI/GLSelectionRectangle.cpp
@@ -283,6 +293,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/FilamentMapDialog.hpp
     GUI/IconManager.cpp
     GUI/IconManager.hpp
+    GUI/IMEXFilamentPickerPopover.cpp
+    GUI/IMEXFilamentPickerPopover.hpp
+    GUI/IMEXModesCtrl.cpp
+    GUI/IMEXModesCtrl.hpp
     GUI/IdleScheduler.cpp
     GUI/IdleScheduler.hpp
     GUI/ImageGrid.cpp
@@ -412,8 +426,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/MultiSendMachineModel.hpp
     GUI/MultiTaskManagerPage.cpp
     GUI/MultiTaskManagerPage.hpp
-    GUI/MultiTaskModel.cpp
-    GUI/MultiTaskModel.hpp
     GUI/NetworkTestDialog.cpp
     GUI/NetworkTestDialog.hpp
     GUI/Notebook.cpp
@@ -430,12 +442,16 @@ set(SLIC3R_GUI_SOURCES
     GUI/OpenGLManager.hpp
     GUI/OptionsGroup.cpp
     GUI/OptionsGroup.hpp
+    GUI/OptionStateRegistry.hpp
+    GUI/OptionStateRegistry.cpp
     GUI/ParamsDialog.cpp
     GUI/ParamsDialog.hpp
     GUI/ParamsPanel.cpp
     GUI/ParamsPanel.hpp
     GUI/PartPlate.cpp
     GUI/PartPlate.hpp
+    GUI/BeltPurgeTower.cpp
+    GUI/BeltPurgeTower.hpp
     GUI/FilamentGroupPopup.hpp
     GUI/FilamentGroupPopup.cpp
     GUI/PhysicalPrinterDialog.cpp
@@ -455,6 +471,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/PresetComboBoxes.hpp
     GUI/PresetHints.cpp
     GUI/PresetHints.hpp
+    GUI/PrimitiveSizeDialog.cpp
+    GUI/PrimitiveSizeDialog.hpp
     GUI/PrinterCloudAuthDialog.cpp
     GUI/PrinterCloudAuthDialog.hpp
     GUI/Printer/PrinterFileSystem.cpp
@@ -493,6 +511,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/SceneRaycaster.hpp
     GUI/SceneCache.cpp
     GUI/SceneCache.hpp
+    GUI/SelectionOutline.cpp
+    GUI/SelectionOutline.hpp
     GUI/FrameProfiler.cpp
     GUI/FrameProfiler.hpp
     GUI/SceneBenchmark.cpp
@@ -533,6 +553,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/StatusPanel.hpp
     GUI/StepMeshDialog.cpp
     GUI/StepMeshDialog.hpp
+    GUI/GeometryImportDialog.cpp
+    GUI/GeometryImportDialog.hpp
     GUI/SurfaceDrag.cpp
     GUI/SurfaceDrag.hpp
     GUI/Tabbook.cpp
@@ -567,8 +589,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/UserNotification.hpp
     GUI/UVEditorCanvas.cpp
     GUI/UVEditorCanvas.hpp
-    GUI/WebDownPluginDlg.cpp
-    GUI/WebDownPluginDlg.hpp
     GUI/WebGuideDialog.cpp
     GUI/WebGuideDialog.hpp
     GUI/WebUserLoginDialog.cpp
@@ -683,10 +703,13 @@ set(SLIC3R_GUI_SOURCES
     plugin/host/PluginHostUi.hpp
     plugin/host/PluginPages.cpp
     plugin/host/PluginPages.hpp
+    plugin/host/PluginResourceTextures.cpp
+    plugin/host/PluginResourceTextures.hpp
     plugin/CloudPluginService.cpp
     plugin/CloudPluginService.hpp
     plugin/PluginFsUtils.cpp
     plugin/PluginFsUtils.hpp
+    plugin/PluginJsonPy.hpp
     plugin/PluginConfig.cpp
     plugin/PluginConfig.hpp
     plugin/PluginLoader.cpp
@@ -706,6 +729,9 @@ set(SLIC3R_GUI_SOURCES
     plugin/pluginTypes/pages/PagesPluginCapability.hpp
     plugin/pluginTypes/pages/PagesPluginCapability.cpp
     plugin/pluginTypes/pages/PagesPluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp
+    plugin/pluginTypes/resourceTexture/ResourceTexturePluginCapability.cpp
+    plugin/pluginTypes/resourceTexture/ResourceTexturePluginCapabilityTrampoline.hpp
     plugin/pluginTypes/script/ScriptPluginCapability.hpp
     plugin/pluginTypes/script/ScriptPluginCapability.cpp
     plugin/pluginTypes/script/ScriptPluginCapabilityTrampoline.hpp
@@ -716,6 +742,7 @@ set(SLIC3R_GUI_SOURCES
     pchheader.hpp
     Utils/ASCIIFolding.cpp
     Utils/ASCIIFolding.hpp
+    Utils/AsioUtils.hpp
     Utils/AstroBox.cpp
     Utils/AstroBox.hpp
     Utils/bambu_networking.hpp
@@ -727,8 +754,12 @@ set(SLIC3R_GUI_SOURCES
     Utils/PaintCLI.hpp
     Utils/CalibUtils.cpp
     Utils/CalibUtils.hpp
+    Utils/CloudDeleteQueue.cpp
+    Utils/CloudDeleteQueue.hpp
     Utils/ColorSpaceConvert.cpp
     Utils/ColorSpaceConvert.hpp
+    Utils/CrealityCfs.cpp
+    Utils/CrealityCfs.hpp
     Utils/CrealityPrint.cpp
     Utils/CrealityPrint.hpp
     Utils/CrealityPrintAgent.cpp
@@ -800,7 +831,6 @@ set(SLIC3R_GUI_SOURCES
     Utils/PrintHost.hpp
     Utils/Process.cpp
     Utils/Process.hpp
-    Utils/Profile.hpp
     Utils/RaycastManager.cpp
     Utils/RaycastManager.hpp
     Utils/Repetier.cpp
@@ -879,6 +909,10 @@ if (APPLE)
             GUI/DeepLinkHandlerMac.mm
             GUI/DeepLinkHandlerMac.h
             GUI/GUI_UtilsMac.mm
+            GUI/MacIME.mm
+            GUI/MacIME.hpp
+            GUI/Accessibility/AccessibilityMac.mm
+            GUI/Accessibility/AccessibilityMac.h
         )
     FIND_LIBRARY(DISKARBITRATION_LIBRARY DiskArbitration)
 endif ()

@@ -8,6 +8,7 @@
 #include <atomic>
 #include <boost/thread/detail/thread.hpp>
 #include <libslic3r/PresetBundle.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <memory>
 #include <slic3r/GUI/GUI.hpp>
 #include <string>
@@ -63,6 +64,7 @@ public:
 
     // webview events
     void on_script_message(const nlohmann::json& payload) override;
+    nlohmann::json localized_strings() const override;
 
     void StartDialogWorker();
     void StopDialogWorker();

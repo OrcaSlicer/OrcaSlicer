@@ -290,6 +290,34 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
         return result;
     }
 
+    // Colour per face, taken here and carried from here on. This is the only point where the paint mask
+    // is exact: `exclude_weight` says which faces the paint left out, and the mesh is still the refined
+    // one the displacement produced. Everything downstream (the collapse, the T-junction repair) carries
+    // these along rather than sampling again, and the caller uses them as they are.
+    //
+    // It also gives the collapse its crease criterion: an edge between two colours is never collapsed
+    // across, which is what keeps a survivor's colour well defined.
+    if (color_sample) {
+        const size_t nf = displaced.triangle_count();
+        result.face_color.assign(nf, -1);
+        const bool have_w = !displaced.exclude_weight.empty();
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, nf), [&](const tbb::blocked_range<size_t> &r) {
+            for (size_t t = r.begin(); t < r.end(); ++t) {
+                // Unpainted faces take no colour at all, which is what stops the texture appearing on
+                // surfaces the paint never covered.
+                if (have_w && (displaced.exclude_weight[t * 3] + displaced.exclude_weight[t * 3 + 1] +
+                               displaced.exclude_weight[t * 3 + 2]) / 3.f > 0.99f)
+                    continue; // stays FACE_UNPAINTED
+                const Vec3f &a = displaced.pos[t * 3], &b = displaced.pos[t * 3 + 1], &c = displaced.pos[t * 3 + 2];
+                const int    sampled = color_sample((a + b + c) / 3.f, displaced.nrm[t * 3]);
+                // Painted either way. The sampler expects a point on the base surface and these are on
+                // the displaced one, so off the patch by more than its tolerance it simply says "no
+                // colour" - which must not be confused with "not painted".
+                result.face_color[t] = (sampled >= 0) ? sampled : FACE_NO_COLOUR;
+            }
+        });
+    }
+
     // 4. Decimate - export only. A bake needs the face-parent map, which a collapse destroys.
     std::vector<int>   parent                   = std::move(sub.face_parent_id);
     const size_t       displaced_before_decimate = displaced.triangle_count();
@@ -323,24 +351,8 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
         // unless the budget was lowered until decimation had to run. Only collapses costing less than
         // harvest_tol are taken, so this does not reach the relief.
         const bool harvest_only = !over_budget && settings.harvest_flat && displaced.triangle_count() > 0;
+        std::vector<int> &face_color = result.face_color;
         if (over_budget || harvest_only) {
-            // Colour per face on the fine mesh, so colour boundaries become creases the collapse
-            // respects. Excluded (unpainted) faces take no colour.
-            std::vector<int> face_color;
-            if (color_sample) {
-                const size_t nf = displaced.triangle_count();
-                face_color.assign(nf, -1);
-                const bool have_w = !displaced.exclude_weight.empty();
-                tbb::parallel_for(tbb::blocked_range<size_t>(0, nf), [&](const tbb::blocked_range<size_t> &r) {
-                    for (size_t t = r.begin(); t < r.end(); ++t) {
-                        if (have_w && (displaced.exclude_weight[t * 3] + displaced.exclude_weight[t * 3 + 1] +
-                                       displaced.exclude_weight[t * 3 + 2]) / 3.f > 0.99f)
-                            continue;
-                        const Vec3f &a = displaced.pos[t * 3], &b = displaced.pos[t * 3 + 1], &c = displaced.pos[t * 3 + 2];
-                        face_color[t] = color_sample((a + b + c) / 3.f, displaced.nrm[t * 3]);
-                    }
-                });
-            }
             // Harvesting alone is asked for by handing it the count it already has: nothing is then
             // over the target, so the loop only ever pops collapses under the tolerance.
             const size_t before = displaced.triangle_count();
@@ -350,6 +362,7 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
             result.locked_over_budget = dec.locked_over_budget;
             result.budget_limited     = result.simplified = dec.target_cost_detail;
             displaced                 = std::move(dec.geometry);
+            face_color                = std::move(dec.face_color);
             lap("decimate", displaced, over_budget ? "over budget, simplified" : "flat faces harvested");
             BOOST_LOG_TRIVIAL(info) << "TextureBake decimate: " << before << " -> " << displaced.triangle_count()
                                     << (over_budget ? " (budget " : " (flat harvest, budget ") << target << ")";
@@ -377,7 +390,7 @@ PipelineResult run_pipeline(const TriSoup &input, const HeightSampleFn &sample,
 
     // 6. Close the T-junctions decimation left behind. Only meaningful when it ran.
     if (mode == PipelineMode::Export && parent.empty()) {
-        displaced = resolve_t_junctions(displaced);
+        displaced = resolve_t_junctions(displaced, {}, &result.face_color);
         lap("repair", displaced);
     }
 

@@ -108,9 +108,27 @@ using PipelineProgressFn = std::function<bool(const char *stage, double fraction
 // colour-boundary creases. Only consulted when the mesh is over budget.
 using ColorSampleFn = std::function<int(const Vec3f &centroid, const Vec3f &normal)>;
 
+// Sentinels for PipelineResult::face_color.
+static constexpr int FACE_UNPAINTED = -1; // the paint did not cover this face's origin
+static constexpr int FACE_NO_COLOUR = -2; // painted, but the sampler returned nothing at this point
+
 struct PipelineResult
 {
     TriSoup geometry;
+    // One entry per output face, carried through decimation, the T-junction repair and the weld.
+    // FACE_UNPAINTED means the paint never covered the geometry this face came from; anything else means
+    // it did, and is the palette index `color_sample` returned there (FACE_NO_COLOUR when it returned
+    // none). The distinction matters: the sampler answers for points on the *base* surface, and these
+    // are sampled on the displaced one, so a painted face can easily come back without a colour. Only
+    // the painted/unpainted split is reliable here, and that is what a caller should use it for.
+    //
+    // Empty unless the caller gave a `color_sample`.
+    //
+    // A caller that needs per-face colour must use this rather than sampling the result again. The
+    // result is displaced geometry: a point on it is no longer where its base surface was, so matching
+    // it back by proximity colours whatever base surface happens to be nearest - which on a part thinner
+    // than the relief depth is the *opposite* face, picking up the texture meant for the painted one.
+    std::vector<int> face_color;
     // Output face -> input face. Empty in Export mode, where decimation invalidates it.
     std::vector<int> face_parent_id;
     bool             safety_cap_hit     = false;

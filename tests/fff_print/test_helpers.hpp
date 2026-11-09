@@ -78,6 +78,10 @@ Slic3r::Model model(const std::string& model_name, TriangleMesh&& _mesh);
 DynamicPrintConfig multifilament_config(unsigned int filaments,
     std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> extra = {});
 
+// Repeat multifilament_config's single flush block, and the flush multipliers, once per nozzle.
+// Call after setting nozzle_diameter to more than one nozzle.
+void size_flush_to_nozzles(DynamicPrintConfig &config);
+
 // Apply `meshes` and config to `print`/`model`, each object with `instances` copies; optional per-object overrides,
 // auto-arranged unless `arrange` is false.
 void init_print(std::vector<TriangleMesh> &&meshes, Slic3r::Print &print, Slic3r::Model &model, const DynamicPrintConfig &config_in,

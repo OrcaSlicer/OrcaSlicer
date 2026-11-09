@@ -28,7 +28,6 @@
 #include <wx/font.h>
 #include <wx/colour.h>
 #include <wx/settings.h>
-#include <wx/sizer.h>
 #include <wx/grid.h>
 #include <wx/dataview.h>
 #include <wx/panel.h>
@@ -36,14 +35,12 @@
 #include <wx/bitmap.h>
 #include <wx/image.h>
 #include <wx/icon.h>
-#include <wx/bmpbuttn.h>
 #include <wx/button.h>
 #include <wx/gbsizer.h>
 #include <wx/statbox.h>
 #include <wx/tglbtn.h>
 #include <wx/popupwin.h>
 #include <wx/spinctrl.h>
-#include <wx/artprov.h>
 #include <wx/webrequest.h>
 #include <map>
 #include <vector>

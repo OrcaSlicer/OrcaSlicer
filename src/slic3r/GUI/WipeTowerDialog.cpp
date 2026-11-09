@@ -38,8 +38,12 @@
 #include "Widgets/Label.hpp"
 #include "MainFrame.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Preset.hpp"
+#include "DeviceCore/DevConfigUtil.h"
+#include "DeviceCore/DevDefs.h"
 #include <nlohmann/json.hpp>
 #include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
 #include <boost/filesystem.hpp>
 
 using json = nlohmann::json;
@@ -409,14 +413,18 @@ wxString WipingDialog::BuildTextObjStr(bool multi_language)
     wxString ok_btn_label;
     wxString cancel_btn_label;
 
+    const std::string pt = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
+    const std::string extruder_name_0 = DevPrinterConfigUtil::get_toolhead_display_name(pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::SentenceCase);
+    const std::string extruder_name_1 = DevPrinterConfigUtil::get_toolhead_display_name(pt, MAIN_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::SentenceCase);
+
     if (multi_language) {
         auto_flush_tip = _L("Orca would re-calculate your flushing volumes everytime the filaments color changed or filaments changed. You could disable the auto-calculate in Orca Slicer > Preferences");
         volume_desp_panel = _L("Flushing volume (mm³) for each filament pair.");
         volume_range_panel = wxString::Format(_L("Suggestion: Flushing Volume in range [%d, %d]"), 0, 700);
-        multiplier_range_panel = wxString::Format(_L("The multiplier should be in range [%.2f, %.2f]."), 0, 3);
+        multiplier_range_panel = wxString::Format(_L("The multiplier should be in range [%.2f, %.2f]."), 0., 3.);
         calc_btn_panel = _L("Re-calculate");
-        extruder_label_0 = _L("Left extruder");
-        extruder_label_1 = _L("Right extruder");
+        extruder_label_0 = _L(extruder_name_0);
+        extruder_label_1 = _L(extruder_name_1);
         multiplier_label = _L("Multiplier");
         ok_btn_label = _L("OK");
         cancel_btn_label = _L("Cancel");
@@ -424,10 +432,10 @@ wxString WipingDialog::BuildTextObjStr(bool multi_language)
         auto_flush_tip = "Orca would re-calculate your flushing volumes everytime the filaments color changed or filaments changed. You could disable the auto-calculate in Orca Slicer > Preferences";
         volume_desp_panel = wxString::FromUTF8("Flushing volume (mm³) for each filament pair.");
         volume_range_panel = wxString::Format("Suggestion: Flushing Volume in range [%d, %d]", 0, 700);
-        multiplier_range_panel = wxString::Format("The multiplier should be in range [%.2f, %.2f].", 0, 3);
+        multiplier_range_panel = wxString::Format("The multiplier should be in range [%.2f, %.2f].", 0., 3.);
         calc_btn_panel = "Re-calculate";
-        extruder_label_0 = "Left extruder";
-        extruder_label_1 = "Right extruder";
+        extruder_label_0 = wxString::FromUTF8(extruder_name_0);
+        extruder_label_1 = wxString::FromUTF8(extruder_name_1);
         multiplier_label = "Multiplier";
         ok_btn_label = "OK";
         cancel_btn_label = "Cancel";
@@ -490,6 +498,12 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
         wxNO_BORDER);
 
     m_webview->AddScriptMessageHandler("wipingDialog");
+    // The page's strings (resources/web/flush/WipingDialog.html), keyed by their T() ids.
+    const nlohmann::json page_strings = {
+        // TRN Corner header of the flushing volume table: rows are the filament flushed from, columns the filament changed to.
+        {"from_to", _u8L("from/to")},
+    };
+    m_webview->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(page_strings)));
     main_sizer->Add(m_webview, 1, wxEXPAND);
 
     fs::path filepath = fs::path(resources_dir()) / "web/flush/WipingDialog.html";

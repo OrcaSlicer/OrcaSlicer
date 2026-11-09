@@ -17,6 +17,7 @@
 #include <libslic3r/Technologies.hpp>
 
 #include <wx/event.h>
+#include <wx/app.h>
 #include <limits>
 #include <memory>
 #include <wx/time.h>
@@ -197,6 +198,9 @@ enum class NotificationType
     // Active preset references a capability the installed+loaded plugin does not provide (outdated
     // plugin). Informational; cannot be auto-resolved; persistent, blocks slicing.
     OrcaPluginCapabilityUnavailableError,
+    // One aggregate notice that installed OrcaCloud plugins have updates. "More" opens the
+    // Plugins dialog, where the updates can be installed.
+    OrcaCloudPluginUpdateAvailable,
     NotificationTypeCount
 
 };
@@ -365,6 +369,8 @@ public:
     void render_notifications(GLCanvas3D &canvas, float overlay_width, float bottom_margin, float right_margin);
 	// finds and closes all notifications of given type
 	void close_notification_of_type(const NotificationType type);
+	// True while a notification of this type is on screen (not closed or finished).
+	bool has_notification_of_type(const NotificationType type) const;
     void remove_notification_of_type(const NotificationType type);
     void clear_all();
 	// Hides warnings in G-code preview. Should be called from plater only when 3d view/ preview is changed
@@ -1127,6 +1133,20 @@ private:
 				 wxQueueEvent(wxGetApp().plater(), evt);
 				 return true;
              }},
+
+        // One notice for all OrcaCloud plugin updates found by a successful metadata fetch.
+        NotificationData{NotificationType::OrcaCloudPluginUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL,
+                         _u8L("Updates are available for your OrcaCloud plugins."), _u8L("More"),
+                         [](wxEvtHandler*) {
+                             // Defer past the notification's render frame: the Plugins dialog is a
+                             // webview window and must not be created from inside an ImGui pass.
+                             if (wxTheApp != nullptr)
+                                 wxGetApp().CallAfter([] {
+                                     if (wxTheApp != nullptr && !wxGetApp().is_closing())
+                                         wxGetApp().open_plugins_dialog();
+                                 });
+                             return true;
+                         }},
 
         NotificationData{NotificationType::BBLPrinterConfigUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL,
                          _u8L("New printer config available."), _u8L("Details"),

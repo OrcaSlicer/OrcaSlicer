@@ -369,6 +369,25 @@ void Preview::reload_print(bool only_gcode)
     m_only_gcode = only_gcode;
 }
 
+void Preview::refresh_belt_view()
+{
+    // Re-run the G-code preview conversion so the belt "designed view" toggle takes effect
+    // (the back-transform is baked into the toolpath geometry in GCodeViewer::load_as_gcode,
+    // whose same-result cache also keys on the view state, so the re-convert runs).
+    // Reset m_loaded_print to bypass the "already loaded" guard the way reload_print does, but
+    // keep the current layer range and only-gcode mode so the view doesn't jump on toggle.
+    // The layer Z values differ between the designed and the raw view (the raw view's are
+    // machine-frame heights), so keep_z_range alone cannot find the old span: carry the
+    // slider over by layer index instead.
+    IMSlider *layers_slider = m_canvas->get_gcode_viewer().get_layers_slider();
+    const int lower  = layers_slider->GetLowerValue();
+    const int higher = layers_slider->GetHigherValue();
+    m_loaded_print = nullptr;
+    load_print(true /*keep_z_range*/, m_only_gcode);
+    if (higher <= layers_slider->GetMaxValue())
+        layers_slider->SetSelectionSpan(lower, higher);
+}
+
 //BBS: always load shell at preview
 void Preview::load_shells(const Print& print, bool force_previewing)
 {

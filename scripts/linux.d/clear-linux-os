@@ -6,10 +6,9 @@ export REQUIRED_BUNDLES=(
     c-basic
     dev-utils
     devpkg-curl
-    devpkg-glew
-    devpkg-glu
     devpkg-gstreamer
     devpkg-gtk3
+    devpkg-libglvnd
     devpkg-libmspack
     devpkg-libsecret
     devpkg-openssl

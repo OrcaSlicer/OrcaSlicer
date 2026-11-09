@@ -8,7 +8,6 @@
 #include <memory>
 #include <string>
 #include <functional>
-#include <string>
 
 #include "Jobs/ProgressIndicator.hpp"
 

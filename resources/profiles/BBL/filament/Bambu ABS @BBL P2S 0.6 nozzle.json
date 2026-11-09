@@ -5,6 +5,11 @@
     "from": "system",
     "setting_id": "GFSB00_36",
     "instantiation": "true",
+    "activate_air_filtration": [
+        "0",
+        "0",
+        "0"
+    ],
     "chamber_temperatures": [
         "65"
     ],

@@ -43,7 +43,12 @@ struct RepairOptions
     int max_iters = 16;
 };
 
-TriSoup resolve_t_junctions(const TriSoup &geometry, const RepairOptions &opts = {});
+// `face_color`, when given, is read as one entry per input face and rewritten to match the output: a
+// face split to close a T-junction hands its colour to every piece, and a degenerate face dropped on
+// the way takes its entry with it. Without this the caller would have no way to keep a per-face colour
+// across this pass, which changes the triangle count.
+TriSoup resolve_t_junctions(const TriSoup &geometry, const RepairOptions &opts = {},
+                            std::vector<int> *face_color = nullptr);
 
 } // namespace TextureBake
 } // namespace Slic3r

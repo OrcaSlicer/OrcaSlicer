@@ -3,6 +3,7 @@
 
 #include "libslic3r/CommonDefs.hpp"
 #include "libslic3r/libslic3r.h"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ArcFitter.hpp"
@@ -12,10 +13,13 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/CustomGCode.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
+#include "libslic3r/GCode/ExclusionVolumePathCheck.hpp"
+#include "libslic3r/GCode/MachineFrameTransform.hpp"
 
 #include <cstddef>
 #include <cassert>
 #include <cstdint>
+#include <algorithm>
 #include <array>
 #include <unordered_map>
 #include <utility>
@@ -33,6 +37,9 @@
 namespace Slic3r {
 
 class Print;
+
+// For a filament whose density is not set, in g/cm³.
+inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
 
 // slice warnings enum strings
 #define NOZZLE_HRC_CHECKER                                          "the_actual_nozzle_hrc_smaller_than_the_required_nozzle_hrc"
@@ -86,12 +93,12 @@ class Print;
 
         struct Mode
         {
-            float time;
+            double time;
             float prepare_time;
             std::vector<std::pair<CustomGCode::Type, std::pair<float, float>>> custom_gcode_times;
 
             void reset() {
-                time = 0.0f;
+                time = 0.0;
                 prepare_time = 0.0f;
                 custom_gcode_times.clear();
                 custom_gcode_times.shrink_to_fit();
@@ -269,9 +276,67 @@ class Print;
             std::vector<std::string> params;    // extra msg info
         };
 
+        // Material extruded for the plate, one object instance or one connected body of it, for their centers of mass.
+        struct ObjectMass
+        {
+            struct Sum
+            {
+                double mass{ 0. };
+                double volume{ 0. };
+                Vec3d  moment{ Vec3d::Zero() };
+                // Of the mass about the origin along each axis, the sums of m x^2, m y^2 and m z^2.
+                Vec3d second{ Vec3d::Zero() };
+                // And across the axes, the sums of m x y, m x z and m y z.
+                Vec3d cross{ Vec3d::Zero() };
+
+                void add(const Sum &other)
+                {
+                    mass += other.mass;
+                    volume += other.volume;
+                    moment += other.moment;
+                    second += other.second;
+                    cross += other.cross;
+                }
+                // The sum of m x x^T.
+                Matrix3d second_moments() const
+                {
+                    Matrix3d sums;
+                    sums << second.x(), cross.x(), cross.y(), cross.x(), second.y(), cross.z(), cross.y(), cross.z(), second.z();
+                    return sums;
+                }
+                void set_second_moments(const Matrix3d &sums)
+                {
+                    second = sums.diagonal();
+                    cross  = Vec3d(sums(0, 1), sums(0, 2), sums(1, 2));
+                }
+            };
+            // Everything printed up to each layer id, the plate's with brim, raft and supports, and the box it fills.
+            std::vector<Sum> printed_up_to_layer;
+            BoundingBoxf3    box;
+            // Of a belt print, the box of the moves mapped by the linear part of its G-code back-transform, as a shear would
+            // carry the corners of the box above far past the moves.
+            BoundingBoxf3 belt_box;
+            // Of an object, whether it is an assembly.
+            bool assembly{ false };
+            // Of an object instance, its model object's name and its index among that object's instances.
+            std::string name;
+            int         instance{ -1 };
+
+            Sum  total() const { return printed_up_to_layer.empty() ? Sum{} : printed_up_to_layer.back(); }
+            void add(const Sum &sum, const BoundingBoxf3 &extent, const BoundingBoxf3 &belt_extent, size_t layer);
+            // Into the model's frame by a belt print's G-code back-transform; mass and volume stay as printed.
+            void transform(const Transform3d &trafo);
+        };
+
         std::string filename;
         unsigned int id;
         std::vector<MoveVertex> moves;
+        ObjectMass plate_mass;
+        // One per object instance, and one per connected body of the instances of several, when the sliced objects were at hand.
+        std::vector<ObjectMass> object_masses;
+        std::vector<ObjectMass> body_masses;
+        // One per object instance, of its supports and raft.
+        std::vector<ObjectMass> support_masses;
         // Positions of ends of lines of the final G-code this->filename after TimeProcessor::post_process() finalizes the G-code.
         std::vector<size_t> lines_ends;
         Pointfs printable_area;
@@ -282,6 +347,17 @@ class Print;
         std::vector<double> extruder_heights;
         //BBS: add toolpath_outside
         bool toolpath_outside;
+        bool exclusion_volume_path_checked { false };
+        bool exclusion_volume_path_conflict { false };
+        bool exclusion_volume_travel_conflict { false };
+        bool exclusion_volume_extrusion_conflict { false };
+        bool exclusion_volume_other_motion_conflict { false };
+        unsigned int exclusion_volume_conflict_gcode_id { 0 };
+        size_t exclusion_volume_conflict_move_id { 0 };
+        EMoveType exclusion_volume_conflict_move_type { EMoveType::Noop };
+        int exclusion_volume_conflict_extruder_id { -1 };
+        size_t exclusion_volume_conflict_region_id { 0 };
+        bool exclusion_volume_conflict_used_unknown_z { false };
         //BBS: add object_label_enabled
         bool label_object_enabled;
         //BBS : extra retraction when change filament,experiment func
@@ -290,6 +366,19 @@ class Print;
         bool support_traditional_timelapse{true};
         float printable_height;
         float z_offset;
+        // Belt printer: physical tilt magnitude (deg) parsed from the slicing-rotation
+        // header comment; used to enable the preview's belt view.
+        float belt_tilt_angle{ 0.f };
+        // Belt printer: machine-Z origin offset (mm) left in m_origin[Z] by the start
+        // G-code (purge-blob belt advance + G92 Z0 resets). Move positions are stored
+        // as gcode_Z + this offset, so the designed-view back-transform must subtract it
+        // to recover the model's belt coordinate.
+        float belt_z_origin{ 0.f };
+        // Belt printer: post-gcode shear/scale/post_remap is configured and
+        // non-identity.  When set, the layer Z values in `moves` are in the
+        // machine frame and should not be compared against `printable_height`
+        // (which lives in the build-volume frame).
+        bool machine_frame_transform_active{ false };
         SettingsIds settings_ids;
         size_t filaments_count;
         bool backtrace_enabled;
@@ -300,7 +389,8 @@ class Print;
         std::vector<float> filament_costs;
         std::vector<int> filament_vitrification_temperature;
         std::vector<int>   filament_maps;
-        std::vector<int>   limit_filament_maps;
+        // Per filament, bit i is set when extruder i + 1 can't print it.
+        std::vector<uint64_t> limit_filament_maps;
         PrintEstimatedStatistics print_statistics;
         std::vector<CustomGCode::Item> custom_gcode_per_print_z;
         bool spiral_vase_mode;
@@ -346,11 +436,26 @@ class Print;
             filename = std::forward<Other>(other).filename;
             id = std::forward<Other>(other).id;
             moves = std::forward<Other>(other).moves;
+            plate_mass = std::forward<Other>(other).plate_mass;
+            object_masses = std::forward<Other>(other).object_masses;
+            body_masses = std::forward<Other>(other).body_masses;
+            support_masses = std::forward<Other>(other).support_masses;
             lines_ends = std::forward<Other>(other).lines_ends;
             printable_area = std::forward<Other>(other).printable_area;
             bed_exclude_area = std::forward<Other>(other).bed_exclude_area;
             wrapping_exclude_area = std::forward<Other>(other).wrapping_exclude_area;
             toolpath_outside = std::forward<Other>(other).toolpath_outside;
+            exclusion_volume_path_checked = other.exclusion_volume_path_checked;
+            exclusion_volume_path_conflict = other.exclusion_volume_path_conflict;
+            exclusion_volume_travel_conflict = other.exclusion_volume_travel_conflict;
+            exclusion_volume_extrusion_conflict = other.exclusion_volume_extrusion_conflict;
+            exclusion_volume_other_motion_conflict = other.exclusion_volume_other_motion_conflict;
+            exclusion_volume_conflict_gcode_id = other.exclusion_volume_conflict_gcode_id;
+            exclusion_volume_conflict_move_id = other.exclusion_volume_conflict_move_id;
+            exclusion_volume_conflict_move_type = other.exclusion_volume_conflict_move_type;
+            exclusion_volume_conflict_extruder_id = other.exclusion_volume_conflict_extruder_id;
+            exclusion_volume_conflict_region_id = other.exclusion_volume_conflict_region_id;
+            exclusion_volume_conflict_used_unknown_z = other.exclusion_volume_conflict_used_unknown_z;
             label_object_enabled = std::forward<Other>(other).label_object_enabled;
             long_retraction_when_cut = std::forward<Other>(other).long_retraction_when_cut;
             timelapse_warning_code = std::forward<Other>(other).timelapse_warning_code;
@@ -385,6 +490,9 @@ class Print;
             // Keep the SKIPPABLE per-type time on a copied result.
             skippable_part_time = std::forward<Other>(other).skippable_part_time;
             initial_layer_time = std::forward<Other>(other).initial_layer_time;
+            belt_tilt_angle = std::forward<Other>(other).belt_tilt_angle;
+            belt_z_origin = std::forward<Other>(other).belt_z_origin;
+            machine_frame_transform_active = std::forward<Other>(other).machine_frame_transform_active;
 #if ENABLE_GCODE_VIEWER_STATISTICS
             time = std::forward<Other>(other).time;
 #endif
@@ -538,6 +646,12 @@ class Print;
             Print_Time_Minute_Placeholder,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
+            Normal_Print_Time_Placeholder,
+            Silent_Print_Time_Placeholder,
+            Total_Weight_Placeholder,
+            Total_Cost_Placeholder,
+            Total_Wipe_Tower_Cost_Placeholder,
+            Total_Wipe_Tower_Filament_Placeholder,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
@@ -634,6 +748,12 @@ class Print;
             float acceleration{ 0.0f }; // mm/s^2
             float max_entry_speed{ 0.0f }; // mm/s
             float safe_feedrate{ 0.0f }; // mm/s
+            float junction_deviation{ 0.0f };
+            float max_mcr_entry_speed_sqr{ 0.0f };
+            float mcr_delta_v2{ 0.0f };
+            // Peak cruise speed squared in effect when this block was planned. Only set on a block
+            // that can accelerate; the delayed blocks after it are seeded from its value.
+            float peak_cruise_v2{ 0.0f };
             Flags flags;
             FeedrateProfile feedrate_profile;
             Trapezoid trapezoid;
@@ -713,6 +833,11 @@ class Print;
             // hard limit for the travel acceleration, to which the firmware will clamp.
             float max_travel_acceleration; // mm/s^2
             float extrude_factor_override_percentage;
+            bool klipper{ false };
+            float minimum_cruise_ratio{ 0.5f };
+            float requested_accel_to_decel{ -1.0f };
+            float klipper_junction_flush{ 1.0f };
+            bool klipper_queue_priming{ true };
             // We accumulate total print time in doubles to reduce the loss of precision
             // while adding big floating numbers with small float numbers.
             double time; // s
@@ -748,6 +873,8 @@ class Print;
 
             // Merge adjacent buffer entries that target the same move type.
             static AdditionalBuffer merge_adjacent_additional_time_blocks(const AdditionalBuffer& buffer);
+
+            size_t plan_klipper(bool lazy);
 
             // additional_time is attributed to the first block matching target_move_type
             // (EMoveType::Noop matches any block, i.e. the first processed block).
@@ -994,18 +1121,34 @@ class Print;
                 m_custom_gcode_per_print_z_id = m_result.custom_gcode_per_print_z.size() - 1;
             }
 
-            void update(float height) {
-                if (!m_move_id.has_value() || !m_custom_gcode_per_print_z_id.has_value())
+            // The time pass inserts actual speed moves in front of the moves of its blocks, and the stored
+            // vertex has no block of its own, so it shifts with every insertion made before it.
+            void on_moves_inserted(const std::vector<std::pair<unsigned int, unsigned int>>& id_map) {
+                if (!m_move_id.has_value())
                     return;
+                auto it = std::lower_bound(id_map.begin(), id_map.end(), *m_move_id,
+                                           [](const std::pair<unsigned int, unsigned int>& entry, size_t id) { return entry.first < id; });
+                if (it != id_map.begin()) {
+                    --it;
+                    *m_move_id += it->second - it->first;
+                }
+            }
 
-                const Vec3f position = m_result.moves.back().position;
+            // Returns the index of the move erased from the list, if any.
+            std::optional<size_t> update(float height) {
+                if (!m_move_id.has_value() || !m_custom_gcode_per_print_z_id.has_value())
+                    return std::nullopt;
 
-                GCodeProcessorResult::MoveVertex& move = m_result.moves.emplace_back(m_result.moves[*m_move_id]);
+                const Vec3f  position = m_result.moves.back().position;
+                const size_t erased   = *m_move_id;
+
+                GCodeProcessorResult::MoveVertex& move = m_result.moves.emplace_back(m_result.moves[erased]);
                 move.position = position;
                 move.height = height;
-                m_result.moves.erase(m_result.moves.begin() + *m_move_id);
+                m_result.moves.erase(m_result.moves.begin() + erased);
                 m_result.custom_gcode_per_print_z[*m_custom_gcode_per_print_z_id].print_z = position.z();
                 reset();
+                return erased;
             }
 
             void reset() {
@@ -1082,9 +1225,22 @@ class Print;
         };
 #endif // ENABLE_GCODE_VIEWER_DATA_CHECKING
 
+        // The object instance and the connected body of an instance of several that a point lies in, -1 for none.
+        struct MassLocation
+        {
+            int object{ -1 };
+            int body{ -1 };
+        };
+        // For a support, the object instance only.
+        using MassLocator = std::function<MassLocation(const Vec3d &point, bool support)>;
+
     private:
         CommandProcessor m_command_processor;
         GCodeReader m_parser;
+        // Belt printer: the belt keys of the loaded file's config block (plus the bed they
+        // are relative to), handed to the preview through export_config_for_render() so the
+        // belt view and its back-transform follow the file, not the selected printer.
+        DynamicConfig m_belt_render_config;
         EUnits m_units;
         EPositioningType m_global_positioning_type;
         EPositioningType m_e_local_positioning_type;
@@ -1094,6 +1250,10 @@ class Print;
         AxisCoords m_start_position; // mm
         AxisCoords m_end_position; // mm
         AxisCoords m_origin; // mm
+        std::array<bool, 3> m_axis_position_known { false, false, false };
+        std::array<bool, 3> m_axis_origin_known { true, true, true };
+        bool m_processing_homing_move { false };
+        ExclusionVolumePathChecker m_exclusion_volume_path_checker;
         CachedPosition m_cached_position;
         bool m_wiping;
         bool m_flushing; // mark a section with real flush
@@ -1105,6 +1265,7 @@ class Print;
         bool m_skippable{false};
         SkipType m_skippable_type{SkipType::stNone};
         int m_object_label_id{-1};
+        MassLocator m_mass_locator;
         float m_print_z{0.0f};
         std::vector<float> m_remaining_volume;
         ExtruderTemps m_filament_nozzle_temp;
@@ -1154,11 +1315,20 @@ class Print;
         // m_result.nozzle_group_result, which is handed over only after the stream for the
         // pre-heat injector's second pass and gates the richer change-time model.
         std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> m_nozzle_group_result;
-        bool m_manual_filament_change;
+        bool m_manual_filament_change{ false };
 
         //BBS: x, y offset for gcode generated
         double          m_x_offset{ 0 };
         double          m_y_offset{ 0 };
+
+        // Belt-printer post-gcode shear/scale/post_remap. Used by
+        // check_multi_extruder_gcode_valid to undo the machine-frame
+        // transform on move positions so bounds checks operate in the
+        // pre-machine-frame (build-volume) frame.
+        MachineFrameTransform m_machine_frame_transform;
+        bool                  m_belt_printer{ false };
+        // Of a belt print, the linear part of its G-code back-transform, for the boxes of the masses.
+        std::optional<Matrix3d> m_belt_linear;
 
         unsigned int m_line_id;
         unsigned int m_last_line_id;
@@ -1189,6 +1359,7 @@ class Print;
         float m_first_layer_height; // mm
         float m_zero_layer_height; // mm
         bool m_processing_start_custom_gcode;
+        bool m_in_config_block;
         unsigned int m_g1_line_id;
         unsigned int m_layer_id;
         CpColor m_cp_color;
@@ -1198,6 +1369,7 @@ class Print;
         bool m_detect_layer_based_on_tag {false};
         int m_seams_count;
         bool m_measure_g29_time {false};
+        bool m_g29_time_added {false};
         bool m_single_extruder_multi_material;
         float m_preheat_time;
         int m_preheat_steps;
@@ -1233,6 +1405,15 @@ class Print;
         static unsigned int s_result_id;
 
     public:
+        struct PositionState
+        {
+            Vec3d position { Vec3d::Zero() };
+            std::array<bool, 3> axis_known { false, false, false };
+
+            bool has_known_xy() const { return axis_known[X] && axis_known[Y]; }
+            bool has_known_z() const { return axis_known[Z]; }
+        };
+
         GCodeProcessor();
         void init_filament_maps_and_nozzle_type_when_import_only_gcode();
         // Reprocessing an already-generated g-code (from-previous / imported g-code) does not rebuild
@@ -1250,7 +1431,15 @@ class Print;
                                               const std::vector<int>      &filament_map,
                                               const std::vector<std::set<int>>& unprintable_filament_types );
         void apply_config(const PrintConfig& config);
+        void configure_exclusion_volume_path_check(const PrintConfig &config);
         void set_print(Print* print) { m_print = print; }
+        // Locates extrusions in the objects and bodies it numbers, those objects listed beforehand.
+        void set_mass_locator(MassLocator locator, std::vector<GCodeProcessorResult::ObjectMass> objects)
+        {
+            m_mass_locator = std::move(locator);
+            m_result.support_masses.assign(objects.size(), {});
+            m_result.object_masses = std::move(objects);
+        }
         // Hand the nozzle grouping context to the estimator BEFORE the streaming replay, so the
         // per-slot machine-limit resolution can follow the active nozzle. Null is fine (slot 0).
         void initialize_from_context(const std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase>& nozzle_group_result) {
@@ -1259,7 +1448,6 @@ class Print;
 
         DynamicConfig export_config_for_render() const;
 
-        void enable_stealth_time_estimator(bool enabled);
         bool is_stealth_time_estimator_enabled() const {
             return m_time_processor.machines[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Stealth)].enabled;
         }
@@ -1269,6 +1457,7 @@ class Print;
         const GCodeProcessorResult& get_result() const { return m_result; }
         GCodeProcessorResult& result() { return m_result; }
         GCodeProcessorResult&& extract_result() { return std::move(m_result); }
+        PositionState get_current_position() const;
 
         // Load a G-code into a stand-alone G-code viewer.
         // throws CanceledException through print->throw_if_canceled() (sent by the caller as callback).
@@ -1284,7 +1473,7 @@ class Print;
         void process_buffer(const std::string& buffer);
         void finalize(bool post_process);
 
-        float get_time(PrintEstimatedStatistics::ETimeMode mode) const;
+        double get_time(PrintEstimatedStatistics::ETimeMode mode) const;
         float get_prepare_time(PrintEstimatedStatistics::ETimeMode mode) const;
         std::string get_time_dhm(PrintEstimatedStatistics::ETimeMode mode) const;
         std::vector<std::pair<CustomGCode::Type, std::pair<float, float>>> get_custom_gcode_times(PrintEstimatedStatistics::ETimeMode mode, bool include_remaining) const;
@@ -1327,6 +1516,9 @@ class Print;
         void process_G1(const std::array<std::optional<double>, 4>& axes = { std::nullopt, std::nullopt, std::nullopt, std::nullopt },
             const std::optional<double>& feedrate = std::nullopt, G1DiscretizationOrigin origin = G1DiscretizationOrigin::G1,
             const std::optional<unsigned int>& remaining_internal_g1_lines = std::nullopt);
+        void update_position_known_from_move(const std::array<std::optional<double>, 4> &axes, G1DiscretizationOrigin origin);
+        void update_position_known_from_move(const GCodeReader::GCodeLine &line);
+        void update_exclusion_volume_path_check_result();
 
         // Arc Move
         void process_G2_G3(const GCodeReader::GCodeLine& line, bool clockwise);
@@ -1505,6 +1697,8 @@ class Print;
 
         //BBS: different path_type is only used for arc move
         void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move, bool internal_only = false);
+        void add_object_mass(int filament_id, float volume);
+        void finalize_object_masses();
 
         void set_extrusion_role(ExtrusionRole role);
         // Resolve the SKIPPABLE_TYPE payload to a SkipType.

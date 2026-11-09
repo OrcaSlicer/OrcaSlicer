@@ -12,8 +12,7 @@ var g_search = {
 
 function OnInit()
 {
-    if (typeof TranslatePage === "function")
-        TranslatePage();
+    TranslatePage();
 
     InstallInputSafeKeydown();
     BindSearchInputs();

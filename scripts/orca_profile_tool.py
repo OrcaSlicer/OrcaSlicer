@@ -11,6 +11,9 @@ commands:
   normalize        rewrite profile files into their canonical shape
   trim             delete profile files no <vendor>.json list references
   update-index     regenerate the *_list sections of <vendor>.json
+  legacy-compat    write the printers user presets can be migrated back to
+  gcode-diff       print a readable markdown diff of changed custom G-code
+  version-check    fail unless every changed bundle's version was bumped
 
 options shared by several commands:
   --vendor VENDOR      act on one vendor bundle only; repeatable, empty means all
@@ -24,6 +27,9 @@ After adding, renaming or deleting profile files, run:
   normalize -> update-index -> generate-id -> check
 normalize supplies missing types; update-index registers presets before id
 generation.
+After renaming filament presets or narrowing their compatible_printers, also
+rerun legacy-compat --base <2.4.2 profiles> so user presets made against 2.4.2
+can be migrated back to their printers; CI runs it with --check.
 Use trim only for deliberate cleanup, previewed with --dry-run: it judges against
 the current index and can delete newly added, unindexed presets.
 
@@ -90,11 +96,14 @@ parent in the OFL map. filament_vendor / filament_type resolve the same way.
 """
 
 import argparse
+import difflib
 import functools
+import html
 import json
 import os
 import posixpath
 import re
+import subprocess
 import sys
 import uuid
 from collections import Counter, defaultdict
@@ -167,6 +176,11 @@ OBSOLETE_KEYS = {
     "filament_load_time", "filament_unload_time", "smooth_coefficient",
     "overhang_totally_speed", "silent_mode", "overhang_speed_classic",
     "anisotropic_surfaces",
+    # Belt printer options retired before the feature shipped (#16236).
+    "belt_slice_rotation_global", "preslice_remap_x", "preslice_remap_y", "preslice_remap_z",
+    "preslice_remap_global", "belt_support_z_offset_mode", "first_layer_plane",
+    "first_layer_plane_offset", "belt_preslice_global", "gcode_back_transform",
+    "belt_support_floor_mode", "first_layer_plane_thickness",
 }
 
 # Keys renamed at some point, whose old and new spellings must never co-exist:
@@ -183,6 +197,7 @@ VECTOR_KEYS = {
 
 PRINT_CONFIG_CPP = os.path.normpath(
     os.path.join(SCRIPTS_DIR, "..", "src", "libslic3r", "PrintConfig.cpp"))
+TAB_CPP = os.path.normpath(os.path.join(SCRIPTS_DIR, "..", "src", "slic3r", "GUI", "Tab.cpp"))
 
 
 @functools.lru_cache(maxsize=None)
@@ -304,11 +319,11 @@ REMEDY_HINTS = {
 }
 
 
-def print_error(msg):
-    print(f"\033[91m[ERROR]\033[0m {msg}")  # Red
+def print_error(msg, file=None):
+    print(f"\033[91m[ERROR]\033[0m {msg}", file=file)  # Red
 
-def print_warning(msg):
-    print(f"\033[93m[WARNING]\033[0m {msg}")  # Yellow
+def print_warning(msg, file=None):
+    print(f"\033[93m[WARNING]\033[0m {msg}", file=file)  # Yellow
 
 def print_info(msg):
     print(f"\033[94m[INFO]\033[0m {msg}")  # Blue
@@ -3068,6 +3083,517 @@ def fix_variant_arrays(profiles_dir=PROFILES_DIR, vendors=None, dry_run=False, s
 
 
 # ---------------------------------------------------------------------------
+# legacy-compat
+# ---------------------------------------------------------------------------
+
+LEGACY_COMPAT_PATH = os.path.normpath(
+    os.path.join(SCRIPTS_DIR, "..", "resources", "info", "legacy_compatible_printers.json"))
+
+
+def _renamed_from(data):
+    """A preset's renamed_from names. Profiles write one ';'-separated string, as the
+    loader's unescape_strings_cstyle reads it; none of them quote or escape a name."""
+    value = data.get("renamed_from") or []
+    return [n for v in _as_list(value) for n in v.split(";") if n]
+
+
+def _flatten_presets(profiles_dir):
+    """Every bundle's composed filament and printer presets, for legacy-compat.
+
+    Returns (filaments, printers): filaments maps (vendor, name) to a dict with the
+    resolved compatible_printers, filament_id, extruder variants, renamed_from and
+    whether it is instantiated; printers maps each instantiated printer name to a
+    dict with its renamed_from and extruder variants. instantiation is read from the
+    preset's own file, as the loader requires every file to state it.
+    """
+    def instantiated(data):
+        return str(data.get("instantiation", "")).lower() == "true"
+
+    ofl = load_vendor_configs(profiles_dir, OFL)["filament"]
+    filaments, printers = {}, {}
+    for vendor in list_vendor_names(profiles_dir):
+        configs = load_vendor_configs(profiles_dir, vendor)
+        cache = {}
+        for name, (_rel, data) in configs["filament"].items():
+            config = compose_config(name, configs["filament"], ofl, cache, vendor == OFL)
+            filaments[(vendor, name)] = {
+                "compatible_printers": set(_as_list(config.get("compatible_printers", ([],))[0])),
+                "filament_id": config.get("filament_id", (None,))[0],
+                "variants": set(_as_list(config.get("filament_extruder_variant", ([],))[0])),
+                "instantiation": instantiated(data),
+                "renamed_from": _renamed_from(data),
+            }
+        cache = {}
+        for name, (_rel, data) in configs["machine"].items():
+            if instantiated(data):
+                config = compose_config(name, configs["machine"], {}, cache)
+                printers[name] = {
+                    "renamed_from": _renamed_from(data),
+                    "variants": set(_as_list(config.get("printer_extruder_variant", ([],))[0])),
+                }
+    return filaments, printers
+
+
+def legacy_compatible_printers(base_dir, profiles_dir=PROFILES_DIR):
+    """Printers each filament preset of the base release covered but the current
+    preset it loads as no longer lists, kept only where a current preset with
+    the same filament_id still covers that printer.
+
+    User presets store only their diff, so they inherit their parent's
+    compatible_printers; when a profile change narrows that list, a user preset
+    made against the base release disappears from printers it was used on. The
+    app offers to write these printers into such user presets. Requiring a same-id
+    successor leaves out printers a filament was deliberately taken off, and
+    requiring a shared extruder variant keeps a printer from picking up another
+    variant's values.
+
+    Keyed by the base release's preset name, which is what such a user preset's
+    inherits still says. One current preset can stand in for several old ones
+    through renamed_from, each with its own old list, so the key tells them
+    apart. An old name resolves as the loader resolves an inherits: to the
+    current selectable preset of that name, else to one listing it in
+    renamed_from. A preset that is not instantiated never enters the loader's
+    collection, so it does not stop the renamed_from lookup. Printer names are
+    translated through the printers' renamed_from. Returns
+    {old preset name: sorted printer names}.
+    """
+    old_filaments, _ = _flatten_presets(base_dir)
+    new_filaments, new_printers = _flatten_presets(profiles_dir)
+    renamed_printer = {old: new for new, rec in new_printers.items() for old in rec["renamed_from"]}
+
+    by_name, by_old_name = {}, {}
+    for (vendor, name), rec in new_filaments.items():
+        if rec["instantiation"]:
+            by_name.setdefault(name, []).append((vendor, rec))
+            for old_name in rec["renamed_from"]:
+                by_old_name.setdefault(old_name, []).append((vendor, rec))
+
+    covering = {}  # filament_id -> printers some current instantiated preset covers
+    for rec in new_filaments.values():
+        if rec["instantiation"] and rec["filament_id"]:
+            covering.setdefault(rec["filament_id"], set()).update(rec["compatible_printers"])
+
+    def shares_variant(filament, printer):
+        variants = new_printers[printer]["variants"]
+        return not filament["variants"] or not variants or bool(filament["variants"] & variants)
+
+    result = {}
+    for (vendor, name), old in sorted(old_filaments.items()):
+        # Only a selectable preset can be a user preset's parent.
+        if not old["instantiation"]:
+            continue
+        candidates = by_name.get(name) or by_old_name.get(name, [])
+        same_vendor = [r for v, r in candidates if v == vendor]
+        rec = (same_vendor or [r for _, r in candidates] or [None])[0]
+        # An empty list means every printer, so nothing can have been lost.
+        if rec is None or not rec["compatible_printers"]:
+            continue
+        lost = {renamed_printer.get(p, p) for p in old["compatible_printers"]} - rec["compatible_printers"]
+        lost &= covering.get(rec["filament_id"], set()) & set(new_printers)
+        lost = {p for p in lost if shares_variant(rec, p)}
+        if lost:
+            result.setdefault(name, set()).update(lost)
+    return {name: sorted(printers) for name, printers in result.items()}
+
+
+def run_legacy_compat(base_dir, profiles_dir, output, check):
+    presets = legacy_compatible_printers(base_dir, profiles_dir)
+    if check:
+        try:
+            with open(output, encoding="utf-8") as f:
+                current = json.load(f).get("presets")
+        except (OSError, ValueError, AttributeError):
+            current = None
+        if current != presets:
+            print_error(f"{output} is out of date; rerun legacy-compat --base {base_dir}")
+            return 1
+        print_success(f"{output} is up to date")
+        return 0
+    with open(output, "w", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps({"presets": presets}, indent=4, sort_keys=True, ensure_ascii=False) + "\n")
+    print_info(f"wrote {len(presets)} presets / {sum(map(len, presets.values()))} printers to {output}")
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# gcode-diff
+# ---------------------------------------------------------------------------
+
+# UTF-8 bytes, kept well under GitHub's 65,536-character comment limit.
+GCODE_DIFF_BUDGET = 60000
+# The file names a section's summary shows before "and N more".
+GCODE_DIFF_SUMMARY_FILES = 3
+
+GCODE_DIFF_HEADER = (
+    "## Custom G-code changes\n"
+    "\n"
+    "GitHub shows custom G-code in a profile as one long line, so below is a line by line "
+    "diff of each changed G-code or other text setting.\n")
+
+
+@functools.lru_cache(maxsize=None)
+def _text_option_keys():
+    """The string options PrintConfig.cpp defines as G-code or other multi-line text
+    (every *_gcode option, and every one it marks multiline, such as notes), plus the
+    ones Tab.cpp edits as code, such as filename_format."""
+    with open(PRINT_CONFIG_CPP, encoding="utf-8") as f:
+        source = f.read()
+    keys = set()
+    for body in re.split(r"\bdef\s*=\s*this->add(?:_nullable)?\(", source)[1:]:
+        match = re.match(r'"(\w+)",\s*coStrings?\b', body)
+        if match and (match.group(1).endswith("_gcode")
+                      or re.search(r"def->multiline\s*=\s*true", body)):
+            keys.add(match.group(1))
+    if "machine_start_gcode" not in keys:
+        raise RuntimeError(f"{PRINT_CONFIG_CPP} no longer defines machine_start_gcode")
+    # Tab.cpp only adds keys, so a missing file is not an error.
+    try:
+        with open(TAB_CPP, encoding="utf-8") as f:
+            gui = f.read()
+    except OSError:
+        gui = ""
+    keys.update(re.findall(r'get_option\("(\w+)"\);(?:(?!get_option\().)*?\bis_code\s*=\s*true',
+                           gui, re.DOTALL))
+    return frozenset(keys)
+
+
+def _git(cwd, *args, stdin=None):
+    return subprocess.run(["git", "-C", cwd, *args], input=stdin, check=True,
+                          capture_output=True).stdout
+
+
+def _blobs_at(profiles_dir, specs):
+    """{(ref, path): bytes, or None if not a file there} for (ref, path relative to
+    profiles_dir) pairs, all read by one git cat-file process."""
+    prefix = _git(profiles_dir, "rev-parse", "--show-prefix").decode("utf-8").strip()
+    out = _git(profiles_dir, "cat-file", "--batch",
+               stdin="".join(f"{ref}:{prefix}{rel}\n" for ref, rel in specs).encode("utf-8"))
+    blobs, pos = {}, 0
+    for spec in specs:
+        end = out.index(b"\n", pos)
+        header = out[pos:end]
+        pos = end + 1
+        # "<name> missing" and "<name> ambiguous" have no content; "<oid> <type> <size>" does.
+        if header.endswith((b" missing", b" ambiguous")):
+            blobs[spec] = None
+            continue
+        _oid, kind, size = header.split()
+        blobs[spec] = out[pos:pos + int(size)] if kind == b"blob" else None
+        pos += int(size) + 1
+    return blobs
+
+
+def _parse_profile(raw, rel, where):
+    """The JSON in raw, or None with a warning when it is absent or not JSON."""
+    if raw is None:
+        print_warning(f"{rel}: skipped, not found at {where}", file=sys.stderr)
+        return None
+    try:
+        return json.loads(raw.decode("utf-8-sig"))
+    except ValueError as e:
+        print_warning(f"{rel}: skipped, cannot read it at {where}: {e}", file=sys.stderr)
+        return None
+
+
+def _changed_profiles(profiles_dir, base, head):
+    """(old path, new path) of each JSON file under profiles_dir that differs between
+    base and head (the working tree, untracked files included, when None); the absent
+    side of an added or deleted file is None, and so is a side that is not JSON. Renames
+    are paired."""
+    out = _git(profiles_dir, "diff", "--name-status", "-z", "-M", "--relative", base,
+               *([head] if head else []), "--", ".")
+    fields = out.decode("utf-8").split("\0")
+    pairs, i = [], 0
+    while i + 1 < len(fields):
+        status = fields[i]
+        old = new = fields[i + 1]
+        if status[0] in "RC":
+            new = fields[i + 2]
+            i += 3
+        else:
+            i += 2
+        old = None if status[0] == "A" or not old.endswith(".json") else old
+        new = None if status[0] == "D" or not new.endswith(".json") else new
+        if old or new:
+            pairs.append((old, new))
+    if head is None:
+        out = _git(profiles_dir, "ls-files", "-z", "--others", "--exclude-standard", "--", ".")
+        pairs += [(None, rel) for rel in out.decode("utf-8").split("\0")
+                  if rel.endswith(".json") and rel.split("/")[0] != USER_DIR]
+    return pairs
+
+
+def _text_lines(value):
+    return [line.rstrip() for line in value.split("\n")] if value else []
+
+
+def _text_changes(old, new):
+    """(setting, unified diff) for every G-code or other text value that differs
+    between two profiles; a vector option with several values gives one per value."""
+    changes = []
+    for key in list(new) + [k for k in old if k not in new]:
+        a, b = _as_list(old.get(key, [])), _as_list(new.get(key, []))
+        if a == b or not all(isinstance(v, str) for v in a + b):
+            continue
+        if key not in _text_option_keys() and not any("\n" in v for v in a + b):
+            continue
+        width = max(len(a), len(b))
+        for i in range(width):
+            diff = list(difflib.unified_diff(
+                _text_lines(a[i] if i < len(a) else ""), _text_lines(b[i] if i < len(b) else ""),
+                lineterm=""))[2:]  # drops the ---/+++ file header
+            if diff:
+                changes.append((key if width == 1 else f"{key}[{i}]", "\n".join(diff)))
+    return changes
+
+
+def _gcode_diff_section(files, setting, diff):
+    # A fence longer than any backtick run in the G-code cannot be closed by it.
+    fence = "`" * max([3] + [len(run) + 1 for run in re.findall(r"`+", diff)])
+    # In <code>, the "@BBL" of a filament file name does not mention a GitHub user.
+    def code(text):
+        return f"<code>{html.escape(text, quote=False)}</code>"
+    names, listing = ", ".join(map(code, files)), ""
+    if len(files) > GCODE_DIFF_SUMMARY_FILES + 1:  # never "and 1 more"
+        listing = f"<p>{names}</p>\n\n"  # an HTML block, so markdown in names stays literal
+        names = (", ".join(map(code, files[:GCODE_DIFF_SUMMARY_FILES]))
+                 + f" and {len(files) - GCODE_DIFF_SUMMARY_FILES} more")
+    return (f"\n<details>\n<summary><b>{names} - {code(setting)} (click to expand)</b>"
+            f"</summary>\n\n{listing}{fence}diff\n{diff}\n{fence}\n\n</details>\n")
+
+
+def gcode_diff(profiles_dir, base, head=None, vendors=None):
+    """Markdown with one collapsed diff per changed G-code setting between base and
+    head, or "" when none changed. Files whose diff of a setting is identical share
+    one section. Cut to whole sections under GCODE_DIFF_BUDGET."""
+    pairs = [(old, new) for old, new in _changed_profiles(profiles_dir, base, head)
+             if not vendors or any(p and p.split("/")[0] in vendors for p in (old, new))]
+    specs = ([(base, old) for old, _ in pairs if old]
+             + [(head, new) for _, new in pairs if new and head])
+    blobs = _blobs_at(profiles_dir, specs) if specs else {}
+
+    def load(ref, rel):
+        if rel is None:
+            return {}
+        if ref:
+            return _parse_profile(blobs[(ref, rel)], rel, ref)
+        try:
+            return _parse_profile(Path(profiles_dir, rel).read_bytes(), rel, "the working tree")
+        except OSError as e:
+            print_warning(f"{rel}: skipped, cannot read it: {e}", file=sys.stderr)
+            return None
+
+    groups = {}  # (setting, diff) -> files, in the order git lists them
+    for old_rel, new_rel in pairs:
+        old, new = load(base, old_rel), load(head, new_rel)
+        if not isinstance(old, dict) or not isinstance(new, dict):
+            continue
+        for setting, diff in _text_changes(old, new):
+            groups.setdefault((setting, diff), []).append(new_rel or old_rel)
+    if not groups:
+        return ""
+
+    sections = [_gcode_diff_section(files, setting, diff)
+                for (setting, diff), files in groups.items()]
+    budget = GCODE_DIFF_BUDGET - len(GCODE_DIFF_HEADER.encode("utf-8"))
+    shown = 0
+    for section in sections:
+        budget -= len(section.encode("utf-8"))
+        if budget < 0:
+            break
+        shown += 1
+    note, hidden = "", len(sections) - shown
+    if hidden:
+        note = (f"\n{hidden} of {len(sections)} sections {'is' if hidden == 1 else 'are'} not "
+                "shown because the comment would be too long for GitHub. See the Files "
+                "changed tab for the rest.\n")
+    return GCODE_DIFF_HEADER + "".join(sections[:shown]) + note
+
+
+def _default_diff_base(profiles_dir, head):
+    for main in ("upstream/main", "origin/main"):
+        try:
+            return _git(profiles_dir, "merge-base", head or "HEAD", main).decode().strip()
+        except subprocess.CalledProcessError:
+            continue
+    raise RuntimeError("no --base given, and neither upstream/main nor origin/main exists")
+
+
+def run_gcode_diff(profiles_dir, vendors, base, head):
+    try:
+        markdown = gcode_diff(profiles_dir, base or _default_diff_base(profiles_dir, head),
+                              head, vendors)
+    # UnicodeDecodeError means git listed a file name that is not UTF-8.
+    except (OSError, RuntimeError, UnicodeDecodeError, subprocess.CalledProcessError) as e:
+        stderr = getattr(e, "stderr", None)
+        print_error(stderr.decode(errors="replace").strip() if stderr else str(e), file=sys.stderr)
+        return 1
+    sys.stdout.write(markdown)
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# version-check
+# ---------------------------------------------------------------------------
+
+# What the app's Semver::parse reads: three or four dot-separated numbers. Bundles write
+# four, MM.mm.pp.bb, and the OTA profile update's asset name requires all four.
+VERSION_RE = re.compile(r"^\d+\.\d+\.\d+(?:\.\d+)?$")
+# The files a version-check error names before "and N more".
+VERSION_CHECK_SUMMARY_FILES = 3
+
+
+def _version_key(version):
+    """The version as the app orders it, or None when it does not parse. The fourth
+    component is folded into the third (patch * 100 + build), so 02.04.00.100 is not
+    newer than 02.04.01.00."""
+    if not isinstance(version, str) or not VERSION_RE.match(version):
+        return None
+    parts = [int(part) for part in version.split(".")]
+    build = parts[3] if len(parts) == 4 else 0
+    return (parts[0], parts[1], parts[2] * 100 + build)
+
+
+def next_version(version):
+    """The version after this one, in its own notation: the last component plus one,
+    carrying .99 into the third (02.03.02.99 -> 02.03.03.00). A three-part version
+    gains the fourth component (1.0.0 -> 1.0.0.01)."""
+    parts = version.split(".")
+    if len(parts) == 3:
+        return version + ".01"
+    patch, build = int(parts[2]), int(parts[3]) + 1
+    if build > 99:
+        patch, build = patch + 1, 0
+    return ".".join((parts[0], parts[1], str(patch).zfill(len(parts[2])),
+                     str(build).zfill(len(parts[3]))))
+
+
+def _changed_paths(profiles_dir, base, head):
+    """Every path under profiles_dir, relative to it, that differs between base and
+    head (the working tree, untracked files included, when None). Renames are not
+    paired, so a file moved between bundles changes both."""
+    out = _git(profiles_dir, "diff", "--name-only", "-z", "--no-renames", "--relative", base,
+               *([head] if head else []), "--", ".")
+    paths = [rel for rel in out.decode("utf-8").split("\0") if rel]
+    if head is None:
+        out = _git(profiles_dir, "ls-files", "-z", "--others", "--exclude-standard", "--", ".")
+        paths += [rel for rel in out.decode("utf-8").split("\0") if rel]
+    return paths
+
+
+def _is_dir_at(profiles_dir, ref, rel):
+    """Whether rel (relative to profiles_dir) is a directory at ref, or in the working
+    tree when ref is None."""
+    if ref is None:
+        return os.path.isdir(os.path.join(profiles_dir, rel))
+    prefix = _git(profiles_dir, "rev-parse", "--show-prefix").decode("utf-8").strip()
+    try:
+        return _git(profiles_dir, "cat-file", "-t", f"{ref}:{prefix}{rel}").strip() == b"tree"
+    except subprocess.CalledProcessError:
+        return False
+
+
+def _file_summary(files):
+    shown = ", ".join(files[:VERSION_CHECK_SUMMARY_FILES])
+    if len(files) > VERSION_CHECK_SUMMARY_FILES + 1:  # never "and 1 more"
+        return f"{shown} and {len(files) - VERSION_CHECK_SUMMARY_FILES} more"
+    return ", ".join(files)
+
+
+def version_check(profiles_dir, base, head=None, vendors=None):
+    """(bumped, errors) over the vendor bundles with a file that differs between base
+    and head: bumped lists (vendor, old version or None, new version, changed file
+    count) for each whose <Vendor>.json version at head is newer than at base (or that
+    base does not have); errors describes each whose version is unchanged, older,
+    missing, or not four numbers, and one whose index is gone while <Vendor>/ remains.
+    A top-level .json without a version and without a <Vendor>/ directory, such as
+    blacklist.json, is not a bundle; nor is one head deletes whole."""
+    files_by_vendor = defaultdict(list)
+    for rel in _changed_paths(profiles_dir, base, head):
+        top, sep, _ = rel.partition("/")
+        vendor = top if sep else (top[:-5] if top.endswith(".json") else "")
+        if vendor and vendor != USER_DIR and (not vendors or vendor in vendors):
+            files_by_vendor[vendor].append(rel)
+    if not files_by_vendor:
+        return [], []
+
+    specs = [(base, f"{vendor}.json") for vendor in files_by_vendor]
+    if head:
+        specs += [(head, f"{vendor}.json") for vendor in files_by_vendor]
+    blobs = _blobs_at(profiles_dir, specs)
+
+    def index_version(ref, vendor):
+        """(found, version) of <vendor>.json at ref, or in the working tree."""
+        if ref:
+            raw = blobs[(ref, f"{vendor}.json")]
+        else:
+            try:
+                raw = Path(profiles_dir, f"{vendor}.json").read_bytes()
+            except FileNotFoundError:
+                raw = None
+        if raw is None:
+            return False, None
+        try:
+            index = json.loads(raw.decode("utf-8-sig"))
+        except ValueError:
+            return True, None
+        return True, index.get("version") if isinstance(index, dict) else None
+
+    bumped, errors = [], []
+    where = head or "the working tree"
+    for vendor, files in sorted(files_by_vendor.items()):
+        found, new = index_version(head, vendor)
+        if not found:
+            if _is_dir_at(profiles_dir, head, vendor):
+                errors.append(f"{vendor}.json is missing in {where} while {vendor}/ still has "
+                              f"files; restore the index or delete the directory")
+            continue
+        if new is None:
+            if _is_dir_at(profiles_dir, head, vendor):
+                errors.append(f"{vendor}.json has no version in {where}, so the app never "
+                              f"installs the bundle; write one (MM.mm.pp.bb)")
+            continue
+        new_key = _version_key(new)
+        if new_key is None or new.count(".") != 3:
+            errors.append(f'{vendor}.json: version "{new}" in {where} is not four numbers '
+                          f"(MM.mm.pp.bb), which the profile update needs")
+            continue
+        found, old = index_version(base, vendor)
+        old_key = _version_key(old)
+        if old_key is None or new_key > old_key:
+            # No comparable base: a bundle base lacks, or whose index there has no
+            # usable version.
+            label = None if not found else ("no version" if old is None else str(old))
+            bumped.append((vendor, label, new, len(files)))
+        else:
+            what = (f"version {new} was not bumped" if new == old
+                    else f"version {new} is not newer than {old} at {base}")
+            count = f"{len(files)} file" + ("" if len(files) == 1 else "s")
+            errors.append(f"{vendor}.json: {what}, but {count} of the bundle changed "
+                          f"({_file_summary(files)}); bump it to {next_version(old)}")
+    return bumped, errors
+
+
+def run_version_check(profiles_dir, vendors, base, head):
+    try:
+        base = base or _default_diff_base(profiles_dir, head)
+        bumped, errors = version_check(profiles_dir, base, head, vendors)
+    # UnicodeDecodeError means git listed a file name that is not UTF-8.
+    except (OSError, RuntimeError, UnicodeDecodeError, subprocess.CalledProcessError) as e:
+        stderr = getattr(e, "stderr", None)
+        print_error(stderr.decode(errors="replace").strip() if stderr else str(e))
+        return 1
+    for vendor, old, new, count in bumped:
+        print(f"{vendor}: {old or 'new bundle'} -> {new}, {count} file"
+              f"{'' if count == 1 else 's'} changed")
+    for error in errors:
+        print_error(error)
+    if not bumped and not errors:
+        print(f"no profile bundle changed since {base}")
+    return 1 if errors else 0
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -3088,11 +3614,23 @@ examples:
       preview resizing the variant arrays check rejects in that bundle
   orca_profile_tool.py check --strict --vendor BBL
       also hold every preset's inherited variant arrays to its own width
+  orca_profile_tool.py legacy-compat --base /tmp/v2.4.2/resources/profiles
+      rewrite resources/info/legacy_compatible_printers.json against 2.4.2's
+      profiles (git archive v2.4.2 resources/profiles | tar -x -C /tmp/v2.4.2)
+  orca_profile_tool.py gcode-diff > gcode.md
+      the changed custom G-code of the working tree since it left upstream/main,
+      as markdown with one collapsed diff per setting
+  orca_profile_tool.py version-check
+      fail unless every bundle the working tree changed since it left
+      upstream/main has a newer version in its <Vendor>.json
 
 after adding, renaming or deleting profile files, run in this order:
   normalize -> update-index -> generate-id -> check
 normalize supplies missing types; update-index registers presets before id
 generation.
+After renaming filament presets or narrowing their compatible_printers, also
+rerun legacy-compat --base <2.4.2 profiles> so user presets made against 2.4.2
+can be migrated back to their printers; CI runs it with --check.
 Use trim only for deliberate cleanup, previewed with --dry-run: it judges against
 the current index and can delete newly added, unindexed presets.
 """
@@ -3222,6 +3760,54 @@ def build_parser():
         "Use trim only for deliberate unindexed-file cleanup, previewed with\n"
         "--dry-run; it can also delete newly authored presets.")
 
+    legacy_cmd = add(
+        "legacy-compat", [profiles_opt],
+        "write the printers user presets can be migrated back to",
+        "Compare the tree with an older release's profiles and write, per filament\n"
+        "preset of that release, the printers it covered then that the preset it now\n"
+        "loads as no longer lists, where a preset with the same filament_id still\n"
+        "covers them. The app offers to write these into user presets that inherit\n"
+        "that preset by its old name and do not set compatible_printers, so a\n"
+        "narrowed list does not hide them on printers they were made for.")
+    legacy_cmd.add_argument("--base", required=True, metavar="DIR",
+                            help="the older release's resources/profiles directory")
+    legacy_cmd.add_argument("--output", default=LEGACY_COMPAT_PATH, metavar="FILE",
+                            help="map to write (default: resources/info/"
+                                 "legacy_compatible_printers.json)")
+    legacy_cmd.add_argument("--check", action="store_true",
+                            help="fail if the map differs from what --base implies; write nothing")
+
+    gcode_cmd = add(
+        "gcode-diff", [vendor_opt, profiles_opt],
+        "print a readable markdown diff of changed custom G-code",
+        "Print, as markdown, a unified diff of every G-code or other multi-line\n"
+        "setting that differs between --base and --head in each changed profile\n"
+        "file, one collapsed section per setting. Files whose diff of a setting is\n"
+        "identical share a section. Trailing spaces are removed from every line, and\n"
+        "the output is cut to whole sections to fit a GitHub comment. Prints nothing\n"
+        "when no such setting changed. CI posts it on profile PRs.\n"
+        "\n"
+        "The settings are the *_gcode and multiline string options PrintConfig.cpp\n"
+        "defines, the options Tab.cpp edits as code (such as filename_format), and any\n"
+        "string value that spans several lines.")
+
+    version_cmd = add(
+        "version-check", [vendor_opt, profiles_opt],
+        "fail unless every changed bundle's version was bumped",
+        "Fail unless every vendor bundle with a file that differs between --base and\n"
+        "--head (<Vendor>.json, or anything under <Vendor>/) has, at --head, a version\n"
+        "in <Vendor>.json that is newer than at --base and written as four numbers\n"
+        "(MM.mm.pp.bb). A bundle --base does not have passes. The app installs a\n"
+        "bundled profile only when its version is newer than the installed one, and\n"
+        "the OTA profile update is named after it, so a change without a bump never\n"
+        "reaches users. CI runs it on profile PRs against the branch they merge into.")
+    for cmd in (gcode_cmd, version_cmd):
+        cmd.add_argument("--base", metavar="REF",
+                         help="compare against this git ref (default: the merge base "
+                              "with upstream/main, else origin/main)")
+        cmd.add_argument("--head", metavar="REF",
+                         help="compare this git ref (default: the working tree)")
+
     return parser
 
 
@@ -3254,6 +3840,15 @@ def main(argv=None):
     if args.command == "generate-id":
         return run_generate_id(profiles_dir, vendors, args.filament_id, args.setting_id,
                                args.dry_run)
+
+    if args.command == "legacy-compat":
+        return run_legacy_compat(args.base, profiles_dir, args.output, args.check)
+
+    if args.command == "gcode-diff":
+        return run_gcode_diff(profiles_dir, vendors, args.base, args.head)
+
+    if args.command == "version-check":
+        return run_version_check(profiles_dir, vendors, args.base, args.head)
 
     if args.command == "fix-variant":
         _changed, errors = fix_variant_arrays(profiles_dir, vendors, dry_run=args.dry_run,

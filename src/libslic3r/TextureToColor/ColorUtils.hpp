@@ -17,9 +17,6 @@ typedef std::vector<Color> ColorList;
 typedef std::array<double, 3> ColorDouble;
 typedef std::array<std::size_t, 3> RGB;
 
-// Function pointer type that points to a specific color-difference function based on the chosen method.
-using DistanceFunction = double (*)(const Color&, const Color&);
-
 // Color space used for computing color differences.
 enum struct ColorDifferenceMethod : std::size_t {
     RGB = 0,  // Simplest and fastest

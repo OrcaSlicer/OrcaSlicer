@@ -14,6 +14,7 @@
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
 #include <wx/string.h>
+#include <wx/statline.h>
 
 #include <vector>
 #include <memory>

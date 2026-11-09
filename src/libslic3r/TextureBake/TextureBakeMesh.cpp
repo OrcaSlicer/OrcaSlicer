@@ -3,6 +3,7 @@
 #include "libslic3r/Point.hpp"
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 #include <cstdint>
 #include <cstddef>
@@ -42,7 +43,7 @@ TriSoup to_soup(const indexed_triangle_set &its, const std::vector<uint8_t> &fac
     return out;
 }
 
-indexed_triangle_set to_indexed_triangle_set(const TriSoup &soup)
+indexed_triangle_set to_indexed_triangle_set(const TriSoup &soup, std::vector<int> *face_color)
 {
     indexed_triangle_set out;
     const size_t         n = soup.pos.size();
@@ -54,12 +55,22 @@ indexed_triangle_set to_indexed_triangle_set(const TriSoup &soup)
         if (map.inserted())
             out.vertices.push_back(soup.pos[i]);
     }
+    const bool       track_color = face_color != nullptr && !face_color->empty();
+    std::vector<int> kept_color;
+    if (track_color)
+        kept_color.reserve(face_color->size());
     for (size_t t = 0; t + 2 < n; t += 3) {
         // Welded-together corners carry no area.
         if (id[t] == id[t + 1] || id[t + 1] == id[t + 2] || id[t] == id[t + 2])
             continue;
         out.indices.emplace_back(id[t], id[t + 1], id[t + 2]);
+        if (track_color) {
+            const size_t src = t / 3;
+            kept_color.push_back(src < face_color->size() ? (*face_color)[src] : -1);
+        }
     }
+    if (track_color)
+        *face_color = std::move(kept_color);
     return out;
 }
 

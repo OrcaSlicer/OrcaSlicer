@@ -15,7 +15,6 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
-#include <vector>
 #include <wx/string.h>
 #include <wx/colour.h>
 
@@ -270,6 +269,7 @@ public:
 private:
     AmsType       m_ams_type = AmsType::AMS;
     std::string   m_ams_id;
+    std::string   m_display_name; // Orca: set by printer agents for their own units, replaces the type-based name
     int           m_ext_id;//extruder id
     // Orca: pull-mode / multi-vendor agent model — keeps the legacy single m_ext_id for existing
     // consumers and carries the switch-aware binding alongside it. Without a Filament Track Switch

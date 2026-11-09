@@ -66,6 +66,8 @@ public:
 
     void relayout();
 
+    void select_page(const PluginCapabilityId& id);
+
 private:
     std::shared_ptr<PagesPluginCapability> get_pages_cap(const PluginCapabilityId& id, bool is_enabled) const;
     bool create_page(const PluginCapabilityId& id);

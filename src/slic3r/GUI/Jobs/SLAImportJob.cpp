@@ -76,7 +76,7 @@ void SLAImportJob::process(Ctl &ctl)
             break;
         }
     } catch (MissingProfileError &) {
-        p->err = _L("The SLA archive doesn\'t contain any presets. Please activate some SLA printer presets first before importing that SLA archive.").ToStdString();
+        p->err = _u8L("The SLA archive doesn\'t contain any presets. Please activate some SLA printer presets first before importing that SLA archive.");
     } catch (std::exception &ex) {
         p->err = ex.what();
     }
@@ -124,8 +124,8 @@ void SLAImportJob::finalize(bool canceled, std::exception_ptr &eptr)
         p->plater->get_notification_manager()->push_notification(
         NotificationType::CustomNotification,
         NotificationManager::NotificationLevel::WarningNotificationLevel,
-            _L("The imported SLA archive did not contain any presets. "
-               "The current SLA presets were used as fallback.").ToStdString());
+            _u8L("The imported SLA archive did not contain any presets. "
+                 "The current SLA presets were used as fallback."));
     }
 
     if (p->sel != Sel::modelOnly) {

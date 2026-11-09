@@ -20,7 +20,7 @@
 	"extruder_offset": [
 		"0x0"
 	],
-	"gcode_flavor": "marlin",
+	"gcode_flavor": "klipper",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
 	"machine_end_gcode": "M400 ; wait for buffer to clear\nG92 E0 ; zero the extruder\nG1 E-4.0 F3600; retract \nG91\nG1 Z3;\nM104 S0 ; turn off hotend\nM140 S0 ; turn off bed\nM106 S0 ; turn off fan\nG90 \nG0 X110 Y200 F3600 \nprint_end",
 	"machine_max_acceleration_e": [

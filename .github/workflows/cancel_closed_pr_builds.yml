@@ -1,0 +1,21 @@
+name: Cancel builds of closed pull requests
+
+on:
+  # pull_request_target needs no approval for first-time contributors and must never
+  # check out pull request code.
+  pull_request_target:
+    types:
+      - closed
+
+permissions: {}
+
+jobs:
+  cancel:
+    # Matches the concurrency group in build_all.yml, so joining it cancels the pull
+    # request's unfinished Build all run.
+    concurrency:
+      group: build-all-pull_request-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Joined concurrency group build-all-pull_request-${{ github.event.pull_request.number }}."

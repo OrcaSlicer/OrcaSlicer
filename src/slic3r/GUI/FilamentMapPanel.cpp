@@ -124,9 +124,13 @@ void FilamentMapManualPanel::OnTimer(wxTimerEvent &)
             m_errors->Hide();
             m_suggestion_panel->Hide();
         } else {
-            m_errors->SetLabel(wxString::Format(_L("Error: %s extruder has no available %s nozzle, current group result is invalid."),
-                                                invalid_eid == 0 ? _L_CONTEXT("Left", "Nozzle position") : _L_CONTEXT("Right", "Nozzle position"),
-                                                invalid_nozzle == NozzleVolumeType::nvtStandard ? _L("Standard") : _L("High Flow")));
+            // [extruder][nozzle volume type]
+            static const char* const error_msgs[2][2] = {
+                {L("Error: Left extruder has no available Standard nozzle, current group result is invalid."),
+                 L("Error: Left extruder has no available High Flow nozzle, current group result is invalid.")},
+                {L("Error: Right extruder has no available Standard nozzle, current group result is invalid."),
+                 L("Error: Right extruder has no available High Flow nozzle, current group result is invalid.")}};
+            m_errors->SetLabel(_(error_msgs[invalid_eid == 0 ? 0 : 1][invalid_nozzle == NozzleVolumeType::nvtStandard ? 0 : 1]));
             // Re-wrap: wrapping only applies to the label text present when Wrap is called,
             // and the label was empty at construction time.
             m_errors->Wrap(FromDIP(520));
