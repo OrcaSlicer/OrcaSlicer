@@ -15,6 +15,7 @@
 #include <cstddef>
 #include <utility>
 #include <wx/colour.h>
+#include <wx/webview.h>
 #include <wx/string.h>
 
 class wxButton;
@@ -52,8 +53,11 @@ private:
     void show_examples(bool on);
     void on_tool(const std::string& raw);
     void save_chat();
+    void render();           // redraw the chat (web view, or the plain log when there is none)
 
-    wxTextCtrl*   m_log    = nullptr;
+    wxTextCtrl*   m_log    = nullptr;   // fallback when the platform has no web view
+    wxWebView*    m_web    = nullptr;
+    bool          m_render_pending = false;
     wxTextCtrl*   m_input  = nullptr;
     wxButton*     m_send   = nullptr;
     wxButton*     m_stop   = nullptr;
@@ -74,7 +78,7 @@ private:
     int           m_turn_edits = 0;
     struct Line { wxString text; unsigned long rgb; bool bold; };
     std::vector<Line> m_hist;            // what the log shows, so it can be saved and restored
-    bool          m_restoring = false;
+    wxColour      m_fg;                  // body text colour of a reply
     std::string   m_chat_json;           // last chat handed to / received from the project
     std::function<void(const std::string&)> m_chat_sink;
 

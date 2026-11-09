@@ -6,6 +6,14 @@
 #include "slic3r/GUI/CAD/McpControl.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include <regex>
+#include "slic3r/GUI/Widgets/WebView.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <md4c/src/md4c.h>
+#include "md4c/src/md4c-html.h"
+#include <wx/webview.h>
+#include <wx/utils.h>
+#include <wx/colour.h>
+#include <wx/chartype.h>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
@@ -67,6 +75,7 @@ bool is_read_only(const std::string& n)
 
 LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::function<void(size_t)> drop_undo_to, std::function<void()> undo_turn)
     : wxPanel(parent, wxID_ANY)
+    , m_fg(StateColor::darkModeColorFor(wxColour("#262E30")))
     , m_undo_depth(std::move(undo_depth))
     , m_drop_undo_to(std::move(drop_undo_to))
     , m_undo_turn(std::move(undo_turn))
@@ -131,7 +140,17 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
     col->Add(m_settings, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
     col->Add(m_setup_lbl, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
     col->Add(m_examples, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
-    col->Add(m_log, 1, wxEXPAND | wxALL, FromDIP(6));
+    m_web = WebView::CreateWebView(this, "");
+    if (m_web) {
+        m_log->Hide();
+        col->Add(m_web, 1, wxEXPAND | wxALL, FromDIP(6));
+        // Links in a reply open in the browser, never inside the pane.
+        m_web->Bind(wxEVT_WEBVIEW_NAVIGATING, [](wxWebViewEvent& e) {
+            const wxString u = e.GetURL();
+            if (u.StartsWith("http://") || u.StartsWith("https://")) { e.Veto(); wxLaunchDefaultBrowser(u); }
+        });
+    }
+    col->Add(m_log, m_web ? 0 : 1, wxEXPAND | wxALL, m_web ? 0 : FromDIP(6));
     col->Add(m_result, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
     col->Add(m_input, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
     auto* att = new wxBoxSizer(wxHORIZONTAL);
@@ -274,19 +293,94 @@ void LlmPanel::build_settings()
     m_settings->Hide();
 }
 
+
+namespace {
+std::string html_escape(const std::string& s)
+{
+    std::string o;
+    o.reserve(s.size());
+    for (char c : s) switch (c) {
+        case '\x26': o += "\x26" "amp;"; break;
+        case '<': o += "\x26" "lt;"; break;
+        case '>': o += "\x26" "gt;"; break;
+        case '\n': o += "<br>"; break;
+        default: o += c;
+    }
+    return o;
+}
+std::string markdown_html(const std::string& md)
+{
+    std::string out;
+    md_html(md.data(), static_cast<MD_SIZE>(md.size()), [](const MD_CHAR* t, MD_SIZE n, void* u) { static_cast<std::string*>(u)->append(t, n); }, &out,
+            MD_DIALECT_GITHUB | MD_FLAG_STRIKETHROUGH, 0);
+    return out;
+}
+// The colours the panel itself uses for the timeline and errors; any other non-bold line is the assistant's reply (markdown).
+bool is_chrome_colour(unsigned long rgb)
+{
+    const wxColour c(rgb);
+    return (c.Red() == c.Green() && c.Green() == c.Blue() && c.Red() >= 110 && c.Red() <= 160) || (c.Red() == 190 && c.Green() == 40 && c.Blue() == 40);
+}
+} // namespace
+
+// The chat is rendered from m_hist as one page: replies go through md4c (tables, lists, code), the rest is escaped text.
+void LlmPanel::render()
+{
+    if (m_render_pending) return;
+    m_render_pending = true;
+    CallAfter([this]() {
+        m_render_pending = false;
+        if (!m_web) {   // no web view on this platform: plain log
+            m_log->Clear();
+            for (const Line& l : m_hist) {
+                wxTextAttr attr;
+                attr.SetTextColour(wxColour(l.rgb));
+                wxFont f = m_log->GetFont();
+                if (l.bold) f.SetWeight(wxFONTWEIGHT_BOLD);
+                attr.SetFont(f);
+                m_log->SetDefaultStyle(attr);
+                m_log->AppendText(l.text);
+            }
+            m_log->ShowPosition(m_log->GetLastPosition());
+            return;
+        }
+        const std::string bg = StateColor::darkModeColorFor(wxColour("#FFFFFF")).GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
+        const std::string fg = StateColor::darkModeColorFor(wxColour("#262E30")).GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
+        std::string h = "<html><head><meta charset=\"utf-8\"><style>body{color:" + fg + ";background-color:" + bg + ";font-family:sans-serif;font-size:13px;margin:6px}"
+                        "a{color:#009688} p{margin:4px 0} ul,ol{padding-inline-start:20px;margin:4px 0}"
+                        "table{border-collapse:collapse;margin:4px 0} th,td{border:1px solid #888;padding:2px 6px} th{background:rgba(128,128,128,.2)}"
+                        "pre{background:rgba(128,128,128,.15);padding:4px;overflow-x:auto} code{font-family:monospace}"
+                        ".u{color:#007a74;font-weight:bold} .t{white-space:pre-wrap}</style></head><body onload=\"window.scrollTo(0,1e9)\">";
+        std::string reply;   // consecutive reply lines form one markdown block, so a table or a list is not cut at a line break
+        bool user_next = false;
+        auto flush = [&]() { if (!reply.empty()) { h += markdown_html(reply); reply.clear(); } };
+        for (const Line& l : m_hist) {
+            const std::string t(l.text.ToUTF8());
+            if (l.bold) { flush(); h += "<div><span class=\"u\">" + html_escape(t) + "</span>"; user_next = true; continue; }
+            if (is_chrome_colour(l.rgb)) {
+                flush();
+                if (user_next) { h += "</div>"; user_next = false; }
+                std::string st = wxColour(l.rgb).GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
+                h += "<div class=\"t\" style=\"color:" + st + "\">" + html_escape(t.size() && t.back() == '\n' ? t.substr(0, t.size() - 1) : t) + "</div>";
+            } else if (user_next) {
+                h += html_escape(t) + "</div>";
+                user_next = false;
+            } else
+                reply += t;
+        }
+        flush();
+        if (user_next) h += "</div>";
+        h += "</body></html>";
+        m_web->SetPage(wxString::FromUTF8(h), "");
+    });
+}
+
 void LlmPanel::focus_input() { m_input->SetFocus(); }
 
 void LlmPanel::append(const wxString& text, const wxColour& colour, bool bold)
 {
-    wxTextAttr attr;
-    attr.SetTextColour(colour);
-    wxFont f = m_log->GetFont();
-    if (bold) f.SetWeight(wxFONTWEIGHT_BOLD);
-    attr.SetFont(f);
-    m_log->SetDefaultStyle(attr);
-    m_log->AppendText(text);
-    if (!m_restoring) m_hist.push_back({text, colour.GetRGB(), bold});
-    m_log->ShowPosition(m_log->GetLastPosition());
+    m_hist.push_back({text, colour.GetRGB(), bold});
+    render();
 }
 
 void LlmPanel::set_busy(bool busy)
@@ -389,19 +483,16 @@ void LlmPanel::load_chat(const std::string& json)
     if (m_busy || json == m_chat_json) return;   // the project we already show (this runs every time the tab is shown)
     m_chat_json = json;
     m_hist.clear();
-    m_log->Clear();
     m_session_id.clear();   // an agent session belongs to one conversation on one machine
     m_result->Hide();
     const nlohmann::json j = nlohmann::json::parse(json, nullptr, false);
-    m_restoring = true;
     if (j.is_array())
         for (const auto& e : j)
             if (e.is_array() && e.size() == 3 && e[0].is_string() && e[1].is_number_unsigned() && e[2].is_boolean()) {
                 const unsigned long rgb = e[1].get<unsigned long>();
-                append(wxString::FromUTF8(e[0].get<std::string>()), wxColour(rgb), e[2].get<bool>());
                 m_hist.push_back({wxString::FromUTF8(e[0].get<std::string>()), rgb, e[2].get<bool>()});
             }
-    m_restoring = false;
+    render();
     show_examples(m_hist.empty());
 }
 
@@ -413,7 +504,7 @@ void LlmPanel::new_chat()
     show_examples(true);
     m_files.clear();
     refresh_attachments();
-    m_log->Clear();
+    render();
     save_chat();
 }
 
@@ -429,7 +520,7 @@ void LlmPanel::send()
     if (text.IsEmpty()) return;
     m_input->Clear();
     append(_L("You") + ": ", wxColour(0, 122, 116), true);
-    append(text + "\n", m_log->GetForegroundColour());
+    append(text + "\n", m_fg);
     m_undo_at_start = m_undo_depth();
     m_turn_edits = 0;
     m_result->Hide();
@@ -456,7 +547,7 @@ void LlmPanel::send()
         [this, alive](const LlmEvent& e) {
             if (alive.expired() || !*alive.lock()) return;
             switch (e.kind) {
-            case LlmEvent::Text:   append(wxString::FromUTF8(e.text) + "\n", m_log->GetForegroundColour()); break;
+            case LlmEvent::Text:   append(wxString::FromUTF8(e.text) + "\n", m_fg); break;
             case LlmEvent::Tool:   on_tool(e.text); break;
             case LlmEvent::Result:
                 if (!e.session_id.empty()) m_session_id = e.session_id;
@@ -469,7 +560,7 @@ void LlmPanel::send()
             // One turn = one undo step: keep the snapshot taken before the turn's first edit, drop the rest.
             if (m_undo_depth() > m_undo_at_start + 1) m_drop_undo_to(m_undo_at_start + 1);
             if (!ok) append(wxString::FromUTF8(err) + "\n", wxColour(190, 40, 40));
-            append("\n", m_log->GetForegroundColour());
+            append("\n", m_fg);
             m_run.reset();
             set_busy(false);
             save_chat();
