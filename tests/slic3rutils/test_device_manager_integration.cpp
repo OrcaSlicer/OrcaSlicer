@@ -2,6 +2,7 @@
 #include <catch2/catch_all.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include <slic3r/GUI/DeviceCore/DevLamp.h>
 #include <slic3r/GUI/DeviceCore/DevManager.h>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <libslic3r/AppConfig.hpp>
@@ -15,6 +16,7 @@
 #include <nlohmann/json.hpp>
 
 #include <memory>
+#include <optional>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -56,6 +58,7 @@ public:
     {
         published_device = std::move(dev_id);
         published_message = json::parse(json_str);
+        published_messages.push_back(published_message);
         return 0;
     }
 
@@ -66,6 +69,7 @@ public:
 
     std::string published_device;
     json published_message;
+    std::vector<json> published_messages;
 
 private:
     AgentInfo m_info;
@@ -327,4 +331,58 @@ TEST_CASE("AMS filament settings default a supplied single-color list to type tw
     const json& payload = agent->published_message.at("print");
     CHECK(payload.at("cols").get<std::vector<std::string>>() == colors);
     CHECK(payload.at("ctype") == 2);
+}
+
+namespace {
+
+std::vector<std::string> chamber_light_nodes_sent(const std::optional<json>& lights_report)
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+    MachineObject object(&manager, &network, "Test printer", "integration-device", "192.0.2.10");
+    object.dev_connection_type = "lan";
+
+    if (lights_report)
+        object.GetLamp()->ParseLightsReport(*lights_report);
+    object.GetLamp()->CtrlSetChamberLight(DevLamp::LIGHT_EFFECT_ON);
+
+    std::vector<std::string> nodes;
+    for (const json& message : agent->published_messages)
+        nodes.push_back(message.at("system").at("led_node").get<std::string>());
+    return nodes;
+}
+
+} // namespace
+
+TEST_CASE("Chamber light skips the second light on a printer that reports only one", "[DeviceManager][Lamp][integration]")
+{
+    const json report = json::array({{{"node", "chamber_light"}, {"mode", "off"}},
+                                     {{"node", "work_light"}, {"mode", "flashing"}}});
+
+    CHECK(chamber_light_nodes_sent(report) == std::vector<std::string>{"chamber_light"});
+}
+
+TEST_CASE("Chamber light switches both lights on a printer that reports two", "[DeviceManager][Lamp][integration]")
+{
+    const json report = json::array({{{"node", "chamber_light"}, {"mode", "off"}},
+                                     {{"node", "chamber_light2"}, {"mode", "off"}}});
+
+    CHECK(chamber_light_nodes_sent(report) == std::vector<std::string>{"chamber_light", "chamber_light2"});
+}
+
+TEST_CASE("Chamber light switches both lights before the printer reports its lights", "[DeviceManager][Lamp][integration]")
+{
+    CHECK(chamber_light_nodes_sent(std::nullopt) == std::vector<std::string>{"chamber_light", "chamber_light2"});
+}
+
+TEST_CASE("Lights report updates the chamber light state", "[DeviceManager][Lamp][integration]")
+{
+    DevLamp lamp(nullptr);
+    lamp.ParseLightsReport(json::array({{{"node", "chamber_light"}, {"mode", "on"}}}));
+    CHECK(lamp.IsChamberLightOn());
+
+    lamp.ParseLightsReport(json::array({{{"node", "chamber_light"}, {"mode", "off"}}}));
+    CHECK_FALSE(lamp.IsChamberLightOn());
 }

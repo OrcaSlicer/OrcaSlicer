@@ -1,5 +1,8 @@
 #pragma once
 
+#include <nlohmann/json.hpp>
+
+#include <optional>
 #include <string>
 
 namespace Slic3r
@@ -21,6 +24,8 @@ namespace Slic3r
         };
 
     public:
+        void ParseLightsReport(const nlohmann::json& lights_report);
+
         void SetChamberLight(const std::string& status);
         void SetChamberLight(LIGHT_EFFECT effect) { m_chamber_light = effect; }
         bool IsChamberLightOn() const { return m_chamber_light == LIGHT_EFFECT_ON || m_chamber_light == LIGHT_EFFECT_FLASHING; }
@@ -40,5 +45,8 @@ namespace Slic3r
 
         bool m_lamp_close_recheck = false;
         LIGHT_EFFECT m_chamber_light = LIGHT_EFFECT_UNKOWN;
+
+        // Whether any lights_report listed chamber_light2; unset until the printer reports its lights.
+        std::optional<bool> m_has_chamber_light2;
     };
 }
