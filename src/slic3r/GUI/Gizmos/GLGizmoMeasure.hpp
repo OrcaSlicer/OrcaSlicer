@@ -277,7 +277,7 @@ public:
         bool has_point_on_feature{false};
     };
     // Returns true when a click can select a live selection sphere under the cursor, or else the hovered feature
-    // and, in point selection, the point on it.
+    // and, in point selection, the point on it. The hovered feature needs no gripper hit, since its highlight can be thinner than its hover band.
     static bool has_pick_target(const PickState &state);
 
     struct GripperHit
@@ -285,8 +285,7 @@ public:
         int    id;
         double distance;
     };
-    // Returns the closest hit's id, or -1 without a hit. On a tie a selection sphere beats any other gripper,
-    // and otherwise the earlier hit is kept.
+    // Returns the closest hit's id, or -1 without a hit. On a tie the earlier hit is kept.
     static int pick_hover_id(const std::vector<GripperHit> &hits);
 
 protected:

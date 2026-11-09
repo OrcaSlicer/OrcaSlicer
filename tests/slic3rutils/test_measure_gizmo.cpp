@@ -85,19 +85,7 @@ TEST_CASE("The closest gripper hit is hovered", "[MeasureGizmo]")
     CHECK(GLGizmoMeasure::pick_hover_id({{PLANE_ID, 9.0}, {EDGE_ID, 4.0}, {CIRCLE_ID, 6.0}}) == EDGE_ID);
 }
 
-TEST_CASE("A selection sphere wins a tie with the point gripper at the same spot", "[MeasureGizmo]")
-{
-    const int sphere_id = GENERATE(SEL_SPHERE_1_ID, SEL_SPHERE_2_ID);
-    CHECK(GLGizmoMeasure::pick_hover_id({{POINT_ID, 4.0}, {sphere_id, 4.0}}) == sphere_id);
-    CHECK(GLGizmoMeasure::pick_hover_id({{sphere_id, 4.0}, {POINT_ID, 4.0}}) == sphere_id);
-}
-
 TEST_CASE("The first selection sphere wins a tie with the second", "[MeasureGizmo]")
 {
     CHECK(GLGizmoMeasure::pick_hover_id({{SEL_SPHERE_1_ID, 4.0}, {SEL_SPHERE_2_ID, 4.0}}) == SEL_SPHERE_1_ID);
-}
-
-TEST_CASE("A closer point gripper still beats a selection sphere", "[MeasureGizmo]")
-{
-    CHECK(GLGizmoMeasure::pick_hover_id({{SEL_SPHERE_1_ID, 9.0}, {POINT_ID, 4.0}}) == POINT_ID);
 }

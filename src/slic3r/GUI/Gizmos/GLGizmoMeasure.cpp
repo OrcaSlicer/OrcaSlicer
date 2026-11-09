@@ -262,7 +262,6 @@ bool GLGizmoMeasure::on_mouse(const wxMouseEvent &mouse_event)
         if (mouse_event.CmdDown())
             return false;
 
-        clear_unpickable_hover_id();
         if (hover_has_pick_target()) {
             m_mouse_left_down = true;
             auto detect_current_item = [this]() {
@@ -405,15 +404,12 @@ bool GLGizmoMeasure::on_mouse(const wxMouseEvent &mouse_event)
             m_imgui->set_requires_extra_frame();
             return true;
         }
-        else
+        else {
+            m_hover_id = -1;
             // if the mouse pointer is on any volume, filter out the event to prevent the user to move it
             // equivalent tp: return (m_parent.get_first_hover_volume_idx() != -1);
             return m_curr_feature.has_value();
-
-        // fix: prevent restart gizmo when reselect object
-        // take responsibility for left up
-        if (m_parent.get_first_hover_volume_idx() >= 0)
-            m_mouse_left_down = true;
+        }
     }
     else if (mouse_event.LeftUp()) {
         if (m_mouse_left_down) {
@@ -702,9 +698,6 @@ void GLGizmoMeasure::on_render()
             m_curr_feature.reset();
             m_curr_point_on_feature_position.reset();
         }
-        else if (m_hover_id == POINT_ID && m_curr_feature.has_value()) {
-            // A circle center or polygon center is too far from its feature to keep it hovered, so the feature is kept while its point is hit.
-        }
         else {
             std::optional<Measure::SurfaceFeature> curr_feature = std::nullopt;
             if (m_curr_measuring) {
@@ -748,15 +741,12 @@ void GLGizmoMeasure::on_render()
                     case Measure::SurfaceFeatureType::Edge:
                     {
                         m_gripper_id_raycast_map[GripperType::EDGE] = std::make_shared<PickRaycaster>(EDGE_ID, *m_cylinder.mesh_raycaster);
-                        if (m_curr_feature->get_extra_point().has_value())
-                            m_gripper_id_raycast_map[GripperType::POINT] = std::make_shared<PickRaycaster>(POINT_ID, *m_sphere.mesh_raycaster);
                         break;
                     }
                     case Measure::SurfaceFeatureType::Circle: {
                         m_curr_circle.last_circle_feature.reset();
                         m_curr_circle.inv_zoom            = 0;
                         init_circle_glmodel(GripperType::CIRCLE, *m_curr_feature, m_curr_circle,inv_zoom);
-                        m_gripper_id_raycast_map[GripperType::POINT] = std::make_shared<PickRaycaster>(POINT_ID, *m_sphere.mesh_raycaster);
                         break;
                     }
                     case Measure::SurfaceFeatureType::Plane: {
@@ -802,7 +792,7 @@ void GLGizmoMeasure::on_render()
             case Measure::SurfaceFeatureType::Edge:
             {
                 const std::optional<Vec3d> extra = m_curr_feature->get_extra_point();
-                if (extra.has_value() && m_hover_id == POINT_ID)
+                if (extra.has_value() && m_hover_id == GripperType::POINT)
                     m_curr_point_on_feature_position = *extra;
                 else if (const std::optional<Vec3d> pos = position_on_feature(GripperType::EDGE, camera, [](const Vec3f &v) { return Vec3f(0.0f, 0.0f, v.z()); }))
                     m_curr_point_on_feature_position = pos;
@@ -2320,12 +2310,10 @@ bool GLGizmoMeasure::has_pick_target(const PickState &state)
 
 int GLGizmoMeasure::pick_hover_id(const std::vector<GripperHit> &hits)
 {
-    auto is_selection_sphere = [](int id) { return id == SEL_SPHERE_1_ID || id == SEL_SPHERE_2_ID; };
     int    hover_id = -1;
     double closest  = std::numeric_limits<double>::max();
     for (const GripperHit &hit : hits) {
-        const bool tie = std::abs(hit.distance - closest) <= 1e-9 * closest;
-        if (tie ? is_selection_sphere(hit.id) && !is_selection_sphere(hover_id) : hit.distance < closest) {
+        if (hit.distance < closest) {
             closest  = hit.distance;
             hover_id = hit.id;
         }
