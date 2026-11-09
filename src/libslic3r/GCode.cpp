@@ -4128,6 +4128,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set_deferred("total_cost", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Total_Cost_Placeholder));
     this->placeholder_parser().set_deferred("total_wipe_tower_cost", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Total_Wipe_Tower_Cost_Placeholder));
     this->placeholder_parser().set_deferred("total_wipe_tower_filament", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Total_Wipe_Tower_Filament_Placeholder));
+    this->placeholder_parser().set_deferred("first_layer_print_time", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::First_Layer_Print_Time_Placeholder));
 
     // Sync variant-mapped params into placeholder_parser before processing start gcode
     update_placeholder_parser_with_variant_params();

@@ -652,6 +652,7 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
             Total_Cost_Placeholder,
             Total_Wipe_Tower_Cost_Placeholder,
             Total_Wipe_Tower_Filament_Placeholder,
+            First_Layer_Print_Time_Placeholder,
         };
 
         static const std::string& reserved_tag(ETags tag) { return s_IsBBLPrinter ? Reserved_Tags[static_cast<unsigned char>(tag)] : Reserved_Tags_compatible[static_cast<unsigned char>(tag)]; }
