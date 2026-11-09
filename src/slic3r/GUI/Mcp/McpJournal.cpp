@@ -62,17 +62,20 @@ json without_expected_ids(const std::string& tool, json args)
 
 uint64_t Journal::begin(const std::string& tool, const nlohmann::json& args, bool answers_dialog)
 {
+    // The copy and its size are made before the lock: serializing a large call takes a while, and
+    // every other call's begin and end waits on the lock.
+    Entry e;
+    e.tool           = tool;
+    e.args           = without_expected_ids(tool, args);
+    e.bytes          = serialized_size(e.args);
+    e.answers_dialog = answers_dialog;
+
     std::lock_guard<std::mutex> lock(m_mutex);
     if (answers_dialog)
         for (Entry& running : m_entries)
             if (!running.job.empty() && !running.job_ended)
                 running.dialog_answered = true;
-    Entry e;
-    e.seq            = m_next++;
-    e.tool           = tool;
-    e.args           = without_expected_ids(tool, args);
-    e.bytes          = serialized_size(e.args);
-    e.answers_dialog = answers_dialog;
+    e.seq              = m_next++;
     const uint64_t seq = e.seq;
     m_bytes += e.bytes;
     m_entries.push_back(std::move(e));
@@ -82,14 +85,31 @@ uint64_t Journal::begin(const std::string& tool, const nlohmann::json& args, boo
 
 void Journal::set_args(uint64_t seq, nlohmann::json args)
 {
+    // As in begin(), the copy and its size are made outside the lock; only the call's tool, which
+    // decides what the copy leaves out, is read under it.
+    auto find = [this, seq] {
+        return std::find_if(m_entries.begin(), m_entries.end(), [seq](const Entry& e) { return e.seq == seq; });
+    };
+    std::string tool;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (const auto it = find(); it != m_entries.end())
+            tool = it->tool;
+        else
+            return;
+    }
+    args                    = without_expected_ids(tool, std::move(args));
+    const std::size_t bytes = serialized_size(args);
+
     std::lock_guard<std::mutex> lock(m_mutex);
-    for (Entry& e : m_entries)
-        if (e.seq == seq) {
-            m_bytes -= e.bytes;
-            e.args  = without_expected_ids(e.tool, std::move(args));
-            e.bytes = serialized_size(e.args);
-            m_bytes += e.bytes;
-        }
+    // export_replay {clear:true} may have emptied the journal meanwhile.
+    const auto it = find();
+    if (it == m_entries.end())
+        return;
+    m_bytes -= it->bytes;
+    it->args  = std::move(args);
+    it->bytes = bytes;
+    m_bytes += bytes;
     trim();
 }
 
@@ -146,16 +166,23 @@ void Journal::trim()
     // must not grow without bound; a replay is exported from the recent calls anyway (export_replay
     // {clear:true} starts afresh). The oldest calls whose outcome is known go first; a call still
     // waiting for its reply or its job keeps its place, even when that holds the journal over a bound
-    // until it finishes.
-    auto it = m_entries.begin();
-    while (it != m_entries.end() && (m_entries.size() > kMaxEntries || m_bytes > kMaxArgBytes)) {
-        if (it->running()) {
-            ++it;
+    // until it finishes. One pass moves the kept calls forward and one erase drops the rest, so a large
+    // call that pushes out thousands of small ones costs one walk of the journal under the lock.
+    std::size_t count = m_entries.size();
+    if (count <= kMaxEntries && m_bytes <= kMaxArgBytes)
+        return;
+    auto kept = m_entries.begin();
+    for (auto it = m_entries.begin(); it != m_entries.end(); ++it) {
+        if (!it->running() && (count > kMaxEntries || m_bytes > kMaxArgBytes)) {
+            --count;
+            m_bytes -= it->bytes;
             continue;
         }
-        m_bytes -= it->bytes;
-        it = m_entries.erase(it);
+        if (kept != it)
+            *kept = std::move(*it);
+        ++kept;
     }
+    m_entries.erase(kept, m_entries.end());
 }
 
 nlohmann::json Journal::to_replay(const std::string& name, nlohmann::json* left_out_running) const

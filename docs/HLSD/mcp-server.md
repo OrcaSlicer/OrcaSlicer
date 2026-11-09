@@ -1065,8 +1065,9 @@ expire) and `use`; `query` keeps the tools whose name, summary or details hold i
 the order asked, and `id_lifetime` when one of them takes or gives face or edge ids; an unknown
 name fails with the close ones. Both answer with the CAD feature off too, and then add a `note` on
 how a person turns it on. That preference lives in `AppConfig`, which Preferences may write
-meanwhile, so it is read with a short UI-thread call (`observe_ui`, `cad_feature_note()`); when the
-UI does not answer, the reply goes out without the note, which is only advice.
+meanwhile, so it is read on the UI thread (`observe_ui`, `cad_feature_note()`), which the call waits
+for up to the usual queue timeout of 10 s; when the UI does not answer by then, or refuses, the reply
+goes out without the note, which is only advice.
 
 `run_cad_tool()` runs the CAD tool on the UI thread, inside `call_cad_tool`'s mutate guard, and
 refuses a call by its cause, in this order. The MCP server is up before the main window, so first
@@ -2689,7 +2690,8 @@ The session journal records client calls to journaled tools in order: every muta
 arguments (serialized), so a long CAD run's large `sketch_add` calls can't grow it without bound:
 after each change it drops the oldest calls whose outcome is known until it is within both. A call
 still waiting for its reply or its job keeps its place, so calls still waiting may hold it over for a
-while; they go once they finish like any old call. GUI tools record locators instead of refs through
+while; once they finish they are dropped like any other call, oldest first, and only while the
+journal is still over a bound. GUI tools record locators instead of refs through
 `ToolContext::set_journal_args()`. `export_replay` returns it, and with `path` writes it, through `Journal::to_replay()`; `clear`
 starts a new recording. `Journal::to_replay()`
 drops failed calls and an input call that only listed the menu it opened when the next call repeats
