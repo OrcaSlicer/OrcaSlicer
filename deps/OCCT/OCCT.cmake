@@ -1,8 +1,16 @@
-# clang-cl cannot emit some OCCT sources for ARM64 (llvm/llvm-project#62081).
-# cl and clang-cl share an ABI.
+# clang-cl cannot emit some OCCT sources for ARM64 (llvm/llvm-project#62081), and with OCCT's
+# precompiled headers it can break exception copies (llvm/llvm-project#53486). cl and clang-cl
+# share an ABI, so clang-cl builds compile OCCT with cl. The Visual Studio generator picks the
+# compiler by toolset, so there OCCT may stay on clang-cl; keep precompiled headers off there.
 set(_occt_compiler_args "")
-if ("${DEPS_ARCH}" STREQUAL "arm64" AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
-    set(_occt_compiler_args -DCMAKE_C_COMPILER:STRING=cl -DCMAKE_CXX_COMPILER:STRING=cl)
+set(_occt_pch ON)
+if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    if ("${DEPS_ARCH}" STREQUAL "arm64" OR NOT CMAKE_GENERATOR MATCHES "Visual Studio")
+        set(_occt_compiler_args -DCMAKE_C_COMPILER:STRING=cl -DCMAKE_CXX_COMPILER:STRING=cl)
+    endif ()
+    if (CMAKE_GENERATOR MATCHES "Visual Studio")
+        set(_occt_pch OFF)
+    endif ()
 endif ()
 
 if(WIN32)
@@ -32,14 +40,6 @@ if (SLIC3R_CAD)
 endif ()
 # OCCT reads BUILD_ADDITIONAL_TOOLKITS as a space-separated string.
 string(REPLACE ";" " " _occt_toolkits "${_occt_toolkits}")
-
-# OCCT's precompiled headers roughly halve its compile time. Off with clang-cl, which can then
-# break exception copies: https://github.com/llvm/llvm-project/issues/53486
-if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(_occt_pch OFF)
-else ()
-    set(_occt_pch ON)
-endif ()
 
 if (IN_GIT_REPO)
     set(OCCT_DIRECTORY_FLAG --directory ${BINARY_DIR_REL}/dep_OCCT-prefix/src/dep_OCCT)
@@ -79,3 +79,4 @@ orcaslicer_add_cmake_project(OCCT
         "-DBUILD_ADDITIONAL_TOOLKITS=${_occt_toolkits}"
         ${_occt_compiler_args}
 )
+
