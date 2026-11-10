@@ -124,7 +124,7 @@ TEST_CASE("A dovetail cut keeps each part's filament", "[Cut]")
         std::sort(filaments.begin(), filaments.end());
         std::sort(names.begin(), names.end());
         REQUIRE(filaments == std::vector<int>{ 1, 2 });
-        REQUIRE(names == std::vector<std::string>{ object->name, object->name + "_T2" });
+        REQUIRE(names == std::vector<std::string>{ object->name, object->name + "_2" });
     }
 }
 
@@ -255,4 +255,67 @@ TEST_CASE("Paint stays on its own part after a dovetail cut", "[Cut]")
         REQUIRE(painted_filaments.size() == 1);
         REQUIRE(painted_filaments.front() == 1);
     }
+}
+
+TEST_CASE("A dovetail cut keeps parts with different materials apart", "[Cut]")
+{
+    Model            model;
+    const TwoPartBox box = add_two_part_box(model);
+    box.part_a->set_material_id("mat_a");
+    box.part_b->set_material_id("mat_b");
+
+    Cut cut(box.object, 0, Transform3d::Identity(),
+            ModelObjectCutAttribute::KeepUpper | ModelObjectCutAttribute::KeepLower);
+    const ModelObjectPtrs& objects = run_dovetail(cut);
+
+    REQUIRE(objects.size() == 2);
+    for (const ModelObject* object : objects) {
+        std::vector<std::string> materials;
+        for (const ModelVolume* part : model_parts(*object)) {
+            REQUIRE(part->extruder_id() == 1);
+            materials.push_back(part->material_id());
+        }
+        std::sort(materials.begin(), materials.end());
+        REQUIRE(materials == std::vector<std::string>{ "mat_a", "mat_b" });
+    }
+}
+
+TEST_CASE("A dovetail cut inherits the object's filament", "[Cut]")
+{
+    Model            model;
+    const TwoPartBox box = add_two_part_box(model);
+    box.object->config.set("extruder", 3);
+
+    Cut cut(box.object, 0, Transform3d::Identity(),
+            ModelObjectCutAttribute::KeepUpper | ModelObjectCutAttribute::KeepLower);
+    const ModelObjectPtrs& objects = run_dovetail(cut);
+
+    REQUIRE(objects.size() == 2);
+    for (const ModelObject* object : objects) {
+        const std::vector<const ModelVolume*> parts = model_parts(*object);
+        REQUIRE(parts.size() == 1);
+        REQUIRE(parts.front()->extruder_id() == 3);
+    }
+}
+
+TEST_CASE("Cut by contour keeps each part's filament", "[Cut]")
+{
+    Model        model;
+    ModelObject* object = model.add_object();
+    add_half(object, -12.5f);
+    ModelVolume* right = add_half(object, 0.f);
+    right->config.set("extruder", 2);
+    object->add_instance();
+
+    Cut cut(object, 0, Transform3d::Identity(),
+            ModelObjectCutAttribute::KeepUpper | ModelObjectCutAttribute::KeepLower);
+    const ModelObjectPtrs& objects =
+        cut.perform_by_contour(object, { { true, false }, { true, false } }, 0);
+
+    REQUIRE(objects.size() == 1);
+    std::vector<int> filaments;
+    for (const ModelVolume* part : model_parts(*objects.front()))
+        filaments.push_back(part->extruder_id());
+    std::sort(filaments.begin(), filaments.end());
+    REQUIRE(filaments == std::vector<int>{ 1, 2 });
 }

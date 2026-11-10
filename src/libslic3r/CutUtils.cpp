@@ -71,7 +71,10 @@ static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelV
     vol->config.assign_config(src_volume->config);
     assert(vol->config.id().valid());
     assert(vol->config.id() != src_volume->config.id());
-    vol->set_material(src_volume->material_id(), *src_volume->material());
+    if (const ModelMaterial* material = src_volume->material())
+        vol->set_material(src_volume->material_id(), *material);
+    else
+        vol->set_material_id(src_volume->material_id());
     vol->cut_info = src_volume->cut_info;
 }
 
@@ -487,21 +490,23 @@ static void merge_solid_parts_inside_object(ModelObjectPtrs& objects)
         }
 
         bool created = false;
-        for (size_t group_idx = 0; group_idx < groups.size(); ++group_idx) {
-            const Group& group = groups[group_idx];
+        for (Group& group : groups) {
             if (group.mesh.empty())
                 continue;
 
-            ModelVolume* new_volume = mo->add_volume(group.mesh);
+            ModelVolume* new_volume = mo->add_volume(std::move(group.mesh));
             if (!created) {
                 new_volume->name = mo->name;
             } else {
-                std::string name = mo->name + "_T" + std::to_string(group.representative->extruder_id());
+                // Number the extra parts as splitting a mesh into parts does; the first part keeps the object's name.
                 const auto name_taken = [mo](const std::string& n) {
                     return std::any_of(mo->volumes.begin(), mo->volumes.end(), [&n](const ModelVolume* v) { return v->name == n; });
                 };
-                if (name_taken(name))
-                    name += "_" + std::to_string(group_idx);
+                std::string name;
+                int         suffix = 2;
+                do
+                    name = mo->name + "_" + std::to_string(suffix++);
+                while (name_taken(name));
                 new_volume->name = name;
             }
             // Don't copy the config's ID.
