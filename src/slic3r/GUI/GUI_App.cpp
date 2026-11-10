@@ -10017,6 +10017,7 @@ bool GUI_App::run_wizard(RunReason reason, StartPage start_page)
     if (strFinish == "false" || strFinish.empty())
         pStyle = wxCAPTION | wxTAB_TRAVERSAL;
 
+    pStyle |= wxRESIZE_BORDER;
     GuideFrame wizard(this, pStyle);
     auto page = start_page == StartPage::SP_WELCOME ? GuideFrame::BBL_WELCOME :
                 start_page == StartPage::SP_FILAMENTS ? GuideFrame::BBL_FILAMENT_ONLY :
