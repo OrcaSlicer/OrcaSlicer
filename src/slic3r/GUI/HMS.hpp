@@ -14,6 +14,7 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <wx/string.h>
 #include <wx/image.h>
@@ -37,6 +38,8 @@ protected:
     mutable std::mutex m_hms_mutex;
 
     std::unordered_map<std::string, std::time_t> m_cloud_hms_last_update_time;
+    // Orca: models showing the bundled English catalog until the server answers for the user's language
+    std::unordered_set<std::string> m_hms_english_fallback;
 
 public:
     HMSQuery() { }

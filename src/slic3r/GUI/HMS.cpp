@@ -117,14 +117,16 @@ int HMSQuery::download_hms_related(const std::string& hms_type, const std::strin
 
 
     bool to_save_local = false;
+    bool answered      = false; // Orca: the server replied with a result, whatever it is
     json j;
 
     BOOST_LOG_TRIVIAL(info) << "hms: download url = " << url;
     Slic3r::Http http = Slic3r::Http::get(url);
-    http.on_complete([receive_json, hms_type, &to_save_local, &j, & local_version](std::string body, unsigned status) {
+    http.on_complete([receive_json, hms_type, &to_save_local, &answered, &j, & local_version](std::string body, unsigned status) {
         try {
             j = json::parse(body);
             if (j.contains("result")) {
+                answered = true;
                 if (j["result"] == 0 && j.contains("data")) {
 
                     if (!j.contains("ver"))
@@ -167,7 +169,7 @@ int HMSQuery::download_hms_related(const std::string& hms_type, const std::strin
         if (to_save_local && !receive_json->empty()) {
             save_to_local(lang, hms_type, dev_id_type, j);
         }
-    return 0;
+    return answered ? 0 : -1;
 }
 
 
@@ -706,6 +708,7 @@ void HMSQuery::clear_hms_info()
     m_hms_info_jsons.clear();
     m_hms_action_jsons.clear();
     m_cloud_hms_last_update_time.clear();
+    m_hms_english_fallback.clear();
 }
 
 void HMSQuery::init_hms_info(const std::string& dev_type_id)
@@ -722,8 +725,10 @@ void HMSQuery::init_hms_info(const std::string& dev_type_id)
                 // Orca: without a bundled catalog, use English from memory only, so the download still fetches the full file
                 if (copy_bundled_file_to_local(get_hms_file(QUERY_HMS_INFO, hms_language_code(), dev_type_id)))
                     load_from_local(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id], load_version);
-                else
+                else {
                     load_bundled(QUERY_HMS_INFO, dev_type_id, "en", &m_hms_info_jsons[dev_type_id]);
+                    m_hms_english_fallback.insert(dev_type_id);
+                }
             }
         }
 
@@ -740,13 +745,15 @@ void HMSQuery::init_hms_info(const std::string& dev_type_id)
 
     /* check hms is valid or not */
     bool retry = false;
-    if(m_hms_info_jsons[dev_type_id].empty() || m_hms_action_jsons[dev_type_id].empty()){
+    // Orca: the English fallback fills the table, so it needs the retry too, or a failed first download waits a day
+    if(m_hms_info_jsons[dev_type_id].empty() || m_hms_action_jsons[dev_type_id].empty() || m_hms_english_fallback.count(dev_type_id) != 0){
         retry =time(nullptr) - info_last_update_time > (60 * 1); // retry after 1 minute
     }
 
     if (time(nullptr) - info_last_update_time > (60 * 60 * 24) || retry)/*do not update in one day to reduce waiting*/
     {
-        download_hms_related(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id]);
+        if (download_hms_related(QUERY_HMS_INFO, dev_type_id, &m_hms_info_jsons[dev_type_id]) == 0)
+            m_hms_english_fallback.erase(dev_type_id);
         download_hms_related(QUERY_HMS_ACTION, dev_type_id, &m_hms_action_jsons[dev_type_id]);
         m_cloud_hms_last_update_time[dev_type_id] = time(nullptr);
     }
