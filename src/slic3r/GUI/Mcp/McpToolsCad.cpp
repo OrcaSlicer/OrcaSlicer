@@ -1182,7 +1182,7 @@ json tool_rows()
                          {"tool": "sketch_add", "args": {"entities": [{"type": "circle", "center": [10, 0], "radius": 3}]}},
                          {"tool": "sketch_mirror", "args": {"axis_a": [0, 0], "axis_b": [0, 1]}}]}])json")}},
             json{{"name", "sketch_describe"}, {"summary", "The open sketch, or a committed one: entities, constraint count and its loops."},
-                 {"details", "The loops are closed_loops {index, entities, holes, area}, open_ends, defects, buildable. The open sketch adds dof, the armed tool and the selection; a committed one adds its name and plane."},
+                 {"details", "The loops are closed_loops {index, entities, holes, area}, open_ends, defects, buildable. The open sketch adds dof, the armed tool, the selection (entity indices) and selected_constraint, the index of the constraint picked by its badge or the Constraints list, null for none; a committed one adds its name and plane."},
                  {"params", json::array({
                      json{{"name", "sketch"}, {"type", "integer"}, {"default", nullptr}, {"description", "a committed Sketch feature's index; omit for the open sketch"}},
                  })},
@@ -3181,7 +3181,8 @@ json action_sketch_describe(DesignPanel* panel, const json& params)
                           ? kModeNames[mi] : "unknown"},
              {"pending", t.pending_points()},
              {"editing", t.value_field_open()},
-             {"selection", t.selection()}};
+             {"selection", t.selection()},
+             {"selected_constraint", t.selected_constraint() >= 0 ? json(t.selected_constraint()) : json(nullptr)}};
     out.update(sketch_report(t.loop_report()));
     return out;
 }

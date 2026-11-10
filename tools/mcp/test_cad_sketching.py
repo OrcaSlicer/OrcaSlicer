@@ -20,8 +20,9 @@ picks and the on-geometry value label a person uses, and dimension puts a typed 
 shape. The constraint rungs press each of the twenty constraint buttons on drawn geometry, mostly
 in Constrain mode (K) and once, live_constrain, in the open sketch, and grade the geometry the
 constraint produced and that it survives committing the sketch and opening it again; type_guards
-checks that a button that cannot apply stores nothing. undo and feature_undo undo inside a sketch
-and across its commit, from the keyboard. roundtrip saves the project and opens it again through
+checks that a button that cannot apply stores nothing. badge clicks a constraint's badge, which
+selects it and deletes nothing, as does a double-click, then deletes it with Delete. undo and
+feature_undo undo inside a sketch and across its commit, from the keyboard. roundtrip saves the project and opens it again through
 the File menu, its file pickers answered by auto_answer_dialogs rules with the path (skipped on
 Linux, where a GTK picker can't take one). scale draws on top of a sketch holding 1204 entities,
 which it loads with one call_cad_tool sketch_add while a tool is armed; the call says why.
@@ -852,6 +853,44 @@ def rung_live_constrain():
     leave()
 
 
+def rung_badge():
+    """A click on a constraint badge selects the constraint and deletes nothing, and Delete then
+    removes that one constraint. A badge is small and sits where a person aims at the geometry, so a
+    click that deleted would lose a constraint to a slip of the pointer. The badge clicked is the
+    Horizontal of the rectangle's first side, found by its place in that side's stack."""
+    gui.new_design()
+    gui.enter_sketch("r")
+    draw_rect_undimensioned()
+    side = gui.sketch()["entities"][0]
+    cons = gui.cad("sketch_constraints")["items"]
+    on_side = [c for c in cons if c["refs"] and c["refs"][0].get("entity") == side["index"]]
+    horizontal = next((c for c in on_side if c["type"] == "horizontal"), None)
+    if horizontal is None:
+        raise AssertionError(f"the rectangle's first side has no Horizontal: {on_side}")
+    gui.click_mm(*gui.badge(side, on_side.index(horizontal)))
+    d = gui.sketch()
+    gui.check("badge: the click deleted no constraint", d["constraints"] == len(cons),
+              f"{len(cons)} constraints before the click, {d['constraints']} after")
+    gui.check("badge: the click selected the side's Horizontal", d["selected_constraint"] == horizontal["index"],
+              f"selected constraint {d['selected_constraint']}, the Horizontal is {horizontal['index']}")
+    # A double-click is a press and then a double-click event: the badge takes both, so nothing under
+    # it, the sketch's face here, is picked with the second.
+    gui.click_mm(*gui.badge(side, on_side.index(horizontal)), double=True)
+    d = gui.sketch()
+    gui.check("badge: a double-click keeps only the Horizontal selected",
+              d["selected_constraint"] == horizontal["index"] and not d["selection"],
+              f"selected constraint {d['selected_constraint']}, picked entities {d['selection']}")
+    key("Delete")
+    left = gui.cad("sketch_constraints")["items"]
+    gui.check("badge: Delete removed one constraint", len(left) == len(cons) - 1,
+              f"{len(cons)} constraints before Delete, {len(left)} after")
+    gui.check("badge: the one removed is the side's Horizontal",
+              not any(c["type"] == "horizontal" and c["refs"][0].get("entity") == side["index"] for c in left),
+              f"constraints left: {[c['type'] for c in left]}")
+    gui.check("badge: nothing stays selected after Delete", gui.sketch()["selected_constraint"] is None)
+    leave()
+
+
 def rung_vertical():
     gui.new_design()
     gui.enter_sketch("l")
@@ -1577,7 +1616,7 @@ RUNGS = {"rect": rung_rect, "circle": rung_circle, "line": rung_line, "arc": run
          "equal_radius": rung_equal_radius, "collinear": rung_collinear,
          "distance_xy": rung_distance_xy, "symmetric_axis": rung_symmetric_axis,
          "coincident_points": rung_coincident_points, "type_guards": rung_type_guards,
-         "parallel": rung_parallel, "live_constrain": rung_live_constrain,
+         "parallel": rung_parallel, "live_constrain": rung_live_constrain, "badge": rung_badge,
          "vertical": rung_vertical, "equal_radius_button": rung_equal_radius_button,
          "concentric": rung_concentric, "tangent": rung_tangent, "midpoint": rung_midpoint,
          "symmetric_line_axis": rung_symmetric_line_axis, "symmetric_h": rung_symmetric_h,

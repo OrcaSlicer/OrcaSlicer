@@ -18,8 +18,9 @@ check holds.
 The rungs: line, rect, circle, slot, polygon, ellipse and arc draw with their tool's key and type
 into the first field or two (line 61; rect 62 and 43; circle 64; slot 66; polygon 67; ellipse 68;
 arc 69). rounded_rect arms the rounded rectangle from the right-click offer, its only route, and
-types its width, height and corner radius (63, 41, 7). label draws a rectangle, keeps it as drawn,
-picks it in Select and clicks its width label, which opens the field again, and types 71.
+types its width, height and corner radius (63, 41, 7). label draws a rectangle as wide as puts its
+width label over one of its constraint badges, keeps it as drawn, picks it in Select and clicks the
+label's centre, which opens the field again, and types 71.
 """
 
 import math
@@ -28,7 +29,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
-from cad_gui import CANVAS, LABEL_PICK_PX, CadGui, until  # noqa: E402
+from cad_gui import BADGE_PICK_PX, BADGE_STEP_PX, CANVAS, CadGui, until  # noqa: E402
 
 gui = None  # the CadGui main() starts
 
@@ -244,38 +245,30 @@ def width_label(edge, th):
     return ((ax + bx) / 2.0 + nx * off, (ay + by) / 2.0 + ny * off)
 
 
-# DesignSketchTool::build_constraint_glyphs draws each constraint's badge in an 11 px cell, stacked
-# straight up the plane's +Y from the middle of its entity, and remove_constraint_near takes a click
-# within 0.6 cells of a badge's centre: it deletes that constraint, before any label is looked at.
-BADGE_CELL_PX = 11.0
-BADGE_PICK_CELLS = 0.6
+# The height of a value label, DesignSketchTool's 15 px.
+LABEL_PX = 15.0
 
 
-def width_label_click(edge, mm_per_px):
-    """Where to click the width label of the horizontal edge `edge`: on the label, shifted along the
-    edge from its centre by half-way between the badge pick radius and the label's. The label's centre
-    lies over the edge's middle, in the column the edge's badges stack up, and how far up the stack
-    reaches the label depends on the zoom. Shifted sideways, the click clears every badge in that
-    column at any zoom and still takes the label."""
-    (ax, ay), (bx, by) = edge["p0"], edge["p1"]
-    L = math.hypot(bx - ax, by - ay)
-    cx, cy = width_label(edge, max(15 * mm_per_px, 1e-4))
-    shift = (BADGE_CELL_PX * BADGE_PICK_CELLS + LABEL_PICK_PX) / 2.0 * mm_per_px
-    return (cx + (bx - ax) / L * shift, cy + (by - ay) / L * shift)
+def width_on_badge(mm_per_px, k):
+    """The width at which a rectangle's width label is centred on its top edge's badge `k`: the label
+    sits max(0.18 L, 8) + 1.5 mm and 0.7 label heights off the edge (width_label), and the badge
+    BADGE_STEP_PX * (k + 1) over the edge's middle (CadGui.badge)."""
+    return ((BADGE_STEP_PX * (k + 1) - 0.7 * LABEL_PX) * mm_per_px - 1.5) / 0.18
 
 
 def rung_label():
-    """A drawn rectangle's width label, clicked in Select, opens the field again, and a value typed
-    there sets the width. The rectangle is kept as drawn (Esc on its fields), so it is where its
-    clicks put it; Esc then drops the tool to Select. A shape's labels show while it is picked, so
-    a click on its top edge picks it first. The click on the label lands where the tool draws it,
-    beside the label's centre, off the column the top edge's constraint badges stack up: a click on a
-    badge deletes its constraint instead (width_label_click). Taking the label promotes the width
-    to a driving dimension, so the click adds exactly one constraint, and a badge hit, which removes
-    one, fails that check by name."""
+    """A drawn rectangle's width label, clicked at its centre in Select, opens the field again, and a
+    value typed there sets the width. The rectangle is as wide as puts that centre on the top edge's
+    third constraint badge, its Horizontal, which the label hides: what a person sees there and aims
+    at is the label, so the label takes the click. Taking the label promotes the width to a driving
+    dimension, so the click adds exactly one constraint; had the hidden badge taken it, it would
+    have selected the Horizontal and opened no field. The rectangle is kept as drawn (Esc on its
+    fields), so it is where its clicks put it, and Esc then drops the tool to Select. A shape's
+    labels show while it is picked, so a click on its top edge picks it first."""
     gui.enter_sketch("r")
-    gui.click_mm(*inside((-54, 30)))
-    gui.click_mm(*inside((45, -33)))
+    width = width_on_badge(gui.mm_per_px(0, 30), 2)
+    gui.click_mm(*inside((-width / 2.0, 30)))
+    gui.click_mm(*inside((width / 2.0, -30)))
     if until(gui.value_field) is None:
         raise AssertionError("the rectangle opened no value field")
     key("Escape")
@@ -296,15 +289,25 @@ def rung_label():
     gui.click_mm(*inside(mid))
     if not until(lambda: gui.sketch()["selection"], timeout=2.0):
         raise AssertionError("the click on the top edge picked nothing")
+
+    # The label's centre, read from the window it is drawn in; the badge under it, from the layout.
+    mm_per_px = gui.mm_per_px(*mid)
+    want = gui.px(*width_label(top, LABEL_PX * mm_per_px))
+    x, y, w, h = min(gui.overlays(), key=lambda r: math.dist((r[0] + r[2] / 2.0, r[1] + r[3] / 2.0), want))
+    centre = (x + w / 2.0, y + h / 2.0)
+    if math.dist(centre, gui.px(*gui.badge(top, 2))) > BADGE_PICK_PX:
+        raise AssertionError(f"the width label's centre {centre} is off the top edge's third badge "
+                             f"{gui.px(*gui.badge(top, 2))}: the badge or label layout moved, and this rung "
+                             f"no longer clicks a label drawn over a badge")
     before = gui.sketch()["constraints"]
-    gui.click_mm(*inside(width_label_click(top, gui.mm_per_px(*mid))))
-    after = gui.sketch()["constraints"]
-    gui.check("label: the click took the label, not a badge: one driving dimension added, none removed",
-              after == before + 1,
-              f"{before} constraints before the click, {after} after"
-              + (": a constraint badge under the click deleted one" if after < before else ""))
+    gui.gesture(x=round(centre[0]), y=round(centre[1]))
+    after = gui.sketch()
+    gui.check("label: the click at the label's centre took the label: one driving dimension added",
+              after["constraints"] == before + 1,
+              f"{before} constraints before the click, {after['constraints']} after"
+              + (", the badge under the label selected" if after["selected_constraint"] is not None else ""))
     if type_into_open_field("label", 71, "the top edge's length", lambda d: [d["entities"][0]["length"]],
-                            opened_by="from the click on the top edge's width label"):
+                            opened_by="from the click at the centre of the top edge's width label"):
         close_fields()
     gui.cancel()
 

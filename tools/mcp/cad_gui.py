@@ -53,6 +53,12 @@ PICK_PX = 8.0
 # How far past those budgets clear_pick() keeps a click: a label's centre is read from the window
 # it is drawn in, to a pixel or so.
 PICK_MARGIN_PX = 3.0
+# DesignSketchTool::constraint_badges: each constraint's badge is an 11 px cell, the badges of one
+# entity stacked up the plane's +Y from its middle 1.5 cells apart, the first one step up. A click
+# within 0.6 cells of a badge's centre takes it.
+BADGE_CELL_PX = 11.0
+BADGE_STEP_PX = 1.5 * BADGE_CELL_PX
+BADGE_PICK_PX = 0.6 * BADGE_CELL_PX
 
 # One line of list_widgets' tree. rect is (x, y, w, h) in logical pixels, from the main window's
 # client area for a window's widgets and from the canvas's top left for its ImGui items, or None.
@@ -714,6 +720,12 @@ class CadGui:
         """The plane point click_mm(X, Y) lands on: the whole pixel the click is rounded to, mapped
         back. A construction graded against it grades the tool, not the click's rounding."""
         return self.unpx(*self._pixel(X, Y))
+
+    def badge(self, line, k):
+        """Where badge `k` (from 0) of the sketch line `line` is drawn, in mm (BADGE_STEP_PX)."""
+        (ax, ay), (bx, by) = line["p0"], line["p1"]
+        mx, my = (ax + bx) / 2.0, (ay + by) / 2.0
+        return (mx, my + BADGE_STEP_PX * (k + 1) * self.mm_per_px(mx, my))
 
     def move_mm(self, X, Y):
         u, v = self._pixel(X, Y)
