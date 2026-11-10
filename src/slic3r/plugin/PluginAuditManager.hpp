@@ -20,8 +20,9 @@ namespace Slic3r {
 
 struct PluginPermissions;
 
-// Thread creation exposes no user-supplied target, so both the runtime audit event and a
-// request_permissions(threading=True) declaration use this fixed target.
+// Thread creation exposes no user-supplied target, so the runtime audit event reports this fixed
+// target. Legacy sidecars also stored it as the sole entry of their threading target list; the
+// reader maps that form onto the boolean permission.
 inline constexpr const char* kThreadPermissionTarget = "thread";
 
 struct AuditDecision {
@@ -152,7 +153,9 @@ public:
     // waits for the answer, while a GUI-thread caller only shows it when no other prompt is active
     // and is otherwise rejected without queueing a deferred declaration. Targets already persisted
     // for the plugin are not shown or asked for again. Returns true only when every missing target
-    // was granted and persisted; denial aborts the plugin load without adding a permission.
+    // was granted and persisted; denial aborts the plugin load without adding a permission. A
+    // plugin with full access stored in its sidecar is never prompted: the declaration is accepted
+    // and no grant is added.
     //
     // A filesystem target may name a directory tree: a trailing "/*" (e.g. "/path/to/folder/*")
     // grants the folder itself and every path beneath it, at any depth. "*" is the only wildcard
@@ -163,13 +166,14 @@ public:
     //
     // A relative tree grant is resolved against the working directory when the request is made:
     // the prompt shows, and the sidecar stores, the absolute scope it covers. Exact grants and
-    // the non-filesystem buckets are stored and compared verbatim.
+    // the non-filesystem buckets are stored as requested.
     //
     // Tree grants are matched on canonical paths: a symlink below the granted folder does not
     // extend the grant outside it, and a grant whose root is a symlink applies to its target. A
     // target whose final component is a dangling symlink is never covered, since a write through
-    // it would create the link's target rather than the path the grant describes. Exact
-    // (non-tree) grants keep their verbatim string comparison.
+    // it would create the link's target rather than the path the grant describes. Exact grants
+    // match verbatim; absolute exact grants also match canonical-equivalent paths, including
+    // relative targets resolved against the working directory at the time of the check.
     bool request_permissions(const std::string& plugin_key, const PluginPermissions& requested);
 
     // Ask the user to grant network access to the given http(s) URLs. Each URL is reduced to its
@@ -345,6 +349,10 @@ struct AuditPromptRequest
     std::vector<std::string> shown;
     // DeclaredPermissions only: the missing buckets the combined dialog lists.
     std::vector<AuditPromptBucket> buckets;
+    // DeclaredPermissions only: whether the sidecar was readable when the declaration was read.
+    // The queued write must not recreate a sidecar that was readable then but has since
+    // disappeared; only one absent at both reads is treated as a new install to seed.
+    bool sidecar_was_readable = false;
     // Set only when a worker is blocked waiting for the answer.
     std::shared_ptr<AuditPromptCompletion> completion;
 };

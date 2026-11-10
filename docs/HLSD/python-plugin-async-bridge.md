@@ -46,6 +46,8 @@ finalization cannot run underneath it. `ScopedPluginAuditContext`
 (`src/slic3r/plugin/PluginAuditManager.hpp`) stores the previous thread-local plugin/capability pair
 and scoped filesystem roots, sets this call's, and restores them on destruction; the audit hook then
 attributes every filesystem/socket/process event to the plugin currently executing on that thread.
+The policy those events are judged against is described in
+[plugin-permissions.md](plugin-permissions.md).
 
 ### The Script capability
 
@@ -141,8 +143,10 @@ closed and `tl_script_loop` cleared before the worker exits.
 A consequence of running Script on a non-main thread: the audit permission prompt is fail-closed off
 the main thread. `request_permission` in `src/slic3r/plugin/PluginAuditManager.cpp` queues the dialog
 for the GUI thread and denies the current event. For permissions with persistent grants, accepting
-the prompt saves a grant for a later attempt. Create and delete have no persistent grant: an
-asynchronous denial instead shows an informational dialog, without offering an approval.
+the prompt saves a grant for a later attempt, so a Script sees a denial on the first attempt and can
+succeed on a later one. Create and delete have no persistent grant: an asynchronous denial instead
+shows an informational dialog, without offering an approval and without promising a retry. This
+matches the behavior for the plugin-load worker and the slicing worker.
 
 `AuditPromptQueue` serializes runtime prompts, informational denials and load-time declared-permission
 prompts. Only one is shown at a time, including during a modal dialog's nested event loop. A load
