@@ -102,6 +102,7 @@ const float ScaleStepRad = 2.0f * float(PI) / ScaleStepsCount;
 const unsigned int ScaleLongEvery = 2;
 const float ScaleLongTooth = 0.1f; // in percent of radius
 const unsigned int SnapRegionsCount = 8;
+const double SnapMarkingToleranceFactor = 0.1;
 
 const float         UndefFloat = -999.f;
 const std::string   UndefLabel = " ";
@@ -358,7 +359,15 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
             m_cut_plane_start_move_pos = pos_world;
     }
 
-    if (use_grabbers(mouse_event)) {
+    const bool grabber_handled = use_grabbers(mouse_event);
+    if (grabber_handled && mouse_event.LeftDown() &&
+        (m_hover_id == X || m_hover_id == Y || m_hover_id == CutPlaneZRotation)) {
+        const Vec2d start_pos = to_2d(mouse_position_in_local_plane(
+            (GrabberID)m_hover_id, m_parent.mouse_ray(Point(mouse_event.GetX(), mouse_event.GetY()))));
+        m_starting_mouse_angle = std::atan2(start_pos.y(), start_pos.x()) + grabber_rotation_angle_offset();
+    }
+
+    if (grabber_handled) {
         if (m_hover_id >= m_connectors_group_id) {
             if (mouse_event.LeftDown() && !mouse_event.CmdDown() && !mouse_event.AltDown())
                 unselect_all_connectors();
@@ -458,6 +467,26 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
         pending_right_up = false;
         return true;
     }
+    return false;
+}
+
+bool GLGizmoCut3D::is_over_snap_marking(const Vec2d& mouse_pos, double radius, bool coarse)
+{
+    const unsigned int tick_count = coarse ? SnapRegionsCount : ScaleStepsCount;
+    const double angle_step = 2.0 * double(PI) / double(tick_count);
+    const double inner_radius = coarse ? radius / 3.0 : radius;
+    const double tolerance = radius * SnapMarkingToleranceFactor;
+
+    for (unsigned int i = 0; i < tick_count; ++i) {
+        const double angle = double(i) * angle_step;
+        const Vec2d direction(std::cos(angle), std::sin(angle));
+        const double outer_radius = coarse ? 2.0 * radius / 3.0 :
+            radius * (1.0 + ((i % ScaleLongEvery == 0) ? ScaleLongTooth : 0.5 * ScaleLongTooth));
+        const double distance_along_tick = std::clamp(mouse_pos.dot(direction), inner_radius, outer_radius);
+        if ((mouse_pos - distance_along_tick * direction).norm() <= tolerance)
+            return true;
+    }
+
     return false;
 }
 
@@ -1766,31 +1795,27 @@ void GLGizmoCut3D::dragging_grabber_rotation(const GLGizmoBase::UpdateData &data
 {
     const Vec2d mouse_pos = to_2d(mouse_position_in_local_plane((GrabberID)m_hover_id, data.mouse_ray));
 
-    const Vec2d orig_dir = Vec2d::UnitX();
-    const Vec2d new_dir  = mouse_pos.normalized();
-
     const double two_pi = 2.0 * PI;
+    const double angle_offset = grabber_rotation_angle_offset();
+    double theta = std::fmod(std::atan2(mouse_pos.y(), mouse_pos.x()) + angle_offset - m_starting_mouse_angle, two_pi);
+    if (theta < 0.0)
+        theta += two_pi;
 
-    double theta = ::acos(std::clamp(new_dir.dot(orig_dir), -1.0, 1.0));
-    if (cross2(orig_dir, new_dir) < 0.0)
-        theta = two_pi - theta;
-
-    const double len = mouse_pos.norm();
+    const Vec2d snap_mouse_pos(std::cos(angle_offset) * mouse_pos.x() - std::sin(angle_offset) * mouse_pos.y(),
+                               std::sin(angle_offset) * mouse_pos.x() + std::cos(angle_offset) * mouse_pos.y());
     // snap to coarse snap region
-    if (m_snap_coarse_in_radius <= len && len <= m_snap_coarse_out_radius) {
+    if (is_over_snap_marking(snap_mouse_pos, m_grabber_radius, true)) {
         const double step = two_pi / double(SnapRegionsCount);
         theta             = step * std::round(theta / step);
     }
     // snap to fine snap region (scale)
-    else if (m_snap_fine_in_radius <= len && len <= m_snap_fine_out_radius) {
+    else if (is_over_snap_marking(snap_mouse_pos, m_grabber_radius, false)) {
         const double step = two_pi / double(ScaleStepsCount);
         theta             = step * std::round(theta / step);
     }
 
     if (is_approx(theta, two_pi))
         theta = 0.0;
-    if (m_hover_id != Y)
-        theta += 0.5 * PI;
 
     if (!is_approx(theta, 0.0))
         reset_cut_by_contours();
@@ -1811,6 +1836,11 @@ void GLGizmoCut3D::dragging_grabber_rotation(const GLGizmoBase::UpdateData &data
         m_angle += two_pi;
 
     update_clipper();
+}
+
+double GLGizmoCut3D::grabber_rotation_angle_offset() const
+{
+    return m_hover_id == Y ? 0.0 : 0.5 * PI;
 }
 
 void GLGizmoCut3D::dragging_connector(const GLGizmoBase::UpdateData &data)
@@ -1970,11 +2000,6 @@ void GLGizmoCut3D::update_bb()
         m_radius = box.radius();
         m_grabber_connection_len = 0.5 * m_radius;// std::min<double>(0.75 * m_radius, 35.0);
         m_grabber_radius = m_grabber_connection_len * 0.85;
-
-        m_snap_coarse_in_radius   = m_grabber_radius / 3.0;
-        m_snap_coarse_out_radius  = m_snap_coarse_in_radius * 2.;
-        m_snap_fine_in_radius     = m_grabber_connection_len * 0.85;
-        m_snap_fine_out_radius    = m_grabber_connection_len * 1.15;
 
         // input params for cut with tongue and groove
         m_groove.depth = m_groove.depth_init = std::max(1.f , 0.5f * float(get_grabber_mean_size(m_bounding_box)));
