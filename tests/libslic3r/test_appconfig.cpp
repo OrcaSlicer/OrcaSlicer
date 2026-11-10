@@ -137,6 +137,29 @@ TEST_CASE("Local machine agent replacements survive save and reload", "[AppConfi
     REQUIRE_FALSE(reloaded.dirty());
 }
 
+TEST_CASE("Local machines saved without an agent load as Bambu printers unless keyed by address", "[AppConfig]")
+{
+    ScopedDataDir data_dir("local-machine-legacy");
+    save_main_thread_id();
+    const std::string agent_field = GENERATE("", R"("printer_agent_id": "",)");
+    AppConfig config;
+    std::ofstream(config.config_path()) << R"({"local_machines": {)"
+                                        << R"("01P00A000000001": {)" << agent_field << R"("dev_ip": "192.168.1.20"},)"
+                                        << R"("192.168.1.30:7125": {)" << agent_field << R"("dev_ip": "192.168.1.30:7125"},)"
+                                        << R"("192.168.1.31:7125": {)" << agent_field << R"("dev_ip": "192.168.1.32"},)"
+                                        << R"("voron": {)" << agent_field << R"("dev_ip": "voron"},)"
+                                        << R"("01P00A000000002": {"printer_agent_id": "moonraker", "dev_ip": "192.168.1.40"})"
+                                        << "}}";
+
+    REQUIRE(config.load().empty());
+    const auto& machines = config.get_local_machines();
+    CHECK(machines.at("01P00A000000001").printer_agent_id == "bbl");
+    CHECK(machines.at("192.168.1.30:7125").printer_agent_id.empty());
+    CHECK(machines.at("192.168.1.31:7125").printer_agent_id.empty());
+    CHECK(machines.at("voron").printer_agent_id.empty());
+    CHECK(machines.at("01P00A000000002").printer_agent_id == "moonraker");
+}
+
 TEST_CASE("Clearing local credentials preserves another agent's record", "[AppConfig]")
 {
     AppConfig config;
