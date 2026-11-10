@@ -61,7 +61,6 @@
 #include <miniz.h>
 #include <openssl/ssl.h>
 #include <openssl/tls1.h>
-#include <wx/app.h>
 
 #include <algorithm>
 #include <cstddef>
@@ -3088,12 +3087,6 @@ void MoonrakerPrinterAgent::announce_printhost_device()
     const std::string dev_name = device_info.model_name.empty() ? "Moonraker Printer" : device_info.model_name;
 
     const std::string model_id = device_info.model_id;
-
-    // Without an app, as in the unit tests, there is no config to keep the access code in
-    if (auto* app_config = wxTheApp ? GUI::wxGetApp().app_config : nullptr) {
-        const std::string access_code = device_info.api_key.empty() ? NO_API_KEY_SENTINEL : device_info.api_key;
-        app_config->set_str("access_code", device_info.dev_id, access_code);
-    }
 
     nlohmann::json payload;
     payload["dev_name"]     = dev_name;
