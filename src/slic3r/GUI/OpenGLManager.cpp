@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <boost/algorithm/string/constants.hpp>
 #include <cstdlib>
+#include <stdlib.h>
 #include <glad/gl.h>
 
 #include <boost/algorithm/string/split.hpp>
