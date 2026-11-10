@@ -1,5 +1,5 @@
 #Content {
-	padding: 10px 15px 5px;
+	padding: 0 15px 0; /* ORCA matches with other guide pages so title stays on same y position */
 }
 
 #GotoNetPluginBtn {
