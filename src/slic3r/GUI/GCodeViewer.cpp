@@ -359,7 +359,7 @@ void GCodeViewer::SequentialView::Marker::render(int canvas_width, int canvas_he
     const Camera& camera = wxGetApp().plater()->get_camera();
     const Transform3d& view_matrix = camera.get_view_matrix();
     float scale_factor = m_scale_factor;
-    // ORCA Rotate the model depends on printing angle around nozzle tip
+    // ORCA Tilt the model around the nozzle tip
     const Transform3d tilt(Eigen::Quaterniond::FromTwoVectors(Vec3d::UnitZ(), m_nozzle_axis));
     const Transform3d model_matrix = Geometry::translation_transform(m_world_position.cast<double>()) * tilt *
         Geometry::translation_transform((m_model_z_offset + scale_factor * m_model.get_bounding_box().size().z()) * Vec3d::UnitZ()) *
@@ -1535,8 +1535,14 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     }
     libvgcode::GCodeInputData data = libvgcode::convert(gcode_result, str_tool_colors, str_color_print_colors, m_viewer,
         apply_belt ? &belt_inv : nullptr);
-    // ORCA Layers lean along build plate tilt, so show them marker along it as well
-    m_sequential_view.marker.set_nozzle_axis(apply_belt ? build_plate_tilt_up_direction() : Vec3d::UnitZ());
+    // ORCA Tilt the marker to the layer normal of the designed belt view
+    Vec3d nozzle_axis = Vec3d::UnitZ();
+    if (apply_belt) {
+        nozzle_axis = belt_inv.linear().inverse().row(2).transpose();
+        if (nozzle_axis.z() < 0.) // keep it above the layer
+            nozzle_axis = -nozzle_axis;
+    }
+    m_sequential_view.marker.set_nozzle_axis(nozzle_axis);
 
 //#define ENABLE_DATA_EXPORT 1
 //#if ENABLE_DATA_EXPORT
@@ -2354,6 +2360,7 @@ void GCodeViewer::render_markers(int canvas_width, int canvas_height)
                                              prim_pos.z() };
                         m_sequential_view.m_imex_secondary_markers[i].set_world_position(sec_pos);
                         m_sequential_view.m_imex_secondary_markers[i].set_z_offset(m_z_offset + 0.5f);
+                        m_sequential_view.m_imex_secondary_markers[i].set_nozzle_axis(m_sequential_view.marker.get_nozzle_axis());
                         carriage_box_draws.push_back({
                             sec_pos, carriage_colors[i + 1],
                             carriage.box_offset_x, carriage.box_offset_y });
