@@ -5103,11 +5103,12 @@ void PrintObject::discover_sub_top_surfaces()
     if (m_layers.size() < 2)
         return;
 
+    // Create a cache for additional solid surfaces.
     const size_t num_to_process = m_layers.size() - 1;
-    typedef std::pair<LayerRegion*, Surfaces> SurfacesRecord;
-    std::vector<std::vector<SurfacesRecord>> cache_surfaces(num_to_process);
+    typedef std::pair<LayerRegion*, Surfaces> SurfacesCacheRecord;
+    std::vector<std::vector<SurfacesCacheRecord>> cache_surfaces(num_to_process);
 
-    auto process_layer = [this](size_t idx_layer, std::vector<SurfacesRecord>& cache_record_surfaces) {
+    auto process_layer = [this](size_t idx_layer, std::vector<SurfacesCacheRecord>& cache_record) {
         m_print->throw_if_canceled();
         const Layer *upper = m_layers[idx_layer + 1];
         Layer       *layer = m_layers[idx_layer];
@@ -5175,7 +5176,9 @@ void PrintObject::discover_sub_top_surfaces()
                     for (auto& h : s.holes)
                         if (h.area() > -min_area)
                             h.clear();
-
+                // If the top surface does not have 100% density, the underlying layer follows the contours of the upper one, which is visible through it.
+                // The space under the perimeters will be filled with a bridge infill. This is done for decorative purposes. 
+                // If the density is solid, then the lower layer will also be solid, even under the perimeters.
                 if (is_not_solid) {
                     surfaces_append(new_surfaces, diff_ex(surface.expolygon, walls_solid, ApplySafetyOffset::Yes), surface.surface_type);
                     surfaces_append(new_surfaces, intersection_ex(local_mask, crop_mask, ApplySafetyOffset::Yes), stInternalSolid); // Fix to stSubTop if this type will be used.
@@ -5183,7 +5186,10 @@ void PrintObject::discover_sub_top_surfaces()
                 } else
                     surfaces_append(new_surfaces, intersection_ex(walls_solid, crop_mask, ApplySafetyOffset::Yes), stInternalSolid);
                     
-                
+                // The cache is filled with polygons that have solid fill and are located beneath each top surface with nearest perimeters.
+                // Each such polygon extends downward by 1/4 of the line width for each layer to provide additional strength against the side bend of the upper element.
+                // Below the perimeters, there are additional solid layers with a height equal to the width of all internal walls.
+                // This is an additional strengthening against to preventing the top element from being pressed into the sparse infill at vertical load.
                 int penetration = top_shell_layers + offset_distance / scale_(config().layer_height.value);
                 for (int j = 1; j <= penetration; ++j) {
                     if (idx_layer - j <= bottom_shell_layers)
@@ -5196,7 +5202,7 @@ void PrintObject::discover_sub_top_surfaces()
                         for (Surface& lower_surface : lowerm->fill_surfaces.surfaces)
                             surfaces_append(new_lower_surfaces, intersection_ex(slab, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
                         
-                        cache_record_surfaces.push_back(SurfacesRecord(lowerm, new_lower_surfaces));
+                        cache_record.push_back(SurfacesCacheRecord(lowerm, new_lower_surfaces));
                     }
                 }
             }
@@ -5221,13 +5227,13 @@ void PrintObject::discover_sub_top_surfaces()
                 }
             });
     }
-    
+    // Allocating cash to their positions.
+    // This works only with stInternalSolid. For other types of surfaces, a cutting/replacement procedures are required.
     for (auto& cache : cache_surfaces) {
         if (!cache.size())
             continue;
-        for (auto& record : cache) {
+        for (auto& record : cache)
             surfaces_append(record.first->fill_surfaces.surfaces, record.second);
-        }
     }
 }
 
