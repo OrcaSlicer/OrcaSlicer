@@ -343,6 +343,13 @@ StepDescription describe_step(const ReplayStep& step, const Replay& replay, cons
         writes_outside("path");
     if (tool == "pick_gizmo_file" && args.value("action", std::string()) == "svg_save_as")
         writes_outside("path");
+    // A rule's path lets a save picker write the file, or with overwrite replace it. Which picker a rule will
+    // answer isn't known here, so every path counts.
+    if (tool == "auto_answer_dialogs" && args.contains("rules") && args["rules"].is_array())
+        for (const json& rule : args["rules"])
+            if (rule.is_object() && rule.contains("path") && rule["path"].is_string() && !rule["path"].get<std::string>().empty() &&
+                !inside(rule["path"].get<std::string>(), ctx.out_dir))
+                b.flag(StepFlag::WritesFile);
     if (one_of(tool, {"save_preset", "delete_preset", "generate_calibration_test"}))
         b.flag(StepFlag::ChangesPresets);
     if (one_of(tool, {"new_project", "generate_calibration_test"})) {

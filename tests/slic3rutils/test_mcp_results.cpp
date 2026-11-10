@@ -32,6 +32,7 @@
 #include "slic3r/GUI/Mcp/JobRegistry.hpp"
 #include "slic3r/GUI/Mcp/McpCore.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
+#include "slic3r/GUI/Mcp/McpPaths.hpp"
 #include "slic3r/GUI/Mcp/McpReplay.hpp"
 #include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/GUI/Mcp/McpServicePtr.hpp"
@@ -47,7 +48,11 @@
 #include "slic3r/GUI/SyntheticInput.hpp"
 #include "slic3r/Utils/Http.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
+#include "test_utils.hpp"
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <nlohmann/json.hpp>
@@ -62,8 +67,10 @@
 #include <wx/dataview.h>
 #include <wx/defs.h>
 #include <wx/dialog.h>
+#include <wx/dirdlg.h>
 #include <wx/event.h>
 #include <wx/evtloop.h>
+#include <wx/filedlg.h>
 #include <wx/frame.h>
 #include <wx/gauge.h>
 #include <wx/gdicmn.h>
@@ -84,6 +91,7 @@
 #include <wx/spinctrl.h>
 #include <wx/statbox.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/tglbtn.h>
 #include <wx/utils.h>
@@ -304,6 +312,219 @@ TEST_CASE("an auto-answer rule presses a wx dialog's button, and answers a nativ
         CHECK(wxModalDialogHook::CallEnter(&native) == wxID_NO);
         CHECK(tracker.top() == nullptr);
     }
+}
+
+namespace {
+
+// What ShowModal() returns for a picker a path rule can serve: OK where GetPath() then reads the path SetPath() gave
+// it (Windows, macOS), and cancel on GTK, whose GetPath() reads the GTK chooser, which has no path until it shows.
+#if defined(__WXMSW__) || defined(__WXOSX__)
+constexpr int kPathAnswer = wxID_OK;
+#else
+constexpr int kPathAnswer = wxID_CANCEL;
+#endif
+
+void write_file(const std::string& path) { boost::nowide::ofstream(path.c_str()) << "<svg/>"; }
+
+} // namespace
+
+TEST_CASE("a rule with a path answers a file picker with it, unseen", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        ScopedTemporaryDir dir("orca-mcp-picker");
+        const std::string  a_svg = path_to_utf8(dir.path() / "a.svg");
+        write_file(a_svg);
+        ModalTracker tracker;
+        tracker.push_rules({make_rule("Import SVG", "ok", a_svg)});
+
+        wxFileDialog dlg(nullptr, "Import SVG", "", "", "SVG files (*.svg)|*.svg", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        CHECK(wxModalDialogHook::CallEnter(&dlg) == kPathAnswer);
+        if (kPathAnswer == wxID_OK)
+            CHECK(dlg.GetPath() == wxString::FromUTF8(a_svg));
+        CHECK(tracker.top() == nullptr);
+        CHECK(tracker.rules_json()[0]["uses"] == 1);
+        CHECK(tracker.rules_json()[0]["path"] == a_svg);
+    }
+}
+
+TEST_CASE("a save picker takes a new file, and an existing one only with overwrite", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        ScopedTemporaryDir dir("orca-mcp-picker");
+        const std::string  out = path_to_utf8(dir.path() / "out.3mf");
+        ModalTracker       tracker;
+        // The answer, and the path an OK returns.
+        const auto save = [&](bool overwrite) {
+            const int    layer = tracker.push_rules({make_rule("Save project", "ok", out, overwrite)});
+            wxFileDialog dlg(nullptr, "Save project", "", "", "3MF files (*.3mf)|*.3mf", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+            const int    answer = wxModalDialogHook::CallEnter(&dlg);
+            const wxString path = answer == wxID_OK ? dlg.GetPath() : wxString();
+            tracker.pop_rules(layer);
+            return std::make_pair(answer, path);
+        };
+
+        // A file that doesn't exist yet.
+        const auto fresh = save(false);
+        CHECK(fresh.first == kPathAnswer);
+        if (kPathAnswer == wxID_OK)
+            CHECK(fresh.second == wxString::FromUTF8(out));
+
+        // Once it exists, only a rule with overwrite replaces it.
+        write_file(out);
+        CHECK(save(false).first == wxID_CANCEL);
+        const auto replaced = save(true);
+        CHECK(replaced.first == kPathAnswer);
+        if (kPathAnswer == wxID_OK)
+            CHECK(replaced.second == wxString::FromUTF8(out));
+        CHECK(tracker.top() == nullptr);
+    }
+}
+
+TEST_CASE("a folder picker takes an existing folder", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        ScopedTemporaryDir dir("orca-mcp-picker");
+        const std::string  folder = path_to_utf8(dir.path());
+        ModalTracker       tracker;
+        tracker.push_rules({make_rule("Choose a folder", "ok", folder)});
+
+        wxDirDialog dlg(nullptr, "Choose a folder", "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+        CHECK(wxModalDialogHook::CallEnter(&dlg) == kPathAnswer);
+        if (kPathAnswer == wxID_OK)
+            CHECK(dlg.GetPath() == wxString::FromUTF8(folder));
+        CHECK(tracker.top() == nullptr);
+        CHECK(tracker.rules_json()[0]["uses"] == 1);
+    }
+}
+
+TEST_CASE("a picker the path can't serve is cancelled unseen", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        ScopedTemporaryDir dir("orca-mcp-picker");
+        const std::string  a_svg   = path_to_utf8(dir.path() / "a.svg");
+        const std::string  missing = path_to_utf8(dir.path() / "missing.svg");
+        write_file(a_svg);
+        ModalTracker tracker;
+        tracker.push_rules({make_rule("Open missing", "ok", missing), make_rule("Choose a folder", "ok", a_svg),
+                            make_rule("Open several", "ok", a_svg), make_rule("Choose folders", "ok", path_to_utf8(dir.path()))});
+
+        // An open picker needs an existing file.
+        wxFileDialog open_missing(nullptr, "Open missing", "", "", "SVG files (*.svg)|*.svg", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        CHECK(wxModalDialogHook::CallEnter(&open_missing) == wxID_CANCEL);
+        // A folder picker needs a folder.
+        wxDirDialog folder(nullptr, "Choose a folder");
+        CHECK(wxModalDialogHook::CallEnter(&folder) == wxID_CANCEL);
+        // A multi-select picker reads its own list of paths, not the one a rule sets.
+        wxFileDialog several(nullptr, "Open several", "", "", "SVG files (*.svg)|*.svg", wxFD_OPEN | wxFD_MULTIPLE);
+        CHECK(wxModalDialogHook::CallEnter(&several) == wxID_CANCEL);
+        wxDirDialog folders(nullptr, "Choose folders", "", wxDD_DEFAULT_STYLE | wxDD_MULTIPLE);
+        CHECK(wxModalDialogHook::CallEnter(&folders) == wxID_CANCEL);
+        // None of them showed.
+        CHECK(tracker.top() == nullptr);
+    }
+}
+
+TEST_CASE("a rule with a path answers pickers only", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        ScopedTemporaryDir dir("orca-mcp-picker");
+        const std::string  a_svg = path_to_utf8(dir.path() / "a.svg");
+        write_file(a_svg);
+        ModalTracker tracker;
+        tracker.push_rules({make_rule(".*", "ok", a_svg)});
+
+        // A wx dialog that matches opens, and its OK is not pressed.
+        wxDialog dialog(nullptr, wxID_ANY, "Import SVG");
+        int      presses = 0;
+        auto*    ok      = new wxButton(&dialog, wxID_OK, "OK");
+        ok->Bind(wxEVT_BUTTON, [&presses](wxCommandEvent&) { ++presses; });
+        CHECK(wxModalDialogHook::CallEnter(&dialog) == wxID_NONE);
+        wxTheApp->ProcessPendingEvents();
+        CHECK(presses == 0);
+        wxModalDialogHook::CallExit(&dialog);
+
+        // A message box that matches shows for the person.
+        wxMessageDialog box(nullptr, "Import the file?", "Import SVG", wxOK | wxCANCEL);
+        CHECK(wxModalDialogHook::CallEnter(&box) == wxID_NONE);
+        wxModalDialogHook::CallExit(&box);
+        CHECK(tracker.rules_json()[0]["uses"] == 0);
+    }
+}
+
+TEST_CASE("a rule without a path still answers a picker only with cancel", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        ModalTracker tracker;
+        const int    layer = tracker.push_rules({make_rule("Import SVG", "ok")});
+
+        // OK without a path would return no file, so the picker shows for the person.
+        wxFileDialog dlg(nullptr, "Import SVG", "", "", "SVG files (*.svg)|*.svg", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+        CHECK(wxModalDialogHook::CallEnter(&dlg) == wxID_NONE);
+        CHECK(tracker.top() == &dlg);
+        wxModalDialogHook::CallExit(&dlg);
+        tracker.pop_rules(layer);
+
+        tracker.push_rules({make_rule("Import SVG", "cancel")});
+        CHECK(wxModalDialogHook::CallEnter(&dlg) == wxID_CANCEL);
+        CHECK(tracker.top() == nullptr);
+    }
+}
+
+TEST_CASE("a rule's path must be absolute and comes with ok", "[Mcp]")
+{
+    const std::string abs = path_to_utf8(boost::filesystem::temp_directory_path() / "a.svg");
+    CHECK_THROWS_AS(make_rule("x", "ok", "rel/a.svg"), ToolFailure);
+    CHECK_THROWS_AS(make_rule("x", "cancel", abs), ToolFailure);
+    CHECK_NOTHROW(make_rule("x", "OK", abs));
+    CHECK(make_rule("x", "ok", abs, true).overwrite);
 }
 
 TEST_CASE("a paused rule layer answers nothing until resumed", "[Mcp]")

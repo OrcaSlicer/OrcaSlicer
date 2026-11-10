@@ -1,5 +1,6 @@
 #include "ModalTracker.hpp"
 
+#include "McpPaths.hpp"
 #include "McpTypes.hpp"
 #include "UiInspector.hpp"
 #include "WebPages.hpp"
@@ -10,7 +11,10 @@
 #include "slic3r/GUI/Widgets/RadioBox.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/system/error_code.hpp>
 
 #include <wx/bookctrl.h>
 #include <wx/button.h>
@@ -856,16 +860,24 @@ DialogPress press_dialog_button(wxDialog* dialog, int id)
     return DialogPress::Pressed;
 }
 
-AutoAnswerRule make_rule(const std::string& pattern, const std::string& button)
+AutoAnswerRule make_rule(const std::string& pattern, const std::string& button, const std::string& path, bool overwrite)
 {
     AutoAnswerRule rule;
-    rule.pattern = pattern;
-    rule.button  = button;
+    rule.pattern   = pattern;
+    rule.button    = button;
+    rule.path      = path;
+    rule.overwrite = overwrite;
     try {
         rule.compiled = std::regex(pattern, std::regex::ECMAScript | std::regex::icase);
     } catch (const std::regex_error& e) {
         throw ToolFailure("Invalid pattern \"" + pattern + "\": " + e.what());
     }
+    // A relative path would resolve against the GUI's working directory. Whether the path suits the picker
+    // that matches (an existing file, a folder, a new file) is known only once one opens.
+    if (!path.empty() && !path_from_utf8(path).is_absolute())
+        throw ToolFailure("A rule's path must be absolute: " + path);
+    if (!path.empty() && lower(button) != "ok")
+        throw ToolFailure("A rule with a path takes button \"ok\", not \"" + button + "\"");
     return rule;
 }
 
@@ -944,6 +956,10 @@ json ModalTracker::rules_json() const
     for (const auto& [layer, rules] : m_layers)
         for (const AutoAnswerRule& r : rules) {
             json rule{{"layer", layer}, {"match", r.pattern}, {"button", r.button}, {"uses", r.uses}};
+            if (!r.path.empty()) {
+                rule["path"]      = r.path;
+                rule["overwrite"] = r.overwrite;
+            }
             if (m_paused_layers.count(layer) != 0)
                 rule["paused"] = true;
             out.push_back(std::move(rule));
@@ -957,7 +973,7 @@ bool ModalTracker::rule_in_force(int layer, const std::string& pattern, const st
     for (const auto& [id, rules] : m_layers)
         if ((layer == 0 || id == layer) && m_paused_layers.count(id) == 0)
             for (const AutoAnswerRule& r : rules)
-                if (r.pattern == pattern && r.button == button)
+                if (r.path.empty() && r.pattern == pattern && r.button == button)
                     return true;
     return false;
 }
@@ -968,7 +984,7 @@ void ModalTracker::count_use(int layer, const std::string& pattern, const std::s
     for (auto& [id, rules] : m_layers)
         if (layer == 0 || id == layer)
             for (AutoAnswerRule& r : rules)
-                if (r.pattern == pattern && r.button == button) {
+                if (r.path.empty() && r.pattern == pattern && r.button == button) {
                     ++r.uses;
                     return;
                 }
@@ -1011,6 +1027,52 @@ json undescribed(wxDialog* dialog)
     return entry;
 }
 
+// Answers `dialog`, a file or folder picker, with `rule`'s path: sets it on the picker and returns wxID_OK, so
+// ShowModal() returns, unseen, as if a person had chosen the path. A picker the path can't serve is cancelled
+// instead, and `why` says why.
+//
+// The picker never shows, so its caller reads the path from GetPath() right after the hook returns. In
+// wxWidgets 3.3.2 that path is the one SetPath() gave it on Windows and macOS, where GetPath() returns what
+// SetPath() stored (wxFileDialogBase, wxDirDialogBase; wxMSW's wxDirDialog::SetPath() only turns '/' into '\'
+// and drops trailing ones). On GTK it isn't: wxFileDialog::GetPath() asks the GTK chooser, which has no file
+// until its folder loads in the main loop, and wxDirDialog::SetPath() only moves the chooser's folder, leaving
+// GetPath() empty (src/gtk/filedlg.cpp, src/gtk/dirdlg.cpp). Multi-select pickers fill GetPaths() from their own
+// list on every platform, never from SetPath(), so they are cancelled; for the same reason a single-select
+// picker's caller that reads GetPaths() instead of GetPath() gets an empty list after a path answer on Windows and
+// macOS.
+int answer_picker(wxDialog* dialog, const AutoAnswerRule& rule, std::string& why)
+{
+#if defined(__WXMSW__) || defined(__WXOSX__)
+    auto* files   = dynamic_cast<wxFileDialogBase*>(dialog);
+    auto* folders = dynamic_cast<wxDirDialogBase*>(dialog);
+    if (files != nullptr ? files->HasFdFlag(wxFD_MULTIPLE) : folders->HasFlag(wxDD_MULTIPLE)) {
+        why = "multi-select pickers take no path";
+        return wxID_CANCEL;
+    }
+    // A save picker takes an output path, an open picker an existing file, a folder picker an existing folder.
+    const boost::filesystem::path path = path_from_utf8(rule.path);
+    boost::system::error_code     ec;
+    if (files != nullptr && files->HasFdFlag(wxFD_SAVE)) {
+        if (!resolve_output_path(rule.path, rule.overwrite, why))
+            return wxID_CANCEL;
+    } else if (files != nullptr ? !boost::filesystem::is_regular_file(path, ec) : !boost::filesystem::is_directory(path, ec)) {
+        why = (files != nullptr ? "file not found: " : "folder not found: ") + rule.path;
+        return wxID_CANCEL;
+    }
+    const wxString chosen = wxString::FromUTF8(rule.path);
+    if (files != nullptr)
+        files->SetPath(chosen);
+    else
+        folders->SetPath(chosen);
+    return wxID_OK;
+#else
+    (void) dialog;
+    (void) rule;
+    why = "this platform's picker takes no path";
+    return wxID_CANCEL;
+#endif
+}
+
 } // namespace
 
 void ModalTracker::publish()
@@ -1048,6 +1110,7 @@ int ModalTracker::Enter(wxDialog* dialog)
         const std::string message = info["message"].get<std::string>();
         const bool        web     = info.value("web", false);
         const bool        native  = is_native_dialog(dialog);
+        const bool        picker  = is_picker(dialog);
         // A web dialog's rule whose button is not one of its wx buttons is answered on its page, and a
         // wx dialog's rule once its button is pressed.
         std::optional<std::tuple<int, std::string, std::string>> web_rule, wx_rule;
@@ -1058,15 +1121,32 @@ int ModalTracker::Enter(wxDialog* dialog)
                     continue;
                 for (AutoAnswerRule& rule : layer->second)
                     if (rule_matches(rule, title, message, text)) {
+                        // A rule with a path answers file and folder pickers only, never pressing OK on another
+                        // dialog it matches.
+                        if (!rule.path.empty()) {
+                            if (!picker)
+                                continue;
+                            std::string why;
+                            const int   id = answer_picker(dialog, rule, why);
+                            ++rule.uses;
+                            // A picker is named by its prompt, as its title is often empty.
+                            if (why.empty())
+                                BOOST_LOG_TRIVIAL(info) << "MCP: auto-answered picker \"" << message << "\" with path \"" << rule.path
+                                                        << "\" (rule \"" << rule.pattern << "\")";
+                            else
+                                BOOST_LOG_TRIVIAL(warning) << "MCP: auto-answered picker \"" << message << "\" with cancel (rule \""
+                                                           << rule.pattern << "\"): " << why;
+                            return id;
+                        }
                         if (web && native_dialog_button(dialog, rule.button) == wxID_NONE) {
                             web_rule.emplace(layer->first, rule.pattern, rule.button);
                             return int(wxID_NONE);
                         }
                         const int id = resolve_dialog_button(dialog, rule.button);
                         // A file or folder picker answered with anything but cancel would return
-                        // without a path, so only cancel answers one; a message box only with a button
-                        // it has.
-                        if (id != wxID_NONE && (id == wxID_CANCEL || !is_picker(dialog)) && box_answers(dialog, id)) {
+                        // without a path, so a rule without one answers it only with cancel; a message box
+                        // only with a button it has.
+                        if (id != wxID_NONE && (id == wxID_CANCEL || !picker) && box_answers(dialog, id)) {
                             if (native) {
                                 ++rule.uses;
                                 BOOST_LOG_TRIVIAL(info) << "MCP: auto-answered dialog \"" << title << "\" with " << rule.button

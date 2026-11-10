@@ -168,6 +168,12 @@ TEST_CASE("files written inside the output folder are not flagged", "[Mcp]")
         {R"({"tool": "export_replay", "args": {"path": "C:/x/s.json"}})", {"writes_file"}},
         {R"({"tool": "pick_gizmo_file", "args": {"action": "svg_save_as", "path": "C:/x/a.svg"}})", {"writes_file"}},
         {R"({"tool": "pick_gizmo_file", "args": {"action": "svg_change", "path": "C:/x/a.svg"}})", {}},
+        // A path rule may answer a save picker, so its path is a file the step may write.
+        {R"({"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "Save", "button": "ok", "path": "C:/x/a.3mf"}]}})", {"writes_file"}},
+        {R"({"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "Save", "button": "ok", "path": "${out_dir}/a.3mf"}]}})", {}},
+        {R"({"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "Save", "button": "cancel"}]}})", {}},
+        {R"({"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "Discard", "button": "no"}, {"match": "Save", "button": "ok", "path": "C:/x/a.3mf", "overwrite": true}]}})",
+         {"writes_file"}},
         {R"({"tool": "export", "args": {"path": "${out_dir}/a.gcode"}})", {"writes_file"}},
         {R"({"tool": "save_preset", "args": {"type": "filament", "name": "Mine"}})", {"changes_presets"}},
         {R"({"tool": "delete_preset", "args": {"type": "filament", "name": "Mine"}})", {"changes_presets"}},

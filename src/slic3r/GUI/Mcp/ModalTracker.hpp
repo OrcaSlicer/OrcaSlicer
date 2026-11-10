@@ -27,10 +27,15 @@ struct AutoAnswerRule
     std::string button;  // yes|no|ok|cancel|close|apply|<button label>|<numeric id>
     std::regex  compiled;
     int         uses = 0; // how often it answered a dialog
+    // An absolute UTF-8 path a matching file or folder picker returns as if a person had chosen it. A rule with
+    // a path answers pickers only, and only as they open (ModalTracker::Enter()).
+    std::string path;
+    bool        overwrite = false; // a save picker may return an existing file
 };
 
-// Builds a rule, compiling its pattern. Throws ToolFailure on an invalid pattern.
-AutoAnswerRule make_rule(const std::string& pattern, const std::string& button);
+// Builds a rule, compiling its pattern. Throws ToolFailure on an invalid pattern, a relative path, or a path
+// with any button but ok.
+AutoAnswerRule make_rule(const std::string& pattern, const std::string& button, const std::string& path = {}, bool overwrite = false);
 
 // Whether the rule's pattern is found in "title\nmessage" or in "title\ntext", where `text` is the
 // dialog's own text (describe_dialog()), or in the title alone for a dialog with no text (a web
@@ -67,7 +72,9 @@ public:
     void set_paused(int layer, bool paused);
     nlohmann::json rules_json() const;
     // For an answer that runs or ends later (a queued press, a web dialog's start_web_answer()): whether
-    // layer `layer` (0: any) still has the rule and is not paused. Any thread.
+    // layer `layer` (0: any) still has the rule and is not paused. Both pass over rules with a path, which answer
+    // only as a picker opens, so a path rule sharing a pattern and button with another never takes its uses. Any
+    // thread.
     bool rule_in_force(int layer, const std::string& pattern, const std::string& button) const;
     void count_use(int layer, const std::string& pattern, const std::string& button);
 
@@ -145,7 +152,7 @@ bool is_secret_key(const std::string& key);
 // no wx children to inspect or click. An open message box can still be pressed on Windows and Linux
 // (message_box_buttons()); a picker can only be pre-answered.
 bool is_native_dialog(wxDialog* dialog);
-// True for file and directory pickers, which auto-answer rules can only cancel.
+// True for file and directory pickers, which an auto-answer rule answers with cancel, or with OK and its path.
 bool is_picker(wxDialog* dialog);
 // The buttons [{id, label}] of a native message box (wxMessageDialog) that can be pressed while it is
 // open, which describe_dialog() lists and the dialog functions below press by message to the OS's box.

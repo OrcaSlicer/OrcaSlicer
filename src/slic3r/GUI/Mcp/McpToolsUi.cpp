@@ -1679,15 +1679,19 @@ void register_ui_tools(McpService& service)
             "Answer modal dialogs automatically when their title or message matches a rule's regex (case-insensitive). "
             "get_app_state.auto_answer_rules lists the rules in force. Called from a replay or script, the rules last until it "
             "ends; otherwise they replace the ones this session set before, and an empty list clears them. A native dialog "
-            "returns the rule's button at once and never shows (a file picker can only be cancelled). A wx dialog has the "
-            "button pressed as answer_dialog does, so its handler runs. A matching dialog already open is answered too "
+            "returns the rule's button at once and never shows. A file or folder picker takes button ok with an absolute path "
+            "and returns it without showing (on Linux such a rule cancels it); without a path a picker can only be cancelled, "
+            "and a multi-select picker takes no path. A wx dialog has the button pressed as answer_dialog does, so its "
+            "handler runs. A matching dialog already open is answered too "
             "(answered_open_dialog), so a prompt that shows around the same time, such as the restore prompt after startup, "
             "is caught either way. A web dialog is matched by its title: a button that names one of its shown wx buttons (by "
             "label, standard name or id) is pressed as for a wx dialog, any other on its page once it shows there, for up to "
             "10 s after the page loads; past that, cancel and close end the dialog and any other button gives up.",
             object_schema({{"rules", array_prop({{"type", "object"},
                                                  {"properties", {{"match", prop("string", "Regex searched in \"title\\nmessage\", in \"title\\ntext\" (the dialog's own static text, one line each, without its controls), and in the title alone for a dialog with no text (a web dialog), so ^Title$ matches it.")},
-                                                                 {"button", prop("string", "yes | no | ok | cancel | close | apply | label | id")}}},
+                                                                 {"button", prop("string", "yes | no | ok | cancel | close | apply | label | id")},
+                                                                 {"path", prop("string", "Absolute path a matching file or folder picker returns, with button ok. A picker has no title until it shows, so the rule matches its prompt and must not anchor on a title with ^. The rule answers pickers only: an open picker needs an existing file, a folder picker an existing folder, and a save picker a new file. A picker the path can't serve is cancelled and the reason logged.")},
+                                                                 {"overwrite", prop("boolean", "A save picker may return an existing file at path (default false).")}}},
                                                  {"required", {"match", "button"}},
                                                  {"additionalProperties", false}},
                                                 "Rules, first match wins.")}},
@@ -1695,7 +1699,8 @@ void register_ui_tools(McpService& service)
             [&service](const json& args, ToolContext& ctx) {
                 std::vector<AutoAnswerRule> rules;
                 for (const json& r : args["rules"])
-                    rules.push_back(make_rule(r["match"].get<std::string>(), r["button"].get<std::string>()));
+                    rules.push_back(make_rule(r["match"].get<std::string>(), r["button"].get<std::string>(), r.value("path", std::string()),
+                                              r.value("overwrite", false)));
                 const std::vector<AutoAnswerRule> registered = rules;
                 const AutoAnswerSet set = service.set_auto_answer(std::move(rules), service.jobs().ancestry(ctx.job_id()));
                 json out{{"scope", set.scope}, {"rules", service.modals().rules_json()}};
@@ -1709,7 +1714,8 @@ void register_ui_tools(McpService& service)
                     std::string text;
                     const json  info = describe_dialog(top, &text);
                     for (const AutoAnswerRule& rule : registered)
-                        if (rule_matches(rule, info["title"].get<std::string>(), info["message"].get<std::string>(), text)) {
+                        // A path rule answers a picker only as it opens.
+                        if (rule.path.empty() && rule_matches(rule, info["title"].get<std::string>(), info["message"].get<std::string>(), text)) {
                             // The rule may have been paused (a Run Script work ended) or replaced since it was registered.
                             if (!service.modals().rule_in_force(set.layer, rule.pattern, rule.button))
                                 return json();
