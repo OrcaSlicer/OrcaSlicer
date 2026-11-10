@@ -56,6 +56,10 @@ filament set and its assignment, so everything downstream of `apply` sees tool n
   the highest taken one that no filament takes holds a filament the plate does not use (its own
   number when possible), or a filler column copied from the plate's first filament; the printer
   is never told about such a tool. Used mixed slots are numbered after the physical tools.
+- A mixed filament prints through its components' tools, every component tracing the same paths at
+  a share of the layer height, so its components must sit on nozzles of one diameter: a plate
+  whose assignment puts them on different diameters is refused by `Print::validate`, and the mixed
+  slot slices at its components' diameter (`nozzle_diameter_for_filament`).
 - Two used filaments pinned to one tool is an error (`DuplicateToolAssignment`, reported by
   `Print::validate`). A filament whose `required_nozzle_HRC` exceeds the hardness of its tool's
   `nozzle_type` is a warning; whether the installed nozzle is hard enough is decided at print
