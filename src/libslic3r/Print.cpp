@@ -914,7 +914,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         // Place of the instance in print.model()'s object and instance lists. Copies of one object get
         // one PrintObject per distinct transformation, so print.objects() does not list them in order.
         std::pair<int, int>  model_position;
-        double               height;
+        double               height; // top above the bed, raft included (object_top below)
         // Whether the instance reaches above extruder_clearance_height_to_rod, and the Y extent of it
         // the rod can hit while a later instance prints (see above_rod_y_range).
         bool                 has_above_rod = false;
@@ -935,14 +935,20 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
     }
     const bool skirt_reaches_rod = print.has_infinite_skirt() ||
         (print.config().skirt_loops > 0 && print.config().skirt_height * max_layer_height > rod_height);
-    auto above_rod_y_range = [rod_height](const PrintInstance &instance, coord_t &min_y, coord_t &max_y) -> bool {
-        // A raft lifts the whole object by its thickness, so mesh Z this far below the rod prints above it.
-        const double rod_z = rod_height - instance.print_object->slicing_parameters().object_print_z_min;
-        // Skip the mesh walk for the common case of an object that doesn't reach the rod. Like the too-tall
-        // check below, this compares the top without the raft, so an object only its raft lifts above the
-        // rod keeps the footprint test.
-        if (instance.print_object->max_z() <= scale_(rod_height))
+    // Top of an instance above the bed, scaled. object_print_z_max includes the raft and the Z shrinkage
+    // compensation, like the printable-height check in validate(). On a belt printer it is the height in the
+    // tilted slicing frame, so there the model's own top is used, as that check does; a raft is refused there.
+    const bool belt_printer = print.config().belt_printer.value;
+    auto object_top = [belt_printer](const PrintInstance &instance) -> double {
+        return belt_printer ? instance.print_object->max_z()
+                            : scale_(instance.print_object->slicing_parameters().object_print_z_max);
+    };
+    auto above_rod_y_range = [rod_height, &object_top](const PrintInstance &instance, coord_t &min_y, coord_t &max_y) -> bool {
+        // Skip the mesh walk for the common case of an object whose top, raft included, doesn't reach the rod.
+        if (object_top(instance) <= scale_(rod_height))
             return false;
+        // Mesh Z this far below the rod prints above it once the raft lifts the object.
+        const double rod_z = rod_height - instance.print_object->slicing_parameters().object_print_z_min;
         double ymin = std::numeric_limits<double>::max();
         double ymax = std::numeric_limits<double>::lowest();
         bool   any  = false;
@@ -1075,7 +1081,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     }
                 }
                 struct print_instance_info print_info {&instance, convex_hull.bounding_box(), convex_hull};
-                print_info.height = instance.print_object->height();
+                print_info.height = object_top(instance);
                 print_info.model_position = model_position_of(print.model(), instance.model_instance);
                 print_info.has_above_rod = above_rod_y_range(instance, print_info.rod_min_y, print_info.rod_max_y);
                 const BoundingBox footprint = print_info.bounding_box.inflated(-scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset));
@@ -1278,7 +1284,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     break;
                 }
             }
-            if (height < inst->print_object->max_z())
+            if (height < info_k.height)
                 too_tall_instances[inst] = std::make_pair(print_instance_with_bounding_box[k].hull_polygon, unscaled<double>(height));
         }
 
