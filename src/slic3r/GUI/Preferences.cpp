@@ -10,6 +10,7 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/UpdateChannel.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Format/DRC.hpp"
 #include <wx/gdicmn.h>
@@ -2470,8 +2471,19 @@ void PreferencesDialog::create_items()
     //// ONLINE > Update & sync
     g_sizer->Add(create_item_title(_L("Update & sync")), 1, wxEXPAND);
 
-    auto item_stable_updates   = create_item_checkbox(_L("Check for stable updates only"), "", "check_stable_update_only");
-    g_sizer->Add(item_stable_updates);
+    auto [item_update_channel, update_channel_combo] = create_item_combobox_base(
+        _L("Update channel"),
+        _L("Choose which releases Orca Slicer offers as updates."),
+        "update_channel",
+        {_L("Stable"), _L("Nightly")},
+        update_channel_from_key(app_config->update_channel()) == UpdateChannel::Nightly ? 1 : 0);
+    update_channel_combo->GetDropDown().Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+        const UpdateChannel channel = e.GetSelection() == 1 ? UpdateChannel::Nightly : UpdateChannel::Stable;
+        app_config->set_update_channel(update_channel_key(channel));
+        wxGetApp().check_new_version_sf(true, 0);
+        e.Skip();
+    });
+    g_sizer->Add(item_update_channel);
 
     auto item_user_sync        = create_item_checkbox(_L("Auto sync user presets (Printer/Filament/Process)"), "", "sync_user_preset");
     g_sizer->Add(item_user_sync);

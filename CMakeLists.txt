@@ -1260,6 +1260,13 @@ elseif (MSVC AND NOT IS_CLANG_CL)
     add_compile_options(/W3 /we4715)
 endif ()
 
+# SLIC3R_BUILD_TIMESTAMP is the CI build time (UTC ISO-8601); empty on source
+# builds. libslic3r configures it into libslic3r_version.h when src is added below.
+set(SLIC3R_BUILD_TIMESTAMP "${ORCA_BUILD_TIMESTAMP}")
+if(NOT SLIC3R_BUILD_TIMESTAMP AND DEFINED ENV{ORCA_BUILD_TIMESTAMP})
+    set(SLIC3R_BUILD_TIMESTAMP "$ENV{ORCA_BUILD_TIMESTAMP}")
+endif()
+
 add_subdirectory(src)
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT OrcaSlicer_app_gui)
 

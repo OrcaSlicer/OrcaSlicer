@@ -38,6 +38,7 @@
 #include "Event.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
+#include "libslic3r/UpdateChannel.hpp"
 
 #ifdef __WXGTK__
 #include "wx/gauge.h"
@@ -89,6 +90,20 @@ wxString format_nozzle_diameter(float diameter);
 bool is_running_in_msix();
 // Opens the Microsoft Store product page for the current package. No-op when not packaged.
 void open_ms_store_product_page();
+// True when started from an AppImage ($APPIMAGE is set and non-empty); always false elsewhere.
+bool is_running_in_appimage();
+// True when running inside a Flatpak sandbox (/.flatpak-info exists); always false elsewhere.
+bool is_running_in_flatpak();
+// How this copy of the application was installed. Decides whether an in-app update is possible.
+Slic3r::InstallFlavour current_install_flavour();
+// Absolute path of the running executable, resolved where the platform allows it.
+std::string app_exe_path();
+// Directory (or AppImage file / .app bundle) the running build was installed into.
+std::string app_install_root();
+// Updater cache. Portable Windows installs keep their data dir inside the install tree,
+// which the updater renames, so the cache and the extracted helper live in the temp
+// directory instead.
+std::string update_cache_dir();
 
 // What a save entry point is about to write, for the unresolved-plugin warning below.
 enum class SaveSubject { Preset, Project };

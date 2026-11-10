@@ -562,6 +562,10 @@ set(lisbslic3r_sources
     TriangleSetSampling.hpp
     TriangulateWall.cpp
     TriangulateWall.hpp
+    UpdateChannel.cpp
+    UpdateChannel.hpp
+    UpdateHandoff.cpp
+    UpdateHandoff.hpp
     utils.cpp
     Utils.hpp
     VariableWidth.cpp

@@ -5,10 +5,12 @@
 #include "MsgDialog.hpp"
 #include "format.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/UpdateHandoff.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 #include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include "libslic3r/Utils.hpp"
@@ -32,6 +34,17 @@
 #include <cstring>
 #include <deque>
 #include <fstream>
+#include <cstdlib>
+
+#if defined(__linux__) || defined(__APPLE__)
+#include <limits.h>
+#include <unistd.h>
+#endif
+
+#ifdef __APPLE__
+#include <cstdint>
+#include <mach-o/dyld.h>
+#endif
 
 #ifdef _WIN32
     #include <Windows.h>
@@ -231,6 +244,141 @@ void open_ms_store_product_page()
     family_name.resize(length > 0 ? length - 1 : 0); // drop the terminating null
     wxLaunchDefaultBrowser(wxString(L"ms-windows-store://pdp/?PFN=") + family_name.c_str());
 #endif
+}
+
+bool is_running_in_appimage()
+{
+#ifdef __linux__
+    const char* appimage = std::getenv("APPIMAGE");
+    return appimage != nullptr && appimage[0] != '\0';
+#else
+    return false;
+#endif
+}
+
+bool is_running_in_flatpak()
+{
+#ifdef __linux__
+    return ::access("/.flatpak-info", F_OK) == 0;
+#else
+    return false;
+#endif
+}
+
+namespace {
+
+// Directory part of a path, without a trailing separator.
+std::string parent_directory(const std::string& path)
+{
+    const auto separator = path.find_last_of("/\\");
+    return separator == std::string::npos ? std::string() : path.substr(0, separator);
+}
+
+} // namespace
+
+std::string app_exe_path()
+{
+#ifdef _WIN32
+    std::wstring buffer(MAX_PATH, L'\0');
+    for (;;) {
+        const DWORD length = ::GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+        if (length == 0)
+            return {};
+        if (length < buffer.size()) {
+            buffer.resize(length);
+            break;
+        }
+        buffer.resize(buffer.size() * 2);
+    }
+    return wxString(buffer.c_str()).ToUTF8().data();
+#elif defined __APPLE__
+    char     buffer[PATH_MAX];
+    uint32_t size = sizeof(buffer);
+    if (_NSGetExecutablePath(buffer, &size) != 0)
+        return {};
+    char resolved[PATH_MAX];
+    if (::realpath(buffer, resolved) != nullptr)
+        return resolved;
+    return buffer;
+#elif defined __linux__
+    char    buffer[PATH_MAX];
+    ssize_t length = ::readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+    if (length <= 0)
+        return {};
+    buffer[length] = '\0';
+    char resolved[PATH_MAX];
+    if (::realpath(buffer, resolved) != nullptr)
+        return resolved;
+    return buffer;
+#else
+    return {};
+#endif
+}
+
+Slic3r::InstallFlavour current_install_flavour()
+{
+#ifdef _WIN32
+    if (is_running_in_msix())
+        return Slic3r::InstallFlavour::Msix;
+    // The NSIS installer puts uninstall.exe beside the executable; the portable build does not.
+    const std::string exe_dir = parent_directory(app_exe_path());
+    if (!exe_dir.empty()) {
+        const std::wstring uninstall = wxString::FromUTF8((exe_dir + "/uninstall.exe").c_str()).ToStdWstring();
+        if (::GetFileAttributesW(uninstall.c_str()) != INVALID_FILE_ATTRIBUTES)
+            return Slic3r::InstallFlavour::WindowsInstaller;
+    }
+    return Slic3r::InstallFlavour::WindowsPortable;
+#elif defined __APPLE__
+    if (app_exe_path().find(".app/Contents/MacOS/") != std::string::npos)
+        return Slic3r::InstallFlavour::MacOSBundle;
+    return Slic3r::InstallFlavour::Other;
+#elif defined __linux__
+    if (is_running_in_appimage())
+        return Slic3r::InstallFlavour::LinuxAppImage;
+    if (is_running_in_flatpak())
+        return Slic3r::InstallFlavour::Flatpak;
+    return Slic3r::InstallFlavour::Other;
+#else
+    return Slic3r::InstallFlavour::Other;
+#endif
+}
+
+std::string app_install_root()
+{
+    const std::string exe = app_exe_path();
+#if defined __APPLE__
+    const std::string suffix = ".app/Contents/MacOS/";
+    const auto        bundle = exe.find(suffix);
+    if (bundle != std::string::npos)
+        return exe.substr(0, bundle + 4); // include the ".app" extension
+#elif defined __linux__
+    const char* appimage = std::getenv("APPIMAGE");
+    if (appimage != nullptr && appimage[0] != '\0')
+        return appimage;
+#endif
+    return parent_directory(exe);
+}
+
+std::string update_cache_dir()
+{
+    if (current_install_flavour() != Slic3r::InstallFlavour::WindowsPortable)
+        return updater_cache_dir();
+
+    // Every portable copy runs from %TEMP%, so the cache name carries a suffix derived
+    // from the install root: install.lock, installed.json, pending.json, downloads/ and
+    // helper/ must not be shared with another portable install.
+    std::string root = app_install_root();
+    boost::system::error_code ec;
+    const boost::filesystem::path canonical = boost::filesystem::canonical(boost::filesystem::path(root), ec);
+    if (!ec)
+        root = canonical.string();
+
+    const std::size_t hashed = std::hash<std::string>{}(root);
+    char              suffix[13];
+    std::snprintf(suffix, sizeof(suffix), "%012llx",
+                  static_cast<unsigned long long>(hashed) & 0xffffffffffffull);
+
+    return (boost::filesystem::temp_directory_path() / ("OrcaSlicer-updater-" + std::string(suffix))).string();
 }
 
 namespace {

@@ -197,6 +197,16 @@ echo -n "[9/9] Generating Linux app..."
     fi
     cp -fl "${ORIGINAL_BINARY_LOCATION}" "$BIN_DIR/@SLIC3R_APP_CMD@"
 
+    # The updater helper sits beside the main binary so its rpath ($ORIGIN entries)
+    # resolves; the dependency pass below then bundles its libraries too.
+    UPDATER_HELPER_SRC="$(dirname "${ORIGINAL_BINARY_LOCATION}")/OrcaSlicerUpdater"
+    if [ -f "$UPDATER_HELPER_SRC" ]; then
+        cp -fL "$UPDATER_HELPER_SRC" "$BIN_DIR/OrcaSlicerUpdater"
+        chmod +x "$BIN_DIR/OrcaSlicerUpdater"
+    else
+        echo "Warning: updater helper not found at ${UPDATER_HELPER_SRC}; in-app updates will fall back to the release page."
+    fi
+
     # Bundle the embedded Python runtime (interpreter + stdlib) that CMake staged
     # next to the binary. OrcaSlicer resolves PYTHONHOME at <resources_dir>/../lib/python,
     # which is $APPDIR/lib/python (resources_dir is $APPDIR/resources). Staging it here,

@@ -230,6 +230,53 @@ if (WIN32)
     target_link_libraries(OrcaSlicer_app_gui PRIVATE boost_headeronly)
 endif ()
 
+# The updater helper: a tiny separate GUI binary that outlives the application,
+# downloads and verifies the new build and hands it to the per-platform install.
+# Deliberately built from its own sources only, so it never pulls the Plater or
+# the main application's GUI headers.
+if (SLIC3R_GUI)
+    set(UPDATER_HELPER_SOURCES
+        slic3r/UpdateHelper/main.cpp
+        slic3r/UpdateHelper/UpdateHelperFrame.cpp
+        slic3r/UpdateHelper/UpdateHelperFrame.hpp
+        slic3r/UpdateHelper/HttpDownloader.cpp
+        slic3r/UpdateHelper/HttpDownloader.hpp
+        slic3r/UpdateHelper/InstallApply.cpp
+        slic3r/UpdateHelper/InstallApply.hpp
+        slic3r/UpdateHelper/InstallPlatform.hpp
+        slic3r/UpdateHelper/install_windows.cpp
+        slic3r/UpdateHelper/install_macos.cpp
+        slic3r/UpdateHelper/install_linux.cpp
+    )
+
+    if (WIN32)
+        add_executable(OrcaSlicerUpdater WIN32 ${UPDATER_HELPER_SOURCES})
+    else ()
+        add_executable(OrcaSlicerUpdater ${UPDATER_HELPER_SOURCES})
+    endif ()
+
+    target_include_directories(OrcaSlicerUpdater PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    if (wxWidgets_INCLUDE_DIRS)
+        target_include_directories(OrcaSlicerUpdater PRIVATE ${wxWidgets_INCLUDE_DIRS})
+    endif ()
+    # Mirror libslic3r_gui: wxWidgets' own build flags must match the static
+    # widget libraries we link, or wx's assertion helpers go missing.
+    target_compile_definitions(OrcaSlicerUpdater PRIVATE ${wxWidgets_DEFINITIONS}
+        $<$<CONFIG:Debug>:${wxWidgets_DEFINITIONS_DEBUG}>)
+    if (SLIC3R_STATIC)
+        target_compile_definitions(OrcaSlicerUpdater PRIVATE -DwxDEBUG_LEVEL=0)
+    endif ()
+
+    target_link_libraries(OrcaSlicerUpdater libslic3r cereal::cereal ${wxWidgets_LIBRARIES} libcurl OpenSSL::SSL OpenSSL::Crypto)
+    if (TARGET Threads::Threads)
+        target_link_libraries(OrcaSlicerUpdater Threads::Threads)
+    endif ()
+
+    # `just build` builds only OrcaSlicer, and the update flow is useless without
+    # the helper next to it.
+    add_dependencies(OrcaSlicer OrcaSlicerUpdater)
+endif ()
+
 # Link the resources dir to where Slic3r GUI expects it
 set(output_dlls_Release "")
 set(output_dlls_Debug "")
@@ -392,6 +439,11 @@ message(STATUS "libslic3r-CMAKE_BUILD_TYPE: ${build_type}")
 message(STATUS "CMAKE_CURRENT_BINARY_DIR: ${CMAKE_CURRENT_BINARY_DIR}")
 if (WIN32)
     install(TARGETS OrcaSlicer RUNTIME DESTINATION ".")
+    # The runtime looks for the updater at <exe dir>/updater and copies that whole
+    # folder, so the helper travels with the libraries it needs.
+    if (TARGET OrcaSlicerUpdater)
+        install(TARGETS OrcaSlicerUpdater RUNTIME DESTINATION "updater")
+    endif ()
     if (MSVC)
         install(TARGETS OrcaSlicer_app_gui RUNTIME DESTINATION ".")
     endif ()
@@ -403,4 +455,8 @@ else ()
         install(FILES ${output_sos_${build_type}} DESTINATION "${CMAKE_INSTALL_PREFIX}")
     endif()
     install(TARGETS OrcaSlicer RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR})
+    # Beside the main binary, so the helper's rpath and (macOS) framework paths resolve.
+    if (TARGET OrcaSlicerUpdater)
+        install(TARGETS OrcaSlicerUpdater RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    endif ()
 endif ()

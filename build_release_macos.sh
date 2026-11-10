@@ -377,6 +377,17 @@ function build_slicer() {
             find ./OrcaSlicer.app/ -name '.DS_Store' -delete
 
             verify_python_runtime ./OrcaSlicer.app
+
+            # Ship the updater helper inside the bundle: it links the bundle's wx
+            # frameworks, so it must sit in Contents/MacOS beside the main binary.
+            # Signed together with the rest of the bundle by the packaging workflow.
+            UPDATER_HELPER="../src$BUILD_DIR_CONFIG_SUBDIR/OrcaSlicerUpdater"
+            if [ -f "$UPDATER_HELPER" ]; then
+                echo "Copying OrcaSlicerUpdater..."
+                cp -p "$UPDATER_HELPER" ./OrcaSlicer.app/Contents/MacOS/
+            else
+                echo "Warning: OrcaSlicerUpdater not found at $UPDATER_HELPER; in-app updates will fall back to the release page."
+            fi
             
             # Copy OrcaSlicer_profile_validator.app if it exists
             if [ -f "../src$BUILD_DIR_CONFIG_SUBDIR/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then

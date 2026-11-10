@@ -30,6 +30,7 @@ jobs:
       date:
       ver:
       ver_pure:
+      ORCA_BUILD_TIMESTAMP:
       ubuntu-ver: '2404'
       ubuntu-ver-str: '_Ubuntu2404'
       ORCA_UPDATER_SIG_KEY: ${{ secrets.ORCA_UPDATER_SIG_KEY }}
@@ -126,6 +127,8 @@ jobs:
           echo "ver=$ver" >> $GITHUB_ENV
           echo "ver_pure=$ver_pure" >> $GITHUB_ENV
           echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
+          # Build id baked into the binary; it tells the updater how old this build is.
+          echo "ORCA_BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_ENV
           echo "git_commit_hash=$git_commit_hash" >> $GITHUB_ENV
           # Per-arch Linux AppImage naming: amd64 keeps the historical unsuffixed
           # name (arch_suffix empty). Unused on macOS/Windows.
@@ -156,6 +159,9 @@ jobs:
 
           echo "ver=$ver" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           echo "date=$date" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          # Build id baked into the binary; it tells the updater how old this build is.
+          $build_timestamp = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+          echo "ORCA_BUILD_TIMESTAMP=$build_timestamp" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           echo "git_commit_hash=$git_commit_hash" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           echo "date: ${{ env.date }} version: ${{ env.ver }}"
         shell: pwsh

@@ -19,3 +19,7 @@ set(SLIC3R_VERSION "02.08.01.55")
 if (NOT DEFINED ORCA_UPDATER_SIG_KEY)
     set(ORCA_UPDATER_SIG_KEY "" CACHE STRING "Base64url encoded updater signature key")
 endif()
+
+if (NOT DEFINED ORCA_BUILD_TIMESTAMP)
+    set(ORCA_BUILD_TIMESTAMP "" CACHE STRING "Build timestamp (UTC ISO-8601) baked into the binary as a build id")
+endif()

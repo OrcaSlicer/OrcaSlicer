@@ -313,6 +313,9 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     m_text_up_info = new Label(this, Label::Head_14, wxEmptyString, LB_AUTO_WRAP);
     m_text_up_info->SetForegroundColour(wxColour(0x26, 0x2E, 0x30));
 
+    m_text_channel = new Label(this, Label::Body_12, wxEmptyString);
+    m_text_channel->SetForegroundColour(wxColour(0x26, 0x2E, 0x30));
+
     // Store builds get updates from the Microsoft Store: wxID_YES opens the Store
     // product page there (see the EVT_SLIC3R_VERSION_ONLINE handler) instead of GitHub.
     auto github_link = new HyperLink(this, is_running_in_msix() ? _L("Check on Microsoft Store") : _L("Check on GitHub"), "", LB_AUTO_WRAP);
@@ -380,16 +383,6 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
         EndModal(wxID_NO);
     });
 
-    m_cb_stable_only = new CheckBox(this);
-    m_cb_stable_only->SetValue(wxGetApp().app_config->get_bool("check_stable_update_only"));
-    m_cb_stable_only->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
-        wxGetApp().app_config->set_bool("check_stable_update_only", m_cb_stable_only->GetValue());
-        e.Skip();
-    });
-
-    auto stable_only_label = new Label(this, _L("Check for stable updates only"));
-    stable_only_label->SetFont(Label::Body_12);
-
     m_button_cancel = new Button(this, _L("Cancel"));
     m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
@@ -399,8 +392,6 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
 
     //sizer_button->Add(m_remind_choice, 0, wxALL | wxEXPAND, FromDIP(5));
 
-    sizer_button->Add(m_cb_stable_only     , 0, wxALIGN_CENTER);
-    sizer_button->Add(stable_only_label    , 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
     sizer_button->AddStretchSpacer();
     sizer_button->Add(m_button_download    , 0, wxLEFT, FromDIP(10));
     sizer_button->Add(m_button_skip_version, 0, wxLEFT, FromDIP(10));
@@ -408,6 +399,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
 
     m_sizer_desc->AddStretchSpacer();
     m_sizer_desc->Add(m_text_up_info, 0, wxEXPAND | wxBOTTOM, FromDIP(5));
+    m_sizer_desc->Add(m_text_channel, 0, wxEXPAND | wxBOTTOM, FromDIP(5));
     m_sizer_desc->Add(github_link);
     m_sizer_desc->AddStretchSpacer();
 
@@ -544,6 +536,8 @@ void UpdateVersionDialog::update_version_info(wxString release_note, wxString ve
     m_simplebook_release_note->SetSelection(1);
     if (is_running_in_msix())
         m_text_up_info->SetLabel(wxString::Format(_L("New version available: %s. Please update OrcaSlicer from the Microsoft Store."), version));
+    else if (in_app_install_supported(current_install_flavour()))
+        m_text_up_info->SetLabel(wxString::Format(_L("New version available: %s"), version));
     else
         m_text_up_info->SetLabel(wxString::Format(_L("Click to download new version in default browser: %s"), version));
     auto data_buf_in = release_note.utf8_str();
@@ -568,6 +562,12 @@ void UpdateVersionDialog::update_version_info(wxString release_note, wxString ve
     wxGetApp().UpdateDlgDarkUI(this);
     Layout();
     Fit();
+}
+
+void UpdateVersionDialog::set_channel_label(const wxString& label)
+{
+    if (m_text_channel != nullptr)
+        m_text_channel->SetLabel(label);
 }
 
 SecondaryCheckDialog::SecondaryCheckDialog(wxWindow* parent, wxWindowID id, const wxString& title, enum VisibleButtons btn_style, const wxPoint& pos, const wxSize& size, long style, bool not_show_again_check) // ORCA VisibleButtons instead ButtonStyle 

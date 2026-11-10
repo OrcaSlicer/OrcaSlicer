@@ -376,6 +376,21 @@ public:
 	// Get the Orca profile update url.
 	std::string 		profile_update_url() const;
 
+	// Update channel the user picked: "stable" or "nightly". Empty means stable.
+	std::string 		update_channel() const { return this->get("update_channel"); }
+	void 				set_update_channel(const std::string& channel) { this->set("update_channel", channel); }
+
+	// Identity of the build that is installed: the artifact digest it came from
+	// and the channel it came from. Empty until the first in-app update.
+	std::string 		installed_artifact() const { return this->get("installed_artifact"); }
+	std::string 		installed_channel() const { return this->get("installed_channel"); }
+	void 				set_installed_build(const std::string& channel, const std::string& artifact)
+							{ this->set("installed_channel", channel); this->set("installed_artifact", artifact); }
+
+	// Artifact digest the user asked not to be offered again (nightly channel).
+	std::string 		skip_artifact() const { return this->get("skip_artifact"); }
+	void 				set_skip_artifact(const std::string& artifact) { this->set("skip_artifact", artifact); }
+
 	// Returns the original Slic3r version found in the ini file before it was overwritten
 	// by the current version
 	Semver 				orig_version() const { return m_orig_version; }

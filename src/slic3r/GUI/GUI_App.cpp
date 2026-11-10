@@ -296,9 +296,13 @@ typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS2)(
 
 #endif
 #include <nlohmann/json.hpp>
+#include "libslic3r/UpdateChannel.hpp"
+#include "libslic3r/UpdateHandoff.hpp"
 #ifdef _WIN32
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <direct.h>
+#else
+#include <unistd.h>
 #endif
 
 #ifdef WIN32
@@ -1139,6 +1143,7 @@ void GUI_App::post_init()
                 this->preset_updater->sync(http_url, language, network_ver, sys_preset ? preset_bundle : nullptr);
             }
 
+            this->finish_pending_update();
             this->check_new_version_sf();
             if (!cw_showed)
                 this->check_legacy_user_filament_presets(false);
@@ -3480,53 +3485,36 @@ bool GUI_App::on_init_inner()
 
         preset_updater = new PresetUpdater();
         Bind(EVT_SLIC3R_VERSION_ONLINE, [this](const wxCommandEvent& evt) {
-            if (this->plater_ != nullptr) {
-                // this->plater_->get_notification_manager()->push_notification(NotificationType::NewAppAvailable);
-                //BBS show msg box to download new version
-               /* wxString tips = wxString::Format(_L("Click to download new version in default browser: %s"), version_info.version_str);
-                DownloadDialog dialog(this->mainframe,
-                    tips,
-                    _L("New version of Orca Slicer"),
-                    false,
-                    wxCENTER | wxICON_INFORMATION);
+            if (this->plater_ == nullptr || !m_update_candidate.available)
+                return;
 
+            // A user-initiated check shows the dialog even for a skipped version; the startup
+            // check stays quiet then.
+            if (evt.GetInt() == 0 &&
+                update_is_skipped(m_update_candidate, app_config->get("skip_version"), app_config->skip_artifact()))
+                return;
 
-                dialog.SetExtendedMessage(extmsg);*/
-                std::string skip_version_str = this->app_config->get("app", "skip_version");
-                bool skip_this_version = false;
-                if (!skip_version_str.empty()) {
-                    BOOST_LOG_TRIVIAL(info) << "new version = " << version_info.version_str << ", skip version = " << skip_version_str;
-                    if (version_info.version_str <= skip_version_str) {
-                        skip_this_version = true;
-                    } else {
-                        app_config->set("skip_version", "");
-                        skip_this_version = false;
-                    }
-                }
-                if (!skip_this_version
-                    || evt.GetInt() != 0) {
-                    UpdateVersionDialog dialog(this->mainframe);
-                    wxString            extmsg = wxString::FromUTF8(version_info.description);
-                    dialog.update_version_info(extmsg, version_info.version_str);
-                    //dialog.update_version_info(version_info.description);
-                    if (evt.GetInt() != 0) {
-                        dialog.m_button_skip_version->Hide();
-                    }
-                    switch (dialog.ShowModal())
-                    {
-                    case wxID_YES:
-                        // Store builds get updates from the Microsoft Store, not the GitHub release page.
-                        if (is_running_in_msix())
-                            open_ms_store_product_page();
-                        else
-                            wxLaunchDefaultBrowser(version_info.url);
-                        break;
-                    case wxID_NO:
-                        break;
-                    default:
-                        ;
-                    }
-                }
+            UpdateVersionDialog dialog(this->mainframe);
+            dialog.set_channel_label(m_update_candidate.channel == UpdateChannel::Nightly ? _L("Nightly channel")
+                                                                                          : _L("Stable channel"));
+            dialog.update_version_info(wxString::FromUTF8(m_update_candidate.release_notes),
+                                       wxString::FromUTF8(m_update_candidate.version_label));
+            switch (dialog.ShowModal()) {
+            case wxID_YES:
+                // Store builds get updates from the Microsoft Store, not the release page.
+                // A supported flavour without an asset cannot download anything, so it falls
+                // back to the release page too instead of preparing an empty handoff.
+                if (in_app_install_supported(current_install_flavour()) && !m_update_candidate.asset.name.empty())
+                    start_in_app_update();
+                else if (is_running_in_msix())
+                    open_ms_store_product_page();
+                else
+                    wxLaunchDefaultBrowser(from_u8(m_update_candidate.release_url));
+                break;
+            case wxID_NO:
+                break;
+            default:
+                ;
             }
             });
 
@@ -6279,108 +6267,6 @@ void GUI_App::reset_to_active()
     last_active_point = std::chrono::system_clock::now();
 }
 
-void GUI_App::check_update(bool show_tips, int by_user)
-{
-    if (version_info.version_str.empty()) return;
-    if (version_info.url.empty()) return;
-
-    auto curr_version = Semver::parse(SLIC3R_VERSION);
-    auto remote_version = Semver::parse(version_info.version_str);
-    if (curr_version && remote_version && (*remote_version > *curr_version)) {
-        if (version_info.force_upgrade) {
-            wxGetApp().app_config->set_bool("force_upgrade", version_info.force_upgrade);
-            wxGetApp().app_config->set("upgrade", "force_upgrade", true);
-            wxGetApp().app_config->set("upgrade", "description", version_info.description);
-            wxGetApp().app_config->set("upgrade", "version", version_info.version_str);
-            wxGetApp().app_config->set("upgrade", "url", version_info.url);
-            GUI::wxGetApp().enter_force_upgrade();
-        }
-        else {
-            GUI::wxGetApp().request_new_version(by_user);
-        }
-    } else {
-        wxGetApp().app_config->set("upgrade", "force_upgrade", false);
-        if (show_tips)
-            this->no_new_version();
-    }
-}
-
-void GUI_App::check_new_version(bool show_tips, int by_user)
-{
-    return; // orca: not used, see check_new_version_sf
-    std::string platform = "windows";
-
-#ifdef __WINDOWS__
-    platform = "windows";
-#endif
-#ifdef __APPLE__
-    platform = "macos";
-#endif
-#ifdef __LINUX__
-    platform = "linux";
-#endif
-    std::string query_params = (boost::format("?name=slicer&version=%1%&guide_version=%2%")
-        % VersionInfo::convert_full_version(SLIC3R_VERSION)
-        % VersionInfo::convert_full_version("0.0.0.1")
-        ).str();
-
-    std::string url = get_http_url(app_config->get_country_code()) + query_params;
-    Slic3r::Http http = Slic3r::Http::get(url);
-
-    http.header("accept", "application/json")
-        .timeout_connect(TIMEOUT_CONNECT)
-        .timeout_max(TIMEOUT_RESPONSE)
-        .on_complete([this, show_tips, by_user](std::string body, unsigned) {
-        try {
-            json j = json::parse(body);
-            if (j.contains("message")) {
-                if (j["message"].get<std::string>() == "success") {
-                    if (j.contains("software")) {
-                        if (j["software"].empty() && show_tips) {
-                            this->no_new_version();
-                        }
-                        else {
-                            if (j["software"].contains("url")
-                                && j["software"].contains("version")
-                                && j["software"].contains("description")) {
-                                version_info.url = j["software"]["url"].get<std::string>();
-                                version_info.version_str = j["software"]["version"].get<std::string>();
-                                version_info.description = j["software"]["description"].get<std::string>();
-                            }
-                            if (j["software"].contains("force_update")) {
-                                version_info.force_upgrade = j["software"]["force_update"].get<bool>();
-                            }
-                            CallAfter([this, show_tips, by_user](){
-                                this->check_update(show_tips, by_user);
-                            });
-                        }
-                    }
-                }
-            }
-        }
-        catch (...) {
-            ;
-        }
-            })
-        .on_error([this](std::string body, std::string error, unsigned int status) {
-            handle_http_error(status, body);
-            BOOST_LOG_TRIVIAL(error) << "check new version error" << body;
-    }).perform();
-}
-
-//parse the string, if it doesn't contain a valid version string, return invalid version.
-Semver get_version(const std::string& str, const std::regex& regexp) {
-    std::smatch match;
-    if (std::regex_match(str, match, regexp)) {
-        std::string version_cleaned = match[0];
-        const boost::optional<Semver> version = Semver::parse(version_cleaned);
-        if (version.has_value()) {
-            return *version;
-        }
-    }
-    return Semver::invalid();
-}
-
 namespace
 {
 
@@ -6615,7 +6501,6 @@ void maybe_attach_updater_signature(Http& http, const std::string& canonical_que
 void GUI_App::check_new_version_sf(bool show_tips, int by_user)
 {
     AppConfig* app_config = wxGetApp().app_config;
-    bool       check_stable_only = app_config->get_bool("check_stable_update_only");
     auto version_check_url = app_config->version_check_url();
 
     UpdaterQuery query{
@@ -6647,7 +6532,7 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
           BOOST_LOG_TRIVIAL(error) << format("Error getting: `%1%`: HTTP %2%, %3%", "check_new_version_sf", http_status,
                                              error);
         })
-        .on_complete([this, by_user, check_stable_only](std::string body, unsigned http_status) {
+        .on_complete([this, app_config, by_user](std::string body, unsigned http_status) {
           if (http_status != 200)
             return;
           try {
@@ -6658,98 +6543,37 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
                 return;
             }
 
-            boost::property_tree::ptree root;
-            std::stringstream           json_stream(body);
-            boost::property_tree::read_json(json_stream, root);
+#ifdef SLIC3R_BUILD_TIMESTAMP
+            const std::string build_timestamp = SLIC3R_BUILD_TIMESTAMP;
+#else
+            const std::string build_timestamp;
+#endif
+            const UpdateCandidate candidate = resolve_update(body,
+                                                             update_channel_from_key(app_config->update_channel()),
+                                                             app_config->installed_artifact(),
+                                                             app_config->installed_channel(),
+                                                             SoftFever_VERSION,
+                                                             build_timestamp,
+                                                             current_install_flavour(),
+                                                             platform_architecture());
 
-            std::regex matcher("[0-9]+\\.[0-9]+(\\.[0-9]+)*(-[A-Za-z0-9]+)?(\\+[A-Za-z0-9]+)?");
-            Semver    current_version = get_version(SoftFever_VERSION, matcher);
-            Semver    best_pre(0, 0, 0);
-            Semver    best_release(0, 0, 0);
-            bool      best_pre_valid = false;
-            bool      best_release_valid = false;
-            std::string best_pre_url;
-            std::string best_release_url;
-            std::string best_release_content;
-            std::string best_pre_content;
-
-            auto consider_release = [&](const boost::property_tree::ptree& node) {
-                auto tag_opt = node.get_optional<std::string>("tag_name");
-                if (!tag_opt)
-                    return;
-
-                std::string tag = *tag_opt;
-                if (!tag.empty() && tag.front() == 'v')
-                    tag.erase(0, 1);
-
-                Semver tag_version = get_version(tag, matcher);
-                if (!tag_version.valid())
-                    return;
-
-                const bool is_prerelease = node.get_optional<bool>("prerelease").get_value_or(false);
-                const std::string html_url = node.get_optional<std::string>("html_url").get_value_or(std::string());
-                const std::string body_copy = node.get_optional<std::string>("body").get_value_or(std::string());
-
-                if (is_prerelease) {
-                    if (!best_pre_valid || best_pre < tag_version) {
-                        best_pre        = tag_version;
-                        best_pre_url    = html_url;
-                        best_pre_content = body_copy;
-                        best_pre_valid  = true;
-                    }
-                } else {
-                    if (!best_release_valid || best_release < tag_version) {
-                        best_release         = tag_version;
-                        best_release_url     = html_url;
-                        best_release_content = body_copy;
-                        best_release_valid   = true;
-                    }
-                }
-            };
-
-            if (root.get_optional<std::string>("tag_name")) {
-                consider_release(root);
-            } else {
-                for (const auto& child : root)
-                    consider_release(child.second);
-            }
-
-            if (!best_release_valid && !best_pre_valid) {
+            if (!candidate.available) {
+                BOOST_LOG_TRIVIAL(info) << "No update offered: " << candidate.reason;
                 if (by_user != 0)
                     this->no_new_version();
                 return;
             }
 
-            if (best_pre_valid && best_release_valid && best_pre < best_release) {
-                best_pre        = best_release;
-                best_pre_url    = best_release_url;
-                best_pre_content = best_release_content;
-                best_pre_valid  = true;
-            }
-
-            const bool        prefer_release = check_stable_only || !best_pre_valid;
-            const Semver&     chosen_version = prefer_release ? best_release : best_pre;
-            const bool        chosen_valid   = prefer_release ? best_release_valid : best_pre_valid;
-
-            if (!chosen_valid) {
-                if (by_user != 0)
-                    this->no_new_version();
+            if (update_is_skipped(candidate, app_config->get("skip_version"), app_config->skip_artifact()) &&
+                by_user == 0) {
+                BOOST_LOG_TRIVIAL(info) << "Update " << candidate.version_label << " was skipped by the user";
                 return;
             }
 
-            if (current_version.valid() && chosen_version <= current_version) {
-                if (by_user != 0)
-                    this->no_new_version();
-                return;
-            }
-
-            version_info.url           = prefer_release ? best_release_url : best_pre_url;
-            version_info.version_str   = prefer_release ? best_release.to_string_sf() : best_pre.to_string_sf();
-            version_info.description   = prefer_release ? best_release_content : best_pre_content;
-            version_info.force_upgrade = false;
-
+            m_update_candidate = candidate;
             wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
-            evt->SetString((prefer_release ? best_release : best_pre).to_string());
+            evt->SetString(from_u8(candidate.version_label));
+            evt->SetInt(by_user);
             GUI::wxGetApp().QueueEvent(evt);
           } catch (...) {}
         });
@@ -6871,29 +6695,321 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
     return false;
 }
 
-//BBS pop up a dialog and download files
-void GUI_App::request_new_version(int by_user)
-{
-    wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
-    evt->SetString(GUI::from_u8(version_info.version_str));
-    evt->SetInt(by_user);
-    GUI::wxGetApp().QueueEvent(evt);
-}
-
 void GUI_App::enter_force_upgrade()
 {
     wxCommandEvent *evt = new wxCommandEvent(EVT_ENTER_FORCE_UPGRADE);
     GUI::wxGetApp().QueueEvent(evt);
 }
 
+namespace {
+
+// Name of the updater helper as it ships with the application.
+#ifdef _WIN32
+constexpr const char* updater_helper_name = "OrcaSlicerUpdater.exe";
+#elif defined __APPLE__
+// CMake builds no bundle for the helper; packaging ships it as a bare executable in
+// Contents/MacOS. The .app name is kept for a build that wraps it.
+constexpr const char* updater_helper_name      = "OrcaSlicerUpdater.app";
+constexpr const char* updater_helper_bare_name = "OrcaSlicerUpdater";
+#else
+constexpr const char* updater_helper_name = "OrcaSlicerUpdater";
+#endif
+
+int64_t current_process_id()
+{
+#ifdef _WIN32
+    return static_cast<int64_t>(::GetCurrentProcessId());
+#else
+    return static_cast<int64_t>(::getpid());
+#endif
+}
+
+// Where the helper ships, in lookup order: the bare executable of a macOS bundle, then
+// the updater folder of a packaged install, then beside the executable (a development
+// build).
+std::vector<std::string> updater_helper_candidates()
+{
+    std::vector<std::string> candidates;
+    const std::string        exe_dir = fs::path(app_exe_path()).parent_path().string();
+#ifdef __APPLE__
+    // Contents/MacOS holds the bare helper beside the main binary. The .app forms come
+    // after it, so a wrapped bundle still works.
+    const std::string root = app_install_root();
+    const std::string shared_support =
+        root.empty() ? std::string() : (fs::path(root) / "Contents/SharedSupport").string();
+    if (!exe_dir.empty())
+        candidates.push_back((fs::path(exe_dir) / updater_helper_bare_name).string());
+    if (!shared_support.empty())
+        candidates.push_back((fs::path(shared_support) / updater_helper_bare_name).string());
+    if (!exe_dir.empty())
+        candidates.push_back((fs::path(exe_dir) / updater_helper_name).string());
+    if (!shared_support.empty())
+        candidates.push_back((fs::path(shared_support) / updater_helper_name).string());
+#else
+    if (!exe_dir.empty()) {
+        candidates.push_back((fs::path(exe_dir) / "updater" / updater_helper_name).string());
+        candidates.push_back((fs::path(exe_dir) / updater_helper_name).string());
+    }
+#endif
+    return candidates;
+}
+
+// Copies the helper into the updater cache so it outlives the application, and returns the
+// path to launch. Empty when no helper was found or the copy failed.
+std::string extract_updater_helper()
+{
+    std::string source;
+    for (const std::string& candidate : updater_helper_candidates()) {
+        boost::system::error_code ec;
+        if (fs::exists(fs::path(candidate), ec)) {
+            source = candidate;
+            break;
+        }
+    }
+    if (source.empty())
+        return {};
+
+    try {
+        const fs::path helper_dir = fs::path(updater_helper_dir());
+        fs::create_directories(helper_dir);
+
+        // A packaged install ships the helper in an `updater/` folder that also carries
+        // the libraries it needs, so the folder is copied, not just the binary.
+        const fs::path source_path(source);
+        const bool     ships_in_folder = source_path.parent_path().filename() == "updater";
+        const fs::path source_tree     = ships_in_folder ? source_path.parent_path() : source_path;
+        const fs::path target         = helper_dir / source_tree.filename();
+        if (fs::exists(target))
+            fs::remove_all(target);
+        fs::copy(source_tree, target, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
+
+#ifdef _WIN32
+        // The helper folder carries its own libraries, but wxWidgets lives beside the
+        // executable. Copy the DLLs too, or the helper cannot start once the install
+        // tree is renamed. Nothing to do when the helper already sits beside the exe.
+        if (ships_in_folder) {
+            const fs::path           exe_dir = fs::path(app_exe_path()).parent_path();
+            boost::system::error_code iter_ec;
+            for (fs::directory_iterator it(exe_dir, iter_ec), end; !iter_ec && it != end; it.increment(iter_ec)) {
+                const fs::path file = it->path();
+                if (file.extension() != ".dll")
+                    continue;
+                boost::system::error_code copy_ec;
+                fs::copy_file(file, target / file.filename(), fs::copy_options::overwrite_existing, copy_ec);
+                if (copy_ec)
+                    BOOST_LOG_TRIVIAL(warning) << "Could not copy " << file.string() << " next to the updater helper: "
+                                               << copy_ec.message();
+            }
+            if (iter_ec)
+                BOOST_LOG_TRIVIAL(warning) << "Could not read " << exe_dir.string()
+                                           << " for the updater helper's libraries: " << iter_ec.message();
+        }
+#endif
+
+        fs::path binary = target;
+        if (ships_in_folder)
+            binary /= source_path.filename();
+#ifdef __APPLE__
+        if (target.extension() == ".app")
+            binary = target / "Contents/MacOS" / "OrcaSlicerUpdater";
+        else
+            // A bare helper was copied as a file: keep it runnable.
+            fs::permissions(binary, fs::status(binary).permissions() | fs::perms::owner_exe);
+#else
+        fs::permissions(binary, fs::status(binary).permissions() | fs::perms::owner_exe);
+#endif
+        return binary.string();
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "Could not extract the updater helper: " << e.what();
+        return {};
+    }
+}
+
+// Puts the portable user data back beside the installed build. The helper moves
+// `<install_root>\data_dir` aside before swapping the trees, so a crash can leave it
+// at `data_aside` with the new tree already in place and no data_dir in it.
+// Returns false when it could not be put back: the pending record must then stay.
+bool reattach_portable_data(const std::string& data_aside, const std::string& target)
+{
+    boost::system::error_code ec;
+    if (!fs::exists(fs::path(data_aside), ec))
+        return true; // Nothing was moved aside, or it is already back.
+
+    if (target.empty() || !fs::is_directory(fs::path(target), ec)) {
+        BOOST_LOG_TRIVIAL(error) << "The portable data at " << data_aside << " cannot be put back: " << target
+                                 << " is not a directory; keeping the pending update record";
+        return false;
+    }
+
+    const fs::path data_dir = fs::path(target) / "data_dir";
+    if (fs::exists(data_dir, ec)) {
+        // Both copies belong to the user: keep them rather than overwrite either.
+        BOOST_LOG_TRIVIAL(warning) << "The portable data at " << data_aside << " was left in place: "
+                                   << data_dir.string() << " already exists";
+        return true;
+    }
+
+    fs::rename(fs::path(data_aside), data_dir, ec);
+    if (ec) {
+        BOOST_LOG_TRIVIAL(error) << "Could not move the portable data from " << data_aside << " to "
+                                 << data_dir.string() << ": " << ec.message()
+                                 << "; keeping the pending update record";
+        return false;
+    }
+    BOOST_LOG_TRIVIAL(info) << "Moved the portable data from " << data_aside << " to " << data_dir.string();
+    return true;
+}
+
+} // namespace
+
 void GUI_App::set_skip_version(bool skip)
 {
-    BOOST_LOG_TRIVIAL(info) << "set_skip_version, skip = " << skip << ", version = " <<version_info.version_str;
+    BOOST_LOG_TRIVIAL(info) << "set_skip_version, skip = " << skip << ", version = " << m_update_candidate.version_label;
+    std::string skip_version  = app_config->get("skip_version");
+    std::string skip_artifact = app_config->skip_artifact();
     if (skip) {
-        app_config->set("skip_version", version_info.version_str);
-    }else {
-        app_config->set("skip_version", "");
+        update_skip_values(m_update_candidate, skip_version, skip_artifact);
+    } else {
+        // Clearing only touches the field the current channel writes.
+        if (m_update_candidate.channel == UpdateChannel::Nightly)
+            skip_artifact.clear();
+        else
+            skip_version.clear();
     }
+    app_config->set("skip_version", skip_version);
+    app_config->set_skip_artifact(skip_artifact);
+}
+
+void GUI_App::start_in_app_update()
+{
+    // Without an asset there is no URL or digest to hand off; the helper would refuse
+    // the job. The caller opens the Store or the release page instead.
+    if (!in_app_install_supported(current_install_flavour()) || m_update_candidate.asset.name.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "Not starting an in-app update: no asset for this installation";
+        return;
+    }
+
+    // Resolve the cache once: on a portable install it must sit outside the tree being replaced.
+    set_updater_cache_dir(update_cache_dir());
+
+    // Refuse while this app has a local job: an install closes the app and would lose it.
+    if (this->plater_ != nullptr && (this->plater_->is_background_process_slicing() ||
+                                     this->plater_->is_export_gcode_scheduled())) {
+        MessageDialog dlg(this->mainframe,
+                          _L("Wait for the current job to finish before installing this update."),
+                          _L("Update in progress"), wxOK | wxICON_INFORMATION);
+        dlg.ShowModal();
+        return;
+    }
+
+    const std::string lock_path = updater_lock_path();
+    const int64_t     parent_pid = current_process_id();
+    if (!acquire_install_lock(lock_path, parent_pid)) {
+        MessageDialog dlg(this->mainframe, _L("An update is already in progress."), _L("Update in progress"),
+                          wxOK | wxICON_INFORMATION);
+        dlg.ShowModal();
+        return;
+    }
+
+    UpdateHandoff handoff;
+    handoff.channel       = update_channel_key(m_update_candidate.channel);
+    handoff.version       = m_update_candidate.version;
+    handoff.version_label = m_update_candidate.version_label;
+    handoff.asset_name    = m_update_candidate.asset.name;
+    handoff.url           = m_update_candidate.asset.url;
+    handoff.digest        = m_update_candidate.asset.digest;
+    handoff.size          = m_update_candidate.asset.size;
+    handoff.flavour       = install_flavour_key(current_install_flavour());
+    handoff.install_root  = app_install_root();
+    handoff.exe_path      = app_exe_path();
+    handoff.cache_dir     = update_cache_dir();
+    handoff.parent_pid    = parent_pid;
+    handoff.log_path      = updater_log_path();
+    handoff.lock_path     = lock_path;
+
+    const std::string helper = extract_updater_helper();
+    if (helper.empty()) {
+        release_install_lock(lock_path);
+        MessageDialog dlg(this->mainframe,
+                          _L("The updater is missing from this installation. Opening the release page instead."),
+                          _L("Update"), wxOK | wxICON_WARNING);
+        dlg.ShowModal();
+        wxLaunchDefaultBrowser(from_u8(m_update_candidate.release_url));
+        return;
+    }
+
+    if (!write_handoff(handoff)) {
+        release_install_lock(lock_path);
+        MessageDialog dlg(this->mainframe, _L("Could not prepare the update."), _L("Update"), wxOK | wxICON_ERROR);
+        dlg.ShowModal();
+        return;
+    }
+
+    // Close the app before the helper starts: the running binary cannot be replaced.
+    // Close(false) keeps the normal prompts (save project, empty the print queue).
+    if (!mainframe || !mainframe->Close(false)) {
+        release_install_lock(lock_path);
+        remove_handoff();
+        return;
+    }
+
+    const std::string command = "\"" + helper + "\" --handoff \"" + updater_handoff_path() + "\"";
+    if (wxExecute(from_u8(command), wxEXEC_ASYNC) <= 0) {
+        release_install_lock(lock_path);
+        remove_handoff();
+        MessageDialog dlg(nullptr, _L("Could not start the updater."), _L("Update"), wxOK | wxICON_ERROR);
+        dlg.ShowModal();
+    }
+}
+
+void GUI_App::finish_pending_update()
+{
+    // The helper writes its records into the same cache the application resolved,
+    // which on a portable install is outside the install tree.
+    set_updater_cache_dir(update_cache_dir());
+
+    PendingInstall pending;
+    if (read_pending_install(pending)) {
+        // The record is the only note of where the previous build or the user's data
+        // went, so it is deleted only once nothing is left to recover. A failed
+        // restore keeps it for the next start to try again.
+        bool settled = true;
+
+        if (!pending.backup.empty()) {
+            boost::system::error_code exists_ec;
+            const bool target_missing = !pending.target.empty() && !fs::exists(fs::path(pending.target), exists_ec);
+            const bool backup_exists  = fs::exists(fs::path(pending.backup), exists_ec);
+            if (target_missing && backup_exists) {
+                // A crash between "old moved aside" and "new in place": the only
+                // runnable copy is the backup, so put it back instead of deleting it.
+                boost::system::error_code rename_ec;
+                fs::rename(fs::path(pending.backup), fs::path(pending.target), rename_ec);
+                if (rename_ec) {
+                    BOOST_LOG_TRIVIAL(error) << "Could not restore the previous build from " << pending.backup << ": "
+                                             << rename_ec.message() << "; keeping the pending update record";
+                    settled = false;
+                } else {
+                    BOOST_LOG_TRIVIAL(warning) << "Restored the previous build from " << pending.backup;
+                }
+            } else {
+                boost::system::error_code ec;
+                fs::remove_all(fs::path(pending.backup), ec);
+                if (ec)
+                    BOOST_LOG_TRIVIAL(warning) << "Could not delete the previous build at " << pending.backup << ": "
+                                               << ec.message();
+            }
+        }
+
+        if (settled && !pending.data_aside.empty() && !reattach_portable_data(pending.data_aside, pending.target))
+            settled = false;
+
+        if (settled)
+            remove_pending_install();
+    }
+
+    InstallRecord record;
+    if (take_install_record(record))
+        app_config->set_installed_build(record.channel, record.digest);
 }
 
 void GUI_App::show_check_privacy_dlg(wxCommandEvent& evt)
