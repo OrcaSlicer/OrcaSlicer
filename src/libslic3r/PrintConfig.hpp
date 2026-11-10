@@ -536,6 +536,7 @@ enum SpiralModeChoice {
     smcEnable,
     smcDisable
 };
+
 enum FanDirection {
     fdUndefine = 0,
     fdLeft,

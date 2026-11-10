@@ -3909,7 +3909,7 @@ void TabPrintModel::update_model_config()
                     m_config->set_key_value("other_layers_sequence_choice", new ConfigOptionEnum<LayerSeq>(flsAuto));
                 }
                 else {
-                    m_all_keys.push_back("other_layers_sequence_choice"); // sequence keys are stored as "key#n"
+                    m_all_keys.push_back("other_layers_sequence_choice");
                     m_config->set_key_value("other_layers_sequence_choice", new ConfigOptionEnum<LayerSeq>(flsCustomize));
                 }
                 if (!plate_config.has("spiral_mode")) {
@@ -4232,23 +4232,27 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
     if (!has_key(k))
         return;
 
-    // "Enable" selected again while the plate already has it: nothing changes, nothing to ask
-    if (k == "spiral_mode_choice" && m_config->opt_enum<SpiralModeChoice>(k) == smcEnable && !m_object_configs.empty() &&
-        std::all_of(m_object_configs.begin(), m_object_configs.end(), [](const auto& plate_item) {
-            auto plate = dynamic_cast<PartPlate*>(plate_item.first);
-            return plate && plate->has_spiral_mode_config() && plate->get_spiral_vase_mode();
-        }))
-        return;
-
-    // "Enable" asks for confirmation, let the dropdown close first like the dialog
-    if (k == "spiral_mode_choice" && m_config->opt_enum<SpiralModeChoice>(k) == smcEnable && !m_spiral_enable_deferred) {
-        m_spiral_enable_deferred = true;
-        CallAfter([this, opt_key, value] {
-            if (m_config->opt_enum<SpiralModeChoice>("spiral_mode_choice") == smcEnable) // not changed meanwhile
-                on_value_change(opt_key, value);
-            m_spiral_enable_deferred = false;
-        });
-        return;
+    // Changing to "Enable" asks for confirmation each time, like the dialog
+    if (k == "spiral_mode_choice" && m_config->opt_enum<SpiralModeChoice>(k) == smcEnable) {
+        if (!m_object_configs.empty() && std::all_of(m_object_configs.begin(), m_object_configs.end(), [](const auto& plate_item) {
+                auto plate = dynamic_cast<PartPlate*>(plate_item.first);
+                return plate && plate->has_spiral_mode_config() && plate->get_spiral_vase_mode();
+            }))
+            return; // selected again, nothing changes
+        if (!m_spiral_enable_deferred) { // let the dropdown close first
+            m_spiral_enable_deferred = true;
+            CallAfter([this, opt_key, value] {
+                if (m_config->opt_enum<SpiralModeChoice>("spiral_mode_choice") == smcEnable) // not changed meanwhile
+                    on_value_change(opt_key, value);
+                m_spiral_enable_deferred = false;
+            });
+            return;
+        }
+        // asked before the snapshot and the override are recorded, declining restores the plate's value
+        if (show_spiral_mode_settings_dialog(false) != wxID_YES) {
+            update_model_config();
+            return;
+        }
     }
 
     // "Same as Global" / "Auto" works like revert, keep the real global value in m_config
@@ -4276,14 +4280,6 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
         return;
     }
 
-    // Changing to "Enable" asks for confirmation each time, like the plate settings dialog. Ask before the
-    // snapshot and the override are recorded: declining leaves the plate untouched and restores its value
-    if (k == "spiral_mode_choice" && m_config->opt_enum<SpiralModeChoice>(k) == smcEnable &&
-        show_spiral_mode_settings_dialog(false) != wxID_YES) {
-        update_model_config();
-        return;
-    }
-
     if (!m_object_configs.empty())
         wxGetApp().plater()->take_snapshot((boost::format("Change Option %s") % k).str());
     bool set = true;
@@ -4294,7 +4290,7 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
             if (k == "curr_bed_type")
                 plate->reset_bed_type();
             if (k == "skirt_start_angle")
-                plate->reset_skirt_start_angle();
+                plate->config()->erase("skirt_start_angle");
             if (k == "print_sequence")
                 plate->set_print_seq(PrintSequence::ByDefault);
             if (k == "first_layer_sequence_choice")

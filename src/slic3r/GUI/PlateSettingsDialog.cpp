@@ -80,9 +80,9 @@ static void on_locked_entry_text(wxCommandEvent& e)
 static void on_locked_entry_click(wxMouseEvent& e)
 {
     auto combo = static_cast<ComboBox*>(static_cast<wxWindow*>(e.GetEventObject())->GetParent());
-    if (combo->GetSelection() != 0) // Dont re-open if "Same as Global" selected
+    if (combo->GetSelection() != 0) // a number, edit it as usual
         e.Skip();
-    else if (combo->GetDropDown().HasDismissLongTime())
+    else if (combo->GetDropDown().HasDismissLongTime()) // not when this click just closed the list
         combo->ForceDropdownOpen();
 }
 
@@ -563,7 +563,7 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_spiral_mode_choice->Append(_L("Disable"));
     m_spiral_mode_choice->SetSelection(0);
     m_spiral_mode_choice->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
-        // Changing to "Enable" asks for confirmation each time, like the sidebar. Not when it is selected again
+        // changing to "Enable" asks for confirmation each time, like the sidebar
         if (e.GetSelection() != 1 || m_spiral_mode_selection == 1) {
             m_spiral_mode_selection = e.GetSelection();
             return;
@@ -676,7 +676,7 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
         wxCommandEvent evt(EVT_SET_BED_TYPE_CONFIRM, GetId());
         if (get_other_layers_print_seq_choice() != 0)
             static_cast<wxEvtHandler*>(m_other_layers_seq_panel)->ProcessEvent(evt);
-        if (evt.GetString() == "Invalid") // nothing is applied to the plate while the layer ranges are invalid
+        if (evt.GetString() == "Invalid") // invalid layer ranges, nothing is applied
             return;
         GetEventHandler()->ProcessEvent(evt);
         if (this->IsModal())

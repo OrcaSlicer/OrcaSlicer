@@ -23670,7 +23670,7 @@ void Plater::open_platesettings_dialog(wxCommandEvent& evt) {
 
         int spiral_sel = dlg.get_spiral_mode_choice();
         if (spiral_sel == 1) {
-            curr_plate->set_spiral_vase_mode(true, false); // confirmed when it was selected in the dialog
+            curr_plate->set_spiral_vase_mode(true, false); // confirmed in the dialog
         }
         else if (spiral_sel == 2) {
             curr_plate->set_spiral_vase_mode(false, false);
