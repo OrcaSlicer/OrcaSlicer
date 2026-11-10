@@ -113,8 +113,9 @@ public:
         return m_dim_has0 || m_op_a >= 0 || !m_tf_targets.empty() || m_pick0 >= 0 || m_sel_a >= 0;
     }
     bool gesture_pending() const { return !m_points.empty() || has_pending_picks(); }
-    // Enter while an edit-op or a transform is ready: apply it, the same as its value field's
-    // Enter. False when nothing is pending, so the key can fall through to the tab's ✓.
+    // Enter while an edit-op or a transform is ready: apply it, as a one-value field's Enter does
+    // (an array's two fields leave it pending). False when nothing is pending, so the key can fall
+    // through to the tab's ✓.
     bool confirm_pending();
     bool end_chain();            // Polyline / Spline: finish the open chain as drawn
     void emit_step_hint();   // fires on_step_changed when the step actually moved

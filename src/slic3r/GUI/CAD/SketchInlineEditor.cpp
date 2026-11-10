@@ -61,15 +61,16 @@ bool parse_value(const char* text, double& out)
     return true;
 }
 
-// One machine-readable line per event of the click-edit contract, for the UX check that runs
-// after every build (scripts/CAD/check-gui-click-edit.py). Deliberately NOT the same switch as
-// ORCA_CAD_KEYTRACE: that one is a debugging firehose, this one is an assertion surface and its
-// format is a contract the script parses.
+// With ORCA_CAD_UXTRACE set, one line on stderr per event of the click-edit contract,
+// `[UX] <event> title=<field> <detail>`: a field opening (its prefill), committing (what was
+// typed and the value it gave), refused (why) and cancelled; render() adds a `frame` line for
+// every frame a field is up. It is a switch of its own, apart from ORCA_CAD_KEYTRACE, which
+// traces every key and the offer, so a field's life reads without that volume around it.
 //
-// The pair that matters is `open` vs `commit`: the check always types a value DIFFERENT from the
-// prefill, so a field that is on screen but not editable commits its prefill and the two lines
-// disagree. A focus flag cannot show that — it read 0 even when typing worked — but the number
-// the user actually gets can.
+// The pair that matters is `open` vs `commit`: when the value typed differs from the prefill, a
+// field that is on screen but not editable commits its prefill, so its `commit` line's `typed=`
+// repeats the `open` line's `prefill=` instead of the typed value. A focus flag cannot show that,
+// since it can read 0 while typing works, but the number the user gets can.
 void ux_trace(const char* event, const std::string& title, const std::string& detail)
 {
     if (!std::getenv("ORCA_CAD_UXTRACE")) return;
@@ -94,8 +95,8 @@ void SketchInlineEditor::open(const wxPoint& canvas_px, double value, const std:
     m_prefill_text  = v;
     m_active        = false;
     m_open          = true;
-    // ImGui takes keyboard focus for one frame on request; asking on the frame the field first
-    // appears is what makes typing land without a click. There is no window manager to consult.
+    // ImGui gives the field keyboard focus on request, a frame later; render() asks until it has
+    // it, which is what makes typing land without a click. There is no window manager to consult.
     m_focus_pending = true;
     ux_trace("open", m_title, "prefill=" + v);
 }
@@ -198,10 +199,13 @@ bool SketchInlineEditor::render(ImGuiWrapper& imgui, float scale)
         }
     }
 
-    if (m_focus_pending) {
+    // Asked on every frame until the widget is active, not once. A request reaches the widget in
+    // the next frame only if this window registered it as focusable in this one, and the window's
+    // first-ever frame does not: ImGui hides it while it measures the contents, with no room yet
+    // for the input below the title, so the input is clipped. A one-off request on that frame is
+    // dropped, and the first field after launch would never take the keyboard.
+    if (m_focus_pending)
         ImGui::SetKeyboardFocusHere();
-        m_focus_pending = false;
-    }
     ImGui::PushItemWidth(90.0f * scale);
     // EnterReturnsTrue so Enter commits from inside the widget; AutoSelectAll so the prefill is
     // replaced by the first digit typed, which is what "pre-selected" meant when this was a
@@ -213,6 +217,8 @@ bool SketchInlineEditor::render(ImGuiWrapper& imgui, float scale)
                                           ImGuiInputTextFlags_EnterReturnsTrue
                                               | ImGuiInputTextFlags_AutoSelectAll);
     m_active = ImGui::IsItemActive();
+    if (m_active)
+        m_focus_pending = false;
     // Tab accepts the value like Enter does (and moves on to the next queued field, if any).
     const bool tabbed = m_active && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Tab));
     // MEASUREMENT, not a fix: one line per frame saying whether ImGui believes it owns the

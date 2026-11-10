@@ -69,8 +69,9 @@ public:
     std::function<void()> request_frame;
 
     bool is_mapped() const { return m_open; }
-    // Does the ImGui text widget own the keyboard? False once a click elsewhere deactivated it;
-    // the panel then forwards Enter/Tab to commit() itself, since ImGui no longer sees them.
+    // Does the ImGui text widget own the keyboard, or is it about to take it? False once a click
+    // elsewhere deactivated it; the panel then forwards Enter/Tab to commit() itself, since ImGui
+    // no longer sees them.
     bool has_focus() const { return m_open && (m_active || m_focus_pending); }
     void dismiss() { close(); }
 
@@ -81,7 +82,7 @@ private:
     std::function<void(double)> m_commit;
     std::function<void()>       m_cancel;
     bool        m_open{false};
-    bool        m_focus_pending{false};  // one frame of SetKeyboardFocusHere after opening
+    bool        m_focus_pending{false};  // SetKeyboardFocusHere each frame until the input is active
     wxPoint     m_anchor{0, 0};          // canvas device px
     std::string m_title;
     std::string m_err;                   // why the last value was refused, shown in the title line

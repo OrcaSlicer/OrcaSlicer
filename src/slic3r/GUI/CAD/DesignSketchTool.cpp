@@ -1586,8 +1586,9 @@ std::string DesignSketchTool::dimtype_title(DimType k) const {
 // scalar quotes. Runs after render_live_quotes, so the live-quote state is populated.
 // Why a draw-then-edit chain did not start. Four early returns can swallow it, and from outside
 // they are indistinguishable: the shape appears, no field opens, and nothing says which guard
-// fired. check-gui-click-edit.py reports that as "a value field opened (nothing did)" for every
-// tool at once, which reads like a total product failure and is not necessarily one.
+// fired. With ORCA_CAD_UXTRACE set, the open's deferral, each early return and the chain opening
+// print `[UX] autoedit <why> steps=<n>` on stderr, so a field that never opened names the guard
+// that stopped it, rather than reading like a failure of every tool at once.
 static void trace_autoedit(const char* why, size_t n)
 {
     if (!std::getenv("ORCA_CAD_UXTRACE")) return;
@@ -9301,8 +9302,14 @@ void DesignSketchTool::open_tf_editor_a()
                 break;
             default: break;
             }
-            // Enter IS the commit, the same rule the edit-op field follows.
-            confirm_transform();
+            // Enter IS the commit for a transform with one value, the same rule the edit-op field
+            // follows. An array has two, the step or sweep and the count: either one typed
+            // leaves the array pending, so the other can still be typed, and Enter or the ✓
+            // applies it.
+            if (m_mode == Mode::Array || m_mode == Mode::PolarArray)
+                recompute_tf_ghost();
+            else
+                confirm_transform();
         },
         []() {});
 }
@@ -9318,8 +9325,8 @@ void DesignSketchTool::open_tf_editor_count()
                 show_refusal(_u8L("The number of copies must be a whole number, 2 or more"));
                 return;
             }
-            m_tf_count   = int(std::round(v));
-            confirm_transform();
+            m_tf_count = int(std::round(v));
+            recompute_tf_ghost();   // still pending: see open_tf_editor_a
         },
         []() {});
 }

@@ -28,7 +28,7 @@
 #include <wx/stopwatch.h>
 
 #include <cassert>
-#include <cstdarg>                        // offer_trace: diagnostic row dump for the offer ladder
+#include <cstdarg>                        // offer_trace: the offer menu's rows on stderr under ORCA_CAD_KEYTRACE
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -111,6 +111,8 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
+#include <wx/wupdlock.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -4700,6 +4702,7 @@ void DesignPanel::text_dialog_changed()
         // text again); a new one that has not been accepted simply goes away again.
         if (!m_text_editing && have) {
             m_doc.undo();
+            sync_recipe_to_model();   // even to an empty document: see cancel_insert()
             m_text_feat = -1;
             m_feature_counter--;   // the next keystroke brings the same "Text N" back
             refresh_tree();
@@ -4742,7 +4745,10 @@ void DesignPanel::text_dialog_done(bool accepted)
     const bool have = feat >= 0 && feat < int(m_doc.features.size());
 
     if (!accepted) {
-        if (have) m_doc.undo();   // a new text leaves, an edited one gets its old outline back
+        if (have) {
+            m_doc.undo();   // a new text leaves, an edited one gets its old outline back
+            sync_recipe_to_model();   // even to an empty document: see cancel_insert()
+        }
         refresh_tree();
         sync_sketch_display();
         set_status(StatusKind::Info, editing ? _L("Text unchanged") : _L("Text canceled"));
@@ -5148,6 +5154,10 @@ void DesignPanel::cancel_insert()
     m_insert_feat = -1;
     if (m_viewport) m_viewport->cancel_sketch();   // exit the TransformArt gizmo
     m_doc.undo();                                  // remove the just-added imported feature
+    // The model's copy of the recipe follows, also when the undo leaves the document empty, which
+    // refresh_tree() does not write: a stale copy would bring the art back the next time the empty
+    // document is filled from the model (hydrate_from_model).
+    sync_recipe_to_model();
     close_tool();
     set_ui_mode(UiMode::Feature);
     sync_sketch_display();
@@ -6556,9 +6566,9 @@ wxMenuItem* DesignPanel::append_offer_item(wxMenu* menu, int id, const wxString&
     return item;
 }
 
-// Diagnostic only: what the offer is about to show, line per row, on stderr. Costs one getenv
-// per menu when off. The ladder that drives right-click needs to assert the ROW SET, and the only
-// honest source for that is the loop that builds the rows.
+// Diagnostic only: when ORCA_CAD_KEYTRACE is set, what the offer is about to show, a line per row,
+// on stderr. It is printed from the loop that builds the rows, so it lists the rows the menu shows.
+// The variable is read once, so the trace costs nothing when off.
 static void offer_trace(const char* fmt, ...)
 {
     static const bool on = std::getenv("ORCA_CAD_KEYTRACE") != nullptr;
@@ -6618,9 +6628,9 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     // would open on entering a sketch showing the FEATURE rows, every one of them refusing the
     // sketch selection: a menu of dead entries.
     const bool     sketching = sketch_map_applies();
-    // The offer ladder reads THIS, not the pixels: the trace is emitted from the same loop that
-    // builds the menu, so it cannot drift from what the user is shown. Gated on
-    // ORCA_CAD_KEYTRACE, so one env var traces the keys and the offer alike.
+    // The trace is printed from the same loop that builds the menu, so it cannot drift from what
+    // the user is shown. It is gated on ORCA_CAD_KEYTRACE, so one env var traces the keys and the
+    // offer alike.
     offer_trace("open kind=%d sketching=%d bodies=%d", kind, sketching ? 1 : 0,
                 int(m_doc.bodies.size()));
 
@@ -8634,6 +8644,11 @@ bool DesignPanel::live_constraint_scope() const
            !m_viewport->is_constraining() && !m_viewport->is_constraining_entities();
 }
 
+// The most rows the constraint list shows. Each row is two native windows, the list is rebuilt
+// on every constraint change, and a sketch can hold thousands of constraints: building that many
+// windows each time would hold the UI for minutes, and could run the process out of window handles.
+static constexpr int kConstraintRowsShown = 200;
+
 // Rebuild the constraint-row list. Source depends on scope: a LIVE sketch session owns its
 // constraints inside the sketch tool and has no committed feature yet, so the list read only
 // the feature's and stayed empty for the whole session — constraints applied while drawing had
@@ -8642,6 +8657,9 @@ void DesignPanel::rebuild_constraint_list()
 {
     if (m_constraint_rows == nullptr || m_form == nullptr)
         return;
+    // The rows come and go under a frozen card stack. Unfrozen, every window created or destroyed
+    // makes its siblings repaint, so the rebuild would cost the square of the number of rows.
+    wxWindowUpdateLocker freeze(m_cards);
     m_constraint_rows->Clear(true /* delete windows */);
     m_constraint_sel = -1;
 
@@ -8660,7 +8678,18 @@ void DesignPanel::rebuild_constraint_list()
         none->SetForegroundColour(dp_sec_text());
         m_constraint_rows->Add(none, 0, wxTOP, 4);
     }
-    for (int i = 0; i < int(cons.size()); ++i) {
+    // Past kConstraintRowsShown, the rows are the most recent constraints, the ones just drawn or
+    // applied, under a line counting the earlier ones left out.
+    const int first = std::max(0, int(cons.size()) - kConstraintRowsShown);
+    if (first > 0) {
+        // TRN Design tab, Constraints card: shown above the most recent constraints when a sketch has too
+        // many to list. %1% is how many earlier constraints the list leaves out.
+        const wxString left_out = _L_PLURAL("%1% earlier constraint is not listed", "%1% earlier constraints are not listed", first);
+        auto*          more     = new wxStaticText(m_cards, wxID_ANY, format_wxstr(left_out, first));
+        more->SetForegroundColour(dp_sec_text());
+        m_constraint_rows->Add(more, 0, wxTOP, 4);
+    }
+    for (int i = first; i < int(cons.size()); ++i) {
         auto* row = new wxBoxSizer(wxHORIZONTAL);
         // Delete button first (fixed left position, always visible — long labels can
         // horizontally scroll but ✗ stays put and clickable).
