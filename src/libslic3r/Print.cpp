@@ -1827,8 +1827,12 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
     for (Polygon &p : printable_polys)
         p.translate(plate_shift);
-    if (!diff(tower_polys_checked, printable_polys).empty())
+    if (!diff(tower_polys_checked, printable_polys).empty()) {
+        // Moving the tower does not help when no area is reached by every extruder.
+        if (printable_polys.empty())
+            return {L("The extruder printable areas share no common area, so the prime tower cannot be printed.\n")};
         return {L("Prime tower is partially outside the printable area, and it cannot be printed.\n")};
+    }
     if (warning && !diff(tower_polys_estimated, printable_polys).empty())
         warning->string += L("Prime tower is partially outside the printable area, and it cannot be printed.\n");
     return {};
