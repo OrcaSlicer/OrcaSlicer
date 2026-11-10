@@ -45,6 +45,7 @@
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/ScrolledWindow.hpp"
 #include "Widgets/HyperLink.hpp"
+#include "slic3r/Utils/BBLPrinterAgent.hpp"
 #include <wx/hashmap.h>
 #include <wx/webview.h>
 
@@ -364,11 +365,16 @@ public:
     void on_send_retry();
     void update_test_msg_event(wxCommandEvent &evt);
     void post_update_test_msg(std::weak_ptr<InputIpAddressDialog> w, wxString text, bool beconnect);
-    void workerThreadFunc(std::string str_ip, std::string str_access_code, std::string sn, std::string model_id, std::string name);
+    void workerThreadFunc(std::string str_ip, std::string str_access_code, std::string sn, std::string model_id, std::string name, std::string ca_file);
+    bool is_bbl_agent() const;
+    void init_cafile_input();
+    bool check_ca_input();
     void OnTimer(wxTimerEvent& event);
     void on_text(wxCommandEvent& evt);
     void on_dpi_changed(const wxRect& suggested_rect) override;
 };
+
+wxString ca_file_error_message(BBLPrinterAgent::CaFileError error);
 
 class SendFailedConfirm : public DPIDialog
 {
