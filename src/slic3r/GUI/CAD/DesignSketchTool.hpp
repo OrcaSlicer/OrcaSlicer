@@ -510,6 +510,10 @@ public:
     bool selected_constrain_entities(int& e0, int& e1) const { e0 = m_pick0; e1 = m_pick1; return m_pick0 >= 0; }
     // Third pick slot (Symmetric axis): only filled after slots 0 and 1 are set.
     int  pick2() const { return m_pick2; }
+    // A Constrain-mode click at `p` in plane coordinates: fills the next pick slot with the entity
+    // nearest `p` within `reach`, or drops the picks when none is that near. Either way it drops the
+    // selected constraint, since a sketch holds one selection at a time.
+    void constrain_pick(const Vec2d& p, double reach);
     // Plane-coords of the click that filled slot 0 (for pick-point edit ops: trim/extend).
     bool pick0_point(Vec2d& out) const { out = m_pick0_pt; return m_pick0 >= 0; }
     // Refresh the displayed entities after the kernel re-solved them.

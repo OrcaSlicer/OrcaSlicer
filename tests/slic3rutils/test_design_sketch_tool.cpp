@@ -615,3 +615,63 @@ TEST_CASE("Undoing the geometry a selected constraint binds drops the selection"
     REQUIRE(tool.undo_last_entity());
     CHECK(tool.selected_constraint() == -1);
 }
+
+TEST_CASE("Switching tools drops the selected constraint", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    draw_rectangle(tool);
+    tool.select_constraint(constraint_on(tool, SketchConstraintType::Horizontal, 0));
+    REQUIRE(tool.selected_constraint() >= 0);
+
+    tool.set_tool(DesignSketchTool::Mode::Move);
+    CHECK(tool.selected_constraint() == -1);
+}
+
+namespace {
+
+// The rectangle of draw_rectangle() opened in Constrain mode as a committed sketch, its constraints
+// on show as the Design panel shows them.
+void constrain_rectangle(DesignSketchTool& tool)
+{
+    DesignSketchTool drawn;
+    draw_rectangle(drawn);
+    tool.begin_constrain_entities(drawn.entities(), SketchPlane::XY());
+    tool.set_constraint_glyphs(drawn.constraints());
+}
+
+} // namespace
+
+TEST_CASE("Selecting a constraint in Constrain mode drops the entity picks", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    constrain_rectangle(tool);
+    tool.constrain_pick(Vec2d(0., 30.), 1.);   // the top side's middle
+    int e0 = -1, e1 = -1;
+    REQUIRE(tool.selected_constrain_entities(e0, e1));
+
+    tool.select_constraint(0);
+    REQUIRE(tool.selected_constraint() == 0);
+    CHECK_FALSE(tool.selected_constrain_entities(e0, e1));
+}
+
+TEST_CASE("A Constrain-mode pick drops the selected constraint", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    constrain_rectangle(tool);
+    tool.select_constraint(0);
+    REQUIRE(tool.selected_constraint() == 0);
+
+    tool.constrain_pick(Vec2d(0., 30.), 1.);
+    CHECK(tool.selected_constraint() == -1);
+}
+
+TEST_CASE("A Constrain-mode click on empty space drops the selected constraint", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    constrain_rectangle(tool);
+    tool.select_constraint(0);
+    REQUIRE(tool.selected_constraint() == 0);
+
+    tool.constrain_pick(Vec2d(0., 0.), 1.);   // the rectangle's centre, 30 mm from every side
+    CHECK(tool.selected_constraint() == -1);
+}

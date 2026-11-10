@@ -281,7 +281,10 @@ void DesignSketchTool::set_tool(Mode mode)
     // follows — leaving a tool must not silently discard what the user entered.
     if (on_inline_commit) on_inline_commit();
 
-    // Switch the active drawing tool without dropping accumulated entities.
+    // Switch the active drawing tool without dropping accumulated entities. A selected constraint
+    // goes: the next tool picks geometry, and the sketch holds one selection at a time.
+    if (mode != m_mode)
+        set_selected_constraint(-1);
     m_mode = mode;
     m_points.clear();
     m_has_cursor = false;
@@ -490,14 +493,41 @@ void DesignSketchTool::remap_selected_constraint(const std::vector<int>& remap)
 
 void DesignSketchTool::select_constraint(int con)
 {
-    // The picked geometry goes first, so the report of the constraint is the last word.
+    // The picked geometry goes first, so the report of the constraint is the last word. In
+    // Constrain mode the picks are the slots the CONSTRAIN buttons read.
     const bool on_show = con >= 0 && con < int(shown_constraints().size());
+    if (on_show && m_mode == Mode::Constrain) {
+        m_pick0 = m_pick1 = m_pick2 = -1;
+        m_sel_a = m_sel_b = -1;
+    }
     if (on_show && (!m_selection.empty() || !m_point_sel.empty())) {
         m_selection.clear();
         m_point_sel.clear();
         if (on_selection_changed) on_selection_changed(0);
     }
     set_selected_constraint(con);
+}
+
+void DesignSketchTool::constrain_pick(const Vec2d& p, double reach)
+{
+    set_selected_constraint(-1);
+    double best = 1e30;
+    int    bi   = -1;
+    for (size_t i = 0; i < m_entities.size(); ++i) {
+        const double d = entity_pick_dist(p, m_entities[i]);
+        if (d < best) { best = d; bi = int(i); }
+    }
+    // With no limit, a click anywhere on screen picked whatever was nearest; empty space clears.
+    if (bi < 0 || best > reach) {
+        m_pick0 = m_pick1 = m_pick2 = -1;
+        return;
+    }
+    // Rolling three-slot selection: slots 0/1 feed all 2-entity constraints; slot 2 is the
+    // Symmetric axis (only filled once 0 and 1 are set). A click past slot 2 restarts the cycle.
+    if (m_pick0 < 0)                                                        { m_pick0 = bi; m_pick0_pt = p; }
+    else if (m_pick1 < 0 && bi != m_pick0)                                  m_pick1 = bi;
+    else if (m_pick1 >= 0 && m_pick2 < 0 && bi != m_pick0 && bi != m_pick1) m_pick2 = bi;
+    else                                                                    { m_pick0 = bi; m_pick1 = m_pick2 = -1; m_pick0_pt = p; }
 }
 
 void DesignSketchTool::set_constraint_glyphs(std::vector<SketchEntityConstraintDef> v)
@@ -8882,6 +8912,7 @@ void DesignSketchTool::recompute_op_ghost()
 void DesignSketchTool::op_pick(int ei)
 {
     if (ei < 0 || ei >= int(m_entities.size())) return;
+    set_selected_constraint(-1);   // the pick is the sketch's one selection now
     const SketchEntity::Type t = m_entities[ei].type;
     switch (m_mode) {
     case Mode::Fillet:
@@ -9260,6 +9291,7 @@ void DesignSketchTool::compute_tf_pivot()
 void DesignSketchTool::tf_pick(int ei)
 {
     if (ei < 0 || ei >= int(m_entities.size())) return;
+    set_selected_constraint(-1);   // the pick is the sketch's one selection now
     auto it = std::find(m_tf_targets.begin(), m_tf_targets.end(), ei);
     if (it == m_tf_targets.end()) m_tf_targets.push_back(ei);   // toggle-select like Mirror
     else                          m_tf_targets.erase(it);
@@ -11492,31 +11524,12 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
     // camera can still orbit while inspecting the sketch.
     if (m_mode == Mode::Constrain) {
         if (m_constrain_entities) {
-            // Pick any entity (line/circle/arc/point): rolling two-slot selection.
+            // Pick any entity (line/circle/arc/point): rolling two-slot selection. Same reach as
+            // every other tool that picks an entity to act on.
             if (evt.LeftDown()) {
                 Vec2d p;
                 screen_to_plane(canvas, evt, p);
-                double best = 1e30;
-                int bi = -1;
-                for (size_t i = 0; i < m_entities.size(); ++i) {
-                    const double d = entity_pick_dist(p, m_entities[i]);
-                    if (d < best) { best = d; bi = int(i); }
-                }
-                // Same reach as every other tool that picks an entity to act on. With no limit,
-                // a click anywhere on screen picked whatever was nearest; empty space now clears.
-                if (bi >= 0 && best > screen_tol(canvas, evt, p, kToolPickPx)) {
-                    bi = -1;
-                    m_pick0 = m_pick1 = m_pick2 = -1;
-                }
-                if (bi >= 0) {
-                    // Rolling three-slot selection: slots 0/1 feed all 2-entity
-                    // constraints; slot 2 is the Symmetric axis (only filled once
-                    // 0 and 1 are set). A click past slot 2 restarts the cycle.
-                    if (m_pick0 < 0)                                         { m_pick0 = bi; m_pick0_pt = p; }
-                    else if (m_pick1 < 0 && bi != m_pick0)                    m_pick1 = bi;
-                    else if (m_pick1 >= 0 && m_pick2 < 0 && bi != m_pick0 && bi != m_pick1) m_pick2 = bi;
-                    else                                                     { m_pick0 = bi; m_pick1 = m_pick2 = -1; m_pick0_pt = p; }
-                }
+                constrain_pick(p, screen_tol(canvas, evt, p, kToolPickPx));
                 return true;
             }
             // The picks are this mode's selection, and right-click on a selection opens the
@@ -11540,6 +11553,7 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 m_sel_a = bi;
                 m_sel_b = int((bi + 1) % n);
             }
+            set_selected_constraint(-1);
             return true;
         }
         return false;   // right-click included: the offer opens on the picked segment
@@ -11698,16 +11712,16 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 }
             }
 
-            // A constraint badge: a plain click selects its constraint. After the value labels,
-            // which are drawn over any badge under them, so a click on a label always opens its
-            // field. Before the geometry, which a badge of another entity may sit on.
-            if (evt.LeftDown() && !extend &&
+            // A constraint badge: a plain click selects its constraint, and so does the double-click
+            // that follows it. After the value labels, which are drawn over any badge under them, so
+            // a click on a label always opens its field. Before the geometry, which a badge of
+            // another entity may sit on.
+            if (!extend &&
                 click_constraint_badge(p, 1.0 / std::max(wxGetApp().plater()->get_camera().get_zoom(), 1e-6)))
                 return true;
             // Any other press picks geometry or clears the selection, and a sketch holds one
             // selection at a time.
-            if (evt.LeftDown())
-                set_selected_constraint(-1);
+            set_selected_constraint(-1);
 
             // A derived handle (the circle RadiusHandle — not an entity point, so
             // hit_test_point can't grab it) arms a handle drag that resizes on motion.
