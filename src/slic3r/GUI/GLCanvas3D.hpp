@@ -547,6 +547,8 @@ class GLCanvas3D
         void render_details(GLCanvas3D& canvas);
         // Whether the mouse is over the details.
         bool details_hovered() const;
+        // Whether the details cover a point, also when ImGui has not seen the mouse move there.
+        bool details_contain(const Vec2d& point) const;
         // Whether a button held down was pressed on the details, off their close button.
         bool details_pressed() const;
         // Whether there were details to hide.

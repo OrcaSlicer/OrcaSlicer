@@ -164,7 +164,7 @@ The markers drawn last are kept, and a left click is tested against them before 
 center and a point a radius to its right are projected to the screen, and the click hits a marker
 within that distance. The solid markers are tested before the faded ones and the smaller kinds
 before the larger, the order in which they cover each other. A hit opens the details of that marker
-and keeps the click from changing the selection; a click anywhere else, or Esc, closes them. The box is an
+and keeps the click from changing the selection; a left or right click anywhere else, or Esc, closes them. The box is an
 ImGui window beside the marker, redrawn with the overlay from the markers of the last scene, so it
 follows a dragged object, and in Preview the layer slider. It closes when its marker is gone, or when
 the number of markers of its kind changes, as then it may stand for something else. As it moves with
