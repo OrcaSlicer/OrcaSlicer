@@ -159,6 +159,11 @@ imported art or text, another body's Move, a rebuild) keeps the placement, as sw
 keeps a move in Prepare. The panel ends the Move in one place (`DesignPanel::end_body_move`), so
 the gizmo, the Move / Rotate card and the ✓/✗ cannot outlive one another.
 
+Move/Rotate uses the display mesh's bounding-box centre as its pivot, in both the numeric card
+and the drag gizmo. Tessellation can put that centre slightly off a curved body's analytic axis;
+rotating about it therefore contributes a small translation to `body_to_design`. That matrix
+describes the actual displayed placement. The body's OCCT geometry remains in its local coordinates.
+
 Right-click is read at button-up against one budget, 3 px of drift, applied to the whole press
 rather than to its end points: a press that wandered past the budget at any moment is
 navigation, even if it comes back to where it started, which is what stops a slow, careful

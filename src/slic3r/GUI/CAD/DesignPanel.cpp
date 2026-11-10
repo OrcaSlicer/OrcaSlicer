@@ -7955,7 +7955,7 @@ void DesignPanel::on_move_body()
     end_body_move(true);
     end_sketch_plane_choice();   // the gizmo takes the clicks a plane choice was waiting for
     sync_body_xform();
-    // Delta gizmo: pivot at the body's CURRENT world centroid; the tool composes the drag deltas
+    // Delta gizmo: pivot at the displayed mesh's CURRENT bounding-box centre; compose drag deltas
     // onto its current pose, so move + rotate both work (incl. on an already place-on-face'd body).
     const Transform3d base = m_body_xform[b];
     const BoundingBoxf3 bb = m_doc.display_body_meshes[b].bounding_box();
@@ -8093,7 +8093,7 @@ bool DesignPanel::place_on_face()
     TriangleMesh probe = m_doc.display_body_meshes[b];
     probe.transform(x);
     x = Transform3d(Eigen::Translation3d(0.0, 0.0, -probe.bounding_box().min.z())) * x;
-    m_doc.checkpoint();
+    if (!x.isApprox(old_x)) m_doc.checkpoint();
     m_body_xform[b] = x;
     Slic3r::put_other_changes();
     set_status_ok();   // rebuild display/pick meshes, re-point picking; resets face selection
@@ -11583,7 +11583,8 @@ void DesignPanel::apply_move_card()
                    m_move_dy ? m_move_dy->GetValue() : 0.0,
                    m_move_dz ? m_move_dz->GetValue() : 0.0);
 
-    // Rotate about the body's own centre, not the world origin.
+    // Use the same display-mesh bounding-box centre as the drag gizmo. Tessellation can put
+    // it slightly off the analytic symmetry axis; body_to_design includes that pivot motion.
     const Vec3d pivot = m_move_prev * m_doc.display_body_meshes[b].bounding_box().center();
     Transform3d x = Transform3d::Identity();
     x.translate(d + pivot);
@@ -11974,6 +11975,12 @@ void DesignPanel::close_tool()
 
 void DesignPanel::confirm_tool()
 {
+    if (m_active == Tool::Transform) {
+        // History stores committed placements, never the Transform card's live preview.
+        xf_clear_preview();
+        if (m_xf_gizmo_body >= 0 && m_xf_gizmo_body < int(m_body_xform.size()))
+            m_body_xform[m_xf_gizmo_body] = m_xf_gizmo_base;
+    }
     // One undo boundary per committed feature (Extrude/Dressup/Hole/Thread/Shell, the
     // legacy Sketch card via on_add_sketch, and edit-mode replace all funnel here).
     m_doc.checkpoint();
