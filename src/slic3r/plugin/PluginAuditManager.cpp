@@ -158,7 +158,7 @@ static const std::unordered_set<std::string> operation_root_events{
 };
 
 // True for the categories whose targets are filesystem paths, as opposed to a network
-// address or a process command line -- the deny-path and allowed-root checks only make sense
+// address or a process executable -- the deny-path and allowed-root checks only make sense
 // against a path.
 static bool is_fs_category(AuditEventCategory category)
 {
@@ -1172,7 +1172,8 @@ static const std::unordered_set<std::string> two_path_fs_events{
     "shutil.unpack_archive", "_winapi.CreateJunction",
 };
 
-static const std::unordered_map<std::string, std::vector<Py_ssize_t>> audit_target_arg_indices{
+// Network events name their target directly: a host, an address tuple or a URL.
+static const std::unordered_map<std::string, std::vector<Py_ssize_t>> network_target_arg_indices{
     {"http.client.connect", {1}},
     {"urllib.Request", {0}},
 
@@ -1186,17 +1187,33 @@ static const std::unordered_map<std::string, std::vector<Py_ssize_t>> audit_targ
     {"socket.getservbyport", {0}},
     {"socket.sendto", {1}},
     {"socket.sendmsg", {1}},
+};
 
-    {"os.system", {0}},
-    {"subprocess.Popen", {1, 0}},
-    {"os.posix_spawn", {1, 0}},
-    {"os.spawn", {2, 1}},
-    {"os.startfile", {0}},
-    {"os.startfile/2", {0}},
-    {"pty.spawn", {0}},
-    {"_winapi.CreateProcess", {1, 0}},
-    {"_posixsubprocess.fork_exec", {0}},
-    {"os.exec", {0}},
+// Process events each expose the executable in a different argument, and some pass the whole
+// command line or argv. A grant names the tool only, so the arguments are dropped.
+enum class ProcessTargetFormat {
+    Path,       // the argument is the executable path or name
+    FirstToken, // a command string or argv sequence: its first token or element
+};
+
+struct ProcessTargetSource {
+    Py_ssize_t          index;
+    ProcessTargetFormat format;
+};
+
+static const std::unordered_map<std::string, std::vector<ProcessTargetSource>> process_target_sources{
+    {"os.exec",                    {{0, ProcessTargetFormat::Path}}},
+    {"os.posix_spawn",             {{0, ProcessTargetFormat::Path}}},
+    {"os.spawn",                   {{1, ProcessTargetFormat::Path}}},
+    {"os.startfile",               {{0, ProcessTargetFormat::Path}}},
+    {"os.startfile/2",             {{0, ProcessTargetFormat::Path}}},
+    {"subprocess.Popen",           {{0, ProcessTargetFormat::Path}}},
+    // application_name may be omitted, leaving the executable at the start of command_line.
+    {"_winapi.CreateProcess",      {{0, ProcessTargetFormat::Path}, {1, ProcessTargetFormat::FirstToken}}},
+    {"os.system",                  {{0, ProcessTargetFormat::FirstToken}}},
+    {"pty.spawn",                  {{0, ProcessTargetFormat::FirstToken}}},
+    // The first argument is argv; its first element names the program.
+    {"_posixsubprocess.fork_exec", {{0, ProcessTargetFormat::FirstToken}}},
 };
 
 AuditEventCategory open_category(PyObject* args)
@@ -1205,6 +1222,43 @@ AuditEventCategory open_category(PyObject* args)
     if (!mode.empty() && mode.find_first_of("wax+") == std::string::npos)
         return AuditEventCategory::FsRead;
     return AuditEventCategory::FsReadWrite;
+}
+
+// The first token of a command string, or the first element of an argv sequence. A sequence
+// element is kept whole, so an executable path may contain spaces.
+std::string first_process_token(PyObject* object)
+{
+    if (!object)
+        return {};
+
+    std::string text;
+    if (python_text(object, text)) {
+        const size_t start = text.find_first_not_of(" \t\r\n");
+        if (start == std::string::npos)
+            return {};
+        const size_t end = text.find_first_of(" \t\r\n", start);
+        return text.substr(start, end == std::string::npos ? std::string::npos : end - start);
+    }
+
+    if (!PySequence_Check(object))
+        return python_path(object);
+
+    PyObject* first = PySequence_GetItem(object, 0); // new reference
+    if (!first) {
+        PyErr_Clear();
+        return {};
+    }
+    std::string value = python_path(first);
+    Py_DECREF(first);
+    return value;
+}
+
+std::string process_target(const ProcessTargetSource& source, PyObject* args)
+{
+    PyObject* const item = tuple_item(args, source.index);
+    if (!item || item == Py_None)
+        return {};
+    return source.format == ProcessTargetFormat::FirstToken ? first_process_token(item) : python_path(item);
 }
 
 std::vector<std::string> audit_targets(const std::string& event_name, AuditEventCategory category, PyObject* args)
@@ -1224,6 +1278,20 @@ std::vector<std::string> audit_targets(const std::string& event_name, AuditEvent
         }
         return targets;
     }
+    case AuditEventCategory::ProcessCreate:
+    case AuditEventCategory::ProcessReplace: {
+        const auto it = process_target_sources.find(event_name);
+        if (it == process_target_sources.end())
+            return targets;
+        for (const ProcessTargetSource& source : it->second) {
+            std::string value = process_target(source, args);
+            if (!value.empty()) {
+                targets.push_back(std::move(value));
+                break;
+            }
+        }
+        return targets;
+    }
     case AuditEventCategory::Threading:
         // Thread creation exposes no user-supplied target. Use a fixed sentinel so the grant
         // persists per plugin: the permission list matches targets by exact string, and the
@@ -1234,8 +1302,8 @@ std::vector<std::string> audit_targets(const std::string& event_name, AuditEvent
         break;
     }
 
-    const auto it = audit_target_arg_indices.find(event_name);
-    if (it != audit_target_arg_indices.end()) {
+    const auto it = network_target_arg_indices.find(event_name);
+    if (it != network_target_arg_indices.end()) {
         for (const Py_ssize_t index : it->second) {
             // None is an argument left out (sendmsg without an address), not a target named "None".
             PyObject* const item = tuple_item(args, index);

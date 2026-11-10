@@ -632,8 +632,8 @@ void bind_python_api(pybind11::module_& m)
 
 Each bucket takes the target strings the plugin expects the corresponding audit event to
 report: filesystem paths for fs_read and fs_readwrite, URLs for network_http, socket addresses
-for network_socket, and commands for process. threading=True requests permission to start
-threads. Targets already granted to the plugin are not asked for again.
+for network_socket, and executables or command names for process. threading=True requests
+permission to start threads. Targets already granted to the plugin are not asked for again.
 
 A filesystem target may end in "/*" to grant a whole directory tree, for example
 "/path/to/folder/*". That covers the folder itself and every path beneath it, at any depth.

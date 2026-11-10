@@ -1257,6 +1257,50 @@ os.close(WRITE_FD)
     CHECK(harness.saved_permissions(PLUGIN).process.empty());
 }
 
+TEST_CASE("A process grant names the executable and ignores its arguments", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    const std::string executable = python.eval("TRUE_COMMAND[0]");
+
+    // Refused, so nothing runs: the prompts show the target each event reports.
+    python.run_as(PLUGIN, R"PY(
+popen_outcome = attempt(lambda: subprocess.run(TRUE_COMMAND, check=True))
+system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
+)PY");
+    CHECK(python.str("popen_outcome") == "denied");
+    CHECK(python.str("system_outcome") == "denied");
+    CHECK(describe(harness.prompts) ==
+          "subprocess.Popen: " + executable + "\nos.system: " + executable + "\n");
+
+#ifndef _WIN32
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "spawn_outcome = attempt(lambda: spawn_checked(TRUE_COMMAND + ['spawned']))");
+    CHECK(python.str("spawn_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "pty.spawn: " + executable + "\n");
+#endif
+
+    // Approving names only the executable, so a later call with other arguments is covered.
+    harness.approve = [](const Prompt&) { return true; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "popen_outcome = attempt(lambda: subprocess.run(TRUE_COMMAND, check=True))");
+    CHECK(python.str("popen_outcome") == "ok");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{executable});
+    CHECK(harness.saved_permissions(PLUGIN).process == std::vector<std::string>{executable});
+
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+system_outcome = attempt(lambda: os.system(" ".join(TRUE_COMMAND) + " ignored"))
+)PY");
+    CHECK(python.str("system_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+}
+
 TEST_CASE("A finalizer run when a root frame is let go is judged as the plugin without a prompt", "[audit][Python]")
 {
     AuditHarness harness;
