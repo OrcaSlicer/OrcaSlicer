@@ -12,6 +12,7 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Polyline.hpp"
 #include "SupportLayer.hpp"
+#include "SupportParameters.hpp"
 #include "TreeModelVolumes.hpp"
 #include "TreeSupportCommon.hpp"
 
@@ -205,11 +206,6 @@ struct SupportElementState : public SupportElementStateBits
     uint32_t    dont_move_until;
 
     /*!
-     * \brief Settings used to increase the influence area to its current state.
-     */
-    AreaIncreaseSettings last_area_increase;
-
-    /*!
      * \brief Number of pending roof/contact recovery slices from this node downward, including this node.
      */
     uint32_t    missing_roof_layers = 0;
@@ -313,7 +309,7 @@ using SupportElements = std::deque<SupportElement>;
 [[nodiscard]] std::optional<SupportElementState> increase_single_area(const TreeModelVolumes &volumes,
     const TreeSupportSettings &config, const AreaIncreaseSettings &settings, LayerIndex layer_idx,
     const SupportElement &parent, const Polygons &relevant_offset, Polygons &to_bp_data,
-    Polygons &to_model_data, Polygons &increased, coord_t overspeed, bool mergelayer);
+    Polygons &to_model_data, Polygons &increased, coord_t overspeed);
 
 [[nodiscard]] inline coord_t support_element_radius(const TreeSupportSettings &settings, const SupportElement &elem)
 {
@@ -360,12 +356,12 @@ void organic_limit_body_shrink(SupportGeneratorLayersPtr &bodies, const std::vec
 
 // Widen the top layers of the bodies under the lowest layer of a roof, where the roof hangs over the material below it,
 // by move a layer going up, half a line at most, until it does not, keeping the bodies a line and a half apart but the
-// flares of tips. The roof hangs where a line of it in the directions roof_angles, see
+// flares of tips and near where the roof still hangs. The roof hangs where a line of it in the directions roof_angles, see
 // SupportParameters::support_interface_angle(), runs farther from that material than a line between two lines of the
-// base, or with none, where a point of it lies farther than reach from it. bodies hold a layer each, up to the layer
-// above the top body, and may hold nullptr; roofs and model hold for each layer the roofs printed on it and the model
-// with the gaps around it. The widened tips, and the bands the wider bodies widen by, are added to the solid polygons of
-// their layers.
+// base, or along a gap in it narrower than that, or with none, where a point of it lies farther than reach from it.
+// bodies hold a layer each, up to the layer above the top body, and may hold nullptr; roofs and model hold for each
+// layer the roofs printed on it and the model with the gaps around it. The widened tips, and the bands the wider bodies
+// widen by, are added to the solid polygons of their layers.
 void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
     const std::vector<Polygons> &model, coord_t line_width, coord_t tip_radius, coord_t move, coord_t reach,
     const std::vector<double> &roof_angles = {});
@@ -377,11 +373,15 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
 // layers as for organic_widen_bodies_under_roofs(). The trees inside a body are added to the inner trees of their
 // layers, those that leave it below to the polygons. On the first layer inner_trees also reserves their feet, printed
 // separately from the sparse flange. first_layer_width is the width of the lines of the first layer.
-// roof_angles are the directions of the lines of the lowest roof layers, see SupportParameters::support_interface_angle():
+// The directions of the lines of the lowest roof layers: an interlaced pattern turns them from layer to layer, and the
+// contact layer of a grid crosses them; a concentric or spiral roof prints no lines.
+std::vector<double> organic_roof_angles(const PrintObject &object, const SupportParameters &params);
+
+// roof_angles are the directions of the lines of the lowest roof layers, see organic_roof_angles():
 // the trees hold every one of those lines; with none, every point of a roof within reach.
 void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
     const std::vector<Polygons> &model, const TreeSupportSettings &config, coord_t reach, coord_t first_layer_width,
-    const std::vector<double> &roof_angles = {});
+    const std::vector<double> &roof_angles = {}, const std::function<void()> &throw_on_cancel = {});
 
 // Points on each of the input lines, the tips of trees along an overhang, distance apart at most and at least that far
 // from each other, both ends of a line among them; at least min_points of them, closer if need be. A short line gets

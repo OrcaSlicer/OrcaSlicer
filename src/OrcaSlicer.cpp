@@ -104,6 +104,7 @@
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/Platform.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/Support/OrganicToolpaths.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -7164,6 +7165,11 @@ int CLI::run(int argc, char **argv)
                                        flush_and_exit(CLI_GCODE_PATH_CONFLICTS);
                                     }
 
+                                    // The Organic support warning is settled by the export below and checked after it.
+                                    g_slicing_warnings.erase(std::remove_if(g_slicing_warnings.begin(), g_slicing_warnings.end(),
+                                        [](const PrintBase::SlicingStatus &status) { return status.message_type == PrintStateBase::SlicingOrganicSupportWarning; }),
+                                        g_slicing_warnings.end());
+
                                     //check the warnings
                                     if (!g_slicing_warnings.empty())
                                     {
@@ -7217,6 +7223,21 @@ int CLI::run(int argc, char **argv)
                                     BOOST_LOG_TRIVIAL(info) << "process finished, will export gcode temporarily to " << outfile << std::endl;
                                     temp_time = (long long)Slic3r::Utils::get_current_time_utc();
                                     outfile = print_fff->export_gcode(outfile, gcode_result, nullptr);
+                                    // The Scarf seams checked while exporting settle the Organic support warning: what stands now counts, and no event of it
+                                    // goes on to the next plate.
+                                    g_slicing_warnings.erase(std::remove_if(g_slicing_warnings.begin(), g_slicing_warnings.end(),
+                                        [](const PrintBase::SlicingStatus &status) { return status.message_type == PrintStateBase::SlicingOrganicSupportWarning; }),
+                                        g_slicing_warnings.end());
+                                    for (const PrintBase::SlicingStatus &status : organic_support_warning_statuses(*print_fff)) {
+                                        sliced_plate_info.warning_message = status.text;
+                                        BOOST_LOG_TRIVIAL(warning) << "plate " << index + 1 << ": found NON_CRITICAL slicing warnings: " << status.text << std::endl;
+                                        cli_record_warning(sliced_info, "slicing_warning_non_critical", nlohmann::json{{"plate_id", index + 1}, {"text", status.text}});
+                                        if (sliced_info.strict_mode) {
+                                            sliced_info.sliced_plates.push_back(sliced_plate_info);
+                                            record_exit_reson(outfile_dir, CLI_SLICING_ERROR, index + 1, cli_errors[CLI_SLICING_ERROR], sliced_info);
+                                            flush_and_exit(CLI_SLICING_ERROR);
+                                        }
+                                    }
                                     time_using_cache = time_using_cache + ((long long)Slic3r::Utils::get_current_time_utc() - temp_time);
                                     BOOST_LOG_TRIVIAL(info) << "export_gcode finished: time_using_cache update to " << time_using_cache << " secs.";
                                     if (gcode_result && gcode_result->gcode_check_result.error_code) {

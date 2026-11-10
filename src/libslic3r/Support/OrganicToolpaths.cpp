@@ -3,6 +3,7 @@
 #include "SupportCommon.hpp"
 #include "SupportLayer.hpp"
 #include "SupportParameters.hpp"
+#include "TreeSupportCommon.hpp"
 #include "../BoundingBox.hpp"
 #include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
@@ -135,8 +136,25 @@ std::vector<SupportGeneratorLayer> organic_bottom_interface_layers(const Support
     return result;
 }
 
-// The runs of an axis of a bead width wide outside reachable that hang: longer than a line and ending in the air or
-// leaving the bead-wide corridor between their bearings, or straight bridges between bearings longer than max_span.
+static bool at_axis_end(const Polyline &part, const Polyline &axis)
+{
+    auto is_axis_end = [&axis](const Point &point) { return point == axis.first_point() || point == axis.last_point(); };
+    return is_axis_end(part.first_point()) || is_axis_end(part.last_point());
+}
+
+// Whether a run of the axis of a bead width wide outside what holds it hangs: longer than a line and ending in the air or
+// leaving the bead-wide corridor between its bearings, or a straight bridge between bearings longer than max_span.
+static bool run_hangs(const Polyline &run, const Polyline &axis, const bool closed, const double width, const double max_span)
+{
+    if (run.length() <= width)
+        return false;
+    const Line span(run.first_point(), run.last_point());
+    const bool bent = std::any_of(run.points.begin(), run.points.end(),
+        [&](const Point &point) { return span.distance_to(point) > width + scale_(.01); });
+    return bent || run.length() > max_span || (! closed && at_axis_end(run, axis));
+}
+
+// The runs of an axis of a bead width wide outside reachable that hang.
 static Polylines hanging_parts(const Polyline &axis, const double width, const Polygons &reachable, const double max_span)
 {
     const bool closed = axis.first_point().distance_to(axis.last_point()) <= width;
@@ -149,16 +167,71 @@ static Polylines hanging_parts(const Polyline &axis, const double width, const P
         parts = diff_pl(Polygons{ Polygon(std::move(loop)) }, reachable);
     } else
         parts = diff_pl(Polylines{ axis }, reachable);
-    parts.erase(std::remove_if(parts.begin(), parts.end(), [&](const Polyline &part) {
-        if (part.length() <= width)
-            return true;
-        const auto at_end = [&axis](const Point &point) { return point == axis.first_point() || point == axis.last_point(); };
-        const Line span(part.first_point(), part.last_point());
-        const bool bent = std::any_of(part.points.begin(), part.points.end(),
-            [&](const Point &point) { return span.distance_to(point) > width + scale_(.01); });
-        return ! bent && part.length() <= max_span && ! (! closed && (at_end(part.first_point()) || at_end(part.last_point())));
-    }), parts.end());
+    parts.erase(std::remove_if(parts.begin(), parts.end(),
+        [&](const Polyline &part) { return ! run_hangs(part, axis, closed, width, max_span); }), parts.end());
     return parts;
+}
+
+// A path of a bead printed in several paths.
+struct BeadPiece {
+    Polyline axis;
+    coord_t  width;
+};
+
+// How many runs hang of a bead of paths of different widths whose whole axis is axis. Each path is held only as far as its
+// own width reaches, while a run goes on across the ends of the paths, which are no ends of the bead, and is as wide as the
+// widest path it spans.
+template<typename Reach, typename Span>
+static size_t varying_bead_hanging_runs(const std::vector<BeadPiece> &pieces, const Polyline &axis, const Reach &reach, const Span &max_span)
+{
+    const bool             closed = axis.first_point().distance_to(axis.last_point()) <= std::max(pieces.front().width, pieces.back().width);
+    std::vector<BeadPiece> runs;
+    BeadPiece              tail{ {}, 0 };
+    const auto close_tail = [&] {
+        if (! tail.axis.points.empty())
+            runs.emplace_back(std::move(tail));
+        tail = BeadPiece{ {}, 0 };
+    };
+    const auto touches = [](const Polyline &part, const Point &point) { return part.first_point() == point || part.last_point() == point; };
+    for (const BeadPiece &piece : pieces) {
+        Polylines   parts = diff_pl(Polylines{ piece.axis }, reach(piece.width));
+        const Point in = piece.axis.first_point(), out = piece.axis.last_point();
+        const auto  next = std::find_if(parts.begin(), parts.end(), [&](const Polyline &part) { return touches(part, in); });
+        if (next != parts.end() && ! tail.axis.points.empty() && tail.axis.last_point() == in) {
+            Polyline part = std::move(*next);
+            parts.erase(next);
+            if (part.first_point() != in)
+                part.reverse();
+            tail.axis.points.insert(tail.axis.points.end(), part.points.begin() + 1, part.points.end());
+            tail.width = std::max(tail.width, piece.width);
+            if (part.last_point() != out)
+                close_tail();
+        } else
+            close_tail();
+        for (Polyline &part : parts)
+            if (touches(part, out)) {
+                if (part.last_point() != out)
+                    part.reverse();
+                tail = BeadPiece{ std::move(part), piece.width };
+            } else
+                runs.push_back(BeadPiece{ std::move(part), piece.width });
+    }
+    // The seam of a bead closed on itself, whether or not its ends quite meet, joins its last run to its first.
+    if (! tail.axis.points.empty() && closed) {
+        const auto first = std::find_if(runs.begin(), runs.end(), [&](const BeadPiece &run) { return touches(run.axis, axis.first_point()); });
+        if (first != runs.end()) {
+            if (first->axis.first_point() != axis.first_point())
+                first->axis.reverse();
+            const bool meet = tail.axis.last_point() == first->axis.first_point();
+            tail.axis.points.insert(tail.axis.points.end(), first->axis.points.begin() + (meet ? 1 : 0), first->axis.points.end());
+            tail.width = std::max(tail.width, first->width);
+            runs.erase(first);
+        }
+    }
+    close_tail();
+    return size_t(std::count_if(runs.begin(), runs.end(), [&](const BeadPiece &run) {
+        return run_hangs(run.axis, axis, closed, double(run.width), max_span(double(run.width)));
+    }));
 }
 
 void organic_anchor_bottom_interfaces(const std::vector<SupportLayer*> &layers,
@@ -432,12 +505,6 @@ Polygons organic_bead(const Polyline &axis, double width)
 }
 
 // Whether a part of the axis starts or ends at an end of the axis.
-static bool at_axis_end(const Polyline &part, const Polyline &axis)
-{
-    auto is_axis_end = [&axis](const Point &point) { return point == axis.first_point() || point == axis.last_point(); };
-    return is_axis_end(part.first_point()) || is_axis_end(part.last_point());
-}
-
 Polylines organic_uncovered_wall_parts(const Polyline &axis, const Polygons &covered_axes, coord_t width)
 {
     // Where the wall runs along the edge of the fill, its axis enters and leaves the covered area
@@ -486,14 +553,27 @@ static Point point_at_length(const Points &points, double length, size_t &segmen
 Polylines organic_splice_loops_into_walls(Polylines &walls, Polylines loops, const coord_t width)
 {
     Polylines apart;
+    // Only what comes within a line of the box of a loop can take it. Two units more for the rounding of the projections.
+    const coord_t            reach = width + coord_t(SCALED_EPSILON) + 2;
+    std::vector<BoundingBox> boxes;
+    boxes.reserve(walls.size());
+    for (const Polyline &wall : walls)
+        boxes.emplace_back(get_extents(wall));
     for (Polyline &loop : loops) {
         // The vertex of the loop and the point of a wall closest to each other, no farther apart than a line.
         double best = double(width) + SCALED_EPSILON;
         size_t best_wall = walls.size(), best_segment = 0, best_vertex = 0;
         Point  best_point;
-        for (size_t i = 0; i < walls.size(); ++ i)
+        BoundingBox around = get_extents(loop);
+        around.offset(reach);
+        for (size_t i = 0; i < walls.size(); ++ i) {
+            if (! boxes[i].overlap(around))
+                continue;
             for (size_t s = 0; s + 1 < walls[i].size(); ++ s) {
                 const Line segment(walls[i].points[s], walls[i].points[s + 1]);
+                if (std::max(segment.a.x(), segment.b.x()) < around.min.x() || std::min(segment.a.x(), segment.b.x()) > around.max.x() ||
+                    std::max(segment.a.y(), segment.b.y()) < around.min.y() || std::min(segment.a.y(), segment.b.y()) > around.max.y())
+                    continue;
                 for (size_t j = 0; j < loop.size(); ++ j) {
                     const Point  projection = loop.points[j].projection_onto(segment);
                     const double distance   = (projection - loop.points[j]).cast<double>().norm();
@@ -504,6 +584,7 @@ Polylines organic_splice_loops_into_walls(Polylines &walls, Polylines loops, con
                     }
                 }
             }
+        }
         if (best_wall == walls.size()) {
             apart.emplace_back(std::move(loop));
             continue;
@@ -545,6 +626,7 @@ Polylines organic_splice_loops_into_walls(Polylines &walls, Polylines loops, con
         spliced.points.emplace_back(back);
         spliced.points.insert(spliced.points.end(), wall.begin() + back_segment + 1, wall.end());
         walls[best_wall] = std::move(spliced);
+        boxes[best_wall] = get_extents(walls[best_wall]);
     }
     return apart;
 }
@@ -592,7 +674,32 @@ static void collect_open_ends(const ExtrusionEntityCollection &collection, Point
         }
 }
 
-static bool point_less(const Point &a, const Point &b) { return a.x() < b.x() || (a.x() == b.x() && a.y() < b.y()); }
+// Drop the extrusions of a collection that drop() picks, and the collections left empty. Return how many are dropped.
+template<typename Drop> static size_t remove_extrusions_if(ExtrusionEntityCollection &collection, const Drop &drop)
+{
+    size_t                removed  = 0;
+    ExtrusionEntitiesPtr &entities = collection.entities;
+    // Delete only once the collection holds the extrusions that stay: if drop() throws, it is left whole.
+    ExtrusionEntitiesPtr kept, dropped;
+    kept.reserve(entities.size());
+    dropped.reserve(entities.size());
+    for (ExtrusionEntity *entity : entities) {
+        bool keep = true;
+        if (entity->is_collection()) {
+            auto *nested = static_cast<ExtrusionEntityCollection*>(entity);
+            removed += remove_extrusions_if(*nested, drop);
+            keep = ! nested->empty();
+        } else if (drop(*entity)) {
+            ++ removed;
+            keep = false;
+        }
+        (keep ? kept : dropped).push_back(entity);
+    }
+    entities.swap(kept);
+    for (ExtrusionEntity *entity : dropped)
+        delete entity;
+    return removed;
+}
 
 // Removes the paths shorter than a quarter of their bead width, and of the line width, except those joining two other
 // paths. Such a path remains where a path is clipped along the edge of a bead and adds next to nothing to the layer, but
@@ -600,37 +707,33 @@ static bool point_less(const Point &a, const Point &b) { return a.x() < b.x() ||
 // of its own. A piece of a bead wider than a line, as along a neck, is no dot for being wide.
 static void remove_dots(ExtrusionEntityCollection &collection, const Points &sorted_ends, const coord_t width)
 {
-    auto dot = [&sorted_ends, width](const ExtrusionEntity &entity) {
+    remove_extrusions_if(collection, [&sorted_ends, width](const ExtrusionEntity &entity) {
         const auto *path = dynamic_cast<const ExtrusionPath*>(&entity);
         if (path == nullptr || path->length() >= 0.25 * std::min(scale_(path->width), double(width)))
             return false;
         const Point first = path->first_point(), last = path->last_point();
         auto meets_other = [&](const Point &end) {
-            const auto [begin, end_range] = std::equal_range(sorted_ends.begin(), sorted_ends.end(), end, point_less);
+            const auto [begin, end_range] = std::equal_range(sorted_ends.begin(), sorted_ends.end(), end);
             return end_range - begin > (first == end) + (last == end);
         };
         return !meets_other(first) || !meets_other(last);
-    };
-    ExtrusionEntitiesPtr &entities = collection.entities;
-    entities.erase(std::remove_if(entities.begin(), entities.end(), [&](ExtrusionEntity *entity) {
-        if (entity->is_collection()) {
-            auto *nested = static_cast<ExtrusionEntityCollection*>(entity);
-            remove_dots(*nested, sorted_ends, width);
-            if (!nested->empty())
-                return false;
-        } else if (!dot(*entity))
-            return false;
-        delete entity;
-        return true;
-    }), entities.end());
+    });
 }
 
 void organic_remove_dots(ExtrusionEntityCollection &collection, const coord_t width)
 {
     Points ends;
     collect_open_ends(collection, ends);
-    std::sort(ends.begin(), ends.end(), point_less);
+    std::sort(ends.begin(), ends.end());
     remove_dots(collection, ends, width);
+}
+
+// Whether the flow of a support path of this role is set to nothing.
+static bool support_role_has_no_flow(const PrintObjectConfig &config, const ExtrusionRole role)
+{
+    return config.set_other_flow_ratios &&
+        ((role == erSupportMaterial && config.support_flow_ratio == 0.) ||
+         (role == erSupportMaterialInterface && config.support_interface_flow_ratio == 0.));
 }
 
 // Use the same finite-width beads for anchoring and for removing floating support, including their round ends.
@@ -642,10 +745,8 @@ static Polygons support_material(const ExtrusionEntity &fills, const PrintObject
             if (path.mm3_per_mm <= 0.)
                 return;
             const PrintObjectConfig &config = object->config();
-            if (config.set_other_flow_ratios &&
-                ((path.role() == erSupportMaterial && config.support_flow_ratio == 0.) ||
-                 (path.role() == erSupportMaterialInterface && config.support_interface_flow_ratio == 0.) ||
-                 (first_layer && object->print()->default_region_config().first_layer_flow_ratio == 0.)))
+            if (support_role_has_no_flow(config, path.role()) ||
+                (config.set_other_flow_ratios && first_layer && object->print()->default_region_config().first_layer_flow_ratio == 0.))
                 return;
         }
         append(covered, organic_bead(path.as_polyline(), scale_(path.width)));
@@ -789,8 +890,6 @@ static Polygons contoured_material(const ExtrusionPath &path, const double nomin
     return material;
 }
 
-// Contoured paths may leave their nominal layer's Z band. Index their actual bounds, but construct planar
-// footprints only when a root reaches that layer. An unprinted interior of a model outline provides no footing.
 static std::vector<double> resolved_top_heights(const PrintObject &object, const Layer &layer, const PrintRegion &region,
     const ToolOrdering &ordering, int layer_index)
 {
@@ -856,6 +955,8 @@ static std::vector<double> resolved_top_heights(const PrintObject &object, const
     return result;
 }
 
+// Contoured paths may leave their nominal layer's Z band. Index their actual bounds, but construct planar
+// footprints only when a root reaches that layer. An unprinted interior of a model outline provides no footing.
 static Polygons model_material(const PrintObject &object, const Layer &layer, const double min_z, const double max_z,
     ModelFootprints &cache, const ToolOrdering *ordering)
 {
@@ -971,14 +1072,53 @@ static Polygons support_footing(const PrintObject &object, const std::vector<Pol
     return offset(support_below(object, covered, i), footing_reach);
 }
 
+// Where the axis of a bead width wide stands on footing: within half its width of it. trim_unsupported_base() joins the
+// ends it cuts along the edge of that reach grown by SCALED_EPSILON, which holds them, and the reach takes such a join in
+// with a margin of as much again: lying on its edge, rounding would leave the join over nothing.
+static Polygons bead_reach(const Polygons &footing, const double width)
+{
+    return offset(footing, float(.5 * width + 2. * SCALED_EPSILON), jtRound, SCALED_EPSILON);
+}
+
+// Where the axes of a layer leave what holds up the narrowest of them, a wider bead reaching only farther. Clipping all the
+// axes of a layer at once takes about as long as clipping one against the whole layer and most layers leave nothing outside,
+// so the test of a run, which needs the reach of its own width, is left to the axes near such a piece.
+class AxesOutsideReach {
+public:
+    void add(Polyline axis, const coord_t width)
+    {
+        if (axis.points.size() < 2)
+            return;
+        m_narrowest = std::min(m_narrowest, width);
+        m_axes.emplace_back(std::move(axis));
+    }
+    void clip(const Polygons &footing)
+    {
+        if (! m_axes.empty())
+            for (const Polyline &piece : diff_pl(m_axes, bead_reach(footing, double(m_narrowest))))
+                m_boxes.emplace_back(get_extents(piece).inflated(SCALED_EPSILON));
+    }
+    bool near(const Polyline &axis) const
+    {
+        const BoundingBox box = get_extents(axis);
+        return std::any_of(m_boxes.begin(), m_boxes.end(), [&box](const BoundingBox &other) { return box.overlap(other); });
+    }
+
+private:
+    Polylines                m_axes;
+    std::vector<BoundingBox> m_boxes;
+    coord_t                  m_narrowest = std::numeric_limits<coord_t>::max();
+};
+
 // How far below a support layer the model it stands on may lie: the bottom Z distance as the trees round it to whole
 // layers, see TreeSupportSettings::z_distance_bottom_layers, farther than the distance itself with an independent support
 // layer height, but at least 0.1 mm, which a bead laid over a surface sags across.
 static double model_footing_gap(const PrintObject &object)
 {
-    const double gap   = object.slicing_parameters().gap_object_support;
-    const double layer = object.config().layer_height.value;
-    return std::max({ gap, std::round(gap / layer) * layer, 0.1 });
+    const double gap    = object.slicing_parameters().gap_object_support;
+    const double layer  = object.config().layer_height.value;
+    const int    layers = TreeSupport3D::z_distance_in_layers(scaled<coord_t>(gap), scaled<coord_t>(layer));
+    return std::max({ gap, layers * layer, 0.1 });
 }
 
 // The model material within model_footing_gap() below support layer i, which the support may stand on unless it is on the
@@ -1056,10 +1196,17 @@ static double free_span(const PrintObjectConfig &config, const double width)
 // Whether a support path is printed flat and with some flow, as what holds up the support above.
 static bool flat_support(const PrintObjectConfig &config, const ExtrusionPath &path)
 {
-    return is_support(path.role()) && ! path.z_contoured && path.mm3_per_mm > 0. &&
-        ! (config.set_other_flow_ratios &&
-           ((path.role() == erSupportMaterial && config.support_flow_ratio == 0.) ||
-            (path.role() == erSupportMaterialInterface && config.support_interface_flow_ratio == 0.)));
+    return is_support(path.role()) && ! path.z_contoured && path.mm3_per_mm > 0. && ! support_role_has_no_flow(config, path.role());
+}
+
+// Calls visitor with each bead of a collection, which a multi-path or a loop prints in several paths.
+template<typename Visitor> static void for_each_bead(const ExtrusionEntityCollection &collection, Visitor &&visitor)
+{
+    for (const ExtrusionEntity *entity : collection.entities)
+        if (entity->is_collection())
+            for_each_bead(*static_cast<const ExtrusionEntityCollection*>(entity), visitor);
+        else
+            visitor(*entity);
 }
 
 // The number of runs of the beads of layer i outside its floating islands that hang, see hanging_parts(), over the
@@ -1077,27 +1224,58 @@ static size_t hanging_runs(const PrintObject &object, const std::vector<Polygons
     bool                        model_added = config.support_on_build_plate_only;
     std::map<coord_t, Polygons> reach_by_width;
     size_t                      runs = 0;
+    const auto reach = [&](const coord_t width) -> const Polygons & {
+        auto [it, inserted] = reach_by_width.try_emplace(width);
+        if (inserted)
+            it->second = bead_reach(footing, double(width));
+        return it->second;
+    };
+    const auto max_span = [&](const double width) { return free_span(config, width); };
+    AxesOutsideReach outside;
     for_each_extrusion_path(layer.support_fills, [&](const ExtrusionPath &path) {
-        if (! flat_support(config, path) || path.polyline.points.size() < 2 ||
+        if (flat_support(config, path))
+            outside.add(path.as_polyline(), coord_t(scale_(path.width)));
+    });
+    outside.clip(footing);
+    // The ends of the paths of a bead, split where its width changes, are not ends of the bead: judge it as a whole.
+    const auto count_runs = [&](const std::vector<BeadPiece> &pieces) {
+        Polyline axis;
+        for (const BeadPiece &piece : pieces) {
+            const bool joins = ! axis.points.empty() && axis.last_point() == piece.axis.first_point();
+            axis.points.insert(axis.points.end(), piece.axis.points.begin() + (joins ? 1 : 0), piece.axis.points.end());
+        }
+        if (axis.points.size() < 2 || ! outside.near(axis) ||
             std::any_of(floating.begin(), floating.end(),
-                [&](const ExPolygon &island) { return island.contains(path.first_point()); }))
+                [&](const ExPolygon &island) { return island.contains(axis.first_point()); }))
             return;
-        const coord_t width = scale_(path.width);
-        const auto    reach = [&]() -> const Polygons & {
-            auto [it, inserted] = reach_by_width.try_emplace(width);
-            if (inserted)
-                it->second = offset(footing, .5 * double(width), jtRound, SCALED_EPSILON);
-            return it->second;
+        const coord_t width   = pieces.front().width;
+        const bool    uniform = std::all_of(pieces.begin(), pieces.end(), [width](const BeadPiece &piece) { return piece.width == width; });
+        const auto    hanging = [&] {
+            return uniform ? hanging_parts(axis, double(width), reach(width), max_span(double(width))).size() :
+                varying_bead_hanging_runs(pieces, axis, reach, max_span);
         };
-        Polylines parts = hanging_parts(path.as_polyline(), double(width), reach(), free_span(config, double(width)));
+        size_t found = hanging();
         // Most beads stand on support. Construct the model footing only once one needs it.
-        if (! parts.empty() && ! model_added) {
+        if (found != 0 && ! model_added) {
             append(footing, offset(model_footing(object, i, model, ordering), footing_reach));
             reach_by_width.clear();
             model_added = true;
-            parts       = hanging_parts(path.as_polyline(), double(width), reach(), free_span(config, double(width)));
+            found       = hanging();
         }
-        runs += parts.size();
+        runs += found;
+    };
+    // A path not printed flat holds nothing up and parts the bead.
+    for_each_bead(layer.support_fills, [&](const ExtrusionEntity &bead) {
+        std::vector<BeadPiece> pieces;
+        for_each_extrusion_path(bead, [&](const ExtrusionPath &path) {
+            if (flat_support(config, path))
+                pieces.push_back(BeadPiece{ path.as_polyline(), coord_t(scale_(path.width)) });
+            else {
+                count_runs(pieces);
+                pieces.clear();
+            }
+        });
+        count_runs(pieces);
     });
     return runs;
 }
@@ -1122,6 +1300,19 @@ static bool on_belt(const PrintObject &object)
     return belt.init(object.slicing_parameters(), object.print()->config());
 }
 
+double organic_sliver_area(const PrintObject &object)
+{
+    const double width = SupportParameters(object).support_material_flow.scaled_width();
+    return 0.5 * width * width;
+}
+
+// Stops a pass over all the layers once the slicing is cancelled: at thin layers such a pass runs for long.
+static void throw_if_canceled(const PrintObject &object)
+{
+    if (object.print()->canceled())
+        throw CanceledException();
+}
+
 std::vector<coordf_t> floating_support_islands(const PrintObject &object, const double min_area)
 {
     if (on_belt(object))
@@ -1129,9 +1320,11 @@ std::vector<coordf_t> floating_support_islands(const PrintObject &object, const 
     const std::vector<Polygons> covered = support_covered(object);
     std::vector<coordf_t>       floating;
     ModelFootprints            model;
-    for (size_t i = 0; i < covered.size(); ++ i)
+    for (size_t i = 0; i < covered.size(); ++ i) {
+        throw_if_canceled(object);
         append_floating_heights(floating, object, covered, i, floating_islands(object, covered, i, model), model, nullptr,
             min_area);
+    }
     return floating;
 }
 
@@ -1144,9 +1337,11 @@ std::vector<coordf_t> floating_support_islands(const PrintObject &object, const 
     std::vector<coordf_t> floating;
     ModelFootprints model;
     model.nozzle_layers = &nozzle_layers;
-    for (size_t i = 0; i < covered.size(); ++i)
+    for (size_t i = 0; i < covered.size(); ++i) {
+        throw_if_canceled(object);
         append_floating_heights(floating, object, covered, i, floating_islands(object, covered, i, model, &ordering), model,
             &ordering, min_area);
+    }
     return floating;
 }
 
@@ -1243,6 +1438,7 @@ void OrganicScarfFooting::update_warnings()
 {
     for (auto &[object, material] : m_objects) {
         const auto covered = support_covered(*object);
+        const double sliver = organic_sliver_area(*object);
         std::vector<coordf_t> heights;
         if (material.instances.empty())
             material.instances[{0, 0}].resize(covered.size());
@@ -1251,9 +1447,10 @@ void OrganicScarfFooting::update_warnings()
                 plane = union_(plane);
             ModelFootprints model;
             model.emitted = &footprints;
-            for (size_t i = 0; i < covered.size(); ++i)
-                if (!floating_islands(*object, covered, i, model, nullptr, true).empty())
-                    heights.push_back(object->support_layers()[i]->print_z);
+            for (size_t i = 0; i < covered.size(); ++i) {
+                throw_if_canceled(*object);
+                append_floating_heights(heights, *object, covered, i, floating_islands(*object, covered, i, model), model, nullptr, sliver);
+            }
         }
         organic_update_support_warning(*material.object, std::move(heights));
     }
@@ -1272,27 +1469,6 @@ std::vector<PrintBase::SlicingStatus> organic_support_warning_statuses(const Pri
                     PrintStateBase::SlicingOrganicSupportWarning, warning.level);
     }
     return statuses;
-}
-
-// Drop the extrusions of a collection that drop() picks, and the collections left empty. Return how many are dropped.
-template<typename Drop> static size_t remove_extrusions_if(ExtrusionEntityCollection &collection, const Drop &drop)
-{
-    size_t                removed  = 0;
-    ExtrusionEntitiesPtr &entities = collection.entities;
-    entities.erase(std::remove_if(entities.begin(), entities.end(), [&drop, &removed](ExtrusionEntity *entity) {
-        if (entity->is_collection()) {
-            auto *nested = static_cast<ExtrusionEntityCollection*>(entity);
-            removed += remove_extrusions_if(*nested, drop);
-            if (! nested->empty())
-                return false;
-        } else if (drop(*entity))
-            ++ removed;
-        else
-            return false;
-        delete entity;
-        return true;
-    }), entities.end());
-    return removed;
 }
 
 // Drop the extrusions of a collection lying in region, most of their beads in it, and the collections left empty. Return
@@ -1480,6 +1656,17 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
     double contact_margin = 0.;
     for (const Layer *layer : object.layers())
         contact_margin = std::max(contact_margin, layer->height);
+    // Whether the model lies within the top Z distance over a shape of a support layer, which it may be the contact for.
+    const auto under_model = [&](const SupportLayer &layer, const Polygons &shape) {
+        const double top = layer.print_z + object.slicing_parameters().gap_support_object + contact_margin;
+        for (const Layer *model_layer : object.layers()) {
+            if (model_layer->bottom_z() > top + EPSILON)
+                break;
+            if (model_layer->bottom_z() >= layer.print_z - EPSILON && ! intersection(shape, to_polygons(model_layer->lslices)).empty())
+                return true;
+        }
+        return false;
+    };
     // A larger floating base fragment may be a dead appendage that joins a bed-rooted
     // branch above. Prune it only if it carries no interface or model contact before
     // that join. Raising the area cutoff alone would also discard needed tips.
@@ -1498,14 +1685,8 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
             if (interface)
                 return false;
             // With no top interface the base itself can be the requested contact.
-            const double top = layer.print_z + object.slicing_parameters().gap_support_object + contact_margin;
-            for (const Layer *part : object.layers()) {
-                if (part->bottom_z() > top + EPSILON)
-                    break;
-                if (part->bottom_z() >= layer.print_z - EPSILON &&
-                    !intersection(branch, to_polygons(part->lslices)).empty())
-                    return false;
-            }
+            if (under_model(layer, branch))
+                return false;
             if (j + 1 == covered.size())
                 break;
             // Only the next layer is needed to recognize a rooted join. Preserve
@@ -1541,19 +1722,12 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
         const Polygons shape = to_polygons(part);
         if (i + 1 < covered.size() && ! intersection(shape, covered[i + 1]).empty())
             return false;
-        const SupportLayer &layer = *object.support_layers()[i];
-        const double        top   = layer.print_z + object.slicing_parameters().gap_support_object + contact_margin;
-        for (const Layer *model_layer : object.layers()) {
-            if (model_layer->bottom_z() > top + EPSILON)
-                break;
-            if (model_layer->bottom_z() >= layer.print_z - EPSILON && ! intersection(shape, to_polygons(model_layer->lslices)).empty())
-                return false;
-        }
-        return true;
+        return ! under_model(*object.support_layers()[i], shape);
     };
     const auto &config = object.config();
-    const bool trim_walls = hollow_organic(config) && (!config.set_other_flow_ratios || config.support_flow_ratio != 0.);
+    const bool trim_walls = hollow_organic(config) && ! support_role_has_no_flow(config, erSupportMaterial);
     for (size_t i = 0; i < covered.size(); ++ i) {
+        throw_if_canceled(object);
         const SupportLayer &layer = *object.support_layers()[i];
         ExtrusionEntityCollection &fills = object.support_layers()[i]->support_fills;
         // The islands of the last pass, which drops none of them: those at least max_area large left on nothing.
@@ -1620,15 +1794,27 @@ size_t remove_floating_support_crumbs(PrintObject &object, const double max_area
                 // Where the support may stand on the model, a tongue over it stands on it: the model footing joins the support
                 // below once a tongue is found without it.
                 const auto find_tongues = [&]() {
+                    const auto may_hang = [](const ExtrusionPath &path) {
+                        return path.role() == erSupportMaterial && ! path.z_contoured && path.mm3_per_mm > 0. &&
+                            path.polyline.points.size() >= 2 && path.length() > scale_(path.width);
+                    };
+                    AxesOutsideReach outside;
                     for_each_extrusion_path(fills, [&](const ExtrusionPath &path) {
-                        if (path.role() != erSupportMaterial || path.z_contoured || path.mm3_per_mm <= 0. ||
-                            path.polyline.points.size() < 2 || path.length() <= scale_(path.width))
+                        if (may_hang(path))
+                            outside.add(path.as_polyline(), scale_(path.width));
+                    });
+                    outside.clip(footing);
+                    for_each_extrusion_path(fills, [&](const ExtrusionPath &path) {
+                        if (! may_hang(path))
+                            return;
+                        const Polyline axis = path.as_polyline();
+                        if (! outside.near(axis))
                             return;
                         const coord_t width = scale_(path.width);
                         auto [it, inserted] = reach_by_width.try_emplace(width);
                         if (inserted)
-                            it->second = offset(footing, .5 * double(width), jtRound, SCALED_EPSILON);
-                        for (const Polyline &part : hanging_parts(path.as_polyline(), double(width), it->second,
+                            it->second = bead_reach(footing, double(width));
+                        for (const Polyline &part : hanging_parts(axis, double(width), it->second,
                                  free_span(config, double(width))))
                             for (const ExPolygon &tongue : union_ex(organic_bead(part, double(width))))
                                 if (config.support_on_build_plate_only ? unused_appendage(i, tongue) : carries_nothing(i, tongue))

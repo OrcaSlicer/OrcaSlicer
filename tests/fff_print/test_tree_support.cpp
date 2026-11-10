@@ -524,6 +524,23 @@ struct Slice {
     Polygons material;
 };
 
+// The material of the beads [begin, end) of a layer, half by half. A loop of the trees inside a body has thousands of short
+// segments whose round ends overlap: one union of them all takes most of the time of a check, while neighbours merged first
+// leave the last union few edges.
+Polygons material_of(const std::vector<const Bead *> &beads, const size_t begin, const size_t end)
+{
+    Polygons material;
+    if (end - begin <= 16) {
+        for (size_t i = begin; i < end; ++ i)
+            append(material, footprint(*beads[i]));
+    } else {
+        const size_t middle = (begin + end) / 2;
+        material = material_of(beads, begin, middle);
+        append(material, material_of(beads, middle, end));
+    }
+    return union_(material);
+}
+
 std::vector<Slice> slices(const std::vector<Bead> &beads)
 {
     std::map<long long, std::vector<const Bead *>> grouped;
@@ -535,11 +552,7 @@ std::vector<Slice> slices(const std::vector<Bead> &beads)
         // Preserve input order and the last bead's slab metadata, but retain
         // raw round-bead polygons for only one physical height at a time.
         const Bead &last = *entry.second.back();
-        Slice slice{last.z, last.height, {}};
-        for (const Bead *bead : entry.second)
-            append(slice.material, footprint(*bead));
-        slice.material = union_(slice.material);
-        result.push_back(std::move(slice));
+        result.push_back({last.z, last.height, material_of(entry.second, 0, entry.second.size())});
     }
     return result;
 }
@@ -569,14 +582,14 @@ bool exterior_step_is_bounded(const Polygons &current, const Polygons &previous,
 }
 
 // No assumption about a permitted long bridge is needed to reject an entire XY component
-// with no contact below. A partly unsupported bridge is measured by a separate check.
+// with no contact below. A partly unsupported bead is left to floating_support_islands(), as the warning checks it.
 size_t unanchored_components(const Polygons &current, const Polygons &below)
 {
-    const Polygons lower_with_rounding = offset(below, scale_(geometry_tolerance), jtRound,
-                                               scale_(geometry_tolerance / 4.));
+    NearPolygons lower_with_rounding;
+    lower_with_rounding.append(offset(below, scale_(geometry_tolerance), jtRound, scale_(geometry_tolerance / 4.)));
     size_t failures = 0;
     for (const ExPolygon &component : union_ex(current))
-        if (intersection(to_polygons(component), lower_with_rounding).empty())
+        if (! lower_with_rounding.touch(to_polygons(component)))
             ++failures;
     return failures;
 }
@@ -670,6 +683,23 @@ std::vector<Bead> process(const Fixture &input, const char *base, Print &print,
 }
 
 } // namespace organic_tdd
+
+TEST_CASE("Organic support toolpaths do not depend on the thread count", "[TreeSupport][Organic][Regression]")
+{
+    const TriangleMesh mesh = two_tier_mesh();
+    name_tbb_thread_pool_threads_set_locale();
+    const auto sliced = [&mesh](Print &print, const size_t threads) {
+        const tbb::global_control limit(tbb::global_control::max_allowed_parallelism, threads);
+        slice_with_tree_support(mesh, print, "organic");
+    };
+    Print one, four;
+    sliced(one, 1);
+    sliced(four, 4);
+    const Points first = support_points(one), second = support_points(four);
+    REQUIRE(first.size() > 1000);
+    REQUIRE(second.size() == first.size());
+    REQUIRE(first_difference(first, second) == first.size());
+}
 
 TEST_CASE("Organic fixture meshes preserve the declared free contact patches", "[TreeSupport][Organic]")
 {
@@ -852,6 +882,8 @@ TEST_CASE("Organic trees retain free contacts and connected branching", "[TreeSu
     check_contacts(input, beads, print);
     const auto layers = slices(beads);
     check_anchoring(layers);
+    if (std::string_view(base) == "default")
+        CHECK(floating_support_islands(*print.objects().front(), 0.).empty());
     if (name == "pair" || name == "unequal")
         check_common_base(layers);
 }
@@ -1104,7 +1136,8 @@ std::vector<Bead> cylinder_paths(const char *base, bool redundant_contours, bool
             const TreeSupport3D::TreeSupportSettings tree{TreeSupport3D::TreeSupportMeshGroupSettings{object},
                                                           object.slicing_parameters()};
             TreeSupport3D::organic_grow_trees_inside_hollow_bodies(bodies, roofs, model, tree, scaled<coord_t>(reach),
-                                                                   parameters.first_layer_flow.scaled_width());
+                                                                   parameters.first_layer_flow.scaled_width(),
+                                                                   TreeSupport3D::organic_roof_angles(object, parameters));
         }
     }
     const SupportGeneratorLayersPtr raft;
@@ -1179,7 +1212,8 @@ std::vector<Bead> check_inner_tree_footing(int raft_count, double first_width, i
         tops.insert(tops.begin(), &layer);
         roofs[contact] = layer.polygons;
     }
-    TreeSupport3D::organic_grow_trees_inside_hollow_bodies(indexed, roofs, masks, tree, scale_(.235), params.first_layer_flow.scaled_width());
+    TreeSupport3D::organic_grow_trees_inside_hollow_bodies(indexed, roofs, masks, tree, scale_(.235), params.first_layer_flow.scaled_width(),
+                                                           TreeSupport3D::organic_roof_angles(object, params));
     const SupportGeneratorLayersPtr none;
     auto raft = generate_raft_base(object, params, sp, tops, none, none, bases, storage);
     trim_support_layers_by_exclusion_volumes(object, raft, none, tops, bases, none, none);
@@ -1483,7 +1517,10 @@ TEST_CASE("Organic supports retain contacts under sloped overhangs with small to
     const auto beads = organic_tdd::process(input, "hollow", print, &overrides);
     REQUIRE_FALSE(beads.empty());
     CHECK(std::any_of(beads.begin(), beads.end(), [](const organic_tdd::Bead &bead) { return bead.role == erSupportMaterial; }));
-    CHECK(std::any_of(beads.begin(), beads.end(), [](const organic_tdd::Bead &bead) { return bead.role == erSupportMaterialInterface; }));
+    CHECK(std::any_of(beads.begin(), beads.end(), [](const organic_tdd::Bead &bead) {
+        const double x = unscaled<double>(bead.a.x()), y = unscaled<double>(bead.a.y());
+        return bead.role == erSupportMaterialInterface && x > 50.5 && x < 57.5 && y > 100.5 && y < 107.5;
+    }));
 }
 
 TEST_CASE("Organic supports retain contacts under a sloped overhang beside another overhang at small top Z distances", "[TreeSupport][Organic][Regression]")
@@ -1819,7 +1856,7 @@ TEST_CASE("Organic repeated propagation keeps influence areas compact while they
         const SupportElement parent(state, Polygons(region));
         Polygons to_bed, to_model, domain;
         const auto accepted = increase_single_area(volumes, config, increase, state.layer_idx, parent,
-            region, to_bed, to_model, domain, step_distance, false);
+            region, to_bed, to_model, domain, step_distance);
         REQUIRE(accepted.has_value());
         REQUIRE_FALSE(to_bed.empty());
         CHECK(support_element_radius(config, *accepted) == radius);
@@ -2153,16 +2190,16 @@ static organic_tdd::Fixture gentle_slope(const std::string &shape)
     organic_tdd::Fixture input{"ramp", {}};
     TriangleMesh plate;
     if (shape == "plate")
-        plate = make_cube(10., 6., 0.8);
+        plate = make_cube(5., 3., 0.8);
     else
-        for (double y = 0.; y < (shape == "comb" ? 6. : 0.5); y += 0.9) {
-            TriangleMesh strip = make_cube(10., 0.5, 0.8);
+        for (double y = 0.; y < (shape == "comb" ? 3. : 0.5); y += 0.9) {
+            TriangleMesh strip = make_cube(5., 0.5, 0.8);
             strip.translate(0.f, float(y), 0.f);
             plate.merge(strip);
         }
     plate.rotate_y(float(-10. * PI / 180.));
     const BoundingBoxf3 box = plate.bounding_box();
-    plate.translate(float(45. - box.min.x()), float(97. - box.min.y()), float(3. - box.min.z()));
+    plate.translate(float(45. - box.min.x()), float(97. - box.min.y()), float(1.5 - box.min.z()));
     input.extra_solids.push_back(std::move(plate));
     return input;
 }
@@ -2227,7 +2264,7 @@ TEST_CASE("Organic interfaces at fine layers bridge no wider than the base patte
         longest = std::max(longest, unscaled<double>(piece.length()));
     CAPTURE(lowest, unscaled<double>(total_length(beyond)));
     CHECK(longest < line_width);
-    CHECK(floating_metrics(beads).unanchored_components == 0);
+    check_anchoring(slices(beads));
 }
 
 TEST_CASE("Organic roofs of an overhang a few layers over the bed stand on it", "[TreeSupport][Organic][Interface][Regression]")
@@ -2742,6 +2779,50 @@ TEST_CASE("Organic support dots with their axis over nothing are dropped though 
     CHECK(paths == (off > .5 ? 1 : 2));
 }
 
+TEST_CASE("Organic walls trimmed back to the edge of the beads below are not taken for standing on nothing", "[TreeSupport][Organic][Material][Regression]")
+{
+    using namespace organic_tdd;
+    // A wall loop on lines a line apart bulges past the outermost of them, farther than a wall touching it reaches, and
+    // for longer than a line of the base spans. The bulge carries nothing: the trim cuts it and joins the cut ends along
+    // the edge of what the wall reaches touching that line, where it stands on it.
+    DynamicPrintConfig settings = config("default");
+    settings.set_deserialize_strict({{"layer_height", .1}, {"initial_layer_print_height", .1}, {"layer_change_gcode", "G92 E0\n"}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(2., 2., .5)}, print, model, settings, nullptr, false);
+    INFO(print.validate().string);
+    REQUIRE(print.validate().string.empty());
+    print.process();
+    PrintObject &object = *print.get_object(0);
+    object.clear_support_layers();
+    const Flow flow(float(line_width), .1f, .2f);
+    // Beside the model, which lies within a millimetre of the origin.
+    Polylines lines;
+    for (int k = 0; k < 4; ++ k)
+        lines.emplace_back(Point::new_scale(6., -line_width * k), Point::new_scale(10., -line_width * k));
+    extrusion_entities_append_paths(object.add_support_layer(0, 0, .1, .1)->support_fills.entities, lines, erSupportMaterial,
+        flow.mm3_per_mm(), flow.width(), flow.height());
+    const double bulge = 2. * line_width;
+    const Polyline wall({ Point::new_scale(6.5, -.5), Point::new_scale(9.5, -.5), Point::new_scale(9.5, 0.), Point::new_scale(8.8, 0.),
+        Point::new_scale(8.6, bulge), Point::new_scale(7.4, bulge), Point::new_scale(7.2, 0.), Point::new_scale(6.5, 0.),
+        Point::new_scale(6.5, -.5) });
+    SupportLayer &top = *object.add_support_layer(1, 0, .1, .2);
+    extrusion_entities_append_paths(top.support_fills.entities, Polylines{ wall }, erSupportMaterial, flow.mm3_per_mm(), flow.width(),
+        flow.height());
+    std::vector<coordf_t> floating;
+    CHECK(remove_floating_support_crumbs(object, scaled<double>(1.) * scaled<double>(line_width), &floating) == 1);
+    // The bulge is cut back to where the wall touches the outermost line: its axis a line and the reach of a touch from it.
+    double farthest = 0.;
+    for_each_extrusion_path(top.support_fills, [&farthest](const ExtrusionPath &path) {
+        for (const Point &point : path.as_polyline().points)
+            farthest = std::max(farthest, unscale<double>(point.y()));
+    });
+    CHECK(farthest < line_width + .011);
+    CHECK(farthest > line_width);
+    CHECK(floating.empty());
+    CHECK(floating_support_islands(object, 0.).empty());
+}
+
 TEST_CASE("Organic support on a belt printer is not taken for crumbs or for standing on nothing", "[TreeSupport][Organic][Material][Regression]")
 {
     using namespace organic_tdd;
@@ -2932,7 +3013,8 @@ TEST_CASE("Organic sparse bottom interfaces carry inner trees between their patt
     top.polygons = {load};
     tops.push_back(&top);
     roofs[10] = top.polygons;
-    TreeSupport3D::organic_grow_trees_inside_hollow_bodies(indexed, roofs, masks, tree, scale_(.235), params.first_layer_flow.scaled_width());
+    TreeSupport3D::organic_grow_trees_inside_hollow_bodies(indexed, roofs, masks, tree, scale_(.235), params.first_layer_flow.scaled_width(),
+                                                           TreeSupport3D::organic_roof_angles(object, params));
     const SupportGeneratorLayersPtr none;
     auto raft = generate_raft_base(object, params, sp, tops, interfaces, none, bases, storage);
     trim_support_layers_by_exclusion_volumes(object, raft, none, tops, bases, interfaces, none);
@@ -3126,10 +3208,12 @@ TEST_CASE("Organic model roots retain a chain through sparse bottom interface la
 TEST_CASE("Organic model footing follows printed shells and infill", "[TreeSupport][Organic][Material][Regression]")
 {
     using namespace organic_tdd;
-    const bool open = GENERATE(false, true);
-    const double pedestal_height = GENERATE(.96, 1., 1.04);
-    const bool contoured = GENERATE(false, true);
-    const double top_flow = GENERATE(0., .7, 1.);
+    // The height of the pedestal counts only under contouring, and a flow only at zero. A closed top shows a gap in the
+    // first slice, an open one in the slices that close it, so each takes the cases of a gap it can show.
+    const auto [open, pedestal_height, contoured, top_flow] = GENERATE(table<bool, double, bool, double>({
+        {false, 1., false, 1.}, {false, .96, true, 1.}, {false, 1.04, true, .7}, {false, 1., true, .7}, {false, 1., false, 0.},
+        {true, 1., false, 1.}, {true, .96, true, .7}, {true, 1.04, true, 1.}, {true, 1., true, 1.}, {true, 1., true, 0.},
+        {true, .96, false, 1.}, {true, 1.04, false, .7}}));
     CAPTURE(open, pedestal_height, contoured, top_flow);
     auto settings = config("default");
     settings.set_deserialize_strict({{"layer_change_gcode", "G92 E0\n"}, {"layer_height", .1}, {"initial_layer_print_height", .1},
@@ -3206,6 +3290,70 @@ TEST_CASE("Organic model footing follows printed shells and infill", "[TreeSuppo
         (open && !final_height_gap && top_flow == 0.));
 }
 
+TEST_CASE("Organic support follows a flow ratio only across zero", "[TreeSupport][Organic][Material][Regression]")
+{
+    // The footing of the trees asks only whether a path delivers material: calibrating a flow leaves the support as it is.
+    const std::string key = GENERATE("top_solid_infill_flow_ratio", "bottom_solid_infill_flow_ratio", "outer_wall_flow_ratio",
+        "inner_wall_flow_ratio", "overhang_flow_ratio", "sparse_infill_flow_ratio", "internal_solid_infill_flow_ratio",
+        "gap_fill_flow_ratio", "scarf_joint_flow_ratio", "support_flow_ratio", "support_interface_flow_ratio", "first_layer_flow_ratio");
+    CAPTURE(key);
+    auto settings = organic_tdd::config("default");
+    settings.set_deserialize_strict({{"support_on_build_plate_only", 0}, {"layer_height", .1}, {"initial_layer_print_height", .1}, {key, 1.}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(8., 8., 1.)}, print, model, settings, nullptr, false);
+    print.process();
+    const auto kept_at = [&](const double ratio) {
+        settings.set_deserialize_strict({{key, ratio}});
+        print.apply(model, settings);
+        const bool kept = print.get_object(0)->is_step_done(posSupportMaterial);
+        print.process();
+        return kept;
+    };
+    CHECK(kept_at(.97));
+    CHECK_FALSE(kept_at(0.));
+    CHECK_FALSE(kept_at(.5));
+}
+
+TEST_CASE("Organic support follows the shape of a seam slope only where the slope delivers nothing", "[TreeSupport][Organic][Material][Regression]")
+{
+    const double start_flow = GENERATE(0., 1.);
+    const auto [key, value] = GENERATE(table<const char *, const char *>({{"seam_slope_min_length", "30"}, {"seam_slope_steps", "5"},
+        {"seam_slope_conditional", "0"}, {"scarf_angle_threshold", "100"}, {"seam_slope_type", "none"}}));
+    CAPTURE(start_flow, key);
+    auto settings = organic_tdd::config("default");
+    settings.set_deserialize_strict({{"support_on_build_plate_only", 0}, {"layer_height", .1}, {"initial_layer_print_height", .1},
+        {"seam_slope_type", "all"}, {"seam_slope_conditional", 1}, {"seam_slope_min_length", 20.}, {"seam_slope_steps", 10},
+        {"scarf_angle_threshold", 155}, {"scarf_joint_flow_ratio", start_flow}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(8., 8., 1.)}, print, model, settings, nullptr, false);
+    print.process();
+    settings.set_deserialize_strict({{key, value}});
+    print.apply(model, settings);
+    CHECK(print.get_object(0)->is_step_done(posSupportMaterial) == (start_flow != 0.));
+}
+
+TEST_CASE("Organic support ignores a custom G-code mode that moves no tool", "[TreeSupport][Organic][Material][Regression]")
+{
+    auto settings = multifilament_config(2, {{"filament_map_mode", "Manual"}, {"filament_map", "1,2"}, {"layer_height", .1},
+        {"initial_layer_print_height", .1}, {"enable_support", 1}, {"support_type", "tree(auto)"}, {"support_style", "organic"},
+        {"support_on_build_plate_only", 0}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(8., 8., 1.)}, print, model, settings, nullptr, false);
+    auto &codes = model.plates_custom_gcodes[model.curr_plate_index];
+    codes.mode = CustomGCode::MultiExtruder;
+    codes.gcodes = {{.5, CustomGCode::ColorChange, 2, {}, {}}};
+    print.apply(model, settings);
+    print.process();
+    print.apply(model, settings);
+    REQUIRE(print.get_object(0)->is_step_done(posSupportMaterial));
+    codes.mode = CustomGCode::MultiAsSingle;
+    print.apply(model, settings);
+    CHECK(print.get_object(0)->is_step_done(posSupportMaterial));
+}
+
 TEST_CASE("Organic model footing holds trees at the bottom Z distance they round to", "[TreeSupport][Organic][Material][Regression]")
 {
     using namespace organic_tdd;
@@ -3245,10 +3393,8 @@ TEST_CASE("Organic model footing holds trees at the bottom Z distance they round
     CHECK(std::any_of(object.support_layers().begin(), object.support_layers().end(), [](const SupportLayer *layer) {
         return layer->print_z < .96 + .5 && ! layer->support_fills.empty();
     }));
-    // Known defect: a line of the lowest roof layer running along the gap between two bodies, which keep a line and a
-    // half apart under a roof, passes over neither. Reported, not failed, until the bodies close such a gap.
-    CHECK_NOFAIL(floating_support_islands(object, scaled<double>(1.) * params.support_material_flow.scaled_width()).empty());
-    CHECK_NOFAIL(object.step_state_with_warnings(posSupportMaterial).warnings.empty());
+    CHECK(floating_support_islands(object, scaled<double>(1.) * params.support_material_flow.scaled_width()).empty());
+    CHECK(object.step_state_with_warnings(posSupportMaterial).warnings.empty());
 }
 
 TEST_CASE("Organic model footing uses the printed height of contoured segments", "[TreeSupport][Organic][Material][Regression]")
@@ -3295,6 +3441,42 @@ TEST_CASE("Organic model footing uses the printed height of contoured segments",
     CHECK(floating_support_islands(object, 0.).size() == unsupported);
     CHECK(remove_floating_support_crumbs(object, .1 * scaled<double>(1.) * scaled<double>(1.)) == unsupported);
     CHECK(floating_support_islands(object, 0.).empty());
+}
+
+TEST_CASE("Organic model footing rounds a bottom Z distance of half layers as the trees do", "[TreeSupport][Organic][Material][Regression]")
+{
+    using namespace organic_tdd;
+    // One and a half layers: the trees, rounding the scaled values, make it two and end two layers over the model. A part
+    // three layers over it stands on nothing.
+    const auto sample = GENERATE(std::make_pair(.2, .3), std::make_pair(.1, .15));
+    const double layer = sample.first;
+    const int layers_over_model = GENERATE(2, 3);
+    CAPTURE(layer, sample.second, layers_over_model);
+    auto settings = config("default");
+    settings.set_deserialize_strict({{"layer_height", layer}, {"initial_layer_print_height", layer},
+        {"support_on_build_plate_only", 0}, {"support_bottom_z_distance", sample.second}, {"independent_support_layer_height", 1}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(10., 2., 1.)}, print, model, settings, nullptr, false);
+    print.process();
+    PrintObject &object = *print.get_object(0);
+    for (Layer *model_layer : object.layers())
+        for (LayerRegion *region : model_layer->regions()) {
+            region->perimeters.clear();
+            region->fills.clear();
+        }
+    Layer &model_layer = *object.layers().front();
+    const Flow model_flow(.22f, .1f, .2f), support_flow(.04f, .1f, .2f);
+    ExtrusionPath path(erExternalPerimeter, model_flow.mm3_per_mm(), model_flow.width(), model_flow.height());
+    path.polyline.points.emplace_back(scale_(0.), 0., 0.);
+    path.polyline.points.emplace_back(scale_(8.), 0., 0.);
+    model_layer.regions().front()->perimeters.entities.push_back(new ExtrusionPath(std::move(path)));
+    object.clear_support_layers();
+    SupportLayer &support = *object.add_support_layer(0, 0, layer, model_layer.print_z + (layers_over_model + 1) * layer);
+    extrusion_entities_append_paths(support.support_fills.entities,
+        Polylines{Polyline({Point::new_scale(2., 0.), Point::new_scale(2.04, 0.)})},
+        erSupportMaterial, support_flow.mm3_per_mm(), support_flow.width(), support_flow.height());
+    CHECK(floating_support_islands(object, 0.).empty() == (layers_over_model == 2));
 }
 
 TEST_CASE("Organic model footing excludes paths with zero effective role flow", "[TreeSupport][Organic][Material][Regression]")
@@ -3462,7 +3644,7 @@ TEST_CASE("Model role flow changes refresh only Organic support with model roots
     REQUIRE(print.get_object(0)->is_step_done(posSupportMaterial));
     const bool organic = std::string(mode.first) == "tree(auto)" &&
         (std::string(mode.second) == "organic" || std::string(mode.second) == "default");
-    for (double flow : {.7, 0., 1.}) {
+    for (double flow : {0., 1.}) {
         settings.set_deserialize_strict({{"top_solid_infill_flow_ratio", flow}});
         print.apply(model, settings);
         CHECK(print.get_object(0)->is_step_done(posSupportMaterial) == !(organic && !bed_only));
@@ -3767,6 +3949,99 @@ TEST_CASE("Organic warnings detect beads hanging beside a rooted body", "[TreeSu
     CHECK(upper.support_fills.entities.size() == paths);
 }
 
+TEST_CASE("Organic warnings judge a bead printed in several paths as a whole", "[TreeSupport][Organic][Material][Regression]")
+{
+    // 0: a long end hanging in the air, each of its paths shorter than the bead is wide. 1 and 2: a bridge of 0.5 mm, within
+    // the 0.65 mm the support may span, with a path ending in the middle of it, of an open bead and of a loop. 3 and 4: a
+    // narrow end hanging 0.24 mm past what its own width reaches, whether the far end of the bead is wide or as narrow.
+    // 5, 6 and 7: a bridge of 0.76 mm across the seam of a bead closed on itself, past the 0.65 mm the support may span, with
+    // paths of two widths and ends 0.1 mm apart, of one width, and with ends that meet.
+    const int shape = GENERATE(0, 1, 2, 3, 4, 5, 6, 7);
+    CAPTURE(shape);
+    auto settings = organic_tdd::config("default");
+    settings.set_deserialize_strict({{"layer_height", .1}, {"initial_layer_print_height", .1}, {"support_on_build_plate_only", 1}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, settings, nullptr, false);
+    print.process();
+    PrintObject &object = *print.get_object(0);
+    object.clear_support_layers();
+    const auto point = [&](double x, double y) -> Point { return Point::new_scale(x, y) - object.center_offset(); };
+    const Flow flow(.4f, .2f, .2f);
+    const auto bead = [&](const std::vector<Vec2d> &points, const float width = .4f) {
+        ExtrusionPath path(erSupportMaterial, flow.mm3_per_mm(), width, flow.height());
+        for (const Vec2d &p : points) {
+            const Point at = point(p.x(), p.y());
+            path.polyline.points.emplace_back(double(at.x()), double(at.y()), 0.);
+        }
+        return path;
+    };
+    const auto add = [&](SupportLayer &layer, const Polyline &axis) {
+        extrusion_entities_append_paths(layer.support_fills.entities, Polylines{axis}, erSupportMaterial,
+            flow.mm3_per_mm(), flow.width(), flow.height());
+    };
+    SupportLayer &lower = *object.add_support_layer(0, 0, .2, .2);
+    SupportLayer &upper = *object.add_support_layer(1, 1, .2, .4);
+    if (shape == 0) {
+        add(lower, Polyline({point(0., 0.), point(1., 0.)}));
+        auto *multi = new ExtrusionMultiPath();
+        multi->paths.push_back(bead({Vec2d(0., 0.), Vec2d(1., 0.)}));
+        for (double x = 1.; x < 2.9; x += .3)
+            multi->paths.push_back(bead({Vec2d(x, 0.), Vec2d(x + .3, 0.)}));
+        upper.support_fills.entities.push_back(multi);
+    } else if (shape == 1) {
+        // The bearings reach 0.41 mm past the ends of the beads below.
+        add(lower, Polyline({point(0., 0.), point(1.34, 0.)}));
+        add(lower, Polyline({point(2.66, 0.), point(4., 0.)}));
+        auto *multi = new ExtrusionMultiPath();
+        multi->paths.push_back(bead({Vec2d(0., 0.), Vec2d(2.2, 0.)}));
+        multi->paths.push_back(bead({Vec2d(2.2, 0.), Vec2d(4., 0.)}));
+        upper.support_fills.entities.push_back(multi);
+    } else if (shape >= 5) {
+        add(lower, Polyline({point(2.7902, 0.), point(4., 0.), point(4., 1.), point(0., 1.), point(0., 0.), point(1.2598, 0.)}));
+        auto *multi = new ExtrusionMultiPath();
+        multi->paths.push_back(bead({Vec2d(2., 0.), Vec2d(4., 0.)}));
+        multi->paths.push_back(bead({Vec2d(4., 0.), Vec2d(4., 1.), Vec2d(0., 1.), Vec2d(0., 0.), Vec2d(shape == 7 ? 2. : 1.9, 0.)}, shape == 6 ? .4f : .3f));
+        upper.support_fills.entities.push_back(multi);
+    } else if (shape >= 3) {
+        add(lower, Polyline({point(0., 0.), point(4., 0.)}));
+        auto *multi = new ExtrusionMultiPath();
+        multi->paths.push_back(bead({Vec2d(0., 0.), Vec2d(1., 0.)}, shape == 3 ? .8f : .2f));
+        multi->paths.push_back(bead({Vec2d(1., 0.), Vec2d(4., 0.), Vec2d(4., .55)}, .2f));
+        upper.support_fills.entities.push_back(multi);
+    } else {
+        add(lower, Polyline({point(2.66, 0.), point(4., 0.), point(4., 1.), point(0., 1.), point(0., 0.), point(1.34, 0.)}));
+        auto *loop = new ExtrusionLoop();
+        loop->paths.push_back(bead({Vec2d(0., 0.), Vec2d(2.2, 0.)}));
+        loop->paths.push_back(bead({Vec2d(2.2, 0.), Vec2d(4., 0.), Vec2d(4., 1.), Vec2d(0., 1.), Vec2d(0., 0.)}));
+        upper.support_fills.entities.push_back(loop);
+    }
+    CHECK(floating_support_islands(object, scale_(1.) * scale_(flow.width())).empty() == (shape == 1 || shape == 2));
+}
+
+TEST_CASE("Organic warning and cleanup passes stop when the slicing is cancelled", "[TreeSupport][Organic][Regression]")
+{
+    auto settings = organic_tdd::config("default");
+    settings.set_deserialize_strict({{"layer_height", .1}, {"initial_layer_print_height", .1},
+        {"support_on_build_plate_only", 0}, {"scarf_joint_flow_ratio", 0.}, {"seam_slope_type", "all"}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, settings, nullptr, false);
+    print.process();
+    PrintObject &object = *print.get_object(0);
+    object.clear_support_layers();
+    const Flow flow(.4f, .2f, .2f);
+    extrusion_entities_append_paths(object.add_support_layer(0, 0, .2, .2)->support_fills.entities,
+        Polylines{Polyline({Point::new_scale(0., 0.), Point::new_scale(1., 0.)})}, erSupportMaterial,
+        flow.mm3_per_mm(), flow.width(), flow.height());
+    OrganicScarfFooting footing(print);
+    REQUIRE_FALSE(footing.empty());
+    print.cancel();
+    CHECK_THROWS_AS(floating_support_islands(object, 0.), CanceledException);
+    CHECK_THROWS_AS(remove_floating_support_crumbs(object, 0.), CanceledException);
+    CHECK_THROWS_AS(footing.update_warnings(), CanceledException);
+}
+
 TEST_CASE("Organic cleanup trims unloaded returning walls while retaining their rooted body and contacts", "[TreeSupport][Organic][Material][Regression]")
 {
     const int load = GENERATE(0, 1, 2); // unloaded, interface, model contact
@@ -3948,7 +4223,8 @@ TEST_CASE("Organic Scarf footing diagnostics count the gap fill the trees stand 
 {
     // Ribs under a roof, too narrow for a second wall inside the first, which leaves gap fill there instead, and too close
     // together for a tree to pass. With zero Scarf flow over whole loops the walls deliver nothing: the trees stand on the
-    // gap fill.
+    // gap fill. The walls leave 0.62 mm over nothing between two strips of it, so the support beads are wide enough to reach
+    // a strip from anywhere between them: a narrower bead ending there would hang.
     const double gap_fill_flow = GENERATE(0., 1.);
     CAPTURE(gap_fill_flow);
     auto settings = organic_tdd::config("default");
@@ -3956,8 +4232,9 @@ TEST_CASE("Organic Scarf footing diagnostics count the gap fill the trees stand 
         {"support_on_build_plate_only", 0}, {"support_bottom_z_distance", .1}, {"support_top_z_distance", .1},
         {"support_interface_bottom_layers", 2}, {"support_bottom_interface_spacing", 0.},
         {"top_shell_layers", 0}, {"top_shell_thickness", 0.}, {"bottom_shell_layers", 1}, {"bottom_shell_thickness", 0.},
-        {"wall_loops", 2}, {"wall_generator", "classic"}, {"sparse_infill_density", 0}, {"tree_support_tip_diameter", .4},
-        {"tree_support_branch_diameter_organic", 1.}, {"tree_support_branch_diameter_angle", 0},
+        {"wall_loops", 2}, {"wall_generator", "classic"}, {"sparse_infill_density", 0}, {"tree_support_tip_diameter", .7},
+        {"tree_support_branch_diameter_organic", 1.4}, {"tree_support_branch_diameter_angle", 0},
+        {"support_line_width", .7},
         {"seam_slope_type", "all"}, {"seam_slope_entire_loop", 1}, {"seam_slope_conditional", 0},
         {"seam_slope_inner_walls", 1}, {"scarf_joint_flow_ratio", 0.}, {"set_other_flow_ratios", 1},
         {"gap_fill_flow_ratio", gap_fill_flow}, {"internal_solid_infill_flow_ratio", 0.},
@@ -3990,7 +4267,99 @@ TEST_CASE("Organic Scarf footing diagnostics count the gap fill the trees stand 
             move.position.z() >= 1. - EPSILON && move.position.z() <= 1.1 + EPSILON)
             gap_fill = true;
     REQUIRE(gap_fill == (gap_fill_flow > 0.));
-    CHECK(organic_support_warning_statuses(print).empty() == gap_fill);
+    // Whether the layer over the ribs, at their 1 mm plus the 0.1 mm gap and the 0.1 mm layer, stands on them. Beads of the
+    // trees higher up may hang by themselves.
+    const auto warnings = organic_support_warning_statuses(print);
+    const bool floats_over_ribs = ! warnings.empty() && warnings.front().text.find("1.2") != std::string::npos;
+    CHECK(floats_over_ribs != gap_fill);
+}
+
+TEST_CASE("Organic Scarf footing update keeps the warning of a hanging run", "[TreeSupport][Organic][Material][Regression]")
+{
+    // A bead of the upper layer leaves the line below it, runs 2 mm over nothing and returns beside itself, so the layer
+    // stays one rooted island. Recomputing the warning from the footing recorded for the exported Scarf seams has to find
+    // the run as the check after slicing does.
+    auto settings = organic_tdd::config("default");
+    settings.set_deserialize_strict({{"layer_height", .1}, {"initial_layer_print_height", .1},
+        {"support_on_build_plate_only", 0}, {"scarf_joint_flow_ratio", 0.}, {"seam_slope_type", "all"}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, settings, nullptr, false);
+    print.process();
+    PrintObject &object = *print.get_object(0);
+    object.clear_support_layers();
+    const auto point = [&](double x, double y) -> Point { return Point::new_scale(x, y) - object.center_offset(); };
+    const Flow flow(.4f, .2f, .2f);
+    const auto add = [&](SupportLayer &layer, const Polyline &axis) {
+        extrusion_entities_append_paths(layer.support_fills.entities, Polylines{axis}, erSupportMaterial,
+            flow.mm3_per_mm(), flow.width(), flow.height());
+    };
+    add(*object.add_support_layer(0, 0, .2, .2), Polyline({point(0., 0.), point(4., 0.)}));
+    add(*object.add_support_layer(1, 1, .2, .4),
+        Polyline({point(0., 0.), point(2., 0.), point(2., 2.), point(2.1, 2.), point(2.1, 0.), point(4., 0.)}));
+    REQUIRE_FALSE(floating_support_islands(object, 0.).empty());
+    OrganicScarfFooting footing(print);
+    REQUIRE_FALSE(footing.empty());
+    footing.update_warnings();
+    CHECK_FALSE(organic_support_warning_statuses(print).empty());
+}
+
+TEST_CASE("Organic Scarf footing update takes a sliver for no island", "[TreeSupport][Organic][Material][Regression]")
+{
+    // Far narrower and shorter than a support line, the first is no bead but a piece the union of the beads leaves apart.
+    const bool sliver = GENERATE(false, true);
+    CAPTURE(sliver);
+    auto settings = organic_tdd::config("default");
+    settings.set_deserialize_strict({{"layer_height", .1}, {"initial_layer_print_height", .1},
+        {"support_on_build_plate_only", 0}, {"scarf_joint_flow_ratio", 0.}, {"seam_slope_type", "all"}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, settings, nullptr, false);
+    print.process();
+    PrintObject &object = *print.get_object(0);
+    object.clear_support_layers();
+    const Flow flow(sliver ? .04f : .22f, .02f, .2f);
+    extrusion_entities_append_paths(object.add_support_layer(0, 0, .2, .4)->support_fills.entities,
+        Polylines{Polyline({Point::new_scale(10., 10.), Point::new_scale(sliver ? 10.04 : 11., 10.)})}, erSupportMaterial,
+        flow.mm3_per_mm(), flow.width(), flow.height());
+    OrganicScarfFooting footing(print);
+    REQUIRE_FALSE(footing.empty());
+    footing.update_warnings();
+    CHECK(organic_support_warning_statuses(print).empty() == sliver);
+}
+
+TEST_CASE("Organic support is generated again when another object changes the extruder of the tops", "[TreeSupport][Organic][Material][Regression]")
+{
+    // The tool changes of a plate override the extruder of the only object extruder there is, which removing or adding an
+    // object of another extruder changes. Trees on the build plate only stand on no top, whichever extruder prints it.
+    const bool adding = GENERATE(false, true);
+    const bool plate_only = GENERATE(false, true);
+    CAPTURE(adding, plate_only);
+    auto settings = multifilament_config(2, {{"layer_change_gcode", "G92 E0\n"}, {"layer_height", .1}, {"initial_layer_print_height", .1},
+        {"line_width", .22}, {"enable_support", 1}, {"support_type", "tree(auto)"}, {"support_style", "organic"},
+        {"support_on_build_plate_only", plate_only}});
+    size_flush_to_nozzles(settings);
+    Model model;
+    Print print;
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides{{}, {{"extruder", 2}}};
+    std::vector<TriangleMesh> meshes{make_cube(8., 8., 1.)};
+    if (!adding)
+        meshes.push_back(make_cube(8., 8., 1.));
+    init_print(std::move(meshes), print, model, settings, &overrides, true);
+    auto &codes = model.plates_custom_gcodes[model.curr_plate_index];
+    codes.mode = CustomGCode::MultiAsSingle;
+    codes.gcodes = {{.5, CustomGCode::ToolChange, 2, {}, {}}};
+    print.apply(model, settings);
+    REQUIRE(print.has_custom_tool_overrides() == adding);
+    print.process();
+    REQUIRE(print.get_object(0)->is_step_done(posSupportMaterial));
+    if (adding)
+        model.add_object(*model.objects.front())->config.set_key_value("extruder", new ConfigOptionInt(2));
+    else
+        model.delete_object(size_t(1));
+    print.apply(model, settings);
+    REQUIRE(print.has_custom_tool_overrides() != adding);
+    CHECK(print.get_object(0)->is_step_done(posSupportMaterial) == plate_only);
 }
 
 TEST_CASE("Organic warnings follow the material selected by the final layer plan", "[TreeSupport][Organic][Material][Regression]")

@@ -1772,10 +1772,13 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         //BBS: replace model custom gcode with current plate custom gcode
         m_model.curr_plate_index = model.curr_plate_index;
         if (m_model.get_curr_plate_custom_gcodes() != model.get_curr_plate_custom_gcodes()) {
+            const auto &new_custom_gcodes = model.get_curr_plate_custom_gcodes();
+            // The mode decides how the tool changes are read: without any, it moves no tool.
             const bool organic_tool_changes_changed =
-                m_model.get_curr_plate_custom_gcodes().mode != model.get_curr_plate_custom_gcodes().mode ||
-                custom_per_printz_gcodes_tool_changes_differ(m_model.get_curr_plate_custom_gcodes().gcodes,
-                    model.get_curr_plate_custom_gcodes().gcodes);
+                custom_per_printz_gcodes_tool_changes_differ(m_model.get_curr_plate_custom_gcodes().gcodes, new_custom_gcodes.gcodes) ||
+                (m_model.get_curr_plate_custom_gcodes().mode != new_custom_gcodes.mode &&
+                 std::any_of(new_custom_gcodes.gcodes.begin(), new_custom_gcodes.gcodes.end(),
+                     [](const CustomGCode::Item &item) { return item.type == CustomGCode::ToolChange; }));
             // Early Organic cleanup must retain possible material while layer tool overrides are unresolved.
             if (num_extruders > 1 && m_config.print_sequence != PrintSequence::ByObject && organic_tool_changes_changed)
                 for (PrintObject *object : m_objects) {

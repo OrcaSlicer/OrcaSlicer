@@ -4085,7 +4085,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                         last = diagnostic_ordering.last_extruder();
                     }
                     if (organic_support_needs_final_check(object))
-                        append(organic_support_heights[&object], floating_support_islands(object, 0., diagnostic_ordering));
+                        append(organic_support_heights[&object], floating_support_islands(object, organic_sliver_area(object), diagnostic_ordering));
                     previous = &object;
                 }
             } else {
@@ -4104,7 +4104,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 }
                 for (const PrintObject *object : m_objects)
                     if (organic_support_needs_final_check(*object))
-                        organic_support_heights[object] = floating_support_islands(*object, 0., tool_ordering, nozzle_layers);
+                        organic_support_heights[object] = floating_support_islands(*object, organic_sliver_area(*object), tool_ordering, nozzle_layers);
             }
         }
         for (PrintObject *object : m_objects) {

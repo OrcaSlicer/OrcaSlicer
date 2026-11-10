@@ -476,8 +476,12 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
         [this](size_t i, size_t j) { return m_layer_outlines[i].second.size() < m_layer_outlines[j].second.size(); });
 
     // Layer range for which the collisions will be calculated.
+    // Another thread may have calculated past the requested layer since the cache miss of the caller.
+    const LayerIndex first_layer = m_collision_cache.getMaxCalculatedLayer(radius) + 1;
+    if (first_layer > max_layer_idx + 1)
+        return;
     LayerPolygonCache           data;
-    data.allocate(m_collision_cache.getMaxCalculatedLayer(radius) + 1, max_layer_idx + 1);
+    data.allocate(first_layer, max_layer_idx + 1);
 
     const bool                  calculate_placable = m_support_rests_on_model && radius == 0;
     LayerPolygonCache           data_placeable;
@@ -489,8 +493,8 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
         if (const std::vector<Polygons> &outlines = m_layer_outlines[outline_idx].second; ! outlines.empty()) {
             const TreeSupportMeshGroupSettings  &settings = m_layer_outlines[outline_idx].first;
             const coord_t       layer_height              = settings.layer_height;
-            const int           z_distance_bottom_layers  = int(round(double(settings.support_bottom_distance) / double(layer_height)));
-            const int           z_distance_top_layers     = int(round(double(settings.support_top_distance) / double(layer_height)));
+            const int           z_distance_bottom_layers  = z_distance_in_layers(settings.support_bottom_distance, layer_height);
+            const int           z_distance_top_layers     = z_distance_in_layers(settings.support_top_distance, layer_height);
             const coord_t       xy_distance               = outline_idx == m_current_outline_idx ? m_current_min_xy_dist : 
                 // technically this causes collision for the normal xy_distance to be larger by m_current_min_xy_dist_delta for all 
                 // not currently processing meshes as this delta will be added at request time.
@@ -860,6 +864,8 @@ void TreeModelVolumes::calculateWallRestrictions(const std::vector<RadiusLayerPa
             const coord_t    radius             = keys[key_idx].first;
             const LayerIndex max_required_layer = keys[key_idx].second;
             const coord_t    min_layer_bottom   = std::max(1, m_wall_restrictions_cache.getMaxCalculatedLayer(radius));
+            if (max_required_layer < min_layer_bottom)
+                continue; // Already calculated, possibly by another thread.
             const size_t     buffer_size        = max_required_layer + 1 - min_layer_bottom;
             std::vector<Polygons> data(buffer_size, Polygons{});
             std::vector<Polygons> data_min;
