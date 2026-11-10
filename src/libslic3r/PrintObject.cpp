@@ -5186,24 +5186,18 @@ void PrintObject::discover_sub_top_surfaces()
                     for (LayerRegion* lowerm : lower->m_regions) {
                         Surfaces new_lower_surfaces;
                         ExPolygons crop_mask_lower = lowerm->fill_no_overlap_expolygons;
+                        ExPolygons slab = offset_ex((j <= top_shell_layers) ? walls_solid : diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), base_width / 3 * j);
                         for (Surface& lower_surface : lowerm->fill_surfaces.surfaces) {
-                            if (j <= top_shell_layers) {
-                                surfaces_append(new_lower_surfaces, diff_ex(lower_surface.expolygon, walls_solid, ApplySafetyOffset::Yes), lower_surface.surface_type);
-                                surfaces_append(new_lower_surfaces, intersection_ex(walls_solid, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
-                            } else {
-                                ExPolygons wall_stone = diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes);
-                                surfaces_append(new_lower_surfaces, diff_ex(lower_surface.expolygon, wall_stone, ApplySafetyOffset::Yes), lower_surface.surface_type);
-                                surfaces_append(new_lower_surfaces, intersection_ex(wall_stone, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
-                            }
+                            surfaces_append(new_lower_surfaces, diff_ex(lower_surface.expolygon, slab, ApplySafetyOffset::Yes), lower_surface.surface_type);
+                            surfaces_append(new_lower_surfaces, intersection_ex(slab, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
                         }
-                        lowerm->fill_surfaces.clear();
-                        lowerm->fill_surfaces.append(new_lower_surfaces);
+                        lowerm->fill_surfaces.surfaces.clear();
+                        surfaces_append(lowerm->fill_surfaces.surfaces, new_lower_surfaces);
                     }
-                    walls_solid = offset_ex(walls_solid, base_width / 2);
                 }
             }
-            layerm->fill_surfaces.clear();
-            layerm->fill_surfaces.append(new_surfaces);
+            layerm->fill_surfaces.surfaces.clear();
+            surfaces_append(layerm->fill_surfaces.surfaces, new_surfaces);
         }
     };
 
