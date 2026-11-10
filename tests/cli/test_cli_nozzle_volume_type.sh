@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# End-to-end check that the CLI writes one nozzle_volume_type per nozzle into an exported project, as the
-# GUI does, so that reopening the export in the CLI keeps the flush matrix it carries instead of
-# recomputing it for a changed set of volume types.
+# End-to-end check that the CLI slices with, and exports, one nozzle_volume_type per nozzle, as the GUI
+# does: the command-line value, else the project's own types, else the printer's defaults. Reopening an
+# export whose types are unchanged keeps the flush matrix it carries instead of recomputing it.
 #
-# usage: test_cli_nozzle_volume_type.sh <orca-slicer binary> <python3> <resources/profiles/BBL>
+# usage: test_cli_nozzle_volume_type.sh <orca-slicer binary> <python3> <resources/profiles>
 set -u
 
 BIN="${1:-}"
@@ -31,6 +31,51 @@ with open(sys.argv[1], "w") as f:
     f.write("endsolid cube\n")
 EOF2
 
+# project.py author <src> <dst> [types]: set the flush volume from filament 1 to 2 of every nozzle block to
+#   777 and, given a comma-separated list, replace the project's nozzle_volume_type with it.
+# project.py check <tag> <3mf> <types> [authored]: the export names these types and, if authored, still
+#   carries the 777 of every nozzle block.
+cat > "$WORK/project.py" <<'EOF2'
+import json, sys, zipfile
+
+def flush_cells(config):
+    matrix = config["flush_volumes_matrix"]
+    nozzles = len(config["nozzle_diameter"])
+    block = len(matrix) // nozzles
+    return matrix, [nozzle * block + 1 for nozzle in range(nozzles)]
+
+if sys.argv[1] == "author":
+    src, dst = sys.argv[2], sys.argv[3]
+    with zipfile.ZipFile(src) as zin, zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as zout:
+        for item in zin.infolist():
+            data = zin.read(item.filename)
+            if item.filename == "Metadata/project_settings.config":
+                config = json.loads(data)
+                matrix, cells = flush_cells(config)
+                for cell in cells:
+                    matrix[cell] = "777"
+                if len(sys.argv) > 4:
+                    config["nozzle_volume_type"] = sys.argv[4].split(",")
+                data = json.dumps(config, indent=4)
+            zout.writestr(item, data)
+    sys.exit(0)
+
+tag, path, expected = sys.argv[2], sys.argv[3], sys.argv[4].split(",")
+with zipfile.ZipFile(path) as z:
+    config = json.loads(z.read("Metadata/project_settings.config"))
+errors = []
+if config.get("nozzle_volume_type") != expected:
+    errors.append("nozzle_volume_type is %s, expected %s" % (config.get("nozzle_volume_type"), expected))
+if len(sys.argv) > 5:
+    matrix, cells = flush_cells(config)
+    for nozzle, cell in enumerate(cells):
+        if float(matrix[cell]) != 777:
+            errors.append("the authored flush volume of nozzle %d was recomputed: %s" % (nozzle + 1, matrix[cell]))
+for e in errors:
+    print("FAIL: %s: %s" % (tag, e))
+sys.exit(1 if errors else 0)
+EOF2
+
 # slice <tag> <input> [option...]: slice into $WORK/<tag>/out.3mf with a fresh data directory.
 slice() {
     local out="$WORK/$1" input="$2"; shift 2
@@ -39,59 +84,43 @@ slice() {
         > "$out/log" 2>&1 || { echo "FAIL: $1: orca-slicer exited $?"; tail -n 40 "$out/log"; exit 1; }
 }
 
-# A two-nozzle printer with two filaments.
-slice base "$WORK/cube.stl" \
-    --load-settings "$PROFILES/machine/Bambu Lab H2D 0.4 nozzle.json;$PROFILES/process/0.20mm Standard @BBL H2D.json" \
-    --load-filaments "$PROFILES/filament/Bambu PLA Basic @BBL H2D.json;$PROFILES/filament/Bambu PLA Basic @BBL H2D.json"
+failed=0
+check() {
+    "$PY" "$WORK/project.py" check "$@" || failed=1
+}
 
-# The export names a volume type per nozzle. Then give the project a flush matrix of its own.
-"$PY" - "$WORK/base/out.3mf" "$WORK/authored.3mf" <<'EOF2' || exit $?
-import json, sys, zipfile
+BBL="$PROFILES/BBL"
+H2D=(--load-settings "$BBL/machine/Bambu Lab H2D 0.4 nozzle.json;$BBL/process/0.20mm Standard @BBL H2D.json"
+     --load-filaments "$BBL/filament/Bambu PLA Basic @BBL H2D.json;$BBL/filament/Bambu PLA Basic @BBL H2D.json")
 
-src, dst = sys.argv[1], sys.argv[2]
-with zipfile.ZipFile(src) as zin, zipfile.ZipFile(dst, "w", zipfile.ZIP_DEFLATED) as zout:
-    for item in zin.infolist():
-        data = zin.read(item.filename)
-        if item.filename == "Metadata/project_settings.config":
-            config = json.loads(data)
-            nozzles = len(config["nozzle_diameter"])
-            if nozzles != 2:
-                print("FAIL: the H2D project does not carry two nozzles")
-                sys.exit(1)
-            if len(config.get("nozzle_volume_type", [])) != nozzles:
-                print("FAIL: nozzle_volume_type has %d entries for %d nozzles: %s" % (len(config.get("nozzle_volume_type", [])), nozzles, config.get("nozzle_volume_type")))
-                sys.exit(1)
-            matrix = config["flush_volumes_matrix"]
-            block = len(matrix) // nozzles
-            if block * nozzles != len(matrix) or block < 4:
-                print("FAIL: flush_volumes_matrix has %d entries for %d nozzles" % (len(matrix), nozzles))
-                sys.exit(1)
-            # One authored cell per nozzle block: filament 1 -> 2.
-            for nozzle in range(nozzles):
-                matrix[nozzle * block + 1] = "777"
-            config["flush_volumes_matrix"] = matrix
-            data = json.dumps(config, indent=4)
-        zout.writestr(item, data)
-EOF2
+# A two-nozzle printer with two filaments takes the printer's default per nozzle.
+slice base "$WORK/cube.stl" "${H2D[@]}"
+check base "$WORK/base/out.3mf" "Standard,Standard"
 
-slice reopened "$WORK/authored.3mf"
+# Printer defaults other than Standard.
+PRUSA="$PROFILES/Prusa"
+slice defaults "$WORK/cube.stl" \
+    --load-settings "$PRUSA/machine/Prusa CORE One INDX 4T HF 0.4 nozzle.json;$PRUSA/process/0.20mm Balanced @Prusa CORE One INDX HF 0.4.json" \
+    --load-filaments "$PRUSA/filament/Generic PLA @Prusa CORE One INDX.json;$PRUSA/filament/Generic PLA @Prusa CORE One INDX.json"
+check defaults "$WORK/defaults/out.3mf" "High Flow,High Flow,High Flow,High Flow"
 
-"$PY" - "$WORK/reopened/out.3mf" <<'EOF2' || { tail -n 40 "$WORK/reopened/log"; exit 1; }
-import json, sys, zipfile
+# A command-line value naming fewer nozzles than the printer has applies its first entry to the rest.
+slice command_line "$WORK/cube.stl" "${H2D[@]}" --nozzle-volume-type "High Flow"
+check command_line "$WORK/command_line/out.3mf" "High Flow,High Flow"
 
-with zipfile.ZipFile(sys.argv[1]) as z:
-    config = json.loads(z.read("Metadata/project_settings.config"))
-nozzles = len(config["nozzle_diameter"])
-errors = []
-if len(config.get("nozzle_volume_type", [])) != nozzles:
-    errors.append("nozzle_volume_type has %d entries for %d nozzles after the reopen" % (len(config.get("nozzle_volume_type", [])), nozzles))
-matrix = config["flush_volumes_matrix"]
-block = len(matrix) // nozzles
-for nozzle in range(nozzles):
-    if float(matrix[nozzle * block + 1]) != 777:
-        errors.append("the authored flush volume of nozzle %d was recomputed: %s" % (nozzle + 1, matrix[nozzle * 4 + 1]))
-for e in errors:
-    print("FAIL: " + e)
-sys.exit(1 if errors else 0)
-EOF2
+# Reopened with an authored flush matrix, a project keeps it as long as its types stay the same: the types
+# as exported, High Flow ones, fewer than the nozzles (as from a printer whose defaults name one), or more.
+"$PY" "$WORK/project.py" author "$WORK/base/out.3mf" "$WORK/authored.3mf" || exit 1
+"$PY" "$WORK/project.py" author "$WORK/base/out.3mf" "$WORK/high_flow.3mf" "High Flow,High Flow" || exit 1
+"$PY" "$WORK/project.py" author "$WORK/base/out.3mf" "$WORK/short.3mf" "Standard" || exit 1
+"$PY" "$WORK/project.py" author "$WORK/base/out.3mf" "$WORK/long.3mf" "High Flow,High Flow,Standard" || exit 1
+for project in authored high_flow short long; do
+    slice "$project" "$WORK/$project.3mf"
+done
+check authored "$WORK/authored/out.3mf" "Standard,Standard" authored
+check high_flow "$WORK/high_flow/out.3mf" "High Flow,High Flow" authored
+check short "$WORK/short/out.3mf" "Standard,Standard" authored
+check long "$WORK/long/out.3mf" "High Flow,High Flow" authored
+
+[ "$failed" = 0 ] || exit 1
 echo "PASS"

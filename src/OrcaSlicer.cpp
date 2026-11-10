@@ -472,6 +472,20 @@ static PrinterTechnology get_printer_technology(const DynamicConfig &config)
     return (opt == nullptr) ? ptUnknown : opt->value;
 }
 
+// One volume type per nozzle: the project's own types when it names one for every nozzle (extra entries
+// dropped), else the printer's defaults, as the GUI seeds a project.
+static std::vector<NozzleVolumeType> nozzle_volume_types_per_nozzle(const DynamicPrintConfig &config, int nozzle_count)
+{
+    const auto *types = config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    if (types == nullptr || static_cast<int>(types->size()) < nozzle_count)
+        types = config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type");
+    std::vector<NozzleVolumeType> result(nozzle_count, nvtStandard);
+    if (types != nullptr && !types->values.empty())
+        for (int index = 0; index < nozzle_count; index++)
+            result[index] = static_cast<NozzleVolumeType>(types->get_at(index));
+    return result;
+}
+
 //BBS: add flush and exit
 #if defined(__linux__) || defined(__LINUX__)
 #define flush_and_exit(ret)     { boost::nowide::cout << __FUNCTION__ << " found error, return "<<ret<<", exit..." << std::endl;\
@@ -1751,14 +1765,8 @@ int CLI::run(int argc, char **argv)
                     //if (current_is_multi_extruder || (current_printer_variant_count > 1)) {
                         auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(config.option("extruder_type"));
                         auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(config.option("nozzle_volume_type"));
-                        if (opt_nozzle_volume_type) {
-                            int nozzle_volume_type_size = opt_nozzle_volume_type->values.size();
-                            current_nozzle_volume_type.resize(nozzle_volume_type_size, nvtStandard);
-                            for (int i = 0; i < nozzle_volume_type_size; i++)
-                            {
-                                current_nozzle_volume_type[i] = (NozzleVolumeType)(opt_nozzle_volume_type->values[i]);
-                            }
-                        }
+                        // Sized by the rule the new types follow, so types the project keeps compare equal.
+                        current_nozzle_volume_type = nozzle_volume_types_per_nozzle(config, current_extruder_count);
 
                         current_extruder_variants.resize(current_extruder_count, "");
                         for (int e_index = 0; e_index < current_extruder_count; e_index++)
@@ -3330,34 +3338,23 @@ int CLI::run(int argc, char **argv)
     }
 
     //get nozzle_volume_type
-    if(m_extra_config.has("nozzle_volume_type")) {
-        auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(m_extra_config.option("nozzle_volume_type"));
-        if (opt_nozzle_volume_type) {
-            int nozzle_volume_type_size = opt_nozzle_volume_type->values.size();
-            new_nozzle_volume_type.resize(nozzle_volume_type_size, nvtStandard);
-            for (int i = 0; i < nozzle_volume_type_size; i++)
-            {
-                new_nozzle_volume_type[i] = (NozzleVolumeType) (opt_nozzle_volume_type->values[i]);
-            }
-        }
-    }
-    else {
-        // Nothing on the command line: the project's own types when it has one per nozzle, else the
-        // printer's defaults, as the GUI seeds a project.
+    // A value on the command line wins; a nozzle it leaves out takes its first entry, as a short list is read
+    // elsewhere. Without one, the project's types or the printer's defaults.
+    auto *cli_nozzle_volume_type = m_extra_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    if (cli_nozzle_volume_type != nullptr && !cli_nozzle_volume_type->values.empty()) {
         new_nozzle_volume_type.assign(new_extruder_count, nvtStandard);
-        const auto *project_types = m_print_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
-        const auto *default_types = m_print_config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type");
-        for (int e_index = 0; e_index < new_extruder_count; e_index++) {
-            if (project_types != nullptr && static_cast<int>(project_types->size()) == new_extruder_count)
-                new_nozzle_volume_type[e_index] = static_cast<NozzleVolumeType>(project_types->values[e_index]);
-            else if (default_types != nullptr && !default_types->values.empty())
-                new_nozzle_volume_type[e_index] = static_cast<NozzleVolumeType>(default_types->get_at(e_index));
-        }
+        for (int e_index = 0; e_index < new_extruder_count; e_index++)
+            new_nozzle_volume_type[e_index] = static_cast<NozzleVolumeType>(cli_nozzle_volume_type->get_at(e_index));
     }
-    new_nozzle_volume_type.resize(new_extruder_count, nvtStandard);
+    else
+        new_nozzle_volume_type = nozzle_volume_types_per_nozzle(m_print_config, new_extruder_count);
     // The project carries one volume type per nozzle, as the GUI writes it, so an export reopens with the
-    // types it was sliced with.
-    m_print_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values.assign(new_nozzle_volume_type.begin(), new_nozzle_volume_type.end());
+    // types it was sliced with. The command-line options are applied over the project later, so their value
+    // is sized as well.
+    std::vector<int> &project_nozzle_volume_type = m_print_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values;
+    project_nozzle_volume_type.assign(new_nozzle_volume_type.begin(), new_nozzle_volume_type.end());
+    if (cli_nozzle_volume_type != nullptr)
+        cli_nozzle_volume_type->values = project_nozzle_volume_type;
     new_extruder_variants.resize(new_extruder_count, "");
     const ConfigOptionEnumsGeneric *opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric *>(m_print_config.option("extruder_type"));
     for (int e_index = 0; e_index < new_extruder_count; e_index++) {
@@ -3868,19 +3865,11 @@ int CLI::run(int argc, char **argv)
                 else
                     extruders.resize(1,int(ExtruderType::etDirectDrive));
 
-                std::vector<int> volume_types;
-                if (m_print_config.has("nozzle_volume_type"))
-                    volume_types = m_print_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values; // get volume type from 3mf
-                else
-                    volume_types.resize(1, int(NozzleVolumeType::nvtStandard));
-
-                if(m_extra_config.has("nozzle_volume_type")) // get volume type from input
-                    volume_types = m_extra_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
-
+                // new_nozzle_volume_type holds one type per nozzle, the command-line value included.
                 for (int eidx = 0; eidx < new_extruder_count; ++eidx) {
                     int index = 0;
                     if (m_print_config.has("printer_extruder_id") && m_print_config.has("printer_extruder_variant"))
-                        index = m_print_config.get_index_for_extruder(eidx + 1, "printer_extruder_id", ExtruderType(extruders[eidx]), NozzleVolumeType(volume_types[eidx]), "printer_extruder_variant");
+                        index = m_print_config.get_index_for_extruder(eidx + 1, "printer_extruder_id", ExtruderType(extruders[eidx]), new_nozzle_volume_type[eidx], "printer_extruder_variant");
                     nozzle_flush_dataset[eidx] = nozzle_flush_dataset_full[index];
                 }
             }
