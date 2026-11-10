@@ -5103,7 +5103,11 @@ void PrintObject::discover_sub_top_surfaces()
     if (m_layers.size() < 2)
         return;
 
-    auto process_layer = [this](size_t idx_layer) {
+    const size_t num_to_process = m_layers.size() - 1;
+    typedef std::pair<LayerRegion*, Surfaces> SurfacesRecord;
+    std::vector<std::vector<SurfacesRecord>> cache_surfaces(num_to_process);
+
+    auto process_layer = [this](size_t idx_layer, std::vector<SurfacesRecord>& cache_record_surfaces) {
         m_print->throw_if_canceled();
         const Layer *upper = m_layers[idx_layer + 1];
         Layer       *layer = m_layers[idx_layer];
@@ -5146,6 +5150,7 @@ void PrintObject::discover_sub_top_surfaces()
             const float min_width    = float(layerm->flow(frSolidInfill).scaled_spacing());
             int top_shell_layers     = std::max(layerm->m_region->config().top_shell_layers.value - 2, 0);
             int bottom_shell_layers  = layerm->m_region->config().bottom_shell_layers.value;
+            bool is_not_solid        = layerm->m_region->config().top_surface_density.value < 100;
             ExPolygons crop_mask     = layerm->fill_no_overlap_expolygons;
             // A claimed island keeps its geometry and every other field, only its type changes, so
             // retype in place rather than rebuilding the collection.
@@ -5171,13 +5176,14 @@ void PrintObject::discover_sub_top_surfaces()
                         if (h.area() > -min_area)
                             h.clear();
 
-                surfaces_append(new_surfaces, diff_ex(surface.expolygon, walls_solid, ApplySafetyOffset::Yes), surface.surface_type);
-                if (layerm->m_region->config().top_surface_density.value < 100) {
+                if (is_not_solid) {
+                    surfaces_append(new_surfaces, diff_ex(surface.expolygon, walls_solid, ApplySafetyOffset::Yes), surface.surface_type);
                     surfaces_append(new_surfaces, intersection_ex(local_mask, crop_mask, ApplySafetyOffset::Yes), stInternalSolid); // Fix to stSubTop if this type will be used.
                     surfaces_append(new_surfaces, intersection_ex(diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), crop_mask, ApplySafetyOffset::Yes), stInternalBridge);
                 } else
                     surfaces_append(new_surfaces, intersection_ex(walls_solid, crop_mask, ApplySafetyOffset::Yes), stInternalSolid);
                     
+                
                 int penetration = top_shell_layers + offset_distance / scale_(config().layer_height.value);
                 for (int j = 1; j <= penetration; ++j) {
                     if (idx_layer - j <= bottom_shell_layers)
@@ -5186,17 +5192,16 @@ void PrintObject::discover_sub_top_surfaces()
                     for (LayerRegion* lowerm : lower->m_regions) {
                         Surfaces new_lower_surfaces;
                         ExPolygons crop_mask_lower = lowerm->fill_no_overlap_expolygons;
-                        ExPolygons slab = offset_ex((j <= top_shell_layers) ? walls_solid : diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), base_width / 3 * j);
-                        for (Surface& lower_surface : lowerm->fill_surfaces.surfaces) {
-                            surfaces_append(new_lower_surfaces, diff_ex(lower_surface.expolygon, slab, ApplySafetyOffset::Yes), lower_surface.surface_type);
+                        ExPolygons slab = offset_ex((j <= top_shell_layers) ? walls_solid : diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), base_width / 4 * j);
+                        for (Surface& lower_surface : lowerm->fill_surfaces.surfaces)
                             surfaces_append(new_lower_surfaces, intersection_ex(slab, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
-                        }
-                        lowerm->fill_surfaces.surfaces.clear();
-                        surfaces_append(lowerm->fill_surfaces.surfaces, new_lower_surfaces);
+                        
+                        cache_record_surfaces.push_back(std::move(SurfacesRecord(lowerm, new_lower_surfaces)));
                     }
                 }
             }
-            layerm->fill_surfaces.surfaces.clear();
+            if (is_not_solid)
+                layerm->fill_surfaces.surfaces.clear();
             surfaces_append(layerm->fill_surfaces.surfaces, new_surfaces);
         }
     };
@@ -5204,16 +5209,25 @@ void PrintObject::discover_sub_top_surfaces()
     // A layer reads the tops of the layer above and retypes its own fill surfaces, so neighbours
     // must not run together. Splitting the sweep by parity keeps every pair of concurrent layers
     // two apart, which leaves the read and write sets disjoint.
-    const size_t num_to_process = m_layers.size() - 1;
     for (size_t parity = 0; parity < 2; ++ parity) {
         if (num_to_process <= parity)
             continue;
         const size_t count = (num_to_process - parity + 1) / 2;
         tbb::parallel_for(tbb::blocked_range<size_t>(0, count),
-            [&process_layer, parity](const tbb::blocked_range<size_t> &range) {
-                for (size_t k = range.begin(); k < range.end(); ++ k)
-                    process_layer(parity + 2 * k);
+            [&process_layer, parity, &cache_surfaces](const tbb::blocked_range<size_t> &range) {
+                for (size_t k = range.begin(); k < range.end(); ++ k) {
+                    size_t idx = parity + 2 * k;
+                    process_layer(idx, cache_surfaces[idx]);
+                }
             });
+    }
+    
+    for (auto& cache : cache_surfaces) {
+        if (!cache.size())
+            continue;
+        for (auto& record : cache) {
+            surfaces_append(record.first->fill_surfaces.surfaces, record.second);
+        }
     }
 }
 
