@@ -128,7 +128,48 @@ long color_distance(const std::string& a, const std::string& b)
 
 bool is_generic(const SpoolPresetCandidate& candidate)
 {
-    return normalize(candidate.vendor) == "GENERIC" || normalize(candidate.name).rfind("GENERIC ", 0) == 0;
+    return spool_preset_is_generic(candidate.name, candidate.vendor);
+}
+
+// A printer that does not know a spool sends the id of the generic profile for its material, and
+// every profile built on that generic one inherits the same id: such an id names the material, not
+// the filament, so no profile carrying it can be told from the others by it.
+bool trusted_for_id(const SpoolPresetCandidate& candidate)
+{
+    return !is_generic(candidate) && !candidate.generic_id;
+}
+
+// The profile the printer's id names, or nullptr when the id names no single filament. The
+// spool's own maker goes first: a custom profile built on another maker's profile inherits its id.
+const SpoolPresetCandidate* filament_id_match(const std::vector<SpoolPresetCandidate>& candidates, const SpoolIdentity& spool)
+{
+    if (spool.filament_id.empty())
+        return nullptr;
+
+    const auto same_id        = [&spool](const SpoolPresetCandidate& candidate) { return candidate.filament_id == spool.filament_id; };
+    const bool names_material = std::any_of(candidates.begin(), candidates.end(), [&same_id](const SpoolPresetCandidate& candidate) {
+        return same_id(candidate) && !trusted_for_id(candidate);
+    });
+    if (names_material)
+        return nullptr;
+
+    // A spool that names no maker matches none, rather than every profile that names none either.
+    const std::string spool_vendor = normalize(spool.vendor);
+    const auto        same_maker   = spool_vendor.empty() ? candidates.end() :
+                                                            std::find_if(candidates.begin(), candidates.end(), [&](const SpoolPresetCandidate& candidate) {
+                                                                return same_id(candidate) && normalize(candidate.vendor) == spool_vendor;
+                                                            });
+    if (same_maker != candidates.end())
+        return &*same_maker;
+    // The maker may be spelled otherwise ("Bambu", "Bambu Lab"): the profile that came with the
+    // printer or the maker goes before a user's copy of it, which inherits its id.
+    const auto system_profile = std::find_if(candidates.begin(), candidates.end(), [&same_id](const SpoolPresetCandidate& candidate) {
+        return same_id(candidate) && candidate.is_system;
+    });
+    if (system_profile != candidates.end())
+        return &*system_profile;
+    const auto any_maker = std::find_if(candidates.begin(), candidates.end(), same_id);
+    return any_maker == candidates.end() ? nullptr : &*any_maker;
 }
 
 // The parts of a key, in the order spool_mapping_key wrote them.
@@ -325,6 +366,11 @@ std::string spool_mapping_key(const SpoolIdentity& spool)
     // Nothing identifying at all: fall back to the lane, so the user's choice is at least
     // remembered for the slot they put it in.
     return "slot:" + std::to_string(spool.slot_index);
+}
+
+bool spool_preset_is_generic(const std::string& name, const std::string& vendor)
+{
+    return normalize(vendor) == "GENERIC" || normalize(name).rfind("GENERIC ", 0) == 0;
 }
 
 bool spool_is_generic(const SpoolIdentity& spool)
@@ -598,15 +644,9 @@ std::string spool_choose_preset(const std::vector<SpoolPresetCandidate>& candida
             return it->name;
     }
 
-    // The id is the printer's own statement of which profile fits. Generic profiles share ids with
-    // everything of their material, so they only count when nothing more specific says the same.
-    if (!spool.filament_id.empty()) {
-        const auto it = std::find_if(candidates.begin(), candidates.end(), [&spool](const SpoolPresetCandidate& c) {
-            return c.filament_id == spool.filament_id && !is_generic(c);
-        });
-        if (it != candidates.end())
-            return it->name;
-    }
+    // The id is the printer's own statement of which profile fits, when it names one filament.
+    if (const SpoolPresetCandidate* by_id = filament_id_match(candidates, spool))
+        return by_id->name;
 
     const std::string spool_name     = normalize(spool.name);
     const std::string spool_vendor   = normalize(spool.vendor);
@@ -745,6 +785,20 @@ void spool_remember_color(std::map<std::string, SpoolLink>& links,
         link.colors.push_back(wanted);
 }
 
+void spool_forget_color(std::map<std::string, SpoolLink>& links, const std::string& key, const std::string& color)
+{
+    const auto entry = links.find(filed_key(links, key));
+    if (entry == links.end())
+        return;
+
+    // Matched as spelled, not as normalized: the color comes straight off the link, and a store
+    // written by an older build may hold two spellings of one color that are shown, and kept or
+    // removed, apart.
+    SpoolLink& link = entry->second;
+    link.color_presets.erase(color);
+    link.colors.erase(std::remove(link.colors.begin(), link.colors.end(), color), link.colors.end());
+}
+
 void spool_remember_spool(std::map<std::string, SpoolLink>& links,
                           const std::string&                key,
                           const std::string&                preset_name,
@@ -854,6 +908,13 @@ void SpoolProfileMap::remember_color(const std::string& key, const std::string& 
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     spool_remember_color(store().links, key, color, preset_name);
+    save();
+}
+
+void SpoolProfileMap::forget_color(const std::string& key, const std::string& color)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    spool_forget_color(store().links, key, color);
     save();
 }
 

@@ -2,6 +2,7 @@
 
 // The windows that make, show and edit the spool -> profile links, see SpoolProfileLinker.
 
+#include <cstddef>
 #include <optional>
 #include <string>
 #include <vector>
@@ -100,6 +101,7 @@ private:
         std::string color;   // "#RRGGBB", or several for a multicolor spool
         std::string initial; // the profile saved for this color, empty when none
         std::string own;     // the profile it prints with now, empty when it follows the filament
+        bool        removed = false; // the user asked to forget this color; written on OK
     };
 
     struct Row
@@ -115,14 +117,15 @@ private:
     static Row make_row(SpoolLink link);
 
     void build(wxWindow* parent);
-    // Draws the list again after a profile was picked or a color put back on the filament's. The
+    // Draws the list again after a profile was picked or a color removed. The
     // filament's menu is rebuilt on what it was showing, never on what is on disk.
     void                 rebuild_rows();
     void                 take_menu_choice();
     void                 settle_colors();
     wxSizer*             make_filament_line(wxWindow* parent);
     wxSizer*             make_variant_chips(wxWindow* parent);
-    VariantChip*         make_variant_chip(wxWindow* parent, ColorRow& color);
+    size_t               kept_color_count() const;
+    VariantChip*         make_variant_chip(wxWindow* parent, ColorRow& color, bool can_forget);
     SpoolPresetComboBox* add_chip_menu(VariantChip* chip, ColorRow& color);
     void                 forget_link();
     void                 on_confirm();

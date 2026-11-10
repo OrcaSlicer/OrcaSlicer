@@ -180,18 +180,18 @@ void SpoolPicture::draw_color_squares(wxDC& dc, const wxColour& under) const
     dc.DrawLabel(format_wxstr(_L("+%1%"), m_variants.size() - shown), more, wxALIGN_CENTER);
 }
 
-VariantChip::VariantChip(wxWindow* parent, const std::string& variant, const wxString& profile, bool own_profile)
+VariantChip::VariantChip(wxWindow* parent, const std::string& variant, const wxString& profile, bool own_profile, bool can_forget)
     : wxWindow(parent, wxID_ANY)
     , m_colors(spool_variant_colors(variant))
     , m_profile(profile)
-    , m_own_profile(own_profile)
+    , m_can_forget(can_forget)
     , m_forget_icon(this, "delete", FORGET_ICON_SIZE)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetFont(own_profile ? Label::Head_12 : Label::Body_12);
     const wxSize text    = GetTextExtent(profile);
     const int    padding = FromDIP(VARIANT_PADDING);
-    const int    icon    = own_profile ? m_forget_icon.GetBmpWidth() + padding : 0;
+    const int    icon    = can_forget ? m_forget_icon.GetBmpWidth() + padding : 0;
     const wxSize size(std::max(text.x + icon + 2 * padding, FromDIP(VARIANT_MIN_WIDTH)), FromDIP(VARIANT_COLOR_HEIGHT) + text.y + 2 * padding);
     SetMinSize(size);
     SetSize(size);
@@ -225,7 +225,7 @@ wxRect VariantChip::forget_icon_rect() const
 
 void VariantChip::on_left_down(wxMouseEvent& event)
 {
-    if (m_own_profile && m_on_forget && forget_icon_rect().Contains(event.GetPosition())) {
+    if (m_can_forget && m_on_forget && forget_icon_rect().Contains(event.GetPosition())) {
         m_on_forget();
         return;
     }
@@ -258,7 +258,7 @@ void VariantChip::on_paint(wxPaintEvent& /*event*/)
     dc.SetFont(GetFont());
     dc.SetTextForeground(StateColor::darkModeColorFor(CHIP_TEXT_COLOR));
     wxRect text_area = profile_area();
-    if (m_own_profile) {
+    if (m_can_forget) {
         const wxRect icon = forget_icon_rect();
         dc.DrawBitmap(m_forget_icon.bmp(), icon.GetPosition(), true);
         text_area.SetRight(icon.x - 1);

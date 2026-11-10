@@ -46,8 +46,8 @@ class VariantChip : public wxWindow
 {
 public:
     // A color on a profile of its own writes the profile in bold, to tell it from the colors that
-    // follow the filament, and carries the icon that puts it back on the filament's profile.
-    VariantChip(wxWindow* parent, const std::string& variant, const wxString& profile, bool own_profile);
+    // follow the filament. A color that can be forgotten carries the icon that removes it.
+    VariantChip(wxWindow* parent, const std::string& variant, const wxString& profile, bool own_profile, bool can_forget);
 
     // Where the profile is written, in the chip's own coordinates.
     wxRect profile_area() const;
@@ -62,7 +62,7 @@ private:
 
     std::vector<std::string> m_colors;
     wxString                 m_profile;
-    bool                     m_own_profile;
+    bool                     m_can_forget;
     ScalableBitmap           m_forget_icon;
     std::function<void()>    m_on_pick;
     std::function<void()>    m_on_forget;

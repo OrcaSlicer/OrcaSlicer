@@ -9,12 +9,16 @@ using namespace Slic3r;
 
 namespace {
 
-SpoolPresetCandidate candidate(const std::string& name, const std::string& material, const std::string& filament_id)
+SpoolPresetCandidate candidate(const std::string& name,
+                               const std::string& material,
+                               const std::string& filament_id,
+                               const std::string& vendor = std::string())
 {
     SpoolPresetCandidate preset;
     preset.name        = name;
     preset.material    = material;
     preset.filament_id = filament_id;
+    preset.vendor      = vendor;
     return preset;
 }
 
@@ -78,6 +82,78 @@ TEST_CASE("The filament id a printer reports picks the profile", "[SpoolProfileM
     CHECK(spool_choose_preset(candidates, spool, "") == "Elegoo PLA");
 }
 
+TEST_CASE("A filament id shared with a generic profile does not pick a profile built on it", "[SpoolProfileMap]")
+{
+    SpoolIdentity spool;
+    spool.has_filament = true;
+    spool.vendor       = "eSun";
+    spool.material     = "PLA";
+    spool.filament_id  = "OFDSrzZ8";
+
+    const std::vector<SpoolPresetCandidate> candidates{candidate("Generic PLA", "PLA", "OFDSrzZ8", "Generic"),
+                                                       candidate("Formfutura StoneFil PLA - L", "PLA", "OFDSrzZ8", "Formfutura"),
+                                                       candidate("eSUN PLA - L", "PLA", "OFmpMwxS", "eSUN")};
+
+    CHECK(spool_choose_preset(candidates, spool, "") == "eSUN PLA - L");
+}
+
+TEST_CASE("A filament id picks the spool maker's profile first", "[SpoolProfileMap]")
+{
+    SpoolIdentity spool;
+    spool.has_filament = true;
+    spool.vendor       = "eSun";
+    spool.material     = "PLA";
+    spool.filament_id  = "SHARED01";
+
+    const std::vector<SpoolPresetCandidate> candidates{candidate("Formfutura PLA", "PLA", "SHARED01", "Formfutura"),
+                                                       candidate("eSUN PLA", "PLA", "SHARED01", "eSUN")};
+
+    CHECK(spool_choose_preset(candidates, spool, "") == "eSUN PLA");
+}
+
+TEST_CASE("A filament id picks the system profile over a copy when the maker is spelled otherwise", "[SpoolProfileMap]")
+{
+    SpoolIdentity spool;
+    spool.has_filament = true;
+    spool.vendor       = "Bambu";
+    spool.material     = "PLA";
+    spool.filament_id  = "GFA00";
+
+    SpoolPresetCandidate bambu = candidate("Bambu PLA Basic", "PLA", "GFA00", "Bambu Lab");
+    bambu.is_system            = true;
+    const std::vector<SpoolPresetCandidate> candidates{candidate("Atomic PLA", "PLA", "GFA00", "Atomic"), bambu};
+
+    CHECK(spool_choose_preset(candidates, spool, "") == "Bambu PLA Basic");
+}
+
+TEST_CASE("A filament id with no maker reported picks the first profile carrying it", "[SpoolProfileMap]")
+{
+    SpoolIdentity spool;
+    spool.has_filament = true;
+    spool.material     = "PLA";
+    spool.filament_id  = "SHARED01";
+
+    const std::vector<SpoolPresetCandidate> candidates{candidate("Snapmaker PLA", "PLA", "SHARED01", "Snapmaker"),
+                                                       candidate("My PLA", "PLA", "SHARED01")};
+
+    CHECK(spool_choose_preset(candidates, spool, "") == "Snapmaker PLA");
+}
+
+TEST_CASE("A generic profile's id picks nothing even when the generic profile is not offered", "[SpoolProfileMap]")
+{
+    SpoolIdentity spool;
+    spool.has_filament = true;
+    spool.vendor       = "eSun";
+    spool.material     = "PLA";
+    spool.filament_id  = "OFDSrzZ8";
+
+    SpoolPresetCandidate copied_from_generic = candidate("Formfutura StoneFil PLA - L", "PLA", "OFDSrzZ8", "Formfutura");
+    copied_from_generic.generic_id           = true;
+    const std::vector<SpoolPresetCandidate> candidates{copied_from_generic, candidate("eSUN PLA - L", "PLA", "OFmpMwxS", "eSUN")};
+
+    CHECK(spool_choose_preset(candidates, spool, "") == "eSUN PLA - L");
+}
+
 TEST_CASE("A remembered profile wins over the filament id", "[SpoolProfileMap]")
 {
     SpoolIdentity spool;
@@ -117,6 +193,31 @@ TEST_CASE("A filament seen in a colour never answered for is new", "[SpoolProfil
     spool_remember_spool(links, "name:elegoo pla matte|pla matte", "Elegoo PLA Matte", "Elegoo PLA Matte", "#1E6FD9");
 
     CHECK_FALSE(spool_is_new(links, "name:elegoo pla matte|pla matte", "#1E6FD9"));
+}
+
+TEST_CASE("A forgotten colour is new again while the rest of the filament stays", "[SpoolProfileMap]")
+{
+    std::map<std::string, SpoolLink> links;
+    spool_remember(links, "name:rapid|pla", "Elegoo PLA", "Rapid", "#FF0000");
+    spool_remember_color(links, "name:rapid|pla", "#0000FF", "Elegoo PLA Blue");
+
+    spool_forget_color(links, "name:rapid|pla", "#0000FF");
+
+    CHECK(spool_is_new(links, "name:rapid|pla", "#0000FF"));
+    CHECK(spool_remembered_preset(links, "name:rapid|pla", "#0000FF") == "Elegoo PLA");
+    CHECK_FALSE(spool_is_new(links, "name:rapid|pla", "#FF0000"));
+    CHECK(spool_remembered_preset(links, "name:rapid|pla") == "Elegoo PLA");
+}
+
+TEST_CASE("Forgetting one spelling of a colour keeps the other", "[SpoolProfileMap]")
+{
+    std::map<std::string, SpoolLink> links;
+    spool_remember(links, "name:rapid|pla", "Elegoo PLA", "Rapid", "#00FF00");
+    links["name:rapid|pla"].colors.push_back("#00ff00");
+
+    spool_forget_color(links, "name:rapid|pla", "#00ff00");
+
+    CHECK(links.at("name:rapid|pla").colors == std::vector<std::string>{"#00FF00"});
 }
 
 TEST_CASE("A store saved with the settings it once held still loads its links", "[SpoolProfileMap]")

@@ -4,6 +4,7 @@
 #include <functional>
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -146,10 +147,22 @@ std::string preset_string(const Preset& preset, const char* key)
     return preset.config.has(key) ? preset.config.opt_string(key, 0u) : std::string();
 }
 
+// The ids of the generic profiles, the hidden and incompatible ones too: a profile copied from one
+// of them keeps its id even when the generic profile itself is not offered.
+std::set<std::string> generic_filament_ids(const PresetCollection& filaments)
+{
+    std::set<std::string> ids;
+    for (const Preset& preset : filaments.get_presets())
+        if (!preset.filament_id.empty() && spool_preset_is_generic(preset.name, preset_string(preset, "filament_vendor")))
+            ids.insert(preset.filament_id);
+    return ids;
+}
+
 // Every filament profile the user could pick right now: system and custom alike, but only the
 // ones that fit the printer and nozzle currently selected.
 std::vector<SpoolPresetCandidate> collect_candidates(const PresetCollection& filaments)
 {
+    const std::set<std::string>       generic_ids = generic_filament_ids(filaments);
     std::vector<SpoolPresetCandidate> out;
     for (const Preset& preset : filaments.get_presets()) {
         if (!preset.is_visible || !preset.is_compatible || preset.is_default)
@@ -161,6 +174,7 @@ std::vector<SpoolPresetCandidate> collect_candidates(const PresetCollection& fil
         candidate.color       = preset_string(preset, "default_filament_colour");
         candidate.filament_id = preset.filament_id;
         candidate.is_system   = preset.is_system;
+        candidate.generic_id  = generic_ids.count(preset.filament_id) > 0;
         out.push_back(std::move(candidate));
     }
     return out;
@@ -582,8 +596,8 @@ void SpoolDetailDialog::build(wxWindow* parent)
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
     add_heading(parent, main_sizer,
                 _L("The profile this filament is linked to, and every color it was seen in with the profile that color prints "
-                   "with. Click a color to choose a profile of its own for it, or forget the link with the button next to the "
-                   "filament's profile."),
+                   "with. Click a color to choose a profile of its own for it, or its delete icon to forget that color. Forget "
+                   "the whole link with the button next to the filament's profile."),
                 DETAIL_WIDTH);
 
     const int chips_height = list_height(lines_of(m_row.colors.size(), CHIPS_PER_LINE), CHIP_LINE_HEIGHT, VISIBLE_CHIP_LINES);
@@ -659,24 +673,33 @@ wxSizer* SpoolDetailDialog::make_filament_line(wxWindow* parent)
 }
 
 // Every color this filament has been seen in, each with the profile it prints with. A link saved
-// before colors were kept shows the empty chip until the next sync fills it in.
+// before colors were kept shows the empty chip until the next sync fills it in. The last color
+// left cannot be removed: it goes with the link, by the button next to the filament's profile.
 wxSizer* SpoolDetailDialog::make_variant_chips(wxWindow* parent)
 {
     // Without the flags, the wrap sizer stretches the last chip of every line to the edge.
     wxWrapSizer* chips = new wxWrapSizer(wxHORIZONTAL, wxREMOVE_LEADING_SPACES);
     if (m_row.colors.empty())
-        chips->Add(new VariantChip(parent, std::string(), from_u8(m_row.preset), false), 0, wxRIGHT | wxBOTTOM, FromDIP(CHIP_GAP));
+        chips->Add(new VariantChip(parent, std::string(), from_u8(m_row.preset), false, false), 0, wxRIGHT | wxBOTTOM, FromDIP(CHIP_GAP));
+    const bool can_forget = kept_color_count() >= 2;
     for (ColorRow& color : m_row.colors)
-        chips->Add(make_variant_chip(parent, color), 0, wxRIGHT | wxBOTTOM, FromDIP(CHIP_GAP));
+        if (!color.removed)
+            chips->Add(make_variant_chip(parent, color, can_forget), 0, wxRIGHT | wxBOTTOM, FromDIP(CHIP_GAP));
     return chips;
 }
 
-VariantChip* SpoolDetailDialog::make_variant_chip(wxWindow* parent, ColorRow& color)
+size_t SpoolDetailDialog::kept_color_count() const
+{
+    return std::count_if(m_row.colors.begin(), m_row.colors.end(), [](const ColorRow& color) { return !color.removed; });
+}
+
+VariantChip* SpoolDetailDialog::make_variant_chip(wxWindow* parent, ColorRow& color, bool can_forget)
 {
     const bool   own  = !color.own.empty();
-    VariantChip* chip = new VariantChip(parent, color.color, from_u8(own ? color.own : m_row.preset), own);
+    VariantChip* chip = new VariantChip(parent, color.color, from_u8(own ? color.own : m_row.preset), own, can_forget);
     // One color is the whole filament, so there is nothing to give a profile of its own to and the
-    // chip is there to look at, not to click.
+    // chip is there to look at, not to click. The count holds the colors removed in this window
+    // too, so a color left alone keeps its menu until OK.
     if (m_row.colors.size() < 2) {
         chip->SetToolTip(from_u8(color.color));
         return chip;
@@ -684,17 +707,18 @@ VariantChip* SpoolDetailDialog::make_variant_chip(wxWindow* parent, ColorRow& co
 
     SpoolPresetComboBox* menu = add_chip_menu(chip, color);
     chip->on_pick([menu]() { menu->ForceDropdownOpen(); });
-    if (!own) {
+    if (!can_forget) {
         // TRN: %1% is a color as #RRGGBB, or several of them for a multicolor filament.
         chip->SetToolTip(format_wxstr(_L("%1%\nClick to choose the profile this color prints with"), color.color));
         return chip;
     }
-    // TRN: %1% is a color as #RRGGBB, or several of them for a multicolor filament.
-    chip->SetToolTip(format_wxstr(_L("%1%\nClick to choose the profile this color prints with, or the delete icon to put it back "
-                                     "on the filament's profile"),
+    // TRN: %1% is a color as #RRGGBB, or several of them for a multicolor filament. Forgetting the
+    // color means the next sync that sees it asks again which profile it takes.
+    chip->SetToolTip(format_wxstr(_L("%1%\nClick to choose the profile this color prints with, or the delete icon to forget "
+                                     "this color"),
                                   color.color));
     chip->on_forget([this, &color]() {
-        color.own.clear();
+        color.removed = true;
         CallAfter(&SpoolDetailDialog::rebuild_rows);
     });
     return chip;
@@ -728,6 +752,10 @@ void SpoolDetailDialog::forget_link()
 void SpoolDetailDialog::remember_colors(const std::string& picked) const
 {
     for (const ColorRow& color : m_row.colors) {
+        if (color.removed) {
+            SpoolProfileMap::get().forget_color(m_row.link.key, color.color);
+            continue;
+        }
         // A color on the profile the filament ends up on is not a variation and is stored as none.
         const std::string stored = color.own != picked ? color.own : std::string();
         if (stored != color.initial)

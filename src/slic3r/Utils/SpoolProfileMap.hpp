@@ -59,7 +59,12 @@ struct SpoolPresetCandidate
     std::string filament_id; // the id printers use to name this filament, may be empty
     std::string color;      // default_filament_colour, "#RRGGBB", may be empty
     bool        is_system = false;
+    // Carries a generic profile's id, which names a material, not one filament.
+    bool        generic_id = false;
 };
+
+// A profile meant for any filament of its material rather than one maker's product.
+bool spool_preset_is_generic(const std::string& name, const std::string& vendor);
 
 // One saved choice. The label is what the spool was called when the choice was made, kept so the
 // list stays readable when all the key carries is a tag number. The colours are the ones this
@@ -158,6 +163,10 @@ void spool_remember_color(std::map<std::string, SpoolLink>& links,
                           const std::string&                color,
                           const std::string&                preset_name);
 
+// Drop one colour of a filament, and its own profile if it had one, so the next sync that sees
+// that colour asks for it again. The rest of the filament stays as it is.
+void spool_forget_color(std::map<std::string, SpoolLink>& links, const std::string& key, const std::string& color);
+
 // The profile picked for one spool. It goes on the filament while the filament has no profile
 // yet, and on the colour once it has a different one, so answering for a colour never moves the
 // colours that were already answered for.
@@ -199,6 +208,7 @@ public:
                                     const std::string& label = std::string(),
                                     const std::string& color = std::string());
     void remember_color(const std::string& key, const std::string& color, const std::string& preset_name);
+    void forget_color(const std::string& key, const std::string& color);
     void remember_spool(const std::string& key,
                         const std::string& preset_name,
                         const std::string& label,
