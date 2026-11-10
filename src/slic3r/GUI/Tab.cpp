@@ -9133,10 +9133,17 @@ std::vector<wxString> Tab::generate_extruder_options()
 
     // Orca: the printer tab has one tag per extruder, named as its former "Extruder N" pages were.
     // parse_extruder_selection() counts a hybrid extruder as two tags; that still lines up because
-    // only the last extruder can be hybrid.
+    // only the last extruder can be hybrid. When the extruders have nozzle variants, the tag also names
+    // the one its pages edit, which the sidebar's nozzle volume type selects.
     if (m_type == Preset::TYPE_PRINTER) {
-        for (int i = 0; i < extruder_nums; ++i)
-            options.push_back(translate_category(wxString::Format("Extruder %d", i + 1), m_type));
+        for (int i = 0; i < extruder_nums; ++i) {
+            wxString name = translate_category(wxString::Format("Extruder %d", i + 1), m_type);
+            const NozzleVolumeType volume_type = NozzleVolumeType(nozzle_volumes->values[i]);
+            if (m_extruder_switch_variants && volume_type != NozzleVolumeType::nvtHybrid)
+                // TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2", and its nozzle flow tag, e.g. "HF".
+                name = wxString::Format(_L("%s: %s"), name, short_nozzle_volume_name(get_nozzle_volume_type_string(volume_type)));
+            options.push_back(name);
+        }
         return options;
     }
 
@@ -9440,23 +9447,32 @@ void Tab::sync_excluder()
     }
 
     UnsavedChangesDialog::SyncExtruderParams params{&config_origin, stride, {}, 0};
-    const wxString nozzle = short_nozzle_volume_name(get_nozzle_volume_type_string(active_nozzle));
-    wxString       to_names;
+    // Orca: the columns are named by this tab's extruder switch tags.
+    const std::vector<wxString> tags = generate_extruder_options();
+    auto tag_name = [&](int extruder) {
+        const size_t tag = size_t(calculate_selection_index_for_extruder(extruder, active_nozzle));
+        return tag < tags.size() ? tags[tag] : wxString::Format("T%d", extruder + 1);
+    };
+    // A Bambu dual-nozzle printer's message names its nozzles within a sentence; other printers use the tags.
+    const bool toolheads    = has_toolhead_names(*m_preset_bundle);
+    auto       message_name = [&](int extruder) {
+        return toolheads ? extruder_display_name(*m_preset_bundle, extruder, ToolHeadNameCase::LowerCase) : tag_name(extruder);
+    };
+    wxString to_names;
     for (const auto &[extruder, index] : columns) {
         if (extruder == active_index)
             params.source = int(params.extruders.size());
         else
-            to_names += (to_names.empty() ? "" : ", ") + extruder_display_name(*m_preset_bundle, extruder, ToolHeadNameCase::LowerCase);
-        // Named as on the extruder switch.
-        params.extruders.emplace_back(wxString::Format("%s %s", extruder_display_name(*m_preset_bundle, extruder, ToolHeadNameCase::TitleCase, true), nozzle), index);
+            to_names += (to_names.empty() ? "" : ", ") + message_name(extruder);
+        params.extruders.emplace_back(tag_name(extruder), index);
     }
-    const wxString from_name = extruder_display_name(*m_preset_bundle, active_index, ToolHeadNameCase::LowerCase);
+    const wxString from_name = message_name(active_index);
     wxString title = wxString::Format(_L("Modify parameters of %s"), to_names);
     wxString header;
-    if (has_toolhead_names(*m_preset_bundle))
+    if (toolheads)
         header = wxString::Format(_L("Do you want to modify the following parameters of the %s to that of the %s?"), to_names, from_name);
     else
-        // TRN %1% is the extruder the values are copied from, %2% the list of extruders they are copied to, e.g. "T2, T3, T4".
+        // TRN %1% is the extruder the values are copied from, %2% the list of extruders they are copied to, as the extruder switch names them, e.g. "T2 HF, T3 HF".
         header = format_wxstr(_L("Do you want to copy the following parameters of %1% to %2%?"), from_name, to_names);
     UnsavedChangesDialog dlg(title, header, base_type, params);
     dlg.ShowModal();
