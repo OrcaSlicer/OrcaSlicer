@@ -247,6 +247,7 @@ public:
     void show_noams_mode();
     void show_auto_refill(bool show);
     void enable_ams_setting(bool en);
+    void show_ams_setting(bool show);
     void show_vams_kn_value(bool show);
     void post_event(wxEvent&& event);
 

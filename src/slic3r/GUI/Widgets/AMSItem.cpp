@@ -2350,9 +2350,12 @@ void AMSRoadUpPart::doRender(wxDC& dc)
                 dc.DrawLine(size.x / 2, height, size.x / 2, size.y);
         }
 
-        dc.SetPen(*wxTRANSPARENT_PEN);
-        dc.SetBrush(wxBrush(wxColour(194, 194, 194)));
-        dc.DrawRectangle(size.x / 2 - FromDIP(14), height - FromDIP(5), FromDIP(28), FromDIP(10));
+        // The hub where lanes merge into one tube; a single lane has nothing to merge.
+        if (lane_centers.size() > 1) {
+            dc.SetPen(*wxTRANSPARENT_PEN);
+            dc.SetBrush(wxBrush(wxColour(194, 194, 194)));
+            dc.DrawRectangle(size.x / 2 - FromDIP(14), height - FromDIP(5), FromDIP(28), FromDIP(10));
+        }
         return;
     }
 

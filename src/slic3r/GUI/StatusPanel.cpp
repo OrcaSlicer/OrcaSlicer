@@ -56,6 +56,11 @@
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
 #include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/format.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/DialogButtons.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <boost/algorithm/string/trim.hpp>
 #include <set>
 #include "libslic3r/libslic3r.h"
 #include <slic3r/GUI/Widgets/ProgressDialog.hpp>
@@ -125,6 +130,69 @@
 
 
 namespace Slic3r { namespace GUI {
+
+namespace {
+
+// Extrude/retract buttons on non-Bambu printers: the lengths and feed rates offered, and the defaults.
+const std::vector<int> EXTRUDE_LENGTHS_MM         = {1, 5, 10, 25, 50, 100};
+const std::vector<int> EXTRUDE_SPEEDS_MM_S        = {1, 2, 5, 10};
+constexpr int          DEFAULT_EXTRUDE_LENGTH_MM  = 10;
+constexpr int          DEFAULT_EXTRUDE_SPEED_MM_S = 5;
+const std::string      EXTRUDE_LENGTH_SECTION     = "extrude_length_mm";
+const std::string      EXTRUDE_SPEED_SECTION      = "extrude_speed_mm_s";
+
+// The value a choice built from `values` has selected, or `fallback` when it has none.
+int choice_value(const ::ComboBox* choice, const std::vector<int>& values, int fallback)
+{
+    const int index = choice ? choice->GetSelection() : wxNOT_FOUND;
+    return index >= 0 && index < static_cast<int>(values.size()) ? values[index] : fallback;
+}
+
+// Select `value` in a choice built from `values`, or `fallback` when `value` is not offered.
+void select_choice_value(::ComboBox* choice, const std::vector<int>& values, int value, int fallback)
+{
+    auto found = std::find(values.begin(), values.end(), value);
+    if (found == values.end())
+        found = std::find(values.begin(), values.end(), fallback);
+    if (found != values.end())
+        choice->SetSelection(static_cast<int>(found - values.begin()));
+}
+
+// Whether a dropdown's list is open: the status update must not change the control under it.
+bool choice_list_open(::ComboBox* choice)
+{
+    return choice && choice->GetDropDown().IsShown();
+}
+
+// The lanes feeding each toolhead, for ToolheadLaneOverview: AMS lanes by the toolhead their unit
+// is bound to, numbered in device order, then the toolhead's external spool when one is loaded.
+std::vector<ToolheadLaneOverview::Toolhead> build_toolhead_overview(const std::vector<AMSinfo>& ams_info,
+                                                                    const std::vector<AMSinfo>& ext_info,
+                                                                    int                         toolhead_count)
+{
+    std::vector<ToolheadLaneOverview::Toolhead> toolheads(static_cast<size_t>(std::max(toolhead_count, 0)));
+    const auto loaded = [](const Caninfo& can) { return !can.material_name.empty(); };
+
+    int lane_number = 0;
+    for (const auto& unit : ams_info) {
+        for (const auto& can : unit.cans) {
+            ++lane_number;
+            if (unit.nozzle_id < 0 || unit.nozzle_id >= toolhead_count)
+                continue;
+            toolheads[unit.nozzle_id].push_back({can.material_colour, can.material_name,
+                                                 format_wxstr(_L("Lane %1%"), lane_number), loaded(can), false});
+        }
+    }
+    for (const auto& ext : ext_info) {
+        if (ext.nozzle_id < 0 || ext.nozzle_id >= toolhead_count || ext.cans.empty() || !loaded(ext.cans.front()))
+            continue;
+        const auto& can = ext.cans.front();
+        toolheads[ext.nozzle_id].push_back({can.material_colour, can.material_name, _L("External"), true, true});
+    }
+    return toolheads;
+}
+
+} // namespace
 
 #define TEMP_THRESHOLD_VAL 2
 #define TEMP_THRESHOLD_ALLOW_E_CTRL 170.0f
@@ -1690,6 +1758,21 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     m_bitmap_vcamera_img->SetMinSize(wxSize(FromDIP(38), FromDIP(24)));
     m_bitmap_vcamera_img->Hide();
 
+    m_camera_choice = new ::ComboBox(m_panel_monitoring_title, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                     wxSize(FromDIP(150), -1), 0, nullptr, wxCB_READONLY);
+    m_camera_choice->SetToolTip(_L("Camera"));
+    m_camera_choice->Hide();
+    m_camera_choice->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+        const int index = m_camera_choice->GetSelection();
+        auto*     agent = wxGetApp().getAgent();
+        if (agent && obj && index >= 0 && index < static_cast<int>(m_camera_names.size())) {
+            agent->select_camera(index);
+            wxGetApp().app_config->set("printer_camera", obj->get_dev_id(), m_camera_names[index]);
+            m_media_play_ctrl->SetMachineObject(obj); // reloads the view for the new camera
+        }
+        e.Skip();
+    });
+
     m_setting_button = new CameraItem(m_panel_monitoring_title, "camera_setting", "camera_setting_hover");
     m_setting_button->SetMinSize(wxSize(FromDIP(38), FromDIP(24)));
     m_setting_button->SetBackgroundColour(STATUS_TITLE_BG);
@@ -1714,6 +1797,7 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     // m_camera_switch_button->SetToolTip(_L("Switch Camera View"));
 
     // bSizer_monitoring_title->Add(m_camera_switch_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+    bSizer_monitoring_title->Add(m_camera_choice, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_sdcard_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_timelapse_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_recording_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
@@ -1819,10 +1903,9 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
     m_ams_rack_switch->Hide();
     m_ams_rack_switch->Bind(wxCUSTOMEVT_SWITCH_POS, &StatusBasePanel::on_ams_rack_switch, this);
 
-    m_ams_nozzle_switch = new MultiSwitchButton(parent);
-    m_ams_nozzle_switch->SetFitToOptions();
-    m_ams_nozzle_switch->Hide();
-    m_ams_nozzle_switch->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this](wxCommandEvent &event) {
+    m_toolhead_overview = new ToolheadLaneOverview(parent);
+    m_toolhead_overview->Hide();
+    m_toolhead_overview->Bind(EVT_TOOLHEAD_LANE_OVERVIEW_SELECT, [this](wxCommandEvent &event) {
         if (m_ams_control)
             m_ams_control->SelectNozzle(event.GetInt());
         event.Skip();
@@ -1831,7 +1914,7 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(8));
     bSizer_control->Add(temp_axis_slot,         0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
     bSizer_control->Add(m_ams_rack_switch,      0, wxALIGN_CENTRE|wxTOP, FromDIP(6));
-    bSizer_control->Add(m_ams_nozzle_switch,    0, wxALIGN_CENTRE|wxTOP, FromDIP(6));
+    bSizer_control->Add(m_toolhead_overview,    0, wxALIGN_CENTRE|wxTOP, FromDIP(6));
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(6));
     bSizer_control->Add(ams_rack_sizer,         0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(6));
@@ -2246,8 +2329,8 @@ wxBoxSizer *StatusBasePanel::create_extruder_control(wxWindow *parent)
 
     m_nozzle_btn_panel = new SwitchBoard(panel, _L_CONTEXT("Left", "Nozzle position"), _L_CONTEXT("Right", "Nozzle position"), wxSize(FromDIP(126), FromDIP(26)));
     m_nozzle_btn_panel->SetAutoDisableWhenSwitch();
-    m_generic_nozzle_selector = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(126), FromDIP(26)));
-    m_generic_nozzle_selector->SetMinSize(wxSize(FromDIP(126), FromDIP(26)));
+    m_generic_nozzle_selector = new ::ComboBox(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(126), -1), 0,
+                                               nullptr, wxCB_READONLY);
     m_generic_nozzle_selector->Hide();
 
     m_bpButton_e_10 = new Button(panel, "", "monitor_extruder_up", 0, 22); // Orca Dont scale icon size 
@@ -2272,6 +2355,30 @@ wxBoxSizer *StatusBasePanel::create_extruder_control(wxWindow *parent)
     m_bpButton_e_down_10->SetBorderColor(e_ctrl_bd);
     m_bpButton_e_down_10->SetMinSize(wxSize(FromDIP(40), FromDIP(40)));
 
+    // Length and speed for the buttons above, as a labelled column (non-Bambu printers only).
+    m_extrude_length_choice = new ::ComboBox(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(88), -1), 0, nullptr,
+                                             wxCB_READONLY);
+    for (int length : EXTRUDE_LENGTHS_MM)
+        m_extrude_length_choice->Append(wxString::Format("%d mm", length));
+    m_extrude_length_choice->SetToolTip(_L("How far the extrude and retract buttons move the filament"));
+    m_extrude_speed_choice = new ::ComboBox(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(88), -1), 0, nullptr,
+                                            wxCB_READONLY);
+    for (int speed : EXTRUDE_SPEEDS_MM_S)
+        m_extrude_speed_choice->Append(wxString::Format("%d mm/s", speed));
+    m_extrude_speed_choice->SetToolTip(_L("How fast the extrude and retract buttons move the filament"));
+    auto extrude_label = [panel](const wxString& text) {
+        auto label = new ::Label(panel, text);
+        label->SetFont(::Label::Body_12);
+        label->SetForegroundColour(TEXT_LIGHT_FONT_COL);
+        return label;
+    };
+    auto extrude_choices = new wxFlexGridSizer(2, 2, FromDIP(4), FromDIP(6));
+    extrude_choices->Add(extrude_label(_L("Length")), 0, wxALIGN_CENTER_VERTICAL);
+    extrude_choices->Add(m_extrude_length_choice, 0, wxALIGN_CENTER_VERTICAL);
+    extrude_choices->Add(extrude_label(_L("Speed")), 0, wxALIGN_CENTER_VERTICAL);
+    extrude_choices->Add(m_extrude_speed_choice, 0, wxALIGN_CENTER_VERTICAL);
+    m_extrude_choices_sizer = extrude_choices;
+
     m_extruder_switching_status = new ExtruderSwithingStatus(panel);
     m_extruder_switching_status->SetForegroundColour(TEXT_LIGHT_FONT_COL);
 
@@ -2288,11 +2395,13 @@ wxBoxSizer *StatusBasePanel::create_extruder_control(wxWindow *parent)
     bSizer_e_ctrl->Add(m_extruder_book, 0, wxALIGN_CENTER_HORIZONTAL, 0);
     bSizer_e_ctrl->Add(0, 0, 0, wxTOP, FromDIP(7));
     bSizer_e_ctrl->Add(m_bpButton_e_down_10, 0, wxALIGN_CENTER_HORIZONTAL, 0);
+    bSizer_e_ctrl->Add(extrude_choices, 0, wxTOP | wxALIGN_CENTER_HORIZONTAL, FromDIP(10));
     bSizer_e_ctrl->Add(0, 0, 1, wxEXPAND, 0);
     bSizer_e_ctrl->Add(m_extruder_switching_status, 0, wxALIGN_CENTER_HORIZONTAL, 0);
     bSizer_e_ctrl->Add(m_extruder_label, 0, wxTOP | wxALIGN_CENTER_HORIZONTAL, FromDIP(10));
 
     panel->SetSizer(bSizer_e_ctrl);
+    extrude_choices->ShowItems(false);
     panel->Layout();
     sizer->Add(panel, 1, wxEXPAND, 0);
     return sizer;
@@ -2580,6 +2689,38 @@ void StatusPanel::update_camera_state(MachineObject* obj)
     if (!obj) return;
 
     auto agent = wxGetApp().getAgent();
+
+    // Camera picker, shown when the printer reports more than one camera. The choice is
+    // remembered per printer and applied once when that printer's cameras are first known.
+    const std::vector<std::string> camera_names = agent ? agent->get_camera_names() : std::vector<std::string>{};
+    if (camera_names.size() > 1) {
+        if (camera_names != m_camera_names) {
+            m_camera_names = camera_names;
+            m_camera_choice->Clear();
+            for (const auto& name : camera_names)
+                m_camera_choice->Append(from_u8(name));
+        }
+        if (m_camera_choice_device != obj->get_dev_id()) {
+            m_camera_choice_device = obj->get_dev_id();
+            const std::string saved = wxGetApp().app_config->get("printer_camera", m_camera_choice_device);
+            const auto        found = std::find(camera_names.begin(), camera_names.end(), saved);
+            if (found != camera_names.end() && agent->get_selected_camera() != int(found - camera_names.begin())) {
+                agent->select_camera(int(found - camera_names.begin()));
+                m_media_play_ctrl->SetMachineObject(obj);
+            }
+        }
+        if (m_camera_choice->GetSelection() != agent->get_selected_camera())
+            m_camera_choice->SetSelection(agent->get_selected_camera());
+        if (!m_camera_choice->IsShown()) {
+            m_camera_choice->Show();
+            m_panel_monitoring_title->Layout();
+        }
+    } else if (m_camera_choice->IsShown()) {
+        m_camera_choice->Hide();
+        m_camera_names.clear();
+        m_panel_monitoring_title->Layout();
+    }
+
     const auto camera_mode = agent ? agent->get_camera_stream_mode() : CameraStreamMode::none;
     const bool use_webview = camera_mode == CameraStreamMode::http_snapshot;
     if (use_webview) {
@@ -2599,6 +2740,10 @@ void StatusPanel::update_camera_state(MachineObject* obj)
         }
         m_media_ctrl->Show();
     }
+
+    // Bambu camera features: storage card, recording, timelapse, live, resolution settings. Other
+    // printers' connections don't implement them, so their icons stay hidden.
+    const bool bambu_camera = wxGetApp().preset_bundle->is_bbl_vendor();
 
     //sdcard
     auto sdcard_state = obj->GetStorage()->get_sdcard_state();
@@ -2636,7 +2781,7 @@ void StatusPanel::update_camera_state(MachineObject* obj)
             m_bitmap_recording_img->Hide();
             m_panel_monitoring_title->Layout();
         }
-    } else if (!m_bitmap_recording_img->IsShown()) {
+    } else if (bambu_camera && !m_bitmap_recording_img->IsShown()) {
         m_bitmap_recording_img->Show();
         m_panel_monitoring_title->Layout();
     }
@@ -2645,7 +2790,7 @@ void StatusPanel::update_camera_state(MachineObject* obj)
         m_bitmap_recording_img->Hide();*/
 
     //timelapse
-    if (obj->is_support_timelapse) {
+    if (bambu_camera && obj->is_support_timelapse) {
         if (m_last_timelapse != (obj->is_timelapse() ? 1: 0)) {
             if (obj->is_timelapse()) {
                 m_bitmap_timelapse_img->SetBitmap(m_bitmap_timelapse_on.bmp());
@@ -2667,7 +2812,7 @@ void StatusPanel::update_camera_state(MachineObject* obj)
     }
 
     //vcamera
-    if (obj->virtual_camera) {
+    if (bambu_camera && obj->virtual_camera) {
         if (m_last_vcamera != (m_media_play_ctrl->IsStreaming() ? 1: 0)) {
             if (m_media_play_ctrl->IsStreaming()) {
                 m_bitmap_vcamera_img->SetBitmap(m_bitmap_vcamera_on.bmp());
@@ -2694,7 +2839,21 @@ void StatusPanel::update_camera_state(MachineObject* obj)
         m_camera_popup->update(show_vcamera);
     }
 
-    m_setting_button->Show(!use_webview);
+    m_setting_button->Show(!use_webview && bambu_camera);
+
+    // The storage icon is shown by default, and any icon may still be up from a Bambu printer.
+    if (!bambu_camera) {
+        bool changed = false;
+        for (wxWindow* icon : std::initializer_list<wxWindow*>{m_bitmap_sdcard_img, m_bitmap_recording_img, m_bitmap_timelapse_img,
+                                                               m_bitmap_vcamera_img, m_setting_button}) {
+            if (icon && icon->IsShown()) {
+                icon->Hide();
+                changed = true;
+            }
+        }
+        if (changed)
+            m_panel_monitoring_title->Layout();
+    }
 }
 
 StatusPanel::StatusPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style, const wxString &name)
@@ -2843,7 +3002,18 @@ void StatusPanel::wire_controls()
     m_bpButton_e_10->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_e_up_10), NULL, this);
     m_bpButton_e_down_10->Connect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_e_down_10), NULL, this);
     m_nozzle_btn_panel->Connect(wxCUSTOMEVT_SWITCH_POS, wxCommandEventHandler(StatusPanel::on_nozzle_selected), NULL, this);
-    m_generic_nozzle_selector->Connect(wxEVT_CHOICE, wxCommandEventHandler(StatusPanel::on_nozzle_selected), NULL, this);
+    m_generic_nozzle_selector->Connect(wxEVT_COMBOBOX, wxCommandEventHandler(StatusPanel::on_nozzle_selected), NULL, this);
+    auto save_extrude_choice = [this](wxCommandEvent&) {
+        if (!obj)
+            return;
+        auto* app_config = wxGetApp().app_config;
+        app_config->set(EXTRUDE_LENGTH_SECTION, obj->get_dev_id(),
+                        std::to_string(choice_value(m_extrude_length_choice, EXTRUDE_LENGTHS_MM, DEFAULT_EXTRUDE_LENGTH_MM)));
+        app_config->set(EXTRUDE_SPEED_SECTION, obj->get_dev_id(),
+                        std::to_string(choice_value(m_extrude_speed_choice, EXTRUDE_SPEEDS_MM_S, DEFAULT_EXTRUDE_SPEED_MM_S)));
+    };
+    m_extrude_length_choice->Bind(wxEVT_COMBOBOX, save_extrude_choice);
+    m_extrude_speed_choice->Bind(wxEVT_COMBOBOX, save_extrude_choice);
 
     Bind(EVT_AMS_EXTRUSION_CALI, &StatusPanel::on_filament_extrusion_cali, this);
     Bind(EVT_AMS_LOAD, &StatusPanel::on_ams_load, this);
@@ -2916,7 +3086,7 @@ StatusPanel::~StatusPanel()
         m_bpButton_e_10->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_e_up_10), NULL, this);
         m_bpButton_e_down_10->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_axis_ctrl_e_down_10), NULL, this);
         m_nozzle_btn_panel->Disconnect(wxCUSTOMEVT_SWITCH_POS, wxCommandEventHandler(StatusPanel::on_nozzle_selected), NULL, this);
-        m_generic_nozzle_selector->Disconnect(wxEVT_CHOICE, wxCommandEventHandler(StatusPanel::on_nozzle_selected), NULL, this);
+        m_generic_nozzle_selector->Disconnect(wxEVT_COMBOBOX, wxCommandEventHandler(StatusPanel::on_nozzle_selected), NULL, this);
         m_switch_speed->Disconnect(wxEVT_LEFT_DOWN, wxCommandEventHandler(StatusPanel::on_switch_speed), NULL, this);
         m_calibration_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_start_calibration), NULL, this);
         m_options_btn->Disconnect(wxEVT_COMMAND_BUTTON_CLICKED, wxCommandEventHandler(StatusPanel::on_show_print_options), NULL, this);
@@ -3241,7 +3411,16 @@ void StatusPanel::update(MachineObject *obj)
 
         DevConfig* config = obj->GetConfig();
 
-        if (config->SupportFirstLayerInspect() || config->SupportAIMonitor() || obj->is_support_build_plate_marker_detect || obj->is_support_auto_recovery_step_loss) {
+        // Printer Parts, Calibration, Print/Safety Options and the lamp send Bambu firmware
+        // commands that other printers' connections don't implement.
+        const bool bambu_controls = wxGetApp().preset_bundle->is_bbl_vendor();
+        m_calibration_btn->Show(bambu_controls);
+        if (m_switch_lamp->IsShown() != bambu_controls) {
+            m_switch_lamp->Show(bambu_controls);
+            m_switch_lamp->GetParent()->Layout();
+        }
+
+        if (bambu_controls && (config->SupportFirstLayerInspect() || config->SupportAIMonitor() || obj->is_support_build_plate_marker_detect || obj->is_support_auto_recovery_step_loss)) {
             m_options_btn->Show();
             if (print_options_dlg) {
                 print_options_dlg->update_machine_obj(obj);
@@ -3252,7 +3431,7 @@ void StatusPanel::update(MachineObject *obj)
         }
 
 
-        if (obj->support_door_open_check()) {
+        if (bambu_controls && obj->support_door_open_check()) {
             if (supports_safety) {
                 m_safety_btn->Show();
                 if (safety_options_dlg) {
@@ -3266,7 +3445,7 @@ void StatusPanel::update(MachineObject *obj)
             m_safety_btn->Hide();
         }
 
-        m_parts_btn->Show();
+        m_parts_btn->Show(bambu_controls);
 
 
         if (m_panel_control_title) {
@@ -3766,21 +3945,25 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
             image->update(get_extder_shown_state(extder_system->HasFilamentInExt(i)), i);
         image->Refresh();
 
-        if (m_generic_nozzle_selector_count != m_nozzle_num) {
-            m_generic_nozzle_selector->Clear();
-            for (int i = 0; i < m_nozzle_num; ++i)
-                m_generic_nozzle_selector->Append(wxString::Format("%s %d", _L("Toolhead"), i + 1));
-            m_generic_nozzle_selector_count = m_nozzle_num;
-        }
-        m_generic_nozzle_selector->SetSelection(selected_nozzle_id);
-        m_generic_nozzle_selector->Show(m_nozzle_num > 1);
+        // Leave the selector alone while its list is open, and otherwise only touch it when
+        // something changed: re-setting a native choice every status tick resets an open list.
+        if (!choice_list_open(m_generic_nozzle_selector)) {
+            if (m_generic_nozzle_selector_count != m_nozzle_num) {
+                m_generic_nozzle_selector->Clear();
+                for (int i = 0; i < m_nozzle_num; ++i)
+                    m_generic_nozzle_selector->Append(wxString::Format("%s %d", _L("Toolhead"), i + 1));
+                m_generic_nozzle_selector_count = m_nozzle_num;
+            }
+            if (m_generic_nozzle_selector->GetSelection() != selected_nozzle_id)
+                m_generic_nozzle_selector->SetSelection(selected_nozzle_id);
 
-        if ((obj->is_in_printing() && !obj->is_in_printing_pause()) ||
-            obj->ams_status_main == AMS_STATUS_MAIN_FILAMENT_CHANGE ||
-            obj->targ_nozzle_id_from_pc != INVALID_EXTRUDER_ID)
-            m_generic_nozzle_selector->Disable();
-        else
-            m_generic_nozzle_selector->Enable();
+            const bool busy = (obj->is_in_printing() && !obj->is_in_printing_pause()) ||
+                              obj->ams_status_main == AMS_STATUS_MAIN_FILAMENT_CHANGE ||
+                              obj->targ_nozzle_id_from_pc != INVALID_EXTRUDER_ID;
+            if (m_generic_nozzle_selector->IsEnabled() == busy)
+                m_generic_nozzle_selector->Enable(!busy);
+        }
+        m_generic_nozzle_selector->Show(m_nozzle_num > 1);
     }
 
     // The generic >2 toolhead page is larger than the legacy 45x112 Bambu page,
@@ -3788,6 +3971,21 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
     // given an explicit size while a >2 generic grid is shown (or to clear a
     // previous one); a plain Bambu session leaves the book's natural 45x112
     // best size untouched.
+    // Length and speed choices for the extrude/retract buttons on non-Bambu printers, loaded
+    // from the saved values once per printer.
+    const bool extrude_choices_were_shown = m_extrude_length_choice->IsShown();
+    const bool show_extrude_choices       = !is_bbl_vendor && m_nozzle_num > 0;
+    if (show_extrude_choices && m_extrude_choice_device != obj->get_dev_id()) {
+        m_extrude_choice_device = obj->get_dev_id();
+        auto* app_config = wxGetApp().app_config;
+        select_choice_value(m_extrude_length_choice, EXTRUDE_LENGTHS_MM,
+                            std::atoi(app_config->get(EXTRUDE_LENGTH_SECTION, m_extrude_choice_device).c_str()), DEFAULT_EXTRUDE_LENGTH_MM);
+        select_choice_value(m_extrude_speed_choice, EXTRUDE_SPEEDS_MM_S,
+                            std::atoi(app_config->get(EXTRUDE_SPEED_SECTION, m_extrude_choice_device).c_str()), DEFAULT_EXTRUDE_SPEED_MM_S);
+    }
+    if (extrude_choices_were_shown != show_extrude_choices)
+        m_extrude_choices_sizer->ShowItems(show_extrude_choices);
+
     bool book_size_changed = false;
     {
         const bool generic_grid       = !is_bbl_vendor && m_nozzle_num > 2;
@@ -3808,7 +4006,8 @@ void StatusPanel::update_misc_ctrl(MachineObject *obj)
 
     if (book_size_changed ||
         bbl_selector_was_shown != m_nozzle_btn_panel->IsShown() ||
-        generic_selector_was_shown != m_generic_nozzle_selector->IsShown())
+        generic_selector_was_shown != m_generic_nozzle_selector->IsShown() ||
+        extrude_choices_were_shown != m_extrude_length_choice->IsShown())
         m_nozzle_btn_panel->GetParent()->Layout();
 
     /*switch extder*/
@@ -3920,7 +4119,10 @@ void StatusPanel::update_ams(MachineObject *obj)
         show_ams_group(true);
         //show_filament_load_group(true);
 
-        if (obj->GetFilaSystem()->GetAmsList().empty() || obj->ams_exist_bits == 0) {
+        // Refill (backup spools) and the AMS settings are Bambu AMS firmware features.
+        const bool bambu_ams = wxGetApp().preset_bundle->is_bbl_vendor();
+        m_ams_control->show_ams_setting(bambu_ams);
+        if (!bambu_ams || obj->GetFilaSystem()->GetAmsList().empty() || obj->ams_exist_bits == 0) {
             m_ams_control->show_auto_refill(false);
         } else {
             m_ams_control->show_auto_refill(true);
@@ -3966,23 +4168,16 @@ void StatusPanel::update_ams(MachineObject *obj)
     const bool show_generic_nozzle_switch =
         obj->GetExtderSystem()->GetTotalExtderCount() > 2 &&
         !wxGetApp().preset_bundle->is_bbl_vendor();
-    const bool ams_nozzle_switch_was_shown = m_ams_nozzle_switch->IsShown();
+    const bool toolhead_overview_was_shown = m_toolhead_overview->IsShown();
     if (show_generic_nozzle_switch) {
-        std::vector<wxString> nozzle_options;
-        const int nozzle_count = obj->GetExtderSystem()->GetTotalExtderCount();
-        if (m_ams_nozzle_switch->GetCount() != static_cast<unsigned int>(nozzle_count)) {
-            nozzle_options.reserve(nozzle_count);
-            for (int nozzle_id = 0; nozzle_id < nozzle_count; ++nozzle_id)
-                nozzle_options.push_back(wxString::Format(_L("T%d"), nozzle_id + 1));
-            m_ams_nozzle_switch->SetOptions(nozzle_options);
-        }
-        m_ams_nozzle_switch->SetSelection(m_ams_control->GetActiveNozzleId());
-        m_ams_nozzle_switch->Show();
+        m_toolhead_overview->SetToolheads(build_toolhead_overview(ams_info, ext_info, obj->GetExtderSystem()->GetTotalExtderCount()),
+                                          obj->GetExtderSystem()->GetCurrentExtderId(), m_ams_control->GetActiveNozzleId());
+        m_toolhead_overview->Show();
     } else {
-        m_ams_nozzle_switch->Hide();
+        m_toolhead_overview->Hide();
     }
-    if (ams_nozzle_switch_was_shown != m_ams_nozzle_switch->IsShown())
-        m_ams_nozzle_switch->GetParent()->Layout();
+    if (toolhead_overview_was_shown != m_toolhead_overview->IsShown())
+        m_toolhead_overview->GetParent()->Layout();
     m_ams_control->UpdateAmsDryControl(obj);
 
     last_tray_exist_bits  = obj->tray_exist_bits;
@@ -4707,33 +4902,32 @@ void StatusPanel::axis_ctrl_e_hint(bool up_down)
 
 void StatusPanel::on_axis_ctrl_e_up_10(wxCommandEvent &event)
 {
-    if (obj) {
-        auto ext = obj->GetExtderSystem()->GetCurrentExtder();
-        if (ext && ext->GetCurrentTemp() >= TEMP_THRESHOLD_ALLOW_E_CTRL)
-            if (obj->is_enable_np) {
-                obj->command_extruder_control(ext->GetExtId(), -10.0f);
-            } else {
-                obj->command_axis_control("E", 1.0, -10.0f, 900);
-            }
-
-        else
-            axis_ctrl_e_hint(true);
-    }
+    move_filament(-1);
 }
 
 void StatusPanel::on_axis_ctrl_e_down_10(wxCommandEvent &event)
 {
-    if (obj) {
-        auto ext = obj->GetExtderSystem()->GetCurrentExtder();
-        if (ext && ext->GetCurrentTemp() >= TEMP_THRESHOLD_ALLOW_E_CTRL)
-            if (obj->is_enable_np) {
-                obj->command_extruder_control(ext->GetExtId(), 10.0f);
-            } else {
-                obj->command_axis_control("E", 1.0, 10.0f, 900);
-            }
-        else
-            axis_ctrl_e_hint(false);
+    move_filament(1);
+}
+
+void StatusPanel::move_filament(int direction)
+{
+    if (!obj)
+        return;
+    auto ext = obj->GetExtderSystem()->GetCurrentExtder();
+    if (!ext || ext->GetCurrentTemp() < TEMP_THRESHOLD_ALLOW_E_CTRL) {
+        axis_ctrl_e_hint(direction < 0);
+        return;
     }
+
+    // Bambu printers keep their fixed 10 mm; other printers move as far and as fast as chosen.
+    const bool generic = !wxGetApp().preset_bundle->is_bbl_vendor();
+    const int  length  = generic ? choice_value(m_extrude_length_choice, EXTRUDE_LENGTHS_MM, DEFAULT_EXTRUDE_LENGTH_MM) : 10;
+    const int  speed   = generic ? choice_value(m_extrude_speed_choice, EXTRUDE_SPEEDS_MM_S, DEFAULT_EXTRUDE_SPEED_MM_S) : 0;
+    if (obj->is_enable_np)
+        obj->command_extruder_control(ext->GetExtId(), direction * length, speed);
+    else
+        obj->command_axis_control("E", 1.0, direction * length, generic ? speed * 60 : 900);
 }
 
 void StatusPanel::on_set_bed_temp()
@@ -5036,8 +5230,8 @@ void StatusPanel::on_ams_switch(SimpleEvent &event)
 {
     if(obj){
 
-        if (m_ams_nozzle_switch && m_ams_nozzle_switch->IsShown())
-            m_ams_nozzle_switch->SetSelection(m_ams_control->GetActiveNozzleId());
+        if (m_toolhead_overview && m_toolhead_overview->IsShown())
+            m_toolhead_overview->SetSelectedToolhead(m_ams_control->GetActiveNozzleId());
 
         if (wxGetApp().preset_bundle->is_bbl_vendor()) {
             /*right*/
@@ -5658,50 +5852,168 @@ void StatusPanel::on_xyz_abs(wxCommandEvent &event)
 }
 
 
-void StatusPanel::on_nozzle_selected(wxCommandEvent &event)
+namespace {
+
+// AppConfig section remembering, per printer (dev_id), the macro to run after a toolhead change.
+const std::string TOOLHEAD_CHANGE_MACRO_SECTION = "toolhead_change_after_macro";
+
+// Confirms a toolhead change on a non-Bambu printer, where T<n> runs the printer's own tool-change
+// G-code. It can home first (offered only while the printer is not homed, since the change would fail)
+// and run a follow-up macro, e.g. one that moves the toolhead to a purge bucket. That macro is
+// asked for every time: a manual change may leave the toolhead parked at the dock.
+class GenericToolheadChangeDialog : public DPIDialog
 {
-    const bool is_bbl_vendor = wxGetApp().preset_bundle->is_bbl_vendor();
-    if (obj) {
-        const int nozzle_id = event.GetInt();
-        const auto extder_system = obj->GetExtderSystem();
-        const int current_nozzle_id = extder_system->GetCurrentExtderId();
-        const int current_selection = current_nozzle_id >= 0 && current_nozzle_id < extder_system->GetTotalExtderCount()
-                                          ? current_nozzle_id
-                                          : wxNOT_FOUND;
-        const bool nozzle_change_in_progress = !is_bbl_vendor && obj->targ_nozzle_id_from_pc != INVALID_EXTRUDER_ID;
-        if (!is_bbl_vendor && (nozzle_id < 0 || nozzle_id >= extder_system->GetTotalExtderCount())) {
-            m_generic_nozzle_selector->SetSelection(current_selection);
-            return;
+public:
+    GenericToolheadChangeDialog(wxWindow* parent, int toolhead, bool offer_home, const wxString& after_macro)
+        : DPIDialog(parent ? parent : static_cast<wxWindow*>(wxGetApp().mainframe), wxID_ANY, _L("Change toolhead"),
+                    wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
+    {
+        SetBackgroundColour(*wxWHITE);
+        SetFont(Label::Body_14);
+
+        auto* sizer   = new wxBoxSizer(wxVERTICAL);
+        auto* content = new wxBoxSizer(wxVERTICAL);
+
+        content->Add(new Label(this, format_wxstr(_L("Change to Toolhead %1%? The printer will run T%2%."), toolhead + 1, toolhead)),
+                     0, wxBOTTOM, FromDIP(14));
+
+        if (offer_home) {
+            m_home_cb = new ::CheckBox(this);
+            m_home_cb->SetValue(true);
+            auto* row = new wxBoxSizer(wxHORIZONTAL);
+            row->Add(m_home_cb, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+            row->Add(new Label(this, _L("Home all axes first (G28)")), 0, wxALIGN_CENTER_VERTICAL);
+            content->Add(row, 0);
+            auto* note = new Label(this, Label::Body_12, _L("The printer is not homed. The toolhead change fails without homing."));
+            content->Add(note, 0, wxLEFT | wxTOP | wxBOTTOM, FromDIP(4));
+            content->AddSpacer(FromDIP(8));
         }
 
-        /*Enable switch head while printing is paused STUDIO-9789*/
-        if ((obj->is_in_printing() && !obj->is_in_printing_pause()) ||
-            obj->ams_status_main == AMS_STATUS_MAIN_FILAMENT_CHANGE || nozzle_change_in_progress) {
-            MessageDialog dlg(nullptr, _L("The printer is busy with another print job."), _L("Error"), wxICON_WARNING | wxOK);
-            dlg.ShowModal();
-            if (!is_bbl_vendor)
-                m_generic_nozzle_selector->SetSelection(current_selection);
-            return;
-        }
+        content->Add(new Label(this, _L("Then run (optional):")), 0, wxBOTTOM, FromDIP(4));
+        m_macro = new ::TextInput(this, after_macro, "", "", wxDefaultPosition, wxSize(FromDIP(280), -1));
+        m_macro->GetTextCtrl()->SetHint(_L("e.g. PURGE_BUCKET"));
+        content->Add(m_macro, 0, wxEXPAND);
+        auto* macro_note = new Label(this, Label::Body_12, _L("A macro or G-code line to run after the change. Leave it empty to stop where the change ends."));
+        macro_note->Wrap(FromDIP(300));
+        content->Add(macro_note, 0, wxTOP, FromDIP(4));
 
-        if (!is_bbl_vendor)
-            m_generic_nozzle_selector->Disable();
-        if (obj->GetCtrl()->command_select_extruder(nozzle_id) == 0)
-        {
-            if (!is_bbl_vendor) {
-                // The command did not start; restore the previous selection and
-                // re-enable the selector so the user is not stuck.
-                m_generic_nozzle_selector->SetSelection(current_selection);
-                m_generic_nozzle_selector->Enable();
-            }
-            return;
-        }
+        sizer->Add(content, 1, wxEXPAND | wxALL, FromDIP(16));
+
+        auto* btns = new DialogButtons(this, {"OK", "Cancel"});
+        btns->GetOK()->SetLabel(_L("Change"));
+        btns->GetOK()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_OK); });
+        btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CANCEL); });
+        sizer->Add(btns, 0, wxEXPAND);
+
+        SetSizerAndFit(sizer);
+        CenterOnParent();
+        wxGetApp().UpdateDlgDarkUI(this);
     }
 
-    if (is_bbl_vendor)
-        m_nozzle_btn_panel->Enable();
-    else
-        m_generic_nozzle_selector->Enable();
+    bool home_first() const { return m_home_cb && m_home_cb->GetValue(); }
+
+    // The follow-up command: the first line only, trimmed, so it stays one command.
+    std::string after_macro() const
+    {
+        std::string macro = into_u8(m_macro->GetTextCtrl()->GetValue());
+        macro             = macro.substr(0, macro.find_first_of("\r\n"));
+        boost::algorithm::trim(macro);
+        return macro;
+    }
+
+protected:
+    void on_dpi_changed(const wxRect&) override
+    {
+        m_macro->Rescale();
+        GetSizer()->SetSizeHints(this);
+        Refresh();
+    }
+
+private:
+    ::CheckBox*  m_home_cb = nullptr;
+    ::TextInput* m_macro   = nullptr;
+};
+
+} // namespace
+
+void StatusPanel::on_nozzle_selected(wxCommandEvent &event)
+{
+    if (!wxGetApp().preset_bundle->is_bbl_vendor()) {
+        // The toolhead dropdown sends this before its list has closed, and also for the mouse
+        // wheel and arrow keys: act only on a real change, and only once the list is gone.
+        if (!obj)
+            return;
+        const int nozzle_id = event.GetInt();
+        if (nozzle_id == obj->GetExtderSystem()->GetCurrentExtderId())
+            return;
+        CallAfter([this, nozzle_id, dev_id = obj->get_dev_id()] { change_generic_toolhead(nozzle_id, dev_id); });
+        return;
+    }
+
+    if (obj) {
+        const int nozzle_id = event.GetInt();
+        /*Enable switch head while printing is paused STUDIO-9789*/
+        if ((obj->is_in_printing() && !obj->is_in_printing_pause()) ||
+            obj->ams_status_main == AMS_STATUS_MAIN_FILAMENT_CHANGE) {
+            MessageDialog dlg(nullptr, _L("The printer is busy with another print job."), _L("Error"), wxICON_WARNING | wxOK);
+            dlg.ShowModal();
+            return;
+        }
+        if (obj->GetCtrl()->command_select_extruder(nozzle_id) == 0)
+            return;
+    }
+    m_nozzle_btn_panel->Enable();
+}
+
+void StatusPanel::change_generic_toolhead(int nozzle_id, const std::string& dev_id)
+{
+    // The printer whose toolhead was chosen, if it is still the one shown and connected.
+    const auto still_selected = [this, &dev_id] { return obj != nullptr && obj->get_dev_id() == dev_id; };
+    const auto show_current   = [this] {
+        const int current = obj ? obj->GetExtderSystem()->GetCurrentExtderId() : wxNOT_FOUND;
+        m_generic_nozzle_selector->SetSelection(obj && current >= 0 && current < obj->GetExtderSystem()->GetTotalExtderCount() ? current
+                                                                                                                         : wxNOT_FOUND);
+    };
+    const auto busy = [this] {
+        return (obj->is_in_printing() && !obj->is_in_printing_pause()) || obj->ams_status_main == AMS_STATUS_MAIN_FILAMENT_CHANGE ||
+               obj->targ_nozzle_id_from_pc != INVALID_EXTRUDER_ID;
+    };
+
+    if (!still_selected() || nozzle_id < 0 || nozzle_id >= obj->GetExtderSystem()->GetTotalExtderCount()) {
+        show_current();
+        return;
+    }
+    /*Enable switch head while printing is paused STUDIO-9789*/
+    if (busy()) {
+        MessageDialog dlg(nullptr, _L("The printer is busy with another print job."), _L("Error"), wxICON_WARNING | wxOK);
+        dlg.ShowModal();
+        show_current();
+        return;
+    }
+
+    // T<n> on a toolchanger is a physical tool change: confirm it, offer homing when the printer
+    // reports X, Y or Z unhomed (home_flag bits 0..2), and the follow-up macro.
+    auto*      app_config = wxGetApp().app_config;
+    const bool offer_home = (obj->m_home_flag & 0x7) != 0x7;
+    GenericToolheadChangeDialog dlg(this, nozzle_id, offer_home, from_u8(app_config->get(TOOLHEAD_CHANGE_MACRO_SECTION, dev_id)));
+    const bool confirmed = dlg.ShowModal() == wxID_OK;
+    // Status updates keep running while the dialog is open: the printer may have gone, changed,
+    // or started something else meanwhile.
+    if (!confirmed || !still_selected() || busy()) {
+        show_current();
+        return;
+    }
+    app_config->set(TOOLHEAD_CHANGE_MACRO_SECTION, dev_id, dlg.after_macro());
+
+    // 0 means the command was sent: keep the control disabled until the printer reports the
+    // switch has ended (the status update re-enables it).
+    m_generic_nozzle_selector->Disable();
+    if (obj->GetCtrl()->command_select_extruder(nozzle_id, dlg.home_first(), dlg.after_macro()) == 0)
+        return;
+
+    // The command was not sent: show the toolhead that is still current again.
+    show_current();
+    m_generic_nozzle_selector->Enable();
 }
 
 void StatusPanel::on_show_print_options(wxCommandEvent& event)
@@ -5857,8 +6169,8 @@ void StatusPanel::set_default()
     m_ams_control->Reset();
     m_ams_rack_switch->updateState("left");
     m_ams_rack_switch->Hide();
-    if (m_ams_nozzle_switch)
-        m_ams_nozzle_switch->Hide();
+    if (m_toolhead_overview)
+        m_toolhead_overview->Hide();
     m_panel_nozzle_rack->Hide();
     m_scale_panel->Hide();
     m_filament_load_box->Hide();
@@ -5959,8 +6271,8 @@ void StatusPanel::on_sys_color_changed()
     m_bitmap_speed_active.msw_rescale();
     m_switch_speed->SetImages(m_bitmap_speed, m_bitmap_speed);
     m_ams_control->msw_rescale();
-    if (m_ams_nozzle_switch)
-        m_ams_nozzle_switch->Rescale();
+    if (m_toolhead_overview)
+        m_toolhead_overview->Rescale();
     rescale_camera_icons();
 }
 
@@ -6048,8 +6360,8 @@ void StatusPanel::msw_rescale()
     m_extruder_switching_status->msw_rescale();
 
     m_ams_control->msw_rescale();
-    if (m_ams_nozzle_switch)
-        m_ams_nozzle_switch->Rescale();
+    if (m_toolhead_overview)
+        m_toolhead_overview->Rescale();
     m_panel_nozzle_rack->Rescale();
     // m_filament_step->Rescale();
 

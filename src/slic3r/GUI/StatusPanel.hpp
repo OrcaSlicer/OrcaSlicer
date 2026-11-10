@@ -66,6 +66,8 @@
 #include "PartSkipDialog.hpp"
 #include "DeviceErrorDialog.hpp"
 #include "StagedBuild.hpp"
+#include "Widgets/ToolheadLaneOverview.hpp"
+#include "Widgets/ComboBox.hpp"
 
 class StepIndicator;
 class wxChoice;
@@ -444,6 +446,10 @@ protected:
 
 
     CameraItem *m_setting_button;
+    // Printers with several cameras (e.g. Moonraker webcams): which one the view shows.
+    ::ComboBox*              m_camera_choice{nullptr};
+    std::vector<std::string> m_camera_names;
+    std::string              m_camera_choice_device; // the printer the saved choice was applied for
 
     wxBitmap m_bitmap_camera;
     ScalableBitmap m_bitmap_sdcard_state_normal;
@@ -506,8 +512,13 @@ protected:
     std::vector<ExtruderImage *> m_extruderImage;
 
     SwitchBoard *   m_nozzle_btn_panel;
-    wxChoice*       m_generic_nozzle_selector{nullptr};
+    ::ComboBox*     m_generic_nozzle_selector{nullptr};
     int             m_generic_nozzle_selector_count{0};
+    // How far and how fast the extrude/retract buttons move on non-Bambu printers, remembered per printer.
+    ::ComboBox*     m_extrude_length_choice{nullptr};
+    ::ComboBox*     m_extrude_speed_choice{nullptr};
+    wxSizer*        m_extrude_choices_sizer{nullptr};
+    std::string     m_extrude_choice_device; // the printer the saved choices were applied for
 
     wxStaticText *  m_text_tasklist_caption;
 
@@ -576,7 +587,9 @@ protected:
 
     /* AMS control box <-> live nozzle-rack panel toggle (rack printers only) */
     SwitchBoard*    m_ams_rack_switch{ nullptr };
-    MultiSwitchButton* m_ams_nozzle_switch{ nullptr };
+    // Generic printers with more than two toolheads: every toolhead's lanes side by side;
+    // clicking a toolhead shows its AMS details below.
+    ToolheadLaneOverview* m_toolhead_overview{ nullptr };
 
     AMSControl*     m_ams_control;
     StaticBox*      m_ams_control_box;
@@ -764,10 +777,14 @@ protected:
     void on_axis_ctrl_z_down_1(wxCommandEvent &event);
     void on_axis_ctrl_z_down_10(wxCommandEvent &event);
     void on_axis_ctrl_e_up_10(wxCommandEvent &event);
+    // Extrude (direction 1) or retract (-1) on the active extruder, if it is hot enough.
+    void move_filament(int direction);
     void on_axis_ctrl_e_down_10(wxCommandEvent &event);
     void axis_ctrl_e_hint(bool up_down);
 
     void on_nozzle_selected(wxCommandEvent &event);
+    // Confirm and send a toolhead change on a non-Bambu printer, if dev_id is still the printer shown.
+    void change_generic_toolhead(int nozzle_id, const std::string& dev_id);
     /* temp control */
     void on_bed_temp_kill_focus(wxFocusEvent &event);
     void on_bed_temp_set_focus(wxFocusEvent &event);
