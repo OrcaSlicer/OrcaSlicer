@@ -755,6 +755,12 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return Point(scale_(wipe_tower_pt.x() - gcodegen.origin()(0)), scale_(wipe_tower_pt.y() - gcodegen.origin()(1)));
     }
 
+    // Bed point of the wipe tower -> GCodeWriter position, with the active extruder's offset.
+    static inline Vec2d wipe_tower_point_to_writer(GCode& gcodegen, const Vec2f& wipe_tower_pt)
+    {
+        return gcodegen.point_to_gcode(wipe_tower_point_to_object_point(gcodegen, wipe_tower_pt));
+    }
+
     // set volumetric speed of outer wall ,ignore per obejct & region ,just use default setting
     // filament_variant_idx selects the per-variant column of filament_max_volumetric_speed
     // (equals filament_id unless a per-layer nozzle grouping expanded the filament arrays).
@@ -1748,6 +1754,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         std::string toolchange_gcode_str;
         std::string deretraction_str;
         std::string restore_layer_z_str;
+        std::string retract_off_str;
+        const bool  park_beside = tcr.park_beside && !tcr.priming;
         int toolchange_temp_override = -1;
         int interface_temp = -1;
         if (tcr.priming || (new_extruder_id >= 0 && needs_toolchange)) {
@@ -1767,6 +1775,21 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             if (will_go_down && tool_may_travel && gcodegen.config().enable_prime_tower) {
                 restore_layer_z_str += gcodegen.writer().travel_to_z(current_z, "Restore layer Z before toolchange");
                 check_add_eol(restore_layer_z_str);
+            }
+            if (park_beside) {
+                // The old tool retracts while it leaves the tower through the wall gap. With
+                // prime_tower_leave_dry_travel it then travels on dry to the park spot.
+                Vec3d position{gcodegen.writer().get_position()};
+                position.head<2>() = wipe_tower_point_to_writer(gcodegen, transform_wt2_pt(tcr.park_beside->enter) + plate_origin_2d);
+                gcodegen.writer().set_position(position);
+                retract_off_str = gcodegen.writer().retract_for_toolchange_to_xy(
+                    wipe_tower_point_to_writer(gcodegen, transform_wt2_pt(tcr.park_beside->leave) + plate_origin_2d));
+                check_add_eol(retract_off_str);
+                if (tcr.park_beside->park != tcr.park_beside->leave) {
+                    retract_off_str += gcodegen.writer().travel_to_xy(
+                        wipe_tower_point_to_writer(gcodegen, transform_wt2_pt(tcr.park_beside->park) + plate_origin_2d));
+                    check_add_eol(retract_off_str);
+                }
             }
             // Orca: ramming moves the head inside the tcr, away from the position the writer holds.
             // Mark it unknown so the eager spiral lift in set_extruder is a straight Z lift in place.
@@ -1805,11 +1828,40 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
                 }
             }
             if (gcodegen.config().enable_prime_tower) {
+                if (park_beside) {
+                    // A tool on its first use was never retracted, so it would have nothing to unretract
+                    // beside the tower and would start extruding on it. Retracting it here, where the
+                    // toolchange left it, makes it start beside the tower like every later change.
+                    // Only a tool holding no retract at all: a retract call on a retracted tool would still
+                    // overwrite its restart extra and add MakerWare's M103.
+                    if (is_zero(gcodegen.writer().get_extruder_retracted_length(int(gcodegen.writer().filament()->id()))))
+                        deretraction_str += gcodegen.writer().retract_for_toolchange();
+                    Vec3d position{gcodegen.writer().get_position()};
+                    position.head<2>() = wipe_tower_point_to_writer(gcodegen, transform_wt2_pt(tcr.park_beside->park) + plate_origin_2d);
+                    gcodegen.writer().set_position(position);
+                    if (tcr.park_beside->park != tcr.park_beside->leave) {
+                        deretraction_str += gcodegen.writer().travel_to_xy(
+                            wipe_tower_point_to_writer(gcodegen, transform_wt2_pt(tcr.park_beside->leave) + plate_origin_2d));
+                        check_add_eol(deretraction_str);
+                    }
+                }
                 deretraction_str += gcodegen.writer().travel_to_z(z, "Force restore layer Z", true);
                 Vec3d position{gcodegen.writer().get_position()};
                 position.z() = z;
                 gcodegen.writer().set_position(position);
-                deretraction_str += gcodegen.unretract();
+                if (park_beside) {
+                    // The new tool unretracts while it comes back from where the old tool's retract ended to the wipe start.
+                    const Extruder &filament = *gcodegen.writer().filament();
+                    const double max_e_per_mm = GCodeWriter::max_unretract_per_travel_mm(
+                        gcodegen.config().gcode_flavor.value, gcodegen.config().nozzle_diameter.get_at(filament.extruder_id()),
+                        filament.filament_crossection());
+                    deretraction_str += gcodegen.writer().unlift();
+                    deretraction_str += gcodegen.writer().unretract_to_xy(
+                        wipe_tower_point_to_writer(gcodegen, transform_wt2_pt(tcr.park_beside->enter) + plate_origin_2d), max_e_per_mm);
+                    check_add_eol(deretraction_str);
+                } else {
+                    deretraction_str += gcodegen.unretract();
+                }
             }
         }
 
@@ -1935,6 +1987,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         config.set_key_value("change_filament_gcode", new ConfigOptionString(toolchange_gcode_str));
         config.set_key_value("deretraction_from_wipe_tower_generator", new ConfigOptionString(deretraction_str));
         config.set_key_value("restore_layer_z_before_toolchange", new ConfigOptionString(restore_layer_z_str));
+        config.set_key_value("retract_off_wipe_tower", new ConfigOptionString(retract_off_str));
         config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
         config.set_key_value("layer_z", new ConfigOptionFloat(tcr.print_z));
         config.set_key_value("toolchange_z", new ConfigOptionFloat(z));

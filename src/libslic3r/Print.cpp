@@ -546,6 +546,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "prime_tower_brim_width"
             || opt_key == "wipe_tower_type"
             || opt_key == "prime_tower_skip_points"
+            || opt_key == "prime_tower_leave_dry_travel"
             || opt_key == "prime_tower_flat_ironing"
             || opt_key == "enable_tower_interface_features"
             || opt_key == "first_layer_print_sequence"

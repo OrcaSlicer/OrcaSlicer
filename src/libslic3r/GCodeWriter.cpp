@@ -887,10 +887,34 @@ std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &com
     } else {
         w.emit_xy(point_on_plate);
     }
-    auto speed = this->point_on_first_layer(Vec3d(point_on_plate.x(), point_on_plate.y(), m_pos.z()))
-        ? this->config.get_abs_value_at("initial_layer_travel_speed", m_cached_extruder_idx) : this->config.travel_speed.get_at(m_cached_extruder_idx);
-    w.emit_f(speed * 60.0);
+    w.emit_f(this->travel_speed_to(point_on_plate) * 60.0);
     //BBS
+    w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+    return w.string();
+}
+
+double GCodeWriter::travel_speed_to(const Vec2d &point_on_plate) const
+{
+    return this->point_on_first_layer(Vec3d(point_on_plate.x(), point_on_plate.y(), m_pos.z()))
+        ? this->config.get_abs_value_at("initial_layer_travel_speed", m_cached_extruder_idx) : this->config.travel_speed.get_at(m_cached_extruder_idx);
+}
+
+std::string GCodeWriter::_travel_to_xy_with_e(const Vec2d &point, double dE, double emitted_e, double e_speed, const std::string &comment)
+{
+    const double distance = (point - m_pos.head<2>()).norm();
+    m_pos(0) = point(0);
+    m_pos(1) = point(1);
+    this->set_current_position_clear(true);
+    const Vec2d point_on_plate = { point(0) - m_x_offset, point(1) - m_y_offset };
+
+    GCodeG1Formatter w(high_precision());
+    if (has_axis_remap())
+        w.emit_xyz(apply_axis_remap(Vec3d(point_on_plate.x(), point_on_plate.y(), m_pos.z())));
+    else
+        w.emit_xy(point_on_plate);
+    w.emit_e(emitted_e);
+    const double speed = distance > EPSILON ? std::min(this->travel_speed_to(point_on_plate), e_speed * distance / std::abs(dE)) : e_speed;
+    w.emit_f(speed * 60.0);
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
     return w.string();
 }
@@ -1481,6 +1505,62 @@ std::string GCodeWriter::retract_for_toolchange(bool before_wipe, double retract
         factor * filament()->retract_restart_extra_toolchange(),
         "retract for toolchange"
     );
+}
+
+std::string GCodeWriter::retract_for_toolchange_to_xy(const Vec2d &point)
+{
+    // Firmware retraction is a G10 the firmware runs on its own, and MakerWare needs its M103 after it.
+    if (this->config.use_firmware_retraction || FLAVOR_IS(gcfMakerWare))
+        return this->travel_to_xy(point) + this->retract_for_toolchange();
+
+    const double dE = filament()->retract(filament()->retract_length_toolchange(), filament()->retract_restart_extra_toolchange());
+    if (is_zero(dE))
+        return this->travel_to_xy(point);
+    return this->_travel_to_xy_with_e(point, dE, filament()->E_to_emit(this->high_precision()), filament()->retract_speed(),
+                                      "retract for toolchange");
+}
+
+std::string GCodeWriter::unretract_to_xy(const Vec2d &point, double max_e_per_mm)
+{
+    // Firmware retraction is a G11 the firmware runs on its own, and MakerWare needs its M101 before it.
+    if (this->config.use_firmware_retraction || FLAVOR_IS(gcfMakerWare))
+        return this->unretract() + this->travel_to_xy(point);
+
+    const double dE = filament()->unretract();
+    if (is_zero(dE))
+        return this->travel_to_xy(point);
+
+    const double distance = (point - m_pos.head<2>()).norm();
+    // Without a move nothing rides on it; this also keeps 0 x infinity out.
+    double moving = distance < EPSILON ? 0. : std::min(dE, distance * max_e_per_mm);
+    if (dE - moving < EPSILON)
+        moving = dE;
+    if (moving < EPSILON)
+        moving = 0.;
+    const double standing = dE - moving;
+    const bool   high_precision = this->high_precision();
+
+    // The extruder already holds the whole dE, so each part is written relative to that end position.
+    std::string gcode;
+    if (standing > 0.) {
+        GCodeG1Formatter w(high_precision);
+        w.emit_e(filament()->E_to_emit(high_precision, -moving));
+        w.emit_f(filament()->deretract_speed() * 60.);
+        w.emit_comment(GCodeWriter::full_gcode_comment, " ; unretract");
+        gcode = w.string();
+    }
+    if (moving <= 0.)
+        return gcode + this->travel_to_xy(point);
+    const double moving_extra = this->config.use_relative_e_distances.value ? -standing : 0.;
+    return gcode + this->_travel_to_xy_with_e(point, moving, filament()->E_to_emit(high_precision, moving_extra),
+                                              filament()->deretract_speed(), " ; unretract");
+}
+
+double GCodeWriter::max_unretract_per_travel_mm(GCodeFlavor flavor, double nozzle_diameter, double filament_area)
+{
+    if (flavor != gcfKlipper)
+        return std::numeric_limits<double>::infinity();
+    return 0.9 * 4. * nozzle_diameter * nozzle_diameter / filament_area;
 }
 
 std::string GCodeWriter::_retract(double length, double restart_extra, const std::string &comment)

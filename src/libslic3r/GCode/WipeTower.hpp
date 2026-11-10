@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <math.h>
 #include <limits>
+#include <optional>
 #include <string>
 #include <sstream>
 #include <unordered_map>
@@ -182,6 +183,13 @@ public:
 		// Orca: set by WipeTower2 (non-BBL tower) to force a travel to the tower even when the
 		// previous position is unknown; read by WipeTowerIntegration::append_tcr2 (GCode.cpp).
 		bool force_travel = false;
+
+		// Orca: set when the old tool swaps beside the tower instead of on it. Tower-local, rotated like
+		// start_pos: the old tool retracts while it moves from `enter` (the wall gap row) to `leave`, just off
+		// the tower, then travels on dry to `park` (the same spot unless prime_tower_leave_dry_travel). The new
+		// tool travels back to `leave` and comes back from there to `enter`. append_tcr2 turns both trips into moving retract / unretract moves.
+		struct ParkBeside { Vec2f park; Vec2f leave; Vec2f enter; };
+		std::optional<ParkBeside> park_beside;
 	};
 
     struct box_coordinates

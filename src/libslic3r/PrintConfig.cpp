@@ -8452,6 +8452,13 @@ void PrintConfigDef::init_fff_params()
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    def          = this->add("prime_tower_leave_dry_travel", coBool);
+    def->label   = L("Dry travel when leaving");
+    def->tooltip = L("When the tool is swapped beside the prime tower, the old tool travels 3 mm further "
+                     "out after its retract ends, before it stops.");
+    def->mode    = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def      = this->add("prime_tower_flat_ironing", coBool);
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));

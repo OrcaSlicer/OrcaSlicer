@@ -2122,6 +2122,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloat,              prime_tower_brim_width))
     ((ConfigOptionPercent,            prime_tower_infill_gap))
     ((ConfigOptionBool,               prime_tower_skip_points))
+    ((ConfigOptionBool,               prime_tower_leave_dry_travel))
     ((ConfigOptionBool,               prime_tower_flat_ironing))
     ((ConfigOptionBool,               enable_tower_interface_features))
     ((ConfigOptionBool,               enable_tower_interface_cooldown_during_tower))

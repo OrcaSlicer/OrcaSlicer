@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <limits>
 #include <math.h>
+#include <optional>
 #include <string>
 #include <sstream>
 #include <utility>
@@ -262,6 +263,7 @@ private:
     float  m_rib_length                   = 0;
     Vec2f  m_rib_offset                   = Vec2f::Zero();
     bool   m_use_gap_wall                 = false;
+    bool   m_leave_dry_travel             = false;
     // Per plan layer, each toolchange's entry position (tower-local, un-shifted frame):
     // where the wall is cut open so the entry travel does not cross the printed wall.
     // Filled by compute_wall_skip_points() once the plan is final.
@@ -346,6 +348,24 @@ private:
         return pos;
     }
 
+    // Tower-local x extent of everything printed on this layer around the nominal width:
+    // the rib wall or cone bulge and the first-layer brim.
+    std::pair<float, float> tower_envelope_x() const;
+    float first_layer_brim_width() const;
+    // Tower-local x span, on the row at y, of the wall (and first-layer brim) printed on this layer,
+    // grown by `clearance` all around. The cone wall uses its widest envelope.
+    std::pair<float, float> row_span_x(float y, float clearance) const;
+    bool park_point_on_bed(const WipeTowerWriter2 &writer, const Vec2f &tower_pt) const;
+    // X of a park spot beside the printed wall on the row of `from`, on the side nearest
+    // `from`. Falls back to the far side unless near_side_only; nullopt if both leave the bed.
+    std::optional<float> park_x_beside_tower(const WipeTowerWriter2 &writer, const Vec2f &from, bool near_side_only) const;
+    // Park spots for a swap that starts at the writer position and leaves the tower on its row:
+    // the retract ends at `retract_end_x`; with m_leave_dry_travel the tool then travels on dry before it parks.
+    WipeTower::ToolChangeResult::ParkBeside park_beside_tower(const WipeTowerWriter2 &writer, float retract_end_x) const;
+    // Old tool out of the tower to `park` (in rotated tower coordinates), swap and heat-up there, new tool
+    // back to where it left.
+    void toolchange_swap_beside_tower(WipeTowerWriter2 &writer, const Vec2f &park, int wait_for_temp);
+
 	// Calculates extrusion flow needed to produce required line width for given layer height
 	float extrusion_flow(float layer_height = -1.f) const	// negative layer_height - return current m_extrusion_flow
 	{
@@ -409,14 +429,16 @@ private:
 		const WipeTower::box_coordinates  &cleaning_box, 
 		const std::string&	 	current_material,
 		const int 				old_temperature,
-		const int 				new_temperature);
+		const int 				new_temperature,
+		const bool 				flush_at_end = true);
 
 	void toolchange_Change(
 		WipeTowerWriter2 &writer,
         const size_t		new_tool,
 		const std::string& 		new_material,
 		const int 				wait_for_temp,
-		const bool 				wait_beside_tower);
+		const bool 				wait_beside_tower,
+		const std::optional<Vec2f> &park_spot = std::nullopt);
 	
 	void toolchange_Load(
 		WipeTowerWriter2 &writer,
@@ -445,7 +467,9 @@ private:
 		bool infill_cone, 
 		float spacing);
 
-    Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box);
+    Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box) const;
+    // The rib or rectangle wall outline finish_layer() prints, before the wall gap is cut.
+    Polygon wall_outline(const WipeTower::box_coordinates& wt_box, bool rib_wall) const;
 
     void compute_wall_skip_points();
 

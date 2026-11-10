@@ -1364,6 +1364,7 @@ static std::vector<std::string> s_Preset_print_options{
     "prime_tower_width",
     "prime_tower_brim_width",
     "prime_tower_skip_points",
+    "prime_tower_leave_dry_travel",
     "prime_volume",
     "prime_tower_infill_gap",
     "prime_tower_flat_ironing",

@@ -13,6 +13,7 @@
 #include <string>
 #include <math.h>
 #include <limits>
+#include <optional>
 #include <utility>
 #include <vector>
 #include <numeric>
@@ -25,6 +26,7 @@
 #include "ClipperUtils.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/GCodeWriter.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
 #include "GCodeProcessor.hpp"
@@ -1068,6 +1070,7 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_extra_rib_length(config.wipe_tower_extra_rib_length),
     m_wall_type((int)config.wipe_tower_wall_type),
     m_use_gap_wall(use_gap_wall(config)),
+    m_leave_dry_travel(config.prime_tower_leave_dry_travel.value),
     m_enable_tower_interface_features(config.enable_tower_interface_features.value),
     m_enable_tower_interface_cooldown_during_tower(config.enable_tower_interface_cooldown_during_tower.value),
     m_wait_for_temp_on_wipe_tower(wait_for_temp_enabled(config))
@@ -1327,6 +1330,205 @@ std::vector<WipeTower::ToolChangeResult> WipeTower2::prime(
 	return results;
 }
 
+// A move the wipe tower post-processor always emits, even when it ends where it starts.
+static std::string never_skip_move(const Vec2f &pt, const std::string &feedrate_suffix = {})
+{
+    return "G1 X" + Slic3r::float_to_string_decimal_point(pt.x()) + " Y" + Slic3r::float_to_string_decimal_point(pt.y()) +
+           feedrate_suffix + WipeTower2::never_skip_tag() + "\n";
+}
+
+// A standing retract or unretract leaves the nozzle pressing on one spot of the tower, which
+// can knock a tall tower over. These run the E at retract speed over the start (retract) or
+// the end (unretract) of a straight move to `dest`; the rest of the move travels at `travel_f`.
+static void retract_moving(WipeTowerWriter2 &writer, const Vec2f &dest, float length, float retract_mm_s, float travel_f)
+{
+    const Vec2f from = writer.pos();
+    const float dist = (dest - from).norm();
+    if (length <= 0.f || retract_mm_s <= 0.f || dist < float(EPSILON)) {
+        writer.retract(length, retract_mm_s * 60.f).travel(dest, travel_f);
+        return;
+    }
+    const float e_dist = std::min(dist, travel_f / 60.f * length / retract_mm_s);
+    const Vec2f e_end  = from + (dest - from) * (e_dist / dist);
+    writer.extrude_explicit(e_end.x(), e_end.y(), -length, 60.f * e_dist * retract_mm_s / length, false, false)
+          .travel(dest, travel_f);
+}
+
+// An unretract riding on a move counts as an extrusion for the firmware. Klipper aborts the print when
+// it pushes more than max_e_per_mm on a move, so a move too short to carry it is run back and forth,
+// an odd number of passes to still end at `dest`.
+static void unretract_moving(WipeTowerWriter2 &writer, const Vec2f &dest, float length, float retract_mm_s, float travel_f, float max_e_per_mm)
+{
+    const Vec2f from = writer.pos();
+    const float dist = (dest - from).norm();
+    if (length <= 0.f || retract_mm_s <= 0.f || dist < float(EPSILON)) {
+        writer.travel(dest, travel_f).retract(-length, retract_mm_s * 60.f);
+        return;
+    }
+    int passes = std::max(1, int(std::ceil(length / (dist * max_e_per_mm))));
+    passes += 1 - passes % 2;
+    // Only a move of a fraction of a millimetre needs this many; standing still is better than scrubbing it.
+    if (passes > 9) {
+        writer.travel(dest, travel_f).retract(-length, retract_mm_s * 60.f);
+        return;
+    }
+    const float pass_e   = length / passes;
+    const float e_dist   = std::min(dist, std::max(travel_f / 60.f * pass_e / retract_mm_s, pass_e / max_e_per_mm));
+    const float e_f      = std::min(travel_f, 60.f * e_dist * retract_mm_s / pass_e);
+    for (int pass = 0; pass < passes; ++pass) {
+        const Vec2f &pass_start = pass % 2 == 0 ? from : dest;
+        const Vec2f &pass_end   = pass % 2 == 0 ? dest : from;
+        // The unretract is not an extrusion: keep it out of the preview.
+        writer.travel(pass_end - (pass_end - pass_start) * (e_dist / dist), travel_f)
+              .suppress_preview()
+              .extrude_explicit(pass_end.x(), pass_end.y(), pass_e, e_f, false, false)
+              .resume_preview();
+    }
+}
+
+std::pair<float, float> WipeTower2::tower_envelope_x() const
+{
+    // The rib wall and the stabilization cone bulge past the nominal width rectangle
+    // (widest near the bottom), and the first-layer brim is printed around the wall later
+    // in the layer — clear the widest of them, not just the rectangle, so the park point
+    // and its drool stay off the tower.
+    float min_x = 0.f, max_x = m_wipe_tower_width;
+    if (m_wall_type == (int)wtwRib) {
+        WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
+        const BoundingBox rib_bbox = get_extents(generate_rib_polygon(wt_box)); // the fillet stays within this bbox
+        min_x = std::min(min_x, unscaled<float>(rib_bbox.min.x()));
+        max_x = std::max(max_x, unscaled<float>(rib_bbox.max.x()));
+    } else if (m_wall_type == (int)wtwCone) {
+        const double support_scale = get_wipe_tower_cone_base(m_wipe_tower_width, m_wipe_tower_height, m_wipe_tower_depth,
+                                                              m_wipe_tower_cone_angle).second;
+        const double z = m_sparse_layers_skipped ? (m_current_height + m_layer_info->height) : m_layer_info->z;
+        const double r = std::tan(Geometry::deg2rad(m_wipe_tower_cone_angle / 2.f)) * (m_wipe_tower_height - z);
+        const double w = m_layer_info->depth + m_perimeter_width;
+        if (r > 0.5 * w + 0.01) { // same guard as generate_support_cone_wall
+            const float bulge = float(std::sqrt(r * r - 0.25 * w * w) / support_scale);
+            min_x = std::min(min_x, m_wipe_tower_width / 2.f - bulge);
+            max_x = std::max(max_x, m_wipe_tower_width / 2.f + bulge);
+        }
+    }
+    if (is_first_layer()) {
+        min_x -= first_layer_brim_width();
+        max_x += first_layer_brim_width();
+    }
+    return {min_x, max_x};
+}
+
+float WipeTower2::first_layer_brim_width() const
+{
+    return m_wipe_tower_brim_width < 0.f ? WipeTower::get_auto_brim_by_height(m_wipe_tower_height) : m_wipe_tower_brim_width;
+}
+
+std::pair<float, float> WipeTower2::row_span_x(float y, float clearance) const
+{
+    const auto [envelope_min_x, envelope_max_x] = tower_envelope_x();
+    if (m_wall_type == (int)wtwCone)
+        return {envelope_min_x - clearance, envelope_max_x + clearance};
+    // The rib wall's bounding box is its rib tips: on most rows the wall is much nearer than that,
+    // so measure the clearance from the printed wall (and the brim around it) on this very row.
+    const WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
+    const float    grow  = clearance + (is_first_layer() ? first_layer_brim_width() : 0.f);
+    const Polygons grown = offset(wall_outline(wt_box, m_wall_type == (int)wtwRib), scaled<float>(grow), jtRound, SCALED_RESOLUTION);
+    float min_x = std::numeric_limits<float>::max();
+    float max_x = std::numeric_limits<float>::lowest();
+    for (const Polygon &polygon : grown)
+        for (const Line &edge : polygon.lines()) {
+            const Vec2d a = unscale(edge.a);
+            const Vec2d b = unscale(edge.b);
+            if ((a.y() > y) == (b.y() > y))
+                continue;
+            const float x = float(a.x() + (y - a.y()) * (b.x() - a.x()) / (b.y() - a.y()));
+            min_x = std::min(min_x, x);
+            max_x = std::max(max_x, x);
+        }
+    if (min_x > max_x) // the row misses the wall: keep clear of the whole envelope
+        return {envelope_min_x - clearance, envelope_max_x + clearance};
+    return {min_x, max_x};
+}
+
+bool WipeTower2::park_point_on_bed(const WipeTowerWriter2 &writer, const Vec2f &tower_pt) const
+{
+    const Eigen::Rotation2Df to_bed(float(Geometry::deg2rad(m_wipe_tower_rotation_angle)));
+    const Vec2f bed_pt = to_bed * (writer.rotated(tower_pt) + m_rib_offset) + m_wipe_tower_pos;
+    return m_bed_polygon.contains(Point::new_scale(bed_pt.x(), bed_pt.y()));
+}
+
+std::optional<float> WipeTower2::park_x_beside_tower(const WipeTowerWriter2 &writer, const Vec2f &from, bool near_side_only) const
+{
+    constexpr float gap     = 2.8f;
+    constexpr float min_gap = 0.5f;
+    const auto [near_min_x, near_max_x] = row_span_x(from.y(), gap);
+    const bool  on_left = from.x() < m_wipe_tower_width / 2.f;
+    const float near_x  = on_left ? near_min_x : near_max_x;
+    if (park_point_on_bed(writer, Vec2f(near_x, from.y())))
+        return near_x;
+    // The ideal near point hangs off the bed: pull it back to the bed edge as long
+    // as that still clears the wall by min_gap (the BBL tower clamps its
+    // stop_pos against the bed the same way in append_tcr). Bisection, because with
+    // tower rotation and non-rectangular beds the bed edge is not axis-aligned.
+    const auto [limit_min_x, limit_max_x] = row_span_x(from.y(), min_gap);
+    const float limit_x = on_left ? limit_min_x : limit_max_x;
+    if (park_point_on_bed(writer, Vec2f(limit_x, from.y()))) {
+        float on = limit_x, off = near_x;
+        for (int i = 0; i < 8; ++i) {
+            const float mid = 0.5f * (on + off);
+            if (park_point_on_bed(writer, Vec2f(mid, from.y())))
+                on = mid;
+            else
+                off = mid;
+        }
+        return on;
+    }
+    if (near_side_only)
+        return std::nullopt;
+    const float far_x = on_left ? near_max_x : near_min_x;
+    if (park_point_on_bed(writer, Vec2f(far_x, from.y())))
+        return far_x;
+    return std::nullopt;
+}
+
+WipeTower::ToolChangeResult::ParkBeside WipeTower2::park_beside_tower(const WipeTowerWriter2 &writer, float retract_end_x) const
+{
+    const Vec2f leave(retract_end_x, writer.y());
+    if (!m_leave_dry_travel)
+        return {writer.rotated(leave), writer.rotated(leave), writer.pos_rotated()};
+    // A tool that stops where its retract ends leaves a wisp there: it travels on dry this far first,
+    // when the bed has room for it.
+    constexpr float dry_travel = 3.f;
+    const float outward = retract_end_x < writer.x() ? -1.f : 1.f;
+    const Vec2f past(retract_end_x + outward * dry_travel, writer.y());
+    const Vec2f park = park_point_on_bed(writer, past) ? past : leave;
+    return {writer.rotated(park), writer.rotated(leave), writer.pos_rotated()};
+}
+
+// The tool must never stand still on the tower: a nozzle standing on a tall tower while it
+// retracts, swaps, heats and unretracts pushes it over. The old tool retracts while it
+// leaves through the wall gap, the swap and heat-up happen beside the tower, and the new
+// tool unretracts while it comes back in. append_tcr2 fills [retract_off_wipe_tower] with
+// the moving retract and the optional dry travel to `park` and [deretraction_from_wipe_tower_generator] with the
+// travel back to where the retract ended, the Z drop there plus the moving unretract back to the entry. The raw moves keep the post-processor
+// tracking the head: the park move before [change_filament_gcode] makes it re-apply a new
+// extruder offset at `park`, and the explicit feedrates leave the writer's tracked one true.
+void WipeTower2::toolchange_swap_beside_tower(WipeTowerWriter2 &writer, const Vec2f &park, int wait_for_temp)
+{
+    const std::string travel_f = " F" + std::to_string(int(std::floor(m_travel_speed * 60.f + 0.5f)));
+    const Vec2f       enter    = writer.pos_rotated();
+    writer.feedrate(m_travel_speed * 60.f)
+          .append("[retract_off_wipe_tower]\n")
+          .append(never_skip_move(park))
+          .append(flush_planner_queue_command(m_gcode_flavor))
+          .append("[restore_layer_z_before_toolchange]\n")
+          .append("[change_filament_gcode]\n")
+          .append(never_skip_move(park, travel_f));
+    if (wait_for_temp > 0)
+        writer.set_extruder_temp(wait_for_temp, true, wait_for_temp_tag());
+    writer.append("[deretraction_from_wipe_tower_generator]\n")
+          .append(never_skip_move(enter, travel_f));
+}
+
 WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
 {
     size_t old_tool = m_current_tool;
@@ -1390,6 +1592,7 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
 	if (m_set_extruder_trimpot)
 		writer.set_extruder_trimpot(750);
 
+    std::optional<WipeTower::ToolChangeResult::ParkBeside> park_beside;
     // Ram the hot material out of the melt zone, retract the filament into the cooling tubes and let it cool.
     if (tool != (unsigned int)-1){ 			// This is not the last change.
         // Without a ram — or with the boundary wipe start, where the ram band is
@@ -1397,18 +1600,29 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
         // then fills it completely so adjacent purge blocks stay contiguous. Uses the
         // old tool (m_current_tool before toolchange_Change).
         const bool fill_box = !tool_ramming_enabled(m_current_tool) || boundary_wipe_start_enabled(m_current_tool);
+        // With the wall gap the unload ends one row past the wipe start, right inside the gap:
+        // swap beside the tower when there is bed room on the gap side.
+        std::optional<float> park_x;
+        if (boundary_wipe_start_enabled(m_current_tool) && ramming_depth > 0.f)
+            park_x = park_x_beside_tower(writer, Vec2f(cleaning_box.ld.x() + m_perimeter_width, initial_position.y()), true);
         auto new_tool_temp = is_first_layer() ? m_filpar[tool].first_layer_temperature : m_filpar[tool].temperature;
         toolchange_Unload(writer, cleaning_box, m_filpar[m_current_tool].material,
                           (is_first_layer() ? m_filpar[m_current_tool].first_layer_temperature : m_filpar[m_current_tool].temperature),
-                          new_tool_temp);
+                          new_tool_temp, !park_x);
+        if (park_x) {
+            writer.travel(writer.x(), writer.y() - m_perimeter_width); // down to the wipe start row, in the wall gap
+            park_beside = park_beside_tower(writer, *park_x);
+        }
         // Wait-at-tower target: the interface temp when an interface boost applies on this layer,
         // otherwise the print temp (nozzle_temperature == 0 means "use the first layer temp").
         int wait_for_temp = interface_layer && m_filpar[tool].interface_print_temperature > 0 ?
                                 m_filpar[tool].interface_print_temperature :
                                 (is_first_layer() || m_filpar[tool].temperature == 0 ? m_filpar[tool].first_layer_temperature : m_filpar[tool].temperature);
-        toolchange_Change(writer, tool, m_filpar[tool].material, wait_for_temp, true); // Change the tool, set a speed override for soluble and flex materials.
+        toolchange_Change(writer, tool, m_filpar[tool].material, wait_for_temp, true,
+                          park_beside ? std::optional<Vec2f>(park_beside->park) : std::nullopt); // Change the tool, set a speed override for soluble and flex materials.
         toolchange_Load(writer, cleaning_box);
-        writer.travel(writer.x(), writer.y()-m_perimeter_width); // cooling and loading were done a bit down the road
+        if (!park_beside)
+            writer.travel(writer.x(), writer.y()-m_perimeter_width); // cooling and loading were done a bit down the road
         int base_temp = is_first_layer() ? m_filpar[tool].first_layer_temperature : m_filpar[tool].temperature;
         if (interface_layer) {
             int interface_temp = m_filpar[tool].interface_print_temperature;
@@ -1452,7 +1666,9 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
     if (m_current_tool < m_used_filament_length.size())
         m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
 
-    return construct_tcr(writer, false, old_tool, false, interface_layer);
+    WipeTower::ToolChangeResult result = construct_tcr(writer, false, old_tool, false, interface_layer);
+    result.park_beside = park_beside;
+    return result;
 }
 
 
@@ -1462,7 +1678,8 @@ void WipeTower2::toolchange_Unload(
 	const WipeTower::box_coordinates 	&cleaning_box,
 	const std::string&		 current_material,
     const int                old_temperature,
-	const int 				 new_temperature)
+	const int 				 new_temperature,
+	const bool 				 flush_at_end)
 {
 	float xl = cleaning_box.ld.x() + 1.f * m_perimeter_width;
 	float xr = cleaning_box.rd.x() - 1.f * m_perimeter_width;
@@ -1715,9 +1932,10 @@ void WipeTower2::toolchange_Unload(
             cleaning_box.ld.y() + m_depth_traversed + wipe_start_offset_after_ram(0.f, is_first_layer()) + m_perimeter_width));
     }
 
+    writer.resume_preview();
     // Sync even on Klipper: [change_filament_gcode] and Tn must not run while the unload is still queued.
-    writer.resume_preview()
-          .append(flush_planner_queue_command(m_gcode_flavor));
+    if (flush_at_end)
+        writer.append(flush_planner_queue_command(m_gcode_flavor));
 }
 
 // Change the tool, set a speed override for soluble and flex materials.
@@ -1726,11 +1944,21 @@ void WipeTower2::toolchange_Change(
     const size_t 	new_tool,
     const std::string&  new_material,
     const int       wait_for_temp,
-    const bool      wait_beside_tower)
+    const bool      wait_beside_tower,
+    const std::optional<Vec2f> &park_spot)
 {
     // Ask the writer about how much of the old filament we consumed:
     if (m_current_tool < m_used_filament_length.size())
     	m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
+
+    const bool wait_for_temp_here = m_wait_for_temp_on_wipe_tower && wait_for_temp > 0;
+
+    if (park_spot) {
+        toolchange_swap_beside_tower(writer, *park_spot, wait_for_temp_here ? wait_for_temp : 0);
+        writer.set_tool(new_tool);
+        m_current_tool = new_tool;
+        return;
+    }
 
     // This is where we want to place the custom gcodes. We will use placeholders for this.
     // These will be substituted by the actual gcodes when the gcode is generated.
@@ -1742,8 +1970,6 @@ void WipeTower2::toolchange_Change(
     if (m_is_mk4mmu3)
         writer.switch_filament_monitoring(true);
 
-    const bool wait_for_temp_here = m_wait_for_temp_on_wipe_tower && wait_for_temp > 0;
-
     // The Tn above was issued without a blocking temperature wait (GCode::set_extruder only raises
     // the target, ahead of the Tn); block here, before the deretraction below, which must not
     // extrude on a cold nozzle. Like the Bambu H2C, park beside the tower for the heat-up so drool lands
@@ -1753,75 +1979,9 @@ void WipeTower2::toolchange_Change(
     // at the tower entry. The tag keeps the
     // interface-temp deduplication pass in append_tcr2 from stripping the M109.
     if (wait_for_temp_here && wait_beside_tower) {
-        // The rib wall and the stabilization cone bulge past the nominal width rectangle
-        // (widest near the bottom), and the first-layer brim is printed around the wall later
-        // in the layer — clear the widest of them, not just the rectangle, so the park point
-        // and its drool stay off the tower.
-        float min_x = 0.f, max_x = m_wipe_tower_width;
-        if (m_wall_type == (int)wtwRib) {
-            WipeTower::box_coordinates wt_box(Vec2f(0.f, 0.f), m_wipe_tower_width, m_layer_info->depth + m_perimeter_width);
-            const BoundingBox rib_bbox = get_extents(generate_rib_polygon(wt_box)); // the fillet stays within this bbox
-            min_x = std::min(min_x, unscaled<float>(rib_bbox.min.x()));
-            max_x = std::max(max_x, unscaled<float>(rib_bbox.max.x()));
-        } else if (m_wall_type == (int)wtwCone) {
-            const double support_scale = get_wipe_tower_cone_base(m_wipe_tower_width, m_wipe_tower_height, m_wipe_tower_depth,
-                                                                  m_wipe_tower_cone_angle).second;
-            const double z = m_sparse_layers_skipped ? (m_current_height + m_layer_info->height) : m_layer_info->z;
-            const double r = std::tan(Geometry::deg2rad(m_wipe_tower_cone_angle / 2.f)) * (m_wipe_tower_height - z);
-            const double w = m_layer_info->depth + m_perimeter_width;
-            if (r > 0.5 * w + 0.01) { // same guard as generate_support_cone_wall
-                const float bulge = float(std::sqrt(r * r - 0.25 * w * w) / support_scale);
-                min_x = std::min(min_x, m_wipe_tower_width / 2.f - bulge);
-                max_x = std::max(max_x, m_wipe_tower_width / 2.f + bulge);
-            }
-        }
-        if (is_first_layer()) {
-            const float brim = m_wipe_tower_brim_width < 0.f ? WipeTower::get_auto_brim_by_height(m_wipe_tower_height) :
-                                                               m_wipe_tower_brim_width;
-            min_x -= brim;
-            max_x += brim;
-        }
-        constexpr float gap     = 2.f;
-        constexpr float min_gap = 0.5f;
-        const bool      on_left = writer.x() < m_wipe_tower_width / 2.f;
-        const float     near_x  = on_left ? min_x - gap : max_x + gap;
-        const float     far_x   = on_left ? max_x + gap : min_x - gap;
-        const Eigen::Rotation2Df to_bed(float(Geometry::deg2rad(m_wipe_tower_rotation_angle)));
-        auto park_pt_on_bed = [this, &writer, to_bed](float side_x) {
-            const Vec2f bed_pt = to_bed * (writer.rotated(Vec2f(side_x, writer.y())) + m_rib_offset) + m_wipe_tower_pos;
-            return m_bed_polygon.contains(Point::new_scale(bed_pt.x(), bed_pt.y()));
-        };
-        float park_x    = near_x;
-        bool  have_park = park_pt_on_bed(near_x);
-        if (!have_park) {
-            // The ideal near point hangs off the bed: pull it back to the bed edge as long
-            // as that still clears the tower envelope by min_gap (the BBL tower clamps its
-            // stop_pos against the bed the same way in append_tcr). Bisection, because with
-            // tower rotation and non-rectangular beds the bed edge is not axis-aligned.
-            const float limit_x = on_left ? min_x - min_gap : max_x + min_gap;
-            if (park_pt_on_bed(limit_x)) {
-                float on = limit_x, off = near_x;
-                for (int i = 0; i < 8; ++i) {
-                    const float mid = 0.5f * (on + off);
-                    if (park_pt_on_bed(mid))
-                        on = mid;
-                    else
-                        off = mid;
-                }
-                park_x    = on;
-                have_park = true;
-            }
-        }
-        if (!have_park && park_pt_on_bed(far_x)) {
-            park_x    = far_x;
-            have_park = true;
-        }
-        if (have_park) {
-            const Vec2f stop = writer.rotated(Vec2f(park_x, writer.y()));
-            writer.feedrate(m_travel_speed * 60.f)
-                  .append(std::string("G1 X") + Slic3r::float_to_string_decimal_point(stop.x())
-                                     +  " Y"  + Slic3r::float_to_string_decimal_point(stop.y())
-                                     + never_skip_tag() + "\n");
+        if (const std::optional<float> park_x = park_x_beside_tower(writer, writer.pos(), false)) {
+            const Vec2f stop = writer.rotated(Vec2f(*park_x, writer.y()));
+            writer.feedrate(m_travel_speed * 60.f).append(never_skip_move(stop));
         }
         writer.set_extruder_temp(wait_for_temp, true, wait_for_temp_tag());
     }
@@ -1829,12 +1989,8 @@ void WipeTower2::toolchange_Change(
     // Travel to where we assume we are. Custom toolchange or some special T code handling (parking extruder etc)
     // gcode could have left the extruder somewhere, we cannot just start extruding. We should also inform the
     // postprocessor that we absolutely want to have this in the gcode, even if it thought it is the same as before.
-    Vec2f current_pos = writer.pos_rotated();
     writer.feedrate(m_travel_speed * 60.f) // see https://github.com/prusa3d/PrusaSlicer/issues/5483
-          .append(std::string("G1 X") + Slic3r::float_to_string_decimal_point(current_pos.x())
-                             +  " Y"  + Slic3r::float_to_string_decimal_point(current_pos.y())
-                             + never_skip_tag() + "\n"
-    );
+          .append(never_skip_move(writer.pos_rotated()));
 
     // Priming has no tower to park beside — wait right at the priming line instead.
     if (wait_for_temp_here && !wait_beside_tower)
@@ -1941,15 +2097,15 @@ void WipeTower2::toolchange_Wipe(
             if (xr - writer.x() < ironing_length)
                 ironing_length = std::max(xr - writer.x(), 0.f);
             const float retract_length = m_filpar[m_current_tool].retract_length;
-            const float retract_speed  = m_filpar[m_current_tool].retract_speed * 60.f;
+            const float retract_speed  = m_filpar[m_current_tool].retract_speed;
             writer.extrude(writer.x() + ironing_length, writer.y(), wipe_speed);
-            writer.retract(retract_length, retract_speed);
-            writer.travel(writer.x() - 1.5f * ironing_length, writer.y(), 600.f);
+            retract_moving(writer, Vec2f(writer.x() - 1.5f * ironing_length, writer.y()), retract_length, retract_speed, 600.f);
             writer.travel(writer.x() + 0.5f * ironing_length, writer.y(), 240.f);
             const Vec2f iron_end(writer.x() + ironing_length, writer.y());
             writer.spiral_flat_ironing(writer.pos(), m_filpar[m_current_tool].tower_ironing_area, m_perimeter_width, flat_iron_speed);
-            writer.travel(iron_end, wipe_speed);
-            writer.retract(-retract_length, retract_speed);
+            unretract_moving(writer, iron_end, retract_length, retract_speed, wipe_speed,
+                             float(GCodeWriter::max_unretract_per_travel_mm(m_gcode_flavor, m_filpar[m_current_tool].nozzle_diameter,
+                                                                            m_filpar[m_current_tool].filament_area)));
         }
 
 		if (m_left_to_right)
@@ -2103,9 +2259,7 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
     // brim (first layer only)
     if (first_layer) {
         writer.append("; WIPE_TOWER_BRIM_START\n");
-            float brim_width = m_wipe_tower_brim_width;
-        if (brim_width < 0.f)
-            brim_width = WipeTower::get_auto_brim_by_height(m_wipe_tower_height);
+        const float brim_width = first_layer_brim_width();
 
         size_t loops_num = (brim_width + spacing / 2.f) / spacing;
         
@@ -2434,6 +2588,8 @@ static WipeTower::ToolChangeResult merge_tcr(WipeTower::ToolChangeResult& first,
     assert(first.new_tool == second.initial_tool);
     WipeTower::ToolChangeResult out = first;
     out.is_contact = first.is_contact || second.is_contact;
+    if (!out.park_beside)
+        out.park_beside = second.park_beside;
     if (first.end_pos != second.start_pos)
         out.gcode += "G1 X" + Slic3r::float_to_string_decimal_point(second.start_pos.x(), 3)
                      + " Y" + Slic3r::float_to_string_decimal_point(second.start_pos.y(), 3)
@@ -2603,7 +2759,7 @@ std::vector<std::pair<float, float>> WipeTower2::get_z_and_depth_pairs() const
 }
 
 
-Polygon WipeTower2::generate_rib_polygon(const WipeTower::box_coordinates& wt_box)
+Polygon WipeTower2::generate_rib_polygon(const WipeTower::box_coordinates& wt_box) const
 {
 
     auto get_current_layer_rib_len = [](float cur_height, float max_height, float max_len) -> float {
@@ -2638,6 +2794,18 @@ Polygon WipeTower2::generate_rib_polygon(const WipeTower::box_coordinates& wt_bo
     return p_1_2.front();
 };
 
+Polygon WipeTower2::wall_outline(const WipeTower::box_coordinates& wt_box, bool rib_wall) const
+{
+    Polygon wall_polygon = rib_wall ? generate_rib_polygon(wt_box) : generate_rectange_polygon(wt_box.ld, wt_box.ru);
+    if (!m_used_fillet)
+        return wall_polygon;
+    if (!rib_wall && m_y_shift > EPSILON) // do nothing because the fillet will cause it to be suspended.
+        return wall_polygon;
+    if (rib_wall)
+        wall_polygon = rounding_polygon(wall_polygon);
+    return union_({wall_polygon, generate_rectange_polygon(wt_box.ld, wt_box.ru)}).front();
+}
+
 Polygon WipeTower2::generate_support_rib_wall(WipeTowerWriter2&                 writer,
                                               const WipeTower::box_coordinates& wt_box,
                                              double                 feedrate,
@@ -2648,18 +2816,9 @@ Polygon WipeTower2::generate_support_rib_wall(WipeTowerWriter2&                 
 
     float     retract_length = m_filpar[m_current_tool].retract_length;
     float     retract_speed  = m_filpar[m_current_tool].retract_speed * 60;
-    Polygon   wall_polygon   = rib_wall ? generate_rib_polygon(wt_box) : generate_rectange_polygon(wt_box.ld, wt_box.ru);
+    Polygon   wall_polygon   = wall_outline(wt_box, rib_wall);
     Polylines result_wall;
     Polygon   insert_skip_polygon;
-    if (m_used_fillet) {
-        if (!rib_wall && m_y_shift > EPSILON) // do nothing because the fillet will cause it to be suspended.
-        {
-        } else {
-            wall_polygon           = rib_wall ? rounding_polygon(wall_polygon) : wall_polygon; // rectangle_wall do nothing
-            Polygon wt_box_polygon = generate_rectange_polygon(wt_box.ld, wt_box.ru);
-            wall_polygon           = union_({wall_polygon, wt_box_polygon}).front();
-        }
-    }
     if (!extrude_perimeter)
         return wall_polygon;
 

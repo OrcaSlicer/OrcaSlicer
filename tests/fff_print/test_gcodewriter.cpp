@@ -2205,3 +2205,77 @@ TEST_CASE("A lifted travel that ends lower descends only at its destination", "[
     writer.travel_to_xyz(Vec3d(50.0, 50.0, target_z));
     CHECK(count_g1(writer.travel_to_xyz(Vec3d(50.0, 50.0, target_z), "", true)) == 1);
 }
+
+TEST_CASE("A toolchange retract and unretract riding on travels give back exactly what they pulled", "[GCodeWriter]")
+{
+    // Only Klipper caps the E an unretract may push per mm of travel; the rest is pushed standing.
+    const bool klipper        = GENERATE(true, false);
+    const bool relative_e     = GENERATE(false, true);
+    const bool high_precision = GENERATE(false, true);
+    CAPTURE(klipper, relative_e, high_precision);
+    const GCodeFlavor flavor = klipper ? gcfKlipper : gcfMarlinFirmware;
+
+    PrintConfig config;
+    config.gcode_flavor.value                   = flavor;
+    config.use_relative_e_distances.value       = relative_e;
+    config.high_precision_gcode.value           = high_precision;
+    config.use_firmware_retraction.value        = false;
+    config.single_extruder_multi_material.value = false;
+    config.filament_diameter.values             = {1.75};
+    config.filament_flow_ratio.values           = {1.0};
+    config.filament_map.values                  = {1};
+    config.retract_length_toolchange.values     = {2.0};
+    config.retract_restart_extra_toolchange.values = {0.0};
+
+    GCodeWriter writer;
+    writer.apply_print_config(config);
+    writer.set_extruders({0});
+    writer.set_extruder(0);
+
+    const double nozzle_diameter = 0.4;
+    const double filament_area   = PI * 0.25 * config.filament_diameter.values[0] * config.filament_diameter.values[0];
+    const double max_e_per_mm    = GCodeWriter::max_unretract_per_travel_mm(flavor, nozzle_diameter, filament_area);
+    const double retract_length  = config.retract_length_toolchange.values[0];
+    const Vec2d  wipe_start(20., 10.);
+    const Vec2d  park(25., 10.);
+    const double travel          = (park - wipe_start).norm();
+
+    std::string gcode = writer.travel_to_xyz(Vec3d(10., 10., 0.3));
+    gcode += writer.extrude_to_xy(wipe_start, 0.5);
+    const size_t toolchange_start = gcode.size();
+    gcode += writer.retract_for_toolchange_to_xy(park);
+    gcode += writer.unretract_to_xy(wipe_start, max_e_per_mm);
+    INFO(gcode.substr(toolchange_start));
+
+    struct EMove { bool moves; double dist_xy; double dist_e; };
+    std::vector<EMove> e_moves;
+    GCodeReader reader;
+    reader.apply_config(writer.config);
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.cmd_is("G1") && line.has(E))
+            e_moves.push_back({ line.has(X) || line.has(Y), line.dist_XY(self), line.dist_E(self) });
+    });
+
+    const double standing = std::max(0., retract_length - travel * max_e_per_mm);
+    const bool   splits   = standing > EPSILON;
+    REQUIRE(e_moves.size() == (splits ? 4u : 3u));
+
+    const EMove &retract = e_moves[1];
+    CHECK(retract.moves);
+    CHECK_THAT(retract.dist_e, Catch::Matchers::WithinAbs(-retract_length, 1e-5));
+
+    double toolchange_e = 0.;
+    for (size_t i = 1; i < e_moves.size(); ++i)
+        toolchange_e += e_moves[i].dist_e;
+    CHECK_THAT(toolchange_e, Catch::Matchers::WithinAbs(0., 1e-5));
+
+    const EMove &moving_unretract = e_moves.back();
+    REQUIRE(moving_unretract.moves);
+    CHECK(moving_unretract.dist_e / moving_unretract.dist_xy <= max_e_per_mm + 1e-5);
+
+    if (splits) {
+        const EMove &standing_unretract = e_moves[2];
+        CHECK_FALSE(standing_unretract.moves);
+        CHECK_THAT(standing_unretract.dist_e, Catch::Matchers::WithinAbs(standing, 1e-5));
+    }
+}

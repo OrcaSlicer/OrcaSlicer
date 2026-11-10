@@ -7,6 +7,8 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include <cstddef>
+#include <limits>
+#include <map>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include <sstream>
@@ -962,7 +964,7 @@ TEST_CASE("Smooth timelapse prints each tower layer's wall once when a layer joi
 
 // A type 2 tower toolchange on two tools with a 0.4 mm z hop. Arc fitting is off, so a spiral
 // lift is written as short G1 moves that climb while moving in XY.
-static std::string slice_type2_toolchange(bool multitool_ramming)
+static DynamicPrintConfig type2_toolchange_config(bool multitool_ramming)
 {
     DynamicPrintConfig config = wipe_tower_toolchange_config("klipper");
     config.set_deserialize_strict({ { "wipe_tower_type",                "type2" },
@@ -971,22 +973,40 @@ static std::string slice_type2_toolchange(bool multitool_ramming)
                                     { "enable_arc_fitting",             "disabled" },
                                     { "z_hop",                          "0.4" },
                                     { "z_hop_types",                    "Normal Lift" } });
-    return slice_with_prime_tower(config);
+    return config;
+}
+
+static std::string slice_type2_toolchange(bool multitool_ramming)
+{
+    return slice_with_prime_tower(type2_toolchange_config(multitool_ramming));
+}
+
+// Calls on_line for each line after a line holding `from` and before the next line holding `to`.
+static void for_each_line_between(const std::string &gcode, const std::string &from, const std::string &to,
+                                  const GCodeReader::callback_t &on_line)
+{
+    bool inside = false;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.raw().find(from) != std::string::npos)
+            inside = true;
+        if (line.raw().find(to) != std::string::npos)
+            inside = false;
+        if (inside)
+            on_line(self, line);
+    });
 }
 
 // Calls on_line for each line from the unload to the wipe, the stretch where the tool is swapped.
 static void for_each_toolchange_line(const std::string &gcode, const GCodeReader::callback_t &on_line)
 {
-    bool in_toolchange = false;
-    GCodeReader reader;
-    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        if (line.raw().find("; CP TOOLCHANGE UNLOAD") != std::string::npos)
-            in_toolchange = true;
-        if (line.raw().find("; CP TOOLCHANGE WIPE") != std::string::npos)
-            in_toolchange = false;
-        if (in_toolchange)
-            on_line(self, line);
-    });
+    for_each_line_between(gcode, "; CP TOOLCHANGE UNLOAD", "; CP TOOLCHANGE WIPE", on_line);
+}
+
+// Calls on_line for each line of the wipe that follows a toolchange.
+static void for_each_toolchange_wipe_line(const std::string &gcode, const GCodeReader::callback_t &on_line)
+{
+    for_each_line_between(gcode, "; CP TOOLCHANGE WIPE", "; CP TOOLCHANGE END", on_line);
 }
 
 TEST_CASE("A toolchange on the type2 tower lifts the nozzle in place, without crossing the tower", "[WipeTower][Regression]")
@@ -1022,4 +1042,291 @@ TEST_CASE("A toolchange on the type2 tower without ramming keeps the spiral lift
             ++spiral_steps;
     });
     CHECK(spiral_steps > 0);
+}
+
+// The rib wall with skip points leaves the wall gap the old tool leaves through to swap beside the tower.
+static DynamicPrintConfig type2_gap_wall_config(bool skip_points, bool leave_dry_travel = false)
+{
+    DynamicPrintConfig config = type2_toolchange_config(true);
+    config.set_deserialize_strict({ { "prime_tower_skip_points",  skip_points ? "1" : "0" },
+                                    { "prime_tower_leave_dry_travel", leave_dry_travel ? "1" : "0" },
+                                    { "wipe_tower_wall_type",     "rib" },
+                                    { "use_relative_e_distances", "1" },
+                                    { "filament_tower_ironing_area", "4,4" },
+                                    { "retraction_length",        "0.8,0.8" },
+                                    { "retraction_speed",         "30,30" } });
+    return config;
+}
+
+// A bare Tn line; Klipper macros such as TIMELAPSE_TAKE_FRAME also start with a T.
+static bool is_tool_change_command(std::string_view cmd)
+{
+    return cmd.size() > 1 && cmd.front() == 'T' && cmd.find_first_not_of("0123456789", 1) == std::string_view::npos;
+}
+
+// The X span of the wipe extrusions, which cover the tower's width.
+static std::pair<float, float> wipe_x_range(const std::string &gcode)
+{
+    float min_x = std::numeric_limits<float>::max();
+    float max_x = std::numeric_limits<float>::lowest();
+    for_each_toolchange_wipe_line(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (! line.extruding(self) || line.dist_XY(self) <= 0.f)
+            return;
+        min_x = std::min({ min_x, self.x(), line.new_X(self) });
+        max_x = std::max({ max_x, self.x(), line.new_X(self) });
+    });
+    return { min_x, max_x };
+}
+
+TEST_CASE("During a type2 toolchange the nozzle stands still only beside the tower", "[WipeTower][Regression]")
+{
+    // A nozzle that retracts, swaps, heats or unretracts standing on a tall tower pushes it over.
+    // With the wall gap the old tool leaves the tower to swap, and every move of the filament
+    // without an XY move happens beside it.
+    const std::string gcode = slice_with_prime_tower(type2_gap_wall_config(true));
+    REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("; CP TOOLCHANGE UNLOAD"));
+    const auto [tower_min_x, tower_max_x] = wipe_x_range(gcode);
+    REQUIRE(tower_min_x < tower_max_x);
+
+    size_t moves_beside_tower = 0;
+    for_each_toolchange_line(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (! line.cmd_is("G1"))
+            return;
+        const float x            = line.new_X(self);
+        const bool  beside_tower = x < tower_min_x || x > tower_max_x;
+        if (beside_tower)
+            ++moves_beside_tower;
+        if (line.has(E) && ! line.has(X) && ! line.has(Y)) {
+            INFO(line.raw());
+            CHECK(beside_tower);
+        }
+    });
+    CHECK(moves_beside_tower > 0);
+}
+
+// How the old tool leaves the tower before one type2 tool swap.
+struct GapLeave
+{
+    bool  retract_moves    = false; // the old tool's last retract rides on an XY move
+    float retract_end_x    = 0.f;
+    bool  dry_travel       = false; // the next XY move travels with no E and no Z change
+    float dry_travel_end_x = 0.f;
+    float unretract_start_x = 0.f; // where the new tool's first unretract starts
+};
+
+// One record per toolchange: its last retract before the tool swap and the XY move after it.
+static std::vector<GapLeave> gap_leaves(const std::string &gcode)
+{
+    enum class Stage { Outside, BeforeSwap, AfterRetract, AfterSwap };
+    std::vector<GapLeave> leaves;
+    Stage stage = Stage::Outside;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.raw().find("; CP TOOLCHANGE UNLOAD") != std::string::npos) {
+            leaves.emplace_back();
+            stage = Stage::BeforeSwap;
+            return;
+        }
+        if (stage == Stage::Outside)
+            return;
+        if (is_tool_change_command(line.cmd())) {
+            stage = Stage::AfterSwap;
+            return;
+        }
+        if (! line.cmd_is("G1"))
+            return;
+        GapLeave &leave = leaves.back();
+        if (stage == Stage::AfterSwap) {
+            if (! line.has(E) || line.dist_E(self) <= 0.f)
+                return;
+            leave.unretract_start_x = self.x();
+            stage = Stage::Outside;
+            return;
+        }
+        if (line.has(E) && line.dist_E(self) < 0.f) {
+            leave = GapLeave{ line.dist_XY(self) > 0.f, line.new_X(self) };
+            stage = Stage::AfterRetract;
+            return;
+        }
+        if (stage != Stage::AfterRetract || (! line.has(X) && ! line.has(Y)))
+            return;
+        leave.dry_travel       = line.dist_XY(self) > 0.01f && ! line.has(E) && ! line.has(Z); // the tower's own park move rounds on its own
+        leave.dry_travel_end_x = line.new_X(self);
+        stage = Stage::BeforeSwap;
+    });
+    return leaves;
+}
+
+TEST_CASE("Through the wall gap the old tool retracts while it leaves, and travels on dry only with the option", "[WipeTower][Regression]")
+{
+    const bool leave_dry_travel = GENERATE(false, true);
+    CAPTURE(leave_dry_travel);
+    const std::string gcode = slice_with_prime_tower(type2_gap_wall_config(true, leave_dry_travel));
+    const auto [tower_min_x, tower_max_x] = wipe_x_range(gcode);
+    REQUIRE(tower_min_x < tower_max_x);
+    const std::vector<GapLeave> leaves = gap_leaves(gcode);
+    REQUIRE_FALSE(leaves.empty());
+
+    for (size_t i = 0; i < leaves.size(); ++i) {
+        CAPTURE(i);
+        const GapLeave &leave = leaves[i];
+        CHECK(leave.retract_moves);
+        CHECK(leave.dry_travel == leave_dry_travel);
+        const float stop_x       = leave_dry_travel ? leave.dry_travel_end_x : leave.retract_end_x;
+        const bool  beside_tower = stop_x < tower_min_x || stop_x > tower_max_x;
+        CHECK(beside_tower);
+        // The dry travel never changes where the new tool starts: it comes back from where the retract ended.
+        CHECK_THAT(leave.unretract_start_x, Catch::Matchers::WithinAbs(leave.retract_end_x, 0.01));
+    }
+}
+
+TEST_CASE("Unretracts that ride on a move stay under Klipper's extrusion cross-section", "[WipeTower][Regression]")
+{
+    // Klipper treats an unretract with an XY move as an extrusion and aborts the print when it
+    // pushes more than max_extrude_cross_section, 4 x nozzle diameter^2 by default.
+    const DynamicPrintConfig config = type2_gap_wall_config(true);
+    const double nozzle_diameter = config.opt<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
+    const double filament_diameter = config.opt<ConfigOptionFloats>("filament_diameter")->get_at(0);
+    const double filament_area   = PI * 0.25 * filament_diameter * filament_diameter;
+    const double max_cross_section = 4. * nozzle_diameter * nozzle_diameter;
+    const std::string gcode = slice_with_prime_tower(config);
+
+    // Each tool holds its own retracted filament.
+    std::map<std::string, double> retracted;
+    std::string tool = "T0";
+    size_t      riding_unretracts = 0;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view cmd = line.cmd();
+        if (is_tool_change_command(cmd)) {
+            tool = std::string(cmd);
+            return;
+        }
+        if (! line.cmd_is("G1") || ! line.has(E))
+            return;
+        const double e = line.dist_E(self);
+        double &tool_retracted = retracted[tool];
+        if (e < 0.) {
+            tool_retracted -= e;
+            return;
+        }
+        if (tool_retracted <= 1e-4)
+            return;
+        tool_retracted = std::max(0., tool_retracted - e);
+        const double xy = line.dist_XY(self);
+        if (xy <= 0.)
+            return;
+        ++riding_unretracts;
+        INFO(line.raw());
+        CHECK(e * filament_area / xy <= max_cross_section);
+    });
+    CHECK(riding_unretracts > 0);
+}
+
+TEST_CASE("The ironing at the wipe start retracts and unretracts while moving", "[WipeTower][Regression]")
+{
+    const std::string gcode = slice_with_prime_tower(type2_gap_wall_config(true));
+    REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("; CP TOOLCHANGE WIPE"));
+
+    size_t moving_retracts = 0;
+    for_each_toolchange_wipe_line(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (! line.cmd_is("G1") || ! line.has(E))
+            return;
+        const bool moves = line.has(X) || line.has(Y);
+        INFO(line.raw());
+        CHECK(moves);
+        if (moves && line.dist_E(self) < 0.f)
+            ++moving_retracts;
+    });
+    CHECK(moving_retracts > 0);
+}
+
+static double distance_to_segment(const Vec2d &point, const Vec2d &a, const Vec2d &b)
+{
+    const Vec2d  ab     = b - a;
+    const double length = ab.squaredNorm();
+    const double t      = length > 0. ? std::clamp((point - a).dot(ab) / length, 0., 1.) : 0.;
+    return (point - (a + t * ab)).norm();
+}
+
+TEST_CASE("Each new tool starts about 2.8 mm beside the tower wall", "[WipeTower][Regression]")
+{
+    // The new tool starts extruding at layer height off the tower, near enough to the wall that
+    // the drip glues itself onto the wall rather than onto the tower's top.
+    constexpr double wall_distance = 2.8;
+    const std::string gcode = slice_with_prime_tower(type2_gap_wall_config(true));
+
+    struct ToolStart { Vec2d pos; long layer; };
+    std::vector<ToolStart>                          starts;
+    std::map<long, std::vector<std::pair<Vec2d, Vec2d>>> tower_lines; // per layer, outside the tool swaps
+    size_t tool_swaps = 0;
+    bool in_tower = false, in_swap = false, after_tool_command = false;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view raw = line.raw();
+        if (raw.rfind(";TYPE:", 0) == 0 || raw.rfind("; FEATURE: ", 0) == 0)
+            in_tower = raw.find("Prime tower") != std::string_view::npos;
+        if (raw.find("; CP TOOLCHANGE UNLOAD") != std::string_view::npos)
+            in_swap = true;
+        if (raw.find("; CP TOOLCHANGE WIPE") != std::string_view::npos) {
+            in_swap            = false;
+            after_tool_command = false;
+        }
+        if (is_tool_change_command(line.cmd())) {
+            after_tool_command = in_swap;
+            tool_swaps += in_swap ? 1 : 0;
+            return;
+        }
+        if (! line.cmd_is("G1") || ! line.has(E) || line.dist_E(self) <= 0.f)
+            return;
+        const long layer = std::lround(self.z() * 1000.);
+        if (after_tool_command) {
+            starts.push_back({ Vec2d(self.x(), self.y()), layer });
+            after_tool_command = false;
+            return;
+        }
+        if (in_tower && ! in_swap && line.dist_XY(self) > 0.f)
+            tower_lines[layer].emplace_back(Vec2d(self.x(), self.y()), Vec2d(line.new_X(self), line.new_Y(self)));
+    });
+    REQUIRE(tool_swaps > 0);
+    // Every tool swap, a tool's first use included.
+    REQUIRE(starts.size() == tool_swaps);
+
+    for (size_t i = 0; i < starts.size(); ++i) {
+        CAPTURE(i);
+        const ToolStart &start = starts[i];
+        const auto       lines = tower_lines.find(start.layer);
+        REQUIRE(lines != tower_lines.end());
+        double nearest = std::numeric_limits<double>::max();
+        for (const auto &[a, b] : lines->second)
+            nearest = std::min(nearest, distance_to_segment(start.pos, a, b));
+        CHECK_THAT(nearest, Catch::Matchers::WithinAbs(wall_distance, 0.3));
+    }
+}
+
+TEST_CASE("Without the wall gap the old tool swaps on the tower as before", "[WipeTower]")
+{
+    // Without skip points there is no gap to leave through: the head stays over the tower until the tool swap.
+    const std::string gcode = slice_with_prime_tower(type2_gap_wall_config(false));
+    REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("; CP TOOLCHANGE UNLOAD"));
+    const auto [tower_min_x, tower_max_x] = wipe_x_range(gcode);
+    REQUIRE(tower_min_x < tower_max_x);
+
+    const float tolerance = 0.5f;
+    bool        swapped   = false;
+    size_t      moves     = 0;
+    for_each_toolchange_line(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view cmd = line.cmd();
+        if (line.raw().find("; CP TOOLCHANGE UNLOAD") != std::string::npos)
+            swapped = false;
+        if (is_tool_change_command(cmd))
+            swapped = true;
+        if (swapped || ! line.cmd_is("G1"))
+            return;
+        ++moves;
+        INFO(line.raw());
+        CHECK(line.new_X(self) >= tower_min_x - tolerance);
+        CHECK(line.new_X(self) <= tower_max_x + tolerance);
+    });
+    CHECK(moves > 0);
 }
