@@ -71,10 +71,14 @@ static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelV
     vol->config.assign_config(src_volume->config);
     assert(vol->config.id().valid());
     assert(vol->config.id() != src_volume->config.id());
-    if (const ModelMaterial* material = src_volume->material())
-        vol->set_material(src_volume->material_id(), *material);
+    // Carry the material's settings only into a model that has no material of that id yet: an existing
+    // material may be the source object itself, and replacing it would copy from a deleted object.
+    const t_model_material_id material_id = src_volume->material_id();
+    const ModelMaterial*      material    = src_volume->material();
+    if (material != nullptr && object->get_model()->get_material(material_id) == nullptr)
+        vol->set_material(material_id, *material);
     else
-        vol->set_material_id(src_volume->material_id());
+        vol->set_material_id(material_id);
     vol->cut_info = src_volume->cut_info;
 }
 
