@@ -342,7 +342,7 @@ public:
 
 private:
     std::vector<PresetItem> m_presetitems;
-    std::vector<std::tuple<::CheckBox *, std::string, int>> m_sync_checks; // checkbox, option and variant column of each copy
+    std::vector<std::tuple<::CheckBox *, std::string, int, int>> m_sync_checks; // checkbox, option, value position and column of each copy
     std::vector<std::tuple<::CheckBox *, Preset::Type, std::string>> m_option_checks; // checkbox, preset type and option of each change
     std::vector<std::pair<::CheckBox *, std::vector<::CheckBox *>>> m_all_checks; // a box ticking several changes or copies, and those
     std::vector<std::vector<wxWindow *>> m_sync_columns; // the label column, then one per extruder; the header window first
@@ -372,10 +372,16 @@ public:
 
     struct SyncExtruderParams
     {
-        DynamicConfig   *config; // the options to copy, with their values before the copy
-        int              stride;
-        std::vector<std::pair<wxString, int>> extruders; // title and variant column of the source and targets, in extruder order
-        int              source;                         // position of the source in extruders
+        // Where an option's values are in each column, -1 for a column without one, and how many each holds.
+        struct Positions
+        {
+            int              stride;
+            std::vector<int> index;
+        };
+        DynamicConfig                    *config;    // the options to copy, with their values before the copy
+        std::vector<wxString>             titles;    // the source and targets, in extruder (or nozzle variant) order
+        int                               source;    // the source's column
+        std::map<std::string, Positions>  positions; // per option
     };
 
     // show unsaved changes when preset is switching

@@ -953,7 +953,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
         update_tree(type, dependent_presets);
 
     // The sync dialog has a value column per extruder, each fitted to its content once the table is built.
-    const int value_columns = params ? int(params->extruders.size()) : 2;
+    const int value_columns = params ? int(params->titles.size()) : 2;
     m_value_width           = params ? wxDefaultCoord : UNSAVE_CHANGE_DIALOG_VALUE_WIDTH;
     if (params) {
         m_sync_columns.assign(value_columns + 1, {});
@@ -1028,12 +1028,12 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
         top_title_temp_v->SetMinSize(wxSize(UNSAVE_CHANGE_DIALOG_VALUE_WIDTH, -1));
     wxBoxSizer *top_title_temp_h = new wxBoxSizer(wxHORIZONTAL);
 
-    // Tick-all boxes of the header: every change or copy (variant -1), or in the sync dialog every copy to one extruder.
+    // Tick-all boxes of the header: every change or copy (column -1), or in the sync dialog every copy to one column.
     std::vector<std::pair<size_t, int>> header_checks;
-    auto add_header_check = [this, &header_checks](wxPanel *panel, wxBoxSizer *sizer, int variant) {
+    auto add_header_check = [this, &header_checks](wxPanel *panel, wxBoxSizer *sizer, int column) {
         panel->SetBackgroundColour(wxColour("#D9D9D9"));
         const size_t k = add_all_check(panel);
-        header_checks.emplace_back(k, variant);
+        header_checks.emplace_back(k, column);
         sizer->Add(m_all_checks[k].first, 0, wxALIGN_CENTER | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, FromDIP(4));
     };
     add_header_check(m_panel_temp, top_title_temp_h, -1);
@@ -1050,7 +1050,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     if (params)
         m_sync_columns[0].push_back(m_panel_temp);
 
-    auto add_title = [this, m_sizer_top, params, &add_header_check](const wxString &label, bool highlight, int variant) {
+    auto add_title = [this, m_sizer_top, params, &add_header_check](const wxString &label, bool highlight, int column) {
         // The first separator keeps its default width, except in the sync dialog, which aligns its header with the rows.
         auto separator = new wxPanel(m_table_top, wxID_ANY, wxDefaultPosition, !params && m_sizer_top->GetItemCount() == 1 ? wxDefaultSize : wxSize(1, -1), wxTAB_TRAVERSAL);
         separator->SetBackgroundColour(wxColour(172, 172, 172));
@@ -1059,8 +1059,8 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
         auto panel   = new wxPanel(m_table_top, wxID_ANY, wxDefaultPosition, wxSize(m_value_width, -1), wxTAB_TRAVERSAL);
         auto sizer_v = new wxBoxSizer(wxVERTICAL);
         auto sizer_h = new wxBoxSizer(wxHORIZONTAL);
-        if (variant >= 0)
-            add_header_check(panel, sizer_h, variant);
+        if (column >= 0)
+            add_header_check(panel, sizer_h, column);
         auto title   = new wxStaticText(panel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize, 0);
         title->SetFont(::Label::Body_13);
         title->Wrap(-1);
@@ -1076,7 +1076,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
         // With a single target its column box would repeat the one ticking every copy.
         for (int i = 0; i < value_columns; ++i)
             m_sync_columns[i + 1].push_back(
-                add_title(params->extruders[i].first, i == params->source, value_columns > 2 && i != params->source ? params->extruders[i].second : -1)->GetParent());
+                add_title(params->titles[i], i == params->source, value_columns > 2 && i != params->source ? i : -1)->GetParent());
     } else {
         static_oldv_title = add_title(_L("Old Value"), false, -1);
         static_newv_title = add_title(_L("New Value"), false, -1);
@@ -1257,11 +1257,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     } else {
         update(type, dependent_presets, new_selected_preset, header);
     }
-    for (const auto &[k, variant] : header_checks) {
-        for (const auto &[check, opt_key, index] : m_sync_checks)
-            if (variant < 0 || variant == index)
+    for (const auto &[k, column] : header_checks) {
+        for (const auto &[check, opt_key, index, check_column] : m_sync_checks)
+            if (column < 0 || column == check_column)
                 m_all_checks[k].second.push_back(check);
-        if (variant < 0)
+        if (column < 0)
             for (const auto &option : m_option_checks)
                 m_all_checks[k].second.push_back(std::get<0>(option));
     }
@@ -1729,12 +1729,14 @@ void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
             // A target whose value differs from the source gets a checkbox for copying it.
             DynamicPrintConfig value_config;
             value_config.set_key_value(data.opt_key, params->config->option(data.opt_key)->clone());
-            const auto values = dynamic_cast<const ConfigOptionVectorBase *>(params->config->option(data.opt_key))->vserialize();
-            const int  from   = params->extruders[params->source].second;
-            for (int i = 0; i < int(params->extruders.size()); ++i) {
-                const int index   = params->extruders[i].second;
+            const auto  values    = dynamic_cast<const ConfigOptionVectorBase *>(params->config->option(data.opt_key))->vserialize();
+            const auto &positions = params->positions.at(data.opt_key);
+            const int   from      = positions.index[params->source];
+            for (int i = 0; i < int(params->titles.size()); ++i) {
+                // A column without a value of this option, e.g. an extruder without its nozzle variant, stays empty.
+                const int index   = positions.index[i];
                 bool      differs = false;
-                for (int s = 0; s < params->stride; ++s)
+                for (int s = 0; index >= 0 && s < positions.stride; ++s)
                     differs |= values[from + s] != values[index + s];
 
                 auto cell = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
@@ -1749,15 +1751,16 @@ void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
                     if (differs) {
                         check->SetValue(true);
                         check->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) { update_all_checks(); e.Skip(); });
-                        m_sync_checks.emplace_back(check, data.opt_key, index);
+                        m_sync_checks.emplace_back(check, data.opt_key, index, i);
                         for (size_t k : {category_all, group_all, row_all})
                             m_all_checks[k].second.push_back(check);
                     } else
                         check->Hide();
                 }
-                cell_sizer->Add(make_label(cell, get_string_value(data.opt_key + "#" + std::to_string(index), value_config), ::Label::Body_13,
-                                           wxDefaultCoord, i == params->source ? wxGetApp().get_label_clr_modified() : GREY700),
-                                0, wxALIGN_CENTER_VERTICAL);
+                if (index >= 0)
+                    cell_sizer->Add(make_label(cell, get_string_value(data.opt_key + "#" + std::to_string(index), value_config), ::Label::Body_13,
+                                               wxDefaultCoord, i == params->source ? wxGetApp().get_label_clr_modified() : GREY700),
+                                    0, wxALIGN_CENTER_VERTICAL);
                 cell->SetSizer(cell_sizer);
                 cell->Layout();
                 sizer->Add(cell, 0, wxALIGN_CENTER, 0);
@@ -1840,7 +1843,7 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, DynamicConfig *config)
 std::vector<std::pair<std::string, int>> UnsavedChangesDialog::get_sync_selection() const
 {
     std::vector<std::pair<std::string, int>> selection;
-    for (const auto &[check, opt_key, index] : m_sync_checks)
+    for (const auto &[check, opt_key, index, column] : m_sync_checks)
         if (check->GetValue())
             selection.emplace_back(opt_key, index);
     return selection;

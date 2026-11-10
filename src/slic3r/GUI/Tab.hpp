@@ -538,6 +538,7 @@ public:
 	void        parse_extruder_selection(int selection, int &extruder_id, NozzleVolumeType &nozzle_type);
     int         calculate_selection_index_for_extruder(int extruder_id, NozzleVolumeType nozzle_type);
 	std::vector<int> get_extruder_sync_targets(int extruder_id);
+	bool        extruder_sync_enabled();
 	int         get_current_active_extruder();
 
 	std::vector<wxString>  generate_extruder_options();
