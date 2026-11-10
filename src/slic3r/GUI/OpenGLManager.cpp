@@ -3,6 +3,7 @@
 
 #include "GUI.hpp"
 #include "I18N.hpp"
+#include "format.hpp"
 #include "3DScene.hpp"
 
 #include "libslic3r/AppConfig.hpp"
@@ -434,9 +435,34 @@ wxGLContext* OpenGLManager::init_glcontext(wxGLCanvas& canvas, const std::pair<i
 }
 
 #ifdef _WIN32
+struct CanvasDisplay
+{
+    wxString device;  // such as \\.\DISPLAY1
+    wxString adapter; // the display adapter driving it, as Windows names it
+};
+
+// The display the canvas is on; fields stay empty if Windows can't tell.
+static CanvasDisplay canvas_display(const wxGLCanvas& canvas)
+{
+    CanvasDisplay  display;
+    MONITORINFOEXW monitor{};
+    monitor.cbSize = sizeof(monitor);
+    if (!::GetMonitorInfoW(::MonitorFromWindow(::WindowFromDC(canvas.GetHDC()), MONITOR_DEFAULTTONEAREST), &monitor))
+        return display;
+    display.device = wxString(monitor.szDevice);
+    DISPLAY_DEVICEW device{};
+    device.cb = sizeof(device);
+    for (DWORD i = 0; ::EnumDisplayDevicesW(nullptr, i, &device, 0); ++i)
+        if (std::wcscmp(device.DeviceName, monitor.szDevice) == 0) {
+            display.adapter = wxString(device.DeviceString);
+            break;
+        }
+    return display;
+}
+
 // wx logs a failed wglMakeCurrent only at debug level, which release builds drop, so repeat the
-// call to read the error, and add what the driver was given: the pixel format and the display.
-static std::string describe_make_current_failure(const wxGLCanvas& canvas, const wxGLContext* context, bool& retry_succeeded)
+// call to read the error, and add what the driver was given: the pixel format and the display adapter.
+static std::string describe_make_current_failure(const wxGLCanvas& canvas, const wxGLContext* context, const CanvasDisplay& display, bool& retry_succeeded)
 {
     const HDC hdc = canvas.GetHDC();
     std::ostringstream out;
@@ -459,17 +485,8 @@ static std::string describe_make_current_failure(const wxGLCanvas& canvas, const
     else
         out << ", no pixel format on the canvas";
 
-    MONITORINFOEXW monitor{};
-    monitor.cbSize = sizeof(monitor);
-    if (::GetMonitorInfoW(::MonitorFromWindow(::WindowFromDC(hdc), MONITOR_DEFAULTTONEAREST), &monitor)) {
-        DISPLAY_DEVICEW device{};
-        device.cb = sizeof(device);
-        for (DWORD i = 0; ::EnumDisplayDevicesW(nullptr, i, &device, 0); ++i)
-            if (std::wcscmp(device.DeviceName, monitor.szDevice) == 0) {
-                out << ", " << into_u8(wxString(monitor.szDevice)) << " on " << into_u8(wxString(device.DeviceString));
-                break;
-            }
-    }
+    if (!display.device.empty())
+        out << ", " << into_u8(display.device) << " on " << (display.adapter.empty() ? "an unknown adapter" : into_u8(display.adapter));
     return out.str();
 }
 #endif // _WIN32
@@ -480,16 +497,28 @@ void OpenGLManager::report_make_current_failure([[maybe_unused]] const wxGLCanva
         return;
     m_make_current_failure_reported = true;
 #ifdef _WIN32
-    bool retry_succeeded = false;
+    const CanvasDisplay display         = canvas_display(canvas);
+    bool                retry_succeeded = false;
     BOOST_LOG_TRIVIAL(error) << "Cannot make the OpenGL context current on a shown canvas: "
-                             << describe_make_current_failure(canvas, context, retry_succeeded);
+                             << describe_make_current_failure(canvas, context, display, retry_succeeded);
     // A failure after OpenGL came up, or one a retry clears, does not leave the 3D view empty.
     if (m_gl_initialized || retry_succeeded)
         return;
+    // The cause varies (no OpenGL driver behind the display, a disabled or broken driver, an overlay),
+    // so name the adapter Windows reports for the window's display instead of guessing one.
     // TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
-    wxString message = _L("OpenGL could not be activated on this graphics card, so the 3D view cannot be shown.");
+    wxString message = _L("OpenGL could not be activated for the 3D view, so it cannot be shown.");
+    if (!display.adapter.empty()) {
+        message += "\n\n";
+        // TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+        message += format_wxstr(_L("The window is on a display driven by \"%1%\"."), display.adapter);
+    }
     message += "\n\n";
-    message += _L("Please upgrade your graphics card driver.");
+    message += _L("Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date.");
+    message += "\n";
+    message += _L("If the computer has more than one graphics card, connecting the monitor to another one may help.");
+    message += "\n";
+    message += _L("If the problem remains, close any overlay or screen capture software and try again.");
     // show_error() defers the dialog, so it does not open inside the paint handler drawing the canvas.
     show_error(nullptr, message);
 #endif // _WIN32
