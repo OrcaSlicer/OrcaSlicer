@@ -9994,11 +9994,13 @@ void DesignPanel::on_edit_feature()
             // toolbar + session card), NOT the legacy parametric card. The commit handler
             // replaces this feature in place (see m_edit_index). Hide its display overlay
             // so the live tool is the only copy drawn.
-            set_ui_mode(UiMode::Sketch);
             if (m_viewport) {
                 m_viewport->set_display_sketches({});
                 m_viewport->edit_sketch(f.entities, f.entity_constraints, f.plane);
             }
+            // After the session opens, as a new sketch does (start_sketch_on_target): the mode
+            // change fills the sidebar's Constraints card from the live session.
+            set_ui_mode(UiMode::Sketch);
             set_status(StatusKind::Info, _L("Editing sketch — drag a handle or double-click a dimension to edit it"));
         } else {
             load_feature_into_dialog(f);
