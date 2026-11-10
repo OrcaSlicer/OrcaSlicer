@@ -25,6 +25,8 @@
 
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
+#include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -158,4 +160,89 @@ TEST_CASE("Malformed extruder payload is stored by info array position", "[DevEx
         REQUIRE(second.has_value());
         CHECK(second->GetExtId() == 2);
     }
+}
+
+namespace {
+
+// A device.extruder payload with `count` toolheads and the given packed state.
+json generic_extruder_payload(int count, int state)
+{
+    json info = json::array();
+    for (int id = 0; id < count; ++id)
+        info.push_back({ {"id", id}, {"filam_bak", json::array()}, {"info", 8}, {"temp", 0},
+                         {"spre", 0}, {"snow", 0}, {"star", 0}, {"stat", 0}, {"hnow", id} });
+    return json{ {"state", state}, {"info", info} };
+}
+
+int packed_state(int count, int current, int target, int switch_state)
+{
+    return count | (current << 4) | (target << 8) | (switch_state << 12);
+}
+
+} // namespace
+
+TEST_CASE("A toolhead request is released when its switch ends without changing the toolhead", "[DevExtderSystem]")
+{
+    const int outcome = GENERATE(int(ES_IDLE), int(ES_SWITCHING_FAILED));
+    INFO("switch outcome " << outcome);
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+    obj.printer_agent_id = MOONRAKER_PRINTER_AGENT_ID;
+    const int count = 5, current = 1, requested = 0;
+
+    ExtderSystemParser::ParseV2_0(generic_extruder_payload(count, packed_state(count, current, 0, ES_IDLE)), obj.GetExtderSystem());
+    obj.targ_nozzle_id_from_pc = requested;
+
+    ExtderSystemParser::ParseV2_0(generic_extruder_payload(count, packed_state(count, current, requested, ES_SWITCHING)),
+                                  obj.GetExtderSystem());
+    CHECK(obj.targ_nozzle_id_from_pc == requested);
+
+    ExtderSystemParser::ParseV2_0(generic_extruder_payload(count, packed_state(count, current, requested, outcome)),
+                                  obj.GetExtderSystem());
+    CHECK(obj.targ_nozzle_id_from_pc == INVALID_EXTRUDER_ID);
+    CHECK(obj.GetExtderSystem()->GetCurrentExtderId() == current);
+}
+
+TEST_CASE("A Moonraker toolhead change that ends without changing the toolhead frees the toolhead selector", "[DevExtderSystem][MoonrakerPrinterAgent]")
+{
+    // Klipper rejects the T<n> (axes not homed), or the toolhead was already the current one.
+    const bool success = GENERATE(false, true);
+    INFO("command succeeded: " << success);
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+    obj.printer_agent_id = MOONRAKER_PRINTER_AGENT_ID;
+    MoonrakerToolSelectTracker tracker;
+    const int count = 5, current = 1, requested = 0;
+    const auto push = [&] {
+        ExtderSystemParser::ParseV2_0(generic_extruder_payload(count, tracker.next_state(count, current)), obj.GetExtderSystem());
+    };
+
+    push();
+    obj.targ_nozzle_id_from_pc = requested; // what DevCtrl::command_select_extruder sets
+    tracker.start(requested);
+    tracker.finish(success); // the command answers before the next status push
+    push();
+    CHECK(obj.targ_nozzle_id_from_pc == requested);
+    push();
+    CHECK(obj.targ_nozzle_id_from_pc == INVALID_EXTRUDER_ID);
+}
+
+TEST_CASE("A Bambu toolhead request is kept until the toolhead changes or the switch fails", "[DevExtderSystem]")
+{
+    MachineObject obj(nullptr, nullptr, "test", "test_dev", "127.0.0.1");
+    obj.printer_agent_id = BBL_PRINTER_AGENT_ID;
+    const int count = 2, current = 1, requested = 0;
+
+    ExtderSystemParser::ParseV2_0(generic_extruder_payload(count, packed_state(count, current, 0, ES_IDLE)), obj.GetExtderSystem());
+    obj.targ_nozzle_id_from_pc = requested;
+    ExtderSystemParser::ParseV2_0(generic_extruder_payload(count, packed_state(count, current, requested, ES_SWITCHING)),
+                                  obj.GetExtderSystem());
+    ExtderSystemParser::ParseV2_0(generic_extruder_payload(count, packed_state(count, current, requested, ES_IDLE)),
+                                  obj.GetExtderSystem());
+    CHECK(obj.targ_nozzle_id_from_pc == requested);
+
+    // A reported failure releases it on the following push, as before.
+    ExtderSystemParser::ParseV2_0(generic_extruder_payload(count, packed_state(count, current, requested, ES_SWITCHING_FAILED)),
+                                  obj.GetExtderSystem());
+    ExtderSystemParser::ParseV2_0(generic_extruder_payload(count, packed_state(count, current, requested, ES_IDLE)),
+                                  obj.GetExtderSystem());
+    CHECK(obj.targ_nozzle_id_from_pc == INVALID_EXTRUDER_ID);
 }

@@ -17,6 +17,7 @@
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 #include "DevUtil.h"
 
@@ -298,8 +299,14 @@ namespace Slic3r
             system->Owner()->targ_nozzle_id_from_pc = INVALID_EXTRUDER_ID;
             system->m_current_extder_id = DevUtil::get_flag_bits(extruder_json["state"].get<int>(), 4, 4);
         }
-        else if (system->m_switch_extder_state == ES_SWITCHING_FAILED)
+        else if (system->m_switch_extder_state == ES_SWITCHING_FAILED ||
+                 (system->m_switch_extder_state == ES_SWITCHING &&
+                  DevUtil::get_flag_bits(extruder_json["state"].get<int>(), 12, 3) != ES_SWITCHING &&
+                  !system->Owner()->printer_agent_id.empty() && system->Owner()->printer_agent_id != BBL_PRINTER_AGENT_ID))
         {
+            // On other printers' connections a switch that ended without changing the current
+            // toolhead (rejected, or the requested one was already current) must still release
+            // the pending request. Bambu firmware keeps its own release on the toolhead id.
             system->Owner()->targ_nozzle_id_from_pc = INVALID_EXTRUDER_ID;
         }
 

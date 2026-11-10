@@ -2027,13 +2027,15 @@ int MachineObject::command_axis_control(std::string axis, double unit, double in
                                                              is_lan_mode_printer()));
 }
 
-int MachineObject::command_extruder_control(int nozzle_id, double val)
+int MachineObject::command_extruder_control(int nozzle_id, double val, int speed_mm_s)
 {
     json j;
     j["print"]["command"]     = "set_extrusion_length";
     j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
     j["print"]["extruder_index"] = nozzle_id;
     j["print"]["length"] = (int)val;
+    if (speed_mm_s > 0)
+        j["print"]["speed"] = speed_mm_s;
     return this->publish_json(j);
 }
 

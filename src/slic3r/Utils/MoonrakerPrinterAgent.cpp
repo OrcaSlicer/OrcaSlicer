@@ -16,6 +16,7 @@
 #include "../GUI/DeviceCore/DevFirmware.h"
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
+#include <cmath>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -190,11 +191,230 @@ uint64_t steady_now_ms()
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
 }
 
+// How long a T<n> sent from the Device page may run before it counts as failed.
+constexpr long TOOL_SELECT_TIMEOUT_S = 300;
+// Feed rate for the Device page extrude/retract buttons when the command names none.
+constexpr double EXTRUDE_SPEED_MM_S = 5.0;
+
 } // namespace
 
 namespace Slic3r {
 
 const std::string MoonrakerPrinterAgent_VERSION = "1.0.0";
+
+void MoonrakerToolSelectTracker::start(int target)
+{
+    m_target   = target;
+    m_switch   = SWITCH_RUNNING;
+    m_reported = false;
+}
+
+void MoonrakerToolSelectTracker::finish(bool success)
+{
+    if (m_target < 0 || m_switch != SWITCH_RUNNING)
+        return;
+    m_switch = success ? SWITCH_IDLE : SWITCH_FAILED;
+}
+
+std::vector<MoonrakerPrinterAgent::MoonrakerWebcam> MoonrakerPrinterAgent::parse_webcams(const nlohmann::json& response)
+{
+    std::vector<MoonrakerWebcam> result;
+    if (!response.contains("result") || !response["result"].is_object() || !response["result"].contains("webcams") ||
+        !response["result"]["webcams"].is_array())
+        return result;
+    for (const auto& cam : response["result"]["webcams"]) {
+        if (!cam.is_object())
+            continue;
+        MoonrakerWebcam webcam;
+        webcam.name         = safe_json_string(cam, "name");
+        webcam.enabled      = !cam.contains("enabled") || !cam["enabled"].is_boolean() || cam["enabled"].get<bool>();
+        webcam.service      = boost::algorithm::to_lower_copy(safe_json_string(cam, "service"));
+        webcam.stream_url   = safe_json_string(cam, "stream_url");
+        webcam.snapshot_url = safe_json_string(cam, "snapshot_url");
+        webcam.transform.flip_horizontal = cam.contains("flip_horizontal") && cam["flip_horizontal"].is_boolean() &&
+                                           cam["flip_horizontal"].get<bool>();
+        webcam.transform.flip_vertical   = cam.contains("flip_vertical") && cam["flip_vertical"].is_boolean() &&
+                                           cam["flip_vertical"].get<bool>();
+        const int rotation               = safe_json_int_flexible(cam, "rotation", 0);
+        webcam.transform.rotation        = (rotation % 360 + 360) % 360 / 90 * 90;
+        if (webcam.name.empty())
+            webcam.name = "Camera " + std::to_string(result.size() + 1);
+        result.push_back(std::move(webcam));
+    }
+    return result;
+}
+
+int MoonrakerPrinterAgent::default_webcam(const std::vector<MoonrakerWebcam>& webcams)
+{
+    for (size_t i = 0; i < webcams.size(); ++i)
+        if (webcams[i].enabled)
+            return static_cast<int>(i);
+    return webcams.empty() ? -1 : 0;
+}
+
+CameraStreamMode MoonrakerPrinterAgent::webcam_stream_mode(const MoonrakerWebcam& webcam)
+{
+    // Services whose stream URL is a multipart MJPEG stream Orca's player reads directly.
+    static const std::set<std::string> mjpeg_services{"mjpegstreamer", "mjpegstreamer-adaptive", "uv4l-mjpeg", "ipstream"};
+    const bool known_mjpeg = webcam.service.empty() || mjpeg_services.count(webcam.service) != 0;
+    if (known_mjpeg && !webcam.stream_url.empty())
+        return boost::algorithm::istarts_with(webcam.stream_url, "https://") ? CameraStreamMode::https : CameraStreamMode::http;
+    if (!webcam.snapshot_url.empty())
+        return CameraStreamMode::http_snapshot;
+    return CameraStreamMode::none;
+}
+
+std::string MoonrakerPrinterAgent::resolve_webcam_url(const std::string& base_url, const std::string& url)
+{
+    if (url.empty() || url.find("://") != std::string::npos)
+        return url;
+    // base_url is scheme://host[:port][/...]
+    const size_t scheme_end = base_url.find("://");
+    if (scheme_end == std::string::npos)
+        return url;
+    const size_t host_start = scheme_end + 3;
+    const size_t host_end   = base_url.find('/', host_start);
+    std::string  authority  = base_url.substr(host_start, host_end == std::string::npos ? std::string::npos : host_end - host_start);
+    const size_t colon      = authority.rfind(':');
+    if (colon != std::string::npos && authority.find(']', colon) == std::string::npos && authority.substr(colon + 1) == "7125")
+        authority.erase(colon);
+    const std::string origin = base_url.substr(0, host_start) + authority;
+    return origin + (url.front() == '/' ? url : "/" + url);
+}
+
+void MoonrakerPrinterAgent::fetch_webcams()
+{
+    nlohmann::json response;
+    std::vector<MoonrakerWebcam> found;
+    if (http_get_json("/server/webcams/list", response))
+        found = parse_webcams(response);
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: " << found.size() << " webcam(s) configured";
+
+    std::lock_guard<std::mutex> lock(camera_mutex);
+    // Keep the camera that was showing when it is still configured.
+    const std::string previous = selected_webcam >= 0 && selected_webcam < static_cast<int>(webcams.size()) ? webcams[selected_webcam].name : "";
+    webcams         = std::move(found);
+    selected_webcam = default_webcam(webcams);
+    for (size_t i = 0; i < webcams.size(); ++i)
+        if (!previous.empty() && webcams[i].name == previous)
+            selected_webcam = static_cast<int>(i);
+}
+
+CameraStreamMode MoonrakerPrinterAgent::get_camera_stream_mode() const
+{
+    std::lock_guard<std::mutex> lock(camera_mutex);
+    if (selected_webcam < 0 || selected_webcam >= static_cast<int>(webcams.size()))
+        return CameraStreamMode::none;
+    return webcam_stream_mode(webcams[selected_webcam]);
+}
+
+std::string MoonrakerPrinterAgent::get_camera_url() const
+{
+    std::lock_guard<std::mutex> lock(camera_mutex);
+    if (selected_webcam < 0 || selected_webcam >= static_cast<int>(webcams.size()))
+        return {};
+    const auto& webcam = webcams[selected_webcam];
+    switch (webcam_stream_mode(webcam)) {
+    case CameraStreamMode::http:
+    case CameraStreamMode::https: return resolve_webcam_url(device_info.base_url, webcam.stream_url);
+    case CameraStreamMode::http_snapshot: return resolve_webcam_url(device_info.base_url, webcam.snapshot_url);
+    default: return {};
+    }
+}
+
+std::vector<std::string> MoonrakerPrinterAgent::get_camera_names() const
+{
+    std::lock_guard<std::mutex> lock(camera_mutex);
+    std::vector<std::string> names;
+    for (const auto& webcam : webcams)
+        names.push_back(webcam.name);
+    return names;
+}
+
+int MoonrakerPrinterAgent::get_selected_camera() const
+{
+    std::lock_guard<std::mutex> lock(camera_mutex);
+    return selected_webcam;
+}
+
+void MoonrakerPrinterAgent::select_camera(int index)
+{
+    std::lock_guard<std::mutex> lock(camera_mutex);
+    if (index >= 0 && index < static_cast<int>(webcams.size()))
+        selected_webcam = index;
+}
+
+CameraTransform MoonrakerPrinterAgent::get_camera_transform() const
+{
+    std::lock_guard<std::mutex> lock(camera_mutex);
+    if (selected_webcam < 0 || selected_webcam >= static_cast<int>(webcams.size()))
+        return {};
+    return webcams[selected_webcam].transform;
+}
+
+bool MoonrakerPrinterAgent::keep_unmapped_lane(int toolhead_count, bool afc_present, bool hh_present)
+{
+    return toolhead_count <= 1 || afc_present || hh_present;
+}
+
+int MoonrakerPrinterAgent::toolhead_from_lane_name(const std::string& lane_key, const nlohmann::json& lane_obj, int toolhead_count)
+{
+    // Toolchanger lane writers (StorOn, HelixScreen) key one record per tool as "T<n>", 0-based.
+    if (lane_key.size() < 2 || (lane_key[0] != 'T' && lane_key[0] != 't'))
+        return -1;
+    const int tool = lane_index_from_key(lane_key);
+    if (tool < 0 || tool >= toolhead_count)
+        return -1;
+    // A record that names itself differently ("bypass", for example) is not that tool's lane.
+    const std::string lane_name = safe_json_string(lane_obj, "lane_name");
+    if (!lane_name.empty() && !boost::algorithm::iequals(lane_name, lane_key))
+        return -1;
+    return tool;
+}
+
+std::string MoonrakerPrinterAgent::extrude_script(double length_mm, double speed_mm_s)
+{
+    if (length_mm == 0.0 || !(speed_mm_s > 0.0))
+        return {};
+    // SAVE/RESTORE_GCODE_STATE puts back the absolute/relative extrusion mode the move changes.
+    return (boost::format("SAVE_GCODE_STATE NAME=ORCA_EXTRUDE\nM83\nG1 E%1% F%2%\nRESTORE_GCODE_STATE NAME=ORCA_EXTRUDE") %
+            length_mm % (speed_mm_s * 60.0))
+        .str();
+}
+
+std::string MoonrakerPrinterAgent::tool_select_script(int extruder_index, bool home_first, std::string after_macro)
+{
+    // One command per line; the follow-up must not smuggle in more lines.
+    after_macro = after_macro.substr(0, after_macro.find_first_of("\r\n"));
+    boost::algorithm::trim(after_macro);
+
+    std::string script;
+    if (home_first)
+        script += "G28\n";
+    script += "T" + std::to_string(extruder_index);
+    if (!after_macro.empty())
+        script += "\n" + after_macro;
+    return script;
+}
+
+int MoonrakerToolSelectTracker::next_state(int extruder_count, int current_extruder)
+{
+    // device.extruder.state packing: count 0..3, current 4..7, target 8..11, switch 12..14.
+    int state = (extruder_count & 0xF) | ((current_extruder & 0xF) << 4);
+    if (m_target < 0)
+        return state;
+
+    state |= (m_target & 0xF) << 8;
+    if (m_switch == SWITCH_RUNNING || !m_reported) {
+        // The UI releases a request when "switching" ends, so it has to see "switching" first,
+        // even when the command finished before the next push.
+        m_reported = true;
+        return state | (SWITCH_RUNNING << 12);
+    }
+    state |= m_switch << 12;
+    m_target = -1;
+    return state;
+}
 
 MoonrakerPrinterAgent::MoonrakerPrinterAgent(std::string log_dir) : m_cloud_agent(nullptr) { (void) log_dir; }
 
@@ -1010,6 +1230,12 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
     std::map<std::string, int> lane_extruder;
     fetch_afc_lane_extruders(lane_extruder);
 
+    int toolhead_count = 0;
+    {
+        std::lock_guard<std::recursive_mutex> lock(payload_mutex);
+        toolhead_count = static_cast<int>(collect_extruder_status().size());
+    }
+
     // Happy Hare also writes lane_data, where the lane number is the gate index. Its mmu_machine
     // status maps gates to units, and each unit's config maps to an extruder. Probe that mapping
     // only when a lane has no AFC/extruder field, preserving the existing AFC/generic behavior.
@@ -1055,7 +1281,22 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.extruder_id = source_extruder;
         if (tray.extruder_id < 0) {
             const auto it = lane_extruder.find(lane_key);
-            tray.extruder_id = it != lane_extruder.end() ? it->second : hh_extruder_for_lane(lane_index);
+            if (it != lane_extruder.end())
+                tray.extruder_id = it->second;
+            else if (const int named_tool = toolhead_from_lane_name(lane_key, lane_obj, toolhead_count); named_tool >= 0)
+                tray.extruder_id = named_tool;
+            else {
+                tray.extruder_id = hh_extruder_for_lane(lane_index);
+                // With neither AFC nor Happy Hare to place it, a multi-toolhead printer has no basis
+                // for the main-extruder fallback: such a record (an external-spool record, e.g.
+                // HelixScreen's "bypass") would show up as an extra lane on the first toolhead.
+                if (!keep_unmapped_lane(toolhead_count, !lane_extruder.empty(), !hh_gate_extruder.empty())) {
+                    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: lane_data record "
+                                            << lane_key << " feeds no known toolhead; skipped";
+                    ++skipped_records;
+                    continue;
+                }
+            }
         }
         tray.tray_color = safe_json_string(lane_obj, "color");
         tray.tray_type = safe_json_string(lane_obj, "material");
@@ -1461,6 +1702,29 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             return BAMBU_NETWORK_SUCCESS;
         }
 
+        // Device page extrude/retract buttons. The status reports the "np" fields, so the UI
+        // sends Bambu's extrusion command rather than G-code: run it on the active extruder.
+        if (cmd == "set_extrusion_length") {
+            const auto& length = json["print"].contains("length") ? json["print"]["length"] : nlohmann::json();
+            const auto& speed  = json["print"].contains("speed") ? json["print"]["speed"] : nlohmann::json();
+            const double speed_mm_s = speed.is_number() && speed.get<double>() > 0 ? speed.get<double>() : EXTRUDE_SPEED_MM_S;
+            const std::string script = length.is_number() ? extrude_script(length.get<double>(), speed_mm_s) : std::string();
+            if (script.empty()) {
+                BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: set_extrusion_length without a length, full json: " << json_str;
+                return BAMBU_NETWORK_ERR_INVALID_RESULT;
+            }
+            // Klipper answers once the move is done, so allow for the move itself (100 mm at 1 mm/s).
+            const long timeout_s = 10 + static_cast<long>(std::abs(length.get<double>()) / speed_mm_s);
+            send_gcode_async(
+                dev_id, script,
+                [](bool success) {
+                    if (!success)
+                        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: extrude/retract was rejected by the printer";
+                },
+                timeout_s);
+            return BAMBU_NETWORK_SUCCESS;
+        }
+
         // Print control commands
         if (cmd == "pause") {
             return pause_print(dev_id);
@@ -1512,7 +1776,27 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
                 return BAMBU_NETWORK_ERR_INVALID_RESULT;
             }
 
-            send_gcode_async(dev_id, "T" + std::to_string(extruder_idx));
+            const bool  home_first  = json["print"].contains("home_first") && json["print"]["home_first"].is_boolean() &&
+                                      json["print"]["home_first"].get<bool>();
+            std::string after_macro = json["print"].contains("after_macro") && json["print"]["after_macro"].is_string()
+                                          ? json["print"]["after_macro"].get<std::string>()
+                                          : std::string();
+
+            {
+                std::lock_guard<std::mutex> lock(tool_select->mutex);
+                tool_select->tracker.start(extruder_idx);
+            }
+            // Moonraker answers /printer/gcode/script when the script finishes, with an error
+            // when Klipper rejects a line (e.g. axes not homed); Klipper stops at that line, so the
+            // follow-up macro never runs after a failed change. A physical tool change, possibly
+            // heating first, takes far longer than the default 10 s.
+            send_gcode_async(
+                dev_id, tool_select_script(extruder_idx, home_first, after_macro),
+                [state = tool_select](bool success) {
+                    std::lock_guard<std::mutex> lock(state->mutex);
+                    state->tracker.finish(success);
+                },
+                TOOL_SELECT_TIMEOUT_S);
             return BAMBU_NETWORK_SUCCESS;
         }
 
@@ -1661,7 +1945,7 @@ bool MoonrakerPrinterAgent::query_printer_status(const std::string& base_url,
 }
 
 void MoonrakerPrinterAgent::send_gcode_async(const std::string& dev_id, const std::string& gcode,
-                                             std::function<void(bool)> on_result) const
+                                             std::function<void(bool)> on_result, long timeout_max_s) const
 {
     (void) dev_id;
     const std::string base_url = device_info.base_url;
@@ -1673,7 +1957,7 @@ void MoonrakerPrinterAgent::send_gcode_async(const std::string& dev_id, const st
     http.header("Content-Type", "application/json")
         .set_post_body(nlohmann::json{{"script", gcode}}.dump())
         .timeout_connect(5)
-        .timeout_max(10)
+        .timeout_max(timeout_max_s)
         .on_complete([on_result](std::string body, unsigned status_code) {
             (void) body;
             const bool success = status_code == 200;
@@ -2485,7 +2769,10 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
         }
 
         const int extruder_count = std::min<int>(static_cast<int>(extruder_status.size()), 0xF);
-        device_extruder["state"] = extruder_count | (current_extruder_id << 4);
+        {
+            std::lock_guard<std::mutex> lock(tool_select->mutex);
+            device_extruder["state"] = tool_select->tracker.next_state(extruder_count, current_extruder_id);
+        }
         device_extruder["info"] = nlohmann::json::array();
 
         auto encoded_temperature = [](const nlohmann::json& status, const char* key) {
@@ -2795,6 +3082,8 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
             device_info.version      = fetched_info.version;
             device_info.klippy_state = fetched_info.klippy_state;
         }
+
+        fetch_webcams();
 
 // Orca todo: disable websocket for now, as we don't use MonitorPanel for Moonraker printers yet
 #if 1

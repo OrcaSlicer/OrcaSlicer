@@ -22,11 +22,54 @@ namespace Slic3r { class ICloudServiceAgent; }
 
 namespace Slic3r {
 
+// Tracks a toolhead change requested from the Device page (select_extruder), so the
+// status pushed to the UI reports it in device.extruder.state the way the UI expects:
+// "switching" while the T<n> command runs, then its outcome once. Without the outcome,
+// a T<n> that Klipper rejects, or one for the toolhead already in use, leaves the UI
+// waiting for a toolhead change that never comes. Not thread-safe; guard it externally.
+class MoonrakerToolSelectTracker
+{
+public:
+    // Switch states, as DevExtderSwitchState encodes them.
+    static constexpr int SWITCH_IDLE    = 0;
+    static constexpr int SWITCH_RUNNING = 2;
+    static constexpr int SWITCH_FAILED  = 3;
+
+    void start(int target);
+    void finish(bool success);
+    // The device.extruder.state value for one status push. Reports "switching" at least once
+    // per request, then the outcome in exactly one push, then nothing pending.
+    int  next_state(int extruder_count, int current_extruder);
+
+private:
+    int  m_target   = -1;
+    int  m_switch   = SWITCH_IDLE;
+    bool m_reported = false;
+};
+
 class MoonrakerPrinterAgent : public IPrinterAgent
 {
 public:
     explicit MoonrakerPrinterAgent(std::string log_dir);
     ~MoonrakerPrinterAgent() override;
+
+    // The G-code script for a Device page toolhead change: optional G28, T<index>, then the
+    // optional follow-up command (first line only, trimmed).
+    static std::string tool_select_script(int extruder_index, bool home_first, std::string after_macro);
+
+    // The G-code script for the Device page extrude/retract buttons: a relative E move of
+    // length_mm (negative retracts) at speed_mm_s on the active extruder, restoring the G-code
+    // state afterwards. Empty when there is nothing to move.
+    static std::string extrude_script(double length_mm, double speed_mm_s);
+
+    // The toolhead a lane_data record feeds when its key names a tool ("T<n>", 0-based) and its
+    // lane_name, if any, agrees; -1 when the key names no tool or the printer has no such toolhead.
+    static int toolhead_from_lane_name(const std::string& lane_key, const nlohmann::json& lane_obj, int toolhead_count);
+
+    // Whether a lane_data record that nothing maps to a toolhead still goes to the main extruder:
+    // yes on a single-toolhead printer, or when AFC or Happy Hare is present (their existing
+    // fallback); otherwise it is skipped.
+    static bool keep_unmapped_lane(int toolhead_count, bool afc_present, bool hh_present);
 
     static AgentInfo get_agent_info_static();
     AgentInfo        get_agent_info() override { return get_agent_info_static(); }
@@ -71,6 +114,34 @@ public:
     // Pull-mode agent (on-demand filament sync)
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
+
+    // Cameras: Moonraker's webcam list (/server/webcams/list), read when the printer connects.
+    CameraStreamMode         get_camera_stream_mode() const override;
+    std::string              get_camera_url() const override;
+    std::vector<std::string> get_camera_names() const override;
+    int                      get_selected_camera() const override;
+    void                     select_camera(int index) override;
+    CameraTransform          get_camera_transform() const override;
+
+    struct MoonrakerWebcam
+    {
+        std::string     name;
+        bool            enabled = true;
+        std::string     service;      // e.g. "mjpegstreamer", "webrtc-camerastreamer"
+        std::string     stream_url;   // as configured: absolute, or a path on the printer's web host
+        std::string     snapshot_url;
+        CameraTransform transform;
+    };
+    // The webcams in a /server/webcams/list response, in its order.
+    static std::vector<MoonrakerWebcam> parse_webcams(const nlohmann::json& response);
+    // The camera shown when none was picked: the first enabled one, else the first; -1 if none.
+    static int default_webcam(const std::vector<MoonrakerWebcam>& webcams);
+    // How Orca can show a webcam: MJPEG streams play directly; other services fall back to
+    // their snapshot URL; none when neither is usable.
+    static CameraStreamMode webcam_stream_mode(const MoonrakerWebcam& webcam);
+    // A webcam URL made absolute. A path is served by the printer's web host (the one that
+    // serves Mainsail/Fluidd), so Moonraker's own API port 7125 is dropped for it.
+    static std::string resolve_webcam_url(const std::string& base_url, const std::string& url);
 
 protected:
     struct MoonrakerDeviceInfo
@@ -146,7 +217,7 @@ private:
     bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
     bool send_gcode_sync(const std::string& dev_id, const std::string& gcode) const;
     void send_gcode_async(const std::string& dev_id, const std::string& gcode,
-                          std::function<void(bool)> on_result = {}) const;
+                          std::function<void(bool)> on_result = {}, long timeout_max_s = 10) const;
 
     void announce_printhost_device();
     void dispatch_local_connect(int state, const std::string& dev_id, const std::string& msg);
@@ -230,7 +301,21 @@ private:
     OnServerErrFn        on_server_err_fn;
 
     mutable std::recursive_mutex payload_mutex;
+
+    // Read on connect; guarded by camera_mutex, as the UI reads them while a connect may refresh them.
+    mutable std::mutex           camera_mutex;
+    std::vector<MoonrakerWebcam> webcams;
+    int                          selected_webcam = -1;
+    void                         fetch_webcams();
     nlohmann::json     status_cache;
+    // The running toolhead change, shared with its G-code callback: Moonraker may answer minutes
+    // later, after this agent is gone. Building a status push consumes the reported outcome.
+    struct ToolSelectState
+    {
+        std::mutex                 mutex;
+        MoonrakerToolSelectTracker tracker;
+    };
+    const std::shared_ptr<ToolSelectState> tool_select = std::make_shared<ToolSelectState>();
 
     std::atomic<int>       next_jsonrpc_id{1};
     std::set<std::string>  available_objects;  // Track for feature detection
