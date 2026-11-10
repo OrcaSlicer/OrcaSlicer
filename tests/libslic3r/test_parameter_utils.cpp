@@ -1,8 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <string>
 #include <vector>
 
+#include "libslic3r/Config.hpp"
 #include "libslic3r/ParameterUtils.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 using namespace Slic3r;
 
@@ -46,4 +49,62 @@ TEST_CASE("A sequence count without matching values gives no custom sequence", "
     // A negative count, and no values at all.
     CHECK(get_other_layers_print_sequence(-1, std::vector<int>{1, 5, 2}).empty());
     CHECK(get_other_layers_print_sequence(1, {}).empty());
+}
+
+TEST_CASE("A process gets columns for tools added to the printer, copied from tool 1", "[ParameterUtils]")
+{
+    const std::string standard = "Direct Drive Standard", high_flow = "Direct Drive High Flow";
+    // Two tools with a Standard and a High Flow column each, as a toolchanger profile ships them.
+    DynamicPrintConfig process;
+    process.option<ConfigOptionInts>("print_extruder_id", true)->values           = {1, 1, 2, 2};
+    process.option<ConfigOptionStrings>("print_extruder_variant", true)->values   = {standard, high_flow, standard, high_flow};
+    process.option<ConfigOptionFloats>("outer_wall_speed", true)->values          = {100., 200., 110., 210.};
+    process.option<ConfigOptionFloats>("inner_wall_speed", true)->values          = {50.};
+    // The printer's extruder count raised to three.
+    DynamicPrintConfig printer;
+    printer.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {standard + "," + high_flow, standard + "," + high_flow,
+                                                                                  standard + "," + high_flow};
+
+    REQUIRE(complete_process_tool_columns(process, printer));
+    CHECK(process.option<ConfigOptionInts>("print_extruder_id")->values == std::vector<int>{1, 1, 2, 2, 3, 3});
+    CHECK(process.option<ConfigOptionStrings>("print_extruder_variant")->values ==
+          std::vector<std::string>{standard, high_flow, standard, high_flow, standard, high_flow});
+    // Each new column copies tool 1's column of its variant.
+    CHECK(process.option<ConfigOptionFloats>("outer_wall_speed")->values == std::vector<double>{100., 200., 110., 210., 100., 200.});
+    // A value the profile shares goes to every column, the new ones included.
+    CHECK(process.option<ConfigOptionFloats>("inner_wall_speed")->values == std::vector<double>(6, 50.));
+    // Every tool has its columns now.
+    CHECK_FALSE(complete_process_tool_columns(process, printer));
+    CHECK(process.option<ConfigOptionInts>("print_extruder_id")->values.size() == 6);
+}
+
+TEST_CASE("A process with one column keeps it shared by every tool", "[ParameterUtils]")
+{
+    DynamicPrintConfig process;
+    process.option<ConfigOptionInts>("print_extruder_id", true)->values         = {1};
+    process.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {"Direct Drive Standard"};
+    process.option<ConfigOptionFloats>("outer_wall_speed", true)->values        = {30.};
+    DynamicPrintConfig printer;
+    printer.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {"Direct Drive Standard", "Direct Drive Standard"};
+
+    CHECK_FALSE(complete_process_tool_columns(process, printer));
+    CHECK(process.option<ConfigOptionInts>("print_extruder_id")->values == std::vector<int>{1});
+    CHECK(process.option<ConfigOptionFloats>("outer_wall_speed")->values == std::vector<double>{30.});
+}
+
+TEST_CASE("A per-tool option the process shares gets one value per column", "[ParameterUtils]")
+{
+    const std::string standard = "Direct Drive Standard", high_flow = "Direct Drive High Flow";
+    DynamicPrintConfig process;
+    process.option<ConfigOptionInts>("print_extruder_id", true)->values         = {1, 1, 2, 2};
+    process.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {standard, high_flow, standard, high_flow};
+    process.option<ConfigOptionFloats>("travel_speed", true)->values            = {300.};
+    DynamicPrintConfig printer;
+    printer.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {standard + "," + high_flow, standard + "," + high_flow};
+
+    // Every tool reads the shared value, so each column gets it and an edit of one no longer reaches the others.
+    REQUIRE(complete_process_tool_columns(process, printer));
+    CHECK(process.option<ConfigOptionFloats>("travel_speed")->values == std::vector<double>(4, 300.));
+    CHECK(process.option<ConfigOptionInts>("print_extruder_id")->values == std::vector<int>{1, 1, 2, 2});
+    CHECK_FALSE(complete_process_tool_columns(process, printer));
 }

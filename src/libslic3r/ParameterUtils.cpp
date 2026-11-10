@@ -1,6 +1,12 @@
 #include "ParameterUtils.hpp"
+#include "Config.hpp"
 #include "PrintConfig.hpp"
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <boost/log/trivial.hpp>
+#include <algorithm>
 #include <cassert>
 #include <vector>
 #include <cstddef>
@@ -86,6 +92,55 @@ int get_index_for_extruder_parameter(const DynamicPrintConfig &config, const std
     }
 
     return variant_index;
+}
+
+bool complete_process_tool_columns(DynamicPrintConfig &process_config, const DynamicPrintConfig &printer_config)
+{
+    auto       *ids      = process_config.option<ConfigOptionInts>("print_extruder_id");
+    auto       *variants = process_config.option<ConfigOptionStrings>("print_extruder_variant");
+    const auto *tools    = printer_config.option<ConfigOptionStrings>("extruder_variant_list");
+    // A single column is shared by every tool; splitting it would make an edit reach the first tool only.
+    if (ids == nullptr || variants == nullptr || tools == nullptr || ids->size() < 2 || ids->size() != variants->size())
+        return false;
+
+    const size_t        columns = ids->size();
+    std::vector<size_t> sources; // the column each added one copies
+    for (int tool = 1; tool <= int(tools->size()); ++tool) {
+        if (std::find(ids->values.begin(), ids->values.end(), tool) != ids->values.end())
+            continue;
+        std::vector<std::string> tool_variants;
+        boost::split(tool_variants, tools->get_at(tool - 1), boost::is_any_of(","), boost::token_compress_on);
+        for (std::string &variant : tool_variants) {
+            boost::trim(variant);
+            if (variant.empty())
+                continue;
+            // Without a tool 1 column of this variant, the first column, which slicing falls back to.
+            size_t source = 0;
+            for (size_t i = 0; i < columns; ++i)
+                if (ids->values[i] == 1 && variants->values[i] == variant) {
+                    source = i;
+                    break;
+                }
+            ids->values.push_back(tool);
+            variants->values.push_back(variant);
+            sources.push_back(source);
+        }
+    }
+    bool changed = !sources.empty();
+    for (const std::string &key : print_options_with_variant) {
+        auto *opt = dynamic_cast<ConfigOptionVectorBase *>(process_config.option(key));
+        if (opt == nullptr || opt == ids || opt == variants || opt->empty())
+            continue;
+        // Gives each tool its own value, so an edit of the first one no longer reaches the others.
+        if (opt->size() < columns) {
+            opt->set_at(opt, columns - 1, columns - 1);
+            changed = true;
+        }
+        if (opt->size() == columns)
+            for (size_t source : sources)
+                opt->set_at(opt, opt->size(), source);
+    }
+    return changed;
 }
 
 }; // namespace Slic3r
