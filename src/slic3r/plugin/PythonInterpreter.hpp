@@ -72,6 +72,7 @@ public:
 
     // Runs the threading atexit hooks, which end idle worker threads, then waits for Python's
     // non-daemon threads to end, up to timeout in all, and returns how many are still running.
+    // A hook thread still running, this call's or one an earlier call gave up on, counts as one.
     // The caller must hold the GIL. Public so tests can reach it: shutdown() itself can
     // only run once per process.
     static int join_non_daemon_threads(std::chrono::milliseconds timeout);
