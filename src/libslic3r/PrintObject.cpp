@@ -5190,7 +5190,7 @@ void PrintObject::discover_sub_top_surfaces()
                 // Each such polygon extends downward by 1/4 of the line width for each layer to provide additional strength against the side bend of the upper element.
                 // Below the perimeters, there are additional solid layers with a height equal to the width of all internal walls.
                 // This is an additional strengthening against to preventing the top element from being pressed into the sparse infill at vertical load.
-                int penetration = top_shell_layers + offset_distance / scale_(config().layer_height.value);
+                int penetration = top_shell_layers; // + offset_distance / scale_(config().layer_height.value);
                 for (int j = 1; j <= penetration; ++j) {
                     if (idx_layer - j <= bottom_shell_layers)
                         break;
