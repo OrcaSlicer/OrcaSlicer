@@ -55,13 +55,26 @@ inline std::vector<std::string> split_csv(const std::string &s)
     return out;
 }
 
-// The vendor set to resolve: ORCA_CORPUS_VENDORS (comma-separated) if set, else the default vendors.
-inline std::vector<std::string> vendors_from_env()
+// Every printer vendor shipped in resources/profiles: a <name>.json with a <name>/ directory beside
+// it, which leaves out blacklist.json. The filament library has no printers to resolve; it loads as
+// the base of every other vendor.
+inline std::vector<std::string> all_vendors()
+{
+    const fs::path           profiles = repo_root() / "resources" / "profiles";
+    std::vector<std::string> vendors;
+    for (const std::string &name : vendor_names_in(profiles))
+        if (name != PresetBundle::ORCA_FILAMENT_LIBRARY && fs::is_directory(profiles / name))
+            vendors.push_back(name);
+    return vendors;
+}
+
+// The vendor set to resolve: ORCA_CORPUS_VENDORS (comma-separated) if set, else the fallback.
+inline std::vector<std::string> vendors_from_env(std::vector<std::string> fallback = default_vendors())
 {
     if (const char *v = std::getenv("ORCA_CORPUS_VENDORS"))
         if (std::vector<std::string> vendors = split_csv(v); ! vendors.empty())
             return vendors;
-    return default_vendors();
+    return fallback;
 }
 
 struct Combo {
@@ -70,8 +83,8 @@ struct Combo {
 };
 
 // Resolve the corpus: for each printer x {N, N+1} filaments, call fn(combo, cfg).
-// Returns { resolved, failed }. Leaves the source tree clean (removes any user
-// dir it had to create under data_dir()).
+// Returns { resolved, failed }. The presets load read-only, so nothing is written
+// under data_dir(), which is the source tree's resources/profiles.
 inline std::pair<int, int> for_each_resolved_config(
     const std::vector<std::string> &vendors,
     const std::function<void(const Combo &, DynamicPrintConfig &)> &fn)
@@ -99,11 +112,6 @@ inline std::pair<int, int> for_each_resolved_config(
 
     int resolved = 0, failed = 0;
     for (const std::string &vendor : vendors) {
-        const fs::path user_dir = (fs::path(data_dir()) / PRESET_USER_DIR).make_preferred();
-        const bool created_user_dir = ! fs::exists(user_dir);
-        if (created_user_dir)
-            fs::create_directories(user_dir);
-
         PresetBundle bundle;
         bundle.set_is_validation_mode(true);
         bundle.set_vendor_to_validate(vendor);   // ORCA_FILAMENT_LIBRARY still loads first
@@ -112,10 +120,10 @@ inline std::pair<int, int> for_each_resolved_config(
         AppConfig app_config;
         app_config.set("preset_folder", "default");
         try {
-            bundle.load_presets(app_config, ForwardCompatibilitySubstitutionRule::Disable);
+            bundle.load_presets(app_config, ForwardCompatibilitySubstitutionRule::Disable,
+                                PresetBundle::PresetPreferences(), nullptr, /*read_only=*/true);
         } catch (const std::exception &) {
             ++failed;
-            if (created_user_dir) { boost::system::error_code ec; fs::remove_all(user_dir, ec); }
             continue;
         }
 
@@ -149,8 +157,6 @@ inline std::pair<int, int> for_each_resolved_config(
                 }
             }
         }
-
-        if (created_user_dir) { boost::system::error_code ec; fs::remove_all(user_dir, ec); }
     }
     return { resolved, failed };
 }

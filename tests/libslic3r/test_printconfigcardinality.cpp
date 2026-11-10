@@ -2,9 +2,10 @@
 ///|/   1. Unit tests ([Cardinality])    - classification and sizing plus behavior oracles.
 ///|/   2. [ProfileCorpus]         - before/after differential over shipped profiles ([.]).
 ///|/   3. [ProfileCardinalityInvariant] - after-state length invariant over the corpus ([.]).
-///|/   4. [ProfileCardinalityGate]      - pre-enforce gate: no profile authors a wrong-length option ([.]).
+///|/   4. [ProfileCardinalityGate]      - pre-enforce gate: no profile authors a wrong-length option.
 ///|/
-///|/ The [.] corpus tests are kept off [Cardinality] because they are heavy; each runs only under its own tag.
+///|/ The corpus tests are kept off [Cardinality] because they are heavy. The [.] ones run only under their own
+///|/ tag; the gate runs with the suite.
 ///|/
 #include <catch2/catch_all.hpp>
 
@@ -467,13 +468,13 @@ TEST_CASE("Every resolved profile satisfies the cardinality length invariant aft
 
 // ============================================================================
 // 4. [ProfileCardinalityGate]: like the invariant but WITHOUT enforce_cardinality - no shipped
-//    profile should author a per-N length that contradicts its axis count. Hidden
-//    ([.], ~12 s); meant for the profile-validation CI leg on resources/profiles.
+//    profile should author a per-N length that contradicts its axis count. Runs with the suite
+//    over every vendor in resources/profiles; ORCA_CORPUS_VENDORS narrows it.
 // ============================================================================
 
-TEST_CASE("No shipped profile sets a per-N option to a contradictory length", "[.][ProfileCardinalityGate]")
+TEST_CASE("No shipped profile sets a per-N option to a contradictory length", "[ProfileCardinalityGate]")
 {
-    const std::vector<std::string> vendors = CorpusTest::vendors_from_env();
+    const std::vector<std::string> vendors = CorpusTest::vendors_from_env(CorpusTest::all_vendors());
 
     std::vector<CorpusViolation> violations;
 
