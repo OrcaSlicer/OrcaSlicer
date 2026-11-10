@@ -5172,10 +5172,11 @@ void PrintObject::discover_sub_top_surfaces()
                 float offset_distance  = base_width * std::max(number_of_walls - 1, 0);
                 ExPolygons walls_solid = offset_ex(local_mask, offset_distance);
                     
-                for (auto& s : walls_solid) // clear tiny holes
-                    for (auto& h : s.holes)
-                        if (h.area() > -min_area)
-                            h.clear();
+                //for (auto& s : walls_solid) // clear tiny holes
+                //    for (auto& h : s.holes)
+                //        if (h.area() > -min_area)
+                //            h.clear();
+
                 // If the top surface does not have 100% density, the underlying layer follows the contours of the upper one, which is visible through it.
                 // The space under the perimeters will be filled with a bridge infill. This is done for decorative purposes. 
                 // If the density is solid, then the lower layer will also be solid, even under the perimeters.
@@ -5229,12 +5230,12 @@ void PrintObject::discover_sub_top_surfaces()
     }
     // Allocating cash to their positions.
     // This works only with stInternalSolid. For other types of surfaces, a cutting/replacement procedures are required.
-    //for (auto& cache : cache_surfaces) {
-    //    if (!cache.size())
-    //        continue;
-    //    for (auto& record : cache)
-    //        surfaces_append(record.first->fill_surfaces.surfaces, record.second);
-    //}
+    for (auto& cache : cache_surfaces) {
+        if (!cache.size())
+            continue;
+        for (auto& record : cache)
+            surfaces_append(record.first->fill_surfaces.surfaces, record.second);
+    }
 }
 
 void PrintObject::_generate_support_material()
