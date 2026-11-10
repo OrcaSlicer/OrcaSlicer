@@ -29,9 +29,11 @@ static std::string _light_effect_str(DevLamp::LIGHT_EFFECT effect)
 
 void DevLamp::CtrlSetChamberLight(LIGHT_EFFECT effect)
 {
-    // copied from others, TODO CHECK
     command_set_chamber_light(effect);
-    command_set_chamber_light2(effect);
+    // Printers with a single chamber light (e.g. X2D) reject chamber_light2. Skip it once the
+    // printer's lights_report shows it has none; until a report arrives, send both as before.
+    if (m_has_chamber_light2.value_or(true))
+        command_set_chamber_light2(effect);
 }
 
 int DevLamp::command_set_chamber_light(LIGHT_EFFECT effect, int on_time, int off_time, int loops, int interval)

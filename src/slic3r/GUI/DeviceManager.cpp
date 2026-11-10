@@ -3791,13 +3791,8 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         }
 
                         try {
-                            if (jj.contains("lights_report") && jj["lights_report"].is_array()) {
-                                for (auto it = jj["lights_report"].begin(); it != jj["lights_report"].end(); it++) {
-                                    if ((*it)["node"].get<std::string>().compare("chamber_light") == 0)
-                                    {
-                                        m_lamp->SetChamberLight((*it)["mode"].get<std::string>());
-                                    }
-                                }
+                            if (jj.contains("lights_report")) {
+                                m_lamp->ParseLightsReport(jj["lights_report"]);
                             }
                         }
                         catch (...) {
