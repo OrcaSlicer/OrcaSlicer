@@ -12010,6 +12010,7 @@ static void translate_entity(SketchEntity& e, const Vec2d& d)
 int DesignSketchTool::add_entities_scripted(const std::vector<SketchEntity>& ents, bool infer)
 {
     if (ents.empty()) return -1;
+    commit_undo_point();   // the state before the add is its undo step's start, as for a drawn gesture
     const int base = int(m_entities.size());
     for (const SketchEntity& e : ents) m_entities.push_back(e);
     // Auto-constrain, but do NOT let the inference move what the caller specified. A gesture
