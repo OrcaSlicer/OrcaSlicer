@@ -379,7 +379,7 @@ class GLCanvas3D
         Vec2d position{ DBL_MAX, DBL_MAX };
         bool ignore_left_up{ false };
         Drag drag;
-        bool ignore_right_up;
+        bool ignore_right_up{ false };
         // ORCA a button was pressed on toolbar empty areas, swallow events until it is released
         bool down_on_toolbar{ false };
 
