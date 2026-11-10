@@ -16,7 +16,6 @@ public:
     FillTpmsFK() {}
     Fill* clone() const override { return new FillTpmsFK(*this); }
 
-
     // Correction applied to regular infill angle to maximize printing
     // speed in default configuration (degrees)
     static constexpr float CorrectionAngle = -45.;

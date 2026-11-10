@@ -75,7 +75,6 @@
 
 #include <boost/assign.hpp>
 #include <boost/bimap.hpp>
-#include <nlohmann/json.hpp>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -107,6 +106,7 @@ namespace pt = boost::property_tree;
 #include <expat.h>
 #include <Eigen/Dense>
 #include "miniz_extension.hpp"
+#include "nlohmann/json.hpp"
 
 #include "TextConfiguration.hpp"
 #include "EmbossShape.hpp"

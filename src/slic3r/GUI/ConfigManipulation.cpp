@@ -763,7 +763,6 @@ void ConfigManipulation::apply_null_fff_config(DynamicPrintConfig *config, std::
         else if (k == "detect_overhang_wall")
             config->set_key_value(k, new ConfigOptionBool(false));
         else if (k == "sparse_infill_pattern")
-            // The setting stores the pattern key, not an enum value.
             config->set_key_value(k, new ConfigOptionString(ConfigOptionEnum<InfillPattern>(ipGrid).serialize()));
     }
 }

@@ -1170,7 +1170,6 @@ TEST_CASE("SSL_CERT_FILE still overrides the bundled Python's default CA certifi
 }
 #endif
 
-// ── Runtime diagnostics ────────────────────────────────────────────────────────────────────────
 // report_plugin_diagnostic() is called from an infill generation worker while it may still hold a
 // provider lease. It must not wait for discovery (an unload that follows discovery waits for that
 // exact lease), its diagnostic must outlive a manifest rescan, and a throwing subscriber must not

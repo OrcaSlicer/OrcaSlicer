@@ -586,8 +586,6 @@ TEST_CASE("Fuzzing slice contours at the Slice boundary cascades with bounded di
     CHECK(fz.width < base.width + 2.5 * scale_(kThickness));
 }
 
-// ── Infill provider lifecycle at the pipeline seams ─────────────────────────────────────────
-//
 // Print::process() pins every plugin provider the job will use before any object is sliced. The
 // pins must survive per-object steps, hooks and invalidation, and be released only when the whole
 // job ends: a retained pin is a provider lease, plugin unload waits for it, and dropping one while

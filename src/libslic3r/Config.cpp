@@ -1695,8 +1695,6 @@ std::vector<std::string> ConfigBase::collect_plugin_manifest(const std::vector<c
         return refs;
 
     refs = this->collect_plugin_manifest();
-    // Model object/volume overrides carry their own plugin-backed settings, so they feed the same
-    // resolved manifest, de-duplicated against the references collected above.
     for (const ConfigBase* config : additional_configs)
         if (config != nullptr)
             config->append_plugin_refs(refs);

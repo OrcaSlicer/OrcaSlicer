@@ -362,7 +362,6 @@ struct SurfaceFillParams
 			return *this->pattern < *rhs.pattern;
 		}
 		RETURN_COMPARE_NON_EQUAL(pattern_key);
-		// Only a plugin pattern needs the purpose in the grouping key; see groups_by_purpose().
 		if (this->groups_by_purpose() && this->purpose != rhs.purpose)
 			return this->purpose < rhs.purpose;
 		RETURN_COMPARE_NON_EQUAL(spacing);
@@ -446,11 +445,9 @@ struct SurfaceFill {
     ExPolygons          no_overlap_expolygons;
 };
 
-// Create the filler for one grouped surface. Every pattern with a canonical config key is created
-// through the infill registry by that single stable ID, including plugin patterns. The InfillPattern
-// overload of Fill::new_from_type() remains only for internal patterns that have no config key.
-// A plugin ID that was selected by the project must resolve: a missing entry means the provider was
-// unloaded or disabled after preflight, so fail instead of silently falling back to a built-in.
+// Create the filler for one grouped surface. A plugin ID that was selected by the project must
+// resolve: a missing entry means the provider was unloaded or disabled after preflight, so fail
+// instead of silently falling back to a built-in.
 static std::unique_ptr<Fill> make_filler(const SurfaceFill& surface_fill)
 {
     std::unique_ptr<Fill> fill;
@@ -462,8 +459,6 @@ static std::unique_ptr<Fill> make_filler(const SurfaceFill& surface_fill)
     if (fill)
         return fill;
 
-    // A built-in key always resolves. An unresolved plugin ID means the provider was unloaded or
-    // disabled after preflight, so fail instead of silently falling back to a built-in.
     if (!surface_fill.params.pattern)
         throw SlicingError(_u8L("Plugin infill failed. Check the plugin's diagnostic details."));
     throw Slic3r::InvalidArgument("unknown infill pattern id: " + surface_fill.params.pattern_key);
@@ -1144,9 +1139,6 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 }
 
                 // Calculate the actual flow we'll be using for this infill.
-                // Only a bridge surface uses bridge flow. The former Fill::use_bridge_flow() virtual
-                // returned false for every built-in filler and was never overridden, so the pattern
-                // cannot request it; a plugin pattern gets the ordinary infill flow.
 		        params.bridge = is_bridge;
                 const bool is_thick_bridge = surface.is_bridge() && (surface.is_internal_bridge() ? object_config.thick_internal_bridges : object_config.thick_bridges);
 				params.flow   = params.bridge ?
@@ -1671,7 +1663,7 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         case ipSupportBase: continue; break;
         case ipConcentricInternal: continue; break;
         case ipLightning:
-        case ipAdaptiveCubic:
+		case ipAdaptiveCubic:
         case ipSupportCubic:
         case ipRectilinear:
         case ipMonotonic:
@@ -1696,11 +1688,10 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
         case ipOctagramSpiral:
         case ipZigZag:
         case ipCrossZag:
-        case ipLockedZag: break;
+		case ipLockedZag: break;
         }
 
-        // Create the filler object from the selected pattern ID. Identity was enforced when the
-        // print pinned that ID, before any fill worker started.
+        // Create the filler object.
         std::unique_ptr<Fill> f = make_filler(surface_fill);
         f->set_bounding_box(bbox);
         f->layer_id = this->id() - this->object()->get_layer(0)->id(); // We need to subtract raft layers.

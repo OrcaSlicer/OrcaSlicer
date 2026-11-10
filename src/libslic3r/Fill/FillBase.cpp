@@ -55,8 +55,6 @@ float Fill::infill_anchor_max = 20;
 
 Fill* Fill::new_from_type(const std::string& id)
 {
-    // nullptr is the documented contract for an unknown ID. The caller knows whether the ID came
-    // from a plugin selection or an internal built-in key and can report it in that context.
     return InfillFactory::create_infill_by_id(id).release();
 }
 
@@ -72,7 +70,6 @@ Fill* Fill::new_from_type(const InfillPattern type)
 
     const std::string key = InfillFactory::builtin_infill_key(type);
     if (!key.empty()) {
-        // The enum overload always returns a fill or throws: its callers do not check for nullptr.
         if (Fill *fill = new_from_type(key))
             return fill;
     }

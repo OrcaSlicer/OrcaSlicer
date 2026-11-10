@@ -2563,7 +2563,7 @@ bool MainFrame::get_enable_slice_status()
         {
             enable = false;
         }*/
-        // Slice all does not depend on the current plate's ready state.
+        //always enable slice_all button
         enable = true;
     }
     else if (m_slice_select == eSlicePlate)

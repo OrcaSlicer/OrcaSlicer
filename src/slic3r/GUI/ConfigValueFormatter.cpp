@@ -48,8 +48,6 @@ wxString get_string_from_infill_pattern(const std::string& opt_key, const Dynami
         auto it = std::find(def->enum_values.begin(), def->enum_values.end(), key);
         if (it != def->enum_values.end())
             return from_u8(_utf8(def->enum_labels[it - def->enum_values.begin()]));
-        // A plugin pattern ID has no built-in label; use the provider's presentation name when the
-        // pattern is still registered, so a preset comparison does not show a raw identifier.
         if (const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill(key);
             info != nullptr && info->is_plugin() && !info->display_name.empty())
             return from_u8(info->display_name);

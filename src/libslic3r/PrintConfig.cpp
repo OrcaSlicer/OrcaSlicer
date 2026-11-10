@@ -2547,10 +2547,6 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<EnsureVerticalShellThickness>(EnsureVerticalShellThickness::evstAll));
     
-    // One of the four plugin-backed pattern settings. The value is a built-in key (the enum_values
-    // below) or a plugin pattern ID; see sparse_infill_pattern for the same contract. Each of the
-    // four offers its own built-in subset, and plugin rows are filtered by the surface purpose the
-    // option drives (InfillSurfacePurpose).
     auto def_top_fill_pattern = def = this->add("top_surface_pattern", coString);
     def->plugin_type = "infill";
     def->label = L("Top surface pattern");
