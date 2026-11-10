@@ -32,6 +32,8 @@
 #include <set>
 #include <sstream>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string/trim.hpp>
+#include <iterator>
 #include <initializer_list>
 #include <utility>
 
@@ -1707,4 +1709,412 @@ TEST_CASE("Belt brim slices when every object is a flush target", "[SkirtBrim][b
     REQUIRE(print.validate().string.empty());
     const std::string out = gcode(print);
     CHECK(out.find(";TYPE:Brim") != std::string::npos);
+}
+
+// Draft shield options against warping ----------------------------------------
+//
+// A draft shield with a brim around it, a stepped fillet between the two, serpentines next to its corners,
+// a faster speed above its bottom layers and a first layer flow ratio.
+
+namespace {
+
+DynamicPrintConfig draft_shield_config(double brim_width)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "skirt_loops",                2 },
+        { "skirt_distance",             3 },
+        { "draft_shield",               "enabled" },
+        { "draft_shield_brim_width",    brim_width },
+        { "brim_type",                  "no_brim" },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+    return config;
+}
+
+// Calls `fn(role, self, line)` for every extruding XY move of `gcode`, `role` being the ;TYPE: of the move.
+template<typename Fn> void for_each_extrusion(const std::string &gcode, Fn &&fn)
+{
+    std::string role;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (boost::starts_with(line.raw(), ";TYPE:")) {
+            role = std::string(line.raw().substr(6));
+            boost::trim(role);
+            return;
+        }
+        if (line.extruding(self) && line.dist_XY(self) > 0)
+            fn(role, self, line);
+    });
+}
+
+const std::string skirt_role = ExtrusionEntity::role_to_string(erSkirt);
+const std::string brim_role  = ExtrusionEntity::role_to_string(erBrim);
+
+// Brim extrusion length per print_z.
+std::map<double, double> brim_length_per_layer(const std::string &gcode)
+{
+    std::map<double, double> length;
+    for_each_extrusion(gcode, [&](const std::string &role, const GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (role == brim_role)
+            length[self.z()] += line.dist_XY(self);
+    });
+    return length;
+}
+
+// Checks that the brim is on the first layer, followed by `fillet_layers` layers that each get narrower.
+void check_narrowing_fillet(const std::map<double, double> &brim_length, size_t fillet_layers)
+{
+    REQUIRE(brim_length.size() == fillet_layers + 1);
+    for (auto it = std::next(brim_length.begin()); it != brim_length.end(); ++it) {
+        CHECK(std::prev(it)->second > it->second);
+        CHECK(it->second > 0.);
+    }
+}
+
+} // namespace
+
+TEST_CASE("Draft shield brim adds loops outside the shield walls", "[SkirtBrim][DraftShield]")
+{
+    auto loop_roles = [](double brim_width) {
+        Print print;
+        Model model;
+        init_print({ cube(20) }, print, model, draft_shield_config(brim_width));
+        print.process();
+        REQUIRE(print.skirt_brim_groups().size() == 1);
+        std::vector<ExtrusionRole> roles;
+        for (const ExtrusionEntity *ee : print.skirt_brim_groups().front().skirt.entities)
+            roles.push_back(ee->role());
+        return roles;
+    };
+    SECTION("no brim loops with zero width") {
+        CHECK(loop_roles(0.) == std::vector<ExtrusionRole>{ erSkirt, erSkirt });
+    }
+    SECTION("brim loops come first, outermost first") {
+        const std::vector<ExtrusionRole> roles = loop_roles(4.);
+        CHECK(std::count(roles.begin(), roles.end(), erSkirt) == 2);
+        CHECK(std::count(roles.begin(), roles.end(), erBrim) >= 4); // 4 mm at a loop spacing below 1 mm
+        CHECK(std::is_partitioned(roles.begin(), roles.end(), [](ExtrusionRole r) { return r == erBrim; }));
+    }
+}
+
+TEST_CASE("Draft shield brim is printed on the first layer only", "[SkirtBrim][DraftShield]")
+{
+    const std::string gcode = slice({ cube(20) }, draft_shield_config(4.));
+    std::set<double>  skirt_z, all_z;
+    for_each_extrusion(gcode, [&](const std::string &role, const GCodeReader &self, const GCodeReader::GCodeLine &) {
+        all_z.insert(self.z());
+        if (role == skirt_role)
+            skirt_z.insert(self.z());
+    });
+    const std::map<double, double> brim_length = brim_length_per_layer(gcode);
+    REQUIRE_FALSE(all_z.empty());
+    REQUIRE(brim_length.size() == 1);
+    CHECK_THAT(brim_length.begin()->first, Catch::Matchers::WithinAbs(*all_z.begin(), 1e-6));
+    // The shield itself still rises with the object.
+    CHECK(skirt_z.size() == all_z.size());
+}
+
+TEST_CASE("Draft shield fillet narrows over the layers above the brim", "[SkirtBrim][DraftShield]")
+{
+    // 1.5 mm fillet over 3 layers above a 4 mm brim.
+    DynamicPrintConfig config = draft_shield_config(4.);
+    config.set_deserialize_strict({ { "draft_shield_fillet_width", 1.5 }, { "draft_shield_fillet_layers", 3 } });
+    const std::string gcode = slice({ cube(20) }, config);
+    std::set<double>  all_z;
+    for_each_extrusion(gcode, [&](const std::string &, const GCodeReader &self, const GCodeReader::GCodeLine &) { all_z.insert(self.z()); });
+    const std::map<double, double> brim_length = brim_length_per_layer(gcode);
+
+    check_narrowing_fillet(brim_length, 3);
+    // On the first four layers.
+    auto layer = all_z.begin();
+    for (const auto &[z, length] : brim_length)
+        CHECK_THAT(z, Catch::Matchers::WithinAbs(*layer++, 1e-6));
+}
+
+TEST_CASE("Draft shield brim is cut at the edge of the bed", "[SkirtBrim][DraftShield]")
+{
+    // 40 x 40 mm bed, cube at 10..30 mm. The shield (3 mm gap, 2 loops) fits on the bed, the 8 mm brim does not.
+    constexpr double   bed_size = 40.;
+    DynamicPrintConfig config   = draft_shield_config(8.);
+    config.set_deserialize_strict({
+        { "printable_area",             "0x0,40x0,40x40,0x40" },
+        { "draft_shield_fillet_width",  1.5 },
+        { "draft_shield_fillet_layers", 3 },
+    });
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config);
+    // Center the cube on the bed instead of relying on the arrangement.
+    ModelInstance *instance = model.objects.front()->instances.front();
+    const Vec3d    center   = model.objects.front()->instance_bounding_box(0).center();
+    instance->set_offset(instance->get_offset() + Vec3d(bed_size / 2. - center.x(), bed_size / 2. - center.y(), 0.));
+    print.apply(model, config);
+    const std::string gcode_out = gcode(print);
+
+    BoundingBoxf extents;
+    double       first_z = -1., skirt_length_first_layer = 0.;
+    for_each_extrusion(gcode_out, [&](const std::string &role, const GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (first_z < 0.)
+            first_z = self.z();
+        extents.merge(Vec2d(self.x(), self.y()));
+        extents.merge(Vec2d(line.new_X(self), line.new_Y(self)));
+        if (role == skirt_role && std::abs(self.z() - first_z) < EPSILON)
+            skirt_length_first_layer += line.dist_XY(self);
+    });
+
+    // Nothing is extruded off the bed.
+    REQUIRE(extents.defined);
+    CHECK(extents.min.x() >= 0.);
+    CHECK(extents.min.y() >= 0.);
+    CHECK(extents.max.x() <= bed_size);
+    CHECK(extents.max.y() <= bed_size);
+    // The brim is cut, not dropped: it reaches the bed edge.
+    CHECK(extents.min.x() < 0.5);
+    CHECK(extents.max.x() > bed_size - 0.5);
+    // The fillet is unchanged by the cut.
+    check_narrowing_fillet(brim_length_per_layer(gcode_out), 3);
+    // The shield walls are complete: two closed loops more than 3 mm around the 20 mm cube.
+    CHECK(skirt_length_first_layer > 2. * (4. * 20. + 2. * PI * 3.));
+}
+
+TEST_CASE("Draft shield speed applies above the fillet layers", "[SkirtBrim][DraftShield]")
+{
+    DynamicPrintConfig config = draft_shield_config(4.);
+    config.set_deserialize_strict({
+        { "draft_shield_fillet_width",     1.5 },
+        { "draft_shield_fillet_layers",    3 },
+        { "skirt_speed",                   30 },
+        { "draft_shield_speed",            120 },
+        { "support_speed",                 90 },
+        { "initial_layer_speed",           20 },
+        { "filament_max_volumetric_speed", 100 },
+        { "slow_down_for_layer_cooling",   false },
+    });
+    std::map<double, std::set<long>> skirt_f, brim_f; // print_z -> feedrates in mm/s
+    for_each_extrusion(slice({ cube(20) }, config),
+                       [&](const std::string &role, const GCodeReader &self, const GCodeReader::GCodeLine &line) {
+                           const long f = std::lround(line.new_F(self) / 60.);
+                           if (role == skirt_role)
+                               skirt_f[self.z()].insert(f);
+                           else if (role == brim_role)
+                               brim_f[self.z()].insert(f);
+                       });
+
+    REQUIRE(skirt_f.size() > 6);
+    size_t layer = 0;
+    for (const auto &[z, speeds] : skirt_f) {
+        CAPTURE(layer, z);
+        // The first layer and the 3 fillet layers at the skirt speed, the layers above at the draft shield speed.
+        CHECK(speeds == std::set<long>{ layer <= 3 ? 30 : 120 });
+        ++layer;
+    }
+    // The fillet loops print at the skirt speed, not at the support speed.
+    REQUIRE(brim_f.size() == 4);
+    for (auto it = std::next(brim_f.begin()); it != brim_f.end(); ++it)
+        CHECK(it->second == std::set<long>{ 30 });
+}
+
+TEST_CASE("Draft shield first layer flow ratio changes only the first layer", "[SkirtBrim][DraftShield]")
+{
+    // Extrusion per mm of the shield walls and of its brim / fillet, on the first and the second layer.
+    auto e_per_mm = [](double flow_ratio) {
+        DynamicPrintConfig config = draft_shield_config(3.);
+        config.set_deserialize_strict({
+            { "draft_shield_first_layer_flow_ratio", flow_ratio },
+            { "draft_shield_fillet_width",           1.5 },
+            { "draft_shield_fillet_layers",          2 },
+        });
+        std::map<std::string, Vec2d> sums; // "<role> <layer>" -> (E, XY length)
+        std::vector<double>          zs;
+        for_each_extrusion(slice({ cube(20) }, config),
+                           [&](const std::string &role, const GCodeReader &self, const GCodeReader::GCodeLine &line) {
+                               if (zs.empty() || std::abs(zs.back() - self.z()) > EPSILON)
+                                   zs.push_back(self.z());
+                               if (zs.size() <= 2)
+                                   sums[role + " " + std::to_string(zs.size())] += Vec2d(line.dist_E(self), line.dist_XY(self));
+                           });
+        std::map<std::string, double> out;
+        for (const auto &[key, sum] : sums)
+            out[key] = sum.x() / sum.y();
+        return out;
+    };
+    const auto normal = e_per_mm(1.);
+    const auto over   = e_per_mm(1.1);
+    for (const auto &[key, ratio] : { std::pair{ skirt_role + " 1", 1.1 }, std::pair{ brim_role + " 1", 1.1 },
+                                      std::pair{ skirt_role + " 2", 1. }, std::pair{ brim_role + " 2", 1. } }) {
+        CAPTURE(key);
+        REQUIRE(normal.count(key) == 1);
+        REQUIRE(over.count(key) == 1);
+        CHECK_THAT(over.at(key) / normal.at(key), Catch::Matchers::WithinAbs(ratio, 0.005));
+    }
+}
+
+namespace {
+
+// Distance of a point to a closed polygon's outline.
+double distance_to_outline(const Polygon &polygon, const Point &pt)
+{
+    double d = std::numeric_limits<double>::max();
+    for (const Line &line : polygon.lines())
+        d = std::min(d, line.distance_to(pt));
+    return d;
+}
+
+// Runs of consecutive points (cyclic) lying farther than `threshold` outside `reference`; returns each run's middle point.
+Points bumps_outside(const Polygon &loop, const Polygon &reference, double threshold)
+{
+    const size_t      n = loop.points.size();
+    std::vector<bool> out(n);
+    for (size_t i = 0; i < n; ++i)
+        out[i] = !reference.contains(loop.points[i]) && distance_to_outline(reference, loop.points[i]) > threshold;
+    Points mids;
+    size_t first = 0;
+    while (first < n && out[first]) ++first; // start outside a run
+    if (first == n)
+        return mids;
+    for (size_t k = 0; k < n; ++k) {
+        size_t i = (first + k) % n;
+        if (out[i] && !out[(i + n - 1) % n]) {
+            size_t len = 0;
+            while (out[(i + len) % n]) ++len;
+            mids.push_back(loop.points[(i + len / 2) % n]);
+        }
+    }
+    return mids;
+}
+
+} // namespace
+
+TEST_CASE("Draft shield serpentines sit on the long sides next to the sharp corners", "[SkirtBrim][DraftShield]")
+{
+    // Hull like a long bracket: 170 mm bottom side, 20 mm ends, top bent by 15 degrees in the middle.
+    const Polygon hull({ { scaled(0.), scaled(0.) }, { scaled(170.), scaled(0.) }, { scaled(170.), scaled(20.) },
+                         { scaled(85.), scaled(31.2) }, { scaled(0.), scaled(20.) } });
+    Polygons rounded = offset(hull, float(scaled(3.)), jtRound, float(scaled(0.1)));
+    REQUIRE(rounded.size() == 1);
+    const Polygon &loop = rounded.front();
+
+    constexpr double depth = 6., pitch = 6.;
+    SECTION("none with zero depth") {
+        CHECK(draft_shield_serpentines(loop, 0., pitch, 2).points.size() == loop.points.size());
+    }
+    SECTION("two periods next to each of the four outer corners") {
+        const Polygon serpentines = draft_shield_serpentines(loop, depth, pitch, 2);
+        // Outward only: the new loop contains the original one.
+        double inside_area = 0.;
+        for (const Polygon &sliver : diff(Polygons{ loop }, Polygons{ serpentines }))
+            inside_area += std::abs(sliver.area());
+        CHECK(inside_area * SCALING_FACTOR * SCALING_FACTOR < 0.001); // mm^2, rounding slivers only
+        // They reach out by the full depth.
+        double max_out = 0.;
+        for (const Point &pt : serpentines.points)
+            max_out = std::max(max_out, distance_to_outline(loop, pt));
+        CHECK_THAT(unscaled(max_out), Catch::Matchers::WithinAbs(depth, 0.05));
+
+        const Points bumps = bumps_outside(serpentines, loop, scaled(depth / 2.));
+        REQUIRE(bumps.size() == 8);
+        const Points outer_corners{ { scaled(0.), scaled(0.) }, { scaled(170.), scaled(0.) },
+                                    { scaled(170.), scaled(20.) }, { scaled(0.), scaled(20.) } };
+        const Point  bend{ scaled(85.), scaled(31.2) };
+        std::map<size_t, int> per_corner;
+        for (const Point &bump : bumps) {
+            size_t nearest = 0;
+            for (size_t c = 1; c < outer_corners.size(); ++c)
+                if ((bump - outer_corners[c]).cast<double>().norm() < (bump - outer_corners[nearest]).cast<double>().norm())
+                    nearest = c;
+            // Within corner gap + two periods of the corner, far from the shallow bend.
+            CHECK(unscaled((bump - outer_corners[nearest]).cast<double>().norm()) < 3. + depth + 2.25 * pitch);
+            CHECK(unscaled((bump - bend).cast<double>().norm()) > 40.);
+            ++per_corner[nearest];
+            // On the long sides, not on the 20 mm ends.
+            CHECK(unscaled(bump.x()) > 0.);
+            CHECK(unscaled(bump.x()) < 170.);
+        }
+        CHECK(per_corner == std::map<size_t, int>{ { 0, 2 }, { 1, 2 }, { 2, 2 }, { 3, 2 } });
+    }
+    SECTION("both long sides get serpentines at a rounded end") {
+        // Long bottom side, a shorter top side (about half as long) bent by ~10 degrees, rounded right end.
+        Points pts{ { scaled(0.), scaled(0.) }, { scaled(170.), scaled(0.) }, { scaled(80.), scaled(30.) }, { scaled(0.), scaled(15.) } };
+        for (int k = 0; k <= 16; ++k) {
+            const double a = -PI / 2. + PI * k / 16.;
+            pts.emplace_back(scaled(170. + 15. * std::cos(a)), scaled(15. + 15. * std::sin(a)));
+        }
+        Polygons      rounded_end = offset(Geometry::convex_hull(pts), float(scaled(3.)), jtRound, float(scaled(0.1)));
+        const Polygon serpentines = draft_shield_serpentines(rounded_end.front(), depth, pitch, 2);
+        const Points  bumps       = bumps_outside(serpentines, rounded_end.front(), scaled(depth / 2.));
+        CHECK(bumps.size() == 8);
+        // Two on the top side next to the rounded end, two on the bottom side next to it.
+        CHECK(std::count_if(bumps.begin(), bumps.end(), [](const Point &p) { return p.x() > scaled(140.) && p.y() > scaled(15.); }) == 2);
+        CHECK(std::count_if(bumps.begin(), bumps.end(), [](const Point &p) { return p.x() > scaled(140.) && p.y() < scaled(15.); }) == 2);
+        // None at the shallow bend.
+        CHECK(std::none_of(bumps.begin(), bumps.end(), [](const Point &p) { return std::abs(unscaled(p.x()) - 80.) < 15.; }));
+    }
+    SECTION("equally long sides all get serpentines") {
+        Polygons square = offset(Polygon({ { 0, 0 }, { scaled(60.), 0 }, { scaled(60.), scaled(60.) }, { 0, scaled(60.) } }),
+                                 float(scaled(3.)), jtRound, float(scaled(0.1)));
+        const Polygon serpentines = draft_shield_serpentines(square.front(), depth, pitch, 1);
+        CHECK(bumps_outside(serpentines, square.front(), scaled(depth / 2.)).size() == 8);
+    }
+    SECTION("sides too short for a serpentine stay straight") {
+        Polygons small = offset(Polygon({ { 0, 0 }, { scaled(12.), 0 }, { scaled(12.), scaled(12.) }, { 0, scaled(12.) } }),
+                                float(scaled(3.)), jtRound, float(scaled(0.1)));
+        CHECK(draft_shield_serpentines(small.front(), depth, pitch, 2).points.size() == small.front().points.size());
+    }
+}
+
+TEST_CASE("Draft shield walls with serpentines stay parallel and keep the object gap", "[SkirtBrim][DraftShield]")
+{
+    DynamicPrintConfig config = draft_shield_config(3.);
+    config.set_deserialize_strict({
+        { "draft_shield_serpentine_depth", 6 },
+        { "draft_shield_serpentine_pitch", 6 },
+        { "draft_shield_serpentine_count", 2 },
+    });
+    Print print;
+    Model model;
+    TriangleMesh box(its_make_cube(60., 15., 5.)); // ends clearly shorter than a third of the long sides
+    init_print({ box }, print, model, config);
+    print.process();
+    REQUIRE(print.skirt_brim_groups().size() == 1);
+    const ExtrusionEntitiesPtr &entities = print.skirt_brim_groups().front().skirt.entities;
+    REQUIRE(entities.size() >= 3);
+    auto loop_polygon = [&entities](size_t idx) {
+        REQUIRE(entities[idx]->role() == erSkirt);
+        const auto *loop = dynamic_cast<const ExtrusionLoop *>(entities[idx]);
+        REQUIRE(loop != nullptr);
+        return Polygon(loop->polygon());
+    };
+    // The innermost entries are the two shield walls.
+    const Polygon inner = loop_polygon(entities.size() - 1);
+    const Polygon outer = loop_polygon(entities.size() - 2);
+
+    // Object footprint in print coordinates.
+    BoundingBox        object_box;
+    const PrintObject *object = print.objects().front();
+    for (const PrintInstance &instance : object->instances())
+        for (const ExPolygon &expoly : object->layers().back()->lslices) {
+            Polygon contour = expoly.contour;
+            contour.translate(instance.shift);
+            object_box.merge(get_extents(contour));
+        }
+    const Polygon object_outline = object_box.polygon();
+    const double  spacing        = print.skirt_flow().spacing();
+
+    // Never closer to the object than without serpentines.
+    double min_gap = std::numeric_limits<double>::max(), max_gap = 0.;
+    for (const Point &pt : inner.points) {
+        min_gap = std::min(min_gap, unscaled(distance_to_outline(object_outline, pt)));
+        max_gap = std::max(max_gap, unscaled(distance_to_outline(object_outline, pt)));
+    }
+    CHECK(min_gap > 3. + spacing / 2. - 0.05);
+    // The serpentines are there: 2 periods per corner on the 60 mm sides, none on the 15 mm ends.
+    CHECK(max_gap > 3. + spacing / 2. + 5.9);
+    CHECK(bumps_outside(inner, object_box.inflated(scaled(3. + spacing / 2.)).polygon(), scaled(1.)).size() == 8);
+    // The second wall follows the first at one line spacing everywhere.
+    double max_deviation = 0.;
+    for (const Point &pt : outer.points)
+        max_deviation = std::max(max_deviation, std::abs(unscaled(distance_to_outline(inner, pt)) - spacing));
+    CHECK(max_deviation < 0.08);
 }

@@ -5952,17 +5952,60 @@ std::string GCode::generate_skirt(const Print &print,
         m_avoid_crossing_perimeters.use_external_mp();
         Flow layer_skirt_flow = print.skirt_flow().with_height(float(skirt_done.back() - (skirt_done.size() == 1 ? 0. : skirt_done[skirt_done.size() - 2])));
         double mm3_per_mm = layer_skirt_flow.mm3_per_mm();
-        // Decide where to start looping:
-        // - If it’s the first layer or if we do NOT want a single-wall skirt/draft shield,
-        //   start from loops.first (all loops).
-        // - Otherwise, if single_loop_draft_shield == true (and not the first layer),
-        //   start from loops.second - 1 (just one loop).
-        const size_t start_idx = (first_layer || !print.m_config.single_loop_draft_shield)
-                                 ? loops.first
-                                 : (loops.second - 1);
+        // Orca: the draft shield's first layer (walls and brim) may be over-extruded so its lines fuse and do
+        // not tear apart while the shield warps.
+        if (first_layer && print.has_infinite_skirt())
+            mm3_per_mm *= print.config().draft_shield_first_layer_flow_ratio.value;
+        // Orca: draft shield brim loops (erBrim, outermost entries) are printed on the first layer. Above it,
+        // the loops next to the shield are continued as a stepped fillet that narrows linearly over
+        // draft_shield_fillet_layers layers, so the shield does not tear off its brim.
+        // skirt_done holds the print_z of every shield layer printed so far, this one included.
+        const size_t shield_layer = skirt_done.size() - 1; // 0 = bed layer
+        const size_t fillet_layers = (print.config().draft_shield_brim_width.value > 0. && print.config().draft_shield_fillet_width.value > 0.) ?
+            size_t(std::max(1, print.config().draft_shield_fillet_layers.value)) : 0;
+        size_t fillet_loops = 0;
+        if (shield_layer >= 1 && shield_layer <= fillet_layers) {
+            const double spacing   = print.skirt_flow().spacing();
+            const double max_loops = spacing > 0. ? std::max(1., std::round(print.config().draft_shield_fillet_width.value / spacing)) : 0.;
+            fillet_loops = size_t(std::ceil(max_loops * double(fillet_layers - shield_layer + 1) / double(fillet_layers) - EPSILON));
+        }
+
+        // Orca: the bed layer and the fillet layers print at the skirt speed, the fillet loops included (they
+        // would otherwise run at the support speed). Above them the shield walls may print at draft_shield_speed.
+        const double skirt_speed  = m_config.skirt_speed.value;
+        const double loop_speed   = NOZZLE_CONFIG(support_speed);
+        const double fillet_speed = skirt_speed > 0. ? skirt_speed : loop_speed;
+        if (print.has_infinite_skirt() && print.config().draft_shield_speed.value > 0. && shield_layer > fillet_layers)
+            m_skirt_speed_override = print.config().draft_shield_speed.value;
+        auto speed_for = [&](const ExtrusionEntity *entity) {
+            return !first_layer && entity->role() == erBrim ? fillet_speed : loop_speed;
+        };
 
         // Loop over the skirt loops and extrude
-        for (size_t i = start_idx; i < loops.second; ++i) {
+        for (size_t i = loops.first; i < loops.second; ++i) {
+            if (!first_layer) {
+                if (skirt.entities[i]->role() == erBrim) {
+                    // Distance of this brim loop from the shield, in loops (1 = touching the shield).
+                    size_t loop_from_shield = 1;
+                    for (size_t j = i + 1; j < loops.second && skirt.entities[j]->role() == erBrim; ++j)
+                        ++loop_from_shield;
+                    if (loop_from_shield > fillet_loops)
+                        continue;
+                } else if (print.m_config.single_loop_draft_shield && i + 1 != loops.second) {
+                    // Single-wall skirt/draft shield above the first layer: only the innermost loop.
+                    continue;
+                }
+            }
+            // Orca: a draft shield brim loop cut at the bed edge is a collection of open brim paths.
+            if (const auto *clipped = dynamic_cast<const ExtrusionEntityCollection*>(skirt.entities[i])) {
+                for (const ExtrusionEntity *ee : clipped->entities) {
+                    ExtrusionPath path = *dynamic_cast<const ExtrusionPath*>(ee);
+                    path.height     = layer_skirt_flow.height();
+                    path.mm3_per_mm = mm3_per_mm;
+                    gcode += this->extrude_path(std::move(path), "skirt", speed_for(clipped));
+                }
+                continue;
+            }
             // Adjust flow according to this layer's layer height.
             ExtrusionLoop loop = *dynamic_cast<const ExtrusionLoop*>(skirt.entities[i]);
             for (ExtrusionPath &path : loop.paths) {
@@ -5974,16 +6017,12 @@ std::string GCode::generate_skirt(const Print &print,
             if (first_layer && i==loops.first) {
                 //set skirt start point location
                 const Point desired_start_point = Skirt::find_start_point(loop, skirt_start_angle);
-                gcode += this->extrude_loop(loop, "skirt", NOZZLE_CONFIG(support_speed), {}, &desired_start_point);
+                gcode += this->extrude_loop(loop, "skirt", speed_for(skirt.entities[i]), {}, &desired_start_point);
             }
             else
-                gcode += this->extrude_loop(loop, "skirt", NOZZLE_CONFIG(support_speed));
-
-            // If we only want a single wall on non-first layers, break now
-            if (!first_layer && print.m_config.single_loop_draft_shield) {
-                break;
-            }
+                gcode += this->extrude_loop(loop, "skirt", speed_for(skirt.entities[i]));
         }
+        m_skirt_speed_override = 0.;
         m_avoid_crossing_perimeters.use_external_mp(false);
         // Allow a straight travel move to the first object point if this is the first layer (but don't in next layers).
         if (first_layer && loops.first == 0)
@@ -9648,7 +9687,8 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
     }
     // Override skirt speed if set
     if (path.role() == erSkirt) {
-        const double skirt_speed = m_config.skirt_speed.value;
+        // Orca: draft_shield_speed above the draft shield's bottom layers, see generate_skirt().
+        const double skirt_speed = m_skirt_speed_override > 0. ? m_skirt_speed_override : m_config.skirt_speed.value;
         if (skirt_speed > 0.0)
         speed = skirt_speed;
     }

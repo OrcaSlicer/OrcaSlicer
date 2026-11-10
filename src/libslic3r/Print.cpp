@@ -466,6 +466,14 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "min_skirt_length"
             || opt_key == "single_loop_draft_shield"
             || opt_key == "draft_shield"
+            || opt_key == "draft_shield_brim_width"
+            || opt_key == "draft_shield_fillet_width"
+            || opt_key == "draft_shield_fillet_layers"
+            || opt_key == "draft_shield_serpentine_depth"
+            || opt_key == "draft_shield_serpentine_pitch"
+            || opt_key == "draft_shield_serpentine_count"
+            || opt_key == "draft_shield_speed"
+            || opt_key == "draft_shield_first_layer_flow_ratio"
             || opt_key == "skirt_distance"
             || opt_key == "skirt_start_angle"
             || opt_key == "ooze_prevention"
@@ -4182,6 +4190,116 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
     return path.c_str();
 }
 
+// Orca: outward serpentines in a convex draft shield loop next to its sharp corners. A long shield side shrinks
+// (ABS/ASA) and pulls the corners at its ends off the bed. A serpentine of U-turns next to the corner acts as a
+// soft expansion joint: its legs stand across the side and bend instead of passing the pull on.
+// Long sides are straight edges of at least a third of the longest one; short end sides carry little stress and
+// get no serpentines. A corner is everything between two consecutive long sides, short sides and rounded ends
+// included. If it turns by at least 30 degrees, both long sides get serpentines next to it; shallow bends get
+// none. The serpentines only reach outward, so the gap to the object is kept.
+Polygon draft_shield_serpentines(const Polygon &loop_in, double depth_mm, double pitch_mm, int serpentines_per_corner)
+{
+    Polygon loop = loop_in;
+    loop.make_counter_clockwise();
+    const size_t n     = loop.points.size();
+    const double depth = scale_(depth_mm);
+    const double pitch = scale_(pitch_mm);
+    if (n < 3 || depth <= 0. || pitch <= 0. || serpentines_per_corner < 1)
+        return loop;
+
+    static constexpr double min_corner_turn = PI / 6.; // 30 degrees
+    static constexpr double long_side_ratio = 1. / 3.; // of the longest side
+    const double            corner_margin   = 0.25 * pitch; // straight run left between the corner and the serpentine
+
+    auto edge = [&loop, n](size_t i) -> Vec2d { return (loop.points[(i + 1) % n] - loop.points[i]).cast<double>(); };
+    std::vector<double> length(n);
+    for (size_t i = 0; i < n; ++i)
+        length[i] = edge(i).norm();
+    const double min_side_length = std::max(pitch + 2. * corner_margin,
+                                            long_side_ratio * *std::max_element(length.begin(), length.end()));
+    std::vector<bool> is_side(n);
+    for (size_t i = 0; i < n; ++i)
+        is_side[i] = length[i] >= min_side_length;
+    // Turning angle at vertex i, between edge i - 1 and edge i (positive for a convex CCW loop).
+    auto turn_at = [&edge, n](size_t i) {
+        const Vec2d a = edge((i + n - 1) % n), b = edge(i);
+        return std::atan2(cross2(a, b), a.dot(b));
+    };
+
+    // Serpentines requested at the start / end of each long side.
+    std::vector<bool> at_start(n, false), at_end(n, false);
+    for (size_t i = 0; i < n; ++i) {
+        if (!is_side[i])
+            continue;
+        // Next long side and the total turn of the corner between the two, over short sides and rounded ends.
+        size_t j    = (i + 1) % n;
+        double turn = turn_at(j);
+        while (!is_side[j]) {
+            j = (j + 1) % n;
+            turn += turn_at(j);
+        }
+        if (turn >= min_corner_turn) {
+            at_end[i]   = true;
+            at_start[j] = true;
+        }
+    }
+
+    // Serpentine of U-turns: legs standing across the side, joined by semicircles of a quarter pitch radius.
+    // The bottom turns touch the shield line, the top turns reach out by the depth (at least two radii).
+    const double r      = 0.25 * pitch;
+    const double height = std::max(depth, 2. * r);
+    Points       out;
+    out.reserve(n * 2);
+    for (size_t i = 0; i < n; ++i) {
+        const Point &a = loop.points[i];
+        out.push_back(a);
+        if (!at_start[i] && !at_end[i])
+            continue;
+        const Vec2d dir    = edge(i) / length[i];
+        const Vec2d normal(dir.y(), -dir.x()); // outward for a CCW loop
+        const int   groups = int(at_start[i]) + int(at_end[i]);
+        const int   count  = std::min(serpentines_per_corner, int(std::floor((length[i] - 2. * corner_margin) / groups / pitch)));
+        if (count < 1)
+            continue;
+        // Where the serpentines start along the side: next to the corner at the start and / or at the end.
+        std::vector<double> starts;
+        if (at_start[i])
+            starts.push_back(corner_margin);
+        if (at_end[i])
+            starts.push_back(length[i] - corner_margin - count * pitch);
+        // Point at u along the side and v outward of it.
+        auto emit = [&out, &a, &dir, &normal](double u, double v) {
+            const Vec2d p = a.cast<double>() + dir * u + normal * v;
+            out.emplace_back(coord_t(std::round(p.x())), coord_t(std::round(p.y())));
+        };
+        // Arc around (u, v) with radius r from angle t0 to t1.
+        auto arc = [&emit, r](double u, double v, double t0, double t1) {
+            const int steps = std::max(2, int(std::ceil(std::abs(t1 - t0) / (PI / 12.))));
+            for (int k = 0; k <= steps; ++k) {
+                const double t = t0 + (t1 - t0) * k / steps;
+                emit(u + r * std::cos(t), v + r * std::sin(t));
+            }
+        };
+        for (double s : starts) {
+            // Rounded entry from the shield line into the first leg.
+            arc(s, r, -PI / 2., 0.);
+            for (int k = 0; k < count; ++k) {
+                const double u = s + k * pitch; // one period spans u .. u + 4r
+                // Up the leg, U-turn over the top, down the leg.
+                arc(u + 2. * r, height - r, PI, 0.);
+                if (k + 1 < count)
+                    // U-turn at the bottom, touching the shield line, into the next period.
+                    arc(u + 4. * r, r, PI, 2. * PI);
+            }
+            // Rounded exit back onto the shield line.
+            arc(s + count * pitch, r, PI, 1.5 * PI);
+        }
+    }
+    Polygon result(std::move(out));
+    result.remove_duplicate_points();
+    return result;
+}
+
 void Print::_make_skirt()
 {
     // Belt printer: skirt is not compatible.
@@ -4251,6 +4369,21 @@ void Print::_make_skirt()
     float  spacing = flow.spacing();
     double mm3_per_mm = flow.mm3_per_mm();
 
+    // Orca: number of first-layer brim loops around the draft shield.
+    const size_t draft_shield_brim_loops = (this->has_infinite_skirt() && m_config.draft_shield_brim_width.value > 0. && spacing > 0.f) ?
+        size_t(std::ceil(m_config.draft_shield_brim_width.value / spacing - EPSILON)) : 0;
+    // Orca: serpentines next to the draft shield's corners against warping, see draft_shield_serpentines().
+    const bool draft_shield_serpentines_enabled = this->has_infinite_skirt() && m_config.draft_shield_serpentine_depth.value > 0.;
+    // Orca: the draft shield brim is cut at the edge of the printable area (bed minus excluded areas)
+    // instead of running off the plate, so it also works where space is tight. Inset by half a line width
+    // to keep the extrusions on the bed.
+    ExPolygons draft_shield_brim_bed;
+    if (draft_shield_brim_loops > 0) {
+        Polygon bed;
+        bed.points = get_bed_shape(m_config, true);
+        draft_shield_brim_bed = offset_ex(diff_ex(Polygons{ bed }, get_bed_excluded_area(m_config)), -0.5f * float(flow.scaled_width()));
+    }
+
     std::vector<size_t> extruders;
     std::vector<double> extruders_e_per_mm;
     {
@@ -4269,6 +4402,24 @@ void Print::_make_skirt()
     // Loop while we have less skirts than required or any extruder hasn't reached the min length if any.
     auto append_skirt_loops_for_hull = [&](const Polygon& hull, ExtrusionEntityCollection& dst, bool collect_skirt_hull) {
         float distance = float(scale_(m_config.skirt_distance.value - spacing/2.));
+        // Orca: the draft shield serpentines are put into the innermost shield loop. Every loop outside it
+        // (shield, brim, fillet) is an offset of that loop, so the walls stay parallel and bonded.
+        const float first_distance = distance + float(scale_(spacing));
+        Polygons    serpentine_base;
+        if (draft_shield_serpentines_enabled) {
+            Polygons base = offset(hull, first_distance, jtRound, float(scale_(0.1)));
+            Geometry::simplify_polygons(base, scale_(0.05), &base);
+            if (!base.empty())
+                serpentine_base.push_back(draft_shield_serpentines(base.front(), m_config.draft_shield_serpentine_depth.value,
+                                                                   m_config.draft_shield_serpentine_pitch.value,
+                                                                   m_config.draft_shield_serpentine_count.value));
+        }
+        auto loops_at = [&](float loop_distance) {
+            Polygons loops = serpentine_base.empty() ? offset(hull, loop_distance, jtRound, float(scale_(0.1))) :
+                                                       offset(serpentine_base, loop_distance - first_distance, jtRound, float(scale_(0.1)));
+            Geometry::simplify_polygons(loops, scale_(0.05), &loops);
+            return loops;
+        };
         std::vector<coordf_t> extruded_length(extruders.size(), 0.);
         for (size_t i = m_config.skirt_loops, extruder_idx = 0; i > 0; -- i) {
             this->throw_if_canceled();
@@ -4278,8 +4429,7 @@ void Print::_make_skirt()
             Polygon loop;
             {
                 // Orca: the hull already represents the occupied outline used for this skirt.
-                Polygons loops = offset(hull, distance, jtRound, float(scale_(0.1)));
-                Geometry::simplify_polygons(loops, scale_(0.05), &loops);
+                Polygons loops = loops_at(distance);
 			    if (loops.empty())
 				    break;
 			    loop = loops.front();
@@ -4314,9 +4464,59 @@ void Print::_make_skirt()
             }
         }
 
-        if (collect_skirt_hull)
-            for (Polygon &poly : offset(hull, distance + 0.5f * float(scale_(spacing)), jtRound, float(scale_(0.1))))
+        // Orca: brim around the outside of the draft shield. These loops are tagged erBrim and
+        // GCode::generate_skirt() prints them on the first layer only, so the shield keeps its wall
+        // count above the first layer while its footprint on the bed is widened against warping.
+        for (size_t i = draft_shield_brim_loops; i > 0 && !dst.empty(); --i) {
+            this->throw_if_canceled();
+            distance += float(scale_(spacing));
+            Polygons loops = loops_at(distance);
+            if (loops.empty())
+                break;
+            Polygon &loop = loops.front();
+            const ExtrusionPath brim_path(erBrim, (float)mm3_per_mm, flow.width(), (float)initial_layer_print_height);
+            auto on_bed = [&draft_shield_brim_bed](const Point &pt) {
+                return std::any_of(draft_shield_brim_bed.begin(), draft_shield_brim_bed.end(),
+                                   [&pt](const ExPolygon &area) { return area.contains(pt); });
+            };
+            const auto off_bed = std::find_if_not(loop.points.begin(), loop.points.end(), on_bed);
+            if (off_bed == loop.points.end() && diff_pl(Polylines{ loop.split_at_first_point() }, draft_shield_brim_bed).empty()) {
+                ExtrusionLoop eloop(elrSkirt);
+                eloop.paths.emplace_back(brim_path);
+                eloop.paths.back().polyline = Polyline3(loop.split_at_first_point());
+                dst.append(eloop);
+                continue;
+            }
+            // The loop leaves the bed: keep the pieces on the bed instead of dropping the brim. Start the loop
+            // off the bed so that no piece is split at the loop's seam.
+            if (off_bed != loop.points.end())
+                std::rotate(loop.points.begin(), off_bed, loop.points.end());
+            Polylines pieces = intersection_pl(Polylines{ loop.split_at_first_point() }, draft_shield_brim_bed);
+            pieces.erase(std::remove_if(pieces.begin(), pieces.end(),
+                                        [&flow](const Polyline &pl) { return pl.length() < flow.scaled_width(); }),
+                         pieces.end());
+            if (pieces.empty())
+                // Completely off the bed. Only the outermost loops can be, so the fillet, which counts brim loops
+                // outward from the shield, is not affected by skipping it.
+                continue;
+            ExtrusionEntityCollection clipped;
+            clipped.no_sort = true;
+            for (const Polyline &piece : chain_polylines(std::move(pieces))) {
+                ExtrusionPath path(brim_path);
+                path.polyline = Polyline3(piece);
+                clipped.append(std::move(path));
+            }
+            dst.append(std::move(clipped));
+        }
+
+        if (collect_skirt_hull) {
+            Polygons skirt_hull = loops_at(distance + 0.5f * float(scale_(spacing)));
+            if (!draft_shield_brim_bed.empty())
+                // Orca: the draft shield brim stops at the bed edge, so does the occupied area.
+                skirt_hull = intersection(skirt_hull, offset(draft_shield_brim_bed, 0.5f * float(flow.scaled_width())));
+            for (Polygon &poly : skirt_hull)
                 append(m_skirt_convex_hull, std::move(poly.points));
+        }
     };
 
     m_skirt.clear();
@@ -4336,7 +4536,10 @@ void Print::_make_skirt()
         // Orca: Each object instance can emit skirt/brim. Wipe tower is only an
         // obstacle here; it may merge nearby items, but does not emit anything.
         std::vector<SkirtBrimGroupItem> group_items;
-        const coord_t grouping_offset = scale_(m_config.skirt_distance.value + m_config.skirt_loops.value * spacing);
+        // Orca: the draft shield brim and serpentines widen the skirt outline.
+        const coord_t grouping_offset = scale_(m_config.skirt_distance.value + (m_config.skirt_loops.value + draft_shield_brim_loops) * spacing +
+                                               (draft_shield_serpentines_enabled ? std::max(m_config.draft_shield_serpentine_depth.value,
+                                                                                            0.5 * m_config.draft_shield_serpentine_pitch.value) : 0.));
         for (const ObjectSkirtHull& object_hull : object_convex_hulls) {
             PrintObject* object = object_hull.object;
             std::vector<size_t> object_item_indices;

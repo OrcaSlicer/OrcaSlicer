@@ -6768,6 +6768,89 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<DraftShield>(dsDisabled));
 
+    def = this->add("draft_shield_brim_width", coFloat);
+    def->label = L("Draft shield brim width");
+    def->tooltip = L("Width of a brim printed on the first layer around the outside of the draft shield. "
+                     "It keeps the draft shield from warping and lifting off the bed with materials such as ABS or ASA, "
+                     "so the shield keeps protecting the object. The brim is cut at the edge of the bed.\n"
+                     "Only used when the draft shield is enabled. Set to 0 to disable.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("draft_shield_fillet_width", coFloat);
+    def->label = L("Draft shield fillet width");
+    def->tooltip = L("Width of a stepped fillet between the draft shield and its brim. Above the first layer, the brim loops "
+                     "next to the shield are continued and get narrower layer by layer, so the shield does not tear off its brim.\n"
+                     "Limited to the draft shield brim width. Set to 0 to disable.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->max = 10;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("draft_shield_fillet_layers", coInt);
+    def->label = L("Draft shield fillet layers");
+    def->tooltip = L("Number of layers above the first layer over which the draft shield fillet narrows down to the shield.");
+    def->sidetext = L("layers");
+    def->min = 1;
+    def->max = 20;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(3));
+
+    def = this->add("draft_shield_serpentine_depth", coFloat);
+    def->label = L("Draft shield serpentine depth");
+    def->tooltip = L("How far outward serpentines in the long sides of the draft shield reach, next to its sharp corners. "
+                     "A serpentine of U-turns works as a soft expansion joint: a shrinking shield bends its legs instead of "
+                     "pulling its corners off the bed, which helps with warping materials such as ABS or ASA. The shield never "
+                     "gets closer to the object. At least half the serpentine pitch is used.\n"
+                     "Set to 0 to disable.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->max = 20;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
+    def = this->add("draft_shield_serpentine_pitch", coFloat);
+    def->label = L("Draft shield serpentine pitch");
+    def->tooltip = L("Length along the draft shield side of one serpentine period (out and back). Its U-turns have a radius "
+                     "of a quarter of it, so the legs stand half of it apart.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 2;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(6.));
+
+    def = this->add("draft_shield_serpentine_count", coInt);
+    def->label = L("Draft shield serpentines per corner");
+    def->tooltip = L("Number of serpentine periods next to each sharp corner of the draft shield. Fewer are used where the side is too short.");
+    def->min = 1;
+    def->max = 20;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(2));
+
+    def = this->add("draft_shield_first_layer_flow_ratio", coFloat);
+    def->label = L("Draft shield first layer flow ratio");
+    def->tooltip = L("Flow ratio of the first layer of the draft shield, its walls and its brim. A little over-extrusion, such as 1.1, "
+                     "fuses the lines so the first layer does not tear apart while the shield warps.\n"
+                     "The brim flow ratio applies to the draft shield brim as well.");
+    def->min = 0.5;
+    def->max = 2;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(1.));
+
+    def = this->add("draft_shield_speed", coFloat);
+    def->label = L("Draft shield speed");
+    def->tooltip = L("Speed of the draft shield walls above its first layer and its fillet layers. These bottom layers keep the "
+                     "skirt speed for good adhesion, the fillet included. The thin shield walls above them can be printed faster.\n"
+                     "Set to 0 to use the skirt speed on all layers.");
+    def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.));
+
     def = this->add("skirt_type", coEnum);
     def->label = L("Skirt type");
     def->full_label = L("Skirt type");
@@ -14433,6 +14516,12 @@ float get_real_skirt_dist(const DynamicPrintConfig& cfg) {
             width = 0.4f;
         }
     }
+
+    // Orca: draft shield serpentines reach outward from the shield walls. The draft shield brim is not added,
+    // it is cut at the bed edge.
+    if (opt_draft_shield && opt_draft_shield->getInt() == dsEnabled && cfg.has("draft_shield_serpentine_depth") &&
+        cfg.opt_float("draft_shield_serpentine_depth") > 0.)
+        dist += float(std::max(cfg.opt_float("draft_shield_serpentine_depth"), 0.5 * cfg.opt_float("draft_shield_serpentine_pitch")));
 
     return dist + loops * width;
 }
