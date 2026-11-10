@@ -33,9 +33,9 @@ ExtrusionEntityCollection makeBrimInfillFromPlateCoordinates(const ExPolygons& s
 ExtrusionEntityCollection make_brim_auto(const Print &print, PrintTryCancel try_cancel, Polygons &islands_area);
 
 // ORCA: Detect mouse ear positions on one closed contour. Coordinates and ear_detection_length are scaled.
-// The direction change at a vertex is measured between the contour points ear_detection_length of arc length
-// before and after it, so the result does not depend on the contour's start vertex. Outer contours take convex
-// corners, inner contours concave ones; candidates on the same corner collapse to the sharpest.
+// The window starts at ear_detection_length and doubles while the outline keeps curving; a corner is accepted
+// once its turn saturates. Outer contours take convex corners, inner contours concave ones; candidates on the
+// same corner collapse to the sharpest.
 Points make_brim_ear_points(const Polygon &contour, coord_t ear_detection_length,
                             coordf_t brim_ears_max_angle, bool is_outer_brim);
 

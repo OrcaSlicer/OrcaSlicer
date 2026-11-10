@@ -442,6 +442,7 @@ TEST_CASE("Outer-only painted brim ears stay out of model holes", "[SkirtBrim]")
 
 // A 40 mm wide, 3 mm tall prism whose 70 degree apex is rounded by a 1.5 mm fillet in six chords: the
 // outline test_brim.cpp builds, as a mesh the pipeline can slice.
+// Same outline as filleted_triangle_outline(1.5, 6) in the libslic3r test_brim.cpp fixture.
 static TriangleMesh triangle_with_rounded_apex()
 {
     const std::vector<Vec2d> outline{
@@ -473,7 +474,7 @@ static TriangleMesh triangle_with_rounded_apex()
 
 // One entry per ear. The slicer clips each ear disc against the object, so an ear is a half disc, not a
 // ring; its axis-aligned bounding box centre still identifies it, and that centre stays valid under the
-// 90 and 180 degree turns used below. Coordinates are scaled, hence scaled() tolerances.
+// turns used below. Coordinates are scaled, hence scaled() tolerances.
 static std::vector<Vec2d> brim_ear_centres(Print &print)
 {
     std::vector<Vec2d> centres;
@@ -534,10 +535,11 @@ TEST_CASE("Mouse ears stay on the same corners when the object rotates", "[Skirt
 
     const std::pair<size_t, std::vector<Vec2d>> base = slice_rotated(0.);
     REQUIRE(base.first > 0);
-    REQUIRE(base.second.size() >= 2);
+    // Two sharp base corners plus the rounded apex, at every orientation.
+    REQUIRE(base.second.size() == 3);
     const std::vector<double> base_distances = ear_centre_distances(base.second);
 
-    for (double rotation : { 90., 180. }) {
+    for (double rotation : { 37., 90., 180. }) {
         DYNAMIC_SECTION("rotation " << rotation) {
             const std::pair<size_t, std::vector<Vec2d>> rotated = slice_rotated(rotation);
             REQUIRE(rotated.second.size() == base.second.size());

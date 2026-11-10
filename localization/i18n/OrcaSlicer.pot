@@ -14828,8 +14828,9 @@ msgid "Brim ear detection radius"
 msgstr ""
 
 msgid ""
-"The geometry will be decimated before detecting sharp angles. This parameter indicates the minimum length of the deviation for the decimation.\n"
-"0 to deactivate."
+"The direction change at a corner is measured over a window of this length along the outline.\n"
+"The window grows while the outline keeps curving, so a rounded corner counts as one corner once its whole turn is seen.\n"
+"0 to measure the angle at every vertex without smoothing."
 msgstr ""
 
 msgid "Brim ears outer only"

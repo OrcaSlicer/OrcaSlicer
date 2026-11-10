@@ -2195,8 +2195,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("brim_ears_detection_length", coFloat);
     def->label = L("Brim ear detection radius");
     def->category = L("Support");
-    def->tooltip = L("The direction change at a corner is measured over this length along the outline, so a "
-                     "rounded corner is treated as a single corner instead of several shallow ones.\n"
+    def->tooltip = L("The direction change at a corner is measured over a window of this length along the outline.\n"
+                     "The window grows while the outline keeps curving, so a rounded corner counts as one corner "
+                     "once its whole turn is seen.\n"
                      "0 to measure the angle at every vertex without smoothing.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;

@@ -1041,6 +1041,7 @@ void GLGizmoBrimEars::get_detection_radius_max()
         min_points_num   = MultiPoint::_douglas_peucker(out_points, 0).size();
         int repeat       = 0;
         int loop_protect = 0;
+        // ORCA: only a feature-size estimate for the slider's upper bound; the detector no longer decimates.
         for (;;) {
             loop_protect++;
             tolerance += 10;

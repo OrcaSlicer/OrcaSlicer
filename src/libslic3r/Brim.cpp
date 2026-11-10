@@ -26,6 +26,7 @@
 #include <cstddef>
 #include <cmath>
 #include <cstdint>
+#include <iterator>
 #include <limits>
 #include <numeric>
 #include <optional>
@@ -346,87 +347,157 @@ double configBrimWidthByVolumeGroups(double adhesion, double maxSpeed, const std
     return brim_width;
 }
 
+namespace {
+
+// ORCA: position at arc length a along the closed contour, interpolated inside one segment.
+Vec2d point_at_arc(const Points &pts, const std::vector<double> &cum, double perimeter, double a)
+{
+    const size_t n = pts.size();
+    a = std::fmod(a, perimeter);
+    if (a < 0.)
+        a += perimeter;
+    // cum[k] <= a < cum[k + 1]. Segment lengths are positive, duplicates were dropped.
+    size_t k = size_t(std::upper_bound(cum.begin(), cum.end(), a) - cum.begin()) - 1;
+    if (k >= n)
+        k = n - 1;
+    const double t = (a - cum[k]) / (cum[k + 1] - cum[k]);
+    return pts[k].cast<double>() * (1. - t) + pts[(k + 1) % n].cast<double>() * t;
+}
+
+} // namespace
+
 // ORCA: Detect mouse ear positions on one closed contour. Coordinates and ear_detection_length are scaled.
-// The direction change at a vertex is measured between the contour points ear_detection_length of arc length
-// before and after it, so the result does not depend on the contour's start vertex. Outer contours take convex
-// corners, inner contours concave ones; candidates on the same corner collapse to the sharpest.
+// The turn at a vertex is measured over a window of ear_detection_length of arc length per side, doubled
+// while the outline keeps curving, so a corner is accepted once its turn saturates. Outer contours take
+// convex corners, inner contours concave ones; candidates on the same corner collapse to the sharpest.
 Points make_brim_ear_points(const Polygon &contour, coord_t ear_detection_length,
                             coordf_t brim_ears_max_angle, bool is_outer_brim)
 {
     Points ears;
-    const Points &pts = contour.points;
-    const size_t  n   = pts.size();
-    if (n < 3 || contour.length() <= 0 || brim_ears_max_angle <= 0)
+    if (contour.points.size() < 3 || contour.length() <= 0 || brim_ears_max_angle <= 0)
         return ears;
 
     const coordf_t angle_threshold = (180 - brim_ears_max_angle) * PI / 180.0;
     const double   cos_threshold   = cos(std::nextafter(angle_threshold, +INFINITY));
-    const coord_t  L = std::clamp<coord_t>(ear_detection_length, 0, coord_t(0.25 * contour.length()));
+    const double   L               = double(ear_detection_length);
+
+    // ORCA: drop points closer than 1 um to the previous kept one, so no segment has zero length.
+    const double        min_dist2 = 1000. * 1000.;
+    Points              pts;
+    std::vector<size_t> index_map;
+    pts.reserve(contour.points.size());
+    index_map.reserve(contour.points.size());
+    for (size_t i = 0; i < contour.points.size(); ++i) {
+        if (!pts.empty() && (contour.points[i] - pts.back()).cast<double>().squaredNorm() < min_dist2)
+            continue;
+        pts.push_back(contour.points[i]);
+        index_map.push_back(i);
+    }
+    const size_t n = pts.size();
+    if (n < 3)
+        return ears;
 
     // Cumulative arc length of every vertex, used as the position of a candidate along the closed contour.
     std::vector<double> cum(n + 1, 0.0);
     for (size_t i = 0; i < n; ++i)
         cum[i + 1] = cum[i] + (pts[(i + 1) % n] - pts[i]).cast<double>().norm();
     const double perimeter = cum[n];
+    if (perimeter <= 0.)
+        return ears;
 
     struct Candidate {
         size_t idx;
         double dot;
         double arc;
+        double scale;
     };
     std::vector<Candidate> candidates;
 
-    for (size_t i = 0; i < n; ++i) {
-        size_t k = i;
-        size_t j = i;
-        if (L > 0) {
-            // ORCA: walk ear_detection_length of arc length away from the vertex on both sides, so the
-            // measured turn is a property of the corner only, not of where the contour happens to start.
-            double dist = 0.;
-            for (size_t step = 0; step + 1 < n; ++step) {
-                const size_t prev = (k + n - 1) % n;
-                dist += (pts[k] - pts[prev]).cast<double>().norm();
-                k = prev;
-                if (dist >= L)
-                    break;
-            }
-            dist = 0.;
-            for (size_t step = 0; step + 1 < n; ++step) {
-                const size_t next = (j + 1) % n;
-                dist += (pts[next] - pts[j]).cast<double>().norm();
-                j = next;
-                if (dist >= L)
-                    break;
-            }
-        } else {
-            k = (i + n - 1) % n;
-            j = (i + 1) % n;
+    // ORCA: window ladder L, 2L, 4L..., capped at 16L and at perimeter/8 so a window cannot reach the far side.
+    std::vector<double> scales;
+    if (L > 0.) {
+        const double s_max = std::min(16.0 * L, perimeter / 8.0);
+        for (double s = L;; s *= 2.) {
+            scales.push_back(std::min(s, s_max));
+            if (s >= s_max)
+                break;
         }
-
-        const Vec2d a = (pts[i] - pts[k]).cast<double>();
-        const Vec2d b = (pts[j] - pts[i]).cast<double>();
-        if (a.squaredNorm() == 0. || b.squaredNorm() == 0.)
-            continue;
-        if (is_outer_brim ? cross2(a, b) <= 0. : cross2(a, b) >= 0.)
-            continue;
-        const double dot = a.normalized().dot(b.normalized());
-        if (dot < cos_threshold)
-            candidates.push_back({i, dot, cum[i]});
     }
 
-    // ORCA: take the sharpest candidate, drop everything on the same corner, repeat. Chaining neighbours
-    // would swallow a whole curved contour into a single ear.
-    // ORCA: cap the suppression by the perimeter so that small parts keep their separate corners.
-    const double suppress_distance = std::min(L > 0 ? double(2 * L) : double(std::max<coord_t>(1, scale_(0.01))),
-                                              perimeter / 8.);
+    for (size_t i = 0; i < n; ++i) {
+        const Vec2d pi = pts[i].cast<double>();
+        if (L == 0.) {
+            // ORCA: zero window, measure the turn at the vertex itself.
+            const Vec2d a = pi - pts[(i + n - 1) % n].cast<double>();
+            const Vec2d b = pts[(i + 1) % n].cast<double>() - pi;
+            if (a.squaredNorm() == 0. || b.squaredNorm() == 0.)
+                continue;
+            if (is_outer_brim ? cross2(a, b) <= 0. : cross2(a, b) >= 0.)
+                continue;
+            const double dot = a.normalized().dot(b.normalized());
+            if (dot < cos_threshold)
+                candidates.push_back({i, dot, cum[i], 0.});
+            continue;
+        }
+        for (size_t m = 0; m < scales.size(); ++m) {
+            const double s      = scales[m];
+            const double s_next = std::min(2.0 * s, perimeter / 4.0); // lookahead window, kept off the far side
+            const Vec2d  a      = pi - point_at_arc(pts, cum, perimeter, cum[i] - s);
+            const Vec2d  b      = point_at_arc(pts, cum, perimeter, cum[i] + s) - pi;
+            if (a.squaredNorm() == 0. || b.squaredNorm() == 0.)
+                continue;
+            const Vec2d  ua    = a.normalized();
+            const Vec2d  ub    = b.normalized();
+            const double cross = cross2(ua, ub);
+            if (is_outer_brim ? cross <= 0. : cross >= 0.)
+                continue;
+            const double dot = ua.dot(ub);
+            if (dot >= cos_threshold)
+                continue;
+            const double turn = std::abs(std::atan2(cross, dot));
+            if (turn == 0.)
+                continue;
+            // ORCA: a corner is saturated once twice the window sees no more turning; a straight leg or an
+            // arc keeps turning, so the 1.5 ratio rejects it. The last rung of the ladder cannot grow any
+            // further, so its turn is final: the lookahead from there reaches the neighbouring corner on a
+            // small part and would otherwise reject every corner on it.
+            if (m + 1 < scales.size()) {
+                double      next_turn = turn;
+                const Vec2d a_next    = pi - point_at_arc(pts, cum, perimeter, cum[i] - s_next);
+                const Vec2d b_next    = point_at_arc(pts, cum, perimeter, cum[i] + s_next) - pi;
+                if (a_next.squaredNorm() > 0. && b_next.squaredNorm() > 0.) {
+                    const Vec2d ua_next = a_next.normalized();
+                    const Vec2d ub_next = b_next.normalized();
+                    next_turn = std::abs(std::atan2(cross2(ua_next, ub_next), ua_next.dot(ub_next)));
+                }
+                if (next_turn > 1.5 * turn)
+                    continue;
+            }
+            candidates.push_back({i, dot, cum[i], s});
+            break;
+        }
+    }
+
+    // ORCA: take the most local candidate first (smallest window, i.e. the corner centre), then the sharpest,
+    // drop everything on the same corner, repeat. Chaining neighbours would swallow a curved contour.
+    const double fallback_suppress = double(std::max<coord_t>(1, scale_(0.01))); // 0.01 mm when there is no window
     while (!candidates.empty()) {
         size_t best = 0;
-        for (size_t c = 1; c < candidates.size(); ++c)
-            if (candidates[c].dot < candidates[best].dot ||
-                (candidates[c].dot == candidates[best].dot && candidates[c].idx < candidates[best].idx))
+        for (size_t c = 1; c < candidates.size(); ++c) {
+            const Candidate &cc = candidates[c];
+            const Candidate &cb = candidates[best];
+            if (cc.scale < cb.scale ||
+                (cc.scale == cb.scale && (cc.dot < cb.dot ||
+                 (cc.dot == cb.dot && cc.idx < cb.idx))))
                 best = c;
+        }
         const Candidate picked = candidates[best];
-        ears.emplace_back(pts[picked.idx]);
+        ears.emplace_back(contour.points[index_map[picked.idx]]);
+        // ORCA: suppress within twice the window that detected the ear, so ears do not crowd one corner, but
+        // never past perimeter/8: on a small part the widest window makes twice the window reach the next
+        // corner and would otherwise drop every second ear.
+        const double suppress_distance =
+            L > 0. ? std::min(2.0 * picked.scale, perimeter / 8.0) : fallback_suppress;
         std::vector<Candidate> remaining;
         remaining.reserve(candidates.size() - 1);
         for (size_t c = 0; c < candidates.size(); ++c) {

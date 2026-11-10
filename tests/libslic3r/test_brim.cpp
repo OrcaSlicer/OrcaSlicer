@@ -8,6 +8,8 @@
 #include <vector>
 
 #include "catch2/catch_test_macros.hpp"
+#include "catch2/matchers/catch_matchers.hpp"
+#include "catch2/matchers/catch_matchers_floating_point.hpp"
 #include "libslic3r/Brim.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
@@ -74,24 +76,131 @@ std::vector<Vec2d> fillet_arc(const Vec2d &prev, const Vec2d &corner, const Vec2
     return arc;
 }
 
-// 40 mm wide triangle with a 70 degree apex rounded by a 1.5 mm fillet in six chords, counter-clockwise.
+// The arc that fillet_arc puts at a corner: its middle point in mm, and the angle it sweeps in radians.
+struct Fillet {
+    Vec2d  midpoint;
+    double sweep;
+};
+
+Fillet fillet_geometry(const Vec2d &prev, const Vec2d &corner, const Vec2d &next, double radius)
+{
+    const Vec2d  to_prev  = (prev - corner).normalized();
+    const Vec2d  to_next  = (next - corner).normalized();
+    const double half     = std::acos(std::clamp(to_prev.dot(to_next), -1., 1.)) / 2.;
+    const Vec2d  midpoint = corner + (to_prev + to_next).normalized() * (radius / std::sin(half) - radius);
+    return Fillet{ midpoint, PI - 2. * half };
+}
+
+// A closed outline plus the geometry of the arc that replaced each of its corners.
+struct FilletedOutline {
+    std::vector<Vec2d>  outline;
+    std::vector<Fillet> corners;
+};
+
+// Replace every corner of the closed `corners` polygon with an arc of `radius` in `chords` chords.
+FilletedOutline filleted_outline(const std::vector<Vec2d> &corners, double radius, int chords)
+{
+    FilletedOutline filleted;
+    filleted.outline.reserve(corners.size() * size_t(chords + 1));
+    filleted.corners.reserve(corners.size());
+    for (size_t i = 0; i < corners.size(); ++ i) {
+        const Vec2d &prev = corners[(i + corners.size() - 1) % corners.size()];
+        const Vec2d &next = corners[(i + 1) % corners.size()];
+        const std::vector<Vec2d> arc = fillet_arc(prev, corners[i], next, radius, chords);
+        filleted.outline.insert(filleted.outline.end(), arc.begin(), arc.end());
+        filleted.corners.push_back(fillet_geometry(prev, corners[i], next, radius));
+    }
+    return filleted;
+}
+
+// 40 mm wide triangle with a 70 degree apex rounded by a fillet of `radius` in `chords` chords, counter-clockwise.
 // The 60 / 50 degree base corners are deliberately unequal: a mirror symmetric outline ties the fillet's
 // two sharpest vertices exactly, and the tie is then broken by vertex index.
-std::vector<Vec2d> filleted_triangle_outline()
+struct FilletedTriangle {
+    std::vector<Vec2d> outline;
+    Fillet             apex;
+};
+
+FilletedTriangle filleted_triangle(double radius, int chords)
 {
     const Vec2d  a(0., 0.);
     const Vec2d  b(40., 0.);
     const double to_apex = 40. * std::sin(50. * PI / 180.) / std::sin(70. * PI / 180.);
     const Vec2d  apex    = a + Vec2d(std::cos(60. * PI / 180.), std::sin(60. * PI / 180.)) * to_apex;
-    const std::vector<Vec2d> arc = fillet_arc(a, apex, b, 1.5, 6);
-    std::vector<Vec2d> outline{ a, b };
+    const std::vector<Vec2d> arc = fillet_arc(a, apex, b, radius, chords);
+    std::vector<Vec2d>       outline{ a, b };
     outline.insert(outline.end(), arc.rbegin(), arc.rend());
+    return { outline, fillet_geometry(a, apex, b, radius) };
+}
+
+std::vector<Vec2d> filleted_triangle_outline(double radius, int chords)
+{
+    return filleted_triangle(radius, chords).outline;
+}
+
+// Axis-aligned CCW square (0, 0)..(side, side) with every corner filleted.
+FilletedOutline filleted_square_outline(double side, double radius, int chords)
+{
+    return filleted_outline({ Vec2d(0., 0.), Vec2d(side, 0.), Vec2d(side, side), Vec2d(0., side) }, radius, chords);
+}
+
+// Regular polygon with `sides` vertices on a circle of the given radius, counter-clockwise.
+std::vector<Vec2d> regular_polygon_outline(int sides, double radius)
+{
+    std::vector<Vec2d> outline;
+    outline.reserve(size_t(sides));
+    for (int i = 0; i < sides; ++ i) {
+        const double angle = 2. * PI * i / sides;
+        outline.emplace_back(radius * std::cos(angle), radius * std::sin(angle));
+    }
     return outline;
 }
 
-Points scaled_filleted_triangle()
+// Regular `chords`-gon approximating a circle of the given radius.
+std::vector<Vec2d> circle_outline(double radius, int chords)
 {
-    return Polygon::new_scale(filleted_triangle_outline()).points;
+    return regular_polygon_outline(chords, radius);
+}
+
+// Mean of the outline's vertices, in mm.
+Vec2d outline_centroid(const std::vector<Vec2d> &points)
+{
+    Vec2d sum = Vec2d::Zero();
+    for (const Vec2d &p : points)
+        sum += p;
+    return sum / double(points.size());
+}
+
+std::vector<Vec2d> to_mm(const Points &points)
+{
+    std::vector<Vec2d> out;
+    out.reserve(points.size());
+    for (const Point &p : points)
+        out.emplace_back(unscale<double>(p.x()), unscale<double>(p.y()));
+    return out;
+}
+
+// Sorted distances between every pair of points, in mm: unchanged by a rigid motion of the whole set.
+std::vector<double> pairwise_distances(const std::vector<Vec2d> &points)
+{
+    std::vector<double> distances;
+    distances.reserve(points.size() * (points.size() - 1) / 2);
+    for (size_t i = 0; i < points.size(); ++ i)
+        for (size_t j = i + 1; j < points.size(); ++ j)
+            distances.push_back((points[i] - points[j]).norm());
+    std::sort(distances.begin(), distances.end());
+    return distances;
+}
+
+// Ears sitting on one rounded corner: within half a chord of the arc's midpoint, which is the closest any
+// point of the fillet gets to an ear placed on it.
+size_t ears_on_corner(const Points &ears, const Fillet &corner, double radius, int chords)
+{
+    const Point   midpoint  = Point::new_scale(corner.midpoint);
+    const coord_t tolerance = coord_t(scale_(radius + 0.5 * radius * corner.sweep / chords));
+    return size_t(std::count_if(ears.begin(), ears.end(), [&midpoint, tolerance](const Point &ear) {
+        return (ear - midpoint).cast<double>().norm() <= double(tolerance);
+    }));
 }
 
 // A quarter turn about the origin is exact in scaled integer coordinates.
@@ -109,29 +218,35 @@ Point rotated_quarter_turns(const Point &p, int quarter)
 // vertex used to place an ear on a rounded corner for some vertex orders and not for others.
 TEST_CASE("Brim ear detection is independent of the contour start vertex", "[Brim][Regression]")
 {
-    const Points  contour   = scaled_filleted_triangle();
-    const coord_t detection = coord_t(scale_(1.0));
-    const Points  found     = make_brim_ear_points(Polygon(contour), detection, 125., true);
-    REQUIRE(! found.empty());
+    struct Case { double radius; int chords; };
 
-    for (size_t shift = 1; shift < contour.size(); ++ shift) {
-        Points shifted;
-        shifted.reserve(contour.size());
-        std::rotate_copy(contour.begin(), contour.begin() + shift, contour.end(), std::back_inserter(shifted));
-        DYNAMIC_SECTION("start vertex " << shift) {
-            const Points ears = make_brim_ear_points(Polygon(shifted), detection, 125., true);
-            CHECK(ears.size() == found.size());
-            CHECK(same_point_set(ears, found, 2));
+    const coord_t detection = coord_t(scale_(1.0));
+    for (const Case &c : { Case{ 1.5, 6 }, Case{ 2.0, 12 }, Case{ 5.0, 12 } }) {
+        DYNAMIC_SECTION("fillet " << c.radius << " mm in " << c.chords << " chords") {
+            const Points contour = Polygon::new_scale(filleted_triangle_outline(c.radius, c.chords)).points;
+            const Points found   = make_brim_ear_points(Polygon(contour), detection, 125., true);
+            // Two sharp base corners plus the rounded apex.
+            REQUIRE(found.size() == 3);
+
+            for (size_t shift = 1; shift < contour.size(); ++ shift) {
+                Points shifted;
+                shifted.reserve(contour.size());
+                std::rotate_copy(contour.begin(), contour.begin() + shift, contour.end(), std::back_inserter(shifted));
+                const Points ears = make_brim_ear_points(Polygon(shifted), detection, 125., true);
+                CHECK(ears.size() == found.size());
+                CHECK(same_point_set(ears, found, 2));
+            }
         }
     }
 }
 
 TEST_CASE("Brim ear detection rotates with the contour", "[Brim]")
 {
-    const Points  contour   = scaled_filleted_triangle();
-    const coord_t detection = coord_t(scale_(1.0));
-    const Points  base      = make_brim_ear_points(Polygon(contour), detection, 125., true);
-    REQUIRE(! base.empty());
+    const std::vector<Vec2d> outline   = filleted_triangle_outline(1.5, 6);
+    const Points             contour   = Polygon::new_scale(outline).points;
+    const coord_t            detection = coord_t(scale_(1.0));
+    const Points             base      = make_brim_ear_points(Polygon(contour), detection, 125., true);
+    REQUIRE(base.size() == 3);
 
     for (int quarter : { 1, 2, 3 }) {
         DYNAMIC_SECTION("quarter turns " << quarter) {
@@ -149,30 +264,131 @@ TEST_CASE("Brim ear detection rotates with the contour", "[Brim]")
             CHECK(same_point_set(ears, expected, 2));
         }
     }
+
+    SECTION("37 degrees") {
+        // 37 degrees is not exact in scaled integer coordinates, so compare ear distances instead of positions.
+        const Vec2d  centre = outline_centroid(outline);
+        const double angle  = 37. * PI / 180.;
+        const auto   rotate = [&centre, angle](const Vec2d &p) -> Vec2d {
+            const Vec2d d(p.x() - centre.x(), p.y() - centre.y());
+            return Vec2d(centre.x() + d.x() * std::cos(angle) - d.y() * std::sin(angle),
+                         centre.y() + d.x() * std::sin(angle) + d.y() * std::cos(angle));
+        };
+
+        Points rotated_contour;
+        rotated_contour.reserve(outline.size());
+        for (const Vec2d &p : outline)
+            rotated_contour.push_back(Point::new_scale(rotate(p)));
+
+        std::vector<Vec2d> expected = to_mm(base);
+        for (Vec2d &p : expected)
+            p = rotate(p);
+
+        const Points ears = make_brim_ear_points(Polygon(rotated_contour), detection, 125., true);
+        const std::vector<double> found_distances    = pairwise_distances(to_mm(ears));
+        const std::vector<double> expected_distances = pairwise_distances(expected);
+        REQUIRE(found_distances.size() == expected_distances.size());
+        for (size_t i = 0; i < found_distances.size(); ++ i)
+            CHECK_THAT(found_distances[i], Catch::Matchers::WithinAbs(expected_distances[i], 0.01));
+    }
 }
 
 TEST_CASE("A rounded apex carries a single brim ear", "[Brim]")
 {
     const coord_t detection = coord_t(scale_(1.0));
-    const Points  ears      = make_brim_ear_points(Polygon(scaled_filleted_triangle()), detection, 125., true);
 
-    // Two sharp base corners plus the rounded apex: one ear per corner that turns past the threshold.
-    CHECK(ears.size() == 3);
-    // A fillet is one corner, so it must not leave a row of adjacent ears along its chords.
-    for (size_t i = 0; i < ears.size(); ++ i)
-        for (size_t j = i + 1; j < ears.size(); ++ j)
-            CHECK((ears[i] - ears[j]).cast<double>().norm() > 2. * detection);
+    for (double radius : { 0.5, 1.5, 3.0, 5.0 }) {
+        for (int chords : { 3, 6, 12, 24 }) {
+            DYNAMIC_SECTION("fillet " << radius << " mm in " << chords << " chords") {
+                const FilletedTriangle triangle = filleted_triangle(radius, chords);
+                const Points ears = make_brim_ear_points(Polygon::new_scale(triangle.outline), detection, 125., true);
+                // Two sharp base corners plus the rounded apex.
+                REQUIRE(ears.size() == 3);
+
+                // A fillet is one corner, so exactly one ear sits on it, never a row along its chords.
+                CHECK(ears_on_corner(ears, triangle.apex, radius, chords) == 1);
+            }
+        }
+    }
+}
+
+TEST_CASE("A square keeps one brim ear per rounded corner", "[Brim][Regression]")
+{
+    const coord_t         detection = coord_t(scale_(1.0));
+    const double          radius    = 5.;
+    const int             chords    = 12;
+    const FilletedOutline square    = filleted_square_outline(40., radius, chords);
+    const Points          ears      = make_brim_ear_points(Polygon::new_scale(square.outline), detection, 125., true);
+
+    // Four 90 degree corners, each rounded by one fillet: four ears, not one per chord.
+    REQUIRE(ears.size() == 4);
+
+    for (const Fillet &corner : square.corners)
+        CHECK(ears_on_corner(ears, corner, radius, chords) == 1);
+}
+
+// A part whose fillets take up most of the perimeter: the ladder stops at its cap of perimeter/8, so the
+// saturation lookahead already reaches the neighbouring corner, and twice the window reaches the
+// neighbouring ear. Detection used to return two ears at some orientations and none at others.
+TEST_CASE("A small part keeps one brim ear per rounded corner", "[Brim][Regression]")
+{
+    const coord_t detection = coord_t(scale_(1.0));
+
+    SECTION("12 mm square with 4 mm fillets") {
+        const double          radius = 4.;
+        const int             chords = 12;
+        const FilletedOutline square = filleted_square_outline(12., radius, chords);
+        const Points          ears   = make_brim_ear_points(Polygon::new_scale(square.outline), detection, 125., true);
+
+        REQUIRE(ears.size() == 4);
+        for (const Fillet &corner : square.corners)
+            CHECK(ears_on_corner(ears, corner, radius, chords) == 1);
+    }
+
+    SECTION("10 mm hexagon with 2 mm fillets") {
+        const double          radius  = 2.;
+        const int             chords  = 6;
+        const FilletedOutline hexagon = filleted_outline(regular_polygon_outline(6, 10.), radius, chords);
+        const Points          ears    = make_brim_ear_points(Polygon::new_scale(hexagon.outline), detection, 125., true);
+
+        REQUIRE(ears.size() == 6);
+        for (const Fillet &corner : hexagon.corners)
+            CHECK(ears_on_corner(ears, corner, radius, chords) == 1);
+    }
+}
+
+TEST_CASE("A smooth contour has no brim ears", "[Brim]")
+{
+    const coord_t detection = coord_t(scale_(1.0));
+
+    // A circle's turn is spread evenly, so no vertex turns past the threshold at any measurement scale.
+    CHECK(make_brim_ear_points(Polygon::new_scale(circle_outline(5., 48)), detection, 125., true).empty());
+    // A 24-gon is as smooth as the detector can tell at the default 1 mm detection length.
+    CHECK(make_brim_ear_points(Polygon::new_scale(regular_polygon_outline(24, 10.)), detection, 125., true).empty());
+}
+
+TEST_CASE("A pentagon keeps one brim ear per rounded corner", "[Brim][Regression]")
+{
+    // Side 20 mm: circumradius 20 / (2 sin 36 degrees), every corner rounded by 1 mm in six chords.
+    const std::vector<Vec2d> corners = regular_polygon_outline(5, 20. / (2. * std::sin(PI / 5.)));
+    const FilletedOutline    filleted = filleted_outline(corners, 1., 6);
+    const Points             ears     = make_brim_ear_points(Polygon::new_scale(filleted.outline),
+                                                              coord_t(scale_(1.0)), 125., true);
+
+    // Five 72 degree corners: a decimation that collapsed the outline to a triangle would report three.
+    REQUIRE(ears.size() == 5);
 }
 
 TEST_CASE("Zero detection length still finds the sharp corners", "[Brim]")
 {
-    const Points contour = scaled_filleted_triangle();
-    const Points ears    = make_brim_ear_points(Polygon(contour), 0, 125., true);
+    const std::vector<Vec2d> outline = filleted_triangle_outline(1.5, 6);
+    const Points             contour = Polygon::new_scale(outline).points;
+    const Points             ears    = make_brim_ear_points(Polygon(contour), 0, 125., true);
 
-    // With immediate neighbours only, the two base corners turn far past the threshold.
+    // With immediate neighbours only, the two base corners turn far past the threshold and the fillet does not.
+    REQUIRE(ears.size() == 2);
     CHECK(contains_point(ears, contour[0], 2));
     CHECK(contains_point(ears, contour[1], 2));
-    // The fillet is not asserted on: its chords turn below the threshold at per-vertex spacing.
     for (const Point &ear : ears)
         CHECK(is_finite(ear));
 }
@@ -207,14 +423,13 @@ TEST_CASE("A concave notch takes brim ears on an inner contour", "[Brim]")
 
 TEST_CASE("A clockwise contour keeps brim ear detection well defined", "[Brim]")
 {
-    Points contour = scaled_filleted_triangle();
+    Points contour = Polygon::new_scale(filleted_triangle_outline(1.5, 6)).points;
     std::reverse(contour.begin(), contour.end());
 
     Points ears;
     REQUIRE_NOTHROW(ears = make_brim_ear_points(Polygon(contour), coord_t(scale_(1.0)), 125., true));
-    for (const Point &ear : ears)
-        CHECK(is_finite(ear));
-    // No ear count is asserted: the convexity predicate is winding sensitive by design.
+    // The convexity predicate is winding sensitive, so a reversed outer contour has no convex corner left.
+    CHECK(ears.empty());
 }
 
 TEST_CASE("Brim ear max angle excludes a corner at exactly the bound", "[Brim]")
