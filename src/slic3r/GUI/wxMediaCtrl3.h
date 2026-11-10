@@ -14,6 +14,7 @@
 #include <wx/string.h>
 #include <memory>
 #include <mutex>
+#include "slic3r/Utils/IPrinterAgent.hpp"
 #include <cstdint>
 #include "wx/window.h"
 #include "wx/bitmap.h"
@@ -58,6 +59,11 @@ public:
     void EndExternalStream();
 
     void SetIdleImage(wxString const & image);
+    // An idle image made in memory rather than loaded from a file.
+    void SetIdleImage(wxImage const & image);
+
+    // Flip/rotate the video as the printer's camera settings say; the idle image is drawn as is.
+    void SetTransform(const Slic3r::CameraTransform& transform);
 
     wxMediaState GetState() override;
 
@@ -84,6 +90,8 @@ protected:
 
 private:
     wxString m_idle_image;
+    wxImage  m_idle_frame; // when set, shown instead of m_idle_image
+    wxImage  idle_frame() const { return m_idle_frame.IsOk() ? m_idle_frame : wxImage(m_idle_image); }
     wxMediaState m_state  = wxMEDIASTATE_STOPPED;
     int m_error  = 0;
     wxSize m_video_size = wxDefaultSize;
@@ -104,6 +112,7 @@ private:
     std::condition_variable m_cond;
     std::thread m_thread;
     std::atomic_bool m_refresh_pending{false};
+    Slic3r::CameraTransform m_transform;
 };
 
 #endif /* wxMediaCtrl3_h */

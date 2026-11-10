@@ -68,6 +68,20 @@ enum class CameraStreamMode {
     http_snapshot // HTTP endpoint returning one image per request
 };
 
+// How a camera's image must be turned to appear upright, as the printer's camera settings say.
+struct CameraTransform {
+    bool flip_horizontal = false;
+    bool flip_vertical   = false;
+    int  rotation        = 0; // clockwise degrees: 0, 90, 180 or 270
+
+    bool is_identity() const { return !flip_horizontal && !flip_vertical && rotation % 360 == 0; }
+    bool operator==(const CameraTransform& other) const
+    {
+        return flip_horizontal == other.flip_horizontal && flip_vertical == other.flip_vertical && rotation == other.rotation;
+    }
+    bool operator!=(const CameraTransform& other) const { return !(*this == other); }
+};
+
 /**
  * IPrinterAgent - Interface for printer operations.
  *
@@ -476,6 +490,18 @@ public:
      * Only meaningful when get_camera_stream_mode() returns an HTTP, HTTPS, or RTSP mode.
      */
     virtual std::string get_camera_url() const { return {}; }
+
+    /**
+     * Printers with several cameras: their names, in the printer's order, and which one
+     * get_camera_url() returns. An agent with at most one camera returns an empty list.
+     */
+    virtual std::vector<std::string> get_camera_names() const { return {}; }
+    virtual int                      get_selected_camera() const { return -1; }
+    // Selects the camera get_camera_stream_mode() and get_camera_url() describe; out of range is ignored.
+    virtual void select_camera(int index) {}
+
+    // How the current camera's image must be flipped or rotated to show upright.
+    virtual CameraTransform get_camera_transform() const { return {}; }
 };
 
 } // namespace Slic3r

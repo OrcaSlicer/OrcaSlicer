@@ -42,9 +42,14 @@ void WebMediaController::Play()
         return;
 
     wxString url  = wxString::FromUTF8(m_url);
+    // The printer's camera settings: rotate, then mirror, as the printer's own web UI draws it.
+    wxString transform;
+    if (!m_transform.is_identity())
+        transform = wxString::Format("transform:rotate(%ddeg) scale(%d,%d);", m_transform.rotation,
+                                     m_transform.flip_horizontal ? -1 : 1, m_transform.flip_vertical ? -1 : 1);
     wxString html = "<html><head><style>"
                     "html,body{margin:0;height:100%;background:#000;overflow:hidden;}"
-                    "img{width:100%;height:100%;object-fit:contain;display:block;}"
+                    "img{width:100%;height:100%;object-fit:contain;display:block;" + transform + "}"
                     "</style></head><body><img id=\"camera-frame\"";
     if (m_stream_mode == CameraStreamMode::http_snapshot) {
         html += " data-camera-url=\"" + url +
