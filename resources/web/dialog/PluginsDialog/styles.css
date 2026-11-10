@@ -478,8 +478,8 @@ body {
   --permission-surface: var(--bg-color-secondary);
 }
 
-/* Header: plugin name as a small eyebrow line, then the same title as the Description tab
-   (.detail-section-title, set in JS). */
+/* Header: the same title the Description tab uses (.detail-section-title, set in JS), with the
+   plugin name as a dimmed line below it. */
 .permission-console-header {
   display: flex;
   flex-wrap: wrap;
@@ -694,6 +694,7 @@ body {
    only the sizes that make them line up in a dense form live here. */
 .permission-form .TextArea {
   flex: 1 1 180px;
+  min-width: 0;             /* may shrink below an input's intrinsic width in a narrow dialog */
   height: 32px;             /* same as ButtonTypeChoice */
   padding: 0 8px;
   line-height: 30px;
@@ -702,6 +703,7 @@ body {
 }
 
 .permission-form > button {
+  min-width: 0;             /* ButtonTypeChoice's 100px is a dialog-footer width, not an in-row one */
   margin: 0;                /* removes margin from ButtonTypeChoice */
 }
 

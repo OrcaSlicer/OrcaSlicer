@@ -994,11 +994,14 @@ CONTROLLING
   align-items: center;
   gap: 8px;
   flex: 0 0 auto;
+  margin: 0;                            /* overrides label:has(input[type="checkbox"]) in dialog/css/common.css */
   cursor: pointer;
   -webkit-user-select: none;
   user-select: none;
 }
-.SwitchCheck {
+/* The attribute is in the selector so common.css `input[type="checkbox"]` cannot resize or
+   border the stretched input; a plain class lost to it. */
+.SwitchCheck[type="checkbox"] {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -1042,7 +1045,7 @@ CONTROLLING
   font-size: 0.9em;
   line-height: 18px;
   white-space: nowrap;
-  color: var(--fg-color-disabled);
+  color: var(--fg-color-label);
   transition: color .2s;
 }
 .SwitchCheck:not(:checked) + .SwitchSlider .SwitchLabel:first-child,
@@ -1054,7 +1057,7 @@ CONTROLLING
   display: block;
   width: 40px;
   height: 22px;
-  border-color: var(--border-color);
+  border-color: var(--dimmed-color);    /* --border-color matches the surface behind the track */
 }
 .SwitchTypeKnob .SwitchSlider::before {
   top: 2px;
