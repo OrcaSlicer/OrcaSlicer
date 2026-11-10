@@ -449,6 +449,47 @@ TEST_CASE("Organic bodies widen under a roof that bridges the gaps between them"
     CHECK(diff(original, storage.front().polygons).empty());
 }
 
+TEST_CASE("Organic bodies under a roof close the gap between them that the roof hangs over", "[TreeSupport][Material][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    auto rectangle = [](double x, double y, double width, double depth) {
+        return Polygon({Point::new_scale(x, y), Point::new_scale(x + width, y), Point::new_scale(x + width, y + depth),
+                        Point::new_scale(x, y + depth)});
+    };
+    // Lines 0.22 mm wide, tips 0.8 mm across, layers 0.02 mm and a branch angle of 40 degrees.
+    const coord_t line_width = scaled<coord_t>(0.22), tip_radius = scaled<coord_t>(0.4);
+    const double  move       = std::tan(40. * M_PI / 180.) * 0.02;
+    const double  reach      = 0.235;
+    // Two trunks 3 mm by 1.5 mm under a roof over both whose lines run along the gap between them: the line in the middle
+    // of it passes over neither. Bodies widening under a roof keep a line and a half apart; 0.27 mm apart, they are
+    // closer than that already, and 0.5 mm apart, they would stop with a channel that wide between them.
+    const double   gap    = GENERATE(0.27, 0.5);
+    CAPTURE(gap);
+    const Polygons trunks{ rectangle(0., 0., 3., 1.5), rectangle(0., 1.5 + gap, 3., 1.5) };
+    const size_t   num_layers = 20, roof_layer = num_layers - 1;
+    std::vector<SupportGeneratorLayer> storage(roof_layer);
+    std::vector<Polygons> roofs(num_layers), model(num_layers);
+    roofs[roof_layer] = { rectangle(0., 0., 3., 3. + gap) };
+    SupportGeneratorLayersPtr bodies(num_layers, nullptr);
+    for (size_t i = 0; i < storage.size(); ++ i) {
+        SupportGeneratorLayer &layer = storage[i];
+        layer.bottom_z = 1. + 0.02 * double(i);
+        layer.print_z  = layer.bottom_z + 0.02;
+        layer.height   = 0.02;
+        layer.polygons = trunks;
+        bodies[i]      = &layer;
+    }
+    organic_widen_bodies_under_roofs(bodies, roofs, model, line_width, tip_radius, scaled<coord_t>(move), scaled<coord_t>(reach),
+        { 0. });
+    // The bodies close the gap under the roof with their bands: a line touching a body with its edge only, running along
+    // a gap, would hang off it.
+    const Polygons gap_area{ rectangle(0., 1.5, 3., gap) };
+    CHECK(diff(gap_area, offset(storage.back().polygons, scaled<float>(0.005))).empty());
+    const Point band = Point::new_scale(1.5, 1.52);
+    CHECK(contains(storage.back().solid_polygons, band));
+}
+
 TEST_CASE("Organic bodies widen going up by half a line a layer at most", "[TreeSupport][Material][Regression]")
 {
     using namespace Slic3r;
@@ -496,8 +537,11 @@ TEST_CASE("Organic bodies widen going up by half a line a layer at most", "[Tree
         // The branch leans within the step.
         CHECK(contains(body, Point::new_scale(7.99 + 0.05 * double(i), 1.)));
         // Over the model top a body stands on it where it may, and widens by the branch angle where it may not.
-        if (i >= jump)
-            CHECK(contains(body, Point::new_scale(12., 2.95)) == (model_roots || 2. + move * double(i + 1 - jump) > 2.96));
+        if (i >= jump) {
+            const double over_model = model_roots ? 3. : 2. + move * double(i + 1 - jump);
+            CHECK(contains(body, Point::new_scale(12., over_model - 0.01)));
+            CHECK_FALSE(contains(body, Point::new_scale(12., over_model + 0.01)));
+        }
         // A sliver narrower than a line prints no wall to stand on.
         if (i == jump)
             CHECK_FALSE(contains(body, Point::new_scale(17.95, 2.2)));
@@ -620,6 +664,29 @@ TEST_CASE("Organic bodies merged going up narrow down into their trunks by the b
     }
     for (size_t i = merge_layer; i < num_layers; ++ i)
         CHECK(diff(storage[i].polygons, union_(merged, branches)).empty());
+}
+
+TEST_CASE("Organic trees inside hollow bodies stop when the slicing is cancelled", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    TreeSupportSettings settings;
+    settings.support_line_width         = scaled<coord_t>(0.22);
+    settings.layer_height               = scaled<coord_t>(0.02);
+    settings.min_radius                 = scaled<coord_t>(0.4);
+    settings.maximum_move_distance      = scaled<coord_t>(0.01);
+    settings.maximum_move_distance_slow = scaled<coord_t>(0.01);
+    SupportGeneratorLayer layer;
+    layer.print_z  = 0.02;
+    layer.height   = 0.02;
+    layer.polygons = { make_circle_num_segments(scale_(5.), 64) };
+    SupportGeneratorLayersPtr bodies{ &layer };
+    const std::vector<Polygons> roofs(1), model(1);
+    const auto grow = [&] {
+        organic_grow_trees_inside_hollow_bodies(bodies, roofs, model, settings, scaled<coord_t>(0.235), settings.support_line_width,
+            {}, [] { throw CanceledException(); });
+    };
+    CHECK_THROWS_AS(grow(), CanceledException);
 }
 
 TEST_CASE("Organic roofs over the inside of a hollow body stand on trees grown inside it", "[TreeSupport][Material][Regression]")
@@ -877,8 +944,10 @@ TEST_CASE("Organic trees under a roof over a hollow body hold every line of its 
             longest = std::max(longest, unscaled<double>(free.length()));
         }
     }
-    CHECK(bridge <= spacing + line_width + 0.01);
-    CHECK(end <= line_width + 0.01);
+    // The code holds them to these, with lines touching within 0.375 of a line; measured here outside half a line.
+    const double touch = 0.375 * line_width, band = 0.5 * line_width - touch;
+    CHECK(bridge <= 2. * (reach - touch - band) + 0.01);
+    CHECK(end <= std::min(line_width, reach - touch) - band + 0.01);
 }
 
 TEST_CASE("Organic trees end on what their beads touch, not beside it", "[TreeSupport][Material][Regression]")

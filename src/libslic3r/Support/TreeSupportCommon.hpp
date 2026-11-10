@@ -40,6 +40,13 @@ namespace Slic3r
     static constexpr const size_t SUPPORT_TREE_CIRCLE_RESOLUTION = 25;
 namespace TreeSupport3D
 {
+
+// The whole layers a Z distance is left as. Rounding the scaled values keeps a distance of half layers exact, unlike the
+// quotient of the distances in millimetres: 0.3 / 0.2 is just below 1.5.
+[[nodiscard]] inline int z_distance_in_layers(const coord_t distance, const coord_t layer_height)
+{
+    return int(std::round(double(distance) / double(layer_height)));
+}
 using LayerIndex = int;
 
 enum class InterfacePreference
@@ -306,7 +313,7 @@ public:
           maximum_move_distance_slow((mesh_group_settings.support_tree_angle_slow < M_PI / 2.) ? (coord_t)(tan(mesh_group_settings.support_tree_angle_slow) * layer_height) : std::numeric_limits<coord_t>::max()),
           support_bottom_layers(mesh_group_settings.support_bottom_enable ? (mesh_group_settings.support_bottom_height + layer_height / 2) / layer_height : 0),
           // Ensure lines always stack nicely even if layer height is large.
-          tip_layers(std::max((branch_radius - min_radius) / (support_line_width / 3), branch_radius / layer_height)),
+          tip_layers(std::max<coord_t>(1, std::max((branch_radius - min_radius) / (support_line_width / 3), branch_radius / layer_height))),
           branch_radius_increase_per_layer(tan(mesh_group_settings.support_tree_branch_diameter_angle) * layer_height),
           max_to_model_radius_increase(mesh_group_settings.support_tree_max_diameter_increase_by_merges_when_support_to_model / 2),
           min_dtt_to_model(round_up_divide(mesh_group_settings.support_tree_min_height_to_model, layer_height)),
@@ -318,8 +325,8 @@ public:
           bp_radius(mesh_group_settings.support_tree_bp_diameter / 2),
           // Increase by half a line overlap, but not faster than 40 degrees angle (0 degrees means zero increase in radius).
           bp_radius_increase_per_layer(std::min(tan(0.7) * layer_height, 0.5 * support_line_width)),
-          z_distance_bottom_layers(size_t(round(double(mesh_group_settings.support_bottom_distance) / double(layer_height)))),
-          z_distance_top_layers(size_t(round(double(mesh_group_settings.support_top_distance) / double(layer_height)))),
+          z_distance_bottom_layers(size_t(z_distance_in_layers(mesh_group_settings.support_bottom_distance, layer_height))),
+          z_distance_top_layers(size_t(z_distance_in_layers(mesh_group_settings.support_top_distance, layer_height))),
     //              support_infill_angles(mesh_group_settings.support_infill_angles),
           support_roof_angles(mesh_group_settings.support_roof_angles),
           roof_pattern(mesh_group_settings.support_roof_pattern),
@@ -802,7 +809,7 @@ public:
         if (l == nullptr)
             l = &layer_allocate_unguarded(layer_storage, dtt_roof == 0 ? SupporLayerType::TopContact : SupporLayerType::TopInterface, 
                     slicing_parameters, config, insert_layer_idx);
-        // will be unioned in finalize_interface_and_support_areas()
+        // To be unioned once all of them are added.
         append(l->polygons, std::move(new_roofs));
     }
 
