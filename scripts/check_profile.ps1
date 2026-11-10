@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Local twin of the "Check profiles" CI job (.github/workflows/check_profiles.yml), for Windows.
+    Run the profile checks locally on Windows.
 
 .DESCRIPTION
     The Windows counterpart of scripts/check_profile.sh, and kept deliberately close to it.
@@ -755,9 +755,9 @@ try {
         exit 0
     }
 
-    # The comment check_profiles_comment.yml would post when something fails.
+    # The profile validation failure report.
     $comment = @(
-        # Marker matched by check_profiles_comment.yml to delete prior comments.
+        # Marker identifying the profile validation report.
         '<!-- profile-validation-comment -->'
         '## :x: Profile Validation Errors'
         ''

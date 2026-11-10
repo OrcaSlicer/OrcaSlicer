@@ -445,9 +445,9 @@ above and carries no translation. It has no callers today and its plate list is 
 for `printer_model_id`, so it is not a live gap — but wiring it up without adding the reverse
 map would silently reproduce the bug.
 
-## How CI enforces this
+## Validation
 
-Profile CI (`check_profiles.yml`) runs `check_filament_ids()` tree-wide via
+Local profile validation runs `check_filament_ids()` tree-wide via
 `scripts/orca_profile_tool.py check`. Every check judges the tree against the rules on this
 page and nothing else — there is no recorded id state to match and no grandfather list of any
 kind.

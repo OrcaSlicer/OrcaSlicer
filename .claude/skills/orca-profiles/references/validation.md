@@ -428,23 +428,8 @@ clean-install check; preserve the normal configuration and user presets.
 | `Printer "<p>" fell back to a default preset` | the final process or filament selection is a generic Default preset: check the named defaults, their visibility and that compatible presets exist. An incompatible default may instead be replaced without this error |
 | `Printer "<p>" sliced but the filament change never fired (no CP TOOLCHANGE START)` | `change_filament_gcode` never expanded |
 
-## CI
+## Local validation
 
-`.github/workflows/check_profiles.yml`, job **"Check profiles"**, runs on `pull_request` into `main` or
-`release/*` touching `resources/profiles/**`, `resources/printers/**`, `scripts/**`,
-`src/libslic3r/PrintConfig.cpp` (where the tool reads the variant key sets) or the workflow itself.
-There is no push trigger: a direct push to main runs no profile validation.
-
-The job opens with `python3 -m unittest discover -s scripts/tests -t scripts`, the tool's own unit tests
-(run them locally after changing `scripts/`, with `py -3` on Windows, and keep `-t scripts` or the
-imports fail). That step is deliberately **not** `continue-on-error`: a broken tool makes everything it
-then says about the profiles worthless. Every check after it is `continue-on-error` with a final gate,
-so one run reports all five results. On failure a second workflow posts or replaces a single PR comment
-marked `<!-- profile-validation-comment -->`, holding the start of each failing log (30 KB per check,
-12 KB per `validate_custom` fixture; reproduce locally for the full list); it deletes the comment once
-the run is green.
-
-The job name is also the required check for the delegated-merge bot, which lets a vendor maintainer
-self-merge a PR limited to their own `resources/profiles/<Vendor>/` folder with no human review, so
-whatever CI does not check is what ships unreviewed. Its denied patterns refuse `^scripts/` and any
-`.py`, so a PR that touches the tooling always needs a maintainer.
+Run `scripts/check_profile.sh` (or `scripts/check_profile.ps1` on Windows) for profile validation.
+Run the tooling tests with `python3 -m unittest discover -s scripts/tests -t scripts`
+(use `py -3` on Windows and keep `-t scripts` so imports resolve).

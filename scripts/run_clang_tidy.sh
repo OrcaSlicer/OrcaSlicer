@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Runs the clang-tidy check that gates pull requests (.github/workflows/clang_tidy.yml)
-# on your branch, so its findings match what CI reports. Linux and macOS.
+# Runs the local clang-tidy check
+# on your branch. Linux and macOS.
 #
 #   scripts/run_clang_tidy.sh            check your changes against OrcaSlicer's main
 #   scripts/run_clang_tidy.sh --fix      also apply clang-tidy's fixes

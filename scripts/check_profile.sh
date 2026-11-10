@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 #
-# Local twin of the "Check profiles" CI job (.github/workflows/check_profiles.yml).
+# Run the profile checks locally.
 #
-# Runs the same seven checks, in the same order, with the same validator flags, and with the
-# same semantics: every check runs even after an earlier one fails (the workflow's
+# Runs all seven checks: every check runs even after an earlier one fails (equivalent to
 # continue-on-error), then the script exits non-zero once at the end.
 #
 # Everything that has to be downloaded - the profile validator, the custom-preset fixture
@@ -71,7 +70,7 @@ RESULTS=""
 
 usage() {
     cat <<EOF
-Run the profile checks from .github/workflows/check_profiles.yml locally.
+Run the profile checks locally.
 
 Usage: scripts/check_profile.sh [OPTION]... [CHECK]...
 
@@ -687,7 +686,7 @@ for check in "${ALL_CHECKS[@]}"; do
     fi
 done
 
-# Summary, plus the comment check_profiles_comment.yml would post when something fails.
+# Summary and failure report.
 failed=0
 skipped=0
 printf '\n%s==> summary%s\n' "${C_BOLD}" "${C_RESET}"
@@ -718,7 +717,7 @@ if [ "${failed}" -eq 0 ]; then
 fi
 
 {
-    # Marker matched by check_profiles_comment.yml to delete prior comments.
+    # Marker identifying the profile validation report.
     echo "<!-- profile-validation-comment -->"
     echo "## :x: Profile Validation Errors"
     echo ""

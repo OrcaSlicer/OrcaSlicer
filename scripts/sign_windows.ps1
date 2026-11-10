@@ -18,7 +18,7 @@
     damaged signature, if a file named directly is not signed with the release certificate, or if
     a signature made with the release certificate has no timestamp.
 
-    build_orca.yml sets the environment. CMakeLists.txt wires the script into the NSIS installer
+    The build environment supplies these variables. CMakeLists.txt wires the script into the NSIS installer
     build when ORCA_SIGN_KMS_KEY is set at configure time.
 
     Environment:

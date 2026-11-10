@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Runs the clang-tidy check that gates pull requests (.github/workflows/clang_tidy.yml) on
+Runs the local clang-tidy check on
 your branch. Windows.
 
 .DESCRIPTION

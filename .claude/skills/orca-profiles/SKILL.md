@@ -175,7 +175,7 @@ filename rules are in [naming.md](references/naming.md).
 When this skill and the checkout disagree, the checkout wins: `scripts/orca_profile_tool.py` for the
 tool and its flags; `src/libslic3r/Preset*.cpp` for loading and compatibility;
 `src/libslic3r/PrintConfig.cpp` for keys, types, nullable options, the variant key sets and legacy
-handling; `src/dev-utils/OrcaSlicer_profile_validator.cpp` and `.github/workflows/check_profiles.yml`
+handling; `src/dev-utils/OrcaSlicer_profile_validator.cpp` and `scripts/check_profile.sh`
 for validation coverage; `docs/HLSD/filament_id.md` for filament identity. The wiki's
 [profile guide](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/developer_reference/how_to_create_profiles.md)
 is a tutorial; confirm loader and CLI details against these sources.
