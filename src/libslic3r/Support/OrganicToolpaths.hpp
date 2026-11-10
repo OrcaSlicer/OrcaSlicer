@@ -134,6 +134,10 @@ private:
 // Saved diagnostics of completed support steps, including slices reused from cache.
 std::vector<PrintBase::SlicingStatus> organic_support_warning_statuses(const Print &print);
 
+// The area below which an island of the support is a sliver the union of its beads leaves apart from them, not a bead:
+// even a dot covers the disc of its width, about three quarters of the width squared.
+double organic_sliver_area(const PrintObject &object);
+
 // Drop the crumbs of the support of an object, the islands of its extrusions smaller than max_area standing on nothing,
 // as floating_support_islands() finds them, going up so that a crumb standing on a crumb goes too. Bed-only base
 // appendages that carry no contact before joining rooted support can also be dropped, and so can the dots of a hollow

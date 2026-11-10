@@ -932,7 +932,7 @@ public:
 
     }
     const TreeModelVolumes                             &volumes;
-    // Radius of the tree tip is large enough to be covered by an interface.
+    // Whether roofs are enabled, which forces the tips up to them.
     const bool                                          force_tip_to_roof;
     bool                                                min_xy_dist;
 
@@ -1742,7 +1742,7 @@ static void generate_initial_areas(
         num_support_layers  = size_t(std::max(0, int(print_object.layer_count()) + int(num_raft_layers) - int(z_distance_delta)));
         raft_contact_layer_idx = generate_raft_contact(print_object, config, interface_placer);
         // Enumerate layers for which the support tips may be generated from overhangs above.
-        raw_overhangs.reserve(num_support_layers - first_support_layer);
+        raw_overhangs.reserve(num_support_layers > first_support_layer ? num_support_layers - first_support_layer : 0);
         for (size_t layer_idx = first_support_layer; layer_idx < num_support_layers; ++ layer_idx)
             if (const size_t overhang_idx = layer_idx + z_distance_delta; ! overhangs[overhang_idx].empty())
                 raw_overhangs.push_back({ layer_idx, &overhangs[overhang_idx] });
@@ -1983,7 +1983,6 @@ static Point move_inside_if_outside(const Polygons &polygons, Point from, int di
  * \param to_model_data[out] The part of the Influence area that do not have to reach the buildplate. This has overlap with new_layer_data.
  * \param increased[out]  Area than can reach all further up support points. No assurance is made that the buildplate or the model can be reached in accordance to the user-supplied settings.
  * \param overspeed[in] How much should the already offset area be offset again. Usually this is 0.
- * \param mergelayer[in] Will the merge method be called on this layer. This information is required as some calculation can be avoided if they are not required for merging.
  * \return A valid support element for the next layer regarding the calculated influence areas. Empty if no influence are can be created using the supplied influence area and settings.
  */
 std::optional<SupportElementState> increase_single_area(
@@ -1996,8 +1995,7 @@ std::optional<SupportElementState> increase_single_area(
     Polygons                    &to_bp_data,
     Polygons                    &to_model_data,
     Polygons                    &increased,
-    const coord_t                overspeed,
-    const bool                   mergelayer)
+    const coord_t                overspeed)
 {
     SupportElementState current_elem{ SupportElementState::propagate_down(parent.state) };
     Polygons check_layer_data;
@@ -2022,28 +2020,22 @@ std::optional<SupportElementState> increase_single_area(
             increased = safe_offset_inc(increased, overspeed, volumes.getWallRestriction(support_element_collision_radius(config, parent.state), layer_idx, parent.state.use_min_xy_dist),
                 safe_movement_distance, safe_movement_distance + radius, 1);
         }
-        if (settings.no_error && settings.move)
-            // as jtRound has to be used for offsets this simplify is VERY important for performance.
-            polygons_simplify(increased, scaled<float>(0.025));
     } else
         // if no movement is done the areas keep parent area as no move == offset(0)
         increased = parent.influence_area;
 
-    if (mergelayer || current_elem.to_buildplate) {
-        to_bp_data = safe_union(diff_clipped(increased, volumes.getAvoidance(radius, layer_idx - 1, settings.type, false, settings.use_min_distance)));
-        if (! current_elem.to_buildplate && area(to_bp_data) > _tiny_area_threshold) {
-            // mostly happening in the tip, but with merges one should check every time, just to be sure.
-            current_elem.to_buildplate = true; // sometimes nodes that can reach the buildplate are marked as cant reach, tainting subtrees. This corrects it.
-            BOOST_LOG_TRIVIAL(debug) << "Corrected taint leading to a wrong to model value on layer " << layer_idx - 1 << " targeting " <<
-                current_elem.target_height << " with radius " << radius;
-        }
+    to_bp_data = safe_union(diff_clipped(increased, volumes.getAvoidance(radius, layer_idx - 1, settings.type, false, settings.use_min_distance)));
+    if (! current_elem.to_buildplate && area(to_bp_data) > _tiny_area_threshold) {
+        // mostly happening in the tip, but with merges one should check every time, just to be sure.
+        current_elem.to_buildplate = true; // sometimes nodes that can reach the buildplate are marked as cant reach, tainting subtrees. This corrects it.
+        BOOST_LOG_TRIVIAL(debug) << "Corrected taint leading to a wrong to model value on layer " << layer_idx - 1 << " targeting " <<
+            current_elem.target_height << " with radius " << radius;
     }
     if (config.support_rests_on_model) {
-        if (mergelayer || current_elem.to_model_gracious)
-            to_model_data = safe_union(diff_clipped(increased, volumes.getAvoidance(radius, layer_idx - 1, settings.type, true, settings.use_min_distance)));
+        to_model_data = safe_union(diff_clipped(increased, volumes.getAvoidance(radius, layer_idx - 1, settings.type, true, settings.use_min_distance)));
 
         if (!current_elem.to_model_gracious) {
-            if (mergelayer && area(to_model_data) >= _tiny_area_threshold) {
+            if (area(to_model_data) >= _tiny_area_threshold) {
                 current_elem.to_model_gracious = true;
                 BOOST_LOG_TRIVIAL(debug) << "Corrected taint leading to a wrong non gracious value on layer " << layer_idx - 1 << " targeting " <<
                     current_elem.target_height << " with radius " << radius;
@@ -2093,7 +2085,9 @@ std::optional<SupportElementState> increase_single_area(
         const coord_t foot_radius_increase = std::max(config.bp_radius_increase_per_layer - config.branch_radius_increase_per_layer, 0.0);
         // Is nearly all of the time 1, but sometimes an increase of 1 could cause the radius to become bigger than recommendedMinRadius,
         // which could cause the radius to become bigger than precalculated.
-        double planned_foot_increase = std::min(1.0, double(config.recommendedMinRadius(layer_idx - 1, current_elem.distance_to_top) - support_element_radius(config, current_elem)) / foot_radius_increase);
+        double planned_foot_increase = foot_radius_increase > 0 ?
+            std::min(1.0, double(config.recommendedMinRadius(layer_idx - 1, current_elem.distance_to_top) - support_element_radius(config, current_elem)) / foot_radius_increase) :
+            0.;
 //FIXME
         bool increase_bp_foot = planned_foot_increase > 0 && current_elem.to_buildplate;
 //        bool increase_bp_foot = false;
@@ -2107,7 +2101,7 @@ std::optional<SupportElementState> increase_single_area(
         if (ceil_radius_before != volumes.ceilRadius(radius, settings.use_min_distance)) {
             if (current_elem.to_buildplate)
                 to_bp_data = safe_union(diff_clipped(increased, volumes.getAvoidance(radius, layer_idx - 1, settings.type, false, settings.use_min_distance)));
-            if (config.support_rests_on_model && (!current_elem.to_buildplate || mergelayer))
+            if (config.support_rests_on_model)
                 to_model_data = safe_union(diff_clipped(increased,
                     current_elem.to_model_gracious ?
                         volumes.getAvoidance(radius, layer_idx - 1, settings.type, true, settings.use_min_distance) :
@@ -2177,7 +2171,6 @@ struct SupportElementMerging {
  * \param bypass_merge_areas[out] Influence areas ready to be added to the layer below that do not need merging.
  * \param last_layer[in] Influence areas of the current layer.
  * \param layer_idx[in] Number of the current layer.
- * \param mergelayer[in] Will the merge method be called on this layer. This information is required as some calculation can be avoided if they are not required for merging.
  */
 static void increase_areas_one_layer(
     const TreeModelVolumes              &volumes,
@@ -2188,8 +2181,6 @@ static void increase_areas_one_layer(
     const LayerIndex                     layer_idx,
     // Layer elements above merging_areas.
     SupportElements                     &layer_elements,
-    // If false, the merging_areas will not be merged for performance reasons.
-    const bool                           mergelayer,
     std::function<void()>                throw_on_cancel)
 {
     using AvoidanceType = TreeModelVolumes::AvoidanceType;
@@ -2214,7 +2205,7 @@ static void increase_areas_one_layer(
             // As the branch may have become larger the distance between these 2 walls is smaller than the distance of the center points.
             // These extra distance is added to the movement distance possible for this layer.
 
-            coord_t extra_speed = 5; // The extra speed is added to both movement distances. Also move 5 microns faster than allowed to avoid rounding errors, this may cause issues at VERY VERY small layer heights.
+            coord_t extra_speed = 5; // The extra speed is added to both movement distances. Also move 5 nanometres (coordinates are in nanometres) faster than allowed to avoid rounding errors.
             coord_t extra_slow_speed = 0; // Only added to the slow movement distance.
             const coord_t ceiled_parent_radius = volumes.ceilRadius(support_element_collision_radius(config, parent.state), parent.state.use_min_xy_dist);
             coord_t projected_radius_increased = config.getRadius(parent.state.effective_radius_height + 1, parent.state.elephant_foot_increases);
@@ -2275,16 +2266,6 @@ static void increase_areas_one_layer(
                 }
             };
 
-            const bool parent_moved_slow = elem.last_area_increase.increase_speed < config.maximum_move_distance;
-            const bool avoidance_speed_mismatch = parent_moved_slow && elem.last_area_increase.type != AvoidanceType::Slow;
-            if (elem.last_area_increase.move && elem.last_area_increase.no_error && elem.can_use_safe_radius && !mergelayer &&
-                !avoidance_speed_mismatch && (elem.distance_to_top >= config.tip_layers || parent_moved_slow)) {
-                // assume that the avoidance type that was best for the parent is best for me. Makes this function about 7% faster.
-                insertSetting({ elem.last_area_increase.type, elem.last_area_increase.increase_speed < config.maximum_move_distance ? slow_speed : fast_speed,
-                    increase_radius, elem.last_area_increase.no_error, !use_min_radius, elem.last_area_increase.move }, true);
-                insertSetting({ elem.last_area_increase.type, elem.last_area_increase.increase_speed < config.maximum_move_distance ? slow_speed : fast_speed,
-                    !increase_radius, elem.last_area_increase.no_error, !use_min_radius, elem.last_area_increase.move }, true);
-            }
             // branch may still go though a hole, so a check has to be done whether the hole was already passed, and the regular avoidance can be used.
             if (!elem.can_use_safe_radius) {
                 // if the radius until which it is always increased can not be guaranteed, move fast. This is to avoid holes smaller than the real branch radius.
@@ -2360,7 +2341,7 @@ static void increase_areas_one_layer(
                     Polygons lines_offset = offset(to_polylines(parent.influence_area), scaled<float>(0.005), jtMiter, 1.2);
                     Polygons base_error_area = union_(parent.influence_area, lines_offset);
                     result = increase_single_area(volumes, config, settings, layer_idx, parent,
-                        base_error_area, to_bp_data, to_model_data, inc_wo_collision, (config.maximum_move_distance + extra_speed) * 1.5, mergelayer);
+                        base_error_area, to_bp_data, to_model_data, inc_wo_collision, (config.maximum_move_distance + extra_speed) * 1.5);
 #ifdef TREE_SUPPORT_SHOW_ERRORS
                     BOOST_LOG_TRIVIAL(error)
 #else // TREE_SUPPORT_SHOW_ERRORS
@@ -2380,12 +2361,11 @@ static void increase_areas_one_layer(
 #endif // TREE_SUPPORTS_TRACK_LOST
                 } else
                     result = increase_single_area(volumes, config, settings, layer_idx, parent,
-                        settings.increase_speed == slow_speed ? offset_slow : offset_fast, to_bp_data, to_model_data, inc_wo_collision, 0, mergelayer);
+                        settings.increase_speed == slow_speed ? offset_slow : offset_fast, to_bp_data, to_model_data, inc_wo_collision, 0);
 
                 if (result) {
                     elem = *result;
                     radius = support_element_collision_radius(config, elem);
-                    elem.last_area_increase = settings;
                     add = true;
                     // do not merge if the branch should not move or the priority has to be to get farther away from the model.
                     bypass_merge = !settings.move || (settings.use_min_distance && elem.distance_to_top < config.tip_layers);
@@ -2472,21 +2452,12 @@ static void increase_areas_one_layer(
     out.to_model_gracious = first.to_model_gracious && second.to_model_gracious; // valid as we do not merge non-gracious with gracious
 
     out.elephant_foot_increases = 0;
-    if (config.bp_radius_increase_per_layer > 0) {
+    if (config.bp_radius_increase_per_layer > config.branch_radius_increase_per_layer) {
         coord_t foot_increase_radius = std::abs(std::max(support_element_collision_radius(config, second), support_element_collision_radius(config, first)) - support_element_collision_radius(config, out));
         // elephant_foot_increases has to be recalculated, as when a smaller tree with a larger elephant_foot_increases merge with a larger branch
         // the elephant_foot_increases may have to be lower as otherwise the radius suddenly increases. This results often in a non integer value.
         out.elephant_foot_increases = foot_increase_radius / (config.bp_radius_increase_per_layer - config.branch_radius_increase_per_layer);
     }
-
-    // set last settings to the best out of both parents. If this is wrong, it will only cause a small performance penalty instead of weird behavior.
-    out.last_area_increase = {
-        std::min(first.last_area_increase.type, second.last_area_increase.type),
-        std::min(first.last_area_increase.increase_speed, second.last_area_increase.increase_speed),
-        first.last_area_increase.increase_radius || second.last_area_increase.increase_radius,
-        first.last_area_increase.no_error || second.last_area_increase.no_error,
-        first.last_area_increase.use_min_distance && second.last_area_increase.use_min_distance,
-        first.last_area_increase.move || second.last_area_increase.move };
 
     return out;
 }
@@ -2851,22 +2822,12 @@ static void create_layer_pathing(const TreeModelVolumes &volumes, const TreeSupp
     auto dur_inc   = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
     auto dur_total = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
 
-    LayerIndex last_merge_layer_idx = move_bounds.size();
-    bool new_element = false;
     const auto _tiny_area_threshold = tiny_area_threshold();
 
-    // Overlapping influence areas are merged on every layer.
-    static constexpr size_t max_merge_every_x_layers = 1;
-    size_t merge_every_x_layers = 1;
     // Calculate the influence areas for each layer below (Top down)
     // This is done by first increasing the influence area by the allowed movement distance, and merging them with other influence areas if possible
     for (int layer_idx = int(move_bounds.size()) - 1; layer_idx > 0; -- layer_idx)
         if (SupportElements &prev_layer = move_bounds[layer_idx]; ! prev_layer.empty()) {
-            // merging is expensive and only parallelized to a max speedup of 2. As such it may be useful in some cases to only merge every few layers to improve performance.
-            bool had_new_element = new_element;
-            const bool merge_this_layer = had_new_element || size_t(last_merge_layer_idx - layer_idx) >= merge_every_x_layers;
-            if (had_new_element)
-                merge_every_x_layers = 1;
             const auto ta               = std::chrono::high_resolution_clock::now();
 
             // ### Increase the influence areas by the allowed movement distance
@@ -2879,7 +2840,7 @@ static void create_layer_pathing(const TreeModelVolumes &volumes, const TreeSupp
                 parents.emplace_back(element_idx);
                 influence_areas.push_back({ el.state, parents });
             }
-            increase_areas_one_layer(volumes, config, influence_areas, layer_idx, prev_layer, merge_this_layer, throw_on_cancel);
+            increase_areas_one_layer(volumes, config, influence_areas, layer_idx, prev_layer, throw_on_cancel);
 
             // Place already fully constructed elements to the output, remove them from influence_areas.
             SupportElements &this_layer = move_bounds[layer_idx - 1];
@@ -2903,18 +2864,9 @@ static void create_layer_pathing(const TreeModelVolumes &volumes, const TreeSupp
                 influence_areas.end());
 
             dur_inc += std::chrono::high_resolution_clock::now() - ta;
-            new_element = ! move_bounds[layer_idx - 1].empty();
-            if (merge_this_layer) {
-                bool reduced_by_merging = false;
-                if (size_t count_before_merge = influence_areas.size(); count_before_merge > 1) {
-                    // ### Calculate which influence areas overlap, and merge them into a new influence area (simplified: an intersection of influence areas that have such an intersection)
-                    merge_influence_areas(volumes, config, layer_idx, influence_areas, throw_on_cancel);
-                    reduced_by_merging = count_before_merge > influence_areas.size();
-                }
-                last_merge_layer_idx = layer_idx;
-                if (! reduced_by_merging && ! had_new_element)
-                    merge_every_x_layers = std::min(max_merge_every_x_layers, merge_every_x_layers + 1);
-            }
+            // ### Calculate which influence areas overlap, and merge them into a new influence area (simplified: an intersection of influence areas that have such an intersection)
+            if (influence_areas.size() > 1)
+                merge_influence_areas(volumes, config, layer_idx, influence_areas, throw_on_cancel);
 
             dur_total += std::chrono::high_resolution_clock::now() - ta;
 
@@ -4267,9 +4219,12 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
         const auto hanging_over = [&](const Polygons &held) {
             if (roof_angles.empty())
                 return diff(roof, offset(held, float(reach)));
-            Polylines stretches;
-            for (const RoofStretch &stretch : organic_hanging_roof_stretches(roof, offset(held, float(touch)), roof_angles, pitch,
-                     bridge, end, double(tip_radius)))
+            // A line running along a gap between them narrower than a bridge passes over neither, though it touches them,
+            // and one across it bridges it: the gap is not touched, so that the bodies close it under such a line.
+            const Polygons touched = diff(offset(held, float(touch)), diff(closing(held, float(0.5 * bridge)), held));
+            Polylines      stretches;
+            for (const RoofStretch &stretch : organic_hanging_roof_stretches(roof, touched, roof_angles, pitch, bridge, end,
+                     double(tip_radius)))
                 stretches.emplace_back(stretch.along.a, stretch.along.b);
             return offset(stretches, float(touch));
         };
@@ -4299,15 +4254,18 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
         std::vector<std::vector<Polygons>> steps{ shapes };
         while (steps.size() <= max_steps && ! hanging.empty()) {
             bool wider = false;
+            // Each body keeps away from the others as they are now, so they widen in turn, but near where the roof still
+            // hangs: a roof line along the gap between two bodies passes over neither, and their bands, printed solid,
+            // close the gap under it, as the flares of tips merge.
+            const Polygons hangs = offset(hanging, apart);
             for (size_t i = 0; i < shapes.size(); ++ i) {
-                // Each body keeps away from the others as they are now, so they widen in turn.
                 const BoundingBox box = get_extents(shapes[i]).inflated(coord_t(step + apart));
                 Polygons          others;
                 for (size_t j = 0; j < shapes.size(); ++ j)
                     if (j != i && ! (tip[i] && tip[j]) && get_extents(shapes[j]).overlap(box))
                         append(others, shapes[j]);
                 // A body widens all around, so that its band is as wide as a step everywhere, not a sliver no bead prints.
-                const Polygons grown = diff(intersection(offset(shapes[i], step), room), offset(others, apart));
+                const Polygons grown = diff(intersection(offset(shapes[i], step), room), diff(offset(others, apart), hangs));
                 if (diff(grown, offset(shapes[i], float(SCALED_EPSILON))).empty())
                     continue;
                 shapes[i] = union_(shapes[i], grown);
@@ -4364,9 +4322,20 @@ void organic_widen_bodies_under_roofs(SupportGeneratorLayersPtr &bodies, const s
 // preferred angle. A tree ends once it stands on the material below, each bead of it half on it at least. A tree
 // going straight down out of the body, where the body splits under it, becomes a part of it. The trees inside a body
 // are printed with walls of their own beside its walls, not over them.
+std::vector<double> organic_roof_angles(const PrintObject &object, const SupportParameters &params)
+{
+    switch (object.config().support_interface_pattern.value) {
+    case smipConcentric:
+    case smipSpiralInset: return {};
+    case smipGrid: return { params.base_angle, params.base_angle + 0.5 * M_PI };
+    case smipRectilinearInterlaced: return { params.support_interface_angle(0), params.support_interface_angle(1) };
+    default: return { params.support_interface_angle(0) };
+    }
+}
+
 void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, const std::vector<Polygons> &roofs,
     const std::vector<Polygons> &model, const TreeSupportSettings &config, const coord_t reach, const coord_t first_layer_width,
-    const std::vector<double> &roof_angles)
+    const std::vector<double> &roof_angles, const std::function<void()> &throw_on_cancel)
 {
     assert(bodies.size() == roofs.size() && bodies.size() == model.size());
     const coord_t width      = config.support_line_width;
@@ -4379,7 +4348,7 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
     const double  pitch      = std::sqrt(3.) * (tip_radius + double(reach));
     const double  tolerance  = scaled<double>(0.005);
     // A tree is printed as a loop half a line inside it, and a loop shorter than a line once its seam is clipped by 0.15
-    // of a line is a dot, which is left out, see generate_support_toolpaths(): a part of a tree that would print one
+    // of a line is a dot, which is left out, see organic_inward_loops(): a part of a tree that would print one
     // holds nothing up.
     const auto prints_loop = [](const ExPolygon &part, const coord_t line) {
         const Polygons loops = offset(part, - 0.5f * float(line));
@@ -4491,6 +4460,8 @@ void organic_grow_trees_inside_hollow_bodies(SupportGeneratorLayersPtr &bodies, 
     }
     std::vector<Tree> trees;
     for (size_t l = bodies.size(); l -- > 0;) {
+        if (throw_on_cancel)
+            throw_on_cancel();
         SupportGeneratorLayer *layer   = bodies[l];
         const bool             stacked = l + 1 < bodies.size() && floor[l + 1] == floor[l];
         if (layer == nullptr || ! stacked || printed[l].islands.empty())
@@ -5012,6 +4983,9 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                 *print.get_object(processing.second.front()), volumes, config, move_bounds,
                 bottom_contacts, top_contacts, interface_placer, intermediate_layers, layer_storage,
                 throw_on_cancel);
+            // The branches are drawn, and nothing below reads the influence areas.
+            move_bounds.clear();
+            throw_on_cancel();
 
             //tree_support->move_bounds_to_contact_nodes(move_bounds, print_object, config);
 
@@ -5021,6 +4995,7 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                 bottom_contacts, top_contacts, interface_layers, base_interface_layers, intermediate_layers, layer_storage);
             organic_remove_roofs_inside_branches(bottom_contacts, top_contacts, interface_layers, base_interface_layers, intermediate_layers,
                 config.support_line_width);
+            throw_on_cancel();
             {
                 // The model with the gaps above and below it, which cut the bodies out where they pass it.
                 std::vector<Polygons> model(intermediate_layers.size());
@@ -5029,6 +5004,7 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                     if (const SupportGeneratorLayer *body = intermediate_layers[i]; body != nullptr)
                         model[i] = volumes.getCollision(0, layer_idx_floor(slicing_params, config, body->print_z + EPSILON), false);
                 organic_fill_covered_holes(intermediate_layers, model, config.support_line_width);
+                throw_on_cancel();
                 // The bodies, the roofs printed on them and the model by layer, up to the layer above the top body.
                 SupportGeneratorLayersPtr bodies(num_support_layers + 1, nullptr);
                 std::vector<Polygons>     roofs(bodies.size());
@@ -5057,9 +5033,9 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                 // On a belt the floor slopes, and a body kept whole straight down would stand over it.
                 if (hollow && volumes.m_belt_floor.empty())
                     organic_keep_merged_bodies_whole(bodies, model_of, std::min(config.maximum_move_distance, config.support_line_width / 2));
-                // A branch angle steeper than half a line a layer moves the walls by more, as it is set to. An angle of 90
-                // degrees moves them by any distance.
-                if (volumes.m_belt_floor.empty() && config.maximum_move_distance < std::numeric_limits<coord_t>::max()) {
+                // A branch angle steeper than half a line a layer moves the walls by more, as it is set to. The angle is
+                // clamped just short of 90 degrees, so the move is finite but may be very large.
+                if (volumes.m_belt_floor.empty()) {
                     organic_limit_body_growth(bodies, roofs, model_of, config.support_rests_on_model, config.support_line_width,
                         config.maximum_move_distance);
                     // A hollow body narrows by the step a layer at most as well.
@@ -5067,23 +5043,14 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                         organic_limit_body_shrink(bodies, roofs, model_of,
                             std::max(config.support_line_width / 2, config.maximum_move_distance));
                 }
-                // The directions of the lines of the lowest roof layers: an interlaced pattern turns them from layer to layer,
-                // and the contact layer of a grid crosses them; a concentric or spiral roof prints no lines.
-                std::vector<double> roof_angles;
-                switch (print_object.config().support_interface_pattern.value) {
-                case smipConcentric:
-                case smipSpiralInset: break;
-                case smipGrid: roof_angles = { support_params.base_angle, support_params.base_angle + 0.5 * M_PI }; break;
-                case smipRectilinearInterlaced:
-                    roof_angles = { support_params.support_interface_angle(0), support_params.support_interface_angle(1) };
-                    break;
-                default: roof_angles = { support_params.support_interface_angle(0) };
-                }
+                throw_on_cancel();
+                const std::vector<double> roof_angles = organic_roof_angles(print_object, support_params);
                 organic_widen_bodies_under_roofs(bodies, roofs, model_of, config.support_line_width, config.min_radius,
                     config.maximum_move_distance, reach, roof_angles);
+                throw_on_cancel();
                 if (hollow)
                     organic_grow_trees_inside_hollow_bodies(bodies, roofs, model_of, config, reach,
-                        support_params.first_layer_flow.scaled_width(), roof_angles);
+                        support_params.first_layer_flow.scaled_width(), roof_angles, throw_on_cancel);
             }
 
             auto t_draw = std::chrono::high_resolution_clock::now();
@@ -5102,8 +5069,6 @@ static void generate_support_areas(Print &print, TreeSupport* tree_support, cons
                 "Drawing result as support " << dur_draw << " ms";
     //        if (config.branch_radius==2121)
     //            BOOST_LOG_TRIVIAL(error) << "Why ask questions when you already know the answer twice.\n (This is not a real bug, please dont report it.)";
-            
-            move_bounds.clear();
         } else if (generate_raft_contact(print_object, config, interface_placer) >= 0) {
             remove_undefined_layers();
         } else
@@ -5300,10 +5265,10 @@ void organic_draw_branches(
 
     throw_on_cancel();
 
-    organic_smooth_branches_avoid_collisions(print_object, volumes, config, move_bounds, elements_with_link_down, linear_data_layers, throw_on_cancel);
-
-    // Reduce memory footprint. After this point only finalize_interface_and_support_areas() will use volumes and from that only collisions with zero radius will be used.
+    // Reduce memory footprint. The smoothing and the drawing below read only the collisions and the placeable areas of radius 0, which this keeps.
     volumes.clear_all_but_object_collision();
+
+    organic_smooth_branches_avoid_collisions(print_object, volumes, config, move_bounds, elements_with_link_down, linear_data_layers, throw_on_cancel);
 
     // Unmark all nodes.
     for (SupportElements &elements : move_bounds)

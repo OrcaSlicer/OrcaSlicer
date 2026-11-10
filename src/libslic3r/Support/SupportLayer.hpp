@@ -143,10 +143,12 @@ public:
 
 	SupportGeneratorLayer& allocate(SupporLayerType layer_type)
 	{ 
-		m_mutex.lock();
-		m_storage.emplace_back();
-	    SupportGeneratorLayer *layer_new = &m_storage.back();
-		m_mutex.unlock();
+		SupportGeneratorLayer *layer_new;
+		{
+			tbb::spin_mutex::scoped_lock lock(m_mutex);
+			m_storage.emplace_back();
+			layer_new = &m_storage.back();
+		}
 	    layer_new->layer_type = layer_type;
 	    return *layer_new;
 	}

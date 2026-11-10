@@ -33,9 +33,10 @@ more than a line inside its outline, must be covered: by Rectilinear and Grid
 entirely, by SpiralInset and Concentric, whose fixed-width loops can leave pores
 inside, along its whole boundary, holes included. A part too narrow for a core
 must have its medial axis covered instead, and so must the narrow arms of a part
-with a core, outside the core and within the overhang. The axes are taken before
-short branches are pruned, so a wide junction does not hide a narrow arm attached
-to it. The medial axis keeps its facing-edge rule, so the axis of a curved narrow
+with a core, outside the core and within the overhang. For a part with a core the
+axes are taken before short branches are pruned, so a wide junction does not hide a
+narrow arm attached to it; a part with no core goes through ExPolygon::medial_axis,
+which drops endpoint branches shorter than twice the widest section. The medial axis keeps its facing-edge rule, so the axis of a curved narrow
 arm may come out short.
 
 Where the pattern of a dense top contact or interface leaves a narrow part without
@@ -203,10 +204,11 @@ but not below the branch diameter. CuraEngine defaults it to 25 mm; here the
 default 0 sets no limit, so existing projects keep their trees.
 
 The branches are drawn as tubes with cross-sections perpendicular to their axis,
-so a branch leaning by an angle θ slices into an ellipse 1 / cos θ as wide as its
-disc in the direction it leans. Branches whose influence areas have not merged can
-therefore touch where they lean towards each other, even where their discs stay
-apart, and the body of their layer joins them.
+so a branch leaning by an angle θ slices into an oval at least 1 / cos θ as wide as
+its disc in the direction it leans, and wider on its trailing side, where the rims
+of the larger rings below rise to the slice. Branches whose influence areas have
+not merged can therefore touch where they lean towards each other, even where their
+discs stay apart, and the body of their layer joins them.
 
 The cross-section at a node lies on the plane bisecting the two segments that
 meet there. Where a thick branch bends sharply, two consecutive cross-sections
@@ -344,18 +346,22 @@ around rather than toward the hanging part alone, which would cut its band into
 slivers no bead prints, and stays under the interface, away from the model and a
 line and a half away from the other bodies, so that bodies do not merge, not even
 where their beads squish: a hollow body merged over a gap would leave the gap
-hanging over its inside. A roof line running along such a gap passes over neither
-body, and the warning reports it. The flares of tips merge with each other, being printed
+hanging over its inside. Near where the roof still hangs they come closer: a roof
+line running along a gap between two bodies narrower than a bridge passes over
+neither, even touching one of them with its edge, while a line across the gap
+bridges it, so the bodies close the gap under it with their bands, printed
+solid. The flares of tips merge with each other, being printed
 solid: kept apart, tips a lattice pitch apart would leave the middle of each
 triangle of them hanging. Only a body wide enough to
 print counts as holding the interface. A tip, no wider than a tip
 and half a line, is printed solid with its flare, as a spiral from its outline in
-instead of a wall; a wider body prints the band it widens by solid two lines
-inside its outline, where its walls lie. A sliver of the band narrower than a
+instead of a wall; a wider body prints the part of the band it widens by that lies
+within two lines of its outline solid, where its walls lie. A sliver of the band narrower than a
 line prints nothing and holds nothing up: the trees inside the body grow under
 what lies over it. This holds whatever the base pattern, as the gaps lie between the
-bodies, outside any fill. With the default base pattern spacing of 2.5 mm a gap
-between tips lies within reach, and nothing widens.
+bodies, outside any fill. The touch band is removed from every gap narrower than the
+bridge span, so a roof line running between tips is not held by them, and at the
+default base pattern spacing the hanging check can still fire and widen bodies.
 
 The loops of the spiral are as wide as the part leaves room for, as Arachne lays
 them. Loops a line wide leave a slit up to a line wide where they run out, along
@@ -499,7 +505,8 @@ merged any sooner, which would leave the lines over the inside of the merged
 loop without the rings that hold them. The filled base patterns, such as
 Rectilinear, carry these interfaces on the body fill and grow no trees. With the
 default base pattern spacing of 2.5 mm only an interface over an inside wider
-than about 3 mm gets them.
+than about 3 mm gets them. The passes that fill covered holes, limit the growth of
+the bodies and widen them under roofs run for the filled base patterns as well.
 
 Trees whose tops merge while their trunks stand apart give a body that splits
 again going down. With a walls-only base the gaps between the trunks open below
@@ -579,7 +586,9 @@ hang over the model too, and carry neither support of the layer above nor model
 within the top Z distance. Its retained bearings are connected by
 a straight line, or by the shorter legal route along the footing boundary.
 Both bearings must touch printed material below; each free span is limited to
-one base-pattern pitch. The new bead stays inside the support region and away
+one base-pattern pitch. A connection lying on the edge of what the material
+below holds touches it, and the warning and the search for excursions take it
+as standing there: by rounding, it would otherwise hang off that edge. The new bead stays inside the support region and away
 from interface beads. A closed wall stays closed, including when the cut
 crosses its seam. If no shorter legal connection exists, the wall is retained
 and the warning reports its excursion. Cleanup repeats on that layer to remove
