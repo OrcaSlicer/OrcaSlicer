@@ -7,6 +7,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Line.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/IMEXHelpers.hpp"
@@ -45,6 +46,7 @@
 #include "libvgcode/include/Viewer.hpp"
 #include "libvgcode/include/PathVertex.hpp"
 #include <cstddef>
+#include <cfloat>
 #include <cstring>
 #include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
 #include <cassert>
@@ -3011,6 +3013,29 @@ void GCodeViewer::step_moves_slider(int delta)
         return;
 
     m_moves_slider->SetHigherValue(m_moves_slider->GetHigherValue() + delta);
+
+    if (wxGetApp().imgui() != nullptr)
+        wxGetApp().imgui()->set_requires_extra_frame();
+}
+
+void GCodeViewer::step_view_type(int delta)
+{
+    if (!has_data() || view_type_items_str.empty() || delta == 0)
+        return;
+
+    const int count = static_cast<int>(view_type_items_str.size());
+    const int new_sel = std::clamp(m_view_type_sel + delta, 0, count - 1);
+    if (new_sel == m_view_type_sel)
+        return;
+
+    m_fold = false;
+    m_view_type_sel = new_sel;
+    set_view_type(view_type_items[m_view_type_sel]);
+    reset_visible(view_type_items[m_view_type_sel]);
+    const std::string view_type_name = view_type_to_config_name(view_type_items[m_view_type_sel]);
+    if (!view_type_name.empty())
+        wxGetApp().app_config->set("preview_last_view_type", view_type_name);
+    update_moves_slider();
 
     if (wxGetApp().imgui() != nullptr)
         wxGetApp().imgui()->set_requires_extra_frame();

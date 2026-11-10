@@ -4490,6 +4490,14 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
             else if (evt.GetEventType() == wxEVT_KEY_DOWN) {
                 if (handle_shortcut(KeyChord::from_event(evt)))
                     return;
+                if (evt.GetModifiers() == wxMOD_ALT && (keyCode == WXK_UP || keyCode == WXK_DOWN) &&
+                    m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
+                    m_alt_wheel_used = true;
+                    m_gcode_viewer.step_view_type(keyCode == WXK_UP ? -1 : 1);
+                    m_dirty = true;
+                    request_extra_frame();
+                    return;
+                }
                 if (keyCode == WXK_ESCAPE && m_canvas_type == ECanvasType::CanvasPreview && m_render_preview) {
                     if (m_gcode_viewer.reset_sliders()) {
                         if (IMSlider* layers_slider = m_gcode_viewer.get_layers_slider(); layers_slider != nullptr)
@@ -4597,6 +4605,19 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
         return;
 
     if (evt.AltDown()) {
+        if (evt.ShiftDown() && m_canvas_type == ECanvasType::CanvasPreview && m_render_preview && !evt.CmdDown()) {
+            const int wheel_rot = evt.GetWheelRotation();
+            if (wheel_rot != 0) {
+                const int wheel_delta = std::max(1, evt.GetWheelDelta());
+                int steps = wheel_rot / wheel_delta;
+                if (steps == 0)
+                    steps = (wheel_rot > 0) ? 1 : -1;
+                m_gcode_viewer.step_view_type(-steps);
+                m_dirty = true;
+                request_extra_frame();
+            }
+            return;
+        }
         set_section_view_ratio(get_section_view_ratio() + (evt.GetWheelRotation() < 0 ? -0.01 : 0.01));
         return;
     }

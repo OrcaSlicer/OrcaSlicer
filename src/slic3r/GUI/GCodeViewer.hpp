@@ -452,6 +452,7 @@ public:
     bool on_mouse_click_toolpath(const Linef3& ray, bool shift_down);
     void step_layers_slider(int delta);
     void step_moves_slider(int delta);
+    void step_view_type(int delta);
     bool reset_sliders();
 
     const libvgcode::Interval& get_gcode_view_full_range() const { return m_viewer.get_view_full_range(); }
