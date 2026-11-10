@@ -30,9 +30,9 @@ edit — everything downstream is rebuilt by the same replay that built it the f
 
 Two consequences follow from deriving rather than storing:
 
-- **Undo is a snapshot of `features` alone.** The caller calls `checkpoint()` before the
-  mutations that make up one user action; undo restores that snapshot and recomputes. Because
-  everything else is derived, one checkpoint is exactly one `Ctrl+Z` step and the restored
+- **Undo snapshots the recipe, variables and session body placements.** The caller calls
+  `checkpoint()` before the mutations that make up one user action; undo restores that snapshot
+  and recomputes the derived bodies and meshes. One checkpoint is exactly one undo step and the restored
   state is exact rather than approximately reconstructed. The tab keeps this stack itself; it
   is not Orca's project snapshot system, which operates on `Model` objects the Design tab does
   not own until Commit.
@@ -151,8 +151,10 @@ which makes the destructive path unrepresentable rather than merely unlikely.
 
 A body Move is the one `Gesture` that outlives the press: its gizmo stays up between drags until
 Confirm keeps the placement or `Esc` or Cancel puts the body back. Until then the selection is
-held — a click off the gizmo only steers the camera — and undo is refused, since the placement
-is not in the history. Anything that starts another edit (a feature card, a sketch, placing
+held — a click off the gizmo only steers the camera — and undo is refused until the preview is
+confirmed or cancelled. Confirm records the whole placement session as one history step; Cancel
+records none. Session placements belong to the document's in-memory history, separate from its
+serialized feature recipe. Anything that starts another edit (a feature card, a sketch, placing
 imported art or text, another body's Move, a rebuild) keeps the placement, as switching gizmos
 keeps a move in Prepare. The panel ends the Move in one place (`DesignPanel::end_body_move`), so
 the gizmo, the Move / Rotate card and the ✓/✗ cannot outlive one another.

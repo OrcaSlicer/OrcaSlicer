@@ -111,7 +111,9 @@ Script workers can read the snapshot cache without a GUI round trip. Geometry qu
 snapshot and its descendants are serialized by a shared lock; they access the detached copy,
 never the live document. Capturing/copying a large whole body can cost time on the UI thread.
 Subscriptions are disconnected before unload and again during capability/module teardown,
-covering reload, shutdown and failed loads. Closing/dropping a handle suppresses queued calls;
+covering reload, shutdown and failed loads. Selection caches are constructed before the plugin
+manager so they remain alive when retained, unloaded plugin entries are destroyed at process exit.
+Closing/dropping a handle suppresses queued calls;
 an invocation already started may finish. As with any callback, avoid ownership cycles or
 explicitly close a handle stored by an object whose bound method it retains.
 

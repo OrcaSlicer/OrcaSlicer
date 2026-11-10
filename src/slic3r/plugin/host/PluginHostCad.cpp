@@ -87,6 +87,12 @@ std::shared_ptr<CadSelectionSubscription<Value>> subscribe(py::function callback
 
 } // namespace
 
+void PluginHostCad::initialize()
+{
+    selection_state<GUI::CadFaceSelection>();
+    selection_state<GUI::CadShapeSelection>();
+}
+
 void PluginHostCad::RegisterBindings(py::module_& host)
 {
     auto cad = host.def_submodule("cad", "Read-only Design-tab OCCT geometry and selection events.");

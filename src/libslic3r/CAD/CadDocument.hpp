@@ -550,6 +550,9 @@ public:
     // Multi-body result of the last replay. A "New" extrude appends a body; other ops
     // mutate a target body. Empty after a failed/empty recompute.
     std::vector<CadBody>    bodies;
+    // Session placements applied to display/pick meshes, not OCCT shapes. Kept in history so
+    // a confirmed Move/Rotate is undone together with feature edits; not part of the recipe format.
+    std::vector<Transform3d> body_transforms;
     TopoDS_Shape            body;          // compound of all bodies (1 body => that body) — display/compat
     TriangleMesh            display_mesh;      // tessellation of all bodies, concatenated (picking)
     std::vector<TriangleMesh> display_body_meshes; // one mesh per body, in `bodies` order (per-body color)
@@ -796,10 +799,9 @@ public:
     // Undo/redo of the feature recipe (Onshape-style Ctrl+Z). The caller marks a
     // user-action boundary by calling checkpoint() BEFORE the mutation(s) for that
     // action (add/delete/move/replace, or a direct features edit). undo()/redo() then
-    // restore the snapshot and recompute(). Because everything else (bodies/meshes/
-    // body) is derived by recompute(), snapshotting `features` alone is a complete,
-    // exact history; one checkpoint == one Ctrl+Z step.
-    void checkpoint();   // snapshot `features` for undo + invalidate redo
+    // restore the recipe, variables and session placements, then recompute the derived
+    // bodies/meshes. One checkpoint == one Ctrl+Z step.
+    void checkpoint();   // snapshot the editable state for undo + invalidate redo
     // Drop the most recent checkpoint. For a mutation that took a checkpoint, then failed
     // and restored the pre-mutation state itself (the constraint paths reject an
     // over-constrained addition this way): the snapshot now describes a state identical to
@@ -909,6 +911,7 @@ private:
     struct Snapshot {
         std::vector<CadFeature>            features;
         std::map<std::string, std::string> variables;
+        std::vector<Transform3d>           body_transforms;
     };
     std::vector<Snapshot> m_undo;
     std::vector<Snapshot> m_redo;

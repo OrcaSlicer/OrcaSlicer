@@ -1326,6 +1326,8 @@ private:
         std::vector<Vec3d> edge_pts;
         Vec3d              vertex_pt{Vec3d::Zero()};
     };
+    friend struct DesignSketchToolTestAccess;
+    bool apply_solid_pick(SolidPick pick, bool extend);
     bool resolve_solid_pick(GLCanvas3D& canvas, int mx, int my, SolidPick& out) const;
     // HOVER PRE-HIGHLIGHT (9xw part 3). Vertex-beats-edge-beats-face is a rule the user
     // cannot see until after they commit to a click; showing the outcome under the pointer is

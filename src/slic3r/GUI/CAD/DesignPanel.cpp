@@ -7952,6 +7952,7 @@ void DesignPanel::on_move_body()
         set_status(StatusKind::Info, hint);
         return;
     }
+    end_body_move(true);
     end_sketch_plane_choice();   // the gizmo takes the clicks a plane choice was waiting for
     sync_body_xform();
     // Delta gizmo: pivot at the body's CURRENT world centroid; the tool composes the drag deltas
@@ -7982,10 +7983,17 @@ void DesignPanel::on_move_body()
 void DesignPanel::end_body_move(bool keep)
 {
     if (!body_move_pending()) return;
+    sync_body_xform();
+    if (m_move_body < int(m_body_xform.size())) {
+        const Transform3d placed = m_body_xform[m_move_body];
+        m_body_xform[m_move_body] = m_move_prev;
+        if (keep && !placed.isApprox(m_move_prev)) {
+            m_doc.checkpoint();   // one history step for the whole drag/numeric session
+            m_body_xform[m_move_body] = placed;
+            Slic3r::put_other_changes();
+        }
+    }
     if (!keep) {
-        sync_body_xform();
-        if (m_move_body < int(m_body_xform.size()))
-            m_body_xform[m_move_body] = m_move_prev;
         feed_bodies();           // re-render the reverted placement
     }
     m_viewport->clear_move_gizmo();
@@ -8085,7 +8093,9 @@ bool DesignPanel::place_on_face()
     TriangleMesh probe = m_doc.display_body_meshes[b];
     probe.transform(x);
     x = Transform3d(Eigen::Translation3d(0.0, 0.0, -probe.bounding_box().min.z())) * x;
+    m_doc.checkpoint();
     m_body_xform[b] = x;
+    Slic3r::put_other_changes();
     set_status_ok();   // rebuild display/pick meshes, re-point picking; resets face selection
     set_status(StatusKind::Info, _L("Placed on face — body laid flat on the bed"));
     return true;
@@ -8237,7 +8247,9 @@ void DesignPanel::on_delete_body()
     const bool ok = m_doc.remove_feature(src);
     after_tree_edit(ok);
     if (ok)
-        set_status(StatusKind::Ok, wxString::Format(_L("Deleted %s, the feature this body was made from — Ctrl+Z restores it"), fname));
+        set_status(StatusKind::Ok, wxString::FromUTF8(wxGetApp().shortcuts().with_key(
+            wxString::Format(_L("Deleted %s, the feature this body was made from. Use Undo to restore it."), fname).utf8_string(),
+            Shortcut::Undo)));
 }
 
 void DesignPanel::on_delete_feature()
@@ -12267,7 +12279,7 @@ void DesignPanel::do_undo_redo(bool redo)
     // v1: act only in Feature mode. While authoring/constraining a sketch (m_ui_mode) or
     // with a feature dialog open (m_active), Esc/Cancel is the way out — popping committed
     // history mid-tool would be ambiguous (and could orphan the tool's referenced feature).
-    // A Move is not in the history at all, so an undo under it would keep it without asking.
+    // A live Move is still a preview; Confirm records its placement as one history step.
     if (m_ui_mode != UiMode::Feature || m_active != Tool::None || body_move_pending()) {
         set_status(StatusKind::Info, _L("Finish or cancel the current tool first (Esc)"));
         return;

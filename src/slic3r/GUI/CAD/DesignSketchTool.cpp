@@ -4187,6 +4187,11 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     if (!resolve_solid_pick(canvas, evt.GetX(), evt.GetY(), p))
         return false;   // missed the solid, or no solid data — same two exits as before
 
+    return apply_solid_pick(std::move(p), evt.ShiftDown() || evt.ControlDown() || evt.CmdDown());
+}
+
+bool DesignSketchTool::apply_solid_pick(SolidPick p, bool extend)
+{
     // What was selected BEFORE this pick — the escalation below is the only thing that reads
     // it, and everything from here on overwrites it.
     const SolidSel prev_kind = m_solid_sel;
@@ -4198,7 +4203,6 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     // set spanning two could not be applied. An edge already in the set leaves it; the last one
     // leaving clears the selection. No escalation to the whole body here — a modified click is
     // always about the set.
-    const bool extend = evt.ShiftDown() || evt.ControlDown() || evt.CmdDown();
     if (extend && p.kind == SolidSel::Edge && prev_kind == SolidSel::Edge && p.body == prev_body) {
         auto more = std::find(m_sel_edges_more.begin(), m_sel_edges_more.end(), p.edge);
         if (p.edge == prev_edge) {

@@ -85,6 +85,10 @@ PluginManager& PluginManager::instance()
     // next, so ~PluginManager can still drain it during its own shutdown().
     PythonInterpreter::instance();
     ScriptAsyncRuntime::instance();
+#ifdef SLIC3R_CAD
+    // Unloaded entries still call CAD cleanup from ~Plugin during static destruction.
+    PluginHostCad::initialize();
+#endif
     static PluginManager inst;
     return inst;
 }
