@@ -1,4 +1,5 @@
 #include "MoonrakerPrinterAgent.hpp"
+#include "MoonrakerFilamentSources.hpp"
 #include "AsioUtils.hpp"
 #include "CrealityCfs.hpp"
 #include "Http.hpp"
@@ -747,38 +748,35 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
 {
     std::vector<AmsTrayData> trays;
     int max_lane_index = 0;
+    const auto source = select_moonraker_filament_data(trays, max_lane_index,
+        [this](auto& out, int& index) { return fetch_moonraker_filament_data(out, index); },
+        [this](auto& out, int& index) { return fetch_hh_filament_info(out, index); },
+        [this](auto& out, int& index) { return fetch_creality_cfs_data(out, index); });
 
-    // Try Moonraker filament data (more generic, supports any filament changer
-    // software that reports lane data to Moonraker like AFC and recent Happy
-    // Hare as of Feb 15, 2026)
-    if (fetch_moonraker_filament_data(trays, max_lane_index)) {
+    switch (source) {
+    case MoonrakerFilamentSource::Lanes:
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Moonraker filament system with "
                                 << (max_lane_index + 1) << " lanes";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
-        return true;
-    }
-
-    // Attempt Happy Hare first (more widely adopted, supports more filament changers)
-    if (fetch_hh_filament_info(trays, max_lane_index)) {
+        break;
+    case MoonrakerFilamentSource::HappyHare:
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
-                                << (max_lane_index + 1) << " gates";
-        int ams_count = (max_lane_index + 4) / 4;
-        build_ams_payload(ams_count, max_lane_index, trays);
-        return true;
-    }
-
-    // Creality Hi exposes CFS slots as a Moonraker box printer object.
-    if (fetch_creality_cfs_data(trays, max_lane_index)) {
+                                << trays.size() << " loaded gates and " << (max_lane_index + 1) << " slots";
+        break;
+    case MoonrakerFilamentSource::CrealityCfs:
         BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Creality CFS with "
                                 << (max_lane_index + 1) << " slots";
-        build_ams_payload((max_lane_index + 4) / 4, max_lane_index, trays);
-        return true;
+        break;
+    case MoonrakerFilamentSource::EmptyLanes:
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Preserving empty lane_data topology with "
+                                << (max_lane_index + 1) << " lanes";
+        break;
+    case MoonrakerFilamentSource::None:
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected";
+        return false;
     }
 
-    // No MMU detected - this is normal for printers without MMU, not an error.
-    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: No MMU system detected";
-    return false;
+    build_ams_payload((max_lane_index + 4) / 4, max_lane_index, trays);
+    return true;
 }
 
 std::string MoonrakerPrinterAgent::trim_and_upper(const std::string& input)
