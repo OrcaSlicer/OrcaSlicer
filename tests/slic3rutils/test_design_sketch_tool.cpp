@@ -464,3 +464,214 @@ TEST_CASE("A move arrow pressed while looking down its axis does not jump on the
     tool.drag_move_arrow(ray_at(15.));
     CHECK_THAT(moved.translation().x(), WithinAbs(2., 1e-9));
 }
+
+namespace {
+
+// A 100 x 60 mm rectangle in a fresh Select-mode session on XY, its four sides added as one drawn
+// gesture adds them, top side first, so the tool infers what a drawn one gets: a Coincident at each
+// corner and a Horizontal or Vertical on each side.
+void draw_rectangle(DesignSketchTool& tool)
+{
+    tool.begin(SketchPlane::XY(), DesignSketchTool::Mode::Select);
+    const Vec2d               corners[] = { { -50., 30. }, { 50., 30. }, { 50., -30. }, { -50., -30. } };
+    std::vector<SketchEntity> sides;
+    for (int i = 0; i < 4; ++i) {
+        SketchEntity e;
+        e.type = SketchEntity::Type::Line;
+        e.p0   = corners[i];
+        e.p1   = corners[(i + 1) % 4];
+        sides.push_back(e);
+    }
+    tool.add_entities_scripted(sides);
+}
+
+// The index of the constraint of type `type` on side `side`, or -1.
+int constraint_on(const DesignSketchTool& tool, SketchConstraintType type, int side)
+{
+    const std::vector<SketchEntityConstraintDef>& cons = tool.constraints();
+    for (size_t i = 0; i < cons.size(); ++i)
+        if (cons[i].type == type && cons[i].ea == side)
+            return int(i);
+    return -1;
+}
+
+// The view's scale for the badge clicks below: half a millimetre per pixel.
+constexpr double kUnitPerPx = 0.5;
+
+} // namespace
+
+TEST_CASE("A click on a constraint badge selects that constraint and keeps it", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    draw_rectangle(tool);
+    const size_t count = tool.constraints().size();
+    const int    top   = constraint_on(tool, SketchConstraintType::Horizontal, 0);
+    REQUIRE(top >= 0);
+    const std::optional<Vec2d> badge = tool.constraint_badge(top, kUnitPerPx);
+    REQUIRE(badge.has_value());
+
+    CHECK(tool.click_constraint_badge(*badge, kUnitPerPx));
+    CHECK(tool.selected_constraint() == top);
+    CHECK(tool.constraints().size() == count);
+}
+
+TEST_CASE("A click off every constraint badge selects no constraint", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    draw_rectangle(tool);
+
+    CHECK_FALSE(tool.click_constraint_badge(Vec2d(0., 0.), kUnitPerPx));
+    CHECK(tool.selected_constraint() == -1);
+}
+
+TEST_CASE("A badge click reports the constraint it selected", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    draw_rectangle(tool);
+    std::vector<int> reported;
+    tool.on_constraint_selected = [&reported](int con) { reported.push_back(con); };
+    const int top = constraint_on(tool, SketchConstraintType::Horizontal, 0);
+    REQUIRE(top >= 0);
+    const std::optional<Vec2d> badge = tool.constraint_badge(top, kUnitPerPx);
+    REQUIRE(badge.has_value());
+
+    tool.click_constraint_badge(*badge, kUnitPerPx);
+    CHECK(reported == std::vector<int>{ top });
+}
+
+TEST_CASE("Deleting the selected constraint removes only that one and drops the selection", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    draw_rectangle(tool);
+    const size_t count = tool.constraints().size();
+    const int    top   = constraint_on(tool, SketchConstraintType::Horizontal, 0);
+    REQUIRE(top >= 0);
+    tool.select_constraint(top);
+
+    // What Delete does with a constraint selected (DesignPanel::delete_sketch_selection).
+    CHECK(tool.remove_constraint(tool.selected_constraint()));
+    CHECK(tool.constraints().size() == count - 1);
+    CHECK(constraint_on(tool, SketchConstraintType::Horizontal, 0) == -1);
+    CHECK(constraint_on(tool, SketchConstraintType::Horizontal, 2) >= 0);
+    CHECK(tool.selected_constraint() == -1);
+}
+
+TEST_CASE("Picking geometry drops the selected constraint", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    draw_rectangle(tool);
+    tool.select_constraint(constraint_on(tool, SketchConstraintType::Horizontal, 0));
+    REQUIRE(tool.selected_constraint() >= 0);
+
+    tool.select_indices({ 1 });
+    CHECK(tool.selected_constraint() == -1);
+}
+
+TEST_CASE("Selecting a constraint drops the picked geometry", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    draw_rectangle(tool);
+    tool.select_indices({ 1 });
+    REQUIRE_FALSE(tool.selection().empty());
+
+    tool.select_constraint(constraint_on(tool, SketchConstraintType::Horizontal, 0));
+    CHECK(tool.selection().empty());
+}
+
+TEST_CASE("Clearing the sketch selection drops a selected constraint", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    draw_rectangle(tool);
+    tool.select_constraint(constraint_on(tool, SketchConstraintType::Horizontal, 0));
+    // Esc asks this before deciding whether it has a selection to drop.
+    REQUIRE(tool.sketch_has_selection());
+
+    tool.clear_selection();
+    CHECK(tool.selected_constraint() == -1);
+}
+
+TEST_CASE("The selected constraint stays selected when an earlier one is deleted", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    draw_rectangle(tool);
+    const int top = constraint_on(tool, SketchConstraintType::Horizontal, 0);
+    REQUIRE(top > 0);
+    tool.select_constraint(top);
+
+    tool.remove_constraint(0);
+    REQUIRE(tool.selected_constraint() == top - 1);
+    CHECK(tool.constraints()[top - 1].type == SketchConstraintType::Horizontal);
+    CHECK(tool.constraints()[top - 1].ea == 0);
+}
+
+TEST_CASE("Undoing the geometry a selected constraint binds drops the selection", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    draw_rectangle(tool);
+    // Undo takes away at least the side drawn last, the left one.
+    tool.select_constraint(constraint_on(tool, SketchConstraintType::Vertical, 3));
+    REQUIRE(tool.selected_constraint() >= 0);
+
+    REQUIRE(tool.undo_last_entity());
+    CHECK(tool.selected_constraint() == -1);
+}
+
+TEST_CASE("Switching tools drops the selected constraint", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    draw_rectangle(tool);
+    tool.select_constraint(constraint_on(tool, SketchConstraintType::Horizontal, 0));
+    REQUIRE(tool.selected_constraint() >= 0);
+
+    tool.set_tool(DesignSketchTool::Mode::Move);
+    CHECK(tool.selected_constraint() == -1);
+}
+
+namespace {
+
+// The rectangle of draw_rectangle() opened in Constrain mode as a committed sketch, its constraints
+// on show as the Design panel shows them.
+void constrain_rectangle(DesignSketchTool& tool)
+{
+    DesignSketchTool drawn;
+    draw_rectangle(drawn);
+    tool.begin_constrain_entities(drawn.entities(), SketchPlane::XY());
+    tool.set_constraint_glyphs(drawn.constraints());
+}
+
+} // namespace
+
+TEST_CASE("Selecting a constraint in Constrain mode drops the entity picks", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    constrain_rectangle(tool);
+    tool.constrain_pick(Vec2d(0., 30.), 1.);   // the top side's middle
+    int e0 = -1, e1 = -1;
+    REQUIRE(tool.selected_constrain_entities(e0, e1));
+
+    tool.select_constraint(0);
+    REQUIRE(tool.selected_constraint() == 0);
+    CHECK_FALSE(tool.selected_constrain_entities(e0, e1));
+}
+
+TEST_CASE("A Constrain-mode pick drops the selected constraint", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    constrain_rectangle(tool);
+    tool.select_constraint(0);
+    REQUIRE(tool.selected_constraint() == 0);
+
+    tool.constrain_pick(Vec2d(0., 30.), 1.);
+    CHECK(tool.selected_constraint() == -1);
+}
+
+TEST_CASE("A Constrain-mode click on empty space drops the selected constraint", "[DesignSketchTool]")
+{
+    DesignSketchTool tool;
+    constrain_rectangle(tool);
+    tool.select_constraint(0);
+    REQUIRE(tool.selected_constraint() == 0);
+
+    tool.constrain_pick(Vec2d(0., 0.), 1.);   // the rectangle's centre, 30 mm from every side
+    CHECK(tool.selected_constraint() == -1);
+}
