@@ -154,6 +154,9 @@ protected:
     // Trim whitespace and convert to uppercase
     static std::string trim_and_upper(const std::string& input);
 
+    // Optional Moonraker database metadata, also used by the Snapmaker agent.
+    bool fetch_lane_data(nlohmann::json& lanes);
+
     // Map filament type to OrcaFilamentLibrary preset ID for AMS sync compatibility
     static std::string map_filament_type_to_generic_id(const std::string& filament_type);
 
