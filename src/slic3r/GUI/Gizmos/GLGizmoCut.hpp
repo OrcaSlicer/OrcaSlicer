@@ -301,6 +301,8 @@ public:
     // Where this tool's controls start, past the labels (0 until its window has been drawn): the Curve tool
     // draws the mode row there too, so the buttons stay in place when the mode changes.
     float label_width() const { return m_label_width; }
+    // The small revert button drawn right of a control; the Curve tool uses it too.
+    bool render_reset_button(const std::string& label_id, const std::string& tooltip) const;
 
 protected:
     bool               on_init() override;
@@ -381,7 +383,6 @@ private:
     bool render_slider_input(const std::string& label, float& value_in, float min_val = -0.1f, float max_val = 100.f);
     void render_move_center_input(int axis);
     void render_connect_mode_radio_button(CutConnectorMode mode);
-    bool render_reset_button(const std::string& label_id, const std::string& tooltip) const;
     bool render_connect_type_radio_button(CutConnectorType type);
     bool is_outside_of_cut_contour(size_t idx, const CutConnectors& connectors, const Vec3d cur_pos);
     bool is_conflict_for_connector(size_t idx, const CutConnectors& connectors, const Vec3d cur_pos);
