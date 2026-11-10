@@ -39,6 +39,8 @@
 #include <wx/frame.h>
 #include <wx/gdicmn.h>
 #include <wx/init.h>
+#include <wx/menu.h>
+#include <wx/menuitem.h>
 #include <wx/panel.h>
 #include <wx/window.h>
 
@@ -48,6 +50,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r;
@@ -568,6 +571,81 @@ TEST_CASE("a key goes to the hooks of the target and its parents before the targ
         allow_next = true;
         inspector.key(&target, "Escape", "");
         CHECK(seen == std::vector<std::string>{"panel hook", "key down"});
+    }
+}
+
+TEST_CASE("a main menu item is picked and listed in the state its update handlers give it when its menu opens", "[Mcp]")
+{
+#if defined(__linux__)
+    if (!std::getenv("DISPLAY") && !std::getenv("WAYLAND_DISPLAY"))
+        SKIP("This test needs a display (for example, xvfb-run).");
+#endif
+    if (wxTheApp == nullptr)
+        wxApp::SetInstance(new wxApp);
+    wxInitializer init;
+    REQUIRE(init.IsOk());
+    {
+        // The main window's handlers, bound on the frame: Default View is greyed on the Design tab, and the
+        // Recent files submenu while there are none.
+        wxFrame    frame(nullptr, wxID_ANY, "main");
+        bool       design_tab = false;
+        bool       has_recent = false;
+        int        ran        = 0;
+        const auto add        = [&](wxMenu& view, wxMenu& file) {
+            wxMenuItem* default_view = view.Append(wxID_ANY, "Default View");
+            auto*       recent       = new wxMenu;
+            wxMenuItem* recent_file  = recent->Append(wxID_ANY, "a.3mf");
+            wxMenuItem* recent_entry = file.AppendSubMenu(recent, "Recent files");
+            frame.Bind(wxEVT_UPDATE_UI, [&](wxUpdateUIEvent& e) { e.Enable(!design_tab); }, default_view->GetId());
+            frame.Bind(wxEVT_UPDATE_UI, [&](wxUpdateUIEvent& e) { e.Enable(has_recent); }, recent_entry->GetId());
+            frame.Bind(wxEVT_MENU, [&](wxCommandEvent&) { ++ran; }, default_view->GetId());
+            frame.Bind(wxEVT_MENU, [&](wxCommandEvent&) { ++ran; }, recent_file->GetId());
+            return std::make_pair(default_view, recent_file);
+        };
+        // The menus in the frame's menu bar (macOS, Linux), and popped up from the frame as Windows' top bar
+        // does: its File menu, and a drop-down menu with the other menus as submenus.
+        auto*      bar_file = new wxMenu;
+        auto*      bar_view = new wxMenu;
+        const auto in_bar   = add(*bar_view, *bar_file);
+        auto*      bar      = new wxMenuBar;
+        bar->Append(bar_file, "File");
+        bar->Append(bar_view, "View");
+        frame.SetMenuBar(bar);
+        wxMenu     top_file;
+        wxMenu     drop_down;
+        auto*      top_view = new wxMenu;
+        drop_down.AppendSubMenu(top_view, "View");
+        const auto in_top_bar = add(*top_view, top_file);
+
+        for (const auto& [default_view, recent_file] : {in_bar, in_top_bar}) {
+            ran = 0;
+            // Enabled the last time its menu opened, greyed by its handler now.
+            design_tab = true;
+            default_view->Enable(true);
+            CHECK_THROWS_WITH(run_menu_item(*default_view, frame, "View>Default View"), "The menu item View>Default View is disabled");
+            CHECK(ran == 0);
+            update_menu_ui(*default_view->GetMenu(), frame);
+            CHECK_FALSE(menu_item_reachable(*default_view));
+            // Greyed the last time, enabled now.
+            design_tab = false;
+            default_view->Enable(false);
+            CHECK(run_menu_item(*default_view, frame, "View>Default View") == json{{"clicked", "View>Default View"}});
+            CHECK(ran == 1);
+            // An enabled item can't be reached through a submenu entry its handler greys.
+            has_recent = false;
+            CHECK_THROWS_WITH(run_menu_item(*recent_file, frame, "File>Recent files>a.3mf"),
+                              "The menu item File>Recent files>a.3mf is disabled");
+            update_menu_ui(*recent_file->GetMenu(), frame);
+            CHECK(recent_file->IsEnabled());
+            CHECK_FALSE(menu_item_reachable(*recent_file));
+            has_recent = true;
+            CHECK(run_menu_item(*recent_file, frame, "File>Recent files>a.3mf") == json{{"clicked", "File>Recent files>a.3mf"}});
+            CHECK(ran == 2);
+        }
+
+        // Nor through a menu bar title that is greyed.
+        bar->EnableTop(1, false);
+        CHECK_THROWS_WITH(run_menu_item(*in_bar.first, frame, "View>Default View"), "The menu item View>Default View is disabled");
     }
 }
 

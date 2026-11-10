@@ -528,8 +528,17 @@ std::vector<std::pair<std::string, wxMenu*>> main_menus()
     return out;
 }
 
-// Finds a menu item by id under the main menus, with its label path and owning menu.
-wxMenuItem* find_menu_item(int id, std::string* path, wxMenu** owner)
+// The menu `menu` is a submenu of, at any depth, or `menu` itself.
+wxMenu& menu_root(wxMenu& menu)
+{
+    wxMenu* root = &menu;
+    while (root->GetParent() != nullptr)
+        root = root->GetParent();
+    return *root;
+}
+
+// Finds a menu item by id under the main menus, with its label path.
+wxMenuItem* find_menu_item(int id, std::string* path)
 {
     std::function<wxMenuItem*(wxMenu*, const std::string&)> search = [&](wxMenu* menu, const std::string& prefix) -> wxMenuItem* {
         for (wxMenuItem* item : menu->GetMenuItems()) {
@@ -539,8 +548,6 @@ wxMenuItem* find_menu_item(int id, std::string* path, wxMenu** owner)
             if (item->GetId() == id && !item->IsSubMenu()) {
                 if (path)
                     *path = here;
-                if (owner)
-                    *owner = menu;
                 return item;
             }
             if (item->IsSubMenu())
@@ -2032,7 +2039,7 @@ std::string UiInspector::add_ref(UiTarget target)
         const std::string path = target.menu_path;
         alive = [id, path] {
             std::string now;
-            return find_menu_item(id, &now, nullptr) != nullptr && now == path;
+            return find_menu_item(id, &now) != nullptr && now == path;
         };
         break;
     }
@@ -2094,7 +2101,7 @@ void UiInspector::add_menus(wxMenu* menu, const std::string& path, wxWindow* fra
         UiNode node;
         node.kind    = item->IsSubMenu() ? "menu" : "menu_item";
         node.label   = label;
-        node.enabled = item->IsEnabled();
+        node.enabled = menu_item_reachable(*item);
         node.depth   = depth;
         if (item->IsCheckable())
             node.checked = item->IsChecked() ? 1 : 0;
@@ -2406,8 +2413,14 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
         push(std::move(node), std::move(t), nodes, omitted, o);
         child_depth = depth + 1;
     }
-    if (top && w == wxGetApp().mainframe && o.include_menus)
-        for (const auto& [label_text, menu] : main_menus()) {
+    if (top && w == wxGetApp().mainframe && o.include_menus) {
+        const auto menus = main_menus();
+        // Each menu tree's handlers run once: Windows' top bar holds the menus after File in one menu.
+        std::set<wxMenu*> updated;
+        for (const auto& entry : menus)
+            if (updated.insert(&menu_root(*entry.second)).second)
+                update_menu_ui(*entry.second, *w);
+        for (const auto& [label_text, menu] : menus) {
             if (o.query.empty() && int(nodes.size() - m_web_nodes) < o.max_nodes) {
                 UiNode m;
                 m.ref   = "-";
@@ -2418,6 +2431,7 @@ void UiInspector::walk(wxWindow* w, int depth, std::vector<UiNode>& nodes, std::
             }
             add_menus(menu, label_text, w, child_depth + 1, nodes, omitted, o);
         }
+    }
     if (kind == "canvas")
         for (GLCanvas3D* canvas : ui_canvases())
             if (canvas->get_wxglcanvas() == w)
@@ -3074,23 +3088,10 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
     case UiTarget::Kind::WebElement:
         throw ToolFailure("A page element is clicked through its page, not as a widget");
     case UiTarget::Kind::MenuItem: {
-        wxMenu*     owner = nullptr;
-        wxMenuItem* item  = find_menu_item(t.menu_id, nullptr, &owner);
-        if (item == nullptr || owner == nullptr)
+        wxMenuItem* item = find_menu_item(t.menu_id, nullptr);
+        if (item == nullptr || item->GetMenu() == nullptr)
             throw ToolFailure("The menu item is gone; call list_widgets again");
-        if (!item->IsEnabled())
-            throw ToolFailure("The menu item " + t.menu_path + " is disabled");
-        int checked = -1;
-        if (item->IsCheckable()) {
-            item->Check(!item->IsChecked());
-            checked = item->IsChecked() ? 1 : 0;
-        }
-        if (!owner->SendEvent(t.menu_id, checked)) {
-            wxCommandEvent evt(wxEVT_MENU, t.menu_id);
-            evt.SetInt(checked);
-            send(wxGetApp().mainframe, evt);
-        }
-        return {{"clicked", t.menu_path}};
+        return run_menu_item(*item, *wxGetApp().mainframe, t.menu_path);
     }
     case UiTarget::Kind::ToolbarItem: {
         GLToolbar& tb = t.canvas->get_main_toolbar();
@@ -4037,6 +4038,47 @@ const std::vector<GLToolbarItem*>& toolbar_items(GLToolbar& toolbar, bool* chang
     if (changed != nullptr)
         *changed = any;
     return toolbar.get_items();
+}
+
+void update_menu_ui(wxMenu& menu, wxWindow& frame)
+{
+    // A submenu opens from its parent, whose opening already ran the handlers of the whole tree.
+    menu_root(menu).UpdateUI(frame.GetEventHandler());
+}
+
+bool menu_item_reachable(const wxMenuItem& item)
+{
+    if (!item.IsEnabled())
+        return false;
+    const wxMenu* menu = item.GetMenu();
+    for (const wxMenu* parent = menu->GetParent(); parent != nullptr; menu = parent, parent = parent->GetParent())
+        for (const wxMenuItem* entry : parent->GetMenuItems())
+            if (entry->GetSubMenu() == menu && !entry->IsEnabled())
+                return false;
+    if (const wxMenuBar* bar = menu->GetMenuBar())
+        for (size_t i = 0; i < bar->GetMenuCount(); ++i)
+            if (bar->GetMenu(i) == menu)
+                return bar->IsEnabledTop(i);
+    return true;
+}
+
+json run_menu_item(wxMenuItem& item, wxWindow& frame, const std::string& path)
+{
+    wxMenu* const owner = item.GetMenu();
+    update_menu_ui(*owner, frame);
+    if (!menu_item_reachable(item))
+        throw ToolFailure("The menu item " + path + " is disabled");
+    int checked = -1;
+    if (item.IsCheckable()) {
+        item.Check(!item.IsChecked());
+        checked = item.IsChecked() ? 1 : 0;
+    }
+    if (!owner->SendEvent(item.GetId(), checked)) {
+        wxCommandEvent evt(wxEVT_MENU, item.GetId());
+        evt.SetInt(checked);
+        send(&frame, evt);
+    }
+    return {{"clicked", path}};
 }
 
 }}} // namespace Slic3r::GUI::Mcp

@@ -1532,8 +1532,15 @@ plain window gets the context menu event a person's would: on macOS wx makes it 
 the window's handlers pass on, elsewhere the system sends it, so the click sends it there. A GL toolbar item's
 visibility and enabled state are brought up to date (`GLToolbar::update_items_state()`, what the
 canvas's idle handler does) before `list_widgets` lists them and before a click checks them, so an
-item a `select_objects` just enabled is not read as disabled. A click on an ImGui item whose centre lies
-under another ImGui window (a notification over a panel's button) is refused, naming that window.
+item a `select_objects` just enabled is not read as disabled. A main menu item likewise gets the state a
+person opening its menu sees before `list_widgets` lists it and before a click checks it: the menu's
+`wxEVT_UPDATE_UI` handlers run with the main frame as their source (`update_menu_ui()`), as the frame does
+when a menu of its menu bar opens and `PopupMenu()` does for the menus Windows' top bar shows. Until then an
+item keeps the state of the last time a person opened its menu, so View > Default View would still read
+enabled on the Design tab, where the app greys it. An item under a greyed submenu entry (File > Recent
+files with none) or menu bar title reads as disabled too, and a click on a disabled one is refused. A
+click on an ImGui item whose centre lies under another ImGui window (a notification over a panel's
+button) is refused, naming that window.
 `ImGuiWrapper::set_item_recording()` supplies the ImGui items (see below). `SyntheticInput` holds
 a gesture's keys, buttons and pointer for code that reads hardware state through `get_key_state()`
 and `get_mouse_state()`: the canvas, gizmos, and the object list's Ctrl/Shift multi-select. Mouse

@@ -28,6 +28,7 @@ class wxWebView;
 class wxEventLoopBase;
 class wxIdleEvent;
 class wxMenu;
+class wxMenuItem;
 class wxTopLevelWindow;
 struct ImGuiWindow;
 
@@ -428,5 +429,18 @@ std::vector<SurfaceMesh> surface_meshes(const std::vector<GLVolume*>&           
 // state of the last idle event, so an item a `select_objects` just enabled would still read disabled.
 // `changed` tells whether a state changed, which the canvas has yet to draw.
 const std::vector<GLToolbarItem*>& toolbar_items(GLToolbar& toolbar, bool* changed = nullptr);
+
+// Gives every item of the menu tree `menu` belongs to the state a person opening it from `frame` sees: its
+// wxEVT_UPDATE_UI handlers run with the frame as their source, as the frame does when a menu of its menu bar
+// opens and wxWindow::PopupMenu() does for a menu shown from it (Windows' top bar). Until then an item keeps
+// the state of the last time a person opened its menu.
+void update_menu_ui(wxMenu& menu, wxWindow& frame);
+// Whether a person can pick `item`: it, each submenu entry leading to it and, in a menu bar, its menu's title
+// are enabled.
+bool menu_item_reachable(const wxMenuItem& item);
+// Picks a main-window menu item as a person opening its menu from `frame` does: refused with ToolFailure when
+// it would show disabled; a check item toggles, then the command goes through the menu to the frame. `path`
+// names the item in the reply and errors.
+nlohmann::json run_menu_item(wxMenuItem& item, wxWindow& frame, const std::string& path);
 
 }}} // namespace Slic3r::GUI::Mcp
