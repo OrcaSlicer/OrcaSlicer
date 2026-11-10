@@ -84,7 +84,6 @@ orcaslicer_add_cmake_project(OCCT
 if (_occt_pch)
     ExternalProject_Add_Step(dep_OCCT remove_pch
         DEPENDEES install
-        DEPENDERS done
         COMMENT "Removing OCCT's precompiled headers"
         COMMAND ${CMAKE_COMMAND} -DDIR=<BINARY_DIR> -P ${CMAKE_CURRENT_LIST_DIR}/remove_pch.cmake)
 endif ()
