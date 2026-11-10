@@ -33,6 +33,14 @@ endif ()
 # OCCT reads BUILD_ADDITIONAL_TOOLKITS as a space-separated string.
 string(REPLACE ";" " " _occt_toolkits "${_occt_toolkits}")
 
+# OCCT's precompiled headers roughly halve its compile time. Off with clang-cl, which can then
+# break exception copies: https://github.com/llvm/llvm-project/issues/53486
+if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(_occt_pch OFF)
+else ()
+    set(_occt_pch ON)
+endif ()
+
 if (IN_GIT_REPO)
     set(OCCT_DIRECTORY_FLAG --directory ${BINARY_DIR_REL}/dep_OCCT-prefix/src/dep_OCCT)
 endif ()
@@ -60,10 +68,7 @@ orcaslicer_add_cmake_project(OCCT
         -DUSE_FFMPEG=OFF
         -DUSE_VTK=OFF
         -DBUILD_DOC_Overview=OFF
-        # OCCT's own precompiled headers (off by default). They roughly halve its compile
-        # time, at the cost of disk space for .pch files in the build tree (~2 GB with GCC);
-        # nothing is installed.
-        -DBUILD_USE_PCH=ON
+        -DBUILD_USE_PCH=${_occt_pch}
         -DBUILD_MODULE_ApplicationFramework=OFF
         -DBUILD_MODULE_DataExchange=OFF
         -DBUILD_MODULE_Draw=OFF
