@@ -244,9 +244,9 @@ if (SLIC3R_GUI)
         slic3r/UpdateHelper/InstallApply.cpp
         slic3r/UpdateHelper/InstallApply.hpp
         slic3r/UpdateHelper/InstallPlatform.hpp
-        slic3r/UpdateHelper/install_windows.cpp
-        slic3r/UpdateHelper/install_macos.cpp
-        slic3r/UpdateHelper/install_linux.cpp
+        slic3r/UpdateHelper/apply_windows.cpp
+        slic3r/UpdateHelper/apply_macos.cpp
+        slic3r/UpdateHelper/apply_linux.cpp
     )
 
     if (WIN32)
