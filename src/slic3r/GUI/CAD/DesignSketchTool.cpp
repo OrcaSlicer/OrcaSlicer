@@ -9239,10 +9239,13 @@ void DesignSketchTool::draw_dim_label(const std::string& txt, const Vec2d& plane
             ImGui::SetWindowPos(wp, ImGuiCond_Always);
         }
         m_label_rects.push_back({double(wp.x), double(wp.y), double(ws.x), double(ws.y)});
-        if (m_label_pending) { m_label_rect[0] = wp.x; m_label_rect[1] = wp.y; m_label_rect[2] = ws.x; m_label_rect[3] = ws.y; m_label_valid = true; }
     }
     const ImVec2 pos = ImGui::GetCursorScreenPos();
     const ImGuiStyle& st = ImGui::GetStyle();
+    if (m_label_pending) {   // the pill drawn below (not the window around it): the confirm beside it takes exactly its box
+        m_label_rect[0] = pos.x - st.FramePadding.x; m_label_rect[1] = pos.y + st.FramePadding.y;
+        m_label_rect[2] = ts.x + 3.0f * st.FramePadding.x; m_label_rect[3] = ts.y + st.FramePadding.y; m_label_valid = true;
+    }
     // Dark translucent pill, bright text: legible over the grey canvas, the bed grid, a light theme
     // and a model alike. The Measure gizmo's white-on-white-50% pill vanished against all of them.
     dl->AddRectFilled(ImVec2(pos.x - st.FramePadding.x, pos.y + st.FramePadding.y),

@@ -110,6 +110,18 @@ std::string fmt_number(double v, int digits)
     return float_to_string_decimal_point(v, std::clamp(digits, 0, 6));   // a '.', whatever the UI language: the field only accepts one
 }
 
+// A teal outline while the field under the pointer or being typed in (a darker teal wash too while typed in), as in the design mock-up.
+void field_outline()
+{
+    const bool act = ImGui::IsItemActive();
+    if (!act && !ImGui::IsItemHovered()) return;
+    const ImVec2 a = ImGui::GetItemRectMin(), b = ImGui::GetItemRectMax();
+    const float  r = ImGui::GetStyle().FrameRounding;
+    ImDrawList*  dl = ImGui::GetWindowDrawList();
+    if (act) dl->AddRectFilled(a, b, IM_COL32(20, 140, 135, 60), r);
+    dl->AddRect(a, b, IM_COL32(26, 179, 173, 255), r, 0, 1.5f);
+}
+
 // What the field being typed in holds, and which control owns it.
 const void* g_edit_owner = nullptr;
 std::string g_edit_text;
@@ -124,6 +136,7 @@ bool text_field(const void* owner, const char* id, const std::string& shown, std
     std::snprintf(buf, sizeof(buf), "%s", src.c_str());
     if (width > 0.f) ImGui::SetNextItemWidth(width);
     const bool enter = ImGui::InputText(id, buf, sizeof(buf), flags | ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+    field_outline();
     if (ImGui::IsItemActivated()) g_edit_owner = owner;
     if (ImGui::IsItemActive()) wxGetApp().imgui()->set_requires_extra_frame();   // keep frames coming while a field is being typed in
     if (g_edit_owner == owner) g_edit_text = buf;
@@ -284,6 +297,7 @@ void draw_edit_field(TextField* t, float width)
     std::snprintf(buf, sizeof(buf), "%s", u8(t->GetValue()).c_str());
     ImGui::SetNextItemWidth(width > 0.f ? width : -1.f);
     const bool enter = ImGui::InputText("##e", buf, sizeof(buf), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
+    field_outline();
     if (ImGui::IsItemActive()) wxGetApp().imgui()->set_requires_extra_frame();   // keep frames coming while a field is being typed in
     const wxString nv = wxString::FromUTF8(buf);
     if (nv != t->GetValue()) t->ChangeValue(nv);
@@ -302,6 +316,7 @@ void draw_editable_choice(ChoiceField* cb, float width)
     ImGui::SetNextItemWidth(std::max((width > 0.f ? width : ImGui::GetContentRegionAvail().x) - bw - ImGui::GetStyle().ItemSpacing.x, 40.f));
     if (ImGui::InputText("##t", buf, sizeof(buf)))
         cb->SetValue(wxString::FromUTF8(buf));
+    field_outline();
     if (ImGui::IsItemActive()) wxGetApp().imgui()->set_requires_extra_frame();
     ImGui::SameLine();
     if (ImGui::ArrowButton("##d", ImGuiDir_Down)) ImGui::OpenPopup("##list");

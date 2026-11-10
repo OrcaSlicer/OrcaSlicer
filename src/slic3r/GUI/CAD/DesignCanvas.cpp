@@ -236,11 +236,14 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
             if (m_sketch_tool.take_label_rect(lr) && m_topbar.action_active && m_topbar.action_active()) {
                 {
                     ImGuiWrapper::push_common_window_style(m_canvas->get_scale());
-                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(2.f * em, 2.f * em));
-                    imgui.set_next_window_pos(lr[0] + lr[2] + 4.f * em, lr[1] + 0.5f * lr[3], ImGuiCond_Always, 0.f, 0.5f);   // beside the label, centred on it
+                    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));   // the window is only a carrier: no padding, no background, no border, so the button is the whole visible box
+                    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+                    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+                    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.f, 0.f, 0.f, 0.f));
+                    imgui.set_next_window_pos(lr[0] + lr[2] + 4.f * em, lr[1], ImGuiCond_Always, 0.f, 0.f);   // beside the label, top edges level (the window has a minimum height: centring it would drop the button)
                     imgui.begin(std::string("##label_confirm"), ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize |
                                 ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav);
-                    const float  s   = std::max(lr[3], 16.f * em);   // as tall as the label: a smaller square reads as a checkbox
+                    const float  s   = lr[3];   // exactly the label pill's height: a smaller square reads as a checkbox
                     const bool   can = !m_topbar.confirm_enabled || m_topbar.confirm_enabled();
                     auto glyph = [&](const char* id, bool check, bool enabled, const char* tip) {
                         if (!enabled) { ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true); ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f); }
@@ -269,7 +272,8 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
                     };
                     if (glyph("##lbl_ok", true, can, "Confirm (Enter)") && m_topbar.confirm) m_topbar.confirm();
                     imgui.end();
-                    ImGui::PopStyleVar();
+                    ImGui::PopStyleColor();
+                    ImGui::PopStyleVar(3);
                     ImGuiWrapper::pop_common_window_style();
                 }
             }
