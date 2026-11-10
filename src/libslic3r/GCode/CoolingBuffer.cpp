@@ -967,6 +967,11 @@ std::string CoolingBuffer::apply_layer_cooldown(
             if (m_fan_speed != -1 && !std::any_of(fan_speed_change_requests.begin(), fan_speed_change_requests.end(), [](const std::pair<int, bool>& p) { return p.second; })){
                 fan_speed_change_requests[CoolingLine::TYPE_FORCE_RESUME_FAN] = true;
                 need_set_fan = true;
+            } else if (m_current_fan_speed != -1) {
+                // Another fan request is active (an internal bridge cut short by a tool change, say). The custom G-code
+                // before this line may still have changed the fan (a tool change prime that cools its strand), so put
+                // it back to the speed it had before that G-code.
+                new_gcode += GCodeWriter::set_fan(m_config.gcode_flavor, m_current_fan_speed, part_cooling_fan_min_pwm);
             }
             if (m_additional_fan_speed != -1 && m_config.auxiliary_fan.value)
                 new_gcode += GCodeWriter::set_additional_fan(m_additional_fan_speed);

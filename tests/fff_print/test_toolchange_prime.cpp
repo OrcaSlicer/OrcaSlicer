@@ -288,3 +288,68 @@ TEST_CASE("Tool change prime is left to the printer when timed on the printer", 
     CHECK(calls > 2);
     CHECK(first_uses == 1);
 }
+
+TEST_CASE("U1 tool change prime ends like the stock pre-extrusion", "[ToolchangePrime]")
+{
+    // The strand only comes off the nozzle reliably with the stock tail: full fan for 5 s, the cutter, the ACTION=4 wipe
+    // and the discard at the stock speeds. Without them it can hang off the nozzle and trip the spaghetti detector.
+    boost::nowide::ifstream file(std::string(PROFILES_DIR) + "/Snapmaker/machine/fdm_U1.json");
+    REQUIRE(file);
+    std::string prime_gcode = nlohmann::json::parse(file).at("toolchange_prime_gcode").get<std::string>();
+
+    DynamicPrintConfig config = two_tool_config();
+    config.set_deserialize_strict({{ "toolchange_prime_gcode", prime_gcode }, { "toolchange_prime_on_printer", false }});
+    std::string gcode = slice({cube(20)}, config);
+
+    const std::vector<std::string> tail = { "G1 E-0.5", "M400", "M106 S255", "G4 P5000", "M400", "INNER_CUTOFF_BASE_DISCARD",
+                                            "INNER_ROUGHLY_CLEAN_NOZZLE_BASE_DISCARD ACTION=4", "INNER_DISCARD_FILAMENT_BASE_DISCARD",
+                                            "MOVE_TO_XY_IDLE_POSITION_EXTRUDER", "RESTORE_GCODE_STATE NAME=toolchange_prime" };
+    std::regex         fan("M106 S(\\d+).*");
+    std::regex         extrusion("G[123] .*[XY][-0-9.]+.* E[0-9.]+.*");
+    std::istringstream in(gcode);
+    std::string        line;
+    std::smatch        m;
+    size_t             tails = 0, restores = 0;
+    bool               in_block = false, after_block = false;
+    size_t             next = 0;
+    std::string        fan_before;
+    while (std::getline(in, line)) {
+        if (line.rfind(";" + GCodeProcessor::Toolchange_Prime_Start_Tag, 0) == 0) {
+            in_block = true;
+            next     = 0;
+        } else if (line.rfind(";" + GCodeProcessor::Toolchange_Prime_End_Tag, 0) == 0) {
+            // A first use with nothing to restore leaves the block empty.
+            if (next > 0) {
+                CHECK(next == tail.size());
+                ++tails;
+                after_block = true;
+            }
+            in_block = false;
+        } else if (in_block) {
+            CHECK(line.find("ACCEL=") == std::string::npos);
+            // The processor adds progress lines (the 5 s dwell crosses some) and comments.
+            if (line.rfind("M73 ", 0) == 0 || line.rfind(";", 0) == 0)
+                continue;
+            if (next < tail.size() && line.rfind(tail[next], 0) == 0)
+                ++next;
+            else if (next > 0 && next < tail.size()) {
+                INFO("expected " << tail[next] << ", got " << line);
+                CHECK(false);
+            }
+        } else if (std::regex_match(line, m, fan)) {
+            if (after_block) {
+                // The part fan is set back to its speed before the prime, before anything is printed.
+                CHECK(m[1].str() == fan_before);
+                ++restores;
+                after_block = false;
+            }
+            fan_before = m[1].str();
+        } else if (after_block && std::regex_match(line, extrusion)) {
+            INFO(line);
+            CHECK(false);
+            after_block = false;
+        }
+    }
+    CHECK(tails > 2);
+    CHECK(restores == tails);
+}
