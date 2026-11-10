@@ -238,11 +238,15 @@ static float acceleration_time_from_distance(float initial_feedrate, float dista
     return (acceleration != 0.0f) ? (speed_from_distance(initial_feedrate, distance, acceleration) - initial_feedrate) / acceleration : 0.0f;
 }
 
+// The id after the last "id:", so that a colon in the object's name is not read as the separator:
+// "; printing object <name> id:<n> copy <m>" and "; start printing object, unique label id: <n>".
 static int get_object_label_id(const std::string_view comment_1)
 {
     std::string      comment(comment_1);
-    auto pos = comment.find(":");
-    std::string num_str = comment.substr(pos + 1);
+    auto pos = comment.rfind("id:");
+    if (pos == std::string::npos)
+        return -1;
+    std::string num_str = comment.substr(pos + 3);
     int id = -1;
     try {
         id = stoi(num_str);
@@ -4436,7 +4440,10 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
     }
 
     // ; OBJECT_ID  start
-    if (boost::starts_with(comment, " start printing object")) {
+    // Every printer labels its objects as "; printing object <name> id:<n> copy <m>"; a Bambu
+    // printer follows it with "; start printing object, unique label id: <n>", whose id is the
+    // instance's and wins. The stop line reads " stop printing object" in both styles.
+    if (boost::starts_with(comment, " start printing object") || boost::starts_with(comment, " printing object")) {
         m_object_label_id = get_object_label_id(comment);
         return;
     }
