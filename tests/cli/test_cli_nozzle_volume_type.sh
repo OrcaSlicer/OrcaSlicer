@@ -110,16 +110,19 @@ check command_line "$WORK/command_line/out.3mf" "High Flow,High Flow"
 
 # Reopened with an authored flush matrix, a project keeps it as long as its types stay the same: the types
 # as exported, High Flow ones, fewer than the nozzles (as from a printer whose defaults name one), or more.
+# A nozzle the project's list leaves out takes its first entry.
 "$PY" "$WORK/project.py" author "$WORK/base/out.3mf" "$WORK/authored.3mf" || exit 1
 "$PY" "$WORK/project.py" author "$WORK/base/out.3mf" "$WORK/high_flow.3mf" "High Flow,High Flow" || exit 1
 "$PY" "$WORK/project.py" author "$WORK/base/out.3mf" "$WORK/short.3mf" "Standard" || exit 1
+"$PY" "$WORK/project.py" author "$WORK/base/out.3mf" "$WORK/short_high_flow.3mf" "High Flow" || exit 1
 "$PY" "$WORK/project.py" author "$WORK/base/out.3mf" "$WORK/long.3mf" "High Flow,High Flow,Standard" || exit 1
-for project in authored high_flow short long; do
+for project in authored high_flow short short_high_flow long; do
     slice "$project" "$WORK/$project.3mf"
 done
 check authored "$WORK/authored/out.3mf" "Standard,Standard" authored
 check high_flow "$WORK/high_flow/out.3mf" "High Flow,High Flow" authored
 check short "$WORK/short/out.3mf" "Standard,Standard" authored
+check short_high_flow "$WORK/short_high_flow/out.3mf" "High Flow,High Flow" authored
 check long "$WORK/long/out.3mf" "High Flow,High Flow" authored
 
 [ "$failed" = 0 ] || exit 1
