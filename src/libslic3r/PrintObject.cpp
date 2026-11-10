@@ -5149,7 +5149,7 @@ void PrintObject::discover_sub_top_surfaces()
             const coord_t base_width = layerm->flow(frPerimeter).scaled_width();
             const coord_t min_area   = base_width * base_width * 25;
             const float min_width    = float(layerm->flow(frSolidInfill).scaled_spacing());
-            int top_shell_layers     = std::max(layerm->m_region->config().top_shell_layers.value - 2, 0);
+            int top_shell_layers     = std::max(layerm->m_region->config().top_shell_layers.value - 1, 0);
             int bottom_shell_layers  = layerm->m_region->config().bottom_shell_layers.value;
             bool is_not_solid        = layerm->m_region->config().top_surface_density.value < 100;
             ExPolygons crop_mask     = layerm->fill_no_overlap_expolygons;
@@ -5215,18 +5215,18 @@ void PrintObject::discover_sub_top_surfaces()
     // A layer reads the tops of the layer above and retypes its own fill surfaces, so neighbours
     // must not run together. Splitting the sweep by parity keeps every pair of concurrent layers
     // two apart, which leaves the read and write sets disjoint.
-    for (size_t parity = 0; parity < 2; ++ parity) {
-        if (num_to_process <= parity)
-            continue;
-        const size_t count = (num_to_process - parity + 1) / 2;
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, count),
-            [&process_layer, parity, &cache_surfaces](const tbb::blocked_range<size_t> &range) {
-                for (size_t k = range.begin(); k < range.end(); ++ k) {
-                    size_t idx = parity + 2 * k;
-                    process_layer(idx, cache_surfaces[idx]);
-                }
-            });
-    }
+    //for (size_t parity = 0; parity < 2; ++ parity) {
+    //    if (num_to_process <= parity)
+    //        continue;
+    //    const size_t count = (num_to_process - parity + 1) / 2;
+    //    tbb::parallel_for(tbb::blocked_range<size_t>(0, count),
+    //        [&process_layer, parity, &cache_surfaces](const tbb::blocked_range<size_t> &range) {
+    //            for (size_t k = range.begin(); k < range.end(); ++ k) {
+    //                size_t idx = parity + 2 * k;
+    //                process_layer(idx, cache_surfaces[idx]);
+    //            }
+    //        });
+    //}
     // Allocating cash to their positions.
     // This works only with stInternalSolid. For other types of surfaces, a cutting/replacement procedures are required.
     for (auto& cache : cache_surfaces) {
