@@ -148,6 +148,15 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
 
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer)
 {
+    // Orca: a mixed filament's own column sits past the nozzles and would fall back to nozzle 1. It
+    // prints through its components' nozzles, which Print::validate requires to be of one diameter,
+    // so its diameter is its first component's.
+    if (filament_id >= 1 && size_t(filament_id - 1) < config.filament_is_mixed.size() && config.filament_is_mixed.values[filament_id - 1] &&
+        size_t(filament_id - 1) < config.filament_mixed_components.size()) {
+        for (unsigned int component : parse_mixed_components(config.filament_mixed_components.values[filament_id - 1]))
+            if (component >= 1 && (size_t(component - 1) >= config.filament_is_mixed.size() || !config.filament_is_mixed.values[component - 1]))
+                return nozzle_diameter_for_filament(config, int(component), is_bbl_printer);
+    }
     int extruder = filament_id;
     if (is_bbl_printer && config.nozzle_diameter.size() > 1 &&
         filament_id >= 1 && static_cast<size_t>(filament_id - 1) < config.filament_map.size())

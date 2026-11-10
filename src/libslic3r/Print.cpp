@@ -2428,6 +2428,27 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                  "enable_mixed_color_sublayer");
     }
 
+    // Orca: a mixed filament's components all trace one set of paths, each at a share of the layer
+    // height, so they must print through nozzles of one diameter (nozzle_diameter_for_filament
+    // slices the mixed slot at that diameter). Different diameters are refused.
+    for (unsigned int slot : extruders) {
+        if (slot >= m_config.filament_is_mixed.size() || !m_config.filament_is_mixed.values[slot] || slot >= m_config.filament_mixed_components.size())
+            continue;
+        std::set<double> diameters;
+        for (unsigned int component : parse_mixed_components(m_config.filament_mixed_components.values[slot]))
+            if (component >= 1)
+                diameters.insert(nozzle_diameter_for_filament(m_config, int(component), this->is_BBL_printer()));
+        if (diameters.size() < 2)
+            continue;
+        std::string list;
+        for (double d : diameters)
+            list += (list.empty() ? "" : ", ") + float_to_string_decimal_point(d);
+        // TRN %1% is a filament number, %2% a list of nozzle diameters such as "0.4, 0.6".
+        return {(boost::format(L("Mixed filament %1% blends filaments printed through nozzles of different diameters (%2% mm). "
+                                 "Assign its components to tools whose nozzles have the same diameter.")) % (slot + 1) % list).str(),
+                nullptr, "filament_mixed_components"};
+    }
+
     // Orca: before slicing only the part filaments are certain to print; the rest are checked in
     // process(). The full config holds printer options PrintConfig lacks.
     const DynamicPrintConfig& printer_config = this->full_print_config();
