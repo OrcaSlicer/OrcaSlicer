@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "3D-Fuel Standard PLA @System",
+	"inherits": "3D-Fuel Standard PLA @base",
+	"from": "system",
+	"setting_id": "PGJG5I57jWCOX6el",
+	"instantiation": "true",
+	"compatible_printers": []
+}

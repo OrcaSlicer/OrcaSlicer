@@ -3,6 +3,7 @@ add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests_main.cpp
     test_bambu_filament_ids.cpp
     test_bed_exclusion_fields.cpp
+    test_cloud_delete_queue.cpp
     test_config_value_formatter.cpp
     test_creality_cfs_match.cpp
     test_creality_print.cpp
@@ -15,6 +16,10 @@ add_executable(${_TEST_NAME}_tests
     test_filament_color_picker.cpp
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
+    # The reduced toolpath set's end bands, from libvgcode's layer table.
+    test_libvgcode_layers.cpp
+    # The vertex that stands for a role when the solid model takes the toolpaths' colours.
+    test_libvgcode_sampling.cpp
     test_device_progress.cpp
     test_device_manager_integration.cpp
     test_web_media_controller.cpp
@@ -35,10 +40,12 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_capabilities_in_use.cpp
     test_plugin_status.cpp
     test_printer_agent.cpp
+    test_qidi_printer_agent.cpp
     test_plugin_install.cpp
     test_plugin_lifecycle.cpp
     test_plugin_resource_texture.cpp
     test_plugin_printer_agent.cpp
+    test_post_processor.cpp
     test_printhost.cpp
     test_slicing_pipeline_bindings.cpp
     test_slicing_pipeline_config.cpp
@@ -46,7 +53,10 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_cloud_metadata.cpp
     test_plugin_audit.cpp
     test_plugin_json_depth.cpp
+    test_plugin_permission_validation.cpp
     test_shortcuts.cpp
+    test_speed_dial_dismiss.cpp
+    test_speed_dial_position.cpp
     test_texture_color_palette.cpp
     test_texture_island_view.cpp
     test_timelapse_codecs.cpp
@@ -55,6 +65,7 @@ add_executable(${_TEST_NAME}_tests
     test_user_manager.cpp
     test_sequential_clearance.cpp
     test_object_list.cpp
+    test_geometry_import.cpp
     ../fff_print/test_helpers.cpp
     )
 

@@ -373,7 +373,7 @@ current `boost::any m_value`. Virtuals: `BUILD()`, `set_value(any, change_event)
 `toggle(en)` enables only when not `readonly`. Subclasses: `TextCtrl`, `CheckBox`, `SpinCtrl`, `Choice`,
 `ColourPicker`, `PointCtrl`, `StaticText`, `SliderCtrl`, `PrinterAgentChoice`, `PluginField`,
 `PluginConfigField`. `Field::Create<T>(parent, def, id)` constructs, runs `PostInitialize()` (em unit,
-`parent_is_custom_ctrl`, `BUILD()`, readonly → `disable()`, Ctrl+1..4 tab shortcuts on the window) and returns a
+`parent_is_custom_ctrl`, `BUILD()`, readonly → `disable()`) and returns a
 `std::unique_ptr<Field>` owned by `OptionsGroup::m_fields`. The subclass `CheckBox` shadows the global `::CheckBox`
 widget inside `Slic3r::GUI` wherever `Field.hpp` is visible, which is why widget code there writes `::CheckBox`
 (and qualifies `::TextInput` / `::ComboBox` the same way) (`references/orca-widgets.md`).
