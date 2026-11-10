@@ -96,11 +96,7 @@ protected:
         POINT,
         EDGE,
         CIRCLE,
-        CIRCLE_1,
-        CIRCLE_2,
         PLANE,
-        PLANE_1,
-        PLANE_2,
         SPHERE_1,
         SPHERE_2,
     };
@@ -185,6 +181,7 @@ protected:
     CircleGLModel  m_curr_circle;
     CircleGLModel  m_feature_circle_first;
     CircleGLModel  m_feature_circle_second;
+    // GripperType::UNDEFINE builds the circle without a gripper, for the selected circles.
     void           init_circle_glmodel(GripperType gripper_type, const Measure::SurfaceFeature &feature, CircleGLModel &circle_gl_model, float inv_zoom);
 
     struct PlaneGLModel {
@@ -194,6 +191,7 @@ protected:
     PlaneGLModel m_curr_plane;
     PlaneGLModel m_feature_plane_first;
     PlaneGLModel m_feature_plane_second;
+    // GripperType::UNDEFINE builds the plane without a gripper, for the selected planes.
     void  init_plane_glmodel(GripperType gripper_type, const Measure::SurfaceFeature &feature, PlaneGLModel &plane_gl_model);
 
     struct Dimensioning
@@ -221,7 +219,6 @@ protected:
     std::optional<Vec3d> m_curr_point_on_feature_position;
 
     // These hold information to decide whether recalculation is necessary:
-    float m_last_inv_zoom{ 0.0f };
     std::optional<Measure::SurfaceFeature> m_last_circle_feature;
     int m_last_plane_idx{ -1 };
 
@@ -267,27 +264,6 @@ public:
     std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Measure gizmo"); }
     //std::string get_action_snapshot_name() const override { return _u8L("Measure gizmo editing"); }
 
-    struct PickState
-    {
-        int  hover_id{-1};
-        bool sphere_1_live{false};
-        bool sphere_2_live{false};
-        bool feature_hovered{false};
-        bool point_selection{false};
-        bool has_point_on_feature{false};
-    };
-    // Returns true when a click can select a live selection sphere under the cursor, or else the hovered feature
-    // and, in point selection, the point on it. The hovered feature needs no gripper hit, since its highlight can be thinner than its hover band.
-    static bool has_pick_target(const PickState &state);
-
-    struct GripperHit
-    {
-        int    id;
-        double distance;
-    };
-    // Returns the closest hit's id, or -1 without a hit. On a tie the earlier hit is kept.
-    static int pick_hover_id(const std::vector<GripperHit> &hits);
-
 protected:
     bool on_init() override;
     std::string on_get_name() const override;
@@ -312,12 +288,13 @@ protected:
     void update_measurement_result();
 
     void reset_all_pick();
-    void reset_gripper_pick(GripperType id,bool is_all = false);
+    void reset_gripper_pick(GripperType id);
     void reset_hover_gripper_pick();
-    bool hover_has_pick_target() const;
-    // Sets m_hover_id to -1 when the gripper it names has no feature to select.
-    void clear_unpickable_hover_id();
-    void record_hit_volume(const SelectedFeatures::Item &item);
+    // Returns true when a click can select a live selection sphere under the cursor, or else the hovered feature
+    // and, in point selection, the point on it. The hovered feature needs no gripper hit, since its highlight can be thinner than its hover band.
+    bool can_pick() const;
+    // Records the volume of a newly selected feature, as the first or the second selection.
+    void record_hit_volume(const SelectedFeatures::Item &item, bool is_second);
     void register_single_mesh_pick();
     //void update_single_mesh_pick(GLVolume* v);
 

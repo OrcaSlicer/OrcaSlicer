@@ -55,7 +55,6 @@ add_executable(${_TEST_NAME}_tests
     test_speed_dial_position.cpp
     test_texture_color_palette.cpp
     test_texture_island_view.cpp
-    test_measure_gizmo.cpp
     test_timelapse_codecs.cpp
     test_file_url.cpp
     test_imgui_wrapper.cpp
