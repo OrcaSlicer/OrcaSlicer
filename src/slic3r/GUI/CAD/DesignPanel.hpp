@@ -985,7 +985,8 @@ private:
     // Per-body display translation (Move-body, M5). Parallel to m_doc.bodies; default
     // identity. Applied to the display/pick meshes only — the OCCT shape (and face/edge
     // global ids) is never touched, so dress-up targeting stays stable across a move.
-    std::vector<Transform3d>& m_body_xform{m_doc.body_transforms};
+    // Live previews stay here; m_doc.body_transforms holds only confirmed placements for undo.
+    std::vector<Transform3d>  m_body_xform;
     std::vector<TriangleMesh> m_disp_body_meshes;   // display_body_meshes with m_body_xform applied
     TriangleMesh              m_disp_pick_mesh;      // combined pick mesh with m_body_xform applied
     void sync_body_xform();               // grow m_body_xform to bodies.size() (identity)

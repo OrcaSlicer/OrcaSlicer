@@ -550,7 +550,7 @@ public:
     // Multi-body result of the last replay. A "New" extrude appends a body; other ops
     // mutate a target body. Empty after a failed/empty recompute.
     std::vector<CadBody>    bodies;
-    // Session placements applied to display/pick meshes, not OCCT shapes. Kept in history so
+    // Committed session placements applied to display/pick meshes, not OCCT shapes. Kept in history so
     // a confirmed Move/Rotate is undone together with feature edits; not part of the recipe format.
     std::vector<Transform3d> body_transforms;
     TopoDS_Shape            body;          // compound of all bodies (1 body => that body) — display/compat

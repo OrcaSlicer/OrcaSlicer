@@ -154,7 +154,9 @@ Confirm keeps the placement or `Esc` or Cancel puts the body back. Until then th
 held — a click off the gizmo only steers the camera — and undo is refused until the preview is
 confirmed or cancelled. Confirm records the whole placement session as one history step; Cancel
 records none. Session placements belong to the document's in-memory history, separate from its
-serialized feature recipe. Anything that starts another edit (a feature card, a sketch, placing
+serialized feature recipe. The panel keeps live placement previews separately, so checkpoints
+for other edits cannot capture an unconfirmed Transform preview. Anything that starts another
+edit (a feature card, a sketch, placing
 imported art or text, another body's Move, a rebuild) keeps the placement, as switching gizmos
 keeps a move in Prepare. The panel ends the Move in one place (`DesignPanel::end_body_move`), so
 the gizmo, the Move / Rotate card and the ✓/✗ cannot outlive one another.

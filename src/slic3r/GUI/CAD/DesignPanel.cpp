@@ -4967,6 +4967,7 @@ void DesignPanel::on_import_step()
                                        : (wxString::Format(_L("STEP import failed: %s"), kernel_error_text(err))));
         return;
     }
+    end_body_move(true);
     m_doc.checkpoint();   // undo boundary: importing STEP solids
     for (const TopoDS_Shape& s : solids) {
         m_feature_counter++;
@@ -5066,6 +5067,7 @@ void DesignPanel::on_import_mesh()
     }
     if (shape.IsNull()) { fail(_L("Mesh conversion produced no geometry")); return; }
 
+    end_body_move(true);
     m_doc.checkpoint();   // undo boundary: importing a mesh as a B-rep body
     m_feature_counter++;
     CadFeature f;
@@ -5120,6 +5122,7 @@ void DesignPanel::add_imported_sketch(
                                             base_name));
         return;
     }
+    end_body_move(true);
     m_doc.checkpoint();   // undo boundary: importing Text/SVG art
     m_feature_counter++;
     CadFeature f;
@@ -7547,6 +7550,7 @@ void DesignPanel::load_recipe(const std::string& blob)
         return;
     }
     m_feature_counter = int(m_doc.features.size());
+    m_body_xform = m_doc.body_transforms;
     drop_selection();
     feed_bodies();    // push the restored bodies into the viewport
     refresh_tree();   // rebuild the feature tree from the restored recipe
@@ -7740,6 +7744,7 @@ void DesignPanel::sync_body_xform()
 {
     // Parallel to bodies; new bodies default to identity (no move). Stable on resize.
     m_body_xform.resize(m_doc.bodies.size(), Transform3d::Identity());
+    m_doc.body_transforms.resize(m_doc.bodies.size(), Transform3d::Identity());
 }
 
 // Build the display + pick meshes with each body's Move transform applied. The pick mesh is
@@ -7986,12 +7991,12 @@ void DesignPanel::end_body_move(bool keep)
     sync_body_xform();
     if (m_move_body < int(m_body_xform.size())) {
         const Transform3d placed = m_body_xform[m_move_body];
-        m_body_xform[m_move_body] = m_move_prev;
         if (keep && !placed.isApprox(m_move_prev)) {
             m_doc.checkpoint();   // one history step for the whole drag/numeric session
-            m_body_xform[m_move_body] = placed;
+            m_doc.body_transforms = m_body_xform;
             Slic3r::put_other_changes();
-        }
+        } else if (!keep)
+            m_body_xform[m_move_body] = m_move_prev;
     }
     if (!keep) {
         feed_bodies();           // re-render the reverted placement
@@ -8078,6 +8083,7 @@ bool DesignPanel::place_on_face()
     }
     const TopoDS_Face face = GeometryEngine::face_by_index(m_doc.bodies[b].shape, m_sel_solid_face);
     if (face.IsNull()) return false;
+    end_body_move(true);
     end_sketch_plane_choice();   // the body moves; a sketch was not started
     sync_body_xform();
     const Transform3d old_x = m_body_xform[b];
@@ -8095,6 +8101,7 @@ bool DesignPanel::place_on_face()
     x = Transform3d(Eigen::Translation3d(0.0, 0.0, -probe.bounding_box().min.z())) * x;
     if (!x.isApprox(old_x)) m_doc.checkpoint();
     m_body_xform[b] = x;
+    m_doc.body_transforms = m_body_xform;
     Slic3r::put_other_changes();
     set_status_ok();   // rebuild display/pick meshes, re-point picking; resets face selection
     set_status(StatusKind::Info, _L("Placed on face — body laid flat on the bed"));
@@ -11975,12 +11982,6 @@ void DesignPanel::close_tool()
 
 void DesignPanel::confirm_tool()
 {
-    if (m_active == Tool::Transform) {
-        // History stores committed placements, never the Transform card's live preview.
-        xf_clear_preview();
-        if (m_xf_gizmo_body >= 0 && m_xf_gizmo_body < int(m_body_xform.size()))
-            m_body_xform[m_xf_gizmo_body] = m_xf_gizmo_base;
-    }
     // One undo boundary per committed feature (Extrude/Dressup/Hole/Thread/Shell, the
     // legacy Sketch card via on_add_sketch, and edit-mode replace all funnel here).
     m_doc.checkpoint();
@@ -12296,6 +12297,7 @@ void DesignPanel::do_undo_redo(bool redo)
         set_status(StatusKind::Info, redo ? _L("Nothing to redo") : _L("Nothing to undo"));
         return;
     }
+    m_body_xform = m_doc.body_transforms;
     // The picks and any in-place edit reference ids that recompute() invalidates — drop them
     // before refreshing from the restored document.
     drop_selection();
