@@ -38,6 +38,12 @@
 #include "../Utils/MacDarkMode.hpp"
 #endif // __APPLE__
 
+#ifdef _WIN32
+#include <cwchar>
+#include <system_error>
+#include <windows.h>
+#endif // _WIN32
+
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
 #ifdef wxHAS_EGL
@@ -425,6 +431,68 @@ wxGLContext* OpenGLManager::init_glcontext(wxGLCanvas& canvas, const std::pair<i
 
     }
     return m_context;
+}
+
+#ifdef _WIN32
+// wx logs a failed wglMakeCurrent only at debug level, which release builds drop, so repeat the
+// call to read the error, and add what the driver was given: the pixel format and the display.
+static std::string describe_make_current_failure(const wxGLCanvas& canvas, const wxGLContext* context, bool& retry_succeeded)
+{
+    const HDC hdc = canvas.GetHDC();
+    std::ostringstream out;
+    retry_succeeded = false;
+    if (context == nullptr || context->GetGLRC() == nullptr)
+        out << "no OpenGL context was created";
+    else if (::wglMakeCurrent(hdc, context->GetGLRC()) != FALSE) {
+        retry_succeeded = true;
+        out << "wglMakeCurrent succeeded on retry";
+    } else {
+        const DWORD error = ::GetLastError();
+        out << "wglMakeCurrent failed with error " << error << " (" << std::system_category().message(static_cast<int>(error)) << ")";
+    }
+
+    PIXELFORMATDESCRIPTOR pfd{};
+    if (const int pixel_format = ::GetPixelFormat(hdc); pixel_format > 0 && ::DescribePixelFormat(hdc, pixel_format, sizeof(pfd), &pfd) > 0)
+        out << ", pixel format " << pixel_format << " (flags 0x" << std::hex << pfd.dwFlags << std::dec << ", color "
+            << static_cast<int>(pfd.cColorBits) << ", depth " << static_cast<int>(pfd.cDepthBits) << ", stencil "
+            << static_cast<int>(pfd.cStencilBits) << ")";
+    else
+        out << ", no pixel format on the canvas";
+
+    MONITORINFOEXW monitor{};
+    monitor.cbSize = sizeof(monitor);
+    if (::GetMonitorInfoW(::MonitorFromWindow(::WindowFromDC(hdc), MONITOR_DEFAULTTONEAREST), &monitor)) {
+        DISPLAY_DEVICEW device{};
+        device.cb = sizeof(device);
+        for (DWORD i = 0; ::EnumDisplayDevicesW(nullptr, i, &device, 0); ++i)
+            if (std::wcscmp(device.DeviceName, monitor.szDevice) == 0) {
+                out << ", " << into_u8(wxString(monitor.szDevice)) << " on " << into_u8(wxString(device.DeviceString));
+                break;
+            }
+    }
+    return out.str();
+}
+#endif // _WIN32
+
+void OpenGLManager::report_make_current_failure([[maybe_unused]] const wxGLCanvas& canvas, [[maybe_unused]] const wxGLContext* context)
+{
+    if (m_make_current_failure_reported)
+        return;
+    m_make_current_failure_reported = true;
+#ifdef _WIN32
+    bool retry_succeeded = false;
+    BOOST_LOG_TRIVIAL(error) << "Cannot make the OpenGL context current on a shown canvas: "
+                             << describe_make_current_failure(canvas, context, retry_succeeded);
+    // A failure after OpenGL came up, or one a retry clears, does not leave the 3D view empty.
+    if (m_gl_initialized || retry_succeeded)
+        return;
+    // TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+    wxString message = _L("OpenGL could not be activated on this graphics card, so the 3D view cannot be shown.");
+    message += "\n\n";
+    message += _L("Please upgrade your graphics card driver.");
+    // show_error() defers the dialog, so it does not open inside the paint handler drawing the canvas.
+    show_error(nullptr, message);
+#endif // _WIN32
 }
 
 static const char* const SCENE_CANVAS_NAME = "OrcaSceneCanvas";

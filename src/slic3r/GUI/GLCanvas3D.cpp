@@ -2542,7 +2542,13 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
         return;
 
     // ensures this canvas is current and initialized
-    if (!_is_shown_on_screen() || !_set_current() || !wxGetApp().init_opengl())
+    if (!_is_shown_on_screen())
+        return;
+    if (!_set_current()) {
+        wxGetApp().get_opengl_manager().report_make_current_failure(*m_canvas, m_context);
+        return;
+    }
+    if (!wxGetApp().init_opengl())
         return;
 
     if (!is_initialized() && !init())
@@ -3902,6 +3908,10 @@ void GLCanvas3D::load_gcode_preview(const GCodeProcessorResult& gcode_result, co
     const std::vector<BoundingBoxf3>& exclude_bounding_box = plate->get_exclude_areas();
 
     _set_shown_canvas_current();
+    // The viewer uploads to the GPU from here on. Without a context the driver lets us make
+    // current, the OpenGL functions were never loaded and there is nothing to draw it with.
+    if (!wxGetApp().init_opengl())
+        return;
 
     //BBS: init is called in GLCanvas3D.render()
     //when load gcode directly, it is too late
