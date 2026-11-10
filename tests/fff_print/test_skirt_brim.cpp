@@ -14,7 +14,6 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstddef>
@@ -92,49 +91,34 @@ static bool brim_enters_first_layer_hole(Print &print)
     return false;
 }
 
-static bool brim_fills_small_first_layer_holes(Print &print, double max_hole_area)
+// Measure deposited brim area, not just whether some path points reach each side.
+static std::vector<double> brim_coverage_of_small_first_layer_holes(Print &print, double max_hole_area)
 {
     const PrintObject *object = print.get_object(0);
-    Polygons holes;
-    for (const ExPolygon &slice : object->layers().front()->lslices)
-        for (const Polygon &hole : slice.holes)
-            if (std::abs(hole.area() * SCALING_FACTOR * SCALING_FACTOR) < max_hole_area)
-                holes.push_back(hole);
-
     const Vec3d plate_origin = print.get_plate_origin();
     Point shift = object->instances().front().shift_without_plate_offset();
     shift += Point(scaled(plate_origin.x()), scaled(plate_origin.y()));
-    for (Polygon &hole : holes)
-        hole.translate(shift);
 
-    if (holes.empty())
-        return false;
-
-    std::vector<std::array<bool, 4>> covered_sides(holes.size());
+    Polygons footprint;
     for (const auto &kv : print.get_brimMap()) {
-        Polylines brim_paths;
-        kv.second.collect_polylines(brim_paths);
-        for (const Polyline &path : brim_paths)
-            for (const Point &point : path.points) {
-                for (size_t hole_idx = 0; hole_idx < holes.size(); ++hole_idx) {
-                    const Polygon &hole = holes[hole_idx];
-                    if (!hole.contains(point))
-                        continue;
-                    const BoundingBox bbox = hole.bounding_box();
-                    const Point center = bbox.center();
-                    const coord_t x_margin = bbox.size().x() / 8;
-                    const coord_t y_margin = bbox.size().y() / 8;
-                    covered_sides[hole_idx][0] |= point.x() < center.x() - x_margin;
-                    covered_sides[hole_idx][1] |= point.x() > center.x() + x_margin;
-                    covered_sides[hole_idx][2] |= point.y() < center.y() - y_margin;
-                    covered_sides[hole_idx][3] |= point.y() > center.y() + y_margin;
-                }
-            }
+        const Polygons paths = kv.second.polygons_covered_by_width();
+        footprint.insert(footprint.end(), paths.begin(), paths.end());
     }
-
-    return std::all_of(covered_sides.begin(), covered_sides.end(), [](const auto &sides) {
-        return std::all_of(sides.begin(), sides.end(), [](bool covered) { return covered; });
-    });
+    const ExPolygons brim_area = union_ex(footprint);
+    std::vector<double> coverage;
+    for (const ExPolygon &slice : object->layers().front()->lslices)
+        for (const Polygon &hole : slice.holes) {
+            if (std::abs(hole.area() * SCALING_FACTOR * SCALING_FACTOR) >= max_hole_area)
+                continue;
+            Polygon interior = hole;
+            interior.reverse();
+            interior.translate(shift);
+            // The configured model gap must stay empty even when the ear covers the hole.
+            const ExPolygons allowed_area = offset_ex(interior, -scaled(object->config().brim_object_gap.value));
+            if (!allowed_area.empty())
+                coverage.push_back(area(intersection_ex(brim_area, allowed_area)) / area(allowed_area));
+        }
+    return coverage;
 }
 
 // A frame whose hole contains a separate material island. This produces nested
@@ -461,16 +445,53 @@ TEST_CASE("Outer-only brim ears stay out of holes in other objects", "[SkirtBrim
             { "initial_layer_line_width",   0.6 },
         });
 
-        std::vector<TriangleMesh> objects {
-            mesh(TestMesh::cube_with_hole),
-            separate_part_below_frame(),
+        // Keep both objects and their ears inside the bed while preserving their relative positions.
+        TriangleMesh frame = mesh(TestMesh::cube_with_hole);
+        frame.translate(30, 30, 0);
+        TriangleMesh neighbour = separate_part_below_frame();
+        neighbour.translate(30, 30, 0);
+        std::vector<TriangleMesh> objects { std::move(frame), std::move(neighbour) };
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides {
+            { { "brim_type", "no_brim" } }, {},
         };
-        init_print(std::move(objects), print, model, config, nullptr, false);
+        init_print(std::move(objects), print, model, config, &overrides, false);
         print.process();
 
         REQUIRE(print.objects().size() == 2);
         REQUIRE(brim_loop_count(print) > 0);
         CHECK(brim_enters_first_layer_hole(print) != outer_only);
+    }
+}
+
+TEST_CASE("Outer-only brim ears exclude separate objects nested inside holes", "[SkirtBrim]")
+{
+    const bool outer_only = GENERATE(false, true);
+    DYNAMIC_SECTION("brim_ears_outer_only=" << outer_only) {
+        Print print;
+        Model model;
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({
+            { "skirt_loops",                0 },
+            { "brim_type",                  "brim_ears" },
+            { "brim_width",                 4 },
+            { "brim_ears_max_angle",        125 },
+            { "brim_ears_detection_length", 1 },
+            { "brim_ears_outer_only",       outer_only },
+            { "initial_layer_line_width",   0.5 },
+        });
+        TriangleMesh inner = make_cube(4, 4, 10);
+        inner.translate(8, 8, 0);
+        const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides {
+            { { "brim_type", "no_brim" } }, {},
+        };
+        init_print({ mesh(TestMesh::cube_with_hole), std::move(inner) }, print, model, config, &overrides, false);
+        print.process();
+
+        REQUIRE(print.objects().size() == 2);
+        if (outer_only)
+            CHECK(brim_loop_count(print) == 0);
+        else
+            CHECK(brim_loop_count(print) > 0);
     }
 }
 
@@ -489,7 +510,10 @@ TEST_CASE("Automatic brim ears fill holes covered by their radius", "[SkirtBrim]
     });
 
     REQUIRE(brim_loop_count(print) > 0);
-    CHECK(brim_fills_small_first_layer_holes(print, 10.0));
+    const std::vector<double> coverage = brim_coverage_of_small_first_layer_holes(print, 10.0);
+    REQUIRE(coverage.size() == 2);
+    for (double fraction : coverage)
+        CHECK(fraction > 0.9);
 }
 
 TEST_CASE("Painted brim ear radius controls sliced size", "[SkirtBrim]")
