@@ -6556,6 +6556,7 @@ int CLI::run(int argc, char **argv)
                             % print_volume.min(2) % print_volume.max(0) % print_volume.max(1) % print_volume.max(2) << std::endl;
 #else
                         BuildVolume build_volume(part_plate->get_shape(), print_height, part_plate->get_extruder_areas(), current_extruder_print_heights);
+                        build_volume.set_open_y(is_belt_printer && m_print_config.opt_bool("belt_printer_infinite_y"));
                         //model.update_print_volume_state(build_volume);
                         unsigned int count = model.update_print_volume_state(build_volume);
 

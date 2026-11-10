@@ -9,6 +9,7 @@
 #include <admesh/stl.h>
 
 #include <array>
+#include <limits>
 #include <string_view>
 #include <vector>
 #include <utility>
@@ -67,6 +68,14 @@ public:
     const std::vector<std::vector<Vec2d>>& extruder_areas() const { return m_extruder_shapes; }
     const std::vector<double>& extruder_heights() const { return m_extruder_printable_height; }
     const BuildSharedVolume& get_shared_volume() const { return m_shared_volume; }
+
+    // A belt printer with an infinite Y axis carries the part toward +Y, so the containment tests of a
+    // rectangular bed ignore its far Y edge. The front edge, where printing starts, and the bed
+    // geometry itself stay as they are.
+    void                        set_open_y(bool open)   { m_open_y = open; }
+    bool                        open_y()            const { return m_open_y; }
+    // Removes the far Y edge of a containment box.
+    static void                 open_y_extent(BoundingBox3Base<Vec3d> &box) { box.max.y() = std::numeric_limits<double>::max(); }
 
     // Derived data
     BuildVolume_Type                        type()              const { return m_type; }
@@ -142,6 +151,7 @@ private:
     BuildSharedVolume m_shared_volume;  //used for rendering
     // Source definition of the print volume height (PrintConfig::printable_height)
     double              m_max_print_height { 0.f };
+    bool                m_open_y { false };
     std::vector<double> m_extruder_printable_height;
 
     // Derived values.

@@ -7,6 +7,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
 
 using namespace Slic3r;
 
@@ -43,4 +45,34 @@ TEST_CASE("BuildVolume keeps per-extruder heights when both vectors match", "[Bu
     REQUIRE(build_volume.get_extruder_area_count() == 2);
     CHECK_THAT(build_volume.get_extruder_area_volume(0).bboxf.max.z(), Catch::Matchers::WithinAbs(180., 1e-6));
     CHECK_THAT(build_volume.get_extruder_area_volume(1).bboxf.max.z(), Catch::Matchers::WithinAbs(200.5, 1e-6));
+}
+
+// A belt carries the part toward +Y, so a bed open along Y accepts a part running past its far Y edge,
+// while the front edge, the belt width (X) and the printable height still apply.
+TEST_CASE("BuildVolume open along Y ignores only the far Y edge", "[BuildVolume]")
+{
+    BuildVolume build_volume(rect_area(170., 200.), 200., {}, {});
+    REQUIRE(build_volume.type() == BuildVolume_Type::Rectangle);
+
+    // 140 x 1650 x 1 mm, starting on the bed and running past its far Y edge, and a part past the near Y edge.
+    const BoundingBoxf3 long_part({ 10., 50., 0. }, { 150., 1700., 1. });
+    const BoundingBoxf3 before_bed({ 10., -50., 0. }, { 150., 100., 1. });
+    const BoundingBoxf3 too_wide({ -10., 50., 0. }, { 150., 100., 1. });
+    const BoundingBoxf3 too_tall({ 10., 50., 0. }, { 150., 100., 250. });
+
+    const indexed_triangle_set long_mesh = its_make_cube(140., 1650., 1.);
+    Transform3f                long_trafo = Transform3f::Identity();
+    long_trafo.translate(Vec3f(10.f, 50.f, 0.f));
+
+    CHECK(build_volume.volume_state_bbox(long_part) == BuildVolume::ObjectState::Colliding);
+    CHECK(build_volume.object_state(long_mesh, long_trafo, false) == BuildVolume::ObjectState::Colliding);
+
+    build_volume.set_open_y(true);
+    CHECK(build_volume.volume_state_bbox(long_part) == BuildVolume::ObjectState::Inside);
+    CHECK(build_volume.object_state(long_mesh, long_trafo, false) == BuildVolume::ObjectState::Inside);
+    CHECK(build_volume.volume_state_bbox(before_bed) == BuildVolume::ObjectState::Colliding);
+    CHECK(build_volume.volume_state_bbox(too_wide) == BuildVolume::ObjectState::Colliding);
+    CHECK(build_volume.volume_state_bbox(too_tall) == BuildVolume::ObjectState::Colliding);
+    // The bed geometry itself stays finite.
+    CHECK_THAT(build_volume.bounding_volume().max.y(), Catch::Matchers::WithinAbs(200., 1e-6));
 }

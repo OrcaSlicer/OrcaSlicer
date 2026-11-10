@@ -600,10 +600,10 @@ public:
     bool contains(const GLVolume& v) const;
     bool contains(const BoundingBoxf3& bb) const;
     bool intersects(const BoundingBoxf3& bb) const;
-    // A belt printer with belt_printer_infinite_y: the plate is open along Y for the
+    // A belt printer with belt_printer_infinite_y: the plate's far Y edge is open for the
     // containment tests (the drawn plate keeps its shape).
     bool belt_open_y() const;
-    void open_belt_y(BoundingBoxf3 &box) const { if (this->belt_open_y()) { box.min.y() = -1e5; box.max.y() = 1e5; } }
+    void open_belt_y(BoundingBoxf3 &box) const;
 
     void render(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_body = false, bool force_background_color = false, HeightLimitMode mode = HEIGHT_LIMIT_NONE, int hover_id = -1, bool render_cali = false, bool show_grid = true, bool hide_chrome = false);
 

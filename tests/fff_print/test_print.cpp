@@ -2806,6 +2806,39 @@ TEST_CASE("The belt build height check uses the compensated height", "[Print][be
         CHECK(error.find(expected) != std::string::npos);
 }
 
+// With an infinite Y axis the belt carries the part toward +Y, so the G-code bed check accepts a part running
+// past the bed's far Y edge. The front edge, where printing starts, is still checked.
+TEST_CASE("The belt G-code bed check opens only the far Y edge with an infinite Y axis", "[Print][belt][GCode]")
+{
+    // A 100 x 100 mm bed and a 20 x 150 x 2 mm part starting at y_start.
+    const auto [infinite_y, y_start, expect_outside] = GENERATE(table<bool, double, bool>({
+        { true, 10., false },
+        { false, 10., true },
+        { true, -20., true },
+    }));
+    DynamicPrintConfig config = belt_test_config();
+    config.set_deserialize_strict({
+        { "printable_area", "0x0,100x0,100x100,0x100" },
+        { "belt_printer_infinite_y", infinite_y },
+        // The check undoes the machine-frame transform but not an axis remap, so keep the axes as sliced.
+        { "gcode_remap_x", "pos_x" },
+        { "gcode_remap_y", "pos_y" },
+        { "gcode_remap_z", "pos_z" },
+    });
+    TriangleMesh part = make_cube(20., 150., 2.);
+    part.translate(40.f, float(y_start), 0.f);
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{ std::move(part) }, print, model, config, nullptr, false);
+    GCodeProcessorResult result;
+    gcode(print, &result);
+
+    INFO("infinite_y " << infinite_y << ", y_start " << y_start);
+    // Bit 2 marks a path outside the bed area.
+    CHECK(((result.gcode_check_result.error_code & (1 << 2)) != 0) == expect_outside);
+}
+
 // A 20 mm cube on the bed with a height range override.
 static ModelObject* cube_with_height_range(Model &model, const t_layer_height_range &range, DynamicPrintConfig &&range_config)
 {

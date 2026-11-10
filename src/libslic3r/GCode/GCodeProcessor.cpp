@@ -3010,6 +3010,8 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     BoundingBox plate_printable_bbox = plate_printable_poly.bounding_box();
     if (plate_printable_poly.is_valid()) {
         plate_printable_bbox.offset(scale_(2.0)); // Expand the range to provide a tolerance
+        if (m_belt_infinite_y)
+            plate_printable_bbox.max.y() = std::numeric_limits<coord_t>::max();
     } else
         plate_printable_bbox.defined = false; //when this is used, the printable area config was missing, something wrong
 
@@ -3262,6 +3264,7 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_machine_frame_transform.init_from_config(config);
     m_result.machine_frame_transform_active = m_machine_frame_transform.is_active();
     m_belt_printer = config.belt_printer.value;
+    m_belt_infinite_y = m_belt_printer && config.belt_printer_infinite_y.value;
     m_belt_linear  = m_belt_printer ? std::optional<Matrix3d>(BeltTransformPipeline::build_gcode_back_transform(config).linear()) :
                                       std::nullopt;
 

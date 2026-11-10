@@ -401,6 +401,8 @@ BuildVolume::ObjectState BuildVolume::object_state(const indexed_triangle_set& i
             build_volume.max.z() = std::numeric_limits<double>::max();
         if (ignore_bottom)
             build_volume.min.z() = -std::numeric_limits<double>::max();
+        if (m_open_y)
+            open_y_extent(build_volume);
         BoundingBox3Base<Vec3f> build_volumef(build_volume.min.cast<float>(), build_volume.max.cast<float>());
         // The following test correctly interprets intersection of a non-convex object with a rectangular build volume.
         //return rectangle_test(its, trafo, to_2d(build_volume.min), to_2d(build_volume.max), build_volume.max.z());
@@ -434,6 +436,8 @@ BuildVolume::ObjectState BuildVolume::volume_state_bbox(const BoundingBoxf3& vol
         build_volume.max.z() = std::numeric_limits<double>::max();
     if (ignore_bottom)
         build_volume.min.z() = -std::numeric_limits<double>::max();
+    if (m_open_y)
+        open_y_extent(build_volume);
     return build_volume.max.z() <= - SceneEpsilon ? ObjectState::Below :
            build_volume.contains(volume_bbox) ? ObjectState::Inside :
            build_volume.intersects(volume_bbox) ? ObjectState::Colliding : ObjectState::Outside;

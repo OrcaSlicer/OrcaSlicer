@@ -4475,7 +4475,8 @@ bool PartPlate::check_outside(int obj_id, int instance_id, BoundingBoxf3* boundi
 		// m_height mirrors the printer's printable height and is set in CLI mode too, unlike m_plater.
 		if (plate_box.intersects(instance_box)) {
 			// TODO: FIXME: this does not take exclusion area into account
-			const BuildVolume build_volume(get_shape(), m_height, m_extruder_areas, m_extruder_heights);
+			BuildVolume build_volume(get_shape(), m_height, m_extruder_areas, m_extruder_heights);
+			build_volume.set_open_y(this->belt_open_y());
 			const auto state = instance->calc_print_volume_state(build_volume);
 			outside = state == ModelInstancePVS_Partly_Outside;
 		}
@@ -5222,6 +5223,12 @@ bool PartPlate::belt_open_y() const
 	const auto *belt       = printer.option<ConfigOptionBool>("belt_printer");
 	const auto *infinite_y = printer.option<ConfigOptionBool>("belt_printer_infinite_y");
 	return belt != nullptr && belt->value && infinite_y != nullptr && infinite_y->value;
+}
+
+void PartPlate::open_belt_y(BoundingBoxf3 &box) const
+{
+	if (this->belt_open_y())
+		BuildVolume::open_y_extent(box);
 }
 
 bool PartPlate::contains(const Vec3d& point) const
