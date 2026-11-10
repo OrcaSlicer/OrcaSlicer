@@ -2813,8 +2813,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             const std::string& temp_path = model.get_backup_path();
 
             std::string dest_file = temp_path + std::string("/") + "_temp_3.config";;
-            std::string dest_zip_file = encode_path(dest_file.c_str());
-            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
+            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_file.c_str(), 0);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract project config file to file");
@@ -2850,8 +2849,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             else
                 return;*/
             std::string dest_file = m_backup_path + std::string("/") + "_temp_2.config";;
-            std::string dest_zip_file = encode_path(dest_file.c_str());
-            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
+            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_file.c_str(), 0);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract auxiliary file to file");
@@ -2972,8 +2970,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     boost::filesystem::create_directories(parent_full_path);
             }
             dest_file = dir.string() + std::string("/") + dest_file;
-            std::string dest_zip_file = encode_path(dest_file.c_str());
-            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
+            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_file.c_str(), 0);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract auxiliary file to file");
@@ -2996,8 +2993,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             // BBS: use backup path
             //aux directory from model
             boost::filesystem::path dest_path = boost::filesystem::path(m_backup_path + "/" + src_file);
-            std::string dest_zip_file = encode_path(dest_path.string().c_str());
-            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
+            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_path.string().c_str(), 0);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_path % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract file to temp directory");
@@ -6941,11 +6937,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         auto end = nocomp_exts + sizeof(nocomp_exts) / sizeof(nocomp_exts[0]);
         bool nocomp = std::find_if(nocomp_exts, end, [&path_in_zip](auto & ext) { return boost::algorithm::ends_with(path_in_zip, ext); }) != end;
 #if WRITE_ZIP_LANGUAGE_ENCODING
-        bool result = mz_zip_writer_add_file(&archive, path_in_zip.c_str(), encode_path(src_file_path.c_str()).c_str(), NULL, 0, nocomp ? MZ_NO_COMPRESSION : MZ_DEFAULT_LEVEL);
+        bool result = mz_zip_writer_add_file(&archive, path_in_zip.c_str(), src_file_path.c_str(), NULL, 0, nocomp ? MZ_NO_COMPRESSION : MZ_DEFAULT_LEVEL);
 #else
         std::string native_path = encode_path(path_in_zip.c_str());
         std::string extra = ZipUnicodePathExtraField::encode(path_in_zip, native_path);
-        bool result = mz_zip_writer_add_file_ex(&archive, native_path.c_str(), encode_path(src_file_path.c_str()).c_str(), NULL, 0, nocomp ? MZ_ZIP_FLAG_ASCII_FILENAME : MZ_DEFAULT_COMPRESSION,
+        bool result = mz_zip_writer_add_file_ex(&archive, native_path.c_str(), src_file_path.c_str(), NULL, 0, nocomp ? MZ_ZIP_FLAG_ASCII_FILENAME : MZ_DEFAULT_COMPRESSION,
                 extra.c_str(), extra.length(), extra.c_str(), extra.length());
 #endif
         if (!result) {
