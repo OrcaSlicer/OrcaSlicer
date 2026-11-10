@@ -1964,12 +1964,20 @@ TEST_CASE("get_at on an empty option vector returns a default instead of reading
         ConfigOptionBools   bools;
         ConfigOptionPoints  points;
         ConfigOptionIntsNullable nullable_ints;
+        ConfigOptionInts    ints;
+        ConfigOptionFloatsOrPercents fop;
+        ConfigOptionFloatsNullable   nullable_floats;
+        ConfigOptionBoolsNullable    nullable_bools;
 
         floats.get_at(0)  = 42.;
         strings.get_at(0) = "scribble";
         bools.get_at(0)   = true;
         points.get_at(0)  = Vec2d(3., 4.);
         nullable_ints.get_at(0) = 7;
+        ints.get_at(0)    = 5;
+        fop.get_at(0)     = FloatOrPercent{9., true};
+        nullable_floats.get_at(0) = 3.;
+        nullable_bools.get_at(0)  = true;
 
         CHECK(floats.get_at(0) == 0.);
         CHECK(other_floats.get_at(0) == 0.);
@@ -1978,6 +1986,15 @@ TEST_CASE("get_at on an empty option vector returns a default instead of reading
         CHECK_FALSE(bools.get_at(0));
         CHECK(points.get_at(0) == Vec2d::Zero());
         CHECK(nullable_ints.get_at(0) == 0);
+        CHECK(ints.get_at(0) == 0);
+        CHECK(fop.get_at(0).value == 0.);
+        CHECK_FALSE(fop.get_at(0).percent);
+        CHECK(nullable_floats.get_at(0) == 0.);
+        CHECK_FALSE(nullable_bools.get_at(0));
+        CHECK(ints.values.empty());
+        CHECK(fop.values.empty());
+        CHECK(nullable_floats.values.empty());
+        CHECK(nullable_bools.values.empty());
         CHECK(floats.values.empty());
         CHECK(strings.values.empty());
     }
