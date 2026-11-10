@@ -5149,7 +5149,12 @@ void PrintObject::discover_sub_top_surfaces()
             const coord_t base_width = layerm->flow(frPerimeter).scaled_width();
             const coord_t min_area   = base_width * base_width * 25;
             const float min_width    = float(layerm->flow(frSolidInfill).scaled_spacing());
-            int top_shell_layers     = std::max(layerm->m_region->config().top_shell_layers.value - 1, 0);
+            int top_shell_layers     = layerm->m_region->config().top_shell_layers.value;
+            coordf_t current_height  = layer->print_z;
+            coordf_t min_height      = current_height - layerm->m_region->config().top_shell_thickness.value;
+            int min_layer            = this->get_layer_idx_get_printz(min_height, EPSILON);
+            top_shell_layers         = std::max(std::max(top_shell_layers - 1, (int) idx_layer - min_layer), 0);
+
             int bottom_shell_layers  = layerm->m_region->config().bottom_shell_layers.value;
             bool is_not_solid        = layerm->m_region->config().top_surface_density.value < 100;
             ExPolygons crop_mask     = layerm->fill_no_overlap_expolygons;
@@ -5172,10 +5177,10 @@ void PrintObject::discover_sub_top_surfaces()
                 float offset_distance  = base_width * std::max(number_of_walls - 1, 0);
                 ExPolygons walls_solid = offset_ex(local_mask, offset_distance);
                     
-                //for (auto& s : walls_solid) // clear tiny holes
-                //    for (auto& h : s.holes)
-                //        if (h.area() > -min_area)
-                //            h.clear();
+                for (auto& s : walls_solid) // clear tiny holes
+                    for (auto& h : s.holes)
+                        if (h.area() > -min_area)
+                            h.clear();
 
                 // If the top surface does not have 100% density, the underlying layer follows the contours of the upper one, which is visible through it.
                 // The space under the perimeters will be filled with a bridge infill. This is done for decorative purposes. 
@@ -5191,7 +5196,7 @@ void PrintObject::discover_sub_top_surfaces()
                 // Each such polygon extends downward by 1/4 of the line width for each layer to provide additional strength against the side bend of the upper element.
                 // Below the perimeters, there are additional solid layers with a height equal to the width of all internal walls.
                 // This is an additional strengthening against to preventing the top element from being pressed into the sparse infill at vertical load.
-                int penetration = top_shell_layers; // + offset_distance / scale_(config().layer_height.value);
+                int penetration = top_shell_layers + std::max((int)(offset_distance / scale_(config().layer_height.value)) - top_shell_layers, 0);
                 for (int j = 1; j <= penetration; ++j) {
                     if (idx_layer - j <= bottom_shell_layers)
                         break;
@@ -5199,7 +5204,7 @@ void PrintObject::discover_sub_top_surfaces()
                     for (LayerRegion* lowerm : lower->m_regions) {
                         Surfaces new_lower_surfaces;
                         ExPolygons crop_mask_lower = lowerm->fill_no_overlap_expolygons;
-                        ExPolygons slab = offset_ex((j <= top_shell_layers) ? walls_solid : diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), base_width / 4 * j);
+                        ExPolygons slab = (j <= top_shell_layers) ? offset_ex(walls_solid, base_width / 4 * j) : diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes);
                         for (Surface& lower_surface : lowerm->fill_surfaces.surfaces)
                             surfaces_append(new_lower_surfaces, intersection_ex(slab, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
                         
