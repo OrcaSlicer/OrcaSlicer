@@ -5196,7 +5196,7 @@ void PrintObject::discover_sub_top_surfaces()
                 // Each such polygon extends downward by 1/4 of the line width for each layer to provide additional strength against the side bend of the upper element.
                 // Below the perimeters, there are additional solid layers with a height equal to the width of all internal walls.
                 // This is an additional strengthening against to preventing the top element from being pressed into the sparse infill at vertical load.
-                int penetration = top_shell_layers + std::max((int)(offset_distance / scale_(config().layer_height.value)) - top_shell_layers, 0);
+                int penetration = top_shell_layers + std::max((int)(offset_distance / scale_(config().layer_height.value)) - top_shell_layers, 1);
                 for (int j = 1; j <= penetration; ++j) {
                     if (idx_layer - j <= bottom_shell_layers)
                         break;
@@ -5204,7 +5204,7 @@ void PrintObject::discover_sub_top_surfaces()
                     for (LayerRegion* lowerm : lower->m_regions) {
                         Surfaces new_lower_surfaces;
                         ExPolygons crop_mask_lower = lowerm->fill_no_overlap_expolygons;
-                        ExPolygons slab = (j <= top_shell_layers) ? offset_ex(walls_solid, base_width / 4 * j) : diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes);
+                        ExPolygons slab = offset_ex((j <= top_shell_layers) ? walls_solid : diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), base_width / 4 * j);
                         for (Surface& lower_surface : lowerm->fill_surfaces.surfaces)
                             surfaces_append(new_lower_surfaces, intersection_ex(slab, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
                         
