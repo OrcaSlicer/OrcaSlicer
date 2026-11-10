@@ -343,10 +343,14 @@ public:
 private:
     std::vector<PresetItem> m_presetitems;
     std::vector<std::tuple<::CheckBox *, std::string, int>> m_sync_checks; // checkbox, option and variant column of each copy
-    std::vector<std::pair<::CheckBox *, std::vector<::CheckBox *>>> m_sync_all_checks; // a box ticking several copies, and those copies
+    std::vector<std::tuple<::CheckBox *, Preset::Type, std::string>> m_option_checks; // checkbox, preset type and option of each change
+    std::vector<std::pair<::CheckBox *, std::vector<::CheckBox *>>> m_all_checks; // a box ticking several changes or copies, and those
     std::vector<std::vector<wxWindow *>> m_sync_columns; // the label column, then one per extruder; the header window first
-    size_t add_sync_all_check(wxWindow *parent);
-    void   update_sync_all_checks();
+    size_t add_all_check(wxWindow *parent);
+    void   update_all_checks();
+    // The options of the changed rows of the type (any type for nullptr) whose box is ticked, or not. A row without
+    // a box is always selected.
+    std::vector<std::string> options_by_selection(const Preset::Type *type, bool selected) const;
     // preset names which are modified in SavePresetDialog and related types
     std::vector<PresetData>  names_and_types;
     //std::vector<std::pair<std::string, Preset::Type>>  names_and_types;
@@ -410,30 +414,10 @@ public:
     // short version of the previous function, for the case, when just one preset is modified
     std::string get_preset_name() { return names_and_types[0].name; }
 
-    std::vector<std::string> get_unselected_options(Preset::Type type) { /* return m_tree->options(type, false);*/return std::vector<std::string>();}
-    std::vector<std::string> get_selected_options  (Preset::Type type)  {
-        //return m_tree->options(type, true);
-         std::vector<std::string> tmp;
-        for (int i = 0; i < m_presetitems.size(); i++) {
-            if (m_presetitems[i].type == type) {
-                tmp.push_back(m_presetitems[i].opt_key);
-            }
-        }
-
-        return tmp;
-    }
-    std::vector<std::string> get_selected_options()                     {
-        //return m_tree->selected_options();
-
-        std::vector<std::string> tmp;
-        for (int i = 0; i < m_presetitems.size(); i++)
-        {
-           tmp.push_back(m_presetitems[i].opt_key);
-        }
-
-        return tmp;
-    }
-    bool                     has_unselected_options()                   { /*return m_tree->has_unselected_options();*/return false;}
+    std::vector<std::string> get_unselected_options(Preset::Type type)  { return options_by_selection(&type, false); }
+    std::vector<std::string> get_selected_options  (Preset::Type type)  { return options_by_selection(&type, true); }
+    std::vector<std::string> get_selected_options()                     { return options_by_selection(nullptr, true); }
+    bool                     has_unselected_options()                   { return !options_by_selection(nullptr, false).empty(); }
 
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;

@@ -855,6 +855,9 @@ static std::string none{"none"};
 #define UNSAVE_CHANGE_DIALOG_ICON_WIDTH FromDIP(24)
 #define UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT FromDIP(24)
 #define UNSAVE_CHANGE_DIALOG_SYNC_CELL_PADDING FromDIP(8)
+#define UNSAVE_CHANGE_DIALOG_TYPE_INDENT FromDIP(8)
+// A row's checkbox and the gap after it
+#define UNSAVE_CHANGE_DIALOG_CHECK_WIDTH FromDIP(22)
 #define UNSAVE_CHANGE_DIALOG_BUTTON_SIZE wxSize(FromDIP(70), FromDIP(24))
 
 #define THUMB_COLOR wxColor(196, 196, 196)
@@ -969,7 +972,9 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
             m_first_value_width = std::max({m_first_value_width, option_w, row_width(pi.group_name, ::Label::Head_13, UNSAVE_CHANGE_DIALOG_GROUP_INDENT)});
             category_width      = std::max(category_width, row_width(pi.category_name, ::Label::Head_13, UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT));
         }
-        m_first_value_width = std::min(m_first_value_width, FromDIP(420));
+        // Every row has its box before the label.
+        m_first_value_width = std::min(m_first_value_width + UNSAVE_CHANGE_DIALOG_CHECK_WIDTH, FromDIP(420));
+        category_width += UNSAVE_CHANGE_DIALOG_CHECK_WIDTH;
         m_content_width     = std::min(std::max(m_first_value_width + 2 * UNSAVE_CHANGE_DIALOG_VALUE_WIDTH, category_width), FromDIP(760));
     }
 
@@ -1023,23 +1028,22 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
         top_title_temp_v->SetMinSize(wxSize(UNSAVE_CHANGE_DIALOG_VALUE_WIDTH, -1));
     wxBoxSizer *top_title_temp_h = new wxBoxSizer(wxHORIZONTAL);
 
-    // Tick-all boxes of the sync dialog's header: every copy (variant -1), or every copy to one extruder.
+    // Tick-all boxes of the header: every change or copy (variant -1), or in the sync dialog every copy to one extruder.
     std::vector<std::pair<size_t, int>> header_checks;
     auto add_header_check = [this, &header_checks](wxPanel *panel, wxBoxSizer *sizer, int variant) {
         panel->SetBackgroundColour(wxColour("#D9D9D9"));
-        const size_t k = add_sync_all_check(panel);
+        const size_t k = add_all_check(panel);
         header_checks.emplace_back(k, variant);
-        sizer->Add(m_sync_all_checks[k].first, 0, wxALIGN_CENTER | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, FromDIP(4));
+        sizer->Add(m_all_checks[k].first, 0, wxALIGN_CENTER | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, FromDIP(4));
     };
-    if (params)
-        add_header_check(m_panel_temp, top_title_temp_h, -1);
+    add_header_check(m_panel_temp, top_title_temp_h, -1);
     static_temp_title            = new wxStaticText(m_panel_temp, wxID_ANY, _L("Settings"), wxDefaultPosition, wxDefaultSize, 0);
     static_temp_title->SetFont(::Label::Body_13);
     static_temp_title->Wrap(-1);
     static_temp_title->SetForegroundColour(wxColour("#363636"));
     top_title_temp_h->Add(static_temp_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
-    // The sync dialog left-aligns its table, with the corner box above the category boxes.
-    top_title_temp_v->Add(top_title_temp_h, 1, params ? wxLEFT : wxALIGN_CENTER, params ? UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT : 0);
+    // The corner box sits above the boxes of the outermost rows: the categories in the sync dialog, else the preset types.
+    top_title_temp_v->Add(top_title_temp_h, 1, wxLEFT, params ? UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT : UNSAVE_CHANGE_DIALOG_TYPE_INDENT);
     m_panel_temp->SetSizer(top_title_temp_v);
     m_panel_temp->Layout();
     m_sizer_top->Add(m_panel_temp, 1, wxALIGN_CENTER, 0);
@@ -1234,15 +1238,6 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     if (params) {
         m_action_line->SetLabel(header);
         update_list(params);
-        for (const auto &[check, opt_key, index] : m_sync_checks)
-            for (const auto &[k, variant] : header_checks)
-                if (variant < 0 || variant == index)
-                    m_sync_all_checks[k].second.push_back(check);
-        // A box over a single copy would only repeat it.
-        for (const auto &[all, cells] : m_sync_all_checks)
-            all->Show(cells.size() > 1);
-        update_sync_all_checks();
-
         // Each column is as wide as its widest cell or title, every extruder's column alike. The header
         // windows come first; each sits next to a 1 px separator.
         int widths[2] = {0, 0}; // labels, values
@@ -1262,6 +1257,18 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     } else {
         update(type, dependent_presets, new_selected_preset, header);
     }
+    for (const auto &[k, variant] : header_checks) {
+        for (const auto &[check, opt_key, index] : m_sync_checks)
+            if (variant < 0 || variant == index)
+                m_all_checks[k].second.push_back(check);
+        if (variant < 0)
+            for (const auto &option : m_option_checks)
+                m_all_checks[k].second.push_back(std::get<0>(option));
+    }
+    // A box over a single one would only repeat it.
+    for (const auto &[all, cells] : m_all_checks)
+        all->Show(cells.size() > 1);
+    update_all_checks();
     //SetSizer(topSizer);
     //topSizer->SetSizeHints(this);
 
@@ -1582,15 +1589,14 @@ void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
         return t;
     };
 
-    // In the sync dialog a box before each line's label ticks every copy under it.
-    auto add_label = [this, params](wxWindow *parent, wxSizer *sizer, wxStaticText *text, int indent, int flags) -> size_t {
-        if (!params) {
-            sizer->Add(text, 0, flags | wxLEFT, indent);
-            return 0;
-        }
-        const size_t k = add_sync_all_check(parent);
-        sizer->Add(m_sync_all_checks[k].first, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, indent);
+    // A box before a line's label: one change's own, or one ticking every change (or, in the sync dialog, copy) under it.
+    auto add_check_and_label = [this](wxSizer *sizer, ::CheckBox *check, wxStaticText *text, int indent) {
+        sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, indent);
         sizer->Add(text, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+    };
+    auto add_label = [this, &add_check_and_label](wxWindow *parent, wxSizer *sizer, wxStaticText *text, int indent) -> size_t {
+        const size_t k = add_all_check(parent);
+        add_check_and_label(sizer, m_all_checks[k].first, text, indent);
         return k;
     };
     // The label width of a line, or the natural one in the sync dialog.
@@ -1621,19 +1627,24 @@ void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
         m_listsizer->Add(panel, 0, wxEXPAND, 0);
     };
 
-    auto emit_type_header = [&](Preset::Type type) {
+    // Other preset types get no header, and so no box.
+    static constexpr size_t no_box = size_t(-1);
+    auto emit_type_header = [&](Preset::Type type) -> size_t {
         wxString label;
         switch (type) {
         case Preset::TYPE_PRINT:    label = _L("Process settings"); break;
         case Preset::TYPE_FILAMENT: label = _L("Material settings"); break;
         case Preset::TYPE_PRINTER:  label = _L("Printer settings"); break;
-        default: return;
+        default: return no_box;
         }
         auto panel = new wxPanel(m_scrolledWindow, wxID_ANY, wxDefaultPosition, wxSize(-1, UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT), wxTAB_TRAVERSAL);
         panel->SetBackgroundColour(GREY400);
         auto sizer = new wxBoxSizer(wxHORIZONTAL);
-        sizer->Add(make_label(panel, label, ::Label::Head_16, m_content_width - FromDIP(16), GREY900), 0, wxALIGN_CENTER | wxLEFT, FromDIP(8));
+        const size_t all = add_label(panel, sizer, make_label(panel, label, ::Label::Head_16,
+                                     m_content_width - UNSAVE_CHANGE_DIALOG_TYPE_INDENT - FromDIP(8) - UNSAVE_CHANGE_DIALOG_CHECK_WIDTH, GREY900),
+                                     UNSAVE_CHANGE_DIALOG_TYPE_INDENT);
         finish_row(panel, sizer);
+        return all;
     };
 
     auto emit_category = [&](const wxString &category_name) {
@@ -1641,8 +1652,8 @@ void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
         panel->SetBackgroundColour(GREY300);
         auto sizer = new wxBoxSizer(wxHORIZONTAL);
         const size_t all = add_label(panel, sizer, make_label(panel, category_name, ::Label::Head_13,
-                                     label_width(m_content_width - UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT - FromDIP(8)), GREY900),
-                                     UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT, wxALIGN_CENTER);
+                                     label_width(m_content_width - UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT - FromDIP(8) - UNSAVE_CHANGE_DIALOG_CHECK_WIDTH), GREY900),
+                                     UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT);
         finish_row(panel, sizer);
         return all;
     };
@@ -1655,8 +1666,8 @@ void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
         panel_left->SetBackgroundColour(GREY200);
         auto left_sizer = new wxBoxSizer(wxHORIZONTAL);
         const size_t all = add_label(panel_left, left_sizer, make_label(panel_left, group_name, ::Label::Head_13,
-                                     label_width(m_first_value_width - UNSAVE_CHANGE_DIALOG_GROUP_INDENT - FromDIP(8)), GREY700),
-                                     UNSAVE_CHANGE_DIALOG_GROUP_INDENT, 0);
+                                     label_width(m_first_value_width - UNSAVE_CHANGE_DIALOG_GROUP_INDENT - FromDIP(8) - UNSAVE_CHANGE_DIALOG_CHECK_WIDTH), GREY700),
+                                     UNSAVE_CHANGE_DIALOG_GROUP_INDENT);
         panel_left->SetSizer(left_sizer);
         panel_left->Layout();
         sizer->Add(panel_left, 0, wxALIGN_CENTER, 0);
@@ -1666,7 +1677,7 @@ void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
         return all;
     };
 
-    auto emit_option = [&](const PresetItem &data, size_t category_all, size_t group_all) {
+    auto emit_option = [&](const PresetItem &data, size_t type_all, size_t category_all, size_t group_all) {
         auto panel = new wxWindow(m_scrolledWindow, -1, wxDefaultPosition, wxSize(-1, UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT));
         panel->SetBackgroundColour(GREY200);
         auto sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -1674,9 +1685,27 @@ void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
         auto panel_left = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(m_first_value_width, -1), wxTAB_TRAVERSAL);
         panel_left->SetBackgroundColour(GREY200);
         auto left_sizer = new wxBoxSizer(wxHORIZONTAL);
-        const int text_w = m_first_value_width - UNSAVE_CHANGE_DIALOG_OPTION_INDENT - FromDIP(8) - (data.has_icon ? UNSAVE_CHANGE_DIALOG_ICON_WIDTH : 0);
-        const size_t row_all = add_label(panel_left, left_sizer, make_label(panel_left, data.option_name, ::Label::Body_13, label_width(text_w), GREY700),
-                                         UNSAVE_CHANGE_DIALOG_OPTION_INDENT, wxALIGN_CENTER_VERTICAL);
+        const int text_w = m_first_value_width - UNSAVE_CHANGE_DIALOG_OPTION_INDENT - FromDIP(8) - UNSAVE_CHANGE_DIALOG_CHECK_WIDTH -
+                           (data.has_icon ? UNSAVE_CHANGE_DIALOG_ICON_WIDTH : 0);
+        auto label = make_label(panel_left, data.option_name, ::Label::Body_13, label_width(text_w), GREY700);
+        size_t row_all = 0;
+        if (params)
+            row_all = add_label(panel_left, left_sizer, label, UNSAVE_CHANGE_DIALOG_OPTION_INDENT);
+        else {
+            // The change's own box. Extruder count has none: the per-extruder values follow it.
+            auto check = new ::CheckBox(panel_left);
+            add_check_and_label(left_sizer, check, label, UNSAVE_CHANGE_DIALOG_OPTION_INDENT);
+            if (data.opt_key == "extruders_count")
+                check->Hide();
+            else {
+                check->SetValue(true);
+                check->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) { update_all_checks(); e.Skip(); });
+                m_option_checks.emplace_back(check, data.type, data.opt_key);
+                for (size_t k : {type_all, category_all, group_all})
+                    if (k != no_box)
+                        m_all_checks[k].second.push_back(check);
+            }
+        }
         if (data.has_icon) {
             auto compare_btn = new Button(panel_left, "", "compare", 0, 16);
             compare_btn->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
@@ -1719,10 +1748,10 @@ void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
                     cell_sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, FromDIP(4));
                     if (differs) {
                         check->SetValue(true);
-                        check->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) { update_sync_all_checks(); e.Skip(); });
+                        check->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) { update_all_checks(); e.Skip(); });
                         m_sync_checks.emplace_back(check, data.opt_key, index);
                         for (size_t k : {category_all, group_all, row_all})
-                            m_sync_all_checks[k].second.push_back(check);
+                            m_all_checks[k].second.push_back(check);
                     } else
                         check->Hide();
                 }
@@ -1762,19 +1791,20 @@ void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
     }
 
     Preset::Type shown_type = Preset::TYPE_INVALID;
+    size_t       type_all   = 0;
     for (const wxString &ckey : section_order) {
         const Section &section = sections.at(ckey);
         // The sync dialog copies within one tab, so it needs no type header.
         if (section.type != shown_type && !params) {
             shown_type = section.type;
-            emit_type_header(section.type);
+            type_all   = emit_type_header(section.type);
         }
         const size_t category_all = emit_category(section.name);
         for (const wxString &gkey : section.group_keys) {
             const std::vector<PresetItem> &rows = rows_by_group.at(gkey);
             const size_t group_all = emit_group(rows.front().group_name);
             for (const PresetItem &pi : rows)
-                emit_option(pi, category_all, group_all);
+                emit_option(pi, type_all, category_all, group_all);
         }
     }
 
@@ -1816,24 +1846,39 @@ std::vector<std::pair<std::string, int>> UnsavedChangesDialog::get_sync_selectio
     return selection;
 }
 
-size_t UnsavedChangesDialog::add_sync_all_check(wxWindow *parent)
+size_t UnsavedChangesDialog::add_all_check(wxWindow *parent)
 {
-    const size_t k = m_sync_all_checks.size();
-    m_sync_all_checks.push_back({new ::CheckBox(parent), {}});
-    m_sync_all_checks[k].first->Bind(wxEVT_TOGGLEBUTTON, [this, k](wxCommandEvent &e) {
-        for (::CheckBox *cell : m_sync_all_checks[k].second)
-            cell->SetValue(m_sync_all_checks[k].first->GetValue());
-        update_sync_all_checks();
+    const size_t k = m_all_checks.size();
+    m_all_checks.push_back({new ::CheckBox(parent), {}});
+    m_all_checks[k].first->Bind(wxEVT_TOGGLEBUTTON, [this, k](wxCommandEvent &e) {
+        for (::CheckBox *cell : m_all_checks[k].second)
+            cell->SetValue(m_all_checks[k].first->GetValue());
+        update_all_checks();
         e.Skip();
     });
     return k;
 }
 
-void UnsavedChangesDialog::update_sync_all_checks()
+std::vector<std::string> UnsavedChangesDialog::options_by_selection(const Preset::Type *type, bool selected) const
 {
-    for (const auto &[all, cells] : m_sync_all_checks) {
+    std::vector<std::string> options;
+    for (const PresetItem &item : m_presetitems) {
+        if (type != nullptr && item.type != *type)
+            continue;
+        auto check = std::find_if(m_option_checks.begin(), m_option_checks.end(), [&item](const auto &option) {
+            return std::get<1>(option) == item.type && std::get<2>(option) == item.opt_key;
+        });
+        if ((check == m_option_checks.end() || std::get<0>(*check)->GetValue()) == selected)
+            options.push_back(item.opt_key);
+    }
+    return options;
+}
+
+void UnsavedChangesDialog::update_all_checks()
+{
+    for (const auto &[all, cells] : m_all_checks) {
         const auto checked = size_t(std::count_if(cells.begin(), cells.end(), [](const ::CheckBox *cell) { return cell->GetValue(); }));
-        // A partly ticked box holds false, so clicking it ticks every copy.
+        // A partly ticked box holds false, so clicking it ticks everything under it.
         all->SetValue(!cells.empty() && checked == cells.size());
         all->SetHalfChecked(checked > 0 && checked < cells.size());
     }
