@@ -5196,7 +5196,7 @@ void PrintObject::discover_sub_top_surfaces()
                         for (Surface& lower_surface : lowerm->fill_surfaces.surfaces)
                             surfaces_append(new_lower_surfaces, intersection_ex(slab, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
                         
-                        cache_record_surfaces.push_back(std::move(SurfacesRecord(lowerm, new_lower_surfaces)));
+                        cache_record_surfaces.push_back(SurfacesRecord(lowerm, new_lower_surfaces));
                     }
                 }
             }
