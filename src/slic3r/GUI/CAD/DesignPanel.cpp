@@ -4547,7 +4547,7 @@ void DesignPanel::set_ui_mode(UiMode m)
     // session and hides on Finish/Constrain.
     if (m_box_sketch_session != nullptr && m_form != nullptr && m_cards->GetSizer() != nullptr) {
         if (m == UiMode::Sketch && m_hdr_sketch_session != nullptr)
-            m_hdr_sketch_session->SetLabel(sketch_name);
+            m_hdr_sketch_session->SetLabelText(sketch_name);   // a name may hold an &, which SetLabel takes for a mnemonic
         // The hint names a new sketch's plane (start_sketch_on_target, after this); a reopened
         // sketch would otherwise show the plane of whichever new sketch came last.
         if (m == UiMode::Sketch && m_sketch_hint != nullptr)
@@ -4582,7 +4582,7 @@ void DesignPanel::set_ui_mode(UiMode m)
     if (m_sketch_banner != nullptr) {
         const bool sketching = (m == UiMode::Sketch);
         if (sketching && m_sketch_banner_txt != nullptr)
-            m_sketch_banner_txt->SetLabel(reopened
+            m_sketch_banner_txt->SetLabelText(reopened
                 // TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
                 ? format_wxstr(_L("Editing: %1%   ·   N = look normal to the plane   ·   "
                                   "Confirm or Cancel in the toolbar"),
