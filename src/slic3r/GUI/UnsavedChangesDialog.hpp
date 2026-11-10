@@ -9,9 +9,11 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include <array>
+#include <cstddef>
 #include <wx/dataview.h>
 #include <climits>
 #include <map>
+#include <tuple>
 #include <vector>
 #include <wx/event.h>
 #include <wx/string.h>
@@ -30,6 +32,7 @@
 
 class ScalableButton;
 class wxStaticText;
+class CheckBox;
 
 namespace Slic3r {
 namespace GUI{
@@ -289,12 +292,11 @@ protected:
     wxPanel *     m_top_line;
     wxPanel *     m_panel_tab;
     wxPanel *     m_table_top;
-    wxPanel *     title_block_middle;
-    wxPanel *     title_block_right;
     wxStaticText *static_temp_title;
-    wxStaticText *static_oldv_title;
-    wxStaticText *static_newv_title;
+    wxStaticText *static_oldv_title { nullptr };
+    wxStaticText *static_newv_title { nullptr };
     wxBoxSizer *  m_sizer_bottom;
+    int           m_value_width { 0 };
 
     //DiffViewCtrl*           m_tree          { nullptr };
     Button*                 m_save_btn      { nullptr };
@@ -340,6 +342,11 @@ public:
 
 private:
     std::vector<PresetItem> m_presetitems;
+    std::vector<std::tuple<::CheckBox *, std::string, int>> m_sync_checks; // checkbox, option and variant column of each copy
+    std::vector<std::pair<::CheckBox *, std::vector<::CheckBox *>>> m_sync_all_checks; // a box ticking several copies, and those copies
+    std::vector<std::vector<wxWindow *>> m_sync_columns; // the label column, then one per extruder; the header window first
+    size_t add_sync_all_check(wxWindow *parent);
+    void   update_sync_all_checks();
     // preset names which are modified in SavePresetDialog and related types
     std::vector<PresetData>  names_and_types;
     //std::vector<std::pair<std::string, Preset::Type>>  names_and_types;
@@ -361,18 +368,17 @@ public:
 
     struct SyncExtruderParams
     {
-        DynamicConfig   *config;
-        int              from;
-        int              to;
-        bool             left_to_right;
-        NozzleVolumeType nozzle;
+        DynamicConfig   *config; // the options to copy, with their values before the copy
+        int              stride;
+        std::vector<std::pair<wxString, int>> extruders; // title and variant column of the source and targets, in extruder order
+        int              source;                         // position of the source in extruders
     };
 
     // show unsaved changes when preset is switching
     UnsavedChangesDialog(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, bool no_transfer = false);
     // show unsaved changes for all another cases
     UnsavedChangesDialog(const wxString& caption, const wxString& header, const std::string& app_config_key, int act_buttons);
-    UnsavedChangesDialog(const wxString &caption, const wxString &header, Preset::Type type, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle);
+    UnsavedChangesDialog(const wxString &caption, const wxString &header, Preset::Type type, SyncExtruderParams params);
     ~UnsavedChangesDialog() override = default;
 
     int ShowModal() override;
@@ -382,12 +388,15 @@ public:
     void update_list(SyncExtruderParams *params = nullptr);
     bool value_clips(const wxString &value) const;
     void        update_tree(Preset::Type type, PresetCollection *presets);
-    void        update_tree(Preset::Type type, DynamicConfig *config, int from, int to);
+    void        update_tree(Preset::Type type, DynamicConfig *config);
     void show_info_line(Action action, std::string preset_name = "");
     void update_config(Action action);
     void close(Action action);
     // save information about saved presets and their types to names_and_types and show SavePresetDialog to set the names for new presets
     bool save(PresetCollection* dependent_presets, bool show_save_preset_dialog = true);
+
+    // Option and variant column of each ticked copy in the extruder sync dialog.
+    std::vector<std::pair<std::string, int>> get_sync_selection() const;
 
     bool save_preset() const        { return m_exit_action == Action::Save;     }
     bool transfer_changes() const   { return m_exit_action == Action::Transfer; }
