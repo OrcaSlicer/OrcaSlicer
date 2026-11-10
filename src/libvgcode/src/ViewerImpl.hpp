@@ -123,6 +123,20 @@ public:
     void set_dim_previous_layers(bool value);
     float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
     void set_dim_previous_layers_brightness(float value);
+    void set_reduced_detail_mode(EReducedDetailMode mode);
+    void set_reduced_detail_hide_infill(bool value);
+    // draw from the reduced set; it is already built, so this is just a buffer binding
+    void set_reduced_detail(bool value) {
+#ifdef ENABLE_OPENGL_ES
+        // no reduced set is built on OpenGL ES
+        value = false;
+#endif // ENABLE_OPENGL_ES
+        m_settings.reduced_detail = value;
+    }
+    bool is_reduced_detail() const { return m_settings.reduced_detail; }
+    // how far the whole end bands of the reduced set reach for a layer with infill, see Layers
+    static constexpr std::size_t REDUCED_DETAIL_END_DEPTH = 8;
+    Interval get_reduced_detail_whole_layers() const { return m_layers.get_whole_end_layers(REDUCED_DETAIL_END_DEPTH); }
 
     // ORCA: whether the filament colors keep their opacity, see get_vertex_alpha()
     bool is_translucent_filaments() const { return m_settings.translucent_filaments; }
@@ -179,6 +193,11 @@ public:
     float get_estimated_time() const { return m_total_time[static_cast<size_t>(m_settings.time_mode)]; }
     float get_estimated_time_at(size_t id) const;
     Color get_vertex_color(const PathVertex& vertex) const;
+    // the value the current view grades the vertex by, where it grades by one
+    std::optional<float> get_vertex_value(const PathVertex& vertex) const;
+    // how many layers of an interval find_extrusion_vertex() samples
+    static constexpr std::size_t VERTEX_SAMPLE_LAYERS = 8;
+    size_t find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role, const XYBox& box) const;
 
     size_t get_extrusion_roles_count() const { return m_extrusion_roles.get_roles_count(); }
     std::vector<EGCodeExtrusionRole> get_extrusion_roles() const { return m_extrusion_roles.get_roles(); }
@@ -551,6 +570,17 @@ private:
     unsigned int m_enabled_options_tex_id{ 0 };
     size_t m_enabled_options_count{ 0 };
     //
+    // OpenGL buffers to store the reduced set drawn while Settings::reduced_detail is set
+    //
+    unsigned int m_enabled_segments_reduced_buf_id{ 0 };
+    unsigned int m_enabled_segments_reduced_tex_id{ 0 };
+    size_t m_enabled_segments_reduced_count{ 0 };
+    // the reduced set lists its translucent segments last as the full one does
+    size_t m_enabled_segments_reduced_translucent_count{ 0 };
+    unsigned int m_enabled_options_reduced_buf_id{ 0 };
+    unsigned int m_enabled_options_reduced_tex_id{ 0 };
+    size_t m_enabled_options_reduced_count{ 0 };
+    //
     // Caches for size of data sent to gpu, in bytes
     //
     size_t m_positions_tex_size{ 0 };
@@ -558,6 +588,29 @@ private:
     size_t m_colors_tex_size{ 0 };
     size_t m_enabled_segments_tex_size{ 0 };
     size_t m_enabled_options_tex_size{ 0 };
+    size_t m_enabled_segments_reduced_tex_size{ 0 };
+    size_t m_enabled_options_reduced_tex_size{ 0 };
+
+    // The set the next draw reads from: the reduced one while dragging, if one is built.
+    bool use_reduced_set() const { return m_settings.reduced_detail && m_settings.reduced_detail_mode != EReducedDetailMode::Off; }
+    struct ActiveSet
+    {
+        size_t count{ 0 };
+        unsigned int buf_id{ 0 };
+        unsigned int tex_id{ 0 };
+        // of count, the last translucent_count are the translucent segments
+        size_t translucent_count{ 0 };
+    };
+    ActiveSet active_segments() const {
+        if (use_reduced_set())
+            return { m_enabled_segments_reduced_count, m_enabled_segments_reduced_buf_id, m_enabled_segments_reduced_tex_id, m_enabled_segments_reduced_translucent_count };
+        return { m_enabled_segments_count, m_enabled_segments_buf_id, m_enabled_segments_tex_id, m_enabled_translucent_segments_count };
+    }
+    ActiveSet active_options() const {
+        if (use_reduced_set())
+            return { m_enabled_options_reduced_count, m_enabled_options_reduced_buf_id, m_enabled_options_reduced_tex_id };
+        return { m_enabled_options_count, m_enabled_options_buf_id, m_enabled_options_tex_id };
+    }
 #endif // ENABLE_OPENGL_ES
 
     //
