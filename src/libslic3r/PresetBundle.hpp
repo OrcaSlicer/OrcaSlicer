@@ -468,6 +468,15 @@ public:
 
     std::vector<std::vector<DynamicPrintConfig>> get_extruder_filament_info() const;
 
+    // Orders a generic printer's device filament list (entries carrying device_tray_extruder_id)
+    // for the filament sync of a printer with several toolheads, where sidebar filament N is printed
+    // by toolhead N. The first `extruder_count` keys hold one entry per toolhead, in toolhead order:
+    // its first loaded lane, else its loaded external spool, else its first (empty) slot, which is
+    // marked "filament_keep_slot" so the sync keeps the filament already in that position. Any other
+    // entries follow. Entries without an extruder association keep their relative order at the end.
+    static std::map<int, DynamicPrintConfig> order_device_filaments_by_extruder(const std::map<int, DynamicPrintConfig>& list,
+                                                                                 int                                     extruder_count);
+
     std::set<std::string> get_printer_names_by_printer_type_and_nozzle(const std::string &printer_type, std::string nozzle_diameter_str, bool system_only = true);
     // Orca: the root filament presets a connected machine can use, resolved with the rule the rest
     // of the app applies (is_compatible_with_printer): an empty compatible_printers means every

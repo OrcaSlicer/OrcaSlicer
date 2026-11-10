@@ -4631,6 +4631,9 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         // no preset id. It is not `valid` (no id to map through), yet it still holds a real spool
         // and is eligible for the same append step as a mapped tray.
         bool has_reported_data{false};
+        // Orca: an empty toolhead slot of a multi-toolhead generic printer: keeps its position and
+        // the filament already there (see order_device_filaments_by_extruder).
+        bool keep_slot{false};
         std::string filament_color  = "";
         std::string filament_color_type = "";
         std::string filament_preset = "";
@@ -4658,6 +4661,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         ams_info.valid             = !filament_id.empty();
         ams_info.is_placeholder    = is_placeholder;
         ams_info.has_reported_data = has_reported_data;
+        ams_info.keep_slot         = ams.has("filament_keep_slot") && ams.opt_bool("filament_keep_slot");
         ams_info.filament_color    = filament_color;
         // Only the append path of a data-bearing, id-less tray reads these; the known-id path keeps
         // taking its color and color type from ams_filament_colors/ams_filament_color_types.
@@ -5075,9 +5079,11 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     result_multi_colors.push_back(
                         i < ams_multi_color_filment.size() ? ams_multi_color_filment[i]
                                                            : std::vector<std::string>{ams_filament_colors[i]});
-                } else if (i < ams_infos.size() && ams_infos[i].is_placeholder) {
+                } else if (i < ams_infos.size() && ams_infos[i].is_placeholder && !ams_infos[i].keep_slot) {
                     // Orca: an empty AMS slot is a placeholder, not a filament, so drop it instead of
                     // keeping or filling a slot for it. The device AMS panel still shows the empty tray.
+                    // An empty toolhead slot is kept instead: dropping it would shift every later
+                    // toolhead's filament onto the wrong toolhead.
                     continue;
                 } else if (i < exist_presets.size()) {
                     // Empty tray or beyond tray count: keep existing filament
@@ -5243,6 +5249,7 @@ std::vector<std::vector<DynamicPrintConfig>> PresetBundle::get_extruder_filament
                     // Drop the transient association before the config reaches the slicing pipeline.
                     DynamicPrintConfig entry = ams_item.second;
                     entry.erase("device_tray_extruder_id");
+                    entry.erase("filament_keep_slot");
                     filament_infos[entry_extruder].push_back(std::move(entry));
                 }
                 continue;
@@ -5255,6 +5262,82 @@ std::vector<std::vector<DynamicPrintConfig>> PresetBundle::get_extruder_filament
         }
     }
     return filament_infos;
+}
+
+std::map<int, DynamicPrintConfig> PresetBundle::order_device_filaments_by_extruder(const std::map<int, DynamicPrintConfig>& list,
+                                                                                    int                                     extruder_count)
+{
+    if (extruder_count <= 1)
+        return list;
+
+    const auto is_virtual = [extruder_count](const DynamicPrintConfig& entry) {
+        // External spools use the virtual tray ids 255, 254, ... one per toolhead.
+        const std::string ams_id = entry.opt_string("ams_id", 0u);
+        if (ams_id.empty() || !std::all_of(ams_id.begin(), ams_id.end(), [](unsigned char c) { return std::isdigit(c) != 0; }))
+            return false;
+        const int id = std::atoi(ams_id.c_str());
+        return id <= 255 && id > 255 - extruder_count;
+    };
+    const auto is_loaded = [](const DynamicPrintConfig& entry) {
+        const bool placeholder = entry.has("filament_slot_placeholder") && entry.opt_bool("filament_slot_placeholder", 0u);
+        const bool exists      = entry.has("filament_exist") && entry.opt_bool("filament_exist", 0u);
+        return !placeholder && (!entry.opt_string("filament_id", 0u).empty() || !entry.opt_string("filament_type", 0u).empty() || exists);
+    };
+
+    // Per toolhead: lanes first (in their device order), then the external spool.
+    std::vector<std::vector<const DynamicPrintConfig*>> per_extruder(static_cast<size_t>(extruder_count));
+    std::vector<const DynamicPrintConfig*>              unassociated;
+    for (const bool want_virtual : {false, true}) {
+        for (const auto& [key, entry] : list) {
+            const int extruder = entry.has("device_tray_extruder_id") ? entry.opt_int("device_tray_extruder_id") : -1;
+            if (extruder < 0 || extruder >= extruder_count) {
+                if (!want_virtual)
+                    unassociated.push_back(&entry);
+                continue;
+            }
+            if (is_virtual(entry) == want_virtual)
+                per_extruder[extruder].push_back(&entry);
+        }
+    }
+
+    std::map<int, DynamicPrintConfig> ordered;
+    std::vector<const DynamicPrintConfig*> rest;
+    for (int extruder = 0; extruder < extruder_count; ++extruder) {
+        const auto& candidates = per_extruder[extruder];
+        if (candidates.empty()) {
+            // The device reported nothing for this toolhead. It still owns its slot, or every later
+            // toolhead would sync one slot down. Copy any entry for its keys, then make it empty.
+            if (list.empty())
+                continue;
+            DynamicPrintConfig placeholder = list.begin()->second;
+            for (const char* key : {"filament_id", "tag_uid", "ams_id", "slot_id", "filament_type", "tray_name", "filament_colour"})
+                placeholder.set_key_value(key, new ConfigOptionStrings{""});
+            placeholder.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
+            placeholder.set_key_value("filament_exist", new ConfigOptionBools{false});
+            placeholder.set_key_value("filament_slot_placeholder", new ConfigOptionBools{true});
+            placeholder.set_key_value("filament_keep_slot", new ConfigOptionBool(true));
+            placeholder.set_key_value("device_tray_extruder_id", new ConfigOptionInt(extruder));
+            ordered.emplace(extruder, std::move(placeholder));
+            continue;
+        }
+        auto slot = std::find_if(candidates.begin(), candidates.end(), [&](const DynamicPrintConfig* e) { return is_loaded(*e); });
+        const bool empty = slot == candidates.end();
+        if (empty)
+            slot = candidates.begin();
+        DynamicPrintConfig slot_entry = **slot;
+        if (empty)
+            slot_entry.set_key_value("filament_keep_slot", new ConfigOptionBool(true));
+        ordered.emplace(extruder, std::move(slot_entry));
+        for (const auto* candidate : candidates)
+            if (candidate != *slot)
+                rest.push_back(candidate);
+    }
+    int next_key = extruder_count;
+    for (const auto* entry : rest)
+        ordered.emplace(next_key++, *entry);
+    for (const auto* entry : unassociated)
+        ordered.emplace(next_key++, *entry);
+    return ordered;
 }
 
 // ORCA TODO: currently, this function assumes the printer name follows the pattern of "<printer_model> <nozzle_diameter>", e.g.
