@@ -988,7 +988,8 @@ static std::vector<std::pair<std::set<int>, std::set<int>>> tower_layers(const s
         }
         if (boost::starts_with(line, ";LAYER_CHANGE"))
             layers.emplace_back();
-        else if (boost::starts_with(line, ";TYPE:") && tool >= 0 && ! layers.empty())
+        // The tower's own role tag says nothing about what the layer prints.
+        else if (boost::starts_with(line, ";TYPE:") && line != ";TYPE:Prime tower" && tool >= 0 && ! layers.empty())
             layers.back().first.insert(tool);
         else if (boost::starts_with(line, "; WIPE_TOWER_START"))
             in_tower = true, block_has_toolchange = false, block_tool = tool;
