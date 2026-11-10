@@ -8,7 +8,6 @@
 #include <utility>
 
 #include <nlohmann/json.hpp>
-#include <pybind11/embed.h>
 
 #include <libslic3r/LifecycleEvents.hpp>
 

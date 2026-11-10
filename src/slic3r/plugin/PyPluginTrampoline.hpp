@@ -2,10 +2,12 @@
 #define slic3r_PyPluginTrampoline_hpp_
 
 #include "libslic3r/LifecycleEvents.hpp"
+#include <exception>
 #include <pybind11/embed.h>
 
 #include <boost/log/trivial.hpp>
 
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -13,10 +15,13 @@
 #include "PythonPluginInterface.hpp"
 #include "PythonInterpreter.hpp"
 #include "PluginFsUtils.hpp"
+#include "PluginJsonPy.hpp"
 #include "PluginAuditManager.hpp"
+#include "pybind11/cast.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/gil.h>
 #include <pybind11/pytypes.h>
+#include <utility>
 
 // Trampoline variants of pybind11's override macros. Every C++->Python plugin call crosses a
 // trampoline method, so this single boundary is where we (1) log the full Python traceback and
@@ -61,6 +66,78 @@
     } while (0)
 
 namespace Slic3r {
+
+// True when `object` is a coroutine object (the value produced by calling an `async def`).
+// Match inspect.iscoroutine() without importing Python modules inside the plugin audit scope.
+// Must be called with the GIL held.
+inline bool py_is_coroutine(const pybind11::handle& object)
+{
+    return object && PyCoro_CheckExact(object.ptr());
+}
+
+// Result of invoking a Script capability's Python `execute` exactly once.
+//
+// A synchronous override (`def execute`) runs to completion here and yields `result`.
+// An asynchronous override (`async def execute`, or any override that returns a coroutine)
+// yields the coroutine object in `awaitable` WITHOUT running it: the cast to ExecutionResult
+// that the trampoline would otherwise perform is impossible for a coroutine, so the caller
+// chooses how to drive it. Whoever drives it must keep the capability referenced and re-open
+// this call's GIL + runtime lease + audit scope for the coroutine's whole lifetime (see
+// ScriptAsyncRuntime in PluginManager.hpp).
+struct ScriptExecuteInvocation
+{
+    bool             is_async = false;
+    pybind11::object awaitable; // valid iff is_async; a coroutine object created under the GIL
+    ExecutionResult  result;    // valid iff !is_async
+    std::string      error;     // non-empty when the call or coroutine creation raised
+};
+
+// Invokes ScriptPluginCapability::execute() under the GIL, replicating the audited trampoline
+// call (capability ref counter, audit scope, traceback-preserving rethrow) but returning a
+// coroutine object instead of forcing a cast when the plugin's `execute` is `async def`.
+//
+// `capability` must be the concrete, Python-bound capability instance (obtainable from
+// get_plugin_capability()); it is resolved back to its Python object through pybind's instance
+// map. Never throws: a Python exception is logged (full traceback) and reported in `error`.
+inline ScriptExecuteInvocation invoke_script_execute(const std::shared_ptr<PluginCapabilityInterface>& capability)
+{
+    ScriptExecuteInvocation invocation;
+    if (!capability)
+        return invocation;
+
+    try {
+        pybind11::gil_scoped_acquire gil;
+        PluginCapabilityInterface::RefCounter ref_counter(*capability);
+
+        std::optional<ScopedPluginAuditContext> audit_scope;
+        if (const std::string& audit_key = capability->audit_plugin_key(); !audit_key.empty())
+            audit_scope.emplace(audit_key, capability->name());
+
+        pybind11::object py_capability = pybind11::cast(capability);
+        pybind11::object returned      = py_capability.attr("execute")();
+
+        if (py_is_coroutine(returned)) {
+            invocation.is_async = true;
+            invocation.awaitable = std::move(returned);
+            return invocation;
+        }
+
+        invocation.result = returned.cast<ExecutionResult>();
+    } catch (pybind11::error_already_set& err) {
+        const bool audit_denial = PluginAuditManager::instance().audit_denial_pending();
+        if (audit_denial)
+            PluginAuditManager::instance().clear_current_plugin();
+        invocation.error = err.what();
+        log_python_exception_keep(err);
+        if (audit_denial)
+            PluginAuditManager::instance().clear_audit_denial();
+    } catch (const std::exception& ex) {
+        invocation.error = ex.what();
+    }
+
+    return invocation;
+}
+
 template<class Base> class PyPluginCommonTrampoline : public Base
 {
 public:

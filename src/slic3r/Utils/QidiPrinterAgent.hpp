@@ -4,11 +4,12 @@
 #include "IPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "bambu_networking.hpp"
-#include "nlohmann/json_fwd.hpp"
 
 #include <map>
 #include <string>
 #include <vector>
+
+#include <nlohmann/json.hpp>
 
 namespace Slic3r {
 
@@ -29,12 +30,19 @@ public:
                                     nlohmann::json&    variables,
                                     std::string&       error);
 
-    // Print operations — emit QiDi multi-color box config, then delegate to base.
-    // Only the LAN print path is supported by the base; the cloud/record/sdcard variants
-    // are inherited and return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
-    int start_local_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn) override;
-
     FilamentSyncMode get_filament_sync_mode() const override;
+
+    // Builds the SAVE_VARIABLE lines that make each T<n> macro load the Box slot picked for filament n
+    static std::string build_tool_slot_script(const std::string& ams_mapping);
+    // Builds the body of Moonraker's print start for an uploaded file, naming the plate to print when it is a 3MF
+    static nlohmann::json print_start_request(const PrintParams& params, const std::string& filename);
+
+protected:
+    // Saves the Box config picked in the print dialog, then starts the print through Moonraker. Only the LAN print
+    // path uploads and starts a print; the cloud/record/sdcard variants are inherited and return
+    // ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED.
+    bool print_uploaded_file(const PrintParams& params, const std::string& filename) override;
+    std::string ams_unit_name(int ams_id) const override { return "Qidi Box " + std::to_string(ams_id + 1); }
 
 private:
     // Push enable_box + value_t<tool> SAVE_VARIABLEs before a print starts.

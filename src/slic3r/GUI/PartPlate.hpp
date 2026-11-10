@@ -19,16 +19,20 @@
 #include <cereal/specialize.hpp>
 #include <vector>
 #include <set>
+#include <map>
 #include <array>
+#include <string>
 #include <functional>
 #include <optional>
 #include <thread>
 #include <mutex>
+#include <memory>
 #include <wx/types.h>
 
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/IMEXZones.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/GCode/WipeTowerEstimate.hpp"
 #include "libslic3r/Arrange.hpp"
@@ -94,6 +98,13 @@ class PartPlateList;
 
 using GCodeResult = GCodeProcessorResult;
 
+// What estimate_wipe_tower_polygon did to a saved tower position that no longer fits the plate.
+struct WipeTowerRelocation
+{
+    bool moved            = false; // re-placed, not just snapped onto the bound it was dropped past
+    bool overlaps_objects = false; // no spot on the plate was clear of the objects, so it sits on one
+};
+
 class PartPlate : public ObjectBase
 {
 public:
@@ -152,6 +163,14 @@ private:
     PickingModel m_triangles;
     GLModel m_exclude_triangles;
     GLModel m_wrapping_detection_triangles;
+    GLModel m_exclusion_volume_floor_triangles;
+    GLModel m_exclusion_volume_border_triangles;
+    std::vector<std::pair<std::unique_ptr<GLModel>, ColorRGBA>> m_extruder_exclusion_volume_borders;
+    GLModel m_active_exclusion_volume_prisms;
+    GLModel m_exclusion_volume_intersection_triangles;
+    std::string m_exclusion_volume_preview_cache_key;
+    bool m_exclusion_volume_preview_dirty { true };
+    bool m_exclusion_volume_intersections_cleared { false };
     GLModel m_logo_triangles;
     GLModel m_gridlines;
     GLModel m_gridlines_bolder;
@@ -163,10 +182,23 @@ private:
     std::vector<GLModel>       m_imex_margin_overlay;       // amber advisory bands just inside collision strips
     std::optional<BoundingBoxf> m_imex_primary_zone_box;   // primary zone extents in mm; empty when IDEX/IQEX is off/primary-only
     std::map<int, Vec2d> m_imex_head_zone_centers;         // physical-head → zone-center (mm); populated by calc_imex_zones
-    int m_imex_primary_head{ -1 };                         // physical-head index of the primary tool in the active mode; -1 when no mode
-    std::string m_imex_zones_mode_cache{ "\x01" }; // cached mode+topology key; sentinel = unbuilt
+    // What the zones, the ghosts and m_imex_active_mode were last built from; nullopt rebuilds all three.
+    std::optional<ImexLayoutKey> m_imex_layout_key;
+    unsigned m_imex_layout_key_version{ 0 };  // bumped whenever m_imex_layout_key changes
+    bool m_imex_zones_stale{ true };          // set when the key changes, cleared by the zone rebuild
+    // Resolved only when m_imex_layout_key changes, because find_imex_mode() copies the whole
+    // mode, G-code included.
+    struct ImexActiveMode
+    {
+        std::string tools;        // the mode's imex_mode_active_tools entry; empty if there's none
+        int         primary = -1; // physical head of the mode's Primary tool
+        bool        resolved() const { return primary >= 0; }
+    };
+    ImexActiveMode m_imex_active_mode;
     std::vector<std::unique_ptr<GLVolume>> m_imex_ghost_volumes;
-    std::string m_imex_ghost_cache_key{ "\x01" };  // sentinel = unbuilt
+    // The layout key version and the objects the ghosts were built from; nullopt = unbuilt.
+    std::optional<unsigned> m_imex_ghost_layout_version;
+    std::set<std::pair<int, int>> m_imex_ghost_objects;
     GLModel m_height_limit_common;
     GLModel m_height_limit_bottom;
     GLModel m_height_limit_top;
@@ -200,6 +232,9 @@ private:
     wxCoord m_name_texture_width;
     wxCoord m_name_texture_height;
 
+    // Copies m_name to the Print; invalidates the G-code export if a G-code template uses {plate_name}.
+    void sync_plate_name_to_print();
+
     void init();
     bool valid_instance(int obj_id, int instance_id) const;
     void generate_print_polygon(ExPolygon &print_polygon);
@@ -212,16 +247,14 @@ private:
     void calc_gridlines(const ExPolygon& poly, const BoundingBox& pp_bbox);
     void calc_height_limit();
     void calc_imex_zones();
-    void ensure_imex_zones();
-    std::string build_imex_cache_key() const;
+    void ensure_imex_zones();           // checks the layout key, then rebuild_stale_imex_zones()
+    void rebuild_stale_imex_zones();    // rebuilds the zones if they're stale; doesn't refresh the key
+    // Brings m_imex_layout_key up to date; when it changes, re-resolves m_imex_active_mode and
+    // marks the zones stale. Reads per-plate mode first, falling back to the process preset.
+    // render() calls it once a frame, and ensure_imex_zones() for callers outside render().
+    void refresh_imex_layout_key();
     void calc_imex_ghosts();            // full rebuild
     void ensure_imex_ghosts();          // cached rebuild on key change
-    std::string build_imex_ghost_cache_key() const;
-    // Resolves the currently-active IMEX mode's tools string + primary physical head.
-    // Plate override wins; else falls back to process preset `imex_parallel_mode`.
-    // Returns false (and leaves outputs untouched) if IMEX is off, mode is empty/"primary",
-    // mode config is missing, the mode isn't listed, or no primary is found.
-    bool resolve_active_mode_tools(std::string& out_tools_str, int& out_primary_phys) const;
     void render_imex_zones(bool force_default_color);
     void refresh_imex_icon();
     float icon_scale_factor() const;
@@ -234,6 +267,11 @@ private:
     void render_logo(bool bottom, bool render_cali = true);
     void render_logo_texture(GLTexture &logo_texture, GLModel &logo_buffer, bool bottom);
     void render_exclude_area(bool force_default_color);
+    void render_exclusion_volume_previews(bool force_default_color);
+    void render_exclusion_volume_intersections();
+    void update_exclusion_volume_preview_models();
+    std::string exclusion_volume_preview_cache_key(const std::vector<BedExcludeRegion> &regions) const;
+    double max_broad_phase_intersecting_object_height(const Polygons& regions) const;
     //void render_background_for_picking(const ColorRGBA render_color) const;
     void render_grid(bool bottom);
     void render_wrapping_detection_area(bool force_default_color);
@@ -247,6 +285,9 @@ private:
     void render_icon_texture(GLModel &buffer, GLTexture &texture);
     void set_hover_tooltip(const std::string& tooltip);
     void render_icons(bool bottom, bool only_name = false, int hover_id = -1);
+    // Returns true when IMEX parallel mode is active (non-primary) AND the plate
+    // has objects assigned to more than one filament — a combination that warrants caution.
+    bool has_imex_multimaterial_conflict() const;
     void render_only_numbers(bool bottom);
     void render_plate_name_texture();
     void invalidate_plate_name_texture();
@@ -254,6 +295,9 @@ private:
     int picking_id_component(int idx) const;
 
     void on_filament_map_mode_change();
+    // What a re-placed tower keeps clear of: each printable instance's convex hull, grown by its
+    // brim and the tower margin, in plate coordinates.
+    Polygons wipe_tower_obstacles(const DynamicPrintConfig &config) const;
 
 public:
     static constexpr unsigned int PLATE_NAME_HOVER_ID = 6;
@@ -390,7 +434,7 @@ public:
     void update_imex_ghost_colors();
 
     // Invalidate the ghost cache so the next render_imex_zones() call rebuilds fully.
-    void invalidate_imex_ghosts() { m_imex_ghost_cache_key = "\x01"; }
+    void invalidate_imex_ghosts() { m_imex_ghost_layout_version.reset(); }
 
     std::vector<Vec2d> get_plate_wrapping_detection_area() const;
 
@@ -457,7 +501,10 @@ public:
     // use_global_objects skips the containment test, which the CLI needs before objects are
     // assigned to plates - the layer height is then the project's thinnest, which over-reserves.
     WipeTowerFootprint estimate_wipe_tower_footprint(const DynamicPrintConfig & config, int plate_extruder_size = 0, bool use_global_objects = false) const;
-    arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int plate_extruder_size = 0, bool use_global_objects = false) const;
+    // relocation: callers that store the returned position pass it, so a re-placed tower is
+    // moved clear of the plate's objects where there is room, and they are told it moved.
+    arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int plate_extruder_size = 0, bool use_global_objects = false,
+                                                            WipeTowerRelocation *relocation = nullptr) const;
     bool check_objects_empty_and_gcode3mf(std::vector<int> &result) const;
     // get used filaments from config, 1 based idx
     // expand_mixed_slots = false keeps mixed filament slots as slots instead of their components.
@@ -472,6 +519,16 @@ public:
     const std::vector<FilamentInfo>& get_slice_filaments_info() const { return slice_filaments_info; }
     int  get_physical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
     int  get_logical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
+    // Resolve the mapping policy used specifically by exclusion regions.
+    // Values are 1-based nozzle ids; 0 means automatic Bambu mapping has not
+    // produced a concrete plate-local assignment yet.
+    std::vector<int> get_effective_exclusion_filament_maps(const DynamicConfig &g_config, size_t filament_count,
+                                                           size_t extruder_count) const;
+    // 1-based filament id -> 0-based nozzle/exclusion-region id for the
+    // object's current plate mapping. Includes every filament referenced by
+    // any model volume (including painted facets).
+    std::map<int, size_t> get_object_filament_extruders(const ModelObject &object, const DynamicConfig &g_config,
+                                                        size_t extruder_count) const;
     bool check_filament_printable(const DynamicPrintConfig & config, wxString& error_message);
     bool check_tpu_printable_status(const DynamicPrintConfig & config, const std::vector<int> &tpu_filaments);
     bool check_mixture_of_pla_and_petg(const DynamicPrintConfig & config);
@@ -495,6 +552,8 @@ public:
 
     //check whether instance is outside the plate or not
     bool check_outside(int obj_id, int instance_id, BoundingBoxf3* bounding_box = nullptr);
+    void clear_exclusion_volume_intersections();
+    void invalidate_exclusion_volume_preview();
 
     //judge whether instance is intesected with plate or not
     bool intersect_instance(int obj_id, int instance_id, BoundingBoxf3* bounding_box = nullptr);
@@ -591,9 +650,6 @@ public:
     // Footprint of the prime tower as the scene draws it, in scaled plate-list coords.
     // Empty when the plate has no tower.
     Polygon imex_wipe_tower_hull() const;
-    // Returns true when IMEX parallel mode is active (non-primary) AND the plate
-    // has objects assigned to more than one filament — a combination that warrants caution.
-    bool has_imex_multimaterial_conflict() const;
     // Returns the primary-zone bounding box in mm when an IDEX/IQEX parallel mode is active.
     // Empty (nullopt) when IDEX/IQEX is off or the mode is "primary" (full-bed).
     std::optional<BoundingBoxf> imex_primary_zone() { ensure_imex_zones(); return m_imex_primary_zone_box; }
@@ -700,6 +756,8 @@ public:
 
         for (std::vector<std::pair<int, int>>::iterator it = instances_outside.begin(); it != instances_outside.end(); ++it)
             instance_outside_set.insert(std::pair(it->first, it->second));
+
+        invalidate_exclusion_volume_preview();
     }
     template<class Archive> void save(Archive& ar) const {
         std::vector<std::pair<int, int>>	objects_and_instances;
@@ -880,6 +938,8 @@ public:
 
     // Pantheon: update plates after moving plate to the front
     void update_plates();
+    void invalidate_exclusion_volume_previews();
+    void render_exclusion_volume_intersections(const Transform3d &view_matrix, const Transform3d &projection_matrix);
 
     /*basic plate operations*/
     //create an empty plate and return its index
@@ -996,7 +1056,8 @@ public:
     //preprocess an arrangement::ArrangePolygon, return true if it is in a locked plate
     bool preprocess_arrange_polygon(int obj_index, int instance_index, arrangement::ArrangePolygon& arrange_polygon, bool selected);
     bool preprocess_arrange_polygon_other_locked(int obj_index, int instance_index, arrangement::ArrangePolygon& arrange_polygon, bool selected);
-    bool preprocess_exclude_areas(arrangement::ArrangePolygons& unselected, bool enable_wrapping_detect, int num_plates = 16, float inflation = 0);
+    bool preprocess_exclude_areas(arrangement::ArrangePolygons &unselected, const DynamicPrintConfig &config,
+                                  bool enable_wrapping_detect, int num_plates = 16, float inflation = 0);
     bool preprocess_nonprefered_areas(arrangement::ArrangePolygons& regions, int num_plates = 1, float inflation=0);
 
     void postprocess_bed_index_for_selected(arrangement::ArrangePolygon& arrange_polygon);

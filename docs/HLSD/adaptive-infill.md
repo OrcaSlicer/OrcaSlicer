@@ -144,7 +144,10 @@ The zero level is extracted with marching squares like the regular TPMS-FK, on
 a sampling grid fixed in the fill frame like the optimized Gyroid, so that every
 region of a layer connects its lines the same way at the saddles of the pattern.
 Loops narrower than two lines (shorter than `2 * PI * spacing`) are dropped, as
-they would print as blobs. The fill works in a frame rotated by the infill
+they would print as blobs. A line of the pattern is part of a ring closed along
+the border of the sampling grid, starting wherever the scan first met it, so the
+two pieces that clipping leaves at that point are joined back into one line. The
+fill works in a frame rotated by the infill
 angle, so the radial field is looked up at the point rotated back into the
 object frame, and the center rotated into the fill frame. Both use the middle of
 the layer.

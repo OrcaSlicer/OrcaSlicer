@@ -129,6 +129,12 @@ public:
     // Serialized with the reservation so shutdown()'s wait cannot miss the transition to 0.
     void release_fetch_slot() noexcept;
 
+    // JSON helper methods
+    static std::string safe_json_string(const nlohmann::json& obj, const char* key);
+    static int safe_json_int(const nlohmann::json& obj, const char* key);
+    static std::string safe_array_string(const nlohmann::json& arr, int idx);
+    static int safe_array_int(const nlohmann::json& arr, int idx);
+
 protected:
     struct ConnectionSettings
     {
@@ -155,7 +161,8 @@ protected:
         std::string ca_file;
     } device_info;
 
-    // Copied when the stream starts, so changes apply to the next start_status_stream()
+    // Copied when the stream starts, so changes apply to the next start_status_stream(). A connection's retries read
+    // reconnect_delay directly.
     struct StatusStreamTimings
     {
         std::chrono::milliseconds handshake{std::chrono::seconds(10)};      // Opening and closing handshakes
@@ -163,6 +170,7 @@ protected:
         std::chrono::milliseconds idle{std::chrono::seconds(30)};           // Silence before giving up, with a ping every half of it
         std::chrono::milliseconds heartbeat{std::chrono::seconds(10)};      // Silence before the cached status is sent again
         std::chrono::milliseconds reconnect_delay{std::chrono::seconds(1)}; // First wait, doubling per consecutive failure up to 32x
+        std::chrono::milliseconds storage_check{std::chrono::seconds(30)};  // How often the free space of the gcodes root is re-read
     } ws_timings;
 
     // Tray data for AMS payload building
@@ -172,7 +180,10 @@ protected:
         bool        has_filament = false;
         std::string tray_type;           // Material type (e.g., "PLA", "ASA")
         std::string tray_color;          // Raw color (#RRGGBB, 0xRRGGBB, or RRGGBBAA)
-        std::string tray_info_idx;       // Setting ID (optional)
+        std::vector<std::string> tray_colors; // Optional: every color of a multi-color spool, in order (same formats).
+                                              // Used when it holds two or more; otherwise tray_color is the only one.
+        bool        colors_gradient = false;  // With tray_colors: blend them as a gradient instead of drawing segments
+        std::string tray_info_idx;       // Filament ID (optional)
         int         bed_temp = 0;        // Optional
         int         nozzle_temp = 0;     // Optional
     };
@@ -196,10 +207,20 @@ protected:
     // Same threading contract as build_ams_payload (apply_inline / resolve_tray_ids above).
     void build_ams_payload_grouped(const std::vector<AmsTrayData>& trays, bool apply_inline = false,
                                    ResolveAmsTrayIdsFn resolve_tray_ids = {});
+    // Name shown for a filament unit, or empty for the AMS Lite name
+    virtual std::string ams_unit_name(int /*ams_id*/) const { return {}; }
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(const PrinterConnectionParams& params);
-    virtual bool fetch_device_info(const ConnectionSettings& connection, MoonrakerDeviceInfo& info, std::string& error) const;
+    // An override must give up its request once `cancelled` returns true, or the destructor waits out its timeout
+    virtual bool fetch_device_info(const ConnectionSettings&    connection,
+                                   MoonrakerDeviceInfo&         info,
+                                   std::string&                 error,
+                                   const std::function<bool()>& cancelled) const;
+    // Starts the print of a file already uploaded to the gcodes root
+    virtual bool print_uploaded_file(const PrintParams& params, const std::string& filename);
+    // Whether the printer prints a .gcode.3mf bundle as is (its use_3mf option)
+    virtual bool accepts_3mf() const;
     ConnectionSettings get_connection_settings() const;
     // Copy of the mutable connection state, taken under connect_mutex. Background threads
     // must use this instead of reading device_info directly.
@@ -229,6 +250,9 @@ protected:
     std::string normalize_base_url(bool use_ssl, const std::string& host, const std::string& port);
     std::string sanitize_filename(const std::string& filename);
     std::string join_url(const std::string& base_url, const std::string& path) const;
+    bool send_gcode_sync(const std::string& dev_id, const std::string& gcode) const;
+    // Posts the request to /printer/print/start
+    bool send_jsonrpc_command(const ConnectionSettings& connection, const nlohmann::json& request, std::string& response) const;
 
     // Trim whitespace and convert to uppercase
     static std::string trim_and_upper(const std::string& input);
@@ -258,9 +282,18 @@ private:
     int send_version_info(const std::string& dev_id);
     int send_access_code(const std::string& dev_id);
 
+    // GETs a Moonraker endpoint and parses its JSON answer, giving up once `cancelled` returns true
+    bool get_json(const ConnectionSettings&    connection,
+                  const std::string&           url,
+                  const std::function<bool()>& cancelled,
+                  nlohmann::json&              json,
+                  std::string&                 error) const;
     bool fetch_object_list(const ConnectionSettings& connection, std::set<std::string>& objects, std::string& error) const;
-    bool query_printer_status(const ConnectionSettings& connection, nlohmann::json& status, std::string& error) const;
-    bool send_gcode_sync(const std::string& dev_id, const std::string& gcode) const;
+    bool fetch_has_free_storage(const ConnectionSettings& connection, bool& has_free, std::string& error) const;
+    bool query_printer_status(const ConnectionSettings&    connection,
+                              nlohmann::json&              status,
+                              std::string&                 error,
+                              const std::function<bool()>& cancelled) const;
     void send_gcode_async(const std::string& dev_id, const std::string& gcode,
                           std::function<void(bool)> on_result = {}) const;
 
@@ -288,6 +321,9 @@ private:
     void handle_ws_message(std::string dev_id, std::string payload, ConnectionSettings connection);
     void send_heartbeat_if_due(const std::string& dev_id, std::chrono::milliseconds interval);
     void refresh_thumbnail_url(const ConnectionSettings& connection);
+    void dispatch_status(const std::string& dev_id);
+    // Re-reads whether the gcodes root has free space, and returns whether the answer changed
+    bool refresh_storage(const ConnectionSettings& connection);
     void update_status_cache(const nlohmann::json& updates);
     nlohmann::json build_print_payload_locked() const;
     // Snapshot Moonraker "extruder"/"extruderN" status objects from the cache, keyed by extruder id.
@@ -309,6 +345,7 @@ private:
     // System-specific filament fetch methods
     bool fetch_hh_filament_info(const ConnectionSettings& connection, std::vector<AmsTrayData>& trays, int& max_lane_index);
     bool fetch_moonraker_filament_data(const ConnectionSettings& connection, std::vector<AmsTrayData>& trays, int& max_lane_index);
+    bool fetch_creality_cfs_data(const ConnectionSettings& connection, std::vector<AmsTrayData>& trays, int& max_lane_index);
     // Lane name -> toolhead index, read from the AFC printer objects (the lane_data database has no
     // extruder field). Returns false when AFC is not present or the objects cannot be read.
     bool fetch_afc_lane_extruders(const ConnectionSettings& connection, std::map<std::string, int>& lane_extruder);
@@ -328,18 +365,13 @@ private:
     // Wrap the AMS boxes into the payload ParseV1_0 understands and apply the pull-mode
     // readiness state (printer_type, push counters, storage, module versions). Runs on the main
     // thread as part of a build_ams_payload commit; static so the commit never captures `this`,
-    // with the device identity and extruder status snapshotted by value.
+    // with the device identity, storage state and extruder status snapshotted by value.
     static void submit_ams_payload(const std::string& dev_id, const std::string& model_id,
-                                   const std::map<int, nlohmann::json>& extruder_status,
+                                   const std::map<int, nlohmann::json>& extruder_status, bool has_storage,
                                    const nlohmann::json& ams_array, unsigned long ams_exist_bits, unsigned long tray_exist_bits);
 
-    // JSON helper methods
-    static std::string safe_json_string(const nlohmann::json& obj, const char* key);
-    static int safe_json_int(const nlohmann::json& obj, const char* key);
     // Accepts either a JSON number or a numeric string (AFC reports some fields as strings).
     static int safe_json_int_flexible(const nlohmann::json& obj, const char* key, int default_value);
-    static std::string safe_array_string(const nlohmann::json& arr, int idx);
-    static int safe_array_int(const nlohmann::json& arr, int idx);
     static std::string normalize_color_value(const std::string& color);
 
     std::string                        ssdp_announced_host;
@@ -374,6 +406,7 @@ private:
     std::atomic<int>       next_jsonrpc_id{1};
     std::set<std::string>  available_objects;  // Track for feature detection
     bool                   assumed_light_on = false;
+    std::atomic<bool>      has_storage{false}; // The gcodes root has free space
 
     std::atomic<bool>   ws_stop{false};
     std::atomic<bool>   ws_reconnect_requested{false};  // Flag to trigger reconnection

@@ -1,30 +1,37 @@
 #include "PrinterWebView.hpp"
 
 #include "PrinterWebViewHandler.hpp"
+#include "I18N.hpp"
+
 #include "slic3r/GUI/PrinterWebView.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
-#include "libslic3r_version.h"
+#include <slic3r/GUI/Widgets/WebView.hpp>
+#include <slic3r/GUI/Widgets/WebViewHostDialog.hpp>
 
+#include "libslic3r_version.h"
+#include <libslic3r/PrintConfig.hpp>
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PresetBundle.hpp"
+
+#include <boost/log/trivial.hpp>
 #include <boost/filesystem/path.hpp>
-#include <utility>
+
+#include <nlohmann/json.hpp>
+
+#include <wx/event.h>
 #include <wx/panel.h>
 #include <wx/gdicmn.h>
-#include <memory>
 #include <wx/log.h>
-#include "libslic3r/Utils.hpp"
-#include <wx/event.h>
-#include <boost/log/trivial.hpp>
 #include <wx/sizer.h>
 #include <wx/string.h>
 #include <wx/toolbar.h>
-
-#include <slic3r/GUI/Widgets/WebView.hpp>
-#include <slic3r/GUI/Widgets/WebViewHostDialog.hpp>
-#include "I18N.hpp"
-#include <nlohmann/json.hpp>
 #include <wx/utils.h>
 #include <wx/webview.h>
+
+#include <memory>
+#include <utility>
 
 class wxWindow;
 
@@ -203,16 +210,32 @@ void PrinterWebView::reset_browser()
 
     // OnLoaded may have cleared m_url_deferred already, so requeue the last url for Show().
     m_apikey_sent  = false;
+    m_url_loaded   = false;
     m_url_deferred = m_url;
+}
+
+// Same lookup as create_printer_webview_handler().
+static PrintHostType active_host_type()
+{
+    if (wxGetApp().preset_bundle == nullptr)
+        return htOctoPrint;
+    return wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
 }
 
 void PrinterWebView::load_url(wxString& url, wxString apikey)
 {
 //    this->Show();
 //    this->Raise();
+    const PrintHostType host_type = active_host_type();
+    // Selecting the tab requests the same page again; navigating would reload it and drop its state.
+    if (m_url_loaded && url == m_url && apikey == m_apikey && host_type == m_host_type)
+        return;
+
     m_url = url;
     m_apikey = apikey;
+    m_host_type = host_type;
     m_apikey_sent = false;
+    m_url_loaded = false;
     m_handler = create_printer_webview_handler(*this);
 
     if (this->IsShown()) {
@@ -284,9 +307,10 @@ void PrinterWebView::SendAPIKey()
     // RemoveAllUserScripts causes WebView to forget about our script message handler, 
     // so re-add it here.
     m_browser->RemoveScriptMessageHandler("wx");
-    if (m_browser->AddScriptMessageHandler("wx"))
-        WebView::MarkScriptMessageHandlerAdded(m_browser);
-    else
+    // Mark before adding: on WKWebView the add yields in RunScript() after registering "wx",
+    // and CreateWebView()'s deferred add, if it runs in that yield, would register it again.
+    WebView::MarkScriptMessageHandlerAdded(m_browser);
+    if (!m_browser->AddScriptMessageHandler("wx"))
         wxLogError("Could not add script message handler");
 
 #ifdef __linux__
@@ -333,10 +357,12 @@ void PrinterWebView::OnError(wxWebViewEvent &evt)
 
 void PrinterWebView::OnLoaded(wxWebViewEvent& evt)
 {
-    if (evt.GetURL().IsEmpty())
+    // The web view's initial empty document (about:blank on WebKit) is not the requested page.
+    if (evt.GetURL().IsEmpty() || evt.GetURL() == "about:blank")
         return;
     //ORCA: url loaded successfully, safe to clear
     m_url_deferred.clear();
+    m_url_loaded = true;
     SendAPIKey();
   
     if (m_handler != nullptr) {

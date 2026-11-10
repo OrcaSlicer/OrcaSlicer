@@ -134,6 +134,11 @@ std::string BBLPrinterAgent::to_orca_filament_id(const std::string& printer_fila
 
 std::string BBLPrinterAgent::from_orca_filament_id(const std::string& orca_filament_id) const
 {
+    return bambu_filament_id(orca_filament_id);
+}
+
+std::string BBLPrinterAgent::bambu_filament_id(const std::string& orca_filament_id)
+{
     const auto& map = bambu_filament_id_map().to_bambu;
     auto it = map.find(orca_filament_id);
     return it != map.end() ? it->second : orca_filament_id;

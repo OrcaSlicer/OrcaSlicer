@@ -20,7 +20,7 @@ struct SequentialClearanceInstance
     ObjectID    instance_id;
 };
 
-// PrintApply may group rotated copies in a different order from ModelObject::instances.
+// Print validation may order the instances of an object differently from ModelObject::instances.
 // Reorder one object's instances only when validation has assigned all of them an order.
 inline void sort_sequential_clearance_instances(
     std::vector<SequentialClearanceInstance>::iterator first, std::vector<SequentialClearanceInstance>::iterator last,

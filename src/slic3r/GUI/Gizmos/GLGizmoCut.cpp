@@ -2762,11 +2762,16 @@ void GLGizmoCut3D::render_groove_int_input(const std::string& label, int& in_val
     ImGui::AlignTextToFramePadding();
     ImGui::SameLine(m_label_width);
     ImGui::PushItemWidth(m_control_width);
-    if (ImGui::InputInt("##int_input", &in_val, 1, 5)) {
-        in_val = std::clamp(in_val, min_val, max_val);
-
-        is_changed = true;
+    int val = in_val;
+    if (ImGui::InputInt("##int_input", &val, 1, 5)) {
+        val = std::clamp(val, min_val, max_val);
+        // ORCA Holding +/- at the limit clamps back to the same value, don't rebuild for that.
+        if (val != in_val) {
+            in_val     = val;
+            is_changed = true;
+        }
     }
+    m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
     
     ImGui::SameLine();
     m_imgui->disabled_begin(in_val == init_val);

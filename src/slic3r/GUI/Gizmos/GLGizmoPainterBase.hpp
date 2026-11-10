@@ -235,6 +235,10 @@ public:
 protected:
     // Draws every model part's selector, except `skip`'s when given.
     virtual void render_triangles(const Selection& selection, const ModelVolume* skip = nullptr) const;
+    // The same, skipping every part in `skip`. A gizmo can have a preview standing in for more than one
+    // model part at a time - the texture-displacement gizmo previews every painted part of a multibody
+    // object - and drawing those parts' selectors over it would bury the preview under a flat surface.
+    void render_triangles(const Selection& selection, const std::vector<const ModelVolume*>& skip) const;
     void render_cursor();
     void render_cursor_circle();
     void render_cursor_sphere(const Transform3d& trafo) const;
@@ -296,6 +300,7 @@ protected:
 
     bool     m_paint_on_overhangs_only          = false;
     float    m_highlight_by_angle_threshold_deg = 0.f;
+    float    get_highlight_angle_limit_deg() const;
 
     // Returns the up direction accounting for build plate tilt (default: UnitZ)
     Vec3f get_tilt_up_direction() const;

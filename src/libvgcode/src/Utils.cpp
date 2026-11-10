@@ -7,8 +7,13 @@
 #include <assert.h>
 #include <cmath>
 #include "../include/Types.hpp"
+#include "../include/PathVertex.hpp"
 #include <vector>
 #include <cstdint>
+#include <algorithm>
+#include <cstddef>
+#include <numeric>
+#include <utility>
 
 namespace libvgcode {
 
@@ -67,5 +72,51 @@ Vec3 operator * (float f, const Vec3& v) {
     return { f * v[0], f * v[1], f * v[2] };
 }
 
-} // namespace libvgcode
+// the roles that lie under a skin or between walls, never seen from outside the print
+static bool is_hidden_in_shell(EGCodeExtrusionRole role)
+{
+    return role == EGCodeExtrusionRole::InternalInfill ||
+           role == EGCodeExtrusionRole::SolidInfill ||
+           role == EGCodeExtrusionRole::InternalBridgeInfill ||
+           role == EGCodeExtrusionRole::GapFill;
+}
 
+static bool is_support(EGCodeExtrusionRole role)
+{
+    return role == EGCodeExtrusionRole::SupportMaterial ||
+           role == EGCodeExtrusionRole::SupportMaterialInterface ||
+           role == EGCodeExtrusionRole::SupportTransition;
+}
+
+bool keep_in_reduced_set(EReducedDetailMode mode, bool hide_infill, const PathVertex& v, bool end_layer)
+{
+    if (end_layer)
+        return true;
+    switch (mode) {
+    // the caller draws the print itself, which stands in for neither the supports nor the travels
+    case EReducedDetailMode::EndLayersOnly: return v.is_travel() || (v.is_extrusion() && is_support(v.role));
+    case EReducedDetailMode::ShellOnly:     return v.is_option() || !v.is_extrusion() || !hide_infill || !is_hidden_in_shell(v.role);
+    default:                                return false;
+    }
+}
+
+std::size_t weighted_median_index(const std::vector<std::pair<float, float>>& samples)
+{
+    std::vector<std::size_t> order(samples.size());
+    std::iota(order.begin(), order.end(), std::size_t(0));
+    std::stable_sort(order.begin(), order.end(), [&samples](std::size_t a, std::size_t b) { return samples[a].first < samples[b].first; });
+    double total = 0.0;
+    for (const std::pair<float, float>& sample : samples)
+        total += std::max(sample.second, 0.0f);
+    if (total <= 0.0)
+        return order.empty() ? samples.size() : order[order.size() / 2];
+    double sum = 0.0;
+    for (std::size_t id : order) {
+        sum += std::max(samples[id].second, 0.0f);
+        if (sum >= 0.5 * total)
+            return id;
+    }
+    return order.back();
+}
+
+} // namespace libvgcode
