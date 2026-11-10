@@ -9,6 +9,7 @@
 #endif
 
 #include <catch2/catch_test_macros.hpp>
+#include <initializer_list>
 #include <string>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/generators/catch_generators_range.hpp>
@@ -41,6 +42,7 @@
 #include <map>
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/GCode.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/Exception.hpp"
@@ -235,6 +237,143 @@ TEST_CASE("An object that starts sharing another object's slices keeps its own l
     REQUIRE(!print_a->layers().empty());
     CHECK(print_b->layers() == print_a->layers());
     CHECK(print_b->support_layers() == print_a->support_layers());
+}
+
+// A copy that shares the mesh of another object shares its slices only when its height ranges are the same: a height
+// range gives the layers in its range other regions, which the other object's layers do not have.
+TEST_CASE("Objects share slices only when their height ranges are the same", "[Print][Regression]")
+{
+    struct HeightRange {
+        t_layer_height_range range;
+        double               density;
+    };
+    struct RangesCase {
+        std::string              name;
+        std::vector<HeightRange> ranges_a; // on the object that slices first
+        std::vector<HeightRange> ranges_b; // on its copy
+        bool                     shared;
+    };
+    // The first two differ in the number of ranges, the next two in the heights or the settings of one range.
+    const RangesCase ranges_case = GENERATE(from_range(std::vector<RangesCase>{
+        { "a range on the first object only", { { { 10., 20. }, 40. } }, {},                         false },
+        { "a range on the copy only",         {},                         { { { 10., 20. }, 40. } }, false },
+        { "same heights, other settings",     { { { 10., 20. }, 40. } }, { { { 10., 20. }, 30. } }, false },
+        { "other heights, same settings",     { { { 10., 20. }, 40. } }, { { { 12., 20. }, 40. } }, false },
+        { "the same range on both",           { { { 10., 20. }, 40. } }, { { { 10., 20. }, 40. } }, true },
+    }));
+    INFO("height ranges: " << ranges_case.name);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "sparse_infill_density",      "20%" },
+    });
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+    ModelObject *object_a = model.objects.front();
+    // add_object() gives the copy extruder 1, and objects only share slices when their configs match.
+    object_a->config.set_key_value("extruder", new ConfigOptionInt(1));
+    ModelObject *object_b = model.add_object(*object_a); // shares object_a's mesh
+    for (ModelInstance *instance : object_b->instances)
+        instance->set_offset(instance->get_offset() + Vec3d(40., 0., 0.));
+
+    const auto add_ranges = [](ModelObject *object, const std::vector<HeightRange> &ranges) {
+        for (const HeightRange &height_range : ranges) {
+            DynamicPrintConfig range_config;
+            // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
+            range_config.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+            range_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(height_range.density));
+            object->layer_config_ranges[height_range.range].assign_config(std::move(range_config));
+        }
+    };
+    add_ranges(object_a, ranges_case.ranges_a);
+    add_ranges(object_b, ranges_case.ranges_b);
+
+    print.apply(model, config);
+    print.process();
+    REQUIRE(print.objects().size() == 2);
+    const PrintObject *print_a = print.objects()[0];
+    const PrintObject *print_b = print.objects()[1];
+    REQUIRE(print_b->model_object()->id() == object_b->id()); // Print slices its own copy of the model
+    CHECK(print_a->get_shared_object() == nullptr);
+    CHECK(print_b->get_shared_object() == (ranges_case.shared ? print_a : nullptr));
+
+    // The infill density of each object at a height is the one of its own height range there, or the default without
+    // one. A height range has regions of its own, so the density is read from the region that has the slices there.
+    const auto density_at = [](const PrintObject *object, double print_z) {
+        const Layer *layer = object->get_layer_at_printz(print_z, 0.1);
+        REQUIRE(layer != nullptr);
+        std::vector<double> densities;
+        for (const LayerRegion *region : layer->regions())
+            if (!region->slices.empty())
+                densities.push_back(region->region().config().sparse_infill_density.value);
+        REQUIRE(densities.size() == 1);
+        return densities.front();
+    };
+    const auto expected_density = [](const std::vector<HeightRange> &ranges, double print_z) {
+        for (const HeightRange &height_range : ranges)
+            if (height_range.range.first < print_z && print_z <= height_range.range.second)
+                return height_range.density;
+        return 20.;
+    };
+    // 11 mm is in the ranges that start at 10 mm, and not in the one that starts at 12 mm.
+    for (const double print_z : { 11., 15. }) {
+        INFO("at " << print_z << " mm");
+        CHECK(density_at(print_a, print_z) == expected_density(ranges_case.ranges_a, print_z));
+        CHECK(density_at(print_b, print_z) == expected_density(ranges_case.ranges_b, print_z));
+    }
+}
+
+TEST_CASE("Objects whose center offsets differ do not share slices", "[Print][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+    });
+
+    // A triangular prism: the center of its bounding box does not turn with the prism unless it is turned by
+    // a multiple of 90 degrees.
+    const std::vector<Vec3f> vertices{{0, 0, 0}, {30, 0, 0}, {0, 10, 0}, {0, 0, 10}, {30, 0, 10}, {0, 10, 10}};
+    const std::vector<Vec3i32> faces{{0, 2, 1}, {3, 4, 5}, {0, 1, 4}, {0, 4, 3}, {1, 2, 5}, {1, 5, 4}, {2, 0, 3}, {2, 3, 5}};
+
+    Print print;
+    Model model;
+    init_print({TriangleMesh(vertices, faces)}, print, model, config);
+    ModelObject *object_a = model.objects.front();
+    // add_object() gives the copy extruder 1, and objects only share slices when their configs match.
+    object_a->config.set_key_value("extruder", new ConfigOptionInt(1));
+    const Vec3d origin = object_a->instances.front()->get_offset();
+    ModelObject *object_b = model.add_object(*object_a); // shares object_a's mesh
+
+    // The first instance of object_b is turned, the second one is as straight as object_a's.
+    ModelInstance *turned = object_b->instances.front();
+    turned->set_offset(origin + Vec3d(60., 0., 0.));
+    turned->set_rotation(Vec3d(0., 0., PI / 3.));
+    ModelInstance *straight = object_b->add_instance();
+    straight->set_offset(origin + Vec3d(120., 0., 0.));
+
+    print.apply(model, config);
+    print.process();
+
+    const PrintObject *print_a        = nullptr;
+    const PrintObject *print_straight = nullptr;
+    for (const PrintObject *object : print.objects())
+        if (object->model_object()->id() == object_a->id())
+            print_a = object;
+    REQUIRE(print_a != nullptr);
+    for (const PrintObject *object : print.objects())
+        if (object->model_object()->id() == object_b->id() && object->trafo().matrix() == print_a->trafo().matrix())
+            print_straight = object;
+    REQUIRE(print_straight != nullptr);
+
+    // What makes the objects differ, otherwise the checks below would not test anything.
+    REQUIRE(print_a->center_offset() != print_straight->center_offset());
+    CHECK(print_a->get_shared_object() == nullptr);
+    CHECK(print_straight->get_shared_object() == nullptr);
 }
 
 // ---------------------------------------------------------------------------
@@ -862,6 +1001,24 @@ TEST_CASE("The estimated printing time comment stays near the end of the file", 
     CHECK(trailing_lines <= 5);
 }
 
+// The comment carries the first layer's time, not the start G-code's time. A 50 mm move at
+// F60 (1 mm/s) makes the start block about 50 s, so the two times format to different
+// strings and the check below tells them apart.
+TEST_CASE("The estimated first layer time comment reports the first layer", "[Print][Regression]")
+{
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, { { "machine_start_gcode", "G1 X50 Y50 Z0.2 F60" } });
+
+    GCodeProcessorResult result;
+    const std::string gcode = Test::gcode(print, &result);
+
+    const float first_layer_time = result.initial_layer_time;
+    const float start_gcode_time = result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].prepare_time;
+    REQUIRE(get_time_dhms(first_layer_time) != get_time_dhms(start_gcode_time));
+    CHECK(gcode.find(std::string("; estimated first layer printing time (normal mode) = ") + get_time_dhms(first_layer_time)) != std::string::npos);
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {
@@ -1291,6 +1448,477 @@ TEST_CASE("Sequential printing keeps copies of one object in their list order", 
     const ModelInstancePtrs &copies = print.model().objects.front()->instances;
     CHECK(std::is_sorted(copies.begin(), copies.end(),
                          [](const ModelInstance *l, const ModelInstance *r) { return l->arrange_order < r->arrange_order; }));
+}
+
+TEST_CASE("Sequential printing keeps rotated copies of one object in their list order", "[Print]")
+{
+    // Copies of one object that differ in rotation get one PrintObject each, and print.objects() lists
+    // those groups by transformation. Ordering by the object index alone therefore follows that
+    // grouping instead of the object list, and every second copy here prints out of place.
+    // The mesh is centred on the object origin, so the rotation turns the footprint in place instead
+    // of moving it, and the grid spacing below stays clear of the clearance radius.
+    TriangleMesh cube = make_cube(5, 5, 2);
+    cube.translate(-2.5f, -2.5f, 0.f);
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(std::move(cube));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",     "by object" },
+        { "skirt_loops",        0 },
+        { "layer_change_gcode", "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false, /*instances=*/200);
+    const ModelInstancePtrs &instances = model.objects.front()->instances;
+    for (size_t k = 0; k < instances.size(); ++k) {
+        instances[k]->set_offset(Vec3d(10. + 12. * double(k % 15), 10. + 12. * double(k / 15), instances[k]->get_offset().z()));
+        if (k % 2 != 0)
+            instances[k]->set_rotation(Vec3d(0., 0., PI / 2));
+    }
+    print.apply(model, config);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException error = print.validate(&warnings);
+    INFO(error.string);
+    REQUIRE(error.string.empty());
+    CHECK(find_order_warning(warnings) == nullptr);
+
+    // validate() numbered the instances it ordered; the copies must be numbered in list order.
+    const ModelInstancePtrs &copies = print.model().objects.front()->instances;
+    for (size_t k = 0; k < copies.size(); ++k)
+        REQUIRE(copies[k]->arrange_order == int(k + 1));
+
+    // The G-code export orders the instances from those numbers.
+    const std::vector<const PrintInstance *> ordered = sort_object_instances_by_model_order(print);
+    REQUIRE(ordered.size() == copies.size());
+    for (size_t k = 0; k < copies.size(); ++k)
+        REQUIRE(ordered[k]->model_instance == copies[k]);
+}
+
+TEST_CASE("Sequential printing still lets objects below the rod use the rod height when the lid is lower", "[Print]")
+{
+    // Some stock profiles put the lid below the rod, such as the Creality Ender-3 V3 KE (lid 34 mm,
+    // rod 47 mm). An object that shares a Y band with a later one is checked against the rod height
+    // instead of the lid, so two 40 mm boxes side by side in X still slice.
+    std::vector<TriangleMesh> meshes;
+    for (size_t i = 0; i < 2; ++i) {
+        TriangleMesh box = make_cube(20, 20, 40);
+        box.translate(float(80 + 80 * i), 80.f, 0.f);
+        meshes.push_back(std::move(box));
+    }
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_lid", 34 },
+        { "extruder_clearance_height_to_rod", 47 },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.empty());
+}
+
+TEST_CASE("Sequential printing counts only the part of an object above the rod height", "[Print]")
+{
+    // Each object is a 2 mm slab carrying one fin on its front (-Y) or back (+Y) edge, with the rod at
+    // 25 mm. The slabs share a Y band, but the rod can only hit the fins. Each fin is checked against
+    // the other slab's footprint widened by half of extruder_clearance_radius, not against the other
+    // fin: facing away from each other, neither fin is within that range; facing each other, both are,
+    // and no print order works. With one of each, only the first slab's fin is, so the second slab has to
+    // print first.
+    enum class Fins { FacingAway, FacingEachOther, OneOfEach };
+    const Fins fins = GENERATE(Fins::FacingAway, Fins::FacingEachOther, Fins::OneOfEach);
+    // A raised object (snap to the bed turned off) whose own height is below the rod but whose top is
+    // above it must get the same rule.
+    const bool raised = GENERATE(false, true);
+    // A per-object skirt that reaches the rod is a wall around the whole footprint, so the rod can hit
+    // all of it: the plate is refused whichever way the fins face, as it was before this rule. That is
+    // a draft shield (as tall as the object) or a skirt whose skirt_height reaches the rod.
+    enum class Skirt { None, DraftShield, Tall };
+    const Skirt skirt = GENERATE(Skirt::None, Skirt::DraftShield, Skirt::Tall);
+    CAPTURE(int(fins), raised, int(skirt));
+
+    const double fin_height = raised ? 20. : 29.5;
+    const double raise_by   = raised ? 10. : 0.;
+    auto slab_with_fin = [fin_height](bool fin_at_back, double x, double y) {
+        TriangleMesh slab = make_cube(40, 30, 2);
+        TriangleMesh fin  = make_cube(8, 2, fin_height);
+        fin.translate(16.f, fin_at_back ? 28.f : 0.f, 0.f);
+        slab.merge(fin);
+        slab.translate(float(x), float(y), 0.f);
+        return slab;
+    };
+    // The first slab sits further back (+Y), so its front fin faces the second slab.
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(slab_with_fin(fins == Fins::FacingAway, 40, 85));
+    meshes.push_back(slab_with_fin(fins == Fins::FacingEachOther, 170, 45));
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_rod", 25 },
+        // The rod reaches half of the default 40 mm radius; the fins are 18 mm clear when facing away.
+        { "extruder_clearance_dist_to_rod",   20 },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    if (skirt == Skirt::DraftShield)
+        config.set_deserialize_strict({
+            { "draft_shield", "enabled" },
+            { "skirt_type",   "perobject" },
+            { "skirt_loops",  1 }
+        });
+    else if (skirt == Skirt::Tall)
+        config.set_deserialize_strict({
+            { "skirt_type",   "perobject" },
+            { "skirt_loops",  1 },
+            { "skirt_height", 160 } // layers, well above the 25 mm rod at the default max layer height
+        });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    if (raised) {
+        for (ModelObject *object : model.objects) {
+            ModelInstance *instance = object->instances.front();
+            instance->set_offset(instance->get_offset() + Vec3d(0., 0., raise_by));
+        }
+        print.apply(model, config);
+        REQUIRE(print.objects().front()->height() <= scale_(25.));
+        REQUIRE(print.objects().front()->max_z() > scale_(25.));
+    }
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    const bool refused = fins == Fins::FacingEachOther || skirt != Skirt::None;
+    if (refused)
+        CHECK(error.find("too tall") != std::string::npos);
+    else
+        CHECK(error.empty());
+    if (fins == Fins::OneOfEach && !refused) {
+        // validate() records the print order on the print's own copy of the model.
+        const ModelObjectPtrs &objects = print.model().objects;
+        CHECK(objects[1]->instances.front()->arrange_order < objects[0]->instances.front()->arrange_order);
+    }
+}
+
+// Two 2 mm slabs side by side in X, each with one fin above the rod, the fins facing away from each
+// other so only the fins can meet the rod. Mesh coordinates, so the first slab sits further back (+Y).
+static std::vector<TriangleMesh> slabs_with_fins_facing_away(double fin_height, double low_fin_height)
+{
+    auto slab = [&](bool fin_at_back, double x, double y) {
+        TriangleMesh mesh = make_cube(40, 30, 2);
+        TriangleMesh fin  = make_cube(8, 2, fin_height);
+        fin.translate(16.f, fin_at_back ? 28.f : 0.f, 0.f);
+        mesh.merge(fin);
+        if (low_fin_height > 0.) {
+            // A second, lower fin on the opposite edge, facing the other slab.
+            TriangleMesh low_fin = make_cube(8, 2, low_fin_height);
+            low_fin.translate(16.f, fin_at_back ? 0.f : 28.f, 0.f);
+            mesh.merge(low_fin);
+        }
+        mesh.translate(float(x), float(y), 0.f);
+        return mesh;
+    };
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(slab(true, 40, 85));
+    meshes.push_back(slab(false, 170, 45));
+    return meshes;
+}
+
+TEST_CASE("Sequential printing checks the part above the rod against the rod's full reach", "[Print]")
+{
+    // Bambu Lab A1 mini values: half the toolhead radius is 36.5 mm, but the rod reaches 56.5 mm from the
+    // nozzle. The facing-away fins are farther apart than the first and closer than the second, so they only
+    // clear when the rod's reach is the smaller of the two.
+    const double dist_to_rod = GENERATE(0., 56.5);
+    CAPTURE(dist_to_rod);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_radius",        73 },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_dist_to_rod",   dist_to_rod },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(slabs_with_fins_facing_away(29.5, 0.), print, model, config, nullptr, /*arrange=*/false);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    if (dist_to_rod > 36.5)
+        CHECK(error.find("too tall") != std::string::npos);
+    else
+        CHECK(error.empty());
+}
+
+TEST_CASE("Sequential printing keeps the rod's reach within the object", "[Print]")
+{
+    // Snapmaker U1 values, which leave Distance to rod at its default. The boxes clear the radius in X and
+    // are 38 mm apart in Y, more than half the radius but less than Distance to rod. The reach past half
+    // the radius only widens the part above the rod up to the object's own footprint, so they still validate.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_radius",        72.5 },
+        { "extruder_clearance_height_to_rod", 27.5 },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    REQUIRE(config.opt_float("extruder_clearance_dist_to_rod") > 38.);
+
+    std::vector<TriangleMesh> meshes;
+    for (const Vec2f &position : { Vec2f(20.f, 40.f), Vec2f(130.f, 110.f) }) {
+        TriangleMesh box = make_cube(32, 32, 32);
+        box.translate(position.x(), position.y(), 0.f);
+        meshes.push_back(std::move(box));
+    }
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.empty());
+}
+
+TEST_CASE("Sequential printing counts a raft toward what reaches the rod", "[Print]")
+{
+    // Each slab has a tall fin facing away from the other slab and a lower fin facing it. Without a raft
+    // the lower fin stays under the rod and the plate validates; a raft lifts it above the rod, and then
+    // the lower fins meet.
+    const bool raft = GENERATE(false, true);
+    CAPTURE(raft);
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_dist_to_rod",   20 },
+        { "skirt_loops",                      0 },
+        { "raft_layers",                      raft ? 3 : 0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(slabs_with_fins_facing_away(29.5, 24.8), print, model, config, nullptr, /*arrange=*/false);
+    if (raft)
+        REQUIRE(print.objects().front()->slicing_parameters().object_print_z_min > 0.2);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    if (raft)
+        CHECK(error.find("too tall") != std::string::npos);
+    else
+        CHECK(error.empty());
+}
+
+TEST_CASE("Sequential printing refuses objects a raft lifts above the rod when the lid is below it", "[Print]")
+{
+    // With the lid below the rod, an object that shares a Y band with a later one is checked against the
+    // rod height instead of the lid. The fins face away from each other and stay below the rod on their
+    // own, but the raft lifts their tops above it. Above the rod, only the last object may also be taller
+    // than the lid, and both slabs are, so the plate is refused, as it is with fins that tall and no raft.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_lid", 20 },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_dist_to_rod",   20 },
+        { "skirt_loops",                      0 },
+        { "raft_layers",                      3 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(slabs_with_fins_facing_away(24.8, 0.), print, model, config, nullptr, /*arrange=*/false);
+    REQUIRE(24.8 + print.objects().front()->slicing_parameters().object_print_z_min > 25.);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.find("too tall") != std::string::npos);
+}
+
+TEST_CASE("Sequential printing applies an instance's rotation to the part above the rod", "[Print]")
+{
+    // The fins face away from each other in the meshes, but each instance is turned 180 degrees about its
+    // own center, so on the bed they face each other and no print order works.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "extruder_clearance_dist_to_rod",   20 },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(slabs_with_fins_facing_away(29.5, 0.), print, model, config, nullptr, /*arrange=*/false);
+    for (ModelObject *object : model.objects) {
+        ModelInstance *instance = object->instances.front();
+        const Vec3d    center   = object->instance_bounding_box(0).center();
+        const Vec3d    offset   = instance->get_offset();
+        instance->set_rotation(Vec3d(0., 0., PI));
+        // A half turn about the instance origin moves the object too; shift it back so it turns in place.
+        instance->set_offset(Vec3d(2. * center.x() - offset.x(), 2. * center.y() - offset.y(), offset.z()));
+        REQUIRE((object->instance_bounding_box(0).center() - center).norm() < EPSILON);
+    }
+    print.apply(model, config);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.find("too tall") != std::string::npos);
+}
+
+TEST_CASE("By-layer As object list keeps copies of one object in their list order", "[Print]")
+{
+    // validate() numbers the instances through sort_object_instances_by_model_order(print, true). Copies
+    // of one object used to all share one order key, and print.objects() does not list them in list order:
+    // every second copy is rotated here, which splits them into separate PrintObjects. The G-code export
+    // and the sequence labels print in the order those numbers assign.
+    std::vector<TriangleMesh> meshes;
+    meshes.push_back(make_cube(5, 5, 2));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",     "by layer" },
+        { "print_order",        "as_obj_list" },
+        { "skirt_loops",        0 },
+        { "layer_change_gcode", "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false, /*instances=*/200);
+    const ModelInstancePtrs &instances = model.objects.front()->instances;
+    for (size_t k = 0; k < instances.size(); ++k) {
+        instances[k]->set_offset(Vec3d(10. + 12. * double(k % 15), 10. + 12. * double(k / 15), instances[k]->get_offset().z()));
+        if (k % 2 != 0)
+            instances[k]->set_rotation(Vec3d(0., 0., PI / 2));
+    }
+    print.apply(model, config);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException error = print.validate(&warnings);
+    INFO(error.string);
+    REQUIRE(error.string.empty());
+
+    // validate() numbered the instances it ordered; copies must be numbered in list order.
+    const ModelInstancePtrs &copies = print.model().objects.front()->instances;
+    for (size_t k = 0; k < copies.size(); ++k)
+        REQUIRE(copies[k]->arrange_order == int(k + 1));
+
+    // The As object list path of the G-code export orders the instances from those numbers.
+    const std::vector<const PrintInstance *> ordered = sort_object_instances_by_model_order(print);
+    REQUIRE(ordered.size() == copies.size());
+    for (size_t k = 0; k < copies.size(); ++k)
+        REQUIRE(ordered[k]->model_instance == copies[k]);
+}
+
+TEST_CASE("Sequential printing prints last a raised object that only clears the lid there", "[Print]")
+{
+    // A raised object (snap to the bed turned off) whose own height is below the lid but whose top is above
+    // it. Only the last object may reach above the lid, so it has to print last, although it comes first in
+    // the object list.
+    std::vector<TriangleMesh> meshes;
+    TriangleMesh raised = make_cube(10, 10, 10);
+    raised.translate(40.f, 40.f, 0.f);
+    meshes.push_back(std::move(raised));
+    TriangleMesh low = make_cube(10, 10, 5);
+    low.translate(140.f, 140.f, 0.f);
+    meshes.push_back(std::move(low));
+
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_lid", 30 },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "skirt_loops",                      0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    ModelInstance *instance = model.objects.front()->instances.front();
+    instance->set_offset(instance->get_offset() + Vec3d(0., 0., 25.));
+    print.apply(model, config);
+    REQUIRE(print.objects().front()->height() <= scale_(30.));
+    REQUIRE(print.objects().front()->max_z() > scale_(30.));
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.empty());
+    // validate() records the print order on the print's own copy of the model.
+    const ModelObjectPtrs &objects = print.model().objects;
+    CHECK(objects[0]->instances.front()->arrange_order > objects[1]->instances.front()->arrange_order);
+}
+
+TEST_CASE("Sequential printing counts a raft toward the height checked against the rod", "[Print]")
+{
+    // Two 24.8 mm boxes that share a Y band, on a 3 layer raft. The boxes alone stay below the 25 mm rod,
+    // but the raft lifts their tops above it, so whichever prints first is in the rod's way while the other
+    // one prints.
+    std::vector<TriangleMesh> meshes;
+    for (float x : { 40.f, 150.f }) {
+        TriangleMesh box = make_cube(20, 20, 24.8);
+        box.translate(x, 80.f, 0.f);
+        meshes.push_back(std::move(box));
+    }
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "extruder_clearance_height_to_rod", 25 },
+        { "skirt_loops",                      0 },
+        { "raft_layers",                      3 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    REQUIRE(24.8 + print.objects().front()->slicing_parameters().object_print_z_min > 25.);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.find("too tall") != std::string::npos);
+}
+
+TEST_CASE("Sequential printing measures objects on a belt printer by the model's top", "[Print][belt]")
+{
+    // On a belt printer object_print_z_max is the height in the tilted slicing frame: at 45 degrees a 30 mm
+    // cube is over 42 mm tall there. The rod clears the model's own top, so two cubes side by side in X with
+    // the rod at 36 mm still slice, as the printable-height check in validate() also measures them.
+    std::vector<TriangleMesh> meshes;
+    for (size_t i = 0; i < 2; ++i) {
+        TriangleMesh box = make_cube(30, 30, 30);
+        box.translate(float(80 + 80 * i), 80.f, 0.f);
+        meshes.push_back(std::move(box));
+    }
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "print_sequence",                   "by object" },
+        { "belt_printer",                     1 },
+        { "belt_slice_rotation",              "x" },
+        { "belt_slice_rotation_angle",        45 },
+        { "extruder_clearance_height_to_lid", 50 },
+        { "extruder_clearance_height_to_rod", 36 },
+        { "skirt_loops",                      0 },
+        { "z_hop",                            0 },
+        { "layer_change_gcode",               "G92 E0\n" } // validate() relative-E reset
+    });
+    Print print;
+    Model model;
+    Test::init_print(std::move(meshes), print, model, config, nullptr, /*arrange=*/false);
+    REQUIRE(print.objects().front()->slicing_parameters().object_print_z_max > 36.);
+
+    const std::string error = print.validate().string;
+    INFO(error);
+    CHECK(error.empty());
 }
 
 // A sequential (by-object) print must publish the print-level nozzle group result just
@@ -2432,6 +3060,62 @@ TEST_CASE("Changing G-code precision invalidates only G-code export", "[Print][R
 
 namespace {
 
+// A plate printed by layer with the prime tower on and both filaments loaded. The tower stands in a corner
+// of the 200 mm bed, far from where the objects are placed.
+DynamicPrintConfig prime_tower_config(std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> extra = {})
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "enable_prime_tower",         1 },
+        { "printable_area",             "0x0,200x0,200x200,0x200" },
+        { "wipe_tower_x",               160 },
+        { "wipe_tower_y",               160 },
+        { "prime_tower_width",          20 },
+        { "layer_height",               0.2 },
+        { "initial_layer_print_height", 0.2 },
+        { "skirt_loops",                0 },
+        { "brim_type",                  "no_brim" },
+        { "layer_change_gcode",         "G92 E0\n" }, // validate() relative-E reset
+    });
+    config.set_deserialize_strict(extra);
+    return config;
+}
+
+// Support on filament 1 with its interface on filament 2, for the objects that need any.
+const std::initializer_list<Slic3r::ConfigBase::SetDeserializeItem> support_interface_on_filament_2 = {
+    { "enable_support",             1 },
+    { "support_type",               "normal(auto)" },
+    { "support_threshold_angle",    30 },
+    { "support_filament",           1 },
+    { "support_interface_filament", 2 },
+};
+
+ModelObject *add_object(Model &model, TriangleMesh &&mesh, double x, double y)
+{
+    ModelObject *object = model.add_object();
+    object->add_volume(std::move(mesh));
+    object->add_instance()->set_offset(Vec3d(x, y, 0.));
+    object->ensure_on_bed();
+    return object;
+}
+
+// Slices the lower half of a 20 mm cube at 0.1 mm, so that it shares none of its layers there with an
+// object sliced at 0.2 mm.
+void slice_lower_half_finer(ModelObject &object)
+{
+    DynamicPrintConfig range;
+    range.set_key_value("layer_height", new ConfigOptionFloat(0.1));
+    object.layer_config_ranges[{ 0., 10. }].assign_config(std::move(range));
+}
+
+void print_upper_part_with_filament_2(ModelObject &object, double from_z, double to_z)
+{
+    DynamicPrintConfig range;
+    range.set_key_value("extruder", new ConfigOptionInt(2));
+    // Every layer range must carry a layer_height (see layer_height_profile_from_ranges).
+    range.set_key_value("layer_height", new ConfigOptionFloat(0.2));
+    object.layer_config_ranges[{ from_z, to_z }].assign_config(std::move(range));
+}
+
 // The slicing parameters of an object printed with one filament, on a printer whose first extruder
 // allows layers up to 0.32 mm and the second one up to 0.28 mm. The layers are 0.2 mm, within both.
 SlicingParameters slicing_parameters_on_filament(unsigned int filament)
@@ -2454,6 +3138,98 @@ SlicingParameters slicing_parameters_on_filament(unsigned int filament)
 }
 
 } // namespace
+
+// The parts use one filament and only their support would use the other, so the plate changes filaments
+// only if slicing generates support. Without any, no tower is printed, and the objects need not share
+// their layers.
+TEST_CASE("A plate is sliced with objects that do not share their layers when no support changes filaments", "[Print][PrimeTower]")
+{
+    Model model;
+    slice_lower_half_finer(*add_object(model, cube(20), 20., 20.));
+    add_object(model, cube(20), 60., 20.);
+    Print print;
+    print.apply(model, prime_tower_config(support_interface_on_filament_2));
+
+    CHECK(print.validate().string.empty());
+    REQUIRE_NOTHROW(print.process());
+    CHECK(print.wipe_tower_data().tool_changes.empty());
+}
+
+TEST_CASE("Objects that do not share their layers are refused once their support changes filaments", "[Print][PrimeTower]")
+{
+    Model model;
+    slice_lower_half_finer(*add_object(model, cube(20), 20., 20.));
+    TriangleMesh overhang = mesh(TestMesh::overhang);
+    overhang.scale(2.f);
+    add_object(model, std::move(overhang), 60., 20.);
+    Print print;
+    print.apply(model, prime_tower_config(support_interface_on_filament_2));
+
+    // Before slicing it is not known whether the overhang gets support.
+    CHECK(print.validate().string.empty());
+    REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("prime tower"));
+}
+
+TEST_CASE("Objects that do not share their layers are refused before slicing when their parts use two filaments", "[Print][PrimeTower]")
+{
+    Model model;
+    slice_lower_half_finer(*add_object(model, cube(20), 20., 20.));
+    add_object(model, cube(20), 60., 20.)->config.set_key_value("extruder", new ConfigOptionInt(2));
+    Print print;
+    print.apply(model, prime_tower_config());
+
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("prime tower"));
+}
+
+// "No sparse layers" refuses an object that rises too far above the compacted tower. Away from the
+// toolhead that limit is the lid clearance above the tower, which slicing alone tells how tall it is.
+TEST_CASE("No sparse layers lets an object away from the tower rise past the lid clearance when the tower keeps up", "[Print][PrimeTower]")
+{
+    Model model;
+    // A tool change on every layer, so the compacted tower is as tall as the objects.
+    add_object(model, make_cube(20., 20., 40.), 20., 20.);
+    add_object(model, make_cube(20., 20., 40.), 60., 20.)->config.set_key_value("extruder", new ConfigOptionInt(2));
+    Print print;
+    print.apply(model, prime_tower_config({
+        { "wipe_tower_no_sparse_layers",      1 },
+        { "extruder_clearance_height_to_lid", 20 },
+        { "extruder_clearance_height_to_rod", 20 },
+    }));
+
+    CHECK(print.validate().string.empty());
+    REQUIRE_NOTHROW(print.process());
+    CHECK_FALSE(print.wipe_tower_data().tool_changes.empty());
+}
+
+TEST_CASE("No sparse layers still refuses an object that rises past the lid clearance above the tower", "[Print][PrimeTower]")
+{
+    Model model;
+    // The filament only changes from 30 mm up, by when the compacted tower is still a few layers tall.
+    print_upper_part_with_filament_2(*add_object(model, make_cube(20., 20., 40.), 20., 20.), 30., 40.);
+    Print print;
+    print.apply(model, prime_tower_config({
+        { "wipe_tower_no_sparse_layers",      1 },
+        { "extruder_clearance_height_to_lid", 20 },
+        { "extruder_clearance_height_to_rod", 20 },
+    }));
+
+    CHECK(print.validate().string.empty());
+    REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("No sparse layers"));
+}
+
+// Within the toolhead radius of the tower the head body limits an object to nozzle_height, however tall the tower
+// grows, so validate() refuses it before slicing.
+TEST_CASE("No sparse layers refuses before slicing an object that rises within the toolhead radius of the tower", "[Print][PrimeTower]")
+{
+    Model model;
+    // 10 mm from the tower in X and in Y, within the 40 mm toolhead radius, and taller than the 2.5 mm nozzle cone.
+    add_object(model, make_cube(10., 10., 10.), 140., 140.);
+    add_object(model, make_cube(20., 20., 10.), 20., 20.)->config.set_key_value("extruder", new ConfigOptionInt(2));
+    Print print;
+    print.apply(model, prime_tower_config({ { "wipe_tower_no_sparse_layers", 1 } }));
+
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("No sparse layers"));
+}
 
 TEST_CASE("An object takes the layer height limits of the extruder of its own filament", "[Print]")
 {
@@ -2636,4 +3412,113 @@ TEST_CASE("Height range settings follow a Z shrinkage change that comes with a m
     print.process();
 
     check_thin_dense_height_range(*print.objects().front(), 95.);
+}
+
+namespace {
+
+// One tray of the device AMS inventory, with the keys build_filament_ams_list() puts in the payload.
+DynamicPrintConfig loaded_filament_tray(const std::string &colour, const std::string &type, const std::string &tray_name)
+{
+    DynamicPrintConfig tray;
+    tray.set_key_value("filament_colour",     new ConfigOptionStrings{ colour });
+    tray.set_key_value("filament_type",       new ConfigOptionStrings{ type });
+    tray.set_key_value("tray_name",           new ConfigOptionStrings{ tray_name });
+    tray.set_key_value("filament_id",         new ConfigOptionStrings{ "GFA00" });
+    tray.set_key_value("filament_is_support", new ConfigOptionBools{ false });
+    return tray;
+}
+
+// Two extruders with one nozzle each, slicing red and green PLA in Convenience (auto for match) mode
+// with the prime tower that the grouping step feeds.
+DynamicPrintConfig machine_inventory_config()
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "printer_technology",             "FFF" },
+        { "print_sequence",                 "by layer" },
+        { "nozzle_diameter",                "0.4,0.4" },
+        { "printer_extruder_id",            "1,2" },
+        { "printer_extruder_variant",       "Direct Drive Standard;Direct Drive Standard" },
+        { "extruder_printable_height",      "0,0" },
+        { "single_extruder_multi_material", 0 },
+        { "extruder_ams_count",             "1#0|4#1;1#0|4#1" },
+        { "filament_ids",                   "GFA00;GFA00" },
+        { "filament_map",                   "1,1" },
+        { "filament_map_mode",              "Auto For Match" },
+        { "enable_prime_tower",             1 },
+        { "wipe_tower_type",                "type1" },
+        { "prime_tower_width",              35 },
+        { "wipe_tower_x",                   "50" },
+        { "wipe_tower_y",                   "50" },
+        { "layer_height",                   "0.3" },
+        // init_print applies it on top, so re-applying this config has no diff of its own.
+        { "gcode_comments",                 "1" },
+    });
+    size_flush_to_nozzles(config);
+    return config;
+}
+
+} // namespace
+
+// The AMS inventory is device state that only feeds filament grouping. A changed inventory has to
+// invalidate the grouping steps, while the refreshes a connected device keeps sending -- the same
+// trays, volatile metadata, or an empty payload while it reconnects -- must not.
+TEST_CASE("A changed AMS filament inventory invalidates the grouping steps", "[Print][MultiNozzle][Regression]")
+{
+    DynamicPrintConfig config = machine_inventory_config();
+    Print               print;
+    Model               model;
+    init_print({ cube(20) }, print, model, config);
+    // A single-extruder print returns early in grouping, which would make the test vacuous.
+    REQUIRE(print.config().nozzle_diameter.size() == 2);
+
+    print.is_BBL_printer() = true;
+    print.process();
+    // invalidate_step() only takes back a step that is done.
+    REQUIRE(print.is_step_done(psWipeTower));
+    REQUIRE(print.is_step_done(psSkirtBrim));
+
+    const std::vector<std::vector<DynamicPrintConfig>> red_green = {
+        { loaded_filament_tray("#FF0000", "PLA", "A1") },
+        { loaded_filament_tray("#00FF00", "PLA", "Ext") },
+    };
+
+    // The setter only stashes the payload, apply() installs it.
+    print.set_extruder_filament_info(red_green);
+    CHECK(print.get_extruder_filament_info().empty());
+    // No inventory on the print before this pass means "unknown", not a change.
+    print.apply(model, config);
+    REQUIRE(print.get_extruder_filament_info().size() == 2);
+
+    // The same inventory sent again must not invalidate, even though the engine wrote its grouping
+    // result back into the filament maps during process(), which on its own reports a config change.
+    print.set_extruder_filament_info(red_green);
+    CHECK(print.apply(model, config) != PrintBase::APPLY_STATUS_INVALIDATED);
+
+    // The grouping steps must still be done here, or the invalidation below proves nothing.
+    REQUIRE(print.is_step_done(psWipeTower));
+    REQUIRE(print.is_step_done(psSkirtBrim));
+
+    // One tray's colour changed and both grouping steps were done, so they are taken back.
+    std::vector<std::vector<DynamicPrintConfig>> cyan_green = red_green;
+    cyan_green[0] = { loaded_filament_tray("#00FFFF", "PLA", "A1") };
+    print.set_extruder_filament_info(cyan_green);
+    CHECK(print.apply(model, config) == PrintBase::APPLY_STATUS_INVALIDATED);
+    CHECK_FALSE(print.is_step_done(psWipeTower));
+    CHECK_FALSE(print.is_step_done(psSkirtBrim));
+
+    print.process();
+    REQUIRE(print.is_step_done(psWipeTower));
+
+    // Volatile device metadata: the loaded filaments are unchanged, so nothing is invalidated.
+    std::vector<std::vector<DynamicPrintConfig>> retagged = cyan_green;
+    retagged[0][0].set_key_value("filament_changed", new ConfigOptionBool(true));
+    retagged[0][0].set_key_value("tag_uid",          new ConfigOptionStrings{ "A1B2C3D4" });
+    retagged[0][0].set_key_value("slot_id",          new ConfigOptionStrings{ "0" });
+    print.set_extruder_filament_info(retagged);
+    CHECK(print.apply(model, config) != PrintBase::APPLY_STATUS_INVALIDATED);
+
+    // An empty payload means "inventory unknown" (AMS disconnected): install it, never invalidate.
+    print.set_extruder_filament_info({});
+    CHECK(print.apply(model, config) != PrintBase::APPLY_STATUS_INVALIDATED);
+    CHECK(print.get_extruder_filament_info().empty());
 }

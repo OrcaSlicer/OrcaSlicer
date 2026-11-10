@@ -224,6 +224,13 @@ void AppConfig::set_defaults()
     if (get("seq_top_layer_only").empty())
         set("seq_top_layer_only", "1");
 
+    // what the preview draws while the user drags it
+    {
+        const std::string mode = get("preview_reduced_detail_mode");
+        if (mode != "off" && mode != "solid" && mode != "shell")
+            set("preview_reduced_detail_mode", "off");
+    }
+
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     if (get("preview_dim_previous_layers").empty())
         set_bool("preview_dim_previous_layers", false);
@@ -413,6 +420,13 @@ void AppConfig::set_defaults()
 
     if (get("show_outline").empty())
         set_bool("show_outline", false);
+
+    if (get(SETTING_OPENGL_OUTLINE_PERSISTENT).empty())
+        set_bool(SETTING_OPENGL_OUTLINE_PERSISTENT, false);
+    if (get(SETTING_OPENGL_OUTLINE_COLOR).empty())
+        set(SETTING_OPENGL_OUTLINE_COLOR, "#FFFFFF");
+    if (get(SETTING_OPENGL_SELECTION_OUTLINE_COLOR).empty())
+        set(SETTING_OPENGL_SELECTION_OUTLINE_COLOR, "#FFFFFF");
     
     if (get("show_axes").empty())
         set_bool("show_axes", true);
@@ -747,11 +761,6 @@ void AppConfig::set_defaults()
     {
         // false = legacy behavior using print hosts
         set_bool("use_printer_agents", false);
-    }
-
-    if (get("enable_ota").empty())
-    {
-        set_bool("enable_ota", false);
     }
 
     // Remove legacy window positions/sizes

@@ -9,6 +9,8 @@ uniform sampler2D edges_tex;
 uniform bool inner;
 // The stencil keeps the ring off the samples of the selection, without it the ring stays off covered pixels.
 uniform bool use_stencil;
+// The ring drawn over the other outlined volumes, which stays off this one.
+uniform bool over_others;
 // Widths in pixels: x at least, y at most, z the width on the model in view space units.
 uniform vec3 ring_width;
 uniform int ring_reach;
@@ -18,6 +20,7 @@ uniform vec3 line_width;
 uniform int line_reach;
 uniform float line_opacity;
 uniform vec3 outline_color;
+uniform vec3 selection_outline_color;
 // The projection on view z: window depth is (x * z + y) / (z * z + w), remapped from [-1, 1].
 uniform vec4 depth_coef;
 // View space size of a pixel at view depth z: x * -z + y.
@@ -45,6 +48,12 @@ vec4 fetch_edges(ivec2 p)
 bool covered(vec4 m)
 {
     return m.g > 0.0;
+}
+
+// SelectionOutline::render() gives selected volumes the part ids above 32768.
+vec3 color_of(vec4 m)
+{
+    return m.g * 65535.0 > 32768.5 ? selection_outline_color : outline_color;
 }
 
 // The texel and its eight neighbors are covered.
@@ -126,7 +135,7 @@ void render_ring(ivec2 p)
     if (covered(m)) {
         // Only the silhouette of the mask may hold samples off the selection. Inside, a face the mask has and the
         // scene culled, say, would get no stencil bit and fill with the ring.
-        if (!use_stencil || inside_mask(p))
+        if (over_others || !use_stencil || inside_mask(p))
             discard;
         depth = surface_depth(p);
     }
@@ -167,7 +176,7 @@ void render_ring(ivec2 p)
         // Brought forward with the distance, so that it shows over what the selection stands on.
         depth = window_depth(z + 3.0 * (dist + 2.0) * pixel_size(z));
     }
-    out_color = vec4(outline_color, alpha);
+    out_color = vec4(color_of(m), alpha);
     gl_FragDepth = depth;
 }
 
@@ -208,7 +217,7 @@ void render_lines(ivec2 p)
     float alpha = line_opacity * fade * max(sx, sy) * edge_alpha(width_at(line_width, z), d);
     if (alpha <= 0.0)
         discard;
-    out_color = vec4(outline_color, alpha);
+    out_color = vec4(color_of(m), alpha);
     gl_FragDepth = surface_depth(p);
 }
 
