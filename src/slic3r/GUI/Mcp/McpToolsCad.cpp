@@ -203,7 +203,7 @@ json tool_rows()
                          {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 5}},
                          {"tool": "describe_scene", "args": {}}]}])json")}},
             json{{"name", "describe_feature"}, {"ids", true}, {"summary", "One feature as its card shows it: params, the editable ones with their ranges, expr, refs, used_by and bodies_made."},
-                 {"details", "expr holds its bindings, and refs the feature and body indices and face and edge ids it uses; a sketch adds its plane, entities and constraints (angles in degrees)."},
+                 {"details", "expr holds its bindings, and refs the feature and body indices and face and edge ids it uses; a sketch adds its plane, entities and constraints (angles in degrees). Imported Text or SVG art shows its regions (a count), region_loops (how many closed loops each region has, its outer loop plus its holes; counts, not the loops' geometry) and region_areas (each region's filled area in mm² as placed, its outer loop less its holes)."},
                  {"params", json::array({
                      json{{"name", "feature"}, {"type", "integer"}, {"description", "feature index (describe_scene)"}},
                  })},
@@ -1358,7 +1358,7 @@ json tool_rows()
                          {"tool": "sketch_constraints", "args": {}},
                          {"tool": "sketch_unconstrain", "args": {"index": 4}}]}])json")}},
             json{{"name", "list_verbs"}, {"summary", "The Design tab's right-click verbs, with id, name, key and whether each applies to the current selection."},
-                 {"details", "Each also says whether it opens a dialog."},
+                 {"details", "Each also says where the right-click menu lists it (row_name, then family, the submenu within the row, or null) and whether it opens a dialog. A row offering exactly one applicable verb lists it alone at the menu's top level."},
                  {"params", json::array({
                      json{{"name", "applicable_only"}, {"type", "boolean"}, {"default", false}},
                      json{{"name", "sketch_mode"},     {"type", "boolean"}, {"default", nullptr}, {"description", "when given, only sketch-mode (true) or feature-mode (false) verbs"}},
@@ -2565,6 +2565,29 @@ json feature_card(const CadFeature& f)
                 show("text_height", f.text_height);
             }
             show("regions", int(f.imported_regions.size()));
+            // Per region, its closed loops and the area it fills as placed, in mm². A region keeps its
+            // outer loop first and its holes after it, so it has 1 + holes loops, and it fills the
+            // outer loop's area less its holes', times the placement's scale. A glyph or path that
+            // vectorised into a sliver or with a stray hole shows here, where the region count alone
+            // does not.
+            json loops = json::array(), areas = json::array();
+            for (const auto& region : f.imported_regions) {
+                loops.push_back(int(region.size()));
+                double filled = 0.0;
+                for (size_t c = 0; c < region.size(); ++c) {
+                    const std::vector<Vec2d>& loop  = region[c];
+                    double                    twice = 0.0;   // the shoelace sum: twice the signed area
+                    for (size_t i = 0; i < loop.size(); ++i) {
+                        const Vec2d& a = loop[i];
+                        const Vec2d& b = loop[(i + 1) % loop.size()];
+                        twice += a.x() * b.y() - b.x() * a.y();
+                    }
+                    filled += (c == 0 ? 0.5 : -0.5) * std::abs(twice);
+                }
+                areas.push_back(filled * std::abs(f.import_scale_x * f.import_scale_y));
+            }
+            show("region_loops", std::move(loops));
+            show("region_areas", std::move(areas));
             show("import_offset", json::array({f.import_offset.x(), f.import_offset.y()}));
             num("import_scale_x", f.import_scale_x, 0.001, 1000);
             num("import_scale_y", f.import_scale_y, 0.001, 1000);
@@ -3497,41 +3520,9 @@ bool verb_is_modal(const char* id)
     return false;
 }
 
-// Why list_verbs exists: the deck profile in VSD_n1_streamcontroller is built by parsing
-// DesignPanel's key tables out of the SOURCE, so a verb without a keyboard shortcut is invisible
-// to it. Serving the whole offer table lets the profile be generated from the running app
-// instead, and lets a deck key name a verb rather than spend a letter.
 json action_list_verbs(DesignPanel* panel, const json& params)
 {
-    const int      kind      = panel->mcp_offer_selection_kind();
-    const uint32_t bit       = offer_bit(OfferSel(kind));
-    const bool     applicable_only = params.value("applicable_only", false);
-    const bool     has_sketch_mode = params.contains("sketch_mode");
-    const bool     want_sketch_mode = has_sketch_mode && params["sketch_mode"].get<bool>();
-
-    json verbs = json::array();
-    for (int i = 0; i < kOfferVerbCount; ++i) {
-        const OfferVerb& v = kOfferVerbs[i];
-        const bool applies = (v.accepts & bit) != 0;
-        if (applicable_only && !applies) continue;
-        if (has_sketch_mode && v.sketch_mode != want_sketch_mode) continue;
-        // Verbs whose action is nullptr exist in the vocabulary but have no GUI path yet — report
-        // them with a null action rather than dropping them.
-        verbs.push_back(json{
-            {"id", v.id},
-            {"name", v.name},
-            {"row", v.row},
-            {"row_name", kOfferRowNames[v.row]},
-            {"key", v.key ? json(v.key) : json(nullptr)},
-            {"action", v.action ? json(v.action) : json(nullptr)},
-            {"sketch_mode", v.sketch_mode},
-            {"applies", applies},
-            {"modal", verb_is_modal(v.id)},   // opening a dialog: this key will want a mouse
-            {"hint", v.hint ? json(v.hint) : json(nullptr)},
-        });
-    }
-    return json{{"ok", true}, {"selection_kind", kind}, {"count", verbs.size()},
-                {"verbs", std::move(verbs)}};
+    return cad_list_verbs(panel->mcp_offer_selection_kind(), params);
 }
 
 json action_run_verb(DesignPanel* panel, const json& params)
@@ -5073,6 +5064,44 @@ json cad_feature_note(ToolContext& ctx)
     } catch (const ToolFailure&) {
     }
     return nullptr;
+}
+
+// Why list_verbs exists: the deck profile in VSD_n1_streamcontroller is built by parsing
+// DesignPanel's key tables out of the SOURCE, so a verb without a keyboard shortcut is invisible
+// to it. Serving the whole offer table lets the profile be generated from the running app
+// instead, and lets a deck key name a verb rather than spend a letter. The row and family say
+// where the offer menu puts the verb, so a client can find it there by its label path.
+json cad_list_verbs(int kind, const json& params)
+{
+    const uint32_t bit              = offer_bit(OfferSel(kind));
+    const bool     applicable_only  = params.value("applicable_only", false);
+    const bool     has_sketch_mode  = params.contains("sketch_mode");
+    const bool     want_sketch_mode = has_sketch_mode && params["sketch_mode"].get<bool>();
+
+    json verbs = json::array();
+    for (int i = 0; i < kOfferVerbCount; ++i) {
+        const OfferVerb& v = kOfferVerbs[i];
+        const bool applies = (v.accepts & bit) != 0;
+        if (applicable_only && !applies) continue;
+        if (has_sketch_mode && v.sketch_mode != want_sketch_mode) continue;
+        // Verbs whose action is nullptr exist in the vocabulary but have no GUI path yet — report
+        // them with a null action rather than dropping them.
+        verbs.push_back(json{
+            {"id", v.id},
+            {"name", v.name},
+            {"row", v.row},
+            {"row_name", kOfferRowNames[v.row]},
+            {"family", v.family ? json(v.family) : json(nullptr)},
+            {"key", v.key ? json(v.key) : json(nullptr)},
+            {"action", v.action ? json(v.action) : json(nullptr)},
+            {"sketch_mode", v.sketch_mode},
+            {"applies", applies},
+            {"modal", verb_is_modal(v.id)},   // opening a dialog: this key will want a mouse
+            {"hint", v.hint ? json(v.hint) : json(nullptr)},
+        });
+    }
+    return json{{"ok", true}, {"selection_kind", kind}, {"count", verbs.size()},
+                {"verbs", std::move(verbs)}};
 }
 
 SketchPlane cad_resolve_plane(const json& plane, const CadDocument& doc, bool drill, int* face_body)

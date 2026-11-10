@@ -414,7 +414,7 @@ Script panel, which runs Python.
 | | `mouse_gesture` | canvas gestures: move, down, up, click, drag, wheel, at pixels or at points of the model (the Design view at pixels); list or run a right click's menu; reports when a gesture moved the camera |
 | | `pick_gizmo_file` | what the open gizmo's file pickers do, with a path: SVG change file and save as, texture import |
 | | `answer_dialog` | press a button of the topmost wx dialog or native message box, or of its page for a web dialog |
-| | `auto_answer_dialogs` | answer matching modals as they open (native ones unseen, web ones on their page), and one already open |
+| | `auto_answer_dialogs` | answer matching modals as they open (native ones unseen, a file or folder picker with a path, web ones on their page), and one already open |
 | | `run_javascript` | run JavaScript in a web view (the topmost dialog's while a modal is open), with a page element as `el`, and return the result |
 | Replays and scripts | `run_replay` | run a replay file or inline replay, with results per step |
 | | `export_replay` | write the session journal as a replay; calls whose job is still running are left out and listed |
@@ -1129,9 +1129,11 @@ it, from one per-type table, `feature_card()`: `params`, the `editable` ones nam
 `CadFeature` members (the names `set_feature_expr` binds) with the `ranges` of the card's spin
 controls, `expr`, the structure the card keeps in `refs` (feature and body indices, face and edge
 ids), a sketch's plane, entities and constraints (snake_case types, point references with a role,
-angles in degrees), and `used_by` / `bodies_made`. `used_by` comes from the kernel's own reference
-visitors, `CadDocument::for_each_feature_ref()` and, for a datum plane, `for_each_datum_ref()`,
-the lists that deleting and moving a feature remap.
+angles in degrees), `used_by` / `bodies_made`, and, for imported Text or SVG art, how many regions it
+has (`regions`), how many closed loops each region has, its outer loop plus its holes
+(`region_loops`), and the area each region fills as placed, in mm² (`region_areas`). `used_by`
+comes from the kernel's own reference visitors, `CadDocument::for_each_feature_ref()` and, for a
+datum plane, `for_each_datum_ref()`, the lists that deleting and moving a feature remap.
 
 `set_feature {feature, fields}` (also read as `index` and `params` or `values`, the names agents
 reach for, as `describe_feature` reads `index`) is a card's Confirm in edit mode: one checkpoint, then
@@ -1324,6 +1326,9 @@ failed calls and `generation`s, exports it and replays it to the same features a
 properties; `tools/mcp/test_cad_slow_build.py` checks the window during a guarded rebuild;
 `tools/mcp/test_cad_failed_job.py` exports a session whose call failed after its reply budget
 (a hole that misses a slow-to-rebuild coil), which leaves it out, and replays it.
+`tools/mcp/test_cad_sketching.py`, `test_cad_context_menu.py` and `test_cad_click_edit.py` drive
+the Design tab through the GUI tools as a person does (canvas gestures, typed values, the offer
+menu, file pickers answered by path rules) and read the result back with `read` CAD tools.
 
 ## Speed Dial catalog
 
@@ -1933,7 +1938,7 @@ refused. This is how a plugin's permission prompt is answered. On macOS a messag
 since no call reaches one (above).
 
 A picker, and on macOS any native dialog, can only be answered ahead with an `auto_answer_dialogs` rule:
-a regex and a button. The regex is searched in three places:
+a regex and a button, and for a file or folder picker a path. The regex is searched in three places:
 
 - the title and message joined by a newline
 - the title and the dialog's own text joined the same way. The own text is its static text and html,
@@ -1943,8 +1948,27 @@ a regex and a button. The regex is searched in three places:
 
 A rule written against a dialog's wording therefore matches however its controls read, and long values
 or lists before that wording do not push it out. `Enter()` then returns that button's id without
-showing the dialog, and logs it; a file or folder picker can only be cancelled, since any other answer
-would return without a path.
+showing the dialog, and logs it.
+
+A picker is matched by its prompt, unanchored: one answered before it shows usually has no title, so
+the text searched starts with the newline before the prompt, which a pattern anchored with `^` misses.
+A rule without a path answers a file or folder picker only with cancel, since any other answer would
+return without a path. A rule with `button: ok` and an absolute `path` answers one with that path
+(`make_rule()` refuses a relative path, and a path with any other button): `answer_picker()` sets it on
+the picker with `SetPath()` and returns `wxID_OK`, so the caller reads it from `GetPath()` as if a
+person had chosen it and runs its own code from there. An open picker takes an existing file and a
+folder picker an existing folder; a save picker takes a path as any output does (its folder must exist,
+and an existing file is replaced only with `overwrite: true` on the rule). A path the picker can't take
+cancels it, and the log says why, so nothing waits for a person; the rule counts as used either way. A
+multi-select picker takes no path and is cancelled, since it fills `GetPaths()` from its own list,
+never from `SetPath()`; for the same reason a single-select picker's caller that reads `GetPaths()`
+instead of `GetPath()` gets an empty list from a path answer on Windows and macOS. On GTK a path rule
+cancels every picker it matches, since a GTK picker's `GetPath()` has no path until it has shown. A path
+rule answers pickers only, as they open: never a wx dialog or message box it matches, nor a picker
+already open. `get_app_state.auto_answer_rules` and the tool's reply list a rule's `path` and
+`overwrite`. The replay summary (`describe_step()`) flags a step that sets a path rule outside the
+run's output folder as writing a file, since which picker the rule will answer, and whether that
+picker saves, is not known until one opens.
 
 A wx dialog that matches a rule opens, and the tracker presses the button once the dialog's modal loop
 runs (`press_dialog_button()`, queued on the dialog), as `answer_dialog` does. Its buttons do the
@@ -3216,7 +3240,7 @@ snapshot text, ref liveness, synthetic key state, a key's way through the hooks 
 parents (with a display), how ImGui items are labelled and named, value
 matching and the model-target projection and surface check (`CanvasTarget`); `test_mcp_results`
 what covers a canvas click (`imgui_window_at()`), the surface meshes of a modifier target, fresh GL
-toolbar state and the auto-answer press (with a display), the slice reply's plate summary,
+toolbar state, the auto-answer press and a picker's path answer (with a display), the slice reply's plate summary,
 `get_slice_stats`'s feature, layer and object tables, the legend rows' names, the slider's layer for
 a height, menu paths and listings, the UI activity hook, the journal's dropped listing clicks and
 calls whose job failed or still runs (with a replay of the export), the

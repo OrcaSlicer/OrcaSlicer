@@ -471,7 +471,12 @@ they declare. On a live application launched with `tools/mcp/orca_mcp.py launch 
 `tools/mcp/tests/cad_*.json` drive `call_cad_tool`, the live tests `tools/mcp/test_cad_replay.py`,
 `test_cad_slow_build.py` and `test_cad_failed_job.py` cover journaling and replay, the app staying
 live through a long rebuild, and a call whose job fails after its reply, and
-`tools/mcp/test_cad_examples.py` runs every CAD tool's examples, each on a fresh design.
+`tools/mcp/test_cad_examples.py` runs every CAD tool's examples, each on a fresh design. The GUI
+tests `tools/mcp/test_cad_sketching.py`, `test_cad_context_menu.py` and `test_cad_click_edit.py`
+drive the tab as a person does, through the server's UI tools: they draw on the canvas with
+clicks and typed values, run the offer's verbs from a right click and type into the value fields with
+no click into them, and grade what `call_cad_tool`'s read tools and `list_widgets` report back. They
+need an English UI and no CI job runs them; `tools/mcp/README.md` says how to run them.
 
 Three checks in `scripts/CAD/` drive a running app through its MCP server as an agent does and
 grade the sketch layer against arithmetic: `check-mcp-sketch.py`, `check-sketch-engine.py` and

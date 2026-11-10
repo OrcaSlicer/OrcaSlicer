@@ -295,7 +295,7 @@ marked `optional` are calls that must be refused and change nothing.
   project modified, and reopening the saved design-only project with `discard_changes` asks nothing
   and names the project after its file.
 
-Two harness tests run on an instance launched with `--cad`. `test_cad_replay.py` makes calls as a
+Three harness tests run on an instance launched with `--cad`. `test_cad_replay.py` makes calls as a
 client, so they are journaled, exports the session with `export_replay`, replays it into a new
 project and compares the body's mass properties and the features. The session has an empty sketch
 commit and a missed hole, which must fail and be left out, a legacy `fillet` answering ok false,
@@ -308,6 +308,48 @@ short calibration build), then a hole that misses it replies with a running job 
 the reply budget: an export while it runs leaves it out and names it in `left_out_running`, the
 export after it has the rename made next and not the hole, and that replay runs to the same coil.
 It takes three to four minutes.
+
+Three more harness tests on a `--cad` instance drive the Design tab the way a person does. Every
+action goes through the UI tools (`set_view`, `click`, `mouse_gesture`, `press_keys`,
+`set_widget_value`, `answer_dialog` and `auto_answer_dialogs`), and `call_cad_tool` only reads the
+result back (`sketch_describe`, `describe_scene`, `describe_feature`, `list_verbs`), save for one
+call in the scale rung. Buttons and rows are found by label, and canvas positions come from a
+calibration that maps the open sketch's plane to canvas pixels, so nothing in them is tuned to a
+window size, screen scaling or theme. What they share is in `cad_gui.py` beside them.
+`test_cad_sketching.py` draws each sketch tool's primitive with clicks on the canvas and types its
+exact values into the canvas's value field, drives the edit operations and each constraint button on
+drawn geometry, undoes inside a sketch and across its commit, saves the project and opens it again
+through the File menu, and draws on top of a sketch holding 1204 entities. That last rung, `scale`,
+loads them with one `call_cad_tool sketch_add` while the rectangle tool is armed: the one call in
+these tests that changes the sketch outside the UI, on purpose, since a bulk add made while a
+creation tool is armed must not be read as a drawn gesture that swallows the next key and click.
+`test_cad_context_menu.py` checks that the right-click offer names what was clicked and lists exactly
+the verbs `list_verbs` says apply to it, and drives from the menu every sketch verb that has no key,
+a Text typed into the Text dialog and an SVG import (`tests/fixtures/rect_40x20.svg`) among them.
+`test_cad_click_edit.py` checks that each value field a drawing tool opens takes digits typed with no
+click into it and that Return commits them, for the line, rectangle, circle, slot, polygon, ellipse
+and arc tools armed by their keys, the rounded rectangle armed from the offer, and a rectangle's
+width label clicked in Select.
+
+```bash
+tools/mcp/orca_mcp.py launch --cad
+tools/mcp/test_cad_sketching.py
+tools/mcp/test_cad_context_menu.py
+tools/mcp/test_cad_click_edit.py rect label
+```
+
+Each prints `ok` or `FAIL` for every check and exits 1 if any failed. Rungs named on the command line
+run alone, in that order (each test's docstring lists them); with none named, every rung runs.
+`test_cad_sketching.py selfcheck-recovery` runs only when named: it fails on purpose with the mouse
+button held, the offer asked for and a tool armed, to show that the rungs after a failed one start
+clean. The tests find widgets, menu paths and verbs by their English names, so they need an English
+UI: on any other language, or with the Design tab off, they exit 2 before the first check and say how
+to fix it. On Linux the steps that need a file picker answered with a path, the sketching test's
+`roundtrip` and the context-menu test's SVG import, print `skip`, since a GTK picker can't take a
+path from MCP (`docs/HLSD/mcp-server.md`, "Dialogs and web views"). The app logs each picker a rule
+answers in `<datadir>/log/debug_*.log.0`, with the reason when it cancels one a rule gave a path. MCP
+input reaches the app through wxWidgets, not the OS, so a focus problem that only a window manager
+causes is out of the tests' reach.
 
 `tests/dialogs_canvas_input.json` checks that an auto-answered Transfer or Discard on the
 unsaved-changes dialog does its work, that a toolbar item a selection just enabled takes a click at

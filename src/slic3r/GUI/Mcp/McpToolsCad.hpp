@@ -66,6 +66,13 @@ nlohmann::json cad_describe_tool(const nlohmann::json& tool);
 // handler, off the UI thread.
 nlohmann::json cad_feature_note(ToolContext& ctx);
 
+// list_verbs' reply for selection `kind` (an OfferSel): {ok, selection_kind, count, verbs}, the
+// Design tab's offer table in its order, each verb with its id, name, row and row_name, family
+// (its submenu within the row, or null), key, action, sketch_mode, applies (it accepts `kind`),
+// modal and hint. params.applicable_only keeps the verbs that apply, and params.sketch_mode, when
+// given, the sketch-mode (true) or feature-mode (false) ones. Needs no Design panel.
+nlohmann::json cad_list_verbs(int kind, const nlohmann::json& params);
+
 // The `plane` param shared by the plane-taking CAD tools: "XY", "XZ" or "YZ" through the modeling
 // origin, {"datum": feature index}, or {"body": b, "face": f} on a planar face. A face gives the
 // sketch-on-face plane (outward normal), or with `drill` the Hole card's inward plane; `face_body`

@@ -31,6 +31,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/CAD/DesignOffer.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpToolsCad.hpp"
@@ -337,6 +338,32 @@ TEST_CASE("describe_cad_tool gives id_lifetime only for tools that take or give 
             if (is_id_param(p.at("name").get<std::string>()) || takes_face_plane(p)) ids = true;
         CHECK(GUI::Mcp::cad_describe_tool(name).contains("id_lifetime") == ids);
     }
+}
+
+TEST_CASE("list_verbs names the row and the family submenu each verb sits in", "[Mcp][CAD]")
+{
+    const json reply = GUI::Mcp::cad_list_verbs(int(GUI::OfferSel::SkNone), json{{"sketch_mode", true}});
+    std::map<std::string, json> verbs;
+    for (const json& v : reply.at("verbs")) {
+        CHECK(v.at("sketch_mode") == true);
+        verbs[v.at("id").get<std::string>()] = v;
+    }
+    // The offer lists the corner rectangle at Create > Rectangle > Corner rectangle.
+    const json& rect = verbs.at("sk_rect");
+    CHECK(rect.at("row_name") == "Create");
+    CHECK(rect.at("family") == "Rectangle");
+    CHECK(rect.at("name") == "Corner rectangle");
+    CHECK(rect.at("applies") == true);
+    CHECK(verbs.at("sk_rect_center").at("family") == "Rectangle");
+    CHECK(verbs.at("sk_spline").at("family").is_null());   // directly in Create
+    CHECK(verbs.at("sk_dimension").at("family").is_null());
+    CHECK(verbs.at("sk_offset").at("applies") == false);   // it needs a picked line, curve or pair
+
+    const json model = GUI::Mcp::cad_list_verbs(int(GUI::OfferSel::None), json{{"sketch_mode", false}});
+    const json& sketch = model.at("verbs").at(0);
+    CHECK(sketch.at("id") == "sketch");
+    CHECK(sketch.at("row_name") == "Create");
+    CHECK(sketch.at("family").is_null());   // the feature-mode Sketch sits directly in Create
 }
 
 TEST_CASE("the CAD-off note is given when the UI says the feature is off, and only then", "[Mcp][CAD]")
@@ -675,6 +702,33 @@ TEST_CASE("describe_feature lists the features built on a datum plane", "[Mcp][C
     CHECK_THAT(p.at("plane").at("origin")[2].get<double>(), WithinAbs(30.0, 1e-9));
     CHECK_FALSE(p.at("plane").contains("base"));   // parallel to XY but not through the modeling origin
     CHECK_THAT(GUI::Mcp::cad_feature_json(doc, second).at("plane").at("origin")[2].get<double>(), WithinAbs(40.0, 1e-9));
+}
+
+TEST_CASE("describe_feature gives each imported region's loops and filled area as placed", "[Mcp][CAD]")
+{
+    // Imported art keeps each region as its outer loop followed by its holes. A 10 x 4 outline with
+    // a 2 x 2 hole is 2 loops filling 40 - 4 = 36 mm²; a right triangle with legs 6 and 4, wound
+    // clockwise, 1 loop filling 12.
+    CadDocument doc;
+    CadFeature  art;
+    art.type             = CadFeatureType::Sketch;
+    art.name             = "SVG 1";
+    art.imported_regions = {
+        {{Vec2d(0, 0), Vec2d(10, 0), Vec2d(10, 4), Vec2d(0, 4)}, {Vec2d(4, 1), Vec2d(4, 3), Vec2d(6, 3), Vec2d(6, 1)}},
+        {{Vec2d(0, 0), Vec2d(0, 6), Vec2d(4, 0)}},
+    };
+    // Placed 2 wide and 3 tall, every area grows by 2 * 3.
+    art.import_scale_x = 2.0;
+    art.import_scale_y = 3.0;
+    doc.features.push_back(art);
+
+    const json params = GUI::Mcp::cad_feature_json(doc, 0).at("params");
+    CHECK(params.at("regions") == 2);
+    CHECK(params.at("region_loops") == json::array({2, 1}));
+    const json& areas = params.at("region_areas");
+    REQUIRE(areas.size() == 2);
+    CHECK_THAT(areas[0].get<double>(), WithinAbs(36.0 * 6.0, 1e-9));
+    CHECK_THAT(areas[1].get<double>(), WithinAbs(12.0 * 6.0, 1e-9));
 }
 
 TEST_CASE("every editable field of every feature type takes back its own value", "[Mcp][CAD]")

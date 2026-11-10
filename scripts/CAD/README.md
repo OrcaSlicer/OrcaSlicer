@@ -34,6 +34,11 @@ reads them with poppler's `pdftocairo` and `pdfinfo`, which must be on the PATH.
 every 20th sheet by default (`--step`); `--scale` grades the largest drawings instead, each
 round trip within `--budget` seconds.
 
+The Design tab's GUI tests, which draw on the canvas with the mouse and keyboard as a person
+does, are MCP harness tests in `tools/mcp/` (`test_cad_sketching.py`,
+`test_cad_context_menu.py` and `test_cad_click_edit.py`); `tools/mcp/README.md` says what
+they check and how to run them.
+
 ## Generated sources
 
 Two checked-in files are emitted from data that lives here, so the source and the thing
@@ -55,20 +60,3 @@ runs in FreeCAD's Python (it reads the STEP with `Part`) and writes `bear_outlin
 `emit_glyph_table.py` runs in plain Python and simplifies that outline into the C++ tables,
 printing them and writing them to `bear_glyph_table.h` beside it; `DesignSketchTool.cpp`
 holds them as emitted.
-
-## GUI checks
-
-`check-gui-sketching.py`, `check-gui-context-menu.py` and `check-gui-click-edit.py` drive
-the app the way a person does, with synthetic mouse and keyboard input from `xdotool` on an
-X display, and grade what the Design tab did. The display needs a window manager (on Xvfb,
-openbox for example): without one no window takes focus, and an unfocused GTK app ignores
-synthetic keys.
-
-| Check | What it proves |
-|---|---|
-| `check-gui-sketching.py` | The engine ladder's profiles drawn the way a person draws them, with mouse gestures and values typed into the in-canvas field. |
-| `check-gui-context-menu.py` | Right-click opens the offer, which adapts to what was clicked and shows exactly the verbs `DesignOffer.hpp` says apply. Grades the app's `ORCA_CAD_KEYTRACE=1` trace. |
-| `check-gui-click-edit.py` | A value field that opens takes what is typed into it at once, without a click into the field. Grades the app's `ORCA_CAD_UXTRACE=1` trace. |
-
-They read the results back through a local socket the app does not open, so none of them runs
-until it reads them through the MCP server like the checks above.
