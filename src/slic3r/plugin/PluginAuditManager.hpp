@@ -4,8 +4,13 @@
 // Via pybind11 so this file requests the same python3xx.lib as everything else.
 #include <boost/filesystem/path.hpp>
 #include <pybind11/conduit/wrap_include_python_h.h>
+#include <cstddef>
+#include <deque>
 #include <functional>
+#include <future>
+#include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -291,6 +296,131 @@ private:
     std::string                   m_previous_capability;
     std::vector<AllowedRoot>      m_previous_scoped_roots;
     std::vector<PyObject*>        m_previous_root_frames;
+};
+
+// What a queued prompt asks the user. A runtime event and a permission declaration can both grant
+// what they show; an informational denial cannot, so it has no Yes/No choice.
+enum class AuditPromptKind {
+    RuntimeEvent,
+    DeclaredPermissions,
+    DeniedOperation,
+};
+
+// One permission bucket of a load-time declaration. Kept plain (no wx types) so the queue can be
+// owned by production code that outlives static destruction.
+struct AuditPromptBucket
+{
+    AuditEventCategory       category = AuditEventCategory::None;
+    std::vector<std::string> targets;
+
+    bool operator==(const AuditPromptBucket& other) const;
+};
+
+// Resolves a blocked load worker exactly once. The queue may cancel a request from another thread
+// (plugin unload, shutdown) while the GUI thread is still showing its dialog; the second resolve
+// must be a no-op. Held by shared_ptr so a request copy and the queue's active slot share it.
+struct AuditPromptCompletion
+{
+    void resolve(bool value);
+
+    std::future<bool> get_future();
+
+private:
+    std::mutex         m_mutex;
+    std::promise<bool> m_promise;
+    bool               m_resolved = false;
+};
+
+// One audit decision awaiting a user answer. `keys` is what a Yes persists; `shown` is what the
+// dialog lists (empty for an event that is granted by name, with no target to show).
+struct AuditPromptRequest
+{
+    AuditPromptKind          kind = AuditPromptKind::RuntimeEvent;
+    AuditEventCategory       category = AuditEventCategory::None;
+    std::string              plugin_key;
+    std::string              plugin_name;
+    std::string              event_name;
+    bool                     by_event = false;
+    std::vector<std::string> keys;
+    std::vector<std::string> shown;
+    // DeclaredPermissions only: the missing buckets the combined dialog lists.
+    std::vector<AuditPromptBucket> buckets;
+    // Set only when a worker is blocked waiting for the answer.
+    std::shared_ptr<AuditPromptCompletion> completion;
+};
+
+// Serializes audit prompts on the GUI thread. At most one request is active: the next one is
+// handed out by take_next() only after the previous dialog has returned from ShowModal(), so a
+// modal dialog's nested event loop cannot open another audit prompt.
+//
+// Thread-safe: audit events enqueue from plugin worker threads, the GUI thread drains. Requests
+// are never merged unless they are exactly equivalent, so coalescing cannot widen a grant.
+class AuditPromptQueue
+{
+public:
+    enum class Admission {
+        ShowNow,   // idle and allowed to prompt here: present this request, then complete()
+        Queued,    // a prompt is active or waiting: the current audit event stays denied
+        Duplicate, // an equivalent request is already active or waiting: this one is dropped
+        Rejected   // a synchronous-only caller found the queue busy: nothing was stored
+    };
+
+    // Presents a request synchronously only when the queue is idle. Busy callers are rejected
+    // atomically instead of leaving a deferred prompt behind: used by GUI-thread callers whose
+    // operation is already being denied and cannot wait for a later Yes.
+    Admission admit_synchronous(AuditPromptRequest request);
+
+    // `may_show_now` is true only on the GUI thread: it lets an idle queue hand the request back
+    // for a synchronous prompt instead of queueing it for a later GUI callback.
+    Admission admit(AuditPromptRequest request, bool may_show_now);
+
+    // For a create/delete request: show the immediate Yes/No prompt when idle on the GUI thread,
+    // but queue `queued_request` (an OK-only informational denial) when that is not possible. The
+    // kind cannot be switched after admission, so the fallback is chosen under the queue lock.
+    Admission admit_with_fallback(AuditPromptRequest immediate_request, AuditPromptRequest queued_request,
+                                  bool may_show_now);
+
+    // Claims the oldest queued request when no prompt is active, and marks it active.
+    std::optional<AuditPromptRequest> take_next();
+
+    // Claims the active answer for persistence. Cancellation and commit are mutually exclusive:
+    // once this returns true, discard_all()/discard_plugin() leave the request alone so a user's
+    // accepted answer cannot be dropped midway through the sidecar write. A request already
+    // cancelled (shutdown or unload won the race) returns false and must not be persisted.
+    bool begin_commit();
+
+    // Marks the active request done. Returns true when it was cancelled while its dialog was up,
+    // so the caller must not persist an accepted grant. Idempotent.
+    bool complete();
+
+    bool has_pending() const;
+
+    bool idle() const;
+
+    std::size_t pending_count() const;
+
+    // Drops every queued request and cancels any blocked worker. An active prompt stays on screen
+    // (it may be mid-modal), but its completion is released now and its late answer must not be
+    // persisted. A commit already begun is left to finish. Used on application shutdown.
+    void discard_all();
+
+    // Drops queued requests for one plugin and cancels a blocked worker of that plugin. An active
+    // prompt is cancelled but stays on screen until its dialog returns, unless its commit already
+    // started. Used when a plugin is unloaded or removed.
+    void discard_plugin(const std::string& plugin_key);
+
+private:
+    // Equality only over what a Yes would grant, plus the plugin it is granted to. Distinct
+    // categories, plugins, targets, or event grants are never considered equivalent.
+    static bool same_request(const AuditPromptRequest& a, const AuditPromptRequest& b);
+
+    bool contains_locked(const AuditPromptRequest& request) const;
+
+    mutable std::mutex                m_mutex;
+    std::deque<AuditPromptRequest>    m_pending;
+    std::optional<AuditPromptRequest> m_active;
+    bool                              m_active_cancelled = false;
+    bool                              m_active_committing = false;
 };
 
 } // namespace Slic3r

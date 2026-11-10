@@ -21,6 +21,7 @@
 #include <cctype>
 #include <cstddef>
 #include <cstdlib>
+#include <deque>
 #include <exception>
 #include <future>
 #include <mutex>
@@ -29,7 +30,6 @@
 #include <slic3r/GUI/BindDialog.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
-#include <slic3r/plugin/PluginAuditPromptQueue.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <string>
@@ -2000,6 +2000,181 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
 }
 
 } // namespace PluginAuditDetail
+
+bool AuditPromptBucket::operator==(const AuditPromptBucket& other) const
+{
+    return category == other.category && targets == other.targets;
+}
+
+void AuditPromptCompletion::resolve(bool value)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_resolved)
+        return;
+    m_resolved = true;
+    m_promise.set_value(value);
+}
+
+std::future<bool> AuditPromptCompletion::get_future() { return m_promise.get_future(); }
+
+AuditPromptQueue::Admission AuditPromptQueue::admit_synchronous(AuditPromptRequest request)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_active || !m_pending.empty())
+        return Admission::Rejected;
+
+    m_active = std::move(request);
+    m_active_cancelled  = false;
+    m_active_committing = false;
+    return Admission::ShowNow;
+}
+
+AuditPromptQueue::Admission AuditPromptQueue::admit(AuditPromptRequest request, bool may_show_now)
+{
+    AuditPromptRequest queued = request;
+    return admit_with_fallback(std::move(request), std::move(queued), may_show_now);
+}
+
+AuditPromptQueue::Admission AuditPromptQueue::admit_with_fallback(AuditPromptRequest immediate_request,
+                                                                  AuditPromptRequest queued_request, bool may_show_now)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    if (may_show_now && !m_active && m_pending.empty()) {
+        m_active = std::move(immediate_request);
+        m_active_cancelled  = false;
+        m_active_committing = false;
+        return Admission::ShowNow;
+    }
+
+    if (contains_locked(queued_request))
+        return Admission::Duplicate;
+
+    m_pending.push_back(std::move(queued_request));
+    return Admission::Queued;
+}
+
+std::optional<AuditPromptRequest> AuditPromptQueue::take_next()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_active || m_pending.empty())
+        return std::nullopt;
+
+    m_active = std::move(m_pending.front());
+    m_pending.pop_front();
+    m_active_cancelled  = false;
+    m_active_committing = false;
+    return m_active;
+}
+
+bool AuditPromptQueue::begin_commit()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (!m_active || m_active_cancelled)
+        return false;
+    m_active_committing = true;
+    return true;
+}
+
+bool AuditPromptQueue::complete()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const bool cancelled = m_active_cancelled;
+    m_active.reset();
+    m_active_cancelled  = false;
+    m_active_committing = false;
+    return cancelled;
+}
+
+bool AuditPromptQueue::has_pending() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return !m_pending.empty();
+}
+
+bool AuditPromptQueue::idle() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return !m_active && m_pending.empty();
+}
+
+std::size_t AuditPromptQueue::pending_count() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_pending.size();
+}
+
+void AuditPromptQueue::discard_all()
+{
+    std::vector<std::shared_ptr<AuditPromptCompletion>> completions;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (const AuditPromptRequest& request : m_pending)
+            if (request.completion)
+                completions.push_back(request.completion);
+        m_pending.clear();
+
+        if (m_active && !m_active_committing) {
+            m_active_cancelled = true;
+            if (m_active->completion)
+                completions.push_back(m_active->completion);
+        }
+    }
+
+    // Never resolve under the queue lock: the wake-up is another thread that may re-enter.
+    for (const auto& completion : completions)
+        completion->resolve(false);
+}
+
+void AuditPromptQueue::discard_plugin(const std::string& plugin_key)
+{
+    std::vector<std::shared_ptr<AuditPromptCompletion>> completions;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (const AuditPromptRequest& request : m_pending)
+            if (request.plugin_key == plugin_key && request.completion)
+                completions.push_back(request.completion);
+
+        m_pending.erase(std::remove_if(m_pending.begin(), m_pending.end(),
+                                       [&plugin_key](const AuditPromptRequest& request) {
+                                           return request.plugin_key == plugin_key;
+                                       }),
+                        m_pending.end());
+
+        if (m_active && m_active->plugin_key == plugin_key && !m_active_committing) {
+            m_active_cancelled = true;
+            if (m_active->completion)
+                completions.push_back(m_active->completion);
+        }
+    }
+
+    for (const auto& completion : completions)
+        completion->resolve(false);
+}
+
+bool AuditPromptQueue::same_request(const AuditPromptRequest& a, const AuditPromptRequest& b)
+{
+    if (a.kind != b.kind || a.plugin_key != b.plugin_key)
+        return false;
+
+    switch (a.kind) {
+    case AuditPromptKind::RuntimeEvent:
+        return a.category == b.category && a.by_event == b.by_event && a.keys == b.keys;
+    case AuditPromptKind::DeclaredPermissions:
+        return a.buckets == b.buckets;
+    case AuditPromptKind::DeniedOperation:
+        return a.category == b.category && a.shown == b.shown;
+    }
+    return false;
+}
+
+bool AuditPromptQueue::contains_locked(const AuditPromptRequest& request) const
+{
+    if (m_active && same_request(*m_active, request))
+        return true;
+    return std::any_of(m_pending.begin(), m_pending.end(),
+                       [&request](const AuditPromptRequest& pending) { return same_request(pending, request); });
+}
 
 bool PluginAuditManager::request_permissions(const std::string& plugin_key, const PluginPermissions& requested)
 {
