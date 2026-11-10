@@ -135,8 +135,8 @@ bool extract_zip_entry_to_file(mz_zip_archive *zip, mz_uint file_index, const bo
         return false;
 #ifdef WIN32
     // Open the destination ourselves with a Windows extended-length path: miniz's narrow
-    // extract_to_file cannot be relied on past MAX_PATH with LongPathsEnabled off, and its wide
-    // variant takes a plain (unprefixed) path and a text-mode stream. This keeps the write binary.
+    // extract_to_file cannot be relied on past MAX_PATH with LongPathsEnabled off, and miniz has
+    // no wide-path extract. This keeps the write binary.
     FILE *file = ::_wfopen(Slic3r::extended_path(dest_path).wstring().c_str(), L"wb");
     if (!file) {
         zip->m_last_error = MZ_ZIP_FILE_OPEN_FAILED;
