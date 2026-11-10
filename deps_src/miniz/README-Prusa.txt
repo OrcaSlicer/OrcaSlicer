@@ -25,8 +25,6 @@ What the patch carries:
 - mz_zip_reader_get_extra(), which returns an entry's central directory extra
   field (BBS), and mz_zip_reader_get_filename_from_extra(), which reads the
   Unicode Path extra field (0x7075) out of it (OrcaSlicer).
-- mz_zip_reader_extract_to_file_w(), a wide-character destination path for
-  Windows, with the mz_wfopen()/MZ_WFOPEN helpers it needs (BBS).
 - mz_zip_writer_add_file_ex(), which adds a file with local and central extra
   fields; mz_zip_writer_add_file() now calls it (BBS).
 - The staged writer, mz_zip_writer_add_staged_open()/_data()/_finish() and

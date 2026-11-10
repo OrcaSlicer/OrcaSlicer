@@ -1382,9 +1382,6 @@ extern "C"
     /* Extracts a archive file to a disk file and sets its last accessed and modified times. */
     /* This function only extracts files, not archive directory records. */
     MINIZ_EXPORT mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint file_index, const char *pDst_filename, mz_uint flags);
-#ifdef WIN32
-    MINIZ_EXPORT mz_bool mz_zip_reader_extract_to_file_w(mz_zip_archive *pZip, mz_uint file_index, const wchar_t *pDst_filename, mz_uint flags);
-#endif
     MINIZ_EXPORT mz_bool mz_zip_reader_extract_file_to_file(mz_zip_archive *pZip, const char *pArchive_filename, const char *pDst_filename, mz_uint flags);
 
     /* Extracts a archive file starting at the current position in the destination FILE stream. */

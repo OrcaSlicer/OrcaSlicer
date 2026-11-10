@@ -3088,14 +3088,6 @@ static WCHAR *mz_utf8z_to_widechar(const char *str)
     return wStr;
 }
 
-#ifdef WIN32
-static FILE *mz_wfopen(const wchar_t *pFilename, const char *pMode)
-{
-    FILE *pFile = NULL;
-    _wfopen_s(&pFile, pFilename, pMode);
-    return pFile;
-}
-#endif
 static FILE *mz_fopen(const char *pFilename, const char *pMode)
 {
     WCHAR *wFilename = mz_utf8z_to_widechar(pFilename);
@@ -3140,9 +3132,6 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 #include <sys/utime.h>
 #endif
 #define MZ_FOPEN mz_fopen
-#ifdef WIN32
-#define MZ_WFOPEN mz_wfopen
-#endif
 #define MZ_FCLOSE fclose
 #define MZ_FREAD fread
 #define MZ_FWRITE fwrite
@@ -5347,40 +5336,6 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
         return status;
     }
-
-#ifdef WIN32
-mz_bool mz_zip_reader_extract_to_file_w(mz_zip_archive *pZip, mz_uint file_index, const wchar_t *pDst_filename, mz_uint flags)
-{
-    mz_bool                  status;
-    mz_zip_archive_file_stat file_stat;
-    MZ_FILE *                pFile;
-
-    if (!mz_zip_reader_file_stat(pZip, file_index, &file_stat))
-        return MZ_FALSE;
-
-    if ((file_stat.m_is_directory) || (!file_stat.m_is_supported))
-        return mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_FEATURE);
-
-    pFile = MZ_WFOPEN(pDst_filename, "w");
-    if (!pFile) {
-       return mz_zip_set_error(pZip, MZ_ZIP_FILE_OPEN_FAILED);
-    }
-    status = mz_zip_reader_extract_to_callback(pZip, file_index, mz_zip_file_write_callback, pFile, flags);
-
-    if (MZ_FCLOSE(pFile) == EOF) {
-        if (status)
-            mz_zip_set_error(pZip, MZ_ZIP_FILE_CLOSE_FAILED);
-        status = MZ_FALSE;
-    }
-
-#if !defined(MINIZ_NO_TIME) && !defined(MINIZ_NO_STDIO)
-    if (status)
-        mz_zip_set_file_times(pDst_filename, file_stat.m_time, file_stat.m_time);
-#endif
-
-    return status;
-}
-#endif
 
     mz_bool mz_zip_reader_extract_file_to_file(mz_zip_archive *pZip, const char *pArchive_filename, const char *pDst_filename, mz_uint flags)
     {

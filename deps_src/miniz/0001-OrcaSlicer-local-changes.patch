@@ -29,17 +29,7 @@
      /* Returns detailed information about an archive file entry. */
      MINIZ_EXPORT mz_bool mz_zip_reader_file_stat(mz_zip_archive *pZip, mz_uint file_index, mz_zip_archive_file_stat *pStat);
  
-@@ -1374,6 +1382,9 @@
-     /* Extracts a archive file to a disk file and sets its last accessed and modified times. */
-     /* This function only extracts files, not archive directory records. */
-     MINIZ_EXPORT mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint file_index, const char *pDst_filename, mz_uint flags);
-+#ifdef WIN32
-+    MINIZ_EXPORT mz_bool mz_zip_reader_extract_to_file_w(mz_zip_archive *pZip, mz_uint file_index, const wchar_t *pDst_filename, mz_uint flags);
-+#endif
-     MINIZ_EXPORT mz_bool mz_zip_reader_extract_file_to_file(mz_zip_archive *pZip, const char *pArchive_filename, const char *pDst_filename, mz_uint flags);
- 
-     /* Extracts a archive file starting at the current position in the destination FILE stream. */
-@@ -1450,6 +1461,62 @@
+@@ -1450,6 +1458,62 @@
                                                       mz_uint64 uncomp_size, mz_uint32 uncomp_crc32, MZ_TIME_T *last_modified, const char *user_extra_data_local, mz_uint user_extra_data_local_len,
                                                       const char *user_extra_data_central, mz_uint user_extra_data_central_len);
  
@@ -102,7 +92,7 @@
      /* Adds the contents of a file to an archive. This function also records the disk file's modified time into the archive. */
      /* File data is supplied via a read callback function. User mz_zip_writer_add_(c)file to add a file directly.*/
      MINIZ_EXPORT mz_bool mz_zip_writer_add_read_buf_callback(mz_zip_archive *pZip, const char *pArchive_name, mz_file_read_func read_callback, void *callback_opaque, mz_uint64 max_size,
-@@ -1460,6 +1527,9 @@
+@@ -1460,6 +1524,9 @@
      /* Adds the contents of a disk file to an archive. This function also records the disk file's modified time into the archive. */
      /* level_and_flags - compression level (0-10, see MZ_BEST_SPEED, MZ_BEST_COMPRESSION, etc.) logically OR'd with zero or more mz_zip_flags, or just set to MZ_DEFAULT_COMPRESSION. */
      MINIZ_EXPORT mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name, const char *pSrc_filename, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags);
@@ -114,32 +104,7 @@
      MINIZ_EXPORT mz_bool mz_zip_writer_add_cfile(mz_zip_archive *pZip, const char *pArchive_name, MZ_FILE *pSrc_file, mz_uint64 max_size,
 --- a/miniz.c
 +++ b/miniz.c
-@@ -3088,6 +3088,14 @@
-     return wStr;
- }
- 
-+#ifdef WIN32
-+static FILE *mz_wfopen(const wchar_t *pFilename, const char *pMode)
-+{
-+    FILE *pFile = NULL;
-+    _wfopen_s(&pFile, pFilename, pMode);
-+    return pFile;
-+}
-+#endif
- static FILE *mz_fopen(const char *pFilename, const char *pMode)
- {
-     WCHAR *wFilename = mz_utf8z_to_widechar(pFilename);
-@@ -3132,6 +3140,9 @@
- #include <sys/utime.h>
- #endif
- #define MZ_FOPEN mz_fopen
-+#ifdef WIN32
-+#define MZ_WFOPEN mz_wfopen
-+#endif
- #define MZ_FCLOSE fclose
- #define MZ_FREAD fread
- #define MZ_FWRITE fwrite
-@@ -4350,6 +4361,8 @@
+@@ -4350,6 +4350,8 @@
          pStat->m_is_directory = mz_zip_reader_is_file_a_directory(pZip, file_index);
          pStat->m_is_encrypted = mz_zip_reader_is_file_encrypted(pZip, file_index);
          pStat->m_is_supported = mz_zip_reader_is_file_supported(pZip, file_index);
@@ -148,48 +113,7 @@
  
          /* See if we need to read any zip64 extended information fields. */
          /* Confusingly, these zip64 fields can be present even on non-zip64 archives (Debian zip on a huge files from stdin piped to stdout creates them). */
-@@ -5335,6 +5348,40 @@
-         return status;
-     }
- 
-+#ifdef WIN32
-+mz_bool mz_zip_reader_extract_to_file_w(mz_zip_archive *pZip, mz_uint file_index, const wchar_t *pDst_filename, mz_uint flags)
-+{
-+    mz_bool                  status;
-+    mz_zip_archive_file_stat file_stat;
-+    MZ_FILE *                pFile;
-+
-+    if (!mz_zip_reader_file_stat(pZip, file_index, &file_stat))
-+        return MZ_FALSE;
-+
-+    if ((file_stat.m_is_directory) || (!file_stat.m_is_supported))
-+        return mz_zip_set_error(pZip, MZ_ZIP_UNSUPPORTED_FEATURE);
-+
-+    pFile = MZ_WFOPEN(pDst_filename, "w");
-+    if (!pFile) {
-+       return mz_zip_set_error(pZip, MZ_ZIP_FILE_OPEN_FAILED);
-+    }
-+    status = mz_zip_reader_extract_to_callback(pZip, file_index, mz_zip_file_write_callback, pFile, flags);
-+
-+    if (MZ_FCLOSE(pFile) == EOF) {
-+        if (status)
-+            mz_zip_set_error(pZip, MZ_ZIP_FILE_CLOSE_FAILED);
-+        status = MZ_FALSE;
-+    }
-+
-+#if !defined(MINIZ_NO_TIME) && !defined(MINIZ_NO_STDIO)
-+    if (status)
-+        mz_zip_set_file_times(pDst_filename, file_stat.m_time, file_stat.m_time);
-+#endif
-+
-+    return status;
-+}
-+#endif
-+
-     mz_bool mz_zip_reader_extract_file_to_file(mz_zip_archive *pZip, const char *pArchive_filename, const char *pDst_filename, mz_uint flags)
-     {
-         mz_uint32 file_index;
-@@ -6110,13 +6157,6 @@
+@@ -6110,13 +6112,6 @@
          return mz_zip_writer_add_mem_ex(pZip, pArchive_name, pBuf, buf_size, NULL, 0, level_and_flags, 0, 0);
      }
  
@@ -203,7 +127,7 @@
      static mz_bool mz_zip_writer_add_put_buf_callback(const void *pBuf, int len, void *pUser)
      {
          mz_zip_writer_add_state *pState = (mz_zip_writer_add_state *)pUser;
-@@ -6129,7 +6169,6 @@
+@@ -6129,7 +6124,6 @@
      }
  
  #define MZ_ZIP64_MAX_LOCAL_EXTRA_FIELD_SIZE (sizeof(mz_uint16) * 2 + sizeof(mz_uint64) * 2)
@@ -211,7 +135,7 @@
      static mz_uint32 mz_zip_writer_create_zip64_extra_data(mz_uint8 *pBuf, mz_uint64 *pUncomp_size, mz_uint64 *pComp_size, mz_uint64 *pLocal_header_ofs)
      {
          mz_uint8 *pDst = pBuf;
-@@ -6168,16 +6207,17 @@
+@@ -6168,16 +6162,17 @@
      static mz_bool mz_zip_writer_create_local_dir_header(mz_zip_archive *pZip, mz_uint8 *pDst, mz_uint16 filename_size, mz_uint16 extra_size, mz_uint64 uncomp_size, mz_uint64 comp_size, mz_uint32 uncomp_crc32, mz_uint16 method, mz_uint16 bit_flags, mz_uint16 dos_time, mz_uint16 dos_date)
      {
          (void)pZip;
@@ -232,7 +156,7 @@
          MZ_WRITE_LE16(pDst + MZ_ZIP_LDH_FILENAME_LEN_OFS, filename_size);
          MZ_WRITE_LE16(pDst + MZ_ZIP_LDH_EXTRA_LEN_OFS, extra_size);
          return MZ_TRUE;
-@@ -6190,9 +6230,11 @@
+@@ -6190,9 +6185,11 @@
                                                             mz_uint64 local_header_ofs, mz_uint32 ext_attributes)
      {
          (void)pZip;
@@ -245,7 +169,7 @@
          MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_BIT_FLAG_OFS, bit_flags);
          MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_METHOD_OFS, method);
          MZ_WRITE_LE16(pDst + MZ_ZIP_CDH_FILE_TIME_OFS, dos_time);
-@@ -6956,8 +6998,302 @@
+@@ -6956,8 +6953,302 @@
                                                     user_extra_data, user_extra_data_len, user_extra_data_central, user_extra_data_central_len);
      }
  
@@ -548,7 +472,7 @@
          MZ_FILE *pSrc_file = NULL;
          mz_uint64 uncomp_size = 0;
          MZ_TIME_T file_modified_time;
-@@ -6980,7 +7316,7 @@
+@@ -6980,7 +7271,7 @@
          uncomp_size = MZ_FTELL64(pSrc_file);
          MZ_FSEEK64(pSrc_file, 0, SEEK_SET);
  
@@ -557,7 +481,7 @@
  
          MZ_FCLOSE(pSrc_file);
  
-@@ -7919,4 +8255,61 @@
+@@ -7919,4 +8210,61 @@
  }
  #endif
  
