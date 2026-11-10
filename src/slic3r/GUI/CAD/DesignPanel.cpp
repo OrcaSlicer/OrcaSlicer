@@ -110,6 +110,7 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -4536,11 +4537,21 @@ void DesignPanel::set_ui_mode(UiMode m)
     m_toolbar->Layout();
     m_toolbar->FitInside();   // refresh the horizontal scroll range for the new group widths
     set_active_tool_btn(nullptr);   // no tool selected right after a mode switch
+    // The sketch the session works on: one reopened for editing goes by its own name, a new one by
+    // the number its commit will give it (feature_name()).
+    const bool     reopened    = m == UiMode::Sketch && m_edit_index >= 0 && m_edit_index < int(m_doc.features.size()) &&
+                                 m_doc.features[m_edit_index].type == CadFeatureType::Sketch;
+    const wxString sketch_name = reopened ? wxString::FromUTF8(m_doc.features[m_edit_index].name)
+                                          : wxString::Format(_L("Sketch %d"), m_feature_counter + 1);
     // Phase 3: the docked Sketch card (plane/orientation) shows for the whole Sketch
     // session and hides on Finish/Constrain.
     if (m_box_sketch_session != nullptr && m_form != nullptr && m_cards->GetSizer() != nullptr) {
         if (m == UiMode::Sketch && m_hdr_sketch_session != nullptr)
-            m_hdr_sketch_session->SetLabel(wxString::Format(_L("Sketch %d"), m_feature_counter + 1));
+            m_hdr_sketch_session->SetLabelText(sketch_name);   // a name may hold an &, which SetLabel takes for a mnemonic
+        // The hint names a new sketch's plane (start_sketch_on_target, after this); a reopened
+        // sketch would otherwise show the plane of whichever new sketch came last.
+        if (m == UiMode::Sketch && m_sketch_hint != nullptr)
+            m_sketch_hint->SetLabel(_L("Pick a tool, or press Menu for the list."));
         m_cards->GetSizer()->Show(m_box_sketch_session, m == UiMode::Sketch, true);
         update_cards_frame(); m_form->Layout();
         m_form->FitInside();
@@ -4571,10 +4582,14 @@ void DesignPanel::set_ui_mode(UiMode m)
     if (m_sketch_banner != nullptr) {
         const bool sketching = (m == UiMode::Sketch);
         if (sketching && m_sketch_banner_txt != nullptr)
-            m_sketch_banner_txt->SetLabel(
-                wxString::Format(_L("Editing: Sketch %d   ·   N = look normal to the plane   ·   "
-                                    "Confirm or Cancel in the toolbar"),
-                                 m_feature_counter + 1));
+            m_sketch_banner_txt->SetLabelText(reopened
+                // TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+                ? format_wxstr(_L("Editing: %1%   ·   N = look normal to the plane   ·   "
+                                  "Confirm or Cancel in the toolbar"),
+                               sketch_name)
+                : wxString::Format(_L("Editing: Sketch %d   ·   N = look normal to the plane   ·   "
+                                      "Confirm or Cancel in the toolbar"),
+                                   m_feature_counter + 1));
         m_sketch_banner->Show(sketching);
         m_sketch_banner->GetParent()->Layout();
     }
@@ -9994,11 +10009,13 @@ void DesignPanel::on_edit_feature()
             // toolbar + session card), NOT the legacy parametric card. The commit handler
             // replaces this feature in place (see m_edit_index). Hide its display overlay
             // so the live tool is the only copy drawn.
-            set_ui_mode(UiMode::Sketch);
             if (m_viewport) {
                 m_viewport->set_display_sketches({});
                 m_viewport->edit_sketch(f.entities, f.entity_constraints, f.plane);
             }
+            // After the session opens, as a new sketch does (start_sketch_on_target): the mode
+            // change fills the sidebar's Constraints card from the live session.
+            set_ui_mode(UiMode::Sketch);
             set_status(StatusKind::Info, _L("Editing sketch — drag a handle or double-click a dimension to edit it"));
         } else {
             load_feature_into_dialog(f);
