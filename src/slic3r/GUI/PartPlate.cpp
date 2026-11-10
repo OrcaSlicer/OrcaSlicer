@@ -577,14 +577,11 @@ void PartPlate::set_spiral_vase_mode(bool spiral_mode, bool as_global)
 		m_config.erase(key);
 	else {
 		if (spiral_mode) {
-			if (get_spiral_vase_mode())
+			// already enabled by this plate, nothing changes
+			if (has_spiral_mode_config() && get_spiral_vase_mode())
 				return;
-			// Secondary confirmation
-			auto answer = static_cast<TabPrintPlate*>(wxGetApp().plate_tab)->show_spiral_mode_settings_dialog(false);
-			if (answer == wxID_YES) {
-				m_config.set_key_value(key, new ConfigOptionBool(true));
-				set_vase_mode_related_object_config();
-			}
+			m_config.set_key_value(key, new ConfigOptionBool(true));
+			set_vase_mode_related_object_config();
 		}
 		else
 			m_config.set_key_value(key, new ConfigOptionBool(false));

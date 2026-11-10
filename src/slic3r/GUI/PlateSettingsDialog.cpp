@@ -563,10 +563,8 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     m_spiral_mode_choice->Append(_L("Disable"));
     m_spiral_mode_choice->SetSelection(0);
     m_spiral_mode_choice->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
-        // no prompt when already enabled through the global setting, like the sidebar
-        const bool inherited_enabled = m_spiral_mode_selection == 0 &&
-            wxGetApp().preset_bundle->prints.get_edited_preset().config.opt_bool("spiral_mode");
-        if (e.GetSelection() != 1 || m_spiral_mode_selection == 1 || inherited_enabled) {
+        // Changing to "Enable" asks for confirmation each time, like the sidebar. Not when it is selected again
+        if (e.GetSelection() != 1 || m_spiral_mode_selection == 1) {
             m_spiral_mode_selection = e.GetSelection();
             return;
         }
@@ -678,9 +676,9 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
         wxCommandEvent evt(EVT_SET_BED_TYPE_CONFIRM, GetId());
         if (get_other_layers_print_seq_choice() != 0)
             static_cast<wxEvtHandler*>(m_other_layers_seq_panel)->ProcessEvent(evt);
-        GetEventHandler()->ProcessEvent(evt);
-        if (evt.GetString() == "Invalid")
+        if (evt.GetString() == "Invalid") // nothing is applied to the plate while the layer ranges are invalid
             return;
+        GetEventHandler()->ProcessEvent(evt);
         if (this->IsModal())
             EndModal(wxID_YES);
         else

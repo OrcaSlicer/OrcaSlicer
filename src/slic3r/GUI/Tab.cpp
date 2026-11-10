@@ -4232,7 +4232,15 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
     if (!has_key(k))
         return;
 
-    // "Enable" may ask for confirmation, let the dropdown close first like the dialog
+    // "Enable" selected again while the plate already has it: nothing changes, nothing to ask
+    if (k == "spiral_mode_choice" && m_config->opt_enum<SpiralModeChoice>(k) == smcEnable && !m_object_configs.empty() &&
+        std::all_of(m_object_configs.begin(), m_object_configs.end(), [](const auto& plate_item) {
+            auto plate = dynamic_cast<PartPlate*>(plate_item.first);
+            return plate && plate->has_spiral_mode_config() && plate->get_spiral_vase_mode();
+        }))
+        return;
+
+    // "Enable" asks for confirmation, let the dropdown close first like the dialog
     if (k == "spiral_mode_choice" && m_config->opt_enum<SpiralModeChoice>(k) == smcEnable && !m_spiral_enable_deferred) {
         m_spiral_enable_deferred = true;
         CallAfter([this, opt_key, value] {
@@ -4265,6 +4273,14 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
     if (m_back_to_sys && std::find(m_all_keys.begin(), m_all_keys.end(), k) == m_all_keys.end()) {
         m_back_to_sys = false; // nothing to revert
         update_changed_ui();
+        return;
+    }
+
+    // Changing to "Enable" asks for confirmation each time, like the plate settings dialog. Ask before the
+    // snapshot and the override are recorded: declining leaves the plate untouched and restores its value
+    if (k == "spiral_mode_choice" && m_config->opt_enum<SpiralModeChoice>(k) == smcEnable &&
+        show_spiral_mode_settings_dialog(false) != wxID_YES) {
+        update_model_config();
         return;
     }
 
@@ -4357,11 +4373,8 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
             }
             if (k == "spiral_mode_choice") {
                 bool enable = m_config->opt_enum<SpiralModeChoice>(k) == smcEnable;
-                if (enable && plate->get_spiral_vase_mode()) // inherited, set_spiral_vase_mode() would skip it
-                    plate->config()->set_key_value("spiral_mode", new ConfigOptionBool(true));
-                else
-                    plate->set_spiral_vase_mode(enable, false);
-                m_config->set_key_value("spiral_mode", new ConfigOptionBool(plate->get_spiral_vase_mode())); // may be declined
+                plate->set_spiral_vase_mode(enable, false); // enabling is confirmed above
+                m_config->set_key_value("spiral_mode", new ConfigOptionBool(enable));
             }
         }
         m_all_keys = concat(m_all_keys, { k });
