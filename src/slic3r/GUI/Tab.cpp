@@ -4169,6 +4169,8 @@ void TabPrintPlate::build()
         line.undo_to_sys = true;
     }
     optgroup->have_sys_config = [this] { m_back_to_sys = true; return true; };
+    // an emptied skirt start angle reloads the fields, reload through the tab to keep "Same as Global"
+    optgroup->m_fill_empty_value = [this](const std::string&) { reload_config(); };
 
     // needed for revert icons and modified labels
     init_options_list();
