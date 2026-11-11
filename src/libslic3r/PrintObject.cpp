@@ -5254,7 +5254,7 @@ void PrintObject::discover_extra_elements()
                     }
                 }
             }
-            merge_surfaces(SurfacesCacheRecord(layerm, new_surfaces));
+            merge_surfaces(SurfacesCacheRecord(layerm, new_surfaces), false);
         }
     };
 
@@ -5297,7 +5297,7 @@ void PrintObject::discover_extra_elements()
     tbb::parallel_for(tbb::blocked_range<size_t>(0, optimized_surfaces.size()), 
         [&merge_surfaces, &optimized_surfaces](const tbb::blocked_range<size_t> &range) {
             for (size_t k = range.begin(); k < range.end(); ++k) {
-                merge_surfaces(optimized_surfaces[k]);
+                merge_surfaces(optimized_surfaces[k], false);
             }
     });
 } // end of discover_extra_elements
