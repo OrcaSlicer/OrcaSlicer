@@ -1245,6 +1245,9 @@ void PublishSettingsDialog::build_option_model()
                     label->Show();
                 }
             }
+            // A slot drawing a preset other than the sidebar's selection is read-only: say so
+            // above the fields it greys.
+            sync_read_only_notice(category_index);
 
             // The slot's settings, straight off its hosted tab's lines. Colour and type are not
             // key rows: the header's Color and Type rows publish them.
@@ -1551,6 +1554,14 @@ size_t PublishSettingsDialog::category_index_for(const wxString& title,
         category.variant_notice->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#C0392B")));
         category.variant_notice->Hide();
         page_sizer->Add(category.variant_notice, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
+
+        // The slot's preset may be another one than the sidebar's selection, which leaves its
+        // page read-only.
+        category.read_only_notice = new wxStaticText(category.page, wxID_ANY, wxEmptyString);
+        category.read_only_notice->SetFont(Label::Body_13);
+        category.read_only_notice->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+        category.read_only_notice->Hide();
+        page_sizer->Add(category.read_only_notice, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
 
         // The slot's settings are the sidebar's own Filament tab, over a private preset seeded
         // from this slot. Its own pages and variant switch are the navigation.
@@ -2062,6 +2073,8 @@ void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& p
             category->variant_notice->Wrap(FromDIP(460));
         category->variant_notice->Show(!notice.empty());
     }
+    // The pick decides whether this slot's page is editable, so the notice follows it.
+    sync_read_only_notice(category_index);
 
     // Every replacement row starts unchecked: the old checks named another preset. Full Publish
     // stays as the owner set it, and keeps the rows unchecked-out.
@@ -2369,6 +2382,25 @@ void PublishSettingsDialog::sync_owner_flag_widgets(size_t category_index)
     };
     sync(category.color_check, category.color_label, Slic3r::PublishRowKind::Color);
     sync(category.type_check, category.type_label, Slic3r::PublishRowKind::Type);
+}
+
+void PublishSettingsDialog::sync_read_only_notice(size_t category_index)
+{
+    if (category_index >= m_categories.size())
+        return;
+    Category& category = m_categories[category_index];
+    if (category.section != Section::Material || category.is_mixed || category.read_only_notice == nullptr)
+        return;
+    const PresetBundle* bundle = wxGetApp().preset_bundle;
+    const size_t        slot   = category.filament_slot;
+    if (bundle == nullptr || slot >= bundle->filament_presets.size())
+        return;
+    // TRN %d is the filament slot number, %s the filament preset the slot uses.
+    category.read_only_notice->SetLabel(wxString::Format(
+        _L("Slot %d uses \"%s\". Select that filament in the sidebar first to edit its settings."),
+        int(slot) + 1, from_u8(bundle->filament_presets[slot])));
+    category.read_only_notice->Wrap(FromDIP(460));
+    category.read_only_notice->Show(!slot_preset_editable(slot));
 }
 
 void PublishSettingsDialog::add_printer_tab_rows(size_t category_index)
@@ -2839,6 +2871,16 @@ Slic3r::PublishWriteLocation PublishSettingsDialog::write_location_for(size_t ro
     return Slic3r::publish_write_location(row.id, m_snapshot, *category.publish_tab->m_config, full);
 }
 
+bool PublishSettingsDialog::slot_preset_editable(size_t slot) const
+{
+    // Only the preset the collection has selected is editable: its edit goes through the sidebar's
+    // own Tab, which carries the dirty mark, the undo and the save prompt.
+    const PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr || slot >= bundle->filament_presets.size())
+        return false;
+    return bundle->filament_presets[slot] == bundle->filaments.get_selected_preset_name();
+}
+
 bool PublishSettingsDialog::row_writable(size_t row_index) const
 {
     const Slic3r::PublishWriteLocation location = write_location_for(row_index);
@@ -2846,14 +2888,11 @@ bool PublishSettingsDialog::row_writable(size_t row_index) const
         return false;
     if (location.target != Slic3r::PublishWriteTarget::FilamentPreset)
         return true;
+    if (location.owner < 0)
+        return false;
     // A stored preset (another slot's, or a system one) has no edit tracking: a write into it is
     // not marked, cannot be reverted, and the next preset selection makes it the saved baseline.
-    // Only the preset the collection has selected is editable: its edit goes through the sidebar's
-    // own Tab, which carries the dirty mark, the undo and the save prompt.
-    PresetBundle* bundle = wxGetApp().preset_bundle;
-    if (bundle == nullptr || location.owner < 0 || size_t(location.owner) >= bundle->filament_presets.size())
-        return false;
-    return bundle->filament_presets[size_t(location.owner)] == bundle->filaments.get_selected_preset_name();
+    return slot_preset_editable(size_t(location.owner));
 }
 
 void PublishSettingsDialog::apply_line_field_gating(size_t row_index)
@@ -2961,6 +3000,21 @@ size_t PublishSettingsDialog::row_for_edit(size_t category_index, const std::str
             }
     }
     return size_t(-1);
+}
+
+void PublishSettingsDialog::reload_tab_after_preset_write(Tab& tab)
+{
+    tab.update_dirty();
+    tab.reload_config();
+    tab.update();
+    if (tab.m_active_page != nullptr)
+        tab.m_active_page->update_visibility(tab.m_mode, true);
+    tab.notify_rules_applied();
+    if (wxScrolledWindow* page_view = tab.m_page_view) {
+        page_view->Layout();
+        if (wxWindow* view_host = page_view->GetParent())
+            view_host->Layout();
+    }
 }
 
 void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::string& opt_id, const boost::any& value,
@@ -3125,33 +3179,12 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
             }
             if (!changed)
                 continue;
-            sibling.publish_tab->update_dirty();
-            sibling.publish_tab->reload_config();
-            sibling.publish_tab->update();
-            if (sibling.publish_tab->m_active_page != nullptr)
-                sibling.publish_tab->m_active_page->update_visibility(sibling.publish_tab->m_mode, true);
-            sibling.publish_tab->notify_rules_applied();
-            if (wxScrolledWindow* page_view = sibling.publish_tab->m_page_view) {
-                page_view->Layout();
-                if (wxWindow* view_host = page_view->GetParent())
-                    view_host->Layout();
-            }
+            reload_tab_after_preset_write(*sibling.publish_tab);
         }
     }
     if (dependent_tab != nullptr && (!dependent_tab_only_on_copy || dependents_copied || edited_key_restaged)) {
-        // The real preset changed behind the tab: repaint it. update() re-runs the rules and rewrites
-        // each Line's toggle_visible, but only Page::update_visibility() turns that into shown and
-        // hidden rows; the sidebar's own change path does the same two steps.
-        dependent_tab->update_dirty();
-        dependent_tab->reload_config();
-        dependent_tab->update();
-        if (dependent_tab->m_active_page != nullptr)
-            dependent_tab->m_active_page->update_visibility(dependent_tab->m_mode, true);
-        if (wxScrolledWindow* page_view = dependent_tab->m_page_view) {
-            page_view->Layout();
-            if (wxWindow* view_host = page_view->GetParent())
-                view_host->Layout();
-        }
+        // The real preset changed behind the tab: repaint it, as its own change path does.
+        reload_tab_after_preset_write(*dependent_tab);
     }
 
     if (plater_refresh)
@@ -4098,6 +4131,9 @@ void PublishSettingsDialog::on_dpi_changed(const wxRect& suggested_rect)
                 cat.variant_notice->Wrap(FromDIP(460));
             }
         }
+        // Only the width changed: the text names the slot's own preset, not a rescaled value.
+        if (cat.read_only_notice != nullptr && cat.read_only_notice->IsShown())
+            cat.read_only_notice->Wrap(FromDIP(460));
         cat.scroll->FitInside();
         cat.list_sizer->Layout();
     }

@@ -181,6 +181,8 @@ private:
         std::vector<size_t> columns;
         // The variant notice: this printer needs a variant the filament does not define.
         wxStaticText* variant_notice{nullptr};
+        // This slot's preset is not the selected one, so its values cannot be edited until it is.
+        wxStaticText* read_only_notice{nullptr};
 
         // Material identity, only for Section::Material categories.
         std::string filament_type;
@@ -273,6 +275,9 @@ private:
     void on_owner_flag_toggle(size_t category_index, Slic3r::PublishRowKind kind);
     // Pushes the model's Color/Type flags into their checkboxes and greys them under Full Publish.
     void sync_owner_flag_widgets(size_t category_index);
+    // A slot whose preset is not the one the sidebar has selected cannot take an edit, so say why
+    // instead of greying a whole page's fields with no explanation.
+    void sync_read_only_notice(size_t category_index);
     // Read-only visualization of a mixed slot's definition (a stacked ratio bar, or the
     // Material Ratio vs Model Height graph for a gradient), inserted above the info hint
     // inside the category's scroll area.
@@ -373,6 +378,9 @@ private:
     // and Type rows have no key, so they are never writable; the flag rows do not gate a key row's
     // edit.
     bool row_writable(size_t row_index) const;
+    // Whether the slot's preset is the one the sidebar's filament collection has selected: only
+    // that preset is tracked for edits, so only its values can be written.
+    bool slot_preset_editable(size_t slot) const;
     // Enables the line's fields while the row it draws is checked and writable, and disables them
     // otherwise. A row of a column the tab does not show leaves the line alone.
     void apply_line_field_gating(size_t row_index);
@@ -391,6 +399,9 @@ private:
     void on_publish_edit(size_t category_index, const std::string& opt_id, const boost::any& value,
                          const std::vector<std::string>& dependent_keys,
                          const Slic3r::DynamicPrintConfig& before_handling);
+    // A real preset changed behind a tab: update() only rewrites each Line's toggle_visible, so run
+    // the page pass the sidebar's own change path runs.
+    static void reload_tab_after_preset_write(Tab& tab);
     // The row of `category_index` whose published option `opt_id` names and whose column the tab
     // currently shows, or size_t(-1) when the field is not a published row. `out_option` receives
     // the row's option for `opt_id`.

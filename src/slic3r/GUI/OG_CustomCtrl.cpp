@@ -43,8 +43,6 @@ namespace Slic3r { namespace GUI {
 
 static bool is_point_in_rect(const wxPoint& pt, const wxRect& rect)
 {
-    // wxRect's right and bottom are x+width-1, so an empty rect (width and height 0) already
-    // fails the range test below. Stale act-slot hit areas are cleared every paint in render().
     return  rect.GetLeft() <= pt.x && pt.x <= rect.GetRight() &&
             rect.GetTop() <= pt.y && pt.y <= rect.GetBottom();
 }
@@ -964,13 +962,13 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
     };
 
     auto draw_buttons = [&h_pos, &dc, &v_pos, this](Field* field, size_t bmp_rect_id = 0) {
-        // A publish row draws its revert icon only while its row is checked and its value differs
-        // from the saved preset: an unchecked row's value is not editable, and reverting it would
-        // change only the private preset while the real one keeps the edit. The slot keeps its
-        // width and gets no hit rectangle, so values and units stay in their column and the empty
-        // space is inert.
+        // A publish row draws its revert icon only while its row is checked, enabled and its value
+        // differs from the saved preset: an unchecked or disabled row's value is not editable, so
+        // reverting it would change only the private preset while the real one keeps the edit. The
+        // slot keeps its width and gets no hit rectangle, so values and units stay in their column
+        // and the empty space is inert.
         if (og_line.row_toggle && field != nullptr &&
-            (!og_line.row_toggle->checked || !field->m_is_modified_value)) {
+            (!og_line.row_toggle->enabled || !og_line.row_toggle->checked || !field->m_is_modified_value)) {
             if (field->undo_bitmap() != nullptr)
                 h_pos += get_bitmap_size(field->undo_bitmap()->bmp()).GetWidth() + ctrl->m_h_gap;
             return;

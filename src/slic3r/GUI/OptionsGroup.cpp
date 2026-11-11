@@ -499,10 +499,9 @@ void OptionsGroup::activate_line(Line& line)
     // If there's a widget, build it and add the result to the sizer.
     if (line.widget != nullptr) {
         auto wgt = line.widget(this->ctrl_parent());
-        // Kept for both host kinds: a widget row has no Field, so this is the only handle the
-        // publish host has to grey the control with its row.
-        line.widget_sizer = wgt;
-        if (!custom_ctrl)
+        if (custom_ctrl)
+            line.widget_sizer = wgt;
+        else
             grid_sizer->Add(wgt, 0, wxEXPAND | wxBOTTOM | wxTOP, (wxOSX || line.label.IsEmpty()) ? 0 : 5);
         return;
     }
