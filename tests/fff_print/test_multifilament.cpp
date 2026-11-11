@@ -2466,3 +2466,15 @@ TEST_CASE("A filament_map within the nozzle range is not changed", "[MultiFilame
     init_and_process_print({ cube(20) }, print, config);
     CHECK(print.config().filament_map.values == std::vector<int>({ 1, 2 }));
 }
+
+// The map value is a firmware tool number, so a value outside the nozzle range must not index the
+// per-nozzle first-filament table.
+TEST_CASE("A physical_extruder_map entry outside the nozzle range still exports", "[MultiFilament]")
+{
+    const std::string map = GENERATE(as<std::string>(), "0,-1", "0,2", "0,100", "-1,0");
+    DYNAMIC_SECTION("physical_extruder_map " << map) {
+        const std::string gcode = slice({ cube(20) }, two_nozzle_map_config("1,2", map));
+        CHECK(gcode.find("; CONFIG_BLOCK_END") != std::string::npos);
+        CHECK(gcode.find("; EXECUTABLE_BLOCK_END") != std::string::npos);
+    }
+}
