@@ -7,7 +7,8 @@ Standard library only. Two halves:
   ``OrcaMcp.from_datadir()`` attaches to an OrcaSlicer already running with the server on.
 * A command line that launches OrcaSlicer for an agent or a test and talks to it::
 
-    tools/mcp/orca_mcp.py launch --xvfb             # fresh datadir, wait until ready, print client config
+    tools/mcp/orca_mcp.py launch --headless         # fresh datadir on a private headless desktop (Linux), wait until ready
+    tools/mcp/orca_mcp.py launch --xvfb             # on a private Xvfb display, for a Linux machine without a desktop
     tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for the CAD tools (list_cad_tools, call_cad_tool)
     tools/mcp/orca_mcp.py call get_app_state
     tools/mcp/orca_mcp.py call open_files '{"paths": ["/abs/model.stl"]}'
@@ -25,6 +26,7 @@ import base64
 import json
 import os
 import platform
+import shlex
 import shutil
 import signal
 import subprocess
@@ -277,6 +279,115 @@ def seed_datadir(datadir, printer, cad=False):
                       "app": app})
 
 
+# The headless compositors --headless tries, in order, by the binary each needs.
+COMPOSITORS = {"kwin": "kwin_wayland", "mutter": "mutter"}
+
+
+def start_headless(compositor, width, height, datadir):
+    """Start `compositor` headless with XWayland on a private session bus, and return the variables
+    the app needs to run on it as an X11 client and the process group to stop, or None when it did
+    not come up (its output is in <datadir>/mcp-display.log).
+
+    Unlike Xvfb, the app draws with the GPU's OpenGL driver, and a window manager runs, so focus and
+    stacking behave as on a desktop and popup lists stay open; with no window manager, GDK moves the
+    focus to a drop-down list itself, which deactivates the main window and closes the list. The private bus keeps the D-Bus services the app starts, such as
+    the desktop portals, out of the person's session. Only the compositor knows its XWayland display,
+    so it starts a command that writes its environment to a file.
+
+    Headless mutter is not tested yet: its command line and whether it renders on the GPU still need
+    checking on a GNOME machine."""
+    env_file = os.path.join(datadir, "mcp-display.env")
+    if os.path.exists(env_file):
+        os.remove(env_file)
+    keys = ("DISPLAY", "WAYLAND_DISPLAY", "DBUS_SESSION_BUS_ADDRESS", "XAUTHORITY")
+    report = 'printf "%s\\n" ' + " ".join(f'"{k}=${k}"' for k in keys) + ' > "$0.tmp" && mv "$0.tmp" "$0"'
+    socket = f"orca-mcp-{os.getpid()}"
+    if compositor == "kwin":
+        # KWin starts the command detached, outside the process group stop() ends, so the command
+        # exits once it has written the file; XWayland stays up without it.
+        cmd = ["kwin_wayland", "--virtual", "--width", str(width), "--height", str(height), "--socket", socket,
+               "--xwayland", shlex.join(["sh", "-c", report, env_file])]
+    else:
+        # mutter quits when its command exits, so the command stays, in mutter's process group.
+        cmd = ["mutter", "--headless", "--wayland", "--virtual-monitor", f"{width}x{height}", "--wayland-display", socket,
+               "--", "sh", "-c", report + "; exec sleep infinity", env_file]
+    with open(os.path.join(datadir, "mcp-display.log"), "w") as log:
+        proc = subprocess.Popen(["dbus-run-session", "--"] + cmd, stdout=log, stderr=subprocess.STDOUT,
+                                start_new_session=True)
+    deadline = time.time() + 30
+    while not os.path.exists(env_file) and proc.poll() is None and time.time() < deadline:
+        time.sleep(0.1)
+    if os.path.exists(env_file):
+        with open(env_file) as f:
+            env = {k: v or None for k, _, v in (line.partition("=") for line in f.read().splitlines())}
+        os.remove(env_file)
+        if env.get("DISPLAY"):
+            return dict(env, GDK_BACKEND="x11"), proc.pid
+    stop_group(proc.pid)
+    return None
+
+
+def start_display(args, datadir):
+    """The private display `launch` runs the app on, as (server name, variables for the app, process
+    group to stop), or (None, None, None) for the desktop the harness runs in.
+
+    --headless takes the first headless compositor that is installed and starts, and falls back to
+    Xvfb when none does, as on a machine without a desktop; --xvfb takes Xvfb."""
+    if (args.headless or args.xvfb) and not sys.platform.startswith("linux"):
+        sys.exit("--headless and --xvfb run only on Linux; elsewhere the app opens on the desktop")
+    if args.headless:
+        explicit = args.headless != "auto"
+        for name in [args.headless] if explicit else list(COMPOSITORS):
+            missing = [b for b in (COMPOSITORS[name], "dbus-run-session") if not shutil.which(b)]
+            if missing:
+                if explicit:
+                    sys.exit(f"--headless {name} needs {' and '.join(missing)}, which is not installed")
+                continue
+            if name == "mutter":
+                print("headless mutter is not tested yet (test required): check the window, input, screenshots "
+                      "and that get_log reports the GPU's OpenGL driver", file=sys.stderr)
+            started = start_headless(name, args.width, args.height, datadir)
+            if started:
+                return (name,) + started
+            message = f"{COMPOSITORS[name]} did not start; see {os.path.join(datadir, 'mcp-display.log')}"
+            if explicit:
+                sys.exit(message)
+            print(message, file=sys.stderr)
+        print("no headless compositor started, so the app runs on Xvfb: software OpenGL, no window manager",
+              file=sys.stderr)
+    if args.headless or args.xvfb:
+        if not shutil.which("Xvfb"):
+            sys.exit("Xvfb is not installed")
+        display, pid = start_xvfb(args.width, args.height)
+        return "xvfb", {"DISPLAY": display, "GDK_BACKEND": "x11", "WAYLAND_DISPLAY": None}, pid
+    return None, None, None
+
+
+def stop_group(pid, timeout=5, force=True):
+    """End the process group `pid` leads: SIGTERM, then wait up to `timeout` s for it to go, and
+    SIGKILL what is left when `force`."""
+    try:
+        os.killpg(pid, signal.SIGTERM)
+    except OSError:  # already gone
+        return
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            os.waitpid(pid, os.WNOHANG)  # reaps the leader when this process started it
+        except ChildProcessError:
+            pass
+        try:
+            os.killpg(pid, 0)
+        except OSError:
+            return
+        time.sleep(0.1)
+    if force:
+        try:
+            os.killpg(pid, signal.SIGKILL)
+        except OSError:
+            pass
+
+
 def start_xvfb(width, height):
     for display in range(90, 120):
         if not os.path.exists(f"/tmp/.X11-unix/X{display}") and not os.path.exists(f"/tmp/.X{display}-lock"):
@@ -321,12 +432,15 @@ def park_pointer(display, width, height):
         pass
 
 
-def app_env(env, datadir, xvfb_display=None):
-    """Adds to `env` what OrcaSlicer needs to start unattended with `datadir`: the Xvfb display when
-    given one, the CA bundle on Linux and a WebView2 profile of its own on Windows."""
-    if xvfb_display:
-        env.pop("WAYLAND_DISPLAY", None)
-        env.update(DISPLAY=xvfb_display, GDK_BACKEND="x11")
+def app_env(env, datadir, display_env=None):
+    """Adds to `env` what OrcaSlicer needs to start unattended with `datadir`: the variables of the
+    private display start_display() gave (None removes one), the CA bundle on Linux and a WebView2
+    profile of its own on Windows."""
+    for key, value in (display_env or {}).items():
+        if value is None:
+            env.pop(key, None)
+        else:
+            env[key] = value
     if sys.platform.startswith("linux"):
         # A static OpenSSL asks at startup which CA bundle to trust unless told.
         for bundle in ("/etc/ssl/certs/ca-certificates.crt", "/etc/pki/tls/certs/ca-bundle.crt"):
@@ -340,8 +454,6 @@ def app_env(env, datadir, xvfb_display=None):
 
 
 def launch(args):
-    if args.xvfb and not sys.platform.startswith("linux"):
-        sys.exit("--xvfb runs only on Linux; elsewhere the app opens on the desktop")
     token = os.environ.get("ORCA_MCP_TOKEN") or base64.b16encode(os.urandom(32)).decode().lower()
     datadir = os.path.abspath(args.datadir or tempfile.mkdtemp(prefix="orca-mcp-"))
     printer = DEFAULT_PRINTER
@@ -351,16 +463,16 @@ def launch(args):
     seed_datadir(datadir, printer, args.cad)
 
     env = dict(os.environ, ORCA_MCP_TOKEN=token)
-    display = xvfb_pid = None
-    if args.xvfb:
-        display, xvfb_pid = start_xvfb(args.width, args.height)
-    app_env(env, datadir, display)
-    cmd = [find_binary(args.bin), "--datadir", datadir, "--mcp", "--mcp-port", str(args.port)] + args.extra
+    binary = find_binary(args.bin)
+    server, display_env, server_pid = start_display(args, datadir)
+    app_env(env, datadir, display_env)
+    cmd = [binary, "--datadir", datadir, "--mcp", "--mcp-port", str(args.port)] + args.extra
     log = open(os.path.join(datadir, "mcp-launch.log"), "w")
     proc = subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
 
     session = {"port": args.port, "token": token, "pid": proc.pid, "datadir": datadir,
-               "xvfb_pid": xvfb_pid, "display": env.get("DISPLAY")}
+               "display_server": server, "display_server_pid": server_pid, "display_env": display_env,
+               "display": env.get("DISPLAY")}
     os.makedirs(os.path.dirname(SESSION_FILE), exist_ok=True)
     with open(SESSION_FILE, "w") as f:
         json.dump(session, f)
@@ -387,14 +499,16 @@ def session_client():
 
 def stop(_args):
     _, s = session_client()
-    kill = os.kill if os.name == "nt" else os.killpg  # Windows has no process groups to signal
-    for key in ("pid", "xvfb_pid"):
-        pid = s.get(key)
-        if pid:
-            try:
-                kill(pid, signal.SIGTERM)
-            except OSError:  # already gone
-                pass
+    if os.name == "nt":  # Windows has no process groups to signal
+        try:
+            os.kill(s["pid"], signal.SIGTERM)
+        except OSError:  # already gone
+            pass
+    else:
+        # The app goes first and is given time to close before its display does.
+        stop_group(s["pid"], timeout=10, force=False)
+        if s.get("display_server_pid"):
+            stop_group(s["display_server_pid"])
     os.remove(SESSION_FILE)
 
 
@@ -406,7 +520,12 @@ def main():
     p.add_argument("--bin")
     p.add_argument("--datadir", help="data directory (default: a fresh temporary one)")
     p.add_argument("--port", type=int, default=DEFAULT_PORT)
-    p.add_argument("--xvfb", action="store_true", help="run on a private Xvfb display (Linux)")
+    display = p.add_mutually_exclusive_group()
+    display.add_argument("--headless", nargs="?", const="auto", choices=("auto", *COMPOSITORS),
+                         help="run on a private headless desktop with XWayland (Linux): KWin, else mutter (not tested "
+                              "yet), else Xvfb")
+    display.add_argument("--xvfb", action="store_true",
+                         help="run on a private Xvfb display (Linux), for a machine without a desktop")
     p.add_argument("--width", type=int, default=1600)
     p.add_argument("--height", type=int, default=1000)
     p.add_argument("--printer", help="\"<model>@<nozzle>\" for a fresh datadir, e.g. \"Bambu Lab X1 Carbon@0.4\"")

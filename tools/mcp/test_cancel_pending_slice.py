@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Checks that a cancel stops a slice that is still waiting to start.
 
-    tools/mcp/orca_mcp.py launch --xvfb
+    tools/mcp/orca_mcp.py launch --headless
     tools/mcp/test_cancel_pending_slice.py
 
 A slice requested right after a setting change first waits for the update the change scheduled

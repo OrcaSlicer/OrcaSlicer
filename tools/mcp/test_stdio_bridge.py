@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Checks `orca-slicer --mcp-stdio` against an instance started with `orca_mcp.py launch`.
 
-    tools/mcp/orca_mcp.py launch --xvfb
+    tools/mcp/orca_mcp.py launch --headless
     tools/mcp/test_stdio_bridge.py [--bin build/src/Release/orca-slicer]
 
 The bridge finds the instance through the discovery file in the launch's datadir, so this also
@@ -163,10 +163,10 @@ def main():
     fresh = tempfile.mkdtemp(prefix="orca-bridge-launch-")
     port = free_port()
     orca_mcp.seed_datadir(fresh, orca_mcp.DEFAULT_PRINTER)
-    # The app the bridge starts gets what an instance from launch gets: the session's Xvfb display
+    # The app the bridge starts gets what an instance from launch gets: the session's private display
     # when it has one, and a WebView2 profile in its own datadir.
     launch_env = {k: v for k, v in env.items() if k != "WEBVIEW2_USER_DATA_FOLDER"}
-    orca_mcp.app_env(launch_env, fresh, session.get("display") if session.get("xvfb_pid") else None)
+    orca_mcp.app_env(launch_env, fresh, session.get("display_env"))
     try:
         launched = bridge(binary, fresh, [
             json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",

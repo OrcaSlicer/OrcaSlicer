@@ -3408,8 +3408,10 @@ per-variant entries and their writes, preset comparison, `changed`, which unsave
 flushing multipliers and matrix, and the plate scope's filament orders and layer ranges and
 `list_plates`' layer numbers and layer G-codes, the preferences scope's keys, and `generate_calibration_test`'s arguments,
 defaults, the dialogs' shared rules, VFA's auto-adjust and the parameters the journal records. End to end, `tools/mcp/orca_mcp.py` launches
-the app on a private Xvfb display on Linux (with `-noreset`, and the pointer parked in a corner so no
-tooltip lands in a screenshot), or on the desktop on macOS and Windows, and runs
+the app on Linux on the XWayland of a private headless compositor (KWin, else mutter, which is not
+tested yet), which gives it the GPU's OpenGL and a window manager, or, on a machine without a desktop,
+on a private Xvfb display (with `-noreset`, and the pointer parked in a corner so no tooltip lands in
+a screenshot); on macOS and Windows it opens the app on the desktop. It runs
 `tools/mcp/smoke_test.json`. `tools/mcp/tests/replay_basic.json`
 checks `--mcp-run` headless, `tools/mcp/tests/gizmos.json` every gizmo through the GUI tools,
 `tools/mcp/tests/multicolor.json` object and part filaments and the project scope, `tools/mcp/tests/presets.json` saving,

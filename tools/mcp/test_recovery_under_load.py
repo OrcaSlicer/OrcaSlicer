@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Checks that a dialog can still be answered when stalled clients hold every connection.
 
-    tools/mcp/orca_mcp.py launch --xvfb
+    tools/mcp/orca_mcp.py launch --headless
     tools/mcp/test_recovery_under_load.py
 
 With Preferences open in a running job, 32 `wait` calls block on it (every blocking slot) and 32

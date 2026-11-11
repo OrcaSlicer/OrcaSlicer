@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Checks that a session using ImGui refs whose items changed exports a replay that runs.
 
-    tools/mcp/orca_mcp.py launch --xvfb
+    tools/mcp/orca_mcp.py launch --headless
     tools/mcp/test_ref_locator_export.py
 
 Two refs outlive a change to what they were taken by. The Text gizmo's font button shows the font,

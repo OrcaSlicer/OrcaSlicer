@@ -7,13 +7,13 @@ Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the 
 
 | Command | What it does |
 |---|---|
-| `launch [--xvfb] [--cad] [--printer "<model>@<nozzle>"] [--vendor V] [--filament F] [--datadir DIR] [--port N] [--bin PATH] [--print-config] [-- app args]` | Start OrcaSlicer with `--mcp`, wait until it is ready, print the session |
+| `launch [--headless [kwin\|mutter] \| --xvfb] [--cad] [--printer "<model>@<nozzle>"] [--vendor V] [--filament F] [--datadir DIR] [--port N] [--bin PATH] [--print-config] [-- app args]` | Start OrcaSlicer with `--mcp`, wait until it is ready, print the session |
 | `call TOOL ['<json args>'] [--wait]` | Call a tool and print its JSON result; `--wait` follows a returned job to its result |
 | `tools` | List the tools, with the first line of each description |
 | `widgets ['<json args>']` | Print the `list_widgets` tree |
 | `screenshot OUT [--target window\|canvas\|dialog]` | Save a full-size PNG, replacing `OUT` if it exists |
 | `run-replay FILE [--out DIR]` | Run a replay in the launched instance and print the result; exit 0 when it passes |
-| `stop` | Stop the app and its Xvfb, and remove the session |
+| `stop` | Stop the app and its private display, and remove the session |
 
 `launch` creates a fresh temporary datadir unless you pass `--datadir`. It seeds the datadir with
 an `OrcaSlicer.conf` that has a finished setup wizard and one printer and filament (Bambu Lab X1
@@ -27,18 +27,34 @@ your own OrcaSlicer uses, and finds `build-clang\src\Release\orca-slicer.exe` as
 commands as `python tools/mcp/orca_mcp.py …`. On macOS, it finds the app bundle's binary under
 `build/arm64`, `build/x86_64`, `build/universal` or `build`: the bundle the CMake target builds in
 `src/Release`, or the one `build_release_macos.sh` assembles in `OrcaSlicer`. The app opens on the
-desktop and takes focus while it starts, and needs no CA-bundle setting. `--xvfb` is Linux only. It
-starts Xvfb on a free display between `:90`
-and `:119`, with `--width`×`--height` (default 1600×1000), and sets `GDK_BACKEND=x11`. Xvfb runs with `-noreset`,
-and its pointer is parked in the bottom-right corner. In the middle of the screen, the pointer would
-raise tooltips over whatever opens there, and they would show in screenshots. The app's output goes to
-`<datadir>/mcp-launch.log`. `--timeout` (default 120 s) limits how long `launch` waits for
-`ready`.
+desktop and takes focus while it starts, and needs no CA-bundle setting.
+
+On Linux, `--headless` and `--xvfb` keep the app off your desktop, on a private screen of
+`--width`×`--height` (default 1600×1000), and run it as an X11 client (`GDK_BACKEND=x11`). Use
+`--headless` on a machine with a desktop. It starts a headless Wayland compositor on a session bus of
+its own and runs the app on that compositor's XWayland. The app draws with the GPU's OpenGL driver,
+as on your desktop, and the compositor is a window manager, so focus, stacking and popup lists
+behave as they do there; dialogs show in screenshots and recordings, and the private bus keeps the
+D-Bus services the app starts, such as the desktop portals, out of your session. It takes KWin
+(`kwin_wayland --virtual`), else mutter (`mutter --headless`; test required: not yet run on a GNOME
+machine, so check the window, input, screenshots and the OpenGL driver the app's log reports before
+relying on it); `--headless kwin` or `--headless mutter` names one. The compositor's output goes to
+`<datadir>/mcp-display.log`. When neither is installed or starts, `--headless` says so and falls
+back to Xvfb. `--xvfb` is for a machine without a desktop, such as a CI runner or a server. It
+starts Xvfb on a free display between `:90` and `:119`, which draws OpenGL in software and runs no
+window manager, so a popup list, such as a combo box's drop-down or the Print button's menu, closes
+as soon as it opens. Xvfb runs with `-noreset`, and its pointer is parked in the bottom-right
+corner. In the middle of the screen, the pointer would raise tooltips over whatever opens there, and
+they would show in screenshots. The app's output goes to `<datadir>/mcp-launch.log`. `--timeout`
+(default 120 s) limits how long `launch` waits for `ready`.
 
 ## Session file
 
-`launch` writes `{port, token, pid, datadir, xvfb_pid, display}` to `$ORCA_MCP_SESSION`, or to
-`~/.cache/orca-mcp/session.json` if that is unset. The file is mode 0600, and every other command
+`launch` writes `{port, token, pid, datadir, display_server, display_server_pid, display_env,
+display}` to `$ORCA_MCP_SESSION`, or to `~/.cache/orca-mcp/session.json` if that is unset.
+`display_server` is `kwin`, `mutter`, `xvfb` or null (your desktop), and `display_env` holds the
+variables the app was started with to reach it (null for one removed), which `app_env()` applies to
+another process. The file is mode 0600, and every other command
 reads it. To run several instances at once, give each its own `ORCA_MCP_SESSION` and `--port`.
 
 ## From Python
@@ -100,7 +116,7 @@ arguments.
 - screenshots of the dialog and the preview.
 
 ```bash
-tools/mcp/orca_mcp.py launch --xvfb
+tools/mcp/orca_mcp.py launch --headless
 tools/mcp/orca_mcp.py run-replay tools/mcp/smoke_test.json --out /tmp/orca-smoke
 tools/mcp/orca_mcp.py stop
 ```
@@ -363,7 +379,7 @@ with nobody pressing Escape.
 `tests/rows.json` drives rows and popups: object list rows (plates, an object and its parts, Ctrl
 to add a row, the Printable column, a double click), the object's and a part's menus run from their
 rows, Compare presets' rows, the object settings table, the print button's popup and the plate type
-drop-down list.
+drop-down list. On Linux run it with `--headless`: under Xvfb those popups close as soon as they open.
 
 `tests/plate_icons.json` clicks the Prepare view's plate icons by `{plate_icon, plate}`: lock twice,
 Plate Settings opened and cancelled, arrange of a second plate's two cubes (the reply waits for the
