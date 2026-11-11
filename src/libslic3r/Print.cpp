@@ -5748,8 +5748,8 @@ void Print::_make_wipe_tower()
 
         // Lets go through the wipe tower layers and determine pairs of extruder changes for each
         // to pass to wipe_tower (so that it can use it for planning the layout of the tower)
+        unsigned int current_extruder_id = m_wipe_tower_data.tool_ordering.all_extruders().back();
         {
-            unsigned int current_extruder_id = m_wipe_tower_data.tool_ordering.all_extruders().back();
             for (auto &layer_tools : m_wipe_tower_data.tool_ordering.layer_tools()) { // for all layers
                 if (!layer_tools.has_wipe_tower)
                     continue;
@@ -5800,7 +5800,7 @@ void Print::_make_wipe_tower()
         // Unload the current filament over the purge tower.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
         const bool independent_columns = wipe_tower.has_independent_tool_layers();
-        bool generate_final_purge = !independent_columns;
+        bool generate_final_purge = true;
         if (!independent_columns && m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
             // The wipe tower goes up to the last layer of the print.
             if (wipe_tower.layer_finished()) {
@@ -5811,10 +5811,13 @@ void Print::_make_wipe_tower()
             } else {
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
-        } else if (!independent_columns) {
-            // The wipe tower does not reach the last print layer.
+        } else if (!independent_columns && (m_config.single_extruder_multi_material || m_config.filament_multitool_ramming.get_at(current_extruder_id))) {
+            // The tower stops below the last print layer, but the last filament has to ram out. Unload at the
+            // object's top layer so the nozzle doesn't descend into the part on its way to the tower.
+            wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z), float(layer_height), 0, false, true);
+        } else {
+            // The wipe tower does not reach the last print layer and nothing needs ramming.
             // Skip final purge to avoid generating purge lines in mid-air.
-            assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
             generate_final_purge = false;
         }
         m_wipe_tower_data.final_purge = generate_final_purge
