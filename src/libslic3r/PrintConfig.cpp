@@ -2263,7 +2263,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("print_sequence", coEnum);
     def->label = L("Print sequence");
-    def->tooltip = L("This determines the print sequence, allowing you to print layer-by-layer or object-by-object.");
+    def->tooltip = L("By layer prints one layer of every part before moving up. By object prints each part from bottom to "
+                     "top before starting the next, which needs room around each part for the toolhead.");
     def->enum_keys_map = &ConfigOptionEnum<PrintSequence>::get_enum_values();
     def->enum_values.push_back("by layer");
     def->enum_values.push_back("by object");
@@ -4279,7 +4280,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fuzzy_skin_first_layer", coBool);
     def->label = L("Apply fuzzy skin to first layer");
     def->category = L("Others");
-    def->tooltip = L("Whether to apply fuzzy skin on the first layer.");
+    def->tooltip = L("Roughens the first layer's outer wall too. Left off, the first layer keeps a smooth edge on the bed.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(0));
 
@@ -4287,16 +4288,15 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Fuzzy skin generator mode");
     def->category = L("Others");
     // xgettext:no-c-format, no-boost-format
-    def->tooltip = L("Fuzzy skin generation mode. Works only with Arachne!\n"
-                     "Displacement: Classic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
-                     "Extrusion: The mode when the pattern formed by the amount of extruded plastic. "
-                     "This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. "
-                     "But it is more useful for forming loose walls in the entire they array.\n"
-                     "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n\n"
-                     "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. "
-                     "At the same time, the width of the extrusion for a particular layer should also not be below a certain level. "
-                     "It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! "
-                     "If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated." );
+    def->tooltip = L("How the rough surface is made.\n"
+                     "Displacement: the nozzle wanders sideways off the wall's path.\n"
+                     "Extrusion: the nozzle keeps to the path and the amount of plastic varies, so the wall swells and "
+                     "thins. It is quick and gives a smoother texture, with looser walls.\n"
+                     "Combined: both, so the surface looks like Displacement, but the wall stays joined to the one "
+                     "inside it.\n\n"
+                     "Extrusion and Combined need the Arachne wall generator, and a skin thickness the line can take: "
+                     "the line may not get thinner than about a quarter of the layer height. With a 0.4 mm line and "
+                     "0.2 mm layers the thickness can be up to about 0.35 mm; above that, slicing fails.");
     def->enum_keys_map = &ConfigOptionEnum<FuzzySkinMode>::get_enum_values();
     def->enum_values.push_back("displacement");
     def->enum_values.push_back("extrusion");
@@ -4701,7 +4701,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("exclude_object", coBool);
     def->label = L("Exclude objects");
-    def->tooltip = L("Enable this option to add EXCLUDE OBJECT command in G-code.");
+    def->tooltip = L("Writes EXCLUDE_OBJECT commands that outline each part, so firmware that supports them, such as "
+                     "Klipper, can skip a failed part while the rest of the plate prints on.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5090,7 +5091,9 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("mmu_segmented_region_max_width", coFloat);
     def->label    = L("Maximum width of a segmented region");
-    def->tooltip  = L("Maximum width of a segmented region. A value of 0 disables this feature.");
+    def->tooltip  = L("How deep a painted color reaches into the part, measured from its surface. Deeper inside, the part "
+                      "is printed in its own filament, which saves filament changes. 0 lets the color fill the painted "
+                      "region to any depth.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->category = L("Advanced");
@@ -5117,7 +5120,8 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("interlocking_beam_width", coFloat);
     def->label    = L("Interlocking beam width");
-    def->tooltip  = L("The width of the interlocking structure beams.");
+    def->tooltip  = L("Width of the beams each filament pushes into the other where they meet. Thicker beams are sturdier; "
+                      "thinner ones make more, smaller interlocks.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0.01;
     def->category = L("Advanced");
@@ -5126,7 +5130,8 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("interlocking_orientation", coFloat);
     def->label    = L("Interlocking direction");
-    def->tooltip  = L("Orientation of interlock beams.");
+    def->tooltip  = L("The direction the interlocking beams run in, as an angle about the vertical axis. Turn it so the "
+                      "beams cross the boundary between the filaments rather than run along it.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min      = 0;
     def->max      = 360;
@@ -6751,7 +6756,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("skirt_height", coInt);
     def->label = L("Skirt height");
-    def->tooltip = L("Number of skirt layers: usually only one");
+    def->tooltip = L("Number of layers the skirt is printed for. One is enough to prime the nozzle; more build a low wall "
+                     "around the parts.");
     def->sidetext = L("layers");
     def->mode = comSimple;
     def->max = 10000;
@@ -6791,7 +6797,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("skirt_loops", coInt);
     def->label = L("Skirt loops");
     def->full_label = L("Skirt loops");
-    def->tooltip = L("This is the number of loops for the skirt. 0 means the skirt is disabled.");
+    def->tooltip = L("Number of loops of the skirt, the outline printed around the parts first to prime the nozzle and show "
+                     "whether the first layer sticks. 0 prints no skirt.");
     def->min = 0;
     def->max = 10;
     def->mode = comSimple;
@@ -8268,7 +8275,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("enable_prime_tower", coBool);
     def->label = L("Enable");
-    def->tooltip = L("The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects.");
+    def->tooltip = L("Prints a tower beside the parts. After each filament change the nozzle purges the old filament into it "
+                     "and settles its flow there, so the parts show neither mixed colors nor blobs.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -8364,7 +8372,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("wipe_tower_rotation_angle", coFloat);
     def->label = L("Wipe tower rotation angle");
-    def->tooltip = L("Wipe tower rotation angle with respect to X axis.");
+    def->tooltip = L("Turns the prime tower on the bed by this angle, measured from the X axis. Use it to fit the tower "
+                     "into the space beside the parts.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
@@ -8430,7 +8439,8 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("wipe_tower_rib_width", coFloat);
     def->label    = L("Rib width");
-    def->tooltip  = L("Rib width is always less than half the prime tower side length.");
+    def->tooltip  = L("Width of the ribs of the Rib wall. Wider ribs brace the tower better. The width is capped at half the "
+                      "tower's side.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode     = comAdvanced;
     def->min      = 0;
@@ -8474,7 +8484,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("enable_tower_interface_features", coBool);
     def->label = L("Enable tower interface features");
-    def->tooltip = L("Enable optimized prime tower interface behavior when different materials meet.");
+    def->tooltip = L("On layers with a filament change, heats the new filament to its tower interface print temperature (a "
+                     "filament setting) while it is purged on the prime tower, and adds its interface pre-extrusion there. "
+                     "A hotter start helps two different materials bond where they meet.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -8525,7 +8537,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("wipe_tower_bridging", coFloat);
     def->label = L("Maximal bridging distance");
-    def->tooltip = L("Maximal distance between supports on sparse infill sections.");
+    def->tooltip = L("On the tower's sparse layers, those with no filament change, the tower is printed as a frame with lines "
+                     "across it. This is the largest gap left between those lines, which the next layer has to bridge.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(10.));
