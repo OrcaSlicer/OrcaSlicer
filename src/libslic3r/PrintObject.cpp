@@ -5128,7 +5128,7 @@ void PrintObject::discover_sub_top_surfaces()
 
     // Create a cache for additional solid surfaces.
     const size_t num_to_process = m_layers.size() - 1;
-    typedef std::pair<LayerRegion*, SurfaceCollection> SurfacesCacheRecord;
+    typedef std::pair<SurfaceCollection*, SurfaceCollection> SurfacesCacheRecord;
     std::vector<std::vector<SurfacesCacheRecord>> cache_surfaces(num_to_process);
 
     auto process_layer = [this](size_t idx_layer, std::vector<SurfacesCacheRecord>& cache_record) {
@@ -5231,15 +5231,36 @@ void PrintObject::discover_sub_top_surfaces()
                         for (Surface& lower_surface : lowerm->fill_surfaces.surfaces)
                             surfaces_append(new_lower_surfaces, intersection_ex(slab, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
                         
-                        cache_record.push_back(SurfacesCacheRecord(lowerm, new_lower_surfaces));
+                        cache_record.push_back(SurfacesCacheRecord(&lowerm->fill_surfaces, new_lower_surfaces));
                     }
                 }
             }
             if (is_not_solid)
                 layerm->fill_surfaces.surfaces.clear();
+            else {
+                ExPolygons new_expolygons(union_ex(to_expolygons(new_surfaces),
+                                                                 to_expolygons(layerm->fill_surfaces.filter_by_type(stInternalSolid))));
+                new_surfaces.clear();
+                surfaces_append(new_surfaces, new_expolygons, stInternalSolid); 
+                layerm->fill_surfaces.remove_type(stInternalSolid);
+            }
             surfaces_append(layerm->fill_surfaces.surfaces, new_surfaces);
         }
     };
+
+    // Allocating caсhe to their positions
+    auto merge_surfaces = [this](SurfacesCacheRecord& cache) {
+        Surfaces new_surfaces;
+        SurfacesPtr crop_surfaces = cache.first->filter_by_type_except(stInternal);
+        ExPolygons crop_first     = union_ex(to_expolygons(crop_surfaces));
+        for (auto& s : cache.second)
+            surfaces_append(new_surfaces, diff_ex(s.expolygon, crop_first), s.surface_type);
+        ExPolygons internal = to_expolygons(cache.first->filter_by_type(stInternal));
+        cache.first->remove_type(stInternal);
+        surfaces_append(cache.first->surfaces, diff_ex(internal, new_surfaces, ApplySafetyOffset::Yes), stInternal);
+        surfaces_append(cache.first->surfaces, new_surfaces);
+    };
+
 
     // A layer reads the tops of the layer above and retypes its own fill surfaces, so neighbours
     // must not run together. Splitting the sweep by parity keeps every pair of concurrent layers
@@ -5256,23 +5277,33 @@ void PrintObject::discover_sub_top_surfaces()
                 }
             });
     }
-    // Allocating cash to their positions.
-    // This works only with stInternalSolid. For other types of surfaces, a cutting/replacement procedures are required.
-    for (auto& cache : cache_surfaces) {
-        if (!cache.size())
-            continue;
-        for (auto& record : cache) {
-            Surfaces new_surfaces;
-            SurfacesPtr crop_surfaces = record.first->fill_surfaces.filter_by_type_except(stInternal);
-            ExPolygons crop_first     = union_ex(to_expolygons(crop_surfaces));
-            for (auto& s : record.second)
-                surfaces_append(new_surfaces, diff_ex(s.expolygon, crop_first), s.surface_type);
-            ExPolygons internal = to_expolygons(record.first->fill_surfaces.filter_by_type(stInternal));
-            record.first->fill_surfaces.remove_type(stInternal);
-            surfaces_append(record.first->fill_surfaces.surfaces, diff_ex(internal, new_surfaces, ApplySafetyOffset::Yes), stInternal);
-            surfaces_append(record.first->fill_surfaces.surfaces, new_surfaces);
+
+    // Optimizing caсhe
+    std::vector<SurfacesCacheRecord> optimized_surfaces;
+    for (auto s : cache_surfaces) {
+        if (s.size()) {
+            for (auto r : s) {
+                bool finded = false;
+                for (auto o : optimized_surfaces) {
+                    if (r.first == o.first) {
+                        o.second.append(r.second.surfaces);
+                        finded = true;
+                        break;
+                    }
+                }
+                if (!finded)
+                    optimized_surfaces.push_back(std::move(r)); 
+            }
         }
     }
+
+    // Allocating caсhe to their positions
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, optimized_surfaces.size()), 
+                      [&merge_surfaces, &optimized_surfaces](const tbb::blocked_range<size_t> &range) {
+        for (size_t k = range.begin(); k < range.end(); ++k) {
+            merge_surfaces(optimized_surfaces[k]);
+        }
+    });
 }
 
 void PrintObject::_generate_support_material()
