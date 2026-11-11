@@ -77,6 +77,7 @@ private:
     };
 
     bool m_gl_initialized{ false };
+    bool m_make_current_failure_reported{ false };
     wxGLContext* m_context{ nullptr };
     GLShadersManager m_shaders_manager;
     static GLInfo s_gl_info;
@@ -92,6 +93,10 @@ public:
 
     bool init_gl(bool popup_error = true);
     wxGLContext* init_glcontext(wxGLCanvas& canvas, const std::pair<int, int>& required_opengl_version, bool enable_compatibility_profile, bool enable_debug);
+    // Called when the context cannot be made current on a shown canvas, which then stays empty.
+    // On Windows, logs why once per session and, if OpenGL never came up, tells the user. Elsewhere
+    // this does nothing: a GTK canvas can fail transiently until its surface is mapped.
+    void report_make_current_failure(const wxGLCanvas& canvas, const wxGLContext* context);
 
     GLShaderProgram* get_shader(const std::string& shader_name) { return m_shaders_manager.get_shader(shader_name); }
     GLShaderProgram* get_current_shader() { return m_shaders_manager.get_current_shader(); }
