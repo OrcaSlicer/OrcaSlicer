@@ -71,14 +71,10 @@ static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelV
     vol->config.assign_config(src_volume->config);
     assert(vol->config.id().valid());
     assert(vol->config.id() != src_volume->config.id());
-    // Carry the material's settings only into a model that has no material of that id yet: an existing
-    // material may be the source object itself, and replacing it would copy from a deleted object.
-    const t_model_material_id material_id = src_volume->material_id();
-    const ModelMaterial*      material    = src_volume->material();
-    if (material != nullptr && object->get_model()->get_material(material_id) == nullptr)
-        vol->set_material(material_id, *material);
-    else
-        vol->set_material_id(material_id);
+    // The id is all that needs carrying: the cut model carries no material settings, and the id resolves
+    // against the material of the model the result is added to. Copying the material here would replace
+    // the source object's own entry, which Model::add_material deletes before copying from it.
+    vol->set_material_id(src_volume->material_id());
     vol->cut_info = src_volume->cut_info;
 }
 
@@ -446,20 +442,24 @@ static void distribute_modifiers_from_object(ModelObject* from_obj, const int in
 }
 
 // The identity that decides how a solid part is sliced and colored: filament, material and the
-// per-part process overrides. An explicit "extruder" is folded into extruder_id() so restating the
-// object's filament does not split the part.
+// per-part process overrides. A part inherits the object's config, so a value is read from the volume
+// when it sets it and from the object otherwise: restating the object's value does not split the part.
 static std::string part_group_key(const ModelVolume& mv)
 {
     // The material id and the serialized values are length-prefixed, so a value containing ';' or '='
     // cannot make two different parts share a key.
     std::string key = std::to_string(std::max(1, mv.extruder_id())) + "|";
     key += std::to_string(mv.material_id().size()) + ":" + mv.material_id() + "|";
-    t_config_option_keys opt_keys = mv.config.keys();
+    const ModelObject&   object   = *mv.get_object();
+    t_config_option_keys opt_keys = object.config.keys();
+    for (const std::string& opt_key : mv.config.keys())
+        if (!object.config.has(opt_key))
+            opt_keys.push_back(opt_key);
     std::sort(opt_keys.begin(), opt_keys.end());
     for (const std::string& opt_key : opt_keys) {
         if (opt_key == "extruder")
             continue;
-        const std::string value = mv.config.opt_serialize(opt_key);
+        const std::string value = mv.config.has(opt_key) ? mv.config.opt_serialize(opt_key) : object.config.opt_serialize(opt_key);
         key += opt_key + "=" + std::to_string(value.size()) + ":" + value + ";";
     }
     return key;

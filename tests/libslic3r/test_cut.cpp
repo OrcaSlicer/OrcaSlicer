@@ -161,6 +161,22 @@ TEST_CASE("A part that restates the object's filament merges with a part that le
         REQUIRE(model_parts(*object).size() == 1);
 }
 
+TEST_CASE("A part that restates the object's infill merges with a part that leaves it implicit", "[Cut]")
+{
+    Model            model;
+    const TwoPartBox box = add_two_part_box(model);
+    box.object->config.set_key_value("sparse_infill_density", new ConfigOptionPercent(50.));
+    box.part_b->config.set_key_value("sparse_infill_density", new ConfigOptionPercent(50.));
+
+    Cut cut(box.object, 0, Transform3d::Identity(),
+            ModelObjectCutAttribute::KeepUpper | ModelObjectCutAttribute::KeepLower);
+    const ModelObjectPtrs& objects = run_dovetail(cut);
+
+    REQUIRE(objects.size() == 2);
+    for (const ModelObject* object : objects)
+        REQUIRE(model_parts(*object).size() == 1);
+}
+
 TEST_CASE("A dovetail cut keeps the filament of a single-part object", "[Cut]")
 {
     Model        model;
