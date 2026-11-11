@@ -1102,7 +1102,7 @@ void PrintConfigDef::init_common_params()
     def = this->add("elefant_foot_compensation", coFloat);
     def->label = L("Elephant foot compensation");
     def->category = L("Quality");
-    def->tooltip = L("This shrinks the first layer on the build plate to compensate for elephant foot effect.");
+    def->tooltip = L("Shrinks the outline of the first layer by this amount. The first layer is squeezed onto the build plate and spreads outward (elephant foot); shrinking it keeps the bottom edge of the part in line with its sides.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -1766,7 +1766,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("set_other_flow_ratios", coBool);
     def->label = L("Set other flow ratios");
     def->category = L("Advanced");
-    def->tooltip = L("Change flow ratios for other extrusion path types.");
+    def->tooltip = L("Uses the flow ratios below, one for each kind of line (first layer, walls, overhangs, infill, gap fill and support), so that each can be tuned on its own. When off, they are ignored.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -2690,7 +2690,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("outer_wall_line_width", coFloatOrPercent);
     def->label = L("Outer wall");
     def->category = L("Quality");
-    def->tooltip = L("Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the outer wall's lines, which form the visible surface of the part. Narrower lines show finer detail, wider ones print faster. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -4050,7 +4051,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("initial_layer_line_width", coFloatOrPercent);
     def->label = L("First layer");
     def->category = L("Quality");
-    def->tooltip = L("Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the first layer's lines. Wider lines press more plastic onto the build plate, which helps the part stick. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -5023,7 +5025,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("sparse_infill_line_width", coFloatOrPercent);
     def->label = L("Sparse infill");
     def->category = L("Quality");
-    def->tooltip = L("Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the sparse infill's lines. At the same density, wider lines are spaced further apart, so the infill is printed in fewer, thicker lines. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -5206,7 +5209,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("ironing_spacing", coFloat);
     def->label = L("Ironing line spacing");
     def->category = L("Quality");
-    def->tooltip = L("This is the distance between the lines used for ironing.");
+    def->tooltip = L("Distance between the ironing lines. Closer lines smooth the surface more evenly, but ironing takes longer.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->max = 1;
@@ -5235,7 +5238,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("ironing_angle", coFloat);
     def->label    = L("Ironing angle offset");
     def->category = L("Quality");
-    def->tooltip  = L("The angle of ironing lines offset from the top surface.");
+    def->tooltip  = L("Turns the ironing lines by this angle from the lines of the top surface under them: at 0 they run along those lines, at 90 across them. With Fixed ironing angle, the angle is an absolute direction instead.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min      = 0;
     def->max      = 359;
@@ -5263,7 +5266,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("zaa_enabled", coBool);
     def->label    = L("Z contouring enabled");
     def->category = L("Quality");
-    def->tooltip  = L("Enable Z-layer contouring (aka Z-layer anti-aliasing).");
+    def->tooltip  = L("Moves the nozzle up and down within each layer, so that top surfaces and the walls at their edges follow the model's real surface instead of stepping from one layer to the next. Gentle slopes and domes come out smoother.\n\n"
+                      "Also known as Z-layer anti-aliasing.");
     def->mode     = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5282,15 +5286,14 @@ void PrintConfigDef::init_fff_params()
     def = this->add("zaa_dont_alternate_fill_direction", coBool);
     def->label    = L("Don't alternate fill direction");
     def->category = L("Quality");
-    def->tooltip  = L("Disable alternating fill direction when using Z contouring.");
+    def->tooltip  = L("With Z contouring, keeps the infill and ironing lines of every layer running in the same direction, instead of turning them from one layer to the next.");
     def->mode     = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("zaa_min_z", coFloat);
     def->label    = L("Minimum Z height");
     def->category = L("Quality");
-    def->tooltip  = L("Minimum Z-layer height.\n"
-                      "Also controls the slicing plane.");
+    def->tooltip  = L("The thinnest Z contouring may make a line: lines are lowered no closer than this to the layer beneath. Each layer is also sliced at this height above its bottom, instead of at its middle.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 100;
@@ -5351,7 +5354,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("small_area_infill_flow_compensation", coBool);
     def->label = L("Small area flow compensation (beta)");
     def->category = L("Quality");
-    def->tooltip = L("Enable flow compensation for small infill areas.");
+    def->tooltip = L("Lowers the flow of short solid infill lines, following the Flow Compensation Model below: the shorter the line, the less material. Small solid areas otherwise tend to come out overfilled.\n\n"
+                     "Applies to the Rectilinear, Aligned Rectilinear, Monotonic and Monotonic line patterns.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5951,7 +5955,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("inner_wall_line_width", coFloatOrPercent);
     def->label = L("Inner wall");
     def->category = L("Quality");
-    def->tooltip = L("Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the inner walls' lines, hidden behind the outer wall. Wider lines make the walls thicker and stronger with the same number of loops. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -6552,7 +6557,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("seam_slope_type", coEnum);
     def->label = L("Scarf joint seam (beta)");
     def->category = L("Quality");
-    def->tooltip = L("Use scarf joint to minimize seam visibility and increase seam strength.");
+    def->tooltip = L("A scarf joint starts the wall's loop on a ramp that rises to the full layer height, and ends it by printing over that ramp, so the joint is spread along the wall instead of forming a line. This makes the seam less visible and stronger.\n\n"
+                     "Contour uses it on the outside of the part, Contour and hole also in holes.");
     def->enum_keys_map = &ConfigOptionEnum<SeamScarfType>::get_enum_values();
     def->enum_values.push_back("none");
     def->enum_values.push_back("external");
@@ -6611,7 +6617,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("scarf_joint_flow_ratio", coFloat);
     def->label = L("Scarf joint flow ratio");
     def->category = L("Quality");
-    def->tooltip = L("This factor affects the amount of material for scarf joints.");
+    def->tooltip = L("Multiplies the flow of the scarf joint: its ramp and the end of the loop that passes over it. Raise it a little if the joint shows a groove, lower it if it bulges.");
     def->mode = comExpert;
     def->min = 0;
     def->max = 2;
@@ -6631,7 +6637,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("seam_slope_entire_loop", coBool);
     def->label = L("Scarf around entire wall");
     def->category = L("Quality");
-    def->tooltip = L("The scarf extends to the entire length of the wall.");
+    def->tooltip = L("The scarf's ramp runs around the whole loop instead of along the Scarf length, so the wall rises evenly from the start of the loop to its end.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6866,7 +6872,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("internal_solid_infill_line_width", coFloatOrPercent);
     def->label = L("Internal solid infill");
     def->category = L("Quality");
-    def->tooltip = L("Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the lines of the solid layers inside the part, between the sparse infill and the top and bottom surfaces. Wider lines fill them faster. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -7464,7 +7471,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_line_width", coFloatOrPercent);
     def->label = L("Support");
     def->category = L("Quality");
-    def->tooltip = L("Line width of support. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the support's lines. Wider lines make the support sturdier and use more material. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -8142,7 +8150,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("top_surface_line_width", coFloatOrPercent);
     def->label = L("Top surface");
     def->category = L("Quality");
-    def->tooltip = L("Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the top surfaces' lines. Narrower lines leave finer ridges and a smoother top, but take longer to print. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -8608,8 +8617,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("hole_to_polyhole_max_edges", coInt);
     def->label = L("Maximum Polyhole edge count");
     def->category = L("Quality");
-    def->tooltip = L("Maximum number of polyhole edges"
-            "\nThis setting limits the amount of edges a polyhole can have");
+    def->tooltip = L("The most sides a polyhole may have. A polyhole gets more sides the larger it is; this caps them.");
     def->mode = comExpert;
     def->min = 3;
     def->set_default_value(new ConfigOptionInt(50));
