@@ -521,8 +521,10 @@ TEST_CASE("Converting a part's units keeps its material", "[Model]")
     REQUIRE(converted.size() == 1);
     REQUIRE(converted.front()->volumes.size() == 1);
     CHECK(converted.front()->volumes.front()->material_id() == "mat_a");
-    for (ModelObject *converted_object : converted)
-        delete converted_object;
+
+    // convert_units() hands its objects to the caller unowned; give them to a model so they are freed.
+    Model owner;
+    owner.objects = std::move(converted);
 }
 
 TEST_CASE("Converting a part's units keeps an id whose material is missing", "[Model]")
@@ -539,6 +541,8 @@ TEST_CASE("Converting a part's units keeps an id whose material is missing", "[M
     REQUIRE(converted.size() == 1);
     REQUIRE(converted.front()->volumes.size() == 1);
     CHECK(converted.front()->volumes.front()->material_id() == "mat_a");
-    for (ModelObject *converted_object : converted)
-        delete converted_object;
+
+    // convert_units() hands its objects to the caller unowned; give them to a model so they are freed.
+    Model owner;
+    owner.objects = std::move(converted);
 }
