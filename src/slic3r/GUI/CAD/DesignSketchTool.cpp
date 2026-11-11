@@ -15,6 +15,7 @@
 #include <TopoDS_Edge.hxx>
 #include <Eigen/Geometry>
 #include <functional>
+#include <iterator>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include "libslic3r/BuildVolume.hpp"
@@ -8516,7 +8517,7 @@ void DesignSketchTool::build_constraint_glyphs(double unit_per_px,
         if (d.ea < 0 || d.ea >= int(m_entities.size())) continue;
         const int k = stack[d.ea]++;
         const Vec2d center = anchor_of(d.ea) + up * (step * (1.0 + k));
-        m_glyph_hits.push_back({center, int(ci)});
+        m_glyph_hits.push_back({center, int(ci), d.type});
         std::vector<std::pair<Vec2d, Vec2d>> cell;
         unit_glyph(d.type, cell);
         for (auto& sgp : cell)
@@ -9536,6 +9537,508 @@ void DesignSketchTool::emit_step_hint()
     on_step_changed(m_mode, step, picks);
 }
 
+// ---- Tooltips of what the pointer rests on ---------------------------------------------------
+// The canvas has no controls of its own to hang a tooltip on: its handles, value labels, badges and
+// gizmo arrows are drawn, and found by the hit tests the click runs. hover_target() asks the same
+// hit tests in the same order as on_mouse_impl() does on a click, so a tooltip only ever describes
+// what a click or a drag there would actually do. Plain geometry gets one only in Select, where a
+// click selects it and its colour says how constrained it is.
+
+DesignSketchTool::HoverTarget DesignSketchTool::hover_target(GLCanvas3D& canvas, const wxMouseEvent& evt) const
+{
+    using K = HoverTip;
+    if (!m_active) {
+        int w = -1;
+        if (m_mv_active) {   // the Move gizmo holds the pointer: nothing behind it is picked
+            if (hit_test_move_arrow(canvas, evt, w)) return {K::MoveArrow, w, 0};
+            if (hit_test_move_arc(canvas, evt, w))   return {K::MoveRing, w, 0};
+            return {};
+        }
+        if (m_dz_active && hit_test_datum_handle(canvas, evt, w))   return {w == 4 ? K::DatumOffset : K::DatumEdge, w, 0};
+        if (m_hx_active && hit_test_helix_handle(canvas, evt, w))   return {K::HelixHandle, w, w};
+        if (m_rb_active && hit_test_rib_handle(canvas, evt, w))     return {K::RibHandle, w, 0};
+        if (m_ex_active && hit_test_extrude_arrow(canvas, evt, w))  return {K::ExtrudeArrow, w, 0};
+        if (m_rv_active && hit_test_revolve_handle(canvas, evt))    return {K::RevolveHandle, 0, 0};
+        if (m_dr_active && hit_test_draft_handle(canvas, evt))      return {K::DraftHandle, 0, 0};
+        if (m_ct_active && hit_test_cut_arrow(canvas, evt))         return {K::CutArrow, 0, 0};
+        if (m_pt_active && hit_test_pattern_handle(canvas, evt))    return {K::PatternHandle, 0, m_pt_circular ? 1 : 0};
+        if (m_fl_active && hit_test_fillet_arrow(canvas, evt))      return {K::FilletArrow, 0, 0};
+        if (m_hl_active && (w = hit_test_hole_handle(canvas, evt)) >= 0)   return {K::HoleHandle, w, w};
+        if (m_th_active && (w = hit_test_thread_handle(canvas, evt)) >= 0) return {K::ThreadHandle, w, w};
+        if (m_sh_active && hit_test_shell_arrow(canvas, evt))       return {K::ShellArrow, 0, 0};
+        // A body under the pointer wins over the plane behind it, as it does on a click.
+        if (m_dbp_active && m_pre.kind == SolidSel::None) {
+            const int h = hit_test_base_pick(canvas, evt);
+            if (h >= 0 && h < int(m_dbp_base.size())) return {K::BasePlane, h, 0};
+        }
+        return {};
+    }
+
+    // A value field is open and the canvas is frozen under it.
+    if (m_awaiting_length) return {};
+    Vec2d p;
+    if (!screen_to_plane(canvas, evt, p)) return {};
+    const double tol  = screen_tol(canvas, evt, p, kPickPx);
+    const double ltol = std::max(tol, screen_tol(canvas, evt, p, kLabelPx));
+
+    if (m_mode == Mode::Trim || m_mode == Mode::Extend) {
+        int subject = -1;
+        std::vector<Vec2d> piece;
+        if (compute_trim_preview(p, screen_tol(canvas, evt, p, kToolPickPx), m_mode == Mode::Extend, subject, piece))
+            return {K::TrimPiece, subject, m_mode == Mode::Extend ? 1 : 0};
+        return {};
+    }
+    if (is_edit_op_mode()) {
+        if (op_ready() && m_mode != Mode::Mirror) {
+            if ((m_op_label - p).norm() <= ltol) return {K::OpLabel, 0, 0};
+            if (hit_test_op_arrow(p, tol))        return {K::OpArrow, 0, int(m_mode)};
+        }
+        return {};
+    }
+    if (is_transform_mode()) {
+        if (tf_ready()) {
+            if ((m_tf_label_a - p).norm() <= ltol) return {K::TfLabel, 0, 0};
+            if ((m_tf_label_b - p).norm() <= ltol) return {K::TfCount, 0, 0};
+            if (hit_test_tf_handle(p, tol))        return {K::TfHandle, 0, int(m_mode)};
+        }
+        return {};
+    }
+    if (m_mode == Mode::TransformArt) {
+        const int h = hit_test_xform_handle(p, tol);
+        if (h >= 0) return {h == 4 ? K::ArtCentre : K::ArtCorner, h, 0};
+        return {};
+    }
+
+    const bool select = m_mode == Mode::Select;
+    // Constraint badges: a click in Select removes one; elsewhere they only say what holds.
+    if ((select || m_mode == Mode::Dimension || m_mode == Mode::Constrain) && m_glyph_r > 0.0) {
+        // The badges are rebuilt only while there are constraints to draw, so check that the one
+        // found still stands for a constraint of its kind, as the click does.
+        const std::vector<SketchEntityConstraintDef>& cons = m_mode == Mode::Constrain ? m_constrain_cons : m_constraints;
+        int best = -1;
+        double best_d = m_glyph_r;
+        for (size_t i = 0; i < m_glyph_hits.size(); ++i) {
+            const GlyphHit& g = m_glyph_hits[i];
+            const double d = (g.c - p).norm();
+            if (d < best_d && g.con >= 0 && g.con < int(cons.size()) && cons[g.con].type == g.type) { best_d = d; best = int(i); }
+        }
+        if (best >= 0)
+            return {K::Glyph, best, int(m_glyph_hits[best].type) * 2 + (select ? 1 : 0)};
+    }
+    if (m_mode == Mode::Constrain) return {};
+
+    if (select || m_mode == Mode::Dimension) {
+        const int di = hit_test_dimension(p, ltol);
+        if (di >= 0) {
+            const bool bad = std::find(m_bad_dims.begin(), m_bad_dims.end(), di) != m_bad_dims.end();
+            // Select edits a quote on a click, Dimension on a double-click.
+            return {K::Dimension, di, (bad ? 1 : 0) | (select ? 0 : 2)};
+        }
+    }
+    if (select) {
+        // The live quotes, in the order the click tries them. sub 1: the value is then held as a
+        // driving dimension; 0: the edit is geometric and adds no constraint.
+        for (size_t i = 0; i < m_live_quotes.size(); ++i)
+            if ((m_live_quotes[i].label_pos - p).norm() <= ltol)
+                return {K::LiveValue, int(i), m_live_quotes[i].kind == DimType::Angle ? 0 : 1};
+        const std::pair<bool, Vec2d> geometric[] = {
+            {m_live_poly_fi >= 0, m_live_poly_side_label},     {m_live_poly_fi >= 0, m_live_poly_angle_label},
+            {m_live_arc_ei >= 0, m_live_arc_angle_label},      {m_live_ellipse_ei >= 0, m_live_ellipse_major_label},
+            {m_live_ellipse_ei >= 0, m_live_ellipse_minor_label}, {m_live_rrect_fi >= 0, m_live_rrect_w_label},
+            {m_live_rrect_fi >= 0, m_live_rrect_h_label},      {m_live_rrect_fi >= 0, m_live_rrect_r_label},
+            {m_live_aslot_fi >= 0, m_live_aslot_r_label},      {m_live_aslot_fi >= 0, m_live_aslot_w_label},
+            {m_live_slot_fi >= 0, m_live_slot_len_label},      {m_live_slot_fi >= 0, m_live_slot_w_label},
+            {m_live_slot_fi >= 0, m_live_slot_angle_label}};
+        for (size_t i = 0; i < std::size(geometric); ++i)
+            if (geometric[i].first && (geometric[i].second - p).norm() <= ltol)
+                return {K::LiveValue, 1000 + int(i), 0};
+
+        // The derived handles, then the points, then the entity: the click's order.
+        Handle hh;
+        if (hit_test_handle(p, tol, hh)) {
+            const int key = hh.ei * 64 + (hh.role == HandleRole::BSplineCtrl ? 16 + hh.ctrl_index % 48 : int(hh.role));
+            switch (hh.role) {
+            case HandleRole::RadiusHandle: return {K::Handle, key, int(HandleTip::Radius)};
+            case HandleRole::MajorAxis:    return {K::Handle, key, int(HandleTip::EllipseMajor)};
+            case HandleRole::MinorAxis:    return {K::Handle, key, int(HandleTip::EllipseMinor)};
+            case HandleRole::BSplineCtrl:  return {K::Handle, key, int(HandleTip::SplinePole)};
+            default: break;
+            }
+        }
+        int pe = -1;
+        SketchPointRole pr = SketchPointRole::P0;
+        if (hit_test_point(p, tol, pe, pr)) {
+            HandleTip what = pr == SketchPointRole::Center ? HandleTip::Centre : HandleTip::Point;
+            const int pf = feature_of(pe);
+            if (pf >= 0) {
+                const Feature& ft = m_features[pf];
+                if (ft.kind == FeatureKind::Polygon)
+                    what = HandleTip::PolygonVertex;
+                else if (ft.kind == FeatureKind::CornerRect || ft.kind == FeatureKind::CenterRect) {
+                    const SketchEntity& e0 = m_entities[ft.begin];
+                    const Vec2d d0 = e0.p1 - e0.p0;
+                    if (std::abs(d0.x()) < 1e-6 || std::abs(d0.y()) < 1e-6) what = HandleTip::RectCorner;
+                } else if (ft.kind == FeatureKind::Slot && pr == SketchPointRole::Center
+                           && (pe == ft.begin + 1 || pe == ft.begin + 3))
+                    what = HandleTip::SlotEnd;
+            }
+            return {K::Handle, pe * 64 + int(pr), int(what)};
+        }
+        const int hit = hit_test(p, tol);
+        if (hit >= 0) {
+            const SketchEntity& e = m_entities[hit];
+            // The colour render() gives it, in the same order.
+            const int state = (size_t(hit) < m_entity_conflict.size() && m_entity_conflict[hit]) ? 2
+                : e.construction ? 3
+                : (m_dof == 0 && m_solve_ok) ? 1 : 0;
+            return {K::Entity, hit, state};
+        }
+        // Inside a closed loop a click finishes the sketch and extrudes it. Which loop, if any, is
+        // asked only once the pointer has rested (render_hover_tip): finding the loops is the costly
+        // part, and a move over empty space has to stay cheap. Told apart by a 32 px cell, so the
+        // wait runs again wherever the pointer stops rather than once for all of the empty space.
+        if (on_face_selected && !evt.ShiftDown() && !evt.ControlDown())
+            return {K::Region, (evt.GetX() / 32) * 256 + (evt.GetY() / 32) % 256, 0};
+        return {};
+    }
+    if (m_mode == Mode::Dimension) return {};
+
+    // A drawing tool: what the next click snaps to, or the angle the line being drawn is held at.
+    if (m_has_cursor && click_snaps() && m_cursor_snap.snapped())
+        return {K::Snap, m_cursor_snap.entity * 8 + int(m_cursor_snap.role), int(m_cursor_snap.kind)};
+    if (m_cursor_locked && !m_points.empty() && (m_mode == Mode::Line || m_mode == Mode::Polyline))
+        return {K::AngleLock, 0, 0};
+    return {};
+}
+
+void DesignSketchTool::update_hover_tip(GLCanvas3D& canvas, const wxMouseEvent& evt)
+{
+    // Only a plain move rests on something: a press, a drag, the wheel or leaving the canvas ends it.
+    const HoverTarget t = evt.Moving() ? hover_target(canvas, evt) : HoverTarget{};
+    m_tip_x = evt.GetX();
+    m_tip_y = evt.GetY();
+    if (m_active && t.kind == HoverTip::Region)
+        screen_to_plane(canvas, evt, m_tip_plane);
+    if (t != m_tip_target) {
+        m_tip_target = t;
+        m_tip_region = -2;
+        // The wait asks for its own frames once it is drawn; this makes sure one is.
+        canvas.set_as_dirty();
+    }
+}
+
+namespace {
+
+// A constraint badge's name, what it holds, and its picture (the constraint tool's, named after its
+// icon). The names are the Constrain buttons' own, context included, so they share a translation.
+struct ConstraintTip { std::string title, text, picture; };
+
+ConstraintTip constraint_tip(SketchConstraintType type)
+{
+    using T = SketchConstraintType;
+    switch (type) {
+    case T::Horizontal:
+        return {_u8L_CONTEXT("Horizontal", "Sketch Constraint"), _u8L("Keeps this line parallel to the sketch's horizontal axis."), "tool_c_horizontal.png"};
+    case T::Vertical:
+        return {_u8L_CONTEXT("Vertical", "Sketch Constraint"), _u8L("Keeps this line parallel to the sketch's vertical axis."), "tool_c_vertical.png"};
+    case T::Parallel:
+        return {_u8L_CONTEXT("Parallel", "Sketch Constraint"), _u8L("Keeps the two lines pointing the same way."), "tool_c_parallel.png"};
+    case T::Perpendicular:
+        return {_u8L_CONTEXT("Perpendicular", "Sketch Constraint"), _u8L("Keeps the two lines at a right angle to each other."), "tool_c_perpendicular.png"};
+    case T::Coincident:
+        return {_u8L_CONTEXT("Coincident", "Sketch Constraint"), _u8L("Keeps the two points in the same place, so the shapes stay joined there."), "tool_c_coincident.png"};
+    case T::EqualLength:
+        return {_u8L_CONTEXT("Equal length", "Sketch Constraint"), _u8L("Keeps the two lines the same length: changing one changes the other."), "tool_c_equal.png"};
+    case T::EqualRadius:
+        return {_u8L_CONTEXT("Equal radius", "Sketch Constraint"), _u8L("Keeps the two circles or arcs the same size: changing one changes the other."), "tool_c_equal_radius.png"};
+    case T::Collinear:
+        return {_u8L_CONTEXT("Collinear", "Sketch Constraint"), _u8L("Keeps the two lines on one straight line."), "tool_c_collinear.png"};
+    case T::Concentric:
+        return {_u8L_CONTEXT("Concentric", "Sketch Constraint"), _u8L("Keeps the circles or arcs on the same centre."), "tool_c_concentric.png"};
+    case T::Tangent:
+        return {_u8L_CONTEXT("Tangent", "Sketch Constraint"), _u8L("Keeps the two touching smoothly, with no corner where they meet."), "tool_c_tangent.png"};
+    case T::Midpoint:
+        return {_u8L_CONTEXT("Midpoint", "Sketch Constraint"), _u8L("Keeps the point in the middle of the line."), "tool_c_midpoint.png"};
+    case T::Symmetric:
+        return {_u8L_CONTEXT("Symmetric", "Sketch Constraint"), _u8L("Keeps the two points mirror images of each other across a line."), "tool_c_symmetric.png"};
+    case T::SymmetricAboutY:
+        return {_u8L_CONTEXT("Symmetric about the vertical axis", "Sketch Constraint"),
+                _u8L("Keeps the two points mirror images of each other across the sketch's vertical axis."), "tool_c_sym_v.png"};
+    case T::SymmetricAboutX:
+        return {_u8L_CONTEXT("Symmetric about the horizontal axis", "Sketch Constraint"),
+                _u8L("Keeps the two points mirror images of each other across the sketch's horizontal axis."), "tool_c_sym_h.png"};
+    case T::Angle:
+        return {_u8L_CONTEXT("Angle", "Sketch Constraint"), _u8L("Holds the angle between the two lines at its value."), "tool_c_angle.png"};
+    case T::Radius:
+        return {_u8L_CONTEXT("Radius", "Sketch Constraint"), _u8L("Holds the radius of the circle or arc at its value."), "tool_c_radius.png"};
+    case T::Diameter:
+        return {_u8L_CONTEXT("Diameter", "Sketch Constraint"), _u8L("Holds the diameter of the circle at its value."), "tool_c_diameter.png"};
+    case T::Fix:
+        return {_u8L_CONTEXT("Fix point (anchor in place)", "Sketch Constraint"),
+                _u8L("Pins the point where it is: it stays put when the rest of the sketch changes."), "tool_c_fix.png"};
+    case T::DistanceX:
+        return {_u8L_CONTEXT("Horizontal distance", "Sketch Constraint"), _u8L("Holds the horizontal distance between the two points at its value."), "tool_c_dist_x.png"};
+    case T::DistanceY:
+        return {_u8L_CONTEXT("Vertical distance", "Sketch Constraint"), _u8L("Holds the vertical distance between the two points at its value."), "tool_c_dist_y.png"};
+    case T::Distance:
+        return {_u8L("Distance"), _u8L("Holds the distance between the two points at its value."), ""};
+    case T::LockX:
+        // TRN Name of a sketch constraint that holds a point at its X coordinate.
+        return {_u8L("Horizontal position"), _u8L("Holds the point at its horizontal position in the sketch."), ""};
+    case T::LockY:
+        // TRN Name of a sketch constraint that holds a point at its Y coordinate.
+        return {_u8L("Vertical position"), _u8L("Holds the point at its vertical position in the sketch."), ""};
+    case T::PointOnLine:
+    case T::PointOnObject:
+        // TRN Name of a sketch constraint that keeps a point on a line, arc or circle.
+        return {_u8L("Point on curve"), _u8L("Keeps the point on the line or curve. It can still slide along it."), "snap_on_edge.gif"};
+    }
+    return {};
+}
+
+} // namespace
+
+DesignSketchTool::HoverTipContent DesignSketchTool::hover_tip_content(const HoverTarget& t) const
+{
+    using K = HoverTip;
+    // A second, separate sentence goes on a line of its own: translators get one sentence per msgid.
+    auto lines = [](const std::string& a, const std::string& b) { return a + "\n" + b; };
+    switch (t.kind) {
+    case K::None: break;
+
+    case K::Glyph: {
+        const ConstraintTip c = constraint_tip(SketchConstraintType(t.sub / 2));
+        HoverTipContent out{c.title, c.text, {}};
+        if (t.sub % 2 != 0)
+            out.text = lines(out.text, _u8L("Click the badge to remove the constraint."));
+        if (!c.picture.empty()) out.media.push_back({c.picture, {}});
+        return out;
+    }
+    case K::Dimension: {
+        if (t.index < 0 || t.index >= int(m_dimensions.size())) break;
+        const std::string title = dimtype_title(m_dimensions[t.index].kind);
+        if (t.sub & 1)
+            return {title,
+                    _u8L("This dimension conflicts with the other dimensions and constraints, so the sketch cannot take "
+                         "its value. Type another value, or remove a constraint that works against it."),
+                    {{"state_over.png", {}}}};
+        return {title,
+                (t.sub & 2) ? _u8L("A dimension holds this value: the sketch moves to keep it. Double-click the value to type a new one.")
+                            : _u8L("A dimension holds this value: the sketch moves to keep it. Click the value to type a new one."),
+                {{"dim_edit.gif", {}}}};
+    }
+    case K::LiveValue:
+        return {{},
+                t.sub ? _u8L("The current value. Click it to turn it into a dimension that holds the value, and type an exact one.")
+                      : _u8L("The current value. Click it to type an exact one."),
+                {{"dim_edit.gif", {}}}};
+    case K::Handle:
+        switch (HandleTip(t.sub)) {
+        case HandleTip::Point:
+            return {{}, _u8L("Drag to move this point: what is joined or constrained to it follows. Click to select it, "
+                             "to dimension or constrain it."), {{"handle_point.gif", {}}}};
+        case HandleTip::Centre:
+            return {{}, _u8L("Drag the centre to move the shape without changing its size. Click to select it."),
+                    {{"handle_center.gif", {}}}};
+        case HandleTip::Radius:
+            return {{}, _u8L("Drag to change the radius of the circle."), {{"handle_radius.gif", {}}}};
+        case HandleTip::EllipseMajor:
+            return {{}, _u8L("Drag to change the long axis of the ellipse: its length and its direction."),
+                    {{"handle_ellipse.gif", {}}}};
+        case HandleTip::EllipseMinor:
+            return {{}, _u8L("Drag to change the short axis of the ellipse."), {{"handle_ellipse.gif", {}}}};
+        case HandleTip::SplinePole:
+            return {{}, _u8L("A control point of the spline. Drag it to reshape the curve, which is pulled towards it."),
+                    {{"handle_spline.gif", {}}}};
+        case HandleTip::PolygonVertex:
+            return {{}, _u8L("Drag a corner to resize and turn the polygon. It stays regular: every side keeps the same length."),
+                    {{"handle_polygon.gif", {}}}};
+        case HandleTip::RectCorner:
+            return {{}, _u8L("Drag the corner to resize the rectangle. The opposite corner stays where it is."),
+                    {{"handle_corner.gif", {}}}};
+        case HandleTip::SlotEnd:
+            return {{}, _u8L("Drag to move this end of the slot. The other end and the width stay as they are."),
+                    {{"handle_slot.gif", {}}}};
+        }
+        break;
+    case K::Entity: {
+        const std::string select = _u8L("Click to select it, double-click to select everything joined to it. Hold Shift or "
+                                        "Ctrl to add to the selection.");
+        switch (t.sub) {
+        case 3:
+            return {_u8L("Construction geometry"),
+                    lines(_u8L("A guide, such as a mirror line or a reference for dimensions. It is not part of the shape "
+                               "that is extruded."), select),
+                    {{"tool_construction.png", {}}}};
+        case 2:
+            return {_u8L("Conflicting constraints"),
+                    lines(_u8L("Red geometry has constraints that cannot all be met at once. Remove one, or change a "
+                               "dimension, to settle it."), select),
+                    {{"state_over.png", {}}}};
+        case 1:
+            return {_u8L("Fully constrained"),
+                    lines(_u8L("Green geometry is fixed by its dimensions and constraints. It changes only when one of their "
+                               "values is changed."), select),
+                    {{"state_fully.png", {}}}};
+        default:
+            return {_u8L("Under-constrained"),
+                    lines(_u8L("Orange geometry is still free to move: dragging a point reshapes it. Add dimensions and "
+                               "constraints until the sketch turns green if its shape must not change."), select),
+                    {{"state_under.gif", {}}}};
+        }
+        break;
+    }
+    case K::Region:
+        if (m_tip_region < 0) break;
+        return {{}, _u8L("Click inside a closed shape to finish the sketch and open Extrude on that shape."), {{"tool_extrude.gif", {}}}};
+    case K::Snap: {
+        const std::string shift = _u8L("Hold Shift to place the point freely.");
+        switch (InferenceSnap::Kind(t.sub)) {
+        case InferenceSnap::Kind::Endpoint:
+            return {{}, lines(_u8L("Snaps to the end of this line or curve."), shift),
+                    {{"snap_endpoint.gif", {}}}};
+        case InferenceSnap::Kind::Center:
+            return {{}, lines(_u8L("Snaps to the centre of this circle or arc."), shift), {{"snap_center.gif", {}}}};
+        case InferenceSnap::Kind::Midpoint:
+            return {{}, lines(_u8L("Snaps to the middle of this line."), shift), {{"snap_midpoint.gif", {}}}};
+        case InferenceSnap::Kind::OnEdge:
+            return {{}, lines(_u8L("Snaps onto this line or curve."), shift), {{"snap_on_edge.gif", {}}}};
+        case InferenceSnap::Kind::Origin:
+            return {{}, lines(_u8L("Snaps to the origin of the sketch."), shift), {{"snap_origin.gif", {}}}};
+        case InferenceSnap::Kind::None: break;
+        }
+        break;
+    }
+    case K::AngleLock:
+        return {{}, _u8L("The line snaps to the nearest multiple of 30 or 45 degrees. A line drawn horizontal or vertical "
+                         "keeps that as a constraint. Hold Shift to draw at any angle."),
+                {{"angle_lock.gif", {}}}};
+    case K::TrimPiece:
+        return t.sub ? HoverTipContent{{}, _u8L("Click to extend this line or arc, along the part shown in red, to the next one it meets."),
+                                       {{"tool_extend.gif", {}}}}
+                     : HoverTipContent{{}, _u8L("Click to cut away the part shown in red, up to where it crosses the other lines."),
+                                       {{"tool_trim.gif", {}}}};
+    case K::OpArrow:
+        switch (Mode(t.sub)) {
+        case Mode::Fillet:
+            return {{}, _u8L("Drag the arrow to set the radius of the rounded corner."), {{"tool_filletedge.gif", {}}}};
+        case Mode::Chamfer:
+            return {{}, _u8L("Drag the arrow to set the size of the chamfer."), {{"tool_chamfer.gif", {}}}};
+        default:
+            return {{}, _u8L("Drag the arrow to set how far the copy is offset. Drag it back past the line to offset to the "
+                             "other side."), {{"tool_offset.gif", {}}}};
+        }
+        break;
+    case K::OpLabel:
+    case K::TfLabel:
+        return {{}, _u8L("Click to type an exact value. Enter applies the change."), {}};
+    case K::TfCount:
+        return {{}, _u8L("Click to type the number of copies. Enter applies the change."), {}};
+    case K::TfHandle:
+        switch (Mode(t.sub)) {
+        case Mode::Move:
+            return {{}, _u8L("Drag the handle to move the picked shapes. The preview shows where they land."), {{"tool_move.gif", {}}}};
+        case Mode::Rotate:
+            return {{}, _u8L("Drag the handle around the pivot to turn the picked shapes."), {{"tool_rotate.gif", {}}}};
+        case Mode::Scale:
+            return {{}, _u8L("Drag the handle away from the pivot to enlarge the picked shapes, or towards it to shrink them."),
+                    {{"tool_scale.gif", {}}}};
+        case Mode::Array:
+            return {{}, _u8L("Drag the handle to set the step from one copy to the next: its length and its direction."),
+                    {{"tool_array.gif", {}}}};
+        default:
+            return {{}, _u8L("Drag the handle around the pivot to set the angle the copies are spread over."),
+                    {{"tool_polararray.gif", {}}}};
+        }
+        break;
+    case K::ArtCorner:
+        return {{}, _u8L("Drag a corner to stretch the art. The opposite corner stays where it is."), {{"art_transform.gif", {}}}};
+    case K::ArtCentre:
+        return {{}, _u8L("Drag the centre to move the art."), {{"art_transform.gif", {}}}};
+
+    case K::MoveArrow:
+        return {{}, _u8L("Drag to move the body along this axis. Click the arrow to type the distance."), {{"tool_move_body.gif", {}}}};
+    case K::MoveRing:
+        return {{}, _u8L("Drag to turn the body about this axis."), {{"tool_move_body.gif", {}}}};
+    case K::DatumEdge:
+        return {{}, _u8L("Drag the edge to resize the plane."), {{"tool_plane.png", {}}}};
+    case K::DatumOffset:
+        return {{}, _u8L("Drag the arrow to set how far the new plane is from its base."), {{"tool_plane.png", {}}}};
+    case K::HelixHandle:
+        return {{},
+                t.sub == 0 ? _u8L("Drag to set the radius of the helix.")
+              : t.sub == 1 ? _u8L("Drag to set the height of the helix.")
+                           : _u8L("Drag to set the pitch of the helix: the distance from one turn to the next."),
+                {{"tool_helix.png", {}}}};
+    case K::RibHandle:
+        return {{}, _u8L("Drag to set the thickness of the rib."), {{"tool_rib.gif", {}}}};
+    case K::ExtrudeArrow:
+        return {{}, _u8L("Drag the arrow to set the depth. Click it to type the depth."), {{"tool_extrude.gif", {}}}};
+    case K::RevolveHandle:
+        return {{}, _u8L("Drag to set the angle the profile is turned through. Click the handle to type the angle."),
+                {{"tool_revolve.gif", {}}}};
+    case K::DraftHandle:
+        return {{}, _u8L("Drag to set the draft angle of the face."), {{"tool_draft.gif", {}}}};
+    case K::CutArrow:
+        return {{}, _u8L("Drag the arrow to move the cutting plane."), {{"tool_cut.gif", {}}}};
+    case K::PatternHandle:
+        return {{},
+                t.sub ? _u8L("Drag to set the angle the copies are spread over. Click the handle to type the angle.")
+                      : _u8L("Drag to set the spacing between the copies. Click the handle to type the spacing."),
+                {{"tool_pattern.gif", {}}}};
+    case K::FilletArrow:
+        return {{}, _u8L("Drag the arrow to set the size of the fillet or chamfer. Click it to type the size."),
+                {{"tool_dressup.gif", {}}}};
+    case K::HoleHandle:
+        return {{},
+                t.sub == 0 ? _u8L("Drag to move the hole on the face.")
+              : t.sub == 1 ? _u8L("Drag the arrow to set the diameter of the hole. Click it to type the diameter.")
+                           : _u8L("Drag the arrow to set the depth of the hole. Click it to type the depth."),
+                {{"tool_hole.gif", {}}}};
+    case K::ThreadHandle:
+        return {{},
+                t.sub == 0 ? _u8L("Drag to move the thread on the face.")
+              : t.sub == 1 ? _u8L("Drag the arrow to set the radius of the thread. Click it to type the radius.")
+                           : _u8L("Drag the arrow to set the length of the thread. Click it to type the length."),
+                {{"tool_thread.png", {}}}};
+    case K::ShellArrow:
+        return {{}, _u8L("Drag the arrow to set the wall thickness of the shell. Click it to type the thickness."),
+                {{"tool_shell.gif", {}}}};
+    case K::BasePlane:
+        return {t.index < int(m_dbp_labels.size()) ? m_dbp_labels[t.index] : std::string(),
+                _u8L("Click to select this plane, then right-click it to sketch on it. A sketch waiting for a plane "
+                     "starts on it at once, and the Plane tool takes it as the base of the new plane."),
+                {{"tool_new_sketch.gif", {}}}};
+    }
+    return {};
+}
+
+void DesignSketchTool::render_hover_tip(GLCanvas3D& canvas)
+{
+    if (m_tip_target.kind == HoverTip::None) return;
+    // The pointer has gone where the tool was not told about it: onto an ImGui window, which takes the
+    // move itself, or into a camera move. Not calling ready() also restarts the wait for next time.
+    const ImGuiIO& io = ImGui::GetIO();
+    if (io.WantCaptureMouse || std::abs(io.MousePos.x - float(m_tip_x)) > 2.f || std::abs(io.MousePos.y - float(m_tip_y)) > 2.f)
+        return;
+    const HoverTarget& t = m_tip_target;
+    if (!m_tip.ready(ImVec2(float(int(t.kind)), float(t.index) * 64.f + float(t.sub)), canvas)) return;
+    if (t.kind == HoverTip::Region && m_tip_region == -2)
+        m_tip_region = region_at(m_tip_plane);
+    const HoverTipContent tip = hover_tip_content(t);
+    if (tip.text.empty()) return;
+
+    // Beside the pointer, below and to the right, or to its left where the canvas ends: never over the
+    // thing it explains. ImGui keeps it inside the canvas vertically.
+    ImGuiWrapper& imgui = *wxGetApp().imgui();
+    const float   w     = IllustratedTooltip::width(tip.title.empty() ? tip.text : tip.title + "\n" + tip.text,
+                                                    !tip.media.empty(), imgui.scaled(20.f));
+    const float   gap   = imgui.scaled(1.2f);
+    float x = float(m_tip_x) + gap;
+    if (x + w > io.DisplaySize.x) x = std::max(0.f, float(m_tip_x) - gap - w);
+    m_tip.render(ImVec2(x, float(m_tip_y) + gap), w, tip.title, tip.text, tip.media, canvas);
+}
+
 void DesignSketchTool::render(GLCanvas3D& canvas)
 {
     m_dim_label_seq = 0;
@@ -9560,7 +10063,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
     ScopeGuard field_on_top([this] { if (inline_editor != nullptr) inline_editor->bring_to_front(); });
     if (render_overlays)
         render_overlays();
-    (void)canvas;
+    render_hover_tip(canvas);
     if (!has_display()) {
         if (on_readout) on_readout(std::string());   // nothing to show -> hide HUD
         return;
@@ -10774,9 +11277,13 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
 {
     if (evt.RightDown()) {
         m_right_press = evt;
+        update_hover_tip(canvas, evt);
         return false;
     }
-    return on_mouse_impl(evt, canvas);
+    const bool used = on_mouse_impl(evt, canvas);
+    // After the event, so the hover state it updates (snap, base plane, solid pre-highlight) is current.
+    update_hover_tip(canvas, evt);
+    return used;
 }
 
 bool DesignSketchTool::take_right_click(GLCanvas3D& canvas)

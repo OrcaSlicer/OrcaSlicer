@@ -10,6 +10,7 @@
 #include "libslic3r/CAD/SketchInference.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/GLSelectionRectangle.hpp"   // left-drag rubber band over the committed bodies
+#include "slic3r/GUI/IllustratedTooltip.hpp"
 #include <Eigen/Core>
 #include <array>
 #include <cstddef>
@@ -1252,7 +1253,7 @@ private:
     std::vector<SketchEntityConstraintDef> m_constrain_cons; // for glyph badges (C3.4b)
     // Where each badge landed, so a click can find the constraint it stands for. Rebuilt by
     // build_constraint_glyphs on every render, which is always the frame the user clicked on.
-    struct GlyphHit { Vec2d c{0,0}; int con{-1}; };
+    struct GlyphHit { Vec2d c{0,0}; int con{-1}; SketchConstraintType type{SketchConstraintType::Fix}; };
     std::vector<GlyphHit> m_glyph_hits;
     double                m_glyph_r{0.0};   // badge half-size in plane units (hit radius)
     GLModel             m_line_model;
@@ -1632,6 +1633,47 @@ private:
     void   drag_pattern_handle(GLCanvas3D& canvas, const wxMouseEvent& evt);
     void   open_pattern_editor();
     GLModel m_pt_stroke_model;
+
+    // The tooltip of what the pointer rests on in the canvas: a handle, a value label, a constraint
+    // badge, a gizmo's arrow, a snap target, sketch geometry. Worked out on each plain move from the
+    // same hit tests the click uses, so it describes what a click there would do, and drawn by render()
+    // once the pointer has rested on it. See docs/HLSD/tooltip-illustrations.md.
+    enum class HoverTip {
+        None,
+        // a live sketch
+        Glyph, Dimension, LiveValue, Handle, Entity, Region, Snap, AngleLock, TrimPiece,
+        OpArrow, OpLabel, TfHandle, TfLabel, TfCount, ArtCorner, ArtCentre,
+        // the 3D gizmos of the feature cards
+        MoveArrow, MoveRing, DatumEdge, DatumOffset, HelixHandle, RibHandle, ExtrudeArrow,
+        RevolveHandle, DraftHandle, CutArrow, PatternHandle, FilletArrow, HoleHandle, ThreadHandle,
+        ShellArrow, BasePlane
+    };
+    // What a handle under the pointer does when dragged, for HoverTip::Handle.
+    enum class HandleTip { Point, Centre, Radius, EllipseMajor, EllipseMinor, SplinePole,
+                           PolygonVertex, RectCorner, SlotEnd };
+    // What is under the pointer: the kind, which one of that kind (tells two badges or two labels
+    // apart, so moving from one to the next restarts the wait), and a detail the text depends on.
+    struct HoverTarget {
+        HoverTip kind{HoverTip::None};
+        int      index{0};
+        int      sub{0};
+        bool operator==(const HoverTarget& o) const { return kind == o.kind && index == o.index && sub == o.sub; }
+        bool operator!=(const HoverTarget& o) const { return !(*this == o); }
+    };
+    struct HoverTipContent {
+        std::string                            title;
+        std::string                            text;
+        std::vector<IllustratedTooltip::Media> media;
+    };
+    HoverTarget     hover_target(GLCanvas3D& canvas, const wxMouseEvent& evt) const;
+    HoverTipContent hover_tip_content(const HoverTarget& t) const;
+    void            update_hover_tip(GLCanvas3D& canvas, const wxMouseEvent& evt);
+    void            render_hover_tip(GLCanvas3D& canvas);
+    HoverTarget        m_tip_target;
+    int                m_tip_x{0}, m_tip_y{0};   // the pointer when it was worked out, canvas px
+    Vec2d              m_tip_plane{0, 0};        // the same point on the sketch plane
+    int                m_tip_region{-2};         // HoverTip::Region: region_at(), -2 until asked
+    IllustratedTooltip m_tip{"design_tips"};
 };
 
 }} // namespace Slic3r::GUI
