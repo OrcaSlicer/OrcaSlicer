@@ -5151,7 +5151,7 @@ void PrintObject::discover_extra_elements()
         surfaces_append(cache.first->fill_surfaces.surfaces, new_surfaces.surfaces);
     };
 
-    auto process_layer = [&](size_t idx_layer, std::vector<SurfacesCacheRecord>& cache_record) {
+    auto process_layer = [this, &merge_surfaces](size_t idx_layer, std::vector<SurfacesCacheRecord>& cache_record) {
         m_print->throw_if_canceled();
         const Layer *upper = m_layers[idx_layer + 1];
         Layer       *layer = m_layers[idx_layer];
