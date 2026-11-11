@@ -2709,6 +2709,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
 
     std::string tooltip;
+    bool        toolbar_tip = false; // a toolbar tool's tooltip with a picture is up, or waiting to be
 
 	// Negative coordinate means out of the window, likely because the window was deactivated.
 	// In that case the tooltip should be hidden.
@@ -2719,11 +2720,14 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 	    if (tooltip.empty())
 	        tooltip = m_gizmos.get_tooltip();
 
-	    if (tooltip.empty())
+        if (tooltip.empty())
+            toolbar_tip = _render_toolbar_tooltip(m_main_toolbar) || _render_toolbar_tooltip(m_assemble_view_toolbar);
+
+	    if (tooltip.empty() && !toolbar_tip)
 	        tooltip = m_main_toolbar.get_tooltip();
 
         //BBS: GUI refactor: GLToolbar
-        if (tooltip.empty())
+        if (tooltip.empty() && !toolbar_tip)
             tooltip = m_assemble_view_toolbar.get_tooltip();
 
 	    if (tooltip.empty())
@@ -2742,6 +2746,8 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
         tooltip.clear();
 
     set_tooltip(tooltip);
+    if (!toolbar_tip)
+        m_toolbar_tip.reset();
 
     if (m_tooltip_enabled)
         m_tooltip.render(m_mouse.position, *this);
@@ -6770,6 +6776,89 @@ bool GLCanvas3D::_render_orient_menu(float left, float right, float bottom, floa
 }
 
 //BBS: GUI refactor: adjust main toolbar position
+namespace {
+
+// What a main or assemble view toolbar tool's tooltip says under its name and shortcut, and the picture
+// under that, named within resources/images/gizmo_toolbar. scripts/gizmo_tips/toolbar.py draws them, with
+// the gizmo tools' ones beside them.
+struct ToolbarItemTip
+{
+    std::string text;
+    std::string picture;
+};
+
+ToolbarItemTip toolbar_item_tip(const std::string &name)
+{
+    if (name == "add")
+        return {_u8L("Loads models from files, such as STL, STEP, OBJ or 3MF, and places them on the plate."), "add.gif"};
+    if (name == "addplate")
+        return {_u8L("Adds an empty plate. Each plate is sliced and printed as a job of its own, so one project can "
+                     "hold several prints."),
+                "add_plate.gif"};
+    if (name == "orient")
+        return {_u8L("Turns the objects so they need as little support as possible and rest on a large flat face."),
+                "orient.gif"};
+    if (name == "arrange")
+        return {_u8L("Lays the objects out on the plate so none of them overlap. Click it for the options, such as "
+                     "spacing and rotation, and the Arrange button."),
+                "arrange.gif"};
+    if (name == "more")
+        return {_u8L("Adds a copy of the selected object. Copies share its parts, settings and modifiers, and each "
+                     "one can still be moved and turned on its own."),
+                "instance_add.gif"};
+    if (name == "fewer")
+        return {_u8L("Removes a copy of the selected object."), "instance_remove.gif"};
+    if (name == "splitobjects")
+        return {_u8L("Turns each separate piece of the selected object into an object of its own, which can then be "
+                     "placed and set up on its own."),
+                "split_objects.gif"};
+    if (name == "splitvolumes")
+        return {_u8L("Turns each separate piece of the selected object into a part of it. The parts stay together, "
+                     "but each can take its own filament and settings."),
+                "split_parts.gif"};
+    if (name == "layersediting")
+        return {_u8L("Opens the variable layer height editor: thinner layers where the surface curves, for smoother "
+                     "slopes, and thicker ones where it does not, to save time."),
+                "variable_layer_height.gif"};
+    if (name == "assembly_view")
+        return {_u8L("Shows the objects as an assembly, with a slider that spreads their parts apart to see how they "
+                     "fit together."),
+                "assembly_view.gif"};
+    return {};
+}
+
+} // namespace
+
+// The tooltip of the toolbar tool under the pointer, when that tool has a picture: its name and shortcut as
+// before, what it does, and the tool at work. Under the toolbar, centred on the tool, like the gizmo tools'
+// tooltips (GLGizmosManager::render_toolbar_tooltip()), so the whole row of tools reads alike. True while
+// such a tool is hovered, also during the wait before the tooltip appears, so the plain tooltip that
+// follows the mouse stays away; false otherwise, and for a tool whose menu is open under it.
+bool GLCanvas3D::_render_toolbar_tooltip(GLToolbar &toolbar)
+{
+    const GLToolbarItem *item = toolbar.get_hovered_item();
+    if (!m_tooltip_enabled || item == nullptr || item->is_pressed())
+        return false;
+    const ToolbarItemTip tip = toolbar_item_tip(item->get_name());
+    if (tip.picture.empty())
+        return false;
+
+    const float cnv_w     = float(get_canvas_size().get_width());
+    const float icon_left = (1.f + item->render_left_pos) * cnv_w / 2.f; // render_left_pos is in -1..1
+    if (!m_toolbar_tip.ready(ImVec2(icon_left, 0.f), *this))
+        return true;
+
+    std::string title = item->get_tooltip();
+    if (!item->get_additional_tooltip().empty())
+        title += "\n" + item->get_additional_tooltip();
+    ImGuiWrapper &imgui = *wxGetApp().imgui();
+    const float   width = IllustratedTooltip::width(title + "\n" + tip.text, true, imgui.scaled(20.f));
+    const float   x     = std::clamp(icon_left + 0.5f * (toolbar.get_scaled_icons_size() - width), 0.f, std::max(0.f, cnv_w - width));
+    const float   y     = toolbar.get_height() + imgui.scaled(0.3f);
+    m_toolbar_tip.render(ImVec2(x, y), width, title, tip.text, {{tip.picture, {}}}, *this);
+    return true;
+}
+
 void GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, float top)
 {
     ImGuiWrapper *imgui = wxGetApp().imgui();

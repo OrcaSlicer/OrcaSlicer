@@ -42,6 +42,7 @@
 #include "SelectionOutline.hpp"
 #include "FrameProfiler.hpp"
 #include "IMToolbar.hpp"
+#include "IllustratedTooltip.hpp"
 #include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Slicing.hpp"
 
@@ -828,6 +829,8 @@ private:
     CenterOfMass m_center_of_mass;
     Tooltip m_tooltip;
     bool m_tooltip_enabled{ true };
+    // The tooltips with pictures of the main and assemble view toolbars' tools, see _render_toolbar_tooltip().
+    IllustratedTooltip m_toolbar_tip{"gizmo_toolbar"};
     Slope m_slope;
 
     OrientSettings m_orient_settings_fff, m_orient_settings_sla;
@@ -1632,6 +1635,7 @@ private:
     //BBS: GUI refactor: adjust main toolbar position
     bool _render_orient_menu(float left, float right, float bottom, float top);
     void _render_arrange_menu(float left, float right, float bottom, float top);
+    bool _render_toolbar_tooltip(GLToolbar &toolbar);
     void _render_3d_navigator();
 
     void _update_volumes_hover_state();

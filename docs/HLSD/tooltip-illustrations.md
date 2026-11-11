@@ -6,8 +6,10 @@ loops while the tooltip is open.
 - The texture-displacement panel's settings. Several of them describe a shape rather than a number -
   what Rotation turns, what Tile repeats, what Invert turns inside out - and a sentence about a shape
   is read twice and understood once.
-- The tools of the gizmo toolbar over the 3D view. A tool's name says little about what it does until
-  it has been opened once, and an icon even less; a few seconds of the tool at work says it outright.
+- The tools of the toolbar over the 3D view: the gizmos, and the main and assemble view tools before
+  them (Add, Add plate, Orient, Arrange, the instance and split tools, Variable layer height, Assembly
+  view). A tool's name says little about what it does until it has been used once, and an icon even
+  less; a few seconds of the tool at work says it outright.
 - The controls in every other gizmo's panel: Move, Rotate and Scale, Cut, Mesh Boolean, the painting
   tools, Text and SVG, Measure and Assemble, Simplify and Brim Ears. Pictures go only to the controls
   that are a shape, a placement or a behaviour; a number or a plain on/off gets text alone.
@@ -49,6 +51,14 @@ three, captioned, for Mesh Boolean's three operations. When the tool cannot be o
 
 The text and pictures for each tool are a table in `GLGizmosManager.cpp` (`toolbar_tip()`), keyed by
 the gizmo type, next to the list of gizmos it describes.
+
+The tools before the gizmos belong to `GLCanvas3D`'s main and assemble view toolbars, and
+`GLCanvas3D::_render_toolbar_tooltip()` gives them the same tooltip, from a table keyed by the tool's
+name (`toolbar_item_tip()`). The title is the tool's existing tooltip, shortcuts included, so its
+wording and translations stay as they were. A tool whose menu is open under it (Arrange, Variable layer
+height) keeps the plain tooltip, which would otherwise land on its own menu. From the moment the pointer
+reaches a tool with a picture, the plain tooltip that follows the mouse is held back, also during the
+wait, so the two never take turns.
 
 ### The gizmo panels
 
@@ -137,7 +147,8 @@ by it crawls while the canvas is idle and races while a moving mouse is renderin
 
 ### The toolbar
 
-`scripts/gen_gizmo_tips.py` draws the toolbar's set (`scripts/gizmo_tips/toolbar.py`) and the gizmo
+`scripts/gen_gizmo_tips.py` draws the toolbar's set (`scripts/gizmo_tips/toolbar.py`, the main toolbar's
+tools included) and the gizmo
 panels' sets (one module each in `scripts/gizmo_tips/`). Each picture is a scene - a model on the
 print bed with the tool's handles, the pointer and the brush drawn over it - rendered by a small ray
 marcher from signed distance functions, which makes a cut, a boolean operation or an embossed letter a

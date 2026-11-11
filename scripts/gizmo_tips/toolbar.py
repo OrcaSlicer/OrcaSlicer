@@ -410,6 +410,176 @@ def brim_ears(k, n):
     return o.finish(GIF_SIZE)
 
 
+# --- the main toolbar, left of the gizmos (GLCanvas3D::_render_toolbar_tooltip()) ------------------
+
+
+def add(k, n):
+    # A model arrives on the plate from above and settles.
+    s = smooth(phase(k, 3, 10))
+    c = np.array([0.0, 0.0, 0.42 + 1.6 * (1.0 - s)])
+    scene = lambda p: union(bed(p), (sd_box(p, c, (0.38, 0.38, 0.42), 0.04), M_ACCENT))
+    cam = Camera(GIF_SIZE, target=(0.0, 0.0, 0.7), extent=3.0)
+    return Overlay(render(scene, cam), cam).finish(GIF_SIZE)
+
+
+def _plate(p, cx):
+    """A plate as the plater draws it: a slab a little above the floor, centred at x = cx."""
+    return sd_box(p, (cx, 0.0, 0.02), (0.92, 0.92, 0.03), 0.02)
+
+
+def add_plate(k, n):
+    # A second, empty plate slides in beside the first.
+    x2 = 1.0 + 2.6 * (1.0 - smooth(phase(k, 4, 10)))
+
+    def scene(p):
+        return union(bed(p), (_plate(p, -1.0), M_PART2), (sd_box(p, (-1.0, 0.0, 0.35), (0.3, 0.3, 0.3), 0.03), M_PART),
+                     (_plate(p, x2), M_ACCENT))
+
+    cam = Camera(GIF_SIZE, target=(0.1, 0.0, 0.1), extent=4.7)
+    return Overlay(render(scene, cam), cam).finish(GIF_SIZE)
+
+
+def _tee(q):
+    """A T standing on its stem, in its own frame: stem from z -0.62 to 0.22, bar from 0.22 to 0.42."""
+    stem = sd_box(q, (0.0, 0.0, -0.2), (0.14, 0.3, 0.42), 0.02)
+    bar = sd_box(q, (0.0, 0.0, 0.32), (0.62, 0.3, 0.1), 0.02)
+    return np.minimum(stem, bar)
+
+
+def orient(k, n):
+    # Standing on its stem the T needs support under both arms; auto orient turns it onto its bar, and
+    # the support is gone.
+    s = smooth(phase(k, 7, 9))
+    R = rot_y(math.pi * s)
+    corners = np.array([[x, y, z] for x in (-0.62, 0.62) for y in (-0.3, 0.3) for z in (-0.62, 0.42)])
+    c = np.array([0.0, 0.0, -(corners @ R.T)[:, 2].min()])
+
+    def scene(p):
+        items = [bed(p), (_tee((p - c) @ R), M_PART)]
+        if k < 6:
+            for x in (-0.4, 0.4):
+                items.append((sd_box(p, (x, 0.0, 0.415), (0.18, 0.24, 0.415), 0.0), M_SUPPORT))
+        return union(*items)
+
+    cam = Camera(GIF_SIZE, target=(0.0, 0.0, 0.5), extent=2.7)
+    return Overlay(render(scene, cam), cam).finish(GIF_SIZE)
+
+
+def arrange(k, n):
+    # Objects piled up where they were added spread out into a packed layout with gaps between them.
+    s = smooth(phase(k, 4, 11))
+    shapes = [  # (start xy, end xy, kind, size)
+        ((0.05, 0.1), (-0.95, -0.55), "box", (0.32, 0.32, 0.3)),
+        ((0.25, -0.15), (-0.05, -0.55), "cyl", (0.3, 0.45)),
+        ((-0.2, -0.1), (0.9, -0.55), "box", (0.4, 0.28, 0.2)),
+        ((0.1, 0.3), (-0.65, 0.5), "cyl", (0.36, 0.3)),
+        ((-0.15, 0.2), (0.45, 0.5), "box", (0.5, 0.3, 0.25)),
+    ]
+
+    def scene(p):
+        items = [bed(p)]
+        for (x0, y0), (x1, y1), kind, size in shapes:
+            x, y = x0 + (x1 - x0) * s, y0 + (y1 - y0) * s
+            if kind == "box":
+                d = sd_box(p, (x, y, size[2]), size, 0.03)
+            else:
+                d = sd_cylinder(p, (x, y), size[0], 0.0, size[1], 0.03)
+            items.append((d, M_PART))
+        return union(*items)
+
+    cam = Camera(GIF_SIZE, target=(0.0, 0.0, 0.2), extent=3.2)
+    return Overlay(render(scene, cam), cam).finish(GIF_SIZE)
+
+
+def _copies(grow):
+    """Three copies of one object in a row; `grow` scales each, 0 for one that is not there."""
+    def scene(p):
+        items = [bed(p)]
+        for i, g in enumerate(grow):
+            if g > 0.0:
+                h = 0.3 * g
+                items.append((sd_cylinder(p, (-0.85 + 0.85 * i, 0.0), h, 0.0, 2.0 * h, 0.03), M_PART if i == 0 else M_ACCENT))
+        return union(*items)
+    return scene
+
+
+def instance_add(k, n):
+    scene = _copies([1.0, smooth(phase(k, 4, 4)), smooth(phase(k, 10, 4))])
+    cam = Camera(GIF_SIZE, target=(0.0, 0.0, 0.3), extent=2.8)
+    return Overlay(render(scene, cam), cam).finish(GIF_SIZE)
+
+
+def instance_remove(k, n):
+    scene = _copies([1.0, 1.0 - smooth(phase(k, 10, 4)), 1.0 - smooth(phase(k, 4, 4))])
+    cam = Camera(GIF_SIZE, target=(0.0, 0.0, 0.3), extent=2.8)
+    return Overlay(render(scene, cam), cam).finish(GIF_SIZE)
+
+
+def _two_pieces(p, off):
+    """One model made of two pieces that do not touch: a block, and a ring around a peg beside it."""
+    block = sd_box(p, (-0.45, 0.0, 0.3), (0.3, 0.3, 0.3), 0.03)
+    q = p - np.array([off, 0.0, 0.0])
+    ring = np.maximum(sd_cylinder(q, (0.45, 0.0), 0.36, 0.0, 0.3, 0.02), -sd_cylinder(q, (0.45, 0.0), 0.2, -1.0, 1.0))
+    return block, ring
+
+
+def split_objects(k, n):
+    # The pieces become objects of their own, each placed and set up on its own.
+    s = smooth(phase(k, 6, 8))
+
+    def scene(p):
+        block, ring = _two_pieces(p - np.array([-0.45 * s, -0.3 * s, 0.0]), 1.0 * s)
+        return union(bed(p), (block, M_PART), (ring, M_ACCENT if k >= 6 else M_PART))
+
+    cam = Camera(GIF_SIZE, target=(0.0, 0.0, 0.25), extent=3.2)
+    return Overlay(render(scene, cam), cam).finish(GIF_SIZE)
+
+
+def split_parts(k, n):
+    # The pieces stay where they are, as parts of the same object that can take their own settings.
+    def scene(p):
+        block, ring = _two_pieces(p, 0.0)
+        return union(bed(p), (block, M_PART), (ring, M_ACCENT if k >= 6 else M_PART))
+
+    cam = Camera(GIF_SIZE, target=(0.0, 0.0, 0.25), extent=2.8)
+    o = Overlay(render(scene, cam), cam)
+    if 6 <= k < 12:
+        o.circle_on((0.45, 0.0, 0.31), (0.0, 0.0, 1.0), 0.42, (60, 200, 180), width=1.6)
+    return o.finish(GIF_SIZE)
+
+
+def variable_layer_height(k, n):
+    # Layers thin out where the dome curves over and stay thick on the straight sides.
+    s = ease(k / n)
+    r, zc = 0.7, 0.45
+    z = np.linspace(0.0, zc + r, 400)
+    nz = np.clip((z - zc) / r, 0.0, 1.0)
+    h = (1.0 - s) * 0.12 + s * 0.17 * (1.0 - 0.8 * nz)  # layer height at each z
+    bounds = np.concatenate([[0.0], np.cumsum(np.diff(z) / h[1:])])  # layers so far at each z
+
+    def scene(p):
+        d = np.minimum(sd_cylinder(p, (0.0, 0.0), r, 0.0, zc), sd_sphere(p, (0.0, 0.0, zc), r))
+        layer = np.interp(p[:, 2], z, bounds)
+        return union(bed(p), (d, np.where(np.floor(layer) % 2 == 0, M_PART, M_PART2)))
+
+    cam = Camera(GIF_SIZE, target=(0.0, 0.0, 0.55), extent=2.2)
+    return Overlay(render(scene, cam), cam).finish(GIF_SIZE)
+
+
+def assembly_view(k, n):
+    # The parts of an object drawn apart, then back together.
+    s = ease(k / n)
+
+    def scene(p):
+        base = sd_box(p, (0.0, 0.0, 0.15), (0.6, 0.45, 0.15), 0.03)
+        mid = sd_cylinder(p - np.array([0.0, 0.0, 0.45 * s]), (0.0, 0.0), 0.32, 0.3, 0.75, 0.03)
+        top = sd_box(p - np.array([0.0, 0.0, 0.9 * s]), (0.0, 0.0, 0.85), (0.45, 0.35, 0.1), 0.03)
+        return union(bed(p), (base, M_PART), (mid, M_PART2), (top, M_ACCENT))
+
+    cam = Camera(GIF_SIZE, target=(0.0, 0.0, 0.85), extent=2.8)
+    return Overlay(render(scene, cam), cam).finish(GIF_SIZE)
+
+
 # name -> frame count (0 = a still, written as PNG)
 FRAMES = {
     "move": 16,
@@ -431,6 +601,16 @@ FRAMES = {
     "assembly": 22,
     "simplify": 16,
     "brim_ears": 18,
+    "add": 18,
+    "add_plate": 18,
+    "orient": 20,
+    "arrange": 18,
+    "instance_add": 18,
+    "instance_remove": 18,
+    "split_objects": 18,
+    "split_parts": 18,
+    "variable_layer_height": 20,
+    "assembly_view": 20,
 }
 
 
