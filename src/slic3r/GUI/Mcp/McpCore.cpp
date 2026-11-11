@@ -213,7 +213,7 @@ ToolResult McpCore::call_child_named(const std::string& tool, const nlohmann::js
 {
     std::shared_ptr<const ToolDef> def = m_registry.lookup(tool);
     if (def == nullptr)
-        return ToolResult::error("Unknown tool: " + tool);
+        return ToolResult::error(m_registry.unknown_tool(tool));
     nlohmann::json args = raw_args;
     if (std::string err = argument_error(*def, args); !err.empty())
         return ToolResult::error("Invalid arguments: " + err);

@@ -9,6 +9,10 @@
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#ifdef SLIC3R_CAD
+#include "slic3r/GUI/Mcp/McpToolsCad.hpp"
+#endif
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
 #include <algorithm>
@@ -59,10 +63,10 @@ std::string short_id(const std::string& id)
     return first == std::string::npos || first == last ? id : id.substr(first + 1, last - first - 1);
 }
 
-// The action `id` names: its full id, or a name only one action has. Otherwise ToolFailure with the
-// ids closest to it, scored against both forms, a name containing it (delete_all in obj_delete_all)
-// counting as closest.
-const AppAction& find_action(ActionRegistry& actions, std::string& id)
+// The action `id` names: its full id, or a name only one action has. Otherwise ToolFailure: for a name
+// that is a tool of `tools` or a CAD tool, where it runs; else the ids closest to it, scored against
+// both forms, a name containing it (delete_all in obj_delete_all) counting as closest.
+const AppAction& find_action(ActionRegistry& actions, std::string& id, const ToolRegistry& tools)
 {
     if (const AppAction* action = actions.by_id(id))
         return *action;
@@ -71,7 +75,7 @@ const AppAction& find_action(ActionRegistry& actions, std::string& id)
     std::vector<std::string> named;
     std::vector<std::pair<std::size_t, std::string>> scored;
     const json all = actions.describe(q);
-    for (const json& a : all["actions"]) {
+    for (const json& a : all["items"]) {
         const std::string candidate = a["id"];
         const std::string name      = short_id(candidate);
         if (name == id)
@@ -83,6 +87,8 @@ const AppAction& find_action(ActionRegistry& actions, std::string& id)
         id = named.front();
         return *actions.by_id(id);
     }
+    if (const std::string elsewhere = other_catalog_hint(tools, id, Catalog::Actions); !elsewhere.empty())
+        throw ToolFailure("Unknown action id " + id + "; " + elsewhere);
     std::sort(scored.begin(), scored.end());
     json similar = json::array();
     for (std::size_t i = 0; i < scored.size() && similar.size() < 3 && scored[i].first <= id.size() / 3 + 2; ++i)
@@ -101,6 +107,59 @@ const char* level_name(AppActionRunResult::Level level)
 }
 
 } // namespace
+
+json rank_actions(const json& listed, const std::vector<std::string>& words)
+{
+    struct Hit
+    {
+        std::pair<int, int> score;
+        std::size_t         name_size;
+        const json*         action;
+    };
+    std::vector<Hit> hits;
+    for (const json& action : listed) {
+        // The name inside the id, without the source and plugin every built-in id shares: "orca" and
+        // "command" would match them all. The group is part of what the action is called, as the
+        // palette shows one by group and title: Delete Selected is the Object group's delete, though
+        // its own title names no object.
+        const std::string         name  = short_id(action.value("id", std::string()));
+        const std::pair<int, int> score = match_score(words,
+                                                      name + ' ' + action.value("title", std::string()) + ' ' +
+                                                          action.value("group", std::string()),
+                                                      action.value("description", std::string()));
+        if (score.first > 0)
+            hits.push_back({score, name.size(), &action});
+    }
+    std::stable_sort(hits.begin(), hits.end(),
+                     [](const Hit& a, const Hit& b) { return a.score != b.score ? a.score > b.score : a.name_size < b.name_size; });
+    json ranked = json::array();
+    for (const Hit& hit : hits)
+        ranked.push_back(*hit.action);
+    return ranked;
+}
+
+std::string other_catalog_hint(const ToolRegistry& registry, const std::string& name, Catalog missed)
+{
+    if (name.empty())
+        return {};
+    if (missed != Catalog::Tools && registry.lookup(name) != nullptr)
+        return "it is a tool of its own: call " + name + " directly";
+#ifdef SLIC3R_CAD
+    if (missed != Catalog::Cad) {
+        const std::vector<std::string> cad = cad_tool_names();
+        if (std::find(cad.begin(), cad.end(), name) != cad.end())
+            return "it is a CAD tool: call_cad_tool {tool: \"" + name + "\", args} runs it, and describe_cad_tool {tool} gives its arguments";
+    }
+#endif
+    // The built-in commands only: the registry's other actions (plates, recent projects, plugin
+    // scripts) are read on the UI thread, and their ids are not names an agent mistakes for a tool's.
+    if (missed != Catalog::Actions) {
+        const std::string key = short_id(name);
+        if (NativeCommands::find(key) != nullptr && (name == key || name == "orca_command:" + key + ":orca"))
+            return "it is a Speed Dial action: run_action {id: \"" + name + "\"} runs it";
+    }
+    return {};
+}
 
 ToolResult await_gcode_export(ToolContext& ctx, uint64_t before, uint64_t after, uint64_t revision, const std::string& rejection)
 {
@@ -142,21 +201,29 @@ void register_action_tools(McpService& service)
         "search_actions", L("Search Speed Dial actions"),
         "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, "
         "calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for run_action, a "
-        "description and, when it takes one, a param (type and help). include_settings also lists settings (each jumps "
-        "to that setting in the sidebar; use get_settings / set_settings to read or change values).",
-        object_schema({{"query", prop("string", "Case-insensitive text to find in id, title, group or description.")},
+        "description and, when it takes one, a param (type and help). A query ranks them, best match first, as "
+        "search_tools does; without one they are listed by group and title. include_settings also lists settings (each "
+        "jumps to that setting in the sidebar; use get_settings / set_settings to read or change values).",
+        object_schema({{"query", prop("string", "A few words, e.g. \"delete object\": each is matched at the start of the words of "
+                                                "an action's id, title, group and description.")},
                        {"group", prop("string", "Only this group, e.g. \"Object\", \"View\", \"Slice & Export\".")},
                        {"include_settings", prop("boolean", "Also list settings (thousands). Default false.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 50."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) {
             ActionRegistry::Query q;
-            q.text             = arg_string(args, "query");
             q.group            = arg_string(args, "group");
             q.include_settings = arg_bool(args, "include_settings", false);
-            q.limit            = std::size_t(arg_int(args, "limit", 50));
-            q.offset           = std::size_t(arg_int(args, "offset", 0));
-            return ToolResult::ok(ctx.run_ui([q] { return registry_or_fail().describe(q); }));
+            const std::string query = arg_string(args, "query");
+            if (query.empty()) {
+                q.limit  = std::size_t(arg_int(args, "limit", 50));
+                q.offset = std::size_t(arg_int(args, "offset", 0));
+                return ToolResult::ok(ctx.run_ui([q] { return registry_or_fail().describe(q); }));
+            }
+            // The registry's own search wants the query as one text; an agent's is a few words.
+            q.limit           = 100000;
+            const json listed = ctx.run_ui([q] { return registry_or_fail().describe(q); });
+            return ToolResult::ok(page(rank_actions(listed["items"], query_words(query)), args, 50));
         }));
 
     ToolDef run = mutate_tool(
@@ -173,12 +240,12 @@ void register_action_tools(McpService& service)
         object_schema({{"id", prop("string", "Action id from search_actions, or the name inside it.")},
                        {"param", prop("string", "Parameter, when the action takes one.")}},
                       {"id"}),
-        [](const json& args, ToolContext& ctx) {
+        [&service](const json& args, ToolContext& ctx) {
             std::string       id    = arg_string(args, "id");
             const std::string param = arg_string(args, "param");
             json started = ctx.run_ui([&]() -> json {
                 ActionRegistry&  actions = registry_or_fail();
-                const AppAction& action  = find_action(actions, id);
+                const AppAction& action  = find_action(actions, id, service.registry());
                 // Without a path the command would ask for one in a native file dialog, which MCP
                 // can't fill in, and export behind it untracked.
                 if (action.completes_in_background && param.empty())

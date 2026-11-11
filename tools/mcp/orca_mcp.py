@@ -10,6 +10,7 @@ Standard library only. Two halves:
     tools/mcp/orca_mcp.py launch --headless         # fresh datadir on a private headless desktop (Linux), wait until ready
     tools/mcp/orca_mcp.py launch --xvfb             # on a private Xvfb display, for a Linux machine without a desktop
     tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for the CAD tools (list_cad_tools, call_cad_tool)
+    tools/mcp/orca_mcp.py launch --python-scripts   # with Python scripts allowed, for run_script
     tools/mcp/orca_mcp.py call get_app_state
     tools/mcp/orca_mcp.py call open_files '{"paths": ["/abs/model.stl"]}'
     tools/mcp/orca_mcp.py screenshot /tmp/shot.png --target canvas
@@ -253,30 +254,32 @@ def write_conf(conf, data):
         f.write("\n")
 
 
-def seed_datadir(datadir, printer, cad=False):
-    """Seed a fresh datadir's OrcaSlicer.conf. A datadir that has one keeps it, except that cad turns
-    the Design tab on there too, since the app creates the Design tab only at startup, when that
-    setting is on."""
+def seed_datadir(datadir, printer, cad=False, python_scripts=False):
+    """Seed a fresh datadir's OrcaSlicer.conf. A datadir that has one keeps it, except for the settings
+    cad and python_scripts turn on, which only the file can: the app creates the Design tab only at
+    startup, when its setting is on, and no tool allows Python scripts."""
     vendor, model, nozzle, filament = printer
     os.makedirs(datadir, exist_ok=True)
     conf = os.path.join(datadir, "OrcaSlicer.conf")
+    switches = {}
+    if cad:
+        switches["enable_cad_feature"] = True
+    if python_scripts:
+        switches["mcp_python_scripts"] = "true"
     if os.path.exists(conf):
-        if cad:
+        if switches:
             with open(conf, encoding="utf-8") as f:
                 text = f.read()
             # The app ends the file with a checksum line after the JSON; a mismatch only logs.
             data = json.loads(text[:text.rfind("}") + 1])
-            data.setdefault("app", {})["enable_cad_feature"] = True
+            data.setdefault("app", {}).update(switches)
             write_conf(conf, data)
         return
-    app = {"check_for_updates": False, "show_daily_tips": False}
-    if cad:
-        app["enable_cad_feature"] = True
     write_conf(conf, {"firstguide": {"finish": True},
                       "models": [{"model": model, "nozzle_diameter": nozzle, "vendor": vendor}],
                       "filaments": [filament],
                       "presets": {"machine": f"{model} {nozzle} nozzle"},
-                      "app": app})
+                      "app": {"check_for_updates": False, "show_daily_tips": False, **switches}})
 
 
 # The headless compositors --headless tries, in order, by the binary each needs.
@@ -460,7 +463,7 @@ def launch(args):
     if args.printer:
         model, _, nozzle = args.printer.partition("@")
         printer = (args.vendor, model, nozzle or "0.4", args.filament or DEFAULT_PRINTER[3])
-    seed_datadir(datadir, printer, args.cad)
+    seed_datadir(datadir, printer, args.cad, args.python_scripts)
 
     env = dict(os.environ, ORCA_MCP_TOKEN=token)
     binary = find_binary(args.bin)
@@ -532,6 +535,7 @@ def main():
     p.add_argument("--vendor", default="BBL")
     p.add_argument("--filament")
     p.add_argument("--cad", action="store_true", help="turn the Design (CAD) tab on, for the CAD tools (list_cad_tools, call_cad_tool)")
+    p.add_argument("--python-scripts", action="store_true", help="allow Python scripts (run_script), which no tool can turn on")
     p.add_argument("--timeout", type=int, default=120)
     p.add_argument("--print-config", action="store_true", help="print client setup commands")
     p.add_argument("extra", nargs="*", help="extra orca-slicer arguments after --")
@@ -549,7 +553,7 @@ def main():
 
     p = sub.add_parser("screenshot", help="save a screenshot")
     p.add_argument("out")
-    p.add_argument("--target", default="window")
+    p.add_argument("--target", default="main")
 
     p = sub.add_parser("run-replay", help="run a replay in the launched instance")
     p.add_argument("replay")

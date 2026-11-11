@@ -3626,12 +3626,12 @@ json UiInspector::mouse(GLCanvas3D& canvas, const json& g, const std::string& ow
     if (by_pixel)
         pixels.push_back({from.x, from.y});
     if (action == "drag") {
-        for (const json& p : g.value("path", json::array()))
+        for (const json& p : g.value("waypoints", json::array()))
             stops.push_back(pixel_of(p));
         if (g.contains("to"))
             stops.push_back(pixel_of(g["to"]));
         if (stops.empty())
-            throw ToolFailure("drag needs to or path");
+            throw ToolFailure("drag needs to or waypoints");
     }
     // A gesture that starts at a model point under an ImGui window or a notification would go to that
     // instead, so it is refused. A press held from before goes on to the scene wherever it moves, and

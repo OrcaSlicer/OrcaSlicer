@@ -257,7 +257,7 @@ void register_app_tools(McpService& service)
         "volumes [[object, part]], in the indices select_objects takes; wipe_tower when a prime tower is selected; canvas is the 3D "
         "view it belongs to), slicing state, "
         "the Preview's view type, time mode and layer range (1-based, with their Z), and the camera of the 3D view shown "
-        "(camera: type, target, position, zoom, click_px_per_mm, elevation and azimuth, as set_view replies with it). What "
+        "(camera: type, look_at, position, zoom, click_px_per_mm, elevation and azimuth, as set_view replies with it). What "
         "is going on: open modal "
         "dialogs, each with its title, buttons (enabled: false when disabled) and a message that reads it as shown: its "
         "text and its controls row by row, fields [value], choices [value ▾], checkboxes [x] / [ ] / [-], radio and "

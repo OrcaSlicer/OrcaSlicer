@@ -55,18 +55,16 @@ namespace {
 // the rest.
 constexpr std::size_t kCatalogHits = 5;
 
-using Scored = std::vector<std::pair<std::pair<int, int>, json>>;
-
-// A catalog's best matches for search_tools: {total, items, use}, or null when nothing matched.
-json catalog_hits(Scored scored, const std::string& use)
+// A catalog's best matches for search_tools, from `ranked`, its matches best first: {total, items, use}
+// with the first few, or null when nothing matched.
+json catalog_hits(const json& ranked, const std::string& use)
 {
-    if (scored.empty())
+    if (ranked.empty())
         return nullptr;
-    std::stable_sort(scored.begin(), scored.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
     json items = json::array();
-    for (std::size_t i = 0; i < scored.size() && i < kCatalogHits; ++i)
-        items.push_back(std::move(scored[i].second));
-    return {{"total", scored.size()}, {"items", std::move(items)}, {"use", use}};
+    for (std::size_t i = 0; i < ranked.size() && i < kCatalogHits; ++i)
+        items.push_back(ranked[i]);
+    return {{"total", ranked.size()}, {"items", std::move(items)}, {"use", use}};
 }
 
 // The Speed Dial actions, settings and CAD tools matching `words` (of `query`), for search_tools. A
@@ -78,18 +76,9 @@ json ui_catalog_hits(const std::vector<std::string>& words, const std::string& q
         ActionRegistry::Query all;
         all.limit = 100000;
         const json listed = actions->describe(all);
-        Scored     scored;
-        for (const json& a : listed["actions"]) {
-            const std::pair<int, int> score = match_score(words, a.value("id", "") + ' ' + a.value("title", ""),
-                                                          a.value("group", "") + ' ' + a.value("description", ""));
-            if (score.first == 0)
-                continue;
-            json hit{{"id", a["id"]}, {"title", a["title"]}, {"description", a.value("description", "")}};
-            if (a.contains("param"))
-                hit["param"] = a["param"];
-            scored.emplace_back(score, std::move(hit));
-        }
-        out["actions"] = catalog_hits(std::move(scored), "run_action {id, param}; search_actions {query} finds more");
+        // Ranked as search_actions ranks them, so the same query reads on there from these.
+        out["actions"] = catalog_hits(rank_actions(listed["items"], words),
+                                      "run_action {id, param}; search_actions {query} lists the rest");
     }
     try {
         json settings = search_settings(query, kCatalogHits);
@@ -101,15 +90,19 @@ json ui_catalog_hits(const std::vector<std::string>& words, const std::string& q
     }
 #ifdef SLIC3R_CAD
     // Scored on the details too, so a word that is not in the one-line summary still finds the tool.
-    Scored scored;
+    std::vector<std::pair<std::pair<int, int>, const json*>> scored;
     for (const json& row : cad_tool_table()) {
         const std::pair<int, int> score = match_score(words, row.at("name").get<std::string>(),
                                                       row.at("summary").get<std::string>() + ' ' +
                                                           row.at("details").get<std::string>());
         if (score.first > 0)
-            scored.emplace_back(score, json{{"name", row.at("name")}, {"summary", row.at("summary")}});
+            scored.emplace_back(score, &row);
     }
-    out["cad"] = catalog_hits(std::move(scored),
+    std::stable_sort(scored.begin(), scored.end(), [](const auto& a, const auto& b) { return a.first > b.first; });
+    json cad = json::array();
+    for (const auto& [score, row] : scored)
+        cad.push_back({{"name", row->at("name")}, {"summary", row->at("summary")}});
+    out["cad"] = catalog_hits(cad,
                               wxGetApp().is_enable_cad_feature() ?
                                   "describe_cad_tool {tool} gives its arguments and examples; call_cad_tool {tool, args} runs it" :
                                   "describe_cad_tool {tool} gives its arguments; call_cad_tool {tool, args} runs it once a person enables "
@@ -199,6 +192,9 @@ void register_api_tools(McpService& service)
             return operation_tool(*op);
         return nullptr;
     });
+    // A CAD tool or a Speed Dial action called as a tool is told where it runs: search_tools finds
+    // all three by one query, so their names reach call_tool and the tool list's callers too.
+    reg.set_elsewhere([&reg](const std::string& name) { return other_catalog_hint(reg, name, Catalog::Tools); });
 
     reg.add(inspect_tool(
         "search_tools", L("Find tools, actions, settings and APIs"),
@@ -224,7 +220,7 @@ void register_api_tools(McpService& service)
                 for (const auto& def : all)
                     if (def->name == name)
                         return ToolResult::ok(describe_tool(*def));
-                throw ToolFailure("Unknown tool: " + name, {{"did_you_mean", service.registry().similar(name)}});
+                throw ToolFailure(service.registry().unknown_tool(name), {{"did_you_mean", service.registry().similar(name)}});
             }
             const std::size_t              limit = std::size_t(arg_int(args, "limit", int(kCatalogHits)));
             const std::string              query = arg_string(args, "query");

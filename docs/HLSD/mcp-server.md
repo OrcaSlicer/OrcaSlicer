@@ -69,20 +69,23 @@ fails a call whose structured content does not match that schema, so a schema wo
 nothing and could turn a call that already ran into an error. Clients that prefer structured content
 over the content blocks would also drop the images and `list_widgets`'s tree. Tool failures, invalid
 arguments included, are `isError` results the model can act on; an unknown tool is a JSON-RPC
-`-32602` error naming close matches. `validate_arguments()` checks arguments against the tool's
-schema first. Before it,
+`-32602` error naming close matches, or the catalog that does have the name (see Tool catalog).
+`validate_arguments()` checks arguments against the tool's schema first. Before it,
 `normalize_arguments()` reads what agents commonly send in place of the schema's form, for calls and
 replay steps alike, so the journal records the schema's form. An argument under a name the tool does
 not take is read as one it does, when the call leaves that one out and the value fits it: `ref` as `target`, `key` as `keys`, `text`
 as `value`, `action` as `id` or `button`, `object` as `objects`, `plate` as `plates`, `filter` as
-`query`, `settings` as `values`, `target` as `root`. A value in another JSON form is converted: a
+`query`, `settings` as `values`, `part` as `volume` (and `parts`, `part_id`, `part_ids` likewise), `path`
+as `save_path` where the tool has no `path` of its own, and `view` as `set_view`'s `canvas` or `camera`,
+whichever takes the value. A value in another JSON form is converted: a
 number, boolean, array or object written as a string, an index as a string where a name may also go
-(`"0"` for a plate), a single item for an array. A value outside its argument's enum moves to the
-one other argument whose enum takes it, when the call leaves that out: `set_view`'s `view: "front"`
-is its `camera`. Each enum lists only its own values, since listing a camera direction under `view`
-too had agents give it there beside a `camera`. Anything that still does not fit is left for the
-validator to report. The bench's transcripts are where these come from: each was an agent's first
-guess, many times over, and each cost a failed call and a retry.
+(`"0"` for a plate), a single item for an array. A value an enum lacks is read as the one it stands
+for, when the enum lists that one: `print` as `process`, `part` as `volume`, `window` as `main`. A
+value outside its argument's enum moves to the one other argument whose enum takes it, when the call
+leaves that out: `set_view`'s `canvas: "front"` is its `camera`. Each enum lists only its own values,
+since listing a camera direction under both had agents give it to the wrong one. Anything that still
+does not fit is left for the validator to report. The bench's transcripts are where these come from:
+each was an agent's first guess, many times over, and each cost a failed call and a retry.
 
 The server `instructions` (under the 4096 characters clients keep) give the workflow: `get_app_state`,
 act, then check the result with the reading tools, keeping screenshots for what those do not report.
@@ -376,15 +379,15 @@ Script panel, which runs Python.
 | App | `get_app_state` | version, platform and display backend, ready, window, the displays' work areas, the MCP endpoint, whether Python runs and Python scripts are allowed, whether the Design tab is on, tab, mode, project, presets, plates, objects, the selection, slicing, the Preview's view type, time mode and layer range, the camera of the 3D view shown, print host uploads, the open gizmo, dialogs, menus closed unseen, auto-answer rules, notifications, jobs |
 | | `wait` | `ready`, `idle`, `dialog`, `no_dialog` or a `job` (default the job given, else `idle`); `timeout_s` up to 50 |
 | | `get_log` | end of the current log file, filtered by minimum level |
-| Speed Dial | `search_actions` | search the action catalog, paged |
+| Speed Dial | `search_actions` | search the action catalog by a query's words, best match first, or list it by group and title; paged |
 | | `run_action` | run an action by id (or the name inside it), with its optional `param`; an error when the action did nothing; waits for a background job it starts (arrange, orient) |
 | Project | `open_files` | load models, a project or G-code by absolute path, with no dialog |
-| | `new_project` | start an empty project (`discard_changes` if it has unsaved changes); `changes` keeps or discards modified presets |
-| | `generate_calibration_test` | a Calibration menu test with typed parameters and no dialog: a new project with the test model and the preset changes the test needs, printed with filament slot 1; refused while presets are modified unless `changes` keeps or discards them |
+| | `new_project` | start an empty project (`discard_changes` if it has unsaved changes); `preset_changes` keeps or discards modified presets |
+| | `generate_calibration_test` | a Calibration menu test with typed parameters and no dialog: a new project with the test model and the preset changes the test needs, printed with filament slot 1; refused while presets are modified unless `preset_changes` keeps or discards them |
 | | `save_project` | save the project as `.3mf` to a path (a `.gcode.3mf` path is refused: that is `export` `sliced_3mf`) |
 | | `export` | `gcode`, `sliced_3mf`, `3mf` or `stl` to a path, by default the one its extension names; `gcode` is an export operation |
 | Presets | `list_presets` | printer, process or filament presets with flags (system, user, inside the project, the preset inherited from), paged |
-| | `select_preset` | select by name through the selector (filament per slot), showing a hidden preset first; `changes` transfers or discards unsaved changes without the prompt |
+| | `select_preset` | select by name through the selector (filament per slot), showing a hidden preset first; `preset_changes` transfers or discards unsaved changes without the prompt |
 | | `get_settings` | values and metadata (description, settings page and group, enum labels, per-variant entries) by key, by page or group, or found by words matched in keys, labels and descriptions, of the edited or any saved preset, of an object's or part's overrides with the values they print with, of the project's own settings (plate type, slot colours, flushing volumes, purge mode, prime tower positions, mixed slots), of a plate's (plate type, print sequence, spiral vase, filament orders, name, lock), or of named preferences (read only); `compare` lists only what differs from another preset, the saved one or the parent |
 | | `set_settings` | set values the way the settings tab does, all or none; one entry of a per-variant value; object and part overrides and filaments; the project's and a plate's own settings through their controls' and dialogs' code; `null` takes a preset's key back to its saved or parent value, `reset_all` drops a preset's unsaved changes first; replies with every setting that `changed` |
 | | `save_preset` | save the preset being edited under a name, as a user preset or inside the project |
@@ -400,8 +403,8 @@ Script panel, which runs Python.
 | Slice | `slice` | current, one or all plates, then the Preview tab as after the Slice button; outcome for each plate, and for an `ok` one its time, filament totals with the flush, cost, layers, max Z, filament changes and grams per slot by use |
 | | `cancel_job` | stop the running slice or G-code export, a pending automatic reslice, or a background job an MCP call started (optionally only a given job), or with `job` a running `encode_recording`; allowed during an operation |
 | | `set_custom_gcode_at_layer` | add or remove a plate's pauses, custom G-code, custom templates and filament changes on its sliced layers, as the Preview layer slider's menu does |
-| View | `set_view` | tab (Design included), 3D view (Prepare, preview, assemble), camera of the 3D view shown (a direction also as `view`; the Design view's on the Design tab), its target and zoom, `orbit` around what it looks at by degrees on every 3D view, and a `camera_state` readback; preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate |
-| | `screenshot` | window, the 3D view shown (the Design view on the Design tab), topmost dialog or one widget: a downscaled image and a full-size PNG |
+| View | `set_view` | tab (Design included), 3D view (`canvas`: Prepare, preview, assemble), camera of the 3D view shown (a direction; the Design view's on the Design tab), the point it looks at (`look_at`) and its zoom, `orbit` around what it looks at by degrees on every 3D view, and a `camera_state` readback; preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate |
+| | `screenshot` | the main window, the 3D view shown (the Design view on the Design tab), topmost dialog or one widget: a downscaled image and a full-size PNG |
 | | `get_slice_stats` | a sliced plate's summary, time and grams per feature type, per-layer Z, height, time and grams (paged), grams per object instance, and the Preview's legend state and colour ranges |
 | Recording | `start_recording` | record the main window with its modal dialogs, or the 3D view shown, into an MJPEG `.mkv`, with the current tool call as a caption and the pointer highlighted when asked for, and with `encode` an MP4 of it once stopped |
 | | `stop_recording` | capture the last state, end the recording and report its file once written: length, frames, drops, the mean UI time of a capture, size and why it ended; the job of the encode `start_recording` asked for |
@@ -423,7 +426,7 @@ Script panel, which runs Python.
 | | `search_python_api` | search the `orca` package in the running build: names, signatures and documentation, paged |
 | API | `search_tools` | look up any registered tool or plugin operation by name, list every name, or search every catalog by words |
 | | `call_tool` | call a registered tool or plugin operation by name; runs and is journaled as that tool's own call |
-| CAD | `list_cad_tools` | the Design tab's CAD tools, each with its access and one-line summary, narrowed by a query (CAD builds; answers with the CAD feature off too) |
+| CAD | `list_cad_tools` | the Design tab's CAD tools, each with its access and one-line summary, narrowed by a query, paged (CAD builds; answers with the CAD feature off too) |
 | | `describe_cad_tool` | one CAD tool or a list: summary, details, params with `required`, how a failure shows and examples (CAD builds; answers with the CAD feature off too) |
 | | `call_cad_tool` | run a CAD tool of the Design tab: sketches, features, reads and measurements, feature and body edits, undo, commit to plate (CAD builds, Design tab enabled) |
 
@@ -471,12 +474,36 @@ fields it has, then edge cases; a long one puts each case on a line of its own (
 `get_settings` and `set_settings`, `click`'s web pages). What several tools share is written once,
 since every session loads the whole tool list: the locator grammar in `list_widgets`'s description,
 which hands out the refs, each `target` giving two examples and pointing there; the paging shape, and
-that a part is a `volume` in argument names, in the server instructions. A tool that takes one plate
-calls it `plate`, an index; one that also takes `"current"` or `"all"` calls it `plates`.
+that a part is a `volume` in argument names, in the server instructions.
+
+An argument name means one thing across the tools, so what an agent learns from one tool holds for
+the next. `target` is the window or element a UI tool acts on (a ref, a locator, or `main`, `dialog`
+and the like), `canvas` a 3D view, `path` the file a tool is about, and `save_path` where a capture
+writes its file beside its reply. So the point `set_view`'s camera looks at is `look_at`, which
+`camera_state` reads back under the same name, and a drag's intermediate points are `waypoints`.
+The main window is `main` wherever a tool names it, as `list_windows` calls its kind; `window` is
+another kind there. A tool that takes one plate calls it `plate`, an index; one that also takes
+`"current"` or `"all"` calls it `plates`. Where a tool takes two unlike things of one word, each says
+whose it is: `discard_changes` drops the project's unsaved changes, `preset_changes` keeps, transfers
+or discards the presets'.
+
+An agent calls into three catalogs by name: the tools (with the operations plugins offer), the Speed
+Dial's actions and the Design tab's CAD tools. `search_tools {query}` finds a name in any of them,
+but each runs through its own tool, so a name reaches the wrong one: `call_tool {tool: "extrude"}`,
+`run_action {id: "slice"}`, `call_cad_tool {tool: "list_objects"}`. The refusal then says where the
+name does run, in place of the closest names of the catalog asked, which would point the wrong way.
+`other_catalog_hint()` (McpToolsActions.cpp) looks the name up in the other two: the registry, the
+CAD tool table, and `NativeCommands::catalog()`, the built-in commands, by key or full id. All three
+answer on any thread, which the registry's other actions (plates, recent projects, plugin scripts)
+do not, and those are not names an agent takes for a tool's. `ToolRegistry::unknown_tool()` builds
+the error for every lookup of a tool that misses, through `set_elsewhere()`, which keeps the
+protocol layer free of the GUI: `tools/call`, `call_tool`, `search_tools {tool}`, a replay step and a
+plugin's or script's call. `run_action`, `call_cad_tool` and `describe_cad_tool` ask it themselves.
 
 Each tool family registers itself from its own `McpTools*.cpp` through `register_*_tools()`.
 List tools take `limit` and `offset` and reply `{items, offset, total}` (`page()`), with `next_offset` while
-more remain; `search_actions` names its items `actions`. The server instructions give that shape once, rather
+more remain: `search_actions` and `list_cad_tools` too, whose one page holds every CAD tool by default. The
+server instructions give that shape once, rather
 than every description, and each `limit` states its default. `McpPaths.hpp` requires
 absolute paths, since a relative one would resolve against `<datadir>/log`, the GUI's working
 directory; an output's directory must exist, and an existing file is replaced only with
@@ -834,20 +861,20 @@ the closest names.
 
 `Tab::select_preset()` asks about unsaved changes through `Tab::may_discard_current_dirty_preset()`:
 for the preset it leaves, and for each modified preset a process or printer switch may replace (the
-filament, or the process and filament). `select_preset`'s `changes` sets `Tab::m_dirty_preset_answer`
+filament, or the process and filament). `select_preset`'s `preset_changes` sets `Tab::m_dirty_preset_answer`
 for the one switch, so every prompt is answered with the dialog's Transfer or Discard without
 showing it, and the switch then does what it does after a person's answer. Transfer moves what the
 dialog would list: the changed options a settings page shows in the current mode, so a setting the
 mode hides is dropped, as in the GUI. The dialog offers no Transfer for a printer's own changes or
 between filaments of different types (`Tab::can_transfer_changes_to()`); there `transfer` is refused
 before anything changes. The GUI's outcomes stay as they are: a modified filament that suits the new
-process keeps its changes whatever the answer. Without `changes` the prompt opens, as it does for a
+process keeps its changes whatever the answer. Without `preset_changes` the prompt opens, as it does for a
 person, and the reply is `blocked_by_dialog`. The message box that a printer switch shows when it drops
 other extruder variants' values is shown only to a person. With several filament slots the sidebar does
 not move the filament tab when a slot's filament changes (`Plater::priv::on_select_preset()`), so no
 prompt opens there: the edits stay with the preset the tab edits, and the reply's `modified` lists them.
 
-`new_project` without `changes`, or with `"keep"`, keeps modified presets for the new project, as
+`new_project` without `preset_changes`, or with `"keep"`, keeps modified presets for the new project, as
 New Project's Keep does with every option. `"discard"` is the prompt's Discard,
 `GUI_App::discard_current_preset_changes()`, called only when a preset is modified, since it reloads
 the presets, which can ask about the printer's. Modified presets make the project dirty, so
@@ -1021,10 +1048,10 @@ refuses them. VFA's Yes/No questions are answered Yes: the reply's `adjusted` gi
 height or end speed, and a warning says when the upper blocks stay above the filament's limit.
 
 Every test starts a new project, whose prompts the tool answers itself (`skip_confirm` on each
-`calib_*`): a project with unsaved changes needs `discard_changes`, and modified presets need `changes`,
+`calib_*`): a project with unsaved changes needs `discard_changes`, and modified presets need `preset_changes`,
 `"keep"` to run the test with them or `"discard"` to drop them first through
 `GUI_App::discard_current_preset_changes()`. Unlike `new_project`, which keeps modified presets silently,
-`generate_calibration_test` refuses without `changes` and lists the modified keys: a previous test's settings would
+`generate_calibration_test` refuses without `preset_changes` and lists the modified keys: a previous test's settings would
 otherwise spoil this one. With `"discard"` the test's rules and defaults come from the saved printer
 preset, which is what remains. The tests write their filament settings to the preset the filament tab
 edits, while the test objects print with slot 1, so the tool first points the tab at slot 1's preset
@@ -1041,7 +1068,7 @@ and `discarded` and `modified` as `new_project` reports them. The journal record
 effective parameters, defaults included, so a replay does not depend on the dialogs' defaults; VFA's end
 speed is recorded as asked and a pattern's default acceleration and speed are left out, since both are
 computed from the presets again on replay. To keep a measured value, the agent leaves the test with
-`new_project {"discard_changes": true, "changes": "discard"}`, sets the value with `set_settings` and saves
+`new_project {"discard_changes": true, "preset_changes": "discard"}`, sets the value with `set_settings` and saves
 it with `save_preset`; staying in the test project, `set_settings {"reset_all": true, "values": ...}` on
 the preset's scope drops the test's settings there and sets the value in one call. The Speed Dial's `calib_*` commands still open
 the dialogs, and their descriptions point at `generate_calibration_test`.
@@ -1060,11 +1087,14 @@ and examples.
 
 Two inspect tools read the table, which needs no Design panel and no UI thread. `list_cad_tools
 {query?}` gives each CAD tool's name, access and summary in the table's order, which groups them by
-what they do, with `total` (every CAD tool, whatever the query), `ids` (how face and edge ids
-expire) and `use`; `query` keeps the tools whose name, summary or details hold it, in any case.
+what they do, as a page like every list's (`items`, `offset`, `total`; its default limit of 200
+holds them all), with `ids` (how face and edge ids expire) and `use`; `query` keeps the tools whose
+name, summary or details hold it, in any case, and `total` counts the ones kept.
 `describe_cad_tool {tool}` gives the whole row of a name, or of each name of a list, once and in
 the order asked, and `id_lifetime` when one of them takes or gives face or edge ids; an unknown
-name fails with the close ones. Both answer with the CAD feature off too, and then add a `note` on
+name fails with the close ones, or, when it is a tool's or a Speed Dial action's, with where that
+runs, as `call_cad_tool` answers one too, before any of the refusals below (see Tool catalog). Both
+answer with the CAD feature off too, and then add a `note` on
 how a person turns it on. That preference lives in `AppConfig`, which Preferences may write
 meanwhile, so it is read on the UI thread (`observe_ui`, `cad_feature_note()`), which the call waits
 for up to the usual queue timeout of 10 s; when the UI does not answer by then, or refuses, the reply
@@ -1301,10 +1331,10 @@ path, like every file the server reads.
 `set_view {tab: "design"}` shows the Design tab, and while it is shown `camera` points the Design
 view as its own controls do: a direction through `DesignCanvas::set_view()`, `default` its Home
 view (iso, fitted), `fit_objects` its `fit_view()`, and `fit_selection` the pick's box, refused when
-nothing is picked. `target`, `orbit` and `zoom` act on the Design camera as on Prepare's, since the
+nothing is picked. `look_at`, `orbit` and `zoom` act on the Design camera as on Prepare's, since the
 tab swaps it into the plater's slot (see Camera, under GUI automation). The camera is applied in a
 second UI closure after `settle()`, because the tab takes the shared camera only when its page shows
-(`DesignPanel::on_tab_shown()`). `fit_bed`, `view`
+(`DesignPanel::on_tab_shown()`). `fit_bed`, `canvas`
 and the Preview fields are refused with the Design tab, since they show Prepare or Preview. The
 Design view is a canvas target for `list_widgets`, the input tools and screenshots (see GUI automation and
 Screenshots).
@@ -1344,14 +1374,30 @@ the background after `run()` returns). `describe_commands()` fills them from one
 key-prefix rule for calibration dialogs (pointing at `generate_calibration_test`), camera views and primitives, and `CommandAction` copies
 them into the `AppAction`. The palette keeps `input` for its picker and never passes a path.
 
-`ActionRegistry::describe(Query)` searches id, title, group, source and description, including the
-English aliases. It can filter by group, lists settings only when asked, sorts by group and title,
-and returns one page. Each entry has `id`, the English `title` and `group`, `kind`, `description`,
+`ActionRegistry::describe(Query)` lists the actions, sorted by group and title, one page of them
+(`{items, offset, total}`). It can filter by group, lists settings only when asked, and keeps the
+actions whose id, title, group, source or description holds its `text`, including the English
+aliases. Each entry has `id`, the English `title` and `group`, `kind`, `description`,
 `param {type, help}`, and `completes: "export"` for exports. Built-in ids look like
-`orca_command:<key>:orca`. `run_action` also takes the key alone (`plate_add`) when only one action
+`orca_command:<key>:orca`.
+
+`search_actions` gives `describe()` no text. An agent's query is a few words ("delete object"),
+which no action holds as one text, so `rank_actions()` (McpToolsActions.cpp) scores the listing with
+the `match_score()` every other search uses: a word matches where a word of what the action is
+called, or of its description, starts with it. An action is called by its key, its title and its
+group, as the palette shows one by group and title: Delete Selected is the Object group's delete,
+though its own title names no object. The actions matching more of the words come first, then those
+matching more of them in what they are called, then the shorter key, which is the plainer command:
+`obj_delete` before `obj_delete_all`. The key is scored without the `orca_command:`
+and `:orca` around it, which would make "orca" and "command" match every built-in. `search_tools`
+ranks its `actions` with the same function, so the query that found an action there finds it, and
+the rest, here.
+
+`run_action` also takes the key alone (`plate_add`) when only one action
 has it, as agents and the tools' own messages write it. `run_action` calls
 `ActionRegistry::run(id, param, record_stats=false)`, so agent runs never reorder the palette. An
-unknown id returns up to three close ids, scored by edit distance against both the full id and its
+unknown id that is a tool's name or a CAD tool's is answered with where that runs (see Tool catalog);
+any other returns up to three close ids, scored by edit distance against both the full id and its
 key, a key that contains the request (`delete_all` in `obj_delete_all`) counting as closest. An action
 with `completes_in_background` that gets a path runs as an export operation and completes when the
 file is written.
@@ -1580,7 +1626,7 @@ gives its faces.
 order: the main window, the windows that don't block in the order they were created, then the modal
 stack, the topmost last. wx keeps top-level windows in creation order, not stacking order, so only the
 modal stack orders by what is on top. Each window has the ref `list_widgets` gives its node, with the same
-locator, so `screenshot` captures that window by it, `list_widgets` takes it as `root`, the input tools as
+locator, so `screenshot` captures that window by it, `list_widgets` lists it alone by it, the input tools take it, all as
 `target`, and the journal records the locator; its title is what `within` takes. A window says whether it
 is modal and whether it shows a web view (outside a hidden pane), with its size and, where the platform
 knows it (not Wayland, `window_positions_known()`), its place on screen, its state (normal, maximized or
@@ -1794,7 +1840,7 @@ icon whose tooltip `column` gives, through the list's own mouse handlers.
 
 Popups (`wxPopupWindow`: the print button's menu, drop-down lists) report themselves top-level but
 are children of the window they opened from. `list_widgets` lists each shown one as a `popup` right
-after its window (`popups_of()`), and `root: "popup"` lists only them. A widget in a popup belongs
+after its window (`popups_of()`), and `target: "popup"` lists only them. A widget in a popup belongs
 to that window (`owning_window()`), so it is inside the topmost modal for the input guards when its
 popup opened from there, and its locator's `within` names that window. A screenshot of a widget in
 a popup is refused: a screenshot of its window shows the popup.
@@ -1881,7 +1927,7 @@ gizmo, which `click` waits for. A `gizmo` locator takes the name `get_app_state.
 the English title of its toolbar button where that differs (Support Painting for FdmSupports), in
 any case; the reply uses the first, and an unknown name's error lists them. `get_app_state.gizmo`
 names the open gizmo and its canvas. The
-assemble view is entered and left with `set_view view` (leaving does what its Return button does;
+assemble view is entered and left with `set_view canvas` (leaving does what its Return button does;
 entering returns once the canvas has loaded its objects, which waits for its GL surface on Wayland),
 and `select_objects` and `list_objects` act on it while it is shown. Grabbers are not dragged: a gizmo's
 panel fields or `transform` set those values. Pickers inside a gizmo go through `pick_gizmo_file`, whose
@@ -1937,7 +1983,7 @@ point picking and the painters to their Shift and Alt modes.
 `set_view` sets the camera of the 3D view shown. Prepare, Preview and the assemble view share the
 plater's camera, and the Design tab swaps its own into that slot while it is shown
 (`DesignCanvas::enter_viewport()`), so `Plater::get_camera()` is always the shown view's and one code
-path serves all of them. `target` is the point the camera looks at, in mm in the view's world
+path serves all of them. `look_at` is the point the camera looks at, in mm in the view's world
 coordinates, as `list_objects` gives positions. On the Design tab these are the Design view's, the
 frame the CAD tools' world points use, where `describe_scene`'s `modeling_origin` is the sketch
 planes' origin. `Camera::set_target()` moves the camera parallel, keeping its direction and
@@ -1946,7 +1992,7 @@ everywhere in an orthographic view, and only at the target's depth in a perspect
 (`Camera::apply_projection()`). `Camera::set_zoom()` holds it between what the scene's size allows
 and 250, and the reply then lists `zoom` under `adjusted`.
 
-The fields apply in one UI closure in the order `camera`, `target`, `orbit`, `zoom`: a fit sets the
+The fields apply in one UI closure in the order `camera`, `look_at`, `orbit`, `zoom`: a fit sets the
 target and the zoom, which the given ones then replace. A tab switch, a new project or a load queues a
 fit on the camera (`requires_zoom_to_bed`, `requires_zoom_to_volumes`, `requires_zoom_to_plate`) that
 `GLCanvas3D::render()` runs at the view's next frame, and it would replace a target, orbit or zoom set
@@ -1960,7 +2006,7 @@ the two it did not see; a call cancelled meanwhile fails instead.
 
 Whenever a camera field is given, the reply carries `camera_state`, read after a last `settle()`:
 `type` (`ortho` or `perspective`, the Preference the `K` key toggles, which says whether `zoom` holds
-everywhere), `target` and `position` in mm, `zoom`, `click_px_per_mm` (the zoom over the canvas's
+everywhere), `look_at` and `position` in mm, `zoom`, `click_px_per_mm` (the zoom over the canvas's
 scale, in the logical pixels `click` and `mouse_gesture` take) and `elevation` and `azimuth` in
 `orbit`'s convention. `camera_angles()` reads the angles for both, without the orbit's one-degree stop
 short of vertical, so a camera straight above reads 90. The `camera` and `orbit` echoes stay beside it,
@@ -2078,8 +2124,7 @@ help without closing the box), and a press goes to the OS's box by message. On W
 one, found among the UI thread's windows by class and caption, the active one first. On GTK it is
 `gtk_dialog_response()` on the dialog's widget. The box closes once its own loop runs again, which
 `answer_dialog` waits up to 1 s for, so its reply says `closed`. A box that is no longer shown is
-refused. This is how a plugin's permission prompt is answered. On macOS a message box lists no buttons,
-since no call reaches one (above).
+refused. On macOS a message box lists no buttons, since no call reaches one (above).
 
 A picker, and on macOS any native dialog, can only be answered ahead with an `auto_answer_dialogs` rule:
 a regex and a button, and for a file or folder picker a path. The regex is searched in three places:
@@ -2130,7 +2175,7 @@ the rule. A replay's or script's rules end with it, a client's call replaces its
 `get_app_state` lists the rules in force.
 
 A dialog that hosts a web view is described with `web: true`; its controls are on its page, which
-`list_widgets root=dialog` lists and the input tools drive like any widget (see Web pages below). It
+`list_widgets target=dialog` lists and the input tools drive like any widget (see Web pages below). It
 has no text of its own, so a rule matches it by title. Its page is the one its shown web view holds; a web
 view the dialog keeps hidden has no page to press on. `answer_dialog` looks a name or label up as a
 wx button label first, then among the page's buttons and links, waiting up to 3 s for one to show
@@ -2335,7 +2380,7 @@ dialog natively; cross-origin frames other than plugin configuration UIs are lis
   the first since a tool's change, yet it shows the change settled, since slider moves reach the
   toolpaths before they are drawn and the capture first draws any extra frames the change asked for:
   a capture right after `set_view` shows the layers its slider shows and the legend laid out.
-- `window`: the main window's client area from `capture_native_window()`: its own pixels or, where
+- `main`: the main window's client area from `capture_native_window()`: its own pixels or, where
   the capture reads the screen (X11, macOS 14.4 and later), our windows over it as well, never another
   application's, with every visible 3D canvas composited in from its canvas capture, since window
   capture loses OpenGL content on several platforms.
@@ -2460,7 +2505,7 @@ recording; `get_app_state.recording` shows it while it runs.
 **Capture.** The UI thread captures a frame per tick of a one-shot `wxTimer`, which fires inside
 modal loops too. `start_recording` takes the first frame in its own UI closure: it fixes the video's
 size (fit to `max_dim`, rounded down to even numbers for 4:2:0), and a failure fails the call before
-any file exists. The `window` target is the main window as `screenshot` captures it, with the modal
+any file exists. The `main` target is the main window as `screenshot` captures it, with the modal
 stack (`ModalTracker::stack()`, outermost first, so in stacking order) composited at each dialog's
 client offset, resampled to the main window's content scale off MSW. Modeless windows and native
 dialogs are left out: `wxTopLevelWindows` is creation order, not stacking order. Where the capture
@@ -3374,7 +3419,8 @@ that can't connect over HTTP; its setup names this executable, so it breaks when
 ## Testing
 
 Unit tests are Catch2 cases tagged `[Mcp]` in `tests/slic3rutils/test_mcp_*.cpp`, run with
-`slic3rutils_tests "[Mcp]"`. `test_mcp_protocol` covers both eras and argument validation;
+`slic3rutils_tests "[Mcp]"`. `test_mcp_protocol` covers both eras, argument validation, the names
+and values read in place of a tool's own, and the error for an unknown tool another catalog has;
 `test_mcp_http` the endpoint rules and a live server (deadlines, eviction, stop); `test_mcp_token`
 who owns the discovery file and when a port counts as held by another window; `test_mcp_core`
 `UiInvoker`, `McpCore` and `JobRegistry` on a hand-stepped dispatcher (guards, abandoned calls,
@@ -3401,7 +3447,8 @@ dialog's description, a web dialog rule's wx buttons and web view handles;
 `test_mcp_recording` the Matroska file (read back closed and unclosed), the sink's order, memory
 budget, non-blocking push, finish, abort and failed frames, the video transform, overlays and frame
 repeats, captions and what they hide, the ffmpeg command and listings, the files recordings and
-encodes reserve, and the journal's recording paths; `test_mcp_tools` setting serialization; `test_mcp_config` the object and volume scopes' keys and
+encodes reserve, and the journal's recording paths; `test_mcp_tools` setting serialization, how a query ranks
+the Speed Dial's actions, and which catalog a name its own lacks is pointed to; `test_mcp_config` the object and volume scopes' keys and
 effective values, the names and places `save_preset` accepts, enum labels and descriptions, the settings search,
 per-variant entries and their writes, preset comparison, `changed`, which unsaved changes a call discarded, which presets
 `delete_preset` refuses or deletes with a custom printer, the project scope's slot colours,
@@ -3440,8 +3487,8 @@ view type change, and the preview refusals of `set_view`, `tools/mcp/test_set_wi
 `set_window` on the main window (sized twice, moved, placed over its display's work area, maximized and
 minimized, and restored from both, with a window screenshot of the size on Wayland), on the Plugins
 window by its ref and on Preferences by its `{label}` locator (on X11 with the main window kept under it
-in the X server's stacking order), and `set_view`'s refusal of `window_size`, `tools/mcp/test_set_view_camera.py`
-`set_view`'s `target` and `zoom` after a queued fit (and its note while no 3D view draws), clamping,
+in the X server's stacking order), `tools/mcp/test_set_view_camera.py`
+`set_view`'s `look_at` and `zoom` after a queued fit (and its note while no 3D view draws), clamping,
 an orbit that keeps the target, the camera Preview shares and the Design tab's own, with `camera_state`
 and `get_app_state.camera`, and a fit after the window was sized while no 3D view showed,
 `tools/mcp/test_export_running_job.py` an export during and after a job that outlived its reply,

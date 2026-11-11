@@ -9,9 +9,8 @@ The plugin (tools/mcp/tests/plugins/mcp_web_fixture) opens a page with every kin
 modal plugin dialog, as a modeless window and as a dock panel, and has a configuration UI the Plugins
 dialog shows in a sandboxed frame. The checks: what list_widgets lists of a page; each action through
 click, set_widget_value, press_keys and mouse_gesture, with the effect the page logs, the value read back and what the
-reply says changed on the page; a credential in a page's URL shown REDACTED; the native permission
-prompt the plugin's thread opens, pressed by answer_dialog and by a rule registered while it is open
-(not on macOS); the refusals (covered, disabled, file input, a page under the topmost modal); the timeout contract (a
+reply says changed on the page; a credential in a page's URL shown REDACTED; the permission prompt the
+plugin's thread opens, answered by answer_dialog and by a rule registered while it is open; the refusals (covered, disabled, file input, a page under the topmost modal); the timeout contract (a
 page busy past the deadline never runs the queued click, a slow handler's outcome is unknown);
 locators into the shadow root, the frame and the configuration frame, and the journal's locators;
 stale refs; closed:true from a page that closes its dialog through a reference to window.wx kept from
@@ -110,14 +109,14 @@ def main():
 
     def open_fixture():
         client.call("run_action", id=DIALOG)
-        return wait_for(lambda: dialogs() == ["MCP web fixture"]) and wait_for(lambda: 'heading "Fixture"' in tree(root="dialog"))
+        return wait_for(lambda: dialogs() == ["MCP web fixture"]) and wait_for(lambda: 'heading "Fixture"' in tree(target="dialog"))
 
     client.call("new_project", discard_changes=True)
     call("auto_answer_dialogs", rules=[])
 
     # ---- What a page is listed as ----
     check("the fixture dialog opens", open_fixture(), dialogs())
-    t = tree(root="dialog")
+    t = tree(target="dialog")
     for needle in ['heading "Fixture"', 'text "Name"', 'spin "Count" = "3"', 'choice "Colour" = "Green"', "[options: Red | Green | Blue]",
                    'checkbox "I agree"', 'checkbox "Fancy"', 'radio "Small"', 'slider "Level" = "20"', 'text "Notes" = "editable"',
                    'button "Card one"', 'button "Disabled"', 'row "Alpha"', 'file "Upload"', 'canvas "Pad"',
@@ -189,7 +188,7 @@ def main():
     # Left and Right on a selection collapse it to its start and its end.
     caret = []
     for keys in ("Left", "Right"):
-        call("run_javascript", code="el.value = 'abcd'; el.focus(); el.setSelectionRange(1, 3); 1", target=ref_of(tree(root="dialog"), 'text "Name"'))
+        call("run_javascript", code="el.value = 'abcd'; el.focus(); el.setSelectionRange(1, 3); 1", target=ref_of(tree(target="dialog"), 'text "Name"'))
         call("press_keys", target={"css": "#name"}, keys=keys)
         caret.append(call("run_javascript", code="document.getElementById('name').selectionStart").get("result"))
     call("set_widget_value", target={"css": "#name"}, value="Ada")
@@ -235,7 +234,7 @@ def main():
     check("a disabled element is refused", "disabled" in r.get("error", ""), r)
     r = call("set_widget_value", target={"web": "Upload"}, value="x")
     check("a file input is refused", "file input" in r.get("error", ""), r)
-    fixed = ref_of(tree(root="dialog"), 'text "Fixed"')
+    fixed = ref_of(tree(target="dialog"), 'text "Fixed"')
     call("press_keys", target=fixed, text="zz")
     r = call("run_javascript", code="el.value", target=fixed)
     check("keys leave a read-only field as it was", r.get("result") == "fixed", r)
@@ -244,7 +243,7 @@ def main():
     # Refused clicks and answer_dialog still end a press a down left.
     ups = page_log().count("pad up")
     call("mouse_gesture", target={"web": "Pad"}, action="down", x=5, y=5)
-    view = ref_of(tree(root="dialog", query="webview"), "webview")
+    view = ref_of(tree(target="dialog", query="webview"), "webview")
     r = call("click", target=view)
     check("click on a web view itself points to its page's elements", "That is a web view" in r.get("error", ""), r)
     check("and ends a press a down left", page_log().count("pad up") == ups + 1, page_log())
@@ -280,7 +279,7 @@ def main():
     check("and its effect shows later", wait_for(lambda: "slow done" in page_log(), 8))
     # By ref, so the click request itself is what waits behind the busy page (a locator's find would).
     before = page_log().splitlines().count("ok")
-    ok = ref_of(tree(root="dialog"), 'button "OK"')
+    ok = ref_of(tree(target="dialog"), 'button "OK"')
     call("run_javascript", code="setTimeout(function () { var t = Date.now(); while (Date.now() - t < 3000) {} }, 0); 1")
     r = call("click", target=ok, timeout_s=1)
     check("a click queued behind a busy page has an unknown outcome", "outcome is unknown" in r.get("error", ""), r)
@@ -292,13 +291,13 @@ def main():
     r = call("click", target={"web": "Later"})
     check("a click's reply lists what its handler added to the page", r.get("page", {}).get("changed") is True and
           'button "Made later"' in r["page"].get("added", []), r)
-    check("an element a handler adds later shows in the next snapshot", wait_for(lambda: 'button "Made later"' in tree(root="dialog"), 3))
+    check("an element a handler adds later shows in the next snapshot", wait_for(lambda: 'button "Made later"' in tree(target="dialog"), 3))
     r = call("click", target={"web": "Nothing"})
     check("a click that changes nothing on its page says so", r.get("page") == {"changed": False}, r)
     r = call("click", target={"web": "Add extra"})
     check("a change the snapshot notes (a select's new option) is a change", r.get("page", {}).get("changed") is True and
           any("options: One | Two" in line for line in r["page"].get("added", [])), r)
-    made = ref_of(tree(root="dialog"), 'button "Made later"')
+    made = ref_of(tree(target="dialog"), 'button "Made later"')
     call("run_javascript", code="document.getElementById('made').remove(); 1")
     r = call("click", target=made)
     check("a ref to a removed element is stale", "gone from the page" in r.get("error", ""), r)
@@ -312,9 +311,9 @@ def main():
     r = call("click", target={"web": "Token link"})
     check("a navigated url shows a credential parameter's value as REDACTED", r.get("navigated") is True and
           r.get("url", "").endswith("#orca-token=REDACTED&view=2"), r)
-    check("and the snapshot shows no secret either", "fixture-secret" not in tree(root="dialog"), tree(root="dialog", query="webview"))
+    check("and the snapshot shows no secret either", "fixture-secret" not in tree(target="dialog"), tree(target="dialog", query="webview"))
 
-    name = ref_of(tree(root="dialog"), 'text "Name"')
+    name = ref_of(tree(target="dialog"), 'text "Name"')
     r = call("run_javascript", code="el.value", target=name)
     check("run_javascript runs with a page element as el", r.get("result") == "Ada", r)
     r = call("click", target={"css": "#name"})
@@ -322,7 +321,7 @@ def main():
     r = call("press_keys", text="Z")
     check("keys without a target go to the dialog page's focused element",
           "Z" in (call("run_javascript", code="el.value", target=name).get("result") or ""), r)
-    r = call("press_keys", target=ref_of(tree(root="dialog", query="webview"), "webview"), text="Q")
+    r = call("press_keys", target=ref_of(tree(target="dialog", query="webview"), "webview"), text="Q")
     check("keys to a web view itself go to its page's focused element",
           "ZQ" in (call("run_javascript", code="el.value", target=name).get("result") or ""), r)
     steps = call("export_replay").get("replay", {}).get("steps", [])
@@ -330,7 +329,7 @@ def main():
     check("and the journal names the web view by its locator", keyed and keyed[-1]["args"].get("target", {}).get("class") == "webview",
           keyed[-1]["args"] if keyed else steps)
     # Typed text in editable content, where the editing command is unavailable: the text still goes in.
-    notes = ref_of(tree(root="dialog"), 'text "Notes"')
+    notes = ref_of(tree(target="dialog"), 'text "Notes"')
     call("run_javascript", code="document.__exec = document.execCommand; document.execCommand = function () { return false; }; 1")
     before_notes = call("run_javascript", code="el.textContent", target=notes).get("result") or ""
     call("press_keys", target=notes, text="XY")
@@ -361,16 +360,16 @@ def main():
     # anchor with no href, into the frame; and back.
     call("click", target={"css": "#shadowbtn"})
     call("press_keys", keys="Tab")
-    check("Tab moves from a shadow root's button to the slotted one", re.search(r'button "Slotted".*\[focused\]', tree(root="dialog")))
+    check("Tab moves from a shadow root's button to the slotted one", re.search(r'button "Slotted".*\[focused\]', tree(target="dialog")))
     call("press_keys", keys="Tab")
-    check("then past an anchor with no href into the frame", re.search(r'button "Inner".*\[focused\]', tree(root="dialog")))
+    check("then past an anchor with no href into the frame", re.search(r'button "Inner".*\[focused\]', tree(target="dialog")))
     call("press_keys", keys="Shift+Tab")
-    check("Shift+Tab moves back to the slotted button", re.search(r'button "Slotted".*\[focused\]', tree(root="dialog")))
+    check("Shift+Tab moves back to the slotted button", re.search(r'button "Slotted".*\[focused\]', tree(target="dialog")))
     call("click", target={"web": "Fixed"})
     call("press_keys", keys="Tab")
-    check("Tab reaches the control in a disabled fieldset's legend", re.search(r'checkbox "Unlock".*\[focused\]', tree(root="dialog")))
+    check("Tab reaches the control in a disabled fieldset's legend", re.search(r'checkbox "Unlock".*\[focused\]', tree(target="dialog")))
     call("press_keys", keys="Tab")
-    check("then skips a control the fieldset disables", re.search(r'spin "Fixed number".*\[focused\]', tree(root="dialog")), tree(root="dialog", query="Fixed"))
+    check("then skips a control the fieldset disables", re.search(r'spin "Fixed number".*\[focused\]', tree(target="dialog")), tree(target="dialog", query="Fixed"))
     r = call("click", target={"web": "Unlock"})
     check("a control in a disabled fieldset's legend takes a click", r.get("checked") is True, r)
     call("press_keys", target={"web": "Fixed number"}, keys="Up")
@@ -416,7 +415,7 @@ def main():
     check("and the button it gave up on was not pressed once it showed", "shown late clicked" not in page_log())
     r = call("answer_dialog", button="Shown late")
     check("once shown it is pressed", r.get("pressed") is True and "shown late clicked" in page_log(), r)
-    t0 = ref_of(tree(root="dialog"), 'button "Card one"')
+    t0 = ref_of(tree(target="dialog"), 'button "Card one"')
     call("export_replay", clear=True)
     call("screenshot", target=t0, include_image=False, save_path=os.path.join(os.environ.get("TEMP", "/tmp"), "mcp_web_shot.png"), overwrite=True)
     shots = [s for s in call("export_replay").get("replay", {}).get("steps", []) if s.get("tool") == "screenshot"]
@@ -457,40 +456,35 @@ def main():
     check("snapshots during the close all answered", snapshots == [True] * 15, snapshots)
     check("the dialog is gone", wait_for(lambda: dialogs() == []))
 
-    # ---- A native message box: the host's permission prompt for the plugin's thread ----
-    if sys.platform == "darwin":
-        print("SKIP native message boxes: wx runs no events while an alert is open on macOS, so only a rule registered "
-              "before one opens answers it")
-    else:
-        def prompt():
-            return next((d for d in client.call("get_app_state")["dialogs"] if d.get("title") == "Plugin permission request"), None)
+    # ---- The host's permission prompt for the plugin's thread ----
+    def prompt():
+        return next((d for d in client.call("get_app_state")["dialogs"] if d.get("title") == "Plugin permission request"), None)
 
-        r = call("run_action", id=THREAD)
-        check("the plugin's thread opens a permission prompt", wait_for(lambda: prompt() is not None, 10), r)
-        box = prompt() or {}
-        check("it is listed as native with its buttons", box.get("native") is True and
-              [b.get("label") for b in box.get("buttons", [])] == ["Yes", "No"], box)
-        if r.get("status") == "blocked_by_dialog":
-            check("the blocked note says to answer it with answer_dialog", "answer_dialog" in r.get("note", ""), r)
-        r = call("answer_dialog", button="No")
-        check("answer_dialog presses the open message box's button", r.get("pressed") is True and r.get("closed") is True and
-              r.get("dialogs", []) == [], r)
-        check("the prompt is gone", wait_for(lambda: prompt() is None, 5))
-        # A press held on a page when the second prompt opens ends before the rule presses the box.
-        call("run_action", id=WINDOW)
-        held_log = {"web": "Card one", "within": "MCP web fixture window"}
-        check("the modeless window opens", wait_for(lambda: 'button "Card one"' in tree(query="Card one"), 10))
-        ups = page_log(held_log).count("pad up")
-        call("mouse_gesture", target={"web": "Pad", "within": "MCP web fixture window"}, action="down", x=5, y=5)
-        call("run_action", id=THREAD)
-        check("the plugin asks again, having been refused", wait_for(lambda: prompt() is not None, 10))
-        r = call("auto_answer_dialogs", rules=[{"match": "requesting permission to create a thread", "button": "no"}])
-        check("a rule registered while a message box is open answers it", r.get("answered_open_dialog", {}).get("button") == "no" and
-              any(rule.get("uses") == 1 for rule in r.get("rules", [])), r)
-        check("and the prompt is gone again", wait_for(lambda: prompt() is None, 5), dialogs())
-        check("and the press held on a page ended first", wait_for(lambda: page_log(held_log).count("pad up") == ups + 1, 3),
-              page_log(held_log))
-        call("auto_answer_dialogs", rules=[])
+    r = call("run_action", id=THREAD)
+    check("the plugin's thread opens a permission prompt", wait_for(lambda: prompt() is not None, 10), r)
+    box = prompt() or {}
+    check("it is listed with its buttons", [b.get("label") for b in box.get("buttons", [])] == ["Yes", "No"], box)
+    if r.get("status") == "blocked_by_dialog":
+        check("the blocked note says to answer it with answer_dialog", "answer_dialog" in r.get("note", ""), r)
+    r = call("answer_dialog", button="No")
+    check("answer_dialog presses the prompt's button", r.get("pressed") is True and r.get("closed") is True and
+          r.get("dialogs", []) == [], r)
+    check("the prompt is gone", wait_for(lambda: prompt() is None, 5))
+    # A press held on a page when the second prompt opens ends before the rule answers the prompt.
+    call("run_action", id=WINDOW)
+    held_log = {"web": "Card one", "within": "MCP web fixture window"}
+    check("the modeless window opens", wait_for(lambda: 'button "Card one"' in tree(query="Card one"), 10))
+    ups = page_log(held_log).count("pad up")
+    call("mouse_gesture", target={"web": "Pad", "within": "MCP web fixture window"}, action="down", x=5, y=5)
+    call("run_action", id=THREAD)
+    check("the plugin asks again, having been refused", wait_for(lambda: prompt() is not None, 10))
+    r = call("auto_answer_dialogs", rules=[{"match": "requesting permission to create a thread", "button": "no"}])
+    check("a rule registered while the prompt is open answers it", r.get("answered_open_dialog", {}).get("button") == "no" and
+          any(rule.get("uses") == 1 for rule in r.get("rules", [])), r)
+    check("and the prompt is gone again", wait_for(lambda: prompt() is None, 5), dialogs())
+    check("and the press held on a page ended first", wait_for(lambda: page_log(held_log).count("pad up") == ups + 1, 3),
+          page_log(held_log))
+    call("auto_answer_dialogs", rules=[])
 
     # ---- The Home page, a modeless page window and the web budget ----
     client.call("run_action", id="orca_command:go_to_tab:orca", param="home")
@@ -670,7 +664,7 @@ def main():
     client.call("run_action", id="orca_command:open_plugins:orca")
     check("the Plugins dialog lists the fixture", wait_for(lambda: "MCP Web Fixture" in tree(query="MCP Web Fixture"), 15))
     try:
-        client.call("list_widgets", root="dialog")
+        client.call("list_widgets", target="dialog")
         message = ""
     except orca_mcp.McpError as e:
         message = str(e)
@@ -797,8 +791,8 @@ def main():
 
     # ---- Orca's setup wizard: a ref from before its page navigated is stale ----
     client.call("run_action", id="orca_command:help_setup_wizard:orca")
-    check("the setup wizard opens", wait_for(lambda: 'button "Next"' in tree(root="dialog"), 30))
-    next_ref = ref_of(tree(root="dialog"), 'button "Next"')
+    check("the setup wizard opens", wait_for(lambda: 'button "Next"' in tree(target="dialog"), 30))
+    next_ref = ref_of(tree(target="dialog"), 'button "Next"')
     r = call("click", target=next_ref)
     check("Next navigates to the printer page", r.get("navigated") is True and "/guide/21/" in r.get("url", ""), r)
     r = call("click", target=next_ref)

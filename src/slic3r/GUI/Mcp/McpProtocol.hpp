@@ -73,14 +73,9 @@ private:
 // pass through unchanged.
 std::string decode_header_value(const std::string& value);
 
-// The error for an argument in `args` that `tool` does not take but another tool does, naming that tool;
-// empty for any other arguments. Asked only once validate_arguments() refuses a call, whose error it
-// replaces.
-std::string moved_argument(const std::string& tool, const nlohmann::json& args);
-
 // Readies a call's arguments for `def`, as every caller of a tool does: normalizes `args` in place
-// (normalize_arguments()) and returns why validate_arguments() refuses them, or moved_argument()'s
-// error in its place when it has one; empty when they are valid. Each caller adds its own prefix.
+// (normalize_arguments()) and returns why validate_arguments() refuses them; empty when they are valid.
+// Each caller adds its own prefix.
 std::string argument_error(const ToolDef& def, nlohmann::json& args);
 
 }}} // namespace Slic3r::GUI::Mcp

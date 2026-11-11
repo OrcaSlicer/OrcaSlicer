@@ -28,7 +28,7 @@ def main():
     client.call("open_files", paths=[os.path.abspath(MODEL)])
     client.call("wait", **{"for": "idle"})
 
-    client.call("set_settings", scope="print", values={"sparse_infill_density": "35%"})
+    client.call("set_settings", scope="process", values={"sparse_infill_density": "35%"})
     box = {}
     worker = threading.Thread(target=lambda: box.update(result=client.call("slice", _timeout=600)))
     worker.start()

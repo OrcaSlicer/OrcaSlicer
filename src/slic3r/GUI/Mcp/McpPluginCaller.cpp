@@ -120,7 +120,7 @@ void install_plugin_tool_caller()
         } lease{service};
         std::shared_ptr<const ToolDef> def = service->registry().lookup(tool);
         if (def == nullptr)
-            throw ToolCallError("Unknown tool: " + tool, {{"did_you_mean", service->registry().similar(tool)}});
+            throw ToolCallError(service->registry().unknown_tool(tool), {{"did_you_mean", service->registry().similar(tool)}});
         json arguments = args;
         if (std::string err = argument_error(*def, arguments); !err.empty())
             throw ToolCallError("Invalid arguments: " + err, json());

@@ -205,7 +205,7 @@ std::string format_of(const std::string& path)
 Calib_Params calib_params_from_args(const json& args, const DynamicPrintConfig& printer, std::vector<std::string>& warnings)
 {
     const std::string test = arg_string(args, "test");
-    // The arguments each test takes, besides test, discard_changes and changes.
+    // The arguments each test takes, besides test, discard_changes and preset_changes.
     std::vector<std::string> takes{"start", "end", "step"};
     CalibMode                mode = CalibMode::Calib_None;
     std::string              method;
@@ -249,7 +249,7 @@ Calib_Params calib_params_from_args(const json& args, const DynamicPrintConfig& 
         throw ToolFailure("Unknown test \"" + test + "\"");
     }
     for (auto it = args.begin(); it != args.end(); ++it)
-        if (it.key() != "test" && it.key() != "discard_changes" && it.key() != "changes" &&
+        if (it.key() != "test" && it.key() != "discard_changes" && it.key() != "preset_changes" &&
             std::find(takes.begin(), takes.end(), it.key()) == takes.end())
             throw ToolFailure(it.key() + " does not apply to " + test + (method.empty() ? "" : " with method " + method), {{"takes", takes}});
 
@@ -439,16 +439,16 @@ void register_project_tools(McpService& service)
     reg.add(mutate_tool(
         "new_project", L("New project"),
         "Start a new, empty project. Fails, changing nothing, when the current project has unsaved changes, unless "
-        "discard_changes. The presets' unsaved changes carry over to the new project unless changes is \"discard\", as "
+        "discard_changes. The presets' unsaved changes carry over to the new project unless preset_changes is \"discard\", as "
         "New Project's prompt offers. Reply: objects, names, plates; when presets had or have unsaved changes, discarded "
         "and modified list per preset the keys dropped and the keys still unsaved.",
         object_schema({{"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail; for the "
-                                                           "presets', see changes.")},
-                       {"changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep "
+                                                           "presets', see preset_changes.")},
+                       {"preset_changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep "
                                                                   "them for the new project (default) or drop them.")}}),
         [&service](const json& args, ToolContext& ctx) {
             const bool discard         = arg_bool(args, "discard_changes", false) || service.discard_authorized(ctx.lineage());
-            const bool discard_presets = arg_string(args, "changes", "keep") == "discard";
+            const bool discard_presets = arg_string(args, "preset_changes", "keep") == "discard";
             json       out             = ctx.run_ui([&] {
                 Plater& plater = ui_plater();
                 require_project_discardable(plater, discard);
@@ -473,10 +473,10 @@ void register_project_tools(McpService& service)
         "with filament slot 1, so the filament tab is pointed at slot 1's preset. Omitted parameters take the dialog's "
         "defaults (pressure advance's by the printer's extruder type); temperatures are clamped to 155-500 °C and rounded "
         "down to 5 °C. Fails, changing nothing, when the project has unsaved changes (pass discard_changes) or presets do "
-        "(pass changes). Reply: test, project, params (the values used, which the journal records), objects, names, "
+        "(pass preset_changes). Reply: test, project, params (the values used, which the journal records), objects, names, "
         "plates, presets_changed, result_keys (where the measured value belongs), warnings, adjusted (vfa), and discarded "
         "and modified as new_project. Then slice and export. To save a measured value: new_project {discard_changes, "
-        "changes: \"discard\"}, set_settings the value, save_preset.",
+        "preset_changes: \"discard\"}, set_settings the value, save_preset.",
         object_schema(
             {{"test", enum_prop({"temperature", "max_volumetric", "pressure_advance", "flow_ratio", "retraction", "vfa", "cornering",
                                  "input_shaping_freq", "input_shaping_damp"},
@@ -506,8 +506,8 @@ void register_project_tools(McpService& service)
              {"auto_adjust", prop("boolean", "vfa: lower the layer height, else the end speed, to stay within the filament's "
                                              "maximum volumetric speed (default true).")},
              {"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail; for the presets', "
-                                                 "see changes.")},
-             {"changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep them for the "
+                                                 "see preset_changes.")},
+             {"preset_changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep them for the "
                                                         "test or drop them first. Required when presets are modified.")}},
             {"test"}),
         [&service](const json& args, ToolContext& ctx) {
@@ -518,22 +518,22 @@ void register_project_tools(McpService& service)
                 if (plater.printer_technology() != ptFFF)
                     throw ToolFailure("Calibration tests are for filament (FFF) printers");
                 PresetBundle& bundle          = *wxGetApp().preset_bundle;
-                const bool    discard_presets = arg_string(args, "changes") == "discard";
+                const bool    discard_presets = arg_string(args, "preset_changes") == "discard";
                 // Discarded edits are gone before the test runs, so its rules and defaults are the saved printer's.
                 const DynamicPrintConfig& printer = discard_presets ? bundle.printers.get_selected_preset().config :
                                                                       bundle.printers.get_edited_preset().config;
                 std::vector<std::string> warnings;
                 Calib_Params             params = calib_params_from_args(args, printer, warnings);
                 require_project_discardable(plater, discard);
-                // The GUI asks whether to keep or discard modified presets here; the caller answers with changes.
+                // The GUI asks whether to keep or discard modified presets here; the caller answers with preset_changes.
                 const json before = unsaved_changes();
-                if (!before.empty() && !args.contains("changes")) {
+                if (!before.empty() && !args.contains("preset_changes")) {
                     const json  modified = unsaved_changes_outcome(json::object()).value("modified", json::object());
                     std::string list;
                     for (auto it = modified.begin(); it != modified.end(); ++it)
                         list += std::string(list.empty() ? "" : "; ") + it.key() + " \"" + it.value()["name"].get<std::string>() +
                                 "\": " + boost::algorithm::join(it.value()["keys"].get<std::vector<std::string>>(), ", ");
-                    throw ToolFailure("Presets are modified (" + list + "). Pass changes: \"discard\" to drop them first, or \"keep\" "
+                    throw ToolFailure("Presets are modified (" + list + "). Pass preset_changes: \"discard\" to drop them first, or \"keep\" "
                                       "to run the test with them",
                                       {{"modified", modified}});
                 }
@@ -542,7 +542,7 @@ void register_project_tools(McpService& service)
                 if (!discard_presets && bundle.filaments.get_edited_preset().name != slot1 && bundle.filaments.current_is_dirty())
                     throw ToolFailure("The filament tab edits \"" + bundle.filaments.get_edited_preset().name +
                                       "\", which has unsaved changes, and the test prints with filament slot 1 (\"" + slot1 +
-                                      "\"); pass changes: \"discard\", or save or drop those changes first");
+                                      "\"); pass preset_changes: \"discard\", or save or drop those changes first");
                 if (discard_presets && wxGetApp().has_current_preset_changes())
                     wxGetApp().discard_current_preset_changes();
                 const std::string switched_from = edit_filament_slot(1);

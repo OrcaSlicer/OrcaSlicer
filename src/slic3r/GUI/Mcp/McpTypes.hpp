@@ -182,10 +182,18 @@ public:
     std::shared_ptr<const ToolDef> lookup(const std::string& name) const;
     // Up to `limit` registered names closest to `name`, for "did you mean" errors.
     std::vector<std::string> similar(const std::string& name, std::size_t limit = 3) const;
+    // Says where a name lookup() does not resolve belongs when another catalog has it (a CAD tool, a
+    // Speed Dial action), as a clause for the error: "it is a CAD tool: call_cad_tool ... runs it".
+    // Called on any thread. Set once, before any call.
+    void set_elsewhere(std::function<std::string(const std::string&)> hint) { m_elsewhere = std::move(hint); }
+    // The error for a name lookup() does not resolve: "Unknown tool: <name>", then where the name does
+    // belong (set_elsewhere), or else, with `suggest`, the closest registered name.
+    std::string unknown_tool(const std::string& name, bool suggest = false) const;
 
 private:
     std::vector<ToolDef>                                                     m_tools;
     std::function<std::shared_ptr<const ToolDef>(const std::string&)>        m_dynamic;
+    std::function<std::string(const std::string&)>                           m_elsewhere;
 };
 
 // For a call of call_tool ({tool, args}): replaces `def` and `args` with its target's, normalized and
@@ -210,9 +218,11 @@ std::string validate_arguments(const nlohmann::json& schema, const nlohmann::jso
 // Rewrites, before validation, what agents often send in place of what the schema asks for: an
 // argument under a name the tool does not take but that stands for one it does, which the call leaves
 // out and the value fits (ref for target, key for keys, text for value, action for id or button, object for objects,
-// plate for plates, filter for query, settings for values, target for root), a value written in
+// plate for plates, filter for query, settings for values, part for volume, path for save_path, view
+// for canvas or camera), a value written in
 // another JSON form (a number, boolean, array or object as a string, a single item for an array),
-// a value outside its argument's enum that only one omitted argument's enum takes (set_view's view
+// a value its enum lacks that stands for one it lists (print for process, part for volume, window for
+// main), a value outside its argument's enum that only one omitted argument's enum takes (set_view's canvas
 // "front" as camera), and the x and y, or width and height, that list_windows reports, both given, as
 // the position or size array of a tool that takes that array, of integers, and neither part. Anything
 // that still does not fit is left for validate_arguments to report.

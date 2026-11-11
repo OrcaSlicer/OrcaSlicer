@@ -134,6 +134,22 @@ std::vector<std::string> query_words(const std::string& query);
 // at a capital in a CamelCase name, so "mesh" finds TriangleMesh.
 std::pair<int, int> match_score(const std::vector<std::string>& words, const std::string& name, const std::string& text);
 
+// The Speed Dial actions of `listed` (ActionRegistry::describe()'s items: id, title, group, description)
+// that `words` (of query_words()) describe, best first: those matching more of the words, then those
+// matching more of them in what the action is called (the name inside its id, its title and its group),
+// then the shorter name, which is the plainer command (obj_delete before obj_delete_all). search_actions
+// and search_tools both rank with it, so one query finds the same actions through either.
+nlohmann::json rank_actions(const nlohmann::json& listed, const std::vector<std::string>& words);
+
+// The catalogs a name an agent calls can belong to: the registered tools and plugin operations, the
+// Speed Dial's built-in commands, and the Design tab's CAD tools.
+enum class Catalog { Tools, Actions, Cad };
+
+// For a name `missed` does not have: where it does belong and how to call it there, as a clause for
+// the error ("it is a CAD tool: call_cad_tool {tool: \"extrude\", args} runs it"); empty when no other
+// catalog has it. A command is known by its id or by the name inside it. Any thread.
+std::string other_catalog_hint(const ToolRegistry& registry, const std::string& name, Catalog missed);
+
 // The first sentence of `text` on one line, for a listing: up to the first full stop followed by a space
 // or the end, "e.g." and "i.e." aside; the whole text when it has none.
 std::string first_sentence(const std::string& text);
@@ -497,8 +513,8 @@ class GCodeViewer;
 namespace Mcp {
 
 // The camera set_view leaves, as its reply's camera_state and get_app_state.camera give it: type ("ortho"
-// or "perspective"), target and position ([x, y, z] in mm, to 0.001), zoom (viewport pixels per mm at the
-// target's depth) and click_px_per_mm (the zoom in the logical pixels the input tools take, the zoom over
+// or "perspective"), look_at, the point it looks at, and position ([x, y, z] in mm, to 0.001), zoom (viewport
+// pixels per mm at look_at's depth) and click_px_per_mm (the zoom in the logical pixels the input tools take, the zoom over
 // `canvas_scale`), both to 0.0001, and the elevation and azimuth orbit uses, in whole degrees.
 nlohmann::json camera_state(Camera& camera, double canvas_scale);
 

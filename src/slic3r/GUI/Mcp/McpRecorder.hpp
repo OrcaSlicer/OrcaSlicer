@@ -44,7 +44,7 @@ std::shared_ptr<const TextMask> render_text(const std::string& text, const wxFon
 // start_recording's arguments.
 struct RecordingOptions
 {
-    std::string             target = "window"; // window | canvas
+    std::string             target = "main";   // main | canvas
     int                     fps         = 10;
     int                     max_dim     = 1920;
     int                     quality     = 80;

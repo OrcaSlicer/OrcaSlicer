@@ -2,7 +2,7 @@
 """Checks that the Action Replay window and the Run Script panel stay out of reach of the GUI tools, so a
 replay or a script can't act on them.
 
-    tools/mcp/orca_mcp.py launch
+    tools/mcp/orca_mcp.py launch --python-scripts
     tools/mcp/test_action_replay_hidden.py
 
 With Action Replay open: list_widgets lists no window for it, a window screenshot still works,
@@ -55,7 +55,7 @@ def main():
     # The File menu's "Action Replay..." item is listed; the window must not be.
     check("list_widgets lists no Action Replay window", 'window "Action Replay"' not in tree)
     check("list_widgets still lists the main window", "(MainFrame)" in tree)
-    check("a window screenshot works", client.call("screenshot", target="window").get("path"))
+    check("a window screenshot works", client.call("screenshot", target="main").get("path"))
     check("run_javascript without a target behaves as before", eval_outcome() == before, f"{before} / {eval_outcome()}")
 
     client.call("set_view", tab="prepare")
@@ -73,7 +73,7 @@ def main():
     check("run_javascript without a target behaves as before the panel", eval_outcome() == prepare_eval, f"{prepare_eval} / {eval_outcome()}")
     key = client.call("press_keys", keys="Escape")
     check("a key without a target reaches the 3D view", "canvas" in str(key.get("to", "")).lower(), key)
-    check("a window screenshot works with the panel shown", client.call("screenshot", target="window").get("path"))
+    check("a window screenshot works with the panel shown", client.call("screenshot", target="main").get("path"))
     python = client.await_job(client.call("run_script", code="print('agent run')"))
     check("an agent's run_script finishes while the panel is shown", python.get("status") == "finished", python)
     client.call("run_action", id="orca_command:toggle_run_script:orca")  # hidden again

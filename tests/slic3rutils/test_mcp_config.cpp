@@ -825,7 +825,7 @@ TEST_CASE("generate_calibration_test refuses arguments its test does not take", 
     CHECK(calib_args({{"test", "input_shaping_freq"}, {"shaper_type", "EI3"}}, calib_printer(gcfRepRapFirmware)).shaper_type == "EI3");
     CHECK(calib_args({{"test", "input_shaping_damp"}}, calib_printer(gcfMarlinFirmware)).shaper_type == "ZV");
     // The values the call needs besides the test's own are not refused.
-    CHECK_NOTHROW(calib_args({{"test", "retraction"}, {"discard_changes", true}, {"changes", "keep"}}));
+    CHECK_NOTHROW(calib_args({{"test", "retraction"}, {"discard_changes", true}, {"preset_changes", "keep"}}));
 }
 
 TEST_CASE("the input shaping Y range defaults to the X range, and RepRapFirmware takes one range", "[Mcp]")

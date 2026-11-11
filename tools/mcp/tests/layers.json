@@ -17,12 +17,12 @@
     {"tool": "set_view", "args": {"tab": "prepare"}},
     {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "transform", "args": {"object": 0, "size": [20, 20, 20]}},
-    {"tool": "set_settings", "args": {"scope": "print", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},
+    {"tool": "set_settings", "args": {"scope": "process", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},
     {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
 
     // ---- Two ranges, given in any order: the lower half at 40 % infill, the upper half at 0.1 mm ----
     {"tool": "set_height_ranges",
-     "args": {"object": 0, "layer_config_ranges": [{"min_z": 10, "max_z": 20, "values": {"layer_height": 0.1}},
+     "args": {"object": 0, "ranges": [{"min_z": 10, "max_z": 20, "values": {"layer_height": 0.1}},
                                                    {"min_z": 0, "max_z": 10, "values": {"sparse_infill_density": "40%"}}]},
      "expect": {"/height": {"ge": 19.99, "le": 20.01},
                 "/layer_config_ranges/0/max_z": {"eq": 10},
@@ -44,7 +44,7 @@
     {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
     {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
     {"tool": "set_height_ranges",
-     "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 10, "values": {"sparse_infill_density": "40%"}},
+     "args": {"object": 0, "ranges": [{"min_z": 0, "max_z": 10, "values": {"sparse_infill_density": "40%"}},
                                                    {"min_z": 10, "max_z": 20, "values": {"layer_height": 0.1}}]}},
     {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
     {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
@@ -57,15 +57,15 @@
 
     // ---- Refusals change nothing: an overlap, a layer height beyond the printer's, a filament the
     // project lacks, an object setting, an empty range ----
-    {"tool": "set_height_ranges", "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 15}, {"min_z": 12, "max_z": 20}]},
+    {"tool": "set_height_ranges", "args": {"object": 0, "ranges": [{"min_z": 0, "max_z": 15}, {"min_z": 12, "max_z": 20}]},
      "optional": true},
-    {"tool": "set_height_ranges", "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 5, "values": {"layer_height": 0.5}}]},
+    {"tool": "set_height_ranges", "args": {"object": 0, "ranges": [{"min_z": 0, "max_z": 5, "values": {"layer_height": 0.5}}]},
      "optional": true},
-    {"tool": "set_height_ranges", "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 5, "values": {"extruder": 9}}]},
+    {"tool": "set_height_ranges", "args": {"object": 0, "ranges": [{"min_z": 0, "max_z": 5, "values": {"extruder": 9}}]},
      "optional": true},
-    {"tool": "set_height_ranges", "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 5, "values": {"enable_support": true}}]},
+    {"tool": "set_height_ranges", "args": {"object": 0, "ranges": [{"min_z": 0, "max_z": 5, "values": {"enable_support": true}}]},
      "optional": true},
-    {"tool": "set_height_ranges", "args": {"object": 0, "layer_config_ranges": [{"min_z": 5, "max_z": 5}]}, "optional": true},
+    {"tool": "set_height_ranges", "args": {"object": 0, "ranges": [{"min_z": 5, "max_z": 5}]}, "optional": true},
     {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges/0/max_z": {"eq": 10},
                                         "/items/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
                                         "/items/0/layer_config_ranges/2": {"exists": false}}},
@@ -74,7 +74,7 @@
     {"tool": "set_view", "args": {"tab": "prepare"}},
     {"tool": "click", "args": {"target": {"label": "Add one filament"}}},
     {"tool": "set_height_ranges",
-     "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 10, "values": {"sparse_infill_density": "40%"}},
+     "args": {"object": 0, "ranges": [{"min_z": 0, "max_z": 10, "values": {"sparse_infill_density": "40%"}},
                                                    {"min_z": 10, "max_z": 20, "values": {"layer_height": 0.1}},
                                                    {"min_z": 20, "max_z": 30, "values": {"extruder": 2}}]},
      "expect": {"/height": {"le": 20.01}, "/layer_config_ranges/2/values/extruder": {"eq": "2"}}},
@@ -90,7 +90,7 @@
                                         "/items/0/layer_config_ranges/2/values/extruder": {"eq": "2"}}},
 
     // ---- [] removes them all ----
-    {"tool": "set_height_ranges", "args": {"object": 0, "layer_config_ranges": []}, "expect": {"/layer_config_ranges": {"eq": []}}},
+    {"tool": "set_height_ranges", "args": {"object": 0, "ranges": []}, "expect": {"/layer_config_ranges": {"eq": []}}},
     {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
     {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
     {"tool": "set_view", "args": {"tab": "preview", "layer": 1}, "expect": {"/layers/2": {"eq": 100}}},
@@ -98,7 +98,7 @@
     // ---- Variable layer height on a Benchy (48 mm; 240 layers at 0.2 mm), called from the Preview tab ----
     {"tool": "new_project", "args": {"discard_changes": true}},
     {"tool": "open_files", "args": {"paths": ["${vars.benchy}"]}, "expect": {"/added": {"eq": 1}}},
-    {"tool": "set_settings", "args": {"scope": "print", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},
+    {"tool": "set_settings", "args": {"scope": "process", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},
     {"tool": "list_objects", "expect": {"/items/0/layer_height_profile": {"exists": false}}},
     {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "adaptive"},
@@ -134,15 +134,15 @@
 
     // ---- Refusals change nothing: an argument of another action, the assemble view ----
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "smooth", "quality": 0.3}, "optional": true},
-    {"tool": "set_view", "args": {"view": "assemble"}},
+    {"tool": "set_view", "args": {"canvas": "assemble"}},
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "adaptive"}, "optional": true},
-    {"tool": "set_view", "args": {"view": "3d"}},
+    {"tool": "set_view", "args": {"canvas": "3d"}},
     {"tool": "list_objects", "expect": {"/items/0/layer_height_profile": {"exists": false}}},
 
     // ---- With height ranges: Smooth starts from the ranges' heights, Adaptive keeps them inside each
     // range, and the profile then decides ----
     {"tool": "set_height_ranges",
-     "args": {"object": 0, "layer_config_ranges": [{"min_z": 0, "max_z": 20, "values": {"layer_height": 0.12}},
+     "args": {"object": 0, "ranges": [{"min_z": 0, "max_z": 20, "values": {"layer_height": 0.12}},
                                                    {"min_z": 20, "max_z": 48, "values": {"layer_height": 0.28}}]}},
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "smooth"},
      "expect": {"/layer_height_profile/min_height": {"eq": 0.12},
@@ -165,7 +165,7 @@
     {"tool": "new_project", "args": {"discard_changes": true}},
     {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "transform", "args": {"object": 0, "size": [20, 20, 20]}},
-    {"tool": "set_settings", "args": {"scope": "print", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},
+    {"tool": "set_settings", "args": {"scope": "process", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},
     {"tool": "set_custom_gcode_at_layer", "args": {"add": [{"layer": 26, "type": "pause"}]}, "optional": true},
     {"tool": "get_app_state", "expect": {"/tab": {"eq": "prepare"}, "/slicing": {"eq": false}}},
     {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},

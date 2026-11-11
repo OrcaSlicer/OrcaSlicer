@@ -5004,21 +5004,21 @@ const json& cad_tool_table()
     return table;
 }
 
-json cad_list_tools(const std::string& query)
+json cad_list_tools(const std::string& query, const json& paging)
 {
     const std::string q   = lower(query);
     auto              has = [&q](const json& row, const char* key) {
         return lower(row.at(key).get<std::string>()).find(q) != std::string::npos;
     };
-    const json& table = cad_tool_table();
-    json        tools = json::array();
-    for (const json& row : table)
+    json tools = json::array();
+    for (const json& row : cad_tool_table())
         if (q.empty() || has(row, "name") || has(row, "summary") || has(row, "details"))
             tools.push_back({{"name", row.at("name")}, {"access", row.value("access", json())}, {"summary", row.at("summary")}});
-    return json{{"tools", std::move(tools)},
-                {"total", table.size()},
-                {"ids", kIdsNote},
-                {"use", "describe_cad_tool {tool} gives a tool's arguments and examples; call_cad_tool {tool, args} runs it"}};
+    // One page holds every CAD tool unless the call asks for less.
+    json reply   = page(tools, paging, 200);
+    reply["ids"] = kIdsNote;
+    reply["use"] = "describe_cad_tool {tool} gives a tool's arguments and examples; call_cad_tool {tool, args} runs it";
+    return reply;
 }
 
 json cad_describe_tool(const json& tool)
@@ -6165,6 +6165,16 @@ ToolResult with_feature_note(json reply, ToolContext& ctx)
     return ToolResult::ok(std::move(reply));
 }
 
+// Refuses a name that is no CAD tool but a tool of `tools` or a Speed Dial action, saying where it
+// runs: the names closest among the CAD tools would point the wrong way.
+void refuse_other_catalog(const ToolRegistry& tools, const std::string& name)
+{
+    if (find_cad_tool(name) != nullptr)
+        return;
+    if (const std::string elsewhere = other_catalog_hint(tools, name, Catalog::Cad); !elsewhere.empty())
+        throw ToolFailure("Unknown CAD tool: " + name + "; " + elsewhere, {{"code", -32601}});
+}
+
 } // namespace
 
 // The Design tab through MCP: two tools that read the CAD tool table, which needs no Design panel,
@@ -6177,12 +6187,14 @@ void register_cad_tools(McpService& service)
         "list_cad_tools", L("List the CAD tools"),
         "List the Design (CAD) tab's CAD tools, which call_cad_tool runs: each one's name, access (read; sketch, which "
         "edits the open sketch; change, which changes the design) and one-line summary, grouped by what they do, and how "
-        "face and edge ids expire. query keeps the tools whose name, summary or details hold it, in any case; total counts "
-        "them all. describe_cad_tool {tool} gives a tool's arguments and examples. With the CAD feature off it still "
+        "face and edge ids expire. query keeps the tools whose name, summary or details hold it, in any case. "
+        "describe_cad_tool {tool} gives a tool's arguments and examples. With the CAD feature off it still "
         "answers, with a note on how a person turns the feature on.",
         object_schema({{"query", prop("string", "Text to look for in each tool's name, summary and details, in any case. "
-                                                "Leave it out for every tool.")}}),
-        [](const json& args, ToolContext& ctx) { return with_feature_note(cad_list_tools(arg_string(args, "query")), ctx); }));
+                                                "Leave it out for every tool.")},
+                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 200, which holds them all."}}},
+                       {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
+        [](const json& args, ToolContext& ctx) { return with_feature_note(cad_list_tools(arg_string(args, "query"), args), ctx); }));
 
     reg.add(inspect_tool(
         "describe_cad_tool", L("Describe a CAD tool"),
@@ -6195,10 +6207,14 @@ void register_cad_tools(McpService& service)
                                  {"items", {{"type", "string"}}},
                                  {"description", "A CAD tool's name (list_cad_tools), or a list of names."}}}},
                       {"tool"}),
-        [](const json& args, ToolContext& ctx) {
+        [&service](const json& args, ToolContext& ctx) {
+            const json tool = args.value("tool", json());
+            for (const json& name : tool.is_array() ? tool : json::array({tool}))
+                if (name.is_string())
+                    refuse_other_catalog(service.registry(), name.get<std::string>());
             json reply;
             try {
-                reply = cad_describe_tool(args.value("tool", json()));
+                reply = cad_describe_tool(tool);
             } catch (const std::runtime_error& e) {
                 throw ToolFailure(e.what());
             }
@@ -6215,9 +6231,10 @@ void register_cad_tools(McpService& service)
         object_schema({{"tool", prop("string", "A CAD tool's name (list_cad_tools); its arguments go in args.")},
                        {"args", {{"type", "object"}, {"description", "Its arguments (describe_cad_tool)."}}}},
                       {"tool"}),
-        [](const json& args, ToolContext& ctx) {
+        [&service](const json& args, ToolContext& ctx) {
             const std::string tool      = arg_string(args, "tool");
             const json        tool_args = args.value("args", json::object());
+            refuse_other_catalog(service.registry(), tool);
             // `generation` guards ids within this session only: a replay rebuilds the same ids by
             // replaying the history, but reaches another generation number, so a recorded one
             // would refuse the replay. Journal the call without it.

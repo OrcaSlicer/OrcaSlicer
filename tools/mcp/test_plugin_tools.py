@@ -19,7 +19,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from orca_mcp import OrcaMcp, find_binary, write_conf  # noqa: E402
+from orca_mcp import OrcaMcp, find_binary  # noqa: E402
 
 FIXTURE = os.path.join(HERE, "tests", "plugins", "mcp_tools_fixture")
 PLUGIN = "mcp_tools_fixture"
@@ -64,16 +64,6 @@ def install_broken(datadir):
     with open(os.path.join(dest, ".install_state.json"), "w", encoding="utf-8") as f:
         json.dump({"installed_from": "local", "installed_version": "1.0.0", "plugin_name": "MCP Tools Broken Fixture", "enabled": True,
                    "capabilities": [{"MCP tools broken fixture": True}], "permissions": {"operations": ["measure"]}}, f, indent=2)
-
-
-def allow_python(datadir):
-    """Turns the Python scripts setting on in the data folder's config, as only a person can in the app."""
-    conf = os.path.join(datadir, "OrcaSlicer.conf")
-    with open(conf, encoding="utf-8") as f:
-        text = f.read()
-    data = json.loads(text[:text.rfind("}") + 1])
-    data.setdefault("app", {})["mcp_python_scripts"] = "true"
-    write_conf(conf, data)
 
 
 def wait_for(predicate, timeout):
@@ -142,8 +132,7 @@ def main():
         # --- With the tools permission granted, Python scripts allowed, and a plugin whose load fails. ---
         plugin_dir = install(datadir, tools=True)
         install_broken(datadir)
-        allow_python(datadir)
-        orca = launch(env, datadir, extra)
+        orca = launch(env, datadir, ["--python-scripts"] + extra)
         called = run_plugin_script(orca, plugin_dir, "call", CAPABILITIES[0])
         check("a plugin with the tools permission calls a tool from its Script worker", called == {"ok": True, "result": True}, called)
         threaded = run_plugin_script(orca, plugin_dir, "thread", CAPABILITIES[1])

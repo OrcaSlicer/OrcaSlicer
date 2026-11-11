@@ -503,9 +503,9 @@ class CadGui:
         and centres it on the plane's origin, keeping the zoom. Every map calibrate() fits stands
         on this view, so the camera set_view reports is checked."""
         origin = self.cad("describe_scene")["modeling_origin"]
-        state = self.client.call("set_view", tab="design", camera="top", target=origin,
+        state = self.client.call("set_view", tab="design", camera="top", look_at=origin,
                                  zoom=RESET_ZOOM).get("camera_state", {})
-        zoom, target = state.get("zoom"), state.get("target")
+        zoom, target = state.get("zoom"), state.get("look_at")
         if (zoom is None or abs(zoom - RESET_ZOOM) > 1e-3 or target is None
                 or max(abs(a - b) for a, b in zip(target, origin)) > 1e-3):
             raise RuntimeError(f"set_view left the Design camera at {state}, not at modeling_origin "

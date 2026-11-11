@@ -21,7 +21,7 @@
 
     // ---- The object list shows while the sidebar's switch is on Objects ----
     {"tool": "set_widget_value", "args": {"target": {"class": "SwitchButton", "label": "Process"}, "value": true}},
-    {"tool": "list_widgets", "args": {"root": "main", "query": "row"}, "expect": {"/nodes": {"ge": 2}}},
+    {"tool": "list_widgets", "args": {"target": "main", "query": "row"}, "expect": {"/nodes": {"ge": 2}}},
 
     // ---- Plate rows pick the plate ----
     {"tool": "click", "args": {"target": {"gltoolbar": "addplate"}}},
@@ -70,7 +70,7 @@
     {"tool": "click", "args": {"target": {"row": "Plate 1>Cube"}, "button": "right", "popup_item": "Edit in Parameter Table"},
      "await": false, "save_as": "table"},
     {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}, "expect": {"/satisfied": {"eq": true}}},
-    {"tool": "list_widgets", "args": {"root": "dialog", "query": "Generic-Cylinder"}, "expect": {"/nodes": {"eq": 1}}},
+    {"tool": "list_widgets", "args": {"target": "dialog", "query": "Generic-Cylinder"}, "expect": {"/nodes": {"eq": 1}}},
     {"tool": "click", "args": {"target": {"row": "Generic-Cylinder", "within": "Object/Part Settings", "column": "Wall loops"}},
      "expect": {"/column": {"eq": "Wall loops"}}},
     {"tool": "answer_dialog", "args": {"dialog": {"title": "Object/Part Settings"}, "button": "close"}},
@@ -78,19 +78,19 @@
 
     // ---- The print button's popup: listed as a root, one of its buttons picked ----
     {"tool": "click", "args": {"target": {"class": "SideButton", "index": 3}}},
-    {"tool": "list_widgets", "args": {"root": "popup", "query": "Export plate sliced file"}, "expect": {"/nodes": {"eq": 1}}},
+    {"tool": "list_widgets", "args": {"target": "popup", "query": "Export plate sliced file"}, "expect": {"/nodes": {"eq": 1}}},
     {"tool": "click", "args": {"target": {"class": "SideButton", "label": "Export plate sliced file"}}},
-    {"tool": "list_widgets", "args": {"root": "popup"}, "expect": {"/nodes": {"eq": 0}}},
-    {"tool": "list_widgets", "args": {"root": "main", "query": "Export plate sliced file", "include_menus": false}, "expect": {"/nodes": {"eq": 1}}},
+    {"tool": "list_widgets", "args": {"target": "popup"}, "expect": {"/nodes": {"eq": 0}}},
+    {"tool": "list_widgets", "args": {"target": "main", "query": "Export plate sliced file", "include_menus": false}, "expect": {"/nodes": {"eq": 1}}},
 
     // ---- A drop-down list's rows: the plate type, picked, then put back through the combo itself (a
     // press within 20 ms of its list closing, which a replay can make, does not reopen it) ----
     {"tool": "click", "args": {"target": {"class": "ComboBox", "label": "Smooth Cool Plate"}}},
-    {"tool": "list_widgets", "args": {"root": "popup", "query": "row"}, "expect": {"/nodes": {"ge": 2}}},
+    {"tool": "list_widgets", "args": {"target": "popup", "query": "row"}, "expect": {"/nodes": {"ge": 2}}},
     {"tool": "click", "args": {"target": {"row": "Textured PEI Plate"}}, "expect": {"/clicked": {"eq": "Textured PEI Plate"}}},
-    {"tool": "list_widgets", "args": {"root": "main", "query": "Textured PEI Plate"}, "expect": {"/nodes": {"eq": 1}}},
+    {"tool": "list_widgets", "args": {"target": "main", "query": "Textured PEI Plate"}, "expect": {"/nodes": {"eq": 1}}},
     {"tool": "set_widget_value", "args": {"target": {"class": "ComboBox", "label": "Textured PEI Plate"}, "value": "Smooth Cool Plate"}},
-    {"tool": "list_widgets", "args": {"root": "main", "query": "Smooth Cool Plate"}, "expect": {"/nodes": {"eq": 1}}},
+    {"tool": "list_widgets", "args": {"target": "main", "query": "Smooth Cool Plate"}, "expect": {"/nodes": {"eq": 1}}},
     {"tool": "get_app_state", "expect": {"/dialogs": {"empty": true}, "/closed_menus": {"empty": true}}}
   ]
 }

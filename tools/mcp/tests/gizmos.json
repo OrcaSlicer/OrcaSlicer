@@ -125,7 +125,7 @@
     {"tool": "click", "args": {"target": {"imgui": "Done"}}},
     // Painted enforcers with support off raise a lasting warning, whose notification can cover a later
     // panel's items in a small window (a click there is refused); support goes on, as it asks.
-    {"tool": "set_settings", "args": {"scope": "print", "values": {"enable_support": true}}},
+    {"tool": "set_settings", "args": {"scope": "process", "values": {"enable_support": true}}},
     {"tool": "transform", "args": {"object": 1, "translate": [160, 100, 12.8], "mode": "absolute"}},
 
     // ---- Seam ----
@@ -167,7 +167,7 @@
     // ---- Texture displacement: import a height map, paint the top, a second layer added and removed ----
     {"tool": "click", "args": {"target": {"gizmo": "Texture Displacement"}}, "expect": {"/active": {"eq": true}}},
     {"tool": "pick_gizmo_file", "args": {"action": "texture_import", "path": "${vars.heightmap}"}},
-    {"tool": "mouse_gesture", "args": {"action": "drag", "at": {"object": 0, "spot": "top"}, "path": [{"object": 0, "point": [8, 0, 12.8]}], "to": {"object": 0, "point": [8, 8, 12.8]}}},
+    {"tool": "mouse_gesture", "args": {"action": "drag", "at": {"object": 0, "spot": "top"}, "waypoints": [{"object": 0, "point": [8, 0, 12.8]}], "to": {"object": 0, "point": [8, 8, 12.8]}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "list_objects", "expect": {"/items/0/volumes/0/painted/texture/0/name": {"contains": "heightmap"}, "/items/0/volumes/0/painted/texture/0/painted": {"gt": 0}}},
     {"tool": "click", "args": {"target": {"imgui_name": "add_layer"}}},
@@ -290,7 +290,7 @@
     // The assemble view shows the objects selected when it opens, where they sit in the assembly. Both
     // cubes were made at the same spot, so its Move gizmo first moves object 1 apart there.
     {"tool": "select_objects", "args": {"objects": [0, 1]}},
-    {"tool": "set_view", "args": {"view": "assemble"}},
+    {"tool": "set_view", "args": {"canvas": "assemble"}},
     {"tool": "set_view", "args": {"camera": "iso"}},
     {"tool": "select_objects", "args": {"objects": [1]}},
     {"tool": "click", "args": {"target": {"gizmo": "Move", "canvas": "assemble"}}, "expect": {"/active": {"eq": true}}},

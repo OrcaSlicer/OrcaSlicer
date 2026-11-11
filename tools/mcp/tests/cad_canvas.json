@@ -31,7 +31,7 @@
      "expect": {"/source": {"eq": "canvas"}, "/approximate": {"exists": false}, "/width": {"gt": 0}}},
     {"tool": "screenshot", "args": {"target": {"class": "wxGLCanvas"}, "include_image": false, "save_path": "${out_dir}/design_view.png", "overwrite": true},
      "expect": {"/approximate": {"exists": false}, "/width": {"gt": 0}}},
-    {"tool": "screenshot", "args": {"target": "window", "include_image": false, "save_path": "${out_dir}/design_window.png", "overwrite": true},
+    {"tool": "screenshot", "args": {"target": "main", "include_image": false, "save_path": "${out_dir}/design_window.png", "overwrite": true},
      "expect": {"/width": {"gt": 0}}},
     {"tool": "list_widgets", "args": {"query": "OrcaSceneCanvas"}, "expect": {"/nodes": {"eq": 1}}},
 

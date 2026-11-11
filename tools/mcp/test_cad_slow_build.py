@@ -69,7 +69,7 @@ def main():
                 t0 = time.time()
                 client.call("get_app_state")
                 state_ms = (time.time() - t0) * 1000
-                window_shot = client.call("screenshot", target="window", include_image=False,
+                window_shot = client.call("screenshot", target="main", include_image=False,
                                           save_path=os.path.join(out, "window.png"))
                 if ref is not None:
                     dialog_shot = client.call("screenshot", target=ref, include_image=False,

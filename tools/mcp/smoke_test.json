@@ -16,14 +16,14 @@
                                                       {"match": "restore", "button": "no"}]}},
     {"tool": "new_project"},
     {"tool": "open_files", "args": {"paths": ["${vars.model}"]}, "expect": {"/added": {"eq": 1}}},
-    {"tool": "set_settings", "args": {"scope": "print", "values": {"wall_loops": 3}}},
+    {"tool": "set_settings", "args": {"scope": "process", "values": {"wall_loops": 3}}},
     {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
     {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/benchy.gcode", "overwrite": true}},
 
     // The action blocks in the dialog it opens, so it is not awaited until the dialog is answered.
     {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca"}, "await": false, "save_as": "prefs"},
     {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}, "expect": {"/satisfied": {"eq": true}}},
-    {"tool": "list_widgets", "args": {"root": "dialog", "query": "splash"}, "expect": {"/nodes": {"ge": 1}}},
+    {"tool": "list_widgets", "args": {"target": "dialog", "query": "splash"}, "expect": {"/nodes": {"ge": 1}}},
     {"tool": "screenshot", "args": {"target": "dialog", "save_path": "${out_dir}/preferences.png", "overwrite": true, "include_image": false}},
     {"tool": "answer_dialog", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs}"}},

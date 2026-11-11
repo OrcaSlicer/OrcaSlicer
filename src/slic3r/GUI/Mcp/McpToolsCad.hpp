@@ -49,10 +49,11 @@ std::vector<std::string> cad_tool_names();
 // face or edge ids, "ids": true. Needs no Design panel and no UI thread; nor do the two readers below.
 const nlohmann::json& cad_tool_table();
 
-// list_cad_tools' reply: {tools: [{name, access, summary}], total, ids, use} in the table's order.
-// `query` keeps the tools whose name, summary or details hold it, in any case ("" keeps them all);
-// total counts every CAD tool, and ids says how face and edge ids expire.
-nlohmann::json cad_list_tools(const std::string& query);
+// list_cad_tools' reply: a page of {name, access, summary} in the table's order, shaped as every list
+// is ({items, offset, total} with next_offset while more remain; `paging` holds the call's limit and
+// offset), plus ids, how face and edge ids expire, and use. `query` keeps the tools whose name, summary
+// or details hold it, in any case ("" keeps them all), and total counts the ones kept.
+nlohmann::json cad_list_tools(const std::string& query, const nlohmann::json& paging = nlohmann::json::object());
 
 // describe_cad_tool's reply for `tool`, a name or a list of names: {tools, id_lifetime?}, each
 // named tool's row once, in the order asked, without the ids flag; id_lifetime when one of them

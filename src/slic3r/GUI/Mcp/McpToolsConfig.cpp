@@ -73,7 +73,7 @@ namespace {
 
 Preset::Type preset_type(const std::string& name)
 {
-    if (name == "process" || name == "print")
+    if (name == "process")
         return Preset::TYPE_PRINT;
     if (name == "filament")
         return Preset::TYPE_FILAMENT;
@@ -324,7 +324,7 @@ void add_unknown_keys(json& out, const json& unknown)
 // cause is a key passed to the wrong scope or to none (the process). UI thread.
 ToolFailure unknown_setting(const std::string& key, const std::string& scope, json details)
 {
-    if (const std::string other = scope_of_key(key); !other.empty() && other != (scope == "print" ? "process" : scope))
+    if (const std::string other = scope_of_key(key); !other.empty() && other != scope)
         return ToolFailure("\"" + key + "\" is a " + other + " setting: pass scope \"" + other + "\"");
     return ToolFailure("Unknown setting \"" + key + "\" for the " + scope + " scope", std::move(details));
 }
@@ -798,7 +798,7 @@ json list_plates(const json& args)
 // Resolves the scope arguments to the config they read and write. UI thread.
 ConfigTarget resolve_target(const json& args, bool for_write)
 {
-    const std::string scope = arg_string(args, "scope", "print");
+    const std::string scope = arg_string(args, "scope", "process");
     PresetBundle&     bundle = *wxGetApp().preset_bundle;
     ConfigTarget      t;
     if (scope == "object" || scope == "volume") {
@@ -1884,8 +1884,8 @@ void register_config_tools(McpService& service)
     ToolRegistry& reg        = service.registry();
     const json    plate_prop = {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index (plate scope; default: the current plate)."}};
     // get_settings and set_settings take the same scopes and differ in what they do without one.
-    const std::vector<std::string> scopes{"print", "process", "filament", "printer", "object", "volume", "project", "plate", "preferences"};
-    const std::string              scope_text = "Which settings: the process (print), filament or printer preset being edited, an "
+    const std::vector<std::string> scopes{"process", "filament", "printer", "object", "volume", "project", "plate", "preferences"};
+    const std::string              scope_text = "Which settings: the process, filament or printer preset being edited, an "
                                                 "object's / part's own overrides, the project's own settings, a plate's, or the "
                                                 "app's preferences (read only).";
     const json read_scope_prop  = enum_prop(scopes, scope_text + " Without it, keys and query look through the process, filament "
@@ -1910,21 +1910,21 @@ void register_config_tools(McpService& service)
         "select_preset", L("Select a preset"),
         "Select a printer, process or filament preset by the name its selector shows (or its internal name), as a person "
         "would. A hidden one (list_presets include_hidden) is shown in the selectors first, until the app restarts. With "
-        "unsaved changes the Transfer-or-discard prompt opens (blocked_by_dialog) unless changes answers it. A "
+        "unsaved changes the Transfer-or-discard prompt opens (blocked_by_dialog) unless preset_changes answers it. A "
         "filament is assigned to filament_slot (1-based, default 1). Reply: selected, shown (a hidden preset it showed); "
         "when presets had or have unsaved changes, discarded and modified list per preset the keys dropped and the keys "
         "still unsaved.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
                        {"name", prop("string", "Preset name as list_presets shows it.")},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}},
-                       {"changes", enum_prop({"transfer", "discard"}, "Unsaved changes of the presets the switch replaces: move "
+                       {"preset_changes", enum_prop({"transfer", "discard"}, "Unsaved changes of the presets the switch replaces: move "
                                                                        "them to the new preset or drop them, as the prompt's "
                                                                        "buttons do. Omitted: the prompt opens.")}},
                       {"type", "name"}),
         [](const json& args, ToolContext& ctx) {
             const Preset::Type type    = preset_type(arg_string(args, "type"));
             const std::string  name    = arg_string(args, "name");
-            const std::string  changes = arg_string(args, "changes");
+            const std::string  changes = arg_string(args, "preset_changes");
             json result = ctx.run_ui([&]() -> json {
                 Plater&       plater = ui_plater();
                 PresetBundle& bundle = *wxGetApp().preset_bundle;
@@ -1975,7 +1975,7 @@ void register_config_tools(McpService& service)
                     throw ToolFailure(std::string("The unsaved-changes prompt offers no Transfer here: ") +
                                       (type == Preset::TYPE_PRINTER ? "a printer's changes stay with it" :
                                                                       "\"" + target + "\" is a filament of another type") +
-                                      ". Pass changes: \"discard\", or save_preset first.");
+                                      ". Pass preset_changes: \"discard\", or save_preset first.");
                 const json before = unsaved_changes();
                 tab->m_dirty_preset_answer = changes == "transfer" ? Tab::DirtyPresetAnswer::Transfer :
                                              changes == "discard"  ? Tab::DirtyPresetAnswer::Discard :
@@ -2150,7 +2150,7 @@ void register_config_tools(McpService& service)
         "scope has.\n"
         "- No scope: keys and query look through the process, filament and printer settings, and each item names its "
         "scope, the one set_settings takes; anything else reads the process.\n"
-        "- print (process), filament, printer: the preset being edited, or with preset a saved one; compare lists only "
+        "- process, filament, printer: the preset being edited, or with preset a saved one; compare lists only "
         "the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what "
         "each entry is for) and active (the entry each extruder prints with).\n"
         "- object, volume: the overrides that object or part carries, each with effective (the value it prints with) and "
@@ -2196,7 +2196,7 @@ void register_config_tools(McpService& service)
         "refused with that scope named. Reply: applied, and changed, every setting the call changed, including those the "
         "app adjusted in turn. One undo step. Spiral vase and a few others confirm their adjustments in a dialog "
         "(blocked_by_dialog).\n"
-        "- print (process), filament, printer: null takes a key back to its saved value, or with reset_to parent to the "
+        "- process, filament, printer: null takes a key back to its saved value, or with reset_to parent to the "
         "parent's; reset_all first discards every unsaved change, as the tab's undo button does (reply: reverted). A "
         "per-variant value (get_settings meta.variants) takes one value for the entries in use (meta.active), {index, "
         "value} for one entry, or an array of all.\n"

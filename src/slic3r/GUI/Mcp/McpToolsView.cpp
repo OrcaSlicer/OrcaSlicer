@@ -313,7 +313,7 @@ json camera_state(Camera& camera, double canvas_scale)
     const auto [elevation, azimuth] = camera_angles(camera);
     json state               = angles_json(elevation, azimuth);
     state["type"]            = camera.get_type() == Camera::EType::Ortho ? "ortho" : "perspective";
-    state["target"]          = point(camera.get_target());
+    state["look_at"]         = point(camera.get_target());
     state["position"]        = point(camera.get_position());
     state["zoom"]            = rounded(camera.get_zoom(), 1e4);
     state["click_px_per_mm"] = rounded(camera.get_zoom() / canvas_scale, 1e4);
@@ -422,7 +422,7 @@ void register_view_tools(McpService& service)
     ToolDef screenshot = inspect_tool(
         "screenshot", L("Take a screenshot"),
         "Capture what OrcaSlicer shows and return it as an image, downscaled to max_dim on the long edge (default 1280), "
-        "plus the full-size PNG written to save_path (or the session's output folder). target: \"window\" (the main "
+        "plus the full-size PNG written to save_path (or the session's output folder). target: \"main\" (the main "
         "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels; on the "
         "Design tab its view), "
         "\"dialog\" (the topmost modal dialog), or a ref: a window's from list_windows (one that is not modal, say), or a "
@@ -430,14 +430,16 @@ void register_view_tools(McpService& service)
         "says when parts may differ from the "
         "screen (approximate). Point the view first with set_view.",
         object_schema({{"target", {{"type", json::array({"string", "object"})},
-                                    {"description", "window (default), canvas, dialog, or a widget's ref or locator from list_widgets."}}},
+                                    {"description", "main (default), canvas, dialog, or a widget's ref or locator from list_widgets."}}},
                        {"max_dim", {{"type", "integer"}, {"minimum", 256}, {"maximum", 2000}, {"description", "Long edge of the returned image."}}},
                        {"save_path", prop("string", "Absolute .png path for the full-size image.")},
                        {"overwrite", prop("boolean", "Replace an existing save_path.")},
                        {"include_image", prop("boolean", "Return the image itself (default true); false returns only the path.")}}),
         [&service](const json& args, ToolContext& ctx) {
-            const json        target_arg = args.value("target", json("window"));
-            const std::string target     = target_arg.is_string() ? target_arg.get<std::string>() : std::string();
+            json target_arg = args.value("target", json("main"));
+            if (target_arg == "window") // the main window, as set_window's target reads it too
+                target_arg = "main";
+            const std::string target = target_arg.is_string() ? target_arg.get<std::string>() : std::string();
             json              locator;
             fs::path          path;
             if (args.contains("save_path")) {
@@ -452,7 +454,7 @@ void register_view_tools(McpService& service)
             const int max_dim = std::clamp(arg_int(args, "max_dim", 1280), 256, 2000);
             json      info;
             wxImage   full;
-            if (target != "window" && target != "canvas" && target != "dialog")
+            if (target != "main" && target != "canvas" && target != "dialog")
                 // Scrolled into view first, and painted before the capture below runs.
                 ctx.run_ui([&] {
                     UiTarget t = service.inspector().resolve(target_arg);
@@ -476,14 +478,14 @@ void register_view_tools(McpService& service)
                         if (top == nullptr)
                             throw ToolFailure(no_modal_dialog(service));
                         cap = capture_window(*top, err);
-                    } else if (target != "window") {
+                    } else if (target != "main") {
                         // A widget: its top-level window, cropped to the widget unless it is that window.
                         const UiTarget t = service.inspector().resolve(target_arg);
                         locator          = service.inspector().locator_for(t);
                         // A page element is captured as its web view.
                         wxWindow*      w = t.window.get();
                         if ((t.kind != UiTarget::Kind::Window && t.kind != UiTarget::Kind::WebElement) || w == nullptr)
-                            throw ToolFailure("target must be window, canvas, dialog or the ref of a widget");
+                            throw ToolFailure("target must be main, canvas, dialog or the ref of a widget");
                         if (t.kind == UiTarget::Kind::WebElement) {
                             // A replay captures the same web view, by its own locator: a page element's
                             // has none the screenshot's target takes.
@@ -511,7 +513,7 @@ void register_view_tools(McpService& service)
                             // A popup is a native window of its own, which its window's capture draws in.
                             if (dynamic_cast<wxPopupWindow*>(top) != nullptr)
                                 throw ToolFailure("The widget is in a popup; a screenshot of its window shows the popup, and list_widgets "
-                                                  "{root: \"popup\"} lists it");
+                                                  "{target: \"popup\"} lists it");
                             auto* tlw = dynamic_cast<wxTopLevelWindow*>(top);
                             if (tlw == nullptr)
                                 throw ToolFailure("The widget has no window");
@@ -666,28 +668,29 @@ void register_view_tools(McpService& service)
 
     reg.add(mutate_tool(
         "set_view", L("Point the view"),
-        "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (Prepare's, the preview or "
-        "the assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the default "
-        "view, or fit to bed / objects / selection, then the point it looks at, an orbit to look from between the named "
-        "directions, and the zoom), the preview's color scheme (picked as in the legend's combo, which shows every feature "
-        "type again), legend rows, time estimate and layers (1-based, or up to a height). Only the given fields change. On "
-        "the Design tab the camera points its view (default is its Home view; no fit_bed). The reply echoes them; preview "
-        "layers as [first, last, count] with z, the heights of first and last; with any camera field, camera_state, the "
-        "camera it leaves as get_app_state.camera gives it, and adjusted: [\"zoom\"] when the zoom was held to its limits.",
+        "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: Prepare's, the "
+        "preview or the assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the "
+        "default view, or fit to bed / objects / selection, then look_at, the point it looks at, an orbit to look from "
+        "between the named directions, and the zoom), the preview's color scheme (picked as in the legend's combo, which "
+        "shows every feature type again), legend rows, time estimate and layers (1-based, or up to a height). Only the given "
+        "fields change. On the Design tab the camera points its view (default is its Home view; no fit_bed). The reply "
+        "echoes them; preview layers as [first, last, count] with z, the heights of first and last; with any camera field, "
+        "camera_state, the camera it leaves as get_app_state.camera gives it, and adjusted: [\"zoom\"] when the zoom was "
+        "held to its limits.",
         object_schema({{"tab", enum_prop(tabs, "Main window tab.")},
-                       {"view", enum_prop({"3d", "preview", "assemble"}, "3D view: Prepare's, the preview, or the assemble view (needs an object; leave it with 3d, as its Return button does).")},
+                       {"canvas", enum_prop({"3d", "preview", "assemble"}, "3D view: Prepare's, the preview, or the assemble view (needs an object; leave it with 3d, as its Return button does).")},
                        {"camera", enum_prop({"iso", "top", "bottom", "front", "rear", "left", "right", "default", "fit_bed", "fit_objects", "fit_selection"},
                                             "Camera direction or fit.")},
-                       {"target", array_prop({{"type", "number"}}, "[x, y, z] in mm: the point the camera looks at, in the 3D view's "
-                                                                  "world coordinates, as list_objects gives positions; on the Design tab, "
-                                                                  "the Design view's, which the CAD tools' world points use (describe_scene's "
-                                                                  "modeling_origin is the sketch planes' origin). The camera moves "
-                                                                  "parallel, keeping its direction and distance. After camera.")},
+                       {"look_at", array_prop({{"type", "number"}}, "[x, y, z] in mm: the point the camera looks at, in the 3D view's "
+                                                                   "world coordinates, as list_objects gives positions; on the Design tab, "
+                                                                   "the Design view's, which the CAD tools' world points use (describe_scene's "
+                                                                   "modeling_origin is the sketch planes' origin). The camera moves "
+                                                                   "parallel, keeping its direction and distance. After camera.")},
                        {"orbit", array_prop({{"type", "number"}}, "[yaw, pitch] in degrees: move the camera around what it looks at, "
                                                                  "yaw to its right and pitch up (negative looks from lower), after "
-                                                                 "camera and target. The same on every install, unlike a mouse drag.")},
+                                                                 "camera and look_at. The same on every install, unlike a mouse drag.")},
                        {"zoom", {{"type", "number"}, {"exclusiveMinimum", 0},
-                                 {"description", "Screenshot pixels per mm at the target's depth, so everywhere in an orthographic view; "
+                                 {"description", "Screenshot pixels per mm at look_at's depth, so everywhere in an orthographic view; "
                                                  "held to the camera's limits (at most 250, at least what the scene's size allows). Applied last."}}},
                        {"layer", {{"type", "integer"}, {"minimum", 1}, {"description", "Preview: show layers up to this one (1-based)."}}},
                        {"layer_range", array_prop({{"type", "integer"}}, "Preview: [first, last] layers, 1-based.")},
@@ -702,13 +705,13 @@ void register_view_tools(McpService& service)
         [](const json& args, ToolContext& ctx) {
             const bool preview_args = args.contains("layer") || args.contains("layer_range") || args.contains("layer_z") ||
                                       args.contains("view_type") || args.contains("legend") || args.contains("time_mode");
-            if (arg_string(args, "tab") == "design" && (args.contains("view") || preview_args))
-                throw ToolFailure("view and the Preview fields show Prepare or Preview; give them without tab design");
+            if (arg_string(args, "tab") == "design" && (args.contains("canvas") || preview_args))
+                throw ToolFailure("canvas and the Preview fields show Prepare or Preview; give them without tab design");
             if (args.contains("orbit") && args["orbit"].size() != 2)
                 throw ToolFailure("orbit is [yaw, pitch] in degrees");
-            if (args.contains("target") && args["target"].size() != 3)
-                throw ToolFailure("target is [x, y, z] in mm");
-            const bool placed      = args.contains("target") || args.contains("orbit") || args.contains("zoom");
+            if (args.contains("look_at") && args["look_at"].size() != 3)
+                throw ToolFailure("look_at is [x, y, z] in mm");
+            const bool placed      = args.contains("look_at") || args.contains("orbit") || args.contains("zoom");
             const bool camera_args = placed || args.contains("camera");
             json out = ctx.run_ui([&]() -> json {
                 Plater&    plater = ui_plater();
@@ -725,8 +728,8 @@ void register_view_tools(McpService& service)
                     frame->select_tab(wxString(id));
                     done["tab"] = arg_string(args, "tab");
                 }
-                if (args.contains("view")) {
-                    const std::string view     = arg_string(args, "view");
+                if (args.contains("canvas")) {
+                    const std::string view     = arg_string(args, "canvas");
                     GLCanvas3D*       assemble = plater.get_assmeble_canvas3D();
                     const bool        in_assemble = assemble != nullptr && plater.get_current_canvas3D() == assemble;
                     if (view == "assemble") {
@@ -747,9 +750,9 @@ void register_view_tools(McpService& service)
                         frame->select_tab(wxString(TAB_ID_PREPARE));
                     else if (view == "preview")
                         frame->select_tab(wxString(TAB_ID_PREVIEW));
-                    done["view"] = view;
+                    done["canvas"] = view;
                 }
-                if (preview_args && !args.contains("tab") && !args.contains("view")) {
+                if (preview_args && !args.contains("tab") && !args.contains("canvas")) {
                     plater.select_view_3D("Preview", false);
                     frame->select_tab(wxString(TAB_ID_PREVIEW));
                 }
@@ -829,7 +832,7 @@ void register_view_tools(McpService& service)
                 // A tab's page shows, and the Design tab takes the shared camera, once the tab change is
                 // handled; the camera then points the view on screen.
                 settle(ctx);
-                // A fit the view runs at its next frame would replace the target, orbit and zoom, so they
+                // A fit the view runs at its next frame would replace look_at, orbit and zoom, so they
                 // wait for it. A camera also waits until the view has drawn at its canvas's size: a fit, as
                 // default and the Design directions include, uses the viewport only a frame sets. The view
                 // is asked to draw meanwhile.
@@ -848,10 +851,10 @@ void register_view_tools(McpService& service)
                 if (ready.is_null()) {
                     if (ctx.cancelled())
                         throw ToolFailure("Cancelled: OrcaSlicer is closing or the replay or script was stopped");
-                    out["note"] = fit_queued ? "The 3D view did not draw within 2 s; the fit it has queued replaces the target, orbit and zoom when it draws"
+                    out["note"] = fit_queued ? "The 3D view did not draw within 2 s; the fit it has queued replaces look_at, orbit and zoom when it draws"
                                              : "The 3D view did not draw at its size within 2 s; a fit used the size it last drew at";
                 }
-                // In this order: a fit sets the target and the zoom, which the given ones then replace.
+                // In this order: a fit sets the point looked at and the zoom, which the given ones then replace.
                 out.update(ctx.run_ui([&]() -> json {
                     Plater& plater = ui_plater();
                     Camera& camera = plater.get_camera();
@@ -860,8 +863,8 @@ void register_view_tools(McpService& service)
                         point_camera(plater, arg_string(args, "camera"));
                         done["camera"] = arg_string(args, "camera");
                     }
-                    if (args.contains("target")) {
-                        const json& t = args["target"];
+                    if (args.contains("look_at")) {
+                        const json& t = args["look_at"];
                         camera.set_target(Vec3d(t[0].get<double>(), t[1].get<double>(), t[2].get<double>()));
                     }
                     if (args.contains("orbit"))
@@ -872,7 +875,7 @@ void register_view_tools(McpService& service)
                     return done;
                 }));
             }
-            if (out.value("view", "") == "assemble")
+            if (out.value("canvas", "") == "assemble")
                 // A canvas shown for the first time loads its scene at its first frame, once its GL
                 // surface exists (a moment later on Wayland), and the next call may act on its objects.
                 poll_ui(

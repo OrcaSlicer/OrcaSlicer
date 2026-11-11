@@ -15,7 +15,7 @@
     {"tool": "new_project", "args": {"discard_changes": true}},
     {"tool": "set_window", "args": {"size": [1920, 1200]}},
     {"tool": "set_view", "args": {"tab": "prepare"}},
-    {"tool": "list_widgets", "args": {"root": "main", "query": "plate_icon"}, "expect": {"/nodes": {"ge": 7}}},
+    {"tool": "list_widgets", "args": {"target": "main", "query": "plate_icon"}, "expect": {"/nodes": {"ge": 7}}},
 
     // ---- Lock toggles the plate's lock ----
     {"tool": "click", "args": {"target": {"plate_icon": "lock", "plate": 0}}, "expect": {"/locked": {"eq": true}}},

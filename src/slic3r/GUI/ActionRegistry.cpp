@@ -1091,8 +1091,8 @@ nlohmann::json ActionRegistry::describe(const Query& query)
         return a->id() < b->id();
     });
 
-    nlohmann::json actions = nlohmann::json::array();
-    for (std::size_t i = query.offset; i < matches.size() && actions.size() < query.limit; ++i) {
+    nlohmann::json items = nlohmann::json::array();
+    for (std::size_t i = query.offset; i < matches.size() && items.size() < query.limit; ++i) {
         const AppAction& a = *matches[i];
         nlohmann::json   j{{"id", a.id()},
                            {"title", a.title_en.empty() ? a.title() : a.title_en},
@@ -1107,9 +1107,9 @@ nlohmann::json ActionRegistry::describe(const Query& query)
             j["param"] = {{"type", a.param_type}, {"help", a.param_help}};
         if (a.completes_in_background)
             j["completes"] = "export";
-        actions.push_back(std::move(j));
+        items.push_back(std::move(j));
     }
-    nlohmann::json out{{"total", matches.size()}, {"offset", query.offset}, {"actions", std::move(actions)}};
+    nlohmann::json out{{"total", matches.size()}, {"offset", query.offset}, {"items", std::move(items)}};
     if (query.offset + query.limit < matches.size())
         out["next_offset"] = query.offset + query.limit;
     return out;

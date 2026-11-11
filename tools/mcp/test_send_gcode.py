@@ -160,7 +160,7 @@ def main():
     client.call("wait", **{"for": "idle"})
 
     found = client.call("search_actions", query="Send G-code")
-    check("search_actions finds the command", any(a["id"] == SEND for a in found["actions"]), found)
+    check("search_actions finds the command", any(a["id"] == SEND for a in found["items"]), found)
 
     # ---- Refusals ----
     if client.call("get_app_state")["presets"]["printer"].startswith("Bambu Lab"):

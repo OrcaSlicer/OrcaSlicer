@@ -60,11 +60,11 @@ def main():
     check("it holds a web page", plugins.get("web") is True, plugins)
     if plugins.get("ref"):
         shot = client.call("screenshot", target=plugins["ref"], include_image=False)
-        whole = client.call("screenshot", target="window", include_image=False)
+        whole = client.call("screenshot", target="main", include_image=False)
         check("a screenshot of its ref captures it", shot.get("path") and shot.get("width", 0) > 0, shot)
         check("and not the main window", (shot.get("width"), shot.get("height")) != (whole.get("width"), whole.get("height")),
               f"{shot} / {whole}")
-        _snap, texts = client.call_with_text("list_widgets", root=plugins["ref"], include_web=False)
+        _snap, texts = client.call_with_text("list_widgets", target=plugins["ref"], include_web=False)
         tree = texts[0] if texts else ""
         first = tree.splitlines()[0] if tree else ""
         check("list_widgets with its ref reads that window alone", '"Plugins"' in first and "MainFrame" not in tree, first)

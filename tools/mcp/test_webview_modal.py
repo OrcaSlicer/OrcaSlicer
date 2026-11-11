@@ -44,7 +44,7 @@ def main():
         return False
 
     def home_webview():
-        snap, texts = client.call_with_text("list_widgets", root="main", query="webview")
+        snap, texts = client.call_with_text("list_widgets", target="main", query="webview")
         for line in (texts[0] if texts else "").splitlines():
             if "webview" in line and "[" in line:
                 return line.split("[", 1)[1].split("]", 1)[0]
@@ -72,7 +72,7 @@ def main():
     check("the export bundle dialog opens above it", wait_dialogs(2), dialogs())
     # Its web view shows about:blank until its first navigation starts.
     for _ in range(50):
-        if "ExportPresetDialog" in client.call_with_text("list_widgets", root="dialog", query="webview")[1][0]:
+        if "ExportPresetDialog" in client.call_with_text("list_widgets", target="dialog", query="webview")[1][0]:
             break
         time.sleep(0.1)
     message = refusal(code="1", target={"class": "webview", "within": "Preset Bundle"})

@@ -19,7 +19,7 @@
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "restore", "button": "no"}, {"match": "Uniform scale", "button": "ok"}]}},
     // Unsaved edits a person (or an earlier run) left are dropped first, so nothing below asks about them.
-    {"tool": "new_project", "args": {"discard_changes": true, "changes": "discard"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
     {"tool": "set_window", "args": {"size": [1920, 1200]}},
     // The unsaved-changes prompt lists only the settings the mode shows, and Simple mode also turns
     // Developer mode off, which the detach refusal below needs.
@@ -46,11 +46,11 @@
      "expect": {"/selected": {"eq": "Bambu PLA Basic @BBL X1C"}}},
     // A hidden printer is shown with its model's default filaments, as the wizard adds them, so the switch lands on
     // one of those rather than on the default filament.
-    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab A1 mini 0.4 nozzle", "changes": "discard"},
+    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab A1 mini 0.4 nozzle", "preset_changes": "discard"},
      "expect": {"/selected": {"eq": "Bambu Lab A1 mini 0.4 nozzle"}}},
     {"tool": "get_app_state", "expect": {"/presets/filaments/0": {"regex": "@BBL A1M$"}}},
-    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle", "changes": "discard"}},
-    {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "changes": "discard"}},
+    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle", "preset_changes": "discard"}},
+    {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "preset_changes": "discard"}},
     {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1},
      "expect": {"/selected": {"eq": "Bambu PLA Basic @BBL X1C"}}},
 
@@ -199,7 +199,7 @@
     {"tool": "list_presets", "args": {"type": "filament", "query": "MCP Test PLA"}, "expect": {"/items/0/selected": {"eq": true}, "/items/0/modified": {"exists": false}}},
 
     // ---- Revert one key: null takes it back to the saved value, with reset_to parent to the parent's ----
-    {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "changes": "discard"},
+    {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "preset_changes": "discard"},
      "expect": {"/selected": {"eq": "0.20mm Standard @BBL X1C"}}},
     {"tool": "set_settings", "args": {"scope": "process", "values": {"wall_loops": 5, "sparse_infill_density": "25%"}}},
     {"tool": "set_settings", "args": {"scope": "process", "values": {"wall_loops": null}},
@@ -225,35 +225,35 @@
     {"tool": "get_settings", "args": {"scope": "process", "keys": ["sparse_infill_density"], "include_meta": false}, "expect": {"/items/0/value": {"eq": "25%"}}},
     // ---- changes answers it without the prompt: transfer, then discard ----
     {"tool": "set_settings", "args": {"scope": "process", "values": {"wall_loops": 4}}},
-    {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "changes": "transfer"},
+    {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "preset_changes": "transfer"},
      "expect": {"/selected": {"eq": "0.20mm Standard @BBL X1C"}, "/discarded": {"exists": false},
                 "/modified/process/keys": {"eq": ["sparse_infill_density", "wall_loops"]}}},
     {"tool": "get_settings", "args": {"scope": "process", "keys": ["sparse_infill_density", "wall_loops"], "include_meta": false},
      "expect": {"/items/0/value": {"eq": "25%"}, "/items/1/value": {"eq": "4"}}},
     // A setting Simple mode hides is not in the prompt's list, so Transfer drops it, as in the GUI.
     {"tool": "set_settings", "args": {"scope": "process", "values": {"seam_slope_type": "all"}}},
-    {"tool": "select_preset", "args": {"type": "process", "name": "0.16mm Optimal @BBL X1C", "changes": "transfer"},
+    {"tool": "select_preset", "args": {"type": "process", "name": "0.16mm Optimal @BBL X1C", "preset_changes": "transfer"},
      "expect": {"/discarded/process/name": {"eq": "0.20mm Standard @BBL X1C"}, "/discarded/process/keys": {"eq": ["seam_slope_type"]}}},
     // A modified filament that suits the new process keeps its changes whatever the answer, as in the GUI.
     {"tool": "set_settings", "args": {"scope": "filament", "values": {"slow_down_layer_time": 7}}},
-    {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "changes": "discard"},
+    {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "preset_changes": "discard"},
      "expect": {"/discarded/process/keys": {"eq": ["sparse_infill_density", "wall_loops"]}, "/modified/process": {"exists": false},
                 "/modified/filament/keys": {"eq": ["slow_down_layer_time"]}}},
     {"tool": "get_settings", "args": {"scope": "process", "compare": ":saved"}, "expect": {"/total": {"eq": 0}}},
     // Transfer is refused where the prompt offers none (expected to fail): a printer's own changes, and a
     // filament of another type. The steps after each check that nothing changed.
     {"tool": "set_settings", "args": {"scope": "printer", "values": {"printer_notes": "MCP revert test"}}},
-    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle", "changes": "transfer"}, "optional": true},
+    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle", "preset_changes": "transfer"}, "optional": true},
     {"tool": "get_settings", "args": {"scope": "printer", "compare": ":saved"}, "expect": {"/total": {"eq": 1}, "/items/0/key": {"eq": "printer_notes"}}},
-    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle", "changes": "discard"},
+    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle", "preset_changes": "discard"},
      "expect": {"/discarded/printer/keys": {"eq": ["printer_notes"]}, "/modified/printer": {"exists": false}}},
     {"tool": "set_settings", "args": {"scope": "filament", "reset_all": true, "values": {"filament_type": "PETG"}}},
     {"tool": "save_preset", "args": {"type": "filament", "name": "MCP Test PETG", "overwrite": true}},
     {"tool": "select_preset", "args": {"type": "filament", "name": "MCP Test PLA", "filament_slot": 1}},
     {"tool": "set_settings", "args": {"scope": "filament", "values": {"slow_down_layer_time": 8}}},
-    {"tool": "select_preset", "args": {"type": "filament", "name": "MCP Test PETG", "filament_slot": 1, "changes": "transfer"}, "optional": true},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "MCP Test PETG", "filament_slot": 1, "preset_changes": "transfer"}, "optional": true},
     {"tool": "get_app_state", "expect": {"/presets/filaments/0": {"eq": "MCP Test PLA"}}},
-    {"tool": "select_preset", "args": {"type": "filament", "name": "MCP Test PETG", "filament_slot": 1, "changes": "discard"},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "MCP Test PETG", "filament_slot": 1, "preset_changes": "discard"},
      "expect": {"/selected": {"eq": "MCP Test PETG"}, "/discarded/filament/name": {"eq": "MCP Test PLA"},
                 "/discarded/filament/keys": {"eq": ["slow_down_layer_time"]}}},
     {"tool": "select_preset", "args": {"type": "filament", "name": "MCP Test PLA", "filament_slot": 1}},
@@ -263,8 +263,8 @@
     {"tool": "new_project", "args": {"discard_changes": true},
      "expect": {"/modified/process/keys": {"eq": ["wall_loops"]}, "/discarded": {"exists": false}}},
     {"tool": "list_presets", "args": {"type": "process", "query": "0.20mm Standard"}, "expect": {"/items/0/modified": {"eq": true}}},
-    {"tool": "new_project", "args": {"discard_changes": true, "changes": "keep"}, "expect": {"/modified/process/keys": {"eq": ["wall_loops"]}}},
-    {"tool": "new_project", "args": {"discard_changes": true, "changes": "discard"},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "keep"}, "expect": {"/modified/process/keys": {"eq": ["wall_loops"]}}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"},
      "expect": {"/discarded/process/keys": {"eq": ["wall_loops"]}, "/modified": {"exists": false}}},
     {"tool": "list_presets", "args": {"type": "process", "query": "0.20mm Standard"}, "expect": {"/items/0/modified": {"exists": false}}},
 

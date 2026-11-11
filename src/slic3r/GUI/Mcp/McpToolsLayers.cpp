@@ -169,7 +169,7 @@ json set_height_ranges(Plater& plater, const json& args)
     ModelObject*          object = &layer_object(plater, args);
     const int             oi     = arg_int(args, "object", -1);
     ObjectList*           list   = wxGetApp().obj_list();
-    t_layer_config_ranges ranges = layer_config_ranges_from_json(args.value("layer_config_ranges", json()), list->get_default_layer_config(oi),
+    t_layer_config_ranges ranges = layer_config_ranges_from_json(args.value("ranges", json()), list->get_default_layer_config(oi),
                                                                  wxGetApp().filaments_cnt(), [](int extruder) {
                                                                      return std::make_pair(get_min_layer_height(extruder), get_max_layer_height(extruder));
                                                                  });
@@ -593,8 +593,8 @@ void register_layer_tools(McpService& service)
         "deciding the layer heights instead.",
         object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
                        {"object_id", expected_id_prop("object")},
-                       {"layer_config_ranges", array_prop(range, "The object's ranges afterwards, in any order.")}},
-                      {"object", "layer_config_ranges"}),
+                       {"ranges", array_prop(range, "The object's ranges afterwards, in any order.")}},
+                      {"object", "ranges"}),
         [](const json& args, ToolContext& ctx) {
             json out = ctx.run_ui([&] { return set_height_ranges(ui_plater(), args); });
             settle(ctx);

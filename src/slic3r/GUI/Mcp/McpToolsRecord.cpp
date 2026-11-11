@@ -103,14 +103,14 @@ void register_record_tools(McpService& service)
 
     reg.add(record_tool(
         "start_recording", L("Start a recording"),
-        "Record a video of OrcaSlicer until stop_recording: the main window with any modal dialog on it (target window), or "
+        "Record a video of OrcaSlicer until stop_recording: the main window with any modal dialog on it (target main), or "
         "the 3D view shown (canvas). Frames are MJPEG in a Matroska (.mkv) file with their real timestamps. With captions, "
         "the tool call acting on the app shows as a caption at the bottom (secret setting values never show); with pointer, "
         "the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so "
         "the frame rate drops where capturing is slow. One recording at a time: one a replay or script starts ends with it, a "
         "client's when the server is turned off. With encode, the stop_recording that reports it also encodes it to an MP4 "
         "beside it, as the Start Recording command does; encode_recording makes an MP4 of any recording later.",
-        object_schema({{"target", enum_prop({"window", "canvas"}, "window (default): the main window and its dialogs; canvas: the 3D view shown.")},
+        object_schema({{"target", enum_prop({"main", "canvas"}, "main (default): the main window and its dialogs; canvas: the 3D view shown.")},
                        {"fps", int_prop(1, 30, "Frames per second at most (default 10).")},
                        {"max_dim", int_prop(320, 3840, "Long edge of the video in pixels (default 1920).")},
                        {"quality", int_prop(30, 95, "JPEG quality of the frames (default 80).")},
@@ -130,7 +130,7 @@ void register_record_tools(McpService& service)
                        {"overwrite", prop("boolean", "Replace an existing save_path, and with encode its MP4.")}}),
         [&service](const json& args, ToolContext& ctx) {
             RecordingOptions o;
-            o.target      = arg_string(args, "target", "window");
+            o.target      = arg_string(args, "target", "main");
             o.fps         = arg_int(args, "fps", 10);
             o.max_dim     = arg_int(args, "max_dim", 1920);
             o.quality     = arg_int(args, "quality", 80);

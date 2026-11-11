@@ -159,10 +159,24 @@ std::string validate_value(const json& schema, const json& value, const std::str
 const std::vector<std::pair<std::string, std::vector<std::string>>>& argument_aliases()
 {
     static const std::vector<std::pair<std::string, std::vector<std::string>>> aliases{
-        {"ref", {"target"}},       {"target", {"root"}},     {"key", {"keys"}},     {"text", {"value"}},
-        {"action", {"id", "button"}}, {"object", {"objects"}}, {"plate", {"plates"}}, {"filter", {"query"}},
-        {"settings", {"values"}},
+        {"ref", {"target"}},          {"key", {"keys"}},        {"text", {"value"}},   {"action", {"id", "button"}},
+        {"object", {"objects"}},      {"plate", {"plates"}},    {"filter", {"query"}}, {"settings", {"values"}},
+        // A part is a volume in argument names.
+        {"part", {"volume"}},         {"parts", {"volumes"}},   {"part_id", {"volume_id"}}, {"part_ids", {"volume_ids"}},
+        // A capture's output file, where the tool has no path of its own.
+        {"path", {"save_path"}},
+        // set_view's 3D view, or the camera's direction, whichever takes the value.
+        {"view", {"canvas", "camera"}},
     };
+    return aliases;
+}
+
+// Values agents reach for in place of the ones an enum lists, each with the value it stands for: the
+// process preset is the print preset in OrcaSlicer's files, a part is a volume in argument names, and
+// the main window is "the window" where no other window can be meant.
+const std::vector<std::pair<std::string, std::string>>& value_aliases()
+{
+    static const std::vector<std::pair<std::string, std::string>> aliases{{"print", "process"}, {"part", "volume"}, {"window", "main"}};
     return aliases;
 }
 
@@ -245,8 +259,19 @@ void normalize_arguments(const json& schema, json& args)
     for (auto it = args.begin(); it != args.end(); ++it)
         if (auto p = props.find(it.key()); p != props.end())
             coerce_value(*p, it.value());
+    // A value its enum lacks is read as the one it stands for, when the enum lists that one.
+    for (auto it = args.begin(); it != args.end(); ++it) {
+        const auto p = props.find(it.key());
+        if (p == props.end() || !p->contains("enum") || !it.value().is_string() || validate_value(*p, it.value(), it.key()).empty())
+            continue;
+        for (const auto& [alias, value] : value_aliases())
+            if (it.value() == alias && validate_value(*p, json(value), it.key()).empty()) {
+                it.value() = value;
+                break;
+            }
+    }
     // A value outside its own enum that the enum of one other argument, which the call leaves out,
-    // takes: set_view's view "front" is its camera. The schema keeps each enum to its own values,
+    // takes: set_view's canvas "front" is its camera. The schema keeps each enum to its own values,
     // as listing them under both names would have agents give a value to the wrong one.
     std::vector<std::pair<std::string, std::string>> moves;
     for (const auto& [key, value] : args.items()) {
@@ -328,12 +353,8 @@ std::string resolve_api_call(const ToolRegistry& registry, std::shared_ptr<const
         return {};
     const std::string target = args.value("tool", std::string());
     std::shared_ptr<const ToolDef> inner = registry.lookup(target);
-    if (!inner) {
-        std::string message = "Unknown tool: " + target;
-        if (const auto close = registry.similar(target); !close.empty())
-            message += " (did you mean " + close.front() + "?)";
-        return message;
-    }
+    if (!inner)
+        return registry.unknown_tool(target, /*suggest=*/true);
     if (inner->name == "call_tool")
         return "call_tool calls another tool, not itself";
     json inner_args = args.contains("args") && args["args"].is_object() ? args["args"] : json::object();
@@ -355,6 +376,17 @@ std::vector<std::string> ToolRegistry::similar(const std::string& name, std::siz
         if (out.size() < limit && score <= std::max<std::size_t>(3, name.size() / 2))
             out.push_back(n);
     return out;
+}
+
+std::string ToolRegistry::unknown_tool(const std::string& name, bool suggest) const
+{
+    std::string message = "Unknown tool: " + name;
+    if (const std::string elsewhere = m_elsewhere ? m_elsewhere(name) : std::string(); !elsewhere.empty())
+        return message + "; " + elsewhere;
+    if (suggest)
+        if (const auto close = similar(name); !close.empty())
+            message += " (did you mean " + close.front() + "?)";
+    return message;
 }
 
 std::string validate_arguments(const json& schema, const json& args) { return validate_value(schema, args, ""); }
@@ -382,31 +414,10 @@ std::string decode_header_value(const std::string& value)
     return out;
 }
 
-std::string moved_argument(const std::string& tool, const json& args)
-{
-    struct Moved
-    {
-        const char* tool;
-        const char* argument;
-        const char* message;
-    };
-    static const Moved moved[] = {
-        {"set_view", "window_size", "window_size moved to set_window: give set_window {size}"},
-    };
-    for (const Moved& m : moved)
-        if (tool == m.tool && args.contains(m.argument))
-            return m.message;
-    return {};
-}
-
 std::string argument_error(const ToolDef& def, json& args)
 {
     normalize_arguments(def.input_schema, args);
-    std::string err = validate_arguments(def.input_schema, args);
-    if (err.empty())
-        return err;
-    std::string moved = moved_argument(def.name, args);
-    return moved.empty() ? err : moved;
+    return validate_arguments(def.input_schema, args);
 }
 
 // ---- McpProtocol --------------------------------------------------------------
@@ -552,7 +563,7 @@ PostReply McpProtocol::handle_legacy(const json& id, const std::string& method, 
             json data{{"name", name}};
             if (auto close = m_registry.similar(name); !close.empty())
                 data["did_you_mean"] = close;
-            return reply(200, error_body(id, kInvalidParams, "Unknown tool: " + name, std::move(data)));
+            return reply(200, error_body(id, kInvalidParams, m_registry.unknown_tool(name), std::move(data)));
         }
         return result_reply(id, std::move(result));
     }
@@ -614,7 +625,7 @@ PostReply McpProtocol::handle_modern(const json& id, const std::string& method, 
             json data{{"name", name}};
             if (auto close = m_registry.similar(name); !close.empty())
                 data["did_you_mean"] = close;
-            return reply(200, error_body(id, kInvalidParams, "Unknown tool: " + name, std::move(data)));
+            return reply(200, error_body(id, kInvalidParams, m_registry.unknown_tool(name), std::move(data)));
         }
         return result_reply(id, complete(std::move(result)));
     }

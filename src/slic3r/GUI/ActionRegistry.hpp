@@ -213,8 +213,9 @@ public:
     AppActionRunResult run(const std::string& id, const std::string& param = {}, bool record_stats = true);
 
     // The catalog for agents: actions whose id, title, group, source or description contains `text`
-    // (case-insensitive, English aliases included), sorted by group then title, paged. Settings are
-    // listed only when asked for, since there are thousands.
+    // (case-insensitive, English aliases included), sorted by group then title, one page of them as
+    // {items, offset, total} with next_offset while more remain. Settings are listed only when asked
+    // for, since there are thousands.
     struct Query
     {
         std::string text;

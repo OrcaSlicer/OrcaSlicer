@@ -7,11 +7,11 @@ Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the 
 
 | Command | What it does |
 |---|---|
-| `launch [--headless [kwin\|mutter] \| --xvfb] [--cad] [--printer "<model>@<nozzle>"] [--vendor V] [--filament F] [--datadir DIR] [--port N] [--bin PATH] [--print-config] [-- app args]` | Start OrcaSlicer with `--mcp`, wait until it is ready, print the session |
+| `launch [--headless [kwin\|mutter] \| --xvfb] [--cad] [--python-scripts] [--printer "<model>@<nozzle>"] [--vendor V] [--filament F] [--datadir DIR] [--port N] [--bin PATH] [--print-config] [-- app args]` | Start OrcaSlicer with `--mcp`, wait until it is ready, print the session |
 | `call TOOL ['<json args>'] [--wait]` | Call a tool and print its JSON result; `--wait` follows a returned job to its result |
 | `tools` | List the tools, with the first line of each description |
 | `widgets ['<json args>']` | Print the `list_widgets` tree |
-| `screenshot OUT [--target window\|canvas\|dialog]` | Save a full-size PNG, replacing `OUT` if it exists |
+| `screenshot OUT [--target main\|canvas\|dialog]` | Save a full-size PNG, replacing `OUT` if it exists |
 | `run-replay FILE [--out DIR]` | Run a replay in the launched instance and print the result; exit 0 when it passes |
 | `stop` | Stop the app and its private display, and remove the session |
 
@@ -19,7 +19,9 @@ Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the 
 an `OrcaSlicer.conf` that has a finished setup wizard and one printer and filament (Bambu Lab X1
 Carbon 0.4 by default), with update checks and daily tips turned off. `--cad` turns the Design
 (CAD) tab on, which `call_cad_tool` needs: it sets `enable_cad_feature` in a fresh datadir's
-`OrcaSlicer.conf`, and in a reused one too, since the app creates the Design tab only at startup, when that setting is on. The token comes from
+`OrcaSlicer.conf`, and in a reused one too, since the app creates the Design tab only at startup, when that setting is on.
+`--python-scripts` allows Python scripts (`run_script`) the same way, by setting `mcp_python_scripts`,
+since no tool can turn them on. The token comes from
 `ORCA_MCP_TOKEN` or is generated, and it reaches the app through the environment, not the command
 line. On Linux, `launch` also sets `SSL_CERT_FILE`, so a fresh datadir doesn't prompt for a CA
 bundle. On Windows, it gives the instance its own WebView2 profile in the datadir, apart from the one
@@ -147,7 +149,8 @@ files through a file picker, so how it reads and saves them is covered by the un
 A `.py` file given to `--mcp-run` runs as a Python script (`run_script`) instead, exiting 0 when it
 finishes and 1 when it raises, is cancelled or runs out of time; its traceback goes to the log. Python
 scripts run only once the setting allows them: set `"mcp_python_scripts": "true"` in the `app` section
-of the datadir's `OrcaSlicer.conf` before the launch, since no tool can turn it on.
+of the datadir's `OrcaSlicer.conf` before the launch, as `orca_mcp.py launch --python-scripts` does, since
+no tool can turn it on.
 
 A `.py` file runs as Python runs it (`python file.py`), with the whole plugin API: `__name__` is
 `"__main__"`, `__file__` and `sys.argv` name it, the modules beside it import (afresh each run, so an edit
@@ -245,8 +248,8 @@ settings do from `get_settings`' meta (`description`, `where`): by key, for one 
 the words of their descriptions, in one scope and in all three. Keys named without a scope are read
 from the scope that has each one, and a key named in the wrong scope is listed with the scope that has
 it (`scope_of`) and refused by `set_settings`. It reverts single keys (`null`, `reset_to`), and answers the unsaved-changes prompts:
-`select_preset` without `changes` still opens the prompt, `changes` transfers or discards without it,
-and `new_project` keeps modified presets unless `changes` is `"discard"`. It ends by deleting the
+`select_preset` without `preset_changes` still opens the prompt, `preset_changes` transfers or discards without it,
+and `new_project` keeps modified presets unless `preset_changes` is `"discard"`. It ends by deleting the
 presets it made with `delete_preset`: filaments the tab edits and does not, a base process and its
 child, and a printer once selected, with the refusals for system presets, a preset another inherits
 from, unsaved changes and a printer that is not selected. It exports a filament with the Export
@@ -268,8 +271,8 @@ goes. It reruns on the same datadir.
 `tests/calibration.json` makes every calibration test with `generate_calibration_test` (each pressure advance method,
 a 2 x 2 pattern batch, the four flow ratio passes) and checks the objects it added, the parameters
 it used and the presets it changed, slicing some of them. It checks the temperature rounding, the
-refusals that leave the project as it was (modified presets without `changes`, an argument the test
-does not take), `changes: "keep"` keeping an edit, and `new_project` dropping the test's settings. It
+refusals that leave the project as it was (modified presets without `preset_changes`, an argument the test
+does not take), `preset_changes: "keep"` keeping an edit, and `new_project` dropping the test's settings. It
 starts from the harness's default printer and reruns on the same datadir.
 
 The Design-tab replays drive `call_cad_tool` and need an instance launched with `--cad`. Each starts
@@ -398,10 +401,9 @@ dialogs that way alone: the preset bundle dialog, the colour picker behind a fil
 field, and a drag on its spectrum) and the setup wizard's first steps. `test_web_ui.py` covers every
 kind of page control, action and what it changed on its page, refusal, locator, timeout and close on
 the pages of a fixture plugin, in a modal dialog, a modeless window, a dock panel and the Plugins
-dialog's configuration frame, a token in a page's URL shown redacted, and the native permission prompt
-the plugin's thread opens, answered with `answer_dialog` and with a rule registered while it is open
-(skipped on macOS, where only a rule registered before can answer one). Side-load the plugin into the
-datadir first:
+dialog's configuration frame, a token in a page's URL shown redacted, and the permission prompt the
+plugin's thread opens, answered with `answer_dialog` and with a rule registered while it is open.
+Side-load the plugin into the datadir first:
 
 ```bash
 tools/mcp/test_web_ui.py --install /tmp/orca-mcp-test
@@ -415,14 +417,15 @@ closes, Preferences last as a modal dialog, and Action Replay listed as hidden, 
 
 `test_set_window.py` checks `set_window` on the main window (sized twice, moved, placed over its
 display's work area, maximized, minimized and restored), on the Plugins window by its ref and on
-Preferences by its `{label}` locator, and that `set_view` refuses `window_size`. On Wayland it checks
+Preferences by its `{label}` locator. On Wayland it checks
 that a window screenshot is the size the reply gives and skips positions, which Wayland neither reports
 nor takes. On X11 it reads the X server's stacking order through libX11 to check that the main window,
 restored and raised while Preferences is open, stays under it.
 
-`test_action_replay_hidden.py` opens Action Replay and checks that the GUI tools don't see
-it: `list_widgets` lists no window for it, `run_javascript` without a target behaves as before it
-opened, and a key sent without a target never reaches it. It then shows the Run Script panel on
+`test_action_replay_hidden.py`, on an instance launched with `--python-scripts`, opens Action Replay
+and checks that the GUI tools don't see it: `list_widgets` lists no window for it, `run_javascript`
+without a target behaves as before it opened, and a key sent without a target never reaches it. It
+then shows the Run Script panel on
 Prepare and checks the same for it, with no more web views in `list_widgets` than before, a key sent
 without a target reaching the 3D view, a window screenshot, and an agent's `run_script` finishing
 while it is shown; `run_replay` still runs the smoke test and a nested inline replay.
@@ -441,14 +444,14 @@ a click on its row shows again on Line Type, and the pick reaches the app config
 screenshot straight after a layer or view type change shows the new layers and the legend laid out
 (it matches the capture after it), and the refusals of the preview arguments.
 
-`test_set_view_camera.py`, on an instance launched with `--cad`, checks `set_view`'s `target` and `zoom`
+`test_set_view_camera.py`, on an instance launched with `--cad`, checks `set_view`'s `look_at` and `zoom`
 on Prepare, Preview and the Design tab, and `orbit` on Prepare and the Design tab, against the reply's
 `camera_state` and `get_app_state.camera`, including straight after `new_project`, whose fit runs at the
 next frame, and a fit on Prepare after the window was sized on the Home tab.
 
 `tests/agent_forms.json` calls tools the way agents often write them: a lone path for `paths`,
 `object` for `objects` with the index as a string, an action by the key inside its id, `action` for
-`id`, a camera direction as `set_view`'s `view`, `transform` to a `position`, `key` for `keys`,
+`id`, a camera direction as `set_view`'s `view`, which is its `canvas` or its `camera` by the value, `transform` to a `position`, `key` for `keys`,
 `wait` with no condition, a gizmo by its toolbar title, `plate` for `plates`, legend rows in another
 case or with `_` for a space, and `export` with the format taken from the path. It also checks that a
 preset scope's whole `get_settings` listing leaves meta out.

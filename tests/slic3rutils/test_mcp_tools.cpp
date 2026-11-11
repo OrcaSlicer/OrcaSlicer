@@ -84,6 +84,66 @@ TEST_CASE("a search matches query words at the start of a text's words, CamelCas
     CHECK(match_score(query_words("retract"), "retraction_length", "") == std::pair<int, int>{1, 1});
 }
 
+TEST_CASE("an action search ranks by the query's words and puts the plainer command first", "[Mcp]")
+{
+    // Four of the Speed Dial's commands as it lists them.
+    const json listed = json::array({
+        {{"id", "orca_command:obj_delete_all:orca"}, {"title", "Delete All Objects"}, {"group", "Object"},
+         {"description", "Delete all objects."}},
+        {{"id", "orca_command:filament_delete:orca"}, {"title", "Delete Filament Slot"}, {"group", "Filament"},
+         {"description", "Delete a filament slot, as its Delete menu item does; objects on it move to another slot."}},
+        {{"id", "orca_command:view_top:orca"}, {"title", "Top"}, {"group", "View"}, {"description", "Point the 3D camera: View: Top."}},
+        {{"id", "orca_command:obj_delete:orca"}, {"title", "Delete Selected"}, {"group", "Object"},
+         {"description", "Delete the selected objects or parts."}},
+    });
+    const auto ids = [](const json& ranked) {
+        std::vector<std::string> out;
+        for (const json& action : ranked)
+            out.push_back(action["id"].get<std::string>());
+        return out;
+    };
+
+    // No entry holds "delete object" as one text. Two are the Object group's deletes, which the palette
+    // names by group and title, and the shorter name, the plainer command, leads; the third only
+    // mentions objects.
+    CHECK(ids(rank_actions(listed, query_words("delete object"))) ==
+          std::vector<std::string>{"orca_command:obj_delete:orca", "orca_command:obj_delete_all:orca", "orca_command:filament_delete:orca"});
+    // An entry matching more of the words in its name outranks a shorter one.
+    CHECK(ids(rank_actions(listed, query_words("delete all"))).front() == "orca_command:obj_delete_all:orca");
+    // "orca" and "command" are in every built-in id, so they find nothing by themselves.
+    CHECK(rank_actions(listed, query_words("command")).empty());
+    CHECK(rank_actions(listed, query_words("slice")).empty());
+    // The entries come back whole.
+    CHECK(rank_actions(listed, query_words("top")) == json::array({listed[2]}));
+}
+
+TEST_CASE("a name its catalog lacks is pointed to the catalog that has it", "[Mcp]")
+{
+    ToolRegistry registry;
+    ToolDef      list;
+    list.name = "list_objects";
+    registry.add(list);
+    const auto says = [&registry](const std::string& name, Catalog missed, const std::string& text) {
+        return other_catalog_hint(registry, name, missed).find(text) != std::string::npos;
+    };
+
+    // A Speed Dial command, by the name inside its id or by the whole id.
+    CHECK(says("view_front", Catalog::Tools, "run_action {id: \"view_front\"}"));
+    CHECK(says("orca_command:view_front:orca", Catalog::Tools, "run_action {id: \"orca_command:view_front:orca\"}"));
+    // A tool, asked of the actions or of the CAD tools.
+    CHECK(says("list_objects", Catalog::Actions, "call list_objects directly"));
+    CHECK(says("list_objects", Catalog::Cad, "call list_objects directly"));
+    // Never the catalog that missed the name, and nothing for a name no catalog has.
+    CHECK(other_catalog_hint(registry, "list_objects", Catalog::Tools).empty());
+    CHECK(other_catalog_hint(registry, "view_front", Catalog::Actions).empty());
+    CHECK(other_catalog_hint(registry, "no_such_name", Catalog::Tools).empty());
+#ifdef SLIC3R_CAD
+    CHECK(says("extrude", Catalog::Tools, "call_cad_tool {tool: \"extrude\", args}"));
+    CHECK(says("extrude", Catalog::Actions, "call_cad_tool {tool: \"extrude\", args}"));
+    CHECK(other_catalog_hint(registry, "extrude", Catalog::Cad).empty());
+#endif
+}
+
 TEST_CASE("a listing summary is a documentation's first sentence on one line", "[Mcp]")
 {
     CHECK(first_sentence("Return the mesh.\nIt is a copy.") == "Return the mesh.");
@@ -304,7 +364,9 @@ TEST_CASE("camera_state reads the camera set_view leaves", "[Mcp]")
     camera.set_zoom(2.0);
     const json s = camera_state(camera, 1.5);
     CHECK(s["type"] == "ortho");
-    CHECK(s["target"] == json{10.0, 20.0, 0.0});
+    // The point it looks at goes by the name set_view takes it under.
+    CHECK(s["look_at"] == json{10.0, 20.0, 0.0});
+    CHECK_FALSE(s.contains("target"));
     CHECK(s["zoom"] == 2.0);
     CHECK(s["click_px_per_mm"] == 1.3333);
     CHECK(s["elevation"] == 90);

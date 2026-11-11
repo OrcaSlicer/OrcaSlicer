@@ -993,9 +993,9 @@ ToolResult web_mouse(McpService& service, ToolContext& ctx, const json& args)
     };
     if (args.contains("to"))
         a["to"] = point(args["to"]);
-    if (args.contains("path")) {
+    if (args.contains("waypoints")) {
         a["path"] = json::array();
-        for (const json& p : args["path"])
+        for (const json& p : args["waypoints"])
             a["path"].push_back(point(p));
     }
     // A down is on record before it is sent, as one whose reply never comes may still have pressed;
@@ -1329,7 +1329,7 @@ void register_ui_tools(McpService& service)
         "list_windows", L("List the windows"),
         "List OrcaSlicer's open windows: the main window, then the windows that don't block the app (Plugins, an "
         "object's settings, a dock panel floating on its own), then the modal dialogs in the order they opened, the "
-        "topmost last. A window's ref goes to screenshot as target to capture that window, to list_widgets as root to "
+        "topmost last. A window's ref goes to screenshot as target to capture that window, to list_widgets as target to "
         "list it alone, and to press_keys as target; its title is the within of locators for its widgets.\n"
         "Reply: each window's title, kind (main, window, dialog, or panel: a dock panel floating on its own), modal, "
         "ref, web (it shows a web page), x and y on screen (not on Wayland, which doesn't say), width and height, state "
@@ -1356,7 +1356,7 @@ void register_ui_tools(McpService& service)
             "window unit), display (its work area), active with raise, and adjusted with a note: what the OS or a size limit "
             "changed.",
             object_schema({{"target", {{"type", json::array({"string", "object"})},
-                                       {"description", "main (default; or window, as screenshot calls it), dialog (the topmost modal "
+                                       {"description", "main (default), dialog (the topmost modal "
                                                        "dialog), or a window's ref or locator from list_windows; a widget's ref or "
                                                        "locator picks the window it is in."}}},
                            {"size", array_prop({{"type", "integer"}}, "[width, height], held to the window's minimum and maximum size.")},
@@ -1396,7 +1396,7 @@ void register_ui_tools(McpService& service)
             "list_widgets lists (exactly, else ignoring case, else a part of it), its kind, a CSS selector (the id a line "
             "shows as name: name=#save is {css: \"#save\"}), or together. Without within it looks in the topmost dialog's "
             "pages while one is open, else in every shown page, and it waits up to 3 s for its element.",
-            object_schema({{"root", prop("string", "all (default), main, dialog (the topmost modal), popup, or a window's ref (list_windows).")},
+            object_schema({{"target", prop("string", "all (default), main, dialog (the topmost modal), popup, or a window's ref (list_windows).")},
                            {"query", prop("string", "Case-insensitive text to look for in labels, values, names and classes.")},
                            {"max_nodes", {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Default 400."}}},
                            {"include_imgui", prop("boolean", "List ImGui items (default true).")},
@@ -1406,7 +1406,7 @@ void register_ui_tools(McpService& service)
                             {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Page elements, apart from max_nodes; default 300."}}}}),
             [&service](const json& args, ToolContext& ctx) {
                 SnapshotOptions o;
-                o.root          = arg_string(args, "root", "all");
+                o.root          = arg_string(args, "target", "all");
                 o.query         = arg_string(args, "query");
                 o.max_nodes     = arg_int(args, "max_nodes", 400);
                 o.include_imgui = arg_bool(args, "include_imgui", true);
@@ -1683,9 +1683,9 @@ void register_ui_tools(McpService& service)
         "mouse_gesture", L("Mouse gesture on the 3D view"),
         "Make a mouse gesture on a 3D canvas as a person would: move, down, up, click, drag or wheel. It starts at `at`, a "
         "point of the model, which is projected through the camera and by default checked to land on that part (check "
-        "\"point\" only projects it), or at x/y, logical pixels from the canvas's top left. A drag goes through `path` to "
+        "\"point\" only projects it), or at x/y, logical pixels from the canvas's top left. A drag goes through `waypoints` to "
         "`to`, `steps` moves per leg: on an object it moves the object, in a painting gizmo it paints from a press on the "
-        "object being painted (a path zigzagging over an area paints all of it), and elsewhere it turns or pans the camera "
+        "object being painted (waypoints zigzagging over an area paint all of it), and elsewhere it turns or pans the camera "
         "as this install's mouse settings say, so turn the camera with set_view camera or orbit instead. A wheel turns delta "
         "notches; positive zooms in or scrolls a panel up. Modifiers are held as keys for the gesture (shift for Measure's "
         "point picking, alt for erasing). A down keeps its button and modifiers held, so moves drag, until an up or another "
@@ -1693,7 +1693,7 @@ void register_ui_tools(McpService& service)
         "is listed as popup_menu, or popup_item (with click or up) runs one of its items. The reply's camera_moved says the "
         "gesture moved the camera, so earlier screenshots and pixels no longer match the view.\n"
         "With target, the gesture is on a web page's element instead (a canvas such as the colour picker's spectrum, a "
-        "slider, a sortable or scrolled list): x/y, to and path are logical pixels from its top left, a drag keeps the "
+        "slider, a sortable or scrolled list): x/y, to and waypoints are logical pixels from its top left, a drag keeps the "
         "pointer captured where the page asks for it, and a wheel scrolls what is under the pointer unless the page takes "
         "it; page says what the gesture changed there, as for click.",
         object_schema({{"action", enum_prop({"move", "down", "up", "click", "drag", "wheel"}, "Default click.")},
@@ -1702,7 +1702,7 @@ void register_ui_tools(McpService& service)
                        {"x", prop("integer", "Start x, instead of at.")},
                        {"y", prop("integer", "Start y, instead of at.")},
                        {"to", pixel_or_target},
-                       {"path", array_prop(pixel_or_target, "Drag waypoints after the start, before to.")},
+                       {"waypoints", array_prop(pixel_or_target, "Where a drag goes after the start, before to.")},
                        {"check", enum_prop({"surface", "point"}, "For model points: surface (default) or projection only.")},
                        {"tolerance", {{"type", "number"}, {"minimum", 0}, {"description", "Surface check distance in mm (default 1% of the part's size, at least 0.1)."}}},
                        {"steps", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Moves per drag leg (default 10)."}}},

@@ -13,8 +13,7 @@ state normal and a size both bring it back to normal. A request that contradicts
 refused before anything changes. The Plugins window is sized and moved by its ref, which fails, pointing to
 list_windows, once the window has closed. Preferences, a modal dialog, is sized as "dialog" and moved by its
 {label} locator, and never minimized; on X11 the main window, minimized, restored and raised while it is
-open, stays under it in the X server's stacking order. set_view refuses a window_size, pointing to set_window. Exits 0
-when every check passes.
+open, stays under it in the X server's stacking order. Exits 0 when every check passes.
 """
 
 import ctypes
@@ -140,7 +139,7 @@ def main():
     if wayland:
         # The size is the window as the compositor shows it, which a window screenshot captures; the shadow
         # GTK draws around it is not part of it.
-        shot = client.call("screenshot", target="window", include_image=False)
+        shot = client.call("screenshot", target="main", include_image=False)
         scale = again.get("scale", 1)
         check("a second size: a window screenshot is that size", (shot.get("width"), shot.get("height")) ==
               (round(1300 * scale), round(820 * scale)), f"{shot} / {again}")
@@ -285,16 +284,7 @@ def main():
     flat = client.call("set_window", width=1500, height=950)
     check("flat form: width and height are read as size", flat.get("size") == [1500, 950], flat)
 
-    # 12. set_view sizes no window: its window_size is refused with a pointer to set_window.
-    try:
-        client.call("set_view", window_size=[800, 600])
-        error = None
-    except orca_mcp.McpError as e:
-        error = str(e)
-    check("set_view refuses window_size", error is not None, error)
-    check("pointing to set_window", error is not None and "set_window" in error, error)
-
-    # 13. Clean-up.
+    # 12. Clean-up.
     client.call("set_window", size=[1920, 1200])
 
     failed = [c for c in checks if not c[1]]

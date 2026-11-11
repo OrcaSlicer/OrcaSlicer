@@ -68,7 +68,7 @@ def main():
     args = ap.parse_args()
 
     client, _ = orca_mcp.session_client()
-    names = [t["name"] for t in client.call("list_cad_tools")["tools"]]
+    names = [t["name"] for t in client.call("list_cad_tools")["items"]]
     unknown = [t for t in args.tool if t not in names]
     if unknown:
         sys.exit(f"not CAD tools: {', '.join(unknown)}")

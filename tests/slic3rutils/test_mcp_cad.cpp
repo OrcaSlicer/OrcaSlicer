@@ -66,7 +66,7 @@ namespace {
 std::vector<std::string> row_names(const json& reply)
 {
     std::vector<std::string> names;
-    for (const json& row : reply.at("tools")) names.push_back(row.at("name").get<std::string>());
+    for (const json& row : reply.at("items")) names.push_back(row.at("name").get<std::string>());
     std::sort(names.begin(), names.end());
     return names;
 }
@@ -160,7 +160,7 @@ json all_cad_tools()
 // The row `reply` lists for `name`, or null.
 json row_of(const json& reply, const std::string& name)
 {
-    for (const json& row : reply.at("tools"))
+    for (const json& row : reply.at(reply.contains("items") ? "items" : "tools"))   // a listing's page, or a description's rows
         if (row.at("name") == name) return row;
     return json();
 }
@@ -219,13 +219,30 @@ TEST_CASE("list_cad_tools has one row per dispatched tool", "[Mcp][CAD]")
     CHECK(reply.at("total") == names.size());
     CHECK_THAT(reply.at("use").get<std::string>(), ContainsSubstring("describe_cad_tool"));
     CHECK_FALSE(reply.at("ids").get<std::string>().empty());
-    for (const json& row : reply.at("tools")) CHECK(row.size() == 3);   // name, access, summary
+    for (const json& row : reply.at("items")) CHECK(row.size() == 3);   // name, access, summary
+    // One page holds them all, in the shape every list has.
+    CHECK(reply.at("offset") == 0);
+    CHECK_FALSE(reply.contains("next_offset"));
+    CHECK_FALSE(reply.contains("tools"));
+}
+
+TEST_CASE("list_cad_tools pages like the other lists", "[Mcp][CAD]")
+{
+    const std::vector<std::string> all = row_names(GUI::Mcp::cad_list_tools(""));
+    const json first = GUI::Mcp::cad_list_tools("", {{"limit", 3}});
+    CHECK(first.at("items").size() == 3);
+    CHECK(first.at("total") == all.size());
+    CHECK(first.at("next_offset") == 3);
+    const json rest = GUI::Mcp::cad_list_tools("", {{"limit", 200}, {"offset", 3}});
+    CHECK(rest.at("items").size() == all.size() - 3);
+    CHECK(rest.at("offset") == 3);
+    CHECK_FALSE(rest.contains("next_offset"));
 }
 
 TEST_CASE("every CAD tool's summary is one sentence of at most 120 characters", "[Mcp][CAD]")
 {
     const json reply = GUI::Mcp::cad_list_tools("");
-    for (const json& row : reply.at("tools")) {
+    for (const json& row : reply.at("items")) {
         INFO(row.at("name").get<std::string>());
         const std::string summary = row.at("summary").get<std::string>();
         REQUIRE_FALSE(summary.empty());
@@ -235,19 +252,18 @@ TEST_CASE("every CAD tool's summary is one sentence of at most 120 characters", 
     }
 }
 
-TEST_CASE("list_cad_tools narrows by a query in any case and keeps the total", "[Mcp][CAD]")
+TEST_CASE("list_cad_tools narrows by a query in any case and counts what it kept", "[Mcp][CAD]")
 {
-    const size_t all = GUI::Mcp::cad_tool_names().size();
-
     const json sketch = GUI::Mcp::cad_list_tools("SKETCH_");
     const std::vector<std::string> names = row_names(sketch);
     CHECK(std::find(names.begin(), names.end(), "sketch_add") != names.end());
     for (const std::string& n : names) CHECK_THAT(n, ContainsSubstring("sketch_"));
-    CHECK(sketch.at("total") == all);
+    CHECK(sketch.at("total") == names.size());
+    CHECK(names.size() < GUI::Mcp::cad_tool_names().size());
 
     const json none = GUI::Mcp::cad_list_tools("zzzz");
-    CHECK(none.at("tools").empty());
-    CHECK(none.at("total") == all);
+    CHECK(none.at("items").empty());
+    CHECK(none.at("total") == 0);
 }
 
 TEST_CASE("list_cad_tools finds a tool by a word only its details hold", "[Mcp][CAD]")
