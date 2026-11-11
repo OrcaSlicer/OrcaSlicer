@@ -206,6 +206,10 @@ struct ArrangeParams {
 
 void update_arrange_params(ArrangeParams& params, const DynamicPrintConfig* print_cfg, const ArrangePolygons& selected);
 
+// Runs update_arrange_params() and the item updates below in the order they depend on.
+void update_arrange_items(ArrangePolygons& selected, ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, ArrangeParams& params);
+
+// Call after update_selected_items_axis_align(), since it measures each item as it is turned.
 void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, ArrangeParams& params);
 
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);

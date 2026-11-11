@@ -17,6 +17,7 @@
 #include <catch2/catch_message.hpp>
 #include "libslic3r/Arrange.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Print.hpp"
@@ -28,19 +29,20 @@ using namespace Slic3r::arrangement;
 
 namespace {
 
+using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
 
-// Square of the given (scaled) side, lower-left at the origin. bed_idx starts at
+// Rectangle of the given (scaled) size, lower-left at the origin. bed_idx starts at
 // 0 because arrange() seeds the nester's bin from it (see ModelArrange.cpp).
-ArrangePolygon make_square(coord_t side)
+ArrangePolygon make_rect(coord_t width, coord_t depth)
 {
     ArrangePolygon ap;
-    Polygon        p;
-    p.points = {Point(0, 0), Point(side, 0), Point(side, side), Point(0, side)};
-    ap.poly  = ExPolygon(p);
+    ap.poly    = ExPolygon(Polygon({{0, 0}, {width, 0}, {width, depth}, {0, depth}}));
     ap.bed_idx = 0;
     return ap;
 }
+
+ArrangePolygon make_square(coord_t side) { return make_rect(side, side); }
 
 ArrangePolygons squares(int n, double side_mm, double height_mm = 0.)
 {
@@ -117,6 +119,14 @@ void require_no_overlap(const ArrangePolygons &items)
     REQUIRE(disjoint(placed_shapes(items)));
 }
 
+// Shortest distance between two bounding boxes, 0 when they touch or overlap.
+double box_gap(const BoundingBox &a, const BoundingBox &b)
+{
+    coord_t sx = std::max<coord_t>(0, std::max(b.min.x() - a.max.x(), a.min.x() - b.max.x()));
+    coord_t sy = std::max<coord_t>(0, std::max(b.min.y() - a.max.y(), a.min.y() - b.max.y()));
+    return std::sqrt(double(sx) * sx + double(sy) * sy);
+}
+
 // The sequential-print floor is chosen by comparing object height against the nozzle,
 // so the two are defined together and every expectation is derived from them.
 constexpr double NOZZLE_HEIGHT_MM = 2.5;
@@ -139,6 +149,20 @@ DynamicPrintConfig bed_config()
     DynamicPrintConfig c;
     c.set_key_value("printable_area", new ConfigOptionPoints{{0, 0}, {200, 0}, {200, 200}, {0, 200}});
     return c;
+}
+
+constexpr double SKIRT_DISTANCE_MM = 2.;
+
+// A skirt of `loops` loops of `width` on the bed_config() bed, SKIRT_DISTANCE_MM from the items.
+DynamicPrintConfig skirt_config(int loops, const ConfigOption &width)
+{
+    DynamicPrintConfig cfg = bed_config();
+    cfg.set_key_value("skirt_loops", new ConfigOptionInt(loops));
+    cfg.set_key_value("skirt_height", new ConfigOptionInt(1));
+    cfg.set_key_value("skirt_distance", new ConfigOptionFloat(SKIRT_DISTANCE_MM));
+    cfg.set_key_value("nozzle_diameter", new ConfigOptionFloats({0.4}));
+    cfg.set_key_value("initial_layer_line_width", width.clone());
+    return cfg;
 }
 
 ArrangePolygons squares_of_heights(const std::vector<double> &heights_mm)
@@ -231,20 +255,15 @@ TEST_CASE("Arrange spaces items by their inflation", "[Arrange]")
     arrange(items, bed(200, 200), quiet_params());
 
     // Axis-aligned squares are their own bounding boxes, so the clearance between
-    // a pair is the distance between their boxes (1mm slack for nester rounding).
+    // a pair is the distance between their boxes (0.5mm slack for nester rounding).
     std::vector<BoundingBox> boxes;
     for (const ExPolygon &e : placed_shapes(items))
         boxes.push_back(e.contour.bounding_box());
 
     double min_gap = std::numeric_limits<double>::max();
     for (size_t i = 0; i < boxes.size(); ++i)
-        for (size_t j = i + 1; j < boxes.size(); ++j) {
-            coord_t sx = std::max<coord_t>(0, std::max(boxes[j].min.x() - boxes[i].max.x(),
-                                                       boxes[i].min.x() - boxes[j].max.x()));
-            coord_t sy = std::max<coord_t>(0, std::max(boxes[j].min.y() - boxes[i].max.y(),
-                                                       boxes[i].min.y() - boxes[j].max.y()));
-            min_gap = std::min(min_gap, std::sqrt(double(sx) * sx + double(sy) * sy));
-        }
+        for (size_t j = i + 1; j < boxes.size(); ++j)
+            min_gap = std::min(min_gap, box_gap(boxes[i], boxes[j]));
 
     REQUIRE(min_gap >= double(scaled(8.)) - double(scaled(0.5)));
 }
@@ -287,6 +306,321 @@ TEST_CASE("An item filling the printable area is arranged", "[Arrange]")
     update_selected_items_inflation(large, &cfg, p_large);
     arrange(large, get_shrink_bedpts(&cfg, p_large), p_large);
     REQUIRE(large.front().bed_idx == UNARRANGED);
+}
+
+TEST_CASE("Items almost as wide as the bed are arranged on one bed", "[Arrange]")
+{
+    struct Case
+    {
+        std::string description;
+        double      distance_mm;
+        double      brim_width_mm;
+        bool        align_to_y_axis;
+        int         skirt_loops;
+        double      gap_mm;
+    };
+    // A distance the user set is kept. A brim is cut to the 5 mm the bed leaves on each side of the
+    // item, or to 2.5 mm with the skirt.
+    auto c = GENERATE(values<Case>({
+        {"with a distance the user set",       20., 0., false, 0, 20.},
+        {"with a brim",                        0.,  8., false, 0, 10.},
+        {"when turned to the Y axis",          0.,  8., true,  0, 10.},
+        {"with a skirt",                       0.,  8., false, 1, 5.},
+        {"with a distance and a skirt",        20., 0., false, 1, 20.},
+    }));
+
+    DYNAMIC_SECTION(c.description)
+    {
+        constexpr double   LINE_WIDTH_MM = 0.5;
+        DynamicPrintConfig cfg = skirt_config(c.skirt_loops, ConfigOptionFloatOrPercent(LINE_WIDTH_MM, false));
+        ArrangeParams      p   = quiet_params(scaled(c.distance_mm));
+        p.align_to_y_axis      = c.align_to_y_axis;
+
+        ArrangePolygons items(2, make_rect(scaled(190.), scaled(20.)));
+        for (ArrangePolygon &ap : items)
+            ap.brim_width = c.brim_width_mm;
+        ArrangePolygons fixed;
+        update_arrange_items(items, fixed, &cfg, p);
+        arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+        // The skirt goes around the items, so they keep its room from the bed edge.
+        const coord_t skirt_room = c.skirt_loops > 0 ? scaled(SKIRT_DISTANCE_MM + c.skirt_loops * LINE_WIDTH_MM) : 0;
+        BoundingBox   printable  = bed(200, 200);
+        printable.offset(-skirt_room);
+        for (const ArrangePolygon &ap : items) {
+            REQUIRE(ap.bed_idx == 0);
+            REQUIRE(printable.contains(ap.transformed_poly().contour.bounding_box()));
+        }
+        // 0.5 mm slack for nester rounding.
+        CHECK(box_gap(items[0].transformed_poly().contour.bounding_box(), items[1].transformed_poly().contour.bounding_box()) >=
+              double(scaled(c.gap_mm - 0.5)));
+    }
+}
+
+TEST_CASE("A distance the user set is kept when another item's brim is cut", "[Arrange]")
+{
+    DynamicPrintConfig cfg = bed_config();
+    ArrangeParams      p   = quiet_params(scaled(20.));
+    ArrangePolygons    items{make_rect(scaled(195.), scaled(20.)), make_rect(scaled(190.), scaled(20.))};
+    for (ArrangePolygon &ap : items)
+        ap.brim_width = 5.;
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        REQUIRE(bed(200, 200).contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    // The 195 mm item keeps 7.5 mm of its inflation and the 190 mm item all 10 mm. 0.5 mm slack for nester rounding.
+    CHECK(box_gap(items[0].transformed_poly().contour.bounding_box(), items[1].transformed_poly().contour.bounding_box()) >=
+          double(scaled(17.5 - 0.5)));
+}
+
+TEST_CASE("A distance the user set is kept past the branches of tree supports", "[Arrange]")
+{
+    constexpr double   DISTANCE_MM = 20.;
+    constexpr double   BRANCH_MM   = 10.; // tree support branch diameter, half of which lies around an item
+    DynamicPrintConfig cfg         = bed_config();
+    ArrangeParams      p           = quiet_params(scaled(DISTANCE_MM));
+    ArrangePolygons    items(2, make_rect(scaled(190.), scaled(20.)));
+    for (ArrangePolygon &ap : items) {
+        ap.has_tree_support = true;
+        ap.brim_width       = BRANCH_MM;
+    }
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    // The arrange bed extends past the printable area by no more than the distance past the branches.
+    const BoundingBox arrange_bed(get_shrink_bedpts(&cfg, p));
+    CHECK(unscale<double>(arrange_bed.min.x()) >= -(DISTANCE_MM / 2 - BRANCH_MM / 2) - 1e-3);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    for (const ArrangePolygon &ap : items)
+        REQUIRE(ap.bed_idx == 0);
+    // 0.5 mm slack for nester rounding.
+    CHECK(box_gap(items[0].transformed_poly().contour.bounding_box(), items[1].transformed_poly().contour.bounding_box()) >=
+          double(scaled(DISTANCE_MM - 0.5)));
+}
+
+TEST_CASE("A distance the user set keeps the arrange bed inside a round bed", "[Arrange]")
+{
+    constexpr double   RADIUS_MM = 100.;
+    DynamicPrintConfig cfg;
+    std::vector<Vec2d> circle;
+    for (int i = 0; i < 72; ++i)
+        circle.emplace_back(RADIUS_MM + RADIUS_MM * std::cos(i * PI / 36), RADIUS_MM + RADIUS_MM * std::sin(i * PI / 36));
+    cfg.set_key_value("printable_area", new ConfigOptionPoints(circle));
+    ArrangeParams   p     = quiet_params(scaled(20.));
+    ArrangePolygons items = squares(2, 20.);
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+
+    const Vec2d center(RADIUS_MM, RADIUS_MM);
+    for (const Point &pt : get_shrink_bedpts(&cfg, p))
+        REQUIRE((unscaled(pt) - center).norm() <= RADIUS_MM + EPSILON);
+}
+
+TEST_CASE("An item cut to less inflation than the bed would grow keeps the bed from growing", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config();
+    ArrangeParams      p     = quiet_params(scaled(36.));
+    ArrangePolygons    items = {make_rect(scaled(199.), scaled(20.))};
+    items.front().rotation   = PI / 18; // 10 degrees, so the corners of the inflated item lie past the inflation
+    items.front().brim_width = 8.;
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    // The arrange bed extends past the printable area by no more than the item's inflation.
+    const BoundingBox arrange_bed(get_shrink_bedpts(&cfg, p));
+    CHECK(arrange_bed.min.x() >= -items.front().inflation);
+    CHECK(arrange_bed.min.y() >= -items.front().inflation);
+
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("An item filling the bed does not keep the bed from growing for the others", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params(scaled(20.));
+    ArrangePolygons    items = {make_rect(scaled(200.), scaled(20.)), make_rect(scaled(190.), scaled(20.))};
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    const BoundingBox printable = bed(200, 200).inflated(scaled(BuildVolume::BedEpsilon));
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        REQUIRE(printable.contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    // 0.5 mm slack for nester rounding.
+    CHECK(box_gap(items[0].transformed_poly().contour.bounding_box(), items[1].transformed_poly().contour.bounding_box()) >=
+          double(scaled(20. - 0.5)));
+}
+
+TEST_CASE("An item too big for the bed is not placed with a distance the user set", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params(scaled(20.));
+    ArrangePolygons    items = {make_rect(scaled(205.), scaled(20.))};
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == UNARRANGED);
+}
+
+TEST_CASE("An item too big for the bed does not take the bed margin from the others", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config();
+    ArrangeParams      p     = quiet_params();
+    ArrangePolygons    items = {make_rect(scaled(210.), scaled(20.)), make_rect(scaled(20.), scaled(20.))};
+    const float        margin_mm = p.bed_shrink_x;
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    const BoundingBox arrange_bed(get_shrink_bedpts(&cfg, p));
+    CHECK_THAT(unscale<double>(arrange_bed.min.x()), WithinAbs(margin_mm, 1e-4));
+    CHECK_THAT(unscale<double>(arrange_bed.min.y()), WithinAbs(margin_mm, 1e-4));
+}
+
+TEST_CASE("An item exactly as wide as the bed is arranged with its brim", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params();
+    ArrangePolygons    items = {make_rect(scaled(200.), scaled(50.))};
+    items.front().brim_width = 1.;
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+}
+
+TEST_CASE("An item turned by hand and almost as wide as the bed is arranged with its brim", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config();
+    ArrangeParams      p     = quiet_params();
+    ArrangePolygons    items = {make_rect(scaled(190.), scaled(20.))};
+    items.front().rotation   = PI / 18; // 10 degrees, so the corners of the inflated item lie past the inflation
+    items.front().brim_width = 8.;
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("A non-convex item turned by hand and almost as wide as the bed is arranged with its brim", "[Arrange]")
+{
+    DynamicPrintConfig cfg = bed_config(); // 200 x 200
+    ArrangeParams      p   = quiet_params();
+    ArrangePolygon     l_shape;
+    l_shape.poly = ExPolygon(Polygon({{0, 0}, {scaled(190.), 0}, {scaled(190.), scaled(10.)},
+                                      {scaled(20.), scaled(10.)}, {scaled(20.), scaled(60.)}, {0, scaled(60.)}}));
+    l_shape.bed_idx    = 0;
+    l_shape.rotation   = PI / 18; // 10 degrees, so the turned item is about 197.5 mm wide
+    l_shape.brim_width = 8.;
+    ArrangePolygons items{l_shape};
+
+    update_arrange_params(p, &cfg, items);
+    update_selected_items_inflation(items, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("With rotations allowed, an item that fits only on the diagonal of the bed is arranged", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params();
+    p.allow_rotations        = true;
+    ArrangePolygons    items = {make_rect(scaled(260.), scaled(20.))};
+    items.front().brim_width = 1.;
+    ArrangePolygons    fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    // The item keeps no inflation and gets the bed margin back.
+    CHECK(items.front().inflation == 0);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("With rotations allowed, an item turned off the axis it fits is arranged", "[Arrange]")
+{
+    DynamicPrintConfig cfg;
+    cfg.set_key_value("printable_area", new ConfigOptionPoints{{0, 0}, {250, 0}, {250, 210}, {0, 210}});
+    ArrangeParams p   = quiet_params();
+    p.allow_rotations = true;
+    // Turned 45 degrees the item is about 219 mm wide and deep, more than the 210 mm the bed is deep.
+    ArrangePolygons items    = {make_rect(scaled(249.5), scaled(60.))};
+    items.front().rotation   = PI / 4;
+    items.front().brim_width = 1.;
+    ArrangePolygons fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(250, 210).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("With rotations allowed, items that have to be turned keep a distance the user set", "[Arrange]")
+{
+    constexpr double   DISTANCE_MM = 20.;
+    DynamicPrintConfig cfg;
+    cfg.set_key_value("printable_area", new ConfigOptionPoints{{0, 0}, {250, 0}, {250, 210}, {0, 210}});
+    ArrangeParams p   = quiet_params(scaled(DISTANCE_MM));
+    p.allow_rotations = true;
+    // Turned to the Y axis the items are 240 mm deep, more than the 210 mm the bed is deep.
+    ArrangePolygons items(2, make_rect(scaled(240.), scaled(20.)));
+    for (ArrangePolygon &ap : items) {
+        ap.rotation   = PI / 2;
+        ap.brim_width = 1.;
+    }
+    ArrangePolygons fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        REQUIRE(bed(250, 210).contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    // 0.5 mm slack for nester rounding.
+    CHECK(box_gap(items[0].transformed_poly().contour.bounding_box(), items[1].transformed_poly().contour.bounding_box()) >=
+          double(scaled(DISTANCE_MM - 0.5)));
+}
+
+TEST_CASE("The skirt room counts a percent line width against the nozzle", "[Arrange]")
+{
+    DynamicPrintConfig cfg = skirt_config(2, ConfigOptionFloatOrPercent(125., true));
+    ArrangeParams      p   = quiet_params();
+
+    update_arrange_params(p, &cfg, {});
+    // Two loops 125% as wide as the 0.4 mm nozzle.
+    CHECK_THAT(p.brim_skirt_distance, WithinAbs(SKIRT_DISTANCE_MM + 2 * 0.5, 1e-4));
+}
+
+TEST_CASE("The skirt room reads a line width stored as a plain number", "[Arrange]")
+{
+    DynamicPrintConfig cfg = skirt_config(2, ConfigOptionFloat(0.5));
+    ArrangeParams      p   = quiet_params();
+
+    update_arrange_params(p, &cfg, {});
+    CHECK_THAT(p.brim_skirt_distance, WithinAbs(SKIRT_DISTANCE_MM + 2 * 0.5, 1e-4));
 }
 
 TEST_CASE("Items overflowing one bed spill onto virtual beds", "[Arrange]")
@@ -527,6 +861,41 @@ TEST_CASE("Sequential print keeps an object distance already above the floor", "
 
     update_selected_items_inflation(items, &cfg, p);
     CHECK(p.min_obj_distance == stored);
+}
+
+TEST_CASE("Sequential print keeps the clearance of an object almost as wide as the bed", "[Arrange]")
+{
+    ArrangePolygons items  = {make_rect(scaled(199.), scaled(20.))};
+    items.front().height   = NOZZLE_HEIGHT_MM * 2;
+    items.front().rotation = PI / 18; // 10 degrees, so the corners of the inflated object lie past the clearance
+    DynamicPrintConfig cfg = bed_config();
+    ArrangeParams      p   = seq_print_params(0);
+
+    update_selected_items_inflation(items, &cfg, p);
+    CHECK(p.min_obj_distance >= scaled(CLEARANCE_MM));
+    CHECK(items.front().inflation == p.min_obj_distance / 2);
+}
+
+TEST_CASE("Sequential print with rotations allowed arranges an object that has to be turned", "[Arrange]")
+{
+    DynamicPrintConfig cfg = bed_config(); // 200 x 200
+    ArrangeParams      p   = seq_print_params(scaled(40.));
+    p.allow_rotations      = true;
+    p.bed_shrink_x         = BED_SHRINK_SEQ_PRINT;
+    p.bed_shrink_y         = BED_SHRINK_SEQ_PRINT;
+    // Turned 10 degrees the object is about 205 mm wide, so it fits only turned back and with the bed margin given back.
+    ArrangePolygons items     = {make_rect(scaled(198.), scaled(60.))};
+    items.front().rotation    = PI / 18;
+    items.front().height      = NOZZLE_HEIGHT_MM * 2;
+    items.front().extrude_ids = {1}; // the sequential sort reads extrude_ids.front()
+    ArrangePolygons fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    CHECK(items.front().inflation == p.min_obj_distance / 2);
+    arrange(items, fixed, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
 }
 
 TEST_CASE("Layered printing does not floor the object distance", "[Arrange]")

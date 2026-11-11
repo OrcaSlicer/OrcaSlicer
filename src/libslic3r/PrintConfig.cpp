@@ -14421,17 +14421,24 @@ float get_real_skirt_dist(const DynamicPrintConfig& cfg) {
         loops = 1;
     }
 
-    float width = cfg.opt_float("initial_layer_line_width");
+    float nozzle = 0.4f;
+    auto* nd = cfg.opt<ConfigOptionFloats>("nozzle_diameter");
+    if (nd && !nd->values.empty())
+        nozzle = *std::max_element(nd->values.begin(), nd->values.end());
+
+    // A line width can be a percent of the nozzle diameter.
+    auto line_width = [&](const char *key) -> float {
+        const ConfigOption *opt = cfg.option(key);
+        if (const auto *width = dynamic_cast<const ConfigOptionFloatOrPercent *>(opt))
+            return float(width->get_abs_value(nozzle));
+        return opt ? float(opt->getFloat()) : 0.f;
+    };
+    float width = line_width("initial_layer_line_width");
     if (width <= 0.f) {
-        width = cfg.opt_float("line_width");
+        width = line_width("line_width");
     }
     if (width <= 0.f) {
-        auto* nd = cfg.opt<ConfigOptionFloats>("nozzle_diameter");
-        if (nd && !nd->values.empty()) {
-            width = *std::max_element(nd->values.begin(), nd->values.end());
-        } else {
-            width = 0.4f;
-        }
+        width = nozzle;
     }
 
     return dist + loops * width;
