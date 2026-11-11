@@ -1,329 +1,297 @@
 #include "LabeledCheckBox.hpp"
 
-#include <wx/tglbtn.h> // to keep wxEVT_TOGGLEBUTTON
+#include <wx/dcclient.h>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
+#include <wx/tglbtn.h> // wxEVT_TOGGLEBUTTON
+#include <wx/tooltip.h>
+#include <wx/weakref.h>
 
-LabeledCheckBox::LabeledCheckBox(wxWindow *parent, wxString label)
-    : wxPanel(parent, wxID_ANY)
-    , m_on(           this, "check_on"            , 18)
-    , m_half(         this, "check_half"          , 18)
-    , m_off(          this, "check_off"           , 18)
-    , m_on_disabled(  this, "check_on_disabled"   , 18)
-    , m_half_disabled(this, "check_half_disabled" , 18)
-    , m_off_disabled( this, "check_off_disabled"  , 18)
-    , m_on_focused(   this, "check_on_focused"    , 18) 
-    , m_half_focused( this, "check_half_focused"  , 18)
-    , m_off_focused(  this, "check_off_focused"   , 18)
-    , m_font(Label::Body_14)
-    , m_label_color(wxColour("#363636"))
-    , m_value(false)
-    , m_wrap(-1)
+#include <algorithm>
+
+static const int LABEL_PADDING = 5; // space between the text and its focus border
+
+// Color of the parent. Inside a scrolled window the color of the window placed directly in it is
+// used instead, the windows between don't always have the color they are painted with.
+static wxColour GetParentBackground(wxWindow* parent)
 {
-    if (parent)
-        SetBackgroundColour(parent->GetBackgroundColour());
-    if (auto sParent = GetScrollParent(this))
-        SetBackgroundColour(sParent->GetBackgroundColour());
+    wxWindow* child = parent;
+    for (wxWindow* win = parent; win; child = win, win = win->GetParent())
+        if (dynamic_cast<wxScrollHelper*>(win))
+            return child->GetBackgroundColour();
+    return parent->GetBackgroundColour();
+}
 
-    m_label = label;
-
-    m_sizer = new wxBoxSizer(wxHORIZONTAL);
-
-    m_check = new Button(this, "", "check_off", 0, 18);
-    m_check->SetPaddingSize(FromDIP(wxSize(0,0)));
-    m_check->SetBackgroundColor(GetBackgroundColour());
+LabeledCheckBox::LabeledCheckBox(wxWindow* parent, const wxString& label, wxWindowID id)
+    : wxPanel(parent, id, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxBORDER_NONE | wxFULL_REPAINT_ON_RESIZE)
+{
+    // The check takes the keyboard focus
+    m_check = new Button(this, wxEmptyString, "check_off", wxBORDER_NONE, 18);
+    m_check->SetPaddingSize(wxSize(0, 0));
     m_check->SetCornerRadius(0);
-    m_check->SetBorderWidth(0);
 
-    m_check->Bind(wxEVT_SET_FOCUS ,([this](wxFocusEvent e) {UpdateLabelBorder(true); UpdateIcon(); e.Skip();}));
-    m_check->Bind(wxEVT_KILL_FOCUS,([this](wxFocusEvent e) {UpdateLabelBorder(false);UpdateIcon(); e.Skip();}));
+    m_text = new Label(this, Label::Body_14, label, LB_AUTO_WRAP);
+    m_text->Show(!label.empty());
 
-    m_check_item = m_sizer->Add(m_check, 0, wxALIGN_CENTER_VERTICAL); // Dont add spacing otherwise hover events will break
+    // Borders are set by UpdateMetrics(). The label takes all the remaining width, this is the
+    // width it wraps itself to.
+    wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
+    sizer->Add(m_check, 0, wxTOP);
+    sizer->Add(m_text, 1, wxALL);
+    SetSizer(sizer);
 
-    if(!label.IsEmpty()){
-        m_has_text = true;
+    wxPanel::SetLabel(label);
+    wxPanel::SetFont(Label::Body_14);
+    SetBackgroundColour(GetParentBackground(parent));
+    SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+    UpdateMetrics();
+    SetSize(GetBestSize());
+    m_best_size = GetBestSize();
 
-        m_text_box = new StaticBox(this);
-        m_text_box->SetCornerRadius(0);
-        m_text_box->SetBorderColor(GetBackgroundColour());
-        m_text_box->SetCanFocus(false);
-        m_text_box->DisableFocusFromKeyboard();
-
-        m_text = new wxStaticText(m_text_box, wxID_ANY, label);
-        m_text->SetFont(m_font);
-        UpdateLabelColor(true);
-
-        wxBoxSizer *label_sizer = new wxBoxSizer(wxHORIZONTAL);
-        label_sizer->Add(m_text, 0, wxALL, FromDIP(5));
-        m_text_box->SetSizer(label_sizer);
-
-        m_text_item = m_sizer->Add(m_text_box, 0, wxALIGN_CENTER_VERTICAL); // Dont add spacing otherwise hover events will break
+    // A click anywhere toggles: on the check, on the label and on the empty area left when the
+    // control is stretched. Button doesn't see the click, so it doesn't send its wxEVT_BUTTON.
+    for (wxWindow* win : std::initializer_list<wxWindow*>{this, m_check, m_text}) {
+        win->Bind(wxEVT_LEFT_DOWN,    &LabeledCheckBox::OnClick, this);
+        win->Bind(wxEVT_LEFT_DCLICK,  &LabeledCheckBox::OnClick, this); // second click of a fast double click
+        win->Bind(wxEVT_ENTER_WINDOW, &LabeledCheckBox::OnHover, this);
+        win->Bind(wxEVT_LEAVE_WINDOW, &LabeledCheckBox::OnHover, this);
     }
-
-    std::vector<wxWindow*> w_list = {m_check};
-    if (m_has_text) {
-        w_list.push_back(m_text_box);
-        w_list.push_back(m_text);
-    }
-    for (wxWindow* w : w_list) {
-        w->Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent &e) {
-            m_hovered = true;
-            UpdateIcon();
-            e.Skip();
-        });
-        w->Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent &e) {
-            if(m_has_text){
-                wxWindow* next_w = wxFindWindowAtPoint(wxGetMousePosition());
-                if (!next_w || !IsDescendant(next_w) || next_w == this)
-                    m_hovered = false;
-            }
-            else
-                m_hovered = false;
-            UpdateIcon();
-            e.Skip();
-        });
-        w->Bind(wxEVT_LEFT_DOWN  ,[this](wxMouseEvent e) {
-            if (!m_enabled || e.LeftDClick()) return;
-            OnClick();
-            e.Skip();
-        });
-        w->Bind(wxEVT_LEFT_DCLICK,[this](wxMouseEvent e) {
-            if (!m_enabled) return;
-            OnClick();
-            e.Skip();
-        });
-    };
-
-    Bind(wxEVT_CHAR_HOOK, ([this](wxKeyEvent&e){
-        if(HasFocus() && e.GetKeyCode() == WXK_SPACE)
-            SetValue(!m_value);
-        else
-            e.Skip();
-    }));
-
-    Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
-        if (m_has_text && m_wrap > 0) {
-            int target = std::min(GetSize().x, m_max_size.x > 0 ? m_max_size.x : GetSize().x);
-            ApplyWrap(target);
-        }
+    // Button turns every Space / Enter key down into a click, drop the repeated ones of a held key
+    // (wxKeyEvent::IsAutoRepeat() is not implemented on Linux)
+    m_check->Bind(wxEVT_KEY_DOWN, [this](wxKeyEvent& e) {
+        e.Skip(e.GetKeyCode() != m_held_key);
+        m_held_key = e.GetKeyCode();
+    });
+    m_check->Bind(wxEVT_KEY_UP, [this](wxKeyEvent& e) {
+        m_held_key = WXK_NONE;
         e.Skip();
     });
-
-    SetSizerAndFit(m_sizer);
-    Layout();
-
-    Refresh();
+    m_check->Bind(wxEVT_SET_FOCUS,  &LabeledCheckBox::OnFocus, this);
+    m_check->Bind(wxEVT_KILL_FOCUS, &LabeledCheckBox::OnFocus, this);
+    m_text->Bind(wxEVT_SIZE, &LabeledCheckBox::OnLabelSize, this);
+    Bind(wxEVT_PAINT, &LabeledCheckBox::OnPaint, this);
 }
 
-void LabeledCheckBox::Wrap(int width)
+void LabeledCheckBox::SetValue(bool value)
 {
-    if(!m_has_text) return;
-    ApplyWrap(width);
-    m_sizer->Fit(this);
-    m_sizer->SetSizeHints(this);
-    Layout();
-    Refresh();
-}
-
-void LabeledCheckBox::ApplyWrap(int width)
-{
-    if (!m_has_text) return;
-    m_wrap = width;
-    int effective = (width > 0) ? std::max(width - m_check->GetSize().x, 0) : width;
-    m_text->Wrap(effective);
-    UpdateAlignment();
-}
-
-void LabeledCheckBox::OnClick()
-{
-    m_check->SetFocus();
-    SetValue(!m_value);
-}
-
-void LabeledCheckBox::SetTooltip(wxString label)
-{
-    m_check->SetToolTip(label);
-    if(m_has_text)
-        m_text->SetToolTip(label);
-}
-
-bool LabeledCheckBox::SetFont(const wxFont& font) {
-    m_font = font;
-    if(!m_has_text) return false;
-    bool result = m_text->SetFont(font);
-    if (m_wrap > 0)
-        ApplyWrap(m_wrap);
-    else
-        UpdateAlignment();
-    m_sizer->Fit(this);
-    m_sizer->SetSizeHints(this);
-    Layout();
-    Refresh();
-    return result;
-};
-
-bool LabeledCheckBox::Enable(bool enable) {
-    m_enabled = enable;
-    bool result = m_check->Enable(enable);
-    UpdateLabelColor(enable);
-    UpdateIcon();
-    Refresh();
-    return result;
-};
-
-bool LabeledCheckBox::HasFocus() const {
-    return m_check->HasFocus();
-}
-
-void LabeledCheckBox::SetLabelColor(wxColour color) {
-    if(m_has_text){
-        m_label_color = color;
-        UpdateLabelColor(m_enabled);
-    }
-}
-
-void LabeledCheckBox::SetLabel(const wxString& label) {
-    wxPanel::SetLabel(label);
-    if(m_has_text){
-        m_text->SetLabel(label);
-        if (m_wrap > 0)
-            ApplyWrap(m_wrap);
-        else
-            UpdateAlignment();
-        // layout might be changed if wrap triggered
-        m_sizer->Fit(this);
-        m_sizer->SetSizeHints(this);
-        Layout();
-        Refresh();
-    }
-}
-
-void LabeledCheckBox::SetValue(bool value){
-    if (m_value == value)
-        return;
-    m_value = value;
+    m_value        = value;
     m_half_checked = false;
-    UpdateIcon();
+    UpdateState();
+}
 
-    // just in case support both event to prevent crash. wxCheckbox (wxEVT_CHECKBOX) CheckBox (wxEVT_TOGGLEBUTTON)
+void LabeledCheckBox::SetHalfChecked(bool half)
+{
+    m_half_checked = half;
+    UpdateState();
+}
+
+void LabeledCheckBox::Toggle()
+{
+    SetValue(!m_value);
+
+    // A handler may destroy the control
+    const wxWeakRef<wxWindow> self(this);
+    const wxWindowID id    = GetId();
+    const bool       value = m_value;
     for (wxEventType type : {wxEVT_CHECKBOX, wxEVT_TOGGLEBUTTON}) {
-        wxCommandEvent evt(type, GetId());
+        wxCommandEvent evt(type, id);
         evt.SetEventObject(this);
-        evt.SetInt(value ? 1 : 0);
-        GetEventHandler()->ProcessEvent(evt);
+        evt.SetInt(value);
+        ProcessWindowEvent(evt);
+        if (!self)
+            return;
     }
+}
 
+void LabeledCheckBox::UpdateState()
+{
+    wxString icon = m_half_checked ? "check_half" : m_value ? "check_on" : "check_off";
+    if (!m_enabled)
+        icon += "_disabled";
+    else if (m_hovered || m_focused)
+        icon += "_focused";
+    m_check->SetIcon(icon);
+
+    // Only the color of the label changes when disabled, see Enable()
+    if (m_text->SetForegroundColour(m_enabled ? GetForegroundColour() : StateColor::darkModeColorFor(wxColour("#6B6A6A"))))
+        m_text->Refresh();
+}
+
+void LabeledCheckBox::UpdateMetrics()
+{
+    const int padding = FromDIP(LABEL_PADDING);
+    GetSizer()->GetItem(m_text)->SetBorder(padding);
+    // Keeps the check on the first line of the text, whether it is wrapped or not
+    const int offset = m_text->IsShown() ? padding + (m_text->GetCharHeight() - m_check->GetMinSize().y) / 2 : 0;
+    GetSizer()->GetItem(m_check)->SetBorder(std::max(offset, 0));
+
+    // Back to one line, the layout wraps the label again if there is no room for it
+    m_text->Wrap(-1);
+    // Label wraps by the extent of the text: it stays on one line when it is wider than this
+    m_text_width = wxClientDC(m_text).GetMultiLineTextExtent(GetLabel()).x + 1;
+}
+
+void LabeledCheckBox::Relayout()
+{
+    UpdateMetrics();
+    SetSize(GetBestSize());
+    Layout();
+    m_best_size = GetBestSize();
+    SendSizeEventToParent();
+    Refresh();
+    // GTK reports the best size of the label for the new font only once it updated its style
+    CallAfter(&LabeledCheckBox::CheckBestSize);
+}
+
+void LabeledCheckBox::CheckBestSize()
+{
+    const wxSize best = GetBestSize();
+    if (best == m_best_size)
+        return;
+    m_best_size = best;
+    SendSizeEventToParent();
     Refresh();
 }
 
-void LabeledCheckBox::UpdateIcon()
+bool LabeledCheckBox::Layout()
 {
-    ScalableBitmap icon;
-    bool focus = HasFocus();
-    icon = (!m_enabled        ) ? (m_half_checked ? m_half_disabled : m_value ? m_on_disabled : m_off_disabled )
-         : (m_hovered || focus) ? (m_half_checked ? m_half_focused  : m_value ? m_on_focused  : m_off_focused  ) 
-         :                        (m_half_checked ? m_half          : m_value ? m_on          : m_off          );
-    m_check->SetIcon(icon.name());
-    m_check->Refresh();
+    // The label wraps itself to the width it gets here. Keep that width inside our size limits:
+    // a control squeezed below its minimal size is clipped like any other one instead of wrapped,
+    // and a layout made before the parent has its final size can't leave a wrapped label behind.
+    const wxSize size  = GetClientSize();
+    int          width = std::max(size.x, GetEffectiveMinSize().x);
+    if (GetMaxSize().x > 0)
+        width = std::min(width, GetMaxSize().x);
+    GetSizer()->SetDimension(0, 0, width, size.y);
+    return true;
 }
 
-void LabeledCheckBox::UpdateLabelColor(bool enabled) {
-    if(m_has_text)  // just changes its color to prevent unwanted effect on windows
-        m_text->SetForegroundColour(StateColor::darkModeColorFor(enabled ? m_label_color : wxColour("#6B6A6A")));
-};
-
-void LabeledCheckBox::UpdateLabelBorder(bool focused) {
-    if(m_has_text)
-        m_text_box->SetBorderColor(focused ? wxColour("#009688") : GetBackgroundColour());
-};
-
-void LabeledCheckBox::UpdateAlignment()
+wxSize LabeledCheckBox::DoGetBestClientSize() const
 {
-    if (!m_has_text || !m_check_item || !m_text_item)
-        return;
-
-    int line_count = m_text->GetLabel().Freq('\n') + 1;
-
-    if (line_count > 1) { // Multi-line: align both to top
-        // match the text box's internal top padding (wxALL, FromDIP(5))
-        m_check_item->SetFlag(wxALIGN_TOP | wxTOP);
-        m_check_item->SetBorder(FromDIP(5));
-        m_text_item->SetFlag(wxALIGN_TOP);
-        m_text_item->SetBorder(0);
-    } 
-    else { // Single line: revert to simple vertical centering
-        m_check_item->SetFlag(wxALIGN_CENTER_VERTICAL);
-        m_check_item->SetBorder(0);
-        m_text_item->SetFlag(wxALIGN_CENTER_VERTICAL);
-        
-    }
-    m_text_item->SetBorder(0);
-
-    m_sizer->Layout();
+    // Height of the label as it is wrapped now, but never the width of the wrapped text: the
+    // parent would not give more and the label could not unwrap again. The best size of the
+    // native label alone is not enough, it can be measured differently than the text extent.
+    wxSize size = GetSizer()->GetMinSize();
+    if (m_text->IsShown())
+        size.x = std::max(size.x, m_check->GetMinSize().x + 2 * FromDIP(LABEL_PADDING) + m_text_width);
+    return size;
 }
 
-wxWindow* LabeledCheckBox::GetScrollParent(wxWindow *pWindow)
+void LabeledCheckBox::Rescale()
 {
-    wxWindow *pWin = pWindow;
-    while (pWin->GetParent()) {
-        auto pWin2 = pWin->GetParent();
-        if (auto top = dynamic_cast<wxScrollHelper *>(pWin2))
-            return dynamic_cast<wxWindow *>(pWin);
-        pWin = pWin2;
-    }
-    return nullptr;
+    m_check->Rescale();
+    Relayout();
+}
+
+void LabeledCheckBox::SetLabel(const wxString& label)
+{
+    wxPanel::SetLabel(label);
+    m_text->SetLabel(label);
+    m_text->Show(!label.empty());
+    Relayout();
+}
+
+bool LabeledCheckBox::SetFont(const wxFont& font)
+{
+    const bool changed = wxPanel::SetFont(font);
+    m_text->SetFont(font);
+    Relayout();
+    return changed;
+}
+
+bool LabeledCheckBox::SetForegroundColour(const wxColour& colour)
+{
+    const bool changed = wxPanel::SetForegroundColour(colour);
+    UpdateState();
+    return changed;
+}
+
+bool LabeledCheckBox::SetBackgroundColour(const wxColour& colour)
+{
+    m_check->SetBackgroundColor(colour); // the one the button paints with
+    m_check->SetBackgroundColour(colour);
+    m_text->SetBackgroundColour(colour);
+    return wxPanel::SetBackgroundColour(colour);
 }
 
 void LabeledCheckBox::SetMaxSize(const wxSize& size)
 {
     wxPanel::SetMaxSize(size);
-
-    m_max_size = size;
-
-    if (!m_has_text) return;
-
-    long style = m_text->GetWindowStyleFlag();
-    if (m_wrap > 0) {
-        style &= ~(wxST_ELLIPSIZE_START | wxST_ELLIPSIZE_MIDDLE | wxST_ELLIPSIZE_END);
-        m_text->SetWindowStyleFlag(style);
-        Wrap(size.x > 0 ? size.x : -1);
-    }
-    else {
-        style &= ~(wxST_ELLIPSIZE_START | wxST_ELLIPSIZE_MIDDLE);
-        style |= (wxST_ELLIPSIZE_END | wxST_NO_AUTORESIZE);
-        m_text->SetWindowStyleFlag(style);
-
-        if (size.x > 0) {
-            int targetWidth = size.x; 
-            if (m_check)
-                targetWidth -= (m_check->GetSize().x);
-            if (targetWidth > 0)
-                m_text->SetMaxSize(wxSize(targetWidth, size.y));
-        }
-        m_text->SetLabel(m_text->GetLabel());
-        m_sizer->Fit(this);
-        m_sizer->SetSizeHints(this);
-        Layout();
-    }
-
+    Relayout(); // wraps the label right away, a following Fit() of the parent gets the final height
 }
 
-void LabeledCheckBox::Rescale(){
-    m_on.msw_rescale();
-    m_half.msw_rescale();
-    m_off.msw_rescale();
-    m_on_disabled.msw_rescale();
-    m_half_disabled.msw_rescale();
-    m_off_disabled.msw_rescale();
-    m_on_focused.msw_rescale();
-    m_half_focused.msw_rescale();
-    m_off_focused.msw_rescale();
-
-    m_check->Rescale();
-
-    if (m_wrap > 0)
-        ApplyWrap(m_wrap); 
-
-    m_sizer->Fit(this);
-    m_sizer->SetSizeHints(this);
-    Layout();
+bool LabeledCheckBox::Enable(bool enable)
+{
+    if (m_enabled == enable)
+        return false;
+    m_enabled = enable;
+    m_check->Enable(enable);
+    UpdateState();
     Refresh();
+    return true;
+}
+
+bool LabeledCheckBox::HasFocus() const { return m_check->HasFocus(); }
+
+void LabeledCheckBox::DoSetToolTip(wxToolTip* tip)
+{
+    // Children cover the panel, they need the tooltip too
+    const wxString text = tip ? tip->GetTip() : wxString();
+    m_check->SetToolTip(text);
+    m_text->SetToolTip(text);
+    wxPanel::DoSetToolTip(tip);
+}
+
+void LabeledCheckBox::OnClick(wxMouseEvent& e)
+{
+    if (!m_enabled)
+        return e.Skip();
+    m_check->SetFocus();
+    Toggle();
+}
+
+void LabeledCheckBox::OnHover(wxMouseEvent& e)
+{
+    e.Skip();
+    // Entering a child leaves the panel and the other way around, only the position tells the truth
+    const bool hovered = GetScreenRect().Contains(wxGetMousePosition());
+    if (hovered != m_hovered) {
+        m_hovered = hovered;
+        UpdateState();
+    }
+}
+
+void LabeledCheckBox::OnFocus(wxFocusEvent& e)
+{
+    e.Skip();
+    if (IsBeingDeleted())
+        return;
+    m_focused  = e.GetEventType() == wxEVT_SET_FOCUS;
+    m_held_key = WXK_NONE;
+    UpdateState();
+    Refresh();
+}
+
+void LabeledCheckBox::OnLabelSize(wxSizeEvent& e)
+{
+    e.Skip();
+    // The label wraps itself to its new width, which changes the height we need. Let the parent
+    // know once all the sizing in progress is done.
+    CallAfter(&LabeledCheckBox::CheckBestSize);
+    Refresh(); // focus border
+}
+
+void LabeledCheckBox::OnPaint(wxPaintEvent&)
+{
+    wxPaintDC dc(this);
+    if (!m_focused || !m_enabled || !m_text->IsShown())
+        return;
+
+    // Focus border around the label
+    wxRect rect = m_text->GetRect();
+    rect.Inflate(FromDIP(LABEL_PADDING));
+    rect.Intersect(GetClientRect());
+    dc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#009688"))));
+    dc.SetBrush(*wxTRANSPARENT_BRUSH);
+    dc.DrawRectangle(rect);
 }
