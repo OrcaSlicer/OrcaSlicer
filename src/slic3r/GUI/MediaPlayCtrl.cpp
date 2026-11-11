@@ -1,4 +1,5 @@
 #include "MediaPlayCtrl.h"
+#include "IllustratedTipPopup.hpp"
 #include "PrinterNetworkTypes.hpp"
 #include "WebMediaController.hpp"
 #include "IPrinterAgent.hpp"
@@ -96,6 +97,7 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl3 *media_ctrl, const w
 
     m_button_play = new Button(this, "", "media_play", wxBORDER_NONE);
     m_button_play->SetCanFocus(false);
+    set_illustrated_tooltip(m_button_play, _L("Starts or stops the live view of the printer's camera."));
 
     m_label_status = new Label(this, "");
     m_label_status->SetForegroundColour(wxColour("#323A3C"));

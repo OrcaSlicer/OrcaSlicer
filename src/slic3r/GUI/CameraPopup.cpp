@@ -141,7 +141,7 @@ CameraPopup::CameraPopup(wxWindow *parent)
     m_custom_camera_input = new TextInput(m_panel, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize);
     m_custom_camera_input->GetTextCtrl()->SetHint(_L("Camera stream URL"));
     m_custom_camera_input->GetTextCtrl()->SetFont(Label::Body_14);
-    m_custom_camera_input->SetToolTip(_L("URL of an MJPEG stream or of a web page that shows the camera, for example http://192.168.1.10:8080/?action=stream"));
+    set_illustrated_tooltip(m_custom_camera_input, _L("URL of an MJPEG stream or of a web page that shows the camera, for example http://192.168.1.10:8080/?action=stream"));
     m_custom_camera_input_confirm = new Button(m_panel, _L("Enable"));
     m_custom_camera_input_confirm->SetTextColor(wxColour(0xFFFFFE));
     m_custom_camera_input_confirm->SetFont(Label::Body_14);

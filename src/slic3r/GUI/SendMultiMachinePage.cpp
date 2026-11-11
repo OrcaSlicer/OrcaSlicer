@@ -886,7 +886,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_title(wxString title, wxWindow* pa
     m_title->SetForegroundColour(SEND_DESIGN_GRAY800_COLOR);
     m_title->SetFont(::Label::Head_13);
     m_title->Wrap(-1);
-    m_title->SetToolTip(tooltip);
+    set_illustrated_tooltip(m_title, tooltip);
 
     auto m_line = new wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     m_line->SetBackgroundColour(SEND_DESIGN_GRAY400_COLOR);

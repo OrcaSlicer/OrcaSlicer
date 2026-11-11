@@ -843,7 +843,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
 
     // Create question button
     m_question_button = new ScalableButton(m_printing_stage_panel, wxID_ANY, "thermal_question", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
-    m_question_button->SetToolTip(_L("Click to view thermal preconditioning explanation"));
+    set_illustrated_tooltip(m_question_button, _L("Click to view thermal preconditioning explanation"));
     m_question_button->SetBackgroundColour(wxColour(255, 255, 255));
     m_question_button->Hide(); // Hide by default
     m_question_button->Bind(wxEVT_LEFT_UP, &PrintingTaskPanel::on_stage_clicked, this);

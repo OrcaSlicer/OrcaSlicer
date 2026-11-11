@@ -1639,7 +1639,7 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     change_nozzle_tips->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
 
     m_wiki_link = new Button(single_panel, "", "toolbar_wiki", 0, 15);
-    m_wiki_link->SetToolTip(_L("Wiki Guide"));
+    set_illustrated_tooltip(m_wiki_link, _L("Wiki Guide"));
     m_wiki_link->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     m_wiki_link->SetCanFocus(false);
     m_wiki_link->Bind(wxEVT_LEFT_DOWN, &PrinterPartsDialog::OnWikiClicked, this);
@@ -1755,7 +1755,7 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     multiple_change_nozzle_tips->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
 
     multiple_wiki_link = new Button(multiple_panel, "", "toolbar_wiki", 0, 15);
-    multiple_wiki_link->SetToolTip(_L("Wiki Guide"));
+    set_illustrated_tooltip(multiple_wiki_link, _L("Wiki Guide"));
     multiple_wiki_link->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     multiple_wiki_link->SetCanFocus(false);
     multiple_wiki_link->Bind(wxEVT_LEFT_DOWN, &PrinterPartsDialog::OnWikiClicked, this);

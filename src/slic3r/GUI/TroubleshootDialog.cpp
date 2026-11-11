@@ -1,4 +1,5 @@
 #include "TroubleshootDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "I18N.hpp"
 
 #include "BuildCommit.hpp"
@@ -194,7 +195,7 @@ TroubleshootDialog::TroubleshootDialog()
     auto build = new Button(this, wxString(build_commit_label));
     build->SetStyle(ButtonStyle::Regular, ButtonType::Window);
     auto hash_url = "https://github.com/OrcaSlicer/OrcaSlicer/commit/" + wxString(build_commit_hash);
-    build->SetToolTip(hash_url);
+    set_illustrated_tooltip(build, hash_url);
     build->Bind(wxEVT_BUTTON, [hash_url](wxCommandEvent &e) {
          wxLaunchDefaultBrowser(hash_url);
     });
@@ -223,11 +224,11 @@ TroubleshootDialog::TroubleshootDialog()
 
     auto sys_less_btn = new Button(this, _L("Hide"));
     sys_less_btn->SetStyle(ButtonStyle::Regular, ButtonType::Window);
-    sys_less_btn->SetToolTip(_L("Show/Hide system information"));
+    set_illustrated_tooltip(sys_less_btn, _L("Show/Hide system information"));
 
     auto sys_copy_btn = new Button(this, _L("Copy"));
     sys_copy_btn->SetStyle(ButtonStyle::Regular, ButtonType::Window);
-    sys_copy_btn->SetToolTip(_L("Copy system information to clipboard"));
+    set_illustrated_tooltip(sys_copy_btn, _L("Copy system information to clipboard"));
 
     sys_copy_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         wxClipboardLocker lock;
@@ -246,14 +247,14 @@ TroubleshootDialog::TroubleshootDialog()
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/troubleshoot_center";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
 
     auto video_btn = new Button(this, "", "toolbar_video_guide", 0, 15);
     auto video_url = "https://www.youtube.com/watch?v=CFzt8W7OCx0";
-    video_btn->SetToolTip(_L("Video Guide") + "\n" + video_url);
+    set_illustrated_tooltip(video_btn, _L("Video Guide") + "\n" + video_url);
     video_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     video_btn->SetCanFocus(false);
     video_btn->Bind(wxEVT_LEFT_DOWN, ([video_url](auto& e) {wxLaunchDefaultBrowser(video_url);}));
@@ -271,7 +272,7 @@ TroubleshootDialog::TroubleshootDialog()
         wxBoxSizer *sizer = new wxBoxSizer(wxHORIZONTAL);
         auto label = new Label(this, title, LB_AUTO_WRAP, wxSize(FromDIP(275),-1)); // 400 - 120 - 5
         label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
-        label->SetToolTip(tooltip);
+        set_illustrated_tooltip(label, tooltip);
         sizer->Add(label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(15));
 
         if (label_out) *label_out = label;
@@ -281,7 +282,7 @@ TroubleshootDialog::TroubleshootDialog()
 
     auto create_btn = [this](wxString title, wxString tooltip) {
         auto btn = new Button(this, title);
-        btn->SetToolTip(tooltip);
+        set_illustrated_tooltip(btn, tooltip);
         btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
         return btn;
     };
@@ -352,26 +353,31 @@ TroubleshootDialog::TroubleshootDialog()
     auto profiles_loaded = create_item_loaded_profiles();
 
     // MORE
-    auto cfg_folder_szr = create_label(_L("Configurations folder"), "");
+    auto cfg_folder_szr = create_label(_L("Configurations folder"), _L("The folder where Orca Slicer keeps your presets, its settings and its logs."));
     auto cfg_folder_btn = create_btn(_L("Browse") + "...", _L("Opens configurations folder."));
     cfg_folder_btn->Bind(wxEVT_BUTTON, [this, data_dir](wxCommandEvent &e) {
         BrowseFolder(data_dir.string());
     });
     cfg_folder_szr->Add(cfg_folder_btn, 0, wxALIGN_CENTER_VERTICAL);
 
-    auto log_level_szr = create_label(_L("Log level"), "");
-    log_level_szr->Add(create_item_log_level_combo(), 0, wxALIGN_CENTER_VERTICAL);
+    const wxString log_level_tip = _L("How much detail Orca Slicer writes to its log. Set it to debug or trace while you reproduce a problem "
+                                      "for a report, and back afterwards: those levels write large logs.");
+    auto log_level_szr = create_label(_L("Log level"), log_level_tip);
+    auto log_level_combo = create_item_log_level_combo();
+    set_illustrated_tooltip(log_level_combo, log_level_tip);
+    log_level_szr->Add(log_level_combo, 0, wxALIGN_CENTER_VERTICAL);
 
     auto log_pack_szr = create_label(_L("Stored logs"), _L("Packs all stored logs onto a ZIP archive."));
-    auto log_pack_btn = create_btn(_L("Pack") + "...", "");
+    auto log_pack_btn = create_btn(_L("Pack") + "...", _L("Packs all stored logs onto a ZIP archive."));
     log_pack_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         auto data_dir   = boost::filesystem::path(Slic3r::data_dir());
         ExportAsZip({wxString((data_dir / "log").string())}, "OrcaSlicer_Logs_" + GetTimestamp());
     });
     log_pack_szr->Add(log_pack_btn, 0, wxALIGN_CENTER_VERTICAL);
 
-    auto log_clear_szr = create_label("-", "", &m_logs_storage);
-    auto log_clear_btn = create_btn(_L("Clear"), "");
+    const wxString log_clear_tip = _L("Deletes the stored logs except the newest one, the log of this session.");
+    auto log_clear_szr = create_label("-", log_clear_tip, &m_logs_storage);
+    auto log_clear_btn = create_btn(_L("Clear"), log_clear_tip);
     log_clear_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         ClearLogs();
     });

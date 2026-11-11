@@ -227,7 +227,7 @@ void AMSMaterialsSetting::create()
     // Orca: link to the Orca Slicer pressure-advance wiki (region-agnostic).
     m_wiki_ctrl = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
-    m_wiki_ctrl->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(m_wiki_ctrl, _L("Wiki Guide") + "\n" + wiki_url);
     m_wiki_ctrl->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     m_wiki_ctrl->SetCanFocus(false);
     m_wiki_ctrl->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -2292,7 +2292,7 @@ void ColorPickerPopup::set_preset_colours(const std::vector<ColorItem>& preset_c
         cp->set_selected(false);
         cp->SetBackgroundColour(StateColor::darkModeColorFor(wxColour(238,238,238)));
         if (!item.name.empty()) {
-            cp->SetToolTip(item.name);
+            set_illustrated_tooltip(cp, item.name);
         }
 
         m_color_pickers.push_back(cp);

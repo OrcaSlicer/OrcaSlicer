@@ -616,7 +616,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_check_ext_change_assist = new CheckBox(m_scroll_area, wxID_ANY);
     m_check_ext_change_assist->SetValue(false);
     m_check_ext_change_assist->SetBackgroundColour(*wxWHITE);
-    m_check_ext_change_assist->SetToolTip(_L("Manually change external spool during printing for multi-color printing"));
+    set_illustrated_tooltip(m_check_ext_change_assist, _L("Manually change external spool during printing for multi-color printing"));
     m_check_ext_change_assist->Hide();
     m_label_ext_change_assist = new Label(m_scroll_area, _L("Multi-color with external"));
     m_label_ext_change_assist->Wrap(-1);
@@ -624,7 +624,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_label_ext_change_assist->SetMaxSize(wxSize(FromDIP(200), -1));
     m_label_ext_change_assist->SetFont(::Label::Body_13);
     m_label_ext_change_assist->SetBackgroundColour(*wxWHITE);
-    m_label_ext_change_assist->SetToolTip(_L("Manually change external spool during printing for multi-color printing"));
+    set_illustrated_tooltip(m_label_ext_change_assist, _L("Manually change external spool during printing for multi-color printing"));
 
     wxSizer* suggestion_sizer = new wxBoxSizer(wxHORIZONTAL);
     suggestion_sizer->Add(m_link_edit_nozzle, 0, wxLEFT, 0);
@@ -5557,7 +5557,7 @@ void SelectMachineDialog::change_materialitem_tip(bool no_ams_only_ext)
         Material *item = iter->second;
         if (item) {
             if (no_ams_only_ext && item->item->m_ams_name == _L("Ext")) {
-                item->item->SetToolTip(wxEmptyString);
+                set_illustrated_tooltip(item->item, wxEmptyString);
             }
             else {
                 wxString tip_text;
@@ -5567,9 +5567,7 @@ void SelectMachineDialog::change_materialitem_tip(bool no_ams_only_ext)
                     tip_text = _L("Unable to automatically match to suitable filament. Please click to manually match.");
                 }
 
-                if (item->item->GetToolTipText() != tip_text) {
-                    item->item->SetToolTip(tip_text);
-                }
+                set_illustrated_tooltip(item->item, tip_text);
             }
         }
         iter++;
@@ -5670,7 +5668,7 @@ void SelectMachineDialog::reset_and_sync_ams_list()
 
         if (!item) continue;
 
-        item->SetToolTip(m_ams_tooltip);
+        set_illustrated_tooltip(item, m_ams_tooltip);
 
         if (!selected_any && extruder == m_current_filament_id && item->m_enable) {
             item->on_selected();
@@ -7196,7 +7194,7 @@ void PrinterInfoBox::Create()
 
     m_button_question = new ScalableButton(this, wxID_ANY, "icon_qusetion", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
     m_button_question->Bind(wxEVT_BUTTON, &PrinterInfoBox::OnBtnQuestionClicked, this);
-    m_button_question->SetToolTip(_L("Click here if you can't connect to the printer"));
+    set_illustrated_tooltip(m_button_question, _L("Click here if you can't connect to the printer"));
     m_button_question->SetMinSize(wxSize(FromDIP(18), FromDIP(18)));
     m_button_question->SetMaxSize(wxSize(FromDIP(18), FromDIP(18)));
 
