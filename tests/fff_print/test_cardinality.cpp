@@ -242,6 +242,26 @@ TEST_CASE("An empty filament_self_index still gives each filament the values of 
     CHECK_THAT(flow_ratio->values[1], Catch::Matchers::WithinAbs(0.95, 1e-9));
 }
 
+TEST_CASE("A filament_self_index shorter than the variant list does not stop a multi-extruder slice", "[Cardinality]")
+{
+    // The filament variant list names four columns, and the list that says which filament owns each is shorter.
+    DynamicPrintConfig config = two_extruder_variant_config();
+    REQUIRE(config.option<ConfigOptionStrings>("filament_extruder_variant")->values.size() == 4);
+    std::vector<int> &self_index = config.option<ConfigOptionInts>("filament_self_index", true)->values;
+    REQUIRE(self_index.size() == 4);
+
+    SECTION("empty") { self_index.clear(); }
+    SECTION("one column short") { self_index.pop_back(); }
+
+    Print print;
+    print.apply(two_extruder_model(), config);
+    print.set_status_silent();
+    print.process();
+
+    REQUIRE(print.objects().size() == 2);
+    CHECK(print.objects().front()->layer_count() > 0);
+}
+
 namespace {
 
 // Two 20 mm cubes on two filaments of one nozzle, with a prime tower between the filament changes.

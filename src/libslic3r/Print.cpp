@@ -5127,7 +5127,9 @@ std::map<int, std::set<NozzleVolumeType>> Print::get_filament_unprintable_flow(c
     std::unordered_set<int> used_fils_set(used_filaments.begin(), used_filaments.end());
 
     std::unordered_map<int, std::set<NozzleVolumeType>> filament_variant_map;
-    for(int i = 0; i < filament_variant_list.size(); ++i){
+    // A variant column without an owner entry carries no restriction.
+    const size_t column_count = std::min(filament_variant_list.size(), filament_self_index.size());
+    for (size_t i = 0; i < column_count; ++i) {
         NozzleVolumeType volume = convert_to_nvt_type(filament_variant_list[i]);
         if(volume != nvtHybrid) filament_variant_map[filament_self_index[i]].insert(volume);
     }
