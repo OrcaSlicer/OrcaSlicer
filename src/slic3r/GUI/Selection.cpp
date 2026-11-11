@@ -1293,7 +1293,11 @@ void Selection::translate(const Vec3d &displacement, TransformationType transfor
         } else {
             if (v.is_wipe_tower) {//in world cs
                 int           plate_idx           = v.object_idx() - 1000;
-                const Polygons bed_polys{wxGetApp().plater()->get_partplate_list().get_plate(plate_idx)->get_shared_printable_polygon()};
+                PartPlate*    plate               = wxGetApp().plater()->get_partplate_list().get_plate(plate_idx);
+                Polygons      bed_polys{plate->get_shared_printable_polygon()};
+                // Without an area every extruder reaches the tower cannot be printed, but it still stays on the plate.
+                if (bed_polys.front().points.empty())
+                    bed_polys.front() = Polygon::new_scale(plate->get_shape());
                 Vec3d         tower_origin        = m_cache.volumes_data[i].get_volume_position();
                 Vec3d         actual_displacement = displacement;
                 // Both preview volumes carry the brim in their bounding box, and the release
