@@ -667,6 +667,12 @@ body {
   gap: 6px;
 }
 
+.permission-edit-status {
+  flex-basis: 100%;
+  color: var(--dimmed-color);
+  overflow-wrap: anywhere;
+}
+
 .permission-filesystem {
   min-width: 0;
 }
