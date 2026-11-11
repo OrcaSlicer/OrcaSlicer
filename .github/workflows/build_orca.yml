@@ -199,7 +199,8 @@ jobs:
       - name: Pack unit tests mac
         if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
         working-directory: ${{ github.workspace }}
-        run: tar -cvf build_tests.tar build/arm64/tests
+        # CMakeFiles holds only object files and precompiled headers, which ctest never reads.
+        run: tar -cf build_tests.tar --exclude='*/CMakeFiles' build/arm64/tests
 
       - name: Upload Test Artifact mac
         if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
@@ -557,7 +558,8 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}
         shell: pwsh
-        run: tar -cvf build_tests.tar ${{ env.BUILD_DIR }}/tests
+        # CMakeFiles holds only object files and precompiled headers, which ctest never reads.
+        run: tar -cf build_tests.tar --exclude='*/CMakeFiles' ${{ env.BUILD_DIR }}/tests
 
       - name: Upload Test Artifact Win
         if: runner.os == 'Windows'
@@ -715,7 +717,8 @@ jobs:
           appimage=./build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}${{ env.arch_suffix }}_${{ env.ver }}.AppImage
           mv -n ./build/OrcaSlicer_Linux_V${{ env.ver_pure }}.AppImage "$appimage"
           chmod +x "$appimage"
-          tar -cvf build_tests.tar build/tests
+          # CMakeFiles holds only object files and precompiled headers, which ctest never reads.
+          tar -cf build_tests.tar --exclude='*/CMakeFiles' build/tests
 
         # Use tar because upload-artifacts won't always preserve directory structure
         # and doesn't preserve file permissions
