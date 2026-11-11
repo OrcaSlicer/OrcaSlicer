@@ -89,17 +89,43 @@ find_tool() {
     printf '%s' "$best"
 }
 
-# The preset files a vendor profile lists, relative to its vendor directory, one
-# per line. Nothing when the profile is missing.
-listed_presets() {
-    [ -f "$1" ] || return 0
-    python3 - "$1" <<'EOF'
-import json, sys
-with open(sys.argv[1], encoding="utf-8") as f:
-    profile = json.load(f)
-for key in ("machine_model_list", "process_list", "filament_list", "machine_list"):
-    for entry in profile.get(key, []):
-        print(entry["sub_path"])
+# Prune one profiles directory for every vendor that has a cache in the first:
+# drop the vendor profile, the preset files it lists, and the directories that
+# leaves empty. One process for all vendors; starting one per vendor dominated
+# the run.
+prune_cached_presets() {
+    python3 - "$1" "$2" <<'EOF'
+import json, os, sys
+caches_dir, target = sys.argv[1:3]
+shipped = pruned = 0
+for name in sorted(os.listdir(caches_dir)):
+    if not name.endswith(".opc"):
+        continue
+    vendor = name[:-len(".opc")]
+    shipped += 1
+    # Read the list from the target's own profile, before it goes: the source
+    # profile may already be gone when an earlier target pruned it.
+    profile_path = os.path.join(target, vendor + ".json")
+    listed = []
+    if os.path.isfile(profile_path):
+        with open(profile_path, encoding="utf-8") as f:
+            profile = json.load(f)
+        for key in ("machine_model_list", "process_list", "filament_list", "machine_list"):
+            listed += [entry["sub_path"] for entry in profile.get(key, [])]
+        os.remove(profile_path)
+        pruned += 1
+    vendor_dir = os.path.join(target, vendor)
+    if not os.path.isdir(vendor_dir):
+        continue
+    for sub_path in listed:
+        path = vendor_dir + "/" + sub_path  # not os.path.join: an absolute sub_path stays inside
+        if sub_path and os.path.isfile(path):
+            os.remove(path)
+            pruned += 1
+    for root, _, _ in os.walk(vendor_dir, topdown=False):
+        if not os.listdir(root):
+            os.rmdir(root)
+print(f"{target}: {shipped} caches, dropped {pruned} preset JSONs")
 EOF
 }
 
@@ -158,26 +184,5 @@ for target in "$@"; do
         cp "$profiles_dir"/*.opc "$resolved"/
     fi
 
-    pruned=0
-    shipped=0
-    for cache in "$profiles_dir"/*.opc; do
-        vendor=$(basename "$cache" .opc)
-        shipped=$(( shipped + 1 ))
-        # Read the list from the target's own profile, before it goes: the
-        # source profile may already be gone when an earlier target pruned it.
-        listed=$(listed_presets "$resolved/$vendor.json")
-        if [ -f "$resolved/$vendor.json" ]; then
-            rm -f "$resolved/$vendor.json"
-            pruned=$(( pruned + 1 ))
-        fi
-        [ -d "$resolved/$vendor" ] || continue
-        while IFS= read -r sub_path; do
-            if [ -n "$sub_path" ] && [ -f "$resolved/$vendor/$sub_path" ]; then
-                rm -f "$resolved/$vendor/$sub_path"
-                pruned=$(( pruned + 1 ))
-            fi
-        done <<< "$listed"
-        find "$resolved/$vendor" -type d -empty -delete
-    done
-    echo "$resolved: $shipped caches, dropped $pruned preset JSONs"
+    prune_cached_presets "$profiles_dir" "$resolved"
 done
