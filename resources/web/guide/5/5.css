@@ -1,8 +1,8 @@
 
 #Content
 {
-	height: 100%;
-	padding: 0 10% 0 10%; /* ORCA matches with other guide pages so title stays on same y position */
+	padding-right:10%;
+	padding-left: 10%;
 }
 
 #FeatureText

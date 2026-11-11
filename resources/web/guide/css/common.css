@@ -38,7 +38,8 @@ body
 
 #Title
 {
-	height: 12%;
+	height: 10%;
+	flex-shrink: 0; /* ORCA keeps title on same y position on every page, whatever size #Content asks for */
 	display: flex;
 	text-align: center;
 	flex-direction:column;
@@ -59,7 +60,7 @@ body
 
 #Content
 {
-	height: 76%;
+	flex: 1; /* ORCA fills the space between #Title and #AcceptArea */
 	padding: 20px 40px;
 	overflow-x: hidden;
 	overflow-y: auto;

@@ -1,7 +1,6 @@
 #Content {
 	overflow-y:auto;
 	padding: 0 10px 0 20px; /* ORCA Specify & Reduce horizontal paddings to fit 4 items per row */
-	height: 100%;
 }
 
 /* VENDOR BLOCK */

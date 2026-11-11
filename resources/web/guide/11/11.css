@@ -6,8 +6,6 @@
 	justify-content:center;
 	align-items:center;
 	align-content: center;
-	height: 100%;
-	padding: 0 10px 0 20px; /* ORCA matches with other guide pages so title stays on same y position */
 }
 
 
@@ -28,6 +26,7 @@
 	border: 1px solid var(--main-color);
 	width: 400px;
 	cursor: pointer;
+	margin-bottom: 20px; /* ORCA for making it visually centered because title uses a fixed height */
 }
 
 .RegionItem
