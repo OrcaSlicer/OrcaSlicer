@@ -132,13 +132,13 @@ set(ORCA_BUNDLED_UV_EXECUTABLE "" CACHE FILEPATH "Path to a uv executable to bun
 #   curl -sL https://github.com/astral-sh/uv/releases/download/<ver>/uv-<triple>.tar.gz.sha256
 # The Flatpak copy in scripts/flatpak/com.orcaslicer.OrcaSlicer.yml pins the
 # same version and hashes and must be bumped with them.
-set(ORCA_UV_VERSION "0.11.21")
-set(ORCA_UV_SHA256_aarch64-apple-darwin      "1f921d491ba5ffeea774eb04d6681ecee379101341cbb1500394993b541bf3f4")
-set(ORCA_UV_SHA256_x86_64-apple-darwin       "f3c8e5708a84b920c18b691214d54d2b0da6b984789caae95d47c95120cb7765")
-set(ORCA_UV_SHA256_aarch64-unknown-linux-gnu "88e800834007cc5efd4675f166eb2a51e7e3ad19876d85fa8805a6fb5c922397")
-set(ORCA_UV_SHA256_x86_64-unknown-linux-gnu  "8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050")
-set(ORCA_UV_SHA256_aarch64-pc-windows-msvc   "74e443f8004022dde57a1bd0d10c097830f9ea8feb4ec927db52cd5d805c2f48")
-set(ORCA_UV_SHA256_x86_64-pc-windows-msvc    "ace861f360c6de2babedc1607d0f454b6b09a820dbc8182dc15af927e4df9589")
+set(ORCA_UV_VERSION "0.13.7")
+set(ORCA_UV_SHA256_aarch64-apple-darwin      "81b811b57e4624df7ed3aac148e0359100d9962f3d9dce00aec533dc2e086731")
+set(ORCA_UV_SHA256_x86_64-apple-darwin       "20c47e4c1f630b8abaff8c291fa9b9aa300fef92c4fbff95adf198b55287cda7")
+set(ORCA_UV_SHA256_aarch64-unknown-linux-gnu "71279f8d3c67241e807b9d8db872d1bf541579fb9f08b7d1eb1682196d1e57dc")
+set(ORCA_UV_SHA256_x86_64-unknown-linux-gnu  "c5221ff41b7892bfc223543883600125f6a47fe845093e0f5bdff4f359196d83")
+set(ORCA_UV_SHA256_aarch64-pc-windows-msvc   "505d9e65e7692bac3ddf98c66754aa26c5050c409c184af30a881a0a72cc85e3")
+set(ORCA_UV_SHA256_x86_64-pc-windows-msvc    "0cdc5b38fe5a8168ed6a25814f5ba43c21d313dd3187314fccb37b7cec46e021")
 
 # Version-scoped cache dir so a version bump invalidates the cached binary.
 set(ORCA_UV_DOWNLOAD_DIR "${CMAKE_BINARY_DIR}/.uv/${ORCA_UV_VERSION}")
@@ -876,6 +876,12 @@ if (NOT WIN32)
 else()
     target_link_libraries(libcurl INTERFACE crypt32)
 endif()
+if (APPLE)
+    # libcurl's macOS start-up calls SCDynamicStoreCopyProxies. curl's own
+    # CMake package links the framework, but our FindCURL module builds
+    # CURL::libcurl from the static archive alone.
+    target_link_libraries(libcurl INTERFACE "-framework SystemConfiguration")
+endif()
 
 if (SLIC3R_STATIC AND NOT SLIC3R_STATIC_EXCLUDE_CURL)
     if (NOT APPLE)
@@ -896,21 +902,11 @@ endif()
 
 ## OPTIONAL packages
 
-# Find expat or use bundled version
-# Always use the system libexpat on Linux.
-
-find_package(EXPAT)
-
-if (NOT EXPAT_FOUND)
-    add_library(expat STATIC
-        ${LIBDIR}/expat/xmlparse.c
-        ${LIBDIR}/expat/xmlrole.c
-        ${LIBDIR}/expat/xmltok.c
-    )
-    set(EXPAT_FOUND 1)
-    set(EXPAT_INCLUDE_DIRS ${LIBDIR}/expat/)
-    set(EXPAT_LIBRARIES expat)
-endif ()
+# Linux links the system libexpat when it is the pinned version; every other case
+# builds that version in the deps project, so all platforms link the same parser.
+# Requiring 2.10.0 rather than the 2.4.0 security floor keeps distro packages that
+# are missing later fixes from slipping in.
+find_package(EXPAT 2.10.0 REQUIRED)
 
 find_package(PNG REQUIRED)
 
