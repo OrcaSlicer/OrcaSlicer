@@ -803,7 +803,7 @@ void PrintObject::prepare_infill()
 
     // defines the first continuous layer under the top surface.
     // ensures reliable anchoring of the perimeters if they are attached to a sparse infill.
-    this->discover_sub_top_surfaces();
+    this->discover_extra_elements();
     m_print->throw_if_canceled();
 
     // the following step needs to be done before combination because it may need
@@ -5125,18 +5125,33 @@ void PrintObject::combine_infill()
 // can be large while no part of them is wide enough to matter.
 static constexpr double SUB_TOP_MIN_TOP_EROSION_MM = 1.5;
 
-void PrintObject::discover_sub_top_surfaces()
+void PrintObject::discover_extra_elements()
 {
-    BOOST_LOG_TRIVIAL(trace) << "discover_sub_top_surfaces()";
+    BOOST_LOG_TRIVIAL(trace) << "discover_extra_elements()";
     if (m_layers.size() < 2)
         return;
 
     // Create a cache for additional solid surfaces.
     const size_t num_to_process = m_layers.size() - 1;
-    typedef std::pair<SurfaceCollection*, SurfaceCollection> SurfacesCacheRecord;
+    typedef std::pair<LayerRegion*, SurfaceCollection> SurfacesCacheRecord;
     std::vector<std::vector<SurfacesCacheRecord>> cache_surfaces(num_to_process);
 
-    auto process_layer = [this](size_t idx_layer, std::vector<SurfacesCacheRecord>& cache_record) {
+    // Allocating caсhe to their positions
+    auto merge_surfaces = [](SurfacesCacheRecord& cache, bool make_subtop = false) {
+        SurfaceCollection new_surfaces;
+        SurfacesPtr crop_surfaces = cache.first->fill_surfaces.filter_by_type_except(stInternal);
+        ExPolygons crop_first     = union_overlapping_ex(to_expolygons(crop_surfaces));
+        for (auto& s : cache.second)
+            new_surfaces.append(diff_ex(s.expolygon, crop_first), s.surface_type);
+        ExPolygons internal_solid = union_ex(to_expolygons(cache.first->fill_surfaces.filter_by_type(stInternalSolid)),
+                                             to_expolygons(new_surfaces.filter_by_type(stInternalSolid)), true);
+        cache.first->fill_surfaces.remove_type(stInternalSolid);
+        new_surfaces.remove_type(stInternalSolid);
+        surfaces_append(cache.first->fill_surfaces.surfaces, internal_solid, stInternalSolid); // stSubTop if (make_subtop == true)
+        surfaces_append(cache.first->fill_surfaces.surfaces, new_surfaces.surfaces);
+    };
+
+    auto process_layer = [&](size_t idx_layer, std::vector<SurfacesCacheRecord>& cache_record) {
         m_print->throw_if_canceled();
         const Layer *upper = m_layers[idx_layer + 1];
         Layer       *layer = m_layers[idx_layer];
@@ -5214,7 +5229,6 @@ void PrintObject::discover_sub_top_surfaces()
                 // The space under the perimeters will be filled with a bridge infill. This is done for decorative purposes. 
                 // If the density is solid, then the lower layer will also be solid, even under the perimeters.
                 if (is_not_solid) {
-                    surfaces_append(new_surfaces, diff_ex(surface.expolygon, walls_solid, ApplySafetyOffset::Yes), surface.surface_type);
                     surfaces_append(new_surfaces, intersection_ex(local_mask, crop_mask, ApplySafetyOffset::Yes), stInternalSolid); // Fix to stSubTop if this type will be used.
                     surfaces_append(new_surfaces, intersection_ex(diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), crop_mask, ApplySafetyOffset::Yes), stInternalBridge);
                 } else
@@ -5236,36 +5250,13 @@ void PrintObject::discover_sub_top_surfaces()
                         for (Surface& lower_surface : lowerm->fill_surfaces.surfaces)
                             surfaces_append(new_lower_surfaces, intersection_ex(slab, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
                         
-                        cache_record.push_back(SurfacesCacheRecord(&lowerm->fill_surfaces, new_lower_surfaces));
+                        cache_record.push_back(SurfacesCacheRecord(lowerm, new_lower_surfaces));
                     }
                 }
             }
-            if (is_not_solid)
-                layerm->fill_surfaces.surfaces.clear();
-            else {
-                ExPolygons new_expolygons(union_ex(to_expolygons(new_surfaces),
-                                                                 to_expolygons(layerm->fill_surfaces.filter_by_type(stInternalSolid))));
-                new_surfaces.clear();
-                surfaces_append(new_surfaces, new_expolygons, stInternalSolid); 
-                layerm->fill_surfaces.remove_type(stInternalSolid);
-            }
-            surfaces_append(layerm->fill_surfaces.surfaces, new_surfaces);
+            merge_surfaces(SurfacesCacheRecord(layerm, new_surfaces));
         }
     };
-
-    // Allocating caсhe to their positions
-    auto merge_surfaces = [](SurfacesCacheRecord& cache) {
-        Surfaces new_surfaces;
-        SurfacesPtr crop_surfaces = cache.first->filter_by_type_except(stInternal);
-        ExPolygons crop_first     = union_ex(to_expolygons(crop_surfaces));
-        for (auto& s : cache.second)
-            surfaces_append(new_surfaces, diff_ex(s.expolygon, crop_first), s.surface_type);
-        ExPolygons internal = to_expolygons(cache.first->filter_by_type(stInternal));
-        cache.first->remove_type(stInternal);
-        surfaces_append(cache.first->surfaces, diff_ex(internal, new_surfaces, ApplySafetyOffset::Yes), stInternal);
-        surfaces_append(cache.first->surfaces, new_surfaces);
-    };
-
 
     // A layer reads the tops of the layer above and retypes its own fill surfaces, so neighbours
     // must not run together. Splitting the sweep by parity keeps every pair of concurrent layers
@@ -5304,12 +5295,12 @@ void PrintObject::discover_sub_top_surfaces()
 
     // Allocating caсhe to their positions
     tbb::parallel_for(tbb::blocked_range<size_t>(0, optimized_surfaces.size()), 
-                      [&merge_surfaces, &optimized_surfaces](const tbb::blocked_range<size_t> &range) {
-        for (size_t k = range.begin(); k < range.end(); ++k) {
-            merge_surfaces(optimized_surfaces[k]);
-        }
+        [&merge_surfaces, &optimized_surfaces](const tbb::blocked_range<size_t> &range) {
+            for (size_t k = range.begin(); k < range.end(); ++k) {
+                merge_surfaces(optimized_surfaces[k]);
+            }
     });
-}
+} // end of discover_extra_elements
 
 void PrintObject::_generate_support_material()
 {
