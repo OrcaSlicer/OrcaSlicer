@@ -3958,7 +3958,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("default_jerk", coFloats);
     def->label = L("Default");
     def->category = L("Speed");
-    def->tooltip = L("Default jerk.");
+    def->tooltip = L("Jerk for print moves that have no jerk of their own. At 0, OrcaSlicer does not set jerk at all and the other "
+                     "jerk settings are ignored.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4809,7 +4810,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("skin_infill_depth", coFloat);
     def->label    = L("Skin infill depth");
     def->category = L("Strength");
-    def->tooltip  = L("The parameter sets the depth of skin.");
+    def->tooltip  = L("How far the skin reaches into the sparse infill from the walls. The skin has its own density and line "
+                      "width; the infill inside it is the skeleton.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 100;
@@ -4878,7 +4880,8 @@ void PrintConfigDef::init_fff_params()
     // BBS
     def          = this->add("enable_wrapping_detection", coBool);
     def->label   = L("Enable clumping detection");
-    def->tooltip = L("Enable clumping detection");
+    def->tooltip = L("Lets the printer check the nozzle for clumped filament during the first layers of the print. Needs a "
+                     "printer that supports it and a prime tower; keep objects clear of the detection area on the bed.");
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5178,7 +5181,8 @@ void PrintConfigDef::init_fff_params()
 
     def                = this->add("ironing_pattern", coEnum);
     def->label         = L("Ironing Pattern");
-    def->tooltip       = L("The pattern that will be used when ironing.");
+    def->tooltip       = L("The path the nozzle follows while ironing: parallel lines back and forth, or rings that follow the outline "
+                           "of the surface.");
     def->category      = L("Quality");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("rectilinear");
@@ -5241,7 +5245,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("ironing_angle_fixed", coBool);
     def->label    = L("Fixed ironing angle");
     def->category = L("Quality");
-    def->tooltip  = L("Use a fixed absolute angle for ironing.");
+    def->tooltip  = L("When enabled, the ironing angle is an absolute direction, the same on every layer, instead of an offset "
+                      "from the direction of the top surface lines.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5872,7 +5877,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filename_format", coString);
     def->label = L("Filename format");
-    def->tooltip = L("Users can decide project file names when exporting.");
+    def->tooltip = L("Template for the name of the exported file. Placeholders in braces, such as {input_filename_base} or "
+                     "{print_time}, are replaced with their values.");
     def->full_width = true;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString("{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode"));
@@ -5968,7 +5974,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wall_loops", coInt);
     def->label = L("Wall loops");
     def->category = L("Strength");
-    def->tooltip = L("This is the number of walls per layer.");
+    def->tooltip = L("Number of walls printed around the outline of each layer. More walls make the part stronger and stiffer, "
+                     "at the cost of material and print time.");
     def->min = 0;
     def->max = 1000;
     def->set_default_value(new ConfigOptionInt(2));
@@ -6640,7 +6647,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("seam_slope_steps", coInt);
     def->label = L("Scarf steps");
     def->category = L("Quality");
-    def->tooltip = L("Minimum number of segments of each scarf.");
+    def->tooltip = L("The scarf ramp is split into at least this many segments, each a little higher than the one before. "
+                     "More steps give a smoother ramp.");
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(10));
@@ -7317,7 +7325,8 @@ void PrintConfigDef::init_fff_params()
     //BBS: remove material behind support
     def->label = L("Enable support");
     def->category = L("Support");
-    def->tooltip = L("This enables support generation.");
+    def->tooltip = L("Generates support structures under overhangs that would otherwise be printed in mid-air. "
+                     "Supports use extra material and time, and leave marks where they touch the part.");
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("support_type", coEnum);
@@ -7398,7 +7407,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top Z distance");
     def->min = 0;
     def->category = L("Support");
-    def->tooltip = L("Z gap between the support\'s top and object.");
+    def->tooltip = L("Vertical gap between the top of the support and the part above it. A larger gap makes the support easier "
+                     "to remove, a smaller one leaves a cleaner underside.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
 //    def->min = 0;
 #if 0
@@ -7484,7 +7494,8 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Top interface layers");
     def->category = L("Support");
-    def->tooltip = L("This is the number of top interface layers.");
+    def->tooltip = L("Number of dense layers at the top of the support, right under the part. More layers give the underside "
+                     "of the part a smoother surface to rest on.");
     def->sidetext = L("layers");
     def->min = 0;
     def->enum_values.push_back("0");
@@ -7502,7 +7513,8 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Bottom interface layers");
     def->category = L("Support");
-    def->tooltip = L("Number of bottom interface layers.");
+    def->tooltip = L("Number of dense layers at the bottom of the support, where it stands on the part. "
+                     "Same as top uses the number of top interface layers.");
     def->sidetext = L("layers");
     def->min = -1;
     def->enum_values.push_back("-1");
@@ -7917,7 +7929,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Tip Diameter");
     def->category = L("Support");
     // TRN PrintSettings: "Organic supports" > "Tip Diameter"
-    def->tooltip = L("Branch tip diameter for organic supports.");
+    def->tooltip = L("Diameter of the branch tips of organic supports, where they hold the part. Thinner tips are easier to "
+                     "remove and leave smaller marks, thicker tips hold the part more firmly.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0.1f;
     def->max = 100.f;
@@ -7984,7 +7997,8 @@ void PrintConfigDef::init_fff_params()
 
     def                = this->add("support_ironing_pattern", coEnum);
     def->label         = L("Support Ironing Pattern");
-    def->tooltip       = L("The pattern that will be used when ironing.");
+    def->tooltip       = L("The path the nozzle follows while ironing: parallel lines back and forth, or rings that follow the outline "
+                           "of the surface.");
     def->category      = L("Support");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("rectilinear");
@@ -8341,7 +8355,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("prime_tower_width", coFloat);
     def->label = L("Width");
-    def->tooltip = L("This is the width of prime towers.");
+    def->tooltip = L("Width of the prime tower. Its depth follows from the amount of material to purge, so a wider tower "
+                     "is shallower.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 2.0;
     def->mode = comSimple;
@@ -8424,7 +8439,7 @@ void PrintConfigDef::init_fff_params()
 
     def          = this->add("wipe_tower_fillet_wall", coBool);
     def->label   = L("Fillet wall");
-    def->tooltip = L("The wall of prime tower will fillet.");
+    def->tooltip = L("Rounds the corners of the prime tower's rib wall.");
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -8448,7 +8463,8 @@ void PrintConfigDef::init_fff_params()
 
     def          = this->add("prime_tower_skip_points", coBool);
     def->label   = L("Skip points");
-    def->tooltip = L("The wall of prime tower will skip the start points of wipe path.");
+    def->tooltip = L("Leaves gaps in the prime tower's wall where the nozzle enters the tower to purge, so the moves into the "
+                     "tower do not cross the wall.");
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -8470,7 +8486,8 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("prime_tower_infill_gap", coPercent);
     def->label    = L("Infill gap");
-    def->tooltip  = L("Infill gap.");
+    def->tooltip  = L("Spacing of the purge lines inside the prime tower, as a percentage of the line width. A larger spacing "
+                      "spreads the same purge over a deeper, sparser tower.");
     def->sidetext = "%";
     def->mode     = comAdvanced;
     def->min      = 100;
@@ -8515,7 +8532,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("wipe_tower_extra_spacing", coPercent);
     def->label = L("Wipe tower purge lines spacing");
-    def->tooltip = L("Spacing of purge lines on the wipe tower.");
+    def->tooltip = L("Spacing of the purge lines inside the prime tower, as a percentage of the line width. A larger spacing "
+                     "spreads the same purge over a deeper, sparser tower.");
     def->sidetext = "%";
     def->mode = comAdvanced;
     def->min = 100.;
@@ -8582,7 +8600,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("hole_to_polyhole_twisted", coBool);
     def->label = L("Polyhole twist");
     def->category = L("Quality");
-    def->tooltip = L("Rotate the polyhole every layer.");
+    def->tooltip = L("Rotates the polyhole a little on every layer, so its flat sides do not stack up and the hole comes out "
+                     "closer to round.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 

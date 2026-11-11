@@ -100,6 +100,9 @@ public:
 
     // BBS
     wxString get_tooltip(const Preset& preset);
+    // Shows `text` (the selected preset's name, and its notes) as the tooltip, followed by what a preset
+    // of this type holds, so the tooltip says more than the name already on the combo.
+    void set_tooltip_text(const wxString& text);
 
     wxString get_preset_item_name(unsigned int index);
 
