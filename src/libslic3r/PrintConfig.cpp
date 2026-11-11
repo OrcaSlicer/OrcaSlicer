@@ -2951,7 +2951,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("enable_pressure_advance", coBools);
     def->label = L("Enable pressure advance");
-    def->tooltip = L("Enable pressure advance, auto calibration result will be overwritten once enabled.");
+    def->tooltip = L("Set the pressure advance below in the G-code each time this filament starts printing. Off, the G-code sets "
+                     "none, and the printer keeps the value it has, such as the result of its own calibration.");
     def->set_default_value(new ConfigOptionBools{ false });
 
     def = this->add("pressure_advance", coFloats);
@@ -3334,7 +3335,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_loading_speed", coFloats);
     def->label = L("Loading speed");
-    def->tooltip = L("Speed used for loading the filament on the wipe tower.");
+    def->tooltip = L("Speed of most of the load, which pushes the new filament from where it was parked down to the nozzle while "
+                     "the nozzle moves along the wipe tower. The first fifth runs at the loading speed at the start, the last tenth "
+                     "at a tenth of this speed.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3342,7 +3345,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_loading_speed_start", coFloats);
     def->label = L("Loading speed at the start");
-    def->tooltip = L("Speed used at the very beginning of loading phase.");
+    def->tooltip = L("Loading pushes the new filament from where it was parked down to the nozzle. The first fifth of the way runs "
+                     "at this speed, before the loading speed takes over.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3428,7 +3432,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_tower_interface_pre_extrusion_dist", coFloats);
     def->label = L("Interface layer pre-extrusion distance");
-    def->tooltip = L("Pre-extrusion distance for prime tower interface layer (where different materials meet).");
+    def->tooltip = L("On the prime tower's interface layer (where different materials meet), the extrusion starts this far outside "
+                     "the tower, so the flow is steady when it reaches it. Used with Enable tower interface features.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3436,7 +3441,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_tower_interface_pre_extrusion_length", coFloats);
     def->label = L("Interface layer pre-extrusion length");
-    def->tooltip = L("Pre-extrusion length for prime tower interface layer (where different materials meet).");
+    def->tooltip = L("How much filament is pushed out at the start of the prime tower's interface layer (where different "
+                     "materials meet), before the layer is printed. Used with Enable tower interface features.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3444,7 +3450,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_tower_ironing_area", coFloats);
     def->label = L("Tower ironing area");
-    def->tooltip = L("Ironing area for prime tower interface layer (where different materials meet).");
+    def->tooltip = L("The size of the spot the nozzle irons flat, in a spiral, on the prime tower's interface layer (where "
+                     "different materials meet).");
     def->sidetext = L(u8"mm²");	// square millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3452,7 +3459,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_tower_interface_purge_volume", coFloats);
     def->label = L("Interface layer purge length");
-    def->tooltip = L("Purge length for prime tower interface layer (where different materials meet).");
+    def->tooltip = L("How much filament the filament change G-code purges before the prime tower's interface layer (where "
+                     "different materials meet). The G-code reads it as filament_tower_interface_purge_volume.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3493,7 +3501,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_multitool_ramming_volume", coFloats);
     def->label = L("Multi-tool ramming volume");
-    def->tooltip = L("The volume to be rammed before the tool change.");
+    def->tooltip = L("How much plastic is pushed out quickly on the wipe tower just before the tool change, when Enable ramming "
+                     "for multi-tool setups is on.");
     def->sidetext = L(u8"mm³");	// cubic millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3501,7 +3510,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_multitool_ramming_flow", coFloats);
     def->label = L("Multi-tool ramming flow");
-    def->tooltip = L("Flow used for ramming the filament before the tool change.");
+    def->tooltip = L("The volumetric speed at which the ramming volume is pushed out before the tool change.");
     def->sidetext = L(u8"mm³/s");	// cubic millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3509,7 +3518,8 @@ void PrintConfigDef::init_fff_params()
     
     def = this->add("filament_density", coFloats);
     def->label = L("Density");
-    def->tooltip = L("Filament density, for statistical purposes only.");
+    def->tooltip = L("The weight of a cubic centimetre of this filament. With the volume a print uses, it gives the weight in the "
+                     "slicing results, and with the price, the cost. It does not change the G-code.");
     def->sidetext = L(u8"g/cm³");	// grams per cubic centimeter, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3532,7 +3542,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_soluble", coBools);
     def->label = L("Soluble material");
-    def->tooltip = L("Soluble material is commonly used to print supports and support interfaces.");
+    def->tooltip = L("Tick for a filament that dissolves, such as PVA or BVOH, usually printed as supports or support interfaces. "
+                     "The purge after a filament change never goes into infill or objects when this filament is involved, and "
+                     "supports set to the default filament are printed with another one where possible.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBools { false });
 
@@ -3546,7 +3558,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_is_support", coBools);
     def->label = L("Support material");
-    def->tooltip = L("Support material is commonly used to print supports and support interfaces.");
+    def->tooltip = L("Tick for a filament meant for supports, such as a breakaway support material. The purge after a filament "
+                     "change never goes into infill or objects when this filament is involved, and supports set to the default "
+                     "filament are printed with another one where possible.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBools { false });
 
@@ -3638,7 +3652,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_cost", coFloats);
     def->label = L("Price");
-    def->tooltip = L("Filament price, for statistical purposes only.");
+    def->tooltip = L("The price of a kilogram of this filament. It gives the cost in the slicing results, and does not change "
+                     "the G-code.");
     def->sidetext = L("money/kg");
     def->min = 0;
     def->mode = comAdvanced;
@@ -5629,7 +5644,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("fan_max_speed", coFloats);
     def->label = L("Fan speed");
-    def->tooltip = L("The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan.");
+    def->tooltip = L("The part cooling fan speed for a layer that takes no longer than the layer time beside it. Layers between "
+                     "the two layer times get a speed between the minimum fan speed and this one.");
     def->sidetext = "%";
     def->min = 0;
     def->max = 100;
