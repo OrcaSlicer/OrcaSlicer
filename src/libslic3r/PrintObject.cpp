@@ -879,6 +879,11 @@ void PrintObject::ironing()
     }
 }
 
+bool PrintObject::precise_z_height() const
+{
+    return m_config.precise_z_height.value && !m_print->precise_z_height_overridden();
+}
+
 bool PrintObject::need_z_contouring() const
 {
     size_t num_regions = this->num_printing_regions();
@@ -4440,8 +4445,8 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
         // default_or_parent_region_config contains parent PrintRegion config, which already contains ModelVolume's config.
     }
     apply_to_print_region_config(config, volume.config.get(), feature_overrides, variant_index);
-    if (! volume.material_id().empty())
-        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides, variant_index);
+    if (const ModelMaterial* material = volume.material(); material != nullptr)
+        apply_to_print_region_config(config, material->config.get(), feature_overrides, variant_index);
     if (layer_range_config != nullptr) {
         // Not applicable to modifiers.
         assert(volume.is_model_part());
