@@ -17,6 +17,8 @@
 
 #include "Button.hpp"
 
+namespace Slic3r::GUI { struct TipMedia; }
+
 class RadioGroup : public wxPanel
 {
 
@@ -52,6 +54,8 @@ public:
     bool Disable();
 
     void SetRadioTooltip(int i, wxString tooltip);
+    // The same through set_illustrated_tooltip(), so the tooltip can carry pictures.
+    void SetRadioIllustratedTooltip(int i, const wxString& tooltip, const std::vector<Slic3r::GUI::TipMedia>& media);
 
 private:
     std::vector<wxString>        m_labels;

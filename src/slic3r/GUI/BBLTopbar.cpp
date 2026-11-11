@@ -18,6 +18,7 @@
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
+#include "Shortcuts.hpp"
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
 #endif
@@ -375,6 +376,8 @@ void BBLTopbar::Init(wxFrame* parent)
     wxAuiToolBarItem* close_btn = this->AddTool(wxID_CLOSE_FRAME, "", close_bitmap);
     }
 
+    UpdateToolTips();
+
     Realize();
     // m_toolbar_h = this->GetSize().GetHeight();
     m_toolbar_h = FromDIP(30);
@@ -444,6 +447,23 @@ void BBLTopbar::OnRedo(wxAuiToolBarEvent& event)
 #endif
     Plater* plater = main_frame->plater();
     plater->redo();
+}
+
+void BBLTopbar::UpdateToolTips()
+{
+    // wxAuiToolBar shows a tool's short help as the tooltip of the tool under the pointer by itself
+    // (wxAuiToolBar::OnMotion), so the tools need no hover handling of their own. Their tooltips are
+    // text alone, which is all a plain wxToolTip carries.
+    const ShortcutRegistry& shortcuts = wxGetApp().shortcuts();
+    SetToolShortHelp(wxID_SAVE, from_u8(shortcuts.with_key(_u8L("Save project"), Shortcut::SaveProject)) + "\n" +
+        _L("Saves the models, plates and settings to the project's 3MF file. A project that was never saved asks where to save it first."));
+    SetToolShortHelp(wxID_UNDO, from_u8(shortcuts.with_key(_u8L("Undo"), Shortcut::Undo)) + "\n" +
+        _L("Reverts the last change to the project."));
+    SetToolShortHelp(wxID_REDO, from_u8(shortcuts.with_key(_u8L("Redo"), Shortcut::Redo)) + "\n" +
+        _L("Makes the change that Undo reverted again."));
+    SetToolShortHelp(ID_TOP_DROPDOWN_MENU, _L("The Edit, View and Help menus, Preferences, the Speed Dial, preset bundles and plugins."));
+    SetToolShortHelp(ID_CALIB, _L("Prints a test model to tune a setting for the selected printer and filament: "
+                                  "temperature, flow, pressure advance, retraction and more."));
 }
 
 void BBLTopbar::EnableUndoRedoItems()

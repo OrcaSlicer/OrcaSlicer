@@ -17,6 +17,7 @@
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 
 RadioGroup::RadioGroup(
     wxWindow* parent,
@@ -195,4 +196,10 @@ void RadioGroup::SetRadioTooltip(int i, wxString tooltip)
 {
     m_radioButtons[i]->SetToolTip(tooltip);
     m_labelButtons[i]->SetToolTip(tooltip);
+}
+
+void RadioGroup::SetRadioIllustratedTooltip(int i, const wxString& tooltip, const std::vector<Slic3r::GUI::TipMedia>& media)
+{
+    Slic3r::GUI::set_illustrated_tooltip(m_radioButtons[i], tooltip, media);
+    Slic3r::GUI::set_illustrated_tooltip(m_labelButtons[i], tooltip, media);
 }

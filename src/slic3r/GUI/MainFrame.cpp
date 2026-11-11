@@ -119,6 +119,7 @@
 #include "PublishSettingsDialog.hpp"
 #include "MsgDialog.hpp"
 #include "Notebook.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "GUI_Factories.hpp"
 #include "NotificationManager.hpp"
 #include "MarkdownTip.hpp"
@@ -1795,8 +1796,62 @@ bool MainFrame::is_prepare_or_preview_tab() const
     return tab == TAB_ID_PREPARE || tab == TAB_ID_PREVIEW;
 }
 
+void MainFrame::update_tab_tooltips()
+{
+    if (!m_tabpanel)
+        return;
+
+    const ShortcutRegistry& shortcuts = wxGetApp().shortcuts();
+    ButtonsListCtrl*        ctrl      = m_tabpanel->GetBtnsListCtrl();
+    for (size_t i = 0; i < m_tabpanel->GetPageCount(); ++i) {
+        const wxString id = m_tabpanel->GetPageName(i);
+        // The web page of the printer can sit under either Device id.
+        const bool printer_web = m_tabpanel->GetPage(i) == m_printer_view_page;
+        wxString   name        = ctrl->GetPageLabel(i);
+        std::optional<Shortcut> shortcut;
+        wxString   text;
+        if (id == TAB_ID_HOME) {
+            name     = _L("Home");
+            shortcut = Shortcut::GoToHome;
+            text     = _L("Recent projects and online models.");
+#ifdef SLIC3R_CAD
+        } else if (id == TAB_ID_DESIGN) {
+            shortcut = Shortcut::GoToDesign;
+            text     = _L("Model parts with the built-in parametric CAD tools (experimental).");
+#endif
+        } else if (id == TAB_ID_PREPARE) {
+            shortcut = Shortcut::GoToPrepare;
+            text     = _L("Arrange the models on the plates and choose the printer, filament and process settings for them.");
+        } else if (id == TAB_ID_PREVIEW) {
+            shortcut = Shortcut::GoToPreview;
+            text     = _L("The sliced plate layer by layer, with its toolpaths, print time and filament use.");
+        } else if (printer_web) {
+            shortcut = Shortcut::GoToDevice;
+            text     = _L("The printer's own web interface, at the host address set in the printer settings.");
+        } else if (id == TAB_ID_MONITOR) {
+            shortcut = Shortcut::GoToDevice;
+            text     = _L("Watch and control the printer: print progress, camera, temperatures and filaments.");
+        } else if (id == TAB_ID_MULTI_DEVICE) {
+            shortcut = Shortcut::GoToMultiDevice;
+            text     = _L("Send a print to several printers at once and follow their progress.");
+        } else if (id == TAB_ID_PROJECT) {
+            shortcut = Shortcut::GoToProject;
+            text     = _L("The project's information stored in its 3MF: description, pictures, bill of materials and profile notes.");
+        } else if (id == TAB_ID_CALIBRATION) {
+            shortcut = Shortcut::GoToCalibration;
+            text     = _L("Step-by-step calibrations run on a connected printer, such as flow dynamics and flow ratio. The results are saved for its filaments.");
+        } else
+            continue; // plugin pages keep what their plugin gives them
+
+        set_illustrated_tooltip(ctrl->GetPageButton(i), from_u8(shortcuts.with_key(into_u8(name), *shortcut)) + "\n" + text);
+    }
+}
+
 void MainFrame::fit_tab_labels()
 {
+    // A compact tab shows its icon alone, and the tooltip is then the only place its name appears.
+    update_tab_tooltips();
+
     if (!m_tabpanel || !m_slice_option_btn) // ignore layout change while slice/print buttons not visible
         return;
 
@@ -2347,6 +2402,10 @@ wxBoxSizer* MainFrame::create_side_tools()
     update_side_button_style();
     m_slice_option_btn->Enable();
     m_print_option_btn->Enable();
+    set_illustrated_tooltip(m_slice_option_btn, _L("Choose what the Slice button slices: the current plate or all plates."));
+    set_illustrated_tooltip(m_print_option_btn,
+        _L("Choose what the Print button does: print the plate or all plates, send or upload the G-code to a printer, "
+           "or export it to a file. The available choices depend on the printer."));
     //sizer->Add(FromDIP(15), 0, 0, 0, 0);
     sizer->Add(slice_panel);
     sizer->Add(FromDIP(15), 0, 0, 0, 0);
@@ -2902,6 +2961,11 @@ void MainFrame::update_shortcut_labels()
 {
     for (const ShortcutMenuItem& entry : m_shortcut_menu_items)
         entry.item->SetItemLabel(shortcut_label(entry.label, entry.shortcut, entry.accelerator));
+#ifndef __APPLE__
+    if (m_topbar != nullptr)
+        m_topbar->UpdateToolTips();
+#endif
+    update_tab_tooltips();
 }
 
 wxMenu* MainFrame::generate_help_menu()
