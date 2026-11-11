@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "slic3r/GUI/IllustratedTipPopup.hpp"   // TipMedia
 #include "slic3r/GUI/wxExtensions.hpp"   // ScalableBitmap
 
 class wxTextCtrl;
@@ -47,6 +48,10 @@ public:
         wxString            edit_text;   // what the rename editor opens with; empty for the label
         wxColour            colour;      // label colour
         std::vector<Action> actions;     // icon cells at the right end, in display order
+        // What the row is, shown when the pointer rests on it outside its action icons; empty for
+        // none. The pictures go under the text.
+        wxString              tip;
+        std::vector<TipMedia> media;
     };
 
     // The hover chip behind an action icon, a light colour dark-mapped at paint. The sidebar's
