@@ -101,6 +101,7 @@ set(lisbslic3r_sources
     BuildVolume.hpp
     calib.cpp
     calib.hpp
+    CalibData.hpp
     Circle.cpp
     Circle.hpp
     ClipperUtils.cpp
@@ -434,6 +435,7 @@ set(lisbslic3r_sources
     MaterialType.hpp
     PrintConfig.cpp
     PrintConfig.hpp
+    PrintConfigBase.hpp
     Print.cpp
     Print.hpp
     PrintObject.cpp
