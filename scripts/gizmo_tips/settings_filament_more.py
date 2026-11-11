@@ -353,19 +353,6 @@ def toolchange_load(k, n):
     return f.finish()
 
 
-# --- long retraction at an extruder change: the filament pulled back out of the hot zone ------------
-
-
-def ec_long_retraction(k, n):
-    f = Flat(SIZE)
-    _hotend(f)
-    tip = _TUBE_TOP + 0.06
-    _filament(f, tip, tip, "point")
-    f.arrow((0.80, _NOZZLE_TIP - 0.02), (0.80, tip + 0.01), C_ACCENT_LIGHT, 2.6, 0.035)
-    f.line([(0.74, _NOZZLE_TIP - 0.02), (0.86, _NOZZLE_TIP - 0.02)], C_PART, 1.6)
-    return f.finish()
-
-
 # --- the prime tower's interface layer, where one material is printed on another ------------------
 
 
@@ -422,7 +409,6 @@ FRAMES = {
     "exhaust_during": 0,
     "exhaust_after": 0,
     "toolchange_load": 20,
-    "ec_long_retraction": 0,
     "tower_interface": 0,
     "idle_temperature": 0,
 }

@@ -101,7 +101,7 @@ void add_filament_setting_tips(SettingTips &tips)
         tips[key].media = one("tower_interface.png");
     // The filament pulled up out of the hot zone before its extruder is parked.
     for (const char *key : {"long_retractions_when_ec", "retraction_distances_when_ec"})
-        tips[key].media = one("ec_long_retraction.png");
+        tips[key].media = one("ec_long_retraction.gif");
 
     // The filament change on a single extruder multi-material printer (GCode/WipeTower2.cpp): ramming,
     // unloading, cooling moves, and stamping between the cooling moves.
