@@ -79,7 +79,7 @@ struct BBLocalMachine
     std::string dev_ip;
     std::string dev_id; /* serial number */
     std::string printer_type; /* model_id */
-    std::string printer_agent_id; /* id of the IPrinterAgent that discovered/bound this device, e.g. "bbl"; empty for entries persisted before this field existed */
+    std::string printer_agent_id; /* id of the IPrinterAgent that discovered/bound this device, e.g. "bbl"; empty for non-Bambu entries persisted before this field existed */
     // Access code, scoped to printer_agent_id above - so a code saved while bound under one
     // printer agent isn't treated as valid for a different, independent agent talking to the
     // same physical dev_id. Empty for entries persisted before this field existed; those fall
