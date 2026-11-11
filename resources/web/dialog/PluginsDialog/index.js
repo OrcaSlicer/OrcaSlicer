@@ -1422,7 +1422,8 @@ function PermissionForm(pluginKey, category, categoryName, index, enabled, place
       : T("permissions_edit_original", "Unsaved edit of: %s", oldValue);
     valueDescription.hidden = !noLongerGranted && input.value === oldValue;
     form.appendChild(valueDescription);
-    input.setAttribute("aria-describedby", `${guidanceId} ${valueDescription.id}`);
+    if (!valueDescription.hidden)
+      input.setAttribute("aria-describedby", `${guidanceId} ${valueDescription.id}`);
   }
   input.placeholder = isAdd ? placeholder : "";
   // common.js handles document keydown globally; keep text editing native.
@@ -1442,7 +1443,9 @@ function PermissionForm(pluginKey, category, categoryName, index, enabled, place
       } else {
         (draft.edits[category] ||= {})[oldValue] = input.value;
       }
-      form.querySelector(".permission-edit-status").hidden = !noLongerGranted && input.value === oldValue;
+      const valueDescription = form.querySelector(".permission-edit-status");
+      valueDescription.hidden = !noLongerGranted && input.value === oldValue;
+      input.setAttribute("aria-describedby", valueDescription.hidden ? guidanceId : `${guidanceId} ${valueDescription.id}`);
     }
     submit.disabled = !enabled || !input.value.trim();
     submit.hidden = !isAdd && !noLongerGranted && input.value === oldValue;
