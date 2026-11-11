@@ -144,9 +144,8 @@ A consequence of running Script on a non-main thread: the audit permission promp
 the main thread. `request_permission` in `src/slic3r/plugin/PluginAuditManager.cpp` posts the dialog
 with `CallAfter` and denies the current event. For a category with a persistent grant list, the grant
 is saved when the user accepts, so a Script sees a denial on the first attempt and can succeed on a
-later one. Create and delete have no persistent grant list, so their off-main-thread path posts only
-an informational denial with no Yes/No choice and does not promise a retry. This matches the existing
-behavior for the plugin-load worker and the slicing worker.
+later one. This includes create and delete approvals, which grant the target's parent folder. The
+plugin-load worker and the slicing worker follow the same behavior.
 
 ### Blocking UI continuation
 

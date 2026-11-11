@@ -1459,6 +1459,24 @@ body.pane-resizing {
 
 .permission-filesystem-bucket + .permission-filesystem-bucket { margin-top: 17px; }
 
+.permission-mode {
+  min-width: 0;
+  margin: 0 0 10px;
+  padding: 0;
+  border: 0;
+}
+
+.permissions-content .permission-mode label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 16px 4px 0;
+  color: var(--text);
+}
+
+.permission-mode input { accent-color: var(--main-color); }
+.permission-mode input:focus-visible { outline: 2px solid var(--main-color); outline-offset: 2px; }
+
 .permissions-content label.permission-thread-toggle {
   display: inline-flex;
   align-items: center;

@@ -367,6 +367,12 @@ function HandleStudio(value) {
       delete draft.additions[request.category];
     if (payload.success === true && draft && request.operation === "replace")
       delete draft.edits[request.category]?.[request.old_value];
+    if (payload.success === true && draft && (request.category === "fs_create" || request.category === "fs_delete")) {
+      if (request.operation === "set_mode")
+        (draft.partialModes ||= {})[request.category] = request.value === "partial";
+      else if (request.operation === "remove")
+        (draft.partialModes ||= {})[request.category] = true;
+    }
     if (draft)
       draft.sourceSignature = null;
     renderedPermissionsSignature = null;
@@ -1041,8 +1047,8 @@ function RenderPermissions(plugin) {
     ["events", "permissions_events", "Events"]
   ];
   const categoryGuidance = {
-    fs_read: [T("permissions_filesystem_help", "Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
-    fs_readwrite: [T("permissions_filesystem_help", "Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
+    fs_read: [T("permissions_filesystem_help", "Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but does not cover create or delete events such as os.mkdir and os.remove."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
+    fs_readwrite: [null, ""],
     network_http: [null, "https://example.com"],
     network_socket: [null, "https://example.com"],
     process: [T("permissions_process_help", "Enter the exact value recorded by the audit. It may be a Python representation of the command."), T("permissions_process_placeholder", "Exact audited value")],
@@ -1167,6 +1173,7 @@ function RenderPermissions(plugin) {
   for (const [key, translation, fallback] of categories) {
     if (key === "fs_read") {
       groupBodies.get(key).appendChild(RenderFilesystemSection(plugin, pluginKey, draft, installed, categoryGuidance.fs_read));
+      groupBodies.get(key).appendChild(RenderFolderModes(plugin, pluginKey, draft, installed));
       continue;
     }
     if (key === "fs_readwrite")
@@ -1263,6 +1270,94 @@ function RenderPermissions(plugin) {
     element.scrollLeft = left;
     element.scrollTop = top;
   }
+}
+
+function RenderFolderModes(plugin, pluginKey, draft, editable) {
+  const section = document.createElement("section");
+  section.className = "permission-section permission-filesystem";
+  const description = document.createElement("div");
+  description.className = "permission-description";
+  const guidance = document.createElement("p");
+  guidance.className = "permission-guidance";
+  guidance.id = "permission-guidance-folder-modes";
+  guidance.textContent = T("permissions_folder_modes_help", "Choose none, selected folders, or all folders. Enter an absolute folder path to allow operations directly inside it, or add /* to include all nested folders. No other wildcard is accepted. Delete access allows deleting files and folders inside the granted scope; deleting the granted folder itself requires access to its parent. Some folders are allowed automatically, while protected paths remain blocked. Other operations may require approval. A background operation needing approval is denied first; after approval, a retry may succeed.");
+  description.appendChild(guidance);
+  const controls = document.createElement("div");
+  controls.className = "permission-controls";
+  section.append(description, controls);
+  const types = [
+    { key: "fs_create", label: T("permissions_create", "Create"), name: T("permissions_create_name", "File system: Create") },
+    { key: "fs_delete", label: T("permissions_delete", "Delete"), name: T("permissions_delete_name", "File system: Delete") }
+  ];
+  for (const type of types) {
+    const bucket = document.createElement("section");
+    bucket.className = "permission-filesystem-bucket";
+    const entries = draft.values[type.key];
+    if (!Array.isArray(entries) || !Array.isArray(plugin.permissions?.[type.key])) {
+      const notice = document.createElement("p");
+      notice.className = "permission-notice";
+      notice.textContent = T("permissions_unavailable", "Permissions are unavailable.");
+      bucket.appendChild(notice);
+      controls.appendChild(bucket);
+      continue;
+    }
+    const mode = entries.length === 1 && entries[0] === "*" ? "full" : entries.length || draft.partialModes?.[type.key] ? "partial" : "none";
+    const fieldset = document.createElement("fieldset");
+    fieldset.className = "permission-mode";
+    fieldset.setAttribute("aria-describedby", guidance.id);
+    const legend = document.createElement("legend");
+    legend.className = "permission-heading";
+    legend.textContent = type.label;
+    fieldset.appendChild(legend);
+    for (const [value, label] of [["none", T("permissions_mode_none", "None")], ["partial", T("permissions_mode_partial", "Selected folders")], ["full", T("permissions_mode_full", "All folders")]]) {
+      const wrapper = document.createElement("label");
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.id = `permission-mode-${type.key}-${value}`;
+      radio.name = `permission-mode-${type.key}`;
+      radio.value = value;
+      radio.checked = mode === value;
+      radio.disabled = !editable;
+      radio.addEventListener("change", () => {
+        if (entries.length === 0 && value !== "full") {
+          (draft.partialModes ||= {})[type.key] = value === "partial";
+          renderedPermissionsSignature = null;
+          RenderDetails();
+          document.getElementById(radio.id)?.focus();
+        } else {
+          CommitPermission(pluginKey, { operation: "set_mode", category: type.key, value });
+        }
+      });
+      wrapper.append(radio, document.createTextNode(label));
+      fieldset.appendChild(wrapper);
+    }
+    bucket.appendChild(fieldset);
+    if (mode === "partial") {
+      if (entries.includes("*")) {
+        const notice = document.createElement("p");
+        notice.className = "permission-notice";
+        notice.textContent = T("permissions_folder_invalid_wildcard", "The wildcard is ignored when combined with folder paths. Remove it or choose all folders.");
+        bucket.appendChild(notice);
+      }
+      if (entries.length === 0) {
+        const notice = document.createElement("p");
+        notice.className = "permission-notice";
+        notice.textContent = T("permissions_folder_empty", "Add a folder to save selected-folder access. No selected folders are saved until you add one.");
+        bucket.appendChild(notice);
+      }
+      const list = document.createElement("ul");
+      list.className = "permission-list";
+      const placeholder = T("permissions_folder_placeholder", "Absolute folder path");
+      entries.forEach((entry, index) => {
+        const item = document.createElement("li");
+        item.appendChild(PermissionForm(pluginKey, type.key, type.name, index, editable, placeholder, guidance.id, draft));
+        list.appendChild(item);
+      });
+      bucket.append(list, PermissionForm(pluginKey, type.key, type.name, null, editable, placeholder, guidance.id, draft));
+    }
+    controls.appendChild(bucket);
+  }
+  return section;
 }
 
 function RenderFilesystemSection(plugin, pluginKey, draft, editable, guidanceText) {

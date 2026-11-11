@@ -23,6 +23,20 @@ struct PluginPermissions
     // component. Reads and writes stay separate buckets: a wildcard in one never grants the other.
     std::vector<std::string> fs_read;
     std::vector<std::string> fs_readwrite;
+    // Create and delete grants name folders rather than individual targets: a literal folder
+    // entry grants creating or deleting entries directly inside that folder, not inside its
+    // subfolders. An entry ending in "/*" is a tree grant that also covers every folder below
+    // that root, at any depth. Empty means no grant. A sole "*" grants the operation anywhere;
+    // any other entry must be an absolute folder or tree path, and a relative or unreadable
+    // entry never matches. A "*" beside other entries is treated as an ordinary (non-matching)
+    // entry, so full access is never implied by accident; permission declarations reject such a
+    // mixed list together with every other wildcard. Runtime prompts store the canonical parent
+    // folder of the approved target (an exact grant, not a tree grant); a runtime parent folder
+    // whose own name contains "*" is refused instead of stored, because the sidecar would read
+    // it as a broader tree grant. A tree grant at a filesystem, drive, or network share root
+    // covers that whole filesystem, drive, or network share.
+    std::vector<std::string> fs_create;
+    std::vector<std::string> fs_delete;
     std::vector<std::string> network_http;
     std::vector<std::string> network_socket;
     std::vector<std::string> process;

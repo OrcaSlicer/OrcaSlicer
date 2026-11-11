@@ -153,20 +153,39 @@ public:
     // A filesystem target may name a directory tree: a trailing "/*" (e.g. "/path/to/folder/*")
     // grants the folder itself and every path beneath it, at any depth. "*" is the only wildcard
     // and is only recognized as the final path component; elsewhere it is an ordinary character.
-    // The wildcard applies to fs_read and fs_readwrite only, never to event grants or the other
-    // buckets, and a read grant still never authorizes a write (or the reverse). Denied paths
-    // stay denied regardless of a covering wildcard.
+    // The wildcard applies to fs_read, fs_readwrite, fs_create and fs_delete; it never applies to
+    // event grants or the other buckets, and a read grant still never authorizes a write (or the
+    // reverse). Denied paths stay denied regardless of a covering wildcard.
     //
     // A relative tree grant is resolved against the working directory when the request is made:
-    // the prompt shows, and the sidecar stores, the absolute scope it covers. Exact grants and
-    // the non-filesystem buckets are stored as requested.
+    // the prompt shows, and the sidecar stores, the absolute scope it covers. Read/read-write
+    // exact grants and the non-filesystem buckets are stored as requested; create/delete folders
+    // are always stored as canonical absolute paths (see below).
+    //
+    // fs_create and fs_delete name folders, not files. A literal folder entry grants creating or
+    // deleting the entries directly inside that folder, never inside a subfolder. A tree entry
+    // "<folder>/*" grants the same for that folder and every folder beneath it, at any depth. A
+    // request for "*" on its own asks for unrestricted access to that operation; a "*" anywhere
+    // else, except as the final component of a tree entry, and any other wildcard, makes the
+    // declaration fail closed. A relative folder or tree root is resolved against the working
+    // directory and stored in canonical absolute form. A tree rooted at a filesystem, drive, or
+    // network share root (for example "/*", "C:\*", or a UNC share root) covers that whole
+    // filesystem, drive, or network share; its prompt says so explicitly. Denied paths stay
+    // denied. At runtime, approving either operation stores the
+    // parent folder of the target (a direct grant, not a tree grant), and the prompt shows that
+    // canonical folder rather than the target. A runtime folder whose own name contains "*" is
+    // never prompted for or stored, because the sidecar would read it as a tree grant. The GUI
+    // thread then lets the operation proceed; a worker-thread approval denies the current
+    // operation, which has to be retried.
     //
     // Tree grants are matched on canonical paths: a symlink below the granted folder does not
     // extend the grant outside it, and a grant whose root is a symlink applies to its target. A
     // target whose final component is a dangling symlink is never covered, since a write through
     // it would create the link's target rather than the path the grant describes. Exact grants
     // match verbatim; absolute exact grants also match canonical-equivalent paths, including
-    // relative targets resolved against the working directory at the time of the check.
+    // relative targets resolved against the working directory at the time of the check. For
+    // create and delete, a tree grant covers every target whose containing folder is its root or
+    // any folder below it.
     bool request_permissions(const std::string& plugin_key, const PluginPermissions& requested);
 
     // Ask the user to grant network access to the given http(s) URLs. Each URL is reduced to its
@@ -182,6 +201,12 @@ public:
     // string unless `url` is an absolute http(s) URL with a host. The path, query, fragment,
     // userinfo and port are discarded; scheme and host are lowercased.
     static std::string normalize_network_url(const std::string& url);
+
+    // True when `target` is a create/delete tree grant: a folder path ending in "/*". "*" on its
+    // own is the separate full-access form and returns false, as does any wildcard outside the
+    // final component. The declared root may be relative and may contain "." or "..";
+    // request_permissions resolves it against the working directory and stores it canonically.
+    static bool is_create_delete_tree_grant(const std::string& target);
 
     // True when a granted scheme://host entry covers `target`. `target` is a URL (urllib.Request),
     // a bare host (http.client.connect, socket.getaddrinfo) or an address as exposed by the audit
@@ -208,8 +233,16 @@ public:
     // library code the operation calls back into is judged on its own. A frame is let go once it
     // returns, a suspended generator's (os.walk) when the audit scope ends. Letting a frame go may
     // run finalizers of objects its locals held; they are judged as the plugin and never prompt.
-    void record_root_frame();
-    bool covered_by_root_frame() const;
+    //
+    // The root's category is recorded too. A delete root (shutil.rmtree) does not cover nested
+    // delete events: an exact folder grant covers only its direct entries, so each nested delete
+    // is judged on its own, while a tree grant covering the target may still allow it. A
+    // read/write root (copytree, unpack_archive, move) still covers the create/delete events it
+    // performs.
+    void record_root_frame(AuditEventCategory category);
+    // `allow_delete_roots` is false for a delete event: a frame recorded for a delete root then
+    // does not cover it, while a read/write root still does.
+    bool covered_by_root_frame(bool allow_delete_roots = true) const;
     bool releasing_frames() const;
 
     // True when code from `filename` (a code object's co_filename) is the interpreter's own
@@ -247,6 +280,9 @@ private:
     static thread_local std::string                   m_current_capability_name;
     static thread_local std::vector<AllowedRoot>       m_scoped_allowed_roots;
     static thread_local std::vector<PyObject*>         m_root_frames; // strong references
+    // Subset of m_root_frames recorded for a delete root. Non-owning: m_root_frames holds the
+    // reference. A delete event is not covered by one of these (see covered_by_root_frame).
+    static thread_local std::vector<PyObject*>         m_delete_root_frames;
     static thread_local int                            m_releasing_frames;
     static thread_local bool                           m_audit_denial_pending;
     static thread_local bool                           m_has_last_violation;
@@ -286,6 +322,7 @@ private:
     std::string                   m_previous_capability;
     std::vector<AllowedRoot>      m_previous_scoped_roots;
     std::vector<PyObject*>        m_previous_root_frames;
+    std::vector<PyObject*>        m_previous_delete_root_frames;
 };
 
 } // namespace Slic3r
