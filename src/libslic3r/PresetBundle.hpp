@@ -571,6 +571,10 @@ public:
 
     //BBS: add some functions for multiple extruders
     int get_printer_extruder_count() const;
+    // Orca: on a non-Bambu printer with several toolheads and no single-extruder multi-material
+    // (toolchanger, IDEX), filament N is printed by toolhead N, so the filament list holds exactly
+    // one slot per toolhead. Returns that toolhead count, or 0 when the filament count is free.
+    int fixed_toolhead_filament_count();
     bool support_different_extruders() const;
 
     // Orca: Ensure filament_presets has at least one slot per nozzle on FFF printers.

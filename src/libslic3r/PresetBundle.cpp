@@ -5129,6 +5129,23 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         if (support_interface_filament_opt->value > filament_color_type->values.size())
             support_interface_filament_opt->value = 0;
     }
+    // Orca: a toolchanger holds one filament per toolhead. A sync must never leave more: the merge
+    // keeps every existing slot and the append adds unmapped trays, so an extra slot (an external
+    // spool record, a stale earlier sync) would otherwise stay with no way to remove it.
+    if (const size_t toolheads = size_t(fixed_toolhead_filament_count()); !color_only && toolheads > 0 && this->filament_presets.size() > toolheads) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": trimming %1% filaments to %2% toolheads") % this->filament_presets.size() % toolheads;
+        this->filament_presets.resize(toolheads);
+        filament_color->values.resize(toolheads);
+        filament_color_type->values.resize(toolheads);
+        filament_map->values.resize(toolheads);
+        filament_volume_map->values.resize(toolheads);
+        if (ams_multi_color_filment.size() > toolheads)
+            ams_multi_color_filment.resize(toolheads);
+        auto& print_config = this->prints.get_edited_preset().config;
+        for (const char* key : {"support_filament", "support_interface_filament"})
+            if (auto* opt = print_config.option<ConfigOptionInt>(key); opt && opt->value > int(toolheads))
+                opt->value = 0;
+    }
     // Re-append mixed filament slots that were stripped before AMS sync
     if (!mixed_snapshots.empty()) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": re-appending " << mixed_snapshots.size() << " mixed filament slot(s) after AMS sync";
@@ -5549,6 +5566,16 @@ void PresetBundle::reset_default_nozzle_volume_type()
 {
     Preset& current_printer = this->printers.get_edited_preset();
     this->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
+}
+
+int PresetBundle::fixed_toolhead_filament_count()
+{
+    const DynamicPrintConfig& config = printers.get_edited_preset().config;
+    if (printers.get_edited_preset().printer_technology() != ptFFF || is_bbl_vendor() ||
+        (config.has("single_extruder_multi_material") && config.opt_bool("single_extruder_multi_material")))
+        return 0;
+    const int toolheads = get_printer_extruder_count();
+    return toolheads > 1 ? toolheads : 0;
 }
 
 int PresetBundle::get_printer_extruder_count() const

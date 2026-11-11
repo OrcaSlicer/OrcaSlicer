@@ -2437,6 +2437,66 @@ TEST_CASE("An empty AMS placeholder does not append a filament on sync", "[Prese
     CHECK(count == before);
 }
 
+namespace {
+
+// A non-Bambu printer with `toolheads` nozzles; `semm` says whether they share one multi-material path.
+void set_toolheads(PresetBundle &bundle, size_t toolheads, bool semm)
+{
+    DynamicPrintConfig &printer = bundle.printers.get_edited_preset().config;
+    printer.set_key_value("nozzle_diameter", new ConfigOptionFloats(std::vector<double>(toolheads, 0.4)));
+    printer.set_key_value("single_extruder_multi_material", new ConfigOptionBool(semm));
+}
+
+// Three loaded trays with known ids and distinct colors, none mapped, so each one is appended.
+void fill_three_trays(PresetBundle &bundle)
+{
+    const std::vector<std::string> colours{"#111111", "#222222", "#333333"};
+    for (size_t i = 0; i < colours.size(); ++i) {
+        bundle.filament_ams_list[int(i)] = ams_tray("GFL99", "PLA", /*exist=*/true, /*placeholder=*/false);
+        bundle.filament_ams_list[int(i)].set_key_value("filament_colour", new ConfigOptionStrings{colours[i]});
+        bundle.filament_ams_list[int(i)].set_key_value("slot_id", new ConfigOptionStrings{std::to_string(i)});
+    }
+}
+
+} // namespace
+
+// A toolchanger's sidebar has one filament per toolhead and no remove button, so a sync must
+// never leave more slots than toolheads, whatever the device reported or the list held before.
+TEST_CASE("A sync on a toolchanger leaves no more filaments than toolheads", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    const size_t toolheads = 2;
+    set_toolheads(bundle, toolheads, /*semm=*/false);
+    bundle.set_num_filaments(3, std::string("#00FF00")); // one surplus slot already present
+    fill_three_trays(bundle);
+
+    REQUIRE(bundle.fixed_toolhead_filament_count() == int(toolheads));
+    const auto count = sync_one_tray(bundle, /*enable_append=*/true);
+
+    CHECK(count == toolheads);
+    CHECK(bundle.filament_presets.size() == toolheads);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == toolheads);
+    CHECK(bundle.project_config.option<ConfigOptionInts>("filament_map")->values.size() == toolheads);
+}
+
+// A shared multi-material path takes any number of filaments, so its sync is not capped.
+TEST_CASE("A sync on a single-extruder multi-material printer keeps every filament", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    set_toolheads(bundle, 2, /*semm=*/true);
+    bundle.set_num_filaments(3, std::string("#00FF00"));
+    fill_three_trays(bundle);
+
+    REQUIRE(bundle.fixed_toolhead_filament_count() == 0);
+    const size_t before = bundle.filament_presets.size();
+    const auto   count  = sync_one_tray(bundle, /*enable_append=*/true);
+
+    // The three trays are appended after the existing slots.
+    CHECK(count == before + 3);
+}
+
 // The append preference still governs a data-bearing tray: with append off the sidebar count is
 // unchanged, exactly as for a mapped-but-unlisted tray.
 TEST_CASE("The append preference gates a data-bearing AMS tray without a preset id", "[Preset][Bundle]")
