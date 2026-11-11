@@ -87,11 +87,14 @@ struct BBLocalMachine
     // since BBL was the only agent when they were saved) - see
     // get_access_code_with_legacy_fallback() in DevManager.cpp.
     std::string access_code;
+    // Path of a CA certificate the user chose in the connect dialog, for a printer behind a proxy
+    // with its own CA. Kept per device, never taken from a printer preset.
+    std::string ca_file;
 
     bool operator==(const BBLocalMachine& other) const
     {
         return dev_name == other.dev_name && dev_ip == other.dev_ip && dev_id == other.dev_id && printer_type == other.printer_type &&
-               printer_agent_id == other.printer_agent_id && access_code == other.access_code;
+               printer_agent_id == other.printer_agent_id && access_code == other.access_code && ca_file == other.ca_file;
     }
     bool operator!=(const BBLocalMachine& other) const { return !operator==(other); }
 };
