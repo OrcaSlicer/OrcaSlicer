@@ -405,6 +405,10 @@ public:
     // The height is snug.
     coord_t 				     height() const         { return m_size.z(); }
     double                      max_z() const         { return m_max_z; }
+    // Top of the printed object above the bed, scaled: object_print_z_max of the slicing parameters, so the
+    // raft and the Z shrinkage compensation count, as in the printable-height check of Print::validate().
+    // On a belt printer that is the height in the tilted slicing frame, so the model's own top is used there.
+    double                      print_z_max() const;
     // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
     const Point& 			     center_offset() const  { return m_center_offset; }
     const AdaptiveInfillField*       adaptive_infill_field(AdaptiveInfillMode mode) const { return m_adaptive_infill_fields[size_t(mode)].get(); }
@@ -1398,7 +1402,7 @@ public:
     static int get_compatible_filament_type(const std::set<int>& types);
 
     bool is_all_objects_are_short() const {
-        return std::all_of(this->objects().begin(), this->objects().end(), [&](PrintObject* obj) { return obj->height() < scale_(this->config().nozzle_height.value); });
+        return std::all_of(this->objects().begin(), this->objects().end(), [&](PrintObject* obj) { return obj->print_z_max() < scale_(this->config().nozzle_height.value); });
     }
 
     // Post-slicing config-slot resolvers: map a (filament, layer) pair to the index of its
