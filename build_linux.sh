@@ -653,14 +653,14 @@ if [[ -n "${BUILD_IMAGE}" || -n "${BUILD_ORCA}" ]] ; then
     pushd $BUILD_DIR > /dev/null
     build_linux_image="./src/build_linux_image.sh"
     if [[ -e ${build_linux_image} ]] ; then
-        extra_script_args=""
+        extra_script_args=()
         if [[ -n "${BUILD_IMAGE}" ]] ; then
-            extra_script_args="-i"
+            extra_script_args+=("-i")
         fi
         if [[ -n "${SHIP_PRESET_CACHES}" ]] ; then
-            extra_script_args="${extra_script_args} -c"
+            extra_script_args+=("-c")
         fi
-        print_and_run ${build_linux_image} ${extra_script_args} -R "${BUILD_CONFIG}"
+        print_and_run ${build_linux_image} "${extra_script_args[@]}" -R "${BUILD_CONFIG}"
 
         echo "done"
     fi
