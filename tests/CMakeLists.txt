@@ -17,14 +17,24 @@ file(TO_NATIVE_PATH "${TEST_DATA_DIR}" TEST_DATA_DIR)
 set(PROFILES_DIR ${CMAKE_SOURCE_DIR}/resources/profiles)
 file(TO_NATIVE_PATH "${PROFILES_DIR}" PROFILES_DIR)
 
+# Shipped resources, so tests can exercise the real data files (info/material_types.json and friends).
+set(RESOURCES_DIR ${CMAKE_SOURCE_DIR}/resources)
+file(TO_NATIVE_PATH "${RESOURCES_DIR}" RESOURCES_DIR)
+
 include(CTest)
 include(Catch)
 
 set(CATCH_EXTRA_ARGS "" CACHE STRING "Extra arguments for catch2 test suites.") # Unknown if this still works and/or should be replaced with something else.
 
 add_library(test_common INTERFACE)
-target_compile_definitions(test_common INTERFACE TEST_DATA_DIR=R"\(${TEST_DATA_DIR}\)" PROFILES_DIR=R"\(${PROFILES_DIR}\)" CATCH_CONFIG_FAST_COMPILE)
+target_compile_definitions(test_common INTERFACE TEST_DATA_DIR=R"\(${TEST_DATA_DIR}\)" PROFILES_DIR=R"\(${PROFILES_DIR}\)" RESOURCES_DIR=R"\(${RESOURCES_DIR}\)" CATCH_CONFIG_FAST_COMPILE)
 target_include_directories(test_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Startup bootstrap for the test binaries that link libslic3r (see test_slic3r_bootstrap.cpp). Kept out
+# of test_common because the libnest2d tests do not link libslic3r.
+add_library(test_slic3r_bootstrap INTERFACE)
+target_sources(test_slic3r_bootstrap INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/test_slic3r_bootstrap.cpp)
+target_link_libraries(test_slic3r_bootstrap INTERFACE test_common)
 
 if (APPLE)
     target_link_libraries(test_common INTERFACE "-liconv -framework IOKit" "-framework CoreFoundation" -lc++)

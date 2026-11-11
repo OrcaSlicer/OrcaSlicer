@@ -7,7 +7,7 @@ add_executable(${_TEST_NAME}_tests
     filament_group_regression_main.cpp
     )
 
-target_link_libraries(${_TEST_NAME}_tests test_common libslic3r nlohmann_json Catch2::Catch2WithMain)
+target_link_libraries(${_TEST_NAME}_tests test_common test_slic3r_bootstrap libslic3r nlohmann_json Catch2::Catch2WithMain)
 # ${CMAKE_SOURCE_DIR}/deps_src puts <nlohmann/json.hpp> on the include path the same way the
 # libslic3r translation units resolve it (via the admesh/.. system include); nlohmann_json's own
 # interface dir only exposes <json.hpp>, so the source-tree include is required for the <nlohmann/…>
