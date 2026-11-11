@@ -507,3 +507,42 @@ TEST_CASE("Unplaced objects scaled to millimetres still merge on a common base",
         bases.push_back(volume->mesh().transformed_bounding_box(volume->get_matrix()).min.z());
     CHECK_THAT(bases.front(), Catch::Matchers::WithinAbs(bases.back(), 1e-3));
 }
+
+TEST_CASE("Converting a part's units keeps its material", "[Model]")
+{
+    Model model;
+    ModelObject *object = model.add_object();
+    ModelVolume *volume = object->add_volume(make_cube(10, 10, 10), ModelVolumeType::MODEL_PART, false);
+    volume->set_material_id("mat_a");
+
+    ModelObjectPtrs converted;
+    object->convert_units(converted, ConversionType::CONV_FROM_INCH, {});
+
+    REQUIRE(converted.size() == 1);
+    REQUIRE(converted.front()->volumes.size() == 1);
+    CHECK(converted.front()->volumes.front()->material_id() == "mat_a");
+
+    // convert_units() hands its objects to the caller unowned; give them to a model so they are freed.
+    Model owner;
+    owner.objects = std::move(converted);
+}
+
+TEST_CASE("Converting a part's units keeps an id whose material is missing", "[Model]")
+{
+    Model model;
+    ModelObject *object = model.add_object();
+    ModelVolume *volume = object->add_volume(make_cube(10, 10, 10), ModelVolumeType::MODEL_PART, false);
+    volume->set_material_id("mat_a");
+    model.delete_material("mat_a");
+
+    ModelObjectPtrs converted;
+    object->convert_units(converted, ConversionType::CONV_FROM_INCH, {});
+
+    REQUIRE(converted.size() == 1);
+    REQUIRE(converted.front()->volumes.size() == 1);
+    CHECK(converted.front()->volumes.front()->material_id() == "mat_a");
+
+    // convert_units() hands its objects to the caller unowned; give them to a model so they are freed.
+    Model owner;
+    owner.objects = std::move(converted);
+}
