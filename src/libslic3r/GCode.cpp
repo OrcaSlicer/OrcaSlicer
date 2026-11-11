@@ -5981,7 +5981,9 @@ std::string GCode::generate_skirt(const Print &print,
             return !first_layer && entity->role() == erBrim ? fillet_speed : loop_speed;
         };
 
-        // Loop over the skirt loops and extrude
+        // Loop over the skirt loops and extrude. The start point goes on the first full loop, a draft shield brim
+        // loop cut at the bed edge has none.
+        bool start_point_set = false;
         for (size_t i = loops.first; i < loops.second; ++i) {
             if (!first_layer) {
                 if (skirt.entities[i]->role() == erBrim) {
@@ -5991,8 +5993,9 @@ std::string GCode::generate_skirt(const Print &print,
                         ++loop_from_shield;
                     if (loop_from_shield > fillet_loops)
                         continue;
-                } else if (print.m_config.single_loop_draft_shield && i + 1 != loops.second) {
-                    // Single-wall skirt/draft shield above the first layer: only the innermost loop.
+                } else if (print.m_config.single_loop_draft_shield && fillet_loops == 0 && i + 1 != loops.second) {
+                    // Single-wall skirt/draft shield above the first layer: only the innermost loop. The fillet
+                    // layers keep all shield loops, so the fillet stays bonded to the shield.
                     continue;
                 }
             }
@@ -6014,7 +6017,8 @@ std::string GCode::generate_skirt(const Print &print,
             }
 
             //FIXME using the support_speed of the 1st object printed.
-            if (first_layer && i==loops.first) {
+            if (first_layer && !start_point_set) {
+                start_point_set = true;
                 //set skirt start point location
                 const Point desired_start_point = Skirt::find_start_point(loop, skirt_start_angle);
                 gcode += this->extrude_loop(loop, "skirt", speed_for(skirt.entities[i]), {}, &desired_start_point);

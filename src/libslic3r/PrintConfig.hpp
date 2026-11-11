@@ -2030,14 +2030,14 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBools,              slow_down_for_layer_cooling))
     ((ConfigOptionInts,               close_fan_the_first_x_layers))
     ((ConfigOptionEnum<DraftShield>,  draft_shield))
-    ((ConfigOptionFloat,             draft_shield_brim_width))
-    ((ConfigOptionFloat,             draft_shield_fillet_width))
-    ((ConfigOptionInt,               draft_shield_fillet_layers))
-    ((ConfigOptionFloat,             draft_shield_serpentine_depth))
-    ((ConfigOptionFloat,             draft_shield_serpentine_pitch))
-    ((ConfigOptionInt,               draft_shield_serpentine_count))
-    ((ConfigOptionFloat,             draft_shield_speed))
-    ((ConfigOptionFloat,             draft_shield_first_layer_flow_ratio))
+    ((ConfigOptionFloat,              draft_shield_brim_width))
+    ((ConfigOptionFloat,              draft_shield_fillet_width))
+    ((ConfigOptionInt,                draft_shield_fillet_layers))
+    ((ConfigOptionFloat,              draft_shield_serpentine_depth))
+    ((ConfigOptionFloat,              draft_shield_serpentine_pitch))
+    ((ConfigOptionInt,                draft_shield_serpentine_count))
+    ((ConfigOptionFloat,              draft_shield_speed))
+    ((ConfigOptionFloat,              draft_shield_first_layer_flow_ratio))
     ((ConfigOptionFloat,              extruder_clearance_dist_to_rod))//BBS
     ((ConfigOptionFloat,              extruder_clearance_height_to_rod))//BBs
     ((ConfigOptionFloat,              extruder_clearance_height_to_lid))//BBS

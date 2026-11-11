@@ -1836,6 +1836,9 @@ TEST_CASE("Draft shield fillet narrows over the layers above the brim", "[SkirtB
 TEST_CASE("Draft shield brim is cut at the edge of the bed", "[SkirtBrim][DraftShield]")
 {
     // 40 x 40 mm bed, cube at 10..30 mm. The shield (3 mm gap, 2 loops) fits on the bed, the 8 mm brim does not.
+    // The bed is plate-local, so the cut must also work on a plate away from the origin.
+    const Vec3d        plate_origin = GENERATE(Vec3d::Zero().eval(), Vec3d(100., 0., 0.));
+    CAPTURE(plate_origin.x());
     constexpr double   bed_size = 40.;
     DynamicPrintConfig config   = draft_shield_config(8.);
     config.set_deserialize_strict({
@@ -1849,7 +1852,8 @@ TEST_CASE("Draft shield brim is cut at the edge of the bed", "[SkirtBrim][DraftS
     // Center the cube on the bed instead of relying on the arrangement.
     ModelInstance *instance = model.objects.front()->instances.front();
     const Vec3d    center   = model.objects.front()->instance_bounding_box(0).center();
-    instance->set_offset(instance->get_offset() + Vec3d(bed_size / 2. - center.x(), bed_size / 2. - center.y(), 0.));
+    instance->set_offset(instance->get_offset() + plate_origin + Vec3d(bed_size / 2. - center.x(), bed_size / 2. - center.y(), 0.));
+    print.set_plate_origin(plate_origin);
     print.apply(model, config);
     const std::string gcode_out = gcode(print);
 
@@ -1877,6 +1881,37 @@ TEST_CASE("Draft shield brim is cut at the edge of the bed", "[SkirtBrim][DraftS
     check_narrowing_fillet(brim_length_per_layer(gcode_out), 3);
     // The shield walls are complete: two closed loops more than 3 mm around the 20 mm cube.
     CHECK(skirt_length_first_layer > 2. * (4. * 20. + 2. * PI * 3.));
+}
+
+TEST_CASE("Single-wall draft shield keeps all walls on the fillet layers", "[SkirtBrim][DraftShield]")
+{
+    // 3 shield walls, a 1.5 mm fillet over 3 layers, one wall above the fillet layers.
+    DynamicPrintConfig config = draft_shield_config(4.);
+    config.set_deserialize_strict({
+        { "skirt_loops",                3 },
+        { "single_loop_draft_shield",   true },
+        { "draft_shield_fillet_width",  1.5 },
+        { "draft_shield_fillet_layers", 3 },
+    });
+    std::map<double, double> skirt_length; // per print_z
+    for_each_extrusion(slice({ cube(20) }, config), [&](const std::string &role, const GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (role == skirt_role)
+            skirt_length[self.z()] += line.dist_XY(self);
+    });
+
+    REQUIRE(skirt_length.size() > 6);
+    const double first_layer = skirt_length.begin()->second;
+    size_t       layer       = 0;
+    for (const auto &[z, length] : skirt_length) {
+        CAPTURE(layer, z);
+        if (layer <= 3)
+            // The fillet stays bonded to the shield: all three walls, like the first layer.
+            CHECK_THAT(length, Catch::Matchers::WithinRel(first_layer, 0.01));
+        else
+            // One wall above the fillet layers.
+            CHECK(length < 0.4 * first_layer);
+        ++layer;
+    }
 }
 
 TEST_CASE("Draft shield speed applies above the fillet layers", "[SkirtBrim][DraftShield]")

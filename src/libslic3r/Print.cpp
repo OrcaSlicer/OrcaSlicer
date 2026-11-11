@@ -4379,9 +4379,15 @@ void Print::_make_skirt()
     // to keep the extrusions on the bed.
     ExPolygons draft_shield_brim_bed;
     if (draft_shield_brim_loops > 0) {
-        Polygon bed;
-        bed.points = get_bed_shape(m_config, true);
-        draft_shield_brim_bed = offset_ex(diff_ex(Polygons{ bed }, get_bed_excluded_area(m_config)), -0.5f * float(flow.scaled_width()));
+        // The bed shape is plate-local, the skirt loops include the plate origin.
+        const Point plate_shift(scale_(m_origin.x()), scale_(m_origin.y()));
+        Polygon     bed;
+        bed.points        = get_bed_shape(m_config, true);
+        Polygons excluded = get_bed_excluded_area(m_config);
+        bed.translate(plate_shift);
+        for (Polygon &area : excluded)
+            area.translate(plate_shift);
+        draft_shield_brim_bed = offset_ex(diff_ex(Polygons{ bed }, excluded), -0.5f * float(flow.scaled_width()));
     }
 
     std::vector<size_t> extruders;
@@ -4510,7 +4516,8 @@ void Print::_make_skirt()
         }
 
         if (collect_skirt_hull) {
-            Polygons skirt_hull = loops_at(distance + 0.5f * float(scale_(spacing)));
+            const float hull_distance = distance + 0.5f * float(scale_(spacing));
+            Polygons    skirt_hull    = serpentine_base.empty() ? offset(hull, hull_distance, jtRound, float(scale_(0.1))) : loops_at(hull_distance);
             if (!draft_shield_brim_bed.empty())
                 // Orca: the draft shield brim stops at the bed edge, so does the occupied area.
                 skirt_hull = intersection(skirt_hull, offset(draft_shield_brim_bed, 0.5f * float(flow.scaled_width())));
@@ -6184,8 +6191,12 @@ std::tuple<float, float> Print::object_skirt_offset(double margin_height) const
 
     if (is_all_objects_are_short())
         object_skirt_offset = config().skirt_distance + object_skirt_witdh;
-    else if (config().draft_shield == dsEnabled || config().skirt_height * max_layer_height > config().nozzle_height - margin_height)
+    else if (config().draft_shield == dsEnabled || config().skirt_height * max_layer_height > config().nozzle_height - margin_height) {
         object_skirt_offset = config().skirt_distance + line_width;
+        // Orca: the draft shield serpentines are as tall as the shield.
+        if (config().draft_shield == dsEnabled && config().draft_shield_serpentine_depth.value > 0.)
+            object_skirt_offset += float(std::max(config().draft_shield_serpentine_depth.value, 0.5 * config().draft_shield_serpentine_pitch.value));
+    }
     else if (config().skirt_distance + object_skirt_witdh > config().extruder_clearance_radius/2)
         object_skirt_offset = (config().skirt_distance + object_skirt_witdh - config().extruder_clearance_radius/2);
     else
