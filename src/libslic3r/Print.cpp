@@ -909,7 +909,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         // Place of the instance in print.model()'s object and instance lists. Copies of one object get
         // one PrintObject per distinct transformation, so print.objects() does not list them in order.
         std::pair<int, int>  model_position;
-        double               height; // top above the bed, raft included (object_top below)
+        double               height; // top above the bed, raft included (PrintObject::print_z_max)
         // Whether the instance reaches above extruder_clearance_height_to_rod, and the travel-axis extent of it
         // the rod can hit while a later instance prints (see above_rod_range).
         bool                 has_above_rod = false;
@@ -930,17 +930,9 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
     }
     const bool skirt_reaches_rod = print.has_infinite_skirt() ||
         (print.config().skirt_loops > 0 && print.config().skirt_height * max_layer_height > rod_height);
-    // Top of an instance above the bed, scaled. object_print_z_max includes the raft and the Z shrinkage
-    // compensation, like the printable-height check in validate(). On a belt printer it is the height in the
-    // tilted slicing frame, so there the model's own top is used, as that check does; a raft is refused there.
-    const bool belt_printer = print.config().belt_printer.value;
-    auto object_top = [belt_printer](const PrintInstance &instance) -> double {
-        return belt_printer ? instance.print_object->max_z()
-                            : scale_(instance.print_object->slicing_parameters().object_print_z_max);
-    };
-    auto above_rod_range = [rod_height, sweep, &object_top](const PrintInstance &instance, coord_t &range_min, coord_t &range_max) -> bool {
+    auto above_rod_range = [rod_height, sweep](const PrintInstance &instance, coord_t &range_min, coord_t &range_max) -> bool {
         // Skip the mesh walk for the common case of an object whose top, raft included, doesn't reach the rod.
-        if (object_top(instance) <= scale_(rod_height))
+        if (instance.print_object->print_z_max() <= scale_(rod_height))
             return false;
         // Mesh Z this far below the rod prints above it once the raft lifts the object.
         const double rod_z = rod_height - instance.print_object->slicing_parameters().object_print_z_min;
@@ -1076,7 +1068,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     }
                 }
                 struct print_instance_info print_info {&instance, convex_hull.bounding_box(), convex_hull};
-                print_info.height = object_top(instance);
+                print_info.height = instance.print_object->print_z_max();
                 print_info.model_position = model_position_of(print.model(), instance.model_instance);
                 print_info.has_above_rod = above_rod_range(instance, print_info.rod_min, print_info.rod_max);
                 const BoundingBox footprint = print_info.bounding_box.inflated(-scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset));
@@ -1529,7 +1521,7 @@ StringObjectException Print::compacted_wipe_tower_clearance_valid(const Print &p
     Polygons              offenders;
     bool                  body_tier_used = false;
     for (const PrintObject *object : print.objects()) {
-        const double object_top = unscaled<double>(object->max_z());
+        const double object_top = unscaled<double>(object->print_z_max());
         for (const PrintInstance &instance : object->instances()) {
             const Polygon inst_hull = compacted_tower_print_instance_hull(*object, instance);
             if (inst_hull.points.empty())
@@ -1643,7 +1635,7 @@ void Print::validate_compacted_wipe_tower_clearance() const
         return;
 
     for (const PrintObject *object : m_objects) {
-        const double object_top = unscaled<double>(object->max_z());
+        const double object_top = unscaled<double>(object->print_z_max());
         for (const PrintInstance &instance : object->instances()) {
             const Polygon inst_hull = compacted_tower_print_instance_hull(*object, instance);
             if (inst_hull.points.empty())
