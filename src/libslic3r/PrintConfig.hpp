@@ -934,6 +934,11 @@ public:
     // empty options, so a config that has none is unchanged.
     void                size_empty_expansion_inputs();
 
+    // Give the flush matrix and the flush multiplier the shape the slice reads them with: one filaments x filaments
+    // block per nozzle and one multiplier per nozzle. A single-filament config is left alone unless the matrix has
+    // fewer cells than nozzles, since it purges nothing. Returns the keys it rewrote.
+    t_config_option_keys size_flush_volumes_matrix();
+
     // Orca: load-time subset of enforce_cardinality - sizes only the plain per-filament options (their count is
     // known before variant expansion). Called from Preset::normalize at preset load.
     void                enforce_per_filament_cardinality();

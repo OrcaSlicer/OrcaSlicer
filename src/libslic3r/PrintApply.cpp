@@ -1435,6 +1435,14 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // The expansion below reads these through get_at(), so none may be empty.
     new_full_config.size_empty_expansion_inputs();
 
+    // The readers cut one filaments x filaments block per nozzle out of the flush matrix without checking its shape.
+    if (const t_config_option_keys repaired = new_full_config.size_flush_volumes_matrix(); !repaired.empty()) {
+        std::string keys;
+        for (const std::string &key : repaired)
+            keys += (keys.empty() ? "" : ", ") + key;
+        BOOST_LOG_TRIVIAL(warning) << "The flush volumes did not match the printer's nozzles and the project's filaments; resized: " << keys;
+    }
+
     different_extruder = new_full_config.support_different_extruders(extruder_count);
     extruder_volume_type_count = new_full_config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
     if (!extruder_applied) {

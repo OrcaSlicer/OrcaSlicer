@@ -241,3 +241,92 @@ TEST_CASE("An empty filament_self_index still gives each filament the values of 
     CHECK_THAT(flow_ratio->values[0], Catch::Matchers::WithinAbs(0.90, 1e-9));
     CHECK_THAT(flow_ratio->values[1], Catch::Matchers::WithinAbs(0.95, 1e-9));
 }
+
+namespace {
+
+// Two 20 mm cubes on two filaments of one nozzle, with a prime tower between the filament changes.
+DynamicPrintConfig tower_config()
+{
+    return multifilament_config(2, {
+        { "enable_prime_tower", "1"        },
+        { "wipe_tower_x",       "50"       },
+        { "wipe_tower_y",       "50"       },
+        { "layer_change_gcode", "G92 E0\n" } });
+}
+
+const std::vector<std::vector<ConfigBase::SetDeserializeItem>> two_cube_extruders{ { { "extruder", "1" } }, { { "extruder", "2" } } };
+
+} // namespace
+
+TEST_CASE("An empty flush_multiplier is sized at apply so the export does not divide by its length", "[Cardinality]")
+{
+    DynamicPrintConfig config = tower_config();
+    config.option<ConfigOptionFloats>("flush_multiplier", true)->values.clear();
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{ cube(20), cube(20) }, print, model, config, &two_cube_extruders);
+    const std::string gcode_text = gcode(print);
+
+    CHECK_FALSE(gcode_text.empty());
+    CHECK(print.full_print_config().option<ConfigOptionFloats>("flush_multiplier")->values.size() == 1);
+}
+
+TEST_CASE("An empty flush_volumes_matrix is sized at apply so the wipe tower slices", "[Cardinality]")
+{
+    DynamicPrintConfig config = tower_config();
+    config.option<ConfigOptionFloats>("flush_volumes_matrix", true)->values.clear();
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{ cube(20), cube(20) }, print, model, config, &two_cube_extruders);
+    REQUIRE(print.has_wipe_tower());
+    const std::string gcode_text = gcode(print);
+
+    CHECK_FALSE(gcode_text.empty());
+    CHECK(print.full_print_config().option<ConfigOptionFloats>("flush_volumes_matrix")->values.size() == 4);
+}
+
+TEST_CASE("Print::apply sizes the flush matrix to the nozzles and filaments the config declares", "[Cardinality]")
+{
+    // Two nozzles and three filaments need three 3 x 3 blocks' worth of cells per nozzle; the schema default has 16.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_num_extruders(2);
+    config.set_deserialize_strict({ { "nozzle_diameter", "0.4,0.4" }, { "filament_diameter", "1.75,1.75,1.75" } });
+    REQUIRE(config.option<ConfigOptionFloats>("flush_volumes_matrix")->values.size() == 16);
+
+    SECTION("filament_colour agrees with filament_diameter") {
+        config.set_deserialize_strict({ { "filament_colour", "#FF0000;#00FF00;#0000FF" } });
+    }
+    SECTION("filament_colour is shorter than filament_diameter") {
+        config.set_deserialize_strict({ { "filament_colour", "#FF0000;#00FF00" } });
+    }
+
+    Model model;
+    ModelObject *object = model.add_object();
+    object->add_volume(cube(20));
+    object->add_instance();
+    Print print;
+    print.apply(model, config);
+
+    const DynamicPrintConfig &applied = print.full_print_config();
+    CHECK(applied.option<ConfigOptionFloats>("flush_volumes_matrix")->values.size() == 18);
+    CHECK(applied.option<ConfigOptionFloats>("flush_multiplier")->values.size() == 2);
+    CHECK(applied.option<ConfigOptionStrings>("filament_colour")->values.size() == 3);
+}
+
+TEST_CASE("Print::apply keeps the flush volumes of a single-filament config as they were", "[Cardinality]")
+{
+    // A command-line slice of one filament carries the 16-cell schema default; it purges nothing and stays as is.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    REQUIRE(config.option<ConfigOptionFloats>("flush_volumes_matrix")->values.size() == 16);
+
+    Model model;
+    ModelObject *object = model.add_object();
+    object->add_volume(cube(20));
+    object->add_instance();
+    Print print;
+    print.apply(model, config);
+
+    CHECK(print.full_print_config().option<ConfigOptionFloats>("flush_volumes_matrix")->values.size() == 16);
+}

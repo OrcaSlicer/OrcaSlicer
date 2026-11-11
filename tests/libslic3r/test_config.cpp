@@ -1965,6 +1965,21 @@ TEST_CASE("resize_flush_volumes_matrix keeps the pairs and nozzles the old layou
         resize_flush_volumes_matrix(config, 2, 1, 1);
         CHECK(matrix() == std::vector<double>{ 0, 13, 31, 0 });
     }
+    SECTION("a matrix that is not one block per multiplier entry is read as one block for the first nozzle") {
+        // Sixteen cells for four filaments, with two multiplier entries: not two 2 x 2 blocks.
+        std::vector<double> four(16);
+        for (size_t i = 0; i < four.size(); ++i)
+            four[i] = i % 5 == 0 ? 0. : 100. + static_cast<double>(i);
+        config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = four;
+        config.option<ConfigOptionFloats>("flush_multiplier")->values     = { 0.3, 0.3 };
+
+        resize_flush_volumes_matrix(config, 4, 2);
+
+        const std::vector<double> resized = matrix();
+        REQUIRE(resized.size() == 32);
+        CHECK(std::vector<double>(resized.begin(), resized.begin() + 16) == four);
+        CHECK(config.option<ConfigOptionFloats>("flush_multiplier")->values == std::vector<double>{ 0.3, 0.3 });
+    }
     SECTION("a matrix written for more filaments than the project has is cut to the pairs it keeps") {
         config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = { 0, 123, 999, 456, 0, 999, 999, 999, 0 };
         resize_flush_volumes_matrix(config, 2, 1);

@@ -10,6 +10,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace Slic3r {
@@ -327,6 +328,32 @@ void DynamicPrintConfig::size_empty_expansion_inputs()
          { &printer_options_with_variant_1, &printer_options_with_variant_2, &print_options_with_variant })
         for (const std::string &key : *keys)
             size_if_empty(key, expected_size(cardinality_of(key), n));
+}
+
+t_config_option_keys DynamicPrintConfig::size_flush_volumes_matrix()
+{
+    const auto *matrix = this->option<ConfigOptionFloats>("flush_volumes_matrix");
+    const auto *mult   = this->option<ConfigOptionFloats>("flush_multiplier");
+    if (matrix == nullptr || mult == nullptr)
+        return {};
+
+    const AxisCounts n = axis_counts(*this);
+    const bool misshapen = n.filaments > 1 ? matrix->size() != n.filaments * n.filaments * n.extruders || mult->size() != n.extruders
+                                           : matrix->size() < n.extruders;
+    if (!misshapen)
+        return {};
+
+    const auto before = std::make_tuple(matrix->values, mult->values, this->option<ConfigOptionFloats>("flush_volumes_vector", true)->values);
+    resize_flush_volumes_matrix(*this, n.filaments, n.extruders);
+
+    t_config_option_keys repaired;
+    if (this->option<ConfigOptionFloats>("flush_volumes_matrix")->values != std::get<0>(before))
+        repaired.emplace_back("flush_volumes_matrix");
+    if (this->option<ConfigOptionFloats>("flush_multiplier")->values != std::get<1>(before))
+        repaired.emplace_back("flush_multiplier");
+    if (this->option<ConfigOptionFloats>("flush_volumes_vector")->values != std::get<2>(before))
+        repaired.emplace_back("flush_volumes_vector");
+    return repaired;
 }
 
 void DynamicPrintConfig::enforce_per_filament_cardinality()

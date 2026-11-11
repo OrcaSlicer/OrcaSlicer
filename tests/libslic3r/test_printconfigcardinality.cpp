@@ -9,6 +9,7 @@
 ///|/
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <cstdlib>
 #include <fstream>
 #include <ios>
@@ -385,6 +386,111 @@ TEST_CASE("resize_to_cardinality sizes a single option through the public per-ke
 
     CHECK(vsize(cfg, "max_layer_height")   == 2);
     CHECK(vsize(cfg, "filament_printable") == 2);
+}
+
+namespace {
+
+std::vector<double> flush_matrix(const DynamicPrintConfig &c) { return c.option<ConfigOptionFloats>("flush_volumes_matrix")->values; }
+std::vector<double> flush_multiplier(const DynamicPrintConfig &c) { return c.option<ConfigOptionFloats>("flush_multiplier")->values; }
+
+} // namespace
+
+TEST_CASE("size_flush_volumes_matrix gives the matrix one block per nozzle and the multiplier one entry per nozzle", "[Cardinality]")
+{
+    DynamicPrintConfig cfg = DynamicPrintConfig::full_print_config();
+
+    SECTION("two nozzles and three filaments on the schema default matrix") {
+        cfg.set_deserialize_strict({ { "nozzle_diameter", "0.4,0.4" }, { "filament_diameter", "1.75,1.75,1.75" } });
+        REQUIRE(flush_matrix(cfg).size() == 16);
+
+        const t_config_option_keys repaired = cfg.size_flush_volumes_matrix();
+
+        CHECK(flush_matrix(cfg).size() == 18);
+        CHECK(flush_multiplier(cfg).size() == 2);
+        CHECK_FALSE(repaired.empty());
+    }
+    SECTION("an empty matrix and an empty multiplier") {
+        cfg.set_deserialize_strict({ { "filament_diameter", "1.75,1.75" } });
+        cfg.option<ConfigOptionFloats>("flush_volumes_matrix")->values.clear();
+        cfg.option<ConfigOptionFloats>("flush_multiplier")->values.clear();
+
+        cfg.size_flush_volumes_matrix();
+
+        CHECK(flush_matrix(cfg).size() == 4);
+        CHECK(flush_multiplier(cfg) == std::vector<double>{ 1. });
+    }
+    SECTION("a multiplier list of the wrong length") {
+        cfg.set_deserialize_strict({ { "nozzle_diameter", "0.4,0.4" }, { "filament_diameter", "1.75,1.75" } });
+        cfg.option<ConfigOptionFloats>("flush_volumes_matrix")->values = { 0, 11, 12, 0, 0, 21, 22, 0 };
+        cfg.option<ConfigOptionFloats>("flush_multiplier")->values     = { 0.5, 0.5, 0.5 };
+
+        cfg.size_flush_volumes_matrix();
+
+        CHECK(flush_matrix(cfg).size() == 8);
+        CHECK(flush_multiplier(cfg).size() == 2);
+    }
+    SECTION("the filaments are counted by filament_diameter, not filament_colour") {
+        cfg.set_deserialize_strict({ { "nozzle_diameter", "0.4,0.4" }, { "filament_diameter", "1.75,1.75,1.75" },
+                                     { "filament_colour", "#FF0000;#00FF00" } });
+
+        cfg.size_flush_volumes_matrix();
+
+        CHECK(flush_matrix(cfg).size() == 18);
+    }
+}
+
+TEST_CASE("size_flush_volumes_matrix leaves a config whose flush volumes already fit unchanged", "[Cardinality]")
+{
+    DynamicPrintConfig cfg = DynamicPrintConfig::full_print_config();
+
+    SECTION("a multi-nozzle config sized per nozzle") {
+        cfg.set_deserialize_strict({ { "nozzle_diameter", "0.4,0.4" }, { "filament_diameter", "1.75,1.75" } });
+        cfg.option<ConfigOptionFloats>("flush_volumes_matrix")->values = { 0, 11, 12, 0, 0, 21, 22, 0 };
+        cfg.option<ConfigOptionFloats>("flush_multiplier")->values     = { 0.3, 0.5 };
+    }
+    SECTION("one filament on the 16-cell schema default") {
+        cfg.set_deserialize_strict({ { "filament_diameter", "1.75" } });
+        REQUIRE(flush_matrix(cfg).size() == 16);
+    }
+    SECTION("one filament and two nozzles on the 16-cell schema default with one multiplier entry") {
+        cfg.set_deserialize_strict({ { "nozzle_diameter", "0.4,0.4" }, { "filament_diameter", "1.75" } });
+        cfg.option<ConfigOptionFloats>("flush_multiplier")->values = { 1. };
+        REQUIRE(flush_matrix(cfg).size() == 16);
+    }
+    SECTION("one filament and one multiplier entry on a single cell") {
+        cfg.set_deserialize_strict({ { "filament_diameter", "1.75" } });
+        cfg.option<ConfigOptionFloats>("flush_volumes_matrix")->values = { 0 };
+    }
+
+    const DynamicPrintConfig before = cfg;
+    CHECK(cfg.size_flush_volumes_matrix().empty());
+    CHECK(cfg == before);
+}
+
+TEST_CASE("size_flush_volumes_matrix gives a single-filament config at least one cell per nozzle", "[Cardinality]")
+{
+    DynamicPrintConfig cfg = DynamicPrintConfig::full_print_config();
+    cfg.set_deserialize_strict({ { "nozzle_diameter", "0.4,0.4" }, { "filament_diameter", "1.75" } });
+    cfg.option<ConfigOptionFloats>("flush_volumes_matrix")->values = { 0 };
+
+    cfg.size_flush_volumes_matrix();
+
+    CHECK(flush_matrix(cfg).size() == 2);
+    CHECK(flush_multiplier(cfg).size() == 2);
+}
+
+TEST_CASE("size_flush_volumes_matrix leaves flush_multiplier_fast as it was", "[Cardinality]")
+{
+    DynamicPrintConfig cfg = DynamicPrintConfig::full_print_config();
+    cfg.set_deserialize_strict({ { "nozzle_diameter", "0.4,0.4" }, { "filament_diameter", "1.75,1.75,1.75" } });
+    cfg.option<ConfigOptionFloats>("flush_multiplier_fast", true)->values = { 0.7 };
+    const std::vector<double> fast_before = cfg.option<ConfigOptionFloats>("flush_multiplier_fast")->values;
+
+    const t_config_option_keys repaired = cfg.size_flush_volumes_matrix();
+
+    REQUIRE_FALSE(repaired.empty());
+    CHECK(cfg.option<ConfigOptionFloats>("flush_multiplier_fast")->values == fast_before);
+    CHECK(std::find(repaired.begin(), repaired.end(), "flush_multiplier_fast") == repaired.end());
 }
 
 // ============================================================================

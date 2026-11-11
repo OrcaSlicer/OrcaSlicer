@@ -11356,11 +11356,16 @@ void resize_flush_volumes_matrix(DynamicPrintConfig &config, size_t num_filament
     if (to_delete_filament_id == size_t(-1))
         to_delete_filament_id = num_filaments;
 
-    // The old layout is read off the matrix itself: one block per nozzle, each old_filaments^2 cells.
+    // The old layout is read off the matrix itself: one block per nozzle, each old_filaments^2 cells. A matrix
+    // that is not that shape for the multiplier count has no per-nozzle blocks to read, so it is one block.
     const std::vector<double> old_matrix   = config.option<ConfigOptionFloats>("flush_volumes_matrix", true)->values;
     std::vector<double>      &multipliers  = config.option<ConfigOptionFloats>("flush_multiplier", true)->values;
-    const size_t old_nozzle_nums           = std::max<size_t>(multipliers.size(), 1);
-    const size_t old_number_of_filaments   = size_t(std::sqrt(double(old_matrix.size()) / double(old_nozzle_nums)) + EPSILON);
+    size_t old_nozzle_nums                 = std::max<size_t>(multipliers.size(), 1);
+    size_t old_number_of_filaments         = size_t(std::sqrt(double(old_matrix.size()) / double(old_nozzle_nums)) + EPSILON);
+    if (old_number_of_filaments * old_number_of_filaments * old_nozzle_nums != old_matrix.size()) {
+        old_nozzle_nums         = 1;
+        old_number_of_filaments = static_cast<size_t>(std::sqrt(static_cast<double>(old_matrix.size())) + EPSILON);
+    }
     if (multipliers.size() != nozzle_nums)
         multipliers.resize(nozzle_nums, 1.);
 
