@@ -6771,7 +6771,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("draft_shield_brim_width", coFloat);
     def->label = L("Draft shield brim width");
     def->tooltip = L("Width of a brim printed on the first layer around the outside of the draft shield. "
-                     "It keeps the draft shield from warping and lifting off the bed with materials such as ABS or ASA, "
+                     "It keeps the draft shield from warping and lifting off the bed with materials such as ABS, "
                      "so the shield keeps protecting the object. The brim is cut at the edge of the bed.\n"
                      "Only used when the draft shield is enabled. Set to 0 to disable.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
@@ -6804,7 +6804,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Draft shield serpentine depth");
     def->tooltip = L("How far outward serpentines in the long sides of the draft shield reach, next to its sharp corners. "
                      "A serpentine of U-turns works as a soft expansion joint: a shrinking shield bends its legs instead of "
-                     "pulling its corners off the bed, which helps with warping materials such as ABS or ASA. The shield never "
+                     "pulling its corners off the bed, which helps with warping materials such as ABS. The shield never "
                      "gets closer to the object. At least half the serpentine pitch is used.\n"
                      "Set to 0 to disable.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation

@@ -4191,7 +4191,7 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
 }
 
 // Orca: outward serpentines in a convex draft shield loop next to its sharp corners. A long shield side shrinks
-// (ABS/ASA) and pulls the corners at its ends off the bed. A serpentine of U-turns next to the corner acts as a
+// (ABS) and pulls the corners at its ends off the bed. A serpentine of U-turns next to the corner acts as a
 // soft expansion joint: its legs stand across the side and bend instead of passing the pull on.
 // Long sides are straight edges of at least a third of the longest one; short end sides carry little stress and
 // get no serpentines. A corner is everything between two consecutive long sides, short sides and rounded ends
