@@ -5128,7 +5128,7 @@ void PrintObject::discover_sub_top_surfaces()
 
     // Create a cache for additional solid surfaces.
     const size_t num_to_process = m_layers.size() - 1;
-    typedef std::pair<LayerRegion*, Surfaces> SurfacesCacheRecord;
+    typedef std::pair<LayerRegion*, SurfaceCollection> SurfacesCacheRecord;
     std::vector<std::vector<SurfacesCacheRecord>> cache_surfaces(num_to_process);
 
     auto process_layer = [this](size_t idx_layer, std::vector<SurfacesCacheRecord>& cache_record) {
@@ -5261,8 +5261,13 @@ void PrintObject::discover_sub_top_surfaces()
     for (auto& cache : cache_surfaces) {
         if (!cache.size())
             continue;
-        for (auto& record : cache)
-            surfaces_append(record.first->fill_surfaces.surfaces, record.second);
+        for (auto& record : cache) {
+            ExPolygons crop = to_expolygons(record.second.filter_by_types({stInternalSolid, stInternalBridge}));
+            ExPolygons internal = to_expolygons(record.first->fill_surfaces.filter_by_type(stInternal));
+            record.first->fill_surfaces.remove_type(stInternal);
+            surfaces_append(record.first->fill_surfaces.surfaces, diff_ex(internal, crop, ApplySafetyOffset::Yes), stInternal);
+            surfaces_append(record.first->fill_surfaces.surfaces, record.second.surfaces);
+        }
     }
 }
 
