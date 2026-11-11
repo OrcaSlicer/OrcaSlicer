@@ -82,7 +82,7 @@ struct BBLocalMachine
     std::string dev_ip;
     std::string dev_id; /* serial number */
     std::string printer_type; /* model_id */
-    std::string printer_agent_id; /* id of the IPrinterAgent that discovered/bound this device, e.g. "bbl"; empty for entries persisted before this field existed */
+    std::string printer_agent_id; /* id of the IPrinterAgent that discovered/bound this device, e.g. "bbl"; empty for non-Bambu entries persisted before this field existed */
     // Access code, scoped to printer_agent_id above - so a code saved while bound under one
     // printer agent isn't treated as valid for a different, independent agent talking to the
     // same physical dev_id. Empty for entries persisted before this field existed; those fall
@@ -90,11 +90,14 @@ struct BBLocalMachine
     // since BBL was the only agent when they were saved) - see
     // get_access_code_with_legacy_fallback() in DevManager.cpp.
     std::string access_code;
+    // Path of a CA certificate the user chose in the connect dialog, for a printer behind a proxy
+    // with its own CA. Kept per device, never taken from a printer preset.
+    std::string ca_file;
 
     bool operator==(const BBLocalMachine& other) const
     {
         return dev_name == other.dev_name && dev_ip == other.dev_ip && dev_id == other.dev_id && printer_type == other.printer_type &&
-               printer_agent_id == other.printer_agent_id && access_code == other.access_code;
+               printer_agent_id == other.printer_agent_id && access_code == other.access_code && ca_file == other.ca_file;
     }
     bool operator!=(const BBLocalMachine& other) const { return !operator==(other); }
 };

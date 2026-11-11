@@ -547,6 +547,10 @@ class GLCanvas3D
         void render_details(GLCanvas3D& canvas);
         // Whether the mouse is over the details.
         bool details_hovered() const;
+        // Whether the details cover a point, also when ImGui has not seen the mouse move there.
+        bool details_contain(const Vec2d& point) const;
+        // Whether a button held down was pressed on the details, off their close button.
+        bool details_pressed() const;
         // Whether there were details to hide.
         bool hide_details(GLCanvas3D& canvas);
     };
@@ -786,6 +790,12 @@ private:
     ECursorType m_cursor_type;
     GLSelectionRectangle m_rectangle_selection;
     bool m_navigator_dragging{ false };
+    // whether a click on the navigator is still turning the camera, over the frames that follow it
+    bool m_navigator_animating{ false };
+    // until when a wheel step keeps the preview's reduced set drawn
+    std::chrono::time_point<std::chrono::steady_clock> m_preview_interaction_until{};
+    // whether the frame that restores the toolpaths once that time is up is still owed
+    bool m_preview_settle_pending{ false };
 
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;
@@ -1397,6 +1407,8 @@ public:
     void msw_rescale() { m_gcode_viewer.invalidate_legend(); }
 
     void request_extra_frame() { m_extra_frame_requested = true; }
+    // whether the user is holding the camera, the navigator, a gizmo, the rectangle selection or a preview slider
+    bool is_user_interacting() const;
 
     void schedule_extra_frame(int milliseconds);
 
@@ -1580,6 +1592,9 @@ private:
     // Realistic view: binds, or unbinds, the shadow map the toolpaths read on texture unit 4. False without a map.
     bool _bind_gcode_shadow_map(bool bind) const;
     void _render_gcode_overlay(int canvas_width, int canvas_height);
+    // decides whether the preview draws its reduced set this frame and returns whether what the scene
+    // pass draws changed; runs before the cached scene is consulted
+    bool _update_preview_interaction();
     //BBS: render a plane for assemble
     void _render_plane() const;
     void _render_selection();
