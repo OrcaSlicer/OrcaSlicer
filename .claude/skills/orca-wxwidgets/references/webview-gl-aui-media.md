@@ -585,15 +585,15 @@ sets the DMABUF workarounds and then branches on `GDK_BACKEND`:
   opt-in: when GTK will connect to Wayland and the app is not in the Flatpak, it sets
   `WEBKIT_DMABUF_RENDERER_FORCE_SHM=1` non-replacing on WebKitGTK >= 2.44, and
   `WEBKIT_DISABLE_COMPOSITING_MODE=1` on 2.42 and 2.43, which have the DMABUF renderer but ignore
-  FORCE_SHM. Ubuntu's WebKitGTK 2.52 on Intel GPUs froze the window on the hardware path and left the
-  3D view drawn over other pages; affected builds can't be told apart, so every system WebKitGTK avoids
-  that path and only the Flatpak's runtime WebKitGTK keeps it. Both helpers named here are in
-  `libslic3r/Utils.hpp`. `wayland_socket_available()` follows `wl_display_connect(NULL)`, the
-  connection GTK tries before X11: `WAYLAND_SOCKET` when set (it must name an open fd), otherwise the
-  `WAYLAND_DISPLAY` socket (`wayland-0` when unset) under `XDG_RUNTIME_DIR` unless the name is
-  absolute. `XDG_SESSION_TYPE` is not used because an X11 client can inherit it, and
-  `is_running_in_flatpak()` checks only `/.flatpak-info` because a host process started from a Flatpak
-  can inherit `FLATPAK_ID`.
+  FORCE_SHM. Ubuntu's WebKitGTK 2.52 on Intel GPUs and Debian's 2.54 on AMD froze the window on the
+  hardware path and left the 3D view drawn over other pages; affected builds can't be told apart, so
+  every system WebKitGTK avoids that path and only the Flatpak's runtime WebKitGTK keeps it. Both
+  helpers named here are in `libslic3r/Utils.hpp`. `wayland_socket_available()` follows
+  `wl_display_connect(NULL)`, the connection GTK tries before X11: `WAYLAND_SOCKET` when set (it must
+  name an open fd), otherwise the `WAYLAND_DISPLAY` socket (`wayland-0` when unset) under
+  `XDG_RUNTIME_DIR` unless the name is absolute. `XDG_SESSION_TYPE` is not used because an X11 client
+  can inherit it, and `is_running_in_flatpak()` checks only `/.flatpak-info` because a host process
+  started from a Flatpak can inherit `FLATPAK_ID`.
 - **Default path** (`GDK_BACKEND` unset or not starting with `x11`): if wx lacks EGL (`!wxHAS_EGL`) and
   `wayland_socket_available()`, it forces `GDK_BACKEND=x11`, and in that same branch it sets
   `WEBKIT_DISABLE_COMPOSITING_MODE=1` non-replacing when the linked WebKitGTK predates 2.42

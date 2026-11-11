@@ -1249,9 +1249,9 @@ int CLI::run(int argc, char **argv)
         constexpr bool wx_has_egl = false;
         #endif
 
-        // Ubuntu's WebKitGTK 2.52 on Intel GPUs freezes the window under Wayland on its hardware DMABUF
-        // path; affected builds can't be told apart, so the default path avoids it for every WebKitGTK outside
-        // the Flatpak.
+        // System WebKitGTK builds such as Ubuntu's 2.52 on Intel and Debian's 2.54 on AMD freeze the window under
+        // Wayland on their hardware DMABUF path; affected builds can't be told apart, so the default path avoids it
+        // for every WebKitGTK outside the Flatpak.
         const bool system_webkit_on_wayland = wx_has_egl && !x11_opt_in && wayland_socket_available() &&
                                               !is_running_in_flatpak();
 
