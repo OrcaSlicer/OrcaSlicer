@@ -10,8 +10,8 @@
 namespace Slic3r::GUI {
 
 // Pictures for the tooltips of the printer settings, drawn by scripts/gen_gizmo_tips.py into
-// resources/images/settings/printer (scripts/gizmo_tips/settings_printer.py and settings_printer_more.py).
-// See SettingTips.hpp.
+// resources/images/settings/printer (scripts/gizmo_tips/settings_printer.py, settings_printer_more.py and
+// settings_printer_anim.py). See SettingTips.hpp.
 void add_printer_setting_tips(SettingTips &tips)
 {
     const auto pic = [](const std::string &name) { return "settings/printer/" + name; };
@@ -124,16 +124,16 @@ void add_printer_setting_tips(SettingTips &tips)
     one({"extruder_offset"}, "extruder_offset.png");
 
     // Retraction
-    one({"retraction_length", "retract_length_toolchange"}, "retraction_length.png");
-    one({"retract_restart_extra", "retract_restart_extra_toolchange"}, "retract_restart_extra.png");
-    one({"retraction_speed"}, "retraction_speed.png");
-    one({"deretraction_speed"}, "deretraction_speed.png");
+    one({"retraction_length", "retract_length_toolchange"}, "retraction_length.gif");
+    one({"retract_restart_extra", "retract_restart_extra_toolchange"}, "retract_restart_extra.gif");
+    one({"retraction_speed"}, "retraction_speed.gif");
+    one({"deretraction_speed"}, "deretraction_speed.gif");
     one({"retraction_minimum_travel"}, "retraction_minimum_travel.png");
     one({"retract_when_changing_layer"}, "retract_when_changing_layer.png");
     one({"wipe", "wipe_distance"}, "wipe_distance.gif");
     one({"retract_before_wipe"}, "retract_before_wipe.png");
     one({"retract_after_wipe"}, "retract_after_wipe.png");
-    one({"long_retractions_when_cut", "retraction_distances_when_cut"}, "retraction_when_cut.png");
+    one({"long_retractions_when_cut", "retraction_distances_when_cut"}, "retraction_when_cut.gif");
 
     // Z-hop
     tips["z_hop_types"].values = {

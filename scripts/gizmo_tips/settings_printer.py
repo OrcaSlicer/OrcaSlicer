@@ -535,22 +535,6 @@ def wipe_distance(k, n):
     return o.finish(GIF_SIZE)
 
 
-def retract_restart_extra(k, n):
-    """After a travel the extruder pushes a little more filament than it pulled back, at the restart."""
-    z = TOP_Z
-    first = [np.array(q) for q in ((-0.42, -0.32, z), (0.12, -0.32, z))]
-    restart = np.array([-0.3, 0.25, z])
-    second = [restart, np.array([0.12, 0.25, z])]
-    cam = Camera(SIZE, target=(0.0, 0.0, 0.45), extent=1.9, az=25.0, el=48.0)
-    o = Overlay(render(_top_scene(second[-1], 0.8), cam), cam)
-    o.polyline(first, PATH, width=4.2)
-    dashed(o, first[-1], restart, TRAVEL_ON_PART, width=1.6, dash=0.05, gap=0.04)
-    o.polyline(second, PATH, width=4.2)
-    o.dot(restart, 6.0, TEAL_LIGHT, outline=TEAL)
-    return o.finish(SIZE)
-
-
-
 # --- more shapes and overlay helpers ------------------------------------------------------------
 
 
@@ -1090,7 +1074,6 @@ FRAMES = {
     "extruder_clearance_height_to_lid": 0,
     "nozzle_height": 0,
     "wipe_distance": 20,
-    "retract_restart_extra": 0,
 }
 # The remaining stills.
 FRAMES.update({name: 0 for name in (

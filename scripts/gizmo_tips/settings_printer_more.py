@@ -199,44 +199,6 @@ class Hotend:
                     METAL_EDGE, 1.2)
 
 
-def _retracted(name_arrow=None):
-    c = Canvas()
-    h = Hotend(c, tip_y=240.0, s=1.25, tube_to=-2.0)
-    h.draw()
-    end = h.y(-122.0)  # pulled back out of the melt zone
-    h.filament(end, melt=False)
-    # the melt left in the nozzle, drawn back from the opening
-    pts = [(-BORE_R + 0.6, CONE_TOP), (BORE_R - 0.6, CONE_TOP), (BORE_R - 0.6, -14.0), (2.6, -8.0), (-2.6, -8.0),
-           (-BORE_R + 0.6, -14.0)]
-    c.poly([h.at(*q) for q in pts], MELT)
-    normal_end = h.y(BREAK[1])
-    x = h.cx + 52.0 * h.s
-    if name_arrow is None:
-        c.dashed((h.cx + 5.0 * h.s, normal_end), (x, normal_end), GREY_DIM, 1.2)
-        c.dashed((h.cx + 5.0 * h.s, end), (x, end), GREY_DIM, 1.2)
-        c.dim((x, normal_end), (x, end))
-    else:
-        up = name_arrow == "up"
-        y0, y1 = (normal_end + 12.0, end - 24.0) if up else (end - 24.0, normal_end + 12.0)
-        c.arrow((x, y0), (x, y1), TEAL_LIGHT, width=3.0, head=12.0)
-        for dx in (-9.0, 9.0):
-            c.line([(x + dx, y0 + (-6.0 if up else 6.0)), (x + dx, (y0 + y1) / 2.0)], _teal(150), 1.6)
-    return c.finish()
-
-
-def retraction_length(k, n):
-    """The filament's end pulled up out of the melt zone, by the retraction length."""
-    return _retracted()
-
-
-def retraction_speed(k, n):
-    return _retracted("up")
-
-
-def deretraction_speed(k, n):
-    return _retracted("down")
-
-
 # The single extruder multi-material layout: the hotend small at the bottom, the long tube above it.
 SEMM_TIP = 240.0
 SEMM_S = 0.62
@@ -334,17 +296,6 @@ def nozzle_volume(k, n):
     c.poly([h.at(*q) for q in pts], _teal(230))
     c.rect(h.cx - 3.7, -2.0, h.cx + 3.7, CUTTER_Y - 8.0, FILAMENT)
     _side_dim(c, h, CUTTER_Y, SEMM_TIP, x=h.cx - 46.0)
-    return c.finish()
-
-
-def retraction_when_cut(k, n):
-    """A long retraction before the cut: the filament's end drawn far up, so little is left below the cutter."""
-    c = Canvas()
-    h = _semm(c, cutter=True)
-    end = CUTTER_Y + 34.0
-    h.filament(end, melt=False)
-    _side_dim(c, h, h.y(BREAK[1]), end, x=h.cx - 46.0)
-    c.arrow((h.cx + 30.0, end + 30.0), (h.cx + 30.0, end + 4.0), TEAL_LIGHT, width=2.6, head=9.0)
     return c.finish()
 
 
@@ -841,16 +792,12 @@ def imex_carriage_margin(k, n):
 
 
 FRAMES = {
-    "retraction_length": 0,
-    "retraction_speed": 0,
-    "deretraction_speed": 0,
     "cooling_tube_position": 0,
     "cooling_tube_length": 0,
     "parking_position": 0,
     "extra_loading_move": 0,
     "filament_ramming": 0,
     "nozzle_volume": 0,
-    "retraction_when_cut": 0,
     "single_extruder_multi_material": 0,
     "nozzle_diameter_small": 0,
     "nozzle_diameter_large": 0,
