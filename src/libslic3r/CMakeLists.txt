@@ -803,7 +803,8 @@ endif ()
 
 if (TARGET OpenVDB::openvdb)
     target_link_libraries(libslic3r PRIVATE OpenVDB::openvdb)
-    target_compile_definitions(libslic3r PRIVATE SLIC3R_HAS_OPENVDB)
+    # PUBLIC so code linking libslic3r (e.g. the SLA tests) can tell whether hollowing works.
+    target_compile_definitions(libslic3r PUBLIC SLIC3R_HAS_OPENVDB)
 endif()
 
 if (SLIC3R_CAD)
