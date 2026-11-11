@@ -165,19 +165,20 @@ void update_arrange_items(ArrangePolygons& selected, ArrangePolygons& unselected
     update_unselected_items_inflation(unselected, print_cfg, params);
 }
 
-// The size of an item as the nester packs it, inflated with square joins and then turned.
-static Point packed_size(const ArrangePolygon &ap, coord_t inflation)
+// The size of an item as the nester packs it, inflated with square joins and then turned by `rotation`.
+static Point packed_size(const ArrangePolygon &ap, coord_t inflation, double rotation)
 {
     const ExPolygons inflated = inflation > 0 ? offset_ex(ap.poly, float(inflation), jtSquare) : ExPolygons();
     Polygon          outline  = inflated.empty() ? ap.poly.contour : inflated.front().contour;
-    outline.rotate(ap.rotation);
+    outline.rotate(rotation);
     return outline.bounding_box().size();
 }
 
-// An item's inflation as set, and its packed size without and with it.
+// An item's inflation as set, the rotation it is measured at, and its packed size without and with the inflation.
 struct ItemSizes
 {
     coord_t inflation;
+    double  rotation;
     Point   bare;
     Point   inflated;
 };
@@ -194,7 +195,7 @@ static Point cap_to_room(ArrangePolygon &ap, const ItemSizes &item, const Point 
             if (size[axis] > room[axis])
                 ratio = std::min(ratio, double(room[axis] - item.bare[axis]) / double(size[axis] - item.bare[axis]));
         ap.inflation = coord_t(ap.inflation * std::max(0., ratio));
-        size         = packed_size(ap, ap.inflation);
+        size         = packed_size(ap, ap.inflation, item.rotation);
     }
     return size;
 }
@@ -250,13 +251,29 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
         return Point(bedbb.size().x() - edge, bedbb.size().y() - edge);
     };
     // An item no larger than the bed less the room for the skirt can be placed.
-    const Point plain     = room(0) + Point(2 * slack, 2 * slack);
-    auto        placeable = [&](const ItemSizes &item) { return item.bare.x() <= plain.x() && item.bare.y() <= plain.y(); };
+    const Point plain = room(0) + Point(2 * slack, 2 * slack);
+    auto        fits  = [&](const Point &bare) { return bare.x() <= plain.x() && bare.y() <= plain.y(); };
+    // With rotations allowed the nester turns an item that does not fit as it lies, so no item is too big for the bed.
+    auto placeable = [&](const ItemSizes &item) { return params.allow_rotations || fits(item.bare); };
 
     std::vector<ItemSizes> sizes;
     sizes.reserve(selected.size());
-    for (const ArrangePolygon &ap : selected)
-        sizes.push_back({ap.inflation, packed_size(ap, 0), packed_size(ap, ap.inflation)});
+    for (const ArrangePolygon &ap : selected) {
+        double rotation = ap.rotation;
+        Point  bare     = packed_size(ap, 0, rotation);
+        // An item the nester has to turn is measured at an angle it fits along the bed's axes, if there is one.
+        // Printing by object nothing is capped, so every item is measured as it lies.
+        if (params.allow_rotations && !params.is_seq_print && !fits(bare))
+            for (double turned : {0., PI / 2, ap.rotation + PI / 2}) {
+                const Point size = packed_size(ap, 0, turned);
+                if (fits(size)) {
+                    rotation = turned;
+                    bare     = size;
+                    break;
+                }
+            }
+        sizes.push_back({ap.inflation, rotation, bare, packed_size(ap, ap.inflation, rotation)});
+    }
     // Caps every item to the bed grown by `grow` and returns the largest that can be placed, as packed.
     auto cap_items = [&](coord_t grow) {
         const Point fit = room(grow);
@@ -264,8 +281,9 @@ void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPri
         for (size_t i = 0; i < selected.size(); ++i) {
             selected[i].inflation = sizes[i].inflation;
             // An almost bed filling item gets less inflation, or it could never be placed. An item too
-            // big for the bed keeps all of it and stays too big for the grown bed. Printing by object,
-            // the distance keeps the extruder clear of printed objects, so it is never shrunk.
+            // big for the bed keeps all of it and stays too big for the grown bed, unless the nester
+            // may turn it. Printing by object, the distance keeps the extruder clear of printed
+            // objects, so it is never shrunk.
             const bool  capped = !params.is_seq_print && placeable(sizes[i]);
             const Point size   = capped ? cap_to_room(selected[i], sizes[i], fit) : sizes[i].inflated;
             if (placeable(sizes[i]))

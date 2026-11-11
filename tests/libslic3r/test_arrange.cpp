@@ -540,6 +540,70 @@ TEST_CASE("A non-convex item turned by hand and almost as wide as the bed is arr
     REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
 }
 
+TEST_CASE("With rotations allowed, an item that fits only on the diagonal of the bed is arranged", "[Arrange]")
+{
+    DynamicPrintConfig cfg   = bed_config(); // 200 x 200
+    ArrangeParams      p     = quiet_params();
+    p.allow_rotations        = true;
+    ArrangePolygons    items = {make_rect(scaled(260.), scaled(20.))};
+    items.front().brim_width = 1.;
+    ArrangePolygons    fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    // The item keeps no inflation and gets the bed margin back.
+    CHECK(items.front().inflation == 0);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("With rotations allowed, an item turned off the axis it fits is arranged", "[Arrange]")
+{
+    DynamicPrintConfig cfg;
+    cfg.set_key_value("printable_area", new ConfigOptionPoints{{0, 0}, {250, 0}, {250, 210}, {0, 210}});
+    ArrangeParams p   = quiet_params();
+    p.allow_rotations = true;
+    // Turned 45 degrees the item is about 219 mm wide and deep, more than the 210 mm the bed is deep.
+    ArrangePolygons items    = {make_rect(scaled(249.5), scaled(60.))};
+    items.front().rotation   = PI / 4;
+    items.front().brim_width = 1.;
+    ArrangePolygons fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(250, 210).contains(items.front().transformed_poly().contour.bounding_box()));
+}
+
+TEST_CASE("With rotations allowed, items that have to be turned keep a distance the user set", "[Arrange]")
+{
+    constexpr double   DISTANCE_MM = 20.;
+    DynamicPrintConfig cfg;
+    cfg.set_key_value("printable_area", new ConfigOptionPoints{{0, 0}, {250, 0}, {250, 210}, {0, 210}});
+    ArrangeParams p   = quiet_params(scaled(DISTANCE_MM));
+    p.allow_rotations = true;
+    // Turned to the Y axis the items are 240 mm deep, more than the 210 mm the bed is deep.
+    ArrangePolygons items(2, make_rect(scaled(240.), scaled(20.)));
+    for (ArrangePolygon &ap : items) {
+        ap.rotation   = PI / 2;
+        ap.brim_width = 1.;
+    }
+    ArrangePolygons fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    arrange(items, get_shrink_bedpts(&cfg, p), p);
+
+    for (const ArrangePolygon &ap : items) {
+        REQUIRE(ap.bed_idx == 0);
+        REQUIRE(bed(250, 210).contains(ap.transformed_poly().contour.bounding_box()));
+    }
+    // 0.5 mm slack for nester rounding.
+    CHECK(box_gap(items[0].transformed_poly().contour.bounding_box(), items[1].transformed_poly().contour.bounding_box()) >=
+          double(scaled(DISTANCE_MM - 0.5)));
+}
+
 TEST_CASE("The skirt room counts a percent line width against the nozzle", "[Arrange]")
 {
     DynamicPrintConfig cfg = skirt_config(2, ConfigOptionFloatOrPercent(125., true));
@@ -810,6 +874,28 @@ TEST_CASE("Sequential print keeps the clearance of an object almost as wide as t
     update_selected_items_inflation(items, &cfg, p);
     CHECK(p.min_obj_distance >= scaled(CLEARANCE_MM));
     CHECK(items.front().inflation == p.min_obj_distance / 2);
+}
+
+TEST_CASE("Sequential print with rotations allowed arranges an object that has to be turned", "[Arrange]")
+{
+    DynamicPrintConfig cfg = bed_config(); // 200 x 200
+    ArrangeParams      p   = seq_print_params(scaled(40.));
+    p.allow_rotations      = true;
+    p.bed_shrink_x         = BED_SHRINK_SEQ_PRINT;
+    p.bed_shrink_y         = BED_SHRINK_SEQ_PRINT;
+    // Turned 10 degrees the object is about 205 mm wide, so it fits only turned back and with the bed margin given back.
+    ArrangePolygons items     = {make_rect(scaled(198.), scaled(60.))};
+    items.front().rotation    = PI / 18;
+    items.front().height      = NOZZLE_HEIGHT_MM * 2;
+    items.front().extrude_ids = {1}; // the sequential sort reads extrude_ids.front()
+    ArrangePolygons fixed;
+
+    update_arrange_items(items, fixed, &cfg, p);
+    CHECK(items.front().inflation == p.min_obj_distance / 2);
+    arrange(items, fixed, get_shrink_bedpts(&cfg, p), p);
+
+    REQUIRE(items.front().bed_idx == 0);
+    REQUIRE(bed(200, 200).contains(items.front().transformed_poly().contour.bounding_box()));
 }
 
 TEST_CASE("Layered printing does not floor the object distance", "[Arrange]")
