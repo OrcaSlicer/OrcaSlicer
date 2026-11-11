@@ -499,6 +499,9 @@ jobs:
           "ORCA_SIGN_JSIGN=$jar"           | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           "ORCA_SIGN_CERTFILE=$cert"       | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           "ORCA_SIGN_KMS_KEY=$env:KMS_KEY" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          # Names the certificate in the signed NSIS plugin cache key, so a new certificate re-signs them.
+          "cert-id=$((Get-FileHash -LiteralPath $cert -Algorithm SHA256).Hash.Substring(0, 16))" |
+            Out-File -Append -FilePath $env:GITHUB_OUTPUT -Encoding utf8
 
       - name: Set up Java for code signing
         if: steps.codesign.outcome == 'success'
@@ -538,20 +541,38 @@ jobs:
           token_format: access_token
           create_credentials_file: false
 
+      # The NSIS plugins change only with the NSIS version, so they are signed once per certificate and
+      # kept; the signing below skips files that are already signed.
+      - name: Restore signed NSIS plugins
+        id: nsis-plugins
+        if: steps.codesign.outcome == 'success' && !vars.SELF_HOSTED
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/nsis/Plugins
+          key: nsis-plugins-signed-${{ env.NSIS_VERSION }}-${{ steps.codesign.outputs.cert-id }}
+
       # Signs what the portable zip, the artifact and the MSIX package ship, the profile validator,
-      # and the NSIS plugins the installer carries. The installer build signs its own copy of the
-      # app, since cpack installs the files again.
+      # and the NSIS plugins the installer carries. cpack installs the app again for the installer;
+      # ORCA_SIGN_REUSE lets its signing hook copy these signed files instead of signing them again.
       - name: Sign Windows binaries
         if: steps.codesign.outcome == 'success'
         shell: pwsh
         env:
           ORCA_SIGN_TOKEN: ${{ steps.codesign_auth.outputs.access_token }}
+          ORCA_SIGN_REUSE: ${{ runner.temp }}/signed-files.json
         run: |
           $paths = @("$env:BUILD_DIR/OrcaSlicer")
           foreach ($extra in 'build/src/Release/OrcaSlicer_profile_validator.exe', "$env:RUNNER_TEMP/nsis/Plugins") {
             if (Test-Path $extra) { $paths += $extra }
           }
           ./scripts/sign_windows.ps1 -Path $paths
+
+      - name: Save signed NSIS plugins
+        if: steps.codesign.outcome == 'success' && !vars.SELF_HOSTED && steps.nsis-plugins.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/nsis/Plugins
+          key: nsis-plugins-signed-${{ env.NSIS_VERSION }}-${{ steps.codesign.outputs.cert-id }}
 
       - name: Pack unit tests Win
         if: runner.os == 'Windows'
@@ -577,6 +598,7 @@ jobs:
         # Read by scripts/sign_windows.ps1 when CMake wired signing into the installer.
         env:
           ORCA_SIGN_TOKEN: ${{ steps.codesign_auth.outputs.access_token }}
+          ORCA_SIGN_REUSE: ${{ runner.temp }}/signed-files.json
         run: |
           cpack -G NSIS
           if ($LASTEXITCODE -ne 0) {
