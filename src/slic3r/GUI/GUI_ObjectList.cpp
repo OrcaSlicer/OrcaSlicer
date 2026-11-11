@@ -322,14 +322,13 @@ ObjectList::ObjectList(wxWindow* parent) :
     Bind(wxEVT_CHAR, [this](wxKeyEvent& event) { key_event(event); }); // doesn't work on OSX
 #endif
 
-#ifdef __WXMSW__
+    // On every platform: the tooltips are illustrated ones (IllustratedTipPopup), which follow the
+    // cell under the pointer cheaply. The position comes from the event, converted to the control's
+    // coordinates, rather than from wxGetMousePosition(), which Wayland does not report.
     GetMainWindow()->Bind(wxEVT_MOTION, [this](wxMouseEvent& event) {
-        // BBS
-        // this->SetFocus();
-        set_tooltip_for_item(this->get_mouse_position_in_control());
+        set_tooltip_for_item(ScreenToClient(GetMainWindow()->ClientToScreen(event.GetPosition())));
         event.Skip();
     });
-#endif //__WXMSW__
 
     Bind(wxEVT_DATAVIEW_ITEM_CONTEXT_MENU,  &ObjectList::OnContextMenu,     this);
 
