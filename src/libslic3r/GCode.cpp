@@ -8994,10 +8994,14 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
             for (const ExtrusionEntity* ee : region.perimeters) {
                 if (defer_unsupported && waits_for_infill(ee) != unsupported_loops_only)
                     continue;
-                m_on_outer_wall = is_outer_wall(*ee);
+                const size_t size_before = gcode.size();
                 gcode += this->extrude_entity(*ee, "perimeter", -1., region.perimeters,
                                              wipe_support ? &*wipe_support : nullptr);
-                m_on_outer_wall = false;
+                // Orca: set once the whole wall is down, so a gap between its paths is not a travel off it.
+                // A loop shorter than the seam gap prints nothing and leaves the flag alone. m_config still
+                // holds the wall's own region and the calibration overrides.
+                if (gcode.size() != size_before)
+                    m_retract_after_last_path = m_config.retract_after_outer_wall.value && is_outer_wall(*ee);
                 if (wipe_support)
                     wipe_support->append(*ee);
             }
@@ -9417,6 +9421,8 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         }
         m_need_change_layer_lift_z = false;
     }
+    // Orca: the travel off the last wall is done; extrude_perimeters() sets this again after an outer wall.
+    m_retract_after_last_path = false;
 
     if (path.z_contoured && !path.polyline.lines().empty()) {
         double current_z = m_writer.get_position().z();
@@ -9889,9 +9895,6 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
     char buf[64];
     assert(is_decimal_separator_point());
 
-    // Set after the travel to this path, so that travel still sees the previous path. m_config now holds
-    // the wall's own region and the calibration overrides, not the region of whatever is printed next.
-    m_retract_after_last_path = m_on_outer_wall && m_config.retract_after_outer_wall.value;
     if (path.role() != m_last_processor_extrusion_role) {
         m_last_processor_extrusion_role = path.role();
         sprintf(buf, ";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(m_last_processor_extrusion_role).c_str());
@@ -11029,6 +11032,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     int new_extruder_id = get_extruder_id(new_filament_id);
     if (!m_writer.need_toolchange(new_filament_id))
         return "";
+    // Orca: the tool that printed the outer wall retracts for the tool change; the next tool did not print it.
+    m_retract_after_last_path = false;
 
     const std::optional<ToolchangePositionState> position_before_toolchange =
         this->capture_toolchange_position();

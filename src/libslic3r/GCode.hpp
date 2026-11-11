@@ -828,9 +828,7 @@ protected:
     bool                                m_enable_extrusion_role_markers;
     // Keeps track of the last extrusion role passed to the processor
     ExtrusionRole                       m_last_processor_extrusion_role;
-    // Orca: an outer wall is being extruded, by wall index rather than by path role
-    bool                                m_on_outer_wall { false };
-    // Orca: the last extruded path belongs to an outer wall with retract_after_outer_wall on,
+    // Orca: the last extruded wall is an outer wall with retract_after_outer_wall on,
     // so the next travel ignores the retraction threshold
     bool                                m_retract_after_last_path { false };
     // How many times will change_layer() be called?

@@ -228,6 +228,71 @@ TEST_CASE("Retract after outer wall retracts on a travel shorter than the thresh
     REQUIRE(entries == 5);
 }
 
+TEST_CASE("Retract after outer wall retracts on a layer change that follows the outer wall", "[GCode]")
+{
+    const bool enabled = GENERATE(false, true);
+    CAPTURE(enabled);
+    // Inner/outer order ends every layer with the outer wall. Without a retraction on layer change, only
+    // this option retracts on the short travel to the next layer; the 5 mm threshold alone would skip it.
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "gcode_flavor", "marlin2" },
+        { "layer_height", "0.2" },
+        { "initial_layer_print_height", "0.2" },
+        { "wall_loops", "2" },
+        { "wall_sequence", "inner wall/outer wall" },
+        { "top_shell_layers", "0" },
+        { "bottom_shell_layers", "0" },
+        { "sparse_infill_density", "0%" },
+        { "skirt_loops", "0" },
+        { "brim_type", "no_brim" },
+        { "retraction_length", "0.8" },
+        { "retraction_minimum_travel", "5" },
+        { "retract_when_changing_layer", "0" },
+        { "wipe", "0" },
+        { "z_hop", "0" },
+        { "gcode_comments", "1" },
+        { "machine_start_gcode", "" },
+        { "machine_end_gcode", "" },
+        { "retract_after_outer_wall", enabled ? "1" : "0" },
+    });
+    const std::string output = Test::slice({ make_cube(10., 10., 1.) }, config);
+
+    const std::string &role_tag = GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role);
+    ExtrusionRole role = erNone;
+    ExtrusionRole last_extruded = erNone;
+    double last_z = 0.;
+    double retraction = 0.;
+    double travel = 0.;
+    size_t layer_changes = 0;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(output, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.comment().find(role_tag) == 0)
+            role = ExtrusionEntity::string_to_role(line.comment().substr(role_tag.size()));
+        if (line.extruding(self) && line.dist_XY(self) > EPSILON) {
+            // The first extrusion on a new layer closes the travel that left the layer below.
+            if (last_extruded != erNone && self.z() - last_z > EPSILON) {
+                ++layer_changes;
+                REQUIRE(last_extruded == erExternalPerimeter);
+                REQUIRE(role == erPerimeter);
+                REQUIRE(travel < 5.);
+                CHECK_THAT(retraction, Catch::Matchers::WithinAbs(enabled ? 0.8 : 0., 0.00005));
+            }
+            last_extruded = role;
+            last_z = self.z();
+            retraction = 0.;
+            travel = 0.;
+        } else {
+            if (line.retracting(self))
+                retraction -= line.dist_E(self);
+            travel += line.dist_XY(self);
+        }
+    });
+    // The 1 mm cube has five 0.2 mm layers, so four layer changes.
+    REQUIRE(layer_changes == 4);
+}
+
 TEST_CASE("Retract after outer wall tells walls apart by wall index on a full overhang", "[GCode]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
