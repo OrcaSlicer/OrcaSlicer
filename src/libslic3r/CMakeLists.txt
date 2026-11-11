@@ -580,7 +580,7 @@ set(lisbslic3r_sources
     FlushVolPredictor.cpp
 )
 
-# Parametric Design/CAD kernel. Needs OCCT's ModelingAlgorithms module and the
+# Parametric Design/CAD kernel. Needs the OCCT toolkits TKFillet, TKOffset and TKBool and the
 # vendored SolveSpace solver; both are pulled in only when SLIC3R_CAD is ON.
 if (SLIC3R_CAD)
     list(APPEND lisbslic3r_sources
@@ -723,8 +723,8 @@ set(OCCT_LIBS
     TKMath
     TKernel
 )
-# The CAD kernel is the only consumer of OCCT's ModelingAlgorithms module: TKFillet
-# (BRepFilletAPI), TKOffset (BRepOffsetAPI) and TKBool, which the other two need.
+# The CAD kernel is the only consumer of TKFillet (BRepFilletAPI), TKOffset (BRepOffsetAPI)
+# and TKBool, which the other two need.
 #
 # PREPEND, never append: this list is single-pass static link order, dependents before
 # dependencies — note TKernel, which everything needs, is deliberately last. TKOffset
@@ -736,12 +736,13 @@ set(OCCT_LIBS
 # than list(PREPEND), which needs CMake 3.15 and this project supports 3.13.
 if (SLIC3R_CAD)
     set(OCCT_LIBS TKFillet TKOffset TKBool ${OCCT_LIBS})
-    # deps is configured separately, so its SLIC3R_CAD can differ from ours. The module is
-    # all-or-nothing, so one absent toolkit proves it; fail here rather than at link time.
+    # deps is configured separately, so its SLIC3R_CAD can differ from ours. deps/OCCT/OCCT.cmake
+    # builds the three CAD toolkits together under SLIC3R_CAD, so one absent toolkit proves it
+    # was OFF there; fail here rather than at link time.
     if (NOT TARGET TKFillet)
         message(FATAL_ERROR
-            "SLIC3R_CAD is ON, but the OpenCASCADE in ${CMAKE_PREFIX_PATH} was built without "
-            "BUILD_MODULE_ModelingAlgorithms. Rebuild the dependencies with -DSLIC3R_CAD=ON, "
+            "SLIC3R_CAD is ON, but the dependencies in ${CMAKE_PREFIX_PATH} were built with "
+            "SLIC3R_CAD=OFF (OpenCASCADE has no TKFillet). Rebuild the dependencies with -DSLIC3R_CAD=ON, "
             "or configure this project with -DSLIC3R_CAD=OFF.")
     endif ()
 endif ()
