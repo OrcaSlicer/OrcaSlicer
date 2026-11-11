@@ -141,8 +141,12 @@ void LabeledCheckBox::OnToggled()
 void LabeledCheckBox::OnLabelHover(wxMouseEvent& e)
 {
     e.Skip();
-    // Label and frame send enter / leave to each other, so check the mouse position
-    m_hovered = m_text_box->GetScreenRect().Contains(wxGetMousePosition());
+    // Label and frame send enter / leave to each other, so check the position on leave.
+    // Event position, as wxGetMousePosition() does not work on Wayland
+    wxPoint pos = e.GetPosition();
+    if (e.GetEventObject() == m_text)
+        pos += m_text->GetPosition();
+    m_hovered = e.Entering() || m_text_box->GetClientRect().Contains(pos);
     m_check->SetHalfChecked(m_check->IsHalfChecked()); // back to the normal icon
     ShowHover();
 }
