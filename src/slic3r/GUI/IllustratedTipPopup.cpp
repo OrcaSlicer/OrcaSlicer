@@ -16,6 +16,7 @@
 #include <wx/brush.h>
 #include <wx/colour.h>
 #include <wx/dcbuffer.h>
+#include <wx/dialog.h>
 #include <wx/display.h>
 #include <wx/event.h>
 #include <wx/eventfilter.h>
@@ -39,7 +40,6 @@
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/AnimatedTexture.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
-#include "slic3r/GUI/Widgets/StateColor.hpp"
 
 namespace Slic3r::GUI {
 
@@ -678,12 +678,13 @@ void TipWindow::on_frame_timer(wxTimerEvent &)
 void TipWindow::on_paint(wxPaintEvent &)
 {
     wxAutoBufferedPaintDC dc(this);
-    // The palette of the drop-down lists and input boxes, mapped to dark mode by StateColor, which follows
-    // GUI_App::dark_mode(). Picked at paint time, so a theme switch needs nothing more.
-    const wxColour bg     = StateColor::darkModeColorFor(wxColour("#FFFFFF"));
-    const wxColour border = StateColor::darkModeColorFor(wxColour("#DBDBDB"));
-    const wxColour text   = StateColor::darkModeColorFor(wxColour("#262E30"));
-    const wxColour dimmed = StateColor::darkModeColorFor(wxColour("#6B6B6A"));
+    // The dark mode palette of the drop-down lists and input boxes, in both themes: the tooltips of the 3D
+    // view are dark in both (ImGuiWrapper::push_tooltip_style() pushes these same colours), and the
+    // pictures, drawn on dark, sit the same way in all of them.
+    const wxColour bg(0x2D, 0x2D, 0x31);
+    const wxColour border(0x4A, 0x4A, 0x51);
+    const wxColour text(0xEF, 0xEF, 0xF0);
+    const wxColour dimmed(0xB3, 0xB3, 0xB5);
 
     const wxSize size = GetClientSize();
     dc.SetPen(wxPen(border));
@@ -870,12 +871,49 @@ int place_axis(int a_start, int a_end, int size, int b_start, int b_end, int gap
     return clamp_to(v, b_start, b_end - size);
 }
 
-// Beside the control rather than under the mouse, never on the control itself:
-// - In a settings page and most windows, below the control and level with its left edge, or above it
-//   when there is no room below. Rows of a page are laid out top to bottom, so the label and the undo
-//   buttons beside the control stay visible, and the next row is what gets covered, as with any tooltip.
+// The column a control sits in: the outermost window between the control and its top-level window that
+// is a tall, narrow column of controls (the sidebar with the settings pages, a side panel of a tab). A
+// tooltip beside the column covers none of its rows. Null when the control is in no such column.
+wxWindow *side_column(wxWindow *owner)
+{
+    wxWindow *top = wxGetTopLevelParent(owner);
+    if (top == nullptr)
+        return nullptr;
+    const int top_width = top->GetClientSize().x;
+    wxWindow *column    = nullptr;
+    for (wxWindow *w = owner; w != nullptr && w != top; w = w->GetParent()) {
+        const wxSize size = w->GetSize();
+        if (size.y >= size.x && size.x * 5 <= top_width * 3)
+            column = w;
+    }
+    return column;
+}
+
+// Beside `side`, level with the control: after it when that fits in `bounds`, before it when that does,
+// or false when neither does.
+bool place_beside(const wxRect &side, const wxRect &anchor, const wxSize &size, const wxRect &bounds, int gap, wxPoint &pos)
+{
+    const int after  = side.x + side.width + gap;
+    const int before = side.x - gap - size.x;
+    if (after + size.x <= bounds.x + bounds.width)
+        pos.x = after;
+    else if (before >= bounds.x)
+        pos.x = before;
+    else
+        return false;
+    pos.y = clamp_to(anchor.y, bounds.y, bounds.y + bounds.height - size.y);
+    return true;
+}
+
+// Beside the control rather than under the mouse, never on the control itself, and off the controls
+// around it where there is room:
 // - In a popup (a drop-down list), beside the popup and level with the item: below the item would cover
 //   the next items, which are the ones the user is choosing between.
+// - In a column of controls (the sidebar's settings pages), beside the column and level with the control,
+//   over the 3D view rather than over the next rows of the page.
+// - In a dialog, beside the dialog. Not on Wayland, where a tooltip is kept inside its window.
+// - Otherwise (a toolbar, a full-width page), or when there is no room beside: below the control and
+//   level with its left edge, or above it when there is no room below.
 void place(TipWindow &popup, const State &st)
 {
     const wxRect anchor = anchor_rect(st);
@@ -889,8 +927,15 @@ void place(TipWindow &popup, const State &st)
         pos.x = place_axis(side.x, side.x + side.width, size.x, bounds.x, bounds.x + bounds.width, gap);
         pos.y = clamp_to(anchor.y, bounds.y, bounds.y + bounds.height - size.y);
     } else {
-        pos.x = clamp_to(anchor.x, bounds.x, bounds.x + bounds.width - size.x);
-        pos.y = place_axis(anchor.y, anchor.y + anchor.height, size.y, bounds.y, bounds.y + bounds.height, gap);
+        wxWindow *column = side_column(st.owner);
+        const bool beside =
+            (column != nullptr && place_beside(column->GetScreenRect(), anchor, size, bounds, gap, pos)) ||
+            (top != nullptr && dynamic_cast<wxDialog *>(top) != nullptr && !on_wayland() &&
+             place_beside(top->GetScreenRect(), anchor, size, bounds, gap, pos));
+        if (!beside) {
+            pos.x = clamp_to(anchor.x, bounds.x, bounds.x + bounds.width - size.x);
+            pos.y = place_axis(anchor.y, anchor.y + anchor.height, size.y, bounds.y, bounds.y + bounds.height, gap);
+        }
     }
     popup.SetSize(wxRect(pos, size));
 }
