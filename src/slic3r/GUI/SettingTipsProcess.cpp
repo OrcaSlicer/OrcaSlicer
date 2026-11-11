@@ -143,6 +143,13 @@ void add_process_setting_tips(SettingTips &tips)
                                           {"no_brim", "brim_no_brim.png"}});
     tips["brim_type"].values["brim_ears"] = {"gizmo_toolbar/brim_ears.gif", {}};
     tips["draft_shield"].values = per_value({{"disabled", "draft_shield_disabled.png"}, {"enabled", "draft_shield_enabled.png"}});
+
+    // The pages' own files, so they can be filled independently.
+    add_process_quality_setting_tips(tips);
+    add_process_strength_setting_tips(tips);
+    add_process_speed_setting_tips(tips);
+    add_process_support_setting_tips(tips);
+    add_process_others_setting_tips(tips);
 }
 
 } // namespace Slic3r::GUI

@@ -43,6 +43,11 @@ std::vector<TipMedia> setting_value_media(const std::string &opt_key, const std:
 // SettingTipsProcess.cpp, SettingTipsFilament.cpp and SettingTipsPrinter.cpp. Pictures are named relative
 // to resources/images, under settings/process, settings/filament and settings/printer.
 void add_process_setting_tips(SettingTips &tips);
+void add_process_quality_setting_tips(SettingTips &tips); // SettingTipsProcessQuality.cpp
+void add_process_strength_setting_tips(SettingTips &tips); // SettingTipsProcessStrength.cpp
+void add_process_speed_setting_tips(SettingTips &tips); // SettingTipsProcessSpeed.cpp
+void add_process_support_setting_tips(SettingTips &tips); // SettingTipsProcessSupport.cpp
+void add_process_others_setting_tips(SettingTips &tips); // SettingTipsProcessOthers.cpp
 void add_filament_setting_tips(SettingTips &tips);
 void add_printer_setting_tips(SettingTips &tips);
 

@@ -535,6 +535,11 @@ set(SLIC3R_GUI_SOURCES
     GUI/SettingTipsFilament.cpp
     GUI/SettingTipsPrinter.cpp
     GUI/SettingTipsProcess.cpp
+    GUI/SettingTipsProcessQuality.cpp
+    GUI/SettingTipsProcessStrength.cpp
+    GUI/SettingTipsProcessSpeed.cpp
+    GUI/SettingTipsProcessSupport.cpp
+    GUI/SettingTipsProcessOthers.cpp
     GUI/Selection.cpp
     GUI/Selection.hpp
     GUI/SelectMachine.cpp
