@@ -7,6 +7,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include <cstddef>
+#include <limits>
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include <sstream>
@@ -29,6 +30,7 @@
 #include "libslic3r/GCode/ToolOrdering.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/LocalesUtils.hpp"
+#include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include "test_helpers.hpp"
@@ -596,6 +598,111 @@ TEST_CASE("A merged tower layer declares its own height to the G-code processor"
     CHECK_THAT(combined.tallest_printed, Catch::Matchers::WithinAbs(0.4f, 1e-4f));
     // Every layer that prints a merged run has to say so, and nothing may say so without the option.
     CHECK(count_height_tags(combined.gcode, "0.4") - count_height_tags(plain.gcode, "0.4") == combined.folded);
+}
+
+// Filament 2 only for the bottom 2mm of a 10mm cube, nothing changes for the remaining ~8mm, so the
+// wipe tower's last active layer sits well below the object's last printed layer.
+static std::string slice_short_tower_cube(Print &print, const DynamicPrintConfig &config)
+{
+    Model model;
+    auto *obj = model.add_object();
+    obj->add_volume(cube(10));
+    obj->add_instance();
+    DynamicPrintConfig range_config;
+    range_config.set_key_value("extruder", new ConfigOptionInt(2));
+    range_config.set_key_value("layer_height", new ConfigOptionFloat(0.3));
+    obj->layer_config_ranges[{0.0, 2.0}].assign_config(std::move(range_config));
+
+    arrange_objects(model, InfiniteBed{}, ArrangeParams{ scaled(min_object_distance(config)) });
+    for (auto *mo : model.objects) {
+        mo->ensure_on_bed();
+        print.auto_assign_extruders(mo);
+    }
+    print.apply(model, config);
+    print.apply(model, config); // second apply, same reason as slice_with_prime_tower
+    print.validate();
+    print.set_status_silent();
+    print.process();
+    return Slic3r::Test::gcode(print);
+}
+
+static DynamicPrintConfig short_tower_config(bool ramming)
+{
+    return multifilament_config(2, {
+        { "enable_prime_tower",             true },
+        { "wipe_tower_x",                   50 },
+        { "wipe_tower_y",                   50 },
+        { "layer_height",                   0.3 },
+        { "gcode_flavor",                   "marlin" },
+        { "single_extruder_multi_material", ramming ? "1" : "0" },
+        { "enable_filament_ramming",        ramming ? "1" : "0" },
+        { "purge_in_prime_tower",           "1" },
+    });
+}
+
+// A SEMM/MMU print with ramming must still ram+unload the last filament at print end even when
+// the tower's last real toolchange isn't on the object's very last layer (the common case).
+TEST_CASE("The final unload ramming still prints when the wipe tower stops growing before the last layer", "[WipeTower]")
+{
+    Print print;
+    const std::string g = slice_short_tower_cube(print, short_tower_config(true));
+    REQUIRE(print.wipe_tower_data(2).tool_ordering.back().wipe_tower_partitions == 0);
+
+    // One ramming block for the mid-print toolchange, one more for the final end-of-print unload.
+    const size_t first_ramming = g.find("Ramming start");
+    REQUIRE(first_ramming != std::string::npos);
+    const size_t final_ramming = g.find("Ramming start", first_ramming + 1);
+    REQUIRE(final_ramming != std::string::npos);
+    CHECK(g.find("Ramming start", final_ramming + 1) == std::string::npos);
+
+    // The final unload comes after every per-layer "current Z" comment, i.e. after the object has
+    // finished printing, not interleaved with it.
+    const size_t last_layer_z_comment = g.rfind(";Z:");
+    REQUIRE(last_layer_z_comment != std::string::npos);
+    CHECK(last_layer_z_comment < final_ramming);
+
+    // The unload is done at the object's top layer over the tower: the head must not descend
+    // below it on the way there, which would cut through the part.
+    const double top_z = std::stod(g.substr(last_layer_z_comment + 3));
+    // The ";Z:" comment precedes the move up to that layer, so only measure once the head is there.
+    double min_z_since_top_layer = std::numeric_limits<double>::max();
+    bool   at_top_layer          = false;
+    GCodeReader reader;
+    reader.parse_buffer(g, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.raw().rfind(";Z:", 0) == 0) {
+            at_top_layer          = false;
+            min_z_since_top_layer = std::numeric_limits<double>::max();
+        } else {
+            at_top_layer = at_top_layer || self.z() >= top_z - EPSILON;
+            if (at_top_layer)
+                min_z_since_top_layer = std::min(min_z_since_top_layer, double(self.z()));
+        }
+    });
+    REQUIRE(at_top_layer);
+    CHECK(min_z_since_top_layer >= top_z - EPSILON);
+}
+
+// Without ramming nothing needs the final unload, and it would only add a move down to a tower
+// that stopped below the top of the object.
+TEST_CASE("No final unload is generated when the tower stops short and nothing rams", "[WipeTower]")
+{
+    Print print;
+    slice_short_tower_cube(print, short_tower_config(false));
+    REQUIRE(print.wipe_tower_data(2).tool_ordering.back().wipe_tower_partitions == 0);
+    REQUIRE(print.wipe_tower_data(2).final_purge);
+    CHECK(print.wipe_tower_data(2).final_purge->gcode.empty());
+}
+
+// The other ramming condition: a multi-tool printer whose last filament rams on the tower.
+TEST_CASE("The final unload is generated for a short tower when the last filament rams without SEMM", "[WipeTower]")
+{
+    DynamicPrintConfig config = short_tower_config(false);
+    config.set_deserialize_strict({ { "filament_multitool_ramming", "1,1" } });
+    Print print;
+    slice_short_tower_cube(print, config);
+    REQUIRE(print.wipe_tower_data(2).tool_ordering.back().wipe_tower_partitions == 0);
+    REQUIRE(print.wipe_tower_data(2).final_purge);
+    CHECK_FALSE(print.wipe_tower_data(2).final_purge->gcode.empty());
 }
 
 TEST_CASE("A tower printed without a tool change is still validated against the bed", "[WipeTower]")
