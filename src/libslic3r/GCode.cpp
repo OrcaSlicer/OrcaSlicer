@@ -9235,10 +9235,12 @@ static bool overhang_fan_active(float overlap, int overhang_fan_threshold, Extru
 {
     if (role == erOverhangPerimeter)
         return true;
-    if (overhang_fan_threshold == Overhang_threshold_none)
-        return is_external_perimeter(role);
     const float overlap_threshold = overhang_fan_overlap_threshold(overhang_fan_threshold);
-    return overlap_threshold >= 0.f && overlap <= overlap_threshold;
+    if (is_external_perimeter(role)) {
+        return (overhang_fan_threshold == Overhang_threshold_none) ||
+               (overlap_threshold >= 0.f && overlap <= overlap_threshold);
+    }
+    return false;
 }
 
 std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_description, double speed)
