@@ -422,7 +422,7 @@ void HistoryWindow::sync_history_data() {
         nozzle_id_name->SetFont(Label::Head_14);
         {
             wxString chd_ext_name = _L(DevPrinterConfigUtil::get_toolhead_display_name(curr_obj->printer_type, MAIN_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::LowerCase));
-            nozzle_id_name->SetToolTip(wxString::Format(_L("Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."), chd_ext_name));
+            set_illustrated_tooltip(nozzle_id_name, wxString::Format(_L("Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."), chd_ext_name));
         }
         gbSizer->Add(nozzle_id_name, {0, column_idx++}, {1, 1}, wxBOTTOM, FromDIP(15));
     }

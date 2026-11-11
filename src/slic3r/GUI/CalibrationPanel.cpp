@@ -406,7 +406,7 @@ void SelectMObjectPopup::update_user_devices()
             else {
                 if (mobj->has_access_right() && mobj->is_avaliable()) {
                     op->set_printer_state(PrinterState::IN_LAN);
-                    op->SetToolTip(_L("Online"));
+                    set_illustrated_tooltip(op, _L("Online"));
                 }
                 else {
                     op->set_printer_state(PrinterState::LOCK);
@@ -415,16 +415,16 @@ void SelectMObjectPopup::update_user_devices()
         }
         else {
             if (!mobj->is_online()) {
-                op->SetToolTip(_L("Offline"));
+                set_illustrated_tooltip(op, _L("Offline"));
                 op->set_printer_state(PrinterState::OFFLINE);
             }
             else {
                 if (mobj->is_in_printing()) {
-                    op->SetToolTip(_L("Busy"));
+                    set_illustrated_tooltip(op, _L("Busy"));
                     op->set_printer_state(PrinterState::BUSY);
                 }
                 else {
-                    op->SetToolTip(_L("Online"));
+                    set_illustrated_tooltip(op, _L("Online"));
                     op->set_printer_state(PrinterState::IDLE);
                 }
             }
