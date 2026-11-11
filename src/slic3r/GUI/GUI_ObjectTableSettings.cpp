@@ -13,6 +13,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "ConfigManipulation.hpp"
 
 #include <wx/arrstr.h>
@@ -181,7 +182,8 @@ bool ObjectTableSettings::update_settings_list(bool is_object, bool is_multiple_
             auto opt_key = (line.get_options())[0].opt_id;  //we assume that we have one option per line
 
             auto btn = new ScalableButton(parent, wxID_ANY, m_bmp_reset);
-            btn->SetToolTip(_(L("Reset parameter")));
+            set_illustrated_tooltip(btn, _L("Removes the value set here, so the setting comes from the process preset again, or "
+                                            "from its object for a part."));
 
             #ifdef __WINDOWS__
             btn->SetBackgroundColour(parent->GetBackgroundColour());

@@ -10,6 +10,7 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include <utility>
 #include "slic3r/GUI/Widgets/RadioGroup.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include "libslic3r/Config.hpp"
 #include "slic3r/GUI/Widgets/CheckBox.hpp"
 #include <cstring>
@@ -136,6 +137,8 @@ SavePresetDialog::Item::Item(Preset::Type type, const std::string &suffix, wxBox
         _L("Preset Inside Project") // 1
     }, wxVERTICAL);
 
+    set_illustrated_tooltip(m_radio_group, _L("A user preset is kept with your other presets and offered in every project. A preset "
+                                              "inside the project is saved only in this project's file, and goes wherever the file goes."));
     sizer->Add(m_radio_group, 0, wxEXPAND | wxTOP | wxLEFT, BORDER_W);
 
     if (parent->m_mode == comDevelop) {

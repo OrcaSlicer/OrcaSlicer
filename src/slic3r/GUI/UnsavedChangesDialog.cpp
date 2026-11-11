@@ -62,6 +62,7 @@
 #include "SavePresetDialog.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "PresetComboBoxes.hpp"
 #include "Widgets/CheckBox.hpp"
@@ -1019,6 +1020,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     checkbox_text->SetFont(::Label::Body_13);
     checkbox_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
     m_sizer_button->Add(checkbox_sizer, 0, wxLEFT, FromDIP(22));
+    // The choice is kept in "save_preset_choise", which Preferences > Clear my choice on... > Unsaved presets clears.
+    const wxString remember_tip = _L("Applies the button you click now to unsaved preset changes from then on, without asking. "
+                                     "To be asked again, clear it in Preferences, under Clear my choice on.");
+    set_illustrated_tooltip(checkbox, remember_tip);
+    set_illustrated_tooltip(checkbox_text, remember_tip);
     checkbox_sizer->Show(bool(m_buttons & REMEMBER_CHOISE));
 
     if (dependent_presets != nullptr) {

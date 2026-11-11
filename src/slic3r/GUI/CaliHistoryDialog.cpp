@@ -6,6 +6,7 @@
 #include "GUI_App.hpp"
 #include "format.hpp"
 #include "MsgDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "slic3r/Utils/CalibUtils.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
@@ -137,6 +138,17 @@ static wxString get_preset_name_by_filament_id(std::string filament_id)
     return preset_name;
 }
 
+// The name and the factor of a result, in the dialogs that edit and add one.
+static wxString history_name_tip()
+{
+    return _L("The name the result is listed under on the printer. Adding the brand, type and condition of the filament keeps results apart.");
+}
+
+static wxString history_k_tip()
+{
+    return _L("The Flow Dynamics factor (pressure advance) of the filament with this nozzle.");
+}
+
 HistoryWindow::HistoryWindow(wxWindow* parent, const std::vector<PACalibResult>& calib_results_history, bool& show)
     : DPIDialog(parent, wxID_ANY, _L("Flow Dynamics Calibration Result"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE)
     , m_calib_results_history(calib_results_history)
@@ -158,6 +170,8 @@ HistoryWindow::HistoryWindow(wxWindow* parent, const std::vector<PACalibResult>&
     Button *   mew_btn = new Button(scroll_window, _L("New"));
     mew_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     mew_btn->Bind(wxEVT_BUTTON, &HistoryWindow::on_click_new_button, this);
+    set_illustrated_tooltip(mew_btn, _L("Adds a result by hand, for a filament whose Flow Dynamics factor you already know, without "
+                                        "printing a test."));
 
     scroll_sizer->Add(mew_btn, 0, wxLEFT, FromDIP(20));
     scroll_sizer->AddSpacer(FromDIP(15));
@@ -168,6 +182,7 @@ HistoryWindow::HistoryWindow(wxWindow* parent, const std::vector<PACalibResult>&
     m_extruder_switch_btn->SetMaxSize(wxSize(FromDIP(120), FromDIP(24)));
     m_extruder_switch_btn->SetLabels(_L("Left Nozzle"), _L("Right Nozzle"));
     m_extruder_switch_btn->Bind(wxEVT_TOGGLEBUTTON, &HistoryWindow::on_switch_extruder, this);
+    set_illustrated_tooltip(m_extruder_switch_btn, _L("Which nozzle's results are listed. Each nozzle keeps its own."));
     m_extruder_switch_btn->SetValue(false);
     scroll_sizer->Add(m_extruder_switch_btn, 0, wxCENTER | wxALL, FromDIP(10));
     scroll_sizer->AddSpacer(10);
@@ -184,6 +199,8 @@ HistoryWindow::HistoryWindow(wxWindow* parent, const std::vector<PACalibResult>&
     comboBox_sizer->AddSpacer(10);
 
     m_comboBox_nozzle_dia = new ComboBox(comboBox_panel, wxID_ANY, "", wxDefaultPosition, wxSize(-1, FromDIP(24)), 0, nullptr, wxCB_READONLY);
+    set_illustrated_tooltip(m_comboBox_nozzle_dia, _L("Lists the results stored for this nozzle size. A result applies only to the "
+                                                      "nozzle size it was made with."));
     comboBox_sizer->Add(m_comboBox_nozzle_dia, 0, wxLEFT | wxEXPAND | wxRIGHT, FromDIP(15));
     comboBox_sizer->AddSpacer(10);
 
@@ -448,6 +465,7 @@ void HistoryWindow::sync_history_data() {
         n_value->Hide();
         auto delete_button = new Button(m_history_data_panel, _L("Delete"));
         delete_button->SetStyle(ButtonStyle::Alert, ButtonType::Window);
+        set_illustrated_tooltip(delete_button, _L("Deletes this result from the printer at once, without asking."));
         delete_button->Bind(wxEVT_BUTTON, [this, gbSizer, i, &result, column_count](auto& e) {
             if (m_ui_op_lock) {
                 return;
@@ -474,6 +492,7 @@ void HistoryWindow::sync_history_data() {
 
         auto edit_button = new Button(m_history_data_panel, _L("Edit"));
         edit_button->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+        set_illustrated_tooltip(edit_button, _L("Changes the name or the factor of this result on the printer."));
         edit_button->Bind(wxEVT_BUTTON, [this, result, k_value, name_value](auto& e) {
             if (m_ui_op_lock) return;
 
@@ -593,6 +612,7 @@ EditCalibrationHistoryDialog::EditCalibrationHistoryDialog(wxWindow             
 
     Label* name_title = new Label(top_panel, _L("Name"));
     m_name_value = new TextInput(top_panel, from_u8(m_new_result.name), "", "", wxDefaultPosition, EDIT_HISTORY_DIALOG_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    set_illustrated_tooltip(m_name_value, history_name_tip());
 
     flex_sizer->Add(name_title);
     flex_sizer->Add(m_name_value);
@@ -642,6 +662,7 @@ EditCalibrationHistoryDialog::EditCalibrationHistoryDialog(wxWindow             
     Label* k_title = new Label(top_panel, _L("Factor K"));
     auto k_str = wxString::Format("%.3f", m_new_result.k_value);
     m_k_value = new TextInput(top_panel, k_str, "", "", wxDefaultPosition, EDIT_HISTORY_DIALOG_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    set_illustrated_tooltip(m_k_value, history_k_tip());
     flex_sizer->Add(k_title);
     flex_sizer->Add(m_k_value);
 
@@ -791,6 +812,7 @@ NewCalibrationHistoryDialog::NewCalibrationHistoryDialog(wxWindow *parent, const
 
     Label *name_title = new Label(top_panel, _L("Name"));
     m_name_value      = new TextInput(top_panel, "", "", "", wxDefaultPosition, NEW_HISTORY_DIALOG_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    set_illustrated_tooltip(m_name_value, history_name_tip());
 
     // Name
     flex_sizer->Add(name_title);
@@ -879,6 +901,7 @@ NewCalibrationHistoryDialog::NewCalibrationHistoryDialog(wxWindow *parent, const
     Label *k_title = new Label(top_panel, _L("Factor K"));
     auto   k_str   = wxString::Format("%.3f", m_new_result.k_value);
     m_k_value      = new TextInput(top_panel, k_str, "", "", wxDefaultPosition, NEW_HISTORY_DIALOG_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    set_illustrated_tooltip(m_k_value, history_k_tip());
 
     // Factor K
     flex_sizer->Add(k_title);

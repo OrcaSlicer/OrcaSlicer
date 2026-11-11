@@ -3,6 +3,7 @@
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "DeviceCore/DevFilaSystem.h"
 #include <wx/event.h>
@@ -206,11 +207,9 @@ CaliPageButton::CaliPageButton(wxWindow* parent, CaliPageActionType type, wxStri
         break;
     case CaliPageActionType::CALI_ACTION_MANUAL_CALI:
         this->SetLabel(_L("Manual Calibration"));
-        this->SetToolTip(_L("Result can be read by human eyes."));
         break;
     case CaliPageActionType::CALI_ACTION_AUTO_CALI:
         this->SetLabel(_L("Auto-Calibration"));
-        this->SetToolTip(_L("We would use Lidar to read the calibration result"));
         break;
     case CaliPageActionType::CALI_ACTION_START:
         this->SetLabel(_L("Start Calibration"));
@@ -423,6 +422,8 @@ CaliPageCaption::CaliPageCaption(wxWindow* parent, CalibMode cali_mode,
     m_prev_btn = new ScalableButton(this, wxID_ANY, "cali_page_caption_prev",
         wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true, 30);
     m_prev_btn->SetBackgroundColour(*wxWHITE);
+    set_illustrated_tooltip(m_prev_btn, _L("Leaves this calibration and goes back to its first page. While its test is printing or its "
+                                           "result is not saved yet, it asks first, and then stops the print."));
     caption_sizer->Add(m_prev_btn, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(10));
 
     wxString title = get_cali_mode_caption_string(cali_mode);
@@ -696,6 +697,59 @@ void PAPageHelpPanel::create_pop_window()
 }
 
 
+// The tooltip of an action button, which depends on the calibration it belongs to. The buttons whose label
+// already says what they do (Prev, Next) have none.
+static void set_action_button_tip(CaliPageButton *btn, CalibMode cali_mode)
+{
+    const bool flow_rate = cali_mode == CalibMode::Calib_Flow_Rate;
+    switch (btn->get_action_type()) {
+    case CaliPageActionType::CALI_ACTION_MANAGE_RESULT:
+        set_illustrated_tooltip(btn, _L("Lists the Flow Dynamics results stored on the printer, to rename, change or delete them, or to "
+                                        "add one whose factor you already know."));
+        break;
+    case CaliPageActionType::CALI_ACTION_MANUAL_CALI:
+        if (flow_rate)
+            set_illustrated_tooltip(btn, _L("Prints a set of blocks, each at a different flow ratio. You pick the block with the smoothest "
+                                            "top surface, can refine it with a second, finer set, and save the result to a filament preset."),
+                                    {{"flow_rate_calibration_coarse.png", {}}});
+        else
+            set_illustrated_tooltip(btn, _L("Prints a test at a range of Flow Dynamics factors, as lines or as corners. You pick the most "
+                                            "even one by eye and enter its factor."),
+                                    {{"fd_calibration_manual.png", _L_CONTEXT("Line", "PA calibration method")},
+                                     {"fd_pattern_manual.png", _L("Pattern")}});
+        break;
+    case CaliPageActionType::CALI_ACTION_AUTO_CALI:
+        if (flow_rate)
+            set_illustrated_tooltip(btn, _L("Prints a test pattern that the printer measures itself, and offers the flow ratio it finds for "
+                                            "saving. Transparent, sparkly or glossy filament can give a wrong result."),
+                                    {{"flow_rate_calibration_auto.png", {}}});
+        else
+            set_illustrated_tooltip(btn, _L("Prints short test lines for each selected filament at the front of the plate. The printer "
+                                            "measures them itself and offers the factors it finds for saving."),
+                                    {{"fd_calibration_auto.png", {}}});
+        break;
+    case CaliPageActionType::CALI_ACTION_CALI:
+        set_illustrated_tooltip(btn, _L("Sends the test print to the printer and starts it. Clear the build plate first."));
+        break;
+    case CaliPageActionType::CALI_ACTION_CALI_NEXT:
+        set_illustrated_tooltip(btn, _L("Goes on to the page where the result of the finished test is entered and saved."));
+        break;
+    case CaliPageActionType::CALI_ACTION_FLOW_CALI_STAGE_2:
+        set_illustrated_tooltip(btn, _L("Prints the second test: blocks in finer steps around the flow ratio chosen here."),
+                                {{"flow_rate_calibration_fine.png", {}}});
+        break;
+    case CaliPageActionType::CALI_ACTION_PA_SAVE:
+        set_illustrated_tooltip(btn, _L("Saves the factor to the printer under the name given, and goes back to the first page."));
+        break;
+    case CaliPageActionType::CALI_ACTION_FLOW_SAVE:
+    case CaliPageActionType::CALI_ACTION_FLOW_COARSE_SAVE:
+    case CaliPageActionType::CALI_ACTION_FLOW_FINE_SAVE:
+        set_illustrated_tooltip(btn, _L("Saves the flow ratio to a filament preset with the name given, and goes back to the first page."));
+        break;
+    default: break;
+    }
+}
+
 CaliPageActionPanel::CaliPageActionPanel(wxWindow* parent,
     CalibMode cali_mode,
     CaliPageType page_type,
@@ -769,6 +823,7 @@ CaliPageActionPanel::CaliPageActionPanel(wxWindow* parent,
     top_sizer->Add(0, 0, 1, wxEXPAND, 0);
     for (int i = 0; i < m_action_btns.size(); i++) {
         top_sizer->Add(m_action_btns[i], 0, wxALL, FromDIP(5));
+        set_action_button_tip(m_action_btns[i], cali_mode);
 
         m_action_btns[i]->Bind(wxEVT_BUTTON,
             [this, i](wxCommandEvent& evt) {

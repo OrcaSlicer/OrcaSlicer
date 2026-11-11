@@ -5,6 +5,7 @@
 #include "format.hpp"
 #include "Widgets/Label.hpp"
 #include "MsgDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevNozzleSystem.h"
 #include "DeviceCore/DevNozzleRack.h"
@@ -170,6 +171,19 @@ GridComboBox::GridComboBox(wxWindow* parent, wxSize size, int col_idx, int extru
 
 }
 
+// Tooltips shared by the save pages.
+static wxString pa_result_name_tip()
+{
+    return _L("The name the result is saved under on the printer. Saving under the name of an earlier result of this "
+              "filament replaces that result, after asking.");
+}
+
+static wxString flow_preset_name_tip()
+{
+    return _L("The name of the filament preset the flow ratio is saved to, a copy of the filament's current preset. "
+              "It cannot be the name of a system preset.");
+}
+
 CaliPASaveAutoPanel::CaliPASaveAutoPanel(
     wxWindow* parent,
     wxWindowID id,
@@ -331,6 +345,8 @@ void CaliPASaveAutoPanel::sync_cali_result(const std::vector<PACalibResult>& cal
         auto n_value_failed = new Label(m_grid_panel, _L("Failed"));
 
         auto comboBox_tray_name = new GridComboBox(m_grid_panel, CALIBRATION_SAVE_INPUT_SIZE, item.tray_id, item.extruder_id);
+        set_illustrated_tooltip(k_value, _L("The Flow Dynamics factor the printer measured for this filament. You can correct it before saving."));
+        set_illustrated_tooltip(comboBox_tray_name, pa_result_name_tip());
         auto tray_name_failed = new Label(m_grid_panel, " - ");
         wxArrayString selections;
         static std::vector<PACalibResult> filtered_results;
@@ -694,6 +710,8 @@ void CaliPASaveAutoPanel::sync_cali_result_for_multi_extruder(const std::vector<
         auto nozzle_id_failed = new Label(m_multi_extruder_grid_panel, _L("Failed"));
 
         auto                              comboBox_tray_name = new GridComboBox(m_multi_extruder_grid_panel, CALIBRATION_SAVE_INPUT_SIZE, item.tray_id, item.extruder_id);
+        set_illustrated_tooltip(k_value, _L("The Flow Dynamics factor the printer measured for this filament. You can correct it before saving."));
+        set_illustrated_tooltip(comboBox_tray_name, pa_result_name_tip());
         auto                              tray_name_failed   = new Label(m_multi_extruder_grid_panel, " - ");
         wxArrayString                     selections;
         static std::vector<PACalibResult> filtered_results;
@@ -908,6 +926,7 @@ void CaliPASaveManualPanel::create_panel(wxWindow* parent)
     n_value_text->Hide();
     m_k_val = new TextInput(parent, wxEmptyString, "", "", wxDefaultPosition, CALIBRATION_OPTIMAL_INPUT_SIZE, 0);
     m_k_val->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    set_illustrated_tooltip(m_k_val, _L("The factor printed beside the line or corner you picked."));
     m_n_val = new TextInput(parent, wxEmptyString, "", "", wxDefaultPosition, CALIBRATION_OPTIMAL_INPUT_SIZE, 0);
     m_n_val->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     m_n_val->Hide();
@@ -921,6 +940,7 @@ void CaliPASaveManualPanel::create_panel(wxWindow* parent)
     m_top_sizer->Add(save_text, 0, 0, 0);
 
     m_save_name_input = new TextInput(parent, "", "", "", wxDefaultPosition, { CALIBRATION_TEXT_MAX_LENGTH, FromDIP(24) }, 0);
+    set_illustrated_tooltip(m_save_name_input, pa_result_name_tip());
     m_top_sizer->Add(m_save_name_input, 0, 0, 0);
 
     m_top_sizer->AddSpacer(FromDIP(10));
@@ -1105,6 +1125,7 @@ void CaliPASaveP1PPanel::create_panel(wxWindow* parent)
     n_value_text->SetFont(::Label::Head_14);
     m_k_val = new TextInput(parent, wxEmptyString, "", "", wxDefaultPosition, CALIBRATION_OPTIMAL_INPUT_SIZE, 0);
     m_k_val->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+    set_illustrated_tooltip(m_k_val, _L("The factor printed beside the line or corner you picked."));
     m_n_val = new TextInput(parent, wxEmptyString, "", "", wxDefaultPosition, CALIBRATION_OPTIMAL_INPUT_SIZE, 0);
     m_n_val->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     n_value_text->Hide();
@@ -1492,6 +1513,8 @@ void CalibrationFlowX1SavePage::sync_cali_result(const std::vector<FlowRatioCali
         auto flow_ratio_value_failed = new Label(m_grid_panel, _L("Failed"));
 
         auto save_name_input = new GridTextInput(m_grid_panel, "", "", { CALIBRATION_TEXT_MAX_LENGTH, FromDIP(24) }, item.tray_id, GridTextInputType::Name);
+        set_illustrated_tooltip(flow_ratio_value, _L("The flow ratio the printer measured for this filament. You can correct it before saving."));
+        set_illustrated_tooltip(save_name_input, flow_preset_name_tip());
         auto save_name_input_failed = new Label(m_grid_panel, " - ");
 
         column_data_sizer->Add(tray_title, 0, wxALIGN_CENTER | wxBOTTOM, ROW_GAP);
@@ -1681,6 +1704,9 @@ void CalibrationFlowCoarseSavePage::create_page(wxWindow* parent)
         coarse_block_items.Add(std::to_string(-20 + (i * 5)));
     }
     m_optimal_block_coarse->Set(coarse_block_items);
+    set_illustrated_tooltip(m_optimal_block_coarse, _L("The number on the block whose top surface is smoothest, a change in percent. "
+                                                       "The flow ratio it gives is shown below."),
+                            {{"flow_rate_calibration_coarse.png", {}}});
     m_coarse_calc_result_text = new Label(parent, "");
     coarse_value_sizer->Add(coarse_value_text, 0, 0);
     coarse_value_sizer->Add(m_optimal_block_coarse, 0, 0);
@@ -1696,6 +1722,9 @@ void CalibrationFlowCoarseSavePage::create_page(wxWindow* parent)
     cb_sizer->Add(m_checkBox_skip_calibration);
 
     auto cb_text = new Label(checkBox_panel, _L("Skip Calibration2"));
+    const wxString skip_tip = _L("Saves the flow ratio of this test to a filament preset now, instead of printing the finer second test.");
+    set_illustrated_tooltip(m_checkBox_skip_calibration, skip_tip);
+    set_illustrated_tooltip(cb_text, skip_tip);
     cb_sizer->Add(cb_text);
     cb_text->Bind(wxEVT_LEFT_DOWN, [this](auto&) {
         m_checkBox_skip_calibration->SetValue(!m_checkBox_skip_calibration->GetValue());
@@ -1717,6 +1746,7 @@ void CalibrationFlowCoarseSavePage::create_page(wxWindow* parent)
     save_sizer->Add(save_text, 0, 0, 0);
 
     m_save_name_input = new TextInput(save_panel, "", "", "", wxDefaultPosition, {CALIBRATION_TEXT_MAX_LENGTH, FromDIP(24)}, 0);
+    set_illustrated_tooltip(m_save_name_input, flow_preset_name_tip());
     save_sizer->Add(m_save_name_input, 0, 0, 0);
 
     m_top_sizer->Add(save_panel, 0, 0, 0);
@@ -1917,6 +1947,9 @@ void CalibrationFlowFineSavePage::create_page(wxWindow* parent)
         fine_block_items.Add(std::to_string(-9 + (i)));
     }
     m_optimal_block_fine->Set(fine_block_items);
+    set_illustrated_tooltip(m_optimal_block_fine, _L("The number on the block whose top surface is smoothest, a change in percent. "
+                                                     "The flow ratio it gives is shown below."),
+                            {{"flow_rate_calibration_fine.png", {}}});
     m_fine_calc_result_text = new Label(parent, "");
     fine_value_sizer->Add(fine_value_text, 0, 0);
     fine_value_sizer->Add(m_optimal_block_fine, 0, 0);
@@ -1930,6 +1963,7 @@ void CalibrationFlowFineSavePage::create_page(wxWindow* parent)
     m_top_sizer->Add(save_text, 0, 0, 0);
 
     m_save_name_input = new TextInput(parent, "", "", "", wxDefaultPosition, {CALIBRATION_TEXT_MAX_LENGTH, FromDIP(24)}, 0);
+    set_illustrated_tooltip(m_save_name_input, flow_preset_name_tip());
     m_top_sizer->Add(m_save_name_input, 0, 0, 0);
 
     m_top_sizer->AddSpacer(FromDIP(20));
