@@ -413,6 +413,9 @@
       //   flush_multiplier:[1,1]
       // }
       window.addEventListener("DOMContentLoaded",function(){
+        document.getElementById("calc_btn").title = T("calc_btn_tip", "Calculate the flushing volumes of this nozzle again from the filament colors, replacing the values typed in.");
+        document.getElementById("extruders").title = T("extruders_tip", "Each nozzle has its own flushing volumes. Choose the one to edit.");
+        document.getElementById("multiplierInput").title = T("multiplier_tip", "Scales all the flushing volumes of this nozzle at once. Above 1 purges more for cleaner color changes, below 1 saves filament.");
         var data = JSON.stringify({
           msg: 'init',
         })
@@ -561,6 +564,8 @@
             input.value = readonly ? 0 : displayVal;
             if (readonly) {
               input.readOnly = true;
+            } else {
+              input.title = T("cell_tip", "Filament purged when changing from filament %s to filament %s. Orange: changed from the calculated value. Red: outside the suggested range.", i + 1, j + 1);
             }
             input.addEventListener("input", (e) => onCellInput(i, j, e));
 

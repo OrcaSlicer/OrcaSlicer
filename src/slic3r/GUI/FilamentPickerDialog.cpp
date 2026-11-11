@@ -1,5 +1,6 @@
 #include "FilamentPickerDialog.hpp"
 #include "ColorPickerDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "libslic3r/Color.hpp"
 #include <optional>
 #include <utility>
@@ -568,6 +569,8 @@ void FilamentPickerDialog::CreateMoreInfoButton()
 {
     m_more_btn = new Button(this, "+ " + _L("More Colors"));
     m_more_btn->SetStyle(ButtonStyle::Regular, ButtonType::Expanded);
+    set_illustrated_tooltip(m_more_btn, _L("Pick a color that is not in the list, or several colors for a multicolor or gradient "
+                                           "filament."));
 }
 
 void FilamentPickerDialog::BindEvents()

@@ -1,4 +1,5 @@
 #include "SyncAmsInfoDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include <boost/log/trivial.hpp>
 #include "slic3r/GUI/GUI_Utils.hpp"
@@ -553,6 +554,7 @@ void SyncAmsInfoDialog::add_two_image_control()
         m_swipe_left_button->SetBitmap(m_swipe_left_bmp_normal.bmp());
     });
     m_swipe_left_button->Bind(wxEVT_BUTTON, &SyncAmsInfoDialog::to_previous_plate, this);
+    set_illustrated_tooltip(m_swipe_left_button, _L("Show the previous plate"));
     swipe_left__sizer->Add(m_swipe_left_button, 0, wxEXPAND);
     swipe_left__sizer->AddStretchSpacer();
     view_two_thumbnail_sizer->Add(swipe_left__sizer, 0, wxEXPAND);
@@ -593,6 +595,7 @@ void SyncAmsInfoDialog::add_two_image_control()
         m_swipe_right_button->SetBitmap(m_swipe_right_bmp_normal.bmp());
     });
     m_swipe_right_button->Bind(wxEVT_BUTTON, &SyncAmsInfoDialog::to_next_plate, this);
+    set_illustrated_tooltip(m_swipe_right_button, _L("Show the next plate"));
 
     swipe_right__sizer->Add(m_swipe_right_button, 0, wxEXPAND);
     swipe_right__sizer->AddStretchSpacer();

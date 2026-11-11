@@ -2212,6 +2212,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("compatible_printers", coStrings);
     def->label = L("Select printers");
+    def->tooltip = L("The printer profiles this profile can be used with; it is hidden for the others. "
+                     "An empty list means every printer, or those that pass the condition below.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
     def->cli = ConfigOptionDef::nocli;
@@ -2232,6 +2234,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("compatible_prints", coStrings);
     def->label = L("Select profiles");
+    def->tooltip = L("The process profiles this profile can be used with; it is hidden for the others. "
+                     "An empty list means every process profile, or those that pass the condition below.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
     def->cli = ConfigOptionDef::nocli;
@@ -2361,7 +2365,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("activate_air_filtration",coBools);
     def->label = L("Activate air filtration");
-    def->tooltip = L("Activate for better air filtration.\nG-code command: M106 P3 S(0-255)");
+    def->tooltip = L("Run the printer's exhaust fan for this filament, to clear the fumes of materials such as ABS and ASA. "
+                     "Choose below whether it runs during the print, after it, or both, and how fast.\n"
+                     "G-code command: M106 P3 S(0-255)");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBools{false});
     
@@ -2950,7 +2956,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("pressure_advance", coFloats);
     def->label = L("Pressure advance");
-    def->tooltip = L("Pressure advance (Klipper) AKA Linear advance factor (Marlin).");
+    def->tooltip = L("Pressure advance (Klipper), also called the linear advance factor (Marlin). It makes the extruder push ahead "
+                     "of a speed-up and ease off ahead of a slow-down, so corners and the ends of lines get the right amount of plastic. "
+                     "Too low bulges the corners, too high starves them. Find it with the pressure advance calibration.");
     def->max = 2;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0.02 });
@@ -3377,7 +3385,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_stamping_loading_speed", coFloats);
     def->label = L("Stamping loading speed");
-    def->tooltip = L("Speed used for stamping.");
+    def->tooltip = L("Speed of the stamping moves, which push the filament back toward the nozzle between the cooling moves. "
+                     "See Stamping distance.");
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0. });
@@ -3467,7 +3476,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_ramming_parameters", coStrings);
     def->label = L("Ramming parameters");
-    def->tooltip = L("This string is edited by RammingDialog and contains ramming specific parameters.");
+    def->tooltip = L("Ramming is the fast extrusion on the wipe tower just before the filament is unloaded on a single extruder "
+                     "multi-material printer. It shapes the end of the filament so that it leaves the hotend cleanly and can be "
+                     "loaded again. Set... edits how fast it extrudes over time, and the width and spacing of the ramming lines.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings { "120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0|"
        " 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6" });
@@ -3506,7 +3517,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filament_type", coStrings);
     def->label = L("Type");
-    def->tooltip = L("Filament material type");
+    def->tooltip = L("The material of the filament, such as PLA or PETG. The recommended temperature checks and the matching with "
+                     "the filaments loaded in the printer go by it, and custom G-code can read it as filament_type.");
     def->gui_type = ConfigOptionDef::GUIType::f_enum_open;
     def->gui_flags = "show_value";
 
@@ -5676,7 +5688,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("fan_min_speed", coFloats);
     def->label = L("Fan speed");
-    def->tooltip = L("Minimum speed for part cooling fan.");
+    def->tooltip = L("The part cooling fan speed for a layer that takes as long as the layer time beside it. Shorter layers get a "
+                     "faster fan, up to the maximum fan speed. Longer layers get no fan, unless Keep fan always on is ticked.");
     def->sidetext = "%";
     def->min = 0;
     def->max = 100;
@@ -6168,12 +6181,16 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("long_retractions_when_ec", coBools);
     def->label = L("Long retraction when extruder change");
+    def->tooltip = L("Retract this filament further before its extruder is parked at an extruder change, so that it does not ooze "
+                     "while it waits. The printer's change G-code reads it as long_retraction_when_ec.");
     def->mode = comAdvanced;
     def->nullable = true;
     def->set_default_value(new ConfigOptionBoolsNullable {false});
 
     def = this->add("retraction_distances_when_ec", coFloats);
     def->label = L("Retraction distance when extruder change");
+    def->tooltip = L("How far the filament is retracted at an extruder change when Long retraction when extruder change is on. "
+                     "The printer's change G-code reads it as retraction_distance_when_ec.");
     def->mode = comAdvanced;
     def->nullable = true;
     def->min = 0;
@@ -8072,7 +8089,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("nozzle_temperature_range_low", coInts);
     def->label = L("Min");
-    //def->tooltip = L("");
+    def->tooltip = L("The lowest nozzle temperature this filament prints well at. A print temperature below it brings a warning.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = max_temp;
@@ -8080,7 +8097,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("nozzle_temperature_range_high", coInts);
     def->label = L("Max");
-    //def->tooltip = L("");
+    def->tooltip = L("The highest nozzle temperature this filament prints well at. A print temperature above it brings a warning, "
+                     "and a flush temperature of 0 uses it.");
     def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min = 0;
     def->max = max_temp;

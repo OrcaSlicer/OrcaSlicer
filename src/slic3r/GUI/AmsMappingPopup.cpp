@@ -1,4 +1,5 @@
 #include "AmsMappingPopup.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "I18N.hpp"
 
 #include "libslic3r/Utils.hpp"
@@ -2138,6 +2139,7 @@ void AmsReplaceMaterialDialog::create()
 
     m_nozzle_btn_panel = new SwitchBoard(this, _L_CONTEXT("Left", "Nozzle position"), _L_CONTEXT("Right", "Nozzle position"), wxSize(FromDIP(126), FromDIP(26)));
     m_nozzle_btn_panel->Hide();
+    set_illustrated_tooltip(m_nozzle_btn_panel, _L("Each extruder has its own backup filaments. Choose the one whose groups are shown below."));
     m_nozzle_btn_panel->Connect(wxCUSTOMEVT_SWITCH_POS, wxCommandEventHandler(AmsReplaceMaterialDialog::on_nozzle_selected), NULL, this);
 
     label_txt = new Label(this, _L("When the current material run out, the printer will continue to print in the following order."));

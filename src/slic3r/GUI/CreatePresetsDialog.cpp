@@ -1,4 +1,5 @@
 #include "CreatePresetsDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include <algorithm>
 #include <any>
 #include <boost/algorithm/string/trim.hpp>
@@ -856,6 +857,8 @@ wxBoxSizer *CreateFilamentPresetDialog::create_vendor_item()
     m_filament_vendor_combobox->SetLabel(_L("Select Vendor"));
     m_filament_vendor_combobox->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
     m_filament_vendor_combobox->Set(choices);
+    set_illustrated_tooltip(m_filament_vendor_combobox, _L("The brand of the filament. The new preset is named after its vendor, type "
+                                                           "and serial."));
     m_filament_vendor_combobox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {
         m_filament_vendor_combobox->SetLabelColor(*wxBLACK);
         e.Skip();
@@ -887,6 +890,9 @@ wxBoxSizer *CreateFilamentPresetDialog::create_vendor_item()
 
     wxStaticText *m_can_not_find_vendor_text = new wxStaticText(this, wxID_ANY, _L("Can't find vendor I want"), wxDefaultPosition, wxDefaultSize, 0);
     m_can_not_find_vendor_text->SetFont(::Label::Body_13);
+    const wxString custom_vendor_tip = _L("Type in a vendor that is not in the list.");
+    set_illustrated_tooltip(m_can_not_find_vendor_checkbox, custom_vendor_tip);
+    set_illustrated_tooltip(m_can_not_find_vendor_text, custom_vendor_tip);
 
     wxSize size = m_can_not_find_vendor_text->GetTextExtent(_L("Can't find vendor I want"));
     m_can_not_find_vendor_text->SetMinSize(wxSize(size.x + FromDIP(4), -1));
@@ -940,6 +946,8 @@ wxBoxSizer *CreateFilamentPresetDialog::create_type_item()
     m_filament_type_combobox->SetLabel(_L("Select Type"));
     m_filament_type_combobox->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
     m_filament_type_combobox->Set(filament_type);
+    set_illustrated_tooltip(m_filament_type_combobox, _L("The material of the filament. It is part of the new preset's name, and the "
+                                                         "presets to start from are the ones of this material."));
     comboBoxSizer->Add(m_filament_type_combobox, 0, wxEXPAND | wxALL, 0);
     horizontal_sizer->Add(comboBoxSizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
@@ -1013,6 +1021,8 @@ wxBoxSizer *CreateFilamentPresetDialog::create_filament_preset_item()
     m_filament_preset_combobox = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, FILAMENT_PRESET_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     m_filament_preset_combobox->SetLabel(_L("Select Filament Preset"));
     m_filament_preset_combobox->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
+    set_illustrated_tooltip(m_filament_preset_combobox, _L("The filament preset the new one copies its settings from. The printers it "
+                                                           "has a version for are listed below to choose from."));
 
 
     m_filament_preset_combobox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {

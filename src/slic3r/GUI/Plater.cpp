@@ -2,6 +2,7 @@
 #include "../Utils/NetworkAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "CalibUtils.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "Flashforge.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
@@ -3293,6 +3294,8 @@ Sidebar::Sidebar(Plater *parent)
     wxBoxSizer* bSizer39;
     bSizer39 = new wxBoxSizer( wxHORIZONTAL );
     p->m_filament_icon = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "filament");
+    set_illustrated_tooltip(p->m_filament_icon, _L("The filaments this project prints with, one per slot. Objects and parts are "
+                                                   "assigned to them in the object list."));
     p->m_staticText_filament_settings = new Label(p->m_panel_filament_title, _L("Project Filaments"), LB_PROPAGATE_MOUSE_EVENT);
     bSizer39->Add(p->m_filament_icon, 0, wxALIGN_CENTER | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
     bSizer39->Add(p->m_staticText_filament_settings, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(SidebarProps::ElementSpacing()));
@@ -3314,6 +3317,9 @@ Sidebar::Sidebar(Plater *parent)
 
     p->m_purge_mode_btn = new Button(p->m_panel_filament_title, _L("Purge mode"));
     p->m_purge_mode_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Compact);
+    set_illustrated_tooltip(p->m_purge_mode_btn, _L("Choose how thoroughly the nozzle is purged at a filament change: Standard purges "
+                                                    "fully for the cleanest colors, the other mode purges less and faster at the risk "
+                                                    "of slight color mixing."));
 
     p->m_purge_mode_btn->Bind(wxEVT_BUTTON, [](wxCommandEvent &e) {
         auto &preset_bundle         = *wxGetApp().preset_bundle;
@@ -3349,7 +3355,7 @@ Sidebar::Sidebar(Plater *parent)
     bSizer39->Hide(p->m_flushing_volume_btn); // ORCA Ensure button is hidden on launch while 1 filament exist
 
     ScalableButton* add_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "add_filament");
-    add_btn->SetToolTip(_L("Add one filament"));
+    set_illustrated_tooltip(add_btn, _L("Add one filament"));
     add_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e){
         add_filament();
         update_filaments_counter();
@@ -3359,7 +3365,7 @@ Sidebar::Sidebar(Plater *parent)
     // ORCA Moved add button after delete button to prevent add button position change when remove icon automatically hidden
 
     ScalableButton* del_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "delete_filament");
-    del_btn->SetToolTip(_L("Remove last filament"));
+    set_illustrated_tooltip(del_btn, _L("Remove last filament"));
     del_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         delete_filament();
         update_filaments_counter();
@@ -3373,7 +3379,7 @@ Sidebar::Sidebar(Plater *parent)
 
     ams_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "ams_fila_sync", wxEmptyString, wxDefaultSize, wxDefaultPosition,
                                                  wxBU_EXACTFIT | wxNO_BORDER, false, 16); // ORCA match icon size with other icons as 16x16
-    ams_btn->SetToolTip(_L("Synchronize filament list from AMS"));
+    set_illustrated_tooltip(ams_btn, _L("Synchronize filament list from AMS"));
     ams_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         sync_ams_list();
     });
@@ -3385,7 +3391,7 @@ Sidebar::Sidebar(Plater *parent)
     //bSizer39->Add(FromDIP(10), 0, 0, 0, 0 );
 
     ScalableButton* set_btn = new ScalableButton(p->m_panel_filament_title, wxID_ANY, "settings");
-    set_btn->SetToolTip(_L("Set filaments to use"));
+    set_illustrated_tooltip(set_btn, _L("Set filaments to use"));
     set_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         p->editing_filament = -1;
         // wxGetApp().params_dialog()->Popup();
@@ -3454,6 +3460,10 @@ Sidebar::Sidebar(Plater *parent)
         btn_sizer->AddStretchSpacer();
         p->m_btn_add_mixed_filament->SetSizer(btn_sizer);
         p->m_btn_add_mixed_filament->SetCursor(wxCursor(wxCURSOR_HAND));
+        const wxString add_mixed_tip = _L("Add a mixed filament: a new filament slot that is printed by alternating two or three of "
+                                          "the project's filaments in a ratio you set, so the part shows a blend of their colors.");
+        for (wxWindow *w : std::initializer_list<wxWindow *>{p->m_btn_add_mixed_filament, icon_add, add_label})
+            set_illustrated_tooltip(w, add_mixed_tip);
         // Whole panel is the hit target, so forward clicks from the children too.
         auto on_click = [this](wxMouseEvent&) { add_mixed_filament(); };
         p->m_btn_add_mixed_filament->Bind(wxEVT_LEFT_UP, on_click);
@@ -3473,7 +3483,7 @@ Sidebar::Sidebar(Plater *parent)
         title_sizer->Add(p->m_text_mixed_title, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
 
         p->m_btn_mixed_del = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_filament");
-        p->m_btn_mixed_del->SetToolTip(_L("Remove last mixed filament"));
+        set_illustrated_tooltip(p->m_btn_mixed_del, _L("Remove last mixed filament"));
         p->m_btn_mixed_del->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
             auto* plater_ptr = dynamic_cast<Plater*>(GetParent());
             if (!plater_ptr) return;
@@ -3484,12 +3494,12 @@ Sidebar::Sidebar(Plater *parent)
         title_sizer->Add(p->m_btn_mixed_del, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
 
         p->m_btn_mixed_del_all = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "delete_all_filaments");
-        p->m_btn_mixed_del_all->SetToolTip(_L("Remove all mixed filaments"));
+        set_illustrated_tooltip(p->m_btn_mixed_del_all, _L("Remove all mixed filaments"));
         p->m_btn_mixed_del_all->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { remove_all_mixed_filaments(); });
         title_sizer->Add(p->m_btn_mixed_del_all, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
 
         p->m_btn_mixed_add = new ScalableButton(p->m_panel_mixed_title, wxID_ANY, "add_filament");
-        p->m_btn_mixed_add->SetToolTip(_L("Add mixed filament"));
+        set_illustrated_tooltip(p->m_btn_mixed_add, _L("Add mixed filament"));
         p->m_btn_mixed_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { add_mixed_filament(); });
         title_sizer->Add(p->m_btn_mixed_add, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(SidebarProps::IconSpacing()));
         title_sizer->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
@@ -3740,7 +3750,7 @@ void Sidebar::init_filament_combo(PlaterPresetComboBox **combo, const int filame
     combo_and_btn_sizer->Add(del_btn, 0, wxALIGN_CENTER_VERTICAL, 5 * em / 10);
     */
     ScalableButton* edit_btn = new ScalableButton(p->m_panel_filament_content, wxID_ANY, "menu_filament");
-    edit_btn->SetToolTip(_L("Click to edit preset"));
+    set_illustrated_tooltip(edit_btn, _L("Click to edit preset"));
 
     PlaterPresetComboBox* combobox = (*combo);
     edit_btn->Bind(wxEVT_BUTTON, [this, edit_btn, combobox, filament_idx](wxCommandEvent) {
@@ -4719,7 +4729,7 @@ void Sidebar::update_mixed_filament_list()
                     int r = (ci < draw_ratios.size()) ? draw_ratios[ci] : 0;
                     tip += wxString::Format("%u (%d%%)", draw_ids[ci], r);
                 }
-                content_panel->SetToolTip(tip);
+                set_illustrated_tooltip(content_panel, tip);
             }
 
             // Repaint on resize so truncation updates
@@ -4736,7 +4746,7 @@ void Sidebar::update_mixed_filament_list()
 
             auto* menu_btn = new ScalableButton(p->m_panel_mixed_content, wxID_ANY,
                 is_broken ? "error" : "menu_filament");
-            menu_btn->SetToolTip(is_broken ? _L("Mixed filament has broken component references") : _L("Edit / Delete / Merge"));
+            set_illustrated_tooltip(menu_btn, is_broken ? _L("Mixed filament has broken component references") : _L("Edit / Delete / Merge"));
             menu_btn->Bind(wxEVT_BUTTON, [this, panel_idx, cfg_idx](wxCommandEvent&) {
                 wxMenu menu;
 
@@ -6719,12 +6729,20 @@ wxButton* Sidebar::get_wiping_dialog_button()
 
 void Sidebar::set_flushing_volume_warning(const bool flushing_volume_modify)
 {
+    const wxString tip = _L("Set how much filament is purged when changing from one filament to another, for each pair. The volumes "
+                            "are calculated from the filament colors; more purge gives cleaner color changes and more waste.");
     if(flushing_volume_modify){
         p->m_flushing_volume_btn->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
         p->m_flushing_volume_btn->SetBorderColor(wxColour("#FF6F00"));
+        // TRN Second paragraph of the "Flushing volumes" button's tooltip while the button has an orange border.
+        set_illustrated_tooltip(p->m_flushing_volume_btn, tip + "\n\n" + _L("The orange border means the volumes no longer match the "
+                                                                              "ones calculated from the colors: they were edited, or a "
+                                                                              "multiplier other than 1 is set."));
     }
-    else
+    else {
         p->m_flushing_volume_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Compact);
+        set_illustrated_tooltip(p->m_flushing_volume_btn, tip);
+    }
 }
 
 void Sidebar::enable_buttons(bool enable)
