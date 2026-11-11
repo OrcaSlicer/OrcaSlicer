@@ -1,10 +1,11 @@
-"""The toolpaths behind the feature pictures (settings_process_speed.py), sliced by OrcaSlicer itself.
+"""The toolpaths behind the Speed page's pictures of line groups (settings_process_speed.py), sliced by
+OrcaSlicer itself.
 
-The settings that change one kind of line - its speed, acceleration, jerk, width or flow - show that
-kind of line in a picture of one test part, with every other line grey. The part is sliced once here,
-with two filaments so that it gets a prime tower, and the extrusions and travel moves of every layer
-are kept in settings_process_speed_toolpaths.json.gz beside this file, each with its feature type from
-the G-code. The pictures are drawn from that file, so drawing them needs no slicer.
+The Speed settings that cover a group of lines show that group in a picture of one test part, with
+every other line grey. The part is sliced once here, with two filaments so that it gets a prime tower,
+and the extrusions and travel moves of every layer are kept in settings_process_speed_toolpaths.json.gz
+beside this file, each with its feature type from the G-code. The pictures are drawn from that file, so
+drawing them needs no slicer.
 
     python3 -m gizmo_tips.settings_process_speed_slice <path to orca-slicer>   # from scripts/
     python3 scripts/gen_gizmo_tips.py settings_process_speed

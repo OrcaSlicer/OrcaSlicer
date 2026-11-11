@@ -1,10 +1,10 @@
-"""Pictures for the tooltips of the Process tab's Speed page (src/slic3r/GUI/SettingTipsProcessSpeed.cpp),
-and the feature pictures that the other pages share.
+"""Pictures for the tooltips of the Process tab's Speed page (src/slic3r/GUI/SettingTipsProcessSpeed.cpp).
 
-The feature pictures, feature_<name>.png, show one kind of line: the settings that change one kind of
-line (its speed, acceleration, jerk, width or flow) all point at the picture of that line. They are one
-test part, sliced once by OrcaSlicer (settings_process_speed_slice.py), drawn in the plater's view with
-its front right corner cut away so that the inside shows, and differ only in which lines are in ACCENT.
+The settings that cover a group of lines (the first layer's walls or infill, everything printed over
+nothing, every infill) show that group in ACCENT on one test part, sliced once by OrcaSlicer
+(settings_process_speed_slice.py) and drawn in the plater's view with its front right corner cut away so
+that the inside shows. The pictures of one kind of line, feature_<name>.png, are drawn by
+settings_process_features.py.
 
 The rest are diagrams of what the Speed page's settings do, drawn with PIL in the same palette: a wall
 in section for the overhang speeds, and the speed of the nozzle along a path for acceleration, jerk and
@@ -35,7 +35,7 @@ def _layers():
     return _data
 
 
-# --- the feature pictures -------------------------------------------------------------------------
+# --- the line groups on the test part ---------------------------------------------------------------
 
 FIRST_Z = 0.35  # the first layer is at 0.3 mm
 # The front of the part is cut away as a staircase, each step down to a layer that shows one kind of
@@ -59,29 +59,6 @@ def _cut(paths, z):
         paths = (_clip(paths, (1.0, 0.0), x0) + _clip(paths, (-1.0, 0.0), -x1)
                  + _clip(band, (0.0, 1.0), y0) + _clip(band, (0.0, -1.0), -y1))
     return paths
-
-
-# Feature name -> which lines it is: a test on (z, G-code type).
-FEATURES = {
-    "outer_wall": lambda z, t: t == "Outer wall",
-    "inner_wall": lambda z, t: t == "Inner wall",
-    "top_surface": lambda z, t: t == "Top surface",
-    "bottom_surface": lambda z, t: t == "Bottom surface",
-    "sparse_infill": lambda z, t: t == "Sparse infill",
-    "internal_solid_infill": lambda z, t: t == "Internal solid infill",
-    "bridge": lambda z, t: t == "Bridge",
-    "internal_bridge": lambda z, t: t == "Internal Bridge",
-    "gap_fill": lambda z, t: t == "Gap infill",
-    "overhang": lambda z, t: t == "Overhang wall",
-    "support": lambda z, t: t in ("Support", "Support transition"),
-    "support_interface": lambda z, t: t == "Support interface",
-    "skirt": lambda z, t: t == "Skirt",
-    "brim": lambda z, t: t == "Brim",
-    "first_layer": lambda z, t: z < FIRST_Z and t != "Travel",
-    "travel": lambda z, t: t == "Travel",
-    "ironing": lambda z, t: t == "Ironing",
-    "prime_tower": lambda z, t: t == "Prime tower",
-}
 
 
 def _stray(p):
@@ -123,7 +100,7 @@ def _feature(test):
     return _lines(lambda z, t: LIT if test(z, t) else None)
 
 
-# More pictures of the same part, for the Speed page's settings that cover a group of lines.
+# The Speed page's settings that cover a group of lines: which lines, as a test on (z, G-code type).
 FIRST_WALLS = ("Outer wall", "Inner wall", "Overhang wall", "Brim")
 GROUPS = {
     # initial_layer_speed: the first layer's walls and brim; initial_layer_infill_speed: the rest of it.
@@ -156,8 +133,6 @@ def _add(name, frames, fn):
     globals()[name] = fn
 
 
-for _name, _test in FEATURES.items():
-    _add("feature_" + _name, 0, _feature(_test))
 for _name, _test in GROUPS.items():
     _add("speed_" + _name, 0, _feature(_test))
 _add("speed_slow_down_layers", 0, _lines(_slow_layer))
