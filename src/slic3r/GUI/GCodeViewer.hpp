@@ -19,12 +19,15 @@
 #include "libslic3r/BoundingBox.hpp"
 #include <cstddef>
 #include "libslic3r/Config.hpp"
+#include "libslic3r/IMEXZones.hpp"
 #include "libvgcode/include/GCodeInputData.hpp"
 #include <iterator>
+#include <optional>
 #include "libvgcode/include/PathVertex.hpp"
 #include <libvgcode/include/Types.hpp>
 
 #include <array>
+#include <optional>
 #include <cstdint>
 #include <float.h>
 #include <set>
@@ -87,6 +90,8 @@ public:
             float m_model_z_offset{ 0.5f };
             bool m_visible{ true };
             bool m_is_dark = false;
+            // the G-code was exported with high_precision_gcode, so positions are shown with one more decimal
+            bool m_high_precision_gcode{ false };
             float m_scale_factor{ 1.0f };
 #if ENABLE_ACTUAL_SPEED_DEBUG
             ActualSpeedImguiWidget m_actual_speed_imgui_widget;
@@ -102,6 +107,7 @@ public:
             void set_world_position(const Vec3f& position) { m_world_position = position; }
             void set_world_offset(const Vec3f& offset) { m_world_offset = offset; }
             void set_z_offset(float z_offset) { m_z_offset = z_offset; }
+            void set_high_precision_gcode(bool high_precision) { m_high_precision_gcode = high_precision; }
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
             void set_actual_speed_y_range(const std::pair<float, float>& y_range) {
@@ -193,6 +199,8 @@ public:
         int  print_id{-1};
         int  print_modify_count{-1};
         bool previewing{false};
+        // the prime tower was loaded with the objects, for the solid model
+        bool with_wipe_tower{false};
     };
     //BBS
     ConflictResultOpt m_conflict_result;
@@ -268,50 +276,23 @@ private:
     // Invalidation key for the plan above: every input the plan is derived from, and
     // nothing that changes between frames. A stale plan would put the preview markers
     // somewhere the plate's own zones and ghosts do not agree with, which is exactly the
-    // drift the shared layout call exists to prevent -- so this deliberately mirrors
-    // PartPlate::build_imex_cache_key(). The two keys are not field-for-field identical, and
-    // the differences are deliberate rather than incidental:
-    //   - bed extents and plate_index are here and not there. Zone centres scale with the
-    //     extents, and one preview serves every plate, so the preview must key what the plate
-    //     gets for free -- it re-bakes on set_shape() and is keyed by being that plate.
-    //   - mode_names / mode_active_tools hold the printer's WHOLE mode table; the plate resolves
-    //     one active mode and keys that roster plus its primary head. Same information reached
-    //     two ways, so a change to the active mode moves both keys.
-    //   - imex_carriage_margin is there and not here: it only sizes the plate's advisory bands,
-    //     which the preview never draws.
-    // imex_tool_layout is in both, which the plate's key gained for the reason this one has it:
-    // the T0-corner flip moves every zone rectangle while nothing else keyed changes.
+    // drift the shared layout call exists to prevent -- so the layout half is the plate's own
+    // key. The preview adds the plate index and bed extents, which a plate gets for free: zone
+    // centers scale with the bed, and one preview serves every plate, while each plate rebuilds
+    // its zones in set_shape(). The layout key also holds imex_carriage_margin, which only sizes
+    // the plate's advisory bands, so a margin change re-resolves the plan needlessly.
     struct ImexMarkerKey
     {
-        // Scalar half. Built fresh on the stack each frame -- it allocates nothing -- and
-        // compared as a tuple.
-        struct Scalars
+        std::optional<ImexLayoutKey> layout;
+        struct Plate
         {
-            int    plate_index      = -1;
-            int    gantry_count     = 0;
-            int    tools_per_gantry = 0;
-            int    tool_layout      = -1;
-            double clearance_x      = 0.0;
-            double clearance_y      = 0.0;
-            bool   firmware_managed = false;
+            int    plate_index = -1;
             double bed_min_x = 0.0, bed_min_y = 0.0, bed_max_x = 0.0, bed_max_y = 0.0;
 
-            auto tied() const {
-                return std::tie(plate_index, gantry_count, tools_per_gantry, tool_layout,
-                                clearance_x, clearance_y, firmware_managed,
-                                bed_min_x, bed_min_y, bed_max_x, bed_max_y);
-            }
-            bool operator==(const Scalars& rhs) const { return tied() == rhs.tied(); }
+            auto tied() const { return std::tie(plate_index, bed_min_x, bed_min_y, bed_max_x, bed_max_y); }
+            bool operator==(const Plate& rhs) const { return tied() == rhs.tied(); }
         };
-        Scalars s;
-        // Resolved active mode (the plate's mode beats the process preset), plus the printer
-        // preset's whole mode table. The name alone is not identity: two presets can carry
-        // the same mode name over different tool rosters, and editing a roster in place
-        // moves neither the name nor any scalar above. Compared by value, never copied
-        // unless something actually changed.
-        std::string              mode;
-        std::vector<std::string> mode_names;
-        std::vector<std::string> mode_active_tools;
+        Plate plate;
     };
     ImexMarkerKey  m_imex_marker_key;
     ImexMarkerPlan m_imex_marker_plan;
@@ -347,6 +328,76 @@ private:
 
     bool m_legend_visible{ true };
     bool m_legend_enabled{ true };
+    // what the preview draws while the user drags, as the preference has it
+    libvgcode::EReducedDetailMode m_reduced_detail_mode{ libvgcode::EReducedDetailMode::Off };
+    void read_reduced_detail_preferences();
+    static libvgcode::EReducedDetailMode reduced_detail_mode_from_string(const std::string& mode);
+    // in the solid model mode, the sliced objects are drawn as solid shapes instead of toolpaths
+    bool solid_model_enabled() const { return m_reduced_detail_mode == libvgcode::EReducedDetailMode::EndLayersOnly; }
+    // whether no layer is lower than the one before, as the solid model's cut needs
+    bool m_layers_z_rising{ true };
+    // the heights the solid model is cut at, unset where the toolpaths cover the whole range
+    std::optional<std::array<float, 2>> solid_model_z_range() const;
+    void render_solid_model(int canvas_width, int canvas_height);
+    void render_solid_model_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix);
+    // A cut face of the solid model: a quad in the cut plane, drawn where a body cut at it alone is
+    // open; see render_solid_model()
+    struct SolidModelCap
+    {
+        GLModel quad;
+        // the body as the count sees it: cut at this cap alone
+        std::array<float, 2> count_z_range{ -FLT_MAX, FLT_MAX };
+        std::array<float, 4> count_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
+        // the quad, cut by the other caps
+        std::array<float, 2> quad_z_range{ -FLT_MAX, FLT_MAX };
+        std::array<float, 4> quad_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
+        // which of the sampled cap colours it takes, none for the body's own
+        std::optional<size_t> color_index;
+    };
+    // the bottom cap, then the top one, as the colours are indexed, then the section view's; a cap
+    // the solid is not cut at is left without a quad
+    void init_solid_model_caps(const std::array<float, 2>& z_range, std::array<SolidModelCap, 3>& caps) const;
+    void release_caster_depth();
+    // ORCA: realistic view. The shadow map and light the canvas last passed on, which the solid
+    // model samples through its own shader as the toolpaths do through theirs.
+    struct ShadowMap
+    {
+        int         texture_unit{ 0 };
+        Transform3d light_view_projection{ Transform3d::Identity() };
+        float       intensity{ 0.0f };
+        float       texel_size{ 0.0f };
+    };
+    ShadowMap m_shadow_map;
+    Vec3d     m_light_top_dir{ Vec3d::Zero() };
+    // the cut faces from the light, counted and drawn apart from the shadow map, which has no
+    // stencil, then copied into it; see render_solid_model_casters()
+    unsigned int m_caster_fbo{ 0 };
+    unsigned int m_caster_depth{ 0 };
+    int          m_caster_width{ 0 };
+    int          m_caster_height{ 0 };
+    bool init_caster_depth(int width, int height);
+    // The solid model's colours in the current view, sampled from the toolpaths when the view
+    // colours them by something other than the filament; see update_solid_model_colors()
+    struct SolidModelColors
+    {
+        // cleared as a drag begins, see set_interacting()
+        bool valid{ false };
+        libvgcode::EViewType view_type{ libvgcode::EViewType::COUNT };
+        libvgcode::Interval  whole_layers{ 0, 0 };
+        // one per shell volume, from the toolpaths within its own footprint
+        struct Body
+        {
+            // unset where the view colours by filament, or no vertex of the role was found there
+            std::optional<ColorRGBA> body;
+            // the bottom and top caps
+            std::array<std::optional<ColorRGBA>, 2> caps;
+        };
+        std::vector<Body> bodies;
+    };
+    SolidModelColors m_solid_model_colors;
+    void update_solid_model_colors(const libvgcode::Interval& whole_layers);
+    // the prime tower is only among the shells for the solid model, so it is added or removed when that changes
+    void update_shell_wipe_tower(const Print& print, bool initialized);
 
     float m_legend_height;
     PrintEstimatedStatistics m_print_statistics;
@@ -369,7 +420,8 @@ mutable bool m_no_render_path { false };
     float m_belt_angle_deg = 0.f;
 
     libvgcode::Viewer m_viewer;
-    // ORCA: section view, as the viewer has it. What it cuts away casts no shadow.
+    // ORCA: section view, as the viewer has it: kept where the dot with it is positive, a zero
+    // normal when off. The solid model is cut by it too, and what it cuts away casts no shadow.
     std::array<float, 4> m_clipping_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
     bool m_loaded_as_preview{ false };
 
@@ -402,6 +454,8 @@ public:
     //BBS: GUI refactor: add canvas width and height
     // Shells, toolpaths, the sequential markers and the IDEX/IQEX toolhead boxes, drawn in 3D.
     void render_scene(int canvas_width, int canvas_height);
+    // ORCA: the toolpaths of translucent filaments, blended over the scene, then the markers. render_scene() leaves both out.
+    void render_translucent_toolpaths(int canvas_width, int canvas_height);
     // Legend, sliders, the marker's position window and the G-code window, all ImGui.
     void render_overlay(int canvas_width, int canvas_height, int right_margin);
     // ORCA: realistic view. Depth-only pass drawing the toolpaths as the light sees them, into
@@ -414,11 +468,13 @@ public:
     // ORCA: section view
     void set_clipping_plane(const ClippingPlane& plane);
     void set_light_top_dir(const Vec3d& direction);
+    // ORCA: the untinted highlight of the filaments, which the canvas gives them in realistic view only
+    void set_gloss(bool gloss) { m_viewer.set_gloss(gloss); }
     //BBS
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void render_calibration_thumbnail(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
-    bool has_data() const { return !m_viewer.get_extrusion_roles().empty(); }
+    bool has_data() const { return m_viewer.get_extrusion_roles_count() != 0; }
 
     bool can_export_toolpaths() const;
     std::vector<int> get_plater_extruder();
@@ -502,6 +558,16 @@ public:
     // ORCA: brightness of those darkened layers, 1.0 = unchanged, 0.0 = black
     void set_dim_previous_layers_brightness(float value) { m_viewer.set_dim_previous_layers_brightness(value); }
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
+    // ORCA: draw the toolpaths of translucent filament colors translucent
+    void set_translucent_filaments(bool value) { m_viewer.set_translucent_filaments(value); }
+
+    // whether the mouse is holding either slider's handle
+    bool is_slider_dragging() const { return m_layers_slider->is_dragging() || m_moves_slider->is_dragging(); }
+    // while the user drags the camera or a slider, draw the reduced set, if the preference asks for one
+    void set_interacting(bool interacting);
+    bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }
+    // the preference's string value: "off", "solid" or "shell"
+    void set_reduced_detail_mode(const std::string& mode);
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 
@@ -534,7 +600,11 @@ private:
     // Canvas height minus the room the horizontal slider takes.
     int sequential_view_height(int canvas_height) const;
     void render_toolpaths();
-    void render_shells(int canvas_width, int canvas_height);
+    // The sequential markers and the IDEX/IQEX toolhead boxes.
+    void render_markers(int canvas_width, int canvas_height);
+    void render_shells();
+    // ORCA: a filament color as the toolpaths show it, opaque unless translucent filaments are shown
+    ColorRGBA shown_filament_color(ColorRGBA color) const;
 
     //BBS: GUI refactor: add canvas size
     void render_legend(float &legend_height, int canvas_width, int canvas_height, int right_margin);

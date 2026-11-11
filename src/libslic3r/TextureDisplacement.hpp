@@ -1040,14 +1040,26 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
                                                  // When given, receives what the bake spent.
                                                  TextureBakeStats                            *stats = nullptr,
                                                  // The model's own UV channel; see above.
-                                                 const std::vector<Vec2f>                    *model_uv = nullptr);
+                                                 const std::vector<Vec2f>                    *model_uv = nullptr,
+                                                 // The world point the texture is anchored at, null for
+                                                 // the volume's own origin. Every part of a multibody
+                                                 // object passes the same point, so the pattern runs on
+                                                 // across them. See texture_displacement_bake_frame().
+                                                 const Vec3d                                 *texture_anchor = nullptr,
+                                                 // How far the object's lowest point lies below this
+                                                 // volume's own, in mm. Relief is kept above the plane
+                                                 // the whole object rests on, so a part held off the
+                                                 // plate by another keeps the relief on its underside.
+                                                 float                                        resting_drop = 0.f);
 
 // `volume`'s mesh coordinates -> world millimetres: its first instance's transform times its own.
 // The mesh is shared by every instance, so a multi-instance object can only be baked for one of
 // them; the first is what the gizmo edits against. Identity when the volume has no object yet.
 Transform3d texture_displacement_volume_to_world(const ModelVolume &volume);
-// The frame the bake and the previews project the texture in: `volume_to_world` with its translation
-// removed, i.e. world orientation and scale about the volume's own origin. See build_texture_displacement().
+// The frame the bake and the previews project the texture in: world orientation and scale, with the
+// world point `anchor` as its origin. See build_texture_displacement().
+Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world, const Vec3d &anchor);
+// Anchored at the volume's own origin, which is where a single-part object's texture sits.
 Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world);
 
 // Area-weighted vertex normals of `its` - the directions the bake both projects and displaces along.

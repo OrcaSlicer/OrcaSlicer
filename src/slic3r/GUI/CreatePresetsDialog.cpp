@@ -74,6 +74,8 @@
 #include "MainFrame.hpp"
 #include "libslic3r_version.h"
 #include "Widgets/HyperLink.hpp" // ORCA
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "Plater.hpp"
 
 #define NAME_OPTION_COMBOBOX_SIZE wxSize(FromDIP(200), FromDIP(24))
 #define FILAMENT_PRESET_COMBOBOX_SIZE wxSize(FromDIP(300), FromDIP(24))
@@ -209,7 +211,7 @@ static bool delete_filament_preset_by_name(std::string delete_preset_name, std::
         if (!need_delete_preset) BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't find delete preset and name: %1%") % delete_preset_name;
         if (!need_delete_preset->setting_id.empty()) {
             BOOST_LOG_TRIVIAL(info) << "delete preset = " << need_delete_preset->name << ", setting_id = " << need_delete_preset->setting_id;
-            wxGetApp().delete_preset_from_cloud(need_delete_preset->setting_id, need_delete_preset->file);
+            wxGetApp().delete_preset_from_cloud(*need_delete_preset);
         } else {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't preset setting id is empty and name: %1%") % delete_preset_name;
         }
@@ -2704,7 +2706,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
         // Confirm if the printer preset has a duplicate name
         if (!rewritten && preset_bundle->printers.find_preset(printer_preset_name)) {
             MessageDialog dlg(this,
-                              _L("The printer preset you created already has a preset with the same name. Do you want to overwrite it\?\n\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \nand filament and process presets without the same preset name will be reserved.\n\tCancel: Do not create a preset; return to the creation interface."),
+                              _L("The printer preset you created already has a preset with the same name. Do you want to overwrite it\?\n\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated and filament and process presets without the same preset name will be reserved.\n\tCancel: Do not create a preset; return to the creation interface."),
                               wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES | wxCANCEL | wxYES_DEFAULT | wxCENTRE);
             int           res = dlg.ShowModal();
             if (res == wxID_YES) {
@@ -3049,7 +3051,7 @@ void CreatePrinterPresetDialog::set_current_visible_printer()
     m_printer_name_to_preset.clear();
     for (const Preset &printer_preset : printer_presets) {
         if (!printer_preset.is_visible) continue;
-        if (preset_bundle->printers.get_preset_base(printer_preset)->name != printer_preset.name) continue;
+        if (preset_bundle->printers.get_preset_base(printer_preset) != &printer_preset) continue;
         if (auto printer_model = dynamic_cast<ConfigOptionString*>(const_cast<Preset&>(printer_preset).config.option("printer_model", false))) {
             if (m_printer_name_to_preset.find(printer_model->value) == m_printer_name_to_preset.end()) {
                 printer_choice.push_back(from_u8(printer_model->value));
@@ -3406,7 +3408,7 @@ bool CreatePrinterPresetDialog::validate_input_valid()
                 if (preset.config.opt_string("printer_model") == printer_model)
                     diameters += preset.config.opt_string("printer_variant") + "  ";
             }
-            MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter.")
+            MessageDialog dlg(this, _L("The system preset does not allow creation.\nPlease re-enter the printer model or nozzle diameter.")
                                   + _L("\n\nAvailable nozzle profiles for this printer:")
                                   + "\n" + diameters
                                   + _L("\n\nChoose YES to switch existing preset:")
@@ -3838,8 +3840,7 @@ mz_bool ExportConfigsDialog::initial_zip_archive(mz_zip_archive &zip_archive, co
 
     // Initialize the ZIP file to write to the structure, using memory storage
 
-    std::string export_dir = encode_path(file_path.c_str());
-    status                 = mz_zip_writer_init_file(&zip_archive, export_dir.c_str(), 0);
+    status = mz_zip_writer_init_file(&zip_archive, file_path.c_str(), 0);
     return status;
 }
 
@@ -3873,7 +3874,7 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::save_presets_to_zip(const s
         std::string preset_name = config_path.first;
 
         // Add a file to the ZIP file
-        status = mz_zip_writer_add_file(&zip_archive, (preset_name).c_str(), encode_path(config_path.second.c_str()).c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
+        status = mz_zip_writer_add_file(&zip_archive, (preset_name).c_str(), config_path.second.c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
         // status = mz_zip_writer_add_mem(&zip_archive, ("printer/" + printer_preset->name + ".json").c_str(), json_contents, strlen(json_contents), MZ_DEFAULT_COMPRESSION);
         if (MZ_FALSE == status) {
             BOOST_LOG_TRIVIAL(info) << preset_name << " Filament preset failed to add file to ZIP archive";
@@ -3927,7 +3928,7 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
                     wxString filament_name = wxString::FromUTF8(filament_name_to_preset.first);
                     m_preset_sizer->Add(create_checkbox(m_presets_window, filament_name, m_printer_name), 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(5));
                 }
-                m_serial_text->SetLabel(_L("Only the filament names with user filament presets will be displayed, \nand all user filament presets in each filament name you select will be exported as a ZIP archive."));
+                m_serial_text->SetLabel(_L("Only the filament names with user filament presets will be displayed,\nand all user filament presets in each filament name you select will be exported as a ZIP archive."));
             } else if (export_type == m_exprot_type.process_preset) {
                 for (std::pair<std::string, std::vector<Preset *>> presets : m_process_presets) {
                     Preset *      printer_preset = preset_bundle->printers.find_preset(presets.first, false);
@@ -3943,7 +3944,7 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
                     }
 
                 }
-                m_serial_text->SetLabel(_L("Only printer names with changed process presets will be displayed, \nand all user process presets in each printer name you select will be exported as a ZIP archive."));
+                m_serial_text->SetLabel(_L("Only printer names with changed process presets will be displayed,\nand all user process presets in each printer name you select will be exported as a ZIP archive."));
             }
             //m_presets_window->SetSizerAndFit(m_preset_sizer);
             m_presets_window->Layout();
@@ -4009,7 +4010,7 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_fi
 
             // Add a file to the ZIP file
             std::string printer_config_file_name = "printer/" + printer_file_path.filename().string();
-            status = mz_zip_writer_add_file(&zip_archive, printer_config_file_name.c_str(), encode_path(preset_path.c_str()).c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
+            status = mz_zip_writer_add_file(&zip_archive, printer_config_file_name.c_str(), preset_path.c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
             //status = mz_zip_writer_add_mem(&zip_archive, ("printer/" + printer_preset->name + ".json").c_str(), json_contents, strlen(json_contents), MZ_DEFAULT_COMPRESSION);
             if (MZ_FALSE == status) {
                 BOOST_LOG_TRIVIAL(info) << printer_preset->name << " Failed to add file to ZIP archive";
@@ -4031,7 +4032,7 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_fi
                     }
 
                     std::string filament_config_file_name = "filament/" + filament_file_path.filename().string();
-                    status = mz_zip_writer_add_file(&zip_archive, filament_config_file_name.c_str(), encode_path(filament_preset_path.c_str()).c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
+                    status = mz_zip_writer_add_file(&zip_archive, filament_config_file_name.c_str(), filament_preset_path.c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
                     if (MZ_FALSE == status) {
                         BOOST_LOG_TRIVIAL(info) << preset->name << " Failed to add file to ZIP archive";
                         mz_zip_writer_end(&zip_archive);
@@ -4053,7 +4054,7 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_fi
                     }
 
                     std::string process_config_file_name = "process/" + process_file_path.filename().string();
-                    status = mz_zip_writer_add_file(&zip_archive, process_config_file_name.c_str(), encode_path(process_preset_path.c_str()).c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
+                    status = mz_zip_writer_add_file(&zip_archive, process_config_file_name.c_str(), process_preset_path.c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
                     if (MZ_FALSE == status) {
                         BOOST_LOG_TRIVIAL(info) << preset->name << " Failed to add file to ZIP archive";
                         mz_zip_writer_end(&zip_archive);
@@ -4142,7 +4143,7 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_filament_bundle_to_
                 }
                 // Add a file to the ZIP file
                 std::string file_name = printer_vendor + "/" + filament_preset->name + ".json";
-                status                = mz_zip_writer_add_file(&zip_archive, file_name.c_str(), encode_path(preset_path.c_str()).c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
+                status                = mz_zip_writer_add_file(&zip_archive, file_name.c_str(), preset_path.c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
                 // status = mz_zip_writer_add_mem(&zip_archive, ("printer/" + printer_preset->name + ".json").c_str(), json_contents, strlen(json_contents), MZ_DEFAULT_COMPRESSION);
                 if (MZ_FALSE == status) {
                     BOOST_LOG_TRIVIAL(info) << filament_preset->name << " Failed to add file to ZIP archive";
@@ -4914,7 +4915,7 @@ void CreatePresetForPrinterDialog::get_visible_printer_and_compatible_filament_p
                     if (filament_preset.is_default || !filament_preset.is_compatible || filament_preset.is_project_embedded) continue;
                     ConfigOptionStrings *filament_types;
                     const Preset *       filament_preset_base = m_preset_bundle->filaments.get_preset_base(filament_preset);
-                    if (filament_preset_base == &filament_preset) {
+                    if (filament_preset_base == &filament_preset || filament_preset_base == nullptr) {
                         filament_types = dynamic_cast<ConfigOptionStrings *>(const_cast<Preset *>(&filament_preset)->config.option("filament_type"));
                     } else {
                         filament_types = dynamic_cast<ConfigOptionStrings *>(const_cast<Preset *>(filament_preset_base)->config.option("filament_type"));

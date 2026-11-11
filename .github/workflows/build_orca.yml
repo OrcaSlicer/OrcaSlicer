@@ -35,6 +35,8 @@ jobs:
       ORCA_UPDATER_SIG_KEY: ${{ secrets.ORCA_UPDATER_SIG_KEY }}
       NSIS_VERSION: '3.13'
       NSIS_SHA256: BA63DFFC4410EE89193E1CB5A41989991BD77C61068DA17E3156D136B7B0B3D8
+      JSIGN_VERSION: '7.6'
+      JSIGN_SHA256: 6CF58AA080E7FF82656F320CFF8D4A3BFF30408DF8766806DCBA3740DD839FA5
 
     steps:
       - name: Checkout
@@ -65,15 +67,6 @@ jobs:
         shell: bash
         run: |
           leg="${{ runner.os }}-${{ inputs.arch || 'amd64' }}${{ runner.os == 'Windows' && format('-{0}', inputs.compiler) || '' }}"
-          # clang-cl refuses a precompiled header from another cl.exe build and ccache
-          # does not hash that build, so each one gets its own cache. The build number
-          # is read from cl.exe itself; the toolset directory keeps its name across patches.
-          if [ "${{ runner.os }}" = Windows ]; then
-            vswhere='/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe'
-            toolset=$(tr -d '\r\n' < "$("$vswhere" -latest -products '*' -find 'VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt' | tr -d '\r')")
-            cl=$("$vswhere" -latest -products '*' -find 'VC\Tools\MSVC\'"$toolset"'\**\cl.exe' | tr -d '\r' | head -1)
-            leg="$leg-vc$("$cl" 2>&1 | grep -o -E 'Version [0-9.]+' | cut -d' ' -f2)"
-          fi
           echo "CCACHE_LEG=$leg" >> "$GITHUB_ENV"
           echo "CCACHE_ENTRY=ccache-$leg-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
 
@@ -262,6 +255,17 @@ jobs:
         run: |
           ./build_release_macos.sh -u -x ${{ !vars.SELF_HOSTED && '-j 3' || '' }} -a universal -t 10.15
 
+      # xcrun stapler fetches the notarization ticket over HTTP/3 (UDP 443),
+      # which GitHub-hosted macOS runners drop, failing with Error 68
+      # (actions/runner-images#14924). Blocking UDP 443 makes it fall back to
+      # TCP. Skipped on self-hosted runners, where the pf rules would outlive
+      # the job.
+      - name: Force stapler onto TCP
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'macOS' && inputs.macos-combine-only && !vars.SELF_HOSTED
+        run: |
+          echo "block return out quick proto udp from any to any port 443" | sudo pfctl -f -
+          sudo pfctl -E
+
  # Thanks to RaySajuuk, it's working now
       - name: Sign app and notary
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && runner.os == 'macOS' && inputs.macos-combine-only
@@ -273,8 +277,9 @@ jobs:
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
           CERTIFICATE_ID: ${{ secrets.MACOS_CERTIFICATE_ID }}
         run: |
-          # Load the `retry` helper (retries flaky commands such as `hdiutil create`).
+          # Load the `retry` and `create_dmg` helpers.
           source ${{ github.workspace }}/scripts/retry.sh
+          source ${{ github.workspace }}/scripts/create_dmg.sh
           CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
           echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode --output $CERTIFICATE_PATH
@@ -328,7 +333,7 @@ jobs:
           rm -rf ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/*
           cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/
           ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/Applications
-          retry hdiutil create -volname "OrcaSlicer" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_dmg -ov -format UDZO OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
+          create_dmg "OrcaSlicer" ${{ github.workspace }}/build/universal/OrcaSlicer_dmg OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
           codesign --deep --force --verbose --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$CERTIFICATE_ID" OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
           
           # Create separate OrcaSlicer_profile_validator DMG if the app exists
@@ -337,7 +342,7 @@ jobs:
             rm -rf ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg/*
             cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg/
             ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg/Applications
-            retry hdiutil create -volname "OrcaSlicer Profile Validator" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg -ov -format UDZO OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
+            create_dmg "OrcaSlicer Profile Validator" ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
             codesign --deep --force --verbose --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$CERTIFICATE_ID" OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
           fi
           
@@ -355,13 +360,14 @@ jobs:
         if: github.ref != 'refs/heads/main' && runner.os == 'macOS' && inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
         run: |
-          # Load the `retry` helper (retries flaky commands such as `hdiutil create`).
+          # Load the `retry` and `create_dmg` helpers.
           source ${{ github.workspace }}/scripts/retry.sh
+          source ${{ github.workspace }}/scripts/create_dmg.sh
           mkdir -p ${{ github.workspace }}/build/universal/OrcaSlicer_dmg
           rm -rf ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/*
           cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/
           ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/Applications
-          retry hdiutil create -volname "OrcaSlicer" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_dmg -ov -format UDZO OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
+          create_dmg "OrcaSlicer" ${{ github.workspace }}/build/universal/OrcaSlicer_dmg OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
           
           # Create separate OrcaSlicer_profile_validator DMG if the app exists
           if [ -f "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
@@ -369,7 +375,7 @@ jobs:
             rm -rf ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg/*
             cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg/
             ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg/Applications
-            retry hdiutil create -volname "OrcaSlicer Profile Validator" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg -ov -format UDZO OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
+            create_dmg "OrcaSlicer Profile Validator" ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
           fi
 
       # Delete the per-arch bundles only after signing/DMG creation succeeded, so a
@@ -469,6 +475,38 @@ jobs:
           path: ${{ runner.temp }}/nsis
           key: nsis-${{ env.NSIS_VERSION }}
 
+      # Windows release builds are Authenticode-signed with the company's key in Google Cloud KMS
+      # (README, Code Signing Policy): pushes, schedules and manual runs of main and release/* in
+      # this repository, once the WINDOWS_SIGN_* variables are set. The Workload Identity provider
+      # accepts tokens from nothing else. This runs before the build so that CMake wires signing
+      # into the NSIS installer.
+      - name: Configure code signing
+        id: codesign
+        if: runner.os == 'Windows' && github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && github.event_name != 'pull_request' && vars.WINDOWS_SIGN_KMS_KEY != ''
+        shell: pwsh
+        env:
+          CERT_CHAIN: ${{ vars.WINDOWS_SIGN_CERT_CHAIN }}
+          KMS_KEY: ${{ vars.WINDOWS_SIGN_KMS_KEY }}
+        run: |
+          $jar = Join-Path $env:RUNNER_TEMP "jsign-$env:JSIGN_VERSION.jar"
+          curl.exe -fsSL --retry 5 --retry-all-errors --retry-delay 15 -o $jar "https://github.com/ebourg/jsign/releases/download/$env:JSIGN_VERSION/jsign-$env:JSIGN_VERSION.jar"
+          if ($LASTEXITCODE -ne 0) { throw "Jsign $env:JSIGN_VERSION download failed." }
+          if ((Get-FileHash $jar -Algorithm SHA256).Hash -ne $env:JSIGN_SHA256) {
+            throw "Jsign $env:JSIGN_VERSION does not match its pinned SHA256."
+          }
+          $cert = Join-Path $env:RUNNER_TEMP 'codesign-chain.pem'
+          Set-Content -LiteralPath $cert -Value $env:CERT_CHAIN
+          "ORCA_SIGN_JSIGN=$jar"           | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          "ORCA_SIGN_CERTFILE=$cert"       | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          "ORCA_SIGN_KMS_KEY=$env:KMS_KEY" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+
+      - name: Set up Java for code signing
+        if: steps.codesign.outcome == 'success'
+        uses: actions/setup-java@v6
+        with:
+          distribution: microsoft
+          java-version: '21'
+
       - name: Build slicer Win
         if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}
@@ -487,6 +525,33 @@ jobs:
         # Shipped into both the already-installed tree (portable zip, MSIX) and
         # the checkout cpack re-installs from when it builds the NSIS installer.
         run: scripts\build_preset_cache.bat --prune-source "%BUILD_DIR%" "resources\profiles" "%BUILD_DIR%\OrcaSlicer\resources\profiles"
+
+      # Taken after the build because the token lasts an hour, which covers signing, the installer
+      # build and the checks.
+      - name: Authenticate to Google Cloud for code signing
+        id: codesign_auth
+        if: steps.codesign.outcome == 'success'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.WINDOWS_SIGN_WIF_PROVIDER }}
+          service_account: ${{ vars.WINDOWS_SIGN_SERVICE_ACCOUNT }}
+          token_format: access_token
+          create_credentials_file: false
+
+      # Signs what the portable zip, the artifact and the MSIX package ship, the profile validator,
+      # and the NSIS plugins the installer carries. The installer build signs its own copy of the
+      # app, since cpack installs the files again.
+      - name: Sign Windows binaries
+        if: steps.codesign.outcome == 'success'
+        shell: pwsh
+        env:
+          ORCA_SIGN_TOKEN: ${{ steps.codesign_auth.outputs.access_token }}
+        run: |
+          $paths = @("$env:BUILD_DIR/OrcaSlicer")
+          foreach ($extra in 'build/src/Release/OrcaSlicer_profile_validator.exe', "$env:RUNNER_TEMP/nsis/Plugins") {
+            if (Test-Path $extra) { $paths += $extra }
+          }
+          ./scripts/sign_windows.ps1 -Path $paths
 
       - name: Pack unit tests Win
         if: runner.os == 'Windows'
@@ -509,8 +574,37 @@ jobs:
       - name: Create installer Win
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
         working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}
+        # Read by scripts/sign_windows.ps1 when CMake wired signing into the installer.
+        env:
+          ORCA_SIGN_TOKEN: ${{ steps.codesign_auth.outputs.access_token }}
         run: |
           cpack -G NSIS
+          if ($LASTEXITCODE -ne 0) {
+            # makensis writes its errors, and the signing hook's output, only to this log.
+            Get-Content _CPack_Packages/*/NSIS/NSISOutput.log -Tail 80
+            exit 1
+          }
+
+      # Checks the shipped files, the installer, the payload inside it (7-Zip unpacks NSIS
+      # installers) and the uninstaller a silent install writes.
+      - name: Verify Windows signatures
+        if: steps.codesign.outcome == 'success'
+        timeout-minutes: 20
+        shell: pwsh
+        run: |
+          $paths = @("$env:BUILD_DIR/OrcaSlicer")
+          $validator = 'build/src/Release/OrcaSlicer_profile_validator.exe'
+          if (Test-Path $validator) { $paths += $validator }
+          $installer = Get-ChildItem "$env:BUILD_DIR/OrcaSlicer_Windows_Installer_*.exe" | Select-Object -First 1
+          if ($installer) {
+            $payload = Join-Path $env:RUNNER_TEMP 'installer-payload'
+            & 'C:/Program Files/7-Zip/7z.exe' x -y "-o$payload" $installer.FullName | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "7-Zip could not unpack $($installer.Name)." }
+            $installed = Join-Path $env:RUNNER_TEMP 'installer-test'
+            Start-Process -Wait -FilePath $installer.FullName -ArgumentList '/S', "/D=$installed"
+            $paths += $installer.FullName, $payload, (Join-Path $installed 'Uninstall.exe')
+          }
+          ./scripts/sign_windows.ps1 -Verify -Path $paths
 
       - name: Pack app
         if: runner.os == 'Windows'
@@ -551,6 +645,13 @@ jobs:
         with:
           name: OrcaSlicer_profile_validator_Windows_${{ env.ver }}
           path: ${{ github.workspace }}/build/src/Release/OrcaSlicer_profile_validator.exe
+
+      - name: Check exception throw info Win
+        if: runner.os == 'Windows' && inputs.compiler == 'clang'
+        working-directory: ${{ github.workspace }}
+        # After the uploads, so a failure still leaves the build and its PDB to inspect, and before any deploy.
+        shell: pwsh
+        run: scripts\check_exception_throw_info.ps1 -BuildDir $env:BUILD_DIR
 
       - name: Deploy Windows release portable
         if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED
@@ -639,6 +740,9 @@ jobs:
           chmod +x "$appimage"
           "$appimage" --appimage-extract
           ./scripts/build_preset_cache.sh -b build build/package/resources/profiles squashfs-root/resources/profiles
+          # The runtime extracts every directory as 0700, and appimagetool (continuous
+          # build 333 onwards) refuses to pack a tree other users cannot read.
+          chmod -R a+rX squashfs-root
           appimagetool=$(find build -name "appimagetool.AppImage" | head -1)
           ARCH=$(uname -m) "$appimagetool" --appimage-extract-and-run squashfs-root "$appimage"
           rm -rf squashfs-root

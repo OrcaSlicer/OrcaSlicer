@@ -27,10 +27,10 @@ using json = nlohmann::json;
 
 namespace {
 
-// Brings the plugin system up for the duration of one test and tears it down at the end — same
-// idiom as ScopedPluginManager in test_plugin_lifecycle.cpp, and for the same reason: shutdown()
-// logs via boost::log, so it must run before boost::log tears down its thread-local storage, not be
-// left to a static destructor at process exit.
+// Brings the plugin system up for the duration of one test and tears the manager down at the end —
+// same idiom as ScopedPluginManager in test_plugin_lifecycle.cpp. The interpreter itself is
+// process-wide and finalized once by PythonInterpreterRunEnd in slic3rutils_tests_main.cpp:
+// CPython cannot be reinitialized after Py_Finalize.
 //
 // Needed here (unlike a bare pybind11::scoped_interpreter): has_config_ui()/get_config_ui()/
 // get_name()/etc. all cross PyPluginCommonTrampoline's ORCA_PY_OVERRIDE_AUDITED, which refuses to
@@ -40,7 +40,7 @@ namespace {
 //
 // initialize() leaves the GIL released (production code re-acquires it per call via PythonGILState);
 // every TEST_CASE below pairs this with a py::gil_scoped_acquire, declared second so it releases
-// before this destructor's shutdown() runs.
+// before this destructor runs.
 struct ScopedPluginManager
 {
     // Before initialize(): the interpreter creates {data_dir}/python/packages and {data_dir}/log,
@@ -48,11 +48,7 @@ struct ScopedPluginManager
     ScopedDataDir python_data_dir{"plugin-python"};
     bool initialized = PluginManager::instance().initialize();
 
-    ~ScopedPluginManager()
-    {
-        PluginManager::instance().shutdown();
-        PythonInterpreter::instance().shutdown();
-    }
+    ~ScopedPluginManager() { PluginManager::instance().shutdown(); }
 };
 
 py::module_ import_orca_module()

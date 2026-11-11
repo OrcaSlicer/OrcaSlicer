@@ -44,8 +44,8 @@ Two consequences follow from deriving rather than storing:
 
 ## Geometry kernel and dependency surface
 
-The kernel is OCCT, which OrcaSlicer **already** links — `Format/STEP.cpp`, `Format/svg.cpp`
-and `Shape/TextShape.cpp` use it upstream. The Design tab adds no third-party dependency; it
+The kernel is OCCT, which OrcaSlicer **already** links — `Format/STEP.cpp` and `Format/svg.cpp`
+use it upstream. The Design tab adds no third-party dependency; it
 widens the existing OCCT build by one module flag in `deps/OCCT/OCCT.cmake`:
 
 ```cmake
@@ -266,6 +266,16 @@ Feature tree and Bodies list do between themselves. `Esc`, a click on empty spac
 empty rubber band all let go of it, whichever list or pick made it — except while a body Move is
 open, which holds the selection until it ends (see the interaction contract).
 
+In a sketch, a constraint is selected the same way, from its badge on the canvas or its row in
+the Constraints card: either selects both, draws the badge in the selection colour and bolder, and
+lights the entities the constraint binds. Delete removes the selected constraint, as do its row's
+Delete button and menu. A click on a badge only selects it. A badge is small and sits where a
+person aims at the geometry and its value labels, so a click that deleted would cost a constraint
+for a slip of the pointer, with nothing on screen to say so. For the same reason a value label
+drawn over a badge takes the click and opens its field. The selected constraint and the picked
+geometry are one selection, so picking either drops the other, and `Esc` lets go of both.
+Zoom to selection on a constraint's row frames the entities it binds.
+
 Zoom to selection, on a Feature tree or Bodies row and in its right-click menu, frames one thing
 along the current view direction, as the canvas's Fit button frames the selection. On a body it
 frames the body whole, hidden or not, from its display mesh: the viewport never selects a hidden
@@ -287,14 +297,17 @@ The tab is a page of Orca's main window and answers to the same settings as Prep
 - **Scale.** Sizes are in DIP, and a DPI change reaches `DesignPanel::msw_rescale`, which
   re-rasterises every icon (button faces, flyout rows, card headers, the feature and body lists'
   row icons).
-- **Sidebar icons.** Every clickable icon in the sidebar shows a hover chip. The card-header and
-  constraint-row buttons are Orca's self-painted `Button`, because a native button cannot take a
-  hover background on macOS. The Feature tree and Bodies lists are a custom-drawn
+- **Sidebar icons.** Every clickable icon in the sidebar shows a hover chip. The card-header
+  buttons are Orca's self-painted `Button`, because a native button cannot take a hover
+  background on macOS. The Feature tree, Bodies and Constraints lists are a custom-drawn
   `DesignRowList` rather than a `wxTreeCtrl`, so each row carries its own actions — Zoom to
   selection, Edit, Show/hide and Delete on a feature, Zoom to selection, Move, Show/hide and
-  Delete on a body, and only Show/hide on the Origin and Bed rows, a separate non-selectable list
-  above the features — and the eye shows whether that row is hidden. A feature with nothing to
-  frame keeps a blank cell where Zoom to selection would be, so every icon stays in its column.
+  Delete on a body, Zoom to selection and Delete on a constraint, whose row starts with its
+  type's icon from the Constrain toolbar, and only Show/hide on the Origin and Bed rows, a
+  separate non-selectable list above the features — and the eye shows whether that row is
+  hidden. A feature with nothing to frame keeps a blank cell where Zoom to selection would be, so
+  every icon stays in its column. The Constraints list draws its rows rather than holding a
+  window each, so a sketch of thousands of constraints lists them all.
 - **Plates.** This is the one thing the tab does not follow. The canvas has a bed of its own at
   the printer bed's home position, whichever plate Prepare has current, and a new document's
   modeling origin is that bed's centre. A bed that followed the current plate would slide out

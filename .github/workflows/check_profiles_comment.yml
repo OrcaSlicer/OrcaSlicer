@@ -38,6 +38,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           if [ ! -f pr_number.txt ]; then
             echo "No pr_number.txt in artifact, skipping."
@@ -49,18 +50,72 @@ jobs:
             echo "Invalid PR number: $PR_NUMBER"
             exit 1
           fi
+          # PR code wrote the artifact, so only a run for the named PR's current head may post.
+          if [ -z "$HEAD_SHA" ]; then
+            echo "The triggering run names no head commit."
+            exit 1
+          fi
+          if ! PR_HEAD=$(gh api "repos/${GH_REPO}/pulls/${PR_NUMBER}" --jq .head.sha); then
+            echo "Cannot look up PR #${PR_NUMBER}."
+            exit 1
+          fi
+          if [ "$HEAD_SHA" != "$PR_HEAD" ]; then
+            echo "${HEAD_SHA} is not the head of PR #${PR_NUMBER}; skipping."
+            exit 0
+          fi
+
+          # Lists every bot comment on the PR, one JSON object per line.
+          COMMENTS=$(gh api --paginate "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]") | {id, body} | @json')
 
           # Delete prior comments matching the marker (from check_profiles.yml) or the legacy heading.
-          OLD_IDS=$(gh api --paginate "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" \
-            --jq '.[] | select(.user.login == "github-actions[bot]") | select((.body | startswith("<!-- profile-validation-comment -->")) or (.body | startswith("## :x: Profile Validation Errors"))) | .id')
+          OLD_IDS=$(printf '%s\n' "$COMMENTS" | jq -r 'select((.body | startswith("<!-- profile-validation-comment -->")) or (.body | startswith("## :x: Profile Validation Errors"))) | .id')
           for comment_id in $OLD_IDS; do
             echo "Deleting outdated profile-validation comment ${comment_id}"
             gh api -X DELETE "repos/${GH_REPO}/issues/comments/${comment_id}" || true
           done
 
           # Post a new comment only when validation failed (pr_comment.md present).
+          # A failed post fails the job only after the G-code diff is handled.
+          failed=0
           if [ -f pr_comment.md ]; then
-            gh pr comment "$PR_NUMBER" --body-file pr_comment.md
+            gh pr comment "$PR_NUMBER" --body-file pr_comment.md || failed=1
           else
             echo "Validation succeeded; cleaned up prior comments without posting."
           fi
+
+          # Makes the G-code diff comment match gcode_diff.md, or deletes it if there is none.
+          update_gcode_diff_comment() {
+            if [ ! -f gcode_diff_done.txt ]; then
+              echo "The G-code diff step did not finish; leaving any G-code diff comment as it is."
+              return 0
+            fi
+            GCODE_IDS=$(printf '%s\n' "$COMMENTS" | jq -r 'select(.body | startswith("<!-- profile-gcode-diff-comment -->")) | .id')
+            if [ -f gcode_diff.md ] && [ "$(wc -c < gcode_diff.md)" -gt 65536 ]; then
+              echo "gcode_diff.md is over GitHub's comment limit; not posting it."
+              rm gcode_diff.md
+            fi
+            if [ -f gcode_diff.md ] && [ "$(echo "$GCODE_IDS" | wc -w)" -eq 1 ]; then
+              OLD_BODY=$(printf '%s\n' "$COMMENTS" | jq -r --argjson id "$GCODE_IDS" 'select(.id == $id) | .body' | tr -d '\r')
+              NEW_BODY=$(tr -d '\r' < gcode_diff.md)
+              if [ "$OLD_BODY" = "$NEW_BODY" ]; then
+                echo "G-code diff unchanged; keeping comment ${GCODE_IDS}."
+                return 0
+              fi
+              # Edits in place when only the <sub> line differs, since edits notify nobody.
+              if [ "$(grep -v '^<sub>' <<< "$OLD_BODY")" = "$(grep -v '^<sub>' <<< "$NEW_BODY")" ]; then
+                echo "G-code diff unchanged at a new commit; updating comment ${GCODE_IDS}."
+                gh api -X PATCH "repos/${GH_REPO}/issues/comments/${GCODE_IDS}" -F body=@gcode_diff.md > /dev/null
+                return 0
+              fi
+            fi
+            for comment_id in $GCODE_IDS; do
+              echo "Deleting outdated G-code diff comment ${comment_id}"
+              gh api -X DELETE "repos/${GH_REPO}/issues/comments/${comment_id}" || true
+            done
+            if [ -f gcode_diff.md ]; then
+              gh pr comment "$PR_NUMBER" --body-file gcode_diff.md
+            fi
+          }
+          update_gcode_diff_comment
+          exit "$failed"

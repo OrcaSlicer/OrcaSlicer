@@ -145,9 +145,10 @@ SlicingParameters SlicingParameters::create_from_config(
         params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, 0));
         params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, 0));
     } else {
+        // Orca: object_extruders are 0-based, the extruder the limits are read from is 1-based like support_filament.
         for (unsigned int extruder_id : object_extruders) {
-            params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, extruder_id));
-            params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, extruder_id));
+            params.min_layer_height = std::max(params.min_layer_height, min_layer_height_from_nozzle(print_config, extruder_id + 1));
+            params.max_layer_height = std::min(params.max_layer_height, max_layer_height_from_nozzle(print_config, extruder_id + 1));
         }
     }
 
@@ -254,7 +255,7 @@ std::vector<coordf_t> layer_height_profile_from_ranges(
     // The height ranges are sorted lexicographically by low / high layer boundaries.
     for (t_layer_config_ranges::const_iterator it_range = layer_config_ranges.begin(); it_range != layer_config_ranges.end(); ++ it_range) {
         coordf_t lo = it_range->first.first;
-        coordf_t hi = std::min(it_range->first.second, slicing_params.object_print_z_height());
+        coordf_t hi = std::min(it_range->first.second, slicing_params.object_print_z_uncompensated_height());
         coordf_t height = it_range->second.option("layer_height")->getFloat();
         if (! ranges_non_overlapping.empty())
             // Trim current low with the last high.
@@ -721,6 +722,9 @@ void adjust_layer_height_profile(
 
 bool adjust_layer_series_to_align_object_height(const SlicingParameters &slicing_params, std::vector<coordf_t>& layer_series)
 {
+    if (layer_series.empty())
+        return false;
+
     coordf_t object_height = slicing_params.object_print_z_height();
     if (is_approx(layer_series.back(), object_height))
         return true;

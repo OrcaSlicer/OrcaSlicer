@@ -101,3 +101,21 @@ test("a new gradient starts at the solid color and its 75° hue neighbour", () =
   assert.equal(model.setMode(state, "gradient"), true);
   assert.deepEqual(model.exportSelection(state).colors, ["#FF000080", "#BFFF0080"]);
 });
+
+test("AMS four-color limits reject oversized palettes and favorites without affecting project editing", () => {
+  const options = {allow_gradient: true, allow_alpha: true, max_gradient_colors: 4};
+  const four = {type: "gradient", colors: ["#FF000001", "#00FF0080", "#0000FFFF", "#FF000001"]};
+  const state = model.createState(options, four);
+  assert.deepEqual(model.exportSelection(state), four);
+  for (const count of [5, 6, 7]) {
+    const oversized = {type: "gradient", colors: [...four.colors, ...Array(count - 4).fill("#11223340")]};
+    const favorites = model.normalizeFavorites([oversized]);
+    assert.deepEqual(favorites, [oversized]);
+    assert.equal(model.normalizeSelection(favorites[0], options, state.maxGradientColors), null);
+    assert.equal(model.applySelection(state, oversized), false);
+    assert.deepEqual(model.exportSelection(state), four);
+    const project = model.createState({...options, max_gradient_colors: 7}, favorites[0]);
+    assert.deepEqual(model.exportSelection(project), oversized);
+    assert.deepEqual(favorites, [oversized]);
+  }
+});

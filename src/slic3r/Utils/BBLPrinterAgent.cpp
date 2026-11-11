@@ -7,15 +7,33 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 
+#include <algorithm>
+#include <array>
+#include <boost/filesystem/directory.hpp>
+#include <boost/filesystem/file_status.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <exception>
 #include <functional>
+#include <map>
+#include <mutex>
 #include <nlohmann/json.hpp>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
+#include <openssl/pemerr.h>
+#include <openssl/x509.h>
+#include <openssl/x509v3.h>
 #include <cmath>
+#include <cstddef>
+#include <set>
 #include <slic3r/GUI/DeviceManager.hpp>
 #include <string>
+#include <string_view>
+#include <system_error>
 #include <utility>
 #include <vector>
 using json = nlohmann::json;
@@ -64,12 +82,16 @@ const BambuFilamentIdMap& bambu_filament_id_map()
     return map;
 }
 
-// Rewrites every string under "tray_info_idx", "filament_id" or "filamentId", at any depth, in place.
+// Keys whose string value is a filament id. "cate" and "fila_id" are the H2C nozzle rack's: the
+// auto nozzle mapping request and the rack status in the push message.
+constexpr std::array<std::string_view, 5> filament_id_keys{"tray_info_idx", "filament_id", "filamentId", "cate", "fila_id"};
+
+// Rewrites every string under a filament id key, at any depth, in place.
 void rewrite_filament_ids(json& j, const std::unordered_map<std::string, std::string>& map)
 {
     if (j.is_object()) {
         for (auto& [key, value] : j.items()) {
-            if (value.is_string() && (key == "tray_info_idx" || key == "filament_id" || key == "filamentId")) {
+            if (value.is_string() && std::find(filament_id_keys.begin(), filament_id_keys.end(), key) != filament_id_keys.end()) {
                 auto it = map.find(value.get_ref<const std::string&>());
                 if (it != map.end())
                     value = it->second;
@@ -84,8 +106,8 @@ void rewrite_filament_ids(json& j, const std::unordered_map<std::string, std::st
 // Text that does not parse as JSON, or that mentions none of the id keys, comes back byte-identical.
 std::string rewrite_filament_ids(std::string text, const std::unordered_map<std::string, std::string>& map)
 {
-    if (map.empty() || (text.find("tray_info_idx") == std::string::npos && text.find("filament_id") == std::string::npos &&
-                        text.find("filamentId") == std::string::npos))
+    if (map.empty() || std::none_of(filament_id_keys.begin(), filament_id_keys.end(),
+                                    [&text](std::string_view key) { return text.find(key) != std::string::npos; }))
         return text;                                        // nothing to map, skip the parse (moved, not copied)
     try {
         json j = json::parse(text);
@@ -116,7 +138,83 @@ To as_abi(From fn)
     return reinterpret_cast<To>(reinterpret_cast<void (*)()>(fn));
 }
 
+// The certificates in pem, re-encoded, when there is at least one and every one is a CA; else "".
+// Only what OpenSSL parsed ends up in printer.cer, never the rest of the file.
+std::string ca_certificates_pem(const std::string& pem)
+{
+    std::unique_ptr<BIO, decltype(&BIO_free)> in(BIO_new_mem_buf(pem.data(), int(pem.size())), &BIO_free);
+    std::unique_ptr<BIO, decltype(&BIO_free)> out(BIO_new(BIO_s_mem()), &BIO_free);
+    if (!in || !out)
+        return {};
+
+    ERR_clear_error();
+    int  count = 0;
+    bool ok    = true;
+    // Never prompt for a passphrase: an encrypted block counts as broken.
+    pem_password_cb* const no_passphrase = [](char*, int, int, void*) { return 0; };
+    while (X509* cert = PEM_read_bio_X509(in.get(), nullptr, no_passphrase, nullptr)) {
+        ok = ok && X509_check_ca(cert) >= 1 && PEM_write_bio_X509(out.get(), cert) == 1;
+        X509_free(cert);
+        ++count;
+    }
+    // Reading ends with "no start line" at the end of the input; any other error is a broken certificate.
+    const unsigned long err = ERR_peek_last_error();
+    ok = ok && count > 0 && ERR_GET_LIB(err) == ERR_LIB_PEM && ERR_GET_REASON(err) == PEM_R_NO_START_LINE;
+    ERR_clear_error();
+    if (!ok)
+        return {};
+
+    char*      data = nullptr;
+    const long size = BIO_get_mem_data(out.get(), &data);
+    return std::string(data, size_t(size));
+}
+
+// Replaces path in one step and only when its content changes: the plug-in may read it at any time.
+void replace_file(const boost::filesystem::path& path, const std::string& content)
+{
+    if (boost::filesystem::exists(path)) {
+        std::string current;
+        load_string_file(path, current);
+        if (current == content)
+            return;
+    }
+    const boost::filesystem::path tmp = path.string() + ".tmp";
+    save_string_file(tmp, content);
+    if (const std::error_code ec = rename_file(tmp.string(), path.string()))
+        throw std::system_error(ec, "Cannot replace " + path.string());
+}
+
 } // namespace
+
+// The plug-in has one cert folder for all printers, and multi-printer sending talks to several at
+// once, so the folder trusts the CA file of every printer connected this session. It is rebuilt and
+// re-pointed on every connect: restarting networking points the plug-in back at the bundled folder
+// (GUI_App), and a renewed, changed or cleared CA file is picked up. Re-pointing after start()
+// takes effect on the next connection.
+void BBLPrinterAgent::trust_ca_file(const std::string& dev_id, const std::string& ca_file)
+{
+    static std::mutex                         mutex;
+    static std::map<std::string, std::string> ca_file_by_dev;
+
+    auto& plugin        = BBLNetworkPlugin::instance();
+    auto  agent         = plugin.get_agent();
+    auto  set_cert_file = plugin.get_set_cert_file();
+    if (!agent || !set_cert_file)
+        return;
+
+    std::lock_guard<std::mutex> lock(mutex);
+    if (ca_file.empty() && ca_file_by_dev.erase(dev_id) == 0)
+        return; // a printer without a CA leaves the folder as it is
+    if (!ca_file.empty())
+        ca_file_by_dev[dev_id] = ca_file;
+
+    std::set<std::string> ca_files;
+    for (const auto& [id, file] : ca_file_by_dev)
+        ca_files.insert(file);
+    const std::string cert_dir = cert_dir_with_cas(resources_dir() + "/cert", data_dir() + "/cert", ca_files);
+    if (const int ret = set_cert_file(agent, cert_dir, "slicer_base64.cer"); ret != 0)
+        BOOST_LOG_TRIVIAL(warning) << "BBLPrinterAgent: set_cert_file(" << cert_dir << ") failed, ret = " << ret;
+}
 
 std::string BBLPrinterAgent::to_orca_filament_id(const std::string& printer_filament_id) const
 {
@@ -126,6 +224,11 @@ std::string BBLPrinterAgent::to_orca_filament_id(const std::string& printer_fila
 }
 
 std::string BBLPrinterAgent::from_orca_filament_id(const std::string& orca_filament_id) const
+{
+    return bambu_filament_id(orca_filament_id);
+}
+
+std::string BBLPrinterAgent::bambu_filament_id(const std::string& orca_filament_id)
 {
     const auto& map = bambu_filament_id_map().to_bambu;
     auto it = map.find(orca_filament_id);
@@ -284,9 +387,55 @@ int BBLPrinterAgent::connect_printer(const PrinterConnectionParams& params)
     }
 #endif
     if (func && agent) {
+        trust_ca_file(params.dev_id, params.ca_file);
         return func(agent, params.dev_id, params.host, params.username, params.password, use_ssl_for_mqtt);
     }
     return -1;
+}
+
+std::string BBLPrinterAgent::cert_dir_with_cas(const std::string& bundled_dir, const std::string& out_dir, const std::set<std::string>& extra_cas)
+{
+    namespace fs = boost::filesystem;
+
+    std::string extra;
+    for (const std::string& ca_file : extra_cas) {
+        std::string pem;
+        try {
+            load_string_file(ca_file, pem);
+        } catch (const std::exception&) {
+            pem.clear();
+        }
+        const std::string certs = ca_certificates_pem(pem);
+        if (certs.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "Ignoring CA file, it holds no readable CA certificate: " << ca_file;
+            continue;
+        }
+        extra += certs;
+    }
+    if (extra.empty())
+        return bundled_dir;
+
+    try {
+        std::string bundle;
+        load_string_file(fs::path(bundled_dir) / "printer.cer", bundle);
+        if (!bundle.empty() && bundle.back() != '\n')
+            bundle += '\n';
+
+        const fs::path out(out_dir);
+        fs::create_directories(out);
+        for (const fs::directory_entry& entry : fs::directory_iterator(bundled_dir)) {
+            if (!fs::is_regular_file(entry.status()) || entry.path().filename() == "printer.cer")
+                continue;
+            std::string content;
+            load_string_file(entry.path(), content);
+            replace_file(out / entry.path().filename(), content);
+        }
+        replace_file(out / "printer.cer", bundle + extra);
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "Cannot build cert folder with custom CAs, using the bundled one: " << e.what();
+        return bundled_dir;
+    }
+    return out_dir;
 }
 
 int BBLPrinterAgent::disconnect_printer()

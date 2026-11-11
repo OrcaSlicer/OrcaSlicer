@@ -9,12 +9,15 @@
 #include "GUI_App.hpp"
 #include "GUI_Colors.hpp"
 #include "Plater.hpp"
+#include "PartPlate.hpp"
 #include "BitmapCache.hpp"
 #include "Camera.hpp"
+#include "SelectionOutline.hpp"
 
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/FilamentMixer.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/SLAPrint.hpp"
@@ -57,6 +60,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+
+#include <algorithm>
 
 #include <boost/log/trivial.hpp>
 
@@ -103,20 +108,18 @@ float FullTransparentModdifiedToFixAlpha = 0.3f;
 // value like 0.18f could not because in C++ (int)(0.18f * 255) == 45 however in OpenGL it renders this as 46
 // which breaks the `SelectMachineDialog::record_edge_pixels_data()` function!
 float FULL_BLACK_THRESHOLD = 0.2f;
-// Keep depth_tex away from texture unit 0 to avoid sampler-type aliasing with
-// shadow/environment samplers when realistic view is disabled.
-static constexpr int OUTLINE_DEPTH_TEX_UNIT = 5;
 
 Slic3r::ColorRGBA adjust_color_for_rendering(const Slic3r::ColorRGBA &colors)
 {
-    if (colors.a() < FullyTransparentMaterialThreshold) { // completely transparent
-        return {1, 1, 1, FullTransparentModdifiedToFixAlpha};
+    // a clear color keeps its hue, at the least opacity that still shows it
+    const float alpha = std::max(colors.a(), FullyTransparentMaterialThreshold);
+    if (colors.r() < FULL_BLACK_THRESHOLD && colors.g() < FULL_BLACK_THRESHOLD && colors.b() < FULL_BLACK_THRESHOLD) {
+        // black, lifted so that the shading shows, the more the more translucent: a dark translucent
+        // surface shows nothing through itself
+        const float grey = FULL_BLACK_THRESHOLD + 0.3f * (1.0f - alpha);
+        return {grey, grey, grey, alpha};
     }
-    else if(colors.r() < FULL_BLACK_THRESHOLD && colors.g() < FULL_BLACK_THRESHOLD && colors.b() < FULL_BLACK_THRESHOLD) { // black
-        return {FULL_BLACK_THRESHOLD, FULL_BLACK_THRESHOLD, FULL_BLACK_THRESHOLD, colors.a()};
-    }
-    else
-        return colors;
+    return {colors.r(), colors.g(), colors.b(), alpha};
 }
 
 namespace Slic3r {
@@ -546,161 +549,8 @@ void GLVolume::render()
     simple_render(shader, model_objects, colors);
 }
 
-//BBS: add outline related logic
-void GLVolume::render_with_outline(const GUI::Size& cnv_size)
-{
-    if (!is_active)
-        return;
-
-    GLShaderProgram *shader = GUI::wxGetApp().get_current_shader();
-    if (shader == nullptr)
-        return;
-
-    ModelObjectPtrs &model_objects = GUI::wxGetApp().model().objects;
-    std::vector<ColorRGBA> colors = GUI::wxGetApp().plater()->get_extruders_colors();
-
-    const GUI::OpenGLManager::EFramebufferType framebuffers_type = GUI::OpenGLManager::get_framebuffers_type();
-    if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Unknown) {
-        // No supported, degrade to normal rendering
-        simple_render(shader, model_objects, colors);
-        return;
-    }
-    // 0th. render pass, render the model using stencil buffer
-    glsafe(::glEnable(GL_STENCIL_TEST));
-    glsafe(::glStencilMask(0xFF));
-    glsafe(::glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE));
-    glsafe(::glClearStencil(0));
-    glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
-    glsafe(::glStencilFunc(GL_ALWAYS, 0xFF, 0xFF));
-    // This pass paints the visible surface, so it must go through simple_render() to keep
-    // per-triangle MMU paint colors; the later is_outline passes only draw the flat silhouette
-    // highlight and are fine using the single-color model.
-    simple_render(shader, model_objects, colors);
-    glsafe(::glStencilFunc(GL_NOTEQUAL, 0xFF, 0xFF));
-    glsafe(::glStencilMask(0x00));
-    shader->set_uniform("is_outline", true);
-    shader->set_uniform("screen_size", Vec2f{cnv_size.get_width(), cnv_size.get_height()});
-    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
-        model.render(shader);
-    else
-        model.render(this->tverts_range, shader);
-    shader->set_uniform("is_outline", false);
-    glsafe(::glStencilMask(0xFF));
-    glsafe(::glDisable(GL_STENCIL_TEST));
-    // render the outline using depth buffer and discard the pixels that are not on the outline
-    // The silhouette is resolved per sample in the shader (see DetectSilho in gouraud.fs/phong.fs).
-    // That needs the GL 3.2 entry points and a shader that declares depth_tex as sampler2DMS, which
-    // only the 140 ones do and only under GL_ARB_texture_multisample - so ask the compiled program
-    // rather than the GL version, or a sampler2D ends up bound to a multisample texture.
-    // Only the Arb branch below allocates a multisample texture, so keep the target consistent with it.
-    const bool  use_msaa_outline = framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb &&
-                                   GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 2) &&
-                                   shader->get_uniform_location("msaa_samples") >= 0;
-    const GLenum depth_tex_target = use_msaa_outline ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-    // Keep the depth texture off image unit 0. The object shaders leave shadow_map (and
-    // environment_tex) at the default sampler value 0 whenever the shadow pass is skipped - which is
-    // the case with realistic view off - and GL forbids two sampler types referring to the same image
-    // unit. A sampler2DMS on unit 0 then makes every draw fail with INVALID_OPERATION on drivers that
-    // enforce it (Mesa), i.e. the model disappears entirely. Unit 5 is unused (shadow_map takes 4).
-    const int depth_tex_unit = OUTLINE_DEPTH_TEX_UNIT;
-    int aa_samples = 1;
-    if (use_msaa_outline) {
-        if (const AppConfig* app_config = GUI::wxGetApp().app_config; app_config != nullptr) {
-            const std::string value = app_config->get(SETTING_OPENGL_AA_SAMPLES);
-            if (value == "2" || value == "4" || value == "8" || value == "16")
-                aa_samples = ::atoi(value.c_str());
-        }
-        // Never request more samples than the driver supports for depth textures (a 1-sample texture
-        // is used when MSAA is disabled, keeping a single code path for the sampler2DMS shader).
-        GLint max_samples = 1;
-        glsafe(::glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &max_samples));
-        if (aa_samples > max_samples)
-            aa_samples = max_samples < 1 ? 1 : max_samples;
-        if (aa_samples < 1)
-            aa_samples = 1;
-    }
-    // 1st. render pass, render the model into a separate render target that has only depth buffer
-    GLuint depth_fbo   = 0;
-    GLuint depth_tex = 0;
-    if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
-        glsafe(::glGenFramebuffers(1, &depth_fbo));
-        glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo));
-
-        glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
-        glsafe(::glGenTextures(1, &depth_tex));
-        glsafe(::glBindTexture(depth_tex_target, depth_tex));
-        if (use_msaa_outline) {
-            // Multisample textures do not take filter/wrap parameters.
-            glsafe(::glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, aa_samples, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), GL_TRUE));
-        } else {
-            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-            glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
-        }
-
-        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_tex_target, depth_tex, 0));
-    } else {
-        glsafe(::glGenFramebuffersEXT(1, &depth_fbo));
-        glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, depth_fbo));
-
-        glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
-        glsafe(::glGenTextures(1, &depth_tex));
-        glsafe(::glBindTexture(GL_TEXTURE_2D, depth_tex));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
-
-        glsafe(::glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depth_tex, 0));
-    }
-    // Unbind before drawing: the texture is this framebuffer's depth attachment, so leaving it bound
-    // to a sampled unit would be a feedback loop.
-    glsafe(::glBindTexture(depth_tex_target, 0));
-    glsafe(::glActiveTexture(GL_TEXTURE0));
-    glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
-    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
-        model.render(shader);
-    else
-        model.render(this->tverts_range, shader);
-
-    // 2nd. render pass, just a normal render with the depth buffer passed as a texture
-    if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
-        glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, 0));
-    } else if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Ext) {
-        glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0));
-    }
-    shader->set_uniform("is_outline", true);
-    shader->set_uniform("screen_size", Vec2f{cnv_size.get_width(), cnv_size.get_height()});
-    shader->set_uniform("msaa_samples", aa_samples);
-    glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
-    glsafe(::glBindTexture(depth_tex_target, depth_tex));
-    glsafe(::glActiveTexture(GL_TEXTURE0));
-    shader->set_uniform("depth_tex", depth_tex_unit);
-    simple_render(shader, model_objects, colors);
-
-    // Some clean up to do
-    glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
-    glsafe(::glBindTexture(depth_tex_target, 0));
-    glsafe(::glActiveTexture(GL_TEXTURE0));
-    shader->set_uniform("is_outline", false);
-    if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
-        glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, 0));
-        if (depth_fbo != 0)
-            glsafe(::glDeleteFramebuffers(1, &depth_fbo));
-    } else if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Ext) {
-        glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0));
-        if (depth_fbo != 0)
-            glsafe(::glDeleteFramebuffersEXT(1, &depth_fbo));
-    }
-    if (depth_tex != 0)
-        glsafe(::glDeleteTextures(1, &depth_tex));
-}
-
 //BBS add render for simple case
-void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light)
+void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light, bool ban_color_volume)
 {
     if (this->is_left_handed())
         glFrontFace(GL_CW);
@@ -734,7 +584,7 @@ void GLVolume::simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_obj
         }
     } while (0);
 
-    if (color_volume && !picking) {
+    if (color_volume && !picking && !ban_color_volume) {
         const bool brighten_selected = selected && !disabled && !force_native_color && !force_neutral_color;
 
         // when force_transparent, we need to keep the alpha
@@ -1197,15 +1047,14 @@ float GLVolumeCollection::get_selection_support_normal_z() const
     return static_cast<float>(-std::cos(std::clamp(angle_rad, 0.0, Geometry::deg2rad(89.0))));
 }
 
-//BBS: add outline drawing logic
 void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
                                 bool                                  disable_cullface,
                                 const Transform3d &                   view_matrix,
                                 const Transform3d&                    projection_matrix,
-                                const GUI::Size&                      cnv_size,
                                 std::function<bool(const GLVolume &)> filter_func,
                                 bool                                  partly_inside_enable,
-                                std::vector<double> *                 printable_heights) const
+                                std::vector<double> *                 printable_heights,
+                                std::vector<GLVolume*> *              outlined_volumes) const
 {
     GLVolumeWithIdAndZList to_render = volumes_to_render(volumes, type, view_matrix, filter_func);
     if (to_render.empty())
@@ -1233,17 +1082,15 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
 
     const float support_normal_z = get_selection_support_normal_z();
 
-    // The outline passes below are driven by is_outline, which only the object shaders have; with an
-    // overlay one (wireframe, x-ray) bound they would just draw the volume again.
-    const bool shader_can_outline = shader->get_uniform_location("is_outline") >= 0;
-
-    // Prime depth_tex on every frame so non-outline draws do not keep the
-    // default sampler unit 0, which can conflict with other sampler types.
-    shader->set_uniform("depth_tex", OUTLINE_DEPTH_TEX_UNIT);
+    // ORCA: the object shaders that know how draw a part of a translucent filament as its print would
+    // show, in premultiplied color, see translucent_filament_color() in gouraud.fs
+    const bool shade_translucent_filaments = type == ERenderType::Transparent && shader->get_uniform_location("translucent_filament") >= 0;
 
     // Compute up direction accounting for build plate tilt. This is frame-invariant
     // (config cannot change mid-render), so compute it once before the volume loop.
     const Vec3f up_direction = GUI::build_plate_tilt_up_direction().cast<float>();
+    const bool persistent_outline = outlined_volumes != nullptr &&
+                                   GUI::wxGetApp().app_config->get_bool(SETTING_OPENGL_OUTLINE_PERSISTENT);
 
     for (GLVolumeWithIdAndZ& volume : to_render) {
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
@@ -1341,15 +1188,30 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("projection_matrix", projection_matrix);
         const Matrix3d view_normal_matrix = view_matrix.matrix().block(0, 0, 3, 3) * model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
+        if (shade_translucent_filaments) {
+            const bool translucent_filament = volume.first->visible && !volume.first->is_modifier && volume.first->color.is_transparent();
+            shader->set_uniform("translucent_filament", translucent_filament);
+            glsafe(::glBlendFunc(translucent_filament ? GL_ONE : GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+        }
         if (volume.first->depth_bias) {
             glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
             glsafe(::glPolygonOffset(1.0f, 1.0f));
         }
-		//BBS: add outline related logic
-        if (volume.first->selected && shader_can_outline && GUI::wxGetApp().show_outline())
-            volume.first->render_with_outline(cnv_size);
-        else
-            volume.first->render();
+        const bool outlined = outlined_volumes != nullptr &&
+                              (volume.first->selected || (persistent_outline && volume.first->visible)) &&
+                              volume.first->is_active && !volume.first->is_wipe_tower;
+        if (outlined) {
+            outlined_volumes->push_back(volume.first);
+            glsafe(::glEnable(GL_STENCIL_TEST));
+            glsafe(::glStencilMask(GUI::SelectionOutline::StencilBit));
+            glsafe(::glStencilFunc(GL_ALWAYS, GUI::SelectionOutline::StencilBit, GUI::SelectionOutline::StencilBit));
+            glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
+        }
+        volume.first->render();
+        if (outlined) {
+            glsafe(::glDisable(GL_STENCIL_TEST));
+            glsafe(::glStencilMask(0xFF));
+        }
         if (volume.first->depth_bias)
             glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
 
@@ -1383,6 +1245,11 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
     if (disable_cullface)
         glsafe(::glEnable(GL_CULL_FACE));
 
+    if (shade_translucent_filaments) {
+        // the program is shared, so leave it as the other users expect
+        shader->set_uniform("translucent_filament", false);
+        glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    }
     if (type == ERenderType::Transparent)
         glsafe(::glDisable(GL_BLEND));
 }
@@ -1446,18 +1313,41 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     ModelInstanceEPrintVolumeState overall_state = ModelInstancePVS_Fully_Outside;
     bool contained_min_one = false;
 
-    //BBS: add instance judge logic, besides to original volume judge logic
-    //std::map<int64_t, ModelInstanceEPrintVolumeState> model_state;
+    // Track each instance across all of its printable model-part volumes. A multipart
+    // instance with one volume inside and another fully outside is partly
+    // outside, even though neither individual volume is colliding.
+    std::map<std::pair<int, int>, ModelInstanceEPrintVolumeState> model_state;
 
     GUI::PartPlate* curr_plate = GUI::wxGetApp().plater()->get_partplate_list().get_selected_plate();
     const Pointfs& pp_bed_shape = curr_plate->get_shape();
     BuildVolume plate_build_volume(pp_bed_shape, build_volume.printable_height(), build_volume.extruder_areas(), build_volume.extruder_heights());
     const std::vector<BoundingBoxf3>& exclude_areas = curr_plate->get_exclude_areas();
 
+    const DynamicPrintConfig *plater_config = GUI::wxGetApp().plater()->config();
+    std::vector<std::vector<BedExcludeRegion>> exclusion_regions;
+    // Legacy bed-exclude areas retain Orca's existing 2D presentation. The
+    // per-extruder 3D state is needed only after collision volumes are enabled.
+    if (has_bed_exclude_volumes(*plater_config)) {
+        exclusion_regions = get_bed_excluded_regions_by_extruder(*plater_config);
+        // The native BuildVolume path below already presents the shared legacy
+        // area. Merge only opt-in collision volumes into nozzle-specific state.
+        for (std::vector<BedExcludeRegion> &regions : exclusion_regions)
+            regions.erase(std::remove_if(regions.begin(), regions.end(),
+                [](const BedExcludeRegion &region) { return !region.is_collision_volume(); }), regions.end());
+    }
+    const Vec3d plate_origin = curr_plate->get_origin();
+    const Point exclusion_offset(scale_(plate_origin.x()), scale_(plate_origin.y()));
+    for (std::vector<BedExcludeRegion> &regions : exclusion_regions)
+        for (BedExcludeRegion &region : regions)
+            region.polygon.translate(exclusion_offset);
+
     std::map<ModelObject*, std::map<int, std::set<int>>> objects_unprintable_filaments;
-    int extruder_count = build_volume.get_extruder_area_count();
+    const DynamicPrintConfig &plate_project_config = GUI::wxGetApp().preset_bundle->project_config;
+    const int build_volume_extruder_count = build_volume.get_extruder_area_count();
+    const int extruder_count = std::max<int>(build_volume_extruder_count, int(exclusion_regions.size()));
     std::vector<std::set<int>> unprintable_filament_ids(extruder_count, std::set<int>());
     std::set<ModelObject*> partly_objects_set;
+    std::map<std::pair<int, int>, std::vector<bool>> instance_inside_exclusion_regions;
     const ModelObjectPtrs &model_objects = model.objects;
     for (GLVolume* volume : this->volumes)
     {
@@ -1472,7 +1362,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     //FIXME this test does not evaluate collision of a build volume bounding box with non-convex objects.
                     const BoundingBoxf3& bb = volume_bbox(*volume);
                     state = plate_build_volume.volume_state_bbox(bb);
-                    if ((state == BuildVolume::ObjectState::Inside) && (extruder_count > 1))
+                    if ((state == BuildVolume::ObjectState::Inside) && (build_volume_extruder_count > 1))
                     {
                         state = plate_build_volume.check_volume_bbox_state_with_extruder_areas(bb, inside_extruders);
                     }
@@ -1486,7 +1376,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     const indexed_triangle_set& convex_mesh_it = volume_convex_mesh(*volume).its;
                     const Transform3f trafo = volume->world_matrix().cast<float>();
                     state = plate_build_volume.object_state(convex_mesh_it, trafo, volume_sinking(*volume));
-                    if ((state == BuildVolume::ObjectState::Inside) && (extruder_count > 1))
+                    if ((state == BuildVolume::ObjectState::Inside) && (build_volume_extruder_count > 1))
                     {
                         state = plate_build_volume.check_object_state_with_extruder_areas(convex_mesh_it, trafo, inside_extruders);
                     }
@@ -1499,13 +1389,54 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                 }
                 assert(state != BuildVolume::ObjectState::Below);
 
+                // Preserve Orca's native printable-area result separately.
+                // Exclusion collisions have current-map semantics and must not
+                // leak into the later "unprintable on every possible nozzle"
+                // aggregation used by automatic printable-area assignment.
+                const std::vector<bool> printable_area_inside_extruders = inside_extruders;
+
+                // Newer Orca resolves live multi-nozzle placement through this
+                // per-extruder state vector. Merge exclusion-volume collisions
+                // into the same source of truth instead of relying only on the
+                // legacy PartPlate::check_outside() path.
+                if ((state == BuildVolume::ObjectState::Inside || state == BuildVolume::ObjectState::Limited) &&
+                    volume->object_idx() >= 0 && volume->object_idx() < int(model_objects.size()) &&
+                    volume->instance_idx() >= 0 &&
+                    volume->instance_idx() < int(model_objects[volume->object_idx()]->instances.size())) {
+                    inside_extruders.resize(extruder_count, true);
+
+                    const std::pair<int, int> instance_key{ volume->object_idx(), volume->instance_idx() };
+                    auto [cache_it, inserted] = instance_inside_exclusion_regions.emplace(
+                        instance_key, std::vector<bool>(extruder_count, true));
+                    if (inserted) {
+                        const ModelInstance *instance = model_objects[volume->object_idx()]->instances[volume->instance_idx()];
+                        for (size_t extruder_id = 0; extruder_id < exclusion_regions.size(); ++extruder_id) {
+                            if (instance->intersects_bed_exclude_regions(exclusion_regions[extruder_id]))
+                                cache_it->second[extruder_id] = false;
+                        }
+                    }
+
+                    bool exclusion_limited = false;
+                    for (size_t extruder_id = 0; extruder_id < cache_it->second.size(); ++extruder_id) {
+                        if (!cache_it->second[extruder_id]) {
+                            inside_extruders[extruder_id] = false;
+                            exclusion_limited = true;
+                        }
+                    }
+
+                    if (exclusion_limited && state == BuildVolume::ObjectState::Inside)
+                        state = extruder_count > 1 ? BuildVolume::ObjectState::Limited : BuildVolume::ObjectState::Colliding;
+
+                }
+
                 if (state == BuildVolume::ObjectState::Limited) {
                     //unprintable_filament_ids.resize(inside_extruders.size());
                     ModelObject *model_object = model_objects[volume->object_idx()];
                     ModelVolume *model_volume = model_object->volumes[volume->volume_idx()];
-                    for (size_t i = 0; i < inside_extruders.size(); ++i) {
-                        if (!inside_extruders[i]) {
-                            std::vector<int> filaments = model_volume->get_extruders();
+                    // A mixed filament prints with its component filaments.
+                    const std::vector<int> filaments = expand_mixed_filament_ids(model_volume->get_extruders(), plate_project_config);
+                    for (size_t i = 0; i < printable_area_inside_extruders.size(); ++i) {
+                        if (!printable_area_inside_extruders[i]) {
                             unprintable_filament_ids[i].insert(filaments.begin(), filaments.end());
                             if (object_results) {
                                 std::map<int, std::set<int>>& obj_extruder_filament_maps = objects_unprintable_filaments[model_object];
@@ -1517,7 +1448,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                 }
             }
 
-            //int64_t comp_id = ((int64_t)volume->composite_id.object_id << 32) | ((int64_t)volume->composite_id.instance_id);
+            const std::pair<int, int> instance_id { volume->composite_id.object_id, volume->composite_id.instance_id };
             volume->is_outside = (state != BuildVolume::ObjectState::Inside && state != BuildVolume::ObjectState::Limited);
             volume->partly_inside = (state == BuildVolume::ObjectState::Colliding);
             if (volume->printable) {
@@ -1532,38 +1463,43 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                     overall_state = ModelInstancePVS_Fully_Outside;
                 }
                 contained_min_one |= !volume->is_outside;
-            }
 
-            /*ModelInstanceEPrintVolumeState volume_state;
-            //if (volume->is_outside && (plate_build_volume.bounding_volume().intersects(volume->bounding_box())))
-            if (volume->is_outside && (state == BuildVolume::ObjectState::Colliding))
-                volume_state = ModelInstancePVS_Partly_Outside;
-            else if (volume->is_outside)
-                volume_state = ModelInstancePVS_Fully_Outside;
-            else
-                volume_state = ModelInstancePVS_Inside;
+                // A volume completely below the bed is intentionally ignored when
+                // deciding whether an instance is printable.
+                if (!volume->is_wipe_tower && volume->composite_id.volume_id >= 0 &&
+                    state != BuildVolume::ObjectState::Below) {
+                    ModelInstanceEPrintVolumeState volume_state;
+                    if (volume->is_outside && state == BuildVolume::ObjectState::Colliding)
+                        volume_state = ModelInstancePVS_Partly_Outside;
+                    else if (volume->is_outside)
+                        volume_state = ModelInstancePVS_Fully_Outside;
+                    else
+                        volume_state = ModelInstancePVS_Inside;
 
-            if (model_state.find(comp_id) != model_state.end())
-            {
-                if (model_state[comp_id] != ModelInstancePVS_Partly_Outside)
-                {
-                    if (volume_state == ModelInstancePVS_Partly_Outside)
-                        model_state[comp_id] = ModelInstancePVS_Partly_Outside;
-                    else if (model_state[comp_id] != volume_state)
-                    {
-                        model_state[comp_id] = ModelInstancePVS_Partly_Outside;
+                    const auto [instance_state_entry, inserted] = model_state.emplace(instance_id, volume_state);
+                    if (!inserted && instance_state_entry->second != ModelInstancePVS_Partly_Outside &&
+                               (volume_state == ModelInstancePVS_Partly_Outside || instance_state_entry->second != volume_state)) {
+                        instance_state_entry->second = ModelInstancePVS_Partly_Outside;
+                    }
+
+                    if (instance_state_entry->second == ModelInstancePVS_Partly_Outside) {
+                        overall_state = ModelInstancePVS_Partly_Outside;
+                        partly_objects_set.emplace(model_objects[volume->object_idx()]);
                     }
                 }
             }
-            else
-            {
-                model_state[comp_id] = volume_state;
-            }
+        }
+    }
 
-            if (model_state[comp_id] == ModelInstancePVS_Partly_Outside) {
-                overall_state = ModelInstancePVS_Partly_Outside;
-                BOOST_LOG_TRIVIAL(debug) << "instance includes " << volume->name << " is partially outside of bed";
-            }*/
+    // Highlight printable parts of an instance that is partly outside the build volume.
+    for (GLVolume* volume : this->volumes)
+    {
+        if (volume->printable && !volume->is_modifier && !volume->is_wipe_tower &&
+            volume->composite_id.volume_id >= 0 && !volume_below(*volume)) {
+            const std::pair<int, int> instance_id { volume->composite_id.object_id, volume->composite_id.instance_id };
+            const auto instance_state_entry = model_state.find(instance_id);
+            if (instance_state_entry != model_state.end() && instance_state_entry->second == ModelInstancePVS_Partly_Outside)
+                volume->partly_inside = true;
         }
     }
 
@@ -1579,8 +1515,11 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     //check per-object error for extruder areas
     if (object_results && (extruder_count > 1))
     {
-        const auto& project_config = Slic3r::GUI::wxGetApp().preset_bundle->project_config;
-        object_results->mode = curr_plate->get_real_filament_map_mode(project_config);
+        object_results->mode = curr_plate->get_real_filament_map_mode(plate_project_config);
+        // Only Bambu printers regroup filaments; check the others against the map they print with.
+        const bool supports_filament_grouping = GUI::wxGetApp().preset_bundle->is_bbl_vendor();
+        if (!supports_filament_grouping && object_results->mode < FilamentMapMode::fmmManual)
+            object_results->mode = FilamentMapMode::fmmManual;
         if (object_results->mode < FilamentMapMode::fmmManual)
         {
             std::vector<int> conflict_filament_vector;
@@ -1642,8 +1581,10 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
         else
         {
             std::set<int> conflict_filaments_set;
-            const auto& project_config = Slic3r::GUI::wxGetApp().preset_bundle->project_config;
-            std::vector<int> filament_maps = curr_plate->get_real_filament_maps(project_config);
+            std::vector<int> filament_maps = supports_filament_grouping ?
+                curr_plate->get_real_filament_maps(plate_project_config) :
+                curr_plate->get_effective_exclusion_filament_maps(plate_project_config, GUI::wxGetApp().preset_bundle->filament_presets.size(),
+                                                                  size_t(extruder_count));
             for (auto& object_map: objects_unprintable_filaments)
             {
                 ModelObject *model_object = object_map.first;
@@ -1658,7 +1599,8 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
 
                     for (int filament: filaments_set)
                     {
-                        if (filament_maps[filament - 1] == extruder_id)
+                        if (filament > 0 && size_t(filament) <= filament_maps.size() &&
+                            filament_maps[filament - 1] == extruder_id)
                         {
                             object_filament_info.manual_filaments.emplace(filament, extruder_id);
                             object_results->filament_maps[filament] = extruder_id;
@@ -1675,23 +1617,8 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
                 object_results->filaments = std::vector<int>(conflict_filaments_set.begin(), conflict_filaments_set.end());
             }
         }
-    }
 
-    /*for (GLVolume* volume : this->volumes)
-    {
-        if (! volume->is_modifier && (volume->shader_outside_printer_detection_enabled || (! volume->is_wipe_tower && volume->composite_id.volume_id >= 0)))
-        {
-            int64_t comp_id = ((int64_t)volume->composite_id.object_id << 32) | ((int64_t)volume->composite_id.instance_id);
-            if (model_state.find(comp_id) != model_state.end())
-            {
-                if (model_state[comp_id] == ModelInstancePVS_Partly_Outside) {
-                    volume->partly_inside = true;
-                }
-                else
-                    volume->partly_inside = false;
-            }
-        }
-    }*/
+    }
 
     if (out_state != nullptr)
         *out_state = overall_state;
