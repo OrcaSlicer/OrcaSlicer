@@ -217,6 +217,8 @@ set(lisbslic3r_sources
     Format/3mf.hpp
     Format/AMF.cpp
     Format/AMF.hpp
+    Format/ImportNames.cpp
+    Format/ImportNames.hpp
     Format/AssembleList.cpp
     Format/AssembleList.hpp
     Format/DRC.cpp
@@ -683,6 +685,11 @@ if (USE_SLIC3R_CONSOLE_LOG)
 endif()
 target_include_directories(libslic3r PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/TextureToColor PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(libslic3r SYSTEM PUBLIC ${EXPAT_INCLUDE_DIRS})
+if (WIN32)
+    # Expat is linked statically; upstream headers declare the API __declspec(dllimport)
+    # unless XML_STATIC is defined.
+    target_compile_definitions(libslic3r PUBLIC XML_STATIC)
+endif()
 
 # Find the OCCT and related libraries
 set(OpenCASCADE_DIR "${CMAKE_PREFIX_PATH}/lib/cmake/occt")

@@ -351,6 +351,7 @@ static constexpr const char* TRANSFORM_ATTR = "transform";
 static constexpr const char* OFFSET_ATTR = "offset";
 static constexpr const char* PRINTABLE_ATTR = "printable";
 static constexpr const char* AUTO_DROP_ATTR = "auto_drop";
+static constexpr const char* IMPORTED_PARTS_HIDDEN_KEY = "orca:imported_parts_hidden";
 static constexpr const char* INSTANCESCOUNT_ATTR = "instances_count";
 static constexpr const char* CUSTOM_SUPPORTS_ATTR = "paint_supports";
 static constexpr const char* CUSTOM_FUZZY_SKIN_ATTR  = "paint_fuzzy_skin";
@@ -1167,6 +1168,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool m_load_model = false;
         bool m_load_aux = false;
         bool m_load_config = false;
+        bool m_keep_original_names = false;
         // backup & restore
         bool m_load_restore = false;
         std::string m_backup_path;
@@ -1492,6 +1494,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         m_load_aux = strategy & LoadStrategy::LoadAuxiliary;
         m_load_restore = strategy & LoadStrategy::Restore;
         m_load_config = strategy & LoadStrategy::LoadConfig;
+        // Project part metadata remains authoritative; the opt-in only fills missing CAD labels.
+        m_keep_original_names = (strategy & LoadStrategy::KeepOriginalNames) && !m_load_config;
         m_model = &model;
         m_unit_factor = 1.0f;
         m_curr_object = nullptr;
@@ -2259,6 +2263,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             ObjectMetadata::VolumeMetadataList volumes;
             ObjectMetadata::VolumeMetadataList* volumes_ptr = nullptr;
+            bool imported_parts_hidden = false;
 
             // 2.4.x stored auto_drop on build items, shared by all instances of an object; any "off" wins
             const bool legacy_auto_drop = !m_items_auto_drop_off.count(object.first.second);
@@ -2273,6 +2278,9 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 for (const Metadata& metadata : obj_metadata->second.metadata) {
                     if (metadata.key == "name")
                         model_object->name = metadata.value;
+                    // This is model presentation state, never a print configuration option.
+                    else if (metadata.key == IMPORTED_PARTS_HIDDEN_KEY)
+                        imported_parts_hidden = metadata.value == "1";
                     //BBS: add module name
                     else if (metadata.key == "module")
                         model_object->module_name = metadata.value;
@@ -2316,6 +2324,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
             if (!_generate_volumes_new(*model_object, object_id_list, *volumes_ptr, config_substitutions))
                 return false;
+            // add_volume reveals edited objects, so restore persisted presentation after creation.
+            model_object->imported_parts_hidden = imported_parts_hidden;
 
             // Apply cut information for object if any was loaded
             // m_cut_object_ids are indexed by a 1 based model object index.
@@ -2794,8 +2804,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             const std::string& temp_path = model.get_backup_path();
 
             std::string dest_file = temp_path + std::string("/") + "_temp_3.config";;
-            std::string dest_zip_file = encode_path(dest_file.c_str());
-            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
+            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_file.c_str(), 0);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract project config file to file");
@@ -2831,8 +2840,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             else
                 return;*/
             std::string dest_file = m_backup_path + std::string("/") + "_temp_2.config";;
-            std::string dest_zip_file = encode_path(dest_file.c_str());
-            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
+            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_file.c_str(), 0);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract auxiliary file to file");
@@ -2953,8 +2961,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                     boost::filesystem::create_directories(parent_full_path);
             }
             dest_file = dir.string() + std::string("/") + dest_file;
-            std::string dest_zip_file = encode_path(dest_file.c_str());
-            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
+            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_file.c_str(), 0);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_file % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract auxiliary file to file");
@@ -2977,8 +2984,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             // BBS: use backup path
             //aux directory from model
             boost::filesystem::path dest_path = boost::filesystem::path(m_backup_path + "/" + src_file);
-            std::string dest_zip_file = encode_path(dest_path.string().c_str());
-            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
+            mz_bool res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_path.string().c_str(), 0);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from 3mf %2%, ret %3%\n") % dest_path % stat.m_filename % res;
             if (res == 0) {
                 add_error("Error while extract file to temp directory");
@@ -5476,6 +5482,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             // this may happen for 3mf saved by 3rd part softwares
+            if (volume->name.empty() && m_keep_original_names)
+                volume->name = sub_object->name;
             if (volume->name.empty()) {
                 volume->name = object.name;
                 if (renamed_volumes_count > 0)
@@ -6915,11 +6923,11 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         auto end = nocomp_exts + sizeof(nocomp_exts) / sizeof(nocomp_exts[0]);
         bool nocomp = std::find_if(nocomp_exts, end, [&path_in_zip](auto & ext) { return boost::algorithm::ends_with(path_in_zip, ext); }) != end;
 #if WRITE_ZIP_LANGUAGE_ENCODING
-        bool result = mz_zip_writer_add_file(&archive, path_in_zip.c_str(), encode_path(src_file_path.c_str()).c_str(), NULL, 0, nocomp ? MZ_NO_COMPRESSION : MZ_DEFAULT_LEVEL);
+        bool result = mz_zip_writer_add_file(&archive, path_in_zip.c_str(), src_file_path.c_str(), NULL, 0, nocomp ? MZ_NO_COMPRESSION : MZ_DEFAULT_LEVEL);
 #else
         std::string native_path = encode_path(path_in_zip.c_str());
         std::string extra = ZipUnicodePathExtraField::encode(path_in_zip, native_path);
-        bool result = mz_zip_writer_add_file_ex(&archive, native_path.c_str(), encode_path(src_file_path.c_str()).c_str(), NULL, 0, nocomp ? MZ_ZIP_FLAG_ASCII_FILENAME : MZ_DEFAULT_COMPRESSION,
+        bool result = mz_zip_writer_add_file_ex(&archive, native_path.c_str(), src_file_path.c_str(), NULL, 0, nocomp ? MZ_ZIP_FLAG_ASCII_FILENAME : MZ_DEFAULT_COMPRESSION,
                 extra.c_str(), extra.length(), extra.c_str(), extra.length());
 #endif
         if (!result) {
@@ -8321,6 +8329,9 @@ bool _BBS_3MF_Exporter::_add_model_config_file_to_archive(mz_zip_archive& archiv
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"module\" " << VALUE_ATTR << "=\"" << xml_escape(obj->module_name) << "\"/>\n";
 
                 // stores object's config data
+                if (obj->imported_parts_hidden)
+                    stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << IMPORTED_PARTS_HIDDEN_KEY
+                           << "\" " << VALUE_ATTR << "=\"1\"/>\n";
                 for (const std::string& key : obj->config.keys()) {
                     stream << "    <" << METADATA_TAG << " " << KEY_ATTR << "=\"" << key << "\" " << VALUE_ATTR << "=\"" << obj->config.opt_serialize(key) << "\"/>\n";
                 }

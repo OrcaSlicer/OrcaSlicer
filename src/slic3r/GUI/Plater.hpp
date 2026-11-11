@@ -95,6 +95,7 @@ namespace UndoRedo {
 }
 
 namespace GUI {
+enum class LoadType : unsigned char;
 class SyncAmsInfoDialog;
 class MainFrame;
 class ConfigOptionsGroup;
@@ -389,6 +390,8 @@ public:
     bool up_to_date(bool saved, bool backup);
 
     bool open_3mf_file(const boost::filesystem::path &file_path);
+    // Batch import resolves the project/geometry question once before staging the whole set.
+    bool open_3mf_file(const boost::filesystem::path &file_path, LoadType resolved_type);
     int  get_3mf_file_count(std::vector<boost::filesystem::path> paths);
     void add_file();
     // Returns false when no object was added (e.g. the user cancelled the load dialog).
@@ -454,7 +457,8 @@ public:
     bool preview_zip_archive(const boost::filesystem::path& archive_path);
 
     // BBS: restore
-    std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false, bool* published_out = nullptr);
+    std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false, bool* published_out = nullptr,
+                                   const std::function<void()>& before_publish = nullptr);
     // to be called on drag and drop
     bool load_files(const wxArrayString& filenames);
 
@@ -550,7 +554,8 @@ public:
     void reset(bool apply_presets_change = false, bool reload_presets = true);
     void reset_with_confirm();
     //BBS: return int for various result
-    int close_with_confirm(std::function<bool(bool yes_or_no)> second_check = nullptr); // BBS close project
+    // With deferred_close, the steps that mark the current project closed are returned instead of run.
+    int close_with_confirm(std::function<bool(bool yes_or_no)> second_check = nullptr, std::function<void()>* deferred_close = nullptr); // BBS close project
     //BBS: trigger a restore project event
     void trigger_restore_project(int skip_confirm = 0);
     bool delete_object_from_model(size_t obj_idx, bool refresh_immediately = true); // BBS support refresh immediately
