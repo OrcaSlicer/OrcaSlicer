@@ -4967,7 +4967,6 @@ void DesignPanel::on_import_step()
                                        : (wxString::Format(_L("STEP import failed: %s"), kernel_error_text(err))));
         return;
     }
-    end_body_move(true);
     m_doc.checkpoint();   // undo boundary: importing STEP solids
     for (const TopoDS_Shape& s : solids) {
         m_feature_counter++;
@@ -5067,7 +5066,6 @@ void DesignPanel::on_import_mesh()
     }
     if (shape.IsNull()) { fail(_L("Mesh conversion produced no geometry")); return; }
 
-    end_body_move(true);
     m_doc.checkpoint();   // undo boundary: importing a mesh as a B-rep body
     m_feature_counter++;
     CadFeature f;
@@ -5122,7 +5120,6 @@ void DesignPanel::add_imported_sketch(
                                             base_name));
         return;
     }
-    end_body_move(true);
     m_doc.checkpoint();   // undo boundary: importing Text/SVG art
     m_feature_counter++;
     CadFeature f;
@@ -7550,7 +7547,6 @@ void DesignPanel::load_recipe(const std::string& blob)
         return;
     }
     m_feature_counter = int(m_doc.features.size());
-    m_body_xform = m_doc.body_transforms;
     drop_selection();
     feed_bodies();    // push the restored bodies into the viewport
     refresh_tree();   // rebuild the feature tree from the restored recipe
@@ -7744,7 +7740,6 @@ void DesignPanel::sync_body_xform()
 {
     // Parallel to bodies; new bodies default to identity (no move). Stable on resize.
     m_body_xform.resize(m_doc.bodies.size(), Transform3d::Identity());
-    m_doc.body_transforms.resize(m_doc.bodies.size(), Transform3d::Identity());
 }
 
 // Build the display + pick meshes with each body's Move transform applied. The pick mesh is
@@ -7957,10 +7952,9 @@ void DesignPanel::on_move_body()
         set_status(StatusKind::Info, hint);
         return;
     }
-    end_body_move(true);
     end_sketch_plane_choice();   // the gizmo takes the clicks a plane choice was waiting for
     sync_body_xform();
-    // Delta gizmo: pivot at the displayed mesh's CURRENT bounding-box centre; compose drag deltas
+    // Delta gizmo: pivot at the body's CURRENT world centroid; the tool composes the drag deltas
     // onto its current pose, so move + rotate both work (incl. on an already place-on-face'd body).
     const Transform3d base = m_body_xform[b];
     const BoundingBoxf3 bb = m_doc.display_body_meshes[b].bounding_box();
@@ -7988,17 +7982,10 @@ void DesignPanel::on_move_body()
 void DesignPanel::end_body_move(bool keep)
 {
     if (!body_move_pending()) return;
-    sync_body_xform();
-    if (m_move_body < int(m_body_xform.size())) {
-        const Transform3d placed = m_body_xform[m_move_body];
-        if (keep && !placed.isApprox(m_move_prev)) {
-            m_doc.checkpoint();   // one history step for the whole drag/numeric session
-            m_doc.body_transforms = m_body_xform;
-            Slic3r::put_other_changes();
-        } else if (!keep)
-            m_body_xform[m_move_body] = m_move_prev;
-    }
     if (!keep) {
+        sync_body_xform();
+        if (m_move_body < int(m_body_xform.size()))
+            m_body_xform[m_move_body] = m_move_prev;
         feed_bodies();           // re-render the reverted placement
     }
     m_viewport->clear_move_gizmo();
@@ -8083,7 +8070,6 @@ bool DesignPanel::place_on_face()
     }
     const TopoDS_Face face = GeometryEngine::face_by_index(m_doc.bodies[b].shape, m_sel_solid_face);
     if (face.IsNull()) return false;
-    end_body_move(true);
     end_sketch_plane_choice();   // the body moves; a sketch was not started
     sync_body_xform();
     const Transform3d old_x = m_body_xform[b];
@@ -8099,10 +8085,7 @@ bool DesignPanel::place_on_face()
     TriangleMesh probe = m_doc.display_body_meshes[b];
     probe.transform(x);
     x = Transform3d(Eigen::Translation3d(0.0, 0.0, -probe.bounding_box().min.z())) * x;
-    if (!x.isApprox(old_x)) m_doc.checkpoint();
     m_body_xform[b] = x;
-    m_doc.body_transforms = m_body_xform;
-    Slic3r::put_other_changes();
     set_status_ok();   // rebuild display/pick meshes, re-point picking; resets face selection
     set_status(StatusKind::Info, _L("Placed on face — body laid flat on the bed"));
     return true;
@@ -8254,9 +8237,7 @@ void DesignPanel::on_delete_body()
     const bool ok = m_doc.remove_feature(src);
     after_tree_edit(ok);
     if (ok)
-        set_status(StatusKind::Ok, wxString::FromUTF8(wxGetApp().shortcuts().with_key(
-            wxString::Format(_L("Deleted %s, the feature this body was made from. Use Undo to restore it."), fname).utf8_string(),
-            Shortcut::Undo)));
+        set_status(StatusKind::Ok, wxString::Format(_L("Deleted %s, the feature this body was made from — Ctrl+Z restores it"), fname));
 }
 
 void DesignPanel::on_delete_feature()
@@ -11590,8 +11571,7 @@ void DesignPanel::apply_move_card()
                    m_move_dy ? m_move_dy->GetValue() : 0.0,
                    m_move_dz ? m_move_dz->GetValue() : 0.0);
 
-    // Use the same display-mesh bounding-box centre as the drag gizmo. Tessellation can put
-    // it slightly off the analytic symmetry axis; body_to_design includes that pivot motion.
+    // Rotate about the body's own centre, not the world origin.
     const Vec3d pivot = m_move_prev * m_doc.display_body_meshes[b].bounding_box().center();
     Transform3d x = Transform3d::Identity();
     x.translate(d + pivot);
@@ -12287,7 +12267,7 @@ void DesignPanel::do_undo_redo(bool redo)
     // v1: act only in Feature mode. While authoring/constraining a sketch (m_ui_mode) or
     // with a feature dialog open (m_active), Esc/Cancel is the way out — popping committed
     // history mid-tool would be ambiguous (and could orphan the tool's referenced feature).
-    // A live Move is still a preview; Confirm records its placement as one history step.
+    // A Move is not in the history at all, so an undo under it would keep it without asking.
     if (m_ui_mode != UiMode::Feature || m_active != Tool::None || body_move_pending()) {
         set_status(StatusKind::Info, _L("Finish or cancel the current tool first (Esc)"));
         return;
@@ -12297,7 +12277,6 @@ void DesignPanel::do_undo_redo(bool redo)
         set_status(StatusKind::Info, redo ? _L("Nothing to redo") : _L("Nothing to undo"));
         return;
     }
-    m_body_xform = m_doc.body_transforms;
     // The picks and any in-place edit reference ids that recompute() invalidates — drop them
     // before refreshing from the restored document.
     drop_selection();

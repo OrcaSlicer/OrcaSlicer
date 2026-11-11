@@ -58,7 +58,6 @@
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
-#include <Eigen/Geometry>
 #include <BRepBuilderAPI_Transform.hxx>
 #include <gp_Trsf.hxx>
 #include <gp_Vec.hxx>
@@ -5204,61 +5203,6 @@ TEST_CASE("undo removes a variable that did not exist before the checkpoint", "[
 
     REQUIRE(doc.variables.count("bogus") == 0);
     REQUIRE(doc.recompute());
-}
-
-TEST_CASE("Undo and redo restore body placements alongside feature edits", "[CadDocument][Regression]")
-{
-    CadDocument doc;
-    const int sketch = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 30, 0, "Sketch");
-    const int extrude = doc.add_extrude(sketch, 10., false, BooleanMode::New, "Body");
-    REQUIRE(doc.recompute());
-    doc.body_transforms = {Transform3d::Identity()};
-
-    const Transform3d moved(Eigen::Translation3d(100., 0., 0.));
-    const Transform3d rotated = moved * Eigen::AngleAxisd(M_PI / 6., Vec3d::UnitZ());
-    doc.checkpoint();
-    doc.body_transforms[0] = moved;
-    doc.checkpoint();
-    doc.body_transforms[0] = rotated;
-
-    REQUIRE(doc.undo());
-    REQUIRE(doc.body_transforms.size() == 1);
-    CHECK(doc.body_transforms[0].isApprox(moved, 1e-12));
-    REQUIRE(doc.undo());
-    CHECK(doc.body_transforms[0].isApprox(Transform3d::Identity(), 1e-12));
-    REQUIRE(doc.redo());
-    CHECK(doc.body_transforms[0].isApprox(moved, 1e-12));
-    REQUIRE(doc.redo());
-    CHECK(doc.body_transforms[0].isApprox(rotated, 1e-12));
-
-    // As in the panel, deleting a body also shrinks its display-placement array.
-    doc.checkpoint();
-    REQUIRE(doc.remove_feature(extrude));
-    doc.body_transforms.resize(doc.bodies.size(), Transform3d::Identity());
-    CHECK(doc.body_transforms.empty());
-    REQUIRE(doc.undo());
-    REQUIRE(doc.bodies.size() == 1);
-    REQUIRE(doc.body_transforms.size() == 1);
-    CHECK(doc.body_transforms[0].isApprox(rotated, 1e-12));
-    REQUIRE(doc.redo());
-    CHECK(doc.body_transforms.empty());
-}
-
-TEST_CASE("A new placement invalidates redo and a cleared design drops placements", "[CadDocument][Regression]")
-{
-    CadDocument doc;
-    doc.body_transforms = {Transform3d::Identity()};
-    doc.checkpoint();
-    doc.body_transforms[0].translate(Vec3d(100., 0., 0.));
-    REQUIRE(doc.undo());
-    REQUIRE(doc.can_redo());
-    doc.checkpoint();
-    doc.body_transforms[0].translate(Vec3d(0., 25., 0.));
-    CHECK_FALSE(doc.can_redo());
-    doc.clear();
-    CHECK(doc.body_transforms.empty());
-    CHECK_FALSE(doc.can_undo());
-    CHECK_FALSE(doc.can_redo());
 }
 
 TEST_CASE("parametric recipe round-trips through serialize/deserialize", "[CadDocument][variables]")

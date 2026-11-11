@@ -101,6 +101,10 @@ pending Design body moves. Apply it to homogeneous points; normals require the i
 of its linear part. Commit to Plate and later arrangement require a separate association with
 Prepare model volumes and instances. This API does not provide G-code placement coordinates.
 
+Move/Rotate uses the display mesh's bounding-box centre as its pivot. Tessellation can place
+that centre slightly off a curved body's analytic axis, so a rotation can contribute a small
+translation to `body_to_design`. The matrix describes the actual displayed placement.
+
 Retain a subscription handle while needed; `close()` is idempotent and `is_active()` reports
 its state. There is no initial event: subscribe, then read the current selection. Callbacks
 receive their event's snapshot; the current cache may already contain a newer selection.

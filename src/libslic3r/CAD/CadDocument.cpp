@@ -2028,7 +2028,6 @@ void CadDocument::clear()
     features.clear();
     body = TopoDS_Shape();
     bodies.clear();                // multibody result — must clear too (else solids linger)
-    body_transforms.clear();
     display_mesh = TriangleMesh{};
     display_body_meshes.clear();
     display_tri_face.clear();
@@ -2048,7 +2047,7 @@ void CadDocument::clear()
 
 void CadDocument::checkpoint()
 {
-    m_undo.push_back(Snapshot{features, variables, body_transforms});   // snapshot the pre-mutation state
+    m_undo.push_back(Snapshot{features, variables});   // snapshot the pre-mutation recipe
     m_redo.clear();                                    // any new action invalidates the redo branch
     if (m_undo.size() > k_undo_cap)
         m_undo.erase(m_undo.begin());
@@ -2064,10 +2063,9 @@ bool CadDocument::undo()
 {
     if (m_undo.empty())
         return false;
-    m_redo.push_back(Snapshot{std::move(features), std::move(variables), std::move(body_transforms)});
+    m_redo.push_back(Snapshot{std::move(features), std::move(variables)});   // current state becomes redoable
     features  = std::move(m_undo.back().features);
     variables = std::move(m_undo.back().variables);
-    body_transforms = std::move(m_undo.back().body_transforms);
     m_undo.pop_back();
     recompute();   // benign-empty (only a sketch / empty doc) is a valid undo target
     return true;
@@ -2077,10 +2075,9 @@ bool CadDocument::redo()
 {
     if (m_redo.empty())
         return false;
-    m_undo.push_back(Snapshot{std::move(features), std::move(variables), std::move(body_transforms)});
+    m_undo.push_back(Snapshot{std::move(features), std::move(variables)});
     features  = std::move(m_redo.back().features);
     variables = std::move(m_redo.back().variables);
-    body_transforms = std::move(m_redo.back().body_transforms);
     m_redo.pop_back();
     recompute();
     return true;
