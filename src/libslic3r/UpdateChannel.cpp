@@ -49,6 +49,14 @@ bool ends_with(const std::string& text, const char* suffix)
     return text.size() >= tail.size() && text.compare(text.size() - tail.size(), tail.size(), tail) == 0;
 }
 
+std::string lower_ascii(std::string text)
+{
+    for (char& ch : text)
+        if (ch >= 'A' && ch <= 'Z')
+            ch = static_cast<char>(ch - 'A' + 'a');
+    return text;
+}
+
 std::string strip_version_prefix(const std::string& tag)
 {
     if (!tag.empty() && (tag.front() == 'v' || tag.front() == 'V'))
@@ -122,14 +130,15 @@ bool asset_matches_flavour(const std::string& name, InstallFlavour flavour, cons
     return false;
 }
 
-// Stable assets name the release, nightly assets are the rolling build.
+// Stable and Pre-Release assets name the release, nightly assets are the rolling build.
 bool asset_matches_channel(const std::string& name, UpdateChannel channel, const std::string& version)
 {
     if (channel == UpdateChannel::Nightly)
         return contains(name, "_nightly");
     if (version.empty())
         return false;
-    return contains(name, std::string("V") + version) || contains(name, std::string("v") + version);
+    // Case-insensitive: the v2.3.2-rc release shipped its assets spelled V2.3.2-RC.
+    return contains(lower_ascii(name), "v" + lower_ascii(version));
 }
 
 UpdateAsset pick_asset(const json& release, UpdateChannel channel, const std::string& version,
@@ -160,7 +169,7 @@ UpdateAsset pick_asset(const json& release, UpdateChannel channel, const std::st
     return UpdateAsset();
 }
 
-bool is_newer_stable(const std::string& candidate_version, const std::string& running_version)
+bool is_newer_version(const std::string& candidate_version, const std::string& running_version)
 {
     auto candidate = Semver::parse(candidate_version);
     auto running   = Semver::parse(running_version);
@@ -173,12 +182,21 @@ bool is_newer_stable(const std::string& candidate_version, const std::string& ru
 
 std::string update_channel_key(UpdateChannel channel)
 {
-    return channel == UpdateChannel::Nightly ? "nightly" : "stable";
+    switch (channel) {
+    case UpdateChannel::Nightly:    return "nightly";
+    case UpdateChannel::PreRelease: return "prerelease";
+    case UpdateChannel::Stable:     return "stable";
+    }
+    return "stable";
 }
 
 UpdateChannel update_channel_from_key(const std::string& key)
 {
-    return key == "nightly" ? UpdateChannel::Nightly : UpdateChannel::Stable;
+    if (key == "nightly")
+        return UpdateChannel::Nightly;
+    if (key == "prerelease")
+        return UpdateChannel::PreRelease;
+    return UpdateChannel::Stable;
 }
 
 std::string install_flavour_key(InstallFlavour flavour)
@@ -250,10 +268,16 @@ UpdateCandidate resolve_update(const std::string& releases_json,
         candidate.version       = string_field(*release, "updated_at");
         candidate.version_label = nightly_label(candidate.version);
     } else {
+        // Stable and Pre-Release differ only in which entries they look at: Stable
+        // never offers a prerelease, Pre-Release offers nothing else. The nightly
+        // release is not semver, so neither channel ever picks it up.
         Semver best;
         bool   have_best = false;
         for (const auto& entry : releases) {
-            if (!entry.is_object() || bool_field(entry, "prerelease"))
+            if (!entry.is_object())
+                continue;
+            const bool is_prerelease = bool_field(entry, "prerelease");
+            if (channel == UpdateChannel::PreRelease ? !is_prerelease : is_prerelease)
                 continue;
             Semver parsed;
             if (!parse_tag_version(string_field(entry, "tag_name"), parsed))
@@ -276,12 +300,16 @@ UpdateCandidate resolve_update(const std::string& releases_json,
     candidate.release_notes = string_field(*release, "body");
     candidate.asset         = pick_asset(*release, channel, candidate.version, flavour, arch);
 
-    const bool channel_switch = !installed_channel.empty() && installed_channel != update_channel_key(channel);
+    // Switching channel normally offers that channel's current artifact even when it sorts
+    // lower. Pre-Release is the exception: it holds only prereleases, so the override could
+    // only hand back something older than what is running.
+    const bool channel_switch = channel != UpdateChannel::PreRelease &&
+                                !installed_channel.empty() && installed_channel != update_channel_key(channel);
 
     // Whether the release itself is worth offering, whether or not an asset fits this flavour.
     bool release_is_newer = false;
-    if (channel == UpdateChannel::Stable) {
-        release_is_newer = is_newer_stable(candidate.version, running_version);
+    if (channel != UpdateChannel::Nightly) {
+        release_is_newer = is_newer_version(candidate.version, running_version);
     } else if (!installed_artifact.empty()) {
         release_is_newer = true;
     } else if (!build_timestamp.empty() && candidate.version > build_timestamp) {
@@ -311,7 +339,7 @@ UpdateCandidate resolve_update(const std::string& releases_json,
         return candidate;
     }
 
-    if (channel == UpdateChannel::Stable) {
+    if (channel != UpdateChannel::Nightly) {
         if (!release_is_newer) {
             candidate.reason = "up_to_date";
             return candidate;

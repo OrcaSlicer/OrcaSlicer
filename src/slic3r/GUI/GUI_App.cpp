@@ -3495,8 +3495,13 @@ bool GUI_App::on_init_inner()
                 return;
 
             UpdateVersionDialog dialog(this->mainframe);
-            dialog.set_channel_label(m_update_candidate.channel == UpdateChannel::Nightly ? _L("Nightly channel")
-                                                                                          : _L("Stable channel"));
+            wxString channel_label;
+            switch (m_update_candidate.channel) {
+            case UpdateChannel::PreRelease: channel_label = _L("Pre-Release channel"); break;
+            case UpdateChannel::Nightly:    channel_label = _L("Nightly channel"); break;
+            case UpdateChannel::Stable:     channel_label = _L("Stable channel"); break;
+            }
+            dialog.set_channel_label(channel_label);
             dialog.update_version_info(wxString::FromUTF8(m_update_candidate.release_notes),
                                        wxString::FromUTF8(m_update_candidate.version_label));
             switch (dialog.ShowModal()) {

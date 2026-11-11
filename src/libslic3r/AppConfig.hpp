@@ -376,7 +376,7 @@ public:
 	// Get the Orca profile update url.
 	std::string 		profile_update_url() const;
 
-	// Update channel the user picked: "stable" or "nightly". Empty means stable.
+	// Update channel the user picked: "stable", "prerelease" or "nightly". Empty means stable.
 	std::string 		update_channel() const { return this->get("update_channel"); }
 	void 				set_update_channel(const std::string& channel) { this->set("update_channel", channel); }
 

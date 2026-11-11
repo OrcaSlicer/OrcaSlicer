@@ -219,8 +219,12 @@ UpdateHelperFrame::UpdateHelperFrame(const UpdateHandoff& handoff)
     wxString label = "OrcaSlicer";
     if (!handoff.version_label.empty())
         label += " " + wxString::FromUTF8(handoff.version_label);
-    if (!handoff.channel.empty())
-        label += " (" + wxString::FromUTF8(handoff.channel) + " channel)";
+    if (!handoff.channel.empty()) {
+        const wxString channel = handoff.channel == "prerelease" ? "Pre-Release channel"
+                               : handoff.channel == "nightly"    ? "Nightly channel"
+                                                                 : "Stable channel";
+        label += " (" + channel + ")";
+    }
 
     m_version_label = new wxStaticText(this, wxID_ANY, label);
     wxFont title_font = m_version_label->GetFont();

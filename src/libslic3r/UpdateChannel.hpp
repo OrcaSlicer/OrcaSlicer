@@ -13,11 +13,12 @@
 namespace Slic3r {
 
 enum class UpdateChannel {
-    Stable,
-    Nightly,
+    Stable,      // the newest published release
+    PreRelease,  // the newest alpha, beta or rc; a final release is never offered here
+    Nightly,     // the rolling nightly-builds release
 };
 
-// "stable" / "nightly"; anything else resolves to Stable.
+// "stable" / "prerelease" / "nightly"; anything else resolves to Stable.
 std::string   update_channel_key(UpdateChannel channel);
 UpdateChannel update_channel_from_key(const std::string& key);
 
@@ -81,8 +82,8 @@ bool update_is_skipped(const UpdateCandidate& candidate,
                        const std::string&     skip_version,
                        const std::string&     skip_artifact);
 
-// Values to persist when the user skips: the version for Stable, the artifact
-// digest for Nightly. The other one is left untouched.
+// Values to persist when the user skips: the version for Stable and Pre-Release,
+// the artifact digest for Nightly. The other one is left untouched.
 void update_skip_values(const UpdateCandidate& candidate,
                         std::string&           skip_version,
                         std::string&           skip_artifact);

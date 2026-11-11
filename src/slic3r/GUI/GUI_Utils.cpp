@@ -278,6 +278,27 @@ std::string parent_directory(const std::string& path)
     return separator == std::string::npos ? std::string() : path.substr(0, separator);
 }
 
+// True when the executable sits in a CMake build tree rather than in an installation.
+// Updating one would replace the tree being worked on instead of a copy the user installed.
+// Linux is left out: there only an AppImage or a Flatpak can update itself at all, and a
+// Linux build tree already resolves to InstallFlavour::Other.
+#if defined(_WIN32) || defined(__APPLE__)
+bool inside_build_tree(const std::string& exe_path)
+{
+    boost::system::error_code ec;
+    boost::filesystem::path dir = boost::filesystem::path(exe_path).parent_path();
+    for (int depth = 0; depth < 5 && !dir.empty(); ++depth) {
+        if (boost::filesystem::exists(dir / "CMakeCache.txt", ec))
+            return true;
+        const boost::filesystem::path parent = dir.parent_path();
+        if (parent == dir)
+            break;
+        dir = parent;
+    }
+    return false;
+}
+#endif
+
 } // namespace
 
 std::string app_exe_path()
@@ -324,6 +345,9 @@ Slic3r::InstallFlavour current_install_flavour()
 #ifdef _WIN32
     if (is_running_in_msix())
         return Slic3r::InstallFlavour::Msix;
+    // A build tree is neither installer nor portable install, even though it lacks uninstall.exe.
+    if (inside_build_tree(app_exe_path()))
+        return Slic3r::InstallFlavour::Other;
     // The NSIS installer puts uninstall.exe beside the executable; the portable build does not.
     const std::string exe_dir = parent_directory(app_exe_path());
     if (!exe_dir.empty()) {
@@ -334,7 +358,8 @@ Slic3r::InstallFlavour current_install_flavour()
     return Slic3r::InstallFlavour::WindowsPortable;
 #elif defined __APPLE__
     if (app_exe_path().find(".app/Contents/MacOS/") != std::string::npos)
-        return Slic3r::InstallFlavour::MacOSBundle;
+        return inside_build_tree(app_exe_path()) ? Slic3r::InstallFlavour::Other
+                                                 : Slic3r::InstallFlavour::MacOSBundle;
     return Slic3r::InstallFlavour::Other;
 #elif defined __linux__
     if (is_running_in_appimage())

@@ -10,7 +10,6 @@
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
-#include "libslic3r/UpdateChannel.hpp"
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Format/DRC.hpp"
 #include <wx/gdicmn.h>
@@ -2471,19 +2470,23 @@ void PreferencesDialog::create_items()
     //// ONLINE > Update & sync
     g_sizer->Add(create_item_title(_L("Update & sync")), 1, wxEXPAND);
 
-    auto [item_update_channel, update_channel_combo] = create_item_combobox_base(
+    // Ordered by risk: Stable, Pre-Release, Nightly. The stored value is the key, never the index.
+    const std::string channel_before = app_config->update_channel();
+    g_sizer->Add(create_item_combobox(
         _L("Update channel"),
         _L("Choose which releases Orca Slicer offers as updates."),
         "update_channel",
-        {_L("Stable"), _L("Nightly")},
-        update_channel_from_key(app_config->update_channel()) == UpdateChannel::Nightly ? 1 : 0);
-    update_channel_combo->GetDropDown().Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
-        const UpdateChannel channel = e.GetSelection() == 1 ? UpdateChannel::Nightly : UpdateChannel::Stable;
-        app_config->set_update_channel(update_channel_key(channel));
-        wxGetApp().check_new_version_sf(true, 0);
-        e.Skip();
-    });
-    g_sizer->Add(item_update_channel);
+        {_L("Stable"), _L("Pre-Release"), _L("Nightly")},
+        {"stable", "prerelease", "nightly"},
+        [this, channel_before](std::string channel) {
+            // A skip names a version, not a channel: what was skipped on one channel must
+            // not silence another.
+            if (channel != channel_before) {
+                app_config->set("skip_version", "");
+                app_config->set_skip_artifact("");
+            }
+            wxGetApp().check_new_version_sf(true, 0);
+        }));
 
     auto item_user_sync        = create_item_checkbox(_L("Auto sync user presets (Printer/Filament/Process)"), "", "sync_user_preset");
     g_sizer->Add(item_user_sync);

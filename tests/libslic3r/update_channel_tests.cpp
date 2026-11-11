@@ -104,6 +104,150 @@ const char* stable_release_without_digest_json()
     ])JSON";
 }
 
+// The shape the service returns while 2.6.0 is in flight: the final release, the
+// rolling nightly and the three prereleases, deliberately not in version order. The
+// final release sorts above every prerelease, so a channel that offered it would pick it.
+const char* prerelease_releases_json()
+{
+    return R"JSON([
+        {
+            "tag_name": "v2.6.0",
+            "prerelease": false,
+            "html_url": "https://example.invalid/releases/v2.6.0",
+            "body": "2.6.0",
+            "updated_at": "2026-11-20T10:00:00Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Windows_Installer_V2.6.0_x64.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_V2.6.0_x64.exe",
+                    "digest": "sha256:2600",
+                    "size": 400
+                }
+            ]
+        },
+        {
+            "tag_name": "nightly-builds",
+            "prerelease": true,
+            "html_url": "https://example.invalid/releases/nightly-builds",
+            "body": "nightly release",
+            "updated_at": "2026-11-10T08:31:54Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Windows_Installer_x64_nightly.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_x64_nightly.exe",
+                    "digest": "sha256:nightly2",
+                    "size": 350
+                }
+            ]
+        },
+        {
+            "tag_name": "v2.6.0-beta",
+            "prerelease": true,
+            "html_url": "https://example.invalid/releases/v2.6.0-beta",
+            "body": "2.6.0 beta",
+            "updated_at": "2026-10-27T17:22:32Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Windows_Installer_V2.6.0-beta_x64.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_V2.6.0-beta_x64.exe",
+                    "digest": "sha256:2600beta",
+                    "size": 390
+                }
+            ]
+        },
+        {
+            "tag_name": "v2.6.0-rc",
+            "prerelease": true,
+            "html_url": "https://example.invalid/releases/v2.6.0-rc",
+            "body": "2.6.0 release candidate",
+            "updated_at": "2026-11-01T10:36:26Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Windows_Installer_V2.6.0-rc_x64.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_V2.6.0-rc_x64.exe",
+                    "digest": "sha256:2600rc",
+                    "size": 395
+                }
+            ]
+        },
+        {
+            "tag_name": "v2.6.0-alpha",
+            "prerelease": true,
+            "html_url": "https://example.invalid/releases/v2.6.0-alpha",
+            "body": "2.6.0 alpha",
+            "updated_at": "2026-10-16T14:28:11Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Windows_Installer_V2.6.0-alpha_x64.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_V2.6.0-alpha_x64.exe",
+                    "digest": "sha256:2600alpha",
+                    "size": 380
+                }
+            ]
+        }
+    ])JSON";
+}
+
+// The state right after a final ships, before the next cycle opens: a stable build and a
+// prerelease of the next version.
+const char* newer_prerelease_release_json()
+{
+    return R"JSON([
+        {
+            "tag_name": "v2.6.0",
+            "prerelease": false,
+            "html_url": "https://example.invalid/releases/v2.6.0",
+            "body": "2.6.0",
+            "updated_at": "2026-11-20T10:00:00Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Windows_Installer_V2.6.0_x64.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_V2.6.0_x64.exe",
+                    "digest": "sha256:2600",
+                    "size": 400
+                }
+            ]
+        },
+        {
+            "tag_name": "v2.7.0-alpha",
+            "prerelease": true,
+            "html_url": "https://example.invalid/releases/v2.7.0-alpha",
+            "body": "2.7.0 alpha",
+            "updated_at": "2026-12-02T09:00:00Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Windows_Installer_V2.7.0-alpha_x64.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_V2.7.0-alpha_x64.exe",
+                    "digest": "sha256:2700alpha",
+                    "size": 410
+                }
+            ]
+        }
+    ])JSON";
+}
+
+// v2.3.2-rc shipped its assets with the suffix spelled in upper case.
+const char* mixed_case_asset_release_json()
+{
+    return R"JSON([
+        {
+            "tag_name": "v2.3.2-rc",
+            "prerelease": true,
+            "html_url": "https://example.invalid/releases/v2.3.2-rc",
+            "body": "2.3.2 rc",
+            "updated_at": "2026-03-01T13:59:35Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Windows_Installer_V2.3.2-RC_x64.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_V2.3.2-RC_x64.exe",
+                    "digest": "sha256:232rc",
+                    "size": 300
+                }
+            ]
+        }
+    ])JSON";
+}
+
 } // namespace
 
 TEST_CASE("A stable release newer than the running version is offered", "[UpdateChannel]")
@@ -179,6 +323,114 @@ TEST_CASE("Switching from stable to nightly offers the nightly release", "[Updat
 
     CHECK(candidate.available);
     CHECK(candidate.reason == "channel_switch");
+}
+
+TEST_CASE("The pre-release channel offers the newest prerelease, never the final release", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease, "",
+                                                     "", "2.5.0", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.channel == UpdateChannel::PreRelease);
+    CHECK(candidate.version == "2.6.0-rc");
+    CHECK(candidate.asset.name == "OrcaSlicer_Windows_Installer_V2.6.0-rc_x64.exe");
+    CHECK(candidate.asset.digest == "sha256:2600rc");
+}
+
+TEST_CASE("The pre-release channel offers nothing when no release is tagged as a prerelease", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::PreRelease, "", "",
+                                                     "2.4.9", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK_FALSE(candidate.available);
+    CHECK(candidate.reason == "no_release");
+}
+
+TEST_CASE("Stable never offers a prerelease that outranks every final release", "[UpdateChannel]")
+{
+    // 2.7.0-alpha sorts above the newest final, so a Stable check that saw it would offer it.
+    const UpdateCandidate candidate = resolve_update(newer_prerelease_release_json(), UpdateChannel::Stable, "",
+                                                     "", "2.5.0", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.version == "2.6.0");
+}
+
+TEST_CASE("A prerelease older than the running build is not offered", "[UpdateChannel]")
+{
+    // Running the 2.6.0 final, the newest prerelease is its own rc, which is older.
+    const UpdateCandidate candidate = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease, "",
+                                                     "", "2.6.0", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK_FALSE(candidate.available);
+    CHECK(candidate.reason == "up_to_date");
+    CHECK(candidate.version == "2.6.0-rc");
+}
+
+TEST_CASE("A beta is offered the next release candidate", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease, "",
+                                                     "", "2.6.0-beta", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.version == "2.6.0-rc");
+}
+
+TEST_CASE("A dev build ranks above the prereleases of its own version", "[UpdateChannel]")
+{
+    // Nightly builds keep the -dev suffix after the alpha and beta are tagged, and Semver
+    // ranks dev above every other prerelease identifier, so nothing here is newer.
+    const UpdateCandidate candidate = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease, "",
+                                                     "", "2.6.0-dev", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK_FALSE(candidate.available);
+    CHECK(candidate.reason == "up_to_date");
+}
+
+TEST_CASE("Switching to pre-release does not offer a prerelease older than the running build", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease,
+                                                     "sha256:2600", "stable", "2.6.0", "",
+                                                     InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK_FALSE(candidate.available);
+    CHECK(candidate.reason == "up_to_date");
+}
+
+TEST_CASE("Switching to pre-release offers a prerelease newer than the running build", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(newer_prerelease_release_json(), UpdateChannel::PreRelease,
+                                                     "sha256:2600", "stable", "2.6.0", "",
+                                                     InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.version == "2.7.0-alpha");
+}
+
+TEST_CASE("A skipped prerelease stays skipped until a newer one appears", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease, "",
+                                                     "", "2.5.0", "", InstallFlavour::WindowsInstaller, "x86_64");
+    REQUIRE(candidate.available);
+
+    CHECK(update_is_skipped(candidate, "2.6.0-rc", ""));
+    CHECK_FALSE(update_is_skipped(candidate, "2.6.0-beta", ""));
+
+    std::string skip_version  = "2.6.0-beta";
+    std::string skip_artifact = "sha256:nightly2";
+    update_skip_values(candidate, skip_version, skip_artifact);
+    CHECK(skip_version == "2.6.0-rc");
+    CHECK(skip_artifact == "sha256:nightly2");
+}
+
+TEST_CASE("An asset version matches regardless of case", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(mixed_case_asset_release_json(), UpdateChannel::PreRelease, "",
+                                                     "", "2.3.1", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.version == "2.3.2-rc");
+    CHECK(candidate.asset.name == "OrcaSlicer_Windows_Installer_V2.3.2-RC_x64.exe");
 }
 
 TEST_CASE("A release asset without a digest is not offered", "[UpdateChannel]")
@@ -293,7 +545,9 @@ TEST_CASE("Channel and flavour keys round-trip through their strings", "[UpdateC
 {
     CHECK(update_channel_key(UpdateChannel::Stable) == "stable");
     CHECK(update_channel_key(UpdateChannel::Nightly) == "nightly");
+    CHECK(update_channel_key(UpdateChannel::PreRelease) == "prerelease");
     CHECK(update_channel_from_key("nightly") == UpdateChannel::Nightly);
+    CHECK(update_channel_from_key("prerelease") == UpdateChannel::PreRelease);
     CHECK(update_channel_from_key("stable") == UpdateChannel::Stable);
     CHECK(update_channel_from_key("") == UpdateChannel::Stable);
     CHECK(update_channel_from_key("unknown") == UpdateChannel::Stable);
