@@ -930,6 +930,10 @@ public:
     // Called at the slicer boundary (after variant expansion) so all counts are final.
     void                enforce_cardinality();
 
+    // Size the empty options the variant expansion reads through get_at() before it runs. Touches only
+    // empty options, so a config that has none is unchanged.
+    void                size_empty_expansion_inputs();
+
     // Orca: load-time subset of enforce_cardinality - sizes only the plain per-filament options (their count is
     // known before variant expansion). Called from Preset::normalize at preset load.
     void                enforce_per_filament_cardinality();

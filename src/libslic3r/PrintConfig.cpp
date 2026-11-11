@@ -10706,7 +10706,7 @@ bool DynamicPrintConfig::support_different_extruders(int& extruder_count) const
         int size = nozzle_diameters_opt->size();
         extruder_count = size;
         auto extruder_variant_opt = dynamic_cast<const ConfigOptionStrings*>(this->option("extruder_variant_list"));
-        if (extruder_variant_opt != nullptr) {
+        if (extruder_variant_opt != nullptr && !extruder_variant_opt->values.empty()) {
             for (int index = 0; index < size; index++) {
                 std::string variant = extruder_variant_opt->get_at(index);
                 std::vector<std::string> variants_list;
@@ -11578,7 +11578,7 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
 
     auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("extruder_type"));
     auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("nozzle_volume_type"));
-    if (!opt_extruder_type || !opt_nozzle_volume_type) {
+    if (!opt_extruder_type || !opt_nozzle_volume_type || opt_extruder_type->values.empty() || opt_nozzle_volume_type->values.empty()) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: extruder_type or nozzle_volume_type option not found, skipping")%__LINE__;
         return variant_index;
     }
@@ -11654,6 +11654,9 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: can not find opt define for %2%")%__LINE__%key;
             continue;
         }
+        // An unset option with an empty default has no value to pick; leave it unset.
+        if (const auto *vec = dynamic_cast<const ConfigOptionVectorBase *>(this->option(key)); vec && vec->empty())
+            continue;
         switch (optdef->type) {
             case coStrings:
             {
@@ -11811,7 +11814,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
         //apply process settings
         auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("extruder_type"));
         auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("nozzle_volume_type"));
-        if (!opt_extruder_type || !opt_nozzle_volume_type) {
+        if (!opt_extruder_type || !opt_nozzle_volume_type || opt_extruder_type->values.empty() || opt_nozzle_volume_type->values.empty()) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: extruder_type or nozzle_volume_type option not found, skipping")%__LINE__;
             return;
         }
@@ -11920,7 +11923,7 @@ void DynamicPrintConfig::update_filament_config_values_for_multiple_extruders(Dy
     size_t filament_count = filament_maps.size();
     auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("extruder_type"));
     auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("nozzle_volume_type"));
-    if (!opt_extruder_type || !opt_nozzle_volume_type) {
+    if (!opt_extruder_type || !opt_nozzle_volume_type || opt_extruder_type->values.empty() || opt_nozzle_volume_type->values.empty()) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: extruder_type or nozzle_volume_type option not found, skipping")%__LINE__;
         return;
     }

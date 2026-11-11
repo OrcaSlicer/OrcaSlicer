@@ -1432,6 +1432,9 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // print_config_diffs then keys the retract overrides per expanded slot.
     std::vector<int> dynamic_slot_indices;
 
+    // The expansion below reads these through get_at(), so none may be empty.
+    new_full_config.size_empty_expansion_inputs();
+
     different_extruder = new_full_config.support_different_extruders(extruder_count);
     extruder_volume_type_count = new_full_config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
     if (!extruder_applied) {

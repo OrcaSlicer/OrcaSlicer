@@ -60,6 +60,8 @@ std::vector<CardinalityMismatch> cardinality_contradictions(const ConfigBase &co
 // The config-mutating entry points are DynamicPrintConfig methods (declared in PrintConfig.hpp):
 //   config.enforce_cardinality()              - size every per-N option; call at the Print::apply boundary, after
 //                                         variant expansion, so no slice indexes a per-N array past its end.
+//   config.size_empty_expansion_inputs()      - give the empty options the variant expansion reads through get_at() a
+//                                         length before the expansion runs; touches nothing else.
 //   config.enforce_per_filament_cardinality() - the load-time subset (plain per-filament only), run from
 //                                         Preset::normalize before variant expansion.
 //   config.get_parameter_size(key, n)   - legacy per-key shim (set_num_extruders' path); prefer expected_size().

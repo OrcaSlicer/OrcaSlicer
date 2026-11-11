@@ -298,6 +298,37 @@ void DynamicPrintConfig::enforce_cardinality()
         resize_to_cardinality(it->second.get(), it->first, n);
 }
 
+// The variant expansion indexes these through get_at(), which an empty vector cannot serve: the expansion's
+// own count sources, and the per-extruder lists it reads that no cardinality sizes. An empty option takes its
+// schema default, extended to the length it should have; one whose default is empty too stays empty, and the
+// expansion skips it. filament_self_index is not among them: when it is empty the lookups fall back to the
+// variant list's own order, which no default can match.
+void DynamicPrintConfig::size_empty_expansion_inputs()
+{
+    const auto size_if_empty = [this](const std::string &key, size_t want) {
+        auto *vec = dynamic_cast<ConfigOptionVectorBase *>(this->option(key, false));
+        if (vec == nullptr || !vec->empty() || want == 0)
+            return;
+        const ConfigOptionDef *def     = print_config_def.get(key);
+        const auto            *def_vec = def == nullptr ? nullptr : dynamic_cast<const ConfigOptionVectorBase *>(def->default_value.get());
+        if (def_vec != nullptr && !def_vec->empty())
+            vec->resize(want, def_vec);
+    };
+
+    for (const char *key : { "printer_extruder_variant", "printer_extruder_id", "print_extruder_variant", "print_extruder_id",
+                             "filament_extruder_variant" })
+        size_if_empty(key, 1);
+
+    const AxisCounts n = axis_counts(*this);
+    size_if_empty("nozzle_volume_type", n.extruders);
+    size_if_empty("extruder_variant_list", n.extruders);
+    size_if_empty("extruder_type", n.extruders);
+    for (const std::set<std::string> *keys :
+         { &printer_options_with_variant_1, &printer_options_with_variant_2, &print_options_with_variant })
+        for (const std::string &key : *keys)
+            size_if_empty(key, expected_size(cardinality_of(key), n));
+}
+
 void DynamicPrintConfig::enforce_per_filament_cardinality()
 {
     const AxisCounts n = axis_counts(*this);

@@ -7,10 +7,19 @@
 #include <libslic3r/Point.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "libslic3r/GCode.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ModelArrange.hpp"
+#include "libslic3r/PrintConfigCardinality.hpp"
+#include "libslic3r/TriangleMesh.hpp"
+
+#include <cstddef>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "test_helpers.hpp"
 
@@ -100,4 +109,135 @@ TEST_CASE("enforce_cardinality sizes per-N arrays so a multi-extruder object sli
 
     REQUIRE(print.objects().size() == 2);
     REQUIRE(print.objects().front()->layer_count() > 0);
+}
+
+namespace {
+
+// Two filaments on two direct-drive extruders, each extruder with a Standard and a High Flow variant. The variant
+// options are laid out unexpanded, as the preset bundle hands them to Print::apply: two columns per extruder for the
+// printer and process options, two per filament for the filament options.
+DynamicPrintConfig two_extruder_variant_config()
+{
+    DynamicPrintConfig config = multifilament_config(2, {
+        { "layer_height",               0.2      },
+        { "initial_layer_print_height", 0.2      },
+        { "skirt_loops",                0        } });
+    config.set_num_extruders(2);
+    config.set_deserialize_strict({
+        { "single_extruder_multi_material", false },
+        { "nozzle_diameter",                "0.4,0.4" },
+        { "extruder_type",                  "Direct Drive,Direct Drive" },
+        { "nozzle_volume_type",             "Standard,Standard" },
+        { "extruder_printable_area",        "0x0,200x0,200x200,0x200#0x0,200x0,200x200,0x200" },
+        { "extruder_printable_height",      "100,100" },
+        { "filament_map_mode",              "Manual" },
+        { "filament_map",                   "1,2" } });
+    size_flush_to_nozzles(config);
+
+    const std::vector<std::string> variants = { "Direct Drive Standard", "Direct Drive High Flow" };
+    const auto columns = [&variants, &config](int owners, const char *variant_key, const char *id_key) {
+        std::vector<std::string> names;
+        std::vector<int>         ids;
+        for (int owner = 1; owner <= owners; ++owner)
+            for (const std::string &variant : variants) {
+                names.push_back(variant);
+                ids.push_back(owner);
+            }
+        config.option<ConfigOptionStrings>(variant_key, true)->values = names;
+        config.option<ConfigOptionInts>(id_key, true)->values         = ids;
+    };
+    config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = std::vector<std::string>(2, variants[0] + "," + variants[1]);
+    columns(2, "printer_extruder_variant", "printer_extruder_id");
+    columns(2, "print_extruder_variant", "print_extruder_id");
+    columns(2, "filament_extruder_variant", "filament_self_index");
+
+    // Every per-N option at the length its cardinality declares, so a case cuts one option to empty and nothing else.
+    const AxisCounts n = axis_counts(config);
+    for (const auto &[key, def] : print_config_def.options)
+        if (def.default_value && def.default_value->is_vector() && expected_size(cardinality_of(key), n) != 0) {
+            config.option(key, true);
+            resize_to_cardinality(config, key, n);
+        }
+    return config;
+}
+
+// One 5 mm cube per extruder.
+Model two_extruder_model()
+{
+    Model model;
+    for (int extruder = 1; extruder <= 2; ++extruder) {
+        TriangleMesh mesh = make_cube(5., 5., 5.);
+        mesh.translate(80.f + 15.f * static_cast<float>(extruder), 150.f, 0.f);
+        ModelObject *object = model.add_object();
+        object->add_volume(std::move(mesh));
+        object->add_instance();
+        object->config.set_key_value("extruder", new ConfigOptionInt(extruder));
+    }
+    return model;
+}
+
+struct EmptyCase
+{
+    const char *key;
+    size_t      size_after_apply;
+};
+
+} // namespace
+
+TEST_CASE("Print::apply sizes an empty variant-expansion input instead of crashing in the expansion", "[Cardinality]")
+{
+    // Each key is one the expansion reads through get_at() before anything has sized it: a per-extruder-variant,
+    // a dual (normal + silent) per-extruder-variant and a per-process-variant option, the extruder and nozzle
+    // volume types, the variant list and the variant id and name columns. One section per key, so `-c "<key>"` runs
+    // one alone.
+    const std::vector<EmptyCase> cases = {
+        { "retraction_length", 2 }, { "machine_max_acceleration_x", 4 }, { "outer_wall_speed", 2 },
+        { "extruder_type", 2 }, { "nozzle_volume_type", 2 }, { "extruder_variant_list", 2 },
+        { "printer_extruder_variant", 2 }, { "printer_extruder_id", 2 }, { "print_extruder_variant", 2 },
+        { "print_extruder_id", 2 },
+    };
+    for (const EmptyCase &c : cases) {
+        DYNAMIC_SECTION(c.key) {
+            DynamicPrintConfig config = two_extruder_variant_config();
+            auto *opt = dynamic_cast<ConfigOptionVectorBase *>(config.option(c.key));
+            REQUIRE(opt != nullptr);
+            REQUIRE(opt->size() >= 2);
+            opt->resize(0);
+
+            Print print;
+            print.apply(two_extruder_model(), config);
+
+            const auto *applied = dynamic_cast<const ConfigOptionVectorBase *>(print.full_print_config().option(c.key));
+            REQUIRE(applied != nullptr);
+            CHECK(applied->size() == c.size_after_apply);
+        }
+    }
+}
+
+TEST_CASE("size_empty_expansion_inputs leaves a config with no empty option unchanged", "[Cardinality]")
+{
+    const DynamicPrintConfig before = two_extruder_variant_config();
+    DynamicPrintConfig       after  = before;
+    after.size_empty_expansion_inputs();
+    CHECK(after == before);
+}
+
+TEST_CASE("An empty filament_self_index still gives each filament the values of its own variant column", "[Cardinality]")
+{
+    // A regression guard, not a fail-before test: it passes without the sizing too. An empty index must stay empty
+    // through the expansion, which then finds each filament's column from the variant list's own order; filling it
+    // with the schema default would assign every column to filament 1 and filament 2 would read filament 1's column.
+    DynamicPrintConfig config = two_extruder_variant_config();
+    // Columns are filament 1 Standard, filament 1 High Flow, filament 2 Standard, filament 2 High Flow.
+    config.option<ConfigOptionFloats>("filament_flow_ratio", true)->values = { 0.90, 0.91, 0.95, 0.96 };
+    config.option<ConfigOptionInts>("filament_self_index", true)->values.clear();
+
+    Print print;
+    print.apply(two_extruder_model(), config);
+
+    const auto *flow_ratio = print.full_print_config().option<ConfigOptionFloats>("filament_flow_ratio");
+    REQUIRE(flow_ratio != nullptr);
+    REQUIRE(flow_ratio->values.size() == 2);
+    CHECK_THAT(flow_ratio->values[0], Catch::Matchers::WithinAbs(0.90, 1e-9));
+    CHECK_THAT(flow_ratio->values[1], Catch::Matchers::WithinAbs(0.95, 1e-9));
 }
