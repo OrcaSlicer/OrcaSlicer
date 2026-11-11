@@ -75,12 +75,10 @@ arguments included, are `isError` results the model can act on; an unknown tool 
 replay steps alike, so the journal records the schema's form. An argument under a name the tool does
 not take is read as one it does, when the call leaves that one out and the value fits it: `ref` as `target`, `key` as `keys`, `text`
 as `value`, `action` as `id` or `button`, `object` as `objects`, `plate` as `plates`, `filter` as
-`query`, `settings` as `values`, `path`
-as `save_path` where the tool has no `path` of its own, and `view` as `set_view`'s `canvas` or `camera`,
-whichever takes the value. A value in another JSON form is converted: a
+`query`, `settings` as `values`, and `path`
+as `save_path` where the tool has no `path` of its own. A value in another JSON form is converted: a
 number, boolean, array or object written as a string, an index as a string where a name may also go
-(`"0"` for a plate), a single item for an array. A value an enum lacks is read as the one it stands
-for, when the enum lists that one: `print` as `process`, `window` as `main`. A
+(`"0"` for a plate), a single item for an array. A
 value outside its argument's enum moves to the one other argument whose enum takes it, when the call
 leaves that out: `set_view`'s `canvas: "front"` is its `camera`. Each enum lists only its own values,
 since listing a camera direction under both had agents give it to the wrong one. Anything that still
@@ -2018,9 +2016,9 @@ everywhere in an orthographic view, and only at the target's depth in a perspect
 and 250, and the reply then lists `zoom` under `adjusted`.
 
 The fields apply in one UI closure in the order `camera`, `look_at`, `orbit`, `zoom`: a fit sets the
-target and the zoom, which the given ones then replace. A tab switch, a new project or a load queues a
+point the camera looks at and the zoom, which the given ones then replace. A tab switch, a new project or a load queues a
 fit on the camera (`requires_zoom_to_bed`, `requires_zoom_to_volumes`, `requires_zoom_to_plate`) that
-`GLCanvas3D::render()` runs at the view's next frame, and it would replace a target, orbit or zoom set
+`GLCanvas3D::render()` runs at the view's next frame, and it would replace a `look_at`, `orbit` or `zoom` set
 before that frame. So when any of the three is given, the call first polls (`poll_until()`, every
 20 ms for up to 2 s) until no fit is pending, asking the shown view to draw each time. A `camera` makes
 the same poll also wait until the shown view has drawn at its canvas's size (`view_drawn_at_size()`,
@@ -3514,7 +3512,7 @@ minimized, and restored from both, with a window screenshot of the size on Wayla
 window by its ref and on Preferences by its `{label}` locator (on X11 with the main window kept under it
 in the X server's stacking order), `tools/mcp/test_set_view_camera.py`
 `set_view`'s `look_at` and `zoom` after a queued fit (and its note while no 3D view draws), clamping,
-an orbit that keeps the target, the camera Preview shares and the Design tab's own, with `camera_state`
+an orbit that keeps `look_at`, the camera Preview shares and the Design tab's own, with `camera_state`
 and `get_app_state.camera`, and a fit after the window was sized while no 3D view showed,
 `tools/mcp/test_export_running_job.py` an export during and after a job that outlived its reply,
 `tools/mcp/test_send_gcode.py` `send_gcode` and `get_app_state.uploads` against a stub print host that

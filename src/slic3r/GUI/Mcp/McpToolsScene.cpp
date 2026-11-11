@@ -101,7 +101,7 @@ GLCanvas3D& object_canvas()
 GLCanvas3D& require_prepare_scene(Plater& plater)
 {
     if (GLCanvas3D* assemble = plater.get_assmeble_canvas3D(); assemble != nullptr && plater.get_current_canvas3D() == assemble)
-        throw ToolFailure("Leave the assemble view first (set_view {view: \"3d\"})");
+        throw ToolFailure("Leave the assemble view first (set_view {canvas: \"3d\"})");
     GLCanvas3D& canvas = object_canvas();
     if (const auto type = canvas.get_gizmos_manager().get_current_type(); type != GLGizmosManager::Undefined)
         throw ToolFailure("Close the " + gizmo_name(type) + " gizmo first (click {target: {gizmo: \"" + gizmo_name(type) + "\"}})");

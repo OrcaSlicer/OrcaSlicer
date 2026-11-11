@@ -76,7 +76,7 @@
     {"tool": "answer_dialog", "args": {"dialog": {"title": "Object/Part Settings"}, "button": "close"}},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.table}"}},
 
-    // ---- The print button's popup: listed as a root, one of its buttons picked ----
+    // ---- The print button's popup: listed on its own, one of its buttons picked ----
     {"tool": "click", "args": {"target": {"class": "SideButton", "index": 3}}},
     {"tool": "list_widgets", "args": {"target": "popup", "query": "Export plate sliced file"}, "expect": {"/nodes": {"eq": 1}}},
     {"tool": "click", "args": {"target": {"class": "SideButton", "label": "Export plate sliced file"}}},

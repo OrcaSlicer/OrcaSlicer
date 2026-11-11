@@ -5,8 +5,8 @@ const editor = require("./replay_editor.js");
 
 // Two tools, as the host's catalog lists them: one taking a plain number, one an enum and a nullable number.
 editor.setEditorTools([
-  { name: "slice", title: "Slice", args: { plate: { type: "integer" } } },
-  { name: "set_view", title: "Set the view", args: { view: { type: "string", enum: ["top", "front"] }, zoom: { type: ["number", "null"] } } },
+  { name: "slice", title: "Slice", args: { plates: { type: "integer" } } },
+  { name: "set_view", title: "Set the view", args: { camera: { type: "string", enum: ["top", "front"] }, zoom: { type: ["number", "null"] } } },
 ]);
 
 // What suggestionsAt() finds with the caret at the end of `text`.
@@ -34,8 +34,8 @@ test("a step's tool is suggested from the catalog with its title and arguments",
   assert.equal(found.from, text.length - 2);
   assert.equal(found.to, text.length);
   assert.deepEqual(found.items, [
-    { label: "slice", detail: "Slice", info: "args: plate" },
-    { label: "set_view", detail: "Set the view", info: "args: view, zoom" },
+    { label: "slice", detail: "Slice", info: "args: plates" },
+    { label: "set_view", detail: "Set the view", info: "args: camera, zoom" },
   ]);
 });
 
@@ -43,19 +43,19 @@ test("a tool's arguments are suggested in its args with their types and allowed 
   const found = at('{"steps": [{"tool": "set_view", "args": {"');
   assert.equal(found.kind, "key");
   assert.deepEqual(found.items, [
-    { label: "view", detail: "string", info: "top | front" },
+    { label: "camera", detail: "string", info: "top | front" },
     { label: "zoom", detail: "number | null", info: "" },
   ]);
 });
 
 test("an argument's allowed values are suggested as its value", () => {
-  const found = at('{"steps": [{"tool": "set_view", "args": {"view": "');
+  const found = at('{"steps": [{"tool": "set_view", "args": {"camera": "');
   assert.equal(found.kind, "value");
   assert.deepEqual(labels(found), ["top", "front"]);
 });
 
 test("a placeholder suggests the folders, the vars and the saved jobs", () => {
-  const text = '{"vars": {"part": 1}, "steps": [{"tool": "slice", "save_as": "s1"}, {"tool": "set_view", "args": {"view": "${';
+  const text = '{"vars": {"part": 1}, "steps": [{"tool": "slice", "save_as": "s1"}, {"tool": "set_view", "args": {"camera": "${';
   const found = at(text);
   assert.equal(found.kind, "var");
   assert.equal(found.from, text.length);

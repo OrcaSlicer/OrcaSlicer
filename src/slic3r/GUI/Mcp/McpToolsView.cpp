@@ -250,7 +250,7 @@ json orbit_camera(Camera& camera, double yaw, double pitch)
 }
 
 // Whether the camera has a fit queued for the next frame of its 3D view (after a tab switch, a new project or
-// a load), which would replace a target or zoom set before it.
+// a load), which would replace a look_at or zoom set before it.
 bool fit_pending(const Camera& camera)
 {
     return camera.requires_zoom_to_bed || camera.requires_zoom_to_volumes || camera.requires_zoom_to_plate != REQUIRES_ZOOM_TO_PLATE_IDLE;
@@ -436,9 +436,7 @@ void register_view_tools(McpService& service)
                        {"overwrite", prop("boolean", "Replace an existing save_path.")},
                        {"include_image", prop("boolean", "Return the image itself (default true); false returns only the path.")}}),
         [&service](const json& args, ToolContext& ctx) {
-            json target_arg = args.value("target", json("main"));
-            if (target_arg == "window") // the main window, as set_window's target reads it too
-                target_arg = "main";
+            const json target_arg = args.value("target", json("main"));
             const std::string target = target_arg.is_string() ? target_arg.get<std::string>() : std::string();
             json              locator;
             fs::path          path;

@@ -116,7 +116,7 @@ private:
 // {title, message, class, native, buttons:[{id,label,enabled?}], web?} for a dialog. A wx dialog's
 // message reads it as a person does: its text, and its controls with their values and states, row by
 // row (DialogReader in the .cpp); `enabled` is false for a disabled button. `web` is true for a dialog
-// with a web view, whose page holds its controls (list_widgets root=dialog lists them). `text`, when
+// with a web view, whose page holds its controls (list_widgets with target dialog lists them). `text`, when
 // given, receives the dialog's own text: its static text and html, one per line, without its
 // controls, which auto-answer rules also search (rule_matches()). UI thread only.
 nlohmann::json describe_dialog(wxDialog* dialog, std::string* text = nullptr);

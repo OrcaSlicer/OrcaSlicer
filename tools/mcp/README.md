@@ -451,7 +451,7 @@ next frame, and a fit on Prepare after the window was sized on the Home tab.
 
 `tests/agent_forms.json` calls tools the way agents often write them: a lone path for `paths`,
 `object` for `objects` with the index as a string, an action by the key inside its id, `action` for
-`id`, a camera direction as `set_view`'s `view`, which is its `canvas` or its `camera` by the value, `transform` to a `position`, `key` for `keys`,
+`id`, a camera direction as `set_view`'s `canvas`, which is read as its `camera`, `transform` to a `position`, `key` for `keys`,
 `wait` with no condition, a gizmo by its toolbar title, `plate` for `plates`, legend rows in another
 case or with `_` for a space, and `export` with the format taken from the path. It also checks that a
 preset scope's whole `get_settings` listing leaves meta out.

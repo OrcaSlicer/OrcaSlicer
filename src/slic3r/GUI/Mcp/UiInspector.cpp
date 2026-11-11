@@ -635,7 +635,7 @@ std::string no_modal_dialog(McpService& service)
     if (open.empty())
         return "No modal dialog is open";
     return "No modal dialog is open. Open without blocking the app: " + open + ". list_windows lists such a window with its ref: "
-           "screenshot captures it with the ref as target, list_widgets reads it alone with the ref as root, and the window's own "
+           "screenshot captures it with the ref as target, list_widgets reads it alone with the ref as target, and the window's own "
            "close button or press_keys Escape with its ref as target closes it";
 }
 
@@ -2534,7 +2534,7 @@ std::vector<wxWindow*> UiInspector::snapshot_roots(const SnapshotOptions& o)
     } else {
         const UiTarget t = resolve(json(o.root));
         if (t.kind != UiTarget::Kind::Window || t.window.get() == nullptr)
-            throw ToolFailure("root must be all, main, dialog, popup or the ref of a window");
+            throw ToolFailure("target must be all, main, dialog, popup or the ref of a window");
         roots.push_back(t.window.get());
     }
     return roots;

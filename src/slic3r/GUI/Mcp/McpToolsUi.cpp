@@ -1053,7 +1053,7 @@ wxWebView* key_page(McpService& service)
 wxTopLevelWindow& window_target(McpService& service, const json& target, json& locator)
 {
     wxWindow* window = nullptr;
-    if (target == "main" || target == "window") {
+    if (target == "main") {
         window = wxGetApp().mainframe;
         if (window == nullptr)
             throw ToolFailure("The main window is not up yet");

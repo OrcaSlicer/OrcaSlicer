@@ -85,7 +85,7 @@ TEST_CASE("invalid replays are rejected with a reason", "[Mcp]")
 {
     const auto [text, reason] = GENERATE(table<std::string, std::string>({
         {"{", "not valid JSON"},
-        {R"({"orca_script": 1, "steps": []})", "orca_replay"},
+        {R"({"steps": []})", "orca_replay"},
         {R"({"orca_replay": 2, "steps": []})", "orca_replay"},
         {R"({"orca_replay": 1})", "steps"},
         {R"({"orca_replay": 1, "steps": [{"args": {}}]})", "step 1"},

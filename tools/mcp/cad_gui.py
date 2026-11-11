@@ -496,9 +496,9 @@ class CadGui:
         the top camera at RESET_ZOOM, centred on describe_scene's modeling_origin, the sketch planes'
         origin, and squared to the sketch's plane when a sketch is open.
 
-        set_view's target is in the Design view's world coordinates, where modeling_origin is not
+        set_view's look_at is in the Design view's world coordinates, where modeling_origin is not
         zero: a new design puts it at the Design bed's centre. Its directions fit only what has volumes, so on an
-        empty design they turn the camera and keep its zoom and centre; the target and zoom it
+        empty design they turn the camera and keep its zoom and centre; the look_at and zoom it
         applies after the direction set both. N in a sketch squares the view to the sketch's plane
         and centres it on the plane's origin, keeping the zoom. Every map calibrate() fits stands
         on this view, so the camera set_view reports is checked."""

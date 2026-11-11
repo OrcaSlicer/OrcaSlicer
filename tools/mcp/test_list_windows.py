@@ -5,7 +5,7 @@
     tools/mcp/test_list_windows.py
 
 The main window comes first. The Plugins window, which doesn't block the app, is listed with a ref:
-a screenshot of that ref captures the window, list_widgets with it as root reads that window alone,
+a screenshot of that ref captures the window, list_widgets with it as target reads that window alone,
 and press_keys Escape sent to it closes it, after which the list leaves it out. Preferences, a modal
 dialog, comes last. Action Replay is listed as hidden, without a ref. Exits 0 when every check passes.
 """

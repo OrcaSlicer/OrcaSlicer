@@ -1299,7 +1299,7 @@ TEST_CASE("only client calls of journaled tools reach the journal", "[Mcp]")
     wait.inline_call = true;
     h.registry.add(wait);
     h.registry.add(tool("set_settings", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
-        ctx.set_journal_args({{"values", {{"wall_loops", 3}}}, {"scope", "print"}});
+        ctx.set_journal_args({{"values", {{"wall_loops", 3}}}, {"scope", "process"}});
         return ToolResult::ok();
     }));
     h.start();
@@ -1309,7 +1309,7 @@ TEST_CASE("only client calls of journaled tools reach the journal", "[Mcp]")
     const json steps = h.journal.to_replay("x")["steps"];
     REQUIRE(steps.size() == 2);
     CHECK(steps[0]["tool"] == "wait");
-    CHECK(steps[1]["args"]["scope"] == "print");
+    CHECK(steps[1]["args"]["scope"] == "process");
 }
 
 TEST_CASE("a plugin's call runs as the plugin's own job and never reaches the journal", "[Mcp]")

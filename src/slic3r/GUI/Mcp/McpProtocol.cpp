@@ -163,18 +163,7 @@ const std::vector<std::pair<std::string, std::vector<std::string>>>& argument_al
         {"object", {"objects"}},      {"plate", {"plates"}},    {"filter", {"query"}}, {"settings", {"values"}},
         // A capture's output file, where the tool has no path of its own.
         {"path", {"save_path"}},
-        // set_view's 3D view, or the camera's direction, whichever takes the value.
-        {"view", {"canvas", "camera"}},
     };
-    return aliases;
-}
-
-// Values agents reach for in place of the ones an enum lists, each with the value it stands for: the
-// process preset is the print preset in OrcaSlicer's files, and the main window is "the window" where no
-// other window can be meant.
-const std::vector<std::pair<std::string, std::string>>& value_aliases()
-{
-    static const std::vector<std::pair<std::string, std::string>> aliases{{"print", "process"}, {"window", "main"}};
     return aliases;
 }
 
@@ -257,17 +246,6 @@ void normalize_arguments(const json& schema, json& args)
     for (auto it = args.begin(); it != args.end(); ++it)
         if (auto p = props.find(it.key()); p != props.end())
             coerce_value(*p, it.value());
-    // A value its enum lacks is read as the one it stands for, when the enum lists that one.
-    for (auto it = args.begin(); it != args.end(); ++it) {
-        const auto p = props.find(it.key());
-        if (p == props.end() || !p->contains("enum") || !it.value().is_string() || validate_value(*p, it.value(), it.key()).empty())
-            continue;
-        for (const auto& [alias, value] : value_aliases())
-            if (it.value() == alias && validate_value(*p, json(value), it.key()).empty()) {
-                it.value() = value;
-                break;
-            }
-    }
     // A value outside its own enum that the enum of one other argument, which the call leaves out,
     // takes: set_view's canvas "front" is its camera. The schema keeps each enum to its own values,
     // as listing them under both names would have agents give a value to the wrong one.

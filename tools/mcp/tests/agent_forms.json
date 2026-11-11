@@ -1,7 +1,7 @@
 // Arguments as agents often write them: names a tool does not take but that stand for one it does
 // (object for objects, action for id, key for keys, plate for plates), values in another JSON form (a
 // lone path for a list, an index as a string), an action by the name inside its id, a camera
-// direction as set_view's view, transform's position, wait with no condition, a gizmo by its toolbar
+// direction as set_view's canvas, transform's position, wait with no condition, a gizmo by its toolbar
 // title, legend rows as agents name them, export without a format, and get_settings' whole listing
 // without meta. Run on a live app:
 //   python3 tools/mcp/orca_mcp.py run-replay tools/mcp/tests/agent_forms.json --out <dir>
@@ -22,8 +22,8 @@
     {"tool": "list_objects", "expect": {"/plates/0/objects/1/name": {"eq": "renamed"}, "/plates/0/objects/0/name": {"ne": "renamed"}}},
     {"tool": "run_action", "args": {"action": "view_top"}, "expect": {"/ran": {"eq": "orca_command:view_top:orca"}}},
 
-    // ---- A camera direction as view; position for an absolute move; key for keys; wait for idle ----
-    {"tool": "set_view", "args": {"view": "front"}, "expect": {"/camera": {"eq": "front"}}},
+    // ---- A camera direction as canvas; position for an absolute move; key for keys; wait for idle ----
+    {"tool": "set_view", "args": {"canvas": "front"}, "expect": {"/camera": {"eq": "front"}}},
     {"tool": "transform", "args": {"object": 0, "position": [100, 110, 0]}},
     {"tool": "list_objects", "expect": {"/plates/0/objects/0/instances/0/offset/0": {"ge": 99.99, "le": 100.01},
                                         "/plates/0/objects/0/instances/0/offset/1": {"ge": 109.99, "le": 110.01}}},

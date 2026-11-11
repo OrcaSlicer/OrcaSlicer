@@ -218,11 +218,9 @@ std::string validate_arguments(const nlohmann::json& schema, const nlohmann::jso
 // Rewrites, before validation, what agents often send in place of what the schema asks for: an
 // argument under a name the tool does not take but that stands for one it does, which the call leaves
 // out and the value fits (ref for target, key for keys, text for value, action for id or button, object for objects,
-// plate for plates, filter for query, settings for values, part for volume, path for save_path, view
-// for canvas or camera), a value written in
+// plate for plates, filter for query, settings for values, path for save_path), a value written in
 // another JSON form (a number, boolean, array or object as a string, a single item for an array),
-// a value its enum lacks that stands for one it lists (print for process, part for volume, window for
-// main), a value outside its argument's enum that only one omitted argument's enum takes (set_view's canvas
+// a value outside its argument's enum that only one omitted argument's enum takes (set_view's canvas
 // "front" as camera), and the x and y, or width and height, that list_windows reports, both given, as
 // the position or size array of a tool that takes that array, of integers, and neither part. Anything
 // that still does not fit is left for validate_arguments to report.

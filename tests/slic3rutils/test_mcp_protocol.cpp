@@ -391,7 +391,7 @@ TEST_CASE("argument normalization reads the names agents reach for as the ones a
     CHECK(click == json{{"action", "click"}});
 }
 
-TEST_CASE("argument normalization reads an output path and a view by the names agents give them", "[Mcp]")
+TEST_CASE("argument normalization reads a capture's output path as its save_path", "[Mcp]")
 {
     const auto normalized = [](const json& properties, json args) {
         normalize_arguments({{"type", "object"}, {"properties", properties}, {"additionalProperties", false}}, args);
@@ -402,31 +402,28 @@ TEST_CASE("argument normalization reads an output path and a view by the names a
     CHECK(normalized(capture, {{"path", "/a.png"}}) == json{{"save_path", "/a.png"}});
     const json encode = {{"path", {{"type", "string"}}}, {"save_path", {{"type", "string"}}}};
     CHECK(normalized(encode, {{"path", "/a.mkv"}}) == json{{"path", "/a.mkv"}});
-
-    // set_view's view is the 3D view to show or the camera's direction, whichever takes the value.
-    const json view = {{"canvas", {{"type", "string"}, {"enum", {"3d", "preview"}}}},
-                       {"camera", {{"type", "string"}, {"enum", {"front", "top"}}}}};
-    CHECK(normalized(view, {{"view", "preview"}}) == json{{"canvas", "preview"}});
-    CHECK(normalized(view, {{"view", "front"}}) == json{{"camera", "front"}});
 }
 
-TEST_CASE("argument normalization reads the values agents reach for as the ones an enum lists", "[Mcp]")
+TEST_CASE("argument normalization leaves a value its enum lacks, and a 3D view under another name, for the validator", "[Mcp]")
 {
     const json schema = {{"type", "object"},
                          {"properties",
                           {{"scope", {{"type", "string"}, {"enum", {"process", "filament", "part"}}}},
                            {"target", {{"type", "string"}, {"enum", {"main", "canvas"}}}},
-                           {"kind", {{"type", "string"}, {"enum", {"main", "window"}}}}}},
+                           {"canvas", {{"type", "string"}, {"enum", {"3d", "preview"}}}}}},
                          {"additionalProperties", false}};
     const auto normalized = [&](json args) {
         normalize_arguments(schema, args);
         return args;
     };
-    CHECK(normalized({{"scope", "print"}}) == json{{"scope", "process"}});
-    CHECK(normalized({{"target", "window"}}) == json{{"target", "main"}});
-    // A value the enum lists itself stays, and so does one with no stand-in, for the validator to name.
-    CHECK(normalized({{"kind", "window"}}) == json{{"kind", "window"}});
-    CHECK(normalized({{"scope", "plate"}}) == json{{"scope", "plate"}});
+    // No value stands for another: the process scope and the main window go by those names alone.
+    CHECK(normalized({{"scope", "print"}}) == json{{"scope", "print"}});
+    CHECK(normalized({{"target", "window"}}) == json{{"target", "window"}});
+    CHECK_FALSE(validate_arguments(schema, normalized({{"scope", "print"}})).empty());
+    // set_view's 3D view is its canvas.
+    const json view = normalized({{"view", "preview"}});
+    CHECK(view == json{{"view", "preview"}});
+    CHECK(validate_arguments(schema, view).find("unknown argument view") != std::string::npos);
 }
 
 TEST_CASE("argument normalization reads values written in another JSON form", "[Mcp]")
@@ -559,20 +556,20 @@ TEST_CASE("an unknown tool another catalog has is pointed there, not at similar 
 
 TEST_CASE("a call's arguments are normalized, then validated", "[Mcp]")
 {
-    ToolDef view;
-    view.name         = "set_view";
-    view.input_schema = {{"type", "object"},
-                         {"properties", {{"tab", {{"type", "string"}}}, {"canvas", {{"type", "string"}, {"enum", {"3d", "preview"}}}}}},
-                         {"additionalProperties", false}};
+    ToolDef capture;
+    capture.name         = "screenshot";
+    capture.input_schema = {{"type", "object"},
+                            {"properties", {{"target", {{"type", "string"}}}, {"save_path", {{"type", "string"}}}}},
+                            {"additionalProperties", false}};
     // A name agents reach for is read as the one the tool takes.
-    json aliased{{"view", "preview"}};
-    CHECK(argument_error(view, aliased).empty());
-    CHECK(aliased == json{{"canvas", "preview"}});
+    json aliased{{"path", "/a.png"}};
+    CHECK(argument_error(capture, aliased).empty());
+    CHECK(aliased == json{{"save_path", "/a.png"}});
     // An argument the tool does not take is refused with the ones it does.
-    json unknown{{"window_size", {800, 600}}};
-    const std::string refused = argument_error(view, unknown);
-    CHECK(refused.find("unknown argument window_size") != std::string::npos);
-    CHECK(refused.find("canvas") != std::string::npos);
+    json unknown{{"colour", "red"}};
+    const std::string refused = argument_error(capture, unknown);
+    CHECK(refused.find("unknown argument colour") != std::string::npos);
+    CHECK(refused.find("save_path") != std::string::npos);
 }
 
 TEST_CASE("call_tool runs and is journaled as the tool it names", "[Mcp]")
