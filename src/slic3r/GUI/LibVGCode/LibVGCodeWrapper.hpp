@@ -13,6 +13,9 @@
 #include <string>
 #include <vector>
 #include <cstddef>
+#include <cstdint>
+#include <map>
+#include <utility>
 
 #include "../../src/libvgcode/include/Types.hpp"
 #include "libslic3r/Color.hpp"
@@ -70,6 +73,32 @@ extern ETimeMode convert(const Slic3r::PrintEstimatedStatistics::ETimeMode& mode
 
 // mapping from libvgcode::ETimeMode to Slic3r::PrintEstimatedStatistics::ETimeMode
 extern Slic3r::PrintEstimatedStatistics::ETimeMode convert(const ETimeMode& mode);
+
+// Which layers' infill closes every object printed on them, for GCodeInputData::layers_closed.
+// Sparse infill closes an object on a layer. Solid infill closes it only where the object has no
+// sparse infill left in the direction the band looks from: its top shells close it as seen from
+// above, its bottom shells as seen from below, and an object with no sparse infill anywhere is
+// closed by any infill. In between, infill combination leaves a layer with walls and the solid
+// infill under its skins alone, and its middle open. A layer of support alone closes nothing. The
+// objects are the ones the G-code labels its moves with; moves of no object count as one object
+// of their own.
+class LayersClosedByInfill
+{
+public:
+    void add(uint32_t layer_id, int object_id, EGCodeExtrusionRole role, EMoveType type);
+    // One entry per layer, bit 0 closed from above and bit 1 closed from below, 0 for a layer
+    // nothing was added for. Empty when no move belonged to an object (objects not labelled in
+    // the G-code): the viewer then judges the layers by their roles as a whole, which tells more
+    // than one tally of the plate.
+    std::vector<uint8_t> finish(size_t layers_count) const;
+
+private:
+    // per layer, per object: bit 0 for walls, bit 1 for sparse infill, bit 2 for other infill
+    std::vector<std::map<int, uint8_t>> m_layers;
+    // per object, the first and last layer with sparse infill
+    std::map<int, std::pair<uint32_t, uint32_t>> m_sparse_span;
+    bool m_labelled{ false };
+};
 
 // mapping from Slic3r::GCodeProcessorResult to libvgcode::GCodeInputData
 extern GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::vector<std::string>& str_tool_colors,
