@@ -153,7 +153,7 @@ const char* kInstructions =
     "Each tool's description starts with its lane: [core] runs the session and recovers from dialogs, [api] acts on "
     "project data by index and name with JSON in and out, [ui] drives the GUI itself. Every tool is callable; prefer "
     "[api] tools, and use [ui] tools for what no [api] tool reaches or to see what a person sees.\n"
-    "Workflow: get_app_state (is it ready? which presets, plates, dialogs?) -> act -> check the result with the reading "
+    "Workflow: get_app_state (is it ready? which presets, plates, dialogs?) -> act -> check it with the reading "
     "tools (list_objects, list_plates, get_settings, slice's reply, get_slice_stats); screenshot only to see what they "
     "do not report.\n"
     "Core:\n"
@@ -181,22 +181,21 @@ const char* kInstructions =
     "them; filament slots and Preview layers are 1-based.\n"
     "- Lists come in pages: {items, offset, total}, with next_offset while more remain (search_actions names its items "
     "actions); call again with that offset to read on.\n"
-    "- Paths are absolute. Outputs never overwrite an existing file unless overwrite is true.\n"
+    "- Paths are absolute. Outputs never overwrite a file unless overwrite is true.\n"
     "UI lane:\n"
     "- run_action runs every Speed Dial command (search_actions finds them): prefer it to GUI clicks.\n"
     "- list_widgets lists widgets, menus, 3D toolbar items, gizmos, ImGui items and web page elements with refs; click "
     "/ set_widget_value / press_keys / mouse_gesture act on refs from the latest list_widgets call, or on locators, which "
     "its description lists.\n"
     "- list_windows lists the open windows, modal or not, with refs: a window's ref as screenshot's target captures "
-    "that window, and as list_widgets's root lists it alone.\n"
+    "that window, as list_widgets's root lists it alone, and as set_window's target sizes, moves or raises it.\n"
     "- Gizmos (Cut, Text, SVG, the painting tools...): click {target: {gizmo: \"Cut\"}} opens one; its panel's "
     "fields and buttons are ImGui items for set_widget_value / click, and painting is a mouse_gesture drag starting on the "
-    "object. Turn the camera with set_view camera or orbit, never a drag: what a drag does follows the user's mouse "
-    "settings. pick_gizmo_file only stands in for a file picker inside an open gizmo.\n"
+    "object. Move the camera with set_view, never a drag: what a drag does follows the user's mouse settings. pick_gizmo_file only stands in for a file picker inside an open gizmo.\n"
     "- screenshot returns a downscaled image plus the full-size PNG path; target \"canvas\" is the 3D view.\n"
-    "- start_recording / stop_recording record a video (MJPEG .mkv), with the tool calls as captions and the pointer "
-    "highlighted when captions and pointer ask for them; with encode, stop_recording then encodes it to an MP4 with "
-    "the system ffmpeg as a job to wait for, and encode_recording encodes any recording later.";
+    "- start_recording / stop_recording record a video (MJPEG .mkv), optionally with the tool calls as captions and the "
+    "pointer highlighted; with encode, stop_recording then encodes it to MP4 with the system ffmpeg as a job to wait "
+    "for, and encode_recording encodes any recording later.";
 
 } // namespace
 

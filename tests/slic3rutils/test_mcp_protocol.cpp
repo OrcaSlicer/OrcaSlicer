@@ -245,6 +245,8 @@ TEST_CASE("the catalog the stdio bridge lists without the app holds every tool f
     CHECK(&McpService::offline_catalog() == &catalog);
     CHECK(McpService::server_info().version == SLIC3R_VERSION);
     CHECK_FALSE(McpService::server_info().instructions.empty());
+    // Clients cut the instructions off after 4096 characters.
+    CHECK(McpService::server_info().instructions.size() <= 4096);
 }
 
 TEST_CASE("ping returns an empty result", "[Mcp]")
