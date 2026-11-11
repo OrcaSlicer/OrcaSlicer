@@ -2,6 +2,7 @@
 #include "CloudProvider.hpp"
 #include "ColorPickerDialog.hpp"
 #include "OptionsGroup.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "WebViewDialog.hpp"
@@ -372,7 +373,7 @@ wxBoxSizer *PreferencesDialog::create_item_label(wxString label, wxString toolti
 
     auto label_ctrl = new WikiLabel(m_parent, label, url, wxDefaultPosition, DESIGN_TITLE_SIZE);
 
-    label_ctrl->SetToolTip(tooltip);
+    set_illustrated_tooltip(label_ctrl, tooltip);
 
     sizer->Add(label_ctrl, 0, wxALIGN_CENTER | wxTOP | wxBOTTOM, FromDIP(3));
     sizer->AddSpacer(FromDIP(5));
@@ -388,7 +389,7 @@ std::tuple<wxBoxSizer*, ComboBox*> PreferencesDialog::create_item_combobox_base(
 
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->GetDropDown().SetUseContentWidth(true);
-    combobox->SetToolTip(tip);
+    set_illustrated_tooltip(combobox, tip);
     combobox->SetName(param);   // select_tab() finds the row by this name
 
     std::vector<wxString>::iterator iter;
@@ -506,7 +507,7 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
 
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->GetDropDown().SetUseContentWidth(true);
-    combobox->SetToolTip(tip);
+    set_illustrated_tooltip(combobox, tip);
 
     auto language = app_config->get(param);
     m_current_language_selected = -1;
@@ -666,7 +667,7 @@ wxBoxSizer *PreferencesDialog::create_item_region_combobox(wxString title, wxStr
 
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->GetDropDown().SetUseContentWidth(true);
-    combobox->SetToolTip(tip);
+    set_illustrated_tooltip(combobox, tip);
 
     m_sizer->Add(combobox, 0, wxALIGN_CENTER);
 
@@ -740,7 +741,7 @@ wxBoxSizer *PreferencesDialog::create_item_loglevel_combobox(wxString title, wxS
 
     auto combobox = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     combobox->GetDropDown().SetUseContentWidth(true);
-    combobox->SetToolTip(tip);
+    set_illustrated_tooltip(combobox, tip);
 
     std::vector<wxString>::iterator iter;
     for (iter = vlist.begin(); iter != vlist.end(); iter++) { combobox->Append(*iter); }
@@ -771,13 +772,13 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
     input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(app_config->get(param));
     wxTextValidator validator(wxFILTER_DIGITS);
-    input->SetToolTip(tip);
+    set_illustrated_tooltip(input, tip);
     input->GetTextCtrl()->SetValidator(validator);
 
     auto second_title = new wxStaticText(m_parent, wxID_ANY, title2, wxDefaultPosition, wxDefaultSize, 0);
     second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
     second_title->SetFont(::Label::Body_14);
-    second_title->SetToolTip(tip);
+    set_illustrated_tooltip(second_title, tip);
     second_title->Wrap(-1);
 
     m_sizer->Add(input       , 0, wxALIGN_CENTER_VERTICAL);
@@ -808,7 +809,7 @@ wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString tit
     wxBoxSizer *m_sizer = create_item_label(title, tip, wiki_url);
 
     auto input = new SpinInput(m_parent, wxEmptyString, side_label, wxDefaultPosition, DESIGN_INPUT_SIZE, wxSP_ARROW_KEYS, min, max, stoi(app_config->get(param)));
-    input->SetToolTip(tip);
+    set_illustrated_tooltip(input, tip);
 
     // ORCA: this one is only meaningful while the dimming it controls is enabled
     if (param == "preview_dim_previous_layers_brightness") {
@@ -822,7 +823,7 @@ wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString tit
         auto second_title = new wxStaticText(m_parent, wxID_ANY, title2, wxDefaultPosition, wxDefaultSize, 0);
         second_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
         second_title->SetFont(::Label::Body_14);
-        second_title->SetToolTip(tip);
+        set_illustrated_tooltip(second_title, tip);
         m_sizer->Add(second_title, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
     }
 
@@ -865,7 +866,7 @@ wxBoxSizer *PreferencesDialog::create_camera_orbit_mult_input(wxString title, wx
     input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(app_config->get(param));
     wxTextValidator validator(wxFILTER_NUMERIC);
-    input->SetToolTip(tip);
+    set_illustrated_tooltip(input, tip);
     input->GetTextCtrl()->SetValidator(validator);
 
     m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
@@ -912,7 +913,7 @@ wxBoxSizer *PreferencesDialog::create_item_decimal_input(wxString title, wxStrin
     input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(app_config->get(param));
     wxTextValidator validator(wxFILTER_NUMERIC);
-    input->SetToolTip(tooltip);
+    set_illustrated_tooltip(input, tooltip);
     input->GetTextCtrl()->SetValidator(validator);
 
     m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
@@ -950,7 +951,7 @@ wxBoxSizer *PreferencesDialog::create_item_backup(wxString title, wxString toolt
 
     auto checkbox = new ::CheckBox(m_parent);
     checkbox->SetValue(app_config->get_bool("backup_switch"));
-    checkbox->SetToolTip(tip);
+    set_illustrated_tooltip(checkbox, tip);
 
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent &e) {
         app_config->set_bool("backup_switch", checkbox->GetValue());
@@ -970,7 +971,7 @@ wxBoxSizer *PreferencesDialog::create_item_backup(wxString title, wxString toolt
     input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(m_backup_interval_time);
     wxTextValidator validator(wxFILTER_DIGITS);
-    input->SetToolTip(_L("The period of backup in seconds."));
+    set_illustrated_tooltip(input, _L("The period of backup in seconds."));
     input->GetTextCtrl()->SetValidator(validator);
 
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
@@ -1013,7 +1014,7 @@ wxBoxSizer *PreferencesDialog::create_item_auto_reslice(wxString title, wxString
 
     auto checkbox = new ::CheckBox(m_parent);
     checkbox->SetValue(app_config->get_bool("auto_slice_after_change"));
-    checkbox->SetToolTip(checkbox_tooltip);
+    set_illustrated_tooltip(checkbox, checkbox_tooltip);
 
     wxString delay_value = app_config->get("auto_slice_change_delay_seconds");
     if (delay_value.empty())
@@ -1024,7 +1025,7 @@ wxBoxSizer *PreferencesDialog::create_item_auto_reslice(wxString title, wxString
     input->SetBackgroundColor(input_bg);
     input->GetTextCtrl()->SetValue(delay_value);
     wxTextValidator validator(wxFILTER_DIGITS);
-    input->SetToolTip(delay_tooltip);
+    set_illustrated_tooltip(input, delay_tooltip);
     input->GetTextCtrl()->SetValidator(validator);
 
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
@@ -1074,7 +1075,7 @@ wxBoxSizer* PreferencesDialog::create_item_darkmode(wxString title,wxString tool
 
     auto checkbox = new ::CheckBox(m_parent);
     checkbox->SetValue((app_config->get(param) == "1") ? true : false);
-    checkbox->SetToolTip(tip);
+    set_illustrated_tooltip(checkbox, tip);
     m_dark_mode_ckeckbox = checkbox;
 
     m_sizer->Add(checkbox, 0, wxALIGN_CENTER);
@@ -1121,7 +1122,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
 
     auto checkbox = new ::CheckBox(m_parent);
     checkbox->SetValue(app_config->get_bool(param));
-    checkbox->SetToolTip(tip);
+    set_illustrated_tooltip(checkbox, tip);
 
     if (param == "sync_user_preset") { m_sync_user_preset_checkbox = checkbox; }
     if (param == SETTING_OPENGL_SKIP_IDENTICAL_FRAMES) { m_skip_identical_frames_checkbox = checkbox; }
@@ -1133,7 +1134,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         sec_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
         sec_title->SetFont(::Label::Body_14);
         sec_title->Wrap(-1);
-        sec_title->SetToolTip(tip);
+        set_illustrated_tooltip(sec_title, tip);
         m_sizer->Add(sec_title, 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
     }
 
@@ -1320,7 +1321,7 @@ wxBoxSizer* PreferencesDialog::create_item_button(wxString title, wxString title
 
     auto m_button_download = new Button(m_parent, title2);
     m_button_download->SetStyle(title2 == _L("Clear") ? ButtonStyle::Alert : ButtonStyle::Regular, ButtonType::Parameter);
-    m_button_download->SetToolTip(tooltip2.IsEmpty() ? tooltip : tooltip2); // use label tooltip if button tooltip empty
+    set_illustrated_tooltip(m_button_download, tooltip2.IsEmpty() ? tooltip : tooltip2); // use label tooltip if button tooltip empty
 
     m_button_download->Bind(wxEVT_BUTTON, [onclick](auto &e) { onclick(); });
 
@@ -1339,11 +1340,11 @@ wxBoxSizer* PreferencesDialog::create_item_downloads(wxString title, wxString to
     m_staticTextPath->SetForegroundColour(DESIGN_GRAY600_COLOR);
     m_staticTextPath->SetFont(::Label::Body_14);
     m_staticTextPath->Wrap(-1);
-    m_staticTextPath->SetToolTip(download_path);
+    set_illustrated_tooltip(m_staticTextPath, download_path);
 
     auto m_button_download = new Button(m_parent, _L("Browse") + dots);
     m_button_download->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
-    m_button_download->SetToolTip(_L("Choose folder for downloaded items"));
+    set_illustrated_tooltip(m_button_download, _L("Choose folder for downloaded items"));
 
     m_button_download->Bind(wxEVT_BUTTON, [this, m_staticTextPath, m_sizer](auto& e) {
         wxString defaultPath = wxT("/");
@@ -1354,7 +1355,7 @@ wxBoxSizer* PreferencesDialog::create_item_downloads(wxString title, wxString to
             std::string download_path_str = download_path.ToUTF8().data();
             app_config->set("download_path", download_path_str);
             m_staticTextPath->SetLabelText(download_path);
-            m_staticTextPath->SetToolTip(download_path);
+            set_illustrated_tooltip(m_staticTextPath, download_path);
             m_sizer->Layout();
         }
     });
@@ -1372,7 +1373,7 @@ wxBoxSizer *PreferencesDialog::create_item_bambu_cloud(wxString title, wxString 
     auto cb = new ::CheckBox(m_parent);
     m_bambu_cloud_checkbox = cb;
     cb->SetValue(app_config->has_cloud_provider(BBL_CLOUD_PROVIDER));
-    cb->SetToolTip(tooltip);
+    set_illustrated_tooltip(cb, tooltip);
 
     cb->Bind(wxEVT_TOGGLEBUTTON, [this, cb](wxCommandEvent &e) {
         e.Skip(); // let CheckBox::update() refresh the bitmap
@@ -1399,7 +1400,7 @@ wxBoxSizer *PreferencesDialog::create_item_network_plugin_version(wxString title
 
     m_network_version_combo = new ::ComboBox(m_parent, wxID_ANY, wxEmptyString, wxDefaultPosition, DESIGN_LARGE_COMBOBOX_SIZE, 0, nullptr, wxCB_READONLY);
     m_network_version_combo->GetDropDown().SetUseContentWidth(true);
-    m_network_version_combo->SetToolTip(tooltip);
+    set_illustrated_tooltip(m_network_version_combo, tooltip);
 
     std::string current_version = app_config->get_network_plugin_version();
     if (current_version.empty()) {
@@ -1498,7 +1499,7 @@ wxBoxSizer *PreferencesDialog::create_item_network_plugin_version(wxString title
 
     auto reload_btn = new Button(m_parent, wxEmptyString, "refresh", 0, 16);
     reload_btn->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
-    reload_btn->SetToolTip(_L("Reload the network plug-in without restarting the application"));
+    set_illustrated_tooltip(reload_btn, _L("Reload the network plug-in without restarting the application"));
     reload_btn->Bind(wxEVT_BUTTON, [this](auto& e) {
         if (wxGetApp().hot_reload_network_plugin()) {
             MessageDialog dlg(this, _L("Network plug-in reloaded successfully."), _L("Reload"), wxOK | wxICON_INFORMATION);
@@ -1529,12 +1530,12 @@ wxBoxSizer* PreferencesDialog::create_item_link_association( wxString url_prefix
 
     // build checkbox
     auto checkbox = new ::CheckBox(m_parent);
-    checkbox->SetToolTip(tooltip);
+    set_illustrated_tooltip(checkbox, tooltip);
     checkbox->SetValue(reg_to_current_instance); // If registered to the current instance, checkbox should be checked
 
     // build text next to checkbox
     auto checkbox_title = new wxStaticText(m_parent, wxID_ANY, title, wxDefaultPosition, DESIGN_TITLE_SIZE);
-    checkbox_title->SetToolTip(tooltip);
+    set_illustrated_tooltip(checkbox_title, tooltip);
     checkbox_title->SetForegroundColour(DESIGN_GRAY900_COLOR);
     checkbox_title->SetFont(::Label::Body_14);
     checkbox_title->Wrap(-1);
@@ -1565,12 +1566,12 @@ wxBoxSizer* PreferencesDialog::create_item_link_association( wxString url_prefix
         wxString current_association_str = _L("Current Association: ");
         if (reg_to_current_instance) {
             current_association_str += _L("Current Instance");
-            registered_instance_title->SetToolTip(_L("Current Instance Path: ") + registered_bin);
+            set_illustrated_tooltip(registered_instance_title, _L("Current Instance Path: ") + registered_bin);
         } else if (registered_bin.empty())
             current_association_str += _L("None");
         else{
             current_association_str += registered_bin;
-            registered_instance_title->SetToolTip(current_association_str);
+            set_illustrated_tooltip(registered_instance_title, current_association_str);
         }
 
         registered_instance_title->SetLabel(current_association_str);
@@ -2311,7 +2312,7 @@ void PreferencesDialog::create_items()
     auto add_outline_color_item = [this, g_sizer](const wxString& label, const wxString& tooltip, const std::string& key) {
         auto sizer  = create_item_label(label, tooltip);
         auto button = new ColorSwatchButton(m_parent, from_u8(app_config->get(key)));
-        button->SetToolTip(tooltip);
+        set_illustrated_tooltip(button, tooltip);
         button->Bind(wxEVT_BUTTON, [this, button, key](wxCommandEvent& event) {
             event.Skip();
             ColorRGBA initial;

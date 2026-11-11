@@ -1,4 +1,5 @@
 #include "StepMeshDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "libslic3r/Format/STEP.hpp"
 #include "slic3r/GUI/GeometryImportDialog.hpp"
@@ -26,6 +27,8 @@
 #include "Widgets/RadioGroup.hpp"
 #include "Widgets/RoundedRectangle.hpp"
 #include <chrono>
+#include <initializer_list>
+#include <vector>
 #include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/utils.h>
@@ -167,6 +170,12 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     linear_input->GetTextCtrl()->SetFont(Label::Body_14);
     linear_input->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     linear_sizer->Add(linear_input, 0, wxALIGN_RIGHT | wxLEFT, FromDIP(5));
+    const std::vector<TipMedia> deflection_media = {{"app_ui/step_mesh_coarse.png", _L("Larger value")},
+                                                    {"app_ui/step_mesh_fine.png", _L("Smaller value")}};
+    const wxString linear_tip = _L("The largest gap allowed between the triangles and the true curved surface, in millimeters. "
+                                   "A smaller value follows curves more closely, with more triangles and a slower import.");
+    for (wxWindow* w : std::initializer_list<wxWindow*>{linear_title, linear_slider, linear_input})
+        set_illustrated_tooltip(w, linear_tip, deflection_media);
     linear_input->Bind(wxEVT_KILL_FOCUS, ([this, linear_input](wxFocusEvent& e) {
         wxString value = linear_input->GetTextCtrl()->GetValue();
         if (validate_number_range(value, 0.001, 0.1)) {
@@ -222,6 +231,10 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     angle_input->GetTextCtrl()->SetFont(Label::Body_14);
     angle_input->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
     angle_sizer->Add(angle_input, 0, wxALIGN_RIGHT | wxLEFT, FromDIP(5));
+    const wxString angle_tip = _L("The largest angle allowed between neighboring triangles on a curve, in radians. "
+                                  "A smaller value makes round shapes smoother, with more triangles and a slower import.");
+    for (wxWindow* w : std::initializer_list<wxWindow*>{angle_title, angle_slider, angle_input})
+        set_illustrated_tooltip(w, angle_tip, deflection_media);
     angle_input->Bind(wxEVT_KILL_FOCUS, ([this, angle_input](wxFocusEvent& e) {
         wxString value = angle_input->GetTextCtrl()->GetValue();
         if (validate_number_range(value, 0.01, 1)) {
@@ -263,11 +276,15 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     m_split_compound_checkbox = add_import_checkbox(this, *bSizer, _L("Split compound and compsolid into multiple objects"),
                                                     wxGetApp().app_config->get_bool("is_split_compound"), wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
     if (m_import_options != nullptr) {
-        m_split_compound_checkbox.SetToolTip(_L("Loads each body of a multi-body part separately. Needed to keep the bodies' original names."));
+        m_split_compound_checkbox.SetToolTip(_L("Loads each body of a multi-body part separately. Needed to keep the bodies' original names."),
+                                             {{"app_ui/load_single.png", _L("Off")}, {"app_ui/load_assembly.png", _L("On")}});
         m_split_compound_checkbox.SetValue(m_import_options->split_compound);
         m_load_mode = new RadioGroup(this, {_L("Load as an assembly"), _L("Load as a single object (can be split later)")}, wxVERTICAL);
         m_load_mode->SetSelection(m_import_options->load_as_assembly ? 0 : 1);
-        m_load_mode->SetRadioTooltip(1, _L("The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."));
+        m_load_mode->SetRadioIllustratedTooltip(0, _L("The bodies of each group in the file become parts of one object, in their relative positions."),
+                                                {{"app_ui/load_assembly.png", {}}});
+        m_load_mode->SetRadioIllustratedTooltip(1, _L("The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."),
+                                                {{"app_ui/load_single.png", {}}});
         bSizer->Add(m_load_mode, 0, wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
         m_keep_names_checkbox = add_import_checkbox(this, *bSizer, _L("Keep original names"), m_import_options->keep_names,
                                                     wxLEFT | wxRIGHT | wxTOP, LEFT_RIGHT_PADING);
@@ -321,7 +338,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     // ORCA standardized HyperLink
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url =  "https://www.orcaslicer.com/wiki/import_export#step";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));

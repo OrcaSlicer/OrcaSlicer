@@ -97,11 +97,12 @@ CheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
     auto cb   = new CheckBox(parent);
     cb->SetValue(true);
     auto text = new wxStaticText(parent, wxID_ANY, _L("Auto-scale for nozzle"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    cb->SetToolTip(_L("This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
-                      "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter"
-                      " and an appropriate layer height, making the test both accurate and easy to read.\n"
-                      "Turn scaling off only if you wish to print the reference model exactly as-is."));
-    text->SetToolTip(cb->GetToolTipText());
+    const wxString tip = _L("This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
+                            "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter"
+                            " and an appropriate layer height, making the test both accurate and easy to read.\n"
+                            "Turn scaling off only if you wish to print the reference model exactly as-is.");
+    set_illustrated_tooltip(cb, tip);
+    set_illustrated_tooltip(text, tip);
     row->Add(cb  , 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
     row->Add(text, 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
     settings_sizer->Add(row, 0, wxLEFT | wxTOP, parent->FromDIP(3));
@@ -257,7 +258,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto sp_accel_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto sp_accel_text = new wxStaticText(this, wxID_ANY, sp_accel_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiBMAccels = new TextInput(this, "", "", "", wxDefaultPosition, ti_size, wxTE_PROCESS_ENTER);
-    m_tiBMAccels->SetToolTip(_L("Comma-separated list of printing accelerations"));
+    set_illustrated_tooltip(m_tiBMAccels, _L("Comma-separated list of printing accelerations"));
     m_tiBMAccels->GetTextCtrl()->SetValidator(val_list_validator);
     sp_accel_sizer->Add(sp_accel_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     sp_accel_sizer->Add(m_tiBMAccels , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -266,7 +267,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto sp_speed_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto sp_speed_text = new wxStaticText(this, wxID_ANY, sp_speed_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiBMSpeeds = new TextInput(this, "", "", "", wxDefaultPosition, ti_size, wxTE_PROCESS_ENTER);
-    m_tiBMSpeeds->SetToolTip(_L("Comma-separated list of printing speeds"));
+    set_illustrated_tooltip(m_tiBMSpeeds, _L("Comma-separated list of printing speeds"));
     m_tiBMSpeeds->GetTextCtrl()->SetValidator(val_list_validator);
     sp_speed_sizer->Add(sp_speed_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     sp_speed_sizer->Add(m_tiBMSpeeds , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -292,7 +293,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     const wxString print_numbers_tip = _L("Print each line's pressure advance next to it, so the best line can be read off the print. The pattern always prints them.");
     set_illustrated_tooltip(cb_title, print_numbers_tip);
     set_illustrated_tooltip(m_cbPrintNum, print_numbers_tip);
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -565,7 +566,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     set_radio_tooltips(m_rbFilamentType, 8, _L("Fills in a start and end temperature that suit this kind of filament. You can still change them."));
     m_rbModel->SetRadioIllustratedTooltip(0, _L("A tower of blocks, one for each temperature."), {});
     m_rbModel->SetRadioIllustratedTooltip(1, _L("A row of small test pieces with an overhang, one for each temperature, to compare how the overhangs come out."), {});
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -780,7 +781,7 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
     set_input_tooltip(m_tiStart, _L("The volumetric speed at the bottom of the test. The speed rises steadily with height, so the height where the walls start to fail gives the maximum."));
     set_input_tooltip(m_tiEnd, _L("The volumetric speed at the top of the test. A higher end makes the test taller."));
     set_input_tooltip(m_tiStep, _L("How much the volumetric speed rises for every millimeter of height. A smaller step gives a taller test and a finer reading."));
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -892,10 +893,11 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     m_cbAutoAdjust = new CheckBox(this);
     m_cbAutoAdjust->SetValue(true);
     auto auto_adjust_text = new wxStaticText(this, wxID_ANY, _L("Auto-adjust to max volumetric speed"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    m_cbAutoAdjust->SetToolTip(_L("If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer "
-                                  "height (keeping standard values and staying within the machine's limits) to reach it. If even the "
-                                  "minimum layer height is not enough, lower the end speed instead."));
-    auto_adjust_text->SetToolTip(m_cbAutoAdjust->GetToolTipText());
+    const wxString auto_adjust_tip = _L("If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer "
+                                        "height (keeping standard values and staying within the machine's limits) to reach it. If even the "
+                                        "minimum layer height is not enough, lower the end speed instead.");
+    set_illustrated_tooltip(m_cbAutoAdjust, auto_adjust_tip);
+    set_illustrated_tooltip(auto_adjust_text, auto_adjust_tip);
     auto_adjust_sizer->Add(m_cbAutoAdjust  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     auto_adjust_sizer->Add(auto_adjust_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(auto_adjust_sizer, 0, wxLEFT | wxTOP, FromDIP(3));
@@ -915,7 +917,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     set_input_tooltip(m_tiStart, _L("The outer wall speed of the bottom block of the tower. Each block above it is one step faster, up to the end speed."));
     set_input_tooltip(m_tiEnd, _L("The outer wall speed of the top block."));
     set_input_tooltip(m_tiStep, _L("How much faster each block prints than the one below it. A smaller step adds blocks."));
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -1165,7 +1167,7 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
     set_input_tooltip(m_tiStart, _L("The retraction length at the bottom of the towers. It grows by one step for every millimeter of height."));
     set_input_tooltip(m_tiEnd, _L("The retraction length at the top of the towers. A longer end makes the towers taller."));
     set_input_tooltip(m_tiStep, _L("How much the retraction length grows for every millimeter of height. The lowest height without strings between the towers gives the length."));
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -1363,7 +1365,7 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
         set_tower_model_tooltips(m_rbModel);
         set_shaper_type_tooltips(m_rbType, type_labels.size());
     }
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -1581,7 +1583,7 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
         set_tower_model_tooltips(m_rbModel);
         set_shaper_type_tooltips(m_rbType, type_labels.size());
     }
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -1790,7 +1792,7 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     set_input_tooltip(m_tiJDEnd, _L("The cornering limit at the top of the tower. The highest point where the corners still look clean gives the value."));
     set_tower_model_tooltips(m_rbModel);
     m_rbModel->SetRadioIllustratedTooltip(2, _L("A test model made for cornering tests (square corner velocity)."), {});
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -1945,7 +1947,7 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
     m_rbType->SetRadioIllustratedTooltip(3, _L("The same as YOLO, with smaller steps between the blocks."), {});
     set_illustrated_tooltip(m_rbPattern, _L("The pattern of the top surfaces the test is judged by. Archimedean Chords prints the center last, "
                                             "so too much flow leaves a raised lip there that can be felt. Monotonic gives plain straight lines."));
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));

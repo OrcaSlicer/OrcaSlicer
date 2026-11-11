@@ -1,4 +1,5 @@
 #include "MixedFilamentDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -69,7 +70,7 @@ public:
     {
         SetBackgroundStyle(wxBG_STYLE_PAINT);
         SetCursor(wxCursor(wxCURSOR_HAND));
-        SetToolTip(_L("Click to edit ratio"));
+        set_illustrated_tooltip(this, _L("Click to edit ratio"));
         SetFont(::Label::Body_10);
 
         Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_hovered = true;  Refresh(); e.Skip(); });
@@ -861,6 +862,7 @@ wxBoxSizer* MixedFilamentDialog::create_ratio_slider()
     m_ratio_bar = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, FromDIP(27)));
     m_ratio_bar->SetMinSize(wxSize(-1, FromDIP(27)));
     m_ratio_bar->SetBackgroundStyle(wxBG_STYLE_PAINT);
+    set_illustrated_tooltip(m_ratio_bar, _L("Click or drag to set how much of each filament the mix uses."));
 
     m_ratio_bar->Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
         wxBufferedPaintDC dc(m_ratio_bar);
@@ -932,6 +934,8 @@ wxBoxSizer* MixedFilamentDialog::create_triangle_picker()
     int panel_w = FromDIP(160);
     int panel_h = FromDIP(160);
     m_triangle_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(panel_w, panel_h));
+    set_illustrated_tooltip(m_triangle_panel, _L("Click or drag inside the triangle to set how much of each filament the mix uses: "
+                                                 "the closer to a corner, the more of that filament."));
     m_triangle_panel->SetMinSize(wxSize(panel_w, panel_h));
     m_triangle_panel->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_triangle_panel->SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -1213,7 +1217,7 @@ void MixedFilamentDialog::rebuild_recommendation_items()
                             item->Bind(wxEVT_LEFT_UP, [this, ca_1, cb_1, cc_1](wxMouseEvent&) {
                                 on_recommendation_clicked_triple(ca_1, cb_1, cc_1);
                             });
-                            item->SetToolTip(wxString::Format(wxT("%s + %s + %s"),
+                            set_illustrated_tooltip(item, wxString::Format(wxT("%s + %s + %s"),
                                 wxString::FromUTF8(m_physical_names[i0]),
                                 wxString::FromUTF8(m_physical_names[i1]),
                                 wxString::FromUTF8(m_physical_names[i2])));
@@ -1249,7 +1253,7 @@ void MixedFilamentDialog::rebuild_recommendation_items()
                     item->Bind(wxEVT_LEFT_UP, [this, comp_a, comp_b](wxMouseEvent&) {
                         on_recommendation_clicked(comp_a, comp_b);
                     });
-                    item->SetToolTip(wxString::Format(wxT("%s + %s"),
+                    set_illustrated_tooltip(item, wxString::Format(wxT("%s + %s"),
                         wxString::FromUTF8(m_physical_names[i]),
                         wxString::FromUTF8(m_physical_names[j])));
 
@@ -1833,7 +1837,7 @@ void MixedFilamentDialog::update_component_count_ui()
     if (m_btn_remove_material) {
         m_btn_remove_material->Show(is_three);
         m_btn_remove_material->Enable(is_three);
-        m_btn_remove_material->SetToolTip(is_three ? _L("Remove the third material") : wxString());
+        set_illustrated_tooltip(m_btn_remove_material, is_three ? _L("Remove the third material") : wxString());
     }
 
     const wxSize new_size = compute_dialog_size();

@@ -1,4 +1,5 @@
 #include "Plater.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "../Utils/NetworkAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "CalibUtils.hpp"
@@ -6500,7 +6501,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     auto badge_combox_filament = [sync_color_only](PlaterPresetComboBox *c) {
         auto tip     = sync_color_only ? _L("Only filament color information has been synchronized from printer.") :
                                          _L("Filament type and color information have been synchronized, but slot information is not included.");
-        c->SetToolTip(tip);
+        set_illustrated_tooltip(c, tip);
         c->set_sync_badge(true);
     };
     { // badge ams filament
@@ -19065,7 +19066,7 @@ wxBoxSizer *ProjectDropDialog::create_remember_checkbox(wxString title, wxWindow
 
     auto checkbox = new ::CheckBox(parent);
     checkbox->SetValue(m_remember_choice);
-    checkbox->SetToolTip(tooltip);
+    set_illustrated_tooltip(checkbox, tooltip);
     m_sizer_checkbox->Add(checkbox, 0, wxALIGN_CENTER, 0);
     m_sizer_checkbox->Add(0, 0, 0, wxEXPAND | wxLEFT, 8);
 
@@ -19073,7 +19074,7 @@ wxBoxSizer *ProjectDropDialog::create_remember_checkbox(wxString title, wxWindow
     checkbox_title->SetForegroundColour(wxColour(144,144,144));
     checkbox_title->SetFont(::Label::Body_13);
     checkbox_title->Wrap(-1);
-    checkbox_title->SetToolTip(tooltip);
+    set_illustrated_tooltip(checkbox_title, tooltip);
     m_sizer_checkbox->Add(checkbox_title, 0, wxALIGN_CENTER | wxALL, 3);
 
     checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent &e) {

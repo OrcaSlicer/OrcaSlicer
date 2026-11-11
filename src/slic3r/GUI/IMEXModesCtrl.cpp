@@ -146,7 +146,7 @@ void IMEXModesCtrl::rebuild_info_and_header() {
     auto* help_btn = new ScalableButton(m_info_panel, wxID_ANY, "icon_qusetion", wxEmptyString,
                                         wxDefaultSize, wxDefaultPosition,
                                         wxBU_EXACTFIT | wxNO_BORDER, /*use_default_disabled_bitmap=*/true, kImexIconPx);
-    help_btn->SetToolTip(instructions);
+    set_illustrated_tooltip(help_btn, instructions);
     act_sizer->Add(help_btn, 0, wxALIGN_CENTER_VERTICAL);
     info_sizer->Add(act_sizer, 0, wxBOTTOM, FromDIP(6));
     for (const ImexRoleDesc& d : kImexRoleTable) {
@@ -156,8 +156,8 @@ void IMEXModesCtrl::rebuild_info_and_header() {
         swatch->SetBackgroundColour(style.bg);
         auto* leg_label = page_label(new wxStaticText(m_info_panel, wxID_ANY, style.label));
         const wxString hint = role_hint(d.role);
-        swatch->SetToolTip(hint);
-        leg_label->SetToolTip(hint);
+        set_illustrated_tooltip(swatch, hint, role_media(d.role));
+        set_illustrated_tooltip(leg_label, hint, role_media(d.role));
         leg_sizer->Add(swatch, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
         leg_sizer->Add(leg_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(16));
     }
@@ -173,11 +173,11 @@ void IMEXModesCtrl::rebuild_info_and_header() {
     auto* hdr_name  = page_label(new wxStaticText(m_hdr_panel, wxID_ANY, _L("Mode")));
     auto* hdr_tools = page_label(new wxStaticText(m_hdr_panel, wxID_ANY, _L_CONTEXT("Tools", "IDEX/IQEX modes")));
     auto* hdr_gcode = page_label(new wxStaticText(m_hdr_panel, wxID_ANY, _L("G-code")));
-    hdr_name->SetToolTip(_L("How the mode is labeled in the plate's IDEX/IQEX mode selector. "
+    set_illustrated_tooltip(hdr_name, _L("How the mode is labeled in the plate's IDEX/IQEX mode selector. "
                             "Required — a mode with no name cannot be selected."));
-    hdr_tools->SetToolTip(_L("Which tool heads take part in the mode and what role each one plays. "
+    set_illustrated_tooltip(hdr_tools, _L("Which tool heads take part in the mode and what role each one plays. "
                              "Click a tile to cycle its role."));
-    hdr_gcode->SetToolTip(_L("G-code run at print start to put the printer into this mode "
+    set_illustrated_tooltip(hdr_gcode, _L("G-code run at print start to put the printer into this mode "
                              "(for example a Klipper SET_PRINT_MODE call).\n\nThe slicer only emits "
                              "the Primary tool's paths; the firmware drives the others."));
     const int grid_px = m_n_cols * FromDIP(26) - FromDIP(2);  // tile 24 + 2px gap, less the trailing gap
@@ -430,7 +430,18 @@ void IMEXModesCtrl::apply_btn(wxButton* btn, int tool_idx, std::optional<ImexRol
     btn->SetLabel(wxString::Format("T%d", tool_idx));
     btn->SetBackgroundColour(style.bg);
     btn->SetForegroundColour(style.fg);
+    // A disabled tile shows no tooltip, so the click hint always applies.
+    const wxString what = role ? role_hint(*role) : _L("This tool head takes no part in this mode.");
+    set_illustrated_tooltip(btn, what + "\n" + _L("Click to give this tool head the next role."), role_media(role));
     btn->Refresh();
+}
+
+std::vector<TipMedia> IMEXModesCtrl::role_media(std::optional<ImexRole> role) {
+    if (role == ImexRole::Copy)
+        return {{"app_ui/imex_copy.gif", {}}};
+    if (role == ImexRole::Mirror)
+        return {{"app_ui/imex_mirror.gif", {}}};
+    return {};
 }
 
 IMEXModesCtrl::RowSnapshot IMEXModesCtrl::snapshot_row(const Row& r) const {
@@ -539,7 +550,7 @@ void IMEXModesCtrl::add_row(const std::string& name,
         // copy of the name beside the hint.
         r.name->GetTextCtrl()->ChangeValue(from_u8(nm));
         r.name->GetTextCtrl()->SetHint(_L("Mode name (required)"));
-        r.name->SetToolTip(_L("Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode "
+        set_illustrated_tooltip(r.name, _L("Name of this parallel mode, as it appears in the plate's IDEX/IQEX mode "
                               "selector. Stored in the project by name, so renaming a mode that "
                               "plates already use makes them fall back to Primary. Cannot be empty "
                               "— a blank name is replaced with a generated one."));
@@ -707,7 +718,7 @@ void IMEXModesCtrl::add_row(const std::string& name,
     // Tooltip only, no SetHint(): wxTextEntry has no native placeholder for a
     // multiline control, so wxWidgets emulates one by writing the hint into the
     // control as gray text — indistinguishable from real G-code in this box.
-    r.gcode->SetToolTip(_L("G-code emitted once at the start of a print that uses this mode, before "
+    set_illustrated_tooltip(r.gcode, _L("G-code emitted once at the start of a print that uses this mode, before "
                            "the machine start G-code. This is where the printer is put into the "
                            "matching firmware mode — for example a Klipper SET_PRINT_MODE call or a "
                            "RepRapFirmware M567 — since the slicer only emits the Primary tool's "
@@ -731,7 +742,7 @@ void IMEXModesCtrl::add_row(const std::string& name,
     auto* ph_btn = new ScalableButton(r.panel, wxID_ANY, "edit", wxEmptyString,
                                       wxDefaultSize, wxDefaultPosition,
                                       wxBU_EXACTFIT | wxNO_BORDER, /*use_default_disabled_bitmap=*/true, kImexIconPx);
-    ph_btn->SetToolTip(_L("Edit G-code / browse placeholders"));
+    set_illustrated_tooltip(ph_btn, _L("Edit G-code / browse placeholders"));
     ph_btn->Bind(wxEVT_BUTTON, [this, gcode_ctrl](wxCommandEvent&) {
         // EditGCodeDialog takes and returns UTF-8 (get_edited_gcode() is a ToUTF8()).
         EditGCodeDialog dlg(this, "imex_mode_gcode", into_u8(gcode_ctrl->GetValue()));
@@ -744,7 +755,7 @@ void IMEXModesCtrl::add_row(const std::string& name,
         auto* rm = new ScalableButton(r.panel, wxID_ANY, "delete", wxEmptyString,
                                       wxDefaultSize, wxDefaultPosition,
                                       wxBU_EXACTFIT | wxNO_BORDER, /*use_default_disabled_bitmap=*/true, kImexIconPx);
-        rm->SetToolTip(_L("Remove mode"));
+        set_illustrated_tooltip(rm, _L("Remove mode"));
         rm->Bind(wxEVT_BUTTON, [this, this_panel](wxCommandEvent&) {
             const std::vector<std::string> removed = remove_row(this_panel);
             // Copied before notify(): on_change ends in on_value_change, which can send
@@ -765,7 +776,7 @@ void IMEXModesCtrl::add_row(const std::string& name,
         r.reset_btn = new ScalableButton(r.panel, wxID_ANY, "dot", wxEmptyString,
                                          wxDefaultSize, wxDefaultPosition,
                                          wxBU_EXACTFIT | wxNO_BORDER, /*use_default_disabled_bitmap=*/true, kImexIconPx);
-        r.reset_btn->SetToolTip(_L("Discard in-session edits to this mode (snap back to saved value)"));
+        set_illustrated_tooltip(r.reset_btn, _L("Discard in-session edits to this mode (snap back to saved value)"));
         r.reset_btn->Bind(wxEVT_BUTTON, [this, this_panel_for_reset](wxCommandEvent&) {
             reset_row_to_parent(this_panel_for_reset);
         });

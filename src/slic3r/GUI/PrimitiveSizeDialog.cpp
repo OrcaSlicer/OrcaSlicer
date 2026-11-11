@@ -1,4 +1,5 @@
 #include "PrimitiveSizeDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "Field.hpp"
 #include "GUI_App.hpp"
@@ -103,8 +104,8 @@ bool PrimitiveSizeDialog::dont_show_again() const { return m_dont_show->GetValue
 {
     auto checkbox = new ::CheckBox(this);
     auto text     = new wxStaticText(this, wxID_ANY, label);
-    checkbox->SetToolTip(tooltip);
-    text->SetToolTip(tooltip);
+    set_illustrated_tooltip(checkbox, tooltip);
+    set_illustrated_tooltip(text, tooltip);
     auto toggle = [checkbox](wxMouseEvent&) { checkbox->SetValue(!checkbox->GetValue()); };
     text->Bind(wxEVT_LEFT_DOWN, toggle);
     text->Bind(wxEVT_LEFT_DCLICK, toggle);

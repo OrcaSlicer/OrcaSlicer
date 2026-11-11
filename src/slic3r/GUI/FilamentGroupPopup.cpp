@@ -1,4 +1,5 @@
 #include "FilamentGroupPopup.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "wx/dcgraph.h"
@@ -205,13 +206,13 @@ FilamentGroupPopup::FilamentGroupPopup(wxWindow *parent) : PopupWindow(parent, w
         // ORCA Unified hyperlinks
 
         auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
-        wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + "https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9");
+        set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + "https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9");
         wiki_btn->SetStyle(ButtonStyle::Confirm, ::ButtonType::Circle);
         wiki_btn->SetCanFocus(false);
         wiki_btn->Bind(wxEVT_LEFT_DOWN, ([](auto& e) {open_filament_group_wiki();}));
 
         auto video_btn  = new Button(this, "", "toolbar_video_guide", 0, 15);
-        video_btn->SetToolTip(_L("Video Guide"));
+        set_illustrated_tooltip(video_btn, _L("Video Guide"));
         video_btn->SetStyle(ButtonStyle::Confirm, ::ButtonType::Circle);
         video_btn->SetCanFocus(false);
         video_btn->Bind(wxEVT_LEFT_DOWN, ([](auto& e) {

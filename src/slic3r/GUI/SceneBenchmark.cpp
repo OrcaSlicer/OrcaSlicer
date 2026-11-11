@@ -1,4 +1,5 @@
 #include "SceneBenchmark.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "3DScene.hpp"
 #include "BuildCommit.hpp"
@@ -449,7 +450,7 @@ void SceneBenchmarkDialog::show_report(const wxString& error)
 
     auto* buttons = new DialogButtons(this, text.empty() ? std::vector<wxString>{"OK"} : std::vector<wxString>{"Copy", "OK"});
     if (Button* copy = buttons->GetButtonFromID(wxID_COPY)) {
-        copy->SetToolTip(_L("Copy the results to the clipboard"));
+        set_illustrated_tooltip(copy, _L("Copy the results to the clipboard"));
         copy->Bind(wxEVT_BUTTON, [text](wxCommandEvent&) {
             wxClipboardLocker lock;
             if (!lock)
