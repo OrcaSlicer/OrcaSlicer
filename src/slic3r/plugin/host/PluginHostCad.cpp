@@ -1,5 +1,7 @@
 #include "PluginHostCad.hpp"
 #include "CadFaceSelectionState.hpp"
+#include "slic3r/GUI/CAD/CadFaceSelection.hpp"
+#include "slic3r/GUI/CAD/CadShapeSelection.hpp"
 #include "slic3r/plugin/PluginAuditManager.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp"
