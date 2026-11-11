@@ -526,6 +526,32 @@ jobs:
         # the checkout cpack re-installs from when it builds the NSIS installer.
         run: scripts\build_preset_cache.bat --prune-source "%BUILD_DIR%" "resources\profiles" "%BUILD_DIR%\OrcaSlicer\resources\profiles"
 
+      # build_all.yml starts the Windows builds without waiting for its build script tests, so this
+      # build fails here, before anything is signed, uploaded or deployed, unless that job passed.
+      # The tests take a few minutes and the build far longer, so this rarely waits. The run's jobs
+      # are the caller's.
+      - name: Wait for the build script tests
+        if: runner.os == 'Windows'
+        timeout-minutes: 30
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          failures=0
+          while true; do
+            if ! job=$(gh api --paginate "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs?per_page=100" \
+                --jq '.jobs[] | select(.name == "Windows build script tests") | "\(.status) \(.conclusion)"'); then
+              failures=$((failures + 1))
+              if [ "$failures" -ge 5 ]; then echo "Could not list the jobs of this run."; exit 1; fi
+            elif [ -z "$job" ]; then
+              echo 'This run has no "Windows build script tests" job.'; exit 1
+            elif [ "${job%% *}" = completed ]; then
+              if [ "${job#* }" != success ]; then echo "The build script tests ended with '${job#* }'."; exit 1; fi
+              break
+            fi
+            sleep 15
+          done
+
       # Taken after the build because the token lasts an hour, which covers signing, the installer
       # build and the checks.
       - name: Authenticate to Google Cloud for code signing
