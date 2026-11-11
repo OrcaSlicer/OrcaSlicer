@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 
+#include <crt_externs.h>
 #include <signal.h>
 #include <spawn.h>
 #include <sys/types.h>
@@ -48,7 +49,7 @@ bool spawn_and_wait(const std::vector<std::string>& argv, int timeout_seconds, i
     cargv.push_back(nullptr);
 
     pid_t pid = 0;
-    const int rc = ::posix_spawn(&pid, cargv.front(), nullptr, nullptr, cargv.data(), environ);
+    const int rc = ::posix_spawn(&pid, cargv.front(), nullptr, nullptr, cargv.data(), *_NSGetEnviron());
     if (rc != 0) {
         error = std::string("Could not run ") + argv.front() + ": " + std::strerror(rc) + ".";
         return false;
@@ -99,7 +100,7 @@ bool spawn_unwaited(const std::vector<std::string>& argv, std::string& error)
     ::posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSID);
 
     pid_t pid = 0;
-    const int rc = ::posix_spawn(&pid, cargv.front(), nullptr, &attr, cargv.data(), environ);
+    const int rc = ::posix_spawn(&pid, cargv.front(), nullptr, &attr, cargv.data(), *_NSGetEnviron());
     ::posix_spawnattr_destroy(&attr);
     if (rc != 0) {
         error = std::string("The new version could not be started: ") + std::strerror(rc) + ".";

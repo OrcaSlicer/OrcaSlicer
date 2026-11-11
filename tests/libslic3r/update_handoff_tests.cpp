@@ -130,7 +130,9 @@ TEST_CASE("A partial download of another build is dropped", "[UpdateHandoff]")
     CHECK_FALSE(prep.complete);
     CHECK(contains(prep.dropped, part_path(dir.path())));
     CHECK_FALSE(fs::exists(part_path(dir.path())));
-    CHECK_FALSE(fs::exists(marker_path(dir.path())));
+    // The marker is rewritten for the new build before it downloads, so what must be
+    // gone is the other build's digest, not the file.
+    CHECK(read_text(marker_path(dir.path())) == kDigest);
 }
 
 TEST_CASE("A partial download without a recorded build is dropped", "[UpdateHandoff]")

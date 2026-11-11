@@ -274,6 +274,10 @@ if (SLIC3R_GUI)
     endif ()
 
     target_link_libraries(OrcaSlicerUpdater libslic3r cereal::cereal ${wxWidgets_LIBRARIES} libcurl OpenSSL::SSL OpenSSL::Crypto)
+    if (WIN32)
+        # libcurl's peer.c calls if_nametoindex, which lives in iphlpapi.
+        target_link_libraries(OrcaSlicerUpdater iphlpapi)
+    endif ()
     if (TARGET Threads::Threads)
         target_link_libraries(OrcaSlicerUpdater Threads::Threads)
     endif ()
