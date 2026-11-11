@@ -3062,7 +3062,9 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
     if (mode == CutMode::cutPlanar) {
         ImGui::SameLine();
         m_imgui->disabled_begin(is_cut_plane_init && !has_connectors && !m_part_selection.valid());
-        if (m_imgui->button(_L("Reset"), _L("Reset cutting plane and remove connectors"))) {
+        if (m_imgui->button(_L("Reset"),
+                           // TRN: Part assignments are the upper/lower cut groups changed by right-clicking parts.
+                           _L("Reset the cutting plane, remove connectors, and clear part assignments."))) {
             // Part selection is not serialized in undo snapshots.
             std::optional<Plater::TakeSnapshot> snapshot;
             if (!is_cut_plane_init || has_connectors)
