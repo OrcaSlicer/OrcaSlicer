@@ -1122,9 +1122,10 @@ void PrintConfigDef::init_common_params()
     def           = this->add("elefant_foot_layers_density", coPercent);
     def->label    = L("Elephant foot layers density");
     def->category = L("Quality");
-    def->tooltip  = L("Density of internal solid infill for Elephant foot layers compensation.\n"
-                      "The initial value for the second layer is set.\n"
-                      "Subsequent layers become linearly denser by the height specified in elefant_foot_compensation_layers.");
+    def->tooltip  = L("Prints the solid infill of the layers just above the first one sparser, so the weight of the layers "
+                      "above squeezes less material out into an elephant foot. This is the density of the second layer; "
+                      "each layer above it is denser than the last, over as many layers as Elephant foot compensation "
+                      "layers sets.");
     def->sidetext = "%";
     def->min      = 50;
     def->max      = 100;
@@ -2195,9 +2196,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("brim_ears_detection_length", coFloat);
     def->label = L("Brim ear detection radius");
     def->category = L("Support");
-    def->tooltip = L("The geometry will be decimated before detecting sharp angles. "
-                     "This parameter indicates the minimum length of the deviation for the decimation.\n"
-                     "0 to deactivate.");
+    def->tooltip = L("Before the outline is searched for sharp corners, it is simplified: details that stray from it by less "
+                     "than this, such as a corner rounded off by short facets, are smoothed away, so the corner they round "
+                     "off still gets an ear. 0 searches the outline as it is.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4836,7 +4837,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("infill_lock_depth", coFloat);
     def->label    = L("Infill lock depth");
     def->category = L("Strength");
-    def->tooltip  = L("The parameter sets the overlapping depth between the interior and skin.");
+    def->tooltip  = L("For Locked Zag infill: how far the skin and the skeleton reach into each other where they meet, which "
+                      "locks the two together. Deeper locks them more firmly and uses more filament.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 100;
@@ -4868,8 +4870,9 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("symmetric_infill_y_axis", coBool);
     def->label    = L("Symmetric infill Y axis");
     def->category = L("Strength");
-    def->tooltip  = L("If the model has two parts that are symmetric about the Y axis,"
-                      " and you want these parts to have symmetric textures, please click this option on one of the parts.");
+    def->tooltip  = L("Mirrors the infill of this object across its center line along the Y axis. Turn it on for one of two "
+                      "parts that mirror each other, so their infill mirrors too. Only Zig Zag, Cross Zag and Locked Zag "
+                      "infill are affected.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5120,9 +5123,9 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("mmu_segmented_region_interlocking_depth", coFloat);
     def->label    = L("Interlocking depth of a segmented region");
-    def->tooltip  = L("Interlocking depth of a segmented region. On every other layer, the segmented region "
-                    "is limited to this depth. It will be ignored if \"interlocking_beam\" is enabled. "
-                    "Zero disables this feature.");
+    def->tooltip  = L("On every other layer, a painted color reaches only this deep into the part, so the colors of "
+                      "neighboring layers interlock like a comb and hold together better. Ignored when beam interlocking "
+                      "is on. 0 turns it off.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation 
     def->min      = 0;
     def->category = L("Advanced");
@@ -5929,8 +5932,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("make_overhang_printable_hole_size", coFloat);
     def->label = L("Make overhangs printable - Hole area");
     def->category = L("Quality");
-    def->tooltip = L("Maximum area of a hole in the base of the model before it's filled by conical material. "
-                     "A value of 0 will fill all the holes in the model base.");
+    def->tooltip = L("Make overhangs printable fills a recess in the underside of the model, such as a blind hole open to "
+                     "the bed, with a cone from its roof down. A recess smaller in area than this is kept open instead. "
+                     "0 fills every recess.");
     def->sidetext = L(u8"mm²");	// square millimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->min = 0.;
@@ -8313,8 +8317,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("enable_mixed_color_sublayer", coBool);
     def->label = L("Mixed color sublayer");
-    def->tooltip = L("Enable mixed color sublayer splitting. When enabled, layers containing mixed color "
-                     "filaments will be split into sub-layers to achieve color mixing effects.");
+    def->tooltip = L("Splits each layer printed in a mixed filament into thinner sub-layers, one for each filament it "
+                     "mixes, so the colors blend more finely. When off, whole layers alternate between the filaments, and a "
+                     "gradient mixed filament is printed without its gradient.");
     def->category = L("Quality");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));

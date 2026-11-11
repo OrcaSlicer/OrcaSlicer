@@ -178,6 +178,14 @@ void add_process_strength_setting_tips(SettingTips& tips)
                                                                 {"ensure_critical_only", "ensure_vertical_shell_ensure_critical_only.png"},
                                                                 {"ensure_moderate", "ensure_vertical_shell_ensure_moderate.png"},
                                                                 {"ensure_all", "ensure_vertical_shell_ensure_all.png"}});
+
+    // The settings below are drawn by scripts/gizmo_tips/settings_process_extra.py.
+    tips["infill_anchor"].media = side_by_side({{"infill_anchor_0.png", value("0")}, {"infill_anchor_400.png", value("400%")}});
+    tips["infill_lock_depth"].media = side_by_side({{"infill_lock_depth_0.png", mm("0")}, {"infill_lock_depth_2.png", mm("2")}});
+    tips["solid_infill_rotate_template"].media = side_by_side(
+        {{"solid_infill_rotate_template_none.png", _L("Off")}, {"solid_infill_rotate_template_template.png", value("0,30,60,90,120,150")}});
+    tips["symmetric_infill_y_axis"].media = side_by_side(
+        {{"symmetric_infill_y_axis_0.png", _L("Off")}, {"symmetric_infill_y_axis_1.png", _L("On")}});
 }
 
 } // namespace Slic3r::GUI

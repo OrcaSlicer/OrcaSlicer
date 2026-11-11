@@ -148,6 +148,31 @@ void add_process_quality_setting_tips(SettingTips &tips)
     // Overhangs.
     tips["detect_overhang_wall"].media          = feature("overhang");
     tips["make_overhang_printable_angle"].media = low_high("overhang_printable_angle_low.png", "overhang_printable_angle_high.png");
+
+    // The settings below are drawn by scripts/gizmo_tips/settings_process_extra.py.
+    tips["enable_mixed_color_sublayer"].media = off_on("mixed_color_sublayer_off.png", "mixed_color_sublayer_on.png");
+    tips["min_width_top_surface"].media = two("one_wall_threshold_0.png", wxString::FromUTF8("0 ") + _L("mm"),
+                                              "one_wall_threshold_5.png", wxString::FromUTF8("5 ") + _L("mm"));
+    tips["precise_outer_wall"].media    = off_on("precise_outer_wall_0.png", "precise_outer_wall_1.png");
+    tips["precise_z_height"].media      = off_on("precise_z_height_0.png", "precise_z_height_1.png");
+    tips["slice_closing_radius"].media  = two("slice_closing_radius_0_049.png", wxString::FromUTF8("0.049 ") + _L("mm"),
+                                              "slice_closing_radius_0_2.png", wxString::FromUTF8("0.2 ") + _L("mm"));
+    tips["elefant_foot_layers_density"].media = two("ef_density_100.png", wxString::FromUTF8("100%"), "ef_density_50.png",
+                                                    wxString::FromUTF8("50%"));
+    tips["ironing_angle_fixed"].media   = off_on("ironing_angle_fixed_0.png", "ironing_angle_fixed_1.png");
+    tips["wall_maximum_deviation"].media = low_high("resolution_fine.png", "resolution_coarse.png");
+    tips["zaa_dont_alternate_fill_direction"].media = off_on("zaa_dont_alternate_0.png", "zaa_dont_alternate_1.png");
+    tips["dont_filter_internal_bridges"].values = {{"disabled", {file("internal_bridge_filter_disabled.png"), {}}},
+                                                   {"limited", {file("internal_bridge_filter_limited.png"), {}}},
+                                                   {"nofilter", {file("internal_bridge_filter_nofilter.png"), {}}}};
+    tips["make_overhang_printable_hole_size"].media = two("overhang_hole_size_0.png", wxString::FromUTF8("0 ") + _L("mm²"),
+                                                          "overhang_hole_size_50.png", wxString::FromUTF8("50 ") + _L("mm²"));
+    // Overhang reversal: the loops printed the other way round on even layers, on a cap that flares out.
+    tips["overhang_reverse"].media               = off_on("overhang_reverse_off.png", "overhang_reverse_on.png");
+    tips["overhang_reverse_internal_only"].media = off_on("overhang_reverse_on.png", "overhang_reverse_internal.png");
+    tips["overhang_reverse_threshold"].media     = two("overhang_reverse_thr0.png", wxString::FromUTF8("0"),
+                                                       "overhang_reverse_on.png", wxString::FromUTF8("50%"));
+    tips["unsupported_wall_last"].media = off_on("unsupported_wall_last_0.gif", "unsupported_wall_last_1.gif");
 }
 
 } // namespace Slic3r::GUI

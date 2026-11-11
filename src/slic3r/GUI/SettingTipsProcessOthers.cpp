@@ -141,6 +141,24 @@ void add_process_others_setting_tips(SettingTips &tips)
     tips["fuzzy_skin_ripple_offset"].media = compare("fuzzy_ripple_offset_0", wxString("0%"), "fuzzy_ripple_offset_50", wxString("50%"));
     tips["fuzzy_skin_layers_between_ripple_offset"].media = compare("fuzzy_ripple_layers_1", wxString("1"), "fuzzy_ripple_layers_5", wxString("5"));
     tips["fuzzy_skin_first_layer"].media = off_on("fuzzy_first_layer_0", "fuzzy_first_layer_1");
+
+    // The settings below are drawn by scripts/gizmo_tips/settings_process_extra.py. The belt printers' and the
+    // painted colors' settings, and the temperatures at the tower, are diagrams; the rest is sliced.
+    tips["prime_volume"].media = compare("prime_volume_15", wxString::FromUTF8("15 ") + _L("mm³"), "prime_volume_90",
+                                         wxString::FromUTF8("90 ") + _L("mm³"));
+    tips["single_extruder_multi_material_priming"].media = off_on("multi_material_priming_0", "multi_material_priming_1");
+    tips["enable_tower_interface_features"].media = off_on("tower_interface_off", "tower_interface_on");
+    tips["enable_tower_interface_cooldown_during_tower"].media = off_on("tower_interface_on", "tower_interface_cooldown");
+    tips["belt_purge_tower_width"].media = compare("belt_purge_tower_narrow", _L("Narrow"), "belt_purge_tower_wide", _L("Wide"));
+    tips["mmu_segmented_region_max_width"].media = compare("mmu_region_width_0", wxString("0"), "mmu_region_width_3", _L("3 mm"));
+    tips["mmu_segmented_region_interlocking_depth"].media = off_on("mmu_region_interlock_0", "mmu_region_interlock_on");
+    tips["brim_ears_detection_length"].media = compare("brim_ears_detection_0", wxString("0"), "brim_ears_detection_1_5", _L("1.5 mm"));
+    tips["leading_brim_length"].media = compare("belt_brim_plain", _L("0 mm"), "belt_brim_leading", _L("8 mm"));
+    tips["extra_brim_width"].media = compare("belt_brim_plain", _L("0 mm"), "belt_brim_extra", _L("4 mm"));
+    tips["exclude_object"].media = one("exclude_object_tolerance_0");
+    tips["exclude_object_tolerance"].media = compare("exclude_object_tolerance_0", _L("0 mm"), "exclude_object_tolerance_1", _L("1 mm"));
+    tips["reduce_infill_retraction"].media = off_on("reduce_infill_retraction_0", "reduce_infill_retraction_1");
+    tips["timelapse_type"].values = per_value({{"0", "timelapse_traditional"}, {"1", "timelapse_smooth"}});
 }
 
 } // namespace Slic3r::GUI

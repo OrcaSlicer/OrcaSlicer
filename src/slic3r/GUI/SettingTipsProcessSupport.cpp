@@ -85,6 +85,18 @@ void add_process_support_setting_tips(SettingTips &tips)
     tips["tree_support_branch_angle_organic"].media    = compare("branch_angle_organic", "20", raw("20°"), "55", raw("55°"));
     tips["tree_support_angle_slow"].media              = compare("angle_slow", "10", raw("10°"), "35", raw("35°"));
     tips["tree_support_brim_width"].media              = compare("tree_brim", "0", mm("0"), "5", mm("5"));
+
+    // The settings below are drawn by scripts/gizmo_tips/settings_process_extra.py. The branch angle of the
+    // non-organic tree styles means what the organic one's does, and shows with the organic pictures: on the
+    // test models those styles' branches come out the same at any angle.
+    tips["tree_support_branch_angle"].media = tips["tree_support_branch_angle_organic"].media;
+    tips["tree_support_auto_brim"].media = {pic("tree_support_auto_brim_0.png", _L("Off")), pic("tree_support_auto_brim_1.png", _L("On"))};
+    tips["support_critical_regions_only"].media = {pic("support_critical_only_0.png", _L("Off")), pic("support_critical_only_1.png", _L("On"))};
+    tips["max_bridge_length"].media = {pic("max_bridge_length_0.png", mm("0")), pic("max_bridge_length_10.png", mm("10"))};
+    tips["independent_support_layer_height"].media = {pic("independent_support_layers_0.png", _L("Off")),
+                                                      pic("independent_support_layers_1.png", _L("On"))};
+    tips["support_interface_loop_pattern"].media = {pic("support_interface_loop_0.png", _L("Off")), pic("support_interface_loop_1.png", _L("On"))};
+    tips["support_ironing_flow"].media = {pic("support_ironing_1.png")};
 }
 
 } // namespace Slic3r::GUI
