@@ -27,6 +27,12 @@ bool PythonRunScope::owns_ui() const { return is_script_identity(m_identity); }
 
 std::string PythonRunScope::ui_owner() const { return owns_ui() ? "script/" + std::to_string(m_id) : m_identity; }
 
+void PythonRunScope::allow_folder_reads() const
+{
+    if (is_script_identity(m_identity) && !m_file.empty())
+        PluginAuditManager::instance().add_scoped_allowed_root(m_file.parent_path(), /*allow_write=*/false);
+}
+
 nlohmann::json PythonRunScope::call_tool(const std::string& tool, const nlohmann::json& args)
 {
     ToolBridge* bridge = nullptr;

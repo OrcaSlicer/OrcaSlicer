@@ -45,6 +45,9 @@ public:
     // a plugin's run_script leaves them to the plugin, which closes them when it unloads.
     bool                           owns_ui() const;
     std::string                    ui_owner() const;
+    // Lets the calling thread's audit scope read the folder of a script's file, which its imports come from, as a
+    // plugin reads its own folder. Called inside the run's audit scope on each thread that works for it.
+    void                           allow_folder_reads() const;
 
     // orca.host.tools from any thread of the run, called without the GIL. Throws std::runtime_error once the run
     // has ended; a bridge's ToolCallError passes through.

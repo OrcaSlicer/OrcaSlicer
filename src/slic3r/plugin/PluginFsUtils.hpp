@@ -38,11 +38,6 @@ struct PluginPermissions
     // the cloud refresh token), which stay blocked. Stored as a JSON boolean; a missing or
     // non-boolean value reads as false. This is a Python audit-hook policy, not an OS sandbox.
     bool full_access = false;
-    // The plugin may call OrcaSlicer's MCP tools through orca.host.tools, with the app's authority: what
-    // an agent can do, GUI and dialogs included. Asked on its own at load (request_tools_permission).
-    bool tools = false;
-    // The operations (orca.register_operation names) the person let the plugin offer to agents and scripts.
-    std::vector<std::string> operations;
 };
 
 struct PluginInstallState {

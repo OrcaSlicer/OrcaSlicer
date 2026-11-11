@@ -7,10 +7,10 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 // Default port of the MCP endpoint; 13618 is the OAuth callback server.
 inline constexpr int kDefaultPort = 13619;
 
-// The app config key of the Python scripts setting: one switch, off unless true, that lets a person run
-// .py scripts (the Run Script dialog, --mcp-run) and agents send run_script. Only the window
-// show_python_scripts_dialog() opens writes it; no tool does.
-inline constexpr char kPythonScriptsKey[] = "mcp_python_scripts";
+// The app config key of the unrestricted Python scripts setting: one switch, off unless true. While it is on,
+// the scripts a person runs (the Run Script panel, --mcp-run) and agents send (run_script) skip the plugin
+// permission checks. Only the window show_python_scripts_dialog() opens writes it; no tool does.
+inline constexpr char kPythonUnrestrictedKey[] = "mcp_python_unrestricted";
 
 // MCP settings from the command line. Paths are absolute: OrcaSlicer.cpp resolves them
 // against the original working directory before the GUI changes it.

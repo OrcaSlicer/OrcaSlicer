@@ -128,8 +128,8 @@ void register_tools(py::module_& host)
         "reply budget returns {status: \"running\" | \"blocked_by_dialog\", job}, as it does for an agent; follow it "
         "with call(\"wait\", {\"for\": \"job\", \"job\": ...}). An error result raises ToolError, whose details "
         "hold the result's data. A person's or an agent's script calls tools from its own code and from the threads and "
-        "pool tasks it starts, while its run lasts, but not from its window callbacks; a plugin needs the tools "
-        "permission and calls from a Script worker, never the UI thread.");
+        "pool tasks it starts, while its run lasts, but not from its window callbacks; a plugin calls from a "
+        "Script worker, never the UI thread.");
     tools.def(
         "run_replay",
         [tools](const py::object& replay, const py::object& vars) mutable {

@@ -13,7 +13,7 @@ namespace pybind11 { class object; }
 namespace Slic3r {
 
 // An operation a plugin offers to agents and scripts (D4): declared with orca.register_operation() while
-// the plugin loads, offered only once the person has granted it, and gone when the plugin unloads. Agents
+// the plugin loads, offered once the plugin has loaded, and gone when the plugin unloads. Agents
 // reach it through search_tools and call_tool, scripts through orca.host.tools.call, as
 // "plugin.<plugin key>.<name>"; it is never in tools/list.
 struct PluginOperation
@@ -36,8 +36,8 @@ class PluginOperations
 public:
     static PluginOperations& instance();
 
-    // Keeps the operations a loading plugin declared and the person granted, replacing any it kept from
-    // an earlier attempt; activate() offers them once the plugin has loaded.
+    // Keeps the operations a loading plugin declared, replacing any it kept from an earlier attempt;
+    // activate() offers them once the plugin has loaded.
     void stage(const std::string& plugin_key, std::vector<PluginOperation> operations);
     void activate(const std::string& plugin_key);
     // Drops what a load that failed or was cancelled staged; operations already offered stay.

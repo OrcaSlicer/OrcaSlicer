@@ -256,6 +256,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
 #include "slic3r/GUI/Mcp/McpOptions.hpp"
+#include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
 #include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/plugin/PluginOperations.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
@@ -3104,6 +3105,7 @@ void GUI_App::init_plugin_gui_wiring()
 
     plugin_mgr.subscribe_on_unload_callback(PluginHostUi::close_windows_for_plugin);
     Mcp::install_plugin_tool_caller();
+    Mcp::apply_python_scripts_setting(*app_config);
     // A plugin loaded again may make tool calls again.
     plugin_mgr.subscribe_on_load_callback([](const std::string& plugin_key) {
         if (wxTheApp != nullptr)

@@ -1731,7 +1731,7 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_python(wxString title, wxString t
 
     auto state      = new ::Label(m_parent, wxEmptyString);
     auto show_state = [this, state] {
-        state->SetLabel(Mcp::python_scripts_allowed(*app_config) ? _L("Allowed") : _L("Not allowed"));
+        state->SetLabel(Mcp::python_scripts_unrestricted(*app_config) ? _L("Unrestricted") : _L("Restricted"));
     };
     show_state();
 
@@ -2244,8 +2244,7 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_mcp_connect);
 
     auto item_mcp_python = create_item_mcp_python(_L("Python scripts"),
-        _L("Whether you can run Python scripts and connected agents can send them. Python code runs with OrcaSlicer's full "
-           "access to your computer."));
+        _L("Whether Python scripts are subject to the same permission checks as plugins, or bypass them."));
     g_sizer->Add(item_mcp_python);
     update_mcp_status();
 

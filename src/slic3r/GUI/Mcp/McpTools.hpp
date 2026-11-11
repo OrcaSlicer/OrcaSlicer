@@ -185,7 +185,7 @@ nlohmann::json rank_python_api(const nlohmann::json& reference, const std::strin
 // Takes the GIL, as python_api_reference() does.
 bool python_has_numpy();
 
-// The Run Script panel's session as the calling job, a person's run_script job: refused while Python scripts are off.
+// The Run Script panel's session as the calling job, a person's run_script job.
 // The job is idle for `wait {for: "idle"}`, and owns what the session's tool calls leave behind (auto-answer rules, a
 // recording, a held press) until the session ends, with its rules paused between works and its presses released as each
 // work ends. The calls hang under a lineage node of the job, which a stop cancels, inline calls included, and which the

@@ -64,8 +64,6 @@ public:
     // The end of GUI_App::recreate_GUI(): the pane comes back, with an empty console, if it was wanted, once the old main
     // window has been deleted.
     void main_window_rebuilt();
-    // The Python scripts setting changed: the page is told, and turning it off ends the session.
-    void python_setting_changed();
     // The toggle's key changed (MainFrame::update_shortcut_labels()).
     void shortcuts_changed();
 

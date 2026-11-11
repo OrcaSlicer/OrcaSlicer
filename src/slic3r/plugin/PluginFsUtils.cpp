@@ -869,7 +869,6 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
             read_string_list("network_socket", parsed.permissions.network_socket);
             read_string_list("process", parsed.permissions.process);
             read_string_list("events", parsed.permissions.events);
-            read_string_list("operations", parsed.permissions.operations);
 
             // Threading is a boolean grant. Newer sidecars store the boolean directly; the older
             // array form stored an empty list when denied and a nonempty one when granted. By
@@ -890,8 +889,6 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
             // key, a "true" string, a number or any other type leaves it off.
             if (permissions.contains("full_access") && permissions["full_access"].is_boolean())
                 parsed.permissions.full_access = permissions["full_access"].get<bool>();
-            if (permissions.contains("tools") && permissions["tools"].is_boolean())
-                parsed.permissions.tools = permissions["tools"].get<bool>();
         }
 
         if (state.contains("enabled") && state["enabled"].is_boolean())
@@ -1047,8 +1044,6 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
         {"threading", state.permissions.threading},
         {"events", state.permissions.events},
         {"full_access", state.permissions.full_access},
-        {"tools", state.permissions.tools},
-        {"operations", state.permissions.operations},
     };
 
     nlohmann::json capabilities = nlohmann::json::array();

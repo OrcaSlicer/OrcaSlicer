@@ -2967,7 +2967,8 @@ plugin. A person runs one in the Run Script panel or with `--mcp-run file.py`; a
 `run_script {code, args, timeout_s, filename}`; a plugin's code may call `run_script` too. A script that runs
 under `python file.py` runs the same way here, and code written for a plugin's `execute()` (windows, progress,
 presets, storage) runs from a script unchanged. A script is not a plugin: it gets no permission prompt and no
-grants, is never in the Plugins list, and ends when its work ends, leaving nothing loaded.
+grants, is never in the Plugins list, and ends when its work ends, leaving nothing loaded. It always runs; one
+setting decides whether the plugin permission checks hold it (The setting, below).
 
 **Entry contract.** `run_python_code()` (`plugin/PythonScriptRunner.cpp`) runs the code on the calling thread, the
 MCP job that runs `run_script`, holding an interpreter lease and the GIL, as a session with one file work (Run
@@ -3099,26 +3100,36 @@ code. The install isn't covered by the watcher; uv's 120 s timeout bounds it.
 
 **Identity.** A person's script runs under the audit identity `script`, an agent's under `mcp`
 (`kScriptIdentityPerson`, `kScriptIdentityAgent`); `McpService::person_run()` tells them apart by the run's
-lineage, since the panel's and `--mcp-run`'s jobs are marked as a person's (`as_person()`). Every audited
-access is allowed to these identities and logged under them (reads at debug level), apart from the categorical
-denies every plugin has (`is_denied_path()`): nothing contains the code, and the setting is the boundary. The
-threads, pool tasks and window callbacks of a run carry its identity. A run owns what its calls leave behind, as a
-replay does (`begin_run_scope()`): auto-answer rules, a recording and a held press end with it. The
-identities are reserved: a plugin whose key equals one is refused before any of its code runs. A plugin's
-`run_script` runs under the plugin's own identity and grants instead, with the same main-program environment, but
-its windows, callbacks and storage stay the plugin's.
+lineage, since the panel's and `--mcp-run`'s jobs are marked as a person's (`as_person()`). The plugin audit
+([plugin-permissions.md](plugin-permissions.md)) judges a script under its identity as it judges a plugin, with
+one difference: a script has no install state to hold a grant, so it is never asked, and what the implicit
+rules don't allow is denied with a `PermissionError` that names the setting. The threads, pool tasks and window
+callbacks of a run carry its identity. A run owns what its calls leave behind, as a replay does
+(`begin_run_scope()`): auto-answer rules, a recording and a held press end with it. The identities are
+reserved: a plugin whose key equals one is refused before any of its code runs, so a plugin is never judged as
+a script. A plugin's `run_script` runs under the plugin's own identity and grants instead, with the same
+main-program environment, but its windows, callbacks and storage stay the plugin's.
 
-**The setting.** One switch, `mcp_python_scripts`, off by default, lets both a person's scripts and an agent's
-`run_script` run; with it off they are refused (a plugin's `run_script` needs none). It is changed only in
-`PythonScriptsDialog`, opened from Preferences › AI features › Python scripts, which is named
-`kHiddenFromAutomation`: the UI tools never see it and `ModalTracker` leaves it off the stack, so no dialog tool or
-auto-answer rule reaches it. No tool writes the key, and `get_app_state.python.scripts_allowed` reads it, so an
-agent learns that `run_script` is off before it plans a run rather than from the refusal.
+**The setting.** One switch, `mcp_python_unrestricted`, off by default, decides how a person's scripts and an
+agent's `run_script` are judged (a plugin's `run_script` is the plugin's and ignores it). Off, a script is
+restricted: its Python code reads and writes OrcaSlicer's data folder, reads the resources folder, the standard
+library and, in a file run, the folder of its file (`PythonRunScope::allow_folder_reads()`, a scoped root on
+each of the run's threads, so its imports work), and is denied every other audited access: files elsewhere,
+programs, threads and the network. On, every audited access is allowed to it
+(`PluginAuditManager::set_scripts_unrestricted()`, which `apply_python_scripts_setting()` sets at startup and
+on a change, and the audit reads on whichever thread raises the event). The categorical denies every plugin has
+(`is_denied_path()`) hold either way. The audit is a Python audit hook, not a sandbox: the tools a script calls
+through `orca.host.tools` and the rest of `orca.host` run OrcaSlicer's own code and are not judged, so a
+restricted script still does what an agent's tool calls do. The setting is changed only in `PythonScriptsDialog`,
+opened from Preferences › AI features › Python scripts, which is named `kHiddenFromAutomation`: the UI tools never
+see it and `ModalTracker` leaves it off the stack, so no dialog tool or auto-answer rule reaches it. No tool
+writes the key, and `get_app_state.python.scripts_unrestricted` reads it, so an agent learns what its script may
+do before it plans a run rather than from a refusal.
 
 **The host surface and the bridge.** A script reaches the whole `orca.host`, as a plugin does: reads, `orca.host.ui`
 (message boxes, progress dialogs, HTML windows, dock panels, notifications), the staged preset update, bundle
 reload and the 3MF copy; nothing is plugin-only. `orca.host.plugin.storage()` is a script's own folder, the folder
-of its file; code sent as text has none. `orca.host.tools.call(name, args)` and `run_replay(replay, vars)`, whose
+of its file, which a restricted script reads but doesn't write; code sent as text has none. `orca.host.tools.call(name, args)` and `run_replay(replay, vars)`, whose
 replay is a dict or its JSON text (`plugin/host/PluginHostTools.cpp`), reach the tools from any thread of the run
 while it lasts, through the run's bridge: its calls are `ToolContext::call_child()` of the `run_script` job, so
 each has its tool's guards, admission and undo, and the GIL is released while it waits. At the end the bridge
@@ -3213,8 +3224,7 @@ presses are released as each work ends (`release_run_presses()`). Its `orca.host
 `LineageNode`, a running idle job under the session's job that only parents calls: a stop requests the stop for the
 node and cancels its operations (`cancel_operations_of()`), so every call in flight, inline ones such as `wait`
 included, returns at once while the session goes on, and the next work after a stop starts once that cancelling is done,
-under a renewed node. With Python
-scripts off the job refuses before it hosts anything, and turning them off ends the session.
+under a renewed node.
 
 **Stop.** Stop interrupts what runs now: the work, and the session's threads and tasks; while the session is idle a
 stop reaches its threads and tasks for five seconds (`kStopWindow`), and the session goes on. A stop moves the run
@@ -3223,7 +3233,7 @@ before it ran") while one submitted later does, and ends the session's message b
 thread (`PluginHostUi::end_run_modals()`), so code waiting in them can be interrupted, leaving its modeless windows,
 dock panels and callbacks open. A cancel or time-out of the job reaches everything until the end, and ends the
 session. A Run all still waiting for the old session to end is dropped by Stop and reported stopped. Restart session, Close script, New, Open, a recent or dropped script, Run all (which runs in a session of
-its own, as `python file.py` does), turning Python scripts off, quitting and a main-window rebuild end the session
+its own, as `python file.py` does), quitting and a main-window rebuild end the session
 and stop it, so it ends as a stopped run does: its threads get five seconds, its `atexit` functions run once, and
 what the teardown runs can be interrupted, as a stop asked once the session is ending reaches its teardown even when
 nothing else was live; then its windows close and its folder's helpers are evicted.
@@ -3251,8 +3261,8 @@ editor's share of the width, so a resized pane keeps its proportions; a drag sto
 console, and its arrow keys, Home and End and double-click (back to 60%) work as a window splitter's. The arrows on its
 grip hide a side, as does a drag that ends 48 px past a side's smallest width; a hidden side leaves a strip at its edge
 that brings it back at its width: the editor's shows each cell's bar, the console's a dot for a run going, output not
-seen, or a failed run. The console's side hides only while it shows the console, never the start page or the note that
-Python is off. The share and the hidden side are AppConfig `run_script` › `split` and `hidden_side`, saved when a drag
+seen, or a failed run. The console's side hides only while it shows the console, never the start page. The share and
+the hidden side are AppConfig `run_script` › `split` and `hidden_side`, saved when a drag
 ends rather than as it moves.
 
 **Out of the tools' reach.** Like Action Replay's page, the page navigates nowhere but its own loads: a dropped
@@ -3278,18 +3288,16 @@ that has the focus (the console prompt) takes the forwarded Undo, Redo and Selec
 
 ## Plugins and the tools
 
-A plugin's code calls the tools through `orca.host.tools` once it holds the `tools` permission
-(`PluginPermissions::tools`), which it declares with `request_permissions(tools=True)`. The person answers
-it at load in its own prompt (`request_tools_permission()`), apart from the plugin's other permissions,
-and a refusal leaves the plugin loading without it. With the permission a plugin can do what an agent can:
-work in the GUI, answer dialogs, replace the project, write presets and files; the prompt says so. A plugin's
-`run_script` is the plugin's own code: its identity and grants, its windows and storage, though it runs as a main
-program as any script does.
+A plugin's code calls the tools through `orca.host.tools`, with no permission of its own: any loaded plugin
+can do what an agent can, work in the GUI, answer dialogs, replace the project, write presets and files. The
+tools run OrcaSlicer's own code, which the plugin audit doesn't judge, so a plugin's grants bound its Python
+code and not what it asks the tools to do. A plugin's `run_script` is the plugin's own code: its identity and
+grants, its windows and storage, though it runs as a main program as any script does.
 
 A plugin's call waits for the UI thread, so it comes only from a thread nothing there waits for: a Script
 worker, a Python thread one starts (the thread shim carries the mark) or MCP's own thread running a plugin
 operation (`ScopedToolCallerThread`). A call from the UI thread, a slicing hook or another plugin callback
-is refused before anything waits. `install_plugin_tool_caller()` routes a permitted plugin's calls. The UI
+is refused before anything waits. `install_plugin_tool_caller()` routes a plugin's calls. The UI
 thread, which owns the service and runs the plugin's unload, admits each one: the plugin must still be
 loaded and its scope not ended, and the service is started in its catalog-only mode when MCP is off; the
 call then holds a lease the service's drain waits for. A caller that stops waiting because the app closes
@@ -3315,9 +3323,8 @@ since plugin code may write the log folder. A plugin's window callbacks run with
 so their calls are refused.
 
 **Plugin operations.** A plugin may offer operations to agents, replays and scripts with
-`orca.register_operation(name, description, schema, handler, changes)` while it loads. The person grants
-each one in its own prompt (`request_operation_permission()`, saved in `PluginPermissions::operations`);
-a refused one is not offered. Granted operations are staged and offered once the plugin's load has committed
+`orca.register_operation(name, description, schema, handler, changes)` while it loads, without a prompt.
+Its operations are staged and offered once the plugin's load has committed
 (`PluginOperations::activate()`, in one step under the lock an unload's withdrawal takes); any exit of a
 load that did not commit, an exception included, drops them, and they are withdrawn when the plugin
 unloads. An operation is reached as

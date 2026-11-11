@@ -112,7 +112,7 @@ json app_state(McpService& service)
                {"mcp", service.describe()},
                {"python",
                 {{"available", PythonInterpreter::instance().is_initialized()},
-                 {"scripts_allowed", python_scripts_allowed(*wxGetApp().app_config)}}},
+                 {"scripts_unrestricted", python_scripts_unrestricted(*wxGetApp().app_config)}}},
                {"jobs", service.jobs().list()}};
     if (json recording = service.recorder().state(); !recording.is_null())
         state["recording"] = std::move(recording);
@@ -249,8 +249,8 @@ void register_app_tools(McpService& service)
         "and display backend, whether it is ready, the main window, the displays (each one's work area x, y, width and "
         "height, as set_window takes positions, its scale and whether it is primary), the MCP endpoint (mcp), python "
         "(available: Python runs "
-        "in this build; scripts_allowed: run_script may run, which only a person turns on, in Preferences > AI features > "
-        "Python scripts) and design_tab (the Design tab and call_cad_tool are on; a person turns the CAD feature on in "
+        "in this build; scripts_unrestricted: a script's own file, network, process and thread access is not held to "
+        "OrcaSlicer's folders, which only a person turns on, in Preferences > AI features > Python scripts) and design_tab (the Design tab and call_cad_tool are on; a person turns the CAD feature on in "
         "Preferences and restarts). The project: current tab and mode, printer technology, name, path and unsaved changes, "
         "selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the "
         "instances [[object, instance]] they are selected in and, when parts rather than whole instances are selected, "

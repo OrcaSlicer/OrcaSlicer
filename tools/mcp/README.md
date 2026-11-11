@@ -7,7 +7,7 @@ Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the 
 
 | Command | What it does |
 |---|---|
-| `launch [--headless [kwin\|mutter] \| --xvfb] [--cad] [--python-scripts] [--printer "<model>@<nozzle>"] [--vendor V] [--filament F] [--datadir DIR] [--port N] [--bin PATH] [--print-config] [-- app args]` | Start OrcaSlicer with `--mcp`, wait until it is ready, print the session |
+| `launch [--headless [kwin\|mutter] \| --xvfb] [--cad] [--unrestricted-scripts] [--printer "<model>@<nozzle>"] [--vendor V] [--filament F] [--datadir DIR] [--port N] [--bin PATH] [--print-config] [-- app args]` | Start OrcaSlicer with `--mcp`, wait until it is ready, print the session |
 | `call TOOL ['<json args>'] [--wait]` | Call a tool and print its JSON result; `--wait` follows a returned job to its result |
 | `tools` | List the tools, with the first line of each description |
 | `widgets ['<json args>']` | Print the `list_widgets` tree |
@@ -20,8 +20,8 @@ an `OrcaSlicer.conf` that has a finished setup wizard and one printer and filame
 Carbon 0.4 by default), with update checks and daily tips turned off. `--cad` turns the Design
 (CAD) tab on, which `call_cad_tool` needs: it sets `enable_cad_feature` in a fresh datadir's
 `OrcaSlicer.conf`, and in a reused one too, since the app creates the Design tab only at startup, when that setting is on.
-`--python-scripts` allows Python scripts (`run_script`) the same way, by setting `mcp_python_scripts`,
-since no tool can turn them on. The token comes from
+`--unrestricted-scripts` lets Python scripts (`run_script`) run unrestricted the same way, by setting
+`mcp_python_unrestricted`, since no tool can turn that on. The token comes from
 `ORCA_MCP_TOKEN` or is generated, and it reaches the app through the environment, not the command
 line. On Linux, `launch` also sets `SSL_CERT_FILE`, so a fresh datadir doesn't prompt for a CA
 bundle. On Windows, it gives the instance its own WebView2 profile in the datadir, apart from the one
@@ -132,25 +132,24 @@ screenshots in the output directory. `tests/replay_basic.json` is the smallest s
 change a setting, slice and capture.
 
 `test_plugin_tools.py` checks a plugin's calls into the tools in the running app: it side-loads
-`tests/plugins/mcp_tools_fixture` into a fresh data folder and launches three times: over MCP without the
-plugin's tools permission (its calls are refused; its operation is still reached through `search_tools`
-and `call_tool`, and stays out of `tools/list`); over MCP with it granted (calls from its Script worker and a
-thread it starts reach the tools, an auto-answer rule it sets is the plugin's, `export_replay` is refused,
-nothing it calls is journaled, a script is refused its progress dialog handle's methods,
-`tests/plugins/mcp_tools_broken`, whose load fails, offers none of its granted operations, and unticking the
+`tests/plugins/mcp_tools_fixture` into a fresh data folder and launches twice: over MCP (its operation is
+reached through `search_tools` and `call_tool`, and stays out of `tools/list`, calls from its Script worker
+and a thread it starts reach the tools, an auto-answer rule it sets is the plugin's, `export_replay` is
+refused, nothing it calls is journaled, a script that finds its progress dialog handle can use it,
+`tests/plugins/mcp_tools_broken`, whose load fails, offers none of its operations, and unticking the
 plugin in the Plugins dialog withdraws its operation and ends its rule); and without MCP,
-where a `--mcp-run` runs the plugin's script and its rule is still the plugin's. Run it as `python tools/mcp/test_plugin_tools.py`. The permission's own
-prompt opens while the app starts, before MCP can answer it, so the first launch sets
-`ORCA_MCP_TOOLS_FIXTURE_ASK=0` and the plugin doesn't ask; the prompt is covered by the unit tests. The
+where a `--mcp-run` runs the plugin's script and its rule is still the plugin's. Run it as
+`python tools/mcp/test_plugin_tools.py`. The
 Run Script panel's `.py` files are not driven from here: the panel is hidden from automation and opens its
 files through a file picker, so how it reads and saves them is covered by the unit tests of
 `decode_python_source()` and `encode_python_source()`.
 
 A `.py` file given to `--mcp-run` runs as a Python script (`run_script`) instead, exiting 0 when it
-finishes and 1 when it raises, is cancelled or runs out of time; its traceback goes to the log. Python
-scripts run only once the setting allows them: set `"mcp_python_scripts": "true"` in the `app` section
-of the datadir's `OrcaSlicer.conf` before the launch, as `orca_mcp.py launch --python-scripts` does, since
-no tool can turn it on.
+finishes and 1 when it raises, is cancelled or runs out of time; its traceback goes to the log. A
+script's own file access is held to OrcaSlicer's folders, and it starts no programs or threads and reaches
+no network, until the setting lets scripts run unrestricted: set `"mcp_python_unrestricted": "true"` in the
+`app` section of the datadir's `OrcaSlicer.conf` before the launch, as
+`orca_mcp.py launch --unrestricted-scripts` does, since no tool can turn it on.
 
 A `.py` file runs as Python runs it (`python file.py`), with the whole plugin API: `__name__` is
 `"__main__"`, `__file__` and `sys.argv` name it, the modules beside it import (afresh each run, so an edit
@@ -422,7 +421,7 @@ that a window screenshot is the size the reply gives and skips positions, which 
 nor takes. On X11 it reads the X server's stacking order through libX11 to check that the main window,
 restored and raised while Preferences is open, stays under it.
 
-`test_action_replay_hidden.py`, on an instance launched with `--python-scripts`, opens Action Replay
+`test_action_replay_hidden.py` opens Action Replay
 and checks that the GUI tools don't see it: `list_widgets` lists no window for it, `run_javascript`
 without a target behaves as before it opened, and a key sent without a target never reaches it. It
 then shows the Run Script panel on

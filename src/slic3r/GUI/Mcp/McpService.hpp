@@ -292,9 +292,9 @@ private:
     std::set<std::string>  m_unloaded_plugins; // under m_rules_mutex
 };
 
-// Lets plugins call the tools through orca.host.tools: a call from a Script worker of a plugin holding the
-// tools permission runs as McpCore::call_plugin(), starting the service in its catalog-only mode when MCP
-// is off, and is logged. Called once by GUI_App as it sets up plugins.
+// Lets plugins call the tools through orca.host.tools: a call from a plugin's Script worker runs as
+// McpCore::call_plugin(), starting the service in its catalog-only mode when MCP is off, and is logged.
+// Called once by GUI_App as it sets up plugins.
 void install_plugin_tool_caller();
 
 }}} // namespace Slic3r::GUI::Mcp

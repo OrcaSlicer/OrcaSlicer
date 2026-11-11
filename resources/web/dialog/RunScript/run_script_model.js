@@ -360,8 +360,7 @@
   }
 
   // The side hidden as the panel draws it, from the side the layout hides. The console's side hides only while it shows
-  // the console (`consoleShown`): with no script open or Python off it holds the start page or the note about Python,
-  // which stay in sight.
+  // the console (`consoleShown`): with no script open it holds the start page, which stays in sight.
   function hiddenSide(hidden, consoleShown) { return hidden === "console" && !consoleShown ? "" : hidden; }
 
   // What the hidden console's strip shows after `event` (start, output, finished, failed), from what it shows now

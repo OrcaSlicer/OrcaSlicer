@@ -118,6 +118,20 @@ order:
 After a granted root event with a target, the hook records the operation frame so the
 nested events of the same operation are not asked again.
 
+### Python scripts
+
+A Python script run from the Run Script panel, with `--mcp-run` or by an agent's `run_script`
+is not a plugin, but its events are judged here under a reserved identity, `script` or `mcp`
+(see "Python scripts" in [mcp-server.md](mcp-server.md)). A script has no sidecar, so it holds
+no grant and is never asked: steps 1 to 3 apply to it, and any other event is denied with a
+`PermissionError` that names the setting below. A file run also reads the folder of its file,
+through a per-call scoped root.
+
+The "Run Python scripts unrestricted" setting (Preferences, AI features, Python scripts; off by
+default) lifts this for every script: while it is on, a script's event is allowed right after
+step 1, so only the denied paths stay blocked. No plugin key may equal a script identity; such a
+plugin is refused at load.
+
 ## Permission prompts
 
 ### Declared permissions during load
@@ -285,7 +299,9 @@ never treated as an opt-out.
 - **Host APIs are not audit events.** Calls into OrcaSlicer's Python host APIs, such as
   preset updates or UI actions, execute C++ host code and follow that API's contract. The
   audit hook judges the Python-level filesystem, network, process and thread events it is
-  given, not the host API's internal work.
+  given, not the host API's internal work. That includes `orca.host.tools`, through which any
+  plugin calls the MCP tools: it can write the files those tools write and answer dialogs,
+  permission prompts included.
 - **Denied paths are a direct-access block.** Path laundering through a symlink,
   hardlink, subprocess, or Windows 8.3 short name is outside the model. A tree grant is
   canonicalized for matching, but the deny check itself is base-name and component based.

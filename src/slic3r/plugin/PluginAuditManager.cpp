@@ -20,7 +20,6 @@
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
-#include <slic3r/GUI/format.hpp>
 #include <future>
 #include <mutex>
 #include <memory>
@@ -852,8 +851,6 @@ AuditDecision PluginAuditManager::check_path_access(const boost::filesystem::pat
                                    << " plugin=" << plugin_key << " reason=denied path keyword";
         return {false, "denied path keyword"};
     }
-    if (is_script_identity(plugin_key))
-        return {true, ""};
 
     namespace fs = boost::filesystem;
     fs::path candidate = path;
@@ -1533,7 +1530,8 @@ int report_denied(PluginAuditManager&            mgr,
     violation.reason     = decision.reason;
     mgr.report_violation(violation);
 
-    std::string message = "Plugin attempted audited operation \"" + event_name + "\" without permission";
+    std::string message = std::string(is_script_identity(violation.plugin_key) ? "Script" : "Plugin") +
+                          " attempted audited operation \"" + event_name + "\" without permission";
     if (!decision.reason.empty())
         message += ": " + decision.reason;
     if (!target.empty())
@@ -1865,19 +1863,10 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
         }
     }
 
-    // A person's or an agent's script is unrestricted: past the denied paths above, every audited access
-    // is allowed, and logged under its identity.
-    if (is_script_identity(mgr.current_plugin())) {
-        std::string listed;
-        for (const auto& target : targets)
-            listed += (listed.empty() ? "" : ", ") + target;
-        // Reads at debug: every import reads module files.
-        if (event_type == AuditEventCategory::FsRead)
-            BOOST_LOG_TRIVIAL(debug) << "[AUDIT] script=" << mgr.current_plugin() << " event=" << event_name << " targets=[" << listed << "]";
-        else
-            BOOST_LOG_TRIVIAL(info) << "[AUDIT] script=" << mgr.current_plugin() << " event=" << event_name << " targets=[" << listed << "]";
+    // While scripts run unrestricted, every access of a script past the denied paths above is allowed.
+    const bool script = is_script_identity(mgr.current_plugin());
+    if (script && mgr.scripts_unrestricted())
         return 0;
-    }
 
     // A nested event of an operation already granted, e.g. socket.connect inside an approved
     // urlopen(), is not asked again. urllib.Request is always judged on its own URL, so a
@@ -1899,6 +1888,13 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
         if (all_inside_allowed_root)
             return 0;
     }
+
+    // A script has no install state to hold a grant, so nothing is asked: the error says what lifts the restriction.
+    if (script)
+        return report_denied(mgr, event_name,
+                             {false, "Python scripts are restricted; a person can lift that in Preferences > AI features > "
+                                     "Python scripts"},
+                             targets.empty() ? std::string() : targets.front());
 
     PluginInstallState state;
     const bool have_install_state = PluginManager::instance().get_install_state(mgr.current_plugin(), state);
@@ -2082,120 +2078,6 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     if (persisted)
         post_permission_changed_notification(plugin_key);
     return persisted;
-}
-
-bool PluginAuditManager::request_tools_permission(const std::string& plugin_key)
-{
-    PluginDescriptor descriptor;
-    if (plugin_key.empty() || !PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) ||
-        descriptor.plugin_root.empty())
-        return false;
-    const boost::filesystem::path root(descriptor.plugin_root);
-    PluginInstallState            state;
-    InstallStateReadStatus        state_status;
-    {
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
-        state_status = read_install_state_status(root, state);
-    }
-    // Same sidecar rules as request_permissions: an unreadable sidecar is never replaced.
-    if (state_status == InstallStateReadStatus::Unreadable)
-        return false;
-    if (state.permissions.tools)
-        return true;
-
-    const auto build_message = [](const std::string& plugin_name) {
-        // TRN %1% is a plugin's name.
-        return GUI::format_wxstr(_L("%1% asks to use OrcaSlicer's tools, as an AI agent can. With this permission it can change "
-                                    "your project, presets and files, work in OrcaSlicer's window while you use it, and answer "
-                                    "its dialogs, other plugins' permission requests included.\n\nAllow it?"),
-                                 plugin_name);
-    };
-    bool granted = false;
-    if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
-        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(build_message(descriptor.name).utf8_string());
-    } else if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
-        return false;
-    } else if (wxIsMainThread()) {
-        granted = PluginAuditDetail::prompt_for_permission_message({build_message(descriptor.name), {}});
-    } else {
-        auto result = std::make_shared<std::promise<bool>>();
-        auto future = result->get_future();
-        GUI::wxGetApp().CallAfter([result, plugin_name = descriptor.name, build_message]() {
-            result->set_value(PluginAuditDetail::prompt_for_permission_message({build_message(plugin_name), {}}));
-        });
-        granted = future.get();
-    }
-    if (!granted)
-        return false;
-
-    // Re-read under the lock so the grant adds to whatever was saved while the dialog was open.
-    std::lock_guard<std::mutex>  state_lock(install_state_mutex());
-    PluginInstallState           latest_state;
-    const InstallStateReadStatus latest_status = read_install_state_status(root, latest_state);
-    if (latest_status == InstallStateReadStatus::Unreadable ||
-        (latest_status == InstallStateReadStatus::Absent && state_status == InstallStateReadStatus::Readable))
-        return false;
-    state = std::move(latest_state);
-    PluginAuditDetail::seed_install_metadata(descriptor, state);
-    state.permissions.tools = true;
-    return write_install_state(root, state);
-}
-
-bool PluginAuditManager::request_operation_permission(const std::string& plugin_key, const std::string& name,
-                                                      const std::string& description)
-{
-    PluginDescriptor descriptor;
-    if (plugin_key.empty() || !PluginManager::instance().try_get_plugin_descriptor(plugin_key, descriptor) ||
-        descriptor.plugin_root.empty())
-        return false;
-    const boost::filesystem::path root(descriptor.plugin_root);
-    PluginInstallState            state;
-    InstallStateReadStatus        state_status;
-    {
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
-        state_status = read_install_state_status(root, state);
-    }
-    if (state_status == InstallStateReadStatus::Unreadable)
-        return false;
-    const auto& granted_ops = state.permissions.operations;
-    if (std::find(granted_ops.begin(), granted_ops.end(), name) != granted_ops.end())
-        return true;
-
-    const auto build_message = [name, description](const std::string& plugin_name) {
-        // TRN %1% is a plugin's name, %2% the name of an operation it offers, %3% the plugin's description of it.
-        return GUI::format_wxstr(_L("%1% offers the operation \"%2%\" to AI agents and scripts:\n\n%3%\n\nLet them call it? "
-                                    "It runs the plugin's code with the plugin's permissions."),
-                                 plugin_name, name, description);
-    };
-    bool granted = false;
-    if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
-        granted = PluginAuditDetail::s_permission_message_prompt_for_testing(build_message(descriptor.name).utf8_string());
-    } else if (wxTheApp == nullptr || GUI::wxGetApp().is_closing()) {
-        return false;
-    } else if (wxIsMainThread()) {
-        granted = PluginAuditDetail::prompt_for_permission_message({build_message(descriptor.name), {}});
-    } else {
-        auto result = std::make_shared<std::promise<bool>>();
-        auto future = result->get_future();
-        GUI::wxGetApp().CallAfter([result, plugin_name = descriptor.name, build_message]() {
-            result->set_value(PluginAuditDetail::prompt_for_permission_message({build_message(plugin_name), {}}));
-        });
-        granted = future.get();
-    }
-    if (!granted)
-        return false;
-
-    std::lock_guard<std::mutex>  state_lock(install_state_mutex());
-    PluginInstallState           latest_state;
-    const InstallStateReadStatus latest_status = read_install_state_status(root, latest_state);
-    if (latest_status == InstallStateReadStatus::Unreadable ||
-        (latest_status == InstallStateReadStatus::Absent && state_status == InstallStateReadStatus::Readable))
-        return false;
-    state = std::move(latest_state);
-    PluginAuditDetail::seed_install_metadata(descriptor, state);
-    if (std::find(state.permissions.operations.begin(), state.permissions.operations.end(), name) == state.permissions.operations.end())
-        state.permissions.operations.push_back(name);
-    return write_install_state(root, state);
 }
 
 void PluginAuditManager::record_root_frame()

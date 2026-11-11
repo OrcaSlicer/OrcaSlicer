@@ -722,14 +722,14 @@ TEST_CASE("the preferences scope reads the keys it is given, as stored, and list
     CHECK_THROWS_AS(preferences_settings(config, json{{"keys", {"region"}}, {"compare", ":saved"}}), ToolFailure);
 }
 
-TEST_CASE("the Python scripts setting is off unless a person turned it on", "[Mcp]")
+TEST_CASE("Python scripts run restricted unless a person let them run unrestricted", "[Mcp]")
 {
     AppConfig config;
-    CHECK_FALSE(python_scripts_allowed(config));
-    config.set_bool(kPythonScriptsKey, true);
-    CHECK(python_scripts_allowed(config));
-    config.set_bool(kPythonScriptsKey, false);
-    CHECK_FALSE(python_scripts_allowed(config));
+    CHECK_FALSE(python_scripts_unrestricted(config));
+    config.set_bool(kPythonUnrestrictedKey, true);
+    CHECK(python_scripts_unrestricted(config));
+    config.set_bool(kPythonUnrestrictedKey, false);
+    CHECK_FALSE(python_scripts_unrestricted(config));
 }
 
 namespace {

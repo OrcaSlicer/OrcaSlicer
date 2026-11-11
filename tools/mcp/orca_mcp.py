@@ -10,7 +10,7 @@ Standard library only. Two halves:
     tools/mcp/orca_mcp.py launch --headless         # fresh datadir on a private headless desktop (Linux), wait until ready
     tools/mcp/orca_mcp.py launch --xvfb             # on a private Xvfb display, for a Linux machine without a desktop
     tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for the CAD tools (list_cad_tools, call_cad_tool)
-    tools/mcp/orca_mcp.py launch --python-scripts   # with Python scripts allowed, for run_script
+    tools/mcp/orca_mcp.py launch --unrestricted-scripts  # with Python scripts (run_script) unrestricted
     tools/mcp/orca_mcp.py call get_app_state
     tools/mcp/orca_mcp.py call open_files '{"paths": ["/abs/model.stl"]}'
     tools/mcp/orca_mcp.py screenshot /tmp/shot.png --target canvas
@@ -254,18 +254,18 @@ def write_conf(conf, data):
         f.write("\n")
 
 
-def seed_datadir(datadir, printer, cad=False, python_scripts=False):
+def seed_datadir(datadir, printer, cad=False, unrestricted_scripts=False):
     """Seed a fresh datadir's OrcaSlicer.conf. A datadir that has one keeps it, except for the settings
-    cad and python_scripts turn on, which only the file can: the app creates the Design tab only at
-    startup, when its setting is on, and no tool allows Python scripts."""
+    cad and unrestricted_scripts turn on, which only the file can: the app creates the Design tab only at
+    startup, when its setting is on, and no tool lets Python scripts run unrestricted."""
     vendor, model, nozzle, filament = printer
     os.makedirs(datadir, exist_ok=True)
     conf = os.path.join(datadir, "OrcaSlicer.conf")
     switches = {}
     if cad:
         switches["enable_cad_feature"] = True
-    if python_scripts:
-        switches["mcp_python_scripts"] = "true"
+    if unrestricted_scripts:
+        switches["mcp_python_unrestricted"] = "true"
     if os.path.exists(conf):
         if switches:
             with open(conf, encoding="utf-8") as f:
@@ -463,7 +463,7 @@ def launch(args):
     if args.printer:
         model, _, nozzle = args.printer.partition("@")
         printer = (args.vendor, model, nozzle or "0.4", args.filament or DEFAULT_PRINTER[3])
-    seed_datadir(datadir, printer, args.cad, args.python_scripts)
+    seed_datadir(datadir, printer, args.cad, args.unrestricted_scripts)
 
     env = dict(os.environ, ORCA_MCP_TOKEN=token)
     binary = find_binary(args.bin)
@@ -535,7 +535,8 @@ def main():
     p.add_argument("--vendor", default="BBL")
     p.add_argument("--filament")
     p.add_argument("--cad", action="store_true", help="turn the Design (CAD) tab on, for the CAD tools (list_cad_tools, call_cad_tool)")
-    p.add_argument("--python-scripts", action="store_true", help="allow Python scripts (run_script), which no tool can turn on")
+    p.add_argument("--unrestricted-scripts", action="store_true",
+                   help="let Python scripts (run_script) run unrestricted, which no tool can turn on")
     p.add_argument("--timeout", type=int, default=120)
     p.add_argument("--print-config", action="store_true", help="print client setup commands")
     p.add_argument("extra", nargs="*", help="extra orca-slicer arguments after --")

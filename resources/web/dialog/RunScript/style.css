@@ -14,7 +14,6 @@
   --rs-ring: rgba(0, 150, 136, 0.25);
   --rs-ring-soft: rgba(0, 150, 136, 0.08);
   --rs-fail: var(--plugin-status-danger, #b42318);
-  --rs-warn: var(--plugin-status-warn, #a15c00);
   --rs-chrome: var(--footer-bg, #f3f4f5);
   --rs-console: #fbfcfc;
   --rs-btn-bg: var(--btn-bg, #ffffff);
@@ -401,7 +400,6 @@ html, body {
 .recent .f { font-weight: 600; white-space: nowrap; }
 .recent .d { color: var(--rs-muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .label-sm { font-size: 12px; color: var(--rs-muted); margin: 0 0 6px; }
-.off-note { border-left: 3px solid var(--rs-warn); padding: 2px 0 2px 12px; margin-bottom: 14px; }
 
 /* ---- status line, while a run goes ---- */
 .statusline { display: flex; align-items: center; gap: 10px; padding: 4px 10px; border-top: 1px solid var(--rs-rule); background: var(--rs-chrome); font-size: 12px; color: var(--rs-muted); flex: none; }

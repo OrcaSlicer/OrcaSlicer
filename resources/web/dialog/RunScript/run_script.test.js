@@ -308,7 +308,7 @@ test("the console's strip shows a run going, then new output, and a failed run u
   assert.equal(model.consoleNews("failed", "start"), "running");
 });
 
-test("the console's side hides only while it shows the console, not the start page or the note that Python is off", () => {
+test("the console's side hides only while it shows the console, not the start page", () => {
   assert.equal(model.hiddenSide("console", true), "console");
   assert.equal(model.hiddenSide("console", false), "");
   assert.equal(model.hiddenSide("editor", false), "editor");

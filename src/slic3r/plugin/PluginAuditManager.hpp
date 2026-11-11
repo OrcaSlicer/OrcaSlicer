@@ -4,6 +4,7 @@
 // Via pybind11 so this file requests the same python3xx.lib as everything else.
 #include <boost/filesystem/path.hpp>
 #include <pybind11/conduit/wrap_include_python_h.h>
+#include <atomic>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -20,10 +21,11 @@ struct PluginPermissions;
 // reader maps that form onto the boolean permission.
 inline constexpr const char* kThreadPermissionTarget = "thread";
 
-// The audit identities of a Python script a person (the Run Script dialog, --mcp-run) or an agent
-// (run_script) starts. Every audited access is allowed to them and logged under them, apart from the
-// categorical denies (is_denied_path). They are reserved: no plugin key may equal them, so code running
-// under one is never taken for a plugin, and the orca.host functions only plugins may call refuse them.
+// The audit identities of a Python script a person (the Run Script panel, --mcp-run) or an agent
+// (run_script) starts. A script is judged as a plugin is, but has no install state to hold a grant: what
+// the implicit rules don't allow is denied without a prompt, unless scripts run unrestricted
+// (set_scripts_unrestricted). The identities are reserved: no plugin key may equal them, so a plugin is
+// never taken for a script.
 inline constexpr char kScriptIdentityPerson[] = "script";
 inline constexpr char kScriptIdentityAgent[]  = "mcp";
 inline bool           is_script_identity(const std::string& key) { return key == kScriptIdentityPerson || key == kScriptIdentityAgent; }
@@ -151,6 +153,12 @@ public:
     AuditDecision check_path_access(const boost::filesystem::path& candidate, bool is_write);
     AuditDecision check_open(const std::string& path, const std::string& mode);
 
+    // Whether Python scripts (is_script_identity) run unrestricted: every audited access past the denied
+    // paths is allowed to them. It mirrors the person's setting, which the GUI passes on, since events are
+    // judged on any thread. Off until set.
+    void set_scripts_unrestricted(bool unrestricted) { m_scripts_unrestricted.store(unrestricted); }
+    bool scripts_unrestricted() const { return m_scripts_unrestricted.load(); }
+
     // Ask the user to grant the requested permissions. The request may originate on a plugin
     // load worker, so the implementation marshals the modal dialog to the wx main thread.
     // Targets already persisted for the plugin are not shown or asked for again. Returns true
@@ -176,16 +184,6 @@ public:
     // match verbatim; absolute exact grants also match canonical-equivalent paths, including
     // relative targets resolved against the working directory at the time of the check.
     bool request_permissions(const std::string& plugin_key, const PluginPermissions& requested);
-
-    // Asks the user, on its own, whether the plugin may call OrcaSlicer's tools (PluginPermissions::tools),
-    // saying what that lets it do, and saves a Yes. True when it is granted, now or earlier. A plugin that
-    // is refused still loads; its tool calls fail. Marshals to the UI thread like request_permissions.
-    bool request_tools_permission(const std::string& plugin_key);
-
-    // Asks the user whether the plugin may offer its operation `name` to agents and scripts, showing its
-    // description, and saves a Yes in PluginPermissions::operations. True when it is granted, now or
-    // earlier. A refused operation is not offered; the plugin still loads.
-    bool request_operation_permission(const std::string& plugin_key, const std::string& name, const std::string& description);
 
     // Ask the user to grant network access to the given http(s) URLs. Each URL is reduced to its
     // scheme and host before prompting and persisting, so one approval covers every path, query
@@ -276,6 +274,7 @@ private:
     std::vector<AllowedRoot>             m_global_allowed_roots;
     std::vector<std::string>             m_denied_filenames;
     std::vector<std::string>             m_denied_path_keywords;
+    std::atomic<bool>                    m_scripts_unrestricted{false};
 };
 
 // RAII guard that sets the current plugin key and capability name, restoring the previous

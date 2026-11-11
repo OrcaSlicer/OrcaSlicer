@@ -218,39 +218,18 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
                     return {};
                 }
             }
-            // Calling tools is asked on its own, after the rest: a refusal leaves the plugin loading without it.
-            if (requested_permissions.tools) {
-                bool granted = false;
-                {
-                    py::gil_scoped_release release;
-                    granted = PluginAuditManager::instance().request_tools_permission(plugin_key);
-                }
-                if (!granted)
-                    BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin_key << " loads without the tools permission";
-            }
-            std::vector<PluginOperation> declared;
+            std::vector<PluginOperation> operations;
             {
                 std::lock_guard<std::mutex> lock(g_registry_mutex);
                 auto it = g_pending_operations.find(capture_key);
                 if (it != g_pending_operations.end()) {
-                    declared = std::move(it->second);
+                    operations = std::move(it->second);
                     g_pending_operations.erase(it);
                 }
             }
-            std::vector<PluginOperation> granted_operations;
-            for (PluginOperation& op : declared) {
-                bool granted = false;
-                {
-                    py::gil_scoped_release release;
-                    granted = PluginAuditManager::instance().request_operation_permission(plugin_key, op.name, op.description);
-                }
-                if (granted) {
-                    op.plugin_key = plugin_key;
-                    granted_operations.push_back(std::move(op));
-                } else
-                    BOOST_LOG_TRIVIAL(info) << "Plugin " << plugin_key << " does not offer its operation " << op.name;
-            }
-            PluginOperations::instance().stage(plugin_key, std::move(granted_operations));
+            for (PluginOperation& op : operations)
+                op.plugin_key = plugin_key;
+            PluginOperations::instance().stage(plugin_key, std::move(operations));
         } catch (py::error_already_set& err) {
             log_python_exception_keep(err);
             error = err.what();
@@ -761,12 +740,11 @@ not a capability.)pbdoc");
         py::arg("changes") = true,
         R"pbdoc(Offer an operation to AI agents and scripts while OrcaSlicer loads your module.
 
-The person is asked whether to allow each operation; an allowed one is reached as
-"plugin.<plugin>.<name>" through call_tool and orca.host.tools.call. handler, which is required, is
-called as handler(args) with the arguments as a dict, validated against schema (a JSON Schema object,
-or None for an operation that takes no arguments); it runs under the plugin's identity and permissions
-and returns a JSON value. Pass handler by position after schema, or as handler= on its own.
-changes=False marks an operation that only reads.)pbdoc");
+It is reached as "plugin.<plugin>.<name>" through call_tool and orca.host.tools.call once the plugin
+has loaded. handler, which is required, is called as handler(args) with the arguments as a dict,
+validated against schema (a JSON Schema object, or None for an operation that takes no arguments); it
+runs under the plugin's identity and permissions and returns a JSON value. Pass handler by position
+after schema, or as handler= on its own. changes=False marks an operation that only reads.)pbdoc");
 
     m.def(
         "request_permissions",
@@ -776,8 +754,7 @@ changes=False marks an operation that only reads.)pbdoc");
            const std::vector<std::string>& network_socket,
            const std::vector<std::string>& process,
            bool                            threading,
-           const std::vector<std::string>& network,
-           bool                            tools) {
+           const std::vector<std::string>& network) {
             if (g_active_plugin_key.empty())
                 throw py::value_error("request_permissions() called outside plugin discovery context");
 
@@ -828,7 +805,6 @@ changes=False marks an operation that only reads.)pbdoc");
 
             if (threading && !requested.threading)
                 requested.threading = true;
-            requested.tools = requested.tools || tools;
         },
         py::arg("fs_read") = std::vector<std::string>{},
         py::arg("fs_readwrite") = std::vector<std::string>{},
@@ -837,16 +813,12 @@ changes=False marks an operation that only reads.)pbdoc");
         py::arg("process") = std::vector<std::string>{},
         py::arg("threading") = false,
         py::arg("network") = std::vector<std::string>{},
-        py::arg("tools") = false,
         R"pbdoc(Request permissions while OrcaSlicer loads your module.
 
 Each bucket takes the target strings the plugin expects the corresponding audit event to
 report: filesystem paths for fs_read and fs_readwrite, URLs for network_http, socket addresses
 for network_socket, and commands for process. threading=True requests permission to start
 threads. Targets already granted to the plugin are not asked for again.
-
-tools=True asks, on its own, for permission to call OrcaSlicer's tools through orca.host.tools,
-with what an AI agent can do; when it is refused the plugin still loads and its tool calls fail.
 
 A filesystem target may end in "/*" to grant a whole directory tree, for example
 "/path/to/folder/*". That covers the folder itself and every path beneath it, at any depth.
@@ -975,6 +947,7 @@ void install_python_thread_audit_shim()
                         } ended{nullptr, PyThread_get_thread_ident()};
                         if (run) {
                             bound.emplace(run, PythonRunThread::Started);
+                            run->allow_folder_reads();
                             run->thread_started(ended.ident, waited);
                             ended.scope = run.get();
                         }

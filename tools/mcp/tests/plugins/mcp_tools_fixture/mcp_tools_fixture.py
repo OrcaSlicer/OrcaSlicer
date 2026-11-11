@@ -11,12 +11,11 @@
 
 Side-load it into a test data directory (test_plugin_tools.py does) and run its scripts from run_action.
 Each script writes what happened to out_<name>.json in the plugin's storage folder, which the test reads back:
-{"ok": true, "result": ...} or {"ok": false, "error": "...", "details": ...}. It asks for the tools
-permission unless ORCA_MCP_TOOLS_FIXTURE_ASK is 0. "call" calls get_app_state,
+{"ok": true, "result": ...} or {"ok": false, "error": "...", "details": ...}. "call" calls get_app_state,
 "thread" calls it from a thread the script starts, "rule" registers an auto-answer rule, "export" asks for
 export_replay, which a plugin is refused, and "handle" opens a progress dialog and keeps its handle in
-HANDLE, for a script to find and use. The plugin also offers the operation "measure", which
-doubles its argument a.
+HANDLE, for a script to find and use. The plugin also offers the operation "measure", which doubles its
+argument a.
 """
 import json
 import os
@@ -113,10 +112,6 @@ def measure(args):
 @orca.plugin
 class FixturePackage(orca.base):
     def register_capabilities(self):
-        # The prompt for it opens while the app starts, before MCP can answer it, so the test that checks a
-        # plugin without the permission sets ORCA_MCP_TOOLS_FIXTURE_ASK=0 and the plugin does not ask.
-        if os.environ.get("ORCA_MCP_TOOLS_FIXTURE_ASK", "1") != "0":
-            orca.request_permissions(tools=True)
         orca.register_operation("measure", "Doubles a.", {"type": "object", "properties": {"a": {"type": "number"}}}, measure,
                                 changes=False)
         for capability in (CallTool, CallFromThread, SetRule, ExportReplay, HoldHandle):

@@ -739,6 +739,7 @@ py::object run_work_item(const py::object& original, const py::handle& interrupt
     {
         ScopedPythonRun          bound(run, PythonRunThread::Started);
         ScopedPluginAuditContext audit(run->identity());
+        run->allow_folder_reads();
         const unsigned long      ident = PyThread_get_thread_ident();
         run->task_running(ident);
         try {
@@ -1319,6 +1320,7 @@ void host_python_session(const PythonSessionRequest& request, PythonSession& ses
     Watcher::Reason                   reason          = Watcher::Reason::None;
     {
         ScopedPluginAuditContext audit(request.identity);
+        scope->allow_folder_reads();
         Watcher watcher(Watcher::Config{request.cancelled, request.budget, request.stop_calls, request.stop_closes_ui}, session, ident,
                         interrupt.ptr(), scope);
         py::dict                             ns;
@@ -1792,6 +1794,7 @@ PoolInitializerBinding python_run_bind_pool_initializer(const py::handle& functi
         worker_args[2] = py::cpp_function([initializer, run](const py::args& call_args) -> py::object {
             ScopedPythonRun          bound(run, PythonRunThread::Started);
             ScopedPluginAuditContext audit(run->identity());
+            run->allow_folder_reads();
             struct Target
             {
                 PythonRunScope& run;

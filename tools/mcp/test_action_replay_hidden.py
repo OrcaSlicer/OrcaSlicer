@@ -2,7 +2,7 @@
 """Checks that the Action Replay window and the Run Script panel stay out of reach of the GUI tools, so a
 replay or a script can't act on them.
 
-    tools/mcp/orca_mcp.py launch --python-scripts
+    tools/mcp/orca_mcp.py launch
     tools/mcp/test_action_replay_hidden.py
 
 With Action Replay open: list_widgets lists no window for it, a window screenshot still works,

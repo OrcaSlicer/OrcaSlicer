@@ -5,7 +5,6 @@
 #include "McpTypes.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
-#include "slic3r/plugin/PluginFsUtils.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/host/PluginHostTools.hpp"
 
@@ -108,10 +107,6 @@ std::string named_paths(const json& args)
 void install_plugin_tool_caller()
 {
     set_plugin_tool_caller([](const std::string& plugin, const std::string& tool, const json& args) -> json {
-        PluginInstallState state;
-        if (!PluginManager::instance().get_install_state(plugin, state) || !state.permissions.tools)
-            throw std::runtime_error("This plugin has not been granted the tools permission; it asks for it with "
-                                     "request_permissions(tools=True)");
         McpService* service = admit_plugin_call(plugin);
         struct Lease
         {

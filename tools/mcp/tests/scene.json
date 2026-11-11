@@ -78,7 +78,7 @@
     {"tool": "select_objects", "args": {"parts": [[0, 1]]},
      "expect": {"/canvas": {"eq": "3d"}, "/objects": {"eq": [0]}, "/instances": {"eq": [[0, 0]]}, "/parts": {"eq": [[0, 1]]}}},
     {"tool": "get_app_state", "expect": {"/selection/parts": {"eq": [[0, 1]]}, "/python/available": {"eq": true},
-                                     "/python/scripts_allowed": {"ne": null}, "/design_tab": {"ne": null}}},
+                                     "/python/scripts_unrestricted": {"ne": null}, "/design_tab": {"ne": null}}},
     {"tool": "run_action", "args": {"id": "orca_command:obj_mirror_x:orca"}},
     {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1/mirrored": {"eq": true}, "/plates/0/objects/0/instances/0/mirrored": {"eq": false}}},
     // a whole instance lists no parts

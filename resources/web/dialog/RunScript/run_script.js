@@ -3,7 +3,6 @@
 // the host's copy is never behind.
 
 const S = {
-  python: true,
   ready: false,
   none: true,          // no script open
   fileName: "",
@@ -198,8 +197,8 @@ const NEWS_TIPS = {
   failed: ["show_console_failed", "Show the console: the last run failed"],
 };
 
-// Whether the side right of the divider shows the console, rather than the start page or the note that Python is off.
-function consoleShown() { return !S.none && S.python; }
+// Whether the side right of the divider shows the console, rather than the start page.
+function consoleShown() { return !S.none; }
 
 function renderLayout() {
   const panes = $("panes");
@@ -313,7 +312,7 @@ function setUpSplit() {
 
 function busy() { return !!S.pending || !!S.run || S.session === "working"; }
 
-function canRun() { return S.python && S.ready && !S.none && !busy() && S.session !== "ending"; }
+function canRun() { return S.ready && !S.none && !busy() && S.session !== "ending"; }
 
 function runAll() {
   closeEditorSuggestions(editor);
@@ -342,7 +341,7 @@ function runCell() {
 function runConsole() {
   const input = $("prompt-input");
   const code = input.value;
-  if (!code.trim() || !S.python || !S.ready || busy() || S.session === "ending") return;
+  if (!code.trim() || !S.ready || busy() || S.session === "ending") return;
   input.value = "";
   S.pending = { kind: "console", code };
   S.message = null;
@@ -726,7 +725,7 @@ function renderStatus() {
     bar.classList.add("is-error");
     $("status-main").textContent = S.message;
     $("status-detail").textContent = "";
-  } else if (S.python && !S.ready) {
+  } else if (!S.ready) {
     $("status-main").textContent = T("starting", "OrcaSlicer is still starting…");
     $("status-detail").textContent = "";
   } else {
@@ -748,7 +747,7 @@ function render() {
   $("run-cell").disabled = !canRun();
   $("stop").disabled = !(working || S.session === "threads");
   $("restart").disabled = S.session === "none" || working || ending;
-  const promptOff = !S.python || !S.ready || working || ending;
+  const promptOff = !S.ready || working || ending;
   $("prompt-input").disabled = promptOff;
   $("prompt-input").closest(".prompt-line").classList.toggle("off", promptOff);
 
@@ -757,8 +756,7 @@ function render() {
   editor.setReadOnly(S.none || !!S.run);
   $("editor").classList.toggle("is-readonly", !!S.run);
   $("start").hidden = !S.none;
-  $("off").hidden = S.none || S.python;
-  $("console").hidden = S.none || !S.python;
+  $("console").hidden = S.none;
   renderLayout();
   placeAddButton();
   renderSession();
@@ -914,7 +912,6 @@ function onForwardedKey(action) {
 function HandleStudio(msg) {
   switch (msg.command) {
   case "state":
-    S.python = !!msg.python_on;
     S.ready = !!msg.ready;
     S.recent = msg.recent || [];
     S.session = msg.session || "none";
@@ -963,10 +960,6 @@ function HandleStudio(msg) {
     break;
   case "key": onForwardedKey(msg.action); break;
   case "shortcuts": setToggleChord(msg.toggle_key && msg.toggle_key.chord); break;
-  case "python":
-    S.python = !!msg.on;
-    render();
-    break;
   }
 }
 
@@ -1038,7 +1031,6 @@ function OnInit() {
   $("stop").addEventListener("click", () => send("stop"));
   $("restart").addEventListener("click", () => send("restart"));
   $("clear").addEventListener("click", clearConsole);
-  $("turn-on").addEventListener("click", () => send("turn_on_python"));
   $("prompt-input").addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault();

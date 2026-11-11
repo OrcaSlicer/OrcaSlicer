@@ -6,7 +6,6 @@
 #include "McpService.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
-#include "PythonScriptsDialog.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -248,10 +247,6 @@ bool python_has_numpy()
 
 ToolResult run_python_session_job(McpService& service, ToolContext& ctx, PythonSession& session, const std::string& filename)
 {
-    const bool allowed = ctx.observe_ui([] { return json(python_scripts_allowed(*wxGetApp().app_config)); }).get<bool>();
-    if (!allowed)
-        throw ToolFailure("Python scripts are off. A person can allow them in Preferences > AI features > Python scripts.");
-
     const std::string job = ctx.job_id();
     // The session waits for the person between works: `wait {for: "idle"}` counts only the calls it makes.
     service.jobs().set_idle(job);
@@ -298,8 +293,11 @@ void register_python_tools(McpService& service)
         "thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon "
         "threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` "
         "to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | "
-        "timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. Python runs "
-        "with OrcaSlicer's full access to the computer, so a person must allow Python scripts in Preferences first. Recorded "
+        "timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. The code's "
+        "own file access is held to OrcaSlicer's folders (its data and resources folders, and for a file run the file's "
+        "folder, read only), and it starts no programs or threads and reaches no network: such an access raises "
+        "PermissionError, unless a person has let Python scripts run unrestricted in Preferences "
+        "(get_app_state.python.scripts_unrestricted); the tools it calls work as they do for you. Recorded "
         "by export_replay as one step with its code, which a replay runs again against the project as it is then.",
         object_schema({{"code", prop("string", "Python source, run as a module body.")},
                        {"args", {{"type", "object"}, {"description", "Bound to the name `args` in the code."}}},
@@ -310,18 +308,11 @@ void register_python_tools(McpService& service)
                                                    "from its folder and its PEP 723 dependencies; any other name only names it.")}},
                       {"code"}),
         [&service](const json& args, ToolContext& ctx) {
-            const std::string& plugin = ctx.caller_plugin();
-            std::string        identity;
-            if (!plugin.empty()) {
-                // A plugin's script is the plugin's own code: its identity and grants, no setting.
-                identity = plugin;
-            } else {
-                identity = service.person_run(ctx.lineage()) ? kScriptIdentityPerson : kScriptIdentityAgent;
-                const bool allowed = ctx.observe_ui([] { return json(python_scripts_allowed(*wxGetApp().app_config)); }).get<bool>();
-                if (!allowed)
-                    throw ToolFailure("Python scripts are off. A person can allow them in Preferences > AI features > Python "
-                                      "scripts; no tool can.");
-            }
+            // A plugin's script is the plugin's own code: its identity and grants.
+            const std::string& plugin   = ctx.caller_plugin();
+            const std::string  identity = !plugin.empty()                     ? plugin :
+                                          service.person_run(ctx.lineage()) ? kScriptIdentityPerson :
+                                                                              kScriptIdentityAgent;
 
             // A run owns what its calls leave behind (auto-answer rules, a recording, a held press) as a JSON
             // script does: it all ends with the run.
@@ -364,7 +355,7 @@ void register_python_tools(McpService& service)
         });
     // cancel_job {job} stops a run: its code is interrupted at its next bytecode.
     run.cancellable = true;
-    // Python has the app's full access to the computer.
+    // A script reaches outside the app: files, programs and the network.
     run.open_world = true;
     reg.add(run);
 

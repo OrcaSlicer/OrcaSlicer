@@ -1,13 +1,10 @@
 """Checks a plugin's calls into the MCP tools and the operations it offers, in the running app.
 
-Launches OrcaSlicer on a fresh data folder with tests/plugins/mcp_tools_fixture side-loaded: over MCP
-without the plugin's tools permission, then with it granted (and tests/plugins/mcp_tools_broken, whose load
-fails after declaring an operation), then once without MCP, running a replay with --mcp-run, so the
-plugin's calls go to the catalog-only service. The second launch ends by unticking the fixture in the Plugins
-dialog, as a person unloads it. Run it as python tools/mcp/test_plugin_tools.py [--bin PATH].
-The permission's own prompt opens while the app starts, before MCP can answer it, so the first launch has
-the plugin not ask (ORCA_MCP_TOOLS_FIXTURE_ASK=0) and the second grants it in the plugin's saved state; the
-prompt itself is covered by the unit tests.
+Launches OrcaSlicer on a fresh data folder with tests/plugins/mcp_tools_fixture side-loaded, and
+tests/plugins/mcp_tools_broken, whose load fails after declaring an operation: over MCP, then once without
+MCP, running a replay with --mcp-run, so the plugin's calls go to the catalog-only service. The first launch
+ends by unticking the fixture in the Plugins dialog, as a person unloads it. Run it as
+python tools/mcp/test_plugin_tools.py [--bin PATH].
 """
 import json
 import os
@@ -43,27 +40,27 @@ def check(name, ok, detail=""):
     print(("PASS " if ok else "FAIL ") + name + ("" if ok else "  " + str(detail)[:400]), flush=True)
 
 
-def install(datadir, tools):
-    """Side-loads the fixture enabled, with its operation and threads granted and the tools permission as given."""
+def install(datadir):
+    """Side-loads the fixture enabled, with its threads granted."""
     dest = os.path.join(datadir, "orca_plugins", PLUGIN)
     os.makedirs(dest, exist_ok=True)
     shutil.copy(os.path.join(FIXTURE, PLUGIN + ".py"), dest)
     with open(os.path.join(dest, ".install_state.json"), "w", encoding="utf-8") as f:
         json.dump({"installed_from": "local", "installed_version": "1.0.0", "plugin_name": "MCP Tools Fixture", "enabled": True,
                    "capabilities": [{name: True} for name in CAPABILITIES],
-                   "permissions": {"threading": ["thread"], "tools": tools, "operations": ["measure"]}}, f, indent=2)
+                   "permissions": {"threading": ["thread"]}}, f, indent=2)
     # Where orca.host.plugin.storage() puts the plugin's files, and the scripts their outcomes.
     return os.path.join(datadir, "orca_plugins", "plugin_data", PLUGIN)
 
 
 def install_broken(datadir):
-    """Side-loads the plugin whose load fails, with its operation granted."""
+    """Side-loads the plugin whose load fails."""
     dest = os.path.join(datadir, "orca_plugins", BROKEN)
     os.makedirs(dest, exist_ok=True)
     shutil.copy(os.path.join(HERE, "tests", "plugins", BROKEN, BROKEN + ".py"), dest)
     with open(os.path.join(dest, ".install_state.json"), "w", encoding="utf-8") as f:
         json.dump({"installed_from": "local", "installed_version": "1.0.0", "plugin_name": "MCP Tools Broken Fixture", "enabled": True,
-                   "capabilities": [{"MCP tools broken fixture": True}], "permissions": {"operations": ["measure"]}}, f, indent=2)
+                   "capabilities": [{"MCP tools broken fixture": True}]}, f, indent=2)
 
 
 def wait_for(predicate, timeout):
@@ -112,29 +109,20 @@ def main():
     datadir = tempfile.mkdtemp(prefix="orca-plugin-tools-")
     env = dict(os.environ, ORCA_MCP_SESSION=os.path.join(datadir, "session.json"), ORCA_MCP_TOKEN=TOKEN)
     try:
-        # --- Without the tools permission: the plugin loads, its calls are refused, its operation is offered. ---
-        plugin_dir = install(datadir, tools=False)
-        orca = launch(dict(env, ORCA_MCP_TOOLS_FIXTURE_ASK="0"), datadir, extra)
-        refused = run_plugin_script(orca, plugin_dir, "call", CAPABILITIES[0])
-        check("a plugin without the tools permission is refused", refused.get("ok") is False and
-              "tools permission" in refused.get("error", ""), refused)
+        # --- Over MCP: the plugin's operation and its tool calls, beside a plugin whose load fails. ---
+        plugin_dir = install(datadir)
+        install_broken(datadir)
+        orca = launch(env, datadir, extra)
         described = orca.call_raw("search_tools", {"tool": f"plugin.{PLUGIN}.measure"})
-        check("search_tools describes the plugin's granted operation", not described.get("isError") and
+        check("search_tools describes the plugin's operation", not described.get("isError") and
               "\"a\"" in described["content"][0]["text"], described)
         called = orca.call_raw("call_tool", {"tool": f"plugin.{PLUGIN}.measure", "args": {"a": 2}})
         check("call_tool runs the plugin's operation", not called.get("isError") and
               json.loads(called["content"][0]["text"]) == {"twice": 4}, called)
         listed = [t["name"] for t in orca.request("tools/list")["tools"]]
         check("the operation is not in tools/list", f"plugin.{PLUGIN}.measure" not in listed)
-        harness(env, "stop")
-        time.sleep(3)
-
-        # --- With the tools permission granted, Python scripts allowed, and a plugin whose load fails. ---
-        plugin_dir = install(datadir, tools=True)
-        install_broken(datadir)
-        orca = launch(env, datadir, ["--python-scripts"] + extra)
         called = run_plugin_script(orca, plugin_dir, "call", CAPABILITIES[0])
-        check("a plugin with the tools permission calls a tool from its Script worker", called == {"ok": True, "result": True}, called)
+        check("a plugin calls a tool from its Script worker", called == {"ok": True, "result": True}, called)
         threaded = run_plugin_script(orca, plugin_dir, "thread", CAPABILITIES[1])
         check("a thread its Script worker starts calls a tool too", threaded == {"ok": True, "result": True}, threaded)
         rule = run_plugin_script(orca, plugin_dir, "rule", CAPABILITIES[2])
@@ -167,7 +155,7 @@ def main():
         check("a plugin's calls are not in the agent's journal", not any(s["tool"] == "auto_answer_dialogs" for s in journal),
               journal)
         broken = orca.call_raw("search_tools", {"tool": f"plugin.{BROKEN}.measure"})
-        check("a plugin whose load failed offers none of its granted operations", broken.get("isError"), broken)
+        check("a plugin whose load failed offers none of its operations", broken.get("isError"), broken)
         held = run_plugin_script(orca, plugin_dir, "handle", CAPABILITIES[4])
         check("the plugin opens a progress dialog and keeps its handle", held.get("ok") is True, held)
         grab = orca.await_job(orca.call("run_script", code=GRAB_HANDLE))
@@ -187,7 +175,7 @@ def main():
         time.sleep(3)
 
         # --- Without MCP: a launch replay runs the plugin's script, whose calls reach the catalog-only service. ---
-        install(datadir, tools=True)  # enabled again: unticking it saved it disabled
+        install(datadir)  # enabled again: unticking it saved it disabled
         steps = os.path.join(datadir, "plugin_rule.json")
         with open(steps, "w", encoding="utf-8") as f:
             json.dump({"orca_replay": 1, "name": "a plugin's rule without MCP", "steps": [

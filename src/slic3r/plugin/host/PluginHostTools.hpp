@@ -61,7 +61,7 @@ private:
 
 // Calls a tool for the plugin `plugin_key`, as orca.host.tools does from a plugin's code: returns the
 // result's data or a job envelope, throws ToolCallError for an error result and std::runtime_error when
-// the plugin may not call tools. Called without the GIL.
+// the call can't be run. Called without the GIL.
 using PluginToolCaller = std::function<nlohmann::json(const std::string& plugin_key, const std::string& tool, const nlohmann::json& args)>;
 // Set once the GUI can run tool calls; until then a plugin's calls fail.
 void set_plugin_tool_caller(PluginToolCaller caller);

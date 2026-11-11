@@ -2471,57 +2471,6 @@ with open(os.path.join(DENIED_DIR, "token.txt"), "w") as f:
     CHECK(violation.reason == "denied path");
 }
 
-TEST_CASE("The tools permission is saved in the install state and read back", "[audit]")
-{
-    ScopedTemporaryDir dir("orca-plugin-tools-permission");
-    PluginInstallState state;
-    state.installed_from    = "local";
-    state.installed_version = "1.0";
-    state.plugin_name       = "ToolsPlugin";
-    state.permissions.tools = true;
-    REQUIRE(write_install_state(dir.path(), state));
-
-    PluginInstallState read;
-    REQUIRE(read_install_state(dir.path(), read));
-    CHECK(read.permissions.tools);
-
-    state.permissions.tools = false;
-    REQUIRE(write_install_state(dir.path(), state));
-    REQUIRE(read_install_state(dir.path(), read));
-    CHECK_FALSE(read.permissions.tools);
-}
-
-TEST_CASE("The tools permission is asked on its own, saved when granted, and not asked again", "[audit][Python]")
-{
-    AuditHarness harness;
-    if (!harness.initialized)
-        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
-    harness.add_plugin(PLUGIN);
-    std::vector<std::string> messages;
-    bool                     answer = false;
-    PluginAuditManager::set_permission_message_prompt_for_testing([&](const std::string& message) {
-        messages.push_back(message);
-        return answer;
-    });
-
-    CHECK_FALSE(PluginAuditManager::instance().request_tools_permission(PLUGIN));
-    REQUIRE(messages.size() == 1);
-    CHECK_THAT(messages[0], Catch::Matchers::ContainsSubstring("tools"));
-    PluginInstallState state;
-    REQUIRE(PluginManager::instance().get_install_state(PLUGIN, state));
-    CHECK_FALSE(state.permissions.tools);
-
-    answer = true;
-    CHECK(PluginAuditManager::instance().request_tools_permission(PLUGIN));
-    REQUIRE(PluginManager::instance().get_install_state(PLUGIN, state));
-    CHECK(state.permissions.tools);
-
-    // Granted once, it is not asked again.
-    CHECK(PluginAuditManager::instance().request_tools_permission(PLUGIN));
-    CHECK(messages.size() == 2);
-    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
-}
-
 TEST_CASE("A plugin named after a script identity is refused before any of its code runs", "[audit][Python]")
 {
     ScopedDataDir data{"plugin-reserved-key"};
@@ -2531,7 +2480,7 @@ TEST_CASE("A plugin named after a script identity is refused before any of its c
     const fs::path     marker = outside.path() / "ran.txt";
     const fs::path     root   = data.plugins_dir() / "mcp";
     fs::create_directories(root);
-    // Run as "mcp", this write would be allowed: a marker means the plugin's code ran.
+    // The module writes a marker as it is imported: one means the plugin's code ran.
     std::ofstream((root / "mcp.py").string(), std::ios::binary) << "open(r'" << marker.generic_string() << "', 'w').write('ran')\n";
     PluginInstallState state;
     state.installed_from    = "local";

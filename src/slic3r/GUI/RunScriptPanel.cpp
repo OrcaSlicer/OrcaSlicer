@@ -15,7 +15,6 @@
 #include "Mcp/McpService.hpp"
 #include "Mcp/McpTools.hpp"
 #include "Mcp/McpTypes.hpp"
-#include "Mcp/PythonScriptsDialog.hpp"
 #include "Widgets/WebView.hpp"
 #include "Widgets/WebViewHostDialog.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -206,10 +205,6 @@ json page_strings()
                                    "orca.host API. Split it into cells with %s and try one cell at a time.")},
         // TRN A line in the console of the Run Script panel, where Run all started a new session.
         {"session_restarted", _u8L("Session restarted for Run all")},
-        {"python_off_text", _u8L("You can edit and save this script, but it can't run until Python scripts are on.")},
-        {"python_off", _u8L("Python scripts are off.")},
-        {"python_access", _u8L("A script runs with OrcaSlicer's full access to your computer.")},
-        {"turn_on_python", _u8L("Turn on Python scripts…")},
         {"starting", _u8L("OrcaSlicer is still starting…")},
         {"code_editor", WebViewHostDialog::code_editor_strings()},
     };
@@ -484,14 +479,6 @@ void RunScriptPanel::main_window_rebuilt()
         wxWakeUpIdle();
 }
 
-void RunScriptPanel::python_setting_changed()
-{
-    const bool on = Mcp::python_scripts_allowed(*wxGetApp().app_config);
-    send({{"command", "python"}, {"on", on}});
-    if (!on)
-        end_session();
-}
-
 void RunScriptPanel::shortcuts_changed() { send({{"command", "shortcuts"}, {"toggle_key", toggle_key()}}); }
 
 json RunScriptPanel::toggle_key() const
@@ -571,9 +558,6 @@ void RunScriptPanel::handle(const json& payload)
         } else if (command == "pane_layout") {
             wxGetApp().app_config->set("run_script", "split", json(payload.value("split", 0.6)).dump());
             wxGetApp().app_config->set("run_script", "hidden_side", payload.value("hidden", ""));
-        } else if (command == "turn_on_python") {
-            // The setting's own window tells the panel about a change (python_setting_changed()).
-            Mcp::show_python_scripts_dialog(wxGetApp().mainframe);
         }
     } catch (const std::exception& e) {
         send({{"command", "error"}, {"message", e.what()}});
@@ -587,7 +571,6 @@ json RunScriptPanel::state() const
     script.erase("command");
     return {{"command", "state"},
             {"script", std::move(script)},
-            {"python_on", Mcp::python_scripts_allowed(*wxGetApp().app_config)},
             {"ready", s != nullptr && s->ready()},
             {"recent", recent_message()["items"]},
             {"session", session_state()},
@@ -852,10 +835,6 @@ void RunScriptPanel::run(const json& payload)
 {
     if (m_running || m_waiting)
         return;
-    if (!Mcp::python_scripts_allowed(*wxGetApp().app_config)) {
-        refuse(_u8L("Python scripts are off. You can turn them on in Preferences > AI features > Python scripts."));
-        return;
-    }
     Mcp::McpService* s = service();
     if (s == nullptr || !s->ready()) {
         refuse(_u8L("Scripts can't run while OrcaSlicer is starting or closing."));

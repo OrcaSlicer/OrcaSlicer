@@ -50,16 +50,18 @@ namespace py = pybind11;
 
 namespace {
 
-// The production interpreter, as the app brings it up, with a data folder of its own. No permission
-// prompt may show: one would mean the identity was judged as a plugin's.
+// The production interpreter, as the app brings it up, with a data folder of its own. Scripts run
+// unrestricted unless the test says otherwise: what the runner's tests do (threads, pools, files anywhere)
+// needs it. No permission prompt may show for a script either way: nothing is ever asked for one.
 struct RunnerHarness
 {
     ScopedDataDir            data{"python-script-runner"};
     bool                     initialized = PluginManager::instance().initialize();
     std::vector<std::string> prompts;
 
-    RunnerHarness()
+    explicit RunnerHarness(bool unrestricted = true)
     {
+        PluginAuditManager::instance().set_scripts_unrestricted(unrestricted);
         PluginAuditManager::set_permission_prompt_for_testing([this](const std::string& event, const std::vector<std::string>&) {
             prompts.push_back(event);
             return false;
@@ -68,6 +70,7 @@ struct RunnerHarness
     ~RunnerHarness()
     {
         PluginAuditManager::set_permission_prompt_for_testing(nullptr);
+        PluginAuditManager::instance().set_scripts_unrestricted(false);
         PluginManager::instance().shutdown();
     }
 };
@@ -648,7 +651,7 @@ TEST_CASE("a script that never returns is cancelled, or stopped at its budget", 
     CHECK(run("result = 5").result == 5);
 }
 
-TEST_CASE("an agent's script may touch any file but the categorically denied ones, without prompts", "[PythonScript][Python]")
+TEST_CASE("an unrestricted script may touch any file but the categorically denied ones, without prompts", "[PythonScript][Python]")
 {
     RunnerHarness harness;
     if (!harness.initialized)
@@ -668,6 +671,58 @@ TEST_CASE("an agent's script may touch any file but the categorically denied one
     CHECK(harness.prompts.empty());
     // The identity ends with the run.
     CHECK(PluginAuditManager::instance().current_plugin().empty());
+}
+
+TEST_CASE("a restricted script is denied what a plugin would be asked for, without prompts", "[PythonScript][Python]")
+{
+    RunnerHarness harness(/*unrestricted=*/false);
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedTemporaryDir     outside("orca-python-script-restricted");
+    const std::string      file    = (outside.path() / "note.txt").generic_string();
+    const PythonRunOutcome refused = run("open(args['file'], 'w')", json{{"file", file}});
+    CHECK(refused.status == "raised");
+    CHECK_THAT(refused.message, ContainsSubstring("PermissionError"));
+    // The error says where the restriction is lifted.
+    CHECK_THAT(refused.message, ContainsSubstring("Preferences"));
+    CHECK_FALSE(boost::filesystem::exists(file));
+
+    const PythonRunOutcome thread = run("import threading\nthreading.Thread(target=print).start()");
+    CHECK(thread.status == "raised");
+    CHECK_THAT(thread.message, ContainsSubstring("PermissionError"));
+
+    // OrcaSlicer's own data folder is open to it, as it is to a plugin. install_hook() granted the folder of the
+    // test that first started Python, so this test's folder is granted here.
+    PluginAuditManager::instance().add_global_allowed_root(harness.data.dir);
+    const std::string      inside = (harness.data.dir / "note.txt").generic_string();
+    const PythonRunOutcome wrote  = run("open(args['file'], 'w').write('x')\nresult = open(args['file']).read()", json{{"file", inside}});
+    CHECK(wrote.status == "finished");
+    CHECK(wrote.result == "x");
+
+    CHECK(harness.prompts.empty());
+}
+
+TEST_CASE("a restricted script's file run reads its own folder and writes nothing there", "[PythonScript][Python]")
+{
+    RunnerHarness harness(/*unrestricted=*/false);
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    MacroDir macros;
+    macros.write("helper.py", "VALUE = 7\n");
+    const std::string      reads = "import helper\nresult = [helper.VALUE, 'helper' in open(__file__).read()]\n";
+    const PythonRunOutcome read  = run_file(macros.write("reads.py", reads), reads);
+    CHECK(read.status == "finished");
+    CHECK(read.result == json::array({7, true}));
+
+    const std::string      writes  = "import os\nopen(os.path.join(os.path.dirname(__file__), 'out.txt'), 'w')\n";
+    const PythonRunOutcome refused = run_file(macros.write("writes.py", writes), writes);
+    CHECK(refused.status == "raised");
+    CHECK_THAT(refused.message, ContainsSubstring("PermissionError"));
+    CHECK_FALSE(boost::filesystem::exists(macros.dir / "out.txt"));
+
+    CHECK(harness.prompts.empty());
 }
 
 namespace {
