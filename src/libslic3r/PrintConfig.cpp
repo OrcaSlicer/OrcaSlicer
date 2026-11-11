@@ -1992,8 +1992,8 @@ void PrintConfigDef::init_fff_params()
     def->label = "10%";
     def->category = L("Speed");
     def->full_label = "10%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 10% and 25% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Speed of walls that hang out over the layer below by 10% to 25% of their line width. The speed changes gradually from one step to the next. 0 means no slowing down at this step. A percentage is of the wall's own speed.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2005,8 +2005,8 @@ void PrintConfigDef::init_fff_params()
     def->label = "25%";
     def->category = L("Speed");
     def->full_label = "25%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 25% and 50% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Speed of walls that hang out over the layer below by 25% to 50% of their line width. The speed changes gradually from one step to the next. 0 means no slowing down at this step. A percentage is of the wall's own speed.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2018,8 +2018,8 @@ void PrintConfigDef::init_fff_params()
     def->label = "50%";
     def->category = L("Speed");
     def->full_label = "50%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 50% and 75% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Speed of walls that hang out over the layer below by 50% to 75% of their line width. The speed changes gradually from one step to the next. 0 means no slowing down at this step. A percentage is of the wall's own speed.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2031,8 +2031,8 @@ void PrintConfigDef::init_fff_params()
     def->label = "75%";
     def->category = L("Speed");
     def->full_label = "75%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 75% and 100% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Speed of walls that hang out over the layer below by 75% to 100% of their line width. The speed changes gradually from one step to the next. 0 means no slowing down at this step. A percentage is of the wall's own speed.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2319,7 +2319,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("travel_acceleration", coFloats);
     def->label = L("Travel");
     def->category = L("Speed");
-    def->tooltip = L("Acceleration of travel moves.");
+    def->tooltip = L("Acceleration of travel moves. A higher value reaches the next line sooner, at the cost of shaking the printer more.");
     def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -2725,7 +2725,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("small_perimeter_threshold", coFloats);
     def->label = L("Small perimeters threshold");
     def->category = L("Speed");
-    def->tooltip = L("This sets the threshold for small perimeter length. Default threshold is 0mm.");
+    def->tooltip = L("Loops no longer than a circle of this radius, such as small holes, count as small perimeters and are printed at the small perimeter speed. At 0, no loop counts as small.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -2747,7 +2747,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("small_support_perimeter_threshold", coFloats);
     def->label = L("Small support perimeters threshold");
     def->category = L("Speed");
-    def->tooltip = L("This sets the threshold for small support perimeter length. The default threshold is 0mm.");
+    def->tooltip = L("Support lines and loops no longer than a circle of this radius, such as the thin branches of tree support, are printed at the small support perimeter speed. At 0, none are.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3898,7 +3898,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("inner_wall_acceleration", coFloats);
     def->label = L("Inner wall");
     def->category = L("Speed");
-    def->tooltip = L("Acceleration of inner walls.");
+    def->tooltip = L("Acceleration of the inner walls. They are hidden, so they can usually take a higher acceleration than the outer wall.");
     def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3940,7 +3940,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("accel_to_decel_enable", coBool);
     def->label = L("Enable accel_to_decel");
     def->category = L("Speed");
-    def->tooltip = L("Klipper's max_accel_to_decel will be adjusted automatically.");
+    def->tooltip = L("Sets Klipper's max_accel_to_decel along with each change of acceleration, as the share of it given below. A lower share keeps short back-and-forth moves from reaching full speed, which makes them smoother.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
     
@@ -3969,7 +3969,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("default_junction_deviation", coFloats);
     def->label = L("Junction Deviation");
     def->category = L("Speed");
-    def->tooltip = L("Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting).");
+    def->tooltip = L("How far Marlin firmware lets the nozzle cut a corner, which sets how much it slows down there; it takes the place of the XY jerk. A larger value takes corners faster. At 0, the printer keeps its own value.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0.f;
     def->max = 0.3f;
@@ -3980,7 +3980,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("outer_wall_jerk", coFloats);
     def->label = L("Outer wall");
     def->category = L("Speed");
-    def->tooltip = L("Jerk of outer walls.");
+    def->tooltip = L("Jerk of the outer wall: how much its speed may change at once, at a corner. Lower values give cleaner corners on the face of the part that is seen.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3990,7 +3990,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("inner_wall_jerk", coFloats);
     def->label = L("Inner wall");
     def->category = L("Speed");
-    def->tooltip = L("Jerk of inner walls.");
+    def->tooltip = L("Jerk of the inner walls: how much their speed may change at once, at a corner. They are hidden, so a higher value costs little.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4001,7 +4001,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top surface");
     def->category = L("Speed");
     def->nullable = true;
-    def->tooltip = L("Jerk for top surface.");
+    def->tooltip = L("Jerk of the top surface: how much its speed may change at once, where its lines turn. Lower values can give a more even top surface.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4010,7 +4010,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("infill_jerk", coFloats);
     def->label = L("Infill");
     def->category = L("Speed");
-    def->tooltip = L("Jerk for infill.");
+    def->tooltip = L("Jerk of the infill (sparse and solid, the bridges and the bottom surface): how much its speed may change at once, at a corner. The top surface has a jerk of its own.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4020,7 +4020,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("initial_layer_jerk", coFloats);
     def->label = L("First layer");
     def->category = L("Speed");
-    def->tooltip = L("Jerk for the first layer.");
+    def->tooltip = L("Jerk of the first layer: how much the speed may change at once, at a corner. Lower values are gentler on the lines that are still sticking to the plate.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4030,7 +4030,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("travel_jerk", coFloats);
     def->label = L("Travel");
     def->category = L("Speed");
-    def->tooltip = L("Jerk for travel.");
+    def->tooltip = L("Jerk of travel moves: how much the speed may change at once, where a travel turns. Higher values make travel quicker.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4095,7 +4095,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("initial_layer_travel_speed", coFloatsOrPercents);
     def->label = L("First layer travel speed");
-    def->tooltip = L("Travel speed of the first layer.");
+    def->tooltip = L("Speed of the travel moves on the first layer. Slower travel is gentler on the lines that have only just stuck to the plate.");
     def->category = L("Speed");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "travel_speed";
@@ -5058,7 +5058,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("sparse_infill_speed", coFloats);
     def->label = L("Sparse infill");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for internal sparse infill.");
+    def->tooltip = L("Speed of the sparse infill inside the part. It is hidden, so it is usually the fastest feature; the filament's maximum volumetric speed can still cap it.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -5226,7 +5226,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("ironing_speed", coFloat);
     def->label = L("Ironing speed");
     def->category = L("Quality");
-    def->tooltip = L("This is the print speed for ironing lines.");
+    def->tooltip = L("Speed of the nozzle while ironing, when it passes over the top surface again with very little flow to smooth it. Slower ironing smooths better but takes longer.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -5963,7 +5963,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("inner_wall_speed", coFloats);
     def->label = L("Inner wall");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for inner walls.");
+    def->tooltip = L("Speed of the inner walls, the loops between the outer wall and the infill. They are not seen, so they are usually printed faster than the outer wall.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->aliases = { "perimeter_feed_rate" };
     def->min = 1;
@@ -7547,7 +7547,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_interface_speed", coFloats);
     def->label = L("Support interface");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for support interfaces.");
+    def->tooltip = L("Speed of the support interface, the dense layers between the support and the part. Printing them slower gives a flatter surface under the part's overhangs.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -7619,7 +7619,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_speed", coFloats);
     def->label = L("Support");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for support.");
+    def->tooltip = L("Speed of the body of the support. Support is removed after printing, so it can usually be printed fast; the interface it ends in has a speed of its own.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -8154,7 +8154,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("top_surface_speed", coFloats);
     def->label = L("Top surface");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for solid top surface infill.");
+    def->tooltip = L("Speed of the top surface, the layer that closes the top of the part and stays in sight. Printing it slower gives a smoother, more even surface.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -8223,7 +8223,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("travel_speed", coFloats);
     def->label = L("Travel");
-    def->tooltip = L("This is the speed at which traveling is done.");
+    def->tooltip = L("Speed of travel moves, when the nozzle moves without extruding. Faster travel saves time and gives the nozzle less time to ooze on the way.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
