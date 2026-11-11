@@ -9,6 +9,7 @@
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
+#include "ScreenCapture.hpp"
 #include "UiInspector.hpp"
 #include "WebPages.hpp"
 #include "slic3r/GUI/Camera.hpp"
@@ -27,8 +28,11 @@
 #include <wx/app.h>
 #include <wx/defs.h>
 #include <wx/dialog.h>
+#include <wx/display.h>
 #include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/glcanvas.h>
+#include <wx/popupwin.h>
 #include <wx/toplevel.h>
 #include <wx/vector.h>
 #include <wx/webview.h>
@@ -36,13 +40,17 @@
 #include <wx/window.h>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cctype>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <chrono>
 #include <functional>
+#include <initializer_list>
 #include <iterator>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <string>
@@ -119,7 +127,7 @@ const json kPopupItemSchema = prop("string", "Run this item of the menu the inpu
 // The menu an input call may open, which the inspector takes instead of showing it
 // (UiInspector::arm_menu()): armed in the closure that delivers the input, read once the events the
 // input queued have run. A call that fails before reading it drops it.
-struct PopupCapture
+struct InputMenu
 {
     McpService&  service;
     ToolContext& ctx;
@@ -133,10 +141,10 @@ struct PopupCapture
     // which runs it too).
     std::shared_ptr<bool> marked;
 
-    PopupCapture(McpService& service, ToolContext& ctx, std::string item) : service(service), ctx(ctx), item(std::move(item)) {}
-    PopupCapture(const PopupCapture&)            = delete;
-    PopupCapture& operator=(const PopupCapture&) = delete;
-    ~PopupCapture()
+    InputMenu(McpService& service, ToolContext& ctx, std::string item) : service(service), ctx(ctx), item(std::move(item)) {}
+    InputMenu(const InputMenu&)            = delete;
+    InputMenu& operator=(const InputMenu&) = delete;
+    ~InputMenu()
     {
         if (token == 0)
             return;
@@ -1038,7 +1046,285 @@ wxWebView* key_page(McpService& service)
     return webs.size() == 1 && !own_widget ? webs.front() : nullptr;
 }
 
+// The window set_window's target names: the main window, the topmost modal dialog, or the window a ref or
+// locator is in. Refuses one no tool may size or move. `locator` gets what the journal records for a
+// ref. UI thread.
+wxTopLevelWindow& window_target(McpService& service, const json& target, json& locator)
+{
+    wxWindow* window = nullptr;
+    if (target == "main" || target == "window") {
+        window = wxGetApp().mainframe;
+        if (window == nullptr)
+            throw ToolFailure("The main window is not up yet");
+    } else if (target == "dialog") {
+        window = service.modals().top();
+        if (window == nullptr)
+            throw ToolFailure(no_modal_dialog(service));
+    } else {
+        UiTarget t;
+        try {
+            t = service.inspector().resolve(target);
+        } catch (const ToolFailure& e) {
+            // A window's ref goes stale once the window is destroyed, and list_windows gives the open ones'.
+            if (!target.is_string())
+                throw;
+            throw ToolFailure(std::string(e.what()) + ", or list_windows for the open windows", e.details);
+        }
+        locator = service.inspector().locator_for(t);
+        window  = t.window.get() != nullptr ? wxGetTopLevelParent(t.window.get()) : nullptr;
+    }
+    if (dynamic_cast<wxPopupWindow*>(window) != nullptr)
+        throw ToolFailure("The target is in a popup, which the window it opened from places; give that window (list_windows)");
+    auto* tlw = dynamic_cast<wxTopLevelWindow*>(window);
+    if (tlw == nullptr)
+        throw ToolFailure("The target is in no window");
+    if (tlw->GetName() == kHiddenFromAutomation)
+        throw ToolFailure("The window is the person's own, which no tool reaches");
+    if (auto* dlg = dynamic_cast<wxDialog*>(tlw); dlg != nullptr && is_native_dialog(dlg))
+        throw ToolFailure("A native dialog is placed by the system; answer it with answer_dialog");
+    // A closed dialog may be hidden rather than destroyed, so its ref still resolves.
+    if (!tlw->IsShown())
+        throw ToolFailure("The window is closed; list_windows lists the open windows");
+    return *tlw;
+}
+
+// `window` while it is still one of the app's top-level windows, else null: set_window keeps a plain
+// pointer across its UI closures and checks it before following it. UI thread.
+wxTopLevelWindow* live_window(wxTopLevelWindow* window)
+{
+    for (wxWindow* w : wxTopLevelWindows)
+        if (w == window)
+            return window;
+    return nullptr;
+}
+
+// The windows set_window has minimized on Wayland, which never says whether one still is and gives an app
+// no way to restore one: a later normal for such a window can't bring it back, and its reply says so. UI
+// thread, where the weak refs are made and dropped.
+std::vector<wxWeakRef<wxTopLevelWindow>>& wayland_minimized()
+{
+    static std::vector<wxWeakRef<wxTopLevelWindow>> windows;
+    windows.erase(std::remove_if(windows.begin(), windows.end(), [](const wxWeakRef<wxTopLevelWindow>& w) { return w.get() == nullptr; }),
+                  windows.end());
+    return windows;
+}
+
+// Takes a window out of its minimized state, then out of its maximized one. Restore() won't do: on wxGTK
+// it presents the window, which raises it, and on Windows a window minimized while maximized comes back
+// maximized. Un-minimizing goes out only for a minimized window, as on GTK it shows a mapped X11 window
+// again, which raises it; set_window replies to a minimize once it reads back, so the next call sees it.
+// Un-maximizing goes out only for a maximized window except on GTK: on Windows it restores, so
+// activates, a normal window too, while GTK's IsMaximized() can lag a maximize still on its way, and
+// un-maximizing a normal window changes nothing there. UI thread.
+void restore_normal(wxTopLevelWindow& w)
+{
+    if (w.IsIconized())
+        w.Iconize(false);
+#ifdef __WXGTK__
+    w.Maximize(false);
+#else
+    if (w.IsMaximized())
+        w.Maximize(false);
+#endif
+}
+
+// set_window: checks the request and applies it in one UI closure, waits for the window to take it,
+// then replies with what the window became.
+ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
+{
+    const json target = args.value("target", json("main"));
+    json       locator;
+    // Never followed off the UI thread, and checked by live_window() on it: a wxWeakRef can't be made or
+    // dropped on this thread.
+    wxTopLevelWindow* window = nullptr;
+    bool              main = false, modal = false;
+    WindowSettling    settling;
+    ctx.run_ui([&] {
+        wxTopLevelWindow& w   = window_target(service, target, locator);
+        auto*             dlg = dynamic_cast<wxDialog*>(&w);
+        main                  = &w == wxGetApp().mainframe;
+        modal                 = dlg != nullptr && dlg->IsModal();
+        WindowAbilities abilities;
+        abilities.main            = main;
+        abilities.modal           = modal;
+        abilities.can_maximize    = w.HasFlag(wxMAXIMIZE_BOX);
+        abilities.can_minimize    = w.HasFlag(wxMINIMIZE_BOX);
+        abilities.positions_known = window_positions_known();
+        if (const std::string refusal = window_request_refusal(args, abilities); !refusal.empty())
+            throw ToolFailure(refusal);
+        // A size or position applies to the normal window, so a maximized or minimized one is restored first.
+        if (args.contains("size") || args.contains("position"))
+            restore_normal(w);
+        if (args.contains("size")) {
+            const wxSize asked(args["size"][0].get<int>(), args["size"][1].get<int>());
+            wxSize       size = asked;
+            size.IncTo(w.GetMinSize());
+            size.DecToIfSpecified(w.GetMaxSize());
+            settling.limited = size != asked;
+            w.SetSize(size);
+        }
+        // -1 is a place on a screen left of or above the primary one, not "keep this coordinate".
+        if (args.contains("position"))
+            w.Move(args["position"][0].get<int>(), args["position"][1].get<int>(), wxSIZE_ALLOW_MINUS_ONE);
+        const std::string state = arg_string(args, "state");
+        if (!abilities.positions_known && (state == "minimized" || state == "normal")) {
+            std::vector<wxWeakRef<wxTopLevelWindow>>& minimized = wayland_minimized();
+            const bool known = std::any_of(minimized.begin(), minimized.end(), [&w](const wxWeakRef<wxTopLevelWindow>& m) { return m.get() == &w; });
+            if (state == "minimized" && !known)
+                minimized.emplace_back(&w);
+            settling.unreported = state == "minimized" || known;
+        }
+        if (state == "maximized")
+            w.Maximize();
+        else if (state == "minimized")
+            w.Iconize();
+        else if (state == "normal")
+            restore_normal(w);
+        if (arg_bool(args, "raise", false))
+            w.Raise();
+        window = &w;
+        return json();
+    });
+    journal_with_locator(ctx, args, locator);
+
+    // The window manager may apply the request later (X11) or animate it (macOS): the wait ends at two
+    // equal readings in a row in the state asked for, and for the main window once its 3D view has
+    // drawn at the new size, which a minimized window never does. Wayland never reports a minimize, so
+    // there the wait asks neither for that state nor for a frame from a window that may be minimized.
+    std::string wanted = arg_string(args, "state");
+    if (wanted.empty() && (args.contains("size") || args.contains("position")))
+        wanted = "normal";
+    if (settling.unreported && wanted == "minimized")
+        wanted.clear();
+    const char* closed = "The request was applied before the window closed";
+    json        last;
+    const json  done = poll_until(
+        ctx,
+        [&]() -> json {
+            wxTopLevelWindow* w = live_window(window);
+            if (w == nullptr)
+                throw ToolFailure(closed);
+            const wxRect      rect  = w->GetScreenRect();
+            const std::string state = window_state(*w);
+            const json        reading{rect.x, rect.y, rect.width, rect.height, state};
+            settling.held = reading == std::exchange(last, reading) && (wanted.empty() || state == wanted);
+            if (!settling.held)
+                return json();
+            return !main || state == "minimized" || settling.unreported || view_drawn_at_size() ? json(true) : json();
+        },
+        std::chrono::seconds(3), std::chrono::milliseconds(50));
+    if (done.is_null() && ctx.cancelled())
+        throw ToolFailure("Cancelled: OrcaSlicer is closing or the replay or script was stopped");
+    settling.drawn = !done.is_null();
+    if (settling.held && !settling.drawn)
+        settling.undrawn = undrawn_window(ctx);
+
+    json out = ctx.observe_ui([&] {
+        wxTopLevelWindow* w = live_window(window);
+        if (w == nullptr)
+            throw ToolFailure(closed);
+        // list_windows's own entry, so the two report a window alike.
+        const json entry = service.inspector().window_entry(*w, modal);
+        json       reply{{"title", entry["title"]}, {"kind", entry["kind"]}, {"ref", entry["ref"]}, {"size", {entry["width"], entry["height"]}}};
+        if (entry.contains("x"))
+            reply["position"] = {entry["x"], entry["y"]};
+        reply["state"]     = entry["state"];
+        reply["resizable"] = entry["resizable"];
+        reply["scale"]     = w->GetContentScaleFactor();
+        // A minimized window may be on no display; the primary one stands for it then.
+        int index = wxDisplay::GetFromWindow(w);
+        for (unsigned i = 0; index == wxNOT_FOUND && i < wxDisplay::GetCount(); ++i)
+            if (wxDisplay(i).IsPrimary())
+                index = int(i);
+        reply["display"] = display_area(unsigned(std::max(index, 0)));
+        if (arg_bool(args, "raise", false))
+            reply["active"] = w->IsActive();
+        return reply;
+    });
+    add_window_notes(args, settling, out);
+    return ToolResult::ok(out);
+}
+
 } // namespace
+
+bool view_drawn_at_size()
+{
+    GLCanvas3D* canvas = shown_canvas();
+    if (canvas == nullptr || !canvas->get_wxglcanvas()->IsShownOnScreen())
+        return true;
+    // What render() gives the viewport: the canvas's size in GL pixels, at least 10.
+    const Size                size     = canvas->get_canvas_size();
+    const std::array<int, 4>& viewport = ui_plater().get_camera().get_viewport();
+    if (viewport[2] == std::max(10, size.get_width()) && viewport[3] == std::max(10, size.get_height()))
+        return true;
+    canvas->set_as_dirty();
+    return false;
+}
+
+void add_window_notes(const json& args, const WindowSettling& settling, json& reply)
+{
+    json adjusted = json::array();
+    for (const std::string field : {"size", "position", "state"})
+        if (args.contains(field) && reply.contains(field) && reply[field] != args[field] && !(settling.unreported && field == "state"))
+            adjusted.push_back(field);
+    std::string note = settling.limited ? "size is held to the window's minimum or maximum size" : "";
+    const auto  add  = [&note](const std::string& why) { note += (note.empty() ? "" : "; ") + why; };
+    if (settling.unreported)
+        add("Wayland neither reports a minimized window nor lets an app restore one, so state can't show it, and only the "
+            "person can bring the window back from the desktop");
+    else if (!settling.held)
+        add("the window manager did not apply the request within 3 s");
+    else if (!settling.drawn)
+        add("the 3D view did not draw at the window's size within 3 s" + (settling.undrawn.empty() ? "" : ": " + settling.undrawn));
+    else if (note.empty() && !adjusted.empty())
+        note = "the window manager adjusted the request";
+    if (!adjusted.empty())
+        reply["adjusted"] = std::move(adjusted);
+    if (!note.empty())
+        reply["note"] = note;
+}
+
+std::string window_request_refusal(const json& args, const WindowAbilities& window)
+{
+    const bool size = args.contains("size"), position = args.contains("position");
+    if (!size && !position && !args.contains("state") && !args.contains("raise"))
+        return "Give at least one of size, position, state or raise; list_windows reads a window's geometry without changing it";
+    // Two whole numbers that fit wx's int coordinates, both positive for a size. Whole floats pass, as
+    // they pass the schema's integer type.
+    const auto is_pair = [](const json& value, bool positive) {
+        const auto whole = [positive](const json& n) {
+            if (!n.is_number())
+                return false;
+            const double d = n.get<double>();
+            return d == std::floor(d) && d >= (positive ? 1.0 : double(std::numeric_limits<int>::min())) &&
+                   d <= double(std::numeric_limits<int>::max());
+        };
+        return value.is_array() && value.size() == 2 && std::all_of(value.begin(), value.end(), whole);
+    };
+    if (size && !is_pair(args.at("size"), true))
+        return "Give size as [width, height], two positive integers";
+    if (position && !is_pair(args.at("position"), false))
+        return "Give position as [x, y], two integers";
+    const json state = args.value("state", json());
+    if ((state == "maximized" || state == "minimized") && (size || position))
+        return "A " + state.get<std::string>() +
+               " window's size and position are set by the system: give state alone, or size and position without state";
+    if (state == "maximized" && !window.main && !window.can_maximize)
+        return "This window's title bar has no maximize button: give it a size instead";
+    if (state == "minimized" && window.modal)
+        return "A modal dialog never minimizes, as the app would stay blocked with nothing showing: close the dialog instead";
+    if (state == "minimized" && !window.main && !window.can_minimize)
+        return "This window's title bar has no minimize button: move it aside with position, or close it, instead";
+    if (position && !window.positions_known)
+        return "position needs X11; Wayland places windows itself, so leave position out or run OrcaSlicer under X11";
+    return {};
+}
+
+json display_area(unsigned index)
+{
+    const wxRect area = wxDisplay(index).GetClientArea();
+    return {{"index", index}, {"x", area.x}, {"y", area.y}, {"width", area.width}, {"height", area.height}};
+}
 
 void register_ui_tools(McpService& service)
 {
@@ -1051,7 +1337,8 @@ void register_ui_tools(McpService& service)
         "topmost last. A window's ref goes to screenshot as target to capture that window, to list_widgets as root to "
         "list it alone, and to press_keys as target; its title is the within of locators for its widgets.\n"
         "Reply: each window's title, kind (main, window, dialog, or panel: a dock panel floating on its own), modal, "
-        "ref, web (it shows a web page), x and y on screen (not on Wayland, which doesn't say), width and height.\n"
+        "ref, web (it shows a web page), x and y on screen (not on Wayland, which doesn't say), width and height, state "
+        "(normal, maximized or minimized) and resizable (it has a resize border); set_window changes them.\n"
         "A native dialog (a message box, a file picker) has native: true and no ref: answer_dialog answers it. hidden: "
         "true marks the person's own windows (Action Replay, the Run Script panel and their prompts, the Python scripts "
         "setting), which no tool reaches and screenshots leave out.",
@@ -1060,6 +1347,34 @@ void register_ui_tools(McpService& service)
         [&service](const json& args, ToolContext& ctx) {
             return ToolResult::ok(page(ctx.run_ui([&] { return service.inspector().windows(); }), args));
         }));
+
+    {
+        ToolDef def = recover_input_tool(
+            "set_window", L("Size or move a window"),
+            "Size, move, maximize, minimize or raise a window: the main window (default), the topmost modal dialog, or one "
+            "list_windows lists, also while a modal dialog is open. Size the main window before set_view fits the camera and "
+            "before start_recording, as a recording keeps its first frame's size. size and position are in the units "
+            "list_windows reports, whose x/y and width/height are read as position and size too. A size or position restores "
+            "a maximized or minimized window first. A window takes only the states its title bar offers; a modal dialog "
+            "never minimizes. A refused call changes nothing. Replies once the window holds still and the 3D view has drawn "
+            "at its new size (3 s at most): title, kind, ref, size, position, state, resizable, scale (screenshot pixels per "
+            "window unit), display (its work area), active with raise, and adjusted with a note: what the OS or a size limit "
+            "changed.",
+            object_schema({{"target", {{"type", json::array({"string", "object"})},
+                                       {"description", "main (default; or window, as screenshot calls it), dialog (the topmost modal "
+                                                       "dialog), or a window's ref or locator from list_windows; a widget's ref or "
+                                                       "locator picks the window it is in."}}},
+                           {"size", array_prop({{"type", "integer"}}, "[width, height], held to the window's minimum and maximum size.")},
+                           {"position", array_prop({{"type", "integer"}}, "[x, y] of the window's top-left corner on screen; not on Wayland.")},
+                           {"state", enum_prop({"normal", "maximized", "minimized"},
+                                               "normal restores a maximized or minimized window; maximized and minimized take no size "
+                                               "or position.")},
+                           {"raise", prop("boolean", "Bring the window in front of the app's other windows; active in the reply says "
+                                                     "whether it became the active one.")}}),
+            [&service](const json& args, ToolContext& ctx) { return set_window(service, ctx, args); });
+        def.allowed_during_operation = true;
+        reg.add(def);
+    }
 
     {
         ToolDef def = inspect_tool(
@@ -1192,7 +1507,7 @@ void register_ui_tools(McpService& service)
             json         locator;
             GLCanvas3D*  canvas = nullptr;
             int          gizmo  = -1;
-            PopupCapture menu(service, ctx, arg_string(args, "popup_item"));
+            InputMenu    menu(service, ctx, arg_string(args, "popup_item"));
             // A list's rows get their places a frame after they change (on GTK; a dialog's tree rebuilt
             // by a preset choice), so a row is scrolled to first and given up to 1 s to take its place.
             bool placed = false;
@@ -1333,7 +1648,7 @@ void register_ui_tools(McpService& service)
                 return r;
             }
             json         locator;
-            PopupCapture menu(service, ctx, arg_string(args, "popup_item"));
+            InputMenu    menu(service, ctx, arg_string(args, "popup_item"));
             json out = ctx.run_ui([&] {
                 std::optional<UiTarget> t;
                 if (args.contains("target")) {
@@ -1414,7 +1729,7 @@ void register_ui_tools(McpService& service)
             if (args.contains("popup_item") && action != "click" && action != "up")
                 throw ToolFailure("popup_item goes with action click or up, which open a right click's menu");
             const std::string owner = service.run_owner(service.jobs().ancestry(ctx.job_id()));
-            PopupCapture      menu(service, ctx, arg_string(args, "popup_item"));
+            InputMenu         menu(service, ctx, arg_string(args, "popup_item"));
             json out = ctx.run_ui([&] {
                 // A client's press that runs after the endpoint closed would stay held, with no one left
                 // to release it.

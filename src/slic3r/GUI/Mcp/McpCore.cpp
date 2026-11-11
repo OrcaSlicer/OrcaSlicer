@@ -2,6 +2,7 @@
 
 #include "JobRegistry.hpp"
 #include "McpJournal.hpp"
+#include "McpProtocol.hpp"
 #include "McpTypes.hpp"
 #include "UiInvoker.hpp"
 
@@ -214,8 +215,7 @@ ToolResult McpCore::call_child_named(const std::string& tool, const nlohmann::js
     if (def == nullptr)
         return ToolResult::error("Unknown tool: " + tool);
     nlohmann::json args = raw_args;
-    normalize_arguments(def->input_schema, args);
-    if (std::string err = validate_arguments(def->input_schema, args); !err.empty())
+    if (std::string err = argument_error(*def, args); !err.empty())
         return ToolResult::error("Invalid arguments: " + err);
     if (std::string err = resolve_api_call(m_registry, def, args); !err.empty())
         return ToolResult::error(err);

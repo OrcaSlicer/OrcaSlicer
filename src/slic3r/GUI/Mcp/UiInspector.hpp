@@ -141,6 +141,10 @@ public:
     // has the ref list_widgets gives it. A native dialog has no ref, and a window hidden from automation
     // is listed by its title and kind alone, so an agent knows it is there and out of reach.
     nlohmann::json windows();
+    // One window of windows(), `modal` saying whether it blocks the app: its title, kind and modal, then
+    // hidden or native for a window no tool reaches, else a new ref, web, x and y where the platform
+    // knows them, width, height, state and resizable. set_window replies with the same fields.
+    nlohmann::json window_entry(wxTopLevelWindow& window, bool modal);
     // The web views a snapshot with `options` walks whose pages it lists: shown ones under its
     // roots, and while a modal dialog is open only those in the topmost one. `behind` gets the
     // others under the roots, which are listed without their pages.
@@ -375,6 +379,8 @@ GLCanvas3D* design_canvas();
 std::vector<GLCanvas3D*> ui_canvases();
 // The 3D view on screen: the Design view while its tab is shown, else the plater's current canvas.
 GLCanvas3D* shown_canvas();
+// "minimized", "maximized" or "normal": a window's state as list_windows reports it and set_window takes it.
+const char* window_state(const wxTopLevelWindow& window);
 // "3d", "preview", "assemble" or "design".
 const char* canvas_name(GLCanvas3D* canvas);
 // The canvas of a name canvas_name() gives; "" is the Prepare view. Null for an unknown name, and for

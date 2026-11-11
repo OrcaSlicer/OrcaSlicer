@@ -141,19 +141,6 @@ bool canvas_being_mapped()
     return false;
 }
 
-// Polls `poll` on the UI thread every `interval` until it returns a non-null value, which it returns,
-// or until `timeout` passes or the call is cancelled, when it returns null.
-json poll_until(ToolContext& ctx, const std::function<json()>& poll, std::chrono::milliseconds timeout, std::chrono::milliseconds interval)
-{
-    const auto end = std::chrono::steady_clock::now() + timeout;
-    for (;;) {
-        json v = ctx.observe_ui(poll);
-        if (!v.is_null() || ctx.cancelled() || std::chrono::steady_clock::now() >= end)
-            return v;
-        std::this_thread::sleep_for(interval);
-    }
-}
-
 #ifdef __WXGTK__
 // The main window's frame clock, or null while the window is hidden or minimized, so not meant to be
 // drawn. UI thread.
@@ -167,6 +154,17 @@ GdkFrameClock* main_frame_clock()
 #endif
 
 } // namespace
+
+json poll_until(ToolContext& ctx, const std::function<json()>& poll, std::chrono::milliseconds timeout, std::chrono::milliseconds interval)
+{
+    const auto end = std::chrono::steady_clock::now() + timeout;
+    for (;;) {
+        json v = ctx.observe_ui(poll);
+        if (!v.is_null() || ctx.cancelled() || std::chrono::steady_clock::now() >= end)
+            return v;
+        std::this_thread::sleep_for(interval);
+    }
+}
 
 void settle(ToolContext& ctx)
 {

@@ -22,7 +22,8 @@
       {"match": "text volume is empty", "button": "ok"}]}},
     {"tool": "new_project", "args": {"discard_changes": true}},
     {"tool": "run_action", "args": {"id": "orca_command:mode_expert:orca"}},
-    {"tool": "set_view", "args": {"tab": "prepare", "window_size": "${vars.window_size}"}},
+    {"tool": "set_window", "args": {"size": "${vars.window_size}"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
     // Two filaments, so Color Painting is offered.
     {"tool": "click", "args": {"target": {"label": "Add one filament"}}},
     {"tool": "get_app_state", "expect": {"/presets/filaments/1": {"exists": true}}},

@@ -1,5 +1,6 @@
 // How a plugin's orca.host.tools calls reach the MCP tools.
 
+#include "McpProtocol.hpp"
 #include "McpService.hpp"
 #include "McpTypes.hpp"
 
@@ -121,8 +122,7 @@ void install_plugin_tool_caller()
         if (def == nullptr)
             throw ToolCallError("Unknown tool: " + tool, {{"did_you_mean", service->registry().similar(tool)}});
         json arguments = args;
-        normalize_arguments(def->input_schema, arguments);
-        if (std::string err = validate_arguments(def->input_schema, arguments); !err.empty())
+        if (std::string err = argument_error(*def, arguments); !err.empty())
             throw ToolCallError("Invalid arguments: " + err, json());
         if (std::string err = resolve_api_call(service->registry(), def, arguments); !err.empty())
             throw ToolCallError(err, json());

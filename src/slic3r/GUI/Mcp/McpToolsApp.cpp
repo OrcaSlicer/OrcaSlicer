@@ -37,7 +37,9 @@
 #include <boost/nowide/fstream.hpp>
 
 #include <wx/defs.h>
+#include <wx/display.h>
 #include <wx/gdicmn.h>
+#include <wx/glcanvas.h>
 #include <wx/vector.h>
 
 #include <algorithm>
@@ -112,6 +114,16 @@ json app_state(McpService& service)
                {"jobs", service.jobs().list()}};
     if (json recording = service.recorder().state(); !recording.is_null())
         state["recording"] = std::move(recording);
+    // Each display's work area, where set_window can place a window.
+    json displays = json::array();
+    for (unsigned i = 0; i < wxDisplay::GetCount(); ++i) {
+        const wxDisplay display(i);
+        json            area = display_area(i);
+        area["scale"]        = display.GetScaleFactor();
+        area["primary"]      = display.IsPrimary();
+        displays.push_back(std::move(area));
+    }
+    state["displays"] = std::move(displays);
     MainFrame* frame  = wxGetApp().mainframe;
     Plater*    plater = wxGetApp().plater();
     if (frame == nullptr || plater == nullptr)
@@ -156,6 +168,10 @@ json app_state(McpService& service)
                               json();
     if (!state["preview"].is_null())
         state["preview"]["plate"] = plates.get_curr_plate_index();
+    // The camera of the 3D view shown, the Design view's on the Design tab, which swaps its camera into the
+    // plater's while it is shown.
+    if (GLCanvas3D* canvas = shown_canvas(); canvas != nullptr && canvas->get_wxglcanvas()->IsShownOnScreen())
+        state["camera"] = camera_state(plater->get_camera(), canvas->get_scale());
     // The open gizmo, on the canvas shown first.
     state["gizmo"] = nullptr;
     std::vector<GLCanvas3D*> canvases = live_canvases();
@@ -223,15 +239,19 @@ void register_app_tools(McpService& service)
     reg.add(inspect_tool(
         "get_app_state", L("Get app state"),
         "Snapshot of OrcaSlicer. Call it first and whenever you are unsure what the app is doing. The app: version, platform "
-        "and display backend, whether it is ready, the main window, the MCP endpoint (mcp), python (available: Python runs "
+        "and display backend, whether it is ready, the main window, the displays (each one's work area x, y, width and "
+        "height, as set_window takes positions, its scale and whether it is primary), the MCP endpoint (mcp), python "
+        "(available: Python runs "
         "in this build; scripts_allowed: run_script may run, which only a person turns on, in Preferences > AI features > "
         "Python scripts) and design_tab (the Design tab and call_cad_tool are on; a person turns the CAD feature on in "
         "Preferences and restarts). The project: current tab and mode, printer technology, name, path and unsaved changes, "
         "selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the "
         "instances [[object, instance]] they are selected in and, when parts rather than whole instances are selected, "
         "volumes [[object, part]], in the indices select_objects takes; wipe_tower when a prime tower is selected; canvas is the 3D "
-        "view it belongs to), slicing state, and "
-        "the Preview's view type, time mode and layer range (1-based, with their Z). What is going on: open modal "
+        "view it belongs to), slicing state, "
+        "the Preview's view type, time mode and layer range (1-based, with their Z), and the camera of the 3D view shown "
+        "(camera: type, target, position, zoom, click_px_per_mm, elevation and azimuth, as set_view replies with it). What "
+        "is going on: open modal "
         "dialogs, each with its title, buttons (enabled: false when disabled) and a message that reads it as shown: its "
         "text and its controls row by row, fields [value], choices [value ▾], checkboxes [x] / [ ] / [-], radio and "
         "selector options (*) / ( ), list rows \"- row | cells\", secrets [******], \" (disabled)\" after a disabled "

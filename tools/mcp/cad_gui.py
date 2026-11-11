@@ -27,16 +27,11 @@ sys.stdout.reconfigure(errors="backslashreplace")
 CANVAS = {"label": "OrcaSceneCanvas"}
 NEW_DESIGN = "New Design — clear the feature tree"
 
-# reset_view()'s zoom, in wheel events of WHEEL_NOTCHES each. One event scales the camera's zoom
-# by 1 / (1 - 0.1 * notches), at most 4 notches an event, and the zoom stops at
-# Camera::max_zoom() (Camera::update_zoom(), set_zoom()). ZOOM_IN_EVENTS reach that stop from
-# any zoom the camera allows, and ZOOM_OUT_EVENTS then leave 250 / 1.4**15, about 1.6 px per mm
-# at the camera's target: close enough that a 40 mm line is long beside the pixel-sized reach of
-# its value label, and far enough that the region calibrate() measures holds every shape the
-# tests draw at the default window.
-WHEEL_NOTCHES = 4
-ZOOM_IN_EVENTS = 18
-ZOOM_OUT_EVENTS = 15
+# reset_view()'s zoom, in set_view's screenshot pixels per mm at the camera's target, about 1.6:
+# close enough that a 40 mm line is long beside the pixel-sized reach of its value label, and far
+# enough that the region calibrate() measures holds every shape the tests draw at the default
+# window.
+RESET_ZOOM = 250 / 1.4 ** 15
 
 # Where calibrate() clicks its probes, as shares of the canvas's width and height: four around
 # its centre and a fifth off both of the plane's axes through it. The second layout is used only
@@ -295,7 +290,7 @@ class CadGui:
 
         Dialogs go first, since the canvas takes no input while one is open, then the modeless
         dialogs a rung opened, such as the Design tab's Text dialog. A press a rung left held is
-        released before reset_view(), whose wheel turns and N would otherwise act under it."""
+        released before reset_view(), whose N would otherwise act under it."""
         steps = [("cancel dialogs", self._cancel_dialogs),
                  ("cancel modeless dialogs", self._cancel_modeless),
                  ("show the Design tab", lambda: self.client.call("set_view", tab="design")),
@@ -485,7 +480,7 @@ class CadGui:
         self.cancel()
         if over > 0:
             width, height = self.client.call("get_app_state")["window"]["size"]
-            self.client.call("set_view", window_size=[width + over + cancel.rect[3], height])
+            self.client.call("set_window", size=[width + over + cancel.rect[3], height])
         self.show_design()
         self.new_design()
 
@@ -496,23 +491,23 @@ class CadGui:
 
     def reset_view(self):
         """Put the Design camera in one view, whatever an earlier test, rung or project open left:
-        the top camera at one zoom, centred on the sketch's origin when a sketch is open.
+        the top camera at RESET_ZOOM, centred on describe_scene's modeling_origin, the sketch planes'
+        origin, and squared to the sketch's plane when a sketch is open.
 
-        set_view's directions, Home and a double-click on the canvas fit only what has volumes, so
-        on an empty design they turn the camera and keep its zoom and centre. The zoom is set with
-        the wheel, at the canvas's centre so the view zooms about it: in until the camera stops at
-        its largest zoom, then out a fixed number of notches, which gives the same zoom from any
-        start. N in a sketch squares the view to the sketch's plane and centres it on the plane's
-        origin. Outside a sketch nothing centres the view, and opening a project leaves it on the
-        plates' centre, a few millimetres off the origin, so calibrate() resets the view again
-        inside its sketch. The wheel is taken to zoom in on a positive turn, Preferences'
-        default."""
-        self.client.call("set_view", tab="design", camera="top")
-        centre = self._canvas_centre()
-        for _ in range(ZOOM_IN_EVENTS):
-            self.gesture(action="wheel", delta=WHEEL_NOTCHES, **centre)
-        for _ in range(ZOOM_OUT_EVENTS):
-            self.gesture(action="wheel", delta=-WHEEL_NOTCHES, **centre)
+        set_view's target is in the Design view's world coordinates, where modeling_origin is not
+        zero: a new design puts it at the Design bed's centre. Its directions fit only what has volumes, so on an
+        empty design they turn the camera and keep its zoom and centre; the target and zoom it
+        applies after the direction set both. N in a sketch squares the view to the sketch's plane
+        and centres it on the plane's origin, keeping the zoom. Every map calibrate() fits stands
+        on this view, so the camera set_view reports is checked."""
+        origin = self.cad("describe_scene")["modeling_origin"]
+        state = self.client.call("set_view", tab="design", camera="top", target=origin,
+                                 zoom=RESET_ZOOM).get("camera_state", {})
+        zoom, target = state.get("zoom"), state.get("target")
+        if (zoom is None or abs(zoom - RESET_ZOOM) > 1e-3 or target is None
+                or max(abs(a - b) for a, b in zip(target, origin)) > 1e-3):
+            raise RuntimeError(f"set_view left the Design camera at {state}, not at modeling_origin "
+                               f"{origin} with zoom {RESET_ZOOM:.4f}")
         if self._sketch_or_none():
             self.keys("n", target=CANVAS)
 
@@ -545,16 +540,16 @@ class CadGui:
         sketch_describe.
 
         The route to the plane, with no pixel constant: show_design() shows the Design tab in the
-        top camera, which looks straight down on the bed's centre, the modeling origin, so the
-        origin is at or near the canvas's centre. Shift+S on the canvas brings the reference
-        planes up. The XY plane's square lies off the origin toward the canvas's lower right (the
-        squares sit in the +X, -Y, +Z octant), from a small gap out to a size set by the bed, so
-        the clicks walk out from the centre along that diagonal, in steps of 2% of the canvas's
-        smaller side, until one opens the sketch. A click that misses lands on the bed or the
-        background and leaves the plane choice waiting for the next. Along that diagonal only the
-        XY square can be hit: the XZ and YZ squares are seen edge-on, along the axes. The click
-        that picks the plane also pops the tool offer, which the reply lists and nothing shows.
-        calibrate() then resets the view in the sketch and measures it."""
+        top camera, which looks straight down on the modeling origin, so the origin is at the
+        canvas's centre. Shift+S on the canvas brings the reference planes up. The XY plane's
+        square lies off the origin toward the canvas's lower right (the squares sit in the +X, -Y,
+        +Z octant), from a small gap out to a size set by the bed, so the clicks walk out from the
+        centre along that diagonal, in steps of 2% of the canvas's smaller side, until one opens
+        the sketch. A click that misses lands on the bed or the background and leaves the plane
+        choice waiting for the next. Along that diagonal only the XY square can be hit: the XZ and
+        YZ squares are seen edge-on, along the axes. The click that picks the plane also pops the
+        tool offer, which the reply lists and nothing shows. calibrate() then resets the view in
+        the sketch and measures it."""
         self._open_sketch()
         self.calibrate()
         if tool_key:

@@ -10,7 +10,8 @@
   "name": "web dialogs through the GUI tools",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
-    {"tool": "set_view", "args": {"window_size": [1920, 1200], "tab": "prepare"}},
+    {"tool": "set_window", "args": {"size": [1920, 1200]}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
 
     // ---- The preset bundle dialog, closed by its page's own button ----
     {"tool": "run_action", "args": {"id": "orca_command:preset_bundle:orca"}, "await": false, "save_as": "bundle"},

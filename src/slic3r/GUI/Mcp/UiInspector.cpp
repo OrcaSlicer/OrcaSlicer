@@ -1675,7 +1675,7 @@ json click_data_view_row(wxDataViewCtrl& ctrl, const ListRow& row, const std::st
     scroll_into_view(&ctrl);
     const wxRect cell = ctrl.GetItemRect(row.item, col);
     if (cell.IsEmpty())
-        throw ToolFailure("\"" + row.path.back() + "\" can't be scrolled into the list's view; make the window taller with set_view window_size");
+        throw ToolFailure("\"" + row.path.back() + "\" can't be scrolled into the list's view; make the window taller with set_window size");
     // The pointer stays on the cell for the click: the object list acts on the cell under it (Printable
     // toggles printability, Editing resets the row's settings).
     wxMouseState pointer;
@@ -2620,58 +2620,67 @@ bool shows_web_view(wxWindow* w)
 
 } // namespace
 
+const char* window_state(const wxTopLevelWindow& window)
+{
+    return window.IsIconized() ? "minimized" : window.IsMaximized() ? "maximized" : "normal";
+}
+
+json UiInspector::window_entry(wxTopLevelWindow& tlw, bool modal)
+{
+    const bool        main  = &tlw == wxGetApp().mainframe;
+    auto*             dlg   = dynamic_cast<wxDialog*>(&tlw);
+    const std::string title = label_of(&tlw);
+    json w{{"title", title},
+           {"kind", main ? "main" : dynamic_cast<wxAuiFloatingFrame*>(&tlw) != nullptr ? "panel" : dlg != nullptr ? "dialog" : "window"},
+           {"modal", modal}};
+    if (tlw.GetName() == kHiddenFromAutomation) {
+        w["hidden"] = true;
+    } else if (dlg != nullptr && is_native_dialog(dlg)) {
+        // answer_dialog answers it; no other tool reaches into it.
+        w["native"] = true;
+    } else {
+        // The locator list_widgets gives the window, so a journal records the same.
+        UiTarget t;
+        t.kind    = UiTarget::Kind::Window;
+        t.window  = &tlw;
+        t.locator = {{"class", short_class(&tlw)}};
+        if (!title.empty())
+            t.locator["label"] = title;
+        if (const std::string name = meaningful_name(&tlw); !name.empty())
+            t.locator["name"] = name;
+        w["ref"] = add_ref(std::move(t));
+        w["web"] = shows_web_view(&tlw);
+        if (window_positions_known()) {
+            const wxPoint pos = tlw.GetScreenPosition();
+            w["x"] = pos.x, w["y"] = pos.y;
+        }
+        const wxSize size = tlw.GetSize();
+        w["width"] = size.x, w["height"] = size.y;
+        w["state"] = window_state(tlw);
+        // The main window's style leaves wxRESIZE_BORDER out on macOS, where a person resizes it all the same.
+        w["resizable"] = main || tlw.HasFlag(wxRESIZE_BORDER);
+    }
+    return w;
+}
+
 json UiInspector::windows()
 {
     const std::vector<wxDialog*>& modals = m_service.modals().stack();
-    const bool                    placed = window_positions_known();
     json                          out    = json::array();
-    auto add = [&](wxTopLevelWindow* tlw, bool modal) {
-        const bool        main  = tlw == wxGetApp().mainframe;
-        auto*             dlg   = dynamic_cast<wxDialog*>(tlw);
-        const std::string title = label_of(tlw);
-        json w{{"title", title},
-               {"kind", main ? "main" : dynamic_cast<wxAuiFloatingFrame*>(tlw) != nullptr ? "panel" : dlg != nullptr ? "dialog" : "window"},
-               {"modal", modal}};
-        if (tlw->GetName() == kHiddenFromAutomation) {
-            w["hidden"] = true;
-        } else if (dlg != nullptr && is_native_dialog(dlg)) {
-            // answer_dialog answers it; no other tool reaches into it.
-            w["native"] = true;
-        } else {
-            // The locator list_widgets gives the window, so a journal records the same.
-            UiTarget t;
-            t.kind    = UiTarget::Kind::Window;
-            t.window  = tlw;
-            t.locator = {{"class", short_class(tlw)}};
-            if (!title.empty())
-                t.locator["label"] = title;
-            if (const std::string name = meaningful_name(tlw); !name.empty())
-                t.locator["name"] = name;
-            w["ref"] = add_ref(std::move(t));
-            w["web"] = shows_web_view(tlw);
-            if (placed) {
-                const wxPoint pos = tlw->GetScreenPosition();
-                w["x"] = pos.x, w["y"] = pos.y;
-            }
-            const wxSize size = tlw->GetSize();
-            w["width"] = size.x, w["height"] = size.y;
-        }
-        out.push_back(std::move(w));
-    };
     if (wxGetApp().mainframe != nullptr && wxGetApp().mainframe->IsShown())
-        add(wxGetApp().mainframe, false);
+        out.push_back(window_entry(*wxGetApp().mainframe, false));
     for (wxWindow* w : wxTopLevelWindows) {
         auto* tlw = dynamic_cast<wxTopLevelWindow*>(w);
         if (tlw == nullptr || !tlw->IsShown() || tlw == wxGetApp().mainframe || std::find(modals.begin(), modals.end(), tlw) != modals.end())
             continue;
         // A window hidden from automation is the only modal one the tracker leaves off its stack.
         auto* dlg = dynamic_cast<wxDialog*>(tlw);
-        add(tlw, dlg != nullptr && dlg->IsModal());
+        out.push_back(window_entry(*tlw, dlg != nullptr && dlg->IsModal()));
     }
     // A native dialog may not report itself shown while its box is up.
     for (wxDialog* d : modals)
         if (d->IsShown() || is_native_dialog(d))
-            add(d, true);
+            out.push_back(window_entry(*d, true));
     return out;
 }
 
@@ -3043,7 +3052,7 @@ void UiInspector::reveal(UiTarget& target)
     }
     if (item.clipped)
         throw ToolFailure("\"" + target.imgui_label + "\" is outside the visible part of its panel, which does not scroll to it; "
-                          "make the window taller with set_view window_size");
+                          "make the window taller with set_window size");
     target.x = item.x, target.y = item.y, target.w = item.w, target.h = item.h;
 }
 
@@ -3153,7 +3162,7 @@ json UiInspector::click(const UiTarget& t, const ClickOptions& o)
         const wxPoint pos = imgui_to_canvas(*shown.canvas, shown.x + shown.w / 2.f, shown.y + shown.h / 2.f);
         if (const std::string cover = covered_by(*shown.canvas, pos, shown.imgui_window); !cover.empty())
             throw ToolFailure("\"" + shown.imgui_label + "\" is under " + cover +
-                              ", which would take the click; close it, or enlarge the window with set_view window_size");
+                              ", which would take the click; close it, or enlarge the window with set_window size");
         canvas_click(*shown.canvas, pos, o);
         return {{"clicked", shown.imgui_label}, {"at", {pos.x, pos.y}}};
     }

@@ -15,7 +15,7 @@
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_view", "args": {"window_size": [1920, 1200]}},
+    {"tool": "set_window", "args": {"size": [1920, 1200]}},
     {"tool": "call_cad_tool", "args": {"tool": "new_design"}, "expect": {"/result/ok": {"eq": true}, "/result/cleared/features": {"eq": 0}}},
     {"tool": "describe_cad_tool", "args": {"tool": ["describe_feature", "set_feature"]}, "expect": {"/tools/0/access": {"eq": "read"}, "/tools/1/access": {"eq": "change"}}},
     {"tool": "call_cad_tool", "args": {"tool": "extrude", "args": {"width": 20, "height": 20, "distance": 10}},

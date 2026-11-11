@@ -210,7 +210,7 @@ window isn't being drawn when it isn't.
 | Class | Tools | Runs behind a modal or inside another call |
 |---|---|---|
 | `Inspect` | get_app_state, wait, get_log, list tools, get_settings, screenshot, list_widgets, start_recording, stop_recording, encode_recording | yes |
-| `Recover` | answer_dialog, auto_answer_dialogs, GUI input aimed at the topmost modal | yes |
+| `Recover` | answer_dialog, auto_answer_dialogs, GUI input aimed at the topmost modal, set_window | yes |
 | `Mutate` | everything else | no |
 
 The closure checks the guards on the UI thread, since the app can change between posting and
@@ -373,7 +373,7 @@ Script panel, which runs Python.
 
 | Group | Tool | Purpose |
 |---|---|---|
-| App | `get_app_state` | version, platform and display backend, ready, window, the MCP endpoint, whether Python runs and Python scripts are allowed, whether the Design tab is on, tab, mode, project, presets, plates, objects, the selection, slicing, the Preview's view type, time mode and layer range, print host uploads, the open gizmo, dialogs, menus closed unseen, auto-answer rules, notifications, jobs |
+| App | `get_app_state` | version, platform and display backend, ready, window, the displays' work areas, the MCP endpoint, whether Python runs and Python scripts are allowed, whether the Design tab is on, tab, mode, project, presets, plates, objects, the selection, slicing, the Preview's view type, time mode and layer range, the camera of the 3D view shown, print host uploads, the open gizmo, dialogs, menus closed unseen, auto-answer rules, notifications, jobs |
 | | `wait` | `ready`, `idle`, `dialog`, `no_dialog` or a `job` (default the job given, else `idle`); `timeout_s` up to 50 |
 | | `get_log` | end of the current log file, filtered by minimum level |
 | Speed Dial | `search_actions` | search the action catalog, paged |
@@ -400,13 +400,14 @@ Script panel, which runs Python.
 | Slice | `slice` | current, one or all plates, then the Preview tab as after the Slice button; outcome for each plate, and for an `ok` one its time, filament totals with the flush, cost, layers, max Z, filament changes and grams per slot by use |
 | | `cancel_job` | stop the running slice or G-code export, a pending automatic reslice, or a background job an MCP call started (optionally only a given job), or with `job` a running `encode_recording`; allowed during an operation |
 | | `set_custom_gcode_at_layer` | add or remove a plate's pauses, custom G-code, custom templates and filament changes on its sliced layers, as the Preview layer slider's menu does |
-| View | `set_view` | tab (Design included), 3D view (Prepare, preview, assemble), camera (a direction also as `view`; the Design view's on the Design tab) and `orbit` around what it looks at by degrees, preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate, window size |
+| View | `set_view` | tab (Design included), 3D view (Prepare, preview, assemble), camera of the 3D view shown (a direction also as `view`; the Design view's on the Design tab), its target and zoom, `orbit` around what it looks at by degrees on every 3D view, and a `camera_state` readback; preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate |
 | | `screenshot` | window, the 3D view shown (the Design view on the Design tab), topmost dialog or one widget: a downscaled image and a full-size PNG |
 | | `get_slice_stats` | a sliced plate's summary, time and grams per feature type, per-layer Z, height, time and grams (paged), grams per object instance, and the Preview's legend state and colour ranges |
 | Recording | `start_recording` | record the main window with its modal dialogs, or the 3D view shown, into an MJPEG `.mkv`, with the current tool call as a caption and the pointer highlighted when asked for, and with `encode` an MP4 of it once stopped |
 | | `stop_recording` | capture the last state, end the recording and report its file once written: length, frames, drops, the mean UI time of a capture, size and why it ended; the job of the encode `start_recording` asked for |
 | | `encode_recording` | encode a recording into an H.265 or H.264 MP4 with the system ffmpeg; cancellable |
-| GUI | `list_windows` | the open windows, modal or not, with refs for `screenshot`, `list_widgets` and the input tools, paged |
+| GUI | `list_windows` | the open windows, modal or not, with refs for `screenshot`, `list_widgets` and the input tools, their state and whether they resize, paged |
+| | `set_window` | size, move, maximize, minimize or raise the main window, the topmost modal dialog or a window `list_windows` lists, and reply with what the window became once it holds still and the 3D view has drawn at its size |
 | | `list_widgets` | widgets, rows of lists, trees and tables, popups, menus, GL toolbar items, gizmos, the Prepare view's plates and plate icons, and ImGui items, with refs |
 | | `click` | activate a ref or locator, click a row's cell or a plate icon, or click a point of a 3D canvas or custom-drawn widget; list the menu it opens, or run one of its items |
 | | `set_widget_value` | set a widget's text, value, selection or checked state, or a row's checkbox |
@@ -1300,8 +1301,10 @@ path, like every file the server reads.
 `set_view {tab: "design"}` shows the Design tab, and while it is shown `camera` points the Design
 view as its own controls do: a direction through `DesignCanvas::set_view()`, `default` its Home
 view (iso, fitted), `fit_objects` its `fit_view()`, and `fit_selection` the pick's box, refused when
-nothing is picked. The camera is applied in a second UI closure after `settle()`, because the tab
-takes the shared camera only when its page shows (`DesignPanel::on_tab_shown()`). `fit_bed`, `view`
+nothing is picked. `target`, `orbit` and `zoom` act on the Design camera as on Prepare's, since the
+tab swaps it into the plater's slot (see Camera, under GUI automation). The camera is applied in a
+second UI closure after `settle()`, because the tab takes the shared camera only when its page shows
+(`DesignPanel::on_tab_shown()`). `fit_bed`, `view`
 and the Preview fields are refused with the Design tab, since they show Prepare or Preview. The
 Design view is a canvas target for `list_widgets`, the input tools and screenshots (see GUI automation and
 Screenshots).
@@ -1580,12 +1583,74 @@ modal stack orders by what is on top. Each window has the ref `list_widgets` giv
 locator, so `screenshot` captures that window by it, `list_widgets` takes it as `root`, the input tools as
 `target`, and the journal records the locator; its title is what `within` takes. A window says whether it
 is modal and whether it shows a web view (outside a hidden pane), with its size and, where the platform
-knows it (not Wayland, `window_positions_known()`), its place on screen. A native dialog of the modal
-stack, which only `answer_dialog` reaches, is listed with `native` and no ref, whether or not wx reports
-it shown. A window named `kHiddenFromAutomation` is listed by its title and kind with `hidden` and
+knows it (not Wayland, `window_positions_known()`), its place on screen, its state (normal, maximized or
+minimized) and whether it has a resize border (the main window always does). `UiInspector::window_entry()`
+builds one window's entry, which `set_window` replies with too. A native dialog of the modal stack, which
+only `answer_dialog` reaches, is listed with `native` and no ref, whether or not wx reports it shown. A window named `kHiddenFromAutomation` is listed by its title and kind with `hidden` and
 nothing more: without a ref no tool acts on it, and an agent learns why a window it was told about is out
 of its reach. The Python scripts window is the one modal window the tracker leaves off its stack, so it is
 listed among the others, `modal` from `wxDialog::IsModal()`.
+
+### Sizing and placing windows
+
+`set_window` sizes, moves, maximizes, minimizes and raises a window `list_windows` gives a ref: the main
+window (`main`, the default), the topmost modal dialog (`dialog`), or the window a ref or locator is in,
+so a widget's ref names its window and a replay's `{label: "Preferences"}` finds the dialog again. It
+refuses a native dialog, which `answer_dialog` answers, a window named `kHiddenFromAutomation`, a popup,
+which the window it opened from places, and a window no longer shown. A dialog that doesn't block is
+hidden when it closes, so its ref still resolves; that refusal and the one for a stale ref point to
+`list_windows`. A window's geometry changes nothing in the project, so `set_window` is a recover call
+allowed during an operation that applies no mutate checks: it runs behind a modal dialog, on it, or on
+any other window. A floating dock panel is sized and moved through its own frame, so the dock manager
+records its floating size and place as after a drag.
+
+`window_request_refusal()` checks the whole request against the window's `WindowAbilities` before
+anything changes, so a refused call leaves the window as it was: at least one change, whole-number size
+and position, no `maximized` or `minimized` with a size or position (the system sets those), a state only
+when the title bar offers it (always for the main window, else `wxMAXIMIZE_BOX` and `wxMINIMIZE_BOX`), a
+modal dialog never minimized, since the app would stay blocked with nothing showing, and no position on
+Wayland. One UI closure then applies it in a fixed order: a size or position restores a maximized or
+minimized window first (`restore_normal()`: out of the minimized state, then out of the maximized one,
+since `Restore()` presents, so raises, the window on GTK and brings a window minimized while maximized
+back maximized on Windows; it un-minimizes only a minimized window, as GTK raises a mapped X11 window it
+un-minimizes, and un-maximizes only a maximized one except on GTK, as Windows activates a normal window
+it un-maximizes, while GTK's `IsMaximized()` can lag a maximize on its way), then the size, held to the
+window's minimum and maximum (what its sizer needs), the position (`wxSIZE_ALLOW_MINUS_ONE`: -1 is a
+place on a screen left of or above the primary one), the state and the raise. A window without a resize border is resized all the same. Sizes and positions are
+wx window coordinates, as `list_windows` and `get_app_state` report them: physical pixels on Windows,
+points on macOS, logical pixels on GTK. The argument normalizer reads `list_windows`'s flat `x`/`y` and
+`width`/`height` as `position` and `size`.
+
+A window manager may apply a request later (X11), animate it (macOS) or change it, so the call polls every
+50 ms (`poll_until()`, which returns null on timeout or cancellation instead of throwing) until two readings of the screen
+rect and state in a row agree and show the state asked for, `normal` after a size or position. For the
+main window it also waits, asking for a frame each poll, until the shown 3D view has drawn at its new size:
+the camera's viewport, which only a frame sets, must match the canvas, or a `set_view` fit or a
+`screen_rect` that follows would use the old size. The Design tab swaps its camera into the plater's slot
+while it is shown, so the one check covers every 3D view. A minimized window and a hidden canvas draw no
+frames, so neither is waited for. After 3 s the call replies with what it read and a note. A call
+cancelled during the wait fails, and so does one whose window closes, saying the request was applied.
+
+The reply is the window's `list_windows` entry, from the same `window_entry()` with a new ref, in
+`set_window`'s own form: `title`, `kind`, `ref`, `size`, `position` (not on Wayland), `state` and
+`resizable`, plus `scale` (`GetContentScaleFactor()`, screenshot pixels per window unit), `display` (the
+work area of the display it is on, the primary one for a minimized window on none), `active` with
+`raise`, and `adjusted`, the requested fields the result differs from, with a `note` on whether a size
+limit or the window manager did it, or on what the wait did not see: the window holding still in the
+state asked for, or the 3D view drawing at its size, with `undrawn_window()`'s reason when the window is
+not being drawn (`add_window_notes()`). `get_app_state.displays` gives each display's work area, scale and
+whether it is primary, so an agent can choose a position.
+
+On Windows a change takes effect at once, but `raise` may only flash the taskbar button while another app
+has the focus, since the OS locks the foreground; `active` says which happened. On macOS `maximized` is
+the window's zoomed state. Under X11 the window manager may adjust a request, and under Xvfb with no
+window manager maximizing does nothing: the reply says `normal` with a note. Wayland neither reports nor
+accepts positions, so a call with `position` is refused there, pointing to X11. Size, maximize and normal
+work there. Minimize is taken, but GTK on Wayland never reports a minimized window, and Wayland gives an
+app no way to restore one, so the wait asks neither for the state nor for a frame, and the reply, whose
+`state` can't show the minimize, has a note saying so and no `state` under `adjusted`. The call
+remembers the windows it minimized there (`wayland_minimized()`), and a later `normal` for one, which
+can't bring it back, says the same.
 
 ### Menus
 
@@ -1829,6 +1894,41 @@ gesture is resolved before its first event, and the journal keeps the model poin
 replays at another window size or camera. A gesture's modifiers are pressed as a keyboard does: a
 key-down event each before it and a key-up after, which is what switches Measure and Assembly to
 point picking and the painters to their Shift and Alt modes.
+
+### Camera
+
+`set_view` sets the camera of the 3D view shown. Prepare, Preview and the assemble view share the
+plater's camera, and the Design tab swaps its own into that slot while it is shown
+(`DesignCanvas::enter_viewport()`), so `Plater::get_camera()` is always the shown view's and one code
+path serves all of them. `target` is the point the camera looks at, in mm in the view's world
+coordinates, as `list_objects` gives positions. On the Design tab these are the Design view's, the
+frame the CAD tools' world points use, where `describe_scene`'s `modeling_origin` is the sketch
+planes' origin. `Camera::set_target()` moves the camera parallel, keeping its direction and
+distance. `zoom` is viewport pixels per mm at the target's depth, which are screenshot pixels: exact
+everywhere in an orthographic view, and only at the target's depth in a perspective one
+(`Camera::apply_projection()`). `Camera::set_zoom()` holds it between what the scene's size allows
+and 250, and the reply then lists `zoom` under `adjusted`.
+
+The fields apply in one UI closure in the order `camera`, `target`, `orbit`, `zoom`: a fit sets the
+target and the zoom, which the given ones then replace. A tab switch, a new project or a load queues a
+fit on the camera (`requires_zoom_to_bed`, `requires_zoom_to_volumes`, `requires_zoom_to_plate`) that
+`GLCanvas3D::render()` runs at the view's next frame, and it would replace a target, orbit or zoom set
+before that frame. So when any of the three is given, the call first polls (`poll_until()`, every
+20 ms for up to 2 s) until no fit is pending, asking the shown view to draw each time. A `camera` makes
+the same poll also wait until the shown view has drawn at its canvas's size (`view_drawn_at_size()`,
+which `set_window` waits on too): a fit, which `default`, the `fit_*` cameras and the Design directions
+make, uses the camera's viewport, which only a frame sets, so after a resize while another tab showed
+it would fit the old size. After 2 s the call applies the fields anyway and says in a `note` which of
+the two it did not see; a call cancelled meanwhile fails instead.
+
+Whenever a camera field is given, the reply carries `camera_state`, read after a last `settle()`:
+`type` (`ortho` or `perspective`, the Preference the `K` key toggles, which says whether `zoom` holds
+everywhere), `target` and `position` in mm, `zoom`, `click_px_per_mm` (the zoom over the canvas's
+scale, in the logical pixels `click` and `mouse_gesture` take) and `elevation` and `azimuth` in
+`orbit`'s convention. `camera_angles()` reads the angles for both, without the orbit's one-degree stop
+short of vertical, so a camera straight above reads 90. The `camera` and `orbit` echoes stay beside it,
+since replays check `/camera`. `get_app_state.camera` is the same `camera_state()` for the 3D view
+shown, left out when none is shown.
 
 ### Dialogs and web views
 
@@ -3297,7 +3397,13 @@ closes its dialog, `tools/mcp/tests/web_dialogs.json` the preset bundle dialog, 
 the MCP web fixture plugin's dialog, window, dock panel and configuration UI (side-loaded with
 `--install DATADIR`), `tools/mcp/test_set_view_preview.py` the
 legend combo's semantics of `set_view {view_type}`, a canvas screenshot straight after a layer or
-view type change, and the preview refusals of `set_view`,
+view type change, and the preview refusals of `set_view`, `tools/mcp/test_set_window.py`
+`set_window` on the main window (sized, moved, maximized and minimized, and restored from both), on the
+Plugins window by its ref and on Preferences by its `{label}` locator, and `set_view`'s refusal of
+`window_size`, `tools/mcp/test_set_view_camera.py`
+`set_view`'s `target` and `zoom` after a queued fit (and its note while no 3D view draws), clamping,
+an orbit that keeps the target, the camera Preview shares and the Design tab's own, with `camera_state`
+and `get_app_state.camera`, and a fit after the window was sized while no 3D view showed,
 `tools/mcp/test_export_running_job.py` an export during and after a job that outlived its reply,
 `tools/mcp/test_send_gcode.py` `send_gcode` and `get_app_state.uploads` against a stub print host that
 answers 200 or 500,

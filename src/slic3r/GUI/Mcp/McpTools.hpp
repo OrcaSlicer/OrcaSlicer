@@ -343,6 +343,13 @@ nlohmann::json poll_ui(ToolContext& ctx,
                        const std::function<nlohmann::json()>& poll,
                        std::chrono::milliseconds timeout,
                        const std::string& what);
+// Polls `poll` on the UI thread, under the inspect guard, every `interval` until it returns a non-null
+// value, which it returns, or until `timeout` passes or the call is cancelled, when it returns null: for
+// a wait that replies with what it got rather than failing.
+nlohmann::json poll_until(ToolContext& ctx,
+                          const std::function<nlohmann::json()>& poll,
+                          std::chrono::milliseconds timeout,
+                          std::chrono::milliseconds interval);
 
 // Why the UI can't change when OrcaSlicer's window is not being drawn, or empty when it is drawn or
 // can't tell. A compositor stops drawing a window while the display is off, and GTK then neither lays
@@ -350,6 +357,42 @@ nlohmann::json poll_ui(ToolContext& ctx,
 // blank. Asks for a frame and waits up to half a second for it, so only for a call that failed. Tool
 // thread.
 std::string undrawn_window(ToolContext& ctx);
+
+// ---- windows (McpToolsUi.cpp) ----------------------------------------------------------------
+
+// What a window's title bar offers and where it runs, for window_request_refusal().
+struct WindowAbilities
+{
+    bool main            = false; // the main window: it offers maximize and minimize
+    bool modal           = false; // a modal dialog never minimizes
+    bool can_maximize    = false; // wxMAXIMIZE_BOX in its style
+    bool can_minimize    = false; // wxMINIMIZE_BOX in its style
+    bool positions_known = true;  // false on Wayland (window_positions_known())
+};
+// Why set_window can't apply `args` to such a window, or empty when it can. Checks everything
+// before anything changes.
+std::string window_request_refusal(const nlohmann::json& args, const WindowAbilities& window);
+// How set_window's wait for a window ended, for add_window_notes().
+struct WindowSettling
+{
+    bool        limited    = false; // the size was held to the window's minimum or maximum size
+    bool        held       = false; // the window held still in the state asked for
+    bool        drawn      = false; // and the main window's 3D view drew at its size, or needn't
+    bool        unreported = false; // Wayland: a minimize, or a normal for a window set_window minimized
+    std::string undrawn;            // undrawn_window()'s reason the 3D view isn't drawn, or empty
+};
+// Adds to set_window's `reply`, which holds the size, position and state the window reads back,
+// adjusted, the fields of `args` the window differs from, and a note on why: a size limit, the window
+// manager, a 3D view that didn't draw, or a minimize Wayland never reports, whose state is never listed
+// as adjusted.
+void add_window_notes(const nlohmann::json& args, const WindowSettling& settling, nlohmann::json& reply);
+// Whether the shown 3D view has drawn at its canvas's size, asking for a frame when it hasn't: until it
+// has, the camera's viewport is the old size, which a fit or a screen_rect would use. True when no 3D
+// view is shown. UI thread.
+bool view_drawn_at_size();
+// {index, x, y, width, height}: the work area of display `index` (the screen less the taskbar or the
+// dock and menu bar), in the units list_windows reports. UI thread.
+nlohmann::json display_area(unsigned index);
 
 // ---- scene -----------------------------------------------------------------------------------
 
@@ -448,9 +491,16 @@ struct GCodeProcessorResult;
 
 namespace GUI {
 
+struct Camera;
 class GCodeViewer;
 
 namespace Mcp {
+
+// The camera set_view leaves, as its reply's camera_state and get_app_state.camera give it: type ("ortho"
+// or "perspective"), target and position ([x, y, z] in mm, to 0.001), zoom (viewport pixels per mm at the
+// target's depth) and click_px_per_mm (the zoom in the logical pixels the input tools take, the zoom over
+// `canvas_scale`), both to 0.0001, and the elevation and azimuth orbit uses, in whole degrees.
+nlohmann::json camera_state(Camera& camera, double canvas_scale);
 
 // What a sliced plate reports in the slice reply: print time, filament totals with the flush, cost,
 // layer count, max Z, filament changes, and every filament slot of the project (zeros for slots the

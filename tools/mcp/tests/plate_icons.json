@@ -13,7 +13,8 @@
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "Uniform scale", "button": "ok"}]}},
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_view", "args": {"tab": "prepare", "window_size": [1920, 1200]}},
+    {"tool": "set_window", "args": {"size": [1920, 1200]}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
     {"tool": "list_widgets", "args": {"root": "main", "query": "plate_icon"}, "expect": {"/nodes": {"ge": 7}}},
 
     // ---- Lock toggles the plate's lock ----

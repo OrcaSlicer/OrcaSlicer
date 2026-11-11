@@ -18,7 +18,9 @@
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
+#include "slic3r/GUI/Camera.hpp"
 
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -144,7 +146,7 @@ TEST_CASE("every tool of the catalog has the lane the concept gives it", "[Mcp]"
     for (const char* name : {"get_app_state", "wait", "cancel_job", "get_log", "run_replay", "export_replay", "answer_dialog",
                              "auto_answer_dialogs", "run_script", "search_python_api"})
         CHECK(tool_lane(name) == ToolLane::Core);
-    for (const char* name : {"list_windows", "list_widgets", "click", "set_widget_value", "press_keys", "mouse_gesture",
+    for (const char* name : {"list_windows", "set_window", "list_widgets", "click", "set_widget_value", "press_keys", "mouse_gesture",
                              "pick_gizmo_file", "run_javascript", "set_view", "screenshot", "start_recording", "stop_recording",
                              "encode_recording", "search_actions", "run_action", "select_objects"})
         CHECK(tool_lane(name) == ToolLane::Ui);
@@ -170,6 +172,113 @@ TEST_CASE("a registered tool's description starts with its lane, once", "[Mcp]")
     // A def copied from the registry and added again keeps one tag.
     registry.add(*added);
     CHECK(registry.find("click")->description == "[ui] Click a widget.");
+}
+
+TEST_CASE("set_window refuses a request the window can't take, before changing anything", "[Mcp]")
+{
+    WindowAbilities main;   main.main = true;
+    WindowAbilities modal;  modal.modal = true; modal.can_maximize = true; modal.can_minimize = true;
+    WindowAbilities fixed;  // a modeless window whose title bar offers neither
+    WindowAbilities wayland; wayland.main = true; wayland.positions_known = false;
+
+    CHECK(window_request_refusal(json::object(), main).find("size, position, state or raise") != std::string::npos);
+    CHECK(window_request_refusal({{"state", "maximized"}, {"size", {800, 600}}}, main).find("maximized") != std::string::npos);
+    CHECK(window_request_refusal({{"state", "minimized"}, {"position", {0, 0}}}, main).find("minimized") != std::string::npos);
+    CHECK(window_request_refusal({{"state", "maximized"}}, main).empty());
+    CHECK(window_request_refusal({{"state", "minimized"}}, main).empty());
+    CHECK(window_request_refusal({{"state", "minimized"}}, modal).find("modal") != std::string::npos);
+    CHECK(window_request_refusal({{"state", "maximized"}}, modal).empty());
+    CHECK(window_request_refusal({{"state", "maximized"}}, fixed).find("maximize") != std::string::npos);
+    CHECK(window_request_refusal({{"state", "normal"}}, fixed).empty());
+    CHECK(window_request_refusal({{"size", {0, 600}}}, main).find("size") != std::string::npos);
+    CHECK(window_request_refusal({{"size", {800}}}, main).find("[width, height]") != std::string::npos);
+    CHECK(window_request_refusal({{"position", {0, 0}}}, wayland).find("X11") != std::string::npos);
+    CHECK(window_request_refusal({{"size", {800, 600}}, {"state", "maximized"}}, wayland).find("maximized") != std::string::npos);
+    CHECK(window_request_refusal({{"state", "minimized"}}, wayland).empty());
+    CHECK(window_request_refusal({{"raise", true}}, fixed).empty());
+}
+
+TEST_CASE("set_window's reply lists the fields the window changed, with a note on why", "[Mcp]")
+{
+    const json     sized{{"size", {800, 600}}};
+    WindowSettling taken;
+    taken.held  = true;
+    taken.drawn = true;
+    const auto note = [](const json& reply) { return reply.value("note", std::string()); };
+
+    json reply{{"size", {800, 600}}, {"position", {10, 20}}, {"state", "normal"}};
+    add_window_notes(sized, taken, reply);
+    CHECK_FALSE(reply.contains("adjusted"));
+    CHECK_FALSE(reply.contains("note"));
+
+    // The window manager gave another size.
+    reply = {{"size", {900, 600}}, {"state", "normal"}};
+    add_window_notes(sized, taken, reply);
+    CHECK(reply["adjusted"] == json::array({"size"}));
+    CHECK(note(reply) == "the window manager adjusted the request");
+
+    // A size limit held it.
+    WindowSettling limited = taken;
+    limited.limited        = true;
+    reply                  = {{"size", {900, 600}}, {"state", "normal"}};
+    add_window_notes(sized, limited, reply);
+    CHECK(reply["adjusted"] == json::array({"size"}));
+    CHECK(note(reply) == "size is held to the window's minimum or maximum size");
+
+    // The window never held still in the state asked for.
+    reply = {{"size", {800, 600}}, {"state", "maximized"}};
+    add_window_notes({{"state", "normal"}}, WindowSettling(), reply);
+    CHECK(reply["adjusted"] == json::array({"state"}));
+    CHECK(note(reply).find("the window manager did not apply the request") != std::string::npos);
+
+    // The window held still, but its 3D view never drew at its size: the note says so, not the window manager.
+    WindowSettling undrawn;
+    undrawn.held    = true;
+    undrawn.undrawn = "OrcaSlicer's window is not being drawn";
+    reply           = {{"size", {800, 600}}, {"state", "normal"}};
+    add_window_notes(sized, undrawn, reply);
+    CHECK_FALSE(reply.contains("adjusted"));
+    CHECK(note(reply).find("the 3D view did not draw") != std::string::npos);
+    CHECK(note(reply).find(undrawn.undrawn) != std::string::npos);
+    CHECK(note(reply).find("window manager") == std::string::npos);
+
+    // Wayland reads a minimized window back as normal: state is not adjusted, and the note says why.
+    WindowSettling wayland = taken;
+    wayland.unreported     = true;
+    reply                  = {{"size", {800, 600}}, {"state", "normal"}};
+    add_window_notes({{"state", "minimized"}}, wayland, reply);
+    CHECK_FALSE(reply.contains("adjusted"));
+    CHECK(note(reply).find("Wayland neither reports a minimized window nor lets an app restore one") != std::string::npos);
+
+    // A normal after such a minimize says the same, even when the wait ran out.
+    WindowSettling restored;
+    restored.unreported = true;
+    reply               = {{"size", {800, 600}}, {"state", "normal"}};
+    add_window_notes({{"state", "normal"}}, restored, reply);
+    CHECK(note(reply).find("Wayland neither reports") != std::string::npos);
+    CHECK(note(reply).find("window manager") == std::string::npos);
+}
+
+TEST_CASE("camera_state reads the camera set_view leaves", "[Mcp]")
+{
+    using Slic3r::Vec3d;
+    using Slic3r::GUI::Camera;
+    Camera camera;
+    camera.set_viewport(0, 0, 800, 600);
+    camera.set_scene_box(Slic3r::BoundingBoxf3(Vec3d(-100, -100, 0), Vec3d(100, 100, 100)));
+    camera.set_type(Camera::EType::Ortho);
+    camera.look_at(Vec3d(10, 20, 500), Vec3d(10, 20, 0), Vec3d::UnitY()); // straight down, +Y up the screen
+    camera.set_zoom(2.0);
+    const json s = camera_state(camera, 1.5);
+    CHECK(s["type"] == "ortho");
+    CHECK(s["target"] == json{10.0, 20.0, 0.0});
+    CHECK(s["zoom"] == 2.0);
+    CHECK(s["click_px_per_mm"] == 1.3333);
+    CHECK(s["elevation"] == 90);
+    CHECK(s["azimuth"] == -90);
+    camera.look_at(Vec3d(10, -480, 0), Vec3d(10, 20, 0), Vec3d::UnitZ()); // from the front
+    CHECK(camera_state(camera, 1.0)["elevation"] == 0);
+    CHECK(camera_state(camera, 1.0)["azimuth"] == -90);
 }
 
 TEST_CASE("a call naming an object's id is refused once its index names another object", "[Mcp]")

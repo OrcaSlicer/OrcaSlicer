@@ -115,10 +115,14 @@ std::string validate_value(const json& schema, const json& value, const std::str
     if (auto it = schema.find("enum"); it != schema.end() && it->is_array() &&
         std::find(it->begin(), it->end(), value) == it->end())
         return path + " must be one of " + it->dump();
+    // A bound is read only when it is a number: a plugin operation's schema may be draft-04, whose
+    // exclusiveMinimum is a boolean that qualifies minimum.
     if (value.is_number()) {
-        if (auto it = schema.find("minimum"); it != schema.end() && value.get<double>() < it->get<double>())
+        if (auto it = schema.find("minimum"); it != schema.end() && it->is_number() && value.get<double>() < it->get<double>())
             return path + " must be >= " + it->dump();
-        if (auto it = schema.find("maximum"); it != schema.end() && value.get<double>() > it->get<double>())
+        if (auto it = schema.find("exclusiveMinimum"); it != schema.end() && it->is_number() && value.get<double>() <= it->get<double>())
+            return path + " must be > " + it->dump();
+        if (auto it = schema.find("maximum"); it != schema.end() && it->is_number() && value.get<double>() > it->get<double>())
             return path + " must be <= " + it->dump();
     }
     if (value.is_array()) {
@@ -200,6 +204,28 @@ void normalize_arguments(const json& schema, json& args)
     if (!args.is_object() || !schema.is_object() || !schema.contains("properties"))
         return;
     const json& props = schema["properties"];
+    // x and y, and width and height, as list_windows reports them, read as the position and size arrays
+    // of a tool that takes those as window geometry, arrays of integers, and neither part by its own
+    // name. The mm arrays of the 3D tools (transform, add_part) hold numbers and never take a pair. Only
+    // both parts of a pair fold, and never over an array the call gives.
+    struct Pair
+    {
+        const char* name;
+        const char* first;
+        const char* second;
+    };
+    const auto integer_array = [](const json& prop) {
+        return prop.is_object() && prop.value("type", json()) == "array" && prop.contains("items") && prop["items"].is_object() &&
+               prop["items"].value("type", json()) == "integer";
+    };
+    for (const Pair& pair : {Pair{"position", "x", "y"}, Pair{"size", "width", "height"}}) {
+        if (!props.contains(pair.name) || !integer_array(props[pair.name]) || props.contains(pair.first) || props.contains(pair.second) ||
+            args.contains(pair.name) || !args.contains(pair.first) || !args.contains(pair.second))
+            continue;
+        args[pair.name] = json::array({args[pair.first], args[pair.second]});
+        args.erase(pair.first);
+        args.erase(pair.second);
+    }
     for (const auto& [alias, names] : argument_aliases()) {
         if (!args.contains(alias) || props.contains(alias))
             continue;
@@ -247,10 +273,11 @@ ToolLane tool_lane(const std::string& name)
 {
     static const std::set<std::string> core{"get_app_state", "wait",          "cancel_job",          "get_log",    "run_replay",
                                             "export_replay", "answer_dialog", "auto_answer_dialogs", "run_script", "search_python_api"};
-    static const std::set<std::string> ui{"list_windows",     "list_widgets",   "click",           "set_widget_value",
-                                          "press_keys",       "mouse_gesture",  "pick_gizmo_file", "run_javascript",
-                                          "set_view",         "screenshot",     "start_recording", "stop_recording",
-                                          "encode_recording", "search_actions", "run_action",      "select_objects"};
+    static const std::set<std::string> ui{"list_windows",     "set_window",       "list_widgets",   "click",
+                                          "set_widget_value", "press_keys",       "mouse_gesture",  "pick_gizmo_file",
+                                          "run_javascript",   "set_view",         "screenshot",     "start_recording",
+                                          "stop_recording",   "encode_recording", "search_actions", "run_action",
+                                          "select_objects"};
     if (core.count(name) != 0)
         return ToolLane::Core;
     if (ui.count(name) != 0)
@@ -310,8 +337,7 @@ std::string resolve_api_call(const ToolRegistry& registry, std::shared_ptr<const
     if (inner->name == "call_tool")
         return "call_tool calls another tool, not itself";
     json inner_args = args.contains("args") && args["args"].is_object() ? args["args"] : json::object();
-    normalize_arguments(inner->input_schema, inner_args);
-    if (std::string err = validate_arguments(inner->input_schema, inner_args); !err.empty())
+    if (std::string err = argument_error(*inner, inner_args); !err.empty())
         return "Invalid arguments for " + target + ": " + err;
     def  = std::move(inner);
     args = std::move(inner_args);
@@ -354,6 +380,33 @@ std::string decode_header_value(const std::string& value)
         }
     }
     return out;
+}
+
+std::string moved_argument(const std::string& tool, const json& args)
+{
+    struct Moved
+    {
+        const char* tool;
+        const char* argument;
+        const char* message;
+    };
+    static const Moved moved[] = {
+        {"set_view", "window_size", "window_size moved to set_window: give set_window {size}"},
+    };
+    for (const Moved& m : moved)
+        if (tool == m.tool && args.contains(m.argument))
+            return m.message;
+    return {};
+}
+
+std::string argument_error(const ToolDef& def, json& args)
+{
+    normalize_arguments(def.input_schema, args);
+    std::string err = validate_arguments(def.input_schema, args);
+    if (err.empty())
+        return err;
+    std::string moved = moved_argument(def.name, args);
+    return moved.empty() ? err : moved;
 }
 
 // ---- McpProtocol --------------------------------------------------------------
@@ -419,8 +472,7 @@ json McpProtocol::call_tool(const json& params, bool& unknown_tool, std::string&
     json args = params.contains("arguments") && !params["arguments"].is_null() ? params["arguments"] : json::object();
     if (!args.is_object())
         return result_to_json(ToolResult::error("arguments must be an object"));
-    normalize_arguments(def->input_schema, args);
-    if (std::string err = validate_arguments(def->input_schema, args); !err.empty())
+    if (std::string err = argument_error(*def, args); !err.empty())
         return result_to_json(ToolResult::error("Invalid arguments: " + err));
     if (std::string err = resolve_api_call(m_registry, def, args); !err.empty())
         return result_to_json(ToolResult::error(err));

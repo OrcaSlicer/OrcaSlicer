@@ -397,6 +397,10 @@ tools/mcp/test_web_ui.py
 block the app) with a ref that `screenshot` captures alone, `list_widgets` reads alone and `press_keys` Escape
 closes, Preferences last as a modal dialog, and Action Replay listed as hidden, without a ref.
 
+`test_set_window.py` checks `set_window` on the main window (sized, moved, maximized, minimized and
+restored), on the Plugins window by its ref and on Preferences by its `{label}` locator, and that
+`set_view` refuses `window_size`.
+
 `test_action_replay_hidden.py` opens Action Replay and checks that the GUI tools don't see
 it: `list_widgets` lists no window for it, `run_javascript` without a target behaves as before it
 opened, and a key sent without a target never reaches it. It then shows the Run Script panel on
@@ -417,6 +421,11 @@ what that replay cannot: `set_view {view_type}` acts as the legend's combo (a fe
 a click on its row shows again on Line Type, and the pick reaches the app config), a canvas
 screenshot straight after a layer or view type change shows the new layers and the legend laid out
 (it matches the capture after it), and the refusals of the preview arguments.
+
+`test_set_view_camera.py`, on an instance launched with `--cad`, checks `set_view`'s `target` and `zoom`
+on Prepare, Preview and the Design tab, and `orbit` on Prepare and the Design tab, against the reply's
+`camera_state` and `get_app_state.camera`, including straight after `new_project`, whose fit runs at the
+next frame, and a fit on Prepare after the window was sized on the Home tab.
 
 `tests/agent_forms.json` calls tools the way agents often write them: a lone path for `paths`,
 `object` for `objects` with the index as a string, an action by the key inside its id, `action` for

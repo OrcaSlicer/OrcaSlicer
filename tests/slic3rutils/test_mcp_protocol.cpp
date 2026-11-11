@@ -334,15 +334,24 @@ TEST_CASE("argument validation covers types, enums, ranges and arrays", "[Mcp]")
     const json schema = {{"type", "object"},
                          {"properties",
                           {{"n", {{"type", "integer"}, {"minimum", 1}, {"maximum", 5}}},
+                           {"zoom", {{"type", "number"}, {"exclusiveMinimum", 0}}},
                            {"mode", {{"type", "string"}, {"enum", {"a", "b"}}}},
                            {"paths", {{"type", "array"}, {"items", {{"type", "string"}}}}}}},
                          {"additionalProperties", false}};
     CHECK(validate_arguments(schema, {{"n", 3}, {"mode", "a"}, {"paths", {"x"}}}).empty());
     CHECK(validate_arguments(schema, {{"n", 0}}).find("n must be >= 1") != std::string::npos);
+    CHECK(validate_arguments(schema, {{"zoom", 0}}).find("zoom must be > 0") != std::string::npos);
+    CHECK(validate_arguments(schema, {{"zoom", 0.5}}).empty());
     CHECK(validate_arguments(schema, {{"n", 2.5}}).find("integer") != std::string::npos);
     CHECK(validate_arguments(schema, {{"mode", "c"}}).find("one of") != std::string::npos);
     CHECK(validate_arguments(schema, {{"paths", {1}}}).find("paths[0]") != std::string::npos);
     CHECK(validate_arguments(schema, {{"extra", 1}}).find("unknown argument extra") != std::string::npos);
+
+    // A plugin operation's draft-04 schema gives exclusiveMinimum as a boolean that qualifies minimum.
+    const json draft4 = {{"type", "object"}, {"properties", {{"zoom", {{"type", "number"}, {"minimum", 0}, {"exclusiveMinimum", true}}}}}};
+    std::string draft4_error;
+    CHECK_NOTHROW(draft4_error = validate_arguments(draft4, {{"zoom", 0.5}}));
+    CHECK(draft4_error.empty());
 }
 
 TEST_CASE("argument normalization reads the names agents reach for as the ones a tool takes", "[Mcp]")
@@ -435,6 +444,70 @@ TEST_CASE("argument normalization moves a value outside its enum to the argument
     json unknown{{"view", "sideways"}};
     normalize_arguments(schema, unknown);
     CHECK(unknown == json{{"view", "sideways"}});
+}
+
+TEST_CASE("pairs list_windows reports are read as position and size", "[Mcp]")
+{
+    const json schema = {{"type", "object"},
+                         {"properties", {{"position", {{"type", "array"}, {"items", {{"type", "integer"}}}}},
+                                         {"size", {{"type", "array"}, {"items", {{"type", "integer"}}}}}}},
+                         {"additionalProperties", false}};
+    json flat{{"x", 10}, {"y", 20}, {"width", 800}, {"height", 600}};
+    normalize_arguments(schema, flat);
+    CHECK(flat == json{{"position", {10, 20}}, {"size", {800, 600}}});
+    json half{{"x", 10}};
+    normalize_arguments(schema, half);
+    CHECK(half == json{{"x", 10}});                        // left for the validator to name
+    json given{{"x", 1}, {"y", 2}, {"position", {3, 4}}};
+    normalize_arguments(schema, given);
+    CHECK(given["position"] == json{3, 4});                // never replaces a given argument
+    const json own = {{"type", "object"}, {"properties", {{"x", {{"type", "integer"}}}, {"y", {{"type", "integer"}}}}}};
+    json kept{{"x", 1}, {"y", 2}};
+    normalize_arguments(own, kept);
+    CHECK(kept == json{{"x", 1}, {"y", 2}});               // a tool that takes x and y keeps them
+}
+
+TEST_CASE("a position or size in mm, an array of numbers, takes no pair list_windows reports", "[Mcp]")
+{
+    // add_part's position and size, and transform's position.
+    const json schema = {{"type", "object"},
+                         {"properties", {{"position", {{"type", "array"}, {"items", {{"type", "number"}}}}},
+                                         {"size", {{"type", "array"}, {"items", {{"type", "number"}}}}}}},
+                         {"additionalProperties", false}};
+    const json flat{{"x", 10}, {"y", 20}, {"width", 30}, {"height", 5}};
+    json       args = flat;
+    normalize_arguments(schema, args);
+    CHECK(args == flat);
+    CHECK(validate_arguments(schema, args).find("unknown argument") != std::string::npos);
+    // transform's size, whose null keeps an axis.
+    const json nullable = {{"type", "object"},
+                           {"properties", {{"size", {{"type", "array"}, {"items", {{"type", {"number", "null"}}}}}}}},
+                           {"additionalProperties", false}};
+    json sized{{"width", 30}, {"height", 5}};
+    normalize_arguments(nullable, sized);
+    CHECK(sized == json{{"width", 30}, {"height", 5}});
+}
+
+TEST_CASE("an argument a tool no longer takes names where it went", "[Mcp]")
+{
+    CHECK(moved_argument("set_view", {{"window_size", {800, 600}}}) == "window_size moved to set_window: give set_window {size}");
+    CHECK(moved_argument("set_view", {{"tab", "prepare"}}).empty());
+    CHECK(moved_argument("set_window", {{"window_size", {800, 600}}}).empty());
+}
+
+TEST_CASE("a call refused for an argument another tool takes names that tool", "[Mcp]")
+{
+    ToolDef view;
+    view.name         = "set_view";
+    view.input_schema = {{"type", "object"}, {"properties", {{"tab", {{"type", "string"}}}}}, {"additionalProperties", false}};
+    json moved{{"window_size", {800, 600}}};
+    CHECK(argument_error(view, moved) == "window_size moved to set_window: give set_window {size}");
+    // While the tool still takes the argument, the call is valid.
+    view.input_schema["properties"]["window_size"] = {{"type", "array"}, {"items", {{"type", "integer"}}}};
+    CHECK(argument_error(view, moved).empty());
+    // Any other refusal keeps the validator's error.
+    json other{{"zoom", 2}};
+    CHECK(argument_error(view, other).find("unknown argument zoom") != std::string::npos);
 }
 
 TEST_CASE("call_tool runs and is journaled as the tool it names", "[Mcp]")
