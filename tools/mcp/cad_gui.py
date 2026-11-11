@@ -24,7 +24,8 @@ import orca_mcp
 # the system's legacy code page, which may lack them: they print escaped rather than raise.
 sys.stdout.reconfigure(errors="backslashreplace")
 
-CANVAS = {"label": "OrcaSceneCanvas"}
+# The 3D canvas by its window name, which every platform lists; only Windows gives it as its label too.
+CANVAS = {"name": "OrcaSceneCanvas"}
 NEW_DESIGN = "New Design — clear the feature tree"
 
 # reset_view()'s zoom, in set_view's screenshot pixels per mm at the camera's target, about 1.6:
@@ -359,13 +360,14 @@ class CadGui:
         return parse_widgets(text)
 
     def modeless(self):
-        """The titles of the shown dialogs that are not modal, from list_windows."""
+        """The titles of the shown dialogs that are not modal, from list_windows, leaving out the person's
+        own (hidden), such as Action Replay, which no tool reaches."""
         items = self.client.call("list_windows").get("items", [])
-        return [w["title"] for w in items if w.get("kind") == "dialog" and not w.get("modal")]
+        return [w["title"] for w in items if w.get("kind") == "dialog" and not w.get("modal") and not w.get("hidden")]
 
     @staticmethod
     def _canvas(ws):
-        canvas = next((w for w in ws if w.kind == "canvas" and w.label == CANVAS["label"]), None)
+        canvas = next((w for w in ws if w.kind == "canvas" and w.name == CANVAS["name"]), None)
         if canvas is None or canvas.rect is None:
             raise RuntimeError("the Design canvas is not shown")
         return canvas

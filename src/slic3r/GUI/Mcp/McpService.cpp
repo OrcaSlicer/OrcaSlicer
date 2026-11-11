@@ -12,6 +12,7 @@
 #include "ModalTracker.hpp"
 #include "UiInspector.hpp"
 #include "WebPages.hpp"
+#include "WindowControl.hpp"
 #include "McpPaths.hpp"
 #include "McpReplay.hpp"
 #include "McpPersonRun.hpp"
@@ -275,6 +276,7 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
         m_web_presses = std::make_shared<WebPresses>();
         m_modals->set_before_press([this] { release_web_presses(m_web_presses, nullptr); });
         register_tools();
+        track_window_states();
         m_inspector->capture_menus(true);
         if (ImGuiWrapper* imgui = wxGetApp().imgui())
             imgui->set_item_recording(true);

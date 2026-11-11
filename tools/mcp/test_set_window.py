@@ -5,15 +5,20 @@ modal dialog, with the read side that list_windows and get_app_state give.
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_set_window.py
 
-The main window is sized, moved, maximized, given a size while maximized (which restores it first),
+The main window is sized twice, the second time from the normal state, and on Wayland a window screenshot
+is the size the reply gives. Where positions are known it is moved, then placed over its display's work area
+by position and size. It is maximized, given a size while maximized (which restores it first),
 minimized and restored, after which the 3D view still captures, and minimized while maximized, from which
 state normal and a size both bring it back to normal. A request that contradicts itself is
 refused before anything changes. The Plugins window is sized and moved by its ref, which fails, pointing to
 list_windows, once the window has closed. Preferences, a modal dialog, is sized as "dialog" and moved by its
-{label} locator, and never minimized. set_view refuses a window_size, pointing to set_window. Exits 0
+{label} locator, and never minimized; on X11 the main window, minimized, restored and raised while it is
+open, stays under it in the X server's stacking order. set_view refuses a window_size, pointing to set_window. Exits 0
 when every check passes.
 """
 
+import ctypes
+import ctypes.util
 import os
 import sys
 import time
@@ -22,8 +27,68 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 
 
+class _XWindowAttributes(ctypes.Structure):
+    _fields_ = [("x", ctypes.c_int), ("y", ctypes.c_int), ("width", ctypes.c_int), ("height", ctypes.c_int),
+                ("border_width", ctypes.c_int), ("depth", ctypes.c_int), ("visual", ctypes.c_void_p), ("root", ctypes.c_ulong),
+                ("class_", ctypes.c_int), ("bit_gravity", ctypes.c_int), ("win_gravity", ctypes.c_int),
+                ("backing_store", ctypes.c_int), ("backing_planes", ctypes.c_ulong), ("backing_pixel", ctypes.c_ulong),
+                ("save_under", ctypes.c_int), ("colormap", ctypes.c_ulong), ("map_installed", ctypes.c_int),
+                ("map_state", ctypes.c_int), ("all_event_masks", ctypes.c_long), ("your_event_mask", ctypes.c_long),
+                ("do_not_propagate_mask", ctypes.c_long), ("override_redirect", ctypes.c_int), ("screen", ctypes.c_void_p)]
+
+
+def x11_stacking(display):
+    """The titles of the mapped top-level windows of an X display, bottom to top, or None when libX11 or the
+    display can't be opened. A window manager's frame stands for the titled window it holds."""
+    path = ctypes.util.find_library("X11")
+    if not path or not display:
+        return None
+    x = ctypes.CDLL(path)
+    x.XOpenDisplay.restype = ctypes.c_void_p
+    x.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x.XDefaultRootWindow.restype = ctypes.c_ulong
+    x.XDefaultRootWindow.argtypes = [ctypes.c_void_p]
+    x.XQueryTree.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.POINTER(ctypes.c_ulong), ctypes.POINTER(ctypes.c_ulong),
+                             ctypes.POINTER(ctypes.POINTER(ctypes.c_ulong)), ctypes.POINTER(ctypes.c_uint)]
+    x.XFetchName.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.POINTER(ctypes.c_char_p)]
+    x.XFree.argtypes = [ctypes.c_void_p]
+    x.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    x.XGetWindowAttributes.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.POINTER(_XWindowAttributes)]
+    dpy = x.XOpenDisplay(display.encode())
+    if not dpy:
+        return None
+
+    def children(window):
+        root, parent, n = ctypes.c_ulong(), ctypes.c_ulong(), ctypes.c_uint()
+        kids = ctypes.POINTER(ctypes.c_ulong)()
+        if not x.XQueryTree(dpy, window, ctypes.byref(root), ctypes.byref(parent), ctypes.byref(kids), ctypes.byref(n)):
+            return []
+        out = [kids[i] for i in range(n.value)]
+        if kids:
+            x.XFree(kids)
+        return out
+
+    def viewable(window):
+        attrs = _XWindowAttributes()
+        return x.XGetWindowAttributes(dpy, window, ctypes.byref(attrs)) and attrs.map_state == 2  # IsViewable
+
+    def title(window, depth=3):
+        name = ctypes.c_char_p()
+        if x.XFetchName(dpy, window, ctypes.byref(name)) and name.value:
+            return name.value.decode(errors="replace")
+        for kid in reversed(children(window)) if depth else []:
+            found = title(kid, depth - 1)
+            if found:
+                return found
+        return None
+
+    order = [title(w) for w in children(x.XDefaultRootWindow(dpy)) if viewable(w)]
+    x.XCloseDisplay(dpy)
+    return [t for t in order if t]
+
+
 def main():
-    client, _session = orca_mcp.session_client()
+    client, session = orca_mcp.session_client()
     checks = []
 
     def check(name, ok, detail=""):
@@ -66,14 +131,37 @@ def main():
     check("size: the window is in its normal state", sized.get("state") == "normal", sized)
     entry = main_entry()
     check("size: list_windows reports it", (entry.get("width"), entry.get("height")) == (1400, 900), entry)
+    # A second size from the normal state. Taking a normal window out of a maximize it isn't in makes a
+    # Wayland compositor send it its current size, which replaced the one asked for.
+    again = client.call("set_window", size=[1300, 820])
+    check("a second size: the reply has it", again.get("size") == [1300, 820], again)
+    entry = main_entry()
+    check("a second size: list_windows reports it", (entry.get("width"), entry.get("height")) == (1300, 820), entry)
+    if wayland:
+        # The size is the window as the compositor shows it, which a window screenshot captures; the shadow
+        # GTK draws around it is not part of it.
+        shot = client.call("screenshot", target="window", include_image=False)
+        scale = again.get("scale", 1)
+        check("a second size: a window screenshot is that size", (shot.get("width"), shot.get("height")) ==
+              (round(1300 * scale), round(820 * scale)), f"{shot} / {again}")
 
     # 2. Position.
     if wayland:
         print("NOTE position: skipped, as Wayland neither reports nor accepts positions")
+        window = client.call("get_app_state").get("window", {})
+        check("position: get_app_state reports none on Wayland", "position" not in window, window)
     else:
         client.call("set_window", position=[40, 30])
         window = client.call("get_app_state").get("window", {})
         check("position: get_app_state reports it", window.get("position") == [40, 30], window)
+        # The display's work area, given as a place and a size, is taken as it is: a window manager keeps a
+        # window that fits it there, and with none the window goes exactly there.
+        area = sized.get("display", {})
+        filled = client.call("set_window", position=[area.get("x", 0), area.get("y", 0)],
+                             size=[area.get("width", 0), area.get("height", 0)])
+        check("position and size: the window fills the display's work area",
+              filled.get("position") == [area.get("x"), area.get("y")] and filled.get("size") == [area.get("width"), area.get("height")],
+              f"{filled} / {area}")
 
     # 3. Maximize.
     maximized = client.call("set_window", state="maximized")
@@ -166,6 +254,18 @@ def main():
             check("dialog: a {label} locator finds it", False, str(e))
         error = refusal(target="dialog", state="minimized")
         check("dialog: a modal dialog never minimizes", error is not None, error)
+        # The main window restored and raised behind the dialog stays under it, as X11 captures read the
+        # screen: a window manager keeps a dialog above its window, and with none the app does.
+        client.call("set_window", state="minimized")
+        client.call("set_window", state="normal")
+        client.call("set_window", **{"raise": True})
+        order = None if wayland else x11_stacking(session.get("display") or os.environ.get("DISPLAY"))
+        if order is None:
+            print("NOTE dialog stacking: skipped, as the X server's stacking order can't be read here")
+        else:
+            title = main_entry().get("title")
+            check("dialog: the main window, restored and raised, stays under it",
+                  title in order and "Preferences" in order and order.index(title) < order.index("Preferences"), order)
         client.call("answer_dialog", dialog={"title": "Preferences"}, button="close")
         client.await_job(prefs)
         check("Preferences closes", find("Preferences") is None, windows())

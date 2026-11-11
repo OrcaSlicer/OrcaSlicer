@@ -12,6 +12,7 @@
 #include "ScreenCapture.hpp"
 #include "UiInspector.hpp"
 #include "WebPages.hpp"
+#include "WindowControl.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -1098,38 +1099,11 @@ wxTopLevelWindow* live_window(wxTopLevelWindow* window)
     return nullptr;
 }
 
-// The windows set_window has minimized on Wayland, which never says whether one still is and gives an app
-// no way to restore one: a later normal for such a window can't bring it back, and its reply says so. UI
-// thread, where the weak refs are made and dropped.
-std::vector<wxWeakRef<wxTopLevelWindow>>& wayland_minimized()
-{
-    static std::vector<wxWeakRef<wxTopLevelWindow>> windows;
-    windows.erase(std::remove_if(windows.begin(), windows.end(), [](const wxWeakRef<wxTopLevelWindow>& w) { return w.get() == nullptr; }),
-                  windows.end());
-    return windows;
-}
-
-// Takes a window out of its minimized state, then out of its maximized one. Restore() won't do: on wxGTK
-// it presents the window, which raises it, and on Windows a window minimized while maximized comes back
-// maximized. Un-minimizing goes out only for a minimized window, as on GTK it shows a mapped X11 window
-// again, which raises it; set_window replies to a minimize once it reads back, so the next call sees it.
-// Un-maximizing goes out only for a maximized window except on GTK: on Windows it restores, so
-// activates, a normal window too, while GTK's IsMaximized() can lag a maximize still on its way, and
-// un-maximizing a normal window changes nothing there. UI thread.
-void restore_normal(wxTopLevelWindow& w)
-{
-    if (w.IsIconized())
-        w.Iconize(false);
-#ifdef __WXGTK__
-    w.Maximize(false);
-#else
-    if (w.IsMaximized())
-        w.Maximize(false);
-#endif
-}
-
 // set_window: checks the request and applies it in one UI closure, waits for the window to take it,
-// then replies with what the window became.
+// then replies with what the window became. A size or position applies to the normal window, so a
+// maximized or minimized one is restored first. Where the window system restores it later (GTK), the call
+// waits for that before sizing, as a size given meanwhile is lost: on Wayland the compositor's answer to
+// the restore sizes the window again, and wx would size it by the maximized window's decorations.
 ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
 {
     const json target = args.value("target", json("main"));
@@ -1137,8 +1111,29 @@ ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
     // Never followed off the UI thread, and checked by live_window() on it: a wxWeakRef can't be made or
     // dropped on this thread.
     wxTopLevelWindow* window = nullptr;
-    bool              main = false, modal = false;
+    bool              main = false, modal = false, restoring = false;
     WindowSettling    settling;
+    const bool        placing = args.contains("size") || args.contains("position");
+    const std::string state   = arg_string(args, "state");
+    const auto        minimized = [](const wxTopLevelWindow& w) { return std::string(window_state(w)) == "minimized"; };
+    // The request, less the restore that comes before a size or position. UI thread.
+    const auto apply = [&](wxTopLevelWindow& w) {
+        if (args.contains("size"))
+            settling.limited = resize_window(w, wxSize(args["size"][0].get<int>(), args["size"][1].get<int>()));
+        // -1 is a place on a screen left of or above the primary one, not "keep this coordinate".
+        if (args.contains("position"))
+            w.Move(args["position"][0].get<int>(), args["position"][1].get<int>(), wxSIZE_ALLOW_MINUS_ONE);
+        if (state == "maximized") {
+            maximize_window(w);
+        } else if (state == "minimized") {
+            minimize_window(w);
+        } else if (state == "normal") {
+            settling.activation = settling.activation || (restore_needs_activation() && minimized(w));
+            restore_window(w);
+        }
+        if (arg_bool(args, "raise", false))
+            raise_window(w);
+    };
     ctx.run_ui([&] {
         wxTopLevelWindow& w   = window_target(service, target, locator);
         auto*             dlg = dynamic_cast<wxDialog*>(&w);
@@ -1152,69 +1147,66 @@ ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
         abilities.positions_known = window_positions_known();
         if (const std::string refusal = window_request_refusal(args, abilities); !refusal.empty())
             throw ToolFailure(refusal);
-        // A size or position applies to the normal window, so a maximized or minimized one is restored first.
-        if (args.contains("size") || args.contains("position"))
-            restore_normal(w);
-        if (args.contains("size")) {
-            const wxSize asked(args["size"][0].get<int>(), args["size"][1].get<int>());
-            wxSize       size = asked;
-            size.IncTo(w.GetMinSize());
-            size.DecToIfSpecified(w.GetMaxSize());
-            settling.limited = size != asked;
-            w.SetSize(size);
-        }
-        // -1 is a place on a screen left of or above the primary one, not "keep this coordinate".
-        if (args.contains("position"))
-            w.Move(args["position"][0].get<int>(), args["position"][1].get<int>(), wxSIZE_ALLOW_MINUS_ONE);
-        const std::string state = arg_string(args, "state");
-        if (!abilities.positions_known && (state == "minimized" || state == "normal")) {
-            std::vector<wxWeakRef<wxTopLevelWindow>>& minimized = wayland_minimized();
-            const bool known = std::any_of(minimized.begin(), minimized.end(), [&w](const wxWeakRef<wxTopLevelWindow>& m) { return m.get() == &w; });
-            if (state == "minimized" && !known)
-                minimized.emplace_back(&w);
-            settling.unreported = state == "minimized" || known;
-        }
-        if (state == "maximized")
-            w.Maximize();
-        else if (state == "minimized")
-            w.Iconize();
-        else if (state == "normal")
-            restore_normal(w);
-        if (arg_bool(args, "raise", false))
-            w.Raise();
         window = &w;
+        if (placing && std::string(window_state(w)) != "normal") {
+            settling.activation = restore_needs_activation() && minimized(w);
+            restoring           = restore_window(w);
+        }
+        if (!restoring)
+            apply(w);
         return json();
     });
     journal_with_locator(ctx, args, locator);
 
-    // The window manager may apply the request later (X11) or animate it (macOS): the wait ends at two
-    // equal readings in a row in the state asked for, and for the main window once its 3D view has
-    // drawn at the new size, which a minimized window never does. Wayland never reports a minimize, so
-    // there the wait asks neither for that state nor for a frame from a window that may be minimized.
-    std::string wanted = arg_string(args, "state");
-    if (wanted.empty() && (args.contains("size") || args.contains("position")))
-        wanted = "normal";
-    if (settling.unreported && wanted == "minimized")
-        wanted.clear();
+    // The window manager may apply a request later (X11) or animate it (macOS): a wait ends at two equal
+    // readings in a row in the state asked for. `holds` takes a reading and says whether the window held
+    // still in `wanted` (any state when empty). UI thread.
     const char* closed = "The request was applied before the window closed";
     json        last;
-    const json  done = poll_until(
-        ctx,
-        [&]() -> json {
+    const auto  holds = [&](const std::string& wanted) {
+        wxTopLevelWindow* w = live_window(window);
+        if (w == nullptr)
+            throw ToolFailure(closed);
+        const wxPoint     pos  = w->GetScreenPosition();
+        const wxSize      size = window_size(*w);
+        const std::string now  = window_state(*w);
+        const json        reading{pos.x, pos.y, size.x, size.y, now};
+        return reading == std::exchange(last, reading) && (wanted.empty() || now == wanted);
+    };
+    const auto cancelled = [] { return ToolFailure("Cancelled: OrcaSlicer is closing or the replay or script was stopped"); };
+    if (restoring) {
+        // The rest of the request goes to the window the restore left, normal or not.
+        poll_until(ctx, [&] { return holds("normal") ? json(true) : json(); }, state_change_timeout("normal"), std::chrono::milliseconds(50));
+        if (ctx.cancelled())
+            throw cancelled();
+        ctx.run_ui([&] {
             wxTopLevelWindow* w = live_window(window);
             if (w == nullptr)
                 throw ToolFailure(closed);
-            const wxRect      rect  = w->GetScreenRect();
-            const std::string state = window_state(*w);
-            const json        reading{rect.x, rect.y, rect.width, rect.height, state};
-            settling.held = reading == std::exchange(last, reading) && (wanted.empty() || state == wanted);
+            apply(*w);
+            return json();
+        });
+        last = json();
+    }
+
+    // For the main window the wait also lasts until its 3D view has drawn at the new size, which a
+    // minimized window never does.
+    std::string wanted = state;
+    if (wanted.empty() && placing)
+        wanted = "normal";
+    const std::chrono::seconds timeout = state_change_timeout(wanted);
+    settling.seconds                   = int(timeout.count());
+    const json done                    = poll_until(
+        ctx,
+        [&]() -> json {
+            settling.held = holds(wanted);
             if (!settling.held)
                 return json();
-            return !main || state == "minimized" || settling.unreported || view_drawn_at_size() ? json(true) : json();
+            return !main || minimized(*live_window(window)) || view_drawn_at_size() ? json(true) : json();
         },
-        std::chrono::seconds(3), std::chrono::milliseconds(50));
+        timeout, std::chrono::milliseconds(50));
     if (done.is_null() && ctx.cancelled())
-        throw ToolFailure("Cancelled: OrcaSlicer is closing or the replay or script was stopped");
+        throw cancelled();
     settling.drawn = !done.is_null();
     if (settling.held && !settling.drawn)
         settling.undrawn = undrawn_window(ctx);
@@ -1265,17 +1257,19 @@ void add_window_notes(const json& args, const WindowSettling& settling, json& re
 {
     json adjusted = json::array();
     for (const std::string field : {"size", "position", "state"})
-        if (args.contains(field) && reply.contains(field) && reply[field] != args[field] && !(settling.unreported && field == "state"))
+        if (args.contains(field) && reply.contains(field) && reply[field] != args[field])
             adjusted.push_back(field);
     std::string note = settling.limited ? "size is held to the window's minimum or maximum size" : "";
     const auto  add  = [&note](const std::string& why) { note += (note.empty() ? "" : "; ") + why; };
-    if (settling.unreported)
-        add("Wayland neither reports a minimized window nor lets an app restore one, so state can't show it, and only the "
-            "person can bring the window back from the desktop");
+    if (!settling.held && settling.activation)
+        add("the compositor did not bring the window back: Wayland lets an app restore its minimized window only by "
+            "activating it, which the compositor allows only while the app may take the focus, so the person restores it "
+            "from the taskbar");
     else if (!settling.held)
-        add("the window manager did not apply the request within 3 s");
+        add("the window manager did not apply the request within " + std::to_string(settling.seconds) + " s");
     else if (!settling.drawn)
-        add("the 3D view did not draw at the window's size within 3 s" + (settling.undrawn.empty() ? "" : ": " + settling.undrawn));
+        add("the 3D view did not draw at the window's size within " + std::to_string(settling.seconds) + " s" +
+            (settling.undrawn.empty() ? "" : ": " + settling.undrawn));
     else if (note.empty() && !adjusted.empty())
         note = "the window manager adjusted the request";
     if (!adjusted.empty())
@@ -1316,7 +1310,8 @@ std::string window_request_refusal(const json& args, const WindowAbilities& wind
     if (state == "minimized" && !window.main && !window.can_minimize)
         return "This window's title bar has no minimize button: move it aside with position, or close it, instead";
     if (position && !window.positions_known)
-        return "position needs X11; Wayland places windows itself, so leave position out or run OrcaSlicer under X11";
+        return "position needs X11: Wayland gives an app no way to place its window or to read where it is. Leave position "
+               "out, or start OrcaSlicer with GDK_BACKEND=x11 to run it under XWayland, where every field works";
     return {};
 }
 

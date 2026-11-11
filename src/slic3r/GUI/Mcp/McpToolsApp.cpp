@@ -10,7 +10,9 @@
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "PythonScriptsDialog.hpp"
+#include "ScreenCapture.hpp"
 #include "UiInspector.hpp"
+#include "WindowControl.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -129,13 +131,18 @@ json app_state(McpService& service)
     if (frame == nullptr || plater == nullptr)
         return state;
 
-    const wxRect rect = frame->GetScreenRect();
-    state["window"]   = {{"title", into_u8(frame->GetTitle())},
-                         {"size", {rect.width, rect.height}},
-                         {"position", {rect.x, rect.y}},
-                         {"maximized", frame->IsMaximized()},
-                         {"minimized", frame->IsIconized()},
-                         {"shown", frame->IsShown()}};
+    // The size and state list_windows reports, and the place where the platform knows it.
+    const wxSize      size        = window_size(*frame);
+    const std::string frame_state = window_state(*frame);
+    state["window"]               = {{"title", into_u8(frame->GetTitle())},
+                                     {"size", {size.x, size.y}},
+                                     {"maximized", frame_state == "maximized"},
+                                     {"minimized", frame_state == "minimized"},
+                                     {"shown", frame->IsShown()}};
+    if (window_positions_known()) {
+        const wxPoint pos            = frame->GetScreenPosition();
+        state["window"]["position"] = {pos.x, pos.y};
+    }
     if (Notebook* tabs = frame->m_tabpanel; tabs != nullptr && tabs->GetSelection() != wxNOT_FOUND)
         state["tab"] = into_u8(tabs->GetPageName(size_t(tabs->GetSelection())));
     // The page exists only when the CAD preference was on at startup.

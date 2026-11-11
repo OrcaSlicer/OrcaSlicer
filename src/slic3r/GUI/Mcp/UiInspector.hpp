@@ -379,8 +379,6 @@ GLCanvas3D* design_canvas();
 std::vector<GLCanvas3D*> ui_canvases();
 // The 3D view on screen: the Design view while its tab is shown, else the plater's current canvas.
 GLCanvas3D* shown_canvas();
-// "minimized", "maximized" or "normal": a window's state as list_windows reports it and set_window takes it.
-const char* window_state(const wxTopLevelWindow& window);
 // "3d", "preview", "assemble" or "design".
 const char* canvas_name(GLCanvas3D* canvas);
 // The canvas of a name canvas_name() gives; "" is the Prepare view. Null for an unknown name, and for

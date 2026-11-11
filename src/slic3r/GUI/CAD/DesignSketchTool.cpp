@@ -12419,7 +12419,10 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
                 const int base = int(m_entities.size());
                 begin_feature(FeatureKind::Polygon);
                 append_entities(make_polygon(m_points[0], p, m_polygon_sides));
-                infer_auto_constraints(base);
+                // The polygon is regular as drawn, so only an edge already on an axis is pinned to it:
+                // a solve meeting a pin on an edge a little off the axis moves that edge's ends and
+                // leaves the polygon irregular.
+                infer_auto_constraints(base, 1e-9);
                 end_feature(m_points[0], p, (p - m_points[0]).norm(), m_polygon_sides);
                 m_points.clear();
             }

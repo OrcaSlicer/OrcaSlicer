@@ -378,13 +378,13 @@ struct WindowSettling
     bool        limited    = false; // the size was held to the window's minimum or maximum size
     bool        held       = false; // the window held still in the state asked for
     bool        drawn      = false; // and the main window's 3D view drew at its size, or needn't
-    bool        unreported = false; // Wayland: a minimize, or a normal for a window set_window minimized
+    bool        activation = false; // the request restored a minimized window by activating it (Wayland)
+    int         seconds    = 3;     // how long the wait for the window lasted at most
     std::string undrawn;            // undrawn_window()'s reason the 3D view isn't drawn, or empty
 };
 // Adds to set_window's `reply`, which holds the size, position and state the window reads back,
 // adjusted, the fields of `args` the window differs from, and a note on why: a size limit, the window
-// manager, a 3D view that didn't draw, or a minimize Wayland never reports, whose state is never listed
-// as adjusted.
+// manager, a compositor that refused to activate a minimized window, or a 3D view that didn't draw.
 void add_window_notes(const nlohmann::json& args, const WindowSettling& settling, nlohmann::json& reply);
 // Whether the shown 3D view has drawn at its canvas's size, asking for a frame when it hasn't: until it
 // has, the camera's viewport is the old size, which a fit or a screen_rect would use. True when no 3D

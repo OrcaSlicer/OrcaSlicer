@@ -164,7 +164,9 @@ def rung_slot():
 def rung_polygon():
     gui.enter_sketch("g")
     gui.click_mm(0, 0)
-    gui.click_mm(35, 0)
+    # A vertex a little off the X axis puts two edges within the axis inference's 3 degrees of
+    # horizontal, on every screen whatever pixel the click lands on: the polygon stays regular.
+    gui.click_mm(35, 1)
     gui.values(30, 0)
     d = gui.sketch()
     e = [x for x in d["entities"] if x["type"] == "line"]

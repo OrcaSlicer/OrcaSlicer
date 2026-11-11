@@ -10,7 +10,7 @@ Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the 
 | `launch [--xvfb] [--cad] [--printer "<model>@<nozzle>"] [--vendor V] [--filament F] [--datadir DIR] [--port N] [--bin PATH] [--print-config] [-- app args]` | Start OrcaSlicer with `--mcp`, wait until it is ready, print the session |
 | `call TOOL ['<json args>'] [--wait]` | Call a tool and print its JSON result; `--wait` follows a returned job to its result |
 | `tools` | List the tools, with the first line of each description |
-| `snapshot ['<json args>']` | Print the `list_widgets` tree |
+| `widgets ['<json args>']` | Print the `list_widgets` tree |
 | `screenshot OUT [--target window\|canvas\|dialog]` | Save a full-size PNG, replacing `OUT` if it exists |
 | `run-replay FILE [--out DIR]` | Run a replay in the launched instance and print the result; exit 0 when it passes |
 | `stop` | Stop the app and its Xvfb, and remove the session |
@@ -397,9 +397,12 @@ tools/mcp/test_web_ui.py
 block the app) with a ref that `screenshot` captures alone, `list_widgets` reads alone and `press_keys` Escape
 closes, Preferences last as a modal dialog, and Action Replay listed as hidden, without a ref.
 
-`test_set_window.py` checks `set_window` on the main window (sized, moved, maximized, minimized and
-restored), on the Plugins window by its ref and on Preferences by its `{label}` locator, and that
-`set_view` refuses `window_size`.
+`test_set_window.py` checks `set_window` on the main window (sized twice, moved, placed over its
+display's work area, maximized, minimized and restored), on the Plugins window by its ref and on
+Preferences by its `{label}` locator, and that `set_view` refuses `window_size`. On Wayland it checks
+that a window screenshot is the size the reply gives and skips positions, which Wayland neither reports
+nor takes. On X11 it reads the X server's stacking order through libX11 to check that the main window,
+restored and raised while Preferences is open, stays under it.
 
 `test_action_replay_hidden.py` opens Action Replay and checks that the GUI tools don't see
 it: `list_widgets` lists no window for it, `run_javascript` without a target behaves as before it

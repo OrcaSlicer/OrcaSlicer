@@ -6,6 +6,7 @@
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "ScreenCapture.hpp"
+#include "WindowControl.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/BBLTopbar.hpp"
 #include "slic3r/GUI/Camera.hpp"
@@ -2620,11 +2621,6 @@ bool shows_web_view(wxWindow* w)
 
 } // namespace
 
-const char* window_state(const wxTopLevelWindow& window)
-{
-    return window.IsIconized() ? "minimized" : window.IsMaximized() ? "maximized" : "normal";
-}
-
 json UiInspector::window_entry(wxTopLevelWindow& tlw, bool modal)
 {
     const bool        main  = &tlw == wxGetApp().mainframe;
@@ -2654,7 +2650,7 @@ json UiInspector::window_entry(wxTopLevelWindow& tlw, bool modal)
             const wxPoint pos = tlw.GetScreenPosition();
             w["x"] = pos.x, w["y"] = pos.y;
         }
-        const wxSize size = tlw.GetSize();
+        const wxSize size = window_size(tlw);
         w["width"] = size.x, w["height"] = size.y;
         w["state"] = window_state(tlw);
         // The main window's style leaves wxRESIZE_BORDER out on macOS, where a person resizes it all the same.

@@ -1609,17 +1609,29 @@ anything changes, so a refused call leaves the window as it was: at least one ch
 and position, no `maximized` or `minimized` with a size or position (the system sets those), a state only
 when the title bar offers it (always for the main window, else `wxMAXIMIZE_BOX` and `wxMINIMIZE_BOX`), a
 modal dialog never minimized, since the app would stay blocked with nothing showing, and no position on
-Wayland. One UI closure then applies it in a fixed order: a size or position restores a maximized or
-minimized window first (`restore_normal()`: out of the minimized state, then out of the maximized one,
+Wayland. A UI closure then applies it in a fixed order. A size or position restores a maximized or
+minimized window first (`restore_window()`): out of the minimized state, then out of the maximized one,
 since `Restore()` presents, so raises, the window on GTK and brings a window minimized while maximized
-back maximized on Windows; it un-minimizes only a minimized window, as GTK raises a mapped X11 window it
-un-minimizes, and un-maximizes only a maximized one except on GTK, as Windows activates a normal window
-it un-maximizes, while GTK's `IsMaximized()` can lag a maximize on its way), then the size, held to the
-window's minimum and maximum (what its sizer needs), the position (`wxSIZE_ALLOW_MINUS_ONE`: -1 is a
-place on a screen left of or above the primary one), the state and the raise. A window without a resize border is resized all the same. Sizes and positions are
-wx window coordinates, as `list_windows` and `get_app_state` report them: physical pixels on Windows,
-points on macOS, logical pixels on GTK. The argument normalizer reads `list_windows`'s flat `x`/`y` and
-`width`/`height` as `position` and `size`.
+back maximized on Windows. It touches only the state the window is in, as GTK raises a mapped X11 window
+it un-minimizes, Windows activates a normal window it un-maximizes, and a Wayland compositor answers an
+un-maximize with the window's current size, which replaces a size asked for right after. GTK reports
+the restore once the window manager or compositor has applied it (X11, Wayland), so there the call polls
+until the window reads normal before it goes on, since a size given before that would be lost, or worked
+out from the maximized window's decorations. Then come the size, held to the window's minimum and maximum (what its sizer
+needs), the position (`wxSIZE_ALLOW_MINUS_ONE`: -1 is a place on a screen left of or above the primary
+one), the state and the raise. A window without a resize border is resized all the same. Sizes and
+positions are wx window coordinates, as `list_windows` and `get_app_state` report them: physical pixels
+on Windows, points on macOS, logical pixels on GTK. The argument normalizer reads `list_windows`'s flat
+`x`/`y` and `width`/`height` as `position` and `size`.
+
+On Wayland a size is the window the compositor shows, which a window screenshot captures
+(`window_size()`). GTK decorates OrcaSlicer's main window itself, as the window draws its own title bar,
+and keeps margins around it for its shadow and resize border (45 pixels a side with Breeze). wx counts
+those margins in the window's size after some allocations and not after others. It also adds decoration
+sizes it reads only where GTK decorates a window the compositor would rather not
+(`gdk_wayland_display_prefers_ssd()` false, as on Mutter), and counts none on KWin. So the size is read
+from GTK's allocation less the margins, and `resize_window()` gives wx the size plus the decorations wx
+takes off again, less a title bar GTK shows.
 
 A window manager may apply a request later (X11), animate it (macOS) or change it, so the call polls every
 50 ms (`poll_until()`, which returns null on timeout or cancellation instead of throwing) until two readings of the screen
@@ -1628,8 +1640,9 @@ main window it also waits, asking for a frame each poll, until the shown 3D view
 the camera's viewport, which only a frame sets, must match the canvas, or a `set_view` fit or a
 `screen_rect` that follows would use the old size. The Design tab swaps its camera into the plater's slot
 while it is shown, so the one check covers every 3D view. A minimized window and a hidden canvas draw no
-frames, so neither is waited for. After 3 s the call replies with what it read and a note. A call
-cancelled during the wait fails, and so does one whose window closes, saying the request was applied.
+frames, so neither is waited for. After 3 s (5 s for a minimize on Wayland, `state_change_timeout()`)
+the call replies with what it read and a note. A call cancelled during the wait fails, and so does one
+whose window closes, saying the request was applied.
 
 The reply is the window's `list_windows` entry, from the same `window_entry()` with a new ref, in
 `set_window`'s own form: `title`, `kind`, `ref`, `size`, `position` (not on Wayland), `state` and
@@ -1643,14 +1656,38 @@ whether it is primary, so an agent can choose a position.
 
 On Windows a change takes effect at once, but `raise` may only flash the taskbar button while another app
 has the focus, since the OS locks the foreground; `active` says which happened. On macOS `maximized` is
-the window's zoomed state. Under X11 the window manager may adjust a request, and under Xvfb with no
-window manager maximizing does nothing: the reply says `normal` with a note. Wayland neither reports nor
-accepts positions, so a call with `position` is refused there, pointing to X11. Size, maximize and normal
-work there. Minimize is taken, but GTK on Wayland never reports a minimized window, and Wayland gives an
-app no way to restore one, so the wait asks neither for the state nor for a frame, and the reply, whose
-`state` can't show the minimize, has a note saying so and no `state` under `adjusted`. The call
-remembers the windows it minimized there (`wayland_minimized()`), and a later `normal` for one, which
-can't bring it back, says the same.
+the window's zoomed state. Under X11 the window manager may adjust a request.
+
+With no window manager, as under a bare Xvfb, the app does the window manager's part
+(`WindowControl.cpp`); every EWMH window manager lists `_NET_WM_STATE` among the hints it takes, so its
+absence says none runs. `maximized` remembers the normal rect, adds the maximized atoms to the window's
+`_NET_WM_STATE`, which GDK reads back, so `IsMaximized()` follows, and fills the work area of the window's
+display. `normal` takes the atoms out and puts the rect back. `minimized` unmaps the window, which GDK
+reports as minimized, and wx's `Iconize(false)` maps it again. Mapping a window raises it, and nothing
+keeps a dialog above the window it belongs to, while an X11 capture reads the screen. So after a restore
+and after a `raise`, the windows transient for the window are raised over it, in the order they were
+created.
+
+Wayland has no request to place a window or to read where it is, and no portal offers one; only
+compositor-private interfaces do (KWin's scripting, sway's IPC), and GNOME has none. So a call with
+`position` is refused there, naming `GDK_BACKEND=x11`, under which the app runs through XWayland and every
+field works. `list_windows`, `set_window` and `get_app_state.window` leave positions out. Size,
+maximize and normal work. GTK never reports a minimized window, but the compositor's `suspended` state
+(xdg-shell 6) reaches it as a fully obscured visibility notify, which emission hooks installed when the
+service starts record on the window (`track_window_states()`). Hidden is not minimized: KWin hides a
+minimized window at once, but also one on another virtual desktop and every window while the screens are
+off, and Mutter hides any window it has not shown for 3 s. So a window reads minimized while it is hidden
+and a minimize from `set_window` stands, which ends once the window shows, takes the focus or closes. A
+minimize the person makes from the desktop reads `normal`, since nothing tells the app of it. The wait for
+a minimize lasts 5 s on Wayland, as Mutter hides the window 3 s after it, and sway never minimizes a
+window.
+
+Wayland gives an app no request to un-minimize a window, only to activate it (`gtk_window_present()`
+over xdg-activation), which `normal` and `raise` do. The compositor grants it only while the app may take
+the focus. KWin grants it while no window is active, or when no click or key has gone elsewhere since the
+app's own last input; MCP input goes through wx, not the compositor, so it counts as none. Mutter grants
+it only while one of the app's windows has the focus. A refused `normal` replies `minimized`, with a note
+that the person restores the window from the taskbar, and a refused `raise` replies `active: false`.
 
 ### Menus
 
@@ -3398,9 +3435,10 @@ the MCP web fixture plugin's dialog, window, dock panel and configuration UI (si
 `--install DATADIR`), `tools/mcp/test_set_view_preview.py` the
 legend combo's semantics of `set_view {view_type}`, a canvas screenshot straight after a layer or
 view type change, and the preview refusals of `set_view`, `tools/mcp/test_set_window.py`
-`set_window` on the main window (sized, moved, maximized and minimized, and restored from both), on the
-Plugins window by its ref and on Preferences by its `{label}` locator, and `set_view`'s refusal of
-`window_size`, `tools/mcp/test_set_view_camera.py`
+`set_window` on the main window (sized twice, moved, placed over its display's work area, maximized and
+minimized, and restored from both, with a window screenshot of the size on Wayland), on the Plugins
+window by its ref and on Preferences by its `{label}` locator (on X11 with the main window kept under it
+in the X server's stacking order), and `set_view`'s refusal of `window_size`, `tools/mcp/test_set_view_camera.py`
 `set_view`'s `target` and `zoom` after a queued fit (and its note while no 3D view draws), clamping,
 an orbit that keeps the target, the camera Preview shares and the Design tab's own, with `camera_state`
 and `get_app_state.camera`, and a fit after the window was sized while no 3D view showed,

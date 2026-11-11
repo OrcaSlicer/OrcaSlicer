@@ -18,6 +18,7 @@
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
+#include "slic3r/GUI/Mcp/WindowControl.hpp"
 #include "slic3r/GUI/Camera.hpp"
 
 #include "libslic3r/BoundingBox.hpp"
@@ -27,6 +28,8 @@
 #include "libslic3r/Point.hpp"
 
 #include <nlohmann/json.hpp>
+#include <wx/gdicmn.h>
+#include <wx/types.h>
 
 #include <map>
 #include <string>
@@ -193,6 +196,7 @@ TEST_CASE("set_window refuses a request the window can't take, before changing a
     CHECK(window_request_refusal({{"size", {0, 600}}}, main).find("size") != std::string::npos);
     CHECK(window_request_refusal({{"size", {800}}}, main).find("[width, height]") != std::string::npos);
     CHECK(window_request_refusal({{"position", {0, 0}}}, wayland).find("X11") != std::string::npos);
+    CHECK(window_request_refusal({{"position", {0, 0}}}, wayland).find("GDK_BACKEND=x11") != std::string::npos);
     CHECK(window_request_refusal({{"size", {800, 600}}, {"state", "maximized"}}, wayland).find("maximized") != std::string::npos);
     CHECK(window_request_refusal({{"state", "minimized"}}, wayland).empty());
     CHECK(window_request_refusal({{"raise", true}}, fixed).empty());
@@ -242,21 +246,50 @@ TEST_CASE("set_window's reply lists the fields the window changed, with a note o
     CHECK(note(reply).find(undrawn.undrawn) != std::string::npos);
     CHECK(note(reply).find("window manager") == std::string::npos);
 
-    // Wayland reads a minimized window back as normal: state is not adjusted, and the note says why.
-    WindowSettling wayland = taken;
-    wayland.unreported     = true;
-    reply                  = {{"size", {800, 600}}, {"state", "normal"}};
-    add_window_notes({{"state", "minimized"}}, wayland, reply);
-    CHECK_FALSE(reply.contains("adjusted"));
-    CHECK(note(reply).find("Wayland neither reports a minimized window nor lets an app restore one") != std::string::npos);
+    // The wait ran out: the note gives how long it lasted.
+    WindowSettling slow;
+    slow.seconds = 5;
+    reply        = {{"size", {800, 600}}, {"state", "normal"}};
+    add_window_notes({{"state", "minimized"}}, slow, reply);
+    CHECK(reply["adjusted"] == json::array({"state"}));
+    CHECK(note(reply) == "the window manager did not apply the request within 5 s");
 
-    // A normal after such a minimize says the same, even when the wait ran out.
-    WindowSettling restored;
-    restored.unreported = true;
-    reply               = {{"size", {800, 600}}, {"state", "normal"}};
-    add_window_notes({{"state", "normal"}}, restored, reply);
-    CHECK(note(reply).find("Wayland neither reports") != std::string::npos);
+    // A Wayland compositor that refused to activate a minimized window: the note says so and how the person
+    // brings it back, not that the window manager was slow.
+    WindowSettling refused;
+    refused.activation = true;
+    reply              = {{"size", {800, 600}}, {"state", "minimized"}};
+    add_window_notes({{"state", "normal"}}, refused, reply);
+    CHECK(reply["adjusted"] == json::array({"state"}));
+    CHECK(note(reply).find("the compositor did not bring the window back") != std::string::npos);
+    CHECK(note(reply).find("taskbar") != std::string::npos);
     CHECK(note(reply).find("window manager") == std::string::npos);
+
+    // An activation that brought the window back needs no note.
+    WindowSettling activated = taken;
+    activated.activation     = true;
+    reply                    = {{"size", {800, 600}}, {"state", "normal"}};
+    add_window_notes({{"state", "normal"}}, activated, reply);
+    CHECK_FALSE(reply.contains("note"));
+}
+
+TEST_CASE("set_window sizes a window by what it shows, held to its limits", "[Mcp]")
+{
+    bool limited = true;
+    // No invisible margins and no limits: the size asked for.
+    CHECK(frame_size_for({800, 600}, {0, 0}, wxDefaultSize, wxDefaultSize, limited) == wxSize(800, 600));
+    CHECK_FALSE(limited);
+    // The margins of a client-side decorated window on Wayland go on top, so it shows the size asked for.
+    CHECK(frame_size_for({800, 600}, {90, 90}, wxDefaultSize, wxDefaultSize, limited) == wxSize(890, 690));
+    CHECK_FALSE(limited);
+    // A minimum holds it, in wx's sizes, which count the margins: 836 x 539 shows 746 x 449.
+    CHECK(frame_size_for({700, 400}, {90, 90}, wxSize(836, 539), wxDefaultSize, limited) == wxSize(836, 539));
+    CHECK(limited);
+    CHECK(frame_size_for({746, 449}, {90, 90}, wxSize(836, 539), wxDefaultSize, limited) == wxSize(836, 539));
+    CHECK_FALSE(limited);
+    // So does a maximum, on one side alone.
+    CHECK(frame_size_for({2000, 600}, {0, 0}, wxDefaultSize, wxSize(1600, wxDefaultCoord), limited) == wxSize(1600, 600));
+    CHECK(limited);
 }
 
 TEST_CASE("camera_state reads the camera set_view leaves", "[Mcp]")
