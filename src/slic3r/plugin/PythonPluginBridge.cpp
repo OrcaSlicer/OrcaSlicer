@@ -189,6 +189,7 @@ std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(cons
             }
             const bool has_permission_request =
                 !requested_permissions.fs_read.empty() || !requested_permissions.fs_readwrite.empty() ||
+                !requested_permissions.fs_create.empty() || !requested_permissions.fs_delete.empty() ||
                 !requested_permissions.network_http.empty() || !requested_permissions.network_socket.empty() ||
                 !requested_permissions.process.empty() || requested_permissions.threading;
             if (has_permission_request) {
@@ -569,7 +570,9 @@ void bind_python_api(pybind11::module_& m)
            const std::vector<std::string>& network_socket,
            const std::vector<std::string>& process,
            bool                            threading,
-           const std::vector<std::string>& network) {
+           const std::vector<std::string>& network,
+           const std::vector<std::string>& fs_create,
+           const std::vector<std::string>& fs_delete) {
             if (g_active_plugin_key.empty())
                 throw py::value_error("request_permissions() called outside plugin discovery context");
 
@@ -583,9 +586,33 @@ void bind_python_api(pybind11::module_& m)
             };
             reject_empty("fs_read", fs_read);
             reject_empty("fs_readwrite", fs_readwrite);
+            reject_empty("fs_create", fs_create);
+            reject_empty("fs_delete", fs_delete);
             reject_empty("network_http", network_http);
             reject_empty("network_socket", network_socket);
             reject_empty("process", process);
+
+            // Create/delete declarations name folders. A trailing "/*" is a tree grant covering
+            // the folder and its subfolders; a sole "*" is the full-access form. Any other
+            // wildcard is rejected instead of being stored as a literal folder name or widened
+            // into a grant. request_permissions() resolves and validates the path itself.
+            const auto validate_folder_entries = [](const char* name, const std::vector<std::string>& folders) {
+                const bool full_access = folders.size() == 1 && folders.front() == "*";
+                for (const std::string& folder : folders) {
+                    if (folder == "*") {
+                        if (!full_access)
+                            throw py::value_error(std::string("request_permissions(") + name +
+                                                  "=...) accepts \"*\" only on its own");
+                        continue;
+                    }
+                    if (folder.find('*') != std::string::npos &&
+                        !PluginAuditManager::is_create_delete_tree_grant(folder))
+                        throw py::value_error(std::string("request_permissions(") + name +
+                                              "=...) accepts \"*\" only as the final /* of a folder tree");
+                }
+            };
+            validate_folder_entries("fs_create", fs_create);
+            validate_folder_entries("fs_delete", fs_delete);
 
             // A network URL is reduced to scheme://host, so one grant covers every path, query
             // and port on that host. It is recorded as an HTTP grant; network_permission_matches
@@ -613,6 +640,8 @@ void bind_python_api(pybind11::module_& m)
 
             add_targets(requested.fs_read, fs_read);
             add_targets(requested.fs_readwrite, fs_readwrite);
+            add_targets(requested.fs_create, fs_create);
+            add_targets(requested.fs_delete, fs_delete);
             add_targets(requested.network_http, network_http);
             add_targets(requested.network_http, normalized_network);
             add_targets(requested.network_socket, network_socket);
@@ -628,6 +657,8 @@ void bind_python_api(pybind11::module_& m)
         py::arg("process") = std::vector<std::string>{},
         py::arg("threading") = false,
         py::arg("network") = std::vector<std::string>{},
+        py::arg("fs_create") = std::vector<std::string>{},
+        py::arg("fs_delete") = std::vector<std::string>{},
         R"pbdoc(Request permissions while OrcaSlicer loads your module.
 
 Each bucket takes the target strings the plugin expects the corresponding audit event to
@@ -635,14 +666,28 @@ report: filesystem paths for fs_read and fs_readwrite, URLs for network_http, so
 for network_socket, and commands for process. threading=True requests permission to start
 threads. Targets already granted to the plugin are not asked for again.
 
+fs_create and fs_delete take folders rather than files. A literal folder entry grants creating
+or deleting entries directly inside that folder, not inside its subfolders. An entry ending in
+"/*" is a tree grant: it grants the same for that folder and for every folder below it, at any
+depth, for example "/path/to/folder/*". A tree rooted at a filesystem, drive, or network share
+root, such as "/*", "C:\\*", or a UNC share root, covers that entire filesystem, drive, or
+network share. A relative folder or tree root is
+resolved against the working directory when the request is made. Pass "*" on its own for
+unrestricted create or delete access; a "*" mixed with other entries is rejected, and a "*"
+anywhere other than the final /* of a folder tree is rejected. At runtime, approving a create or
+delete prompt stores the parent folder of the approved target as a direct grant, and the prompt
+lists that canonical folder; a parent folder whose own name contains "*" is refused rather than
+stored. On the main thread the operation then proceeds; a request raised on a worker thread
+denies the current operation, so the plugin has to retry it after approval.
+
 A filesystem target may end in "/*" to grant a whole directory tree, for example
 "/path/to/folder/*". That covers the folder itself and every path beneath it, at any depth.
 "*" is the only wildcard and is recognized only as the final path component; a "*" anywhere
-else in a target is an ordinary character. Wildcards apply to fs_read and fs_readwrite only,
-and a grant in one of those buckets never authorizes the other direction. Tree grants are
-matched on canonical paths, so a symlink below the granted folder does not extend the grant
-outside it. Paths the host denies by name or keyword stay denied even when a wildcard covers
-them.
+else in a target is an ordinary character. Tree grants apply to fs_read, fs_readwrite,
+fs_create and fs_delete, and a grant in one bucket never authorizes another direction. Tree
+grants are matched on canonical paths, so a symlink below the granted folder does not extend
+the grant outside it. Paths the host denies by name or keyword stay denied even when a
+wildcard covers them.
 
 `network` also lists http(s) URLs, but each is reduced to its scheme and host, so one grant covers
 every path, query and port on that host and also authorizes raw socket events for it. The host

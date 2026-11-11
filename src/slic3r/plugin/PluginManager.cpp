@@ -64,6 +64,8 @@ std::vector<std::string>* permission_bucket(PluginPermissions& permissions, Plug
     switch (category) {
     case PluginPermissionCategory::FsRead: return &permissions.fs_read;
     case PluginPermissionCategory::FsReadWrite: return &permissions.fs_readwrite;
+    case PluginPermissionCategory::FsCreate: return &permissions.fs_create;
+    case PluginPermissionCategory::FsDelete: return &permissions.fs_delete;
     case PluginPermissionCategory::NetworkHttp: return &permissions.network_http;
     case PluginPermissionCategory::NetworkSocket: return &permissions.network_socket;
     case PluginPermissionCategory::Process: return &permissions.process;

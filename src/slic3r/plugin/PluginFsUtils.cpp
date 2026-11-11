@@ -865,6 +865,8 @@ InstallStateReadStatus read_install_state_status(const boost::filesystem::path& 
             };
             read_string_list("fs_read", parsed.permissions.fs_read);
             read_string_list("fs_readwrite", parsed.permissions.fs_readwrite);
+            read_string_list("fs_create", parsed.permissions.fs_create);
+            read_string_list("fs_delete", parsed.permissions.fs_delete);
             read_string_list("network_http", parsed.permissions.network_http);
             read_string_list("network_socket", parsed.permissions.network_socket);
             read_string_list("process", parsed.permissions.process);
@@ -1038,6 +1040,8 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
     json["permissions"] = {
         {"fs_read", state.permissions.fs_read},
         {"fs_readwrite", state.permissions.fs_readwrite},
+        {"fs_create", state.permissions.fs_create},
+        {"fs_delete", state.permissions.fs_delete},
         {"network_http", state.permissions.network_http},
         {"network_socket", state.permissions.network_socket},
         {"process", state.permissions.process},

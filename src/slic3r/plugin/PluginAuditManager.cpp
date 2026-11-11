@@ -23,6 +23,10 @@
 #include <future>
 #include <mutex>
 #include <memory>
+#ifdef __APPLE__
+#include <fcntl.h>
+#include <limits.h>
+#endif
 #include <slic3r/GUI/BindDialog.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/MsgDialog.hpp>
@@ -181,8 +185,10 @@ static bool is_network_category(AuditEventCategory category)
     return category == AuditEventCategory::Http || category == AuditEventCategory::Socket;
 }
 
-// Create and delete have no persistent grant list. Off the main thread they are denied outright and
-// reported with an informational dialog rather than a Yes/No prompt that could not grant anything.
+// Create and delete grants name the folder that directly contains the target: an approval stores
+// that parent folder rather than the target, and a saved exact grant allows later operations in
+// the same folder. A tree grant "<folder>/*" also allows operations in every folder below it.
+// Empty means no grant and a sole "*" means any location; see create_delete_grant_covers.
 static bool is_create_delete_category(AuditEventCategory category)
 {
     return category == AuditEventCategory::FsCreate || category == AuditEventCategory::FsDelete;
@@ -603,6 +609,7 @@ thread_local std::string PluginAuditManager::m_current_plugin_key = "";
 thread_local std::string PluginAuditManager::m_current_capability_name = "";
 thread_local std::vector<AllowedRoot> PluginAuditManager::m_scoped_allowed_roots;
 thread_local std::vector<PyObject*> PluginAuditManager::m_root_frames;
+thread_local std::vector<PyObject*> PluginAuditManager::m_delete_root_frames;
 thread_local int PluginAuditManager::m_releasing_frames = 0;
 thread_local bool PluginAuditManager::m_audit_denial_pending = false;
 thread_local bool PluginAuditManager::m_has_last_violation = false;
@@ -616,11 +623,13 @@ ScopedPluginAuditContext::ScopedPluginAuditContext(const std::string& plugin_key
     , m_previous_capability(PluginAuditManager::instance().current_capability())
     , m_previous_scoped_roots(PluginAuditManager::m_scoped_allowed_roots)
     , m_previous_root_frames(std::move(PluginAuditManager::m_root_frames))
+    , m_previous_delete_root_frames(std::move(PluginAuditManager::m_delete_root_frames))
 {
     PluginAuditManager::instance().set_current_plugin(plugin_key);
     PluginAuditManager::instance().set_current_capability(capability_name);
     PluginAuditManager::m_scoped_allowed_roots.clear();
     PluginAuditManager::m_root_frames.clear();
+    PluginAuditManager::m_delete_root_frames.clear();
 }
 
 ScopedPluginAuditContext::~ScopedPluginAuditContext()
@@ -640,12 +649,14 @@ ScopedPluginAuditContext::~ScopedPluginAuditContext()
             PluginAuditManager::m_root_frames.clear();
             mgr.release_frames(frames);
         }
+        PluginAuditManager::m_delete_root_frames.clear();
     }
 
     mgr.set_current_plugin(m_previous_id);
     mgr.set_current_capability(m_previous_capability);
     PluginAuditManager::m_scoped_allowed_roots = std::move(m_previous_scoped_roots);
     PluginAuditManager::m_root_frames          = std::move(m_previous_root_frames);
+    PluginAuditManager::m_delete_root_frames   = std::move(m_previous_delete_root_frames);
 }
 
 // ---------------------------------------------------------------------------
@@ -1172,6 +1183,119 @@ static const std::unordered_set<std::string> two_path_fs_events{
     "shutil.unpack_archive", "_winapi.CreateJunction",
 };
 
+// Audit events whose path arguments are resolved against a directory file descriptor. CPython's
+// tuple layouts (verified against 3.12):
+//   os.mkdir(path, mode, dir_fd)
+//   os.remove(path, dir_fd) / os.rmdir(path, dir_fd)
+//   os.symlink(src, dst, dir_fd)            -- dir_fd applies to the destination only
+//   os.link(src, dst, src_dir_fd, dst_dir_fd)
+//   shutil.rmtree(path, dir_fd)             -- newer Python releases expose dir_fd here too
+//
+// A relative path must be resolved against the descriptor's folder, not the process working
+// directory. Returns the dir_fd argument index for the given path argument, or -1 when the path
+// argument is not resolved through a descriptor.
+static int create_delete_dir_fd_index(const std::string& event_name, Py_ssize_t path_index)
+{
+    if (event_name == "os.mkdir")
+        return path_index == 0 ? 2 : -1;
+    if (event_name == "os.remove" || event_name == "os.rmdir")
+        return path_index == 0 ? 1 : -1;
+    if (event_name == "os.symlink")
+        return path_index == 1 ? 2 : -1;
+    if (event_name == "os.link")
+        return path_index == 0 ? 2 : (path_index == 1 ? 3 : -1);
+    if (event_name == "shutil.rmtree")
+        return path_index == 0 ? 1 : -1;
+    return -1;
+}
+
+// Resolves an open directory descriptor to its folder. Linux uses the /proc/self/fd link and
+// macOS uses F_GETPATH. Returns false when the platform or the running environment cannot name
+// the folder; the caller then fails closed instead of checking a path inside the working
+// directory that the operation does not use.
+static bool resolve_dir_fd_folder(int fd, boost::filesystem::path& out)
+{
+    namespace fs = boost::filesystem;
+
+#if defined(__linux__)
+    boost::system::error_code ec;
+    const fs::path target = fs::read_symlink(fs::path("/proc/self/fd") / std::to_string(fd), ec);
+    if (ec || target.empty() || !target.is_absolute())
+        return false;
+    out = target;
+    return true;
+#elif defined(__APPLE__)
+    char buffer[PATH_MAX] = {};
+    if (fcntl(fd, F_GETPATH, buffer) == -1)
+        return false;
+    const fs::path target(buffer);
+    if (target.empty() || !target.is_absolute())
+        return false;
+    out = target;
+    return true;
+#else
+    (void) fd;
+    (void) out;
+    return false;
+#endif
+}
+
+// Replaces create/delete target paths that were resolved against a non-default dir_fd with paths
+// under the folder that descriptor names. An absolute path ignores dir_fd (POSIX semantics), so it
+// keeps its spelling. Returns false when a descriptor cannot be resolved or is not an integer;
+// the caller then denies the operation.
+static bool resolve_create_delete_targets(const std::string& event_name, PyObject* args,
+                                          std::vector<std::string>& targets)
+{
+    const Py_ssize_t path_count = two_path_fs_events.count(event_name) ? 2 : 1;
+    std::vector<std::string> resolved;
+    resolved.reserve(targets.size());
+
+    for (Py_ssize_t path_index = 0; path_index < path_count; ++path_index) {
+        const std::string path = python_path(tuple_item(args, path_index));
+        if (path.empty())
+            continue;
+
+        const int fd_index = create_delete_dir_fd_index(event_name, path_index);
+        PyObject* const fd_item = fd_index >= 0 ? tuple_item(args, fd_index) : nullptr;
+        if (fd_item != nullptr && fd_item != Py_None) {
+            if (!PyLong_Check(fd_item))
+                return false;
+            const long fd_value = PyLong_AsLong(fd_item);
+            if (PyErr_Occurred()) {
+                PyErr_Clear();
+                return false;
+            }
+            // CPython passes AT_FDCWD (negative) for an omitted dir_fd.
+            if (fd_value >= 0 && !boost::filesystem::path(path).is_absolute()) {
+                boost::filesystem::path base;
+                if (!resolve_dir_fd_folder(static_cast<int>(fd_value), base))
+                    return false;
+                resolved.push_back((base / boost::filesystem::path(path)).string());
+                continue;
+            }
+        }
+
+        resolved.push_back(path);
+    }
+
+    targets = std::move(resolved);
+    return true;
+}
+
+// A link creation reports its existing source and its new destination, but only the destination
+// is created. The create grant covers the destination's parent folder; the source is not treated
+// as created (a hardlink source is separately required to be writable). Both paths stay subject
+// to the deny registry, and an unreadable destination fails closed rather than falling back to
+// the source.
+static std::vector<std::string> create_permission_targets(const std::string& event_name,
+                                                          const std::vector<std::string>& targets)
+{
+    if (event_name == "os.link" || event_name == "os.symlink" || event_name == "_winapi.CreateJunction")
+        return targets.size() == 2 ? std::vector<std::string>{targets.back()} : std::vector<std::string>{};
+    return targets;
+}
+
 static const std::unordered_map<std::string, std::vector<Py_ssize_t>> audit_target_arg_indices{
     {"http.client.connect", {1}},
     {"urllib.Request", {0}},
@@ -1263,6 +1387,8 @@ std::vector<std::string>* permission_list_for(AuditEventCategory category, bool 
     switch (category) {
     case AuditEventCategory::FsRead:        return &permissions.fs_read;
     case AuditEventCategory::FsReadWrite:   return &permissions.fs_readwrite;
+    case AuditEventCategory::FsCreate:      return &permissions.fs_create;
+    case AuditEventCategory::FsDelete:      return &permissions.fs_delete;
     case AuditEventCategory::Http:          return &permissions.network_http;
     case AuditEventCategory::Socket:        return &permissions.network_socket;
     case AuditEventCategory::ProcessCreate: return &permissions.process;
@@ -1314,6 +1440,44 @@ bool tree_grant_root(const std::string& grant, boost::filesystem::path& root)
     }
     root = std::move(normalized);
     return !root.empty();
+}
+
+// True when `root` is a filesystem root: POSIX "/", a Windows drive root such as "C:\", or a
+// UNC/network share root such as "\\server\share\" (including the extended-length forms
+// "\\?\C:\" and "\\?\UNC\server\share\"). A tree grant rooted here covers the whole filesystem,
+// volume, or network share, not one folder, so the declaration prompt must say so instead of
+// presenting it as an ordinary nested folder.
+bool is_filesystem_root(const boost::filesystem::path& root)
+{
+    if (!root.is_absolute())
+        return false;
+
+#ifdef _WIN32
+    const auto is_separator = [](char c) { return c == '/' || c == '\\'; };
+    const std::string path = root.string();
+
+    std::vector<std::string> components;
+    for (size_t start = 0; start < path.size();) {
+        while (start < path.size() && is_separator(path[start]))
+            ++start;
+        size_t end = start;
+        while (end < path.size() && !is_separator(path[end]))
+            ++end;
+        if (end > start && path.compare(start, end - start, ".") != 0)
+            components.emplace_back(path.substr(start, end - start));
+        start = end;
+    }
+
+    if (path.size() >= 2 && is_separator(path[0]) && is_separator(path[1])) {
+        if (components.size() == 4 && components[0] == "?" &&
+            boost::algorithm::iequals(components[1], std::string("UNC")))
+            return true; // \\?\UNC\server\share
+        return components.size() == 2; // \\server\share or an extended drive root \\?\C:
+    }
+    return components.size() == 1 && components[0].size() == 2 && components[0][1] == ':';
+#else
+    return root == root.root_path();
+#endif
 }
 
 // The grant to display and store for a permission request: a recognized tree grant is resolved
@@ -1424,15 +1588,283 @@ bool fs_grant_covers(const std::string& grant, const std::string& target)
     return grant == target || is_inside_allowed_root(boost::filesystem::path(target), root);
 }
 
+// ---------------------------------------------------------------------------
+// Create and delete permission identity
+// ---------------------------------------------------------------------------
+
+// A create or delete grant names a folder whose direct entries may be created or deleted, or a
+// tree grant "<root>/*" that additionally covers every folder below that root, at any depth.
+// An empty list grants nothing, and a sole "*" grants any location. Any other entry must be an
+// absolute folder path or an absolute tree grant; a relative or unreadable entry never matches.
+// A "*" beside another entry is therefore an ordinary, non-matching entry: full access is only
+// ever the explicit one-element form.
+bool create_delete_grant_full(const std::vector<std::string>& granted)
+{
+    return granted.size() == 1 && granted.front() == "*";
+}
+
+// Strictly resolves an absolute folder for a grant comparison. Unlike canonical_for_comparison it
+// does not fall back to a lexical path: a path that cannot be canonicalized, or whose final
+// component is a dangling symlink, never names a folder the grant covers. Relative paths never
+// match -- which folder they name depends on the working directory at check time.
+bool canonical_folder(const boost::filesystem::path& folder, boost::filesystem::path& out)
+{
+    namespace fs = boost::filesystem;
+
+    if (folder.empty() || !folder.is_absolute())
+        return false;
+    if (ends_in_dangling_symlink(folder))
+        return false;
+
+    boost::system::error_code ec;
+    const fs::path canonical = fs::weakly_canonical(folder, ec);
+    if (ec || !canonical.is_absolute() || ends_in_dangling_symlink(canonical))
+        return false;
+
+    out = canonical;
+    return true;
+}
+
+// The folder that directly contains the entry a create/delete event targets. The target itself may
+// not exist yet (a create), so its parent is canonicalized with weakly_canonical: the existing
+// prefix is resolved and the non-existing tail is appended lexically. A final ".." or "." names a
+// directory rather than an entry, so that target is resolved first and its parent is used instead.
+// The final component itself is deliberately not canonicalized: deleting or creating a symlink
+// acts on the link inside its parent folder, not on the link's destination. A trailing separator
+// on a symlink is rejected instead of resolving through the link: the path is ambiguous between
+// the link and its destination, and must not grant the destination's parent folder. Returns false
+// when the folder cannot be resolved, and the operation then fails closed.
+bool create_delete_target_folder(const std::string& target, boost::filesystem::path& folder)
+{
+    namespace fs = boost::filesystem;
+
+    if (target.empty())
+        return false;
+
+    const fs::path path(target);
+    boost::system::error_code ec;
+    const fs::path absolute = path.is_absolute() ? path : fs::absolute(path, ec);
+    if (ec || !absolute.is_absolute())
+        return false;
+
+    const fs::path filename = path.filename();
+    if (filename == "." || filename == "..") {
+        if (filename == ".") {
+            // A trailing separator (or a trailing ".") names the directory itself. Strip those
+            // components to find the entry the path ends at; if it is a symlink, resolve-through
+            // would name the link destination's folder, so fail closed.
+            fs::path entry = path;
+            while (entry.filename() == "." && !entry.parent_path().empty())
+                entry = entry.parent_path();
+            if (!entry.empty() && entry.filename() != ".") {
+                boost::system::error_code status_ec;
+                const fs::file_status status = fs::symlink_status(entry, status_ec);
+                if (!status_ec && fs::is_symlink(status))
+                    return false;
+            }
+        }
+
+        // The target names a directory: resolve it, then use the directory that contains it.
+        const fs::path resolved = fs::weakly_canonical(absolute, ec);
+        if (ec || !resolved.is_absolute())
+            return false;
+        const fs::path parent = resolved.parent_path();
+        if (parent.empty())
+            return false;
+        folder = parent;
+        return true;
+    }
+
+    const fs::path parent = fs::weakly_canonical(absolute.parent_path(), ec);
+    if (ec || !parent.is_absolute())
+        return false;
+
+    folder = parent;
+    return true;
+}
+
+// True when a runtime folder path contains '*'. A folder literally named with a wildcard cannot
+// be stored as a literal create/delete grant: the sidecar would read the marker as a tree grant
+// and cover a broader scope than the approved folder. Runtime callers fail closed before
+// prompting for or persisting such a grant.
+bool create_delete_folder_has_wildcard(const boost::filesystem::path& folder)
+{
+    return folder.string().find('*') != std::string::npos;
+}
+
+// True when one saved create/delete grant covers the canonical folder `wanted`. A tree grant
+// covers its canonical root and every folder below it, at any depth. An exact grant names exactly
+// one folder, so it is consulted only when `allow_exact_grant` is true: a tree request is never
+// covered by an exact grant, because that grant authorizes only the entries directly inside its
+// folder, not the subtree.
+bool create_delete_grant_covers_canonical_folder(const std::vector<std::string>& granted,
+                                                 const boost::filesystem::path&  wanted,
+                                                 bool                            allow_exact_grant)
+{
+    for (const std::string& grant : granted) {
+        boost::filesystem::path root;
+        if (tree_grant_root(grant, root)) {
+            boost::filesystem::path canonical_root;
+            if (!canonical_folder(root, canonical_root))
+                continue; // relative or unresolvable roots never authorize
+            boost::filesystem::path suffix;
+            if (suffix_inside_root(wanted, canonical_root, suffix))
+                return true;
+            continue;
+        }
+        if (!allow_exact_grant)
+            continue;
+        if (!canonical_folder(boost::filesystem::path(grant), root))
+            continue; // relative or unresolvable entries never authorize
+        if (same_canonical_path(root, wanted))
+            return true;
+    }
+    return false;
+}
+
+// True when a saved create/delete grant already covers `folder`, the directory directly
+// containing a create or delete target. An exact grant names that folder; a tree grant names
+// its root and every folder below it. Folders are compared in canonical form so "." / "..",
+// repeated separators and symlinked folders do not create a second grant for the same location,
+// and a symlink inside a tree cannot escape it. A full grant covers every folder.
+bool create_delete_grant_covers_folder(const std::vector<std::string>& granted, const std::string& folder)
+{
+    if (create_delete_grant_full(granted))
+        return true;
+
+    boost::filesystem::path wanted;
+    if (!canonical_folder(boost::filesystem::path(folder), wanted))
+        return false;
+
+    return create_delete_grant_covers_canonical_folder(granted, wanted, /*allow_exact_grant=*/true);
+}
+
+// True when the saved create/delete grants cover creating or deleting `target`: the folder
+// directly containing it is named by an exact grant, or lies inside a tree grant's root.
+bool create_delete_grant_covers(const std::vector<std::string>& granted, const std::string& target)
+{
+    if (create_delete_grant_full(granted))
+        return true;
+
+    boost::filesystem::path folder;
+    return create_delete_target_folder(target, folder) && create_delete_grant_covers_folder(granted, folder.string());
+}
+
+// Resolves a folder path to the absolute, canonical location stored in the sidecar. A relative
+// path is resolved against the working directory the request is made in, like a relative tree
+// grant. Returns false for an empty or unresolvable path; the caller fails closed instead of
+// storing a grant with a different scope. The final component must not be a dangling symlink
+// (see canonical_folder).
+bool resolve_create_delete_folder(const boost::filesystem::path& path, boost::filesystem::path& folder)
+{
+    if (path.empty())
+        return false;
+
+    boost::system::error_code ec;
+    const boost::filesystem::path absolute = path.is_absolute() ? path : boost::filesystem::absolute(path, ec);
+    if (ec || !absolute.is_absolute())
+        return false;
+
+    return canonical_folder(absolute, folder);
+}
+
+// Resolves a folder requested by a plugin declaration to the absolute, canonical path stored in
+// the sidecar. A relative folder is resolved against the working directory the request is made
+// in, like a relative tree grant. Returns false for an empty, wildcard-containing, unresolvable or
+// dangling entry; the declaration then fails closed instead of storing a grant with a different
+// scope. The sole "*" full form is handled before this helper.
+bool absolute_create_delete_folder(const std::string& requested, std::string& folder)
+{
+    if (requested.empty() || requested.find('*') != std::string::npos)
+        return false;
+
+    boost::filesystem::path canonical;
+    if (!resolve_create_delete_folder(boost::filesystem::path(requested), canonical))
+        return false;
+
+    folder = canonical.string();
+    return true;
+}
+
+// Splits a requested create/delete tree grant into its root. Unlike tree_grant_root, this is
+// applied to a declaration, not to a stored grant: "." and ".." are allowed because the root is
+// canonicalized and shown to the user before it is stored. "*" must be the only wildcard and the
+// final path component. Returns false for every other shape.
+bool requested_tree_grant_root(const std::string& requested, boost::filesystem::path& root)
+{
+    if (requested.size() < 2 || requested.back() != '*' || requested.find('*') != requested.size() - 1)
+        return false;
+
+    const boost::filesystem::path path(requested);
+    if (path.filename() != "*")
+        return false;
+
+    const boost::filesystem::path parent = path.parent_path();
+    if (parent.empty())
+        return false;
+
+    root = parent;
+    return true;
+}
+
+// Resolves one entry from a create/delete declaration to the string stored for it. An exact
+// folder becomes its canonical absolute path. A tree grant "<dir>/*" resolves its root the same
+// way and is stored as "<canonical-root>/*", so the sidecar records the absolute scope the prompt
+// showed. Returns false for an empty entry, a wildcard other than a final tree marker, or an
+// entry that cannot be resolved; the declaration then fails closed. The sole "*" full form is
+// handled before this helper.
+bool absolute_create_delete_grant(const std::string& requested, std::string& grant)
+{
+    boost::filesystem::path root;
+    if (!requested_tree_grant_root(requested, root))
+        return absolute_create_delete_folder(requested, grant);
+
+    boost::filesystem::path canonical;
+    if (!resolve_create_delete_folder(root, canonical))
+        return false;
+
+    grant = (canonical / "*").string();
+    return true;
+}
+
+// True when a saved create/delete grant already covers the whole scope of another grant entry.
+// An exact requested folder is covered by an exact grant naming it, or by a tree grant whose root
+// contains it. A requested tree grant is covered only by a tree grant whose root contains its
+// root (or by full access): an exact grant authorizes direct entries in one folder, not the
+// subtree the request asks for.
+bool create_delete_grant_covers_grant(const std::vector<std::string>& granted, const std::string& requested)
+{
+    if (create_delete_grant_full(granted))
+        return true;
+
+    boost::filesystem::path requested_root;
+    if (!tree_grant_root(requested, requested_root))
+        return create_delete_grant_covers_folder(granted, requested);
+
+    boost::filesystem::path wanted_root;
+    if (!canonical_folder(requested_root, wanted_root))
+        return false;
+
+    return create_delete_grant_covers_canonical_folder(granted, wanted_root, /*allow_exact_grant=*/false);
+}
+
 // True when `granted` already covers `target`. Only the filesystem buckets accept a tree grant,
 // and their exact entries may name the target file by an equivalent path spelling: an event
 // grant ("FsRead:open") and the non-filesystem buckets (URLs, socket addresses, commands) are
-// matched verbatim, as before.
+// matched verbatim, as before. The create/delete buckets are folder grants: they match the
+// folder directly containing the target (an exact folder grant) or any folder inside a tree
+// grant's root, not the target's spelling.
 bool has_permission(AuditEventCategory category, bool by_event, const std::vector<std::string>& granted,
                     const std::string& target)
 {
     const bool fs_bucket =
         !by_event && (category == AuditEventCategory::FsRead || category == AuditEventCategory::FsReadWrite);
+    const bool create_delete_bucket =
+        !by_event && is_create_delete_category(category);
+
+    if (create_delete_bucket)
+        return create_delete_grant_covers(granted, target);
+
     for (const auto& grant : granted) {
         // fs_grant_covers also owns the exact match, so that a relative tree entry cannot match
         // by spelling alone.
@@ -1495,8 +1927,19 @@ bool persist_permission(const std::string& plugin_key, AuditEventCategory catego
     if (!permission_list)
         return false;
 
-    if (!has_permission(category, by_event, *permission_list, target))
+    if (is_create_delete_category(category)) {
+        // A runtime folder whose name contains '*' cannot be stored as a literal create/delete
+        // grant: the sidecar would read it as a tree grant. Fail closed rather than persist a
+        // grant whose scope differs from the one the prompt showed.
+        if (target.find('*') != std::string::npos)
+            return false;
+        // The caller passes the target's parent folder for these buckets, so compare it as a
+        // folder rather than as a target path.
+        if (!create_delete_grant_covers_folder(*permission_list, target))
+            permission_list->push_back(target);
+    } else if (!has_permission(category, by_event, *permission_list, target)) {
         permission_list->push_back(target);
+    }
     return write_install_state(root, state);
 }
 
@@ -1541,13 +1984,91 @@ int report_denied(PluginAuditManager&            mgr,
 }
 
 wxString audit_message(AuditEventCategory category, const wxString& plugin_name, const wxString& event_name,
-                       const wxString& target_list, size_t target_count)
+                       const wxString& target_list, size_t target_count, bool full_fs_scope = false,
+                       bool tree_scope = false, bool root_tree_scope = false)
 {
+    // Create and delete grants name folders, and a declaration may ask for the whole filesystem
+    // with a sole "*". Describe that scope instead of printing the marker as a folder.
+    if (full_fs_scope) {
+        switch (category) {
+        case AuditEventCategory::FsCreate:
+            return wxString::Format(
+                _L("Plugin \"%s\" is requesting to create files anywhere on this computer.\n\n"
+                   "Paths the host denies stay blocked."),
+                plugin_name);
+        case AuditEventCategory::FsDelete:
+            return wxString::Format(
+                _L("Plugin \"%s\" is requesting to delete files anywhere on this computer.\n\n"
+                   "Paths the host denies stay blocked."),
+                plugin_name);
+        default:
+            break;
+        }
+    }
+
     if (target_list.IsEmpty())
         return wxString::Format(
             _L("Plugin \"%s\" is requesting permission for the Python audit event \"%s\".\n\n"
                 "This operation does not expose a target the audit hook can display."),
             plugin_name, event_name);
+
+    if (tree_scope) {
+        if (root_tree_scope) {
+            switch (category) {
+            // A tree grant rooted at a filesystem, drive, or network share root covers everything
+            // on it. Say so explicitly instead of describing it like an ordinary nested folder.
+            case AuditEventCategory::FsCreate:
+                return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create files in the following folder:\n%s\n\n"
+                                                  "Approval covers creating entries directly inside the listed folder and every "
+                                                  "folder below it. A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
+                                                  "Plugin \"%s\" is requesting to create files in the following folders:\n%s\n\n"
+                                                  "Approval covers creating entries directly inside each listed folder and every "
+                                                  "folder below it. A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
+                                                  target_count),
+                                        plugin_name, target_list);
+            case AuditEventCategory::FsDelete:
+                return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete files in the following folder:\n%s\n\n"
+                                                  "Approval covers deleting entries directly inside the listed folder and every "
+                                                  "folder below it. A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
+                                                  "Plugin \"%s\" is requesting to delete files in the following folders:\n%s\n\n"
+                                                  "Approval covers deleting entries directly inside each listed folder and every "
+                                                  "folder below it. A target that is a filesystem, drive, or network share root, such as /*, "
+                                                  "C:\\*, or \\\\server\\share\\*, covers that entire filesystem, drive, or network share.",
+                                                  target_count),
+                                        plugin_name, target_list);
+            default:
+                break;
+            }
+        }
+        switch (category) {
+        // The target list shows a tree grant as "<folder>/*". Its approval covers subfolders,
+        // unlike a literal folder entry, so the prompt says so. The scope sentence is part of
+        // each msgid rather than appended, so a translator can reorder it.
+        case AuditEventCategory::FsCreate:
+            return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create files in the following folder:\n%s\n\n"
+                                              "Approval covers creating entries directly inside the listed folder. "
+                                              "A target ending in /* also covers that folder's subfolders, at any depth.",
+                                              "Plugin \"%s\" is requesting to create files in the following folders:\n%s\n\n"
+                                              "Approval covers creating entries directly inside each listed folder. "
+                                              "A target ending in /* also covers that folder's subfolders, at any depth.",
+                                              target_count),
+                                    plugin_name, target_list);
+        case AuditEventCategory::FsDelete:
+            return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete files in the following folder:\n%s\n\n"
+                                              "Approval covers deleting entries directly inside the listed folder. "
+                                              "A target ending in /* also covers that folder's subfolders, at any depth.",
+                                              "Plugin \"%s\" is requesting to delete files in the following folders:\n%s\n\n"
+                                              "Approval covers deleting entries directly inside each listed folder. "
+                                              "A target ending in /* also covers that folder's subfolders, at any depth.",
+                                              target_count),
+                                    plugin_name, target_list);
+        default:
+            break;
+        }
+    }
 
     switch (category) {
     case AuditEventCategory::FsRead:
@@ -1558,21 +2079,24 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
         return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to read/write the following file:\n%s",
                                           "Plugin \"%s\" is requesting to read/write the following files:\n%s", target_count),
                                 plugin_name, target_list);
-    // Creating and deleting have no persistent grant list, so the inline prompt says a Yes covers
-    // this operation only. Off the main thread they use the informational denial instead. The
-    // sentence is part of each msgid rather than appended: a translator must be able to reorder
-    // it inside the message.
+    // These buckets persist a folder grant: a Yes stores the folder shown in the prompt, and
+    // later operations whose target is directly inside it are allowed. The scope sentence is part
+    // of each msgid rather than appended, so a translator can reorder it.
     case AuditEventCategory::FsCreate:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create the following file:\n%s\n\n"
-                                          "This approval applies only to this operation and is not remembered.",
-                                          "Plugin \"%s\" is requesting to create the following files:\n%s\n\n"
-                                          "This approval applies only to this operation and is not remembered.", target_count),
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to create files in the following folder:\n%s\n\n"
+                                          "Approval covers creating entries directly inside the listed folder. "
+                                          "It does not cover its subfolders.",
+                                          "Plugin \"%s\" is requesting to create files in the following folders:\n%s\n\n"
+                                          "Approval covers creating entries directly inside each listed folder. "
+                                          "It does not cover their subfolders.", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::FsDelete:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete the following file:\n%s\n\n"
-                                          "This approval applies only to this operation and is not remembered.",
-                                          "Plugin \"%s\" is requesting to delete the following files:\n%s\n\n"
-                                          "This approval applies only to this operation and is not remembered.", target_count),
+        return wxString::Format(_L_PLURAL("Plugin \"%s\" is requesting to delete files in the following folder:\n%s\n\n"
+                                          "Approval covers deleting entries directly inside the listed folder. "
+                                          "It does not cover its subfolders.",
+                                          "Plugin \"%s\" is requesting to delete files in the following folders:\n%s\n\n"
+                                          "Approval covers deleting entries directly inside each listed folder. "
+                                          "It does not cover their subfolders.", target_count),
                                 plugin_name, target_list);
     case AuditEventCategory::Http:
         return wxString::Format(
@@ -1601,15 +2125,19 @@ wxString audit_message(AuditEventCategory category, const wxString& plugin_name,
 
 // Format with a placeholder first so translated messages can put the target list anywhere.
 PermissionMessage formatted_audit_message(AuditEventCategory category, const wxString& plugin_name,
-                                          const wxString& event_name, const wxString& targets, size_t count)
+                                          const wxString& event_name, const wxString& targets, size_t count,
+                                          bool full_fs_scope = false, bool tree_scope = false,
+                                          bool root_tree_scope = false)
 {
     if (targets.empty())
-        return {audit_message(category, plugin_name, event_name, targets, count), {}};
+        return {audit_message(category, plugin_name, event_name, targets, count, full_fs_scope, tree_scope,
+                              root_tree_scope), {}};
 
     wxString marker = "__ORCA_PERMISSION_TARGETS__";
     while (plugin_name.Contains(marker) || event_name.Contains(marker) || targets.Contains(marker))
         marker += "_";
-    PermissionMessage message{audit_message(category, plugin_name, event_name, marker, count), {}};
+    PermissionMessage message{
+        audit_message(category, plugin_name, event_name, marker, count, full_fs_scope, tree_scope, root_tree_scope), {}};
     const size_t pos = message.text.find(marker);
     if (pos != wxString::npos) {
         message.text.replace(pos, marker.length(), targets);
@@ -1626,8 +2154,15 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
     for (const auto& target : unresolved)
         target_list += wxString::FromUTF8(target.c_str()) + "\n";
 
+    const bool tree_scope = std::any_of(unresolved.begin(), unresolved.end(), [](const std::string& target) {
+        boost::filesystem::path root;
+        return tree_grant_root(target, root);
+    });
+
     PermissionMessage message = formatted_audit_message(category, wxString::FromUTF8(plugin_name.c_str()),
-                                                         wxString::FromUTF8(event_name.c_str()), target_list, unresolved.size());
+                                                         wxString::FromUTF8(event_name.c_str()), target_list,
+                                                         unresolved.size(), /*full_fs_scope=*/false, tree_scope,
+                                                         /*root_tree_scope=*/false);
     return show_permission_dialog(message, _L("Plugin permission request"));
 }
 
@@ -1635,52 +2170,6 @@ bool prompt_for_targets(AuditEventCategory category, const std::string& plugin_n
 bool prompt_for_permission_message(const PermissionMessage& message)
 {
     return show_permission_dialog(message, _L("Plugin permissions"));
-}
-
-// Builds the informational message shown when an off-main-thread create/delete event is denied.
-// There is no Yes/No choice: that path cannot grant create/delete permission, so the dialog must
-// not imply that approving it would make a later attempt succeed.
-wxString permission_denied_message(AuditEventCategory category, const wxString& plugin_name,
-                                   const wxString& target_list, size_t target_count)
-{
-    if (target_list.IsEmpty())
-        return wxString::Format(
-            _L("Plugin \"%s\" tried to perform a file operation that requires permission.\n\n"
-               "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."),
-            plugin_name);
-
-    switch (category) {
-    case AuditEventCategory::FsCreate:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" tried to create the following file:\n%s\n\n"
-                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.",
-                                          "Plugin \"%s\" tried to create the following files:\n%s\n\n"
-                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.", target_count),
-                                plugin_name, target_list);
-    case AuditEventCategory::FsDelete:
-        return wxString::Format(_L_PLURAL("Plugin \"%s\" tried to delete the following file:\n%s\n\n"
-                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.",
-                                          "Plugin \"%s\" tried to delete the following files:\n%s\n\n"
-                                          "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it.", target_count),
-                                plugin_name, target_list);
-    default:
-        return wxString::Format(_L("Plugin \"%s\" tried to perform a file operation that requires permission.\n\n"
-                                   "The operation was denied. Use an allowed location or enable Full access for this plugin if you trust it."),
-                                plugin_name);
-    }
-}
-
-// Shows the informational denial for a create/delete event whose prompt had to be handled off the
-// main thread. Must run on the GUI thread.
-void show_permission_denied_dialog(AuditEventCategory category, const std::string& plugin_name,
-                                   const std::vector<std::string>& targets)
-{
-    wxString target_list;
-    for (const auto& target : targets)
-        target_list += wxString::FromUTF8(target.c_str()) + "\n";
-
-    const wxString message = permission_denied_message(category, wxString::FromUTF8(plugin_name.c_str()),
-                                                       target_list, targets.size());
-    GUI::MessageDialog(nullptr, message, _L("Plugin operation denied"), wxOK | wxICON_WARNING).ShowModal();
 }
 
 // Records a grant in the plugin's sidecar so it is not asked again. Each persist helper re-reads
@@ -1724,8 +2213,9 @@ static const char* audit_category_name(AuditEventCategory category)
 }
 
 // Asks the user to grant an audited event, returning true when they approve an inline prompt.
-// `keys` are what a Yes saves: the unresolved targets, or the event-grant key when the event has
-// no target (by_event), which the prompt does not show as a target.
+// `keys` are what a Yes saves and, for a targeted event, what the prompt shows. For a targetless
+// event (by_event) the prompt shows no target and `keys` holds the event-grant key. Create/delete
+// pass the canonical parent folder of each target, so the prompt shows exactly what is stored.
 //
 // An audited event can fire on a thread the UI thread may itself be blocked waiting on: the
 // SlicingPipeline hook runs on the slicing worker thread (see PluginHooks.cpp), and
@@ -1737,9 +2227,10 @@ static const char* audit_category_name(AuditEventCategory category)
 // prompt); the grant is persisted once the user accepts, so a later attempt succeeds without
 // re-prompting.
 //
-// Create and delete are the exception: they have no persistent grant to save, so an off-main-
-// thread request is denied and only an informational denial is shown. Showing a Yes/No prompt
-// would falsely imply that accepting it could authorize the operation or a later retry.
+// Create and delete now persist a folder grant. On the GUI thread the inline prompt is answered
+// before the operation returns, so approval lets it proceed immediately. Off the main thread the
+// prompt is posted and the current operation is denied, so the plugin has to retry it after the
+// approval has stored the folder.
 bool request_permission(AuditEventCategory category, const std::string& plugin_key, const std::string& plugin_name,
                         const std::string& event_name, bool by_event, const std::vector<std::string>& keys)
 {
@@ -1764,15 +2255,6 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
     if (wxIsMainThread())
         return prompt_for_targets(category, plugin_name, event_name, shown);
 
-    if (is_create_delete_category(category)) {
-        GUI::wxGetApp().CallAfter([category, plugin_name, shown]() {
-            if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
-                return;
-            show_permission_denied_dialog(category, plugin_name, shown);
-        });
-        return false;
-    }
-
     GUI::wxGetApp().CallAfter([category, plugin_key, plugin_name, event_name, by_event, keys, shown]() {
         if (wxTheApp == nullptr || GUI::wxGetApp().is_closing())
             return;
@@ -1783,8 +2265,8 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
 }
 
 // Decides an event that no allowed root or running operation covers: a saved grant allows it,
-// otherwise the user is asked. A Yes is saved when the category has a persistent grant list;
-// create/delete has none and off the main thread only reports the denial.
+// otherwise the user is asked. A Yes is saved for every category that has a persistent grant
+// list, including create/delete, whose grant is the folder containing each approved target.
 int decide_audited_event(PluginAuditManager&             mgr,
                          PluginInstallState&              state,
                          const std::string&                plugin_key,
@@ -1804,31 +2286,51 @@ int decide_audited_event(PluginAuditManager&             mgr,
     const bool                     by_event = targets.empty();
     const std::vector<std::string> keys     = by_event ? std::vector<std::string>{event_grant_key(category, event_name)} : targets;
     const bool                     threading_category = category == AuditEventCategory::Threading;
+    const bool                     create_delete_category = is_create_delete_category(category);
     std::vector<std::string>*      permission_list = permission_list_for(category, by_event, state.permissions);
 
-    std::vector<std::string> unresolved = keys;
-    if (permission_list || is_network_category(category) || threading_category) {
-        unresolved.clear();
-        if (threading_category) {
-            // Threading is a boolean grant rather than a target list. The event still reports the
-            // fixed sentinel target so it is not treated as a targetless event grant.
-            if (!state.permissions.threading)
-                unresolved = keys;
-        } else {
-            for (const auto& key : keys) {
-                // A network grant authorizes a specific host, except for a targetless event such as
-                // http.client.send, which names no host: any network grant covers that.
-                const bool granted_network =
-                    is_network_category(category) &&
-                    (by_event ? has_any_network_permission(state.permissions)
-                              : has_network_permission(state.permissions, key));
-                if (!(permission_list && has_permission(category, by_event, *permission_list, key)) && !granted_network)
-                    unresolved.push_back(key);
-            }
+    // Create/delete grants name folders: an approval saves the folder that directly contains
+    // each unresolved target, and the prompt shows those canonical folders -- including the
+    // absolute form of relative targets and the resolved form of symlinked parents -- so the user
+    // approves exactly the scope that will be stored. Every target has to be covered, and a
+    // target whose folder cannot be resolved fails closed.
+    std::vector<std::string> unresolved;
+    if (threading_category) {
+        // Threading is a boolean grant rather than a target list. The event still reports the
+        // fixed sentinel target so it is not treated as a targetless event grant.
+        if (!state.permissions.threading)
+            unresolved = keys;
+    } else if (create_delete_category && !by_event) {
+        for (const std::string& target : targets) {
+            if (permission_list && has_permission(category, /*by_event=*/false, *permission_list, target))
+                continue;
+            boost::filesystem::path folder;
+            if (!create_delete_target_folder(target, folder))
+                return report_denied(mgr, event_name, {false, "target folder cannot be resolved"}, target);
+            const std::string grant = folder.string();
+            // A folder whose own name contains '*' cannot be shown or stored as a literal grant:
+            // the sidecar would read it as a tree grant over a broader scope. Fail closed.
+            if (create_delete_folder_has_wildcard(folder))
+                return report_denied(mgr, event_name, {false, "target folder contains a wildcard"}, target);
+            if (std::find(unresolved.begin(), unresolved.end(), grant) != unresolved.end())
+                continue; // another target in this folder already requires the same approval
+            unresolved.push_back(grant);
         }
-        if (unresolved.empty())
-            return 0;
+    } else {
+        for (const auto& key : keys) {
+            // A network grant authorizes a specific host, except for a targetless event such as
+            // http.client.send, which names no host: any network grant covers that.
+            const bool granted_network =
+                is_network_category(category) &&
+                (by_event ? has_any_network_permission(state.permissions)
+                          : has_network_permission(state.permissions, key));
+            if (!(permission_list && has_permission(category, by_event, *permission_list, key)) && !granted_network)
+                unresolved.push_back(key);
+        }
     }
+
+    if (unresolved.empty())
+        return 0;
 
     // Letting a root frame go runs finalizers inside a scope destructor or another event's hook,
     // where no dialog may open: what they do must already be granted.
@@ -1844,11 +2346,63 @@ int decide_audited_event(PluginAuditManager&             mgr,
     return 0;
 }
 
+// A hardlink makes an existing source writable through its new name, so the source needs write
+// authorization independently of the destination's create permission, not merely read access:
+// a writable allowed root, a saved fs_readwrite grant, full access, or a read/write approval.
+// A read grant is deliberately insufficient because the link turns a read-only path into a
+// writable one. A create grant is never stored for the source. Returns false when the source is
+// not writable or the approval is missing; the caller then denies the event. Called only after
+// root-frame coverage, so a link performed by an approved read/write operation is covered as
+// part of that operation.
+bool authorize_hardlink_source(PluginAuditManager& mgr, const std::string& event_name, const std::string& source)
+{
+    if (source.empty())
+        return false;
+
+    // check_path_access also consults the deny registry; a denied source already denied the event
+    // earlier, and a false result here still fails closed. is_write=true admits only writable
+    // allowed roots, not read-only ones such as the bundled resources folder.
+    if (mgr.check_path_access(boost::filesystem::path(source), /*is_write=*/true).allowed)
+        return true;
+
+    PluginInstallState state;
+    const bool have_state = PluginManager::instance().get_install_state(mgr.current_plugin(), state);
+    if (have_state && state.permissions.full_access)
+        return true;
+    if (have_state &&
+        has_permission(AuditEventCategory::FsReadWrite, /*by_event=*/false, state.permissions.fs_readwrite, source))
+        return true;
+
+    // Letting a root frame go runs finalizers where no dialog may open: what they do must already
+    // be granted, so the source check fails closed instead of prompting.
+    if (mgr.releasing_frames())
+        return false;
+
+    const std::string plugin_name = state.plugin_name.empty() ? mgr.current_plugin() : state.plugin_name;
+    if (!request_permission(AuditEventCategory::FsReadWrite, mgr.current_plugin(), plugin_name, event_name,
+                            /*by_event=*/false, {source}))
+        return false;
+
+    persist_grant(mgr.current_plugin(), AuditEventCategory::FsReadWrite, /*by_event=*/false, {source});
+    return true;
+}
+
 // Judges an audited event raised while a plugin context is active.
 int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, AuditEventCategory event_type, PyObject* args)
 {
     const bool                      fs_category = is_fs_category(event_type);
-    const std::vector<std::string>  targets      = audit_targets(event_name, event_type, args);
+    std::vector<std::string>        targets      = audit_targets(event_name, event_type, args);
+
+    // A dir_fd makes a relative path name an entry in the descriptor's folder, not in the working
+    // directory. Resolve it before any check so the deny registry, allowed roots and folder grants
+    // all see the folder the operation actually uses. A descriptor that cannot be resolved denies
+    // the operation; every later shortcut would otherwise judge the wrong path.
+    if (is_create_delete_category(event_type) && !resolve_create_delete_targets(event_name, args, targets))
+        return report_denied(mgr, event_name, {false, "directory file descriptor cannot be resolved"});
+
+    // A link creation writes only its destination; its existing source is not a create target.
+    const std::vector<std::string> permission_targets =
+        event_type == AuditEventCategory::FsCreate ? create_permission_targets(event_name, targets) : targets;
 
     // A denied path (secrets, certificates, config files -- see is_denied_path) is an
     // unconditional block: checked before the running-operation check below, so no granted
@@ -1862,21 +2416,41 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
         }
     }
 
+    // A create/delete event with no readable destination cannot be matched against a folder grant.
+    if (is_create_delete_category(event_type) && permission_targets.empty())
+        return report_denied(mgr, event_name, {false, "target path cannot be resolved"});
+
     // A nested event of an operation already granted, e.g. socket.connect inside an approved
     // urlopen(), is not asked again. urllib.Request is always judged on its own URL, so a
-    // redirect or a nested urlopen() inside a running request is not covered by it.
-    if (event_name != "urllib.Request" && mgr.covered_by_root_frame())
+    // redirect or a nested urlopen() inside a running request is not covered by it. A read/write
+    // root (copytree, unpack_archive, move) covers the create/delete events it performs, but a
+    // delete root (rmtree) does not cover nested deletes: an exact folder grant covers direct
+    // entries only, so each nested delete is judged on its own (a tree grant can still allow it).
+    if (event_name != "urllib.Request" &&
+        mgr.covered_by_root_frame(/*allow_delete_roots=*/event_type != AuditEventCategory::FsDelete))
         return 0;
+
+    // A hardlink's source becomes writable through the new name, so the source needs write
+    // authorization on its own. This runs after root-frame coverage, so a link performed by an
+    // approved read/write operation is covered as part of it, and before implicit allowed roots,
+    // so a destination inside data_dir cannot authorize a source outside it. The destination's
+    // create permission does not cover the source.
+    if (event_name == "os.link" && is_create_delete_category(event_type)) {
+        if (targets.size() < 2)
+            return report_denied(mgr, event_name, {false, "hardlink source cannot be resolved"});
+        if (!authorize_hardlink_source(mgr, event_name, targets.front()))
+            return report_denied(mgr, event_name, {false, "hardlink source requires write permission"}, targets.front());
+    }
 
     // A filesystem target that resolves entirely inside a pre-determined allowed root -- the
     // plugin system's own data_dir() tree (which holds each plugin's storage folder and the
     // installed/system profile cache), the read-only bundled resources folder, or a per-call
     // scoped root such as the current G-code folder -- is part of the plugin system's normal
     // workflow and does not need a prompt.
-    if (fs_category && !targets.empty()) {
+    if (fs_category && !permission_targets.empty()) {
         const bool is_write = event_type != AuditEventCategory::FsRead;
         const bool all_inside_allowed_root =
-            std::all_of(targets.begin(), targets.end(), [&](const std::string& target) {
+            std::all_of(permission_targets.begin(), permission_targets.end(), [&](const std::string& target) {
                 return mgr.check_path_access(boost::filesystem::path(target), is_write).allowed;
             });
         if (all_inside_allowed_root)
@@ -1891,12 +2465,13 @@ int audit_plugin_event(PluginAuditManager& mgr, const std::string& event_name, A
 
     const std::string plugin_name = state.plugin_name.empty() ? mgr.current_plugin() : state.plugin_name;
 
-    const int result = decide_audited_event(mgr, state, mgr.current_plugin(), plugin_name, event_name, event_type, targets);
+    const int result = decide_audited_event(mgr, state, mgr.current_plugin(), plugin_name, event_name, event_type, permission_targets);
 
-    // A granted operation covers its nested events while it runs. A targetless grant names no
+    // A granted operation covers its nested events while it runs, except that a delete root does
+    // not cover a nested delete (see the coverage check above). A targetless grant names no
     // operation, so it covers nothing else.
-    if (result == 0 && !targets.empty() && operation_root_events.count(event_name))
-        mgr.record_root_frame();
+    if (result == 0 && !permission_targets.empty() && operation_root_events.count(event_name))
+        mgr.record_root_frame(event_type);
     return result;
 }
 
@@ -1974,6 +2549,51 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
 
     collect_missing(AuditEventCategory::FsRead, requested.fs_read, state.permissions.fs_read);
     collect_missing(AuditEventCategory::FsReadWrite, requested.fs_readwrite, state.permissions.fs_readwrite);
+
+    // Create/delete requests name folders and are stored as canonical absolute paths. A trailing
+    // "/*" requests the folder and every folder below it at any depth; any other wildcard is
+    // rejected. A sole "*" requests unrestricted access. An entry that cannot be resolved fails
+    // the whole request: storing a grant with a different scope than the one approved is not
+    // acceptable.
+    const auto collect_missing_create_delete =
+        [&missing_buckets](AuditEventCategory category, const std::vector<std::string>& requested_folders,
+                           const std::vector<std::string>& granted_folders) {
+            const size_t requested_count = static_cast<size_t>(
+                std::count_if(requested_folders.begin(), requested_folders.end(),
+                              [](const std::string& folder) { return !folder.empty(); }));
+            MissingBucket bucket{category, {}};
+            for (const std::string& requested_folder : requested_folders) {
+                if (requested_folder.empty())
+                    continue;
+                if (requested_folder == "*") {
+                    // Unrestricted access is the one-element form, matching what the sidecar
+                    // stores. A "*" beside other entries is ambiguous, so the request fails closed
+                    // instead of widening or silently ignoring it.
+                    if (requested_count != 1)
+                        return false;
+                    if (!PluginAuditDetail::create_delete_grant_full(granted_folders))
+                        bucket.targets.assign(1, "*");
+                    break;
+                }
+                // A trailing "/*" is a tree grant. Declarations accept literal folders, tree
+                // grants and the sole "*" full form; any other wildcard makes the request fail
+                // closed instead of being stored as a literal name or widened into a folder grant.
+                std::string grant;
+                if (!PluginAuditDetail::absolute_create_delete_grant(requested_folder, grant))
+                    return false;
+                if (!PluginAuditDetail::create_delete_grant_covers_grant(granted_folders, grant) &&
+                    std::find(bucket.targets.begin(), bucket.targets.end(), grant) == bucket.targets.end())
+                    bucket.targets.push_back(grant);
+            }
+            if (!bucket.targets.empty())
+                missing_buckets.push_back(std::move(bucket));
+            return true;
+        };
+
+    if (!collect_missing_create_delete(AuditEventCategory::FsCreate, requested.fs_create, state.permissions.fs_create) ||
+        !collect_missing_create_delete(AuditEventCategory::FsDelete, requested.fs_delete, state.permissions.fs_delete))
+        return false;
+
     collect_missing(AuditEventCategory::Http, requested.network_http, state.permissions.network_http);
     collect_missing(AuditEventCategory::Socket, requested.network_socket, state.permissions.network_socket);
     collect_missing(AuditEventCategory::ProcessCreate, requested.process, state.permissions.process);
@@ -1988,14 +2608,36 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     const auto build_message = [](const std::string& plugin_name, const std::vector<MissingBucket>& buckets) {
         PermissionMessage message;
         for (const MissingBucket& bucket : buckets) {
+            // A sole "*" is the unrestricted form: describe the scope instead of listing it as a
+            // folder.
+            const bool full_fs_scope = is_create_delete_category(bucket.category) &&
+                                       bucket.targets.size() == 1 && bucket.targets.front() == "*";
+            // A create/delete bucket with a tree grant shows "<folder>/*" and must disclose that
+            // its approval also covers every subfolder.
+            const bool tree_scope =
+                is_create_delete_category(bucket.category) &&
+                std::any_of(bucket.targets.begin(), bucket.targets.end(), [](const std::string& target) {
+                    boost::filesystem::path root;
+                    return PluginAuditDetail::tree_grant_root(target, root);
+                });
+            // A tree grant at a filesystem, drive, or network share root covers everything on it;
+            // its prompt must say so explicitly rather than describing it as a routine nested folder.
+            const bool root_tree_scope =
+                tree_scope && std::any_of(bucket.targets.begin(), bucket.targets.end(), [](const std::string& target) {
+                    boost::filesystem::path root;
+                    return PluginAuditDetail::tree_grant_root(target, root) &&
+                           PluginAuditDetail::is_filesystem_root(root);
+                });
             wxString targets;
-            for (const std::string& target : bucket.targets)
-                targets += wxString::FromUTF8(target.c_str()) + "\n";
+            if (!full_fs_scope)
+                for (const std::string& target : bucket.targets)
+                    targets += wxString::FromUTF8(target.c_str()) + "\n";
 
             if (!message.text.IsEmpty())
                 message.text += "\n\n";
             PermissionMessage part = PluginAuditDetail::formatted_audit_message(
-                bucket.category, wxString::FromUTF8(plugin_name.c_str()), wxEmptyString, targets, bucket.targets.size());
+                bucket.category, wxString::FromUTF8(plugin_name.c_str()), wxEmptyString, targets, bucket.targets.size(),
+                full_fs_scope, tree_scope, root_tree_scope);
             for (const auto& range : part.targets)
                 message.targets.emplace_back(message.text.length() + range.first, range.second);
             message.text += part.text;
@@ -2053,9 +2695,26 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
                 PluginAuditDetail::permission_list_for(bucket.category, /*by_event=*/false, state.permissions);
             if (!permission_list)
                 continue;
-            for (const std::string& target : bucket.targets)
+            if (is_create_delete_category(bucket.category)) {
+                // A full grant added by another writer while the dialog was open already covers
+                // every folder; adding a folder beside it would stop it reading as the full form.
+                if (PluginAuditDetail::create_delete_grant_full(*permission_list))
+                    continue;
+                if (std::find(bucket.targets.begin(), bucket.targets.end(), "*") != bucket.targets.end()) {
+                    // Unrestricted create/delete is the one-element form; drop folder grants it covers.
+                    permission_list->assign(1, "*");
+                    continue;
+                }
+            }
+            for (const std::string& target : bucket.targets) {
+                // Another writer may have added an exact grant or a tree grant that already covers
+                // this entry while the dialog was open; do not store a redundant duplicate.
+                if (is_create_delete_category(bucket.category) &&
+                    PluginAuditDetail::create_delete_grant_covers_grant(*permission_list, target))
+                    continue;
                 if (std::find(permission_list->begin(), permission_list->end(), target) == permission_list->end())
                     permission_list->push_back(target);
+            }
         }
 
         persisted = write_install_state(boost::filesystem::path(descriptor.plugin_root), state);
@@ -2067,18 +2726,29 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     return persisted;
 }
 
-void PluginAuditManager::record_root_frame()
+bool PluginAuditManager::is_create_delete_tree_grant(const std::string& target)
+{
+    boost::filesystem::path root;
+    return PluginAuditDetail::requested_tree_grant_root(target, root);
+}
+
+void PluginAuditManager::record_root_frame(AuditEventCategory category)
 {
     PyObject* frame = reinterpret_cast<PyObject*>(PyEval_GetFrame()); // borrowed reference
     if (!frame || !PluginAuditDetail::is_stdlib_frame(frame))
         return;
-    if (std::find(m_root_frames.begin(), m_root_frames.end(), frame) != m_root_frames.end())
-        return; // glob.glob and glob.glob/2 share a frame
-    Py_INCREF(frame);
-    m_root_frames.push_back(frame);
+    if (std::find(m_root_frames.begin(), m_root_frames.end(), frame) == m_root_frames.end()) {
+        Py_INCREF(frame);
+        m_root_frames.push_back(frame);
+    }
+    // Remember a frame recorded for a delete root. The list is non-owning; m_root_frames owns the
+    // reference, and both lists are purged together when the frame is released.
+    if (category == AuditEventCategory::FsDelete &&
+        std::find(m_delete_root_frames.begin(), m_delete_root_frames.end(), frame) == m_delete_root_frames.end())
+        m_delete_root_frames.push_back(frame);
 }
 
-bool PluginAuditManager::covered_by_root_frame() const
+bool PluginAuditManager::covered_by_root_frame(bool allow_delete_roots) const
 {
     if (m_root_frames.empty())
         return false;
@@ -2086,8 +2756,16 @@ bool PluginAuditManager::covered_by_root_frame() const
     // Only stdlib frames may sit between the event and the operation: plugin or library code
     // the operation calls back into (an os.walk onerror, a urllib handler) acts on its own.
     for (PyObject* frame : PluginAuditDetail::stack_frames()) {
-        if (std::find(m_root_frames.begin(), m_root_frames.end(), frame) != m_root_frames.end())
-            return true;
+        if (std::find(m_root_frames.begin(), m_root_frames.end(), frame) != m_root_frames.end()) {
+            // A delete root does not cover a nested delete: an exact folder grant covers direct
+            // entries only, while an outer read/write root may still cover the same operation,
+            // and a tree grant may allow it when the event is judged.
+            const bool delete_root =
+                std::find(m_delete_root_frames.begin(), m_delete_root_frames.end(), frame) != m_delete_root_frames.end();
+            if (!delete_root || allow_delete_roots)
+                return true;
+            continue;
+        }
         if (!PluginAuditDetail::is_stdlib_frame(frame))
             return false;
     }
@@ -2144,6 +2822,9 @@ void PluginAuditManager::release_frames(std::vector<PyObject*>& frames)
 
     std::vector<PyObject*> released;
     released.swap(frames);
+    for (PyObject* frame : released)
+        m_delete_root_frames.erase(std::remove(m_delete_root_frames.begin(), m_delete_root_frames.end(), frame),
+                                   m_delete_root_frames.end());
     ++m_releasing_frames;
     for (PyObject* frame : released)
         Py_DECREF(frame);

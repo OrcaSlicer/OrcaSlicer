@@ -1079,21 +1079,22 @@ TEST_CASE("A freshly approved operation covers its nested events", "[audit][Pyth
         const char* prompts;
         const char* code;
     };
-    // Each operation names targets no earlier one saved, so each is asked once. FsCreate and
-    // FsDelete grants are never saved, so those operations are asked every time. Only the
-    // expected prompts are approved, so a nested event left uncovered fails the operation.
+    // Each case starts with no saved grants, so its root event is asked once. A freshly approved
+    // create or delete saves the parent folder, so the stored grants are reset between cases.
+    // Only the expected prompts are approved, so a nested event left uncovered fails the
+    // operation.
     std::vector<Case> cases = {
         {"shutil.copytree", "shutil.copytree(TREE, os.path.join(OUTSIDE, 'copy'))"},
         {"shutil.copyfile", "shutil.copyfile(APPROVED, os.path.join(OUTSIDE, 'copied.txt'))"},
         {"shutil.move", "shutil.move(os.path.join(OUTSIDE, 'copied.txt'), os.path.join(OUTSIDE, 'moved.txt'))"},
         {"shutil.copystat", "shutil.copystat(os.path.join(TREE, 'one', 'f.txt'), PRIVATE)"},
         {"shutil.make_archive", "shutil.make_archive(os.path.join(OUTSIDE, 'archive'), 'zip', root_dir=TREE)"},
-        {"shutil.unpack_archive", "shutil.unpack_archive(os.path.join(OUTSIDE, 'archive.zip'), os.path.join(OUTSIDE, 'unpacked'))"},
+        {"shutil.unpack_archive",
+         "shutil.unpack_archive(os.path.join(OUTSIDE, 'archive.zip'), os.path.join(OUTSIDE, 'unpacked'))"},
         {"pathlib.Path.glob", "list(pathlib.Path(TREE).glob('**/*'))"},
         {"subprocess.Popen", "subprocess.run(TRUE_COMMAND, check=True)"},
         {"tempfile.mkdtemp", "tempfile.mkdtemp(dir=OUTSIDE)"},
         {"tempfile.mkstemp", "os.close(tempfile.mkstemp(dir=OUTSIDE)[0])"},
-        {"shutil.rmtree", "shutil.rmtree(os.path.join(OUTSIDE, 'copy'))"},
         // The host grant from connect() also authorizes targetless send() events.
         {"http.client.connect",
          "connection = http.client.HTTPConnection('127.0.0.1', PORT)\n"
@@ -1110,6 +1111,9 @@ TEST_CASE("A freshly approved operation covers its nested events", "[audit][Pyth
 
     for (const Case& operation : cases) {
         INFO(operation.code);
+        // Dropping the grants from the previous case keeps its persisted create/delete parent
+        // folder from covering this one.
+        harness.save_permissions(PLUGIN, {});
         const std::string expected = std::string(operation.prompts) + "\n";
         harness.approve = [&expected](const Prompt& prompt) {
             return expected.find(prompt.event + "\n") != std::string::npos;
@@ -1303,6 +1307,41 @@ except PermissionError as error:
     REQUIRE(mgr.last_violation(violation));
     CHECK(violation.event_name == "os.listdir");
     CHECK(mgr.audit_denial_pending());
+}
+
+TEST_CASE("A finalizer hardlink to an ungranted source is denied without prompting during frame release", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    PluginPermissions permissions = http_grants({python.str("URL_A")});
+    harness.save_permissions(PLUGIN, permissions);
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    python.exec(R"PY(
+FINALIZER_LINK_SOURCE = os.path.join(OUTSIDE, "finalizer-link-source.txt")
+with open(FINALIZER_LINK_SOURCE, "w") as f:
+    f.write("x")
+FINALIZER_LINK_DEST = os.path.join(OUTSIDE, "finalizer-link-dest.txt")
+finalizer_link_outcomes = []
+
+class LinkTrackedRequest(urllib.request.Request):
+    def __del__(self):
+        finalizer_link_outcomes.append(attempt(lambda: os.link(FINALIZER_LINK_SOURCE, FINALIZER_LINK_DEST)))
+)PY");
+
+    // The request is kept alive by the approved fetch's root frame. When the frame is released, its
+    // finalizer tries to hardlink a source that was never granted. Releasing frames runs finalizers
+    // where a modal cannot open, so the source check must fail closed without prompting.
+    python.run_as(PLUGIN, "fetch(LinkTrackedRequest(URL_A))");
+
+    CHECK(python.strings("finalizer_link_outcomes") == std::vector<std::string>{"denied"});
+    CHECK(describe(harness.prompts).empty());
+    CHECK_FALSE(fs::exists(fs::path(python.str("FINALIZER_LINK_DEST"))));
+    CHECK_FALSE(mgr.audit_denial_pending());
 }
 
 TEST_CASE("A nested audit scope does not see the outer scope's running operations", "[audit][Python]")
@@ -1877,6 +1916,122 @@ TEST_CASE("A relative wildcard permission request is shown and stored as an abso
     CHECK(describe(harness.prompts).empty());
 }
 
+TEST_CASE("A create or delete tree declaration is stored as an absolute subtree grant", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    const fs::path folder = harness.outside.path() / "declared";
+    fs::create_directories(folder);
+
+    std::vector<std::string> prompted;
+    PluginAuditManager::set_permission_message_prompt_for_testing(
+        [&prompted](const std::string& message) {
+            prompted.push_back(message);
+            return true;
+        });
+
+    // "<dir>/*" asks for the folder and every folder below it. The prompt names, and the sidecar
+    // stores, the canonical absolute scope the grant actually covers.
+    PluginPermissions tree_create;
+    tree_create.fs_create = {(folder / "*").string()};
+    CHECK(mgr.request_permissions(PLUGIN, tree_create));
+    REQUIRE(prompted.size() == 1);
+    const std::vector<std::string> saved_create = harness.saved_permissions(PLUGIN).fs_create;
+    REQUIRE(saved_create.size() == 1);
+    const fs::path saved_create_path(saved_create.front());
+    CHECK(saved_create_path.filename() == "*");
+    CHECK(fs::equivalent(saved_create_path.parent_path(), folder));
+    CHECK(prompted.front().find(saved_create.front()) != std::string::npos);
+
+    // The saved tree grant also covers a later literal request for the same folder.
+    PluginPermissions literal_create;
+    literal_create.fs_create = {folder.string()};
+    CHECK(mgr.request_permissions(PLUGIN, literal_create));
+    CHECK(prompted.size() == 1);
+    CHECK(harness.saved_permissions(PLUGIN).fs_create == saved_create);
+
+    // Delete is an independent bucket with the same subtree syntax.
+    PluginPermissions tree_delete;
+    tree_delete.fs_delete = {(folder / "*").string()};
+    CHECK(mgr.request_permissions(PLUGIN, tree_delete));
+    REQUIRE(prompted.size() == 2);
+    const std::vector<std::string> saved_delete = harness.saved_permissions(PLUGIN).fs_delete;
+    REQUIRE(saved_delete.size() == 1);
+    CHECK(fs::path(saved_delete.front()).filename() == "*");
+    CHECK(fs::equivalent(fs::path(saved_delete.front()).parent_path(), folder));
+    CHECK(harness.saved_permissions(PLUGIN).fs_create == saved_create);
+
+    // A saved tree grant already covers a nested tree request, so it is neither prompted nor
+    // stored again.
+    const fs::path nested = folder / "nested";
+    fs::create_directories(nested);
+    PluginPermissions nested_create;
+    nested_create.fs_create = {(nested / "*").string()};
+    CHECK(mgr.request_permissions(PLUGIN, nested_create));
+    CHECK(prompted.size() == 2);
+    CHECK(harness.saved_permissions(PLUGIN).fs_create == saved_create);
+
+    // A wildcard that is not the final tree marker does not name a scope the prompt could show.
+    PluginPermissions pattern_delete;
+    pattern_delete.fs_delete = {(folder / "*.txt").string()};
+    CHECK_FALSE(mgr.request_permissions(PLUGIN, pattern_delete));
+    CHECK(prompted.size() == 2);
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete == saved_delete);
+
+    // The all-folders marker is only valid on its own.
+    PluginPermissions mixed;
+    mixed.fs_delete = {"*", folder.string()};
+    CHECK_FALSE(mgr.request_permissions(PLUGIN, mixed));
+    CHECK(prompted.size() == 2);
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete == saved_delete);
+
+    // Positive control: the one-element all-folders form is accepted and stored alone.
+    PluginPermissions full;
+    full.fs_delete = {"*"};
+    CHECK(mgr.request_permissions(PLUGIN, full));
+    const std::vector<std::string> saved_full = harness.saved_permissions(PLUGIN).fs_delete;
+    REQUIRE(saved_full.size() == 1);
+    CHECK(saved_full.front() == "*");
+    CHECK(prompted.size() == 3);
+
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+}
+
+#if !defined(_WIN32)
+TEST_CASE("A tree declaration rooted at / discloses the subtree scope, not full access", "[audit]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    std::string shown;
+    PluginAuditManager::set_permission_message_prompt_for_testing(
+        [&shown](const std::string& message) {
+            shown = message;
+            return true;
+        });
+
+    // "/*" is the tree grant rooted at "/". It is a subtree scope, not the "*" all-folders marker.
+    PluginPermissions requested;
+    requested.fs_create = {"/*"};
+    CHECK(mgr.request_permissions(PLUGIN, requested));
+    CHECK(harness.saved_permissions(PLUGIN).fs_create == std::vector<std::string>{"/*"});
+
+    // The prompt keeps the root and discloses its filesystem-wide scope.
+    CHECK(shown.find("/*") != std::string::npos);
+    CHECK(shown.find("entire filesystem, drive, or network share") != std::string::npos);
+    CHECK(shown.find("anywhere on this computer") == std::string::npos);
+
+    PluginAuditManager::set_permission_message_prompt_for_testing(nullptr);
+}
+#endif
+
 TEST_CASE("A threading permission request is prompted once and saved as a boolean", "[audit]")
 {
     AuditHarness harness;
@@ -2234,6 +2389,8 @@ TEST_CASE("A permission mutation changes only the named entries and preserves th
     initial.capabilities      = {{"Echo", false}, {"Other", true}};
     initial.permissions.fs_read      = {"/kept/read", "/removed/read"};
     initial.permissions.fs_readwrite = {"/kept/write"};
+    initial.permissions.fs_create    = {"/kept/create", "/removed/create"};
+    initial.permissions.fs_delete    = {"/kept/delete", "/removed/delete"};
     initial.permissions.network_http = {"https://kept.example"};
     REQUIRE(write_install_state(plugin_dir, initial));
 
@@ -2243,12 +2400,17 @@ TEST_CASE("A permission mutation changes only the named entries and preserves th
         {PluginPermissionCategory::FsRead, "/added/read"}, // duplicate is collapsed
         {PluginPermissionCategory::FsRead, ""},            // empty values are skipped
         {PluginPermissionCategory::FsRead, "/removed/read"},
+        {PluginPermissionCategory::FsCreate, "/added/create"},
+        {PluginPermissionCategory::FsCreate, "/removed/create"},
+        {PluginPermissionCategory::FsDelete, "/added/delete"},
         {PluginPermissionCategory::NetworkSocket, "127.0.0.1:8080"},
     };
     mutation.remove = {
         {PluginPermissionCategory::FsRead, "/removed/read"},
         {PluginPermissionCategory::FsRead, "/never/granted"},
         {PluginPermissionCategory::FsRead, ""},
+        {PluginPermissionCategory::FsCreate, "/removed/create"},
+        {PluginPermissionCategory::FsDelete, "/removed/delete"},
         {PluginPermissionCategory::Process, "/never/granted"},
     };
 
@@ -2256,13 +2418,19 @@ TEST_CASE("A permission mutation changes only the named entries and preserves th
     REQUIRE(PluginManager::instance().mutate_plugin_permissions(PLUGIN, mutation, &applied));
     // Removals run first, so a value named in both lists ends present; absent removals are ignored.
     const std::vector<std::string> expected_fs_read{"/kept/read", "/added/read", "/removed/read"};
+    const std::vector<std::string> expected_fs_create{"/kept/create", "/added/create", "/removed/create"};
+    const std::vector<std::string> expected_fs_delete{"/kept/delete", "/added/delete"};
     const std::vector<std::string> expected_sockets{"127.0.0.1:8080"};
     CHECK(applied.fs_read == expected_fs_read);
+    CHECK(applied.fs_create == expected_fs_create);
+    CHECK(applied.fs_delete == expected_fs_delete);
     CHECK(applied.network_socket == expected_sockets);
 
     PluginInstallState stored;
     REQUIRE(read_install_state(plugin_dir, stored));
     CHECK(stored.permissions.fs_read == expected_fs_read);
+    CHECK(stored.permissions.fs_create == expected_fs_create);
+    CHECK(stored.permissions.fs_delete == expected_fs_delete);
     CHECK(stored.permissions.network_socket == expected_sockets);
 
     // Every grant the mutation did not name stays as it was.
@@ -2438,6 +2606,987 @@ reread_outcome = attempt(lambda: open(NESTED_FILE).read())
     const std::string reread_prompt = "open: " + python.str("NESTED_FILE") + "\n";
     CHECK(describe(harness.prompts) == reread_prompt);
 }
+
+TEST_CASE("Create and delete folder grants cover direct entries but not subfolders", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+GRANTED = os.path.realpath(os.path.join(OUTSIDE, "granted"))
+SUBFOLDER = os.path.join(GRANTED, "sub")
+os.makedirs(SUBFOLDER)
+DELETE_FILE = os.path.join(GRANTED, "delete-me.txt")
+with open(DELETE_FILE, "w") as f:
+    f.write("x")
+NESTED_DELETE_FILE = os.path.join(SUBFOLDER, "delete-me-too.txt")
+with open(NESTED_DELETE_FILE, "w") as f:
+    f.write("x")
+NEW_DIR = os.path.join(GRANTED, "new-dir")
+OTHER_DIR = os.path.join(GRANTED, "other-dir")
+NESTED_NEW_DIR = os.path.join(SUBFOLDER, "new-dir")
+)PY");
+
+    PluginPermissions permissions;
+    permissions.fs_create = {python.str("GRANTED")};
+    permissions.fs_delete = {python.str("GRANTED")};
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.run_as(PLUGIN, R"PY(
+create_outcome = attempt(lambda: os.mkdir(NEW_DIR))
+delete_outcome = attempt(lambda: os.remove(DELETE_FILE))
+nested_create_outcome = attempt(lambda: os.mkdir(NESTED_NEW_DIR))
+nested_delete_outcome = attempt(lambda: os.remove(NESTED_DELETE_FILE))
+)PY");
+
+    // The literal grant names the exact folder, so an operation directly inside it is covered; an
+    // operation in a child folder is not. The tree form below covers both.
+    CHECK(python.str("create_outcome") == "ok");
+    CHECK(python.str("delete_outcome") == "ok");
+    CHECK(python.str("nested_create_outcome") == "denied");
+    CHECK(python.str("nested_delete_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("SUBFOLDER") + "\n" +
+                                            "os.remove: " + python.str("SUBFOLDER") + "\n");
+    CHECK(fs::is_directory(fs::path(python.str("NEW_DIR"))));
+    CHECK(fs::exists(fs::path(python.str("NESTED_DELETE_FILE"))));
+    CHECK_FALSE(fs::exists(fs::path(python.str("NESTED_NEW_DIR"))));
+
+    // Create and delete are independent buckets: a delete grant does not authorize a create in
+    // the same folder, and the reverse.
+    permissions.fs_create.clear();
+    permissions.fs_delete = {python.str("GRANTED")};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+other_create_outcome = attempt(lambda: os.mkdir(OTHER_DIR))
+other_delete_outcome = attempt(lambda: os.rmdir(NEW_DIR))
+)PY");
+
+    CHECK(python.str("other_create_outcome") == "denied");
+    CHECK(python.str("other_delete_outcome") == "ok");
+    CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("GRANTED") + "\n");
+}
+
+TEST_CASE("A create and delete tree grant covers direct entries and subfolders but not a sibling", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+GRANTED = os.path.realpath(os.path.join(OUTSIDE, "tree-granted"))
+SIBLING = os.path.realpath(os.path.join(OUTSIDE, "tree-granted-sibling"))
+SUBFOLDER = os.path.join(GRANTED, "sub")
+os.makedirs(SUBFOLDER)
+os.makedirs(SIBLING)
+TREE_GRANT = GRANTED + os.sep + "*"
+DIRECT_FILE = os.path.join(GRANTED, "direct.txt")
+NESTED_FILE = os.path.join(SUBFOLDER, "nested.txt")
+SIBLING_FILE = os.path.join(SIBLING, "sibling.txt")
+for path in (DIRECT_FILE, NESTED_FILE, SIBLING_FILE):
+    with open(path, "w") as f:
+        f.write("x")
+DIRECT_NEW = os.path.join(GRANTED, "direct-new")
+NESTED_NEW = os.path.join(SUBFOLDER, "nested-new")
+SIBLING_NEW = os.path.join(SIBLING, "sibling-new")
+)PY");
+
+    // "<dir>/*" is a subtree grant, unlike the literal folder grant in the previous test.
+    PluginPermissions permissions;
+    permissions.fs_create = {python.str("TREE_GRANT")};
+    permissions.fs_delete = {python.str("TREE_GRANT")};
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.run_as(PLUGIN, R"PY(
+direct_create_outcome = attempt(lambda: os.mkdir(DIRECT_NEW))
+nested_create_outcome = attempt(lambda: os.mkdir(NESTED_NEW))
+direct_delete_outcome = attempt(lambda: os.remove(DIRECT_FILE))
+nested_delete_outcome = attempt(lambda: os.remove(NESTED_FILE))
+sibling_create_outcome = attempt(lambda: os.mkdir(SIBLING_NEW))
+sibling_delete_outcome = attempt(lambda: os.remove(SIBLING_FILE))
+)PY");
+
+    CHECK(python.str("direct_create_outcome") == "ok");
+    CHECK(python.str("nested_create_outcome") == "ok");
+    CHECK(python.str("direct_delete_outcome") == "ok");
+    CHECK(python.str("nested_delete_outcome") == "ok");
+    // A sibling whose name only shares the granted folder's text prefix is a different folder.
+    CHECK(python.str("sibling_create_outcome") == "denied");
+    CHECK(python.str("sibling_delete_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("SIBLING") + "\n" +
+                                            "os.remove: " + python.str("SIBLING") + "\n");
+    CHECK(fs::is_directory(fs::path(python.str("DIRECT_NEW"))));
+    CHECK(fs::is_directory(fs::path(python.str("NESTED_NEW"))));
+    CHECK_FALSE(fs::exists(fs::path(python.str("DIRECT_FILE"))));
+    CHECK_FALSE(fs::exists(fs::path(python.str("NESTED_FILE"))));
+    CHECK_FALSE(fs::exists(fs::path(python.str("SIBLING_NEW"))));
+    CHECK(fs::exists(fs::path(python.str("SIBLING_FILE"))));
+
+    // Create and delete stay separate: dropping the create grant denies a later create in the
+    // same subtree while the delete grant keeps working.
+    permissions.fs_create.clear();
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+cross_create_outcome = attempt(lambda: os.mkdir(os.path.join(GRANTED, "cross-new")))
+cross_delete_outcome = attempt(lambda: os.rmdir(NESTED_NEW))
+)PY");
+    CHECK(python.str("cross_create_outcome") == "denied");
+    CHECK(python.str("cross_delete_outcome") == "ok");
+    CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("GRANTED") + "\n");
+}
+
+TEST_CASE("A create and delete tree grant does not follow a symlink out of its root", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+GRANTED = os.path.realpath(os.path.join(OUTSIDE, "tree-link-granted"))
+ESCAPE_TARGET = os.path.realpath(os.path.join(OUTSIDE, "tree-link-target"))
+os.makedirs(GRANTED)
+os.makedirs(ESCAPE_TARGET)
+TREE_GRANT = GRANTED + os.sep + "*"
+VICTIM = os.path.join(ESCAPE_TARGET, "victim.txt")
+with open(VICTIM, "w") as f:
+    f.write("x")
+LINK = os.path.join(GRANTED, "escape")
+try:
+    os.symlink(ESCAPE_TARGET, LINK, target_is_directory=True)
+    SYMLINK_OK = True
+except (OSError, NotImplementedError):
+    SYMLINK_OK = False
+)PY");
+    if (python.eval("SYMLINK_OK") != "True")
+        SKIP("Cannot create a directory symlink here");
+
+    PluginPermissions permissions;
+    permissions.fs_create = {python.str("TREE_GRANT")};
+    permissions.fs_delete = {python.str("TREE_GRANT")};
+    harness.save_permissions(PLUGIN, permissions);
+
+    // The link is inside the granted tree, but the folder it resolves to is outside it. Creating
+    // or deleting through the link must be judged against that outside folder.
+    python.run_as(PLUGIN, R"PY(
+escaped_create_outcome = attempt(lambda: os.mkdir(os.path.join(LINK, "new")))
+escaped_delete_outcome = attempt(lambda: os.remove(os.path.join(LINK, "victim.txt")))
+)PY");
+
+    CHECK(python.str("escaped_create_outcome") == "denied");
+    CHECK(python.str("escaped_delete_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("ESCAPE_TARGET") + "\n" +
+                                            "os.remove: " + python.str("ESCAPE_TARGET") + "\n");
+    CHECK(fs::exists(fs::path(python.str("VICTIM"))));
+    CHECK_FALSE(fs::exists(fs::path(python.str("ESCAPE_TARGET")) / "new"));
+
+    // Removing the link itself acts on the link inside the granted folder, not on its target.
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "link_delete_outcome = attempt(lambda: os.remove(LINK))");
+    CHECK(python.str("link_delete_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+    CHECK_FALSE(fs::is_symlink(fs::path(python.str("LINK"))));
+    CHECK(fs::exists(fs::path(python.str("VICTIM"))));
+}
+
+#if !defined(_WIN32)
+TEST_CASE("A create or delete target inside a folder literally named * fails closed without a tree grant", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+BASE = os.path.realpath(os.path.join(OUTSIDE, "star-parent"))
+STAR = os.path.join(BASE, "*")
+os.makedirs(STAR)
+os.makedirs(os.path.join(BASE, "sibling"))
+STAR_FILE = os.path.join(STAR, "kept.txt")
+with open(STAR_FILE, "w") as f:
+    f.write("x")
+STAR_NEW = os.path.join(STAR, "new")
+SIBLING_NEW = os.path.join(BASE, "sibling", "new")
+)PY");
+
+    // The parent folder is spelled "/.../*". Storing it as-is would be read back as a tree grant
+    // for the whole parent, so an approval here must fail closed instead.
+    harness.approve = [](const Prompt&) { return true; };
+    python.run_as(PLUGIN, "star_create_outcome = attempt(lambda: os.mkdir(STAR_NEW))");
+
+    CHECK(python.str("star_create_outcome") == "denied");
+    CHECK_FALSE(fs::exists(fs::path(python.str("STAR_NEW"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_create.empty());
+
+    // Nothing was widened to the parent: an operation beside the literal "*" folder is still
+    // prompted and denied, and no tree grant for BASE was stored.
+    harness.prompts.clear();
+    harness.approve = [](const Prompt&) { return false; };
+    python.run_as(PLUGIN, "sibling_outcome = attempt(lambda: os.mkdir(SIBLING_NEW))");
+
+    CHECK(python.str("sibling_outcome") == "denied");
+    CHECK_FALSE(fs::exists(fs::path(python.str("SIBLING_NEW"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_create.empty());
+
+    // Delete resolves the same parent folder and must not persist a tree grant either.
+    harness.prompts.clear();
+    harness.approve = [](const Prompt&) { return true; };
+    python.run_as(PLUGIN, "star_delete_outcome = attempt(lambda: os.remove(STAR_FILE))");
+
+    CHECK(python.str("star_delete_outcome") == "denied");
+    CHECK(fs::exists(fs::path(python.str("STAR_FILE"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_delete.empty());
+}
+#endif
+
+TEST_CASE("A full create and delete grant allows any folder but not a denied path", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+FIRST = os.path.join(OUTSIDE, "full-create")
+os.makedirs(FIRST)
+NESTED = os.path.join(TREE, "one", "full-create")
+DELETE_FILES = [os.path.join(FIRST, "a.txt"), os.path.join(TREE, "two", "b.txt")]
+for path in DELETE_FILES:
+    with open(path, "w") as f:
+        f.write("x")
+DENIED_DIR = os.path.join(OUTSIDE, "secrets")
+os.makedirs(DENIED_DIR)
+DENIED_FILE = os.path.join(DENIED_DIR, "token.txt")
+with open(DENIED_FILE, "w") as f:
+    f.write("x")
+DENIED_NEW = os.path.join(DENIED_DIR, "new")
+)PY");
+
+    // "*" is the stored form of "all folders", while a "<dir>/*" entry grants one subtree.
+    PluginPermissions permissions;
+    permissions.fs_create = {"*"};
+    permissions.fs_delete = {"*"};
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.run_as(PLUGIN, R"PY(
+create_outcome = attempt(lambda: os.mkdir(NESTED))
+delete_outcome = attempt(lambda: [os.remove(path) for path in DELETE_FILES])
+denied_create_outcome = attempt(lambda: os.mkdir(DENIED_NEW))
+denied_delete_outcome = attempt(lambda: os.remove(DENIED_FILE))
+)PY");
+
+    CHECK(python.str("create_outcome") == "ok");
+    CHECK(python.str("delete_outcome") == "ok");
+    CHECK(python.str("denied_create_outcome") == "denied");
+    CHECK(python.str("denied_delete_outcome") == "denied");
+    CHECK(describe(harness.prompts).empty());
+    CHECK(fs::is_directory(fs::path(python.str("NESTED"))));
+    CHECK(fs::exists(fs::path(python.str("DENIED_FILE"))));
+    CHECK_FALSE(fs::exists(fs::path(python.str("DENIED_NEW"))));
+
+    AuditViolation violation;
+    REQUIRE(PluginAuditManager::instance().last_violation(violation));
+    CHECK(violation.reason == "denied path");
+}
+
+TEST_CASE("An approved create or delete prompt saves the parent folder and is not asked again", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+CREATE_ROOT = os.path.realpath(os.path.join(OUTSIDE, "approved-create"))
+os.makedirs(CREATE_ROOT)
+NESTED_FOLDER = os.path.join(CREATE_ROOT, "sub")
+os.makedirs(NESTED_FOLDER)
+FIRST_CREATE = os.path.join(CREATE_ROOT, "first")
+SECOND_CREATE = os.path.join(CREATE_ROOT, "second")
+NESTED_CREATE = os.path.join(NESTED_FOLDER, "nested")
+DELETE_ROOT = os.path.realpath(os.path.join(OUTSIDE, "approved-delete"))
+os.makedirs(DELETE_ROOT)
+FIRST_DELETE = os.path.join(DELETE_ROOT, "one.txt")
+SECOND_DELETE = os.path.join(DELETE_ROOT, "two.txt")
+for path in (FIRST_DELETE, SECOND_DELETE):
+    with open(path, "w") as f:
+        f.write("x")
+CROSS_CREATE = os.path.join(DELETE_ROOT, "cross")
+)PY");
+
+    harness.approve = [](const Prompt& prompt) { return prompt.event == "os.mkdir"; };
+    python.run_as(PLUGIN, "first_create_outcome = attempt(lambda: os.mkdir(FIRST_CREATE))");
+
+    CHECK(python.str("first_create_outcome") == "ok");
+    CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("CREATE_ROOT") + "\n");
+    PluginPermissions after_create = harness.saved_permissions(PLUGIN);
+    // The prompt approval is saved as the folder containing the target, not the target itself.
+    REQUIRE(after_create.fs_create.size() == 1);
+    CHECK(fs::equivalent(fs::path(after_create.fs_create.front()), fs::path(python.str("CREATE_ROOT"))));
+    CHECK(after_create.fs_delete.empty());
+
+    // The saved parent folder covers another operation directly inside it, without a prompt.
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "second_create_outcome = attempt(lambda: os.mkdir(SECOND_CREATE))");
+    CHECK(python.str("second_create_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+
+    // A subfolder is a descendant, not the granted folder, so it still asks.
+    harness.approve = [](const Prompt&) { return false; };
+    python.run_as(PLUGIN, "nested_create_outcome = attempt(lambda: os.mkdir(NESTED_CREATE))");
+    CHECK(python.str("nested_create_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("NESTED_FOLDER") + "\n");
+    const PluginPermissions after_denial = harness.saved_permissions(PLUGIN);
+    REQUIRE(after_denial.fs_create.size() == 1);
+    CHECK(fs::equivalent(fs::path(after_denial.fs_create.front()), fs::path(python.str("CREATE_ROOT"))));
+
+    // Delete approval persists its own folder and leaves the create grant alone.
+    harness.prompts.clear();
+    harness.approve = [](const Prompt& prompt) { return prompt.event == "os.remove"; };
+    python.run_as(PLUGIN, "first_delete_outcome = attempt(lambda: os.remove(FIRST_DELETE))");
+    CHECK(python.str("first_delete_outcome") == "ok");
+    CHECK(describe(harness.prompts) == "os.remove: " + python.str("DELETE_ROOT") + "\n");
+    PluginPermissions after_delete = harness.saved_permissions(PLUGIN);
+    REQUIRE(after_delete.fs_delete.size() == 1);
+    CHECK(fs::equivalent(fs::path(after_delete.fs_delete.front()), fs::path(python.str("DELETE_ROOT"))));
+    REQUIRE(after_delete.fs_create.size() == 1);
+    CHECK(fs::equivalent(fs::path(after_delete.fs_create.front()), fs::path(python.str("CREATE_ROOT"))));
+
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "second_delete_outcome = attempt(lambda: os.remove(SECOND_DELETE))");
+    CHECK(python.str("second_delete_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+
+    // The delete grant does not authorize a create in the same folder.
+    harness.approve = [](const Prompt&) { return false; };
+    python.run_as(PLUGIN, "cross_create_outcome = attempt(lambda: os.mkdir(CROSS_CREATE))");
+    CHECK(python.str("cross_create_outcome") == "denied");
+    CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("DELETE_ROOT") + "\n");
+}
+
+TEST_CASE("A create prompt discloses the canonical folder the approval will grant", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+REAL_FOLDER = os.path.realpath(os.path.join(OUTSIDE, "prompt-real"))
+os.makedirs(REAL_FOLDER)
+LINK = os.path.join(OUTSIDE, "prompt-link")
+CREATED = os.path.join(REAL_FOLDER, "new")
+RAW_CREATE = os.path.join(LINK, "new")
+try:
+    os.symlink(REAL_FOLDER, LINK, target_is_directory=True)
+    SYMLINK_OK = True
+except (OSError, NotImplementedError):
+    SYMLINK_OK = False
+)PY");
+    if (python.eval("SYMLINK_OK") != "True")
+        SKIP("Cannot create a directory symlink here");
+
+    harness.approve = [](const Prompt& prompt) { return prompt.event == "os.mkdir"; };
+    python.run_as(PLUGIN, "outcome = attempt(lambda: os.mkdir(RAW_CREATE))");
+
+    CHECK(python.str("outcome") == "ok");
+    // The user approved creating inside the symlink's target. Showing the raw path would hide
+    // which folder is actually stored and granted.
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("REAL_FOLDER")});
+    CHECK(harness.saved_permissions(PLUGIN).fs_create == std::vector<std::string>{python.str("REAL_FOLDER")});
+    CHECK(fs::is_directory(fs::path(python.str("CREATED"))));
+}
+
+TEST_CASE("A relative create target is resolved against the working directory and disclosed absolutely", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+RELATIVE_ROOT = os.path.realpath(os.path.join(OUTSIDE, "relative-root"))
+os.makedirs(RELATIVE_ROOT)
+RELATIVE_VICTIM = os.path.join(RELATIVE_ROOT, "victim.txt")
+RELATIVE_SECOND_VICTIM = os.path.join(RELATIVE_ROOT, "victim2.txt")
+for path in (RELATIVE_VICTIM, RELATIVE_SECOND_VICTIM):
+    with open(path, "w") as f:
+        f.write("x")
+)PY");
+
+    harness.approve = [](const Prompt& prompt) { return prompt.event == "os.mkdir"; };
+    python.run_as(PLUGIN, R"PY(
+os.chdir(RELATIVE_ROOT)
+try:
+    first_outcome = attempt(lambda: os.mkdir("direct"))
+finally:
+    os.chdir(OUTSIDE)
+)PY");
+
+    CHECK(python.str("first_outcome") == "ok");
+    // A relative target is resolved when the event is judged, and the prompt shows the absolute
+    // folder whose grant the approval will store.
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RELATIVE_ROOT")});
+    CHECK(harness.saved_permissions(PLUGIN).fs_create == std::vector<std::string>{python.str("RELATIVE_ROOT")});
+
+    // The saved absolute folder covers another relative operation in the same directory.
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+os.chdir(RELATIVE_ROOT)
+try:
+    second_outcome = attempt(lambda: os.mkdir("second"))
+finally:
+    os.chdir(OUTSIDE)
+)PY");
+    CHECK(python.str("second_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+
+    // A relative entry saved by hand never matches: its meaning would move with the working
+    // directory. The operation asks again for the canonical folder.
+    PluginPermissions relative_only;
+    relative_only.fs_create = {"relative-root"};
+    harness.save_permissions(PLUGIN, relative_only);
+    harness.approve = [](const Prompt&) { return false; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+os.chdir(RELATIVE_ROOT)
+try:
+    third_outcome = attempt(lambda: os.mkdir("third"))
+finally:
+    os.chdir(OUTSIDE)
+)PY");
+    CHECK(python.str("third_outcome") == "denied");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RELATIVE_ROOT")});
+
+    // Delete targets resolve the same way. A relative removal inside the granted folder is
+    // allowed without a prompt.
+    PluginPermissions delete_root;
+    delete_root.fs_delete = {python.str("RELATIVE_ROOT")};
+    harness.save_permissions(PLUGIN, delete_root);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+os.chdir(RELATIVE_ROOT)
+try:
+    relative_delete_outcome = attempt(lambda: os.remove("victim.txt"))
+finally:
+    os.chdir(OUTSIDE)
+)PY");
+    CHECK(python.str("relative_delete_outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+
+    // Without a grant the prompt names the resolved folder, not the relative spelling.
+    harness.save_permissions(PLUGIN, {});
+    harness.approve = [](const Prompt&) { return false; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+os.chdir(RELATIVE_ROOT)
+try:
+    relative_delete_denied = attempt(lambda: os.remove("victim2.txt"))
+finally:
+    os.chdir(OUTSIDE)
+)PY");
+    CHECK(python.str("relative_delete_denied") == "denied");
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().targets == std::vector<std::string>{python.str("RELATIVE_ROOT")});
+}
+
+TEST_CASE("A link create grant covers only the destination folder", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+SOURCE_FOLDER = os.path.realpath(os.path.join(OUTSIDE, "link-source"))
+DEST_FOLDER = os.path.realpath(os.path.join(OUTSIDE, "link-dest"))
+os.makedirs(SOURCE_FOLDER)
+os.makedirs(DEST_FOLDER)
+SOURCE_FILE = os.path.join(SOURCE_FOLDER, "source.txt")
+with open(SOURCE_FILE, "w") as f:
+    f.write("x")
+SYMLINK_DEST = os.path.join(DEST_FOLDER, "symlink.txt")
+HARDLINK_DEST = os.path.join(DEST_FOLDER, "hardlink.txt")
+SECOND_LINK = os.path.join(DEST_FOLDER, "second-link.txt")
+try:
+    os.symlink(SOURCE_FILE, os.path.join(OUTSIDE, "probe-link"))
+    os.remove(os.path.join(OUTSIDE, "probe-link"))
+    SYMLINK_OK = True
+except (OSError, NotImplementedError):
+    SYMLINK_OK = False
+try:
+    os.link(SOURCE_FILE, os.path.join(OUTSIDE, "probe-hardlink"))
+    os.remove(os.path.join(OUTSIDE, "probe-hardlink"))
+    HARDLINK_OK = True
+except (OSError, NotImplementedError):
+    HARDLINK_OK = False
+)PY");
+    if (python.eval("SYMLINK_OK") != "True" || python.eval("HARDLINK_OK") != "True")
+        SKIP("Symbolic or hard links are unavailable");
+
+    // Only the path being created is a create target; the source the link points at is not. A
+    // hardlink still needs read/write access to its source, so grant that separately to keep this
+    // test focused on the destination folder grant.
+    PluginPermissions source_access;
+    source_access.fs_readwrite = {python.str("SOURCE_FILE")};
+    harness.save_permissions(PLUGIN, source_access);
+    harness.approve = [](const Prompt& prompt) { return prompt.event == "os.symlink" || prompt.event == "os.link"; };
+    python.run_as(PLUGIN, R"PY(
+symlink_outcome = attempt(lambda: os.symlink(SOURCE_FILE, SYMLINK_DEST))
+hardlink_outcome = attempt(lambda: os.link(SOURCE_FILE, HARDLINK_DEST))
+)PY");
+
+    CHECK(python.str("symlink_outcome") == "ok");
+    CHECK(python.str("hardlink_outcome") == "ok");
+    const PluginPermissions after_links = harness.saved_permissions(PLUGIN);
+    REQUIRE(after_links.fs_create.size() == 1);
+    CHECK(fs::equivalent(fs::path(after_links.fs_create.front()), fs::path(python.str("DEST_FOLDER"))));
+    CHECK(after_links.fs_readwrite == source_access.fs_readwrite);
+
+    // The source folder alone does not authorize creating an entry in another folder.
+    PluginPermissions source_only;
+    source_only.fs_create = {python.str("SOURCE_FOLDER")};
+    harness.save_permissions(PLUGIN, source_only);
+    harness.approve = [](const Prompt&) { return false; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "second_outcome = attempt(lambda: os.symlink(SOURCE_FILE, SECOND_LINK))");
+
+    CHECK(python.str("second_outcome") == "denied");
+    CHECK_FALSE(fs::exists(fs::path(python.str("SECOND_LINK"))));
+    CHECK(harness.saved_permissions(PLUGIN).fs_create == std::vector<std::string>{python.str("SOURCE_FOLDER")});
+}
+
+TEST_CASE("A hardlink nested in an approved read/write root needs no extra prompt", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    const fs::path destination = harness.outside.path() / "hardlinked-copy";
+    python.globals["HARDLINKED_COPY"] = destination.string();
+    python.exec(R"PY(
+try:
+    PROBE = os.path.join(OUTSIDE, "copytree-hardlink-probe.txt")
+    os.link(os.path.join(TREE, "one", "f.txt"), PROBE)
+    os.remove(PROBE)
+    COPY_HARDLINK_OK = True
+except OSError:
+    COPY_HARDLINK_OK = False
+)PY");
+    if (python.eval("COPY_HARDLINK_OK") != "True")
+        SKIP("Hard links are unavailable here");
+
+    // copytree is the approved read/write root. os.link is called from its stdlib frames, so the
+    // hardlink source inside TREE must not need a separate read/write prompt.
+    harness.approve = [](const Prompt& prompt) { return prompt.event == "shutil.copytree"; };
+    python.run_as(PLUGIN, "shutil.copytree(TREE, HARDLINKED_COPY, copy_function=os.link)");
+
+    REQUIRE(harness.prompts.size() == 1);
+    CHECK(harness.prompts.front().event == "shutil.copytree");
+    const fs::path copied_file = destination / "one" / "f.txt";
+    REQUIRE(fs::exists(copied_file));
+    CHECK(fs::equivalent(copied_file, fs::path(python.str("TREE")) / "one" / "f.txt"));
+    CHECK(harness.saved_permissions(PLUGIN).fs_read.empty());
+    CHECK(harness.saved_permissions(PLUGIN).fs_readwrite.empty());
+}
+
+TEST_CASE("A hardlink needs read/write permission for a source outside a writable root", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    python.globals["DATA_DIR"] = harness.data.dir.string();
+
+    python.exec(R"PY(
+SOURCE = os.path.join(OUTSIDE, "hardlink-source.txt")
+with open(SOURCE, "w") as f:
+    f.write("secret")
+DATA_SOURCE = os.path.join(DATA_DIR, "hardlink-data-source.txt")
+with open(DATA_SOURCE, "w") as f:
+    f.write("data")
+DEST_DENIED = os.path.join(DATA_DIR, "hardlink-denied.txt")
+DEST_READ_ONLY = os.path.join(DATA_DIR, "hardlink-read-only.txt")
+DEST_GRANTED = os.path.join(DATA_DIR, "hardlink-granted.txt")
+DEST_FROM_DATA_SOURCE = os.path.join(DATA_DIR, "hardlink-from-data-source.txt")
+try:
+    PROBE = os.path.join(DATA_DIR, "hardlink-probe.txt")
+    os.link(SOURCE, PROBE)
+    os.remove(PROBE)
+    HARDLINK_OK = True
+except OSError:
+    HARDLINK_OK = False
+)PY");
+    if (python.eval("HARDLINK_OK") != "True")
+        SKIP("Hard links are unavailable here");
+
+    // The destination sits inside data_dir(), an implicitly writable allowed root. That must not
+    // authorize writing through a hardlink to a source outside it.
+    python.run_as(PLUGIN, "denied_outcome = attempt(lambda: os.link(SOURCE, DEST_DENIED))");
+    CHECK(python.str("denied_outcome") == "denied");
+    CHECK_FALSE(fs::exists(fs::path(python.str("DEST_DENIED"))));
+
+    // A read grant is not enough either: the hardlink still has to ask for write access to the
+    // source, and denying that prompt leaves the operation blocked.
+    PluginPermissions read_only;
+    read_only.fs_read = {python.str("SOURCE")};
+    harness.save_permissions(PLUGIN, read_only);
+    harness.approve = [](const Prompt&) { return false; };
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "read_only_outcome = attempt(lambda: os.link(SOURCE, DEST_READ_ONLY))");
+    CHECK(python.str("read_only_outcome") == "denied");
+    CHECK_FALSE(fs::exists(fs::path(python.str("DEST_READ_ONLY"))));
+    CHECK(describe(harness.prompts) == "os.link: " + python.str("SOURCE") + "\n");
+
+    // A read/write grant for the source makes the same link creation succeed without another
+    // prompt.
+    PluginPermissions read_write;
+    read_write.fs_readwrite = {python.str("SOURCE")};
+    harness.save_permissions(PLUGIN, read_write);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "granted_outcome = attempt(lambda: os.link(SOURCE, DEST_GRANTED))");
+    CHECK(python.str("granted_outcome") == "ok");
+    CHECK(fs::exists(fs::path(python.str("DEST_GRANTED"))));
+    CHECK(describe(harness.prompts).empty());
+
+    // A source inside the writable allowed root itself needs no separate grant: writing through
+    // the new name stays inside a folder the plugin may already write.
+    harness.save_permissions(PLUGIN, {});
+    harness.prompts.clear();
+    python.run_as(PLUGIN, "data_source_outcome = attempt(lambda: os.link(DATA_SOURCE, DEST_FROM_DATA_SOURCE))");
+    CHECK(python.str("data_source_outcome") == "ok");
+    CHECK(fs::exists(fs::path(python.str("DEST_FROM_DATA_SOURCE"))));
+    CHECK(describe(harness.prompts).empty());
+}
+
+TEST_CASE("Recursive rmtree does not let a direct parent delete grant cover subfolder contents", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+DELETE_PARENT = os.path.realpath(os.path.join(OUTSIDE, "rmtree-parent"))
+DELETE_SUBFOLDER = os.path.join(DELETE_PARENT, "sub")
+os.makedirs(DELETE_SUBFOLDER)
+DELETE_A = os.path.join(DELETE_SUBFOLDER, "a.txt")
+DELETE_B = os.path.join(DELETE_SUBFOLDER, "b.txt")
+for path in (DELETE_A, DELETE_B):
+    with open(path, "w") as f:
+        f.write("x")
+)PY");
+
+    PluginPermissions permissions;
+    // The grant names the parent, so deleting the direct entry "sub" is allowed. It does not
+    // grant deleting the entries inside "sub".
+    permissions.fs_delete = {python.str("DELETE_PARENT")};
+    harness.save_permissions(PLUGIN, permissions);
+
+    // Reads needed by rmtree may still be approved if the implementation asks; deletes are left
+    // denied. The recursive walk must not inherit the parent's delete grant for its children.
+    harness.approve = [](const Prompt& prompt) { return prompt.event != "os.remove" && prompt.event != "os.rmdir"; };
+    python.run_as(PLUGIN, "outcome = attempt(lambda: shutil.rmtree(DELETE_SUBFOLDER))");
+
+    CHECK(python.str("outcome") == "denied");
+    CHECK(fs::is_directory(fs::path(python.str("DELETE_SUBFOLDER"))));
+    const int remaining = (fs::exists(fs::path(python.str("DELETE_A"))) ? 1 : 0) +
+                          (fs::exists(fs::path(python.str("DELETE_B"))) ? 1 : 0);
+    CHECK(remaining >= 1);
+
+    // A full delete grant still allows the recursive operation.
+    permissions.fs_delete = {"*"};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    harness.approve = [](const Prompt& prompt) { return prompt.event != "os.remove" && prompt.event != "os.rmdir"; };
+    python.run_as(PLUGIN, "full_outcome = attempt(lambda: shutil.rmtree(DELETE_SUBFOLDER))");
+    CHECK(python.str("full_outcome") == "ok");
+    CHECK_FALSE(fs::exists(fs::path(python.str("DELETE_SUBFOLDER"))));
+}
+
+TEST_CASE("A trailing symlink is judged by its containing folder, not its target", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+LINK_PARENT = os.path.realpath(os.path.join(OUTSIDE, "link-parent"))
+LINK_TARGET = os.path.realpath(os.path.join(OUTSIDE, "link-target"))
+os.makedirs(LINK_PARENT)
+os.makedirs(LINK_TARGET)
+TARGET_FILE = os.path.join(LINK_TARGET, "target.txt")
+with open(TARGET_FILE, "w") as f:
+    f.write("x")
+LINK = os.path.join(LINK_PARENT, "alias.txt")
+DANGLING = os.path.join(LINK_PARENT, "missing-link.txt")
+try:
+    os.symlink(TARGET_FILE, LINK)
+    os.symlink(os.path.join(LINK_TARGET, "missing.txt"), DANGLING)
+    SYMLINKS_OK = True
+except (OSError, NotImplementedError):
+    SYMLINKS_OK = False
+)PY");
+    if (python.eval("SYMLINKS_OK") != "True")
+        SKIP("Cannot create symbolic links here");
+
+    // Deleting a link acts on the link in LINK_PARENT, never on what it points at.
+    PluginPermissions permissions;
+    permissions.fs_delete = {python.str("LINK_TARGET")};
+    harness.save_permissions(PLUGIN, permissions);
+    python.run_as(PLUGIN, R"PY(
+target_folder_outcome = attempt(lambda: os.remove(LINK))
+dangling_target_folder_outcome = attempt(lambda: os.remove(DANGLING))
+)PY");
+
+    CHECK(python.str("target_folder_outcome") == "denied");
+    CHECK(python.str("dangling_target_folder_outcome") == "denied");
+    CHECK(fs::is_symlink(fs::path(python.str("LINK"))));
+    CHECK(fs::is_symlink(fs::path(python.str("DANGLING"))));
+    CHECK(fs::exists(fs::path(python.str("TARGET_FILE"))));
+
+    // Granting the containing folder allows deleting the links themselves, without touching the
+    // link target or creating the dangling link's missing destination.
+    permissions.fs_delete = {python.str("LINK_PARENT")};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+link_outcome = attempt(lambda: os.remove(LINK))
+dangling_link_outcome = attempt(lambda: os.remove(DANGLING))
+)PY");
+
+    CHECK(python.str("link_outcome") == "ok");
+    CHECK(python.str("dangling_link_outcome") == "ok");
+    CHECK_FALSE(fs::is_symlink(fs::path(python.str("LINK"))));
+    CHECK_FALSE(fs::is_symlink(fs::path(python.str("DANGLING"))));
+    CHECK(fs::exists(fs::path(python.str("TARGET_FILE"))));
+    CHECK_FALSE(fs::exists(fs::path(python.str("LINK_TARGET")) / "missing.txt"));
+}
+
+#if !defined(_WIN32) && (defined(__linux__) || defined(__APPLE__))
+TEST_CASE("A non-default dir_fd is checked against the folder it actually names", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+    PluginAuditManager& mgr = PluginAuditManager::instance();
+
+    python.exec(R"PY(
+FD_GRANTED = os.path.realpath(os.path.join(OUTSIDE, "fd-granted"))
+FD_TARGET = os.path.realpath(os.path.join(OUTSIDE, "fd-target"))
+FD_DENIED = os.path.join(OUTSIDE, "secrets")
+os.makedirs(FD_GRANTED)
+os.makedirs(FD_TARGET)
+os.makedirs(FD_DENIED)
+FD_VICTIM = os.path.join(FD_TARGET, "victim.txt")
+with open(FD_VICTIM, "w") as f:
+    f.write("x")
+# Open the descriptors before entering any plugin audit scope: os.open itself is an
+# FsRead/FsReadWrite audited event and must not fail the test before the descriptor is used.
+FD_TARGET_FD = os.open(FD_TARGET, os.O_RDONLY)
+FD_DENIED_FD = os.open(FD_DENIED, os.O_RDONLY)
+)PY");
+
+    // The working directory is granted, but the operations happen in FD_TARGET through dir_fd.
+    // Resolving the relative path against the working directory would authorize or deny the
+    // wrong folder, so the hook must resolve the descriptor first.
+    PluginPermissions permissions;
+    permissions.fs_create = {python.str("FD_GRANTED")};
+    permissions.fs_delete = {python.str("FD_GRANTED")};
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.run_as(PLUGIN, R"PY(
+os.chdir(FD_GRANTED)
+try:
+    plain_outcome = attempt(lambda: os.mkdir("plain"))
+    prompted_create = attempt(lambda: os.mkdir("child", dir_fd=FD_TARGET_FD))
+    prompted_delete = attempt(lambda: os.remove("victim.txt", dir_fd=FD_TARGET_FD))
+finally:
+    os.chdir(OUTSIDE)
+)PY");
+
+    // A default dir_fd must still be allowed: the audit arguments include the mode, which must
+    // not be mistaken for a descriptor.
+    CHECK(python.str("plain_outcome") == "ok");
+    CHECK(fs::is_directory(fs::path(python.str("FD_GRANTED")) / "plain"));
+    // Without a grant for FD_TARGET, the prompt names that actual folder and denial leaves both
+    // folders untouched.
+    CHECK(python.str("prompted_create") == "denied");
+    CHECK(python.str("prompted_delete") == "denied");
+    CHECK(describe(harness.prompts) == "os.mkdir: " + python.str("FD_TARGET") + "\n" +
+                                            "os.remove: " + python.str("FD_TARGET") + "\n");
+    CHECK_FALSE(fs::exists(fs::path(python.str("FD_TARGET")) / "child"));
+    CHECK(fs::exists(fs::path(python.str("FD_VICTIM"))));
+
+    // A grant naming the resolved folder covers the operations.
+    permissions.fs_create = {python.str("FD_TARGET")};
+    permissions.fs_delete = {python.str("FD_TARGET")};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+os.chdir(FD_GRANTED)
+try:
+    granted_create = attempt(lambda: os.mkdir("child", dir_fd=FD_TARGET_FD))
+    granted_delete = attempt(lambda: os.remove("victim.txt", dir_fd=FD_TARGET_FD))
+    granted_rmdir = attempt(lambda: os.rmdir("child", dir_fd=FD_TARGET_FD))
+finally:
+    os.chdir(OUTSIDE)
+)PY");
+    CHECK(python.str("granted_create") == "ok");
+    CHECK(python.str("granted_delete") == "ok");
+    CHECK(python.str("granted_rmdir") == "ok");
+    CHECK(describe(harness.prompts).empty());
+    CHECK_FALSE(fs::exists(fs::path(python.str("FD_TARGET")) / "child"));
+    CHECK_FALSE(fs::exists(fs::path(python.str("FD_VICTIM"))));
+
+    // The resolved target still goes through the deny registry before any folder grant applies.
+    permissions.fs_create = {"*"};
+    harness.save_permissions(PLUGIN, permissions);
+    harness.prompts.clear();
+    python.run_as(PLUGIN, R"PY(
+os.chdir(FD_GRANTED)
+try:
+    denied_create = attempt(lambda: os.mkdir("child", dir_fd=FD_DENIED_FD))
+finally:
+    os.chdir(OUTSIDE)
+)PY");
+    CHECK(python.str("denied_create") == "denied");
+    CHECK(describe(harness.prompts).empty());
+    CHECK_FALSE(fs::exists(fs::path(python.str("FD_DENIED")) / "child"));
+    python.exec("os.close(FD_TARGET_FD)\nos.close(FD_DENIED_FD)");
+    AuditViolation violation;
+    REQUIRE(mgr.last_violation(violation));
+    CHECK(violation.reason == "denied path");
+}
+
+TEST_CASE("A dir_fd rmtree succeeds when full access allows the resolved folder", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+import inspect
+RMTREE_DIR_FD_SUPPORTED = "dir_fd" in inspect.signature(shutil.rmtree).parameters
+RMTREE_PARENT = os.path.join(OUTSIDE, "rmtree-fd-parent")
+RMTREE_TREE = os.path.join(RMTREE_PARENT, "tree")
+os.makedirs(RMTREE_TREE)
+for name in ("a.txt", "b.txt"):
+    with open(os.path.join(RMTREE_TREE, name), "w") as f:
+        f.write("x")
+# Open outside the plugin scope: os.open is audited and would otherwise need a read grant.
+RMTREE_FD = os.open(RMTREE_PARENT, os.O_RDONLY)
+)PY");
+    if (python.eval("RMTREE_DIR_FD_SUPPORTED") != "True")
+        SKIP("This Python's shutil.rmtree has no dir_fd parameter");
+
+    // Full access is the "always allowed" counterpart: descriptor resolution must not turn an
+    // otherwise authorized recursive delete into a denial.
+    PluginPermissions permissions;
+    permissions.full_access = true;
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.run_as(PLUGIN, R"PY(
+outcome = attempt(lambda: shutil.rmtree("tree", dir_fd=RMTREE_FD))
+)PY");
+
+    CHECK(python.str("outcome") == "ok");
+    CHECK(describe(harness.prompts).empty());
+    CHECK_FALSE(fs::exists(fs::path(python.str("RMTREE_TREE"))));
+    python.exec("os.close(RMTREE_FD)");
+}
+#elif !defined(_WIN32)
+TEST_CASE("A non-default dir_fd fails closed when the platform cannot resolve it", "[audit][Python]")
+{
+    AuditHarness harness;
+    if (!harness.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    harness.add_plugin(PLUGIN);
+    py::gil_scoped_acquire gil;
+    PythonSide python(harness);
+
+    python.exec(R"PY(
+import inspect
+DIR_FD_SUPPORTED = "dir_fd" in inspect.signature(os.mkdir).parameters
+FD_GRANTED = os.path.realpath(os.path.join(OUTSIDE, "fd-granted"))
+FD_TARGET = os.path.realpath(os.path.join(OUTSIDE, "fd-target"))
+os.makedirs(FD_GRANTED)
+os.makedirs(FD_TARGET)
+FD_VICTIM = os.path.join(FD_TARGET, "victim.txt")
+with open(FD_VICTIM, "w") as f:
+    f.write("x")
+# Open outside the plugin scope so the audited os.open cannot fail before descriptor use.
+FD_TARGET_FD = os.open(FD_TARGET, os.O_RDONLY)
+)PY");
+    if (python.eval("DIR_FD_SUPPORTED") != "True")
+        SKIP("This Python does not support dir_fd here");
+
+    // Even a grant naming the descriptor's folder cannot make an unresolvable descriptor safe.
+    PluginPermissions permissions;
+    permissions.fs_create = {python.str("FD_GRANTED"), python.str("FD_TARGET")};
+    permissions.fs_delete = {python.str("FD_GRANTED"), python.str("FD_TARGET")};
+    harness.save_permissions(PLUGIN, permissions);
+
+    python.run_as(PLUGIN, R"PY(
+os.chdir(FD_GRANTED)
+try:
+    plain_outcome = attempt(lambda: os.mkdir("plain"))
+    created_outcome = attempt(lambda: os.mkdir("child", dir_fd=FD_TARGET_FD))
+    removed_outcome = attempt(lambda: os.remove("victim.txt", dir_fd=FD_TARGET_FD))
+finally:
+    os.chdir(OUTSIDE)
+)PY");
+
+    CHECK(python.str("plain_outcome") == "ok");
+    CHECK(python.str("created_outcome") == "denied");
+    CHECK(python.str("removed_outcome") == "denied");
+    CHECK(describe(harness.prompts).empty());
+    CHECK_FALSE(fs::exists(fs::path(python.str("FD_TARGET")) / "child"));
+    CHECK(fs::exists(fs::path(python.str("FD_VICTIM"))));
+    python.exec("os.close(FD_TARGET_FD)");
+}
+#endif
 
 TEST_CASE("A filesystem wildcard does not override a denied path", "[audit][Python]")
 {
