@@ -5137,7 +5137,7 @@ void PrintObject::discover_extra_elements()
     std::vector<std::vector<SurfacesCacheRecord>> cache_surfaces(num_to_process);
 
     // Allocating caсhe to their positions
-    auto merge_surfaces = [](SurfacesCacheRecord& cache, bool make_subtop) {
+    auto merge_surfaces = [](SurfacesCacheRecord& cache) { // , bool make_subtop
         SurfaceCollection new_surfaces;
         SurfacesPtr crop_surfaces = cache.first->fill_surfaces.filter_by_type_except(stInternal);
         ExPolygons crop_first     = union_overlapping_ex(to_expolygons(crop_surfaces));
@@ -5254,7 +5254,7 @@ void PrintObject::discover_extra_elements()
                     }
                 }
             }
-            merge_surfaces(SurfacesCacheRecord(layerm, new_surfaces), false);
+            merge_surfaces(SurfacesCacheRecord(layerm, new_surfaces));
         }
     };
 
@@ -5297,7 +5297,7 @@ void PrintObject::discover_extra_elements()
     tbb::parallel_for(tbb::blocked_range<size_t>(0, optimized_surfaces.size()), 
         [&merge_surfaces, &optimized_surfaces](const tbb::blocked_range<size_t> &range) {
             for (size_t k = range.begin(); k < range.end(); ++k) {
-                merge_surfaces(optimized_surfaces[k], false);
+                merge_surfaces(optimized_surfaces[k]);
             }
     });
 } // end of discover_extra_elements
