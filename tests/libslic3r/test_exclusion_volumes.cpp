@@ -102,6 +102,31 @@ TEST_CASE("Legacy exclusion polygons keep their point representation", "[Exclusi
     CHECK_FALSE(is_bed_exclusion_volume_syntax(option.serialize()));
 }
 
+TEST_CASE("Excluded bed areas require simple polygons", "[ExclusionVolume][PrintConfig][Regression]")
+{
+    ConfigOptionPoints self_intersecting;
+    REQUIRE(self_intersecting.deserialize("0x0,6x0,1x220,6x220"));
+    CHECK_FALSE(is_valid_bed_exclude_area(self_intersecting.values));
+
+    DynamicPrintConfig invalid_config = DynamicPrintConfig::full_print_config();
+    invalid_config.set_key_value("bed_exclude_area", self_intersecting.clone());
+    CHECK(get_bed_excluded_regions(invalid_config).empty());
+
+    ConfigOptionPoints zero_area;
+    REQUIRE(zero_area.deserialize("0x0,6x0,0x220,6x220"));
+    CHECK_FALSE(is_valid_bed_exclude_area(zero_area.values));
+
+    ConfigOptionPoints valid;
+    REQUIRE(valid.deserialize("0x0,6x0,6x220,0x220"));
+    CHECK(is_valid_bed_exclude_area(valid.values));
+
+    DynamicPrintConfig valid_config = DynamicPrintConfig::full_print_config();
+    valid_config.set_key_value("bed_exclude_area", valid.clone());
+    const std::vector<BedExcludeRegion> regions = get_bed_excluded_regions(valid_config);
+    REQUIRE(regions.size() == 1);
+    CHECK(regions.front().polygon.points.size() == valid.values.size());
+}
+
 TEST_CASE("Belt material keep-outs are projected once without projecting collision volumes", "[ExclusionVolume][PrintConfig][Belt][Regression]")
 {
     const auto [belt, axis, angle, scale_x, scale_y] = GENERATE(table<bool, BeltRotationAxis, double, double, double>({

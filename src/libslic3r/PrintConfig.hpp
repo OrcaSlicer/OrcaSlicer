@@ -194,6 +194,7 @@ inline bool is_smoothable_infill_pattern(InfillPattern pattern, int multiline = 
     case ipTriangles:
     case ipStars:
     case ipCubic:
+    case ipQuarterCubic:
         return multiline > 1;
     default:
         return false;
@@ -2545,7 +2546,10 @@ private:
 bool is_XL_printer(const DynamicPrintConfig &cfg);
 bool is_XL_printer(const PrintConfig &cfg);
 
-Polygon get_shared_poly(const std::vector<Pointfs>& extruder_polys);
+// The area every extruder can reach: the whole bed when no extruder has an area of its own, and empty
+// when the extruder areas do not overlap.
+Polygon get_shared_poly(const std::vector<Pointfs>& extruder_polys, const Pointfs& bed);
+// The bed to place objects on. With use_share it is the shared area, or the whole bed when there is none.
 Points get_bed_shape(const DynamicPrintConfig &cfg, bool use_share = true);
 Points get_bed_shape(const PrintConfig &cfg, bool use_share = false);
 Points get_bed_shape(const SLAPrinterConfig &cfg);
@@ -2576,6 +2580,8 @@ int bed_exclusion_extruder_for_filament(size_t filament_id, const std::vector<in
                                         FilamentMapMode map_mode, bool is_bambu, bool automatic_map_resolved,
                                         size_t extruder_count);
 bool is_bed_exclusion_volume_syntax(const std::string &value);
+// Bed exclusion areas must be simple polygons with non-zero area.
+bool is_valid_bed_exclude_area(const Pointfs &points);
 bool is_valid_bed_exclude_volumes_string(const std::string &value, double printable_height);
 // Add shared definitions without replacing existing volumes or changing the
 // configured multi-nozzle mode. In individual mode the new definitions are
