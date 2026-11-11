@@ -29,6 +29,7 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/SceneRaycaster.hpp"
 #include <memory>
+#include <optional>
 #include "slic3r/GUI/3DScene.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Line.hpp"
@@ -3062,7 +3063,10 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
         ImGui::SameLine();
         m_imgui->disabled_begin(is_cut_plane_init && !has_connectors && !m_part_selection.valid());
         if (m_imgui->button(_L("Reset"), _L("Reset cutting plane and remove connectors"))) {
-            Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Reset Cut"), UndoRedo::SnapshotType::GizmoAction);
+            // Part selection is not serialized in undo snapshots.
+            std::optional<Plater::TakeSnapshot> snapshot;
+            if (!is_cut_plane_init || has_connectors)
+                snapshot.emplace(wxGetApp().plater(), _u8L("Reset Cut"), UndoRedo::SnapshotType::GizmoAction);
             reset_cut_plane();
             reset_connectors();
         }
