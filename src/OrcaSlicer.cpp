@@ -3203,6 +3203,29 @@ int CLI::run(int argc, char **argv)
     std::vector<std::string>& inherits_group = m_print_config.option<ConfigOptionStrings>("inherits_group", true)->values;
     inherits_group.resize(filament_count + 2, std::string());
     different_settings.resize(filament_count + 2, std::string());
+    // More filaments loaded than the project defines: the project grows to the loaded count, so
+    // every per-filament table from here on covers the loaded slots. The two slot lists above and
+    // compatible_machine_expression_group keep the printer in their last slot, so the new filament
+    // slots go in before it.
+    const int project_defined_filament_count = filament_count;
+    if (filament_count < load_filament_count) {
+        // An empty --load-filaments entry keeps the project's filament in that slot, so past the project's count
+        // it has nothing to keep; only --load-defaultfila fills such a slot, and then it is in load_filaments_index.
+        for (int slot = filament_count + 1; slot <= load_filament_count; slot++) {
+            if (std::find(load_filaments_index.begin(), load_filaments_index.end(), slot) == load_filaments_index.end()) {
+                boost::nowide::cerr << boost::format("--load-filaments slot %1% is empty, but the project defines only %2% filaments, so there is none to keep in it") % slot % filament_count << std::endl;
+                record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                flush_and_exit(CLI_INVALID_PARAMS);
+            }
+        }
+        BOOST_LOG_TRIVIAL(info) << boost::format("%1% filaments loaded on a project with %2%, growing the project to %1%") % load_filament_count % filament_count;
+        inherits_group.insert(inherits_group.begin() + filament_count + 1, load_filament_count - filament_count, std::string());
+        different_settings.insert(different_settings.begin() + filament_count + 1, load_filament_count - filament_count, std::string());
+        if (auto *machine_expressions = m_print_config.option<ConfigOptionStrings>("compatible_machine_expression_group");
+            machine_expressions != nullptr && machine_expressions->values.size() == size_t(filament_count + 2))
+            machine_expressions->values.insert(machine_expressions->values.begin() + filament_count + 1, load_filament_count - filament_count, std::string());
+        filament_count = load_filament_count;
+    }
     if (!is_bbl_3mf && !different_process_setting.empty()) {
         different_settings[0] = different_process_setting;
     }
@@ -3526,26 +3549,31 @@ int CLI::run(int argc, char **argv)
                 max_self_index = std::max(max_self_index, v);
                 min_self_index = std::min(min_self_index, v);
             }
-            // And a project saved with FEWER filaments than are now loaded (a
-            // one-filament project sliced with two --load-filaments) leaves the tables half filled:
-            // the variant matching below then reads past filament_extruder_variant and
-            // set_with_restore_2 throws an uncaught size error. Regenerate in that case too.
-            if (max_self_index > filament_count || min_self_index < 1 || max_self_index < filament_count
-                || (int) filament_self_index_opt->values.size() < filament_count) {
+            // A project saved with fewer filaments than are now loaded has grown to the loaded
+            // count above; its own layout is checked against the count it was saved with, and
+            // the loaded filaments are appended below.
+            if (max_self_index > project_defined_filament_count || min_self_index < 1 || max_self_index < project_defined_filament_count
+                || (int) filament_self_index_opt->values.size() < project_defined_filament_count) {
                 BOOST_LOG_TRIVIAL(warning) << boost::format("filament_self_index range [%1%, %2%] (size %4%) is invalid for filament_count %3%, regenerating")
-                        % min_self_index % max_self_index % filament_count % filament_self_index_opt->values.size();
+                        % min_self_index % max_self_index % project_defined_filament_count % filament_self_index_opt->values.size();
                 need_regenerate_self_index = true;
             }
         }
         if (need_regenerate_self_index) {
             filament_self_index_opt = m_print_config.option<ConfigOptionInts>("filament_self_index", true);
             std::vector<int>& filament_self_indice = filament_self_index_opt->values;
-            filament_self_indice.resize(filament_count);
-            for (int index = 0; index < filament_count; index++)
+            filament_self_indice.resize(project_defined_filament_count);
+            for (int index = 0; index < project_defined_filament_count; index++)
                 filament_self_indice[index] = index + 1;
         }
 
         std::vector<int> old_self_indice= filament_self_index_opt->values;
+        // A filament loaded beyond the project's count gets one variant of its own, appended after
+        // the project's layout so the project's filaments keep their variant groups. Only this copy
+        // grows: normalize_filament_values_to_variants below lays the project's per-variant values
+        // out by its own filament_self_index, and the config's index is rebuilt after the loop.
+        for (int index = project_defined_filament_count + 1; index <= filament_count; index++)
+            old_self_indice.push_back(index);
         int old_self_indice_size = old_self_indice.size();
         int k = -1, current_filament = 0;
         for (size_t i = 0; i < old_self_indice_size; i++) {
