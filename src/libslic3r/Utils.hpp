@@ -23,6 +23,7 @@
 #include <string_view>
 
 #include <boost/system/error_code.hpp>
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/path.hpp>
 
 #include <openssl/md5.h>

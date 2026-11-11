@@ -41,6 +41,10 @@ TEST_CASE("Versions print with the patch split in two, or as three parts", "[Sem
     CHECK(dev.to_string() == "2.6.0.0-dev");
     CHECK(dev.to_string_sf() == "2.6.0-dev");
 
+    const Semver large(10, 20, 1234);
+    CHECK(large.to_string() == "10.20.12.34");
+    CHECK(large.to_string_sf() == "10.20.1234");
+
     const Semver tagged(1, 2, 3, "build7");
     CHECK(tagged.to_string() == "1.2.0.3+build7");
     CHECK(tagged.to_string_sf() == "1.2.3+build7");

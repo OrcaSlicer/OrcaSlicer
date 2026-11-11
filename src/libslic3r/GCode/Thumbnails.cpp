@@ -24,7 +24,6 @@
 #include <utility>
 #include <vector>
 #include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
 
 namespace Slic3r::GCodeThumbnails {
 
