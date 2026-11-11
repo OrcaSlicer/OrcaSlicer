@@ -17,8 +17,12 @@
 
 #include "libslic3r/UpdateHandoff.hpp"
 
+#endif
+
 namespace Slic3r {
 namespace Updater {
+
+#if defined(__linux__)
 
 namespace {
 
