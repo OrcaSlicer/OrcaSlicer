@@ -65,16 +65,16 @@ TEST_CASE("A process gets columns for tools added to the printer, copied from to
     printer.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {standard + "," + high_flow, standard + "," + high_flow,
                                                                                   standard + "," + high_flow};
 
-    REQUIRE(complete_process_tool_columns(process, printer));
+    REQUIRE(add_process_columns_for_new_tools(process, printer));
     CHECK(process.option<ConfigOptionInts>("print_extruder_id")->values == std::vector<int>{1, 1, 2, 2, 3, 3});
     CHECK(process.option<ConfigOptionStrings>("print_extruder_variant")->values ==
           std::vector<std::string>{standard, high_flow, standard, high_flow, standard, high_flow});
     // Each new column copies tool 1's column of its variant.
     CHECK(process.option<ConfigOptionFloats>("outer_wall_speed")->values == std::vector<double>{100., 200., 110., 210., 100., 200.});
-    // A value the profile shares goes to every column, the new ones included.
-    CHECK(process.option<ConfigOptionFloats>("inner_wall_speed")->values == std::vector<double>(6, 50.));
+    // A single value already serves every column.
+    CHECK(process.option<ConfigOptionFloats>("inner_wall_speed")->values == std::vector<double>{50.});
     // Every tool has its columns now.
-    CHECK_FALSE(complete_process_tool_columns(process, printer));
+    CHECK_FALSE(add_process_columns_for_new_tools(process, printer));
     CHECK(process.option<ConfigOptionInts>("print_extruder_id")->values.size() == 6);
 }
 
@@ -87,24 +87,7 @@ TEST_CASE("A process with one column keeps it shared by every tool", "[Parameter
     DynamicPrintConfig printer;
     printer.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {"Direct Drive Standard", "Direct Drive Standard"};
 
-    CHECK_FALSE(complete_process_tool_columns(process, printer));
+    CHECK_FALSE(add_process_columns_for_new_tools(process, printer));
     CHECK(process.option<ConfigOptionInts>("print_extruder_id")->values == std::vector<int>{1});
     CHECK(process.option<ConfigOptionFloats>("outer_wall_speed")->values == std::vector<double>{30.});
-}
-
-TEST_CASE("A per-tool option the process shares gets one value per column", "[ParameterUtils]")
-{
-    const std::string standard = "Direct Drive Standard", high_flow = "Direct Drive High Flow";
-    DynamicPrintConfig process;
-    process.option<ConfigOptionInts>("print_extruder_id", true)->values         = {1, 1, 2, 2};
-    process.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {standard, high_flow, standard, high_flow};
-    process.option<ConfigOptionFloats>("travel_speed", true)->values            = {300.};
-    DynamicPrintConfig printer;
-    printer.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {standard + "," + high_flow, standard + "," + high_flow};
-
-    // Every tool reads the shared value, so each column gets it and an edit of one no longer reaches the others.
-    REQUIRE(complete_process_tool_columns(process, printer));
-    CHECK(process.option<ConfigOptionFloats>("travel_speed")->values == std::vector<double>(4, 300.));
-    CHECK(process.option<ConfigOptionInts>("print_extruder_id")->values == std::vector<int>{1, 1, 2, 2});
-    CHECK_FALSE(complete_process_tool_columns(process, printer));
 }

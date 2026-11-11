@@ -94,7 +94,7 @@ int get_index_for_extruder_parameter(const DynamicPrintConfig &config, const std
     return variant_index;
 }
 
-bool complete_process_tool_columns(DynamicPrintConfig &process_config, const DynamicPrintConfig &printer_config)
+bool add_process_columns_for_new_tools(DynamicPrintConfig &process_config, const DynamicPrintConfig &printer_config)
 {
     auto       *ids      = process_config.option<ConfigOptionInts>("print_extruder_id");
     auto       *variants = process_config.option<ConfigOptionStrings>("print_extruder_variant");
@@ -126,21 +126,18 @@ bool complete_process_tool_columns(DynamicPrintConfig &process_config, const Dyn
             sources.push_back(source);
         }
     }
-    bool changed = !sources.empty();
+    if (sources.empty())
+        return false;
+
     for (const std::string &key : print_options_with_variant) {
         auto *opt = dynamic_cast<ConfigOptionVectorBase *>(process_config.option(key));
-        if (opt == nullptr || opt == ids || opt == variants || opt->empty())
+        // An option with fewer values than columns gives the missing ones its first value already.
+        if (opt == nullptr || opt == ids || opt == variants || opt->size() != columns)
             continue;
-        // Gives each tool its own value, so an edit of the first one no longer reaches the others.
-        if (opt->size() < columns) {
-            opt->set_at(opt, columns - 1, columns - 1);
-            changed = true;
-        }
-        if (opt->size() == columns)
-            for (size_t source : sources)
-                opt->set_at(opt, opt->size(), source);
+        for (size_t source : sources)
+            opt->set_at(opt, opt->size(), source);
     }
-    return changed;
+    return true;
 }
 
 }; // namespace Slic3r

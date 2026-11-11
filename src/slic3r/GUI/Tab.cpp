@@ -2081,19 +2081,18 @@ static wxString pad_combo_value_for_config(const DynamicPrintConfig &config)
     return config.opt_bool("pad_enable") ? (config.opt_bool("pad_around_object") ? _("Around object") : _("Below object")) : _("None");
 }
 
-// Orca: gives each tool of the process its own values: columns for tools its profile lacks (e.g. after the extruder
-// count was raised), and one value per column for options the profile shares. Every copy the edited process is
-// compared with is completed alike, so this does not show as changes.
-static void complete_selected_process_tool_columns(PresetBundle &bundle)
+// Orca: gives the process columns for tools its profile lacks, e.g. after the extruder count was raised. Every copy the
+// edited process is compared with gets the same columns, so they do not show as changes.
+static void add_selected_process_columns_for_new_tools(PresetBundle &bundle)
 {
     PresetCollection         &prints  = bundle.prints;
     const DynamicPrintConfig &printer = bundle.printers.get_edited_preset().config;
     const bool                saved   = !prints.saved_is_dirty();
-    complete_process_tool_columns(prints.get_selected_preset().config, printer);
+    add_process_columns_for_new_tools(prints.get_selected_preset().config, printer);
     if (const Preset *parent = prints.get_selected_preset_parent())
         if (Preset *preset = prints.find_preset(parent->name))
-            complete_process_tool_columns(preset->config, printer);
-    if (complete_process_tool_columns(prints.get_edited_preset().config, printer) && saved)
+            add_process_columns_for_new_tools(preset->config, printer);
+    if (add_process_columns_for_new_tools(prints.get_edited_preset().config, printer) && saved)
         prints.update_saved_preset_from_current_preset();
 }
 
@@ -5893,7 +5892,7 @@ void TabPrinter::extruders_count_changed(size_t extruders_count)
     if (m_extruders_count != extruders_count) {
         m_extruders_count = extruders_count;
         m_preset_bundle->on_extruders_count_changed(extruders_count);
-        complete_selected_process_tool_columns(*m_preset_bundle);
+        add_selected_process_columns_for_new_tools(*m_preset_bundle);
         is_count_changed = true;
 
         wxGetApp().plater()->get_partplate_list().on_extruder_count_changed((int)m_extruders_count);
@@ -7276,7 +7275,7 @@ void Tab::load_current_preset()
             wxGetApp().obj_list()->update_objects_list_filament_column(1);
     }
     if (m_type == Preset::TYPE_PRINT) {
-        complete_selected_process_tool_columns(*m_preset_bundle);
+        add_selected_process_columns_for_new_tools(*m_preset_bundle);
         if (auto tab = wxGetApp().plate_tab) {
             tab->m_config->apply(*m_config);
             tab->update_extruder_variants();
