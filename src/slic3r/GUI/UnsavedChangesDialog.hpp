@@ -359,13 +359,17 @@ public:
         int              to;
         bool             left_to_right;
         NozzleVolumeType nozzle;
+        // Column titles; empty names the left/right toolheads of a dual-nozzle printer.
+        wxString         left_name;
+        wxString         right_name;
     };
 
     // show unsaved changes when preset is switching
     UnsavedChangesDialog(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, bool no_transfer = false);
     // show unsaved changes for all another cases
     UnsavedChangesDialog(const wxString& caption, const wxString& header, const std::string& app_config_key, int act_buttons);
-    UnsavedChangesDialog(const wxString &caption, const wxString &header, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle);
+    UnsavedChangesDialog(const wxString &caption, const wxString &header, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle,
+                         const wxString &left_name = wxString(), const wxString &right_name = wxString());
     ~UnsavedChangesDialog() override = default;
 
     int ShowModal() override;
