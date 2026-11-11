@@ -47,8 +47,11 @@ LabeledCheckBox::LabeledCheckBox(wxWindow* parent, const wxString& label, wxWind
     m_text = new Label(m_text_box, Label::Body_14, label);
     m_text_box->Show(!label.empty());
 
-    wxBoxSizer* box_sizer = new wxBoxSizer(wxHORIZONTAL);
-    box_sizer->Add(m_text, 0, wxALL);
+    // Two sizers, as horizontal and vertical padding differ
+    wxBoxSizer* text_sizer = new wxBoxSizer(wxHORIZONTAL);
+    text_sizer->Add(m_text, 0, wxLEFT | wxRIGHT);
+    wxBoxSizer* box_sizer = new wxBoxSizer(wxVERTICAL);
+    box_sizer->Add(text_sizer, 0, wxTOP | wxBOTTOM);
     m_text_box->SetSizer(box_sizer);
 
     wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -177,14 +180,16 @@ void LabeledCheckBox::UpdateLabelColor()
 
 void LabeledCheckBox::UpdateMetrics()
 {
-    const int padding = FromDIP(5); // around the text
-    m_text_box->GetSizer()->GetItem(m_text)->SetBorder(padding);
+    const wxSize padding = FromDIP(wxSize(5, 2)); // around the text, same as RadioGroup
+    wxSizer* text_sizer = m_text->GetContainingSizer();
+    text_sizer->GetItem(m_text)->SetBorder(padding.x);
+    m_text_box->GetSizer()->GetItem(text_sizer)->SetBorder(padding.y);
     // Keep the check on the first text line
-    const int offset = m_text_box->IsShown() ? padding + (m_text->GetCharHeight() - m_check->GetMinSize().y) / 2 : 0;
+    const int offset = m_text_box->IsShown() ? padding.y + (m_text->GetCharHeight() - m_check->GetMinSize().y) / 2 : 0;
     GetSizer()->GetItem(m_check)->SetBorder(std::max(offset, 0));
 
     // Label::Wrap() starts from the full text, -1 unwraps
-    const int text_width = m_wrap_width - m_check->GetMinSize().x - 2 * padding;
+    const int text_width = m_wrap_width - m_check->GetMinSize().x - 2 * padding.x;
     m_text->Wrap(m_wrap_width > 0 && text_width > 0 ? text_width : -1);
 }
 
