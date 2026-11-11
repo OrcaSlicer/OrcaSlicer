@@ -690,9 +690,9 @@ def tf_fixture(cx, cy, W, L=40):
 
 def tf_label(pivot, handle, at):
     """Where the transform gizmo prints its value, by its own formula (render_tf_gizmo): past the
-    handle, away from the pivot, by 1.2 label heights, a label height being 15 px in millimetres
-    at `at`."""
-    th = max(15.0 * gui.mm_per_px(*at), 1e-4)
+    handle, away from the pivot, by 1.2 label heights, a label height being 15 GL pixels in
+    millimetres at `at`."""
+    th = max(gui.budget(15.0) * gui.mm_per_px(*at), 1e-4)
     d = (handle[0] - pivot[0], handle[1] - pivot[1])
     n = math.hypot(*d) or 1.0
     return (handle[0] + d[0] / n * th * 1.2, handle[1] + d[1] / n * th * 1.2)
@@ -700,8 +700,8 @@ def tf_label(pivot, handle, at):
 
 def tf_count_label(pivot, at):
     """Where an array gizmo prints its count ("x4"), by render_tf_gizmo's formula: 1.5 label
-    heights up and right of the pivot."""
-    th = max(15.0 * gui.mm_per_px(*at), 1e-4)
+    heights up and right of the pivot, a label height being 15 GL pixels."""
+    th = max(gui.budget(15.0) * gui.mm_per_px(*at), 1e-4)
     return (pivot[0] + th * 1.5, pivot[1] + th * 1.5)
 
 

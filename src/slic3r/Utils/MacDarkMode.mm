@@ -100,6 +100,29 @@ void keep_window_above(void * window, void * parent, bool keep)
         [owner removeChildWindow:child];
 }
 
+// AppKit animates a window as it opens and closes, on a dispatch worker paced by the screen's
+// display link. A sleeping screen never fires that link, and the link stays silent after the
+// screen wakes, so each window shown or hidden while the screens sleep blocks a worker for good.
+// The app driven unattended (over MCP, say) with the display off opens and closes dialogs by the
+// hundred; once about 80 workers are blocked, libdispatch starts no more at that priority, and the
+// OpenGL driver's texture uploads, which wait on that pool, hang the UI thread. The animations are
+// therefore off while the screens sleep, and on otherwise, so the windows look as they always do.
+void pause_window_animations_while_screens_sleep()
+{
+    // The registration domain lives in memory: nothing is written to the user's defaults.
+    auto set_animations = [](bool on) {
+        [[NSUserDefaults standardUserDefaults] registerDefaults:@{@"NSAutomaticWindowAnimationsEnabled": @(on)}];
+    };
+    // The app may start with the display already off.
+    set_animations(!CGDisplayIsAsleep(CGMainDisplayID()));
+    NSNotificationCenter* center = [[NSWorkspace sharedWorkspace] notificationCenter];
+    NSOperationQueue*     main   = [NSOperationQueue mainQueue];
+    [center addObserverForName:NSWorkspaceScreensDidSleepNotification object:nil queue:main
+                    usingBlock:^(NSNotification*) { set_animations(false); }];
+    [center addObserverForName:NSWorkspaceScreensDidWakeNotification object:nil queue:main
+                    usingBlock:^(NSNotification*) { set_animations(true); }];
+}
+
 void WKWebView_evaluateJavaScript(void * web, wxString const & script, void (*callback)(wxString const &))
 {
     [(WKWebView*)web evaluateJavaScript:wxCFStringRef(script).AsNSString() completionHandler: ^(id result, NSError *error) {

@@ -1009,6 +1009,9 @@ wxDataViewItem ObjectDataViewModel::Delete(const wxDataViewItem &item)
     }
 
     if (node->m_type & itObject) {
+        // The plater deletes the ModelObject before its row, and on macOS each notification below
+        // has the control re-read the tree at once, so the row must not read it from here on.
+        node->m_model_object = nullptr;
         auto it = find(m_objects.begin(), m_objects.end(), node);
         if (it != m_objects.end())
         {
@@ -1223,6 +1226,12 @@ wxDataViewItem ObjectDataViewModel::DeleteLastInstance(const wxDataViewItem &par
 
 void ObjectDataViewModel::ResetAll()
 {
+    // Every object row goes, and their ModelObjects may already be deleted (a new project clears the
+    // model first). On macOS each notification while the plates go has the control re-read the
+    // remaining rows at once, so none of them may read its ModelObject any more.
+    for (auto object : m_objects)
+        object->m_model_object = nullptr;
+
     // BBS
     // FIX: should remove from children collection soon, or will conflict GetChildren
     while (!m_plates.empty()) {

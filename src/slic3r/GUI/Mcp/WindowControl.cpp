@@ -353,6 +353,17 @@ bool restore_window(wxTopLevelWindow& window)
 #endif
 }
 
+bool finish_restore([[maybe_unused]] wxTopLevelWindow& window)
+{
+#if defined(__WXOSX__)
+    if (window.IsIconized())
+        return false;
+    if (window.IsMaximized())
+        window.Maximize(false);
+#endif
+    return true;
+}
+
 void raise_window(wxTopLevelWindow& window)
 {
     window.Raise();

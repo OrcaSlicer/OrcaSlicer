@@ -9,11 +9,12 @@ class wxTopLevelWindow;
 
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-// How the MCP tools read and change a top-level window's size and state where wx alone falls short, on
+// How the MCP tools read and change a top-level window's size and state where wx alone falls short. On
 // Linux: on Wayland GTK never reports a minimized window, and wx counts the invisible margins of a
 // client-side decorated window in its size; under X11 with no window manager, as on a bare Xvfb, nothing
-// maximizes or minimizes a window unless the app does it itself. Elsewhere each call is wx's own. UI
-// thread.
+// maximizes or minimizes a window unless the app does it itself. On macOS, AppKit ignores a zoom while a
+// window is in the Dock, so a window minimized while zoomed comes back zoomed. Elsewhere each call is wx's
+// own. UI thread.
 
 // Starts following the windows a Wayland compositor hides, which GTK passes on only as a visibility
 // change, and the focus that ends a minimize. Once, before the first window_state().
@@ -41,8 +42,13 @@ void maximize_window(wxTopLevelWindow& window);
 void minimize_window(wxTopLevelWindow& window);
 // Takes a window out of its minimized state, then out of its maximized one, touching only the state it is
 // in. Returns whether the window system applies that later (GTK), so that a size or position given before
-// it reads back would go to the window as it was.
+// it reads back would go to the window as it was. A window it un-minimized may need finish_restore() too.
 bool restore_window(wxTopLevelWindow& window);
+// Finishes restore_window() of a minimized window once the window has left the minimized state, and returns
+// whether it is finished. On macOS the window stays in the Dock until the animation that brings it back
+// ends, and AppKit ignores restore_window()'s un-zoom until then, so a window minimized while zoomed is
+// un-zoomed here. Elsewhere restore_window() did it all.
+bool finish_restore(wxTopLevelWindow& window);
 // Brings the window in front of the app's other windows, keeping a dialog that belongs to it above it.
 void raise_window(wxTopLevelWindow& window);
 // Whether bringing a minimized window back takes the compositor's leave to activate it, which it may

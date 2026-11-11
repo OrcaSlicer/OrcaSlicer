@@ -245,15 +245,15 @@ def width_label(edge, th):
     return ((ax + bx) / 2.0 + nx * off, (ay + by) / 2.0 + ny * off)
 
 
-# The height of a value label, DesignSketchTool's 15 px.
+# The height of a value label, DesignSketchTool's 15 px, in the canvas's GL pixels as its badges are.
 LABEL_PX = 15.0
 
 
-def width_on_badge(mm_per_px, k):
+def width_on_badge(mm_per_gl_px, k):
     """The width at which a rectangle's width label is centred on its top edge's badge `k`: the label
     sits max(0.18 L, 8) + 1.5 mm and 0.7 label heights off the edge (width_label), and the badge
-    BADGE_STEP_PX * (k + 1) over the edge's middle (CadGui.badge)."""
-    return ((BADGE_STEP_PX * (k + 1) - 0.7 * LABEL_PX) * mm_per_px - 1.5) / 0.18
+    BADGE_STEP_PX * (k + 1) over the edge's middle (CadGui.badge), both pixel lengths in GL pixels."""
+    return ((BADGE_STEP_PX * (k + 1) - 0.7 * LABEL_PX) * mm_per_gl_px - 1.5) / 0.18
 
 
 def rung_label():
@@ -266,7 +266,7 @@ def rung_label():
     fields), so it is where its clicks put it, and Esc then drops the tool to Select. A shape's
     labels show while it is picked, so a click on its top edge picks it first."""
     gui.enter_sketch("r")
-    width = width_on_badge(gui.mm_per_px(0, 30), 2)
+    width = width_on_badge(gui.mm_per_px(0, 30) / gui.gl_per_px, 2)
     gui.click_mm(*inside((-width / 2.0, 30)))
     gui.click_mm(*inside((width / 2.0, -30)))
     if until(gui.value_field) is None:
@@ -291,11 +291,11 @@ def rung_label():
         raise AssertionError("the click on the top edge picked nothing")
 
     # The label's centre, read from the window it is drawn in; the badge under it, from the layout.
-    mm_per_px = gui.mm_per_px(*mid)
-    want = gui.px(*width_label(top, LABEL_PX * mm_per_px))
+    mm_per_gl_px = gui.mm_per_px(*mid) / gui.gl_per_px
+    want = gui.px(*width_label(top, LABEL_PX * mm_per_gl_px))
     x, y, w, h = min(gui.overlays(), key=lambda r: math.dist((r[0] + r[2] / 2.0, r[1] + r[3] / 2.0), want))
     centre = (x + w / 2.0, y + h / 2.0)
-    if math.dist(centre, gui.px(*gui.badge(top, 2))) > BADGE_PICK_PX:
+    if math.dist(centre, gui.px(*gui.badge(top, 2))) > gui.budget(BADGE_PICK_PX):
         raise AssertionError(f"the width label's centre {centre} is off the top edge's third badge "
                              f"{gui.px(*gui.badge(top, 2))}: the badge or label layout moved, and this rung "
                              f"no longer clicks a label drawn over a badge")

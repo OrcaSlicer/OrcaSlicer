@@ -192,6 +192,10 @@ def main():
     normal = client.call("set_window", state="normal")
     check("maximized, minimized, then normal: the reply says normal", normal.get("state") == "normal", normal)
     check("without a note that the window manager kept the request waiting", "note" not in normal, normal)
+    # On macOS the window comes back from the Dock zoomed and is un-zoomed once it is back, so it must not
+    # turn maximized again after the reply.
+    time.sleep(1)
+    check("and list_windows still reads it normal a second later", main_entry().get("state") == "normal", main_entry())
     client.call("set_window", state="maximized")
     client.call("set_window", state="minimized")
     sized = client.call("set_window", size=[1350, 880])

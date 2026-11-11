@@ -1666,7 +1666,9 @@ listed among the others, `modal` from `wxDialog::IsModal()`.
 window (`main`, the default), the topmost modal dialog (`dialog`), or the window a ref or locator is in,
 so a widget's ref names its window and a replay's `{label: "Preferences"}` finds the dialog again. It
 refuses a native dialog, which `answer_dialog` answers, a window named `kHiddenFromAutomation`, a popup,
-which the window it opened from places, and a window no longer shown. A dialog that doesn't block is
+which the window it opened from places, and a window no longer shown. On macOS a native dialog holds
+the UI thread, so a call made while one is open waits on it as every call that needs the UI thread does
+(`blocked_by_dialog`) and never reaches that refusal. A dialog that doesn't block is
 hidden when it closes, so its ref still resolves; that refusal and the one for a stale ref point to
 `list_windows`. A window's geometry changes nothing in the project, so `set_window` is a recover call
 allowed during an operation that applies no mutate checks: it runs behind a modal dialog, on it, or on
@@ -1686,7 +1688,11 @@ it un-minimizes, Windows activates a normal window it un-maximizes, and a Waylan
 un-maximize with the window's current size, which replaces a size asked for right after. GTK reports
 the restore once the window manager or compositor has applied it (X11, Wayland), so there the call polls
 until the window reads normal before it goes on, since a size given before that would be lost, or worked
-out from the maximized window's decorations. Then come the size, held to the window's minimum and maximum (what its sizer
+out from the maximized window's decorations. On macOS a minimized window stays in the Dock until the
+animation that brings it back ends, about half a second, and AppKit ignores a zoom until then, so a
+window minimized while zoomed comes back zoomed; the wait for the window to settle takes it out of that
+once it is back (`finish_restore()`), and it returns to the size and place it had before the zoom. A
+size given meanwhile is kept, as it leaves the window no longer zoomed. Then come the size, held to the window's minimum and maximum (what its sizer
 needs), the position (`wxSIZE_ALLOW_MINUS_ONE`: -1 is a place on a screen left of or above the primary
 one), the state and the raise. A window without a resize border is resized all the same. Sizes and
 positions are wx window coordinates, as `list_windows` and `get_app_state` report them: physical pixels
@@ -1725,7 +1731,11 @@ whether it is primary, so an agent can choose a position.
 
 On Windows a change takes effect at once, but `raise` may only flash the taskbar button while another app
 has the focus, since the OS locks the foreground; `active` says which happened. On macOS `maximized` is
-the window's zoomed state. Under X11 the window manager may adjust a request.
+the window's zoomed state, not full screen, and `raise` brings the window in front of the app's other
+windows, but while another app is active it stays behind that app's windows and `active` reads false.
+OrcaSlicer doesn't activate itself for it, which would take the keyboard from the person's app, and no
+tool needs it active: a capture reads a covered window whole and input goes through wx. Under X11 the
+window manager may adjust a request.
 
 With no window manager, as under a bare Xvfb, the app does the window manager's part
 (`WindowControl.cpp`); every EWMH window manager lists `_NET_WM_STATE` among the hints it takes, so its

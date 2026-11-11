@@ -25,6 +25,8 @@ void set_title_colour_after_set_title(void * window);
 // window: it stays in sight when the parent is raised and moves with it. wx never attaches dialogs this
 // way (it broke modal dialogs across Spaces), so a macOS dialog otherwise falls behind a raised parent.
 void keep_window_above(void * window, void * parent, bool keep);
+// Turns AppKit's window open and close animations off while the screens sleep. Called once, at startup.
+void pause_window_animations_while_screens_sleep();
 void initGestures(void * view,  wxEvtHandler * handler);
 void openFolderForFile(wxString const & file);
 void StaticGroup_layoutBadge(void * group, void * badge);

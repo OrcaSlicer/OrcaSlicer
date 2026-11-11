@@ -333,7 +333,9 @@ action goes through the UI tools (`set_view`, `click`, `mouse_gesture`, `press_k
 result back (`sketch_describe`, `describe_scene`, `describe_feature`, `list_verbs`), save for one
 call in the scale rung. Buttons and rows are found by label, and canvas positions come from a
 calibration that maps the open sketch's plane to canvas pixels, so nothing in them is tuned to a
-window size, screen scaling or theme. What they share is in `cad_gui.py` beside them.
+window size, screen scaling or theme. The sketch tool's pick budgets and badge layout are in the
+canvas's GL pixels, which `cad_gui.py` turns into click pixels by the canvas scale that `set_view`'s
+`camera_state` gives (`zoom` over `click_px_per_mm`). What they share is in `cad_gui.py` beside them.
 `test_cad_sketching.py` draws each sketch tool's primitive with clicks on the canvas and types its
 exact values into the canvas's value field, drives the edit operations and each constraint button on
 drawn geometry, undoes inside a sketch and across its commit, saves the project and opens it again

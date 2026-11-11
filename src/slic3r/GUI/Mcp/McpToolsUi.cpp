@@ -1103,7 +1103,8 @@ wxTopLevelWindow* live_window(wxTopLevelWindow* window)
 // then replies with what the window became. A size or position applies to the normal window, so a
 // maximized or minimized one is restored first. Where the window system restores it later (GTK), the call
 // waits for that before sizing, as a size given meanwhile is lost: on Wayland the compositor's answer to
-// the restore sizes the window again, and wx would size it by the maximized window's decorations.
+// the restore sizes the window again, and wx would size it by the maximized window's decorations. A window
+// brought back from the minimized state is finished restoring once it is back (finish_restore(), macOS).
 ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
 {
     const json target = args.value("target", json("main"));
@@ -1111,7 +1112,7 @@ ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
     // Never followed off the UI thread, and checked by live_window() on it: a wxWeakRef can't be made or
     // dropped on this thread.
     wxTopLevelWindow* window = nullptr;
-    bool              main = false, modal = false, restoring = false;
+    bool              main = false, modal = false, restoring = false, unminimizing = false;
     WindowSettling    settling;
     const bool        placing = args.contains("size") || args.contains("position");
     const std::string state   = arg_string(args, "state");
@@ -1129,6 +1130,7 @@ ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
             minimize_window(w);
         } else if (state == "normal") {
             settling.activation = settling.activation || (restore_needs_activation() && minimized(w));
+            unminimizing        = unminimizing || minimized(w);
             restore_window(w);
         }
         if (arg_bool(args, "raise", false))
@@ -1150,6 +1152,7 @@ ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
         window = &w;
         if (placing && std::string(window_state(w)) != "normal") {
             settling.activation = restore_needs_activation() && minimized(w);
+            unminimizing        = minimized(w);
             restoring           = restore_window(w);
         }
         if (!restoring)
@@ -1199,6 +1202,8 @@ ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
     const json done                    = poll_until(
         ctx,
         [&]() -> json {
+            if (wxTopLevelWindow* w = live_window(window); w != nullptr && unminimizing)
+                unminimizing = !finish_restore(*w);
             settling.held = holds(wanted);
             if (!settling.held)
                 return json();

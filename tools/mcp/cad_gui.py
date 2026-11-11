@@ -28,10 +28,11 @@ sys.stdout.reconfigure(errors="backslashreplace")
 CANVAS = {"name": "OrcaSceneCanvas"}
 NEW_DESIGN = "New Design — clear the feature tree"
 
-# reset_view()'s zoom, in set_view's screenshot pixels per mm at the camera's target, about 1.6:
-# close enough that a 40 mm line is long beside the pixel-sized reach of its value label, and far
-# enough that the region calibrate() measures holds every shape the tests draw at the default
-# window.
+# reset_view()'s zoom, in click pixels per mm at the camera's target, about 1.6: close enough that a
+# 40 mm line is long beside the pixel-sized reach of its value label, and far enough that the region
+# calibrate() measures holds every shape the tests draw at the default window. In click pixels, so
+# the tests' clicks have the same room on every display; set_view takes screenshot pixels, which
+# are GL pixels, two per click pixel on a Retina display.
 RESET_ZOOM = 250 / 1.4 ** 15
 
 # Where calibrate() clicks its probes, as shares of the canvas's width and height: four around
@@ -42,12 +43,14 @@ RESET_ZOOM = 250 / 1.4 ** 15
 PROBE_LAYOUTS = (((0.35, 0.35), (0.65, 0.35), (0.65, 0.65), (0.35, 0.65), (0.30, 0.45)),
                  ((0.25, 0.25), (0.75, 0.25), (0.75, 0.75), (0.25, 0.75), (0.22, 0.42)))
 
-# DesignSketchTool's pick budgets in Select, in screen pixels: a click within kLabelPx of a value
-# label's centre takes the label, and one within kPickPx of a handle, a point or a curve takes it.
+# DesignSketchTool's pixel budgets are in the canvas's GL pixels, which its mouse events carry: two
+# per click pixel on a Retina display. CadGui.budget() turns one into click pixels.
+# Its pick budgets in Select: a click within kLabelPx of a value label's centre takes the label, and
+# one within kPickPx of a handle, a point or a curve takes it.
 LABEL_PICK_PX = 24.0
 PICK_PX = 8.0
-# How far past those budgets clear_pick() keeps a click: a label's centre is read from the window
-# it is drawn in, to a pixel or so.
+# How far past those budgets clear_pick() keeps a click, in click pixels: a label's centre is read
+# from the window it is drawn in, to a pixel or so.
 PICK_MARGIN_PX = 3.0
 # DesignSketchTool::constraint_badges: each constraint's badge is an 11 px cell, the badges of one
 # entity stacked up the plane's +Y from its middle 1.5 cells apart, the first one step up. A click
@@ -252,6 +255,7 @@ class CadGui:
         self.safe = None   # (x0, x1, y0, y1) mm: the plane region the calibration probes covered
         self._H = None     # plane -> canvas pixel
         self._size = None  # (w, h) of the canvas _H maps onto
+        self.gl_per_px = 1.0  # the canvas's GL pixels per click pixel, from reset_view()'s camera_state
 
     # ------------------------------------------------------------ results
 
@@ -501,15 +505,26 @@ class CadGui:
         empty design they turn the camera and keep its zoom and centre; the look_at and zoom it
         applies after the direction set both. N in a sketch squares the view to the sketch's plane
         and centres it on the plane's origin, keeping the zoom. Every map calibrate() fits stands
-        on this view, so the camera set_view reports is checked."""
+        on this view, so the camera set_view reports is checked. Its camera_state gives the canvas's
+        GL pixels per click pixel, and the view is set again when they differ from the ones the zoom
+        assumed."""
         origin = self.cad("describe_scene")["modeling_origin"]
-        state = self.client.call("set_view", tab="design", camera="top", look_at=origin,
-                                 zoom=RESET_ZOOM).get("camera_state", {})
+
+        def aim():
+            return self.client.call("set_view", tab="design", camera="top", look_at=origin,
+                                    zoom=RESET_ZOOM * self.gl_per_px).get("camera_state", {})
+
+        state = aim()
+        if state.get("click_px_per_mm"):
+            gl_per_px = state["zoom"] / state["click_px_per_mm"]
+            if abs(gl_per_px - self.gl_per_px) > 1e-3:
+                self.gl_per_px = gl_per_px
+                state = aim()
         zoom, target = state.get("zoom"), state.get("look_at")
-        if (zoom is None or abs(zoom - RESET_ZOOM) > 1e-3 or target is None
+        if (zoom is None or abs(zoom - RESET_ZOOM * self.gl_per_px) > 1e-3 or target is None
                 or max(abs(a - b) for a, b in zip(target, origin)) > 1e-3):
             raise RuntimeError(f"set_view left the Design camera at {state}, not at modeling_origin "
-                               f"{origin} with zoom {RESET_ZOOM:.4f}")
+                               f"{origin} with zoom {RESET_ZOOM * self.gl_per_px:.4f}")
         if self._sketch_or_none():
             self.keys("n", target=CANVAS)
 
@@ -718,11 +733,15 @@ class CadGui:
         back. A construction graded against it grades the tool, not the click's rounding."""
         return self.unpx(*self._pixel(X, Y))
 
+    def budget(self, gl_px):
+        """A length in the canvas's GL pixels, as DesignSketchTool's budgets are, in click pixels."""
+        return gl_px / self.gl_per_px
+
     def badge(self, line, k):
         """Where badge `k` (from 0) of the sketch line `line` is drawn, in mm (BADGE_STEP_PX)."""
         (ax, ay), (bx, by) = line["p0"], line["p1"]
         mx, my = (ax + bx) / 2.0, (ay + by) / 2.0
-        return (mx, my + BADGE_STEP_PX * (k + 1) * self.mm_per_px(mx, my))
+        return (mx, my + self.budget(BADGE_STEP_PX) * (k + 1) * self.mm_per_px(mx, my))
 
     def move_mm(self, X, Y):
         u, v = self._pixel(X, Y)
@@ -762,14 +781,15 @@ class CadGui:
         avoid_points = [self.px(*p) for e in [target] + others for p in _handles(e)]
         avoid_curves = [[self.px(*p) for p in _outline(e)] for e in others]
         w, h = self._size
+        pick, label = self.budget(PICK_PX), self.budget(LABEL_PICK_PX)
         best = None
         for q in sorted({(round(u), round(v)) for u, v in curve}):
             if not (0 <= q[0] < w and 0 <= q[1] < h):
                 continue
-            slack = min([PICK_PX - _polyline_dist(q, curve)]
-                        + [math.dist(q, a) - PICK_PX for a in avoid_points]
-                        + [_polyline_dist(q, c) - PICK_PX for c in avoid_curves]
-                        + [math.dist(q, (x + rw / 2.0, y + rh / 2.0)) - LABEL_PICK_PX for x, y, rw, rh in windows]
+            slack = min([pick - _polyline_dist(q, curve)]
+                        + [math.dist(q, a) - pick for a in avoid_points]
+                        + [_polyline_dist(q, c) - pick for c in avoid_curves]
+                        + [math.dist(q, (x + rw / 2.0, y + rh / 2.0)) - label for x, y, rw, rh in windows]
                         + [_rect_dist(q, r) for r in windows])
             if best is None or slack > best[0]:
                 best = (slack, q)

@@ -105,7 +105,12 @@ DesignTextDialog::DesignTextDialog(wxWindow* parent, const Spec* initial)
     const wxArrayString& faces = font_faces();
     for (const wxString& f : faces)
         m_face->Append(f);
-    const int sel = faces.Index(font.GetFaceName());
+    // The font's face when it is installed, else the plain sans-serif that wxFONTFAMILY_SWISS maps
+    // to, else the first face. macOS's GUI font is its UI font, .AppleSystemUIFont, which is not an
+    // installed face; the first face there is a decorative one whose letters carry engraved holes.
+    int sel = faces.Index(font.GetFaceName());
+    if (sel == wxNOT_FOUND)
+        sel = faces.Index(wxFont(wxFontInfo().Family(wxFONTFAMILY_SWISS)).GetFaceName());
     m_face->SetSelection(sel != wxNOT_FOUND ? sel : 0);
     label(_L("Font"));
     form->Add(m_face, 1, wxEXPAND);

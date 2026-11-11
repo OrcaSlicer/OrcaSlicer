@@ -276,8 +276,8 @@ def rung_voids():
 
 def op_label_mm(anchor, direction, value, at):
     """Where an operation's value label sits: past the arrow's tip at anchor + dir * value, by 1.2
-    label heights, a label height being 15 px in millimetres at `at`."""
-    th = max(15 * gui.mm_per_px(*at), 1e-4)
+    label heights, a label height being 15 GL pixels in millimetres at `at`."""
+    th = max(gui.budget(15.0) * gui.mm_per_px(*at), 1e-4)
     n = math.hypot(*direction)
     d = (direction[0] / n, direction[1] / n)
     tip = (anchor[0] + d[0] * value, anchor[1] + d[1] * value)

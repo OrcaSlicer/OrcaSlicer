@@ -1109,9 +1109,14 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
             // guarantee rather than a coincidence. Pick first, so a right-click on a line offers
             // that line's verbs instead of the empty-selection vocabulary. Selecting an entity
             // that is already selected is a no-op, so a multi-entity pick survives a
-            // right-click on one of its members.
-            if (m_canvas && m_sketch_tool.select_at_screen(*m_canvas, m_ctx_press.x, m_ctx_press.y))
-                request_repaint();
+            // right-click on one of its members. The press is in the widget's logical pixels and
+            // the tool picks in the canvas's GL pixels, as GLCanvas3D::on_mouse() scales every
+            // event it passes on (twice as many on a Retina display).
+            if (m_canvas) {
+                const float scale = m_canvas->get_scale();
+                if (m_sketch_tool.select_at_screen(*m_canvas, int(m_ctx_press.x * scale), int(m_ctx_press.y * scale)))
+                    request_repaint();
+            }
             m_on_context_menu(m_canvas_widget->ClientToScreen(m_ctx_press));
             return;   // consumed
         }

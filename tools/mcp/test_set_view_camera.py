@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 
 MODEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
-# The Design GUI tests' zoom, cad_gui.RESET_ZOOM.
+# The Design GUI tests' zoom where a canvas has one GL pixel per click pixel, cad_gui.RESET_ZOOM.
 DESIGN_ZOOM = 250 / 1.4**15
 
 

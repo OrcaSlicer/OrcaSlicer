@@ -170,7 +170,8 @@ rather than to its end points: a press that wandered past the budget at any mome
 navigation, even if it comes back to where it started, which is what stops a slow, careful
 orbit from ending in a menu. There is no time budget — a gesture that means something different
 when it is slow is exactly what the interaction charter rules out. The raycast uses the press
-position, not the release. The sketch tool sees a right press only once the release has shown it
+position, not the release, scaled to the canvas's GL pixels as every mouse event the canvas passes
+on is (two per logical pixel on a Retina display). The sketch tool sees a right press only once the release has shown it
 was a click: the press itself goes to the camera, which may pan or orbit with that button, and the
 canvas replays it to the tool on a stationary release. A tool that uses the click (to terminate a
 chain, say) keeps the menu closed. Past either budget the event is navigation, and navigation
