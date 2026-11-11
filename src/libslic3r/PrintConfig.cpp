@@ -6090,7 +6090,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("raft_expansion", coFloat);
     def->label = L("Raft expansion");
     def->category = L("Support");
-    def->tooltip = L("This expands all raft layers in XY plane.");
+    def->tooltip = L("Makes the raft wider than the part's footprint by this much on every side. A wider raft holds "
+                     "the part down better but uses more material.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -6099,7 +6100,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("raft_first_layer_density", coPercent);
     def->label = L("First layer density");
     def->category = L("Support");
-    def->tooltip = L("This is the density of the first raft or support layer.");
+    def->tooltip = L("How densely the first layer of the raft or support is filled. A denser first layer sticks to "
+                     "the bed better, a sparser one uses less material and comes off more easily.");
     def->sidetext = "%";
     def->min = 10;
     def->max = 100;
@@ -7371,7 +7373,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_object_xy_distance", coFloat);
     def->label = L("Support/object XY distance");
     def->category = L("Support");
-    def->tooltip = L("This controls the XY separation between an object and its support.");
+    def->tooltip = L("Horizontal gap between the support and the walls of the part beside it. A larger gap keeps the "
+                     "support from sticking to those walls and leaves fewer marks on them, a smaller one supports "
+                     "overhangs closer to the walls.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->max = 10;
@@ -7382,7 +7386,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_object_first_layer_gap", coFloat);
     def->label = L("Support/object first layer gap");
     def->category = L("Support");
-    def->tooltip = L("XY separation between an object and its support at the first layer.");
+    def->tooltip = L("Horizontal gap between the part and its support on the first layer only, where both are "
+                     "pressed onto the bed and spread wider. A larger gap keeps them from fusing there.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->max = 10;
@@ -7403,7 +7408,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_on_build_plate_only", coBool);
     def->label = L("On build plate only");
     def->category = L("Support");
-    def->tooltip = L("This setting only generates supports that begin on the build plate.");
+    def->tooltip = L("Only generates supports that stand on the build plate. Overhangs whose support would have to "
+                     "stand on the part itself are left unsupported, so the part's surfaces get no support marks.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -7411,14 +7417,17 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("support_critical_regions_only", coBool);
     def->label    = L("Support critical regions only");
     def->category = L("Support");
-    def->tooltip  = L("Only create support for critical regions including sharp tail, cantilever, etc.");
+    def->tooltip  = L("Supports only the regions that cannot print without it: sharp tails (the lowest point of a part "
+                      "that starts in mid-air) and cantilevers (parts sticking out sideways). Ordinary overhangs are left "
+                      "unsupported.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("support_remove_small_overhang", coBool);
     def->label = L("Ignore small overhangs");
     def->category = L("Support");
-    def->tooltip = L("Ignore small overhangs that possibly don't require support.");
+    def->tooltip = L("Leaves out the support under small overhangs, about two line widths across or narrower, which "
+                     "usually print fine without it. Sharp tails and cantilevers are still supported.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -7479,7 +7488,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_interface_not_for_body",coBool);
     def->label    = L("Avoid interface filament for base");
     def->category = L("Support");
-    def->tooltip = L("Avoid using support interface filament to print support base if possible.");
+    def->tooltip = L("Prints the support's base with the base filament wherever possible, rather than with the "
+                     "interface filament. Saves the interface filament, often a costly soluble or breakaway material, "
+                     "for the layers that touch the part.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -7625,7 +7636,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_base_pattern_spacing", coFloat);
     def->label = L("Base pattern spacing");
     def->category = L("Support");
-    def->tooltip = L("This determines the spacing between support lines.");
+    def->tooltip = L("Distance between the lines of the support's base. Wider spacing uses less material and breaks "
+                     "away more easily, closer lines hold the overhang more firmly.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -7681,8 +7693,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("independent_support_layer_height", coBool);
     def->label = L("Independent support layer height");
     def->category = L("Support");
-    def->tooltip = L("Support layer uses layer height independent with object layer. This is to support customizing Z-gap and save print time. "
-                     "This option will be invalid when the prime tower is enabled.");
+    def->tooltip = L("Lets the support use layer heights of its own instead of the part's, so the Z distances between "
+                     "the support and the part are kept as set rather than rounded to whole layers. A prime tower turns "
+                     "it off.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -7904,7 +7917,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("tree_support_branch_distance", coFloat);
     def->label    = L("Tree support branch distance");
     def->category = L("Support");
-    def->tooltip  = L("This setting determines the distance between neighboring tree support nodes.");
+    def->tooltip  = L("Distance between the points where the branches of a tree support touch the part. Closer "
+                      "points hold the overhang more evenly, wider ones use less material and leave fewer marks.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
@@ -7914,7 +7928,9 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("tree_support_branch_distance_organic", coFloat);
     def->label    = L("Tree support branch distance");
     def->category = L("Support");
-    def->tooltip  = L("This setting determines the distance between neighboring tree support nodes.");
+    def->tooltip  = L("Distance between the tips of the branches where they touch the part. Closer tips hold the "
+                      "overhang more evenly, wider ones use less material and leave fewer marks. With top interface "
+                      "layers, the tips follow the interface's lines instead.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
@@ -7938,7 +7954,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("tree_support_auto_brim", coBool);
     def->label = L("Auto brim width");
     def->category = L("Quality");
-    def->tooltip = L("Enabling this option means the width of the brim for tree support will be automatically calculated.");
+    def->tooltip = L("Works out the width of the brim around the foot of each branch from how tall the branch is. "
+                     "Turn it off to set the width yourself.");
     def->set_default_value(new ConfigOptionBool(1));
     
     def = this->add("tree_support_brim_width", coFloat);
@@ -7963,7 +7980,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("tree_support_branch_diameter", coFloat);
     def->label    = L("Tree support branch diameter");
     def->category = L("Support");
-    def->tooltip  = L("This setting determines the initial diameter of support nodes.");
+    def->tooltip  = L("Diameter of the branches of a tree support where they start, under the tips. Thicker branches "
+                      "are sturdier, thinner ones use less material.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
@@ -7987,7 +8005,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("tree_support_branch_diameter_organic", coFloat);
     def->label    = L("Tree support branch diameter");
     def->category = L("Support");
-    def->tooltip  = L("This setting determines the initial diameter of support nodes.");
+    def->tooltip  = L("Diameter of the branches of a tree support where they start, under the tips. Thicker branches "
+                      "are sturdier, thinner ones use less material.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
@@ -7997,7 +8016,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("tree_support_wall_count", coInt);
     def->label = L("Support wall loops");
     def->category = L("Support");
-    def->tooltip = L("This setting specifies the count of support walls in the range of [0,2]. 0 means auto.");
+    def->tooltip = L("Number of walls around the support, up to 2. More walls make it sturdier. "
+                     "0 lets the slicer choose.");
     def->min = 0;
     def->max = 2;
     def->mode = comAdvanced;
@@ -8013,8 +8033,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_ironing", coBool);
     def->label = L("Ironing Support Interface");
     def->category = L("Support");
-    def->tooltip = L("Ironing is using small flow to print on same height of support interface again to make it more smooth. "
-                     "This setting controls whether support interface being ironed. When enabled, support interface will be extruded as solid too.");
+    def->tooltip = L("Irons the top of the support interface: the nozzle passes over it again with a small flow, "
+                     "which smooths the surface the part rests on, and so the part's underside. The interface is then "
+                     "printed solid.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -8046,7 +8067,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_ironing_spacing", coFloat);
     def->label = L("Support Ironing line spacing");
     def->category = L("Support");
-    def->tooltip = L("This is the distance between the lines used for ironing.");
+    def->tooltip = L("Distance between the lines of ironing on the support interface. Closer lines smooth it more "
+                     "evenly but take longer.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->max = 1;
