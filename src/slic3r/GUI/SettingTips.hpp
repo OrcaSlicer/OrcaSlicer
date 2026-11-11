@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include <wx/string.h>
+
 #include "slic3r/GUI/IllustratedTipPopup.hpp"
 
 namespace Slic3r::GUI {
@@ -28,6 +30,14 @@ using SettingTips = std::map<std::string, SettingTip>;
 // The table is rebuilt on each call, since the captions are translated and the language can change while
 // the app runs. It is called when a tooltip opens, not on every frame.
 SettingTip setting_tip(const std::string &opt_key);
+
+// The pictures of the tooltip of the setting `opt_key` (a "#n" index is ignored): its `media`, then the
+// picture of `value` when that value has one, captioned `value_label` unless it has a caption of its own.
+// `value` empty: the setting's `media` alone.
+std::vector<TipMedia> setting_tip_media(const std::string &opt_key, const std::string &value, const wxString &value_label);
+
+// The picture of one value of the setting alone, as above, for the item of an open drop-down list.
+std::vector<TipMedia> setting_value_media(const std::string &opt_key, const std::string &value, const wxString &value_label);
 
 // Each group of settings keeps its pictures in a file of its own, so the three are edited independently:
 // SettingTipsProcess.cpp, SettingTipsFilament.cpp and SettingTipsPrinter.cpp. Pictures are named relative

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -39,5 +40,26 @@ void hover_illustrated_tooltip(wxWindow *window, const wxRect &item, const wxStr
 // Hides the tooltip on screen, if any, and cancels one waiting to appear: for when a control starts
 // being used, or its window is about to be hidden or destroyed.
 void hide_illustrated_tooltip();
+
+// Pictures worked out when the tooltip opens rather than when it is set, for pictures that are costly to
+// look up or depend on state that changes (the value a setting has now). Called only while the window it
+// was given for exists.
+using TipMediaSource = std::function<std::vector<TipMedia>()>;
+
+// set_illustrated_tooltip() with pictures from `media`, asked for each time the tooltip opens. A null
+// `media` means no pictures.
+void set_illustrated_tooltip_deferred(wxWindow *window, const wxString &text, TipMediaSource media);
+
+// hover_illustrated_tooltip() with pictures from `media`, asked for when the tooltip opens. `item` and
+// `text` tell the controls apart; a tooltip whose text is empty and whose `media` gives nothing does not
+// open.
+void hover_illustrated_tooltip_deferred(wxWindow *window, const wxRect &item, const wxString &text, TipMediaSource media);
+
+// If the tooltip of `window` is on screen, asks its TipMediaSource again and redraws it: for a window
+// whose pictures follow its value, when the value changes.
+void refresh_illustrated_tooltip(wxWindow *window);
+
+// Whether a tooltip is on screen for `window` or for a window inside it.
+bool is_illustrated_tooltip_shown_for(const wxWindow *window);
 
 } // namespace Slic3r::GUI

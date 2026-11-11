@@ -9,6 +9,7 @@
 #include <wx/string.h>
 
 #include "slic3r/GUI/AnimatedTexture.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 
 namespace Slic3r::GUI {
 
@@ -26,12 +27,10 @@ class IllustratedTooltip
 public:
     // One picture under the text, named by file within the folder the tooltip was made with, with a
     // translated caption under it. Several in one tooltip are laid out side by side at equal widths,
-    // which is how a setting is shown as a comparison - the same model at two values of it.
-    struct Media
-    {
-        std::string file;
-        wxString    caption;
-    };
+    // which is how a setting is shown as a comparison - the same model at two values of it. The struct
+    // of the wx tooltips, so one type names a picture everywhere; here the file is relative to the
+    // tooltip's folder rather than to resources/images.
+    using Media = TipMedia;
 
     // `media_dir`: the folder under resources/images the pictures are named in.
     explicit IllustratedTooltip(std::string media_dir) : m_media_dir(std::move(media_dir)) {}

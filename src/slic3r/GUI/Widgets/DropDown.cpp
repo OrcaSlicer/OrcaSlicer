@@ -26,6 +26,8 @@
 #endif
 
 #include <set>
+#include <utility>
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
@@ -808,7 +810,46 @@ void DropDown::mouseCaptureLost(wxMouseCaptureLostEvent &event)
     mouseReleased(evt);
 }
 
+void DropDown::SetItemHoverHandler(std::function<void(int item, const wxRect &row)> handler)
+{
+    item_hover_handler    = std::move(handler);
+    hovered_item_notified = -1;
+}
+
+void DropDown::notifyItemHover(const wxPoint &pt)
+{
+    if (!item_hover_handler)
+        return;
+    int    item = -1;
+    wxRect row;
+    if (IsShown() && !pressedDown && hover_item >= 0 && rowSize.y > 0 && GetClientRect().Contains(pt)) {
+        item = hoverIndex(); // negative for a group header
+        row  = wxRect(0, offset.y + hover_item * rowSize.y, GetClientSize().x, rowSize.y);
+    }
+    if (item < 0)
+        item = -1;
+    if (item == hovered_item_notified && item >= 0)
+        return;
+    hovered_item_notified = item;
+    item_hover_handler(item, row);
+}
+
+bool DropDown::Show(bool show)
+{
+    // The item's tooltip goes first: on Wayland it is a popup of this list, and GDK refuses to unmap the
+    // parent of a mapped popup.
+    if (!show)
+        notifyItemHover(wxPoint(-1, -1));
+    return PopupWindow::Show(show);
+}
+
 void DropDown::mouseMove(wxMouseEvent &event)
+{
+    updateHover(event);
+    notifyItemHover(event.GetPosition());
+}
+
+void DropDown::updateHover(wxMouseEvent &event)
 {
     wxPoint pt  = event.GetPosition();
 #ifdef __WXOSX__
@@ -894,6 +935,7 @@ void DropDown::mouseWheelMoved(wxMouseEvent &event)
             SetToolTip(items[index].tip);
     }
     paintNow();
+    notifyItemHover(event.GetPosition());
 }
 
 // currently unused events
@@ -932,8 +974,11 @@ bool DropDown::ShouldDismissOnTopWindowDeactivate()
     // On Wayland, mapping a chained xdg_popup with grab makes the parent
     // toplevel inactive, which would otherwise cascade-dismiss the whole
     // chain. Skip when our chain peer is shown.
+    // Likewise an illustrated tooltip of an item: GDK maps it as a popup of this list and gives it the
+    // list's grab, so the compositor hands it the keyboard while it is up.
     return !((mainDropDown && mainDropDown->IsShown()) ||
-             (subDropDown  && subDropDown->IsShown()));
+             (subDropDown  && subDropDown->IsShown()) ||
+             Slic3r::GUI::is_illustrated_tooltip_shown_for(this));
 }
 
 void DropDown::OnDismiss()
