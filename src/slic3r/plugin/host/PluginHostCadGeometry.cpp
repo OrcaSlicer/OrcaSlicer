@@ -4,6 +4,7 @@
 #include "slic3r/GUI/CAD/CadShapeSelection.hpp"
 
 #include <Standard_Failure.hxx>
+#include <pybind11/cast.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <memory>

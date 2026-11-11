@@ -9,6 +9,7 @@
 #include <vector>
 #include <pybind11/cast.h>
 #include <pybind11/embed.h>
+#include <pybind11/eval.h>
 #include <pybind11/pytypes.h>
 
 namespace py = pybind11;
