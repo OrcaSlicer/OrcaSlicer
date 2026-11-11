@@ -56,6 +56,24 @@ void set_input_tooltip(TextInput* input, const wxString& text)
     set_illustrated_tooltip(input->GetTextCtrl(), text);
 }
 
+// One text for every item of a radio group, where the items differ only in the value they pick.
+void set_radio_tooltips(RadioGroup* group, size_t count, const wxString& text)
+{
+    for (size_t i = 0; i < count; ++i)
+        group->SetRadioIllustratedTooltip(int(i), text, {});
+}
+
+void set_tower_model_tooltips(RadioGroup* group)
+{
+    group->SetRadioIllustratedTooltip(0, _L("The large ringing tower: its long straight walls show the ripples after each corner clearly."), {});
+    group->SetRadioIllustratedTooltip(1, _L("A much smaller tower of the same height, quicker to print and small enough for little beds."), {});
+}
+
+void set_shaper_type_tooltips(RadioGroup* group, size_t count)
+{
+    set_radio_tooltips(group, count, _L("The input shaper algorithm the test sets on the printer. Only the types this printer's firmware supports are listed."));
+}
+
 void ParseStringValues(std::string str, std::vector<double> &vec)
 {
     vec.clear();
@@ -544,6 +562,9 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     set_input_tooltip(m_tiStart, _L("The nozzle temperature of the bottom block of the tower. Each block above it is 5 degrees cooler, down to the end temperature."));
     set_input_tooltip(m_tiEnd, _L("The nozzle temperature of the top block. It has to be at least 5 degrees below the start temperature."));
     set_input_tooltip(m_tiStep, _L("The temperature difference between neighboring blocks, fixed at 5 degrees."));
+    set_radio_tooltips(m_rbFilamentType, 8, _L("Fills in a start and end temperature that suit this kind of filament. You can still change them."));
+    m_rbModel->SetRadioIllustratedTooltip(0, _L("A tower of blocks, one for each temperature."), {});
+    m_rbModel->SetRadioIllustratedTooltip(1, _L("A row of small test pieces with an overhang, one for each temperature, to compare how the overhangs come out."), {});
     wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
@@ -1339,6 +1360,8 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
         set_input_tooltip(m_tiFreqStartY, freq_tip);
         set_input_tooltip(m_tiFreqEndY, freq_tip);
         set_input_tooltip(m_tiDampingFactor, _L("The damping ratio used for the whole test. 0 keeps the printer's own value."));
+        set_tower_model_tooltips(m_rbModel);
+        set_shaper_type_tooltips(m_rbType, type_labels.size());
     }
     wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
@@ -1555,6 +1578,8 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
                                      "so the height where the ringing after the corners is weakest gives the ratio.");
         set_input_tooltip(m_tiDampingFactorStart, damp_tip);
         set_input_tooltip(m_tiDampingFactorEnd, damp_tip);
+        set_tower_model_tooltips(m_rbModel);
+        set_shaper_type_tooltips(m_rbType, type_labels.size());
     }
     wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
@@ -1763,6 +1788,8 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     set_input_tooltip(m_tiJDStart, _L("The cornering limit at the bottom of the tower: junction deviation or jerk, whichever the printer's firmware uses. "
                                       "It changes steadily with height up to the end value."));
     set_input_tooltip(m_tiJDEnd, _L("The cornering limit at the top of the tower. The highest point where the corners still look clean gives the value."));
+    set_tower_model_tooltips(m_rbModel);
+    m_rbModel->SetRadioIllustratedTooltip(2, _L("A test model made for cornering tests (square corner velocity)."), {});
     wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
@@ -1909,6 +1936,15 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/flow_ratio_calib";
+
+    m_rbType->SetRadioIllustratedTooltip(0, _L("Blocks whose flow ratio differs in large steps around the current one. "
+                                               "Set the flow ratio of the smoothest block, then run Pass 2."), {});
+    m_rbType->SetRadioIllustratedTooltip(1, _L("Blocks in small steps below the current flow ratio, to refine the result of Pass 1."), {});
+    m_rbType->SetRadioIllustratedTooltip(2, _L("One print that covers a narrow range around the current flow ratio, read off by the smoothest block. "
+                                               "Quicker than two passes."), {});
+    m_rbType->SetRadioIllustratedTooltip(3, _L("The same as YOLO, with smaller steps between the blocks."), {});
+    set_illustrated_tooltip(m_rbPattern, _L("The pattern of the top surfaces the test is judged by. Archimedean Chords prints the center last, "
+                                            "so too much flow leaves a raised lip there that can be felt. Monotonic gives plain straight lines."));
     wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);

@@ -464,6 +464,9 @@ void BBLTopbar::UpdateToolTips()
     SetToolShortHelp(ID_TOP_DROPDOWN_MENU, _L("The Edit, View and Help menus, Preferences, the Speed Dial, preset bundles and plugins."));
     SetToolShortHelp(ID_CALIB, _L("Prints a test model to tune a setting for the selected printer and filament: "
                                   "temperature, flow, pressure advance, retraction and more."));
+    SetToolShortHelp(wxID_ICONIZE_FRAME, _L("Minimize"));
+    SetToolShortHelp(wxID_MAXIMIZE_FRAME, m_frame->IsMaximized() ? _L("Restore") : _L("Maximize"));
+    SetToolShortHelp(wxID_CLOSE_FRAME, _L("Close"));
 }
 
 void BBLTopbar::EnableUndoRedoItems()
@@ -543,11 +546,13 @@ void BBLTopbar::SetTitle(wxString title)
 void BBLTopbar::SetMaximizedSize()
 {
     maximize_btn->SetBitmap(maximize_bitmap);
+    maximize_btn->SetShortHelp(_L("Maximize"));
 }
 
 void BBLTopbar::SetWindowSize()
 {
     maximize_btn->SetBitmap(window_bitmap);
+    maximize_btn->SetShortHelp(_L("Restore"));
 }
 
 void BBLTopbar::UpdateToolbarWidth(int width)

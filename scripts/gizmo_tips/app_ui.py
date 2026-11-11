@@ -203,6 +203,9 @@ VASE_LH = 0.13
 VASE_WALL = 0.035
 VASE_BOTTOM = 0.08
 SEAM_ANGLE = math.radians(-62.0)
+# The helix climbs faster than a real layer height, so its slope reads at this size as one rising line
+# and not as a stack of rings.
+SPIRAL_PITCH = 0.34
 
 
 def _vase_radius(z):
@@ -218,16 +221,17 @@ def _vase(spiral):
         wall = np.abs(r - rz + VASE_WALL * 0.5) - VASE_WALL * 0.5
         if spiral:
             # The wall ends on the helix, so the rim climbs once around instead of ending level.
-            top = VASE_H - VASE_LH * (1.0 - (theta / (2.0 * math.pi)) % 1.0)
+            top = VASE_H - SPIRAL_PITCH * (1.0 - (-theta / (2.0 * math.pi)) % 1.0)
         else:
             top = VASE_H
         dz = np.maximum(-z, z - top)
         bottom = np.maximum(r - rz, np.maximum(-z, z - VASE_BOTTOM))
         shell = np.minimum(np.maximum(wall, dz), bottom) * 0.8
         if spiral:
-            phase = z / VASE_LH - theta / (2.0 * math.pi)
-            ridge = 0.012 * (0.5 + 0.5 * np.cos(2.0 * math.pi * phase))
-            mat = np.where((z > VASE_BOTTOM + 0.01) & (np.abs((phase % 1.0) - 0.5) < 0.17), M_ACCENT, M_PART)
+            phase = z / SPIRAL_PITCH + theta / (2.0 * math.pi)
+            # No layer ridges: they would draw level rings and contradict the one rising line.
+            ridge = 0.0
+            mat = np.where((z > VASE_BOTTOM + 0.01) & (np.abs((phase % 1.0) - 0.5) < 0.09), M_ACCENT, M_PART)
             return union(bed(p), (shell + ridge * (z > VASE_BOTTOM), mat))
         ridge = _layer_ridges(z, VASE_LH, 0.012)
         items = [bed(p), (shell + ridge, M_PART)]
