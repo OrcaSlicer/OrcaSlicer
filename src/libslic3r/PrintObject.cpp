@@ -5136,7 +5136,6 @@ void PrintObject::discover_extra_elements()
     typedef std::pair<LayerRegion*, SurfaceCollection> SurfacesCacheRecord;
     std::vector<std::vector<SurfacesCacheRecord>> cache_surfaces(num_to_process);
 
-    // Allocating caсhe to their positions
     auto merge_surfaces = [](SurfacesCacheRecord& cache) { // , bool make_subtop
         SurfaceCollection new_surfaces;
         SurfacesPtr crop_surfaces = cache.first->fill_surfaces.filter_by_type_except(stInternal);
@@ -5254,7 +5253,8 @@ void PrintObject::discover_extra_elements()
                     }
                 }
             }
-            merge_surfaces(SurfacesCacheRecord(layerm, new_surfaces));
+            SurfacesCacheRecord cache(layerm, new_surfaces);
+            merge_surfaces(cache);
         }
     };
 
