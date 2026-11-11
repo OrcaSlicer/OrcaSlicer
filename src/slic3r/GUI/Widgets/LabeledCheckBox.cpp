@@ -146,8 +146,12 @@ void LabeledCheckBox::OnLabelHover(wxMouseEvent& e)
 
 void LabeledCheckBox::ShowHover()
 {
-    if (m_hovered) // CheckBox sets its icon on every change, so this is called after each of them
-        m_check->SetBitmapLabel(m_check->GetBitmapCurrent());
+    if (!m_hovered)
+        return;
+    // CheckBox sets its icons on every change, so this is called after each of them.
+    // Reset them first: on MSW setting the normal icon drops the hover one.
+    m_check->SetHalfChecked(m_check->IsHalfChecked());
+    m_check->SetBitmapLabel(m_check->GetBitmapCurrent());
 }
 
 void LabeledCheckBox::OnLabelClick(wxMouseEvent& e)

@@ -1012,7 +1012,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     auto checkbox       = new LabeledCheckBox(this, _L("Remember my choice."));
     checkbox->SetId(wxID_APPLY);
 
-    m_sizer_button->Add(checkbox, 0, wxLEFT, FromDIP(22));
+    m_sizer_button->Add(checkbox, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
     checkbox->Show(bool(m_buttons & REMEMBER_CHOISE));
 
     if (dependent_presets != nullptr) {
