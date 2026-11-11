@@ -10213,13 +10213,6 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         }
         m_writer.set_speed(gcode, last_set_speed, "", comment);
         Vec3d prev            = this->point_to_gcode_quantized(new_points[0].p);
-        bool pre_fan_enabled = false;
-        bool cur_fan_enabled = false;
-        if( m_enable_cooling_markers && enable_overhang_bridge_fan)
-            pre_fan_enabled = overhang_fan_active(new_points[0].overlap, overhang_fan_threshold, path.role());
-        
-        if(path.role() == erInternalBridgeInfill) // ORCA: Add support for separate internal bridge fan speed control
-            pre_fan_enabled = true;
 
         double path_length = 0.;
         for (size_t i = 1; i < new_points.size(); i++) {
@@ -10230,9 +10223,8 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
             tag_belt_band(Point3((pre_processed_point.p + processed_point.p) / 2));
             if (m_enable_cooling_markers) {
                 if (enable_overhang_bridge_fan) {
-                    cur_fan_enabled = overhang_fan_active(processed_point.overlap, overhang_fan_threshold, path.role());
-                    append_role_based_fan_marker(erOverhangPerimeter, "_OVERHANG"sv, pre_fan_enabled && cur_fan_enabled);
-                    pre_fan_enabled = cur_fan_enabled;
+                    const bool cur_fan_enabled = overhang_fan_active(processed_point.overlap, overhang_fan_threshold, path.role());
+                    append_role_based_fan_marker(erOverhangPerimeter, "_OVERHANG"sv, cur_fan_enabled);
 
                     // ORCA: Add support for separate internal bridge fan speed control
                     append_role_based_fan_marker(erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
