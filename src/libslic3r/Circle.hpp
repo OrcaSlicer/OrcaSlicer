@@ -2,7 +2,10 @@
 #define slic3r_Circle_hpp_
 
 #include "Point.hpp"
-#include "Line.hpp"
+#include "libslic3r.h"
+#include <cmath>
+
+namespace Slic3r { class Line; }
 
 namespace Slic3r {
 

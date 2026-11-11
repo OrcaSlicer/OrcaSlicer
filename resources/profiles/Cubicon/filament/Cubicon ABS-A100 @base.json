@@ -12,10 +12,10 @@
 		"Cubicon"
 	],
 	"hot_plate_temp": [
-		"100"
+		"105"
 	],
 	"hot_plate_temp_initial_layer": [
-		"100"
+		"115"
 	],
 	"close_fan_the_first_x_layers": [
 		"3"
@@ -24,13 +24,13 @@
 		"30"
 	],
 	"filament_density": [
-		"1.24"
+		"1.04"
 	],
 	"filament_flow_ratio": [
-		"0.99"
+		"1.04"
 	],
 	"filament_max_volumetric_speed": [
-		"23"
+		"8"
 	],
 	"nozzle_temperature_initial_layer": [
 		"225"
@@ -39,19 +39,19 @@
 		"80"
 	],
 	"fan_min_speed": [
-		"70"
+		"15"
 	],
 	"slow_down_min_speed": [
-		"30"
+		"20"
 	],
 	"slow_down_layer_time": [
-		"3"
+		"10"
 	],
 	"nozzle_temperature": [
 		"230"
 	],
 	"temperature_vitrification": [
-		"78"
+		"105"
 	],
 	"nozzle_temperature_range_low": [
 		"220"
@@ -61,5 +61,32 @@
 	],
 	"additional_cooling_fan_speed": [
 		"0"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.04"
+	],
+	"filament_retraction_length": [
+		"1.2"
+	],
+	"filament_z_hop": [
+		"0"
+	],
+	"filament_retraction_speed": [
+		"40"
+	],
+	"filament_deretraction_speed": [
+		"25"
+	],
+	"filament_wipe": [
+		"1"
+	],
+	"filament_wipe_distance": [
+		"2"
+	],
+	"filament_retract_before_wipe": [
+		"70%"
 	]
 }

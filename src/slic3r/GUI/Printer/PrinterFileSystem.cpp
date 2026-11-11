@@ -7,21 +7,58 @@
 #include "../../Utils/NetworkAgent.hpp"
 #include "../BitmapCache.hpp"
 
+#include <algorithm>
 #include <boost/algorithm/hex.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <boost/date_time/posix_time/posix_time_config.hpp>
 #include <boost/endian/conversion.hpp>
+#include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/thread/lock_types.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/smart_ptr/weak_ptr.hpp>
 #include <boost/uuid/detail/md5.hpp>
 #include <boost/regex.hpp>
 
+#include <string>
+#include <cerrno>
+#include <system_error>
+#include <wx/event.h>
+#include <map>
+#include "slic3r/GUI/Printer/BambuTunnel.h"
+#include <vector>
+#include <cassert>
+#include <utility>
+#include <ctime>
+#include <openssl/md5.h>
+#include <memory>
+#include <wx/log.h>
+#include <ios>
+#include <iterator>
+#include <filesystem>
+#include <functional>
+#include <wx/datetime.h>
+#include <sstream>
+#include <istream>
+#include "libslic3r/Semver.hpp"
+#include <cmath>
+#include <cstdio>
+#include <cctype>
 #include <wx/mstream.h>
 
 #include "nlohmann/json.hpp"
 
 #include <cstring>
+#include <wx/thread.h>
 
 #ifndef NDEBUG
 //#define PRINTER_FILE_SYSTEM_TEST
 #endif
+
+using json = nlohmann::json;
 
 std::string last_system_error() {
     return Slic3r::decode_path(std::error_code(
@@ -1275,9 +1312,9 @@ void PrinterFileSystem::RequestUploadFile()
             if (result != SUCCESS && result != CONTINUE && result != FILE_EXIST) {
                 std::string error_msg = "";
                 if (result == ERROR_CANCEL) {
-                    error_msg = _L("User cancels task.").ToStdString();
+                    error_msg = _u8L("User cancels task.");
                 } else if (result == FILE_READ_WRITE_ERR || result == FILE_OPEN_ERR) {
-                    error_msg = _L("Failed to read file, please try again.").ToStdString();
+                    error_msg = _u8L("Failed to read file, please try again.");
                 }
                 wxLogWarning("PrinterFileSystem::UploadFile error: %d\n", result);
                 SendChangedEvent(EVT_UPLOAD_CHANGED, FF_UPLOADCANCEL, error_msg, result);
@@ -1783,6 +1820,7 @@ void PrinterFileSystem::Reconnect(boost::unique_lock<boost::mutex> &l, int resul
 
 
 #include <stdlib.h>
+#include "libslic3r/PrintConfig.hpp"
 #if defined(_MSC_VER) || defined(_WIN32)
 #include <Windows.h>
 #else

@@ -9,7 +9,9 @@
 #include <cstdio>
 #include <fstream>
 #include <limits>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace Slic3r {
 namespace {

@@ -8,17 +8,35 @@
 #include "GLModel.hpp"
 #include "I18N.hpp"
 
+#include <algorithm>
 #include <boost/iostreams/device/mapped_file.hpp>
 
 #include "LibVGCode/LibVGCodeWrapper.hpp"
 // needed for tech VGCODE_ENABLE_COG_AND_TOOL_MARKERS
+#include "libslic3r/Technologies.hpp"
+#include "libslic3r/Color.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/IMEXZones.hpp"
+#include "libvgcode/include/GCodeInputData.hpp"
+#include <iterator>
+#include <optional>
+#include "libvgcode/include/PathVertex.hpp"
 #include <libvgcode/include/Types.hpp>
 
 #include <array>
+#include <optional>
 #include <cstdint>
 #include <float.h>
 #include <set>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <string>
+#include <tuple>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 
@@ -72,6 +90,8 @@ public:
             float m_model_z_offset{ 0.5f };
             bool m_visible{ true };
             bool m_is_dark = false;
+            // the G-code was exported with high_precision_gcode, so positions are shown with one more decimal
+            bool m_high_precision_gcode{ false };
             float m_scale_factor{ 1.0f };
 #if ENABLE_ACTUAL_SPEED_DEBUG
             ActualSpeedImguiWidget m_actual_speed_imgui_widget;
@@ -87,6 +107,7 @@ public:
             void set_world_position(const Vec3f& position) { m_world_position = position; }
             void set_world_offset(const Vec3f& offset) { m_world_offset = offset; }
             void set_z_offset(float z_offset) { m_z_offset = z_offset; }
+            void set_high_precision_gcode(bool high_precision) { m_high_precision_gcode = high_precision; }
 
 #if ENABLE_ACTUAL_SPEED_DEBUG
             void set_actual_speed_y_range(const std::pair<float, float>& y_range) {
@@ -102,6 +123,9 @@ public:
 
             bool is_visible() const { return m_visible; }
             void set_visible(bool visible) { m_visible = visible; }
+            // What a marker looks like when no IDEX/IQEX carriage colour applies to it.
+            static ColorRGBA default_color() { return { 1.0f, 1.0f, 1.0f, 0.5f }; }
+            void set_color(const ColorRGBA& color) { m_model.set_color(color); }
 
             void render(int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
             void render_position_window(const libvgcode::Viewer* viewer, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
@@ -150,10 +174,14 @@ public:
         };
 
         Marker marker;
+        std::vector<Marker> m_imex_secondary_markers; // one per active secondary carriage in IDEX/IQEX mode
         GCodeWindow gcode_window;
         float m_scale = 1.0;
         bool m_show_marker = false;
-        void render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type);
+        // The tool marker at the current move, drawn in 3D.
+        void render_marker(const bool has_render_path, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type);
+        // The marker's position window and the G-code window, both ImGui.
+        void render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type);
     };
     struct ExtruderFilament
     {
@@ -171,6 +199,8 @@ public:
         int  print_id{-1};
         int  print_modify_count{-1};
         bool previewing{false};
+        // the prime tower was loaded with the objects, for the solid model
+        bool with_wipe_tower{false};
     };
     //BBS
     ConflictResultOpt m_conflict_result;
@@ -182,6 +212,10 @@ private:
     std::vector<int> m_plater_extruder;
     bool m_gl_data_initialized{ false };
     unsigned int m_last_result_id{ 0 };
+    // Belt printers: the view the loaded result was converted for (see load_as_gcode).
+    bool m_last_belt_show_designed{ true };
+    // Belt printers: the print Z of each viewer layer, in the viewer's layer numbering.
+    std::vector<double> m_belt_layer_zs;
     //BBS: save m_gcode_result as well
     const GCodeProcessorResult* m_gcode_result;
     std::array<unsigned int, static_cast<size_t>(EMoveType::Count)> m_move_type_counts{};
@@ -202,10 +236,73 @@ private:
     //BBS: add shell bounding box
     BoundingBoxf3 m_shell_bounding_box;
     float m_max_print_height{ 0.0f };
+    bool  m_machine_frame_transform_active{ false };
     float m_z_offset{ 0.0f };
 
     ConfigOptionMode m_user_mode;
     bool m_fold = {false};
+    std::string m_marker_filename;      // cached for lazy secondary marker init
+
+    // IDEX/IQEX: everything render_scene() needs to place the secondary carriage markers and the
+    // toolhead footprint boxes, resolved from the printer preset, the active mode and the
+    // plate bed. Resolving it walks the mode string through compute_imex_zone_layout()
+    // (several string parses plus a zone-grid rebuild), and none of its inputs change
+    // between frames, so it is resolved once per input change -- see ImexMarkerKey -- and
+    // replayed on every other frame.
+    struct ImexMarkerPlan
+    {
+        // One entry per secondary carriage that owns a zone, in marker order. Each axis
+        // either TRACKS the primary (pos + term) or MIRRORS it about the boundary the two
+        // zones share (term - pos); which of the two, and the term itself, depend only on
+        // the zone geometry, so both are resolved up front.
+        struct Carriage
+        {
+            int   phys_head    = -1;   // physical head this carriage is, for its filament colour
+            bool  mirror_x     = false;
+            bool  mirror_y     = false;
+            float x_term       = 0.0f;
+            float y_term       = 0.0f;
+            float box_offset_x = 0.0f;
+            float box_offset_y = 0.0f;
+        };
+        std::vector<Carriage> carriages;        // empty => no secondary carriages to draw
+        int   pri_head = -1;                    // the primary's physical head, same purpose
+        float pri_box_offset_x = 0.0f;
+        float pri_box_offset_y = 0.0f;
+        float box_wx = 0.0f;                    // imex_nozzle_clearance_x / _y
+        float box_wy = 0.0f;
+    };
+
+    // Invalidation key for the plan above: every input the plan is derived from, and
+    // nothing that changes between frames. A stale plan would put the preview markers
+    // somewhere the plate's own zones and ghosts do not agree with, which is exactly the
+    // drift the shared layout call exists to prevent -- so the layout half is the plate's own
+    // key. The preview adds the plate index and bed extents, which a plate gets for free: zone
+    // centers scale with the bed, and one preview serves every plate, while each plate rebuilds
+    // its zones in set_shape(). The layout key also holds imex_carriage_margin, which only sizes
+    // the plate's advisory bands, so a margin change re-resolves the plan needlessly.
+    struct ImexMarkerKey
+    {
+        std::optional<ImexLayoutKey> layout;
+        struct Plate
+        {
+            int    plate_index = -1;
+            double bed_min_x = 0.0, bed_min_y = 0.0, bed_max_x = 0.0, bed_max_y = 0.0;
+
+            auto tied() const { return std::tie(plate_index, bed_min_x, bed_min_y, bed_max_x, bed_max_y); }
+            bool operator==(const Plate& rhs) const { return tied() == rhs.tied(); }
+        };
+        Plate plate;
+    };
+    ImexMarkerKey  m_imex_marker_key;
+    ImexMarkerPlan m_imex_marker_plan;
+    static ImexMarkerPlan resolve_imex_marker_plan(const DynamicPrintConfig& printer_cfg,
+                                                   const std::string&        mode,
+                                                   const BoundingBoxf&       bed_extents);
+
+    GLModel     m_imex_toolhead_box;    // shared box mesh for all carriage footprint overlays
+    float       m_imex_box_mesh_wx{ 0.0f };  // clearance dimensions m_imex_toolhead_box was built for
+    float       m_imex_box_mesh_wy{ 0.0f };
 
     size_t m_extruders_count;
     std::vector<float> m_filament_diameters;
@@ -225,11 +322,82 @@ private:
     std::vector<libvgcode::EViewType> view_type_items;
     std::vector<std::string> view_type_items_str;
     int       m_view_type_sel = 0;
-    int       m_last_extruder_count_default_applied{0};  // 0=unset, 1=single, 2+=multi
+    // ORCA: which default view type was last applied, see apply_default_view_type(). Empty until the first one is applied.
+    std::string m_applied_default_view_type_key;
     std::vector<EMoveType> options_items;
 
     bool m_legend_visible{ true };
     bool m_legend_enabled{ true };
+    // what the preview draws while the user drags, as the preference has it
+    libvgcode::EReducedDetailMode m_reduced_detail_mode{ libvgcode::EReducedDetailMode::Off };
+    void read_reduced_detail_preferences();
+    static libvgcode::EReducedDetailMode reduced_detail_mode_from_string(const std::string& mode);
+    // in the solid model mode, the sliced objects are drawn as solid shapes instead of toolpaths
+    bool solid_model_enabled() const { return m_reduced_detail_mode == libvgcode::EReducedDetailMode::EndLayersOnly; }
+    // whether no layer is lower than the one before, as the solid model's cut needs
+    bool m_layers_z_rising{ true };
+    // the heights the solid model is cut at, unset where the toolpaths cover the whole range
+    std::optional<std::array<float, 2>> solid_model_z_range() const;
+    void render_solid_model(int canvas_width, int canvas_height);
+    void render_solid_model_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix);
+    // A cut face of the solid model: a quad in the cut plane, drawn where a body cut at it alone is
+    // open; see render_solid_model()
+    struct SolidModelCap
+    {
+        GLModel quad;
+        // the body as the count sees it: cut at this cap alone
+        std::array<float, 2> count_z_range{ -FLT_MAX, FLT_MAX };
+        std::array<float, 4> count_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
+        // the quad, cut by the other caps
+        std::array<float, 2> quad_z_range{ -FLT_MAX, FLT_MAX };
+        std::array<float, 4> quad_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
+        // which of the sampled cap colours it takes, none for the body's own
+        std::optional<size_t> color_index;
+    };
+    // the bottom cap, then the top one, as the colours are indexed, then the section view's; a cap
+    // the solid is not cut at is left without a quad
+    void init_solid_model_caps(const std::array<float, 2>& z_range, std::array<SolidModelCap, 3>& caps) const;
+    void release_caster_depth();
+    // ORCA: realistic view. The shadow map and light the canvas last passed on, which the solid
+    // model samples through its own shader as the toolpaths do through theirs.
+    struct ShadowMap
+    {
+        int         texture_unit{ 0 };
+        Transform3d light_view_projection{ Transform3d::Identity() };
+        float       intensity{ 0.0f };
+        float       texel_size{ 0.0f };
+    };
+    ShadowMap m_shadow_map;
+    Vec3d     m_light_top_dir{ Vec3d::Zero() };
+    // the cut faces from the light, counted and drawn apart from the shadow map, which has no
+    // stencil, then copied into it; see render_solid_model_casters()
+    unsigned int m_caster_fbo{ 0 };
+    unsigned int m_caster_depth{ 0 };
+    int          m_caster_width{ 0 };
+    int          m_caster_height{ 0 };
+    bool init_caster_depth(int width, int height);
+    // The solid model's colours in the current view, sampled from the toolpaths when the view
+    // colours them by something other than the filament; see update_solid_model_colors()
+    struct SolidModelColors
+    {
+        // cleared as a drag begins, see set_interacting()
+        bool valid{ false };
+        libvgcode::EViewType view_type{ libvgcode::EViewType::COUNT };
+        libvgcode::Interval  whole_layers{ 0, 0 };
+        // one per shell volume, from the toolpaths within its own footprint
+        struct Body
+        {
+            // unset where the view colours by filament, or no vertex of the role was found there
+            std::optional<ColorRGBA> body;
+            // the bottom and top caps
+            std::array<std::optional<ColorRGBA>, 2> caps;
+        };
+        std::vector<Body> bodies;
+    };
+    SolidModelColors m_solid_model_colors;
+    void update_solid_model_colors(const libvgcode::Interval& whole_layers);
+    // the prime tower is only among the shells for the solid model, so it is added or removed when that changes
+    void update_shell_wipe_tower(const Print& print, bool initialized);
 
     float m_legend_height;
     PrintEstimatedStatistics m_print_statistics;
@@ -237,12 +405,24 @@ private:
     GCodeProcessorResult::SettingsIds m_settings_ids;
 
     std::vector<CustomGCode::Item> m_custom_gcode_per_print_z;
+    GCodeProcessorResult::ObjectMass              m_plate_mass;
+    std::vector<GCodeProcessorResult::ObjectMass> m_object_masses;
+    std::vector<GCodeProcessorResult::ObjectMass> m_body_masses;
+    std::vector<GCodeProcessorResult::ObjectMass> m_support_masses;
 
     bool m_contained_in_bed{ true };
 mutable bool m_no_render_path { false };
     bool m_is_dark = false;
 
+    bool  m_belt_view_enabled = false;
+    bool  m_belt_show_designed = true;   // Designed (upright, back-transformed) view by default; off shows
+                                         // the raw machine-frame G-code (canvas view menu, hotkey B).
+    float m_belt_angle_deg = 0.f;
+
     libvgcode::Viewer m_viewer;
+    // ORCA: section view, as the viewer has it: kept where the dot with it is positive, a zero
+    // normal when off. The solid model is cut by it too, and what it cuts away casts no shadow.
+    std::array<float, 4> m_clipping_plane{ 0.0f, 0.0f, 0.0f, 1.0f };
     bool m_loaded_as_preview{ false };
 
 public:
@@ -272,21 +452,43 @@ public:
     //BBS: add all plates filament statistics
     void render_all_plates_stats(const std::vector<const GCodeProcessorResult*>& gcode_result_list, bool show = true) const;
     //BBS: GUI refactor: add canvas width and height
-    void render(int canvas_width, int canvas_height, int right_margin);
+    // Shells, toolpaths, the sequential markers and the IDEX/IQEX toolhead boxes, drawn in 3D.
+    void render_scene(int canvas_width, int canvas_height);
+    // ORCA: the toolpaths of translucent filaments, blended over the scene, then the markers. render_scene() leaves both out.
+    void render_translucent_toolpaths(int canvas_width, int canvas_height);
+    // Legend, sliders, the marker's position window and the G-code window, all ImGui.
+    void render_overlay(int canvas_width, int canvas_height, int right_margin);
+    // ORCA: realistic view. Depth-only pass drawing the toolpaths as the light sees them, into
+    // the shadow map the caller has bound, and the map they sample back in render_scene.
+    void render_shadow_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix, const Vec3d& light_position);
+    void set_shadow_map(int texture_unit, const Transform3d& light_view_projection, float intensity, float texel_size);
+    // ORCA: tone applied to the shaded toolpaths, paying back the light the lighting term,
+    // the shadow and the SSAO pass each take off. 1.0/1.0 is a no-op.
+    void set_tone(float exposure, float saturation);
+    // ORCA: section view
+    void set_clipping_plane(const ClippingPlane& plane);
+    void set_light_top_dir(const Vec3d& direction);
+    // ORCA: the untinted highlight of the filaments, which the canvas gives them in realistic view only
+    void set_gloss(bool gloss) { m_viewer.set_gloss(gloss); }
     //BBS
     // void _render_calibration_thumbnail_internal(ThumbnailData& thumbnail_data, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void _render_calibration_thumbnail_framebuffer(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
     // void render_calibration_thumbnail(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params, PartPlateList& partplate_list, OpenGLManager& opengl_manager);
-    bool has_data() const { return !m_viewer.get_extrusion_roles().empty(); }
+    bool has_data() const { return m_viewer.get_extrusion_roles_count() != 0; }
 
     bool can_export_toolpaths() const;
     std::vector<int> get_plater_extruder();
 
     const float                get_max_print_height() const { return m_max_print_height; }
+    bool                       is_machine_frame_transform_active() const { return m_machine_frame_transform_active; }
     const BoundingBoxf3& get_paths_bounding_box() const { return m_paths_bounding_box; }
     const BoundingBoxf3& get_max_bounding_box() const { return m_max_bounding_box; }
     const BoundingBoxf3& get_shell_bounding_box() const { return m_shell_bounding_box; }
     std::vector<double> get_layers_zs() const {
+        // Belt printers: the layer Z the slider labels and the colour-change ticks
+        // use is the layer's print Z (see load_as_gcode), not a toolpath height.
+        if (! m_belt_layer_zs.empty())
+            return m_belt_layer_zs;
         const std::vector<float> zs = m_viewer.get_layers_zs();
         std::vector<double> ret;
         std::transform(zs.begin(), zs.end(), std::back_inserter(ret), [](float z) { return static_cast<double>(z); });
@@ -295,6 +497,14 @@ public:
     std::vector<float> get_layers_times() const { return m_viewer.get_layers_estimated_times(); }
 
     const std::array<size_t,2> &get_layers_z_range() const { return m_viewer.get_layers_view_range(); }
+    const GCodeProcessorResult::ObjectMass&              get_plate_mass() const { return m_plate_mass; }
+    const std::vector<GCodeProcessorResult::ObjectMass>& get_object_masses() const { return m_object_masses; }
+    const std::vector<GCodeProcessorResult::ObjectMass>& get_body_masses() const { return m_body_masses; }
+    const std::vector<GCodeProcessorResult::ObjectMass>& get_support_masses() const { return m_support_masses; }
+    size_t get_vertices_count() const { return m_viewer.get_vertices_count(); }
+    size_t get_layers_count() const { return m_viewer.get_layers_count(); }
+    // ORCA: realistic view. Changes whenever the toolpaths casting shadows do.
+    size_t shadow_casters_signature() const;
 
     const SequentialView& get_sequential_view() const { return m_sequential_view; }
     void update_sequential_view_current(unsigned int first, unsigned int last);
@@ -318,6 +528,16 @@ public:
     void set_view_type(libvgcode::EViewType type) {
         m_viewer.set_view_type(type);
     }
+    // ORCA: select a view type in the preview combo box and apply it
+    void select_view_type(libvgcode::EViewType type);
+    // ORCA: apply the "preview_default_view_type" preference, see the definition for the supported values
+    void apply_default_view_type();
+
+    // ORCA: stable, locale independent name of a view type, as stored in the application config
+    static std::string view_type_to_config_name(libvgcode::EViewType type);
+    static bool view_type_from_config_name(const std::string& name, libvgcode::EViewType& type);
+    // ORCA: (config value, translated label) pairs for the "preview_default_view_type" preference combo box
+    static std::vector<std::pair<std::string, std::string>> default_view_type_choices();
     void reset_visible(libvgcode::EViewType type) {
         if (type == libvgcode::EViewType::FeatureType) {
             auto roles = m_viewer.get_extrusion_roles();
@@ -338,6 +558,16 @@ public:
     // ORCA: brightness of those darkened layers, 1.0 = unchanged, 0.0 = black
     void set_dim_previous_layers_brightness(float value) { m_viewer.set_dim_previous_layers_brightness(value); }
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
+    // ORCA: draw the toolpaths of translucent filament colors translucent
+    void set_translucent_filaments(bool value) { m_viewer.set_translucent_filaments(value); }
+
+    // whether the mouse is holding either slider's handle
+    bool is_slider_dragging() const { return m_layers_slider->is_dragging() || m_moves_slider->is_dragging(); }
+    // while the user drags the camera or a slider, draw the reduced set, if the preference asks for one
+    void set_interacting(bool interacting);
+    bool is_reduced_detail() const { return m_viewer.is_reduced_detail(); }
+    // the preference's string value: "off", "solid" or "shell"
+    void set_reduced_detail_mode(const std::string& mode);
 
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 
@@ -347,6 +577,11 @@ public:
     float get_legend_height() { return m_legend_height; }
 
     void export_toolpaths_to_obj(const char* filename) const;
+
+    void set_belt_printer(bool enabled, float angle_deg) { m_belt_view_enabled = enabled; m_belt_angle_deg = angle_deg; }
+    bool is_belt_view() const { return m_belt_view_enabled && m_belt_angle_deg > 0.f; }
+    void toggle_belt_show_designed() { if (m_belt_view_enabled) m_belt_show_designed = !m_belt_show_designed; }
+    bool is_belt_show_designed() const { return m_belt_show_designed; }
 
     size_t get_extruders_count() { return m_extruders_count; }
     void push_combo_style();
@@ -362,8 +597,14 @@ public:
 private:
     //BBS: always load shell at preview
     //void load_shells(const Print& print);
+    // Canvas height minus the room the horizontal slider takes.
+    int sequential_view_height(int canvas_height) const;
     void render_toolpaths();
-    void render_shells(int canvas_width, int canvas_height);
+    // The sequential markers and the IDEX/IQEX toolhead boxes.
+    void render_markers(int canvas_width, int canvas_height);
+    void render_shells();
+    // ORCA: a filament color as the toolpaths show it, opaque unless translucent filaments are shown
+    ColorRGBA shown_filament_color(ColorRGBA color) const;
 
     //BBS: GUI refactor: add canvas size
     void render_legend(float &legend_height, int canvas_width, int canvas_height, int right_margin);

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA-CF @RatRig",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "RatRig Generic PLA-CF",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "ai3I13fL5giqq5LW",
 	"filament_id": "OFWbdGsC",

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA Silk @Qidi",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Qidi Generic PLA Silk",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "qmNmFB6yN23u389x",
 	"filament_id": "OFesA6rF",

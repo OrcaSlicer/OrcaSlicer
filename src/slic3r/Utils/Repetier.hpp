@@ -7,6 +7,8 @@
 
 #include "PrintHost.hpp"
 
+class wxArrayString;
+
 namespace Slic3r {
 
 class DynamicPrintConfig;

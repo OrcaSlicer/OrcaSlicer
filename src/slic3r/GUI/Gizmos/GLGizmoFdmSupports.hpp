@@ -9,6 +9,14 @@
 #include "slic3r/GUI/I18N.hpp"
 
 #include <boost/thread.hpp>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <string>
+#include <wx/string.h>
+#include <cstddef>
+#include <vector>
+#include <mutex>
+#include <map>
+#include <utility>
 
 namespace Slic3r::GUI {
 
@@ -26,8 +34,7 @@ public:
         state_ready
     };
 
-    //BBS
-    bool on_key_down_select_tool_type(int keyCode);
+    bool on_tool_shortcut(Shortcut shortcut) override;
 
 protected:
     void on_render_input_window(float x, float y, float bottom_limit) override;

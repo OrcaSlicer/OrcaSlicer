@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Vzbot",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "Vzbot Generic PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "NInr0jEJnziZ1poM",
 	"filament_id": "OFYPdQJh",

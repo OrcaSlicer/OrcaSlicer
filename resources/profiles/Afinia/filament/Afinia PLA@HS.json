@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "OF9HCdyQ",
-	"setting_id": "N3sCgjdjvp6FTtw9",
 	"name": "Afinia PLA@HS",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "N3sCgjdjvp6FTtw9",
+	"filament_id": "OF9HCdyQ",
+	"instantiation": "true",
 	"filament_cost": [
 		"24.99"
 	],

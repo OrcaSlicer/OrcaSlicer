@@ -2,20 +2,39 @@
 #include "ExportPresetBundleDialog.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include <atomic>
+#include <boost/chrono/duration.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <libslic3r/Config.hpp>
+#include "libslic3r/Semver.hpp"
+#include "libslic3r/Preset.hpp"
 #include <libslic3r/Thread.hpp>
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include <memory>
+#include <string>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/GUI.hpp"
+#include <nlohmann/json.hpp>
 #include <wx/app.h>
 #include <wx/event.h>
 #include <wx/filename.h>
+#include <wx/gdicmn.h>
+#include <wx/fswatcher.h>
+#include <wx/msgdlg.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
 #include <libslic3r/PresetBundle.hpp>
 #include <wx/string.h>
 #include "MainFrame.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
 #include <miniz.h>
 #include <OrcaCloudServiceAgent.hpp>
-#include <wx/event.h>
 #include <wx/utils.h>
+
+using json = nlohmann::json;
+
 namespace Slic3r { namespace GUI {
 
 PresetBundleDialog::PresetBundleDialog(
@@ -188,6 +207,31 @@ void PresetBundleDialog::create()
     app_config = get_app_config();
     create_webview("web/dialog/PresetBundleDialog/index.html", _L("Preset Bundle"),
                    wxSize(820, 660), wxSize(640, 640));
+}
+
+nlohmann::json PresetBundleDialog::localized_strings() const
+{
+    return {
+        {"refresh", _u8L("Refresh")},
+        {"name", _u8L("Name")},
+        {"type", _u8L("Type")},
+        {"version", _u8L("Version")},
+        {"update", _u8L("Update")},
+        {"export_presets", _u8L("Export Presets")},
+        {"close", _u8L("Close")},
+        {"open_folder", _u8L("Show in folder")},
+        {"delete_bundle", _u8L("Delete bundle")},
+        {"unsubscribe_bundle", _u8L("Unsubscribe bundle")},
+        {"update_available", _u8L("Update available")},
+        {"unauthorized_bundle", _u8L("Unauthorized bundle")},
+        {"open_in_browser", _u8L("Open this bundle in your browser")},
+        {"type_subscribed", _u8L("Subscribed")},
+        {"type_local", _u8L("Local")},
+        {"type_default", _u8L("Default")},
+        {"printer", _u8L("Printer")},
+        {"filament", _u8L("Filament")},
+        {"process", _u8L("Process")},
+    };
 }
 
 bool PresetBundleDialog::DeleteBundleById(const wxString& id)

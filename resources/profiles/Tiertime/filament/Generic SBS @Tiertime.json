@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic SBS @Tiertime",
-	"inherits": "fdm_filament_sbs",
 	"renamed_from": "Tiertime Generic SBS",
+	"inherits": "fdm_filament_sbs",
 	"from": "system",
 	"setting_id": "nyv523sDXK9fDbtb",
 	"filament_id": "OFhQfUQY",

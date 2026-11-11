@@ -1,10 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic TPU HF @Prusa MINIIS",
-	"inherits": "Generic TPU HF @Prusa base",
 	"renamed_from": "Prusa Generic TPU HF @MINIIS;Prusa Generic TPU HF MINIIS",
+	"inherits": "Generic TPU @Prusa base",
 	"from": "system",
 	"setting_id": "Jw1UjgrXtYG5rMDt",
+	"filament_id": "OFnT7Qpb",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"10"

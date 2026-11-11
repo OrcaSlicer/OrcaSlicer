@@ -1,13 +1,54 @@
 #include "UnsavedChangesDialog.hpp"
 
+#include <cmath>
+#include <boost/algorithm/string/replace.hpp>
+#include <cassert>
+#include <algorithm>
+#include <array>
 #include <cstddef>
+#include "slic3r/GUI/Event.hpp"
+#include <map>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <memory>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/SettingsIndex.hpp"
+#include <set>
+#include <iterator>
 #include <string>
+#include <utility>
 #include <vector>
 #include <boost/algorithm/string.hpp>
-#include <boost/optional.hpp>
 
+#include <wx/colour.h>
+#include <wx/dataview.h>
+#include <wx/log.h>
+#include <wx/gdicmn.h>
+#include <wx/dvrenderers.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/stattext.h>
+#include <wx/dialog.h>
+#include <wx/sizer.h>
+#include <wx/textctrl.h>
+#include <wx/settings.h>
 #include <wx/tokenzr.h>
+#include <wx/utils.h>
+#include <wx/variant.h>
+#include <wx/window.h>
+#include <wx/toplevel.h>
+#include <wx/statline.h>
 
+#include "CalibUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Color.hpp"
@@ -24,9 +65,6 @@
 
 #include "PresetComboBoxes.hpp"
 #include "Widgets/DialogButtons.hpp"
-#include "Widgets/HyperLink.hpp"
-
-using boost::optional;
 
 #ifdef __linux__
 #define wxLinux true
@@ -39,6 +77,8 @@ namespace Slic3r {
 namespace GUI {
 
 wxDEFINE_EVENT(EVT_DIFF_DIALOG_TRANSFER, SimpleEvent);
+
+static PresetCollection* get_preset_collection(Preset::Type type, PresetBundle* preset_bundle = nullptr);
 
 
 // ----------------------------------------------------------------------------
@@ -582,6 +622,7 @@ DiffViewCtrl::DiffViewCtrl(wxWindow* parent, wxSize size)
     ),
     m_em_unit(em_unit(parent))
 {
+    SetBackgroundColour(wxColour("#FFFFFF"));
     wxGetApp().UpdateDVCDarkUI(this);
 
     model = new DiffModel(parent);
@@ -809,7 +850,8 @@ UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxStri
 }
 
 UnsavedChangesDialog::UnsavedChangesDialog(Preset::Type type, PresetCollection *dependent_presets, const std::string &new_selected_preset, bool no_transfer)
-    : m_new_selected_preset_name(new_selected_preset)
+    : m_dependent_presets(dependent_presets)
+    , m_new_selected_preset_name(new_selected_preset)
     , DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
                 _L("Transfer or discard changes"),
@@ -831,8 +873,13 @@ inline int UnsavedChangesDialog::ShowModal()
     auto choise     = wxGetApp().app_config->get(choise_key);
     long result = 0;
     if ((m_buttons & REMEMBER_CHOISE) && !choise.empty() && wxString(choise).ToLong(&result) && (1 << result) & (m_buttons | DONT_SAVE)) {
-        m_exit_action = Action(result);
-        return 0;
+        const Action remembered = Action(result);
+        // A remembered Save would otherwise skip the unresolved-plugin warning in save(). Show the
+        // dialog when the presets being saved need it; remembered Transfer/Discard keep the shortcut.
+        if (remembered != Action::Save || !selected_save_needs_plugin_warning()) {
+            m_exit_action = remembered;
+            return 0;
+        }
     }
     int r = DPIDialog::ShowModal();
     if (r != wxID_CANCEL && dynamic_cast<::LabeledCheckBox*>(FindWindowById(wxID_APPLY))->GetValue()) {
@@ -856,7 +903,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
 
     m_action_line = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE, 0);
     m_action_line->SetFont(::Label::Body_13);
-    m_action_line->SetForegroundColour(GREY900);
+    m_action_line->SetForegroundColour(wxColour("#363636"));
     m_action_line->Wrap(-1);
     m_sizer_main->Add(m_action_line, 0, wxLEFT | wxRIGHT, 20);
 
@@ -869,11 +916,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     }
 
     m_panel_tab = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE.x, -1), wxTAB_TRAVERSAL);
-    m_panel_tab->SetBackgroundColour(GREY200);
+    m_panel_tab->SetBackgroundColour(wxColour("#D9D9D9"));
     wxBoxSizer *m_sizer_tab = new wxBoxSizer(wxVERTICAL);
 
     m_table_top = new wxPanel(m_panel_tab, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    m_table_top->SetBackgroundColour(wxColour(107, 107, 107));
+    m_table_top->SetBackgroundColour(wxColour("#D9D9D9"));
 
     wxBoxSizer *m_sizer_top = new wxBoxSizer(wxHORIZONTAL);
 
@@ -885,7 +932,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     static_temp_title            = new wxStaticText(m_panel_temp, wxID_ANY, _L("Settings"), wxDefaultPosition, wxDefaultSize, 0);
     static_temp_title->SetFont(::Label::Body_13);
     static_temp_title->Wrap(-1);
-    static_temp_title->SetForegroundColour(*wxWHITE);
+    static_temp_title->SetForegroundColour(wxColour("#363636"));
     top_title_temp_h->Add(static_temp_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
     top_title_temp_v->Add(top_title_temp_h, 1, wxALIGN_CENTER, 0);
     m_panel_temp->SetSizer(top_title_temp_v);
@@ -904,7 +951,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     static_oldv_title = new wxStaticText(m_panel_oldv, wxID_ANY, params ? _L(DevPrinterConfigUtil::get_toolhead_display_name(ucd_pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Nozzle, ToolHeadNameCase::SentenceCase)) + ": " + get_nozzle_volume_type_name(params->nozzle) : _L("Old Value"), wxDefaultPosition, wxDefaultSize, 0);
     static_oldv_title->SetFont(::Label::Body_13);
     static_oldv_title->Wrap(-1);
-    static_oldv_title->SetForegroundColour(params && params->left_to_right ? wxGetApp().get_label_clr_modified() : *wxWHITE);
+    static_oldv_title->SetForegroundColour(params && params->left_to_right ? wxGetApp().get_label_clr_modified() : wxColour("#363636"));
     top_title_oldv_h->Add(static_oldv_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
     top_title_oldv->Add(top_title_oldv_h, 1, wxALIGN_CENTER, 0);
     m_panel_oldv->SetSizer(top_title_oldv);
@@ -924,7 +971,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
                                          wxDefaultPosition, wxDefaultSize, 0);
     static_newv_title->SetFont(::Label::Body_13);
     static_newv_title->Wrap(-1);
-    static_newv_title->SetForegroundColour(params && !params->left_to_right ? wxGetApp().get_label_clr_modified() : *wxWHITE);
+    static_newv_title->SetForegroundColour(params && !params->left_to_right ? wxGetApp().get_label_clr_modified() : wxColour("#363636"));
 
     top_title_newv_h->Add(static_newv_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
 
@@ -941,7 +988,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     m_sizer_tab->Add(m_table_top, 1, 0, 0);
 
     m_scrolledWindow = new wxScrolledWindow(m_panel_tab, wxID_ANY, wxDefaultPosition, UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE,  wxNO_BORDER|wxVSCROLL);
-    m_scrolledWindow->SetScrollRate(0, 5);
+    m_scrolledWindow->SetScrollRate(0, FromDIP(20));
     m_scrolledWindow->SetBackgroundColour(GREY200);
     m_sizer_bottom = new wxBoxSizer(wxVERTICAL);
     m_sizer_bottom->Add(m_scrolledWindow, 1, wxEXPAND, 0);
@@ -969,8 +1016,14 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     checkbox->Show(bool(m_buttons & REMEMBER_CHOISE));
 
     if (dependent_presets != nullptr) {
-        auto wiki = new HyperLink(this, _L("Help"), "https://www.orcaslicer.com/wiki/transfer_discard_changes");
-        m_sizer_button->Add(wiki, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
+        auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+        auto wiki_url = "https://www.orcaslicer.com/wiki/transfer_discard_changes";
+        wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+        wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+        wiki_btn->SetCanFocus(false);
+        wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+        m_sizer_button->Add(wiki_btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
     }
 
     m_sizer_button->Add(0, 0, 1, 0, 0);
@@ -1000,9 +1053,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     // "Transfer" / "Keep" button
     if (ActionButtons::TRANSFER & m_buttons) {
         const PresetCollection* switched_presets = type == Preset::TYPE_INVALID ? nullptr : wxGetApp().get_tab(type)->get_presets();
-        if (dependent_presets && switched_presets && (type == dependent_presets->type() ?
-            dependent_presets->get_edited_preset().printer_technology() == dependent_presets->find_preset(new_selected_preset)->printer_technology() :
-            switched_presets->get_edited_preset().printer_technology() == switched_presets->find_preset(new_selected_preset)->printer_technology()))
+        const PresetCollection* technology_source = (dependent_presets && type == dependent_presets->type()) ? dependent_presets : switched_presets;
+        // find_preset() can return nullptr (e.g. an unresolved alias); guard against a null deref.
+        const Preset* target_preset = technology_source ? technology_source->find_preset(new_selected_preset) : nullptr;
+        if (dependent_presets && switched_presets && technology_source && target_preset &&
+            technology_source->get_edited_preset().printer_technology() == target_preset->printer_technology())
             add_btn(&m_transfer_btn, m_move_btn_id, "menu_paste", Action::Transfer, switched_presets->get_edited_preset().name == new_selected_preset ? _L("Transfer") : _L("Transfer"), true);
     }
     if (!m_transfer_btn && (ActionButtons::KEEP & m_buttons))
@@ -1102,8 +1157,8 @@ void UnsavedChangesDialog::show_info_line(Action action, std::string preset_name
             else
                 text = format_wxstr(
                     action == Action::Save ?
-                        _L("Save the selected options to preset \n\"%1%\".") :
-                        _L("Transfer the selected options to the newly selected preset \n\"%1%\"."),
+                        _L("Save the selected options to preset\n\"%1%\".") :
+                        _L("Transfer the selected options to the newly selected preset\n\"%1%\"."),
                     preset_name);
             //text += "\n" + _L("Unselected options will be reverted.");
         }
@@ -1124,6 +1179,30 @@ void UnsavedChangesDialog::close(Action action)
     this->EndModal(wxID_CLOSE);
 }
 
+DynamicPrintConfig UnsavedChangesDialog::make_save_config(PresetCollection& presets)
+{
+    DynamicPrintConfig             config = presets.get_edited_preset().config;
+    const std::vector<std::string> unselected_options = get_unselected_options(presets.type());
+    if (!unselected_options.empty())
+        config.apply_only(presets.get_selected_preset().config, unselected_options);
+    return config;
+}
+
+bool UnsavedChangesDialog::selected_save_needs_plugin_warning()
+{
+    if (m_dependent_presets != nullptr)
+        return has_unresolved_plugin_capabilities(make_save_config(*m_dependent_presets));
+
+    const PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
+    for (Tab* tab : wxGetApp().tabs_list)
+        if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty()) {
+            PresetCollection* presets = tab->get_presets();
+            if (presets != nullptr && has_unresolved_plugin_capabilities(make_save_config(*presets)))
+                return true;
+        }
+    return false;
+}
+
 bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_save_preset_dialog/* = true*/)
 {
     names_and_types.clear();
@@ -1136,6 +1215,14 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
         // for system/default/external presets we should take an edited name
         //BBS: add project embedded preset logic and refine is_external
         bool save_to_project = false;
+
+        // Warn before the save-name dialog: accepting that dialog can delete an overwritten preset,
+        // so a Cancel must be decided before it. Transfer reaches save() with
+        // show_save_preset_dialog == false and must not warn.
+        if (show_save_preset_dialog &&
+            !confirm_save_with_unresolved_plugins(this, make_save_config(*dependent_presets), SaveSubject::Preset))
+            return false;
+
         if (!preset.can_overwrite()) {
         //if (preset.is_system || preset.is_default || preset.is_external) {
             SavePresetDialog save_dlg(this, preset.type);
@@ -1173,6 +1260,30 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
                 //names_and_types.emplace_back(make_pair(preset.name, preset.type));
             }
 
+
+        // One Save can write several presets. Build each exact partial config the same way
+        // PresetBundle::save_changes_for_preset will, and warn once before any SavePresetDialog can
+        // delete an overwritten preset. Transfer/Discard must not warn.
+        if (show_save_preset_dialog && !names_and_types.empty()) {
+            std::vector<std::unique_ptr<DynamicPrintConfig>> configs;
+            std::vector<SaveConfigToCheck>                    checks;
+            checks.reserve(names_and_types.size());
+            for (const PresetData& nt : names_and_types) {
+                PresetCollection* presets = get_preset_collection(nt.type, wxGetApp().preset_bundle);
+                if (!presets)
+                    continue;
+                auto config = std::make_unique<DynamicPrintConfig>(make_save_config(*presets));
+                checks.push_back({from_u8(nt.name), config.get()});
+                configs.emplace_back(std::move(config));
+            }
+            if (!checks.empty()) {
+                const bool confirmed = checks.size() == 1
+                    ? confirm_save_with_unresolved_plugins(this, *checks.front().config, SaveSubject::Preset)
+                    : confirm_save_presets_with_unresolved_plugins(this, checks);
+                if (!confirmed)
+                    return false;
+            }
+        }
 
         if (show_save_preset_dialog && !types_for_save.empty()) {
             SavePresetDialog save_dlg(this, types_for_save);
@@ -1479,12 +1590,12 @@ std::string UnsavedChangesDialog::subreplace(std::string resource_str, std::stri
 
 void UnsavedChangesDialog::update_tree(Preset::Type type, DynamicConfig * config, int from, int to)
 {
-    Search::OptionsSearcher &searcher = wxGetApp().sidebar().get_searcher();
-    searcher.sort_options_by_key();
+    Search::SettingsIndex &index = wxGetApp().sidebar().settings_index();
+    index.sort_options_by_key();
 
     for (const std::string &opt_key : config->keys()) {
         int                   variant_index = -2;
-        Search::Option        option        = searcher.get_option(opt_key, type, variant_index);
+        Search::Option        option        = index.get_option(opt_key, type, variant_index);
         if (variant_index == -2) {
             // Orca: Every transferred setting must remain visible even when it is absent from the search index.
             const ConfigOptionDef* def = print_config_def.get(opt_key);
@@ -1504,8 +1615,8 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, DynamicConfig * config
 
 void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* presets_)
 {
-    Search::OptionsSearcher& searcher = wxGetApp().sidebar().get_searcher();
-    searcher.sort_options_by_key();
+    Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
+    index.sort_options_by_key();
 
     // list of the presets with unsaved changes
     std::vector<PresetCollection*> presets_list;
@@ -1563,21 +1674,17 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
 
         for (const std::string& opt_key : dirty_options) {
             int variant_index = -2;
-            const Search::Option &option = searcher.get_option(opt_key, type, variant_index);
+            const Search::Option &option = index.get_option(opt_key, type, variant_index);
             if (variant_index == -2) {
                 // When founded option isn't the correct one.
                 // It can be for dirty_options: "default_print_profile", "printer_model", "printer_settings_id",
-                // because of they don't exist in searcher
+                // because of they don't exist in the index
                 continue;
             }
             wxString category = option.category_local;
             wxString label = option.label_local;
             if (type == Preset::TYPE_PRINTER && variant_index >= 0 &&
                 printer_options_with_variant_2.count(get_pure_opt_key(opt_key)) > 0) {
-                // Orca: silent_mode is obsolete on import, but its option and two-column UI still exist.
-                // Keep mode labels for configs that explicitly enable it; omit them in the default single-mode UI.
-                if (new_config.opt_bool("silent_mode"))
-                    label += " (" + (variant_index % 2 == 0 ? _L("Normal") : _L("Silent")) + ")";
                 variant_index /= 2;
             }
             if (variant_index >= 0 && extruder_variant && variant_index < extruder_variant->size()) {
@@ -1606,8 +1713,8 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
         }
     }
 
-    // Revert sort of searcher back
-    searcher.sort_options_by_label();
+    // Revert sort of index back
+    index.sort_options_by_label();
 }
 
 void UnsavedChangesDialog::on_dpi_changed(const wxRect& suggested_rect)
@@ -1726,7 +1833,7 @@ FullCompareDialog::FullCompareDialog(const wxString& option_name, const wxString
 }
 
 
-static PresetCollection* get_preset_collection(Preset::Type type, PresetBundle* preset_bundle = nullptr) {
+static PresetCollection* get_preset_collection(Preset::Type type, PresetBundle* preset_bundle) {
     if (!preset_bundle)
         preset_bundle = wxGetApp().preset_bundle;
     return  type == Preset::Type::TYPE_PRINTER      ? &preset_bundle->printers :
@@ -1956,8 +2063,9 @@ DiffPresetDialog::DiffPresetDialog(MainFrame* mainframe)
 
     assert(wxGetApp().preset_bundle);
 
-    m_preset_bundle_left  = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
-    m_preset_bundle_right = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
+    // show() copies the app's bundle into both before anything is displayed.
+    m_preset_bundle_left  = std::make_unique<PresetBundle>();
+    m_preset_bundle_right = std::make_unique<PresetBundle>();
 
     // Create UI items
 
@@ -2059,8 +2167,8 @@ void DiffPresetDialog::update_bottom_info(wxString bottom_info)
 
 void DiffPresetDialog::update_tree()
 {
-    Search::OptionsSearcher& searcher = wxGetApp().sidebar().get_searcher();
-    searcher.sort_options_by_key();
+    Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
+    index.sort_options_by_key();
 
     m_tree->Clear();
     wxString bottom_info = "";
@@ -2116,7 +2224,8 @@ void DiffPresetDialog::update_tree()
 
         preset_combos.equal_bmp->SetToolTip(wxEmptyString);
 
-        m_tree->model->AddPreset(type, "\"" + from_u8(left_preset->name) + "\" vs \"" + from_u8(right_preset->name) + "\"", left_pt);
+        // TRN Header of a preset comparison: the two preset names.
+        m_tree->model->AddPreset(type, format_wxstr(_L("\"%1%\" vs \"%2%\""), left_preset->name, right_preset->name), left_pt);
 
         const std::map<wxString, std::string>& category_icon_map = wxGetApp().get_tab(type)->get_category_icon_map();
         auto get_category_icon = [&category_icon_map](const wxString& key) {
@@ -2140,14 +2249,14 @@ void DiffPresetDialog::update_tree()
             wxString right_val = get_string_value(opt_key, right_congig);
 
             const std::string lookup_key = get_pure_opt_key(opt_key);
-            Search::Option option = searcher.get_option(lookup_key, get_full_label(lookup_key, left_config), type);
+            Search::Option option = index.get_option(lookup_key, get_full_label(lookup_key, left_config), type);
             if (get_pure_opt_key(option.opt_key()) != lookup_key)
-                option = searcher.get_option(opt_key, get_full_label(opt_key, left_config), type);
+                option = index.get_option(opt_key, get_full_label(opt_key, left_config), type);
             if (get_pure_opt_key(option.opt_key()) != lookup_key) {
                 // When the found option is not the requested one.
                 // This can happen for dirty_options such as:
                 // "default_print_profile", "printer_model", "printer_settings_id",
-                // because they do not exist in the searcher.
+                // because they do not exist in the index.
                 continue;
             }
             m_tree->Append(opt_key, type, option.category_local, option.group_local, option.label_local,
@@ -2171,8 +2280,8 @@ void DiffPresetDialog::update_tree()
         Refresh();
     }
 
-    // Revert sort of searcher back
-    searcher.sort_options_by_label();
+    // Revert sort of index back
+    index.sort_options_by_label();
 }
 
 void DiffPresetDialog::on_dpi_changed(const wxRect&)

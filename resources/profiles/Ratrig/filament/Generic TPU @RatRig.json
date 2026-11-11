@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @RatRig",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "RatRig Generic TPU",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "dAIGKmZctSRhP1Lu",
 	"filament_id": "OFgbpcy9",

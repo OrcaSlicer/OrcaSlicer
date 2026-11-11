@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA Silk @Prusa MK4S",
-	"inherits": "Generic PLA @Prusa MK4S",
 	"renamed_from": "Prusa Generic PLA Silk @MK4S;Prusa Generic PLA Silk MK4S",
+	"inherits": "Generic PLA @Prusa MK4S",
 	"from": "system",
 	"setting_id": "9VQ1YVv9EZexIUoF",
 	"filament_id": "OFesA6rF",

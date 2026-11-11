@@ -2,7 +2,11 @@
 
 #include <iostream>
 #include <boost/filesystem.hpp>
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include "libslic3r/libslic3r.h"
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/ElephantFootCompensation.hpp"
 #include "libslic3r/ExPolygon.hpp"
@@ -14,7 +18,7 @@ using namespace Slic3r;
 // #define TESTS_EXPORT_SVGS
 
 namespace Slic3r {
-	ClipperLib::Path mittered_offset_path_scaled(const Points& contour, const std::vector<float>& deltas, double miter_limit);
+	Points mittered_offset_path_scaled(const Points& contour, const std::vector<float>& deltas, double miter_limit);
 }
 
 static ExPolygon spirograph_gear_1mm()

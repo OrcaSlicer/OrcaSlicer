@@ -2,38 +2,89 @@
 #include "GCodeViewer.hpp"
 
 #include "libslic3r/BuildVolume.hpp"
-#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/IMEXHelpers.hpp"
+#include "libslic3r/IMEXZones.hpp"
 //BBS: add convex hull logic for toolpath check
-#include "libslic3r/Geometry/ConvexHull.hpp"
 
 #include "GUI_App.hpp"
-#include "MainFrame.hpp"
+#include "Shortcuts.hpp"
 #include "Plater.hpp"
 #include "Camera.hpp"
 #include "I18N.hpp"
 #include "format.hpp"
-#include "GUI_Utils.hpp"
 #include "GUI.hpp"
 #include "GLCanvas3D.hpp"
 #include "FilamentGroupPopup.hpp"
 #include "GLToolbar.hpp"
-#include "GUI_Preview.hpp"
-#include "libslic3r/Print.hpp"
-#include "libslic3r/Layer.hpp"
-#include "Widgets/ProgressDialog.hpp"
+#include "libslic3r/BeltTransform.hpp"
 #include "MsgDialog.hpp"
+#include <boost/container_hash/hash.hpp>
+#include "slic3r/GUI/MeshUtils.hpp"
+#include <initializer_list>
+#include <set>
+#include <string>
+#include "libvgcode/include/Types.hpp"
+#include <vector>
+#include <utility>
+#include <cstdio>
+#include "libslic3r/Technologies.hpp"
+#include <imgui.h>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/GLModel.hpp"
+#include "slic3r/GUI/GLShader.hpp"
+#include "slic3r/GUI/OpenGLManager.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoUtils.hpp"
+#include "libslic3r/Point.hpp"
+#include <math.h>
+#include "libvgcode/include/Viewer.hpp"
+#include "libvgcode/include/PathVertex.hpp"
+#include <cstddef>
+#include <cstring>
+#include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
+#include <cassert>
+#include <cstdint>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include "slic3r/GUI/IMSlider.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Preset.hpp"
+#include <exception>
+#include <iterator>
+#include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libvgcode/include/GCodeInputData.hpp"
+#include "libvgcode/include/ColorRange.hpp"
+#include <cfloat>
+#include <initializer_list>
+#include <optional>
+#include "libslic3r_version.h"
+#include <wx/busycursor.h>
+#include "libslic3r/Slicing.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Color.hpp"
+#include <map>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/slider.h>
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Event.hpp"
+#include <string_view>
+#include <functional>
+#include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include <imgui/imgui_internal.h>
 
 #include <glad/gl.h>
+#include <boost/functional/hash.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/nowide/cstdio.hpp>
@@ -44,8 +95,22 @@
 
 #include <array>
 #include <algorithm>
+#include <limits>
+#include <sstream>
 #include <cmath>
 #include <chrono>
+#include <Eigen/Geometry>
+#include "libslic3r/AppConfig.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/GCode/ToolOrdering.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
+#include "slic3r/GUI/PartPlate.hpp"
+
+using namespace std::string_view_literals;
+
+namespace Slic3r { class PrintBase; }
 
 
 namespace Slic3r {
@@ -63,6 +128,18 @@ namespace GUI {
 //        _u8L("Tool"),
 //        _u8L("Filament")
 //    };
+
+// ORCA: a translucent filament swatch goes over the checkerboard of the sidebar's clear swatch
+static void add_swatch(ImDrawList* draw_list, const ImVec2& min, const ImVec2& max, const ColorRGBA& color)
+{
+    if (color.is_transparent()) {
+        for (int i = 0; i < 4; ++i)
+            for (int j = 0; j < 4; ++j)
+                draw_list->AddRectFilled(ImLerp(min, max, ImVec2(0.25f * i, 0.25f * j)), ImLerp(min, max, ImVec2(0.25f * (i + 1), 0.25f * (j + 1))),
+                                         (i + j) % 2 == 0 ? IM_COL32_WHITE : IM_COL32(217, 217, 217, 255));
+    }
+    draw_list->AddRectFilled(min, max, ImGuiWrapper::to_ImU32(color));
+}
 
 static std::string get_view_type_string(libvgcode::EViewType view_type)
 {
@@ -102,6 +179,31 @@ static std::string get_view_type_string(libvgcode::EViewType view_type)
     else if (view_type == libvgcode::EViewType::PressureAdvance)
         return _u8L("Pressure Advance");
     return "";
+}
+
+// ORCA: Stable, locale independent names used to persist a view type in the application config.
+// Keep these in sync with the entries of libvgcode::EViewType exposed in the preview combo box.
+static const std::vector<std::pair<std::string, libvgcode::EViewType>>& view_type_config_map()
+{
+    static const std::vector<std::pair<std::string, libvgcode::EViewType>> map = {
+        { "summary",                      libvgcode::EViewType::Summary },
+        { "feature_type",                 libvgcode::EViewType::FeatureType },
+        { "color_print",                  libvgcode::EViewType::ColorPrint },
+        { "speed",                        libvgcode::EViewType::Speed },
+        { "actual_speed",                 libvgcode::EViewType::ActualSpeed },
+        { "acceleration",                 libvgcode::EViewType::Acceleration },
+        { "jerk",                         libvgcode::EViewType::Jerk },
+        { "height",                       libvgcode::EViewType::Height },
+        { "width",                        libvgcode::EViewType::Width },
+        { "volumetric_flow_rate",         libvgcode::EViewType::VolumetricFlowRate },
+        { "actual_volumetric_flow_rate",  libvgcode::EViewType::ActualVolumetricFlowRate },
+        { "layer_time_linear",            libvgcode::EViewType::LayerTimeLinear },
+        { "layer_time_logarithmic",       libvgcode::EViewType::LayerTimeLogarithmic },
+        { "fan_speed",                    libvgcode::EViewType::FanSpeed },
+        { "temperature",                  libvgcode::EViewType::Temperature },
+        { "pressure_advance",             libvgcode::EViewType::PressureAdvance },
+    };
+    return map;
 }
 
 // Find an index of a value in a sorted vector, which is in <z-eps, z+eps>.
@@ -238,7 +340,7 @@ void GCodeViewer::SequentialView::Marker::init(std::string filename)
     } else {
         m_model.init_from_file(filename);
     }
-    m_model.set_color({ 1.0f, 1.0f, 1.0f, 0.5f });
+    m_model.set_color(default_color());
 }
 
 //BBS: GUI refactor: add canvas size from parameters
@@ -480,7 +582,8 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         // "ToolPosition" layout width calculation
         const float axes_spacing_x = ImGui::CalcTextSize("sp").x;                                  // Spacing between axes labels
-        const float axes_width     = ImGui::CalcTextSize("X 999.999").x;                           // Width of the longest possible axis label
+        const char* axes_sample    = m_high_precision_gcode ? "X 999.9999" : "X 999.999";          // The longest possible axis label, see the precision of the position below
+        const float axes_width     = ImGui::CalcTextSize(axes_sample).x;                           // Width of the longest possible axis label
         const float axes_content_w = 3.0f * axes_width + 2.0f * axes_spacing_x;                    // Three axes
         const float speed_width    = ImGui::CalcTextSize((_u8L("Speed: ") + "9999  ").c_str()).x;  // Width of the longest possible speed label
         const float detail_width   = ImGui::CalcTextSize(detail_buf).x;                            // Width of the detail text
@@ -601,7 +704,14 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
                 ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(9.f, 1.f) * m_scale);
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
+
+                ImVec4 scroll_col    = ImVec4(0.77f, 0.77f, 0.77f, m_is_dark ? .6f : 1.0f); // same color with sliced plates toolbar scrollbar
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarBg, ImVec4(0.f, 0.f, 0.f, 0.f)); // ORCA using background color with opacity creates a second color. This prevents secondary color
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, scroll_col);
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabHovered, scroll_col);
+                ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, scroll_col);
                 ImGui::PushStyleColor(ImGuiCol_HeaderHovered , style.Colors[ImGuiCol_TableHeaderBg]);
+
                 const int hover_id = m_actual_speed_imgui_widget.plot("##ActualSpeedProfile", { -1.f, plot_height});
                 const ImGuiTableFlags table_flags = ImGuiTableFlags_Borders | (needs_scroll ? ImGuiTableFlags_ScrollY : 0);
                 if (ImGui::BeginTable("ToolPositionTable", 2, table_flags, ImVec2(0.0f, needs_scroll ? table_view_h : 0.0f))) {
@@ -629,7 +739,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
                     ImGui::EndTable();
                 }
                 ImGui::PopStyleVar(2);
-                ImGui::PopStyleColor(1);
+                ImGui::PopStyleColor(5);
                 imgui.end();
             }
 
@@ -673,10 +783,18 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         ImGui::BeginGroup(); // group contents to make information area more compact
 
-        // ORCA Use colorized axes labels & reduce precision on big scaled prints
-        auto pos       =vertex.position;
-        int  max_value = std::round(std::max(std::max(pos[0], pos[1]),pos[2]));
-        auto precision = max_value > 9999 ? "%.1f" : max_value > 999 ? "%.2f" : "%.3f";
+        // Preview vertices include the plate offset for rendering in scene coordinates.
+        // Show the position relative to the current plate instead.
+        auto pos = vertex.position;
+        const Vec3d plate_origin = wxGetApp().plater()->get_partplate_list().get_curr_plate()->get_origin();
+        pos[0] -= static_cast<float>(plate_origin.x());
+        pos[1] -= static_cast<float>(plate_origin.y());
+
+        // ORCA Use colorized axis labels & reduce precision on large-scale prints,
+        // show one more decimal when the G-code was exported with high precision
+        int  max_value = std::round(std::max(std::max(pos[0], pos[1]), pos[2]));
+        auto precision = m_high_precision_gcode ? (max_value > 9999 ? "%.2f" : max_value > 999 ? "%.3f" : "%.4f")
+                                                : (max_value > 9999 ? "%.1f" : max_value > 999 ? "%.2f" : "%.3f");
 
         char xBuf[32];
         ImGui::TextColored(ImGuiWrapper::to_ImVec4(ColorRGBA::X()),"X ");
@@ -703,7 +821,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         char spdBuf[128];
         sprintf(spdBuf, "%s%.0f ", _u8L("Speed: ").c_str(), vertex.feedrate);
-        ImGuiWrapper::text(spdBuf); // render Speed as differrent item to keep next item in same place
+        ImGuiWrapper::text(spdBuf); // render Speed as different item to keep next item in same place
         
         if (detail_buf[0] != '\0') { // dont render if buffer empty
             ImGui::SameLine(speed_width);
@@ -806,10 +924,16 @@ void GCodeViewer::SequentialView::GCodeWindow::render(float top, float bottom, f
     auto update_lines = [this](uint64_t start_id, uint64_t end_id) {
         std::vector<Line> ret;
         ret.reserve(end_id - start_id + 1);
+        // Orca: m_lines_ends indexes into a memory mapping, so it must be clamped to the mapping. If the
+        // file was modified behind our back (an in-place post-processing script that shrank it), an
+        // unchecked read is an access violation, which the caller's try/catch cannot catch on Windows.
+        const size_t file_size = m_file.size();
         for (uint64_t id = start_id; id <= end_id; ++id) {
             // read line from file
-            const size_t start        = id == 1 ? 0 : m_lines_ends[id - 2];
-            const size_t original_len = m_lines_ends[id - 1] - start;
+            // Keep one entry per id: render() indexes m_lines by (id - start_id).
+            const size_t start = id == 1 ? 0 : std::min(m_lines_ends[id - 2], file_size);
+            const size_t end   = std::min(m_lines_ends[id - 1], file_size);
+            const size_t original_len = end > start ? end - start : 0;
             // A character is four bytes at most, so 55 of them always fit in 220.
             const size_t len          = std::min(original_len, (size_t) 55 * 4);
             std::string  gline(m_file.data() + start, len);
@@ -997,13 +1121,21 @@ void GCodeViewer::SequentialView::GCodeWindow::stop_mapping_file()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": finished mapping file " << m_filename;
     }
 }
-void GCodeViewer::SequentialView::render(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
+void GCodeViewer::SequentialView::render_marker(const bool has_render_path, int canvas_width, int canvas_height, const libvgcode::EViewType& view_type)
 {
     if (has_render_path && m_show_marker) {
         // marker.set_world_offset(current_offset);
         marker.render(canvas_width, canvas_height, view_type);
-        marker.render_position_window(viewer, canvas_width, canvas_height, view_type);
+        // IDEX/IQEX secondary carriage markers
+        for (auto& sec : m_imex_secondary_markers)
+            sec.render(canvas_width, canvas_height, view_type);
     }
+}
+
+void GCodeViewer::SequentialView::render_overlay(const bool has_render_path, float legend_height, const libvgcode::Viewer* viewer, uint32_t gcode_id, int canvas_width, int canvas_height, int right_margin, const libvgcode::EViewType& view_type)
+{
+    if (has_render_path && m_show_marker)
+        marker.render_position_window(viewer, canvas_width, canvas_height, view_type);
 
     //float bottom = wxGetApp().plater()->get_current_canvas3D()->get_canvas_size().get_height();
     // BBS
@@ -1024,6 +1156,7 @@ GCodeViewer::GCodeViewer()
 GCodeViewer::~GCodeViewer()
 {
     reset();
+    release_caster_depth();
     if (m_moves_slider) {
         delete m_moves_slider;
         m_moves_slider = nullptr;
@@ -1057,6 +1190,7 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
         }
     }
 
+    m_marker_filename = filename;
     m_sequential_view.marker.init(filename);
 
     // initializes point sizes
@@ -1087,9 +1221,7 @@ void GCodeViewer::init(ConfigOptionMode mode, PresetBundle* preset_bundle)
     // Default view type at first slice.
     // May be overridden in load() once we know how many tools are actually used in the G-code.
     m_nozzle_nums = preset_bundle ? preset_bundle->get_printer_extruder_count() : 1;
-    auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::FeatureType);
-    m_view_type_sel = (it != view_type_items.end()) ? std::distance(view_type_items.begin(), it) : 0;
-    set_view_type(libvgcode::EViewType::FeatureType);
+    apply_default_view_type();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": finished");
 }
@@ -1108,6 +1240,73 @@ void GCodeViewer::set_scale(float scale)
         m_sequential_view.marker.m_scale = scale;
         m_sequential_view.gcode_window.m_scale = scale; // ORCA
     }
+}
+
+// ORCA: Preview default view type preference, see "preview_default_view_type" in the application config.
+std::string GCodeViewer::view_type_to_config_name(libvgcode::EViewType type)
+{
+    for (const auto& [name, value] : view_type_config_map()) {
+        if (value == type)
+            return name;
+    }
+    return std::string();
+}
+
+bool GCodeViewer::view_type_from_config_name(const std::string& name, libvgcode::EViewType& type)
+{
+    for (const auto& [config_name, value] : view_type_config_map()) {
+        if (config_name == name) {
+            type = value;
+            return true;
+        }
+    }
+    return false;
+}
+
+std::vector<std::pair<std::string, std::string>> GCodeViewer::default_view_type_choices()
+{
+    std::vector<std::pair<std::string, std::string>> choices = {
+        { "auto", _u8L("Automatic") },
+        { "last", _u8L("Last used") },
+    };
+    for (const auto& [name, type] : view_type_config_map())
+        choices.push_back({ name, get_view_type_string(type) });
+    return choices;
+}
+
+void GCodeViewer::select_view_type(libvgcode::EViewType type)
+{
+    auto it = std::find(view_type_items.begin(), view_type_items.end(), type);
+    m_view_type_sel = (it != view_type_items.end()) ? static_cast<int>(std::distance(view_type_items.begin(), it)) : 0;
+    set_view_type(type);
+}
+
+// ORCA: Pick the view type the preview opens with, following the "preview_default_view_type" preference:
+// a fixed view type, the one the user picked last ("last"), or the automatic choice ("auto", the default)
+// which shows Filament for multi material prints and Line Type for single material ones.
+// The default is only (re)applied when it actually changes, so a view type picked by hand survives a reslice.
+void GCodeViewer::apply_default_view_type()
+{
+    const std::string preference = wxGetApp().app_config->get("preview_default_view_type");
+
+    std::string key = preference;
+    libvgcode::EViewType type = libvgcode::EViewType::FeatureType;
+    if (preference == "last") {
+        if (!view_type_from_config_name(wxGetApp().app_config->get("preview_last_view_type"), type))
+            type = libvgcode::EViewType::FeatureType;
+    }
+    else if (!view_type_from_config_name(preference, type)) {
+        // "auto", or an unknown value written by a newer version
+        const bool multi_material = m_viewer.get_used_extruders_count() > 1;
+        type = multi_material ? libvgcode::EViewType::ColorPrint : libvgcode::EViewType::FeatureType;
+        key = multi_material ? "auto_multi_material" : "auto_single_material";
+    }
+
+    if (m_applied_default_view_type_key == key)
+        return;
+
+    m_applied_default_view_type_key = key;
+    select_view_type(type);
 }
 
 void GCodeViewer::update_by_mode(ConfigOptionMode mode)
@@ -1168,36 +1367,42 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 {
     m_loaded_as_preview = false;
 
+    // Belt printers: drive the designed/raw view UI (legend checkbox, hotkey B, canvas-toolbar
+    // menu item) from the G-code itself. Only BeltGCode writes the belt header, so its tilt
+    // (gcode_result.belt_tilt_angle, abs of the slicing rotation) says whether this is belt
+    // G-code; the selected printer does not, for a file opened from disk. The back-transform
+    // below still reads print.config(), which Plater::load_gcode() fills from the file's own
+    // config block (GCodeProcessor::export_config_for_render).
+    m_belt_view_enabled = gcode_result.belt_tilt_angle > 0.f;
+    m_belt_angle_deg    = gcode_result.belt_tilt_angle;
+
+    // The tool position readout shows coordinates with the precision the G-code was exported with.
+    // For a file opened from disk, print.config() holds the value from its config block as well.
+    m_sequential_view.marker.set_high_precision_gcode(print.config().high_precision_gcode.value);
+
     const bool current_top_layer_only = m_viewer.is_top_layer_only_view_range();
     const bool required_top_layer_only = get_app_config()->get_bool("seq_top_layer_only");
     if (current_top_layer_only != required_top_layer_only)
         m_viewer.toggle_top_layer_only_view_range();
 
+    read_reduced_detail_preferences();
+
     // ORCA: darken the layers the preview layer slider is not scrubbed to
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
     m_viewer.set_dim_previous_layers_brightness(0.01f * std::stoi(get_app_config()->get("preview_dim_previous_layers_brightness")));
+    m_viewer.set_translucent_filaments(get_app_config()->get_bool("preview_translucent_filaments"));
 
-    // avoid processing if called with the same gcode_result
-    if (m_last_result_id == gcode_result.id && wxGetApp().is_editor()) {
+    // avoid processing if called with the same gcode_result.
+    // On a belt printer the toolpath geometry fed to libvgcode also depends on the
+    // designed/raw view state (the back-transform is applied in convert), so the
+    // same result is converted again only when that view has been toggled.
+    const bool same_belt_view = !m_belt_view_enabled || m_last_belt_show_designed == m_belt_show_designed;
+    if (m_last_result_id == gcode_result.id && wxGetApp().is_editor() && same_belt_view) {
         //BBS: add logs
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": the same id %1%, return directly, result %2% ") % m_last_result_id % (&gcode_result);
 
-        // collect tool colors
-        libvgcode::Palette tools_colors;
-        tools_colors.reserve(str_tool_colors.size());
-        for (const std::string& color : str_tool_colors) {
-            tools_colors.emplace_back(libvgcode::convert(color));
-        }
-        m_viewer.set_tool_colors(tools_colors);
-
-        // collect color print colors
-        libvgcode::Palette color_print_colors;
-        const std::vector<std::string>& str_colors = str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors;
-        color_print_colors.reserve(str_colors.size());
-        for (const std::string& color : str_colors) {
-            color_print_colors.emplace_back(libvgcode::convert(color));
-        }
-        m_viewer.set_color_print_colors(color_print_colors);
+        m_viewer.set_tool_colors(libvgcode::convert_filament_colors(str_tool_colors));
+        m_viewer.set_color_print_colors(libvgcode::convert_filament_colors(str_color_print_colors.empty() ? str_tool_colors : str_color_print_colors));
         return;
     }
 
@@ -1218,9 +1423,122 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         wxGetApp().plater()->schedule_background_process();
         return;
     }
+    m_plate_mass    = gcode_result.plate_mass;
+    m_object_masses = gcode_result.object_masses;
+    m_body_masses   = gcode_result.body_masses;
+    m_support_masses = gcode_result.support_masses;
 
-    // convert data from PrusaSlicer format to libvgcode format
-    libvgcode::GCodeInputData data = libvgcode::convert(gcode_result, str_tool_colors, str_color_print_colors, m_viewer);
+    // convert data from PrusaSlicer format to libvgcode format.
+    // Belt printers: when the designed (upright) view is active, back-transform
+    // the toolpath geometry into model/Cartesian space using the general belt
+    // inverse (handles the mesh rotation, shear and axis remap). When off, the
+    // raw machine-frame G-code is shown (useful for checking the transform itself).
+    const bool is_belt = m_belt_view_enabled && print.config().belt_printer.value;
+    Transform3d belt_inv = (is_belt && m_belt_show_designed)
+        ? BeltTransformPipeline::build_gcode_back_transform(print.config()) : Transform3d::Identity();
+    // Belt: move positions are stored as gcode_Z + belt_z_origin (the start G-code's
+    // purge-blob advance baked into the machine-Z origin by its G92 Z0 resets). Subtract
+    // that constant before the linear back-transform so every toolpath maps to the model's
+    // belt coordinate. Without it the back-transform mixes the offset with the gantry-Y
+    // term, leaving a per-move designed-Y error that min-corner anchoring cannot remove
+    // when a bridge/keel move happens to cancel it at the bbox minimum.
+    if (is_belt && m_belt_show_designed && gcode_result.belt_z_origin != 0.0f)
+        belt_inv = belt_inv * Transform3d(Eigen::Translation3d(Vec3d(0.0, 0.0, -double(gcode_result.belt_z_origin))));
+    const bool apply_belt = is_belt && m_belt_show_designed
+        && !belt_inv.matrix().isApprox(Transform3d::Identity().matrix());
+    if (apply_belt) {
+        // The linear belt back-transform recovers the print's shape and orientation but not
+        // the per-object placement/lift translation: the object's position on the belt, the
+        // BeltSliceStrategy min-Z lift, and the centering pre-translate are applied OUTSIDE
+        // build_forward_transform() (see PrintObjectSlice.cpp), so its linear inverse leaves
+        // them un-undone. Uncorrected, the upright toolpaths float a fixed offset from the
+        // model shell. Recover the translation generally — independent of the offset's exact
+        // source or the axis remap — by anchoring the back-transformed object body onto the
+        // upright model bounding box (the same space the shells render in).
+        BoundingBoxf3 model_bb;
+        for (const PrintObject* po : print.objects())
+            for (const ModelInstance* mi : po->model_object()->instances)
+                model_bb.merge(po->model_object()->instance_bounding_box(*mi));
+        // Build the anchor bbox from surface toolpaths only. After the belt_z_origin
+        // correction the surface back-transforms onto the model, but a few elevated
+        // features (bridges/overhangs over the chevron gap) are mis-mapped by the linear
+        // inverse to well outside the model body; if one becomes the bbox minimum it
+        // drags the min-corner anchor by ~20mm. Drop moves that land clearly outside the
+        // (correct) model bbox — a geometric filter, not a role guess.
+        // Tolerance around the model bbox for outlier rejection, and the minimum fraction
+        // of MOVES (by count) the clip must retain before we trust it over the full bbox.
+        // Count, not bbox extent: a single far-flung outlier move (e.g. a belt-entry purge
+        // that maps to y~0) inflates the full bbox so much that a size-fraction test would
+        // wrongly reject the clip and re-include the outlier, dragging the min-corner anchor
+        // by ~the offset. By count the clip keeps ~100% of moves here and ~0% only when the
+        // object is genuinely offset from the belt entry (the real fall-back-to-full case).
+        constexpr double ANCHOR_CLIP_MARGIN_MM   = 10.0;
+        constexpr double ANCHOR_CLIP_MIN_KEEP    = 0.5;
+        BoundingBoxf3 tp_bb_clip, tp_bb_full;
+        size_t n_filtered = 0, n_clip = 0;
+        const double y_lo = model_bb.defined ? model_bb.min.y() - ANCHOR_CLIP_MARGIN_MM : -1e30;
+        const double y_hi = model_bb.defined ? model_bb.max.y() + ANCHOR_CLIP_MARGIN_MM :  1e30;
+        // The anchor aligns the toolpath body onto the object-only model bbox, so it must be
+        // built from OBJECT-body toolpaths only. Support, skirt, brim and wipe-tower extrusions
+        // are not part of the model mesh and extend past it (support especially reaches well
+        // beyond the object on a belt), so including them drags tp_bb.min and shifts the whole
+        // back-transformed g-code off the mesh — but only when those features are present. That
+        // is the "g-code shifts vs mesh as soon as supports are enabled" bug. Filter them out.
+        auto is_object_body = [](ExtrusionRole r) {
+            return r != erSupportMaterial && r != erSupportMaterialInterface
+                && r != erSupportTransition
+                && r != erSkirt && r != erBrim && r != erWipeTower;
+        };
+        auto accumulate = [&](bool body_only) {
+            tp_bb_clip = BoundingBoxf3();
+            tp_bb_full = BoundingBoxf3();
+            n_filtered = 0;
+            n_clip     = 0;
+            for (const GCodeProcessorResult::MoveVertex& mv : gcode_result.moves)
+                if (mv.type == EMoveType::Extrude && mv.layer_id >= 1 // skip layer-0 prime/skirt
+                    && (!body_only || is_object_body(mv.extrusion_role))) {
+                    ++n_filtered;
+                    const Vec3d p = belt_inv * mv.position.cast<double>();
+                    tp_bb_full.merge(p);
+                    if (p.y() >= y_lo && p.y() <= y_hi) {
+                        tp_bb_clip.merge(p);
+                        ++n_clip;
+                    }
+                }
+        };
+        accumulate(/*body_only=*/true);
+        // Fallback: a plate with no object-body extrusions above layer 0 (e.g. a
+        // support-only object) would leave tp_bb undefined and silently skip the
+        // anchor. Re-accumulate over ALL extrude moves so the min-corner anchor is
+        // still computed rather than letting the preview float by the placement offset.
+        if (n_filtered == 0)
+            accumulate(/*body_only=*/false);
+        // Use the clipped bbox when it still holds the bulk of the moves (outliers removed).
+        // If the object sits far from the belt entry the toolpaths are grossly offset and the
+        // clip drops most of them — fall back to the full bbox so the min-corner anchor still
+        // recovers that gross translation rather than breaking.
+        const BoundingBoxf3& tp_bb =
+            (tp_bb_clip.defined && n_filtered > 0 &&
+             double(n_clip) >= ANCHOR_CLIP_MIN_KEEP * double(n_filtered)) ? tp_bb_clip : tp_bb_full;
+        if (model_bb.defined && tp_bb.defined) {
+            // Anchor the back-transformed toolpath body onto the upright model bbox by
+            // its MIN corner. (Center anchoring was tried and regressed when the toolpath
+            // and model bounding boxes differ in extent.) With the belt_z_origin
+            // correction above and the outlier-robust bbox below, the surface overlaps the
+            // shell to well under a millimetre when the object is at the belt entry; an
+            // object placed elsewhere in global-rotation mode still carries the placement
+            // translation, which this min-corner step recovers.
+            const Vec3d d = model_bb.min - tp_bb.min;
+            belt_inv = Transform3d(Eigen::Translation3d(d)) * belt_inv;
+        }
+        // The masses into the toolpaths' frame.
+        m_plate_mass.transform(belt_inv);
+        for (std::vector<GCodeProcessorResult::ObjectMass>* masses : { &m_object_masses, &m_body_masses, &m_support_masses })
+            for (GCodeProcessorResult::ObjectMass& mass : *masses)
+                mass.transform(belt_inv);
+    }
+    libvgcode::GCodeInputData data = libvgcode::convert(gcode_result, str_tool_colors, str_color_print_colors, m_viewer,
+        apply_belt ? &belt_inv : nullptr);
 
 //#define ENABLE_DATA_EXPORT 1
 //#if ENABLE_DATA_EXPORT
@@ -1318,6 +1636,40 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_viewer.reset_default_extrusion_roles_colors();
     m_viewer.load(std::move(data));
 
+    // Belt printers: libvgcode labels a layer with the height of its toolpaths, which
+    // on a tilted layer is wherever its last extrusion happened to end, and the layer
+    // slider looks its labels and the colour-change ticks up in that list assuming it
+    // increases.  Give it the layers' print Z instead (the slicer's layer Z, which
+    // increases along the belt), numbered the way libvgcode::convert() numbers the
+    // layers: consecutively over the moves that exist.
+    m_belt_layer_zs.clear();
+    if (is_belt) {
+        unsigned int src_layer_id = std::numeric_limits<unsigned int>::max();
+        for (size_t i = 1; i < gcode_result.moves.size(); ++ i) {
+            const GCodeProcessorResult::MoveVertex &mv = gcode_result.moves[i];
+            if (mv.layer_id != src_layer_id) {
+                src_layer_id = mv.layer_id;
+                m_belt_layer_zs.emplace_back(double(mv.print_z));
+            }
+        }
+        if (m_belt_layer_zs.size() != m_viewer.get_layers_count())
+            m_belt_layer_zs.clear();
+    }
+
+    // The solid model is cut at the heights of the layer range's ends, which bound the range only
+    // if the layers never drop: printed object by object, the heights start over with each object.
+    // Two layers may share a height, as layers of objects with different layer heights can.
+    m_layers_z_rising = true;
+    float prev_z = 0.0f;
+    for (size_t i = 0; i < m_viewer.get_layers_count() && m_layers_z_rising; ++i) {
+        const float z = m_viewer.get_layer_z(i);
+        // a layer with no extrusion has no height
+        if (z == 0.0f)
+            continue;
+        m_layers_z_rising = z >= prev_z;
+        prev_z = z;
+    }
+
 // #if !VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 //     const size_t vertices_count = m_viewer.get_vertices_count();
 //     m_cog.reset();
@@ -1349,14 +1701,26 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             libvgcode::EGCodeExtrusionRole::SupportTransition, libvgcode::EGCodeExtrusionRole::Mixed
             });
     m_paths_bounding_box = BoundingBoxf3(libvgcode::convert(bbox[0]).cast<double>(), libvgcode::convert(bbox[1]).cast<double>());
+    m_max_bounding_box = m_paths_bounding_box;
 
-    if (wxGetApp().is_editor())
-        m_contained_in_bed = wxGetApp().plater()->build_volume().all_paths_inside(gcode_result, m_paths_bounding_box);
+    if (wxGetApp().is_editor()) {
+        if (is_belt) {
+            // The moves are machine-frame coordinates (Z is belt travel), so the per-move
+            // test inside all_paths_inside() can never pass on a belt. Judge the
+            // back-transformed box instead, with room for the designed view's min-corner
+            // anchor, which is only accurate to a fraction of a millimetre.
+            BoundingBoxf3 bed = wxGetApp().plater()->build_volume().bounding_volume();
+            bed.offset(1.);
+            m_contained_in_bed = !m_paths_bounding_box.defined || (bed.contains(m_paths_bounding_box.min) && bed.contains(m_paths_bounding_box.max));
+        } else
+            m_contained_in_bed = wxGetApp().plater()->build_volume().all_paths_inside(gcode_result, m_paths_bounding_box);
+    }
 
     m_extruders_count = gcode_result.filaments_count;
 
     //BBS: move the id to the end of reset
     m_last_result_id = gcode_result.id;
+    m_last_belt_show_designed = m_belt_show_designed;
     m_gcode_result = &gcode_result;
     m_move_type_counts.fill(0);
     for (auto& move_type_times : m_move_type_times)
@@ -1387,34 +1751,21 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         m_custom_gcode_per_print_z = gcode_result.custom_gcode_per_print_z;
 
     m_max_print_height = gcode_result.printable_height;
+    m_machine_frame_transform_active = gcode_result.machine_frame_transform_active;
     m_z_offset = gcode_result.z_offset;
+
 
     // load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
     
-    // ORCA: Apply smart default view type when extruder count changes.
-    // Multi-color: ColorPrint (Filament), Single-color: FeatureType (Line Type).
-    // User selections persist within same extruder count, defaults reapply on count change.
-    int current_count = m_viewer.get_used_extruders_count();
-    if (current_count > 1) {
-        if (m_last_extruder_count_default_applied != 2) {
-            auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::ColorPrint);
-            if (it != view_type_items.end())
-                m_view_type_sel = std::distance(view_type_items.begin(), it);
-            set_view_type(libvgcode::EViewType::ColorPrint);
-            m_last_extruder_count_default_applied = 2;
-        }
-    } else {
-        if (m_last_extruder_count_default_applied != 1) {
-            auto it = std::find(view_type_items.begin(), view_type_items.end(), libvgcode::EViewType::FeatureType);
-            if (it != view_type_items.end())
-                m_view_type_sel = std::distance(view_type_items.begin(), it);
-            set_view_type(libvgcode::EViewType::FeatureType);
-            m_last_extruder_count_default_applied = 1;
-        }
-    }
+    // ORCA: Apply the default view type now that we know how many tools the G-code actually uses.
+    apply_default_view_type();
 
     // BBS: data for rendering color arrangement recommendation
     m_nozzle_nums = print.config().option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+    // the shell drag mode hides the infill only where the profile covers it: with no top or bottom
+    // shell, or no walls, the infill is the surface. Per-object settings are not consulted.
+    const PrintRegionConfig& region = print.default_region_config();
+    m_viewer.set_reduced_detail_hide_infill(region.top_shell_layers.value > 0 && region.bottom_shell_layers.value > 0 && region.wall_loops.value > 0);
     // Orca hack: Hide filament group for non-bbl printers
     if (!print.is_BBL_printer()) m_nozzle_nums = 1;
     std::vector<int>         filament_maps = print.get_filament_maps();
@@ -1441,7 +1792,9 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     }
     else {*/
     //BBS: add only gcode mode
-    if (m_only_gcode_in_preview) {
+    // When the file's own settings were loaded into the presets, the bed already is the file's, with the
+    // model and texture of a user or custom printer too, which the lookup below cannot resolve.
+    if (m_only_gcode_in_preview && !wxGetApp().plater()->gcode_settings_loaded()) {
         Pointfs printable_area;
         //BBS: add bed exclude area
         Pointfs bed_exclude_area = Pointfs();
@@ -1534,6 +1887,10 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
 void GCodeViewer::load_as_preview(libvgcode::GCodeInputData&& data)
 {
     m_loaded_as_preview = true;
+    m_plate_mass = {};
+    m_object_masses.clear();
+    m_body_masses.clear();
+    m_support_masses.clear();
 
     m_move_type_counts.fill(0);
     for (auto& move_type_times : m_move_type_times)
@@ -1585,6 +1942,7 @@ void GCodeViewer::reset_shell()
 {
     m_shells.volumes.clear();
     m_shells.print_id = -1;
+    m_shells.with_wipe_tower = false;
     m_shell_bounding_box = BoundingBoxf3();
 }
 
@@ -1593,6 +1951,7 @@ void GCodeViewer::reset()
     //BBS: should also reset the result id
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": current result id %1% ")%m_last_result_id;
     m_last_result_id = -1;
+    m_belt_layer_zs.clear();
     //BBS: add only gcode mode
     m_only_gcode_in_preview = false;
 
@@ -1601,6 +1960,7 @@ void GCodeViewer::reset()
     m_paths_bounding_box = BoundingBoxf3();
     m_max_bounding_box = BoundingBoxf3();
     m_max_print_height = 0.0f;
+    m_machine_frame_transform_active = false;
     m_z_offset = 0.0f;
     m_extruders_count = 0;
     m_filament_diameters = std::vector<float>();
@@ -1611,22 +1971,724 @@ void GCodeViewer::reset()
     m_move_type_distances.fill(0.0f);
     m_print_statistics.reset();
     m_custom_gcode_per_print_z = std::vector<CustomGCode::Item>();
+    m_plate_mass = {};
+    m_object_masses.clear();
+    m_body_masses.clear();
+    m_support_masses.clear();
     m_left_extruder_filament.clear();
     m_right_extruder_filament.clear();
     m_sequential_view.gcode_window.reset();
     m_contained_in_bed = true;
 }
 
+// IDEX/IQEX: resolve where every secondary carriage marker sits, relative to the primary,
+// for one (printer preset, active mode, plate bed) triple. This parses the mode string
+// several times over and rebuilds the zone grid, and every one of its inputs is preset or
+// plate state, so render_scene() runs it only when GCodeViewer::ImexMarkerKey changes and replays
+// the returned plan on all the frames in between.
+//
+// `mode` is already resolved (the plate's mode beats the process preset). An empty
+// `carriages` list means "no secondary markers for this configuration" — IMEX off in this
+// mode, firmware-managed zones, or a mode whose roster has no zone-owning secondary.
+GCodeViewer::ImexMarkerPlan GCodeViewer::resolve_imex_marker_plan(const DynamicPrintConfig& printer_cfg,
+                                                                  const std::string&        mode,
+                                                                  const BoundingBoxf&       bed_extents)
+{
+    ImexMarkerPlan plan;
+
+    // Firmware-managed-zones centers the slice at bed origin, so prim_pos
+    // and the preview toolpaths sit in a shifted frame relative to the
+    // plate-local bed bounds the zone math uses. Computing secondaries here
+    // would place them off-bed. The firmware physically fans the centered
+    // toolpath out into the zones, so the centered preview with no
+    // secondaries is the honest representation.
+    if (imex_cfg_bool(printer_cfg, "imex_firmware_managed_zones"))
+        return plan;
+    if (mode.empty() || mode == kImexPrimaryMode)
+        return plan;
+
+    // Only the gantry grouping and the mirror axis are decided here; the zone grid itself comes
+    // from compute_imex_zone_layout() below, which reads the same keys through the same accessor.
+    const int tools_per_gantry = std::max(1, imex_cfg_int(printer_cfg, "imex_tools_per_gantry"));
+    plan.box_wx = (float)imex_cfg_float(printer_cfg, "imex_nozzle_clearance_x");
+    plan.box_wy = (float)imex_cfg_float(printer_cfg, "imex_nozzle_clearance_y");
+
+    // Parse "idx:P/C/M" via shared helpers — matches PartPlate::calc_imex_zones.
+    // The role travels as an ImexRole all the way to the marker placement
+    // below; there is no int encoding in between, so a role added to the enum
+    // cannot silently fall into the "not Mirror, therefore Copy" branch.
+    int pri_tool = -1;
+    std::vector<int> sec_tool_ids;
+    std::map<int, ImexRole> sec_tool_roles; // tool_id -> Copy or Mirror
+    std::set<int>     sec_aggregated;  // representatives standing in for a whole gantry
+    {
+        // Same lookup rule as PartPlate's zones and ghosts, and as the slicer:
+        // an unresolved mode, and a mode the tools array is too short to cover,
+        // both come back empty and leave the marker roster empty.
+        const std::string entry = find_imex_mode(printer_cfg, mode).active_tools;
+        pri_tool = imex_primary_tool_for_mode(entry);
+        // Aggregate per gantry via the same source of truth as PartPlate's
+        // zone/ghost aggregation: in Span modes only one tool prints per
+        // zone at a time, so a non-primary gantry collapses to one
+        // representative marker. Non-Span gantries keep per-tool markers.
+        const ImexGantryGrouping grouping =
+            group_imex_active_tools_by_gantry(entry, tools_per_gantry);
+        auto add_tool = [&](int phys_idx, ImexRole role, bool aggregated) {
+            if (phys_idx < 0 || phys_idx == pri_tool) return;
+            // Only Copy and Mirror print in a zone of their own, so only they
+            // get a marker. Exhaustive with no default so -Wswitch makes a new
+            // role answer "does this carriage get its own marker?" rather than
+            // defaulting into a Copy-shaped one.
+            switch (role) {
+            case ImexRole::Copy:
+            case ImexRole::Mirror:
+                break;
+            case ImexRole::Primary:  // not a secondary carriage
+            case ImexRole::Span:     // rides in the primary's zone
+                return;
+            }
+            sec_tool_roles[phys_idx] = role;
+            sec_tool_ids.push_back(phys_idx);
+            if (aggregated) sec_aggregated.insert(phys_idx);
+        };
+        // Out-of-grid tool indices (a stale mode string carried over from a
+        // printer with more tools) are handled inconsistently by the code we
+        // must agree with: compute_imex_zone_layout drops them, so they own no
+        // zone, while calc_imex_ghosts still bakes a ghost for them. No single
+        // policy matches both, so the marker roster is left exactly as it was
+        // and such a tool simply falls back to the first zone below. Clamping
+        // pri_tool instead is a trap: the -1 sentinel truncates to gantry 0 in
+        // imex_mirror_axis_for and flips the marker to the opposite mirror
+        // axis from the ghost. It is also why the layout's own `primary_head`
+        // cannot stand in for `pri_tool` here — the layout reports -1 for an
+        // off-grid primary, this roster has to keep the authored index.
+        for (const auto& grp : grouping.groups) {
+            // Markers: an aggregated non-primary gantry shows only its rep.
+            if (grp.aggregate && grp.gantry_index != grouping.primary_gantry)
+                add_tool(grp.representative_phys, grp.representative_role, true);
+            else
+                for (const auto& [phys_idx, role] : grp.tools)
+                    add_tool(phys_idx, role, false);
+        }
+    }
+    const int sec_count = (int)sec_tool_ids.size();
+    if (sec_count == 0)
+        return plan;
+
+    // The zone grid is not re-derived here: this is the same call
+    // PartPlate::calc_imex_zones() makes, with the same printer config and the
+    // same bed extents, so the preview and the plate cannot place a tool
+    // differently for the same mode. The T0-corner flips, the active
+    // column/row sets and the zone pitch all live inside the library; the
+    // markers need nothing from it but `head_zone_centers`.
+    // `mode` is already resolved (per-plate mode beats the process preset),
+    // so it goes in as the plate mode with no process fallback.
+    const ImexZoneLayout zone_layout =
+        compute_imex_zone_layout(printer_cfg, mode, std::string(), bed_extents);
+
+    // Centre of zone (0,0), the fallback for any head the layout gave no zone —
+    // a mode string naming a tool outside this printer's grid. Zone indices are
+    // dense, so the lowest centre on each axis IS zone 0's. An empty layout
+    // means one undivided zone, whose centre is the bed's.
+    Vec2d zone0_center = bed_extents.center();
+    if (!zone_layout.head_zone_centers.empty()) {
+        zone0_center = zone_layout.head_zone_centers.begin()->second;
+        for (const auto& head_center : zone_layout.head_zone_centers) {
+            zone0_center.x() = std::min(zone0_center.x(), head_center.second.x());
+            zone0_center.y() = std::min(zone0_center.y(), head_center.second.y());
+        }
+    }
+    auto zone_center_of = [&](int tid) -> Vec2d {
+        auto it = zone_layout.head_zone_centers.find(tid);
+        return (it == zone_layout.head_zone_centers.end()) ? zone0_center : it->second;
+    };
+    const Vec2d pri_center = zone_center_of(pri_tool);
+
+    // An aggregated gantry's zone is a full-X row strip with no column of its
+    // own, so its marker tracks primary's X. calc_imex_ghosts() reaches the same
+    // zero X offset by putting both frames on the bed centreline; for a single
+    // marker, pinning the centre says it directly.
+    auto sec_center_of = [&](int tid) -> Vec2d {
+        Vec2d c = zone_center_of(tid);
+        if (sec_aggregated.count(tid))
+            c.x() = pri_center.x();
+        return c;
+    };
+
+    // Primary carriage box: seeded from whether primary holds the leftmost zone
+    // column, then turned by any secondary sitting to one side of it.
+    plan.pri_box_offset_x = (pri_center.x() <= zone0_center.x()) ? 0.0f : -plan.box_wx;
+    plan.pri_box_offset_y = -plan.box_wy;
+    for (int i = 0; i < sec_count; ++i) {
+        const Vec2d sc = sec_center_of(sec_tool_ids[i]);
+        if      (sc.x() > pri_center.x()) { plan.pri_box_offset_x = 0.0f;         }
+        else if (sc.x() < pri_center.x()) { plan.pri_box_offset_x = -plan.box_wx; }
+        if      (sc.y() > pri_center.y()) { plan.pri_box_offset_y = 0.0f;         }
+        else if (sc.y() < pri_center.y()) { plan.pri_box_offset_y = -plan.box_wy; }
+    }
+
+    plan.pri_head = pri_tool;
+    plan.carriages.reserve(sec_count);
+    for (int i = 0; i < sec_count; ++i) {
+        const int   sec_tool   = sec_tool_ids[i];
+        const Vec2d sec_center = sec_center_of(sec_tool);
+        const ImexRole sec_role = sec_tool_roles[sec_tool];
+
+        // A carriage stays inside its own zone; a Mirror reflects its
+        // zone-relative offset about that zone's centerline, on the axis of the
+        // boundary it shares with primary — the same rule the ghosts use:
+        //   Copy                  → tracks primary on both axes.
+        //   Mirror, same gantry   → reflect X (zones sit side by side).
+        //   Mirror, other gantry  → reflect Y (zones sit front-to-back); X
+        //                           tracks primary, since the part off that
+        //                           gantry is a Y-reflection of the tool
+        //                           directly behind it.
+        // The axis comes from the shared helper, so the markers can never drift
+        // out of step with the plate ghosts.
+        const bool is_mirror    = (sec_role == ImexRole::Mirror);
+        const bool cross_gantry = imex_mirror_axis_for(pri_tool, sec_tool,
+                                                       tools_per_gantry) == ImexMirrorAxis::Y;
+
+        // Tracking an axis translates by the gap between the two zone centres.
+        // Mirroring it reflects primary about the midpoint of those centres —
+        // the zones being equal-sized, that midpoint is the boundary between
+        // them, so the carriage still lands inside its own zone. Both are a
+        // single term applied to the live primary position each frame:
+        // `term - pos` when mirrored, `pos + term` when tracked.
+        ImexMarkerPlan::Carriage carriage;
+        carriage.phys_head = sec_tool;
+        carriage.mirror_x = is_mirror && !cross_gantry;
+        carriage.mirror_y = is_mirror &&  cross_gantry;
+        carriage.x_term   = carriage.mirror_x ? (float)(sec_center.x() + pri_center.x())
+                                              : (float)(sec_center.x() - pri_center.x());
+        carriage.y_term   = carriage.mirror_y ? (float)(sec_center.y() + pri_center.y())
+                                              : (float)(sec_center.y() - pri_center.y());
+
+        // The box shows the side a toolhead could COLLIDE from, not merely which
+        // way its body hangs. Tools sharing a gantry share an X rail and can
+        // actually run into each other, and only in a same-gantry (X-axis) mirror
+        // do they converge — so that is the one case where the secondary's box
+        // flips to face the primary. Tools on different gantries cannot collide
+        // in X at all, so a cross-gantry mirror keeps the primary's facing, the
+        // same as a Copy. Do not "fix" this to follow carriage geometry: a box on
+        // the far side would point away from the only tool it can hit.
+        if (is_mirror && !cross_gantry) {
+            if      (sec_center.x() > pri_center.x()) carriage.box_offset_x = -plan.box_wx;
+            else if (sec_center.x() < pri_center.x()) carriage.box_offset_x = 0.0f;
+            else                                      carriage.box_offset_x = plan.pri_box_offset_x;
+        } else {
+            carriage.box_offset_x = plan.pri_box_offset_x;
+        }
+        // Y follows the same collision rule: face the gantry you could hit. A tool
+        // on ANOTHER row faces the primary's row; a tool on the primary's OWN row
+        // shares its gantry and can only hit the same other gantry, so it faces
+        // wherever the primary faces. The old `else` hardcoded -imex_box_wy, which
+        // happens to equal pri_box_offset_y on the rear-* layouts (primary's row
+        // sits above the others, so the loop above settles on -box_wy anyway)
+        // — hence a no-op there. On the front-* layouts the primary flips to 0.0f
+        // and the hardcoded value pointed the same-gantry secondary away from the
+        // only tools it could run into.
+        if      (sec_center.y() > pri_center.y()) carriage.box_offset_y = -plan.box_wy;
+        else if (sec_center.y() < pri_center.y()) carriage.box_offset_y = 0.0f;
+        else                                      carriage.box_offset_y = plan.pri_box_offset_y;
+
+        plan.carriages.push_back(carriage);
+    }
+
+    return plan;
+}
+
 //BBS: GUI refactor: add canvas width and height
-void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
+void GCodeViewer::render_scene(int canvas_width, int canvas_height)
 {
     glsafe(::glEnable(GL_DEPTH_TEST));
-    render_shells(canvas_width, canvas_height);
+    render_shells();
+    // while dragging in the solid model mode, the objects stand in for their toolpaths, cut to the
+    // visible layer range; the toolpath set then holds only the range's bottom and top layers
+    if (m_viewer.is_reduced_detail() && solid_model_enabled())
+        render_solid_model(canvas_width, canvas_height);
 
-    if (m_viewer.get_extrusion_roles().empty())
+    if (m_viewer.get_extrusion_roles_count() == 0)
         return;
 
     render_toolpaths();
+    // ORCA: the markers write depth, which would hide the translucent toolpaths behind them
+    if (!m_viewer.has_translucent_toolpaths())
+        render_markers(canvas_width, canvas_height);
+}
+
+void GCodeViewer::render_markers(int canvas_width, int canvas_height)
+{
+    auto current = m_viewer.get_view_visible_range();
+    auto endpoints = m_viewer.get_view_full_range();
+    m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
+    const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
+    m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
+    m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
+
+    // IDEX/IQEX: compute all carriage positions; update secondary nozzle markers;
+    // carriage_box_draws is populated for toolhead footprint rendering after render_marker().
+    // Okabe-Ito colorblind-safe palette — excludes orange (#E69F00) and sky blue (#56B4E9)
+    // which are used by the bed zone fills, ensuring the markers contrast against the background.
+    // It identifies the carriages in the views that colour by anything but filament; in Filament
+    // view a carriage takes its own head's filament colour instead, so a marker, the ghost of
+    // what it prints and the toolpaths under it all agree on what is loaded there.
+    static const std::array<ColorRGBA, 4> s_carriage_colors = {{
+        { 1.000f, 1.000f, 1.000f, 0.65f },   // primary      — white
+        { 0.941f, 0.894f, 0.259f, 0.65f },   // secondary 1  — yellow       (#F0E442)
+        { 0.835f, 0.369f, 0.000f, 0.65f },   // secondary 2  — vermilion    (#D55E00)
+        { 0.800f, 0.475f, 0.655f, 0.65f },   // secondary 3  — reddish purple (#CC79A7)
+    }};
+    struct CarriageDraw { Vec3f pos; ColorRGBA color; float box_offset_x = 0.0f; float box_offset_y = 0.0f; };
+    std::vector<CarriageDraw> carriage_box_draws;
+    float imex_box_wx = 0.0f, imex_box_wy = 0.0f;
+    {
+        PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+        bool imex_active = false;
+        if (preset_bundle && m_sequential_view.m_show_marker) {
+            const DynamicPrintConfig& printer_cfg = preset_bundle->printers.get_edited_preset().config;
+            auto* is_imex_opt = printer_cfg.opt<ConfigOptionBool>("is_imex");
+            if (is_imex_opt && is_imex_opt->value) {
+                const DynamicPrintConfig& process_cfg = preset_bundle->prints.get_edited_preset().config;
+                auto* mode_opt = process_cfg.opt<ConfigOptionString>("imex_parallel_mode");
+                std::string mode = mode_opt ? mode_opt->value : kImexPrimaryMode;
+                // Per-plate mode overrides the process preset.
+                PartPlateList& plate_list = wxGetApp().plater()->get_partplate_list();
+                PartPlate*     curr_plate = plate_list.get_curr_plate();
+                if (curr_plate) {
+                    // Same resolution the plate itself uses, rather than a fourth copy of it.
+                    const std::string plate_mode = curr_plate->get_effective_imex_mode();
+                    if (plate_mode != kImexPrimaryMode)
+                        mode = plate_mode;
+                }
+
+                // Bed X and Y bounds — read from the current plate's shape, which is
+                // in world/GL coordinates (same space as curr_vertex.position), and is
+                // the exact same source PartPlate::calc_imex_zones() hands to the library.
+                BoundingBoxf bed_extents;
+                {
+                    const Pointfs& plate_shape = curr_plate ? curr_plate->get_shape() : Pointfs{};
+                    if (!plate_shape.empty()) {
+                        bed_extents = get_extents(plate_shape);
+                    } else {
+                        // Fallback: use toolpath bounding box extent
+                        bed_extents = BoundingBoxf(Vec2d(m_paths_bounding_box.min.x(), m_paths_bounding_box.min.y()),
+                                                   Vec2d(m_paths_bounding_box.max.x(), m_paths_bounding_box.max.y()));
+                    }
+                }
+
+                // Cache guard. The marker plan below is resolved from preset/plate state only,
+                // so it is rebuilt when that state moves and reused otherwise — the sequential
+                // slider is sticky, and re-resolving the zone layout on every frame of the rest
+                // of the session showed up as a measurable per-frame cost.
+                ImexMarkerKey::Plate plate;
+                plate.plate_index = plate_list.get_curr_plate_index();
+                plate.bed_min_x   = bed_extents.min.x();
+                plate.bed_min_y   = bed_extents.min.y();
+                plate.bed_max_x   = bed_extents.max.x();
+                plate.bed_max_y   = bed_extents.max.y();
+
+                const bool layout_changed = update_imex_layout_key(m_imex_marker_key.layout, &printer_cfg, mode);
+                if (layout_changed || !(m_imex_marker_key.plate == plate)) {
+                    m_imex_marker_key.plate = plate;
+                    m_imex_marker_plan = resolve_imex_marker_plan(printer_cfg, mode, bed_extents);
+                    // The carriage roster — and with it the marker count — can change with any
+                    // of those inputs, so drop the markers and let the lazy init below rebuild
+                    // them. Their colours are restamped every frame regardless.
+                    m_sequential_view.m_imex_secondary_markers.clear();
+                }
+
+                const ImexMarkerPlan& plan      = m_imex_marker_plan;
+                const int             sec_count = (int)plan.carriages.size();
+
+                // Filament view colours the toolpaths by the filament printing them, so a
+                // carriage takes its own head's filament colour there and the palette
+                // everywhere else. get_imex_head_filament_color() answers UNPRINTABLE_COLOR
+                // for a head it cannot resolve, which is alpha 0.5 where a filament colour
+                // decodes opaque - that difference, not the black, is what distinguishes it,
+                // and a head with no filament keeps the palette rather than borrowing a
+                // colour that would read as a real assignment - the one point where a marker
+                // and the ghost of what it prints differ, the ghost having no palette to fall
+                // back to.
+                //
+                // The map and the pem are hoisted and each head resolved once, as
+                // PartPlate::update_imex_ghost_colors() does for the ghosts: both the marker
+                // and the toolhead box of a carriage want the same answer, and rebuilding it
+                // per draw parses the plate's map string and rebuilds the pem vector.
+                const bool color_by_filament = m_viewer.get_view_type() == libvgcode::EViewType::ColorPrint;
+                std::vector<ColorRGBA> carriage_colors(sec_count + 1);
+                if (sec_count > 0) {
+                    const ConfigOptionInts pem       = effective_physical_extruder_map(*preset_bundle);
+                    const auto             plate_map = curr_plate ? curr_plate->get_imex_head_filament_map()
+                                                                  : std::map<int, int>{};
+                    std::map<int, ColorRGBA> head_colors;
+                    auto color_for = [&](int phys_head, size_t palette_index) {
+                        const ColorRGBA fallback = s_carriage_colors[palette_index % s_carriage_colors.size()];
+                        if (!color_by_filament || curr_plate == nullptr || phys_head < 0)
+                            return fallback;
+                        auto hc = head_colors.find(phys_head);
+                        if (hc == head_colors.end())
+                            hc = head_colors.emplace(phys_head,
+                                     curr_plate->get_imex_head_filament_color(phys_head, pem, plate_map)).first;
+                        if (hc->second == GLVolume::UNPRINTABLE_COLOR)
+                            return fallback;
+                        ColorRGBA c = hc->second;
+                        c.a(fallback.a());   // as translucent as the palette makes them
+                        return c;
+                    };
+                    carriage_colors[0] = color_for(plan.pri_head, 0);
+                    for (int i = 0; i < sec_count; ++i)
+                        carriage_colors[i + 1] = color_for(plan.carriages[i].phys_head, i + 1);
+                }
+                if (sec_count > 0) {
+                    imex_active = true;
+                    imex_box_wx = plan.box_wx;
+                    imex_box_wy = plan.box_wy;
+
+                    // Lazy init secondary nozzle markers
+                    if ((int)m_sequential_view.m_imex_secondary_markers.size() != sec_count) {
+                        m_sequential_view.m_imex_secondary_markers.resize(sec_count);
+                        for (int i = 0; i < sec_count; ++i) {
+                            m_sequential_view.m_imex_secondary_markers[i].init(m_marker_filename);
+                        }
+                    }
+                    // Set every frame, not once at init: the view type and the filament palette
+                    // both change without the marker list being rebuilt. The primary marker is
+                    // one of the carriages here, so it is coloured alongside them - and restored
+                    // below when no mode is active, since it is the same marker every non-IMEX
+                    // preview draws.
+                    m_sequential_view.marker.set_color(carriage_colors[0]);
+                    for (int i = 0; i < sec_count; ++i)
+                        m_sequential_view.m_imex_secondary_markers[i].set_color(carriage_colors[i + 1]);
+
+                    const Vec3f prim_pos = libvgcode::convert(curr_vertex.position);
+                    carriage_box_draws.push_back({ prim_pos, carriage_colors[0],
+                                                   plan.pri_box_offset_x, plan.pri_box_offset_y });
+
+                    for (int i = 0; i < sec_count; ++i) {
+                        const ImexMarkerPlan::Carriage& carriage = plan.carriages[i];
+                        // Tracking an axis translates the primary by the gap between the two
+                        // zone centres; mirroring reflects it about the midpoint of those
+                        // centres — the zones being equal-sized, that midpoint is the boundary
+                        // between them, so the carriage still lands inside its own zone. Which
+                        // axis does which, and both terms, come from resolve_imex_marker_plan().
+                        const Vec3f sec_pos{ carriage.mirror_x ? carriage.x_term - prim_pos.x()
+                                                               : prim_pos.x() + carriage.x_term,
+                                             carriage.mirror_y ? carriage.y_term - prim_pos.y()
+                                                               : prim_pos.y() + carriage.y_term,
+                                             prim_pos.z() };
+                        m_sequential_view.m_imex_secondary_markers[i].set_world_position(sec_pos);
+                        m_sequential_view.m_imex_secondary_markers[i].set_z_offset(m_z_offset + 0.5f);
+                        carriage_box_draws.push_back({
+                            sec_pos, carriage_colors[i + 1],
+                            carriage.box_offset_x, carriage.box_offset_y });
+                    }
+                }
+            }
+        }
+        if (!imex_active) {
+            m_sequential_view.m_imex_secondary_markers.clear();
+            // The primary marker is the one every preview draws, so the carriage colour it may
+            // have been given has to come back off when no parallel mode is active.
+            m_sequential_view.marker.set_color(SequentialView::Marker::default_color());
+        }
+    }
+    m_sequential_view.render_marker(!m_no_render_path, canvas_width, sequential_view_height(canvas_height), m_viewer.get_view_type());
+
+    // IDEX/IQEX: render toolhead footprint boxes for each active carriage.
+    // Each box is imex_nozzle_clearance_x × imex_nozzle_clearance_y, sitting above the nozzle tip.
+    // Hidden when the user toggles off "Show IDEX/IQEX Toolhead Boxes" in the View menu — gives
+    // an unobstructed view of the toolpaths during sequential playback. Default-on; the absence
+    // of an app_config entry is also treated as on.
+    const bool show_toolhead_boxes = wxGetApp().app_config->get("show_imex_toolhead_boxes") != "false";
+    if (show_toolhead_boxes && !carriage_box_draws.empty() && imex_box_wx > 0.0f && imex_box_wy > 0.0f) {
+        // The mesh depends only on the two clearance dimensions, which a config edit can
+        // change without a G-code reload — so rebuild it when they move (or when it has not
+        // been built yet) rather than on every frame.
+        // Mesh origin: nozzle at x=0, centered in Y, Z starts at nozzle tip level.
+        // Per-carriage box_offset_x shifts the mesh left or right so the nozzle lands
+        // at the correct (collision-side) edge.
+        if (!m_imex_toolhead_box.is_initialized() ||
+            m_imex_box_mesh_wx != imex_box_wx || m_imex_box_mesh_wy != imex_box_wy) {
+            const float box_h = std::max(imex_box_wx, imex_box_wy);
+            indexed_triangle_set its = its_make_cube((double)imex_box_wx, (double)imex_box_wy, (double)box_h);
+            // No vertex pre-shifting — box_offset_x/y in the per-carriage transform
+            // positions the nozzle at the correct collision-side edge.
+            m_imex_toolhead_box.reset();
+            m_imex_toolhead_box.init_from(its);
+            m_imex_box_mesh_wx = imex_box_wx;
+            m_imex_box_mesh_wy = imex_box_wy;
+        }
+
+        GLShaderProgram* shader = wxGetApp().get_shader("gouraud_light");
+        if (shader) {
+            glsafe(::glEnable(GL_BLEND));
+            glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+            shader->start_using();
+            shader->set_uniform("emission_factor", 0.0f);
+            const Camera& camera = wxGetApp().plater()->get_camera();
+            shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+            const Transform3d& view_matrix = camera.get_view_matrix();
+            for (const auto& draw : carriage_box_draws) {
+                const Transform3d model_matrix = Geometry::translation_transform(
+                    (draw.pos + Vec3f(draw.box_offset_x, draw.box_offset_y, m_z_offset)).cast<double>());
+                shader->set_uniform("view_model_matrix", view_matrix * model_matrix);
+                const Matrix3d view_normal_matrix =
+                    view_matrix.matrix().block(0, 0, 3, 3) *
+                    model_matrix.matrix().block(0, 0, 3, 3).inverse().transpose();
+                shader->set_uniform("view_normal_matrix", view_normal_matrix);
+                m_imex_toolhead_box.set_color(draw.color);
+                m_imex_toolhead_box.render();
+            }
+            shader->stop_using();
+            glsafe(::glDisable(GL_BLEND));
+        }
+    }
+}
+
+size_t GCodeViewer::shadow_casters_signature() const
+{
+    size_t hash = m_viewer.get_vertices_count();
+    const libvgcode::Interval& visible = m_viewer.get_view_visible_range();
+    const libvgcode::Interval& layers  = m_viewer.get_layers_view_range();
+    for (size_t value : { size_t(visible[0]), size_t(visible[1]), size_t(layers[0]), size_t(layers[1]) })
+        boost::hash_combine(hash, value);
+    for (double value : { m_paths_bounding_box.min.x(), m_paths_bounding_box.min.y(), m_paths_bounding_box.min.z(),
+                          m_paths_bounding_box.max.x(), m_paths_bounding_box.max.y(), m_paths_bounding_box.max.z() })
+        boost::hash_combine(hash, value);
+    boost::hash_combine(hash, m_viewer.is_top_layer_only_view_range());
+    // the casters are drawn from the reduced set while dragging, with the solid model in its mode
+    boost::hash_combine(hash, m_viewer.is_reduced_detail());
+    boost::hash_combine(hash, static_cast<int>(m_reduced_detail_mode));
+    for (size_t i = 0; i < libvgcode::GCODE_EXTRUSION_ROLES_COUNT; ++i)
+        boost::hash_combine(hash, m_viewer.is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole(i)));
+    boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Travels));
+    boost::hash_combine(hash, m_viewer.is_option_visible(libvgcode::EOptionType::Wipes));
+    for (float value : m_clipping_plane)
+        boost::hash_combine(hash, value);
+    return hash;
+}
+
+void GCodeViewer::render_shadow_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix, const Vec3d& light_position)
+{
+    if (!has_data())
+        return;
+
+    m_viewer.render_shadow_casters(
+        libvgcode::convert(static_cast<Matrix4f>(light_view_matrix.matrix().cast<float>())),
+        libvgcode::convert(static_cast<Matrix4f>(light_projection_matrix.matrix().cast<float>())),
+        libvgcode::convert(static_cast<Vec3f>(light_position.cast<float>())));
+    if (m_viewer.is_reduced_detail() && solid_model_enabled())
+        render_solid_model_casters(light_view_matrix, light_projection_matrix);
+}
+
+// The stencil count that tells where a body cut at one cap alone is open: with the depth test off,
+// its back faces add one and its front faces take one away, so a pixel where the ray leaves the
+// body through the opening ends nonzero. The caller draws the body between the two. Depth clamping
+// keeps the faces past the near plane in the count: the light's frustum ends at the top visible
+// layer, so without it a part above the range keeps only its far faces and counts as open.
+static void begin_cap_count()
+{
+    glsafe(::glEnable(GL_DEPTH_CLAMP));
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
+    glsafe(::glStencilFunc(GL_ALWAYS, 0, 0xFF));
+    glsafe(::glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_KEEP, GL_DECR_WRAP));
+    glsafe(::glStencilOpSeparate(GL_BACK, GL_KEEP, GL_KEEP, GL_INCR_WRAP));
+    glsafe(::glDepthMask(GL_FALSE));
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    glsafe(::glDisable(GL_CULL_FACE));
+}
+
+// After the count, what is drawn next lands only where the body was open.
+static void end_cap_count()
+{
+    glsafe(::glDisable(GL_DEPTH_CLAMP));
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    glsafe(::glDepthMask(GL_TRUE));
+    glsafe(::glStencilFunc(GL_NOTEQUAL, 0, 0xFF));
+    glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
+    glsafe(::glStencilMask(0x00));
+}
+
+// The solid casts as the toolpaths it stands in for would: the shells, cut at the same heights,
+// drawn depth-only into the shadow map the canvas has bound, and the cut faces with them. Without
+// its cut faces an open body lets the light through: down onto the bed through a band cut at both
+// ends, or onto its own far wall, with the end band's lines throwing their shadow through the
+// hollow. The cut faces are counted and drawn as render_solid_model() draws them, which takes a
+// stencil the map has not got, so they go into a depth target of the viewer's first, the map's
+// size, and are copied into the map from there.
+void GCodeViewer::render_solid_model_casters(const Transform3d& light_view_matrix, const Transform3d& light_projection_matrix)
+{
+    const std::optional<std::array<float, 2>> z_range = solid_model_z_range();
+    GLShaderProgram* shader = wxGetApp().get_shader("flat_clip");
+    if (m_shells.volumes.empty() || !z_range.has_value() || shader == nullptr)
+        return;
+
+    // the walls, cut by the section view as the camera sees it, so what it cuts away casts nothing
+    shader->start_using();
+    shader->set_uniform("projection_matrix", light_projection_matrix);
+    shader->set_uniform("clipping_plane", m_clipping_plane);
+    shader->set_uniform("z_range", *z_range);
+    for (GLVolume* volume : m_shells.volumes.volumes) {
+        const Transform3d world_matrix = volume->world_matrix();
+        shader->set_uniform("volume_world_matrix", world_matrix);
+        shader->set_uniform("view_model_matrix", light_view_matrix * world_matrix);
+        volume->render();
+    }
+    shader->stop_using();
+
+    GLShaderProgram* copy_shader = wxGetApp().get_shader("depth_copy");
+    GLint viewport[4] = { 0, 0, 0, 0 };
+    glsafe(::glGetIntegerv(GL_VIEWPORT, viewport));
+    // without a target of its own the body casts open
+    if (copy_shader == nullptr || !init_caster_depth(viewport[2], viewport[3]))
+        return;
+    std::array<SolidModelCap, 3> caps;
+    init_solid_model_caps(*z_range, caps);
+
+    GLint map_fbo = 0;
+    glsafe(::glGetIntegerv(GL_FRAMEBUFFER_BINDING, &map_fbo));
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_caster_fbo));
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glClear(GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
+    glsafe(::glEnable(GL_STENCIL_TEST));
+    shader->start_using();
+    shader->set_uniform("projection_matrix", light_projection_matrix);
+    for (GLVolume* volume : m_shells.volumes.volumes) {
+        const Transform3d world_matrix = volume->world_matrix();
+        for (SolidModelCap& cap : caps) {
+            if (!cap.quad.is_initialized())
+                continue;
+            begin_cap_count();
+            shader->set_uniform("z_range", cap.count_z_range);
+            shader->set_uniform("clipping_plane", cap.count_plane);
+            shader->set_uniform("volume_world_matrix", world_matrix);
+            shader->set_uniform("view_model_matrix", light_view_matrix * world_matrix);
+            volume->render();
+            end_cap_count();
+            shader->set_uniform("z_range", cap.quad_z_range);
+            shader->set_uniform("clipping_plane", cap.quad_plane);
+            shader->set_uniform("volume_world_matrix", Transform3d::Identity());
+            shader->set_uniform("view_model_matrix", light_view_matrix);
+            cap.quad.render();
+        }
+    }
+    shader->stop_using();
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glDisable(GL_STENCIL_TEST));
+
+    // into the map, where nearer than what is there
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(map_fbo)));
+    GLModel screen;
+    GLModel::Geometry data;
+    data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+    data.add_vertex(Vec3f(-1.0f, -1.0f, 0.0f));
+    data.add_vertex(Vec3f(1.0f, -1.0f, 0.0f));
+    data.add_vertex(Vec3f(1.0f, 1.0f, 0.0f));
+    data.add_vertex(Vec3f(-1.0f, 1.0f, 0.0f));
+    data.add_triangle(0, 1, 2);
+    data.add_triangle(0, 2, 3);
+    screen.init_from(std::move(data));
+    // bound on a unit of its own, with the volumes' own bindings left to unit 0
+    glsafe(::glActiveTexture(GL_TEXTURE6));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, m_caster_depth));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
+    copy_shader->start_using();
+    copy_shader->set_uniform("depth_texture", 6);
+    copy_shader->set_uniform("map_size", std::array<float, 2>{ static_cast<float>(viewport[2]), static_cast<float>(viewport[3]) });
+    screen.render();
+    copy_shader->stop_using();
+    glsafe(::glActiveTexture(GL_TEXTURE6));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
+}
+
+// The depth and stencil target the caster pass draws the cut faces into, the size of the shadow
+// map they are copied into.
+bool GCodeViewer::init_caster_depth(int width, int height)
+{
+    if (OpenGLManager::get_framebuffers_type() != OpenGLManager::EFramebufferType::Arb || width <= 0 || height <= 0)
+        return false;
+    if (m_caster_depth != 0 && m_caster_width == width && m_caster_height == height)
+        return true;
+    if (m_caster_depth == 0) {
+        glsafe(::glGenTextures(1, &m_caster_depth));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_caster_depth));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+    }
+    else
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_caster_depth));
+    glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, nullptr));
+    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    m_caster_width = width;
+    m_caster_height = height;
+
+    GLint bound_fbo = 0;
+    glsafe(::glGetIntegerv(GL_FRAMEBUFFER_BINDING, &bound_fbo));
+    if (m_caster_fbo == 0)
+        glsafe(::glGenFramebuffers(1, &m_caster_fbo));
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_caster_fbo));
+    glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, m_caster_depth, 0));
+    glsafe(::glDrawBuffer(GL_NONE));
+    glsafe(::glReadBuffer(GL_NONE));
+    const bool complete = ::glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(bound_fbo)));
+    if (!complete)
+        release_caster_depth();
+    return complete;
+}
+
+void GCodeViewer::release_caster_depth()
+{
+    if (m_caster_fbo != 0) {
+        glsafe(::glDeleteFramebuffers(1, &m_caster_fbo));
+        m_caster_fbo = 0;
+    }
+    if (m_caster_depth != 0) {
+        glsafe(::glDeleteTextures(1, &m_caster_depth));
+        m_caster_depth = 0;
+    }
+    m_caster_width = 0;
+    m_caster_height = 0;
+}
+
+void GCodeViewer::set_shadow_map(int texture_unit, const Transform3d& light_view_projection, float intensity, float texel_size)
+{
+    m_shadow_map = { texture_unit, light_view_projection, intensity, texel_size };
+    m_viewer.set_shadow_map(texture_unit,
+        libvgcode::convert(static_cast<Matrix4f>(light_view_projection.matrix().cast<float>())),
+        intensity, texel_size);
+}
+
+void GCodeViewer::set_light_top_dir(const Vec3d& direction)
+{
+    m_light_top_dir = direction;
+    m_viewer.set_light_top_dir(libvgcode::convert(static_cast<Vec3f>(direction.cast<float>())));
+}
+
+void GCodeViewer::set_tone(float exposure, float saturation)
+{
+    m_viewer.set_tone(exposure, saturation);
+}
+
+void GCodeViewer::set_clipping_plane(const ClippingPlane& plane)
+{
+    // Flipped to match ClippingPlane::distance().
+    const Vec3f normal = -plane.get_normal().cast<float>();
+    m_clipping_plane = plane.is_active() ?
+        std::array<float, 4>{ normal.x(), normal.y(), normal.z(), float(plane.get_offset()) } :
+        std::array<float, 4>{ 0.0f, 0.0f, 0.0f, 1.0f };
+    m_viewer.set_clipping_plane(m_clipping_plane);
+}
+
+void GCodeViewer::render_overlay(int canvas_width, int canvas_height, int right_margin)
+{
+    if (m_viewer.get_extrusion_roles().empty())
+        return;
 
     float legend_height = 0.0f;
     render_legend(legend_height, canvas_width, canvas_height, right_margin);
@@ -1636,16 +2698,7 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
         m_user_mode = wxGetApp().get_mode();
     }
 
-    //BBS fixed bottom_margin for space to render horiz slider
-    int bottom_margin = SLIDER_BOTTOM_MARGIN * GCODE_VIEWER_SLIDER_SCALE;
-    auto current = m_viewer.get_view_visible_range();
-    auto endpoints = m_viewer.get_view_full_range();
-    m_sequential_view.m_show_marker = m_sequential_view.m_show_marker || (current.back() != endpoints.back() && !m_no_render_path);
-    const libvgcode::PathVertex& curr_vertex = m_viewer.get_current_vertex();
-    m_sequential_view.marker.set_world_position(libvgcode::convert(curr_vertex.position));
-    m_sequential_view.marker.set_z_offset(m_z_offset + 0.5f);
-    // BBS fixed buttom margin. m_moves_slider.pos_y
-    m_sequential_view.render(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, canvas_height - bottom_margin * m_scale, right_margin * m_scale, m_viewer.get_view_type());
+    m_sequential_view.render_overlay(!m_no_render_path, legend_height, &m_viewer, m_viewer.get_current_vertex().gcode_id, canvas_width, sequential_view_height(canvas_height), right_margin * m_scale, m_viewer.get_view_type());
 
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     if (is_legend_shown()) {
@@ -1684,6 +2737,14 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
 
     //BBS render slider
     render_slider(canvas_width, canvas_height);
+}
+
+int GCodeViewer::sequential_view_height(int canvas_height) const
+{
+    //BBS fixed bottom_margin for space to render horiz slider
+    const int bottom_margin = SLIDER_BOTTOM_MARGIN * GCODE_VIEWER_SLIDER_SCALE;
+    // BBS fixed buttom margin. m_moves_slider.pos_y
+    return canvas_height - bottom_margin * m_scale;
 }
 
 #define ENABLE_CALIBRATION_THUMBNAIL_OUTPUT 0
@@ -1906,6 +2967,51 @@ void GCodeViewer::update_layers_slider_mode()
     }
 
     // TODO m_layers_slider->SetModeAndOnlyExtruder(one_extruder_printed_model, only_extruder);
+}
+
+void GCodeViewer::set_interacting(bool interacting)
+{
+    // With the mode off nothing changes while dragging. The solid model needs shells to stand in
+    // for the toolpaths and a single height to cut them at; a belt printer's layers are tilted
+    // planes, which no height cuts.
+    const bool usable = m_reduced_detail_mode != libvgcode::EReducedDetailMode::Off &&
+                        (!solid_model_enabled() || (!m_shells.volumes.empty() && m_layers_z_rising && !m_belt_view_enabled));
+    // sampled afresh as each drag begins: the legend may have recoloured the toolpaths, and the
+    // sliders may have moved the span, since the last one
+    if (interacting && !m_viewer.is_reduced_detail())
+        m_solid_model_colors.valid = false;
+    m_viewer.set_reduced_detail(interacting && usable);
+}
+
+void GCodeViewer::read_reduced_detail_preferences()
+{
+    m_reduced_detail_mode = reduced_detail_mode_from_string(get_app_config()->get("preview_reduced_detail_mode"));
+    m_viewer.set_reduced_detail_mode(m_reduced_detail_mode);
+}
+
+void GCodeViewer::set_reduced_detail_mode(const std::string& mode)
+{
+    const bool was_solid = solid_model_enabled();
+    m_reduced_detail_mode = reduced_detail_mode_from_string(mode);
+    m_viewer.set_reduced_detail_mode(m_reduced_detail_mode);
+
+    // Only the prime tower comes and goes with the solid model: a full reload would drop the shells
+    // whenever the print has moved on since they were loaded, leaving the solid model nothing to draw.
+    if (was_solid == solid_model_enabled() || m_shells.print_id == -1 || wxGetApp().plater() == nullptr)
+        return;
+    // the shells are loaded from the current plate's print, which is not the plater's own
+    const Print& print = wxGetApp().plater()->get_partplate_list().get_current_fff_print();
+    if (static_cast<int>(print.id().id) == m_shells.print_id)
+        update_shell_wipe_tower(print, m_gl_data_initialized);
+}
+
+libvgcode::EReducedDetailMode GCodeViewer::reduced_detail_mode_from_string(const std::string& mode)
+{
+    if (mode == "solid")
+        return libvgcode::EReducedDetailMode::EndLayersOnly;
+    if (mode == "shell")
+        return libvgcode::EReducedDetailMode::ShellOnly;
+    return libvgcode::EReducedDetailMode::Off;
 }
 
 void GCodeViewer::set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range)
@@ -2232,7 +3338,11 @@ void GCodeViewer::export_toolpaths_to_obj(const char* filename) const
 void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_previewing)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": initialized=%1%, force_previewing=%2%")%initialized %force_previewing;
+    // the shells can load before the first G-code does, so the preferences are read here as well
+    read_reduced_detail_preferences();
     if ((print.id().id == m_shells.print_id)&&(print.get_modified_count() == m_shells.print_modify_count)) {
+        // the prime tower comes and goes on its own, without reloading the objects
+        update_shell_wipe_tower(print, initialized);
         //BBS: update force previewing logic
         if (force_previewing)
             m_shells.previewing = force_previewing;
@@ -2341,14 +3451,75 @@ void GCodeViewer::load_shells(const Print& print, bool initialized, bool force_p
     m_shells.print_id = print.id().id;
     m_shells.print_modify_count = print.get_modified_count();
     m_shells.previewing = true;
+    update_shell_wipe_tower(print, initialized);
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": shell loaded, id change to %1%, modify_count %2%, object count %3%, glvolume count %4%")
         % m_shells.print_id % m_shells.print_modify_count % object_count %m_shells.volumes.volumes.size();
+}
+
+ColorRGBA GCodeViewer::shown_filament_color(ColorRGBA color) const
+{
+    if (!m_viewer.is_translucent_filaments())
+        color.a(1.0f);
+    return color;
+}
+
+void GCodeViewer::render_translucent_toolpaths(int canvas_width, int canvas_height)
+{
+    if (!m_viewer.has_translucent_toolpaths())
+        return;
+
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    m_viewer.render_translucent(libvgcode::convert(static_cast<Matrix4f>(camera.get_view_matrix().matrix().cast<float>())),
+                                libvgcode::convert(static_cast<Matrix4f>(camera.get_projection_matrix().matrix().cast<float>())));
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    render_markers(canvas_width, canvas_height);
+}
+
+// The prime tower as it was sliced, so that the solid model shows what the print shows. It keeps its
+// opaque colour, so it never appears among the translucent shells, and stays out of their bounding box.
+void GCodeViewer::update_shell_wipe_tower(const Print& print, bool initialized)
+{
+    const bool with_wipe_tower = solid_model_enabled() && print.is_step_done(psWipeTower) && print.wipe_tower_data().wipe_tower_mesh_data;
+    if (with_wipe_tower == m_shells.with_wipe_tower)
+        return;
+    m_shells.with_wipe_tower = with_wipe_tower;
+    GLVolumePtrs& volumes = m_shells.volumes.volumes;
+    if (!with_wipe_tower) {
+        volumes.erase(std::remove_if(volumes.begin(), volumes.end(), [](GLVolume* volume) {
+            if (!volume->is_wipe_tower)
+                return false;
+            delete volume;
+            return true;
+        }), volumes.end());
+        return;
+    }
+    const PrintConfig& config = print.config();
+    const int plate_idx = print.get_plate_index();
+    const Vec3d plate_origin = print.get_plate_origin();
+    const float x = static_cast<float>(config.wipe_tower_x.get_at(plate_idx) + plate_origin.x());
+    const float y = static_cast<float>(config.wipe_tower_y.get_at(plate_idx) + plate_origin.y());
+    const size_t first_new = volumes.size();
+    m_shells.volumes.load_real_wipe_tower_preview(1000 + plate_idx, x, y, print.wipe_tower_data().wipe_tower_mesh_data->real_wipe_tower_mesh,
+                                                  print.wipe_tower_data().wipe_tower_mesh_data->real_brim_mesh, true,
+                                                  static_cast<float>(config.wipe_tower_rotation_angle), false, initialized);
+    for (size_t i = first_new; i < volumes.size(); ++i) {
+        volumes[i]->zoom_to_volumes = false;
+        volumes[i]->force_native_color = true;
+        volumes[i]->set_render_color();
+    }
 }
 
 void GCodeViewer::render_toolpaths()
 {
     const Camera& camera = wxGetApp().plater()->get_camera();
-    const libvgcode::Mat4x4 converted_view_matrix = libvgcode::convert(static_cast<Matrix4f>(camera.get_view_matrix().matrix().cast<float>()));
+    Matrix4f view = camera.get_view_matrix().matrix().cast<float>();
+    // Belt "designed" (upright) view is produced by back-transforming the toolpath
+    // GEOMETRY into model space at load time (see load_as_gcode ->
+    // BeltTransformPipeline::build_gcode_back_transform -> libvgcode::convert). The camera is left untouched
+    // here; transforming the view as well would double-apply the inverse. Baking the
+    // transform into the geometry (not the camera) also keeps the bed and toolpaths in
+    // the same frame so they stay aligned.
+    const libvgcode::Mat4x4 converted_view_matrix = libvgcode::convert(view);
     const libvgcode::Mat4x4 converted_projetion_matrix = libvgcode::convert(static_cast<Matrix4f>(camera.get_projection_matrix().matrix().cast<float>()));
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     m_viewer.set_cog_marker_scale_factor(m_cog_marker_fixed_screen_size ? 10.0f * m_cog_marker_size * camera.get_inv_zoom() : m_cog_marker_size);
@@ -2520,7 +3691,7 @@ void GCodeViewer::render_toolpaths()
 #endif // ENABLE_NEW_GCODE_VIEWER_DEBUG
 }
 
-void GCodeViewer::render_shells(int canvas_width, int canvas_height)
+void GCodeViewer::render_shells()
 {
     //BBS: add shell previewing logic
     if ((!m_shells.previewing && !m_shells.visible) || m_shells.volumes.empty())
@@ -2538,11 +3709,293 @@ void GCodeViewer::render_shells(int canvas_width, int canvas_height)
     const Camera& camera = wxGetApp().plater()->get_camera();
     shader->set_uniform("z_far", camera.get_far_z());
     shader->set_uniform("z_near", camera.get_near_z());
-    m_shells.volumes.render(GLVolumeCollection::ERenderType::Transparent, false, camera.get_view_matrix(), camera.get_projection_matrix(), {canvas_width, canvas_height});
+    m_shells.volumes.render(GLVolumeCollection::ERenderType::Transparent, false, camera.get_view_matrix(), camera.get_projection_matrix());
     shader->set_uniform("emission_factor", 0.0f);
     shader->stop_using();
 
     glsafe(::glDepthMask(GL_TRUE));
+}
+
+// The sliced objects and the prime tower drawn opaque, in their filament colours, cut to the
+// visible layer range by the shader's z range. The toolpaths of the range's bottom and top layers
+// are drawn afterwards and cap the cut.
+// The layers at the range's ends are drawn as toolpaths, so the solid runs from the top of the
+// bottom ones to the bottom of the top ones. A face of the model in either plane would otherwise
+// fight the toolpaths for the same pixels and flicker while dragging.
+// The layer heights are the toolpaths', which the printer's z offset is already taken out of, so
+// they are in the shells' frame as they are.
+// A layer with no extrusion has no height of its own; the nearest one below stands in for it.
+std::optional<std::array<float, 2>> GCodeViewer::solid_model_z_range() const
+{
+    auto layer_top = [this](size_t id) {
+        float z = m_viewer.get_layer_z(id);
+        while (z == 0.0f && id > 0)
+            z = m_viewer.get_layer_z(--id);
+        return z;
+    };
+    const libvgcode::Interval whole = m_viewer.get_reduced_detail_whole_layers();
+    const float z_top = (whole[1] > 0) ? layer_top(whole[1] - 1) - 0.001f : -FLT_MAX;
+    const float z_bottom = layer_top(whole[0]) + 0.001f;
+    // the toolpaths cover the whole range
+    if (z_top <= z_bottom)
+        return std::nullopt;
+    return std::array<float, 2>{ z_bottom, z_top };
+}
+
+void GCodeViewer::init_solid_model_caps(const std::array<float, 2>& z_range, std::array<SolidModelCap, 3>& caps) const
+{
+    const auto [z_bottom, z_top] = z_range;
+    auto init_quad = [](SolidModelCap& cap, const Vec3f& center, const Vec3f& u, const Vec3f& v) {
+        GLModel::Geometry data;
+        data.format = { GLModel::Geometry::EPrimitiveType::Triangles, GLModel::Geometry::EVertexLayout::P3 };
+        data.reserve_vertices(4);
+        data.reserve_indices(6);
+        data.add_vertex(Vec3f(center - u - v));
+        data.add_vertex(Vec3f(center + u - v));
+        data.add_vertex(Vec3f(center + u + v));
+        data.add_vertex(Vec3f(center - u + v));
+        data.add_triangle(0, 1, 2);
+        data.add_triangle(0, 2, 3);
+        cap.quad.init_from(std::move(data));
+    };
+    const Vec3f box_min = m_paths_bounding_box.min.cast<float>();
+    const Vec3f box_max = m_paths_bounding_box.max.cast<float>();
+    const Vec3f box_center = 0.5f * (box_min + box_max);
+    const float margin = 1.0f;
+    const Vec3f half_x(0.5f * (box_max.x() - box_min.x()) + margin, 0.0f, 0.0f);
+    const Vec3f half_y(0.0f, 0.5f * (box_max.y() - box_min.y()) + margin, 0.0f);
+    if (m_viewer.get_layers_view_range()[0] > 0) {
+        SolidModelCap& cap = caps[0];
+        init_quad(cap, Vec3f(box_center.x(), box_center.y(), z_bottom), half_x, half_y);
+        cap.count_z_range = { z_bottom, FLT_MAX };
+        cap.quad_plane = m_clipping_plane;
+        cap.color_index = 0;
+    }
+    if (z_top > -FLT_MAX) {
+        SolidModelCap& cap = caps[1];
+        init_quad(cap, Vec3f(box_center.x(), box_center.y(), z_top), half_x, half_y);
+        cap.count_z_range = { -FLT_MAX, z_top };
+        cap.quad_plane = m_clipping_plane;
+        cap.color_index = 1;
+    }
+    // the section view cuts the solid as it cuts the toolpaths; nothing else sets a plane on the shells
+    if (m_clipping_plane[0] != 0.0f || m_clipping_plane[1] != 0.0f || m_clipping_plane[2] != 0.0f) {
+        SolidModelCap& cap = caps[2];
+        const Vec3f normal(m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2]);
+        const Vec3f on_plane = box_center - (normal.dot(box_center) + m_clipping_plane[3]) * normal;
+        // the in-plane axes, turned from the unit axis the normal leans on least
+        const Vec3f leaning = normal.cwiseAbs();
+        const Vec3f axis = (leaning.x() <= leaning.y() && leaning.x() <= leaning.z()) ? Vec3f::UnitX() :
+                           (leaning.y() <= leaning.z()) ? Vec3f::UnitY() : Vec3f::UnitZ();
+        const Vec3f u = normal.cross(axis).normalized();
+        const Vec3f v = normal.cross(u);
+        const float reach = 0.5f * (box_max - box_min).norm() + margin;
+        init_quad(cap, on_plane, reach * u, reach * v);
+        cap.count_plane = m_clipping_plane;
+        cap.quad_z_range = { z_bottom, z_top };
+    }
+}
+
+void GCodeViewer::render_solid_model(int canvas_width, int canvas_height)
+{
+    if (m_shells.volumes.empty())
+        return;
+    // gouraud_light has no z range, so it could not cut the model
+    GLShaderProgram* shader = wxGetApp().get_shader("gouraud");
+    if (shader == nullptr)
+        return;
+    const std::optional<std::array<float, 2>> z_range = solid_model_z_range();
+    if (!z_range.has_value())
+        return;
+    const auto [z_bottom, z_top] = *z_range;
+    const libvgcode::Interval& layers = m_viewer.get_layers_view_range();
+    const libvgcode::Interval whole = m_viewer.get_reduced_detail_whole_layers();
+
+    // the volumes wear the solid's colours for the frame, over their own filament colours
+    update_solid_model_colors(whole);
+    const SolidModelColors& colors = m_solid_model_colors;
+    // The layers the solid stands for are never the ones a slider thumb lights, so the solid
+    // wears what the toolpath shader gives the rest of the print: dimmed to the preference's
+    // brightness while the viewer dims the layers around the inspected ones, dark grey while the
+    // moves slider is short of the top layer's end; see libvgcode::ViewerImpl::set_layer_colors().
+    const bool top_layer_only = m_viewer.is_top_layer_only_view_range();
+    const bool moves_short = m_viewer.get_view_full_range()[1] != m_viewer.get_view_visible_range()[1];
+    const bool inspecting = layers[0] > 0 || layers[1] + 1 < m_viewer.get_layers_count() || moves_short;
+    const bool dimmed = top_layer_only && inspecting && m_viewer.is_dim_previous_layers();
+    const bool greyed = !dimmed && top_layer_only && moves_short;
+    auto shade = [dimmed, greyed, brightness = m_viewer.get_dim_previous_layers_brightness()](const ColorRGBA& color) {
+        if (greyed)
+            return ColorRGBA(64.0f / 255.0f, 64.0f / 255.0f, 64.0f / 255.0f, 1.0f);
+        if (dimmed)
+            return ColorRGBA(brightness * color.r(), brightness * color.g(), brightness * color.b(), 1.0f);
+        return ColorRGBA(color.r(), color.g(), color.b(), 1.0f);
+    };
+    std::vector<ColorRGBA> own_colors;
+    own_colors.reserve(m_shells.volumes.volumes.size());
+    // the tower draws itself in its own colours and leaves the volume's at the default; one list per volume
+    std::vector<std::vector<ColorRGBA>> own_tower_colors(m_shells.volumes.volumes.size());
+    for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
+        GLVolume* volume = m_shells.volumes.volumes[k];
+        own_colors.push_back(volume->color);
+        const std::optional<ColorRGBA>& body = colors.bodies[k].body;
+        if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr) {
+            own_tower_colors[k] = tower->colors();
+            for (ColorRGBA& color : tower->colors())
+                color = shade(body.value_or(color));
+        }
+        volume->color = shade(body.value_or(volume->color));
+        volume->set_render_color();
+    }
+    m_shells.volumes.set_z_range(z_bottom, z_top);
+    // the section view cuts the solid as it cuts the toolpaths
+    m_shells.volumes.set_clipping_plane({ m_clipping_plane[0], m_clipping_plane[1], m_clipping_plane[2], m_clipping_plane[3] });
+
+    shader->start_using();
+    // The realistic view's shadow map, bound by the canvas for the toolpaths, shades the solid
+    // too, under the same light; both are off when the map is not there. The 3D view leaves its
+    // own settings on the shared program, so each is set here.
+    shader->set_uniform("shadow_map", m_shadow_map.texture_unit);
+    shader->set_uniform("shadow_light_vp", m_shadow_map.light_view_projection);
+    shader->set_uniform("shadow_map_texel", m_shadow_map.texel_size);
+    shader->set_uniform("shadow_intensity", m_shadow_map.intensity);
+    shader->set_uniform("use_static_light", true);
+    shader->set_uniform("static_light_dir", m_light_top_dir);
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    shader->set_uniform("z_far", camera.get_far_z());
+    shader->set_uniform("z_near", camera.get_near_z());
+    m_shells.volumes.render(GLVolumeCollection::ERenderType::Opaque, false, camera.get_view_matrix(), camera.get_projection_matrix());
+    shader->stop_using();
+
+    // The cut faces, one cap of one body at a time. A pixel looks into a body through a cut where,
+    // with the depth test off and the body cut at that cap alone, its back faces outnumber its
+    // front faces: zero where the ray misses the body or crosses it whole, one where it leaves
+    // through the opening, which is where the cap plane lies inside the body. Counted with two
+    // cuts at once the body is an open tube, and a ray through both openings would count as
+    // closed, one in through a wall and out through the other opening as open. There a quad in
+    // the cut plane, in the colour of the infill it is cut under darkened, or the body's own,
+    // stands in for the material, so that a sparse layer on the cut shows a solid inside between
+    // its lines rather than whatever lies further down. The section view's plane is one more
+    // cut: its cap is counted on the body cut by it alone and drawn between the heights of the
+    // other two, and theirs are drawn on its kept side.
+    GLShaderProgram* cap_shader = wxGetApp().get_shader("flat_clip");
+    if (cap_shader != nullptr) {
+        std::array<SolidModelCap, 3> caps;
+        init_solid_model_caps(*z_range, caps);
+        glsafe(::glEnable(GL_STENCIL_TEST));
+        for (size_t n = 0; n < m_shells.volumes.volumes.size(); ++n) {
+            GLVolume* volume = m_shells.volumes.volumes[n];
+            const auto* tower = dynamic_cast<const GLWipeTowerVolume*>(volume);
+            const Transform3d world_matrix = volume->world_matrix();
+            for (SolidModelCap& cap : caps) {
+                if (!cap.quad.is_initialized())
+                    continue;
+                begin_cap_count();
+                glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
+                // The body is drawn directly, on the uniforms the pass above left on the program: the
+                // collection's render would build the full preset config and sort every volume, per body.
+                shader->start_using();
+                shader->set_uniform("z_range", cap.count_z_range);
+                shader->set_uniform("clipping_plane", cap.count_plane);
+                shader->set_uniform("volume_world_matrix", world_matrix);
+                shader->set_uniform("view_model_matrix", camera.get_view_matrix() * world_matrix);
+                volume->render();
+                shader->stop_using();
+                glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
+                end_cap_count();
+
+                ColorRGBA inside = volume->color;
+                if (tower != nullptr && !tower->colors().empty())
+                    inside = tower->colors().front();
+                if (cap.color_index.has_value()) {
+                    if (const std::optional<ColorRGBA>& sampled = colors.bodies[n].caps[*cap.color_index]; sampled.has_value())
+                        inside = shade(*sampled);
+                }
+                inside = ColorRGBA(0.55f * inside.r(), 0.55f * inside.g(), 0.55f * inside.b(), 1.0f);
+                cap_shader->start_using();
+                cap_shader->set_uniform("view_model_matrix", camera.get_view_matrix());
+                cap_shader->set_uniform("projection_matrix", camera.get_projection_matrix());
+                cap_shader->set_uniform("volume_world_matrix", Transform3d::Identity());
+                cap_shader->set_uniform("z_range", cap.quad_z_range);
+                cap_shader->set_uniform("clipping_plane", cap.quad_plane);
+                cap.quad.set_color(inside);
+                cap.quad.render();
+                cap_shader->stop_using();
+            }
+        }
+        glsafe(::glEnable(GL_CULL_FACE));
+        glsafe(::glStencilMask(0xFF));
+        glsafe(::glDisable(GL_STENCIL_TEST));
+    }
+
+    m_shells.volumes.set_z_range(-FLT_MAX, FLT_MAX);
+    for (size_t k = 0; k < m_shells.volumes.volumes.size(); ++k) {
+        GLVolume* volume = m_shells.volumes.volumes[k];
+        if (auto* tower = dynamic_cast<GLWipeTowerVolume*>(volume); tower != nullptr)
+            tower->colors() = own_tower_colors[k];
+        volume->color = own_colors[k];
+        volume->set_render_color();
+    }
+}
+
+// The solid stands in for the toolpaths, so it takes their colours in the view that colours them
+// by something other than the filament: each body the outer wall's, each cap the infill's of the
+// layer it is cut under, sparse if the layer has any, else solid, and the tower its own role's,
+// each from the toolpaths within the body's own footprint, so that objects printed at different
+// grades keep their own. The views that colour by filament leave every body its own colour. The
+// bodies are sampled over the layers the solid stands for and each cap in its own layer, each
+// colour that of the vertex the viewer picks to represent the role there, so a view that grades
+// the toolpaths, by speed or fan, shows the solid in the grade most of that role was printed at.
+// The bodies are sampled once, as the drag begins, and held while a slider drag moves the span:
+// sampled again at every step, the grade would flip with the layers the sample happens to fall
+// on. Each cap follows its own layer.
+void GCodeViewer::update_solid_model_colors(const libvgcode::Interval& whole_layers)
+{
+    SolidModelColors& colors = m_solid_model_colors;
+    const libvgcode::EViewType view_type = m_viewer.get_view_type();
+    const std::vector<GLVolume*>& volumes = m_shells.volumes.volumes;
+    const bool held = colors.valid && colors.view_type == view_type && colors.bodies.size() == volumes.size();
+    if (held && colors.whole_layers == whole_layers)
+        return;
+    if (!held) {
+        colors = SolidModelColors();
+        colors.valid = true;
+        colors.view_type = view_type;
+        colors.bodies.resize(volumes.size());
+    }
+    colors.whole_layers = whole_layers;
+    if (view_type == libvgcode::EViewType::Summary || view_type == libvgcode::EViewType::ColorPrint || view_type == libvgcode::EViewType::Tool)
+        return;
+
+    using Role = libvgcode::EGCodeExtrusionRole;
+    auto sample = [this](const libvgcode::Interval& layers, std::initializer_list<Role> roles, const libvgcode::XYBox& box) -> std::optional<ColorRGBA> {
+        for (Role role : roles) {
+            const size_t id = m_viewer.find_extrusion_vertex(layers, role, box);
+            if (id < m_viewer.get_vertices_count())
+                return libvgcode::convert(m_viewer.get_vertex_color(m_viewer.get_vertex_at(id)));
+        }
+        return std::nullopt;
+    };
+    const std::initializer_list<Role> walls = { Role::ExternalPerimeter, Role::Perimeter, Role::OverhangPerimeter };
+    const std::initializer_list<Role> tower_role = { Role::WipeTower };
+    const std::initializer_list<Role> infill = { Role::InternalInfill, Role::SolidInfill, Role::TopSolidInfill, Role::BottomSurface,
+                                                 Role::BridgeInfill, Role::InternalBridgeInfill, Role::Ironing };
+    for (size_t n = 0; n < volumes.size(); ++n) {
+        const GLVolume* volume = volumes[n];
+        const bool tower = dynamic_cast<const GLWipeTowerVolume*>(volume) != nullptr;
+        // the walls' centrelines lie within the outline, pushed out by a compensation at most
+        const BoundingBoxf3& footprint = volume->transformed_bounding_box();
+        const float margin = 1.0f;
+        const libvgcode::XYBox box{ { static_cast<float>(footprint.min.x()) - margin, static_cast<float>(footprint.min.y()) - margin },
+                                    { static_cast<float>(footprint.max.x()) + margin, static_cast<float>(footprint.max.y()) + margin } };
+        SolidModelColors::Body& body = colors.bodies[n];
+        if (!held)
+            body.body = sample(whole_layers, tower ? tower_role : walls, box);
+        for (size_t k = 0; k < 2; ++k) {
+            body.caps[k] = tower ? std::nullopt : sample({ whole_layers[k], whole_layers[k] }, infill, box);
+            if (!body.caps[k].has_value())
+                body.caps[k] = body.body;
+        }
+    }
 }
 
 //BBS
@@ -2613,7 +4066,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         }
         return ret;
     };
-    auto calculate_offsets = [max_width, window_padding](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
+    auto calculate_offsets = [max_width, window_padding](const std::vector<std::pair<std::string, std::vector<std::string>>>& title_columns, float extra_size = 0.0f) {
         const ImGuiStyle& style = ImGui::GetStyle();
         std::vector<float> offsets;
         offsets.push_back(max_width(title_columns[0].second, title_columns[0].first, extra_size) + 3.0f * style.ItemSpacing.x + style.WindowPadding.x);
@@ -2636,8 +4089,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         // render icon
         ImVec2 pos = ImVec2(ImGui::GetCursorScreenPos().x + window_padding * 3, ImGui::GetCursorScreenPos().y);
 
-        draw_list->AddRectFilled({ pos.x + 1.0f * m_scale, pos.y + 3.0f * m_scale }, { pos.x + icon_size - 1.0f * m_scale, pos.y + icon_size + 1.0f * m_scale },
-            ImGuiWrapper::to_ImU32(color));
+        add_swatch(draw_list, { pos.x + 1.0f * m_scale, pos.y + 3.0f * m_scale }, { pos.x + icon_size - 1.0f * m_scale, pos.y + icon_size + 1.0f * m_scale }, color);
 
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(20.0 * m_scale, 6.0 * m_scale));
 
@@ -2760,7 +4212,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         }
         ::sprintf(buff, "%.2f", longest_str);
 
-        std::vector<std::pair<std::string, std::vector<::string>>> title_columns;
+        std::vector<std::pair<std::string, std::vector<std::string>>> title_columns;
         if (displayed_columns & ColumnData::Model) {
             title_columns.push_back({ _u8L("Filament"), {""} });
             title_columns.push_back({ _u8L("Model"), {buff} });
@@ -2857,6 +4309,7 @@ void GCodeViewer::render_all_plates_stats(const std::vector<const GCodeProcessor
         char buf[64];
         ::sprintf(buf, "%.2f", total_cost_all_plates);
         imgui.text(buf);
+
     }
     ImGui::End();
     ImGui::PopStyleColor(6);
@@ -2922,27 +4375,6 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         }
     };
 
-    auto link_filament_group_wiki = [&](const std::string& label) {
-        ImVec2 wiki_part_size = ImGui::CalcTextSize(label.c_str());
-        ImColor HyperColor = ImColor(0, 150, 136, 255); // ORCA match color
-        ImGui::PushStyleColor(ImGuiCol_Text, HyperColor.Value);
-        imgui.text(label.c_str());
-        ImGui::PopStyleColor();
-
-        // ORCA use underline to match hyperlink style
-        ImVec2 lineEnd = ImGui::GetItemRectMax();
-        lineEnd.y -= 2.0f;
-        ImVec2 lineStart = lineEnd;
-        lineStart.x = ImGui::GetItemRectMin().x;
-        ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd, HyperColor);
-        // click behavior
-        if (ImGui::IsMouseHoveringRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), true)) {
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                open_filament_group_wiki();
-            }
-        }
-    };
-
     auto draw_dash_line = [&](ImDrawList* draw_list, int dash_length = 5, int gap_length = 3) {
         ImVec2 p1 = ImGui::GetCursorScreenPos();
         ImVec2 p2 = ImVec2(p1.x + ImGui::GetContentRegionAvail().x, p1.y);
@@ -2992,8 +4424,8 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
                 for (int j = idx; j < extruder_filaments.size() && j < idx + line_capacity; ++j) {
                     auto text_info = imgui.calculate_filament_group_text_size(get_filament_display_type(extruder_filaments[j]));
                     auto text_size = std::get<0>(text_info);
-                    filament_group_item_align_width = max(filament_group_item_align_width, text_size.x);
-                    text_line_height = max(text_line_height, text_size.y);
+                    filament_group_item_align_width = std::max(filament_group_item_align_width, text_size.x);
+                    text_line_height = std::max(text_line_height, text_size.y);
                 }
                 container_height += (three_words_width * 1.3f + text_line_height );
             }
@@ -3016,7 +4448,7 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
     else
         tips_count = 5;
 
-    float AMS_container_height = ams_item_height + line_height * tips_count + line_height;
+    float AMS_container_height = ams_item_height + line_height * tips_count + line_height + window_padding * 2.f;
     ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0, 0, 0, 0)); // this shold be 0 since its child of gcodeviewer
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 1, 1, 1));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(window_padding * 3, 0));
@@ -3031,10 +4463,6 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         ImGui::Dummy({window_padding, window_padding});
         ImGui::PushStyleColor(ImGuiCol_Separator, ImVec4(1.0f,1.0f,1.0f,0.6f));
         imgui.bold_text(_u8L("Filament Grouping"));
-        ImGui::SameLine();
-        std::string tip_str = _u8L("Why this grouping");
-        ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() - window_padding - ImGui::CalcTextSize(tip_str.c_str()).x);
-        link_filament_group_wiki(tip_str);
         ImGui::Separator();
         ImGui::PopStyleColor();
         ImGui::Dummy({window_padding, window_padding});
@@ -3104,17 +4532,17 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
             imgui.text(_u8L("Current grouping of slice result is not optimal."));
             wxString tip;
             if (delta_weight_to_best >= 0 && delta_change_to_best >= 0)
-                tip = from_u8((boost::format(_u8L("Increase %1%g filament and %2% changes compared to optimal grouping."))
-                    % number_format(delta_weight_to_best)
-                    % delta_change_to_best).str());
+                tip = format_wxstr(_L_PLURAL("Increase %1%g filament and %2% change compared to optimal grouping.",
+                                             "Increase %1%g filament and %2% changes compared to optimal grouping.", delta_change_to_best),
+                                   number_format(delta_weight_to_best), delta_change_to_best);
             else if (delta_weight_to_best >= 0 && delta_change_to_best < 0)
-                tip = from_u8((boost::format(_u8L("Increase %1%g filament and save %2% changes compared to optimal grouping."))
-                    % number_format(delta_weight_to_best)
-                    % std::abs(delta_change_to_best)).str());
+                tip = format_wxstr(_L_PLURAL("Increase %1%g filament and save %2% change compared to optimal grouping.",
+                                             "Increase %1%g filament and save %2% changes compared to optimal grouping.", std::abs(delta_change_to_best)),
+                                   number_format(delta_weight_to_best), std::abs(delta_change_to_best));
             else if (delta_weight_to_best < 0 && delta_change_to_best >= 0)
-                tip = from_u8((boost::format(_u8L("Save %1%g filament and increase %2% changes compared to optimal grouping."))
-                    % number_format(std::abs(delta_weight_to_best))
-                    % delta_change_to_best).str());
+                tip = format_wxstr(_L_PLURAL("Save %1%g filament and increase %2% change compared to optimal grouping.",
+                                             "Save %1%g filament and increase %2% changes compared to optimal grouping.", delta_change_to_best),
+                                   number_format(std::abs(delta_weight_to_best)), delta_change_to_best);
 
             imgui.text_wrapped(tip, parent_width);
             ImGui::PopStyleColor(1);
@@ -3123,22 +4551,25 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
             ImGui::Dummy({window_padding, window_padding});
             wxString tip;
             if (delta_weight_to_single_ext >= 0 && delta_change_to_single_ext >= 0)
-                tip = from_u8((boost::format(_u8L("Save %1%g filament and %2% changes compared to a printer with one nozzle."))
-                    % number_format(delta_weight_to_single_ext)
-                    % delta_change_to_single_ext).str());
+                tip = format_wxstr(_L_PLURAL("Save %1%g filament and %2% change compared to a printer with one nozzle.",
+                                             "Save %1%g filament and %2% changes compared to a printer with one nozzle.", delta_change_to_single_ext),
+                                   number_format(delta_weight_to_single_ext), delta_change_to_single_ext);
             else if (delta_weight_to_single_ext >= 0 && delta_change_to_single_ext < 0)
-                tip = from_u8((boost::format(_u8L("Save %1%g filament and increase %2% changes compared to a printer with one nozzle."))
-                    % number_format(delta_weight_to_single_ext)
-                    % std::abs(delta_change_to_single_ext)).str());
+                tip = format_wxstr(_L_PLURAL("Save %1%g filament and increase %2% change compared to a printer with one nozzle.",
+                                             "Save %1%g filament and increase %2% changes compared to a printer with one nozzle.", std::abs(delta_change_to_single_ext)),
+                                   number_format(delta_weight_to_single_ext), std::abs(delta_change_to_single_ext));
             else if (delta_weight_to_single_ext < 0 && delta_change_to_single_ext >= 0)
-                tip = from_u8((boost::format(_u8L("Increase %1%g filament and save %2% changes compared to a printer with one nozzle."))
-                    % number_format(std::abs(delta_weight_to_single_ext))
-                    % delta_change_to_single_ext).str());
+                tip = format_wxstr(_L_PLURAL("Increase %1%g filament and save %2% change compared to a printer with one nozzle.",
+                                             "Increase %1%g filament and save %2% changes compared to a printer with one nozzle.", delta_change_to_single_ext),
+                                   number_format(std::abs(delta_weight_to_single_ext)), delta_change_to_single_ext);
 
             imgui.text_wrapped(tip, parent_width);
         }
 
         ImGui::Dummy({window_padding, window_padding});
+        GLGizmoUtils::render_wiki_guide_button(*wxGetApp().plater()->get_current_canvas3D(), m_scale,"https://e.bambulab.com/t?c=mOkvsXkJ9pldGYp9");
+        ImGui::SameLine();
+
         if (!is_optimal_group) {
             link_text_set_to_optional(_u8L("Set to Optimal"));
             ImGui::SameLine();
@@ -3147,10 +4578,7 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
         }
         link_text(_u8L("Regroup filament"));
 
-        ImGui::SameLine();
-        std::string wiki_str = _u8L("Wiki Guide"); // ORCA
-        ImGui::SetCursorPosX(ImGui::GetWindowContentRegionWidth() - window_padding - ImGui::CalcTextSize(wiki_str.c_str()).x);
-        link_filament_group_wiki(wiki_str);
+        ImGui::Dummy({window_padding, window_padding});
 
         ImGui::EndChild();
     }
@@ -3265,8 +4693,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         switch (type) {
         default:
         case EItemType::Rect: {
-            draw_list->AddRectFilled({ pos.x + 1.0f * m_scale, pos.y + 3.0f * m_scale }, { pos.x + icon_size - 1.0f * m_scale, pos.y + icon_size + 1.0f * m_scale },
-                                     ImGuiWrapper::to_ImU32(color));
+            add_swatch(draw_list, { pos.x + 1.0f * m_scale, pos.y + 3.0f * m_scale }, { pos.x + icon_size - 1.0f * m_scale, pos.y + icon_size + 1.0f * m_scale }, color);
             break;
         }
         case EItemType::Circle: {
@@ -3386,7 +4813,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         return ret;
     };
 
-    auto calculate_offsets = [max_width, this](const std::vector<std::pair<std::string, std::vector<::string>>>& title_columns, float extra_size = 0.0f) {
+    auto calculate_offsets = [max_width, this](const std::vector<std::pair<std::string, std::vector<std::string>>>& title_columns, float extra_size = 0.0f) {
             const ImGuiStyle& style = ImGui::GetStyle();
             std::vector<float> offsets;
             // ORCA increase spacing for more readable format. Using direct number requires much less code change in here. GetTextLineHeight for additional spacing for icon_size
@@ -3409,14 +4836,23 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         std::vector<std::pair<ColorRGBA, std::pair<double, double>>> ret;
         ret.reserve(custom_gcode_per_print_z.size());
 
+        // Loop invariant, but built lazily: this lambda runs once per extruder on every frame
+        // and most prints reach neither colour change below, so fetching it up front would cost
+        // more than the per-item fetch it replaces.
+        std::vector<float> zs;
+        bool zs_built = false;
+
         for (const auto& item : custom_gcode_per_print_z) {
             if (extruder_id + 1 != static_cast<unsigned char>(item.extruder))
                 continue;
 
-            if (item.type != ColorChange)
+            if (item.type != CustomGCode::ColorChange)
                 continue;
 
-            const std::vector<float> zs = m_viewer.get_layers_zs();
+            if (!zs_built) {
+                zs = m_viewer.get_layers_zs();
+                zs_built = true;
+            }
             auto lower_b = std::lower_bound(zs.begin(), zs.end(),
                 static_cast<float>(item.print_z - epsilon()));
             if (lower_b == zs.end())
@@ -3541,6 +4977,10 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 m_view_type_sel = i;
                 set_view_type(view_type_items[m_view_type_sel]);
                 reset_visible(view_type_items[m_view_type_sel]);
+                // ORCA: remember the pick so the "Last used" preview default can restore it
+                const std::string view_type_name = view_type_to_config_name(view_type_items[m_view_type_sel]);
+                if (!view_type_name.empty())
+                    wxGetApp().app_config->set("preview_last_view_type", view_type_name);
                 update_moves_slider();
             #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
                 imgui.set_requires_extra_frame();
@@ -3798,7 +5238,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         total_filaments.push_back(buffer);
 
 
-        std::vector<std::pair<std::string, std::vector<::string>>> title_columns;
+        std::vector<std::pair<std::string, std::vector<std::string>>> title_columns;
         if (displayed_columns & ColumnData::Model) {
             title_columns.push_back({ _u8L("Filament"), {""} });
             title_columns.push_back({ _u8L("Model"), total_filaments });
@@ -4045,7 +5485,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         for (uint8_t extruder_id : used_extruders_ids) {
             const std::string weight_text = format_compact_weight(model_used_filaments_g[i], imperial_units);
             ::sprintf(buf, imperial_units ? "%.2f in    %s" : "%.2f m    %s", model_used_filaments_m[i], weight_text.c_str());
-            append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), { { _u8L("Extruder") + " " + std::to_string(extruder_id + 1), offsets[0]}, {buf, offsets[1]} });
+            append_item(EItemType::Rect, shown_filament_color(libvgcode::convert(m_viewer.get_tool_colors()[extruder_id])), { { _u8L("Extruder") + " " + std::to_string(extruder_id + 1), offsets[0]}, {buf, offsets[1]} });
             // append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_tool_colors()[extruder_id]), _u8L("Extruder") + " " + std::to_string(extruder_id + 1),
             // true, "", 0.0f, 0.0f, offsets, used_filaments_m[extruder_id], used_filaments_g[extruder_id]);
             i++;
@@ -4141,7 +5581,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 }
 
                 float checkbox_pos = std::max(predictable_icon_pos, color_print_offsets[_u8L("Display")]); // ORCA prefer predictable_icon_pos when header not reacing end
-                append_item(EItemType::Rect, libvgcode::convert(tool_colors[extruder_idx]), columns_offsets, false, checkbox_pos/*ORCA*/, true, []() {});
+                append_item(EItemType::Rect, shown_filament_color(libvgcode::convert(tool_colors[extruder_idx])), columns_offsets, false, checkbox_pos/*ORCA*/, true, []() {});
             }
             i++;
         }
@@ -4251,7 +5691,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             const size_t extruders_count = get_extruders_count();
             std::vector<ColorRGBA> last_color(extruders_count);
             for (size_t i = 0; i < extruders_count; ++i) {
-                last_color[i] = libvgcode::convert(m_viewer.get_tool_colors()[i]);
+                last_color[i] = shown_filament_color(libvgcode::convert(m_viewer.get_tool_colors()[i]));
             }
             int last_extruder_id = 1;
             int color_change_idx = 0;
@@ -4273,6 +5713,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                         items.push_back({ PartialTime::EType::Print, it->extruder, last_color[it->extruder - 1], ColorRGBA::BLACK(), time_rec.second, get_used_filament_from_volume(used_filaments[color_change_idx++], it->extruder - 1) });
                         ColorRGBA color;
                         decode_color(it->color, color);
+                        color = shown_filament_color(color);
                         items.push_back({ PartialTime::EType::ColorChange, it->extruder, last_color[it->extruder - 1], color, time_rec.second });
                         last_color[it->extruder - 1] = color;
                         last_extruder_id = it->extruder;
@@ -4299,11 +5740,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             ImVec2 pos = ImGui::GetCursorScreenPos();
             pos.x -= 0.5f * ImGui::GetStyle().ItemSpacing.x;
 
-            draw_list->AddRectFilled({ pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f },
-                ImGuiWrapper::to_ImU32(color1));
+            add_swatch(draw_list, { pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f }, color1);
             pos.x += icon_size;
-            draw_list->AddRectFilled({ pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f },
-                ImGuiWrapper::to_ImU32(color2));
+            add_swatch(draw_list, { pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f }, color2);
 
             ImGui::SameLine(offsets[0]);
             imgui.text(short_time(get_time_dhms(times.second - times.first)));
@@ -4318,8 +5757,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             ImVec2 pos = ImGui::GetCursorScreenPos();
             pos.x -= 0.5f * ImGui::GetStyle().ItemSpacing.x;
 
-            draw_list->AddRectFilled({ pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f },
-                ImGuiWrapper::to_ImU32(color));
+            add_swatch(draw_list, { pos.x + 1.0f, pos.y + 1.0f }, { pos.x + icon_size - 1.0f, pos.y + icon_size - 1.0f }, color);
 
             ImGui::SameLine(offsets[0]);
             imgui.text(short_time(get_time_dhms(times.second)));
@@ -4565,16 +6003,18 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
 
         // ORCA: Get layer Zs as doubles
         std::vector<double> layer_zs = get_layers_zs();
+        // loop invariant, same reason as the layer Zs above
+        const std::vector<float> layer_times = m_viewer.get_layers_estimated_times();
 
         for (Slic3r::CustomGCode::Item custom_gcode : custom_gcode_per_print_z) {
             ImGui::Dummy({window_padding, window_padding});
             ImGui::SameLine();
 
             switch (custom_gcode.type) {
-            case PausePrint: imgui.text(cgcode_pause_str); break;
-            case Template: imgui.text(cgcode_template_str); break;
-            case ToolChange: imgui.text(cgcode_toolchange_str); break;
-            case Custom: imgui.text(cgcode_custom_str); break;
+            case CustomGCode::PausePrint: imgui.text(cgcode_pause_str); break;
+            case CustomGCode::Template: imgui.text(cgcode_template_str); break;
+            case CustomGCode::ToolChange: imgui.text(cgcode_toolchange_str); break;
+            case CustomGCode::Custom: imgui.text(cgcode_custom_str); break;
             default: imgui.text(cgcode_unknown_str); break;
             }
             ImGui::SameLine(max_len);
@@ -4584,7 +6024,6 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             imgui.text(buf);
             ImGui::SameLine(max_len * 1.5);
 
-            std::vector<float> layer_times = m_viewer.get_layers_estimated_times();
             float custom_gcode_time = 0;
             if (layer > 0)
             {
@@ -4633,7 +6072,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     std::string print_str = _u8L("Model printing time");
     std::string total_str = _u8L("Total time");
     float max_len = window_padding + 2 * ImGui::GetStyle().ItemSpacing.x;
-    if (m_viewer.get_layers_estimated_times().empty())
+    if (m_viewer.get_layers_count() == 0)
         max_len += ImGui::CalcTextSize(total_str.c_str()).x;
     else {
         if (m_viewer.get_view_type() == libvgcode::EViewType::FeatureType)
@@ -4734,6 +6173,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     ImGui::Dummy({ window_padding, window_padding });
     if (m_nozzle_nums > 1 && (m_viewer.get_view_type() == libvgcode::EViewType::Summary || m_viewer.get_view_type() == libvgcode::EViewType::ColorPrint)) // ORCA show only on summary and filament tab
         render_legend_color_arr_recommen(window_padding);
+
 
     legend_height = ImGui::GetCurrentWindow()->Size.y;
     imgui.end();

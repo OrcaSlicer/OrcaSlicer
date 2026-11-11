@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @InfiMech",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "InfiMech Generic TPU",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "kK1S7YP8vgTJeFPO",
 	"filament_id": "OFgbpcy9",

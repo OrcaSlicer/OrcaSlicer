@@ -1,6 +1,6 @@
 {
 	"name": "OrcaFilamentLibrary",
-	"version": "02.04.00.06",
+	"version": "02.04.00.26",
 	"force_update": "0",
 	"description": "Orca Filament Library",
 	"filament_list": [
@@ -93,8 +93,16 @@
 			"sub_path": "filament/base/fdm_filament_tpu.json"
 		},
 		{
+			"name": "FusRock ABS-GF @BBL base",
+			"sub_path": "filament/FusRock/BBL/FusRock ABS-GF @BBL base.json"
+		},
+		{
 			"name": "FusRock ABS-GF @System",
 			"sub_path": "filament/FusRock/FusRock ABS-GF @System.json"
+		},
+		{
+			"name": "BETA ABS @base",
+			"sub_path": "filament/BETA/BETA ABS @base.json"
 		},
 		{
 			"name": "Bambu ABS @base",
@@ -141,6 +149,10 @@
 			"sub_path": "filament/FDplast/FDplast ABS @base.json"
 		},
 		{
+			"name": "Generic ABS @BBL base",
+			"sub_path": "filament/addnorth/BBL/Generic ABS @BBL base.json"
+		},
+		{
 			"name": "Generic ABS @System",
 			"sub_path": "filament/Generic ABS @System.json"
 		},
@@ -155,6 +167,18 @@
 		{
 			"name": "PolyLite ABS @base",
 			"sub_path": "filament/Polymaker/PolyLite ABS @base.json"
+		},
+		{
+			"name": "PrintaLot ABS @base",
+			"sub_path": "filament/Printalot/PrintaLot ABS @base.json"
+		},
+		{
+			"name": "Recycling Fabrik rABS @base",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rABS @base.json"
+		},
+		{
+			"name": "BETA ASA @base",
+			"sub_path": "filament/BETA/BETA ASA @base.json"
 		},
 		{
 			"name": "Bambu ASA @base",
@@ -221,6 +245,10 @@
 			"sub_path": "filament/Generic EVA @System.json"
 		},
 		{
+			"name": "BETA HIPS @base",
+			"sub_path": "filament/BETA/BETA HIPS @base.json"
+		},
+		{
 			"name": "FDplast HIPS @base",
 			"sub_path": "filament/FDplast/FDplast HIPS @base.json"
 		},
@@ -231,6 +259,10 @@
 		{
 			"name": "AliZ PA-CF @base",
 			"sub_path": "filament/AliZ/AliZ PA-CF @base.json"
+		},
+		{
+			"name": "BETA PAHT-CF @base",
+			"sub_path": "filament/BETA/BETA PAHT-CF @base.json"
 		},
 		{
 			"name": "Bambu PA-CF @base",
@@ -285,24 +317,56 @@
 			"sub_path": "filament/Polymaker/Fiberon PA12-CF @base.json"
 		},
 		{
+			"name": "Fiberon PA12-CF10 @base",
+			"sub_path": "filament/Polymaker/Fiberon PA12-CF10 @base.json"
+		},
+		{
 			"name": "Fiberon PA6-CF @base",
 			"sub_path": "filament/Polymaker/Fiberon PA6-CF @base.json"
+		},
+		{
+			"name": "Fiberon PA6-CF20 @base",
+			"sub_path": "filament/Polymaker/Fiberon PA6-CF20 @base.json"
 		},
 		{
 			"name": "Fiberon PA6-GF @base",
 			"sub_path": "filament/Polymaker/Fiberon PA6-GF @base.json"
 		},
 		{
+			"name": "Fiberon PA6-GF25 @base",
+			"sub_path": "filament/Polymaker/Fiberon PA6-GF25 @base.json"
+		},
+		{
 			"name": "Fiberon PA612-CF @base",
 			"sub_path": "filament/Polymaker/Fiberon PA612-CF @base.json"
+		},
+		{
+			"name": "Fiberon PA612-CF15 @base",
+			"sub_path": "filament/Polymaker/Fiberon PA612-CF15 @base.json"
+		},
+		{
+			"name": "Generic PA @BBL base",
+			"sub_path": "filament/addnorth/BBL/Generic PA @BBL base.json"
 		},
 		{
 			"name": "Generic PA @System",
 			"sub_path": "filament/Generic PA @System.json"
 		},
 		{
+			"name": "Generic PA-CF @BBL base",
+			"sub_path": "filament/addnorth/BBL/Generic PA-CF @BBL base.json"
+		},
+		{
 			"name": "Generic PA-CF @System",
 			"sub_path": "filament/Generic PA-CF @System.json"
+		},
+		{
+			"name": "INSLOGIC PA6-66 @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PA6-66 @base.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PA6-CF @base.json"
 		},
 		{
 			"name": "Bambu PC @base",
@@ -317,8 +381,36 @@
 			"sub_path": "filament/Elegoo/Elegoo PC @base.json"
 		},
 		{
+			"name": "Generic PC @BBL base",
+			"sub_path": "filament/addnorth/BBL/Generic PC @BBL base.json"
+		},
+		{
 			"name": "Generic PC @System",
 			"sub_path": "filament/Generic PC @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG ESD @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG ESD @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG Matte @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Matte @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG Refuel @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Refuel @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG-CF @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-CF @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG-GF @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-GF @base.json"
 		},
 		{
 			"name": "COEX PCTG PRIME @base",
@@ -337,8 +429,76 @@
 			"sub_path": "filament/Generic PE-CF @base.json"
 		},
 		{
+			"name": "3D-Fuel PET CF @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PET CF @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PETG @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG @base.json"
+		},
+		{
+			"name": "3D-Fuel Pro PETG Refuel @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG Refuel @base.json"
+		},
+		{
 			"name": "AliZ PETG @base",
 			"sub_path": "filament/AliZ/AliZ PETG @base.json"
+		},
+		{
+			"name": "BETA PETG @base",
+			"sub_path": "filament/BETA/BETA PETG @base.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @base",
+			"sub_path": "filament/BETA/BETA PETG Fluorescence @base.json"
+		},
+		{
+			"name": "BETA PETG Glitter @base",
+			"sub_path": "filament/BETA/BETA PETG Glitter @base.json"
+		},
+		{
+			"name": "BETA PETG Glow @base",
+			"sub_path": "filament/BETA/BETA PETG Glow @base.json"
+		},
+		{
+			"name": "BETA PETG Gradient @base",
+			"sub_path": "filament/BETA/BETA PETG Gradient @base.json"
+		},
+		{
+			"name": "BETA PETG HF @base",
+			"sub_path": "filament/BETA/BETA PETG HF @base.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @base",
+			"sub_path": "filament/BETA/BETA PETG Heat Color Change @base.json"
+		},
+		{
+			"name": "BETA PETG Marble @base",
+			"sub_path": "filament/BETA/BETA PETG Marble @base.json"
+		},
+		{
+			"name": "BETA PETG Matte @base",
+			"sub_path": "filament/BETA/BETA PETG Matte @base.json"
+		},
+		{
+			"name": "BETA PETG Metallic @base",
+			"sub_path": "filament/BETA/BETA PETG Metallic @base.json"
+		},
+		{
+			"name": "BETA PETG Transparent @base",
+			"sub_path": "filament/BETA/BETA PETG Transparent @base.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @base",
+			"sub_path": "filament/BETA/BETA PETG UV Color Change @base.json"
+		},
+		{
+			"name": "BETA PETG-CF @base",
+			"sub_path": "filament/BETA/BETA PETG-CF @base.json"
+		},
+		{
+			"name": "BETA PETG-GF @base",
+			"sub_path": "filament/BETA/BETA PETG-GF @base.json"
 		},
 		{
 			"name": "Bambu PET-CF @base",
@@ -351,6 +511,10 @@
 		{
 			"name": "Bambu PETG HF @base",
 			"sub_path": "filament/Bambu/Bambu PETG HF @base.json"
+		},
+		{
+			"name": "Bambu PETG Matte @base",
+			"sub_path": "filament/Bambu/Bambu PETG Matte @base.json"
 		},
 		{
 			"name": "Bambu PETG Translucent @base",
@@ -393,6 +557,10 @@
 			"sub_path": "filament/Eolas Prints/Eolas Prints PETG UV Resistant @System.json"
 		},
 		{
+			"name": "EverLoop rPETG Premium @base",
+			"sub_path": "filament/EverLoop/EverLoop rPETG Premium @base.json"
+		},
+		{
 			"name": "FDplast PETG @base",
 			"sub_path": "filament/FDplast/FDplast PETG @base.json"
 		},
@@ -409,6 +577,10 @@
 			"sub_path": "filament/Polymaker/Fiberon PET-CF @base.json"
 		},
 		{
+			"name": "Fiberon PET-CF17 @base",
+			"sub_path": "filament/Polymaker/Fiberon PET-CF17 @base.json"
+		},
+		{
 			"name": "Fiberon PETG-ESD @base",
 			"sub_path": "filament/Polymaker/Fiberon PETG-ESD @base.json"
 		},
@@ -417,8 +589,16 @@
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @base.json"
 		},
 		{
+			"name": "Fiberon PETG-rCF08 @base",
+			"sub_path": "filament/Polymaker/Fiberon PETG-rCF08 @base.json"
+		},
+		{
 			"name": "FilAr PETG @base",
 			"sub_path": "filament/FilAr/FilAr PETG @base.json"
+		},
+		{
+			"name": "Generic PETG @BBL base",
+			"sub_path": "filament/addnorth/BBL/Generic PETG @BBL base.json"
 		},
 		{
 			"name": "Generic PETG @System",
@@ -437,6 +617,14 @@
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @base.json"
 		},
 		{
+			"name": "INSLOGIC PETG Pro @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PETG Pro @base.json"
+		},
+		{
+			"name": "JAYO PETG @base",
+			"sub_path": "filament/JAYO/JAYO PETG @base.json"
+		},
+		{
 			"name": "NIT PETG @base",
 			"sub_path": "filament/NIT/NIT PETG @base.json"
 		},
@@ -445,8 +633,28 @@
 			"sub_path": "filament/Polymaker/PolyLite PETG @base.json"
 		},
 		{
+			"name": "PrintaLot PETG @base",
+			"sub_path": "filament/Printalot/PrintaLot PETG @base.json"
+		},
+		{
+			"name": "Recycling Fabrik rPETG @base",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPETG @base.json"
+		},
+		{
 			"name": "SUNLU PETG @base",
 			"sub_path": "filament/SUNLU/SUNLU PETG @base.json"
+		},
+		{
+			"name": "School House Spools Matte PETG @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Matte PETG @base.json"
+		},
+		{
+			"name": "School House Spools PETG @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PETG @base.json"
+		},
+		{
+			"name": "School House Spools Transparent PETG @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Transparent PETG @base.json"
 		},
 		{
 			"name": "eSUN PETG @base",
@@ -457,8 +665,108 @@
 			"sub_path": "filament/Generic PHA @System.json"
 		},
 		{
+			"name": "3D-Fuel Standard PLA @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA @base.json"
+		},
+		{
+			"name": "3D-Fuel Standard PLA Refuel @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA Refuel @base.json"
+		},
+		{
+			"name": "3D-Fuel Tough Pro PLA @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro PLA @base.json"
+		},
+		{
+			"name": "3D-Fuel Tough Pro Refuel @base",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro Refuel @base.json"
+		},
+		{
 			"name": "AliZ PLA @base",
 			"sub_path": "filament/AliZ/AliZ PLA @base.json"
+		},
+		{
+			"name": "BETA PLA Basic @base",
+			"sub_path": "filament/BETA/BETA PLA Basic @base.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @base",
+			"sub_path": "filament/BETA/BETA PLA Chameleon @base.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @base",
+			"sub_path": "filament/BETA/BETA PLA Fluorescence @base.json"
+		},
+		{
+			"name": "BETA PLA Glitter @base",
+			"sub_path": "filament/BETA/BETA PLA Glitter @base.json"
+		},
+		{
+			"name": "BETA PLA Glow @base",
+			"sub_path": "filament/BETA/BETA PLA Glow @base.json"
+		},
+		{
+			"name": "BETA PLA Gradient @base",
+			"sub_path": "filament/BETA/BETA PLA Gradient @base.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @base",
+			"sub_path": "filament/BETA/BETA PLA Heat Color Change @base.json"
+		},
+		{
+			"name": "BETA PLA High Speed @base",
+			"sub_path": "filament/BETA/BETA PLA High Speed @base.json"
+		},
+		{
+			"name": "BETA PLA High Temp @base",
+			"sub_path": "filament/BETA/BETA PLA High Temp @base.json"
+		},
+		{
+			"name": "BETA PLA Marble @base",
+			"sub_path": "filament/BETA/BETA PLA Marble @base.json"
+		},
+		{
+			"name": "BETA PLA Matte @base",
+			"sub_path": "filament/BETA/BETA PLA Matte @base.json"
+		},
+		{
+			"name": "BETA PLA Metal @base",
+			"sub_path": "filament/BETA/BETA PLA Metal @base.json"
+		},
+		{
+			"name": "BETA PLA Metallic @base",
+			"sub_path": "filament/BETA/BETA PLA Metallic @base.json"
+		},
+		{
+			"name": "BETA PLA PRO @base",
+			"sub_path": "filament/BETA/BETA PLA PRO @base.json"
+		},
+		{
+			"name": "BETA PLA Silk @base",
+			"sub_path": "filament/BETA/BETA PLA Silk @base.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @base",
+			"sub_path": "filament/BETA/BETA PLA Silk+ @base.json"
+		},
+		{
+			"name": "BETA PLA Transparent @base",
+			"sub_path": "filament/BETA/BETA PLA Transparent @base.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @base",
+			"sub_path": "filament/BETA/BETA PLA UV Color Change @base.json"
+		},
+		{
+			"name": "BETA PLA Wood @base",
+			"sub_path": "filament/BETA/BETA PLA Wood @base.json"
+		},
+		{
+			"name": "BETA PLA Youth @base",
+			"sub_path": "filament/BETA/BETA PLA Youth @base.json"
+		},
+		{
+			"name": "BETA PLA-CF @base",
+			"sub_path": "filament/BETA/BETA PLA-CF @base.json"
 		},
 		{
 			"name": "Bambu PLA Aero @base",
@@ -485,6 +793,10 @@
 			"sub_path": "filament/Bambu/Bambu PLA Impact @base.json"
 		},
 		{
+			"name": "Bambu PLA Lite @base",
+			"sub_path": "filament/Bambu/Bambu PLA Lite @base.json"
+		},
+		{
 			"name": "Bambu PLA Marble @base",
 			"sub_path": "filament/Bambu/Bambu PLA Marble @base.json"
 		},
@@ -495,6 +807,10 @@
 		{
 			"name": "Bambu PLA Metal @base",
 			"sub_path": "filament/Bambu/Bambu PLA Metal @base.json"
+		},
+		{
+			"name": "Bambu PLA Pure @base",
+			"sub_path": "filament/Bambu/Bambu PLA Pure @base.json"
 		},
 		{
 			"name": "Bambu PLA Silk @base",
@@ -511,6 +827,14 @@
 		{
 			"name": "Bambu PLA Tough @base",
 			"sub_path": "filament/Bambu/Bambu PLA Tough @base.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @base",
+			"sub_path": "filament/Bambu/Bambu PLA Tough+ @base.json"
+		},
+		{
+			"name": "Bambu PLA Translucent @base",
+			"sub_path": "filament/Bambu/Bambu PLA Translucent @base.json"
 		},
 		{
 			"name": "Bambu PLA Wood @base",
@@ -597,6 +921,14 @@
 			"sub_path": "filament/Eolas Prints/Eolas Prints PLA Transition @System.json"
 		},
 		{
+			"name": "EverLoop rPLA Premium @base",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium @base.json"
+		},
+		{
+			"name": "EverLoop rPLA Premium Matte @base",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium Matte @base.json"
+		},
+		{
 			"name": "FDplast PLA @base",
 			"sub_path": "filament/FDplast/FDplast PLA @base.json"
 		},
@@ -617,8 +949,16 @@
 			"sub_path": "filament/FilAr/FilAr PLA-mate @base.json"
 		},
 		{
+			"name": "Generic PLA @BBL base",
+			"sub_path": "filament/addnorth/BBL/Generic PLA @BBL base.json"
+		},
+		{
 			"name": "Generic PLA @System",
 			"sub_path": "filament/Generic PLA @System.json"
+		},
+		{
+			"name": "Generic PLA High Speed @BBL base",
+			"sub_path": "filament/addnorth/BBL/Generic PLA High Speed @BBL base.json"
 		},
 		{
 			"name": "Generic PLA High Speed @System",
@@ -629,8 +969,28 @@
 			"sub_path": "filament/Generic PLA Matte @base.json"
 		},
 		{
+			"name": "Generic PLA Silk @BBL base",
+			"sub_path": "filament/addnorth/BBL/Generic PLA Silk @BBL base.json"
+		},
+		{
+			"name": "Generic PLA-CF @BBL base",
+			"sub_path": "filament/addnorth/BBL/Generic PLA-CF @BBL base.json"
+		},
+		{
 			"name": "Generic PLA-CF @System",
 			"sub_path": "filament/Generic PLA-CF @System.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @base",
+			"sub_path": "filament/INSLOGIC/INSLOGIC PLA Pro @base.json"
+		},
+		{
+			"name": "JAYO PLA @base",
+			"sub_path": "filament/JAYO/JAYO PLA @base.json"
+		},
+		{
+			"name": "JAYO PLA Classic @base",
+			"sub_path": "filament/JAYO/JAYO PLA Classic @base.json"
 		},
 		{
 			"name": "NIT PLA @base",
@@ -737,16 +1097,56 @@
 			"sub_path": "filament/Polymaker/Panchroma PLA UV Shift @base.json"
 		},
 		{
+			"name": "PlastAR PLA @base",
+			"sub_path": "filament/Printalot/PlastAR PLA @base.json"
+		},
+		{
+			"name": "PolyLite CosPLA @base",
+			"sub_path": "filament/Polymaker/PolyLite CosPLA @base.json"
+		},
+		{
 			"name": "PolyLite PLA @base",
 			"sub_path": "filament/Polymaker/PolyLite PLA @base.json"
+		},
+		{
+			"name": "PolyLite PLA Galaxy @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Galaxy @base.json"
+		},
+		{
+			"name": "PolyLite PLA Glow @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Glow @base.json"
+		},
+		{
+			"name": "PolyLite PLA Luminous @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Luminous @base.json"
+		},
+		{
+			"name": "PolyLite PLA Neon @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Neon @base.json"
 		},
 		{
 			"name": "PolyLite PLA Pro @base",
 			"sub_path": "filament/Polymaker/PolyLite PLA Pro @base.json"
 		},
 		{
+			"name": "PolyLite PLA Starlight @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Starlight @base.json"
+		},
+		{
+			"name": "PolyLite PLA Translucent @base",
+			"sub_path": "filament/Polymaker/PolyLite PLA Translucent @base.json"
+		},
+		{
 			"name": "PolyTerra PLA @base",
 			"sub_path": "filament/Polymaker/PolyTerra PLA @base.json"
+		},
+		{
+			"name": "PolyTerra PLA Marble @base",
+			"sub_path": "filament/Polymaker/PolyTerra PLA Marble @base.json"
+		},
+		{
+			"name": "PolyTerra PLA+ @base",
+			"sub_path": "filament/Polymaker/PolyTerra PLA+ @base.json"
 		},
 		{
 			"name": "Polymaker HT-PLA @base",
@@ -755,6 +1155,18 @@
 		{
 			"name": "Polymaker HT-PLA-GF @base",
 			"sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @base.json"
+		},
+		{
+			"name": "Polymaker PLA Pro @base",
+			"sub_path": "filament/Polymaker/Polymaker PLA Pro @base.json"
+		},
+		{
+			"name": "PrintaLot PLA @base",
+			"sub_path": "filament/Printalot/PrintaLot PLA @base.json"
+		},
+		{
+			"name": "Recycling Fabrik rPLA @base",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPLA @base.json"
 		},
 		{
 			"name": "SUNLU PLA Marble @base",
@@ -779,6 +1191,22 @@
 		{
 			"name": "SUNLU Wood PLA @base",
 			"sub_path": "filament/SUNLU/SUNLU Wood PLA @base.json"
+		},
+		{
+			"name": "School House Spools Marble PLA @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Marble PLA @base.json"
+		},
+		{
+			"name": "School House Spools Matte PLA @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Matte PLA @base.json"
+		},
+		{
+			"name": "School House Spools PLA @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PLA @base.json"
+		},
+		{
+			"name": "School House Spools Silk PLA @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Silk PLA @base.json"
 		},
 		{
 			"name": "Valment PLA @base",
@@ -877,12 +1305,44 @@
 			"sub_path": "filament/Generic SBS @System.json"
 		},
 		{
+			"name": "BETA PEBA 90A @base",
+			"sub_path": "filament/BETA/BETA PEBA 90A @base.json"
+		},
+		{
+			"name": "BETA TPU 90A @base",
+			"sub_path": "filament/BETA/BETA TPU 90A @base.json"
+		},
+		{
+			"name": "BETA TPU 95A @base",
+			"sub_path": "filament/BETA/BETA TPU 95A @base.json"
+		},
+		{
+			"name": "BETA TPU 98A @base",
+			"sub_path": "filament/BETA/BETA TPU 98A @base.json"
+		},
+		{
+			"name": "BETA TPU Matte @base",
+			"sub_path": "filament/BETA/BETA TPU Matte @base.json"
+		},
+		{
+			"name": "Bambu TPU 85A @base",
+			"sub_path": "filament/Bambu/Bambu TPU 85A @base.json"
+		},
+		{
+			"name": "Bambu TPU 90A @base",
+			"sub_path": "filament/Bambu/Bambu TPU 90A @base.json"
+		},
+		{
 			"name": "Bambu TPU 95A @base",
 			"sub_path": "filament/Bambu/Bambu TPU 95A @base.json"
 		},
 		{
 			"name": "Bambu TPU 95A HF @base",
 			"sub_path": "filament/Bambu/Bambu TPU 95A HF @base.json"
+		},
+		{
+			"name": "Bambu TPU for AMS @base",
+			"sub_path": "filament/Bambu/Bambu TPU for AMS @base.json"
 		},
 		{
 			"name": "COEX TPE 30D @base",
@@ -929,12 +1389,52 @@
 			"sub_path": "filament/FDplast/FDplast TPU @base.json"
 		},
 		{
+			"name": "Generic TPU @BBL base",
+			"sub_path": "filament/addnorth/BBL/Generic TPU @BBL base.json"
+		},
+		{
 			"name": "Generic TPU @System",
 			"sub_path": "filament/Generic TPU @System.json"
 		},
 		{
 			"name": "Overture TPU @base",
 			"sub_path": "filament/Overture/Overture TPU @base.json"
+		},
+		{
+			"name": "School House Spools TPU 95A @base",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools TPU 95A @base.json"
+		},
+		{
+			"name": "FusRock ABS-GF @BBL A1",
+			"sub_path": "filament/FusRock/BBL/FusRock ABS-GF @BBL A1.json"
+		},
+		{
+			"name": "FusRock ABS-GF @BBL H2D",
+			"sub_path": "filament/FusRock/BBL/FusRock ABS-GF @BBL H2D.json"
+		},
+		{
+			"name": "FusRock ABS-GF @BBL P1P",
+			"sub_path": "filament/FusRock/BBL/FusRock ABS-GF @BBL P1P.json"
+		},
+		{
+			"name": "FusRock ABS-GF @BBL X1C",
+			"sub_path": "filament/FusRock/BBL/FusRock ABS-GF @BBL X1C.json"
+		},
+		{
+			"name": "BETA ABS @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA ABS @BBL A1.json"
+		},
+		{
+			"name": "BETA ABS @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA ABS @BBL H2D.json"
+		},
+		{
+			"name": "BETA ABS @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA ABS @BBL P1P.json"
+		},
+		{
+			"name": "BETA ABS @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA ABS @BBL X1C.json"
 		},
 		{
 			"name": "Bambu ABS @System",
@@ -949,8 +1449,40 @@
 			"sub_path": "filament/Bambu/Bambu Support for ABS @System.json"
 		},
 		{
+			"name": "COEX ABS @BBL X1",
+			"sub_path": "filament/COEX/BBL/COEX ABS @BBL X1.json"
+		},
+		{
+			"name": "COEX ABS @BBL X1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX ABS @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX ABS @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX ABS @BBL X1C.json"
+		},
+		{
+			"name": "COEX ABS @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX ABS @BBL X1C 0.2 nozzle.json"
+		},
+		{
 			"name": "COEX ABS @System",
 			"sub_path": "filament/COEX/COEX ABS @System.json"
+		},
+		{
+			"name": "COEX ABS PRIME @BBL X1",
+			"sub_path": "filament/COEX/BBL/COEX ABS PRIME @BBL X1.json"
+		},
+		{
+			"name": "COEX ABS PRIME @BBL X1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX ABS PRIME @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX ABS PRIME @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX ABS PRIME @BBL X1C.json"
+		},
+		{
+			"name": "COEX ABS PRIME @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX ABS PRIME @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "COEX ABS PRIME @System",
@@ -977,6 +1509,14 @@
 			"sub_path": "filament/FDplast/FDplast ABS @System.json"
 		},
 		{
+			"name": "addnorth ABS rABS",
+			"sub_path": "filament/addnorth/BBL/addnorth ABS rABS.json"
+		},
+		{
+			"name": "Goofoo ABS @base",
+			"sub_path": "filament/Goofoo/Goofoo ABS @base.json"
+		},
+		{
 			"name": "NIT ABS @System",
 			"sub_path": "filament/NIT/NIT ABS @System.json"
 		},
@@ -989,6 +1529,26 @@
 			"sub_path": "filament/Polymaker/PolyLite ABS @System.json"
 		},
 		{
+			"name": "PrintaLot ABS @System",
+			"sub_path": "filament/Printalot/PrintaLot ABS @System.json"
+		},
+		{
+			"name": "Recycling Fabrik rABS @System",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rABS @System.json"
+		},
+		{
+			"name": "BETA ASA @BBL A1 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA ASA @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA ASA @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA ASA @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA ASA @BBL X1C 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA ASA @BBL X1C 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu ASA @System",
 			"sub_path": "filament/Bambu/Bambu ASA @System.json"
 		},
@@ -999,6 +1559,22 @@
 		{
 			"name": "Bambu ASA-CF @System",
 			"sub_path": "filament/Bambu/Bambu ASA-CF @System.json"
+		},
+		{
+			"name": "COEX ASA PRIME @BBL X1",
+			"sub_path": "filament/COEX/BBL/COEX ASA PRIME @BBL X1.json"
+		},
+		{
+			"name": "COEX ASA PRIME @BBL X1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX ASA PRIME @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX ASA PRIME @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX ASA PRIME @BBL X1C.json"
+		},
+		{
+			"name": "COEX ASA PRIME @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX ASA PRIME @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "COEX ASA PRIME @System",
@@ -1029,6 +1605,26 @@
 			"sub_path": "filament/Elegoo/Elegoo ASA-CF @base.json"
 		},
 		{
+			"name": "Goofoo ASA @base",
+			"sub_path": "filament/Goofoo/Goofoo ASA @base.json"
+		},
+		{
+			"name": "Overture ASA @BBL X1",
+			"sub_path": "filament/Overture/BBL/Overture ASA @BBL X1.json"
+		},
+		{
+			"name": "Overture ASA @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture ASA @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture ASA @BBL X1C",
+			"sub_path": "filament/Overture/BBL/Overture ASA @BBL X1C.json"
+		},
+		{
+			"name": "Overture ASA @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture ASA @BBL X1C 0.2 nozzle.json"
+		},
+		{
 			"name": "Overture ASA @System",
 			"sub_path": "filament/Overture/Overture ASA @System.json"
 		},
@@ -1037,12 +1633,36 @@
 			"sub_path": "filament/Polymaker/PolyLite ASA @System.json"
 		},
 		{
+			"name": "BETA HIPS @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA HIPS @BBL H2D.json"
+		},
+		{
+			"name": "BETA HIPS @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA HIPS @BBL X1C.json"
+		},
+		{
 			"name": "FDplast HIPS @System",
 			"sub_path": "filament/FDplast/FDplast HIPS @System.json"
 		},
 		{
+			"name": "AliZ PA-CF @P1-X1",
+			"sub_path": "filament/AliZ/BBL/AliZ PA-CF @P1-X1.json"
+		},
+		{
 			"name": "AliZ PA-CF @System",
 			"sub_path": "filament/AliZ/AliZ PA-CF @System.json"
+		},
+		{
+			"name": "BETA PAHT-CF @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PAHT-CF @BBL H2D.json"
+		},
+		{
+			"name": "BETA PAHT-CF @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PAHT-CF @BBL P1P.json"
+		},
+		{
+			"name": "BETA PAHT-CF @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PAHT-CF @BBL X1C.json"
 		},
 		{
 			"name": "Bambu PA-CF @System",
@@ -1069,8 +1689,16 @@
 			"sub_path": "filament/Bambu/Bambu Support G @System.json"
 		},
 		{
+			"name": "COEX NYLEX PA6-CF @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX NYLEX PA6-CF @BBL X1C.json"
+		},
+		{
 			"name": "COEX NYLEX PA6-CF @System",
 			"sub_path": "filament/COEX/COEX NYLEX PA6-CF @System.json"
+		},
+		{
+			"name": "COEX NYLEX UNFILLED @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX NYLEX UNFILLED @BBL X1C.json"
 		},
 		{
 			"name": "DREMC PA12-CF @System",
@@ -1093,16 +1721,88 @@
 			"sub_path": "filament/Polymaker/Fiberon PA12-CF @System.json"
 		},
 		{
+			"name": "Fiberon PA12-CF10 @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Fiberon PA12-CF10 @BBL X1.json"
+		},
+		{
 			"name": "Fiberon PA6-CF @System",
 			"sub_path": "filament/Polymaker/Fiberon PA6-CF @System.json"
+		},
+		{
+			"name": "Fiberon PA6-CF20 @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Fiberon PA6-CF20 @BBL X1.json"
 		},
 		{
 			"name": "Fiberon PA6-GF @System",
 			"sub_path": "filament/Polymaker/Fiberon PA6-GF @System.json"
 		},
 		{
+			"name": "Fiberon PA6-GF25 @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Fiberon PA6-GF25 @BBL X1.json"
+		},
+		{
 			"name": "Fiberon PA612-CF @System",
 			"sub_path": "filament/Polymaker/Fiberon PA612-CF @System.json"
+		},
+		{
+			"name": "Fiberon PA612-CF15 @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Fiberon PA612-CF15 @BBL X1.json"
+		},
+		{
+			"name": "addnorth PA Adura",
+			"sub_path": "filament/addnorth/BBL/addnorth PA Adura.json"
+		},
+		{
+			"name": "addnorth PA Adura FDA",
+			"sub_path": "filament/addnorth/BBL/addnorth PA Adura FDA.json"
+		},
+		{
+			"name": "addnorth PA6 Addlantis",
+			"sub_path": "filament/addnorth/BBL/addnorth PA6 Addlantis.json"
+		},
+		{
+			"name": "addnorth PVDF Adamant S1",
+			"sub_path": "filament/addnorth/BBL/addnorth PVDF Adamant S1.json"
+		},
+		{
+			"name": "Goofoo PA @base",
+			"sub_path": "filament/Goofoo/Goofoo PA @base.json"
+		},
+		{
+			"name": "addnorth PA-CF Adura X",
+			"sub_path": "filament/addnorth/BBL/addnorth PA-CF Adura X.json"
+		},
+		{
+			"name": "Goofoo PA-CF @base",
+			"sub_path": "filament/Goofoo/Goofoo PA-CF @base.json"
+		},
+		{
+			"name": "Goofoo PA-GF10 @base",
+			"sub_path": "filament/Goofoo/Goofoo PA-GF10 @base.json"
+		},
+		{
+			"name": "INSLOGIC PA6-66 @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-66 @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PA6-66 @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-66 @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PA6-66 @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PA6-66 @Prusa CORE One.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-CF @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PA6-CF @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PA6-CF @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PA6-CF @Prusa CORE One.json"
 		},
 		{
 			"name": "Bambu PC @System",
@@ -1121,12 +1821,84 @@
 			"sub_path": "filament/Elegoo/Elegoo PC-FR @base.json"
 		},
 		{
+			"name": "addnorth PC BLend HT LCF",
+			"sub_path": "filament/addnorth/BBL/addnorth PC BLend HT LCF.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG ESD @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG ESD @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG Matte @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Matte @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG Refuel @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG Refuel @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG-CF @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-CF @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PCTG-GF @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PCTG-GF @System.json"
+		},
+		{
+			"name": "COEX PCTG PRIME @BBL A1",
+			"sub_path": "filament/COEX/BBL/COEX PCTG PRIME @BBL A1.json"
+		},
+		{
+			"name": "COEX PCTG PRIME @BBL A1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PCTG PRIME @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PCTG PRIME @BBL A1 0.8 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PCTG PRIME @BBL A1 0.8 nozzle.json"
+		},
+		{
+			"name": "COEX PCTG PRIME @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX PCTG PRIME @BBL X1C.json"
+		},
+		{
+			"name": "COEX PCTG PRIME @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PCTG PRIME @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PCTG PRIME @BBL X1C 0.8 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PCTG PRIME @BBL X1C 0.8 nozzle.json"
+		},
+		{
 			"name": "COEX PCTG PRIME @System",
 			"sub_path": "filament/COEX/COEX PCTG PRIME @System.json"
 		},
 		{
+			"name": "Goofoo PE @base",
+			"sub_path": "filament/Goofoo/Goofoo PE @base.json"
+		},
+		{
 			"name": "Generic PE-CF @System",
 			"sub_path": "filament/Generic PE-CF @System.json"
+		},
+		{
+			"name": "3D-Fuel PET CF @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel PET CF @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PETG @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG @System.json"
+		},
+		{
+			"name": "3D-Fuel Pro PETG Refuel @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Pro PETG Refuel @System.json"
+		},
+		{
+			"name": "AliZ PETG @P1-X1",
+			"sub_path": "filament/AliZ/BBL/AliZ PETG @P1-X1.json"
 		},
 		{
 			"name": "AliZ PETG @System",
@@ -1141,6 +1913,238 @@
 			"sub_path": "filament/AliZ/AliZ PETG-Metal @base.json"
 		},
 		{
+			"name": "BETA PETG @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG Fluorescence @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Fluorescence @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Fluorescence @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Fluorescence @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG Fluorescence @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Glitter @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG Glitter @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Glitter @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Glitter @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Glitter @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Glitter @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Glitter @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG Glitter @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Glow @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG Glow @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Glow @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Glow @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Glow @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Glow @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Glow @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG Glow @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Gradient @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG Gradient @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Gradient @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Gradient @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Gradient @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Gradient @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Gradient @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG Gradient @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG HF @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG HF @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG HF @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PETG HF @BBL A1M.json"
+		},
+		{
+			"name": "BETA PETG HF @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG HF @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG HF @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG HF @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG Heat Color Change @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Heat Color Change @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Heat Color Change @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Heat Color Change @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG Heat Color Change @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Marble @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG Marble @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Marble @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Marble @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Marble @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Marble @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Marble @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG Marble @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Matte @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG Matte @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Matte @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Matte @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Matte @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Matte @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Matte @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG Matte @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Metallic @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG Metallic @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Metallic @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Metallic @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Metallic @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Metallic @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Metallic @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG Metallic @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG Transparent @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG Transparent @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG Transparent @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PETG Transparent @BBL A1M.json"
+		},
+		{
+			"name": "BETA PETG Transparent @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG Transparent @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG Transparent @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG Transparent @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PETG UV Color Change @BBL A1.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG UV Color Change @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG UV Color Change @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG UV Color Change @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PETG UV Color Change @BBL X1C.json"
+		},
+		{
+			"name": "BETA PETG-CF @BBL A1 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG-CF @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-CF @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG-CF @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-CF @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG-CF @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-CF @BBL P1P 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG-CF @BBL P1P 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-CF @BBL X1C 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG-CF @BBL X1C 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-GF @BBL A1 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG-GF @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-GF @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG-GF @BBL A1M 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-GF @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG-GF @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-GF @BBL P1P 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG-GF @BBL P1P 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PETG-GF @BBL X1C 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PETG-GF @BBL X1C 0.4 nozzle.json"
+		},
+		{
 			"name": "Bambu PET-CF @System",
 			"sub_path": "filament/Bambu/Bambu PET-CF @System.json"
 		},
@@ -1153,12 +2157,40 @@
 			"sub_path": "filament/Bambu/Bambu PETG HF @System.json"
 		},
 		{
+			"name": "Bambu PETG Matte @System",
+			"sub_path": "filament/Bambu/Bambu PETG Matte @System.json"
+		},
+		{
 			"name": "Bambu PETG Translucent @System",
 			"sub_path": "filament/Bambu/Bambu PETG Translucent @System.json"
 		},
 		{
 			"name": "Bambu PETG-CF @System",
 			"sub_path": "filament/Bambu/Bambu PETG-CF @System.json"
+		},
+		{
+			"name": "COEX PETG @BBL A1",
+			"sub_path": "filament/COEX/BBL/COEX PETG @BBL A1.json"
+		},
+		{
+			"name": "COEX PETG @BBL A1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PETG @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PETG @BBL A1 0.8 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PETG @BBL A1 0.8 nozzle.json"
+		},
+		{
+			"name": "COEX PETG @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX PETG @BBL X1C.json"
+		},
+		{
+			"name": "COEX PETG @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PETG @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PETG @BBL X1C 0.8 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PETG @BBL X1C 0.8 nozzle.json"
 		},
 		{
 			"name": "COEX PETG @System",
@@ -1209,6 +2241,10 @@
 			"sub_path": "filament/Elegoo/Elegoo Rapid PETG @base.json"
 		},
 		{
+			"name": "EverLoop rPETG Premium @System",
+			"sub_path": "filament/EverLoop/EverLoop rPETG Premium @System.json"
+		},
+		{
 			"name": "FDplast PETG @System",
 			"sub_path": "filament/FDplast/FDplast PETG @System.json"
 		},
@@ -1225,12 +2261,24 @@
 			"sub_path": "filament/Polymaker/Fiberon PET-CF @System.json"
 		},
 		{
+			"name": "Fiberon PET-CF17 @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Fiberon PET-CF17 @BBL X1.json"
+		},
+		{
+			"name": "Fiberon PETG-ESD @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Fiberon PETG-ESD @BBL base.json"
+		},
+		{
 			"name": "Fiberon PETG-ESD @System",
 			"sub_path": "filament/Polymaker/Fiberon PETG-ESD @System.json"
 		},
 		{
 			"name": "Fiberon PETG-rCF @System",
 			"sub_path": "filament/Polymaker/Fiberon PETG-rCF @System.json"
+		},
+		{
+			"name": "Fiberon PETG-rCF08 @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Fiberon PETG-rCF08 @BBL X1.json"
 		},
 		{
 			"name": "FilAr PETG Amarillo Lima",
@@ -1289,8 +2337,40 @@
 			"sub_path": "filament/FilAr/FilAr PETG Rojo Carmesi.json"
 		},
 		{
+			"name": "addnorth PETG Base",
+			"sub_path": "filament/addnorth/BBL/addnorth PETG Base.json"
+		},
+		{
+			"name": "addnorth PETG ESD",
+			"sub_path": "filament/addnorth/BBL/addnorth PETG ESD.json"
+		},
+		{
+			"name": "addnorth PETG Economy",
+			"sub_path": "filament/addnorth/BBL/addnorth PETG Economy.json"
+		},
+		{
+			"name": "addnorth PETG Flame v0",
+			"sub_path": "filament/addnorth/BBL/addnorth PETG Flame v0.json"
+		},
+		{
+			"name": "addnorth PETG PRO Matte",
+			"sub_path": "filament/addnorth/BBL/addnorth PETG PRO Matte.json"
+		},
+		{
+			"name": "addnorth PETG rPETG Matte",
+			"sub_path": "filament/addnorth/BBL/addnorth PETG rPETG Matte.json"
+		},
+		{
+			"name": "Goofoo PETG @base",
+			"sub_path": "filament/Goofoo/Goofoo PETG @base.json"
+		},
+		{
 			"name": "Generic PETG HF @System",
 			"sub_path": "filament/Generic PETG HF @System.json"
+		},
+		{
+			"name": "Generic PETG-CF @BBL base",
+			"sub_path": "filament/addnorth/BBL/Generic PETG-CF @BBL base.json"
 		},
 		{
 			"name": "Generic PETG-CF @System",
@@ -1301,6 +2381,34 @@
 			"sub_path": "filament/GreenGate3D/GreenGate3D PETG @System.json"
 		},
 		{
+			"name": "INSLOGIC PETG Pro @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PETG Pro @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PETG Pro @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PETG Pro @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PETG Pro @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PETG Pro @Prusa CORE One.json"
+		},
+		{
+			"name": "JAYO PETG @BBL A1 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PETG @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PETG @BBL P2S 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PETG @BBL P2S 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PETG @Creality K2 Pro 0.4 nozzle",
+			"sub_path": "filament/JAYO/Creality/JAYO PETG @Creality K2 Pro 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PETG @System",
+			"sub_path": "filament/JAYO/JAYO PETG @System.json"
+		},
+		{
 			"name": "NIT PETG @System",
 			"sub_path": "filament/NIT/NIT PETG @System.json"
 		},
@@ -1309,16 +2417,572 @@
 			"sub_path": "filament/Polymaker/PolyLite PETG @System.json"
 		},
 		{
+			"name": "PrintaLot PETG @BBL A1",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1M",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1M.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A2L",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A2L.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL A2L 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL A2L 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2C 0.4 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2D.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2DP",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2DP.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2DP 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2DP 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2S.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL H2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL H2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P1P",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P1P.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P2S.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL P2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL P2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X1C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X1C.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PETG @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PETG @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Recycling Fabrik rPETG @System",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPETG @System.json"
+		},
+		{
 			"name": "SUNLU PETG @System",
 			"sub_path": "filament/SUNLU/SUNLU PETG @System.json"
+		},
+		{
+			"name": "School House Spools Matte PETG @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Matte PETG @System.json"
+		},
+		{
+			"name": "School House Spools PETG @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PETG @System.json"
+		},
+		{
+			"name": "School House Spools Transparent PETG @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Transparent PETG @System.json"
 		},
 		{
 			"name": "eSUN PETG @System",
 			"sub_path": "filament/eSUN/eSUN PETG @System.json"
 		},
 		{
+			"name": "Goofoo PHA @base",
+			"sub_path": "filament/Goofoo/Goofoo PHA @base.json"
+		},
+		{
+			"name": "3D-Fuel Standard PLA @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA @System.json"
+		},
+		{
+			"name": "3D-Fuel Standard PLA Refuel @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Standard PLA Refuel @System.json"
+		},
+		{
+			"name": "3D-Fuel Tough Pro PLA @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro PLA @System.json"
+		},
+		{
+			"name": "3D-Fuel Tough Pro Refuel @System",
+			"sub_path": "filament/3D-Fuel/3D-Fuel Tough Pro Refuel @System.json"
+		},
+		{
+			"name": "AliZ PLA @P1-X1",
+			"sub_path": "filament/AliZ/BBL/AliZ PLA @P1-X1.json"
+		},
+		{
 			"name": "AliZ PLA @System",
 			"sub_path": "filament/AliZ/AliZ PLA @System.json"
+		},
+		{
+			"name": "BETA PLA Basic @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Basic @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Basic @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Basic @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Basic @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Basic @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Basic @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Basic @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Basic @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Basic @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Chameleon @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Chameleon @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Chameleon @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Chameleon @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Chameleon @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Chameleon @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Fluorescence @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Fluorescence @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Fluorescence @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Fluorescence @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Fluorescence @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Fluorescence @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Glitter @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Glitter @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Glitter @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Glitter @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Glitter @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Glitter @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Glitter @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Glitter @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Glitter @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Glitter @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Glow @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Glow @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Glow @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Glow @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Glow @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Glow @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Glow @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Glow @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Glow @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Glow @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Gradient @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Gradient @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Gradient @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Gradient @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Gradient @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Gradient @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Gradient @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Gradient @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Gradient @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Gradient @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Heat Color Change @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Heat Color Change @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Heat Color Change @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Heat Color Change @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Heat Color Change @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Heat Color Change @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA High Speed @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA High Speed @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA High Speed @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA High Speed @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA High Speed @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA High Speed @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA High Speed @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA High Speed @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA High Speed @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA High Speed @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA High Temp @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA High Temp @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA High Temp @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA High Temp @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA High Temp @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA High Temp @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA High Temp @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA High Temp @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA High Temp @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA High Temp @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Marble @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Marble @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Marble @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Marble @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Marble @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Marble @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Marble @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Marble @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Marble @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Marble @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Matte @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Matte @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Matte @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Matte @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Matte @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Matte @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Matte @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Matte @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Matte @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Matte @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Metal @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Metal @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Metal @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Metal @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Metal @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Metal @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Metal @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Metal @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Metal @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Metal @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Metallic @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Metallic @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Metallic @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Metallic @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Metallic @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Metallic @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Metallic @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Metallic @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Metallic @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Metallic @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA PRO @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA PRO @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA PRO @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA PRO @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA PRO @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA PRO @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA PRO @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA PRO @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA PRO @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA PRO @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Silk @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Silk @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Silk @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Silk @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Silk @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Silk @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Silk @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Silk @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Silk @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Silk @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Silk+ @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Silk+ @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Silk+ @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Silk+ @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Silk+ @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Silk+ @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Transparent @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Transparent @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Transparent @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Transparent @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Transparent @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Transparent @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Transparent @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Transparent @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Transparent @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Transparent @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA UV Color Change @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA UV Color Change @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA UV Color Change @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA UV Color Change @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA UV Color Change @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA UV Color Change @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Wood @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Wood @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Wood @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Wood @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Wood @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Wood @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Wood @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Wood @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Wood @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Wood @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA Youth @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA Youth @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA Youth @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA Youth @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA Youth @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PLA Youth @BBL H2D.json"
+		},
+		{
+			"name": "BETA PLA Youth @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA Youth @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA Youth @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA Youth @BBL X1C.json"
+		},
+		{
+			"name": "BETA PLA-CF @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PLA-CF @BBL A1.json"
+		},
+		{
+			"name": "BETA PLA-CF @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PLA-CF @BBL A1M.json"
+		},
+		{
+			"name": "BETA PLA-CF @BBL H2D 0.4 nozzle",
+			"sub_path": "filament/BETA/BBL/BETA PLA-CF @BBL H2D 0.4 nozzle.json"
+		},
+		{
+			"name": "BETA PLA-CF @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PLA-CF @BBL P1P.json"
+		},
+		{
+			"name": "BETA PLA-CF @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PLA-CF @BBL X1C.json"
 		},
 		{
 			"name": "Bambu PLA Aero @System",
@@ -1345,6 +3009,10 @@
 			"sub_path": "filament/Bambu/Bambu PLA Impact @System.json"
 		},
 		{
+			"name": "Bambu PLA Lite @System",
+			"sub_path": "filament/Bambu/Bambu PLA Lite @System.json"
+		},
+		{
 			"name": "Bambu PLA Marble @System",
 			"sub_path": "filament/Bambu/Bambu PLA Marble @System.json"
 		},
@@ -1355,6 +3023,10 @@
 		{
 			"name": "Bambu PLA Metal @System",
 			"sub_path": "filament/Bambu/Bambu PLA Metal @System.json"
+		},
+		{
+			"name": "Bambu PLA Pure @System",
+			"sub_path": "filament/Bambu/Bambu PLA Pure @System.json"
 		},
 		{
 			"name": "Bambu PLA Silk @System",
@@ -1371,6 +3043,14 @@
 		{
 			"name": "Bambu PLA Tough @System",
 			"sub_path": "filament/Bambu/Bambu PLA Tough @System.json"
+		},
+		{
+			"name": "Bambu PLA Tough+ @System",
+			"sub_path": "filament/Bambu/Bambu PLA Tough+ @System.json"
+		},
+		{
+			"name": "Bambu PLA Translucent @System",
+			"sub_path": "filament/Bambu/Bambu PLA Translucent @System.json"
 		},
 		{
 			"name": "Bambu PLA Wood @System",
@@ -1393,8 +3073,72 @@
 			"sub_path": "filament/Bambu/Bambu Support W @System.json"
 		},
 		{
+			"name": "COEX PLA @BBL A1",
+			"sub_path": "filament/COEX/BBL/COEX PLA @BBL A1.json"
+		},
+		{
+			"name": "COEX PLA @BBL A1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA @BBL A1M",
+			"sub_path": "filament/COEX/BBL/COEX PLA @BBL A1M.json"
+		},
+		{
+			"name": "COEX PLA @BBL P1P",
+			"sub_path": "filament/COEX/BBL/COEX PLA @BBL P1P.json"
+		},
+		{
+			"name": "COEX PLA @BBL X1",
+			"sub_path": "filament/COEX/BBL/COEX PLA @BBL X1.json"
+		},
+		{
+			"name": "COEX PLA @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX PLA @BBL X1C.json"
+		},
+		{
 			"name": "COEX PLA @System",
 			"sub_path": "filament/COEX/COEX PLA @System.json"
+		},
+		{
+			"name": "COEX PLA PRIME @BBL A1",
+			"sub_path": "filament/COEX/BBL/COEX PLA PRIME @BBL A1.json"
+		},
+		{
+			"name": "COEX PLA PRIME @BBL A1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA PRIME @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA PRIME @BBL A1M",
+			"sub_path": "filament/COEX/BBL/COEX PLA PRIME @BBL A1M.json"
+		},
+		{
+			"name": "COEX PLA PRIME @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA PRIME @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA PRIME @BBL P1P",
+			"sub_path": "filament/COEX/BBL/COEX PLA PRIME @BBL P1P.json"
+		},
+		{
+			"name": "COEX PLA PRIME @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA PRIME @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA PRIME @BBL X1",
+			"sub_path": "filament/COEX/BBL/COEX PLA PRIME @BBL X1.json"
+		},
+		{
+			"name": "COEX PLA PRIME @BBL X1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA PRIME @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA PRIME @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX PLA PRIME @BBL X1C.json"
+		},
+		{
+			"name": "COEX PLA PRIME @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA PRIME @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "COEX PLA PRIME @System",
@@ -1471,6 +3215,14 @@
 		{
 			"name": "Elegoo Rapid PLA+ @base",
 			"sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @base.json"
+		},
+		{
+			"name": "EverLoop rPLA Premium @System",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium @System.json"
+		},
+		{
+			"name": "EverLoop rPLA Premium Matte @System",
+			"sub_path": "filament/EverLoop/EverLoop rPLA Premium Matte @System.json"
 		},
 		{
 			"name": "FDplast PLA @System",
@@ -1669,20 +3421,196 @@
 			"sub_path": "filament/FilAr/FilAr PLA-mate Violeta.json"
 		},
 		{
+			"name": "addnorth PLA E-PLA",
+			"sub_path": "filament/addnorth/BBL/addnorth PLA E-PLA.json"
+		},
+		{
+			"name": "addnorth PLA Economy",
+			"sub_path": "filament/addnorth/BBL/addnorth PLA Economy.json"
+		},
+		{
+			"name": "addnorth PLA HT-PLA PRO Matte",
+			"sub_path": "filament/addnorth/BBL/addnorth PLA HT-PLA PRO Matte.json"
+		},
+		{
+			"name": "addnorth PLA Textura",
+			"sub_path": "filament/addnorth/BBL/addnorth PLA Textura.json"
+		},
+		{
+			"name": "addnorth PLA Wood",
+			"sub_path": "filament/addnorth/BBL/addnorth PLA Wood.json"
+		},
+		{
+			"name": "addnorth PLA X-PLA",
+			"sub_path": "filament/addnorth/BBL/addnorth PLA X-PLA.json"
+		},
+		{
+			"name": "addnorth PLA rPLA RE-ADD",
+			"sub_path": "filament/addnorth/BBL/addnorth PLA rPLA RE-ADD.json"
+		},
+		{
+			"name": "Goofoo PLA @base",
+			"sub_path": "filament/Goofoo/Goofoo PLA @base.json"
+		},
+		{
+			"name": "addnorth PLA X-PLA High Speed",
+			"sub_path": "filament/addnorth/BBL/addnorth PLA X-PLA High Speed.json"
+		},
+		{
 			"name": "Generic PLA Matte @System",
 			"sub_path": "filament/Generic PLA Matte @System.json"
+		},
+		{
+			"name": "addnorth PLA Premium Silk",
+			"sub_path": "filament/addnorth/BBL/addnorth PLA Premium Silk.json"
+		},
+		{
+			"name": "addnorth PLA-CF Carbon Fiber",
+			"sub_path": "filament/addnorth/BBL/addnorth PLA-CF Carbon Fiber.json"
+		},
+		{
+			"name": "Goofoo PLA-CF @base",
+			"sub_path": "filament/Goofoo/Goofoo PLA-CF @base.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @BBL P2S",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PLA Pro @BBL P2S.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @P1-X1",
+			"sub_path": "filament/INSLOGIC/BBL/INSLOGIC PLA Pro @P1-X1.json"
+		},
+		{
+			"name": "INSLOGIC PLA Pro @Prusa CORE One",
+			"sub_path": "filament/INSLOGIC/Prusa/INSLOGIC PLA Pro @Prusa CORE One.json"
+		},
+		{
+			"name": "JAYO PLA @BBL A1 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA @BBL P2S 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA @BBL P2S 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA @Creality K2 Pro 0.4 nozzle",
+			"sub_path": "filament/JAYO/Creality/JAYO PLA @Creality K2 Pro 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA @System",
+			"sub_path": "filament/JAYO/JAYO PLA @System.json"
+		},
+		{
+			"name": "JAYO PLA Classic @BBL A1 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA Classic @BBL A1 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA Classic @BBL P2S 0.4 nozzle",
+			"sub_path": "filament/JAYO/BBL/JAYO PLA Classic @BBL P2S 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA Classic @Creality K2 Pro 0.4 nozzle",
+			"sub_path": "filament/JAYO/Creality/JAYO PLA Classic @Creality K2 Pro 0.4 nozzle.json"
+		},
+		{
+			"name": "JAYO PLA Classic @System",
+			"sub_path": "filament/JAYO/JAYO PLA Classic @System.json"
 		},
 		{
 			"name": "NIT PLA @System",
 			"sub_path": "filament/NIT/NIT PLA @System.json"
 		},
 		{
+			"name": "Numakers PLA+ @BBL base",
+			"sub_path": "filament/Numakers/BBL/Numakers PLA+ @BBL base.json"
+		},
+		{
 			"name": "Numakers PLA+ @System",
 			"sub_path": "filament/Numakers/Numakers PLA+ @System.json"
 		},
 		{
+			"name": "Overture Air PLA @BBL A1",
+			"sub_path": "filament/Overture/BBL/Overture Air PLA @BBL A1.json"
+		},
+		{
+			"name": "Overture Air PLA @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Air PLA @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Air PLA @BBL A1M",
+			"sub_path": "filament/Overture/BBL/Overture Air PLA @BBL A1M.json"
+		},
+		{
+			"name": "Overture Air PLA @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Air PLA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Air PLA @BBL P1P",
+			"sub_path": "filament/Overture/BBL/Overture Air PLA @BBL P1P.json"
+		},
+		{
+			"name": "Overture Air PLA @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Air PLA @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Air PLA @BBL X1",
+			"sub_path": "filament/Overture/BBL/Overture Air PLA @BBL X1.json"
+		},
+		{
+			"name": "Overture Air PLA @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Air PLA @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Air PLA @BBL X1C",
+			"sub_path": "filament/Overture/BBL/Overture Air PLA @BBL X1C.json"
+		},
+		{
+			"name": "Overture Air PLA @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Air PLA @BBL X1C 0.2 nozzle.json"
+		},
+		{
 			"name": "Overture Air PLA @System",
 			"sub_path": "filament/Overture/Overture Air PLA @System.json"
+		},
+		{
+			"name": "Overture Easy PLA @BBL A1",
+			"sub_path": "filament/Overture/BBL/Overture Easy PLA @BBL A1.json"
+		},
+		{
+			"name": "Overture Easy PLA @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Easy PLA @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Easy PLA @BBL A1M",
+			"sub_path": "filament/Overture/BBL/Overture Easy PLA @BBL A1M.json"
+		},
+		{
+			"name": "Overture Easy PLA @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Easy PLA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Easy PLA @BBL P1P",
+			"sub_path": "filament/Overture/BBL/Overture Easy PLA @BBL P1P.json"
+		},
+		{
+			"name": "Overture Easy PLA @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Easy PLA @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Easy PLA @BBL X1",
+			"sub_path": "filament/Overture/BBL/Overture Easy PLA @BBL X1.json"
+		},
+		{
+			"name": "Overture Easy PLA @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Easy PLA @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Easy PLA @BBL X1C",
+			"sub_path": "filament/Overture/BBL/Overture Easy PLA @BBL X1C.json"
+		},
+		{
+			"name": "Overture Easy PLA @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Easy PLA @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "Overture Easy PLA @System",
@@ -1697,84 +3625,292 @@
 			"sub_path": "filament/Overture/Overture PLA @System.json"
 		},
 		{
+			"name": "Overture PLA Pro @BBL base",
+			"sub_path": "filament/Overture/BBL/Overture PLA Pro @BBL base.json"
+		},
+		{
 			"name": "Overture PLA Pro @System",
 			"sub_path": "filament/Overture/Overture PLA Pro @System.json"
+		},
+		{
+			"name": "Overture Rock PLA @BBL A1",
+			"sub_path": "filament/Overture/BBL/Overture Rock PLA @BBL A1.json"
+		},
+		{
+			"name": "Overture Rock PLA @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Rock PLA @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Rock PLA @BBL A1M",
+			"sub_path": "filament/Overture/BBL/Overture Rock PLA @BBL A1M.json"
+		},
+		{
+			"name": "Overture Rock PLA @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Rock PLA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Rock PLA @BBL P1P",
+			"sub_path": "filament/Overture/BBL/Overture Rock PLA @BBL P1P.json"
+		},
+		{
+			"name": "Overture Rock PLA @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Rock PLA @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Rock PLA @BBL X1",
+			"sub_path": "filament/Overture/BBL/Overture Rock PLA @BBL X1.json"
+		},
+		{
+			"name": "Overture Rock PLA @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Rock PLA @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Rock PLA @BBL X1C",
+			"sub_path": "filament/Overture/BBL/Overture Rock PLA @BBL X1C.json"
+		},
+		{
+			"name": "Overture Rock PLA @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Rock PLA @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "Overture Rock PLA @System",
 			"sub_path": "filament/Overture/Overture Rock PLA @System.json"
 		},
 		{
+			"name": "Overture Silk PLA @BBL A1",
+			"sub_path": "filament/Overture/BBL/Overture Silk PLA @BBL A1.json"
+		},
+		{
+			"name": "Overture Silk PLA @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Silk PLA @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Silk PLA @BBL A1M",
+			"sub_path": "filament/Overture/BBL/Overture Silk PLA @BBL A1M.json"
+		},
+		{
+			"name": "Overture Silk PLA @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Silk PLA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Silk PLA @BBL P1P",
+			"sub_path": "filament/Overture/BBL/Overture Silk PLA @BBL P1P.json"
+		},
+		{
+			"name": "Overture Silk PLA @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Silk PLA @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Silk PLA @BBL X1",
+			"sub_path": "filament/Overture/BBL/Overture Silk PLA @BBL X1.json"
+		},
+		{
+			"name": "Overture Silk PLA @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Silk PLA @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Silk PLA @BBL X1C",
+			"sub_path": "filament/Overture/BBL/Overture Silk PLA @BBL X1C.json"
+		},
+		{
+			"name": "Overture Silk PLA @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Silk PLA @BBL X1C 0.2 nozzle.json"
+		},
+		{
 			"name": "Overture Silk PLA @System",
 			"sub_path": "filament/Overture/Overture Silk PLA @System.json"
+		},
+		{
+			"name": "Overture Super PLA+ @BBL A1",
+			"sub_path": "filament/Overture/BBL/Overture Super PLA+ @BBL A1.json"
+		},
+		{
+			"name": "Overture Super PLA+ @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Super PLA+ @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Super PLA+ @BBL A1M",
+			"sub_path": "filament/Overture/BBL/Overture Super PLA+ @BBL A1M.json"
+		},
+		{
+			"name": "Overture Super PLA+ @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Super PLA+ @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Super PLA+ @BBL P1P",
+			"sub_path": "filament/Overture/BBL/Overture Super PLA+ @BBL P1P.json"
+		},
+		{
+			"name": "Overture Super PLA+ @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Super PLA+ @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Super PLA+ @BBL X1",
+			"sub_path": "filament/Overture/BBL/Overture Super PLA+ @BBL X1.json"
+		},
+		{
+			"name": "Overture Super PLA+ @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Super PLA+ @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture Super PLA+ @BBL X1C",
+			"sub_path": "filament/Overture/BBL/Overture Super PLA+ @BBL X1C.json"
+		},
+		{
+			"name": "Overture Super PLA+ @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture Super PLA+ @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "Overture Super PLA+ @System",
 			"sub_path": "filament/Overture/Overture Super PLA+ @System.json"
 		},
 		{
+			"name": "Panchroma CoPE @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma CoPE @BBL base.json"
+		},
+		{
 			"name": "Panchroma CoPE @System",
 			"sub_path": "filament/Polymaker/Panchroma CoPE @System.json"
+		},
+		{
+			"name": "Panchroma PLA @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA @BBL base.json"
 		},
 		{
 			"name": "Panchroma PLA @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA @System.json"
 		},
 		{
+			"name": "Panchroma PLA Celestial @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Celestial @BBL base.json"
+		},
+		{
 			"name": "Panchroma PLA Celestial @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Celestial @System.json"
+		},
+		{
+			"name": "Panchroma PLA Galaxy @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Galaxy @BBL base.json"
 		},
 		{
 			"name": "Panchroma PLA Galaxy @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Galaxy @System.json"
 		},
 		{
+			"name": "Panchroma PLA Glow @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Glow @BBL base.json"
+		},
+		{
 			"name": "Panchroma PLA Glow @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Glow @System.json"
+		},
+		{
+			"name": "Panchroma PLA Luminous @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Luminous @BBL base.json"
 		},
 		{
 			"name": "Panchroma PLA Luminous @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Luminous @System.json"
 		},
 		{
+			"name": "Panchroma PLA Marble @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Marble @BBL base.json"
+		},
+		{
 			"name": "Panchroma PLA Marble @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Marble @System.json"
+		},
+		{
+			"name": "Panchroma PLA Matte @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Matte @BBL base.json"
 		},
 		{
 			"name": "Panchroma PLA Matte @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Matte @System.json"
 		},
 		{
+			"name": "Panchroma PLA Metallic @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Metallic @BBL base.json"
+		},
+		{
 			"name": "Panchroma PLA Metallic @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Metallic @System.json"
+		},
+		{
+			"name": "Panchroma PLA Neon @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Neon @BBL base.json"
 		},
 		{
 			"name": "Panchroma PLA Neon @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Neon @System.json"
 		},
 		{
+			"name": "Panchroma PLA Satin @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Satin @BBL base.json"
+		},
+		{
 			"name": "Panchroma PLA Satin @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Satin @System.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Silk @BBL base.json"
 		},
 		{
 			"name": "Panchroma PLA Silk @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Silk @System.json"
 		},
 		{
+			"name": "Panchroma PLA Starlight @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Starlight @BBL base.json"
+		},
+		{
 			"name": "Panchroma PLA Starlight @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Starlight @System.json"
+		},
+		{
+			"name": "Panchroma PLA Temp Shift @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Temp Shift @BBL base.json"
 		},
 		{
 			"name": "Panchroma PLA Temp Shift @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Temp Shift @System.json"
 		},
 		{
+			"name": "Panchroma PLA Translucent @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Translucent @BBL base.json"
+		},
+		{
 			"name": "Panchroma PLA Translucent @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA Translucent @System.json"
 		},
 		{
+			"name": "Panchroma PLA UV Shift @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA UV Shift @BBL base.json"
+		},
+		{
 			"name": "Panchroma PLA UV Shift @System",
 			"sub_path": "filament/Polymaker/Panchroma PLA UV Shift @System.json"
+		},
+		{
+			"name": "PlastAR PLA @System",
+			"sub_path": "filament/Printalot/PlastAR PLA @System.json"
+		},
+		{
+			"name": "PolyLite CosPLA @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite CosPLA @BBL A1.json"
+		},
+		{
+			"name": "PolyLite CosPLA @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/PolyLite CosPLA @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite CosPLA @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/PolyLite CosPLA @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite CosPLA @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite CosPLA @BBL X1.json"
 		},
 		{
 			"name": "PolyLite Dual PLA @base",
@@ -1785,8 +3921,108 @@
 			"sub_path": "filament/Polymaker/PolyLite PLA @System.json"
 		},
 		{
+			"name": "PolyLite PLA Galaxy @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Galaxy @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Galaxy @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Galaxy @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Galaxy @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Galaxy @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Galaxy @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Galaxy @BBL X1.json"
+		},
+		{
+			"name": "PolyLite PLA Glow @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Glow @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Glow @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Glow @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Glow @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Glow @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Glow @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Glow @BBL X1.json"
+		},
+		{
+			"name": "PolyLite PLA Luminous @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Luminous @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Luminous @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Luminous @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Luminous @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Luminous @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Luminous @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Luminous @BBL X1.json"
+		},
+		{
+			"name": "PolyLite PLA Neon @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Neon @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Neon @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Neon @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Neon @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Neon @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Neon @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Neon @BBL X1.json"
+		},
+		{
+			"name": "PolyLite PLA Pro @BBL base",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Pro @BBL base.json"
+		},
+		{
 			"name": "PolyLite PLA Pro @System",
 			"sub_path": "filament/Polymaker/PolyLite PLA Pro @System.json"
+		},
+		{
+			"name": "PolyLite PLA Starlight @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Starlight @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Starlight @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Starlight @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Starlight @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Starlight @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Starlight @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Starlight @BBL X1.json"
+		},
+		{
+			"name": "PolyLite PLA Translucent @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Translucent @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Translucent @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Translucent @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Translucent @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Translucent @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Translucent @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Translucent @BBL X1.json"
 		},
 		{
 			"name": "PolyTerra Dual PLA @System",
@@ -1797,12 +4033,156 @@
 			"sub_path": "filament/Polymaker/PolyTerra PLA @System.json"
 		},
 		{
+			"name": "PolyTerra PLA Marble @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/PolyTerra PLA Marble @BBL A1.json"
+		},
+		{
+			"name": "PolyTerra PLA Marble @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/PolyTerra PLA Marble @BBL A1M.json"
+		},
+		{
+			"name": "PolyTerra PLA Marble @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/PolyTerra PLA Marble @BBL P1P.json"
+		},
+		{
+			"name": "PolyTerra PLA Marble @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/PolyTerra PLA Marble @BBL X1.json"
+		},
+		{
+			"name": "PolyTerra PLA+ @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/PolyTerra PLA+ @BBL A1.json"
+		},
+		{
+			"name": "PolyTerra PLA+ @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/PolyTerra PLA+ @BBL A1M.json"
+		},
+		{
+			"name": "PolyTerra PLA+ @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/PolyTerra PLA+ @BBL P1P.json"
+		},
+		{
+			"name": "PolyTerra PLA+ @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/PolyTerra PLA+ @BBL X1.json"
+		},
+		{
+			"name": "Polymaker HT-PLA @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA @BBL base.json"
+		},
+		{
 			"name": "Polymaker HT-PLA @System",
 			"sub_path": "filament/Polymaker/Polymaker HT-PLA @System.json"
 		},
 		{
+			"name": "Polymaker HT-PLA-GF @BBL base",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA-GF @BBL base.json"
+		},
+		{
 			"name": "Polymaker HT-PLA-GF @System",
 			"sub_path": "filament/Polymaker/Polymaker HT-PLA-GF @System.json"
+		},
+		{
+			"name": "Polymaker PLA Pro @System",
+			"sub_path": "filament/Polymaker/Polymaker PLA Pro @System.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A1",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A1.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A1M",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A1M.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A2L",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A2L.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL A2L 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL A2L 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2C.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2C 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2C 0.4 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2D.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2DP",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2DP.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2DP 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2DP 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2S.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL H2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL H2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL P1P",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL P1P.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL P2S",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL P2S.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL P2S 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL P2S 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL X1C",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X1C.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL X2D",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X2D.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL X2D 0.2 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X2D 0.2 nozzle.json"
+		},
+		{
+			"name": "PrintaLot PLA @BBL X2D 0.4 nozzle",
+			"sub_path": "filament/Printalot/BBL/PrintaLot PLA @BBL X2D 0.4 nozzle.json"
+		},
+		{
+			"name": "Recycling Fabrik rPLA @System",
+			"sub_path": "filament/Recycling Fabrik/Recycling Fabrik rPLA @System.json"
 		},
 		{
 			"name": "SUNLU PLA Marble @System",
@@ -1827,6 +4207,22 @@
 		{
 			"name": "SUNLU Wood PLA @System",
 			"sub_path": "filament/SUNLU/SUNLU Wood PLA @System.json"
+		},
+		{
+			"name": "School House Spools Marble PLA @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Marble PLA @System.json"
+		},
+		{
+			"name": "School House Spools Matte PLA @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Matte PLA @System.json"
+		},
+		{
+			"name": "School House Spools PLA @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools PLA @System.json"
+		},
+		{
+			"name": "School House Spools Silk PLA @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools Silk PLA @System.json"
 		},
 		{
 			"name": "Valment PLA @System",
@@ -1877,6 +4273,10 @@
 			"sub_path": "filament/FILL3D/FILL3D PPCF @System.json"
 		},
 		{
+			"name": "Goofoo PP @base",
+			"sub_path": "filament/Goofoo/Goofoo PP @base.json"
+		},
+		{
 			"name": "Generic PP-CF @System",
 			"sub_path": "filament/Generic PP-CF @System.json"
 		},
@@ -1897,8 +4297,120 @@
 			"sub_path": "filament/Bambu/Bambu PVA @System.json"
 		},
 		{
+			"name": "Goofoo PVA @base",
+			"sub_path": "filament/Goofoo/Goofoo PVA @base.json"
+		},
+		{
 			"name": "FDplast SBS @System",
 			"sub_path": "filament/FDplast/FDplast SBS @System.json"
+		},
+		{
+			"name": "BETA PEBA 90A @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA PEBA 90A @BBL A1.json"
+		},
+		{
+			"name": "BETA PEBA 90A @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA PEBA 90A @BBL A1M.json"
+		},
+		{
+			"name": "BETA PEBA 90A @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA PEBA 90A @BBL H2D.json"
+		},
+		{
+			"name": "BETA PEBA 90A @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA PEBA 90A @BBL P1P.json"
+		},
+		{
+			"name": "BETA PEBA 90A @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA PEBA 90A @BBL X1C.json"
+		},
+		{
+			"name": "BETA TPU 90A @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA TPU 90A @BBL A1.json"
+		},
+		{
+			"name": "BETA TPU 90A @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA TPU 90A @BBL A1M.json"
+		},
+		{
+			"name": "BETA TPU 90A @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA TPU 90A @BBL H2D.json"
+		},
+		{
+			"name": "BETA TPU 90A @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA TPU 90A @BBL P1P.json"
+		},
+		{
+			"name": "BETA TPU 90A @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA TPU 90A @BBL X1C.json"
+		},
+		{
+			"name": "BETA TPU 95A @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA TPU 95A @BBL A1.json"
+		},
+		{
+			"name": "BETA TPU 95A @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA TPU 95A @BBL A1M.json"
+		},
+		{
+			"name": "BETA TPU 95A @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA TPU 95A @BBL H2D.json"
+		},
+		{
+			"name": "BETA TPU 95A @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA TPU 95A @BBL P1P.json"
+		},
+		{
+			"name": "BETA TPU 95A @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA TPU 95A @BBL X1C.json"
+		},
+		{
+			"name": "BETA TPU 98A @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA TPU 98A @BBL A1.json"
+		},
+		{
+			"name": "BETA TPU 98A @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA TPU 98A @BBL A1M.json"
+		},
+		{
+			"name": "BETA TPU 98A @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA TPU 98A @BBL H2D.json"
+		},
+		{
+			"name": "BETA TPU 98A @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA TPU 98A @BBL P1P.json"
+		},
+		{
+			"name": "BETA TPU 98A @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA TPU 98A @BBL X1C.json"
+		},
+		{
+			"name": "BETA TPU Matte @BBL A1",
+			"sub_path": "filament/BETA/BBL/BETA TPU Matte @BBL A1.json"
+		},
+		{
+			"name": "BETA TPU Matte @BBL A1M",
+			"sub_path": "filament/BETA/BBL/BETA TPU Matte @BBL A1M.json"
+		},
+		{
+			"name": "BETA TPU Matte @BBL H2D",
+			"sub_path": "filament/BETA/BBL/BETA TPU Matte @BBL H2D.json"
+		},
+		{
+			"name": "BETA TPU Matte @BBL P1P",
+			"sub_path": "filament/BETA/BBL/BETA TPU Matte @BBL P1P.json"
+		},
+		{
+			"name": "BETA TPU Matte @BBL X1C",
+			"sub_path": "filament/BETA/BBL/BETA TPU Matte @BBL X1C.json"
+		},
+		{
+			"name": "Bambu TPU 85A @System",
+			"sub_path": "filament/Bambu/Bambu TPU 85A @System.json"
+		},
+		{
+			"name": "Bambu TPU 90A @System",
+			"sub_path": "filament/Bambu/Bambu TPU 90A @System.json"
 		},
 		{
 			"name": "Bambu TPU 95A @System",
@@ -1909,16 +4421,124 @@
 			"sub_path": "filament/Bambu/Bambu TPU 95A HF @System.json"
 		},
 		{
+			"name": "Bambu TPU for AMS @System",
+			"sub_path": "filament/Bambu/Bambu TPU for AMS @System.json"
+		},
+		{
+			"name": "COEX TPE 30D @BBL A1",
+			"sub_path": "filament/COEX/BBL/COEX TPE 30D @BBL A1.json"
+		},
+		{
+			"name": "COEX TPE 30D @BBL A1M",
+			"sub_path": "filament/COEX/BBL/COEX TPE 30D @BBL A1M.json"
+		},
+		{
+			"name": "COEX TPE 30D @BBL P1P",
+			"sub_path": "filament/COEX/BBL/COEX TPE 30D @BBL P1P.json"
+		},
+		{
+			"name": "COEX TPE 30D @BBL X1",
+			"sub_path": "filament/COEX/BBL/COEX TPE 30D @BBL X1.json"
+		},
+		{
+			"name": "COEX TPE 30D @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX TPE 30D @BBL X1C.json"
+		},
+		{
 			"name": "COEX TPE 30D @System",
 			"sub_path": "filament/COEX/COEX TPE 30D @System.json"
+		},
+		{
+			"name": "COEX TPE 40D @BBL A1",
+			"sub_path": "filament/COEX/BBL/COEX TPE 40D @BBL A1.json"
+		},
+		{
+			"name": "COEX TPE 40D @BBL A1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX TPE 40D @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX TPE 40D @BBL A1M",
+			"sub_path": "filament/COEX/BBL/COEX TPE 40D @BBL A1M.json"
+		},
+		{
+			"name": "COEX TPE 40D @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX TPE 40D @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX TPE 40D @BBL P1P",
+			"sub_path": "filament/COEX/BBL/COEX TPE 40D @BBL P1P.json"
+		},
+		{
+			"name": "COEX TPE 40D @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX TPE 40D @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX TPE 40D @BBL X1",
+			"sub_path": "filament/COEX/BBL/COEX TPE 40D @BBL X1.json"
+		},
+		{
+			"name": "COEX TPE 40D @BBL X1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX TPE 40D @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX TPE 40D @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX TPE 40D @BBL X1C.json"
+		},
+		{
+			"name": "COEX TPE 40D @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX TPE 40D @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "COEX TPE 40D @System",
 			"sub_path": "filament/COEX/COEX TPE 40D @System.json"
 		},
 		{
+			"name": "COEX TPE 60D @BBL A1",
+			"sub_path": "filament/COEX/BBL/COEX TPE 60D @BBL A1.json"
+		},
+		{
+			"name": "COEX TPE 60D @BBL A1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX TPE 60D @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX TPE 60D @BBL A1M",
+			"sub_path": "filament/COEX/BBL/COEX TPE 60D @BBL A1M.json"
+		},
+		{
+			"name": "COEX TPE 60D @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX TPE 60D @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX TPE 60D @BBL P1P",
+			"sub_path": "filament/COEX/BBL/COEX TPE 60D @BBL P1P.json"
+		},
+		{
+			"name": "COEX TPE 60D @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX TPE 60D @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX TPE 60D @BBL X1",
+			"sub_path": "filament/COEX/BBL/COEX TPE 60D @BBL X1.json"
+		},
+		{
+			"name": "COEX TPE 60D @BBL X1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX TPE 60D @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX TPE 60D @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX TPE 60D @BBL X1C.json"
+		},
+		{
+			"name": "COEX TPE 60D @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX TPE 60D @BBL X1C 0.2 nozzle.json"
+		},
+		{
 			"name": "COEX TPE 60D @System",
 			"sub_path": "filament/COEX/COEX TPE 60D @System.json"
+		},
+		{
+			"name": "COEX TPU 60A @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX TPU 60A @BBL X1C.json"
 		},
 		{
 			"name": "COEX TPU 60A @System",
@@ -1941,24 +4561,148 @@
 			"sub_path": "filament/FDplast/FDplast TPU @System.json"
 		},
 		{
+			"name": "addnorth TPU EasyFlex",
+			"sub_path": "filament/addnorth/BBL/addnorth TPU EasyFlex.json"
+		},
+		{
+			"name": "addnorth TPU Pro Matte 85A",
+			"sub_path": "filament/addnorth/BBL/addnorth TPU Pro Matte 85A.json"
+		},
+		{
+			"name": "addnorth TPU Pro Matte 95A",
+			"sub_path": "filament/addnorth/BBL/addnorth TPU Pro Matte 95A.json"
+		},
+		{
+			"name": "Goofoo 90A TPU @base",
+			"sub_path": "filament/Goofoo/Goofoo 90A TPU @base.json"
+		},
+		{
+			"name": "Goofoo 95A TPU @base",
+			"sub_path": "filament/Goofoo/Goofoo 95A TPU @base.json"
+		},
+		{
+			"name": "Overture TPU @BBL A1",
+			"sub_path": "filament/Overture/BBL/Overture TPU @BBL A1.json"
+		},
+		{
+			"name": "Overture TPU @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture TPU @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture TPU @BBL A1M",
+			"sub_path": "filament/Overture/BBL/Overture TPU @BBL A1M.json"
+		},
+		{
+			"name": "Overture TPU @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture TPU @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture TPU @BBL P1P",
+			"sub_path": "filament/Overture/BBL/Overture TPU @BBL P1P.json"
+		},
+		{
+			"name": "Overture TPU @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture TPU @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture TPU @BBL X1",
+			"sub_path": "filament/Overture/BBL/Overture TPU @BBL X1.json"
+		},
+		{
+			"name": "Overture TPU @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture TPU @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture TPU @BBL X1C",
+			"sub_path": "filament/Overture/BBL/Overture TPU @BBL X1C.json"
+		},
+		{
+			"name": "Overture TPU @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture TPU @BBL X1C 0.2 nozzle.json"
+		},
+		{
 			"name": "Overture TPU @System",
 			"sub_path": "filament/Overture/Overture TPU @System.json"
+		},
+		{
+			"name": "School House Spools TPU 95A @System",
+			"sub_path": "filament/SchoolHouseSpools/School House Spools TPU 95A @System.json"
+		},
+		{
+			"name": "Goofoo ABS @System",
+			"sub_path": "filament/Goofoo/Goofoo ABS @System.json"
 		},
 		{
 			"name": "Elegoo ASA-CF @System",
 			"sub_path": "filament/Elegoo/Elegoo ASA-CF @System.json"
 		},
 		{
+			"name": "Goofoo ASA @System",
+			"sub_path": "filament/Goofoo/Goofoo ASA @System.json"
+		},
+		{
+			"name": "Goofoo PA @System",
+			"sub_path": "filament/Goofoo/Goofoo PA @System.json"
+		},
+		{
+			"name": "Goofoo PA-CF @System",
+			"sub_path": "filament/Goofoo/Goofoo PA-CF @System.json"
+		},
+		{
+			"name": "Goofoo PA-GF10 @System",
+			"sub_path": "filament/Goofoo/Goofoo PA-GF10 @System.json"
+		},
+		{
 			"name": "Elegoo PC-FR @System",
 			"sub_path": "filament/Elegoo/Elegoo PC-FR @System.json"
+		},
+		{
+			"name": "COEX PCTG PRIME @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PCTG PRIME @BBL A1M.json"
+		},
+		{
+			"name": "COEX PCTG PRIME @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PCTG PRIME @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PCTG PRIME @BBL A1M 0.8 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PCTG PRIME @BBL A1M 0.8 nozzle.json"
+		},
+		{
+			"name": "Goofoo PE @System",
+			"sub_path": "filament/Goofoo/Goofoo PE @System.json"
+		},
+		{
+			"name": "Goofoo PE-CF @base",
+			"sub_path": "filament/Goofoo/Goofoo PE-CF @base.json"
+		},
+		{
+			"name": "AliZ PETG-CF @P1-X1",
+			"sub_path": "filament/AliZ/BBL/AliZ PETG-CF @P1-X1.json"
 		},
 		{
 			"name": "AliZ PETG-CF @System",
 			"sub_path": "filament/AliZ/AliZ PETG-CF @System.json"
 		},
 		{
+			"name": "AliZ PETG-Metal @P1-X1",
+			"sub_path": "filament/AliZ/BBL/AliZ PETG-Metal @P1-X1.json"
+		},
+		{
 			"name": "AliZ PETG-Metal @System",
 			"sub_path": "filament/AliZ/AliZ PETG-Metal @System.json"
+		},
+		{
+			"name": "COEX PETG @BBL A1M 0.4 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PETG @BBL A1M.json"
+		},
+		{
+			"name": "COEX PETG @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PETG @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PETG @BBL A1M 0.8 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PETG @BBL A1M 0.8 nozzle.json"
 		},
 		{
 			"name": "Elegoo PET-CF @System",
@@ -1987,6 +4731,42 @@
 		{
 			"name": "Elegoo Rapid PETG @System",
 			"sub_path": "filament/Elegoo/Elegoo Rapid PETG @System.json"
+		},
+		{
+			"name": "Fiberon PETG-ESD @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Fiberon PETG-ESD @BBL X1.json"
+		},
+		{
+			"name": "Goofoo PETG @System",
+			"sub_path": "filament/Goofoo/Goofoo PETG @System.json"
+		},
+		{
+			"name": "Goofoo PETG HF @base",
+			"sub_path": "filament/Goofoo/Goofoo PETG HF @base.json"
+		},
+		{
+			"name": "addnorth PETG-CF Rigid X",
+			"sub_path": "filament/addnorth/BBL/addnorth PETG-CF Rigid X.json"
+		},
+		{
+			"name": "Goofoo PETG-CF @base",
+			"sub_path": "filament/Goofoo/Goofoo PETG-CF @base.json"
+		},
+		{
+			"name": "Goofoo PHA @System",
+			"sub_path": "filament/Goofoo/Goofoo PHA @System.json"
+		},
+		{
+			"name": "COEX PLA @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "Elegoo PLA Basic @System",
@@ -2041,16 +4821,952 @@
 			"sub_path": "filament/Elegoo/Elegoo Rapid PLA+ @System.json"
 		},
 		{
+			"name": "Goofoo PLA @System",
+			"sub_path": "filament/Goofoo/Goofoo PLA @System.json"
+		},
+		{
+			"name": "Goofoo PLA-CF @System",
+			"sub_path": "filament/Goofoo/Goofoo PLA-CF @System.json"
+		},
+		{
+			"name": "Numakers PLA+ @BBL A1",
+			"sub_path": "filament/Numakers/BBL/Numakers PLA+ @BBL A1.json"
+		},
+		{
+			"name": "Numakers PLA+ @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Numakers/BBL/Numakers PLA+ @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Numakers PLA+ @BBL A1M",
+			"sub_path": "filament/Numakers/BBL/Numakers PLA+ @BBL A1M.json"
+		},
+		{
+			"name": "Numakers PLA+ @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Numakers/BBL/Numakers PLA+ @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Numakers PLA+ @BBL P1P",
+			"sub_path": "filament/Numakers/BBL/Numakers PLA+ @BBL P1P.json"
+		},
+		{
+			"name": "Numakers PLA+ @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Numakers/BBL/Numakers PLA+ @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Numakers PLA+ @BBL X1",
+			"sub_path": "filament/Numakers/BBL/Numakers PLA+ @BBL X1.json"
+		},
+		{
+			"name": "Numakers PLA+ @BBL X1C",
+			"sub_path": "filament/Numakers/BBL/Numakers PLA+ @BBL X1C.json"
+		},
+		{
+			"name": "Numakers PLA+ @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Numakers/BBL/Numakers PLA+ @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture PLA Pro @BBL A1",
+			"sub_path": "filament/Overture/BBL/Overture PLA Pro @BBL A1.json"
+		},
+		{
+			"name": "Overture PLA Pro @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture PLA Pro @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture PLA Pro @BBL A1M",
+			"sub_path": "filament/Overture/BBL/Overture PLA Pro @BBL A1M.json"
+		},
+		{
+			"name": "Overture PLA Pro @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture PLA Pro @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture PLA Pro @BBL P1P",
+			"sub_path": "filament/Overture/BBL/Overture PLA Pro @BBL P1P.json"
+		},
+		{
+			"name": "Overture PLA Pro @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture PLA Pro @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture PLA Pro @BBL X1",
+			"sub_path": "filament/Overture/BBL/Overture PLA Pro @BBL X1.json"
+		},
+		{
+			"name": "Overture PLA Pro @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture PLA Pro @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Overture PLA Pro @BBL X1C",
+			"sub_path": "filament/Overture/BBL/Overture PLA Pro @BBL X1C.json"
+		},
+		{
+			"name": "Overture PLA Pro @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Overture/BBL/Overture PLA Pro @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma CoPE @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma CoPE @BBL A1.json"
+		},
+		{
+			"name": "Panchroma CoPE @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma CoPE @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma CoPE @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma CoPE @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma CoPE @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma CoPE @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma CoPE @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma CoPE @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma CoPE @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma CoPE @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma CoPE @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma CoPE @BBL X1.json"
+		},
+		{
+			"name": "Panchroma CoPE @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma CoPE @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma CoPE @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma CoPE @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma CoPE @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma CoPE @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Celestial @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Celestial @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Celestial @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Celestial @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Celestial @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Celestial @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Celestial @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Celestial @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Celestial @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Celestial @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Celestial @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Celestial @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Celestial @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Celestial @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Celestial @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Celestial @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Celestial @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Celestial @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Celestial @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Celestial @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Galaxy @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Galaxy @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Galaxy @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Galaxy @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Galaxy @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Galaxy @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Galaxy @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Galaxy @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Galaxy @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Galaxy @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Galaxy @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Galaxy @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Galaxy @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Galaxy @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Galaxy @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Galaxy @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Galaxy @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Galaxy @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Galaxy @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Galaxy @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Glow @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Glow @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Glow @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Glow @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Glow @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Glow @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Glow @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Glow @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Glow @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Glow @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Glow @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Glow @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Glow @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Glow @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Glow @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Glow @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Glow @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Glow @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Glow @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Glow @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Luminous @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Luminous @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Luminous @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Luminous @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Luminous @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Luminous @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Luminous @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Luminous @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Luminous @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Luminous @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Luminous @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Luminous @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Luminous @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Luminous @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Luminous @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Luminous @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Luminous @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Luminous @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Luminous @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Luminous @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Marble @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Marble @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Marble @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Marble @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Marble @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Marble @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Marble @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Marble @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Marble @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Marble @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Marble @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Marble @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Marble @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Marble @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Marble @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Marble @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Marble @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Marble @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Marble @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Marble @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Matte @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Matte @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Matte @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Matte @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Matte @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Matte @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Matte @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Matte @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Matte @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Matte @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Matte @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Matte @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Matte @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Matte @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Matte @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Matte @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Matte @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Matte @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Matte @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Matte @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Metallic @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Metallic @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Metallic @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Metallic @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Metallic @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Metallic @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Metallic @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Metallic @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Metallic @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Metallic @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Metallic @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Metallic @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Metallic @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Metallic @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Metallic @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Metallic @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Metallic @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Metallic @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Metallic @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Metallic @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Neon @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Neon @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Neon @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Neon @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Neon @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Neon @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Neon @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Neon @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Neon @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Neon @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Neon @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Neon @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Neon @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Neon @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Neon @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Neon @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Neon @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Neon @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Neon @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Neon @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Satin @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Satin @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Satin @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Satin @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Satin @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Satin @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Satin @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Satin @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Satin @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Satin @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Satin @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Satin @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Satin @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Satin @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Satin @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Satin @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Satin @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Satin @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Satin @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Satin @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Silk @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Silk @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Silk @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Silk @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Silk @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Silk @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Silk @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Silk @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Silk @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Silk @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Silk @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Starlight @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Starlight @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Starlight @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Starlight @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Starlight @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Starlight @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Starlight @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Starlight @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Starlight @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Starlight @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Starlight @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Starlight @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Starlight @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Starlight @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Starlight @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Starlight @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Starlight @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Starlight @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Starlight @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Starlight @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Temp Shift @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Temp Shift @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Temp Shift @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Temp Shift @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Temp Shift @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Temp Shift @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Temp Shift @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Temp Shift @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Temp Shift @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Temp Shift @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Temp Shift @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Temp Shift @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Temp Shift @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Temp Shift @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Temp Shift @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Temp Shift @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Temp Shift @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Temp Shift @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Temp Shift @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Temp Shift @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Translucent @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Translucent @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA Translucent @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Translucent @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Translucent @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Translucent @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA Translucent @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Translucent @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Translucent @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Translucent @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA Translucent @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Translucent @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Translucent @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Translucent @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA Translucent @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Translucent @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA Translucent @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Translucent @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA Translucent @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA Translucent @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA UV Shift @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA UV Shift @BBL A1.json"
+		},
+		{
+			"name": "Panchroma PLA UV Shift @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA UV Shift @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA UV Shift @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA UV Shift @BBL A1M.json"
+		},
+		{
+			"name": "Panchroma PLA UV Shift @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA UV Shift @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA UV Shift @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA UV Shift @BBL P1P.json"
+		},
+		{
+			"name": "Panchroma PLA UV Shift @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA UV Shift @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA UV Shift @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA UV Shift @BBL X1.json"
+		},
+		{
+			"name": "Panchroma PLA UV Shift @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA UV Shift @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Panchroma PLA UV Shift @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA UV Shift @BBL X1C.json"
+		},
+		{
+			"name": "Panchroma PLA UV Shift @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Panchroma PLA UV Shift @BBL X1C 0.2 nozzle.json"
+		},
+		{
 			"name": "PolyLite Dual PLA @System",
 			"sub_path": "filament/Polymaker/PolyLite Dual PLA @System.json"
+		},
+		{
+			"name": "PolyLite PLA Pro @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Pro @BBL A1.json"
+		},
+		{
+			"name": "PolyLite PLA Pro @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Pro @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "PolyLite PLA Pro @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Pro @BBL A1M.json"
+		},
+		{
+			"name": "PolyLite PLA Pro @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Pro @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "PolyLite PLA Pro @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Pro @BBL P1P.json"
+		},
+		{
+			"name": "PolyLite PLA Pro @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Pro @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "PolyLite PLA Pro @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Pro @BBL X1.json"
+		},
+		{
+			"name": "PolyLite PLA Pro @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Pro @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "PolyLite PLA Pro @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Pro @BBL X1C.json"
+		},
+		{
+			"name": "PolyLite PLA Pro @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/PolyLite PLA Pro @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Polymaker HT-PLA @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA @BBL A1.json"
+		},
+		{
+			"name": "Polymaker HT-PLA @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Polymaker HT-PLA @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA @BBL A1M.json"
+		},
+		{
+			"name": "Polymaker HT-PLA @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Polymaker HT-PLA @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA @BBL P1P.json"
+		},
+		{
+			"name": "Polymaker HT-PLA @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Polymaker HT-PLA @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA @BBL X1.json"
+		},
+		{
+			"name": "Polymaker HT-PLA @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Polymaker HT-PLA @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA @BBL X1C.json"
+		},
+		{
+			"name": "Polymaker HT-PLA @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "Polymaker HT-PLA-GF @BBL A1",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA-GF @BBL A1.json"
+		},
+		{
+			"name": "Polymaker HT-PLA-GF @BBL A1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA-GF @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "Polymaker HT-PLA-GF @BBL A1M",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA-GF @BBL A1M.json"
+		},
+		{
+			"name": "Polymaker HT-PLA-GF @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA-GF @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "Polymaker HT-PLA-GF @BBL P1P",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA-GF @BBL P1P.json"
+		},
+		{
+			"name": "Polymaker HT-PLA-GF @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA-GF @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "Polymaker HT-PLA-GF @BBL X1",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA-GF @BBL X1.json"
+		},
+		{
+			"name": "Polymaker HT-PLA-GF @BBL X1 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA-GF @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "Polymaker HT-PLA-GF @BBL X1C",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA-GF @BBL X1C.json"
+		},
+		{
+			"name": "Polymaker HT-PLA-GF @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/Polymaker/BBL/Polymaker HT-PLA-GF @BBL X1C 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA+Silk @BBL A1",
+			"sub_path": "filament/COEX/BBL/COEX PLA+Silk @BBL A1.json"
+		},
+		{
+			"name": "COEX PLA+Silk @BBL A1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA+Silk @BBL A1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA+Silk @BBL A1M",
+			"sub_path": "filament/COEX/BBL/COEX PLA+Silk @BBL A1M.json"
+		},
+		{
+			"name": "COEX PLA+Silk @BBL A1M 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA+Silk @BBL A1M 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA+Silk @BBL P1P",
+			"sub_path": "filament/COEX/BBL/COEX PLA+Silk @BBL P1P.json"
+		},
+		{
+			"name": "COEX PLA+Silk @BBL P1P 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA+Silk @BBL P1P 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA+Silk @BBL X1",
+			"sub_path": "filament/COEX/BBL/COEX PLA+Silk @BBL X1.json"
+		},
+		{
+			"name": "COEX PLA+Silk @BBL X1 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA+Silk @BBL X1 0.2 nozzle.json"
+		},
+		{
+			"name": "COEX PLA+Silk @BBL X1C",
+			"sub_path": "filament/COEX/BBL/COEX PLA+Silk @BBL X1C.json"
+		},
+		{
+			"name": "COEX PLA+Silk @BBL X1C 0.2 nozzle",
+			"sub_path": "filament/COEX/BBL/COEX PLA+Silk @BBL X1C 0.2 nozzle.json"
 		},
 		{
 			"name": "COEX PLA+Silk @System",
 			"sub_path": "filament/COEX/COEX PLA+Silk @System.json"
 		},
 		{
+			"name": "Goofoo PLA Silk @base",
+			"sub_path": "filament/Goofoo/Goofoo PLA Silk @base.json"
+		},
+		{
+			"name": "Goofoo PP @System",
+			"sub_path": "filament/Goofoo/Goofoo PP @System.json"
+		},
+		{
+			"name": "Goofoo PP-CF @base",
+			"sub_path": "filament/Goofoo/Goofoo PP-CF @base.json"
+		},
+		{
+			"name": "Goofoo PP-GF @base",
+			"sub_path": "filament/Goofoo/Goofoo PP-GF @base.json"
+		},
+		{
+			"name": "Goofoo PVA @System",
+			"sub_path": "filament/Goofoo/Goofoo PVA @System.json"
+		},
+		{
 			"name": "Elegoo Rapid TPU 95A @System",
 			"sub_path": "filament/Elegoo/Elegoo Rapid TPU 95A @System.json"
+		},
+		{
+			"name": "Goofoo 90A TPU @System",
+			"sub_path": "filament/Goofoo/Goofoo 90A TPU @System.json"
+		},
+		{
+			"name": "Goofoo 95A TPU @System",
+			"sub_path": "filament/Goofoo/Goofoo 95A TPU @System.json"
+		},
+		{
+			"name": "Goofoo PE-CF @System",
+			"sub_path": "filament/Goofoo/Goofoo PE-CF @System.json"
+		},
+		{
+			"name": "Goofoo PETG HF @System",
+			"sub_path": "filament/Goofoo/Goofoo PETG HF @System.json"
+		},
+		{
+			"name": "Goofoo PETG-CF @System",
+			"sub_path": "filament/Goofoo/Goofoo PETG-CF @System.json"
+		},
+		{
+			"name": "Goofoo PLA Silk @System",
+			"sub_path": "filament/Goofoo/Goofoo PLA Silk @System.json"
+		},
+		{
+			"name": "Goofoo PP-CF @System",
+			"sub_path": "filament/Goofoo/Goofoo PP-CF @System.json"
+		},
+		{
+			"name": "Goofoo PP-GF @System",
+			"sub_path": "filament/Goofoo/Goofoo PP-GF @System.json"
 		}
 	],
 	"process_list": [],

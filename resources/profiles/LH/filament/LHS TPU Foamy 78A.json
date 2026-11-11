@@ -1,11 +1,11 @@
 {
-	"name": "LHS TPU Foamy 78A",
 	"type": "filament",
-	"filament_id": "OFngcE81",
-	"setting_id": "FWyg21qHmAKeihMn",
-	"from": "system",
-	"instantiation": "true",
+	"name": "LHS TPU Foamy 78A",
 	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"setting_id": "FWyg21qHmAKeihMn",
+	"filament_id": "OFngcE81",
+	"instantiation": "true",
 	"compatible_printers": [
 		"LH Stinger 0.4 nozzle",
 		"LH Stinger MMU 0.4 nozzle"

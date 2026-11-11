@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA+ @Anker 0.2 nozzle",
-	"inherits": "Generic PLA+ @Anker base",
 	"renamed_from": "Anker Generic PLA+ 0.2 nozzle",
+	"inherits": "Generic PLA+ @Anker base",
 	"from": "system",
 	"setting_id": "5m3xLxdReqLlE2Jp",
 	"instantiation": "true",

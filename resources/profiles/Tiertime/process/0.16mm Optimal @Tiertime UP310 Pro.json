@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "89hv0us5IMmhpDol",
 	"name": "0.16mm Optimal @Tiertime UP310 Pro",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_tiertime_common",
+	"from": "system",
+	"setting_id": "89hv0us5IMmhpDol",
+	"instantiation": "true",
 	"layer_height": "0.16",
 	"elefant_foot_compensation": "0.15",
 	"bottom_shell_layers": "4",

@@ -12,6 +12,12 @@
 #include "slic3r/GUI/wxExtensions.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp" // Orca: explicit Label include
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
+#include <wx/font.h>
+#include <wx/sizer.h>
 #include <wx/stattext.h>
 
 #define MODEL_STR   L("Model:")

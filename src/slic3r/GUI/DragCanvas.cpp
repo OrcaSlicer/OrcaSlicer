@@ -1,7 +1,18 @@
 #include "DragCanvas.hpp"
 #include "wxExtensions.hpp"
-#include "GUI_App.hpp"
 #include "Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include <vector>
+#include <string>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <algorithm>
+#include <wx/dcclient.h>
+#include <wx/dragimag.h>
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
@@ -41,8 +52,7 @@ DragCanvas::~DragCanvas()
     }
     m_dragshape_list.clear();
 
-    if (m_drag_image)
-        delete m_drag_image;
+    delete m_drag_image;
 }
 
 void DragCanvas::set_shape_list(const std::vector<std::string>& colors, const std::vector<int>& order)

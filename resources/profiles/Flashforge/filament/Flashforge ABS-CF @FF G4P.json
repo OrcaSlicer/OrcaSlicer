@@ -5,10 +5,10 @@
 	"from": "system",
 	"setting_id": "NzJJs6yrSik5xuyX",
 	"filament_id": "OFYTIMbj",
+	"instantiation": "true",
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"complete_print_exhaust_fan_speed": [
 		"50"
 	],

@@ -10,6 +10,8 @@
 #include "slic3r/Utils/RaycastManager.hpp"
 #include "slic3r/GUI/IconManager.hpp"
 
+#include "libslic3r/EmbossShape.hpp"
+#include "libslic3r/ObjectID.hpp"
 #include <optional>
 #include <memory>
 #include <atomic>
@@ -20,6 +22,10 @@
 
 #include <imgui/imgui.h>
 #include <glad/gl.h>
+#include <string_view>
+#include <string>
+#include <wx/event.h>
+#include <vector>
 
 namespace Slic3r{
 class ModelVolume;

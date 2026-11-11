@@ -6,12 +6,27 @@
 	"setting_id": "RFs9eCKYOMUSmvZf",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
-		"11"
+		"11",
+		"19.5",
+		"40",
+		"11",
+		"19.5",
+		"25"
 	],
 	"filament_multitool_ramming_flow": [
+		"11",
+		"11",
+		"11",
+		"11",
+		"11",
 		"11"
 	],
 	"filament_retraction_length": [
+		"0.8",
+		"0.8",
+		"0.8",
+		"0.8",
+		"0.8",
 		"0.8"
 	],
 	"compatible_printers": []

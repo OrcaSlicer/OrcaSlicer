@@ -1,0 +1,13 @@
+{
+	"type": "filament",
+	"name": "Blocks TPU @Blocks_RF50",
+	"inherits": "Blocks TPU @base",
+	"from": "system",
+	"setting_id": "bCCvu5Ow1JkwIrRR",
+	"instantiation": "true",
+	"compatible_printers": [
+		"BLOCKS RF50 0.4 nozzle",
+		"BLOCKS RF50 0.6 nozzle",
+		"BLOCKS RF50 0.8 nozzle"
+	]
+}

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU @SecKit",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "SecKit Generic TPU",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "agKm2K9w4ZOmZN8c",
 	"filament_id": "OFgbpcy9",

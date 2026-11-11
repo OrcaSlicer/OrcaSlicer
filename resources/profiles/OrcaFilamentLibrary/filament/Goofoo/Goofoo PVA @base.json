@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Goofoo PVA @base",
+	"inherits": "Generic PVA @System",
+	"from": "system",
+	"filament_id": "OF86rkt6",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Goofoo"
+	],
+	"filament_type": [
+		"PVA"
+	]
+}

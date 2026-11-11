@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA High Speed @Qidi X-Plus 4 0.8 nozzle",
-	"inherits": "Generic PLA @Qidi X-Plus 4 0.8 nozzle",
 	"renamed_from": "Qidi Generic PLA High Speed @Qidi X-Plus 4 0.8 nozzle;Qidi Generic PLA High Speed Qidi X-Plus 4 0.8 nozzle",
+	"inherits": "Generic PLA @Qidi X-Plus 4 0.8 nozzle",
 	"from": "system",
 	"setting_id": "VyCsuptxJnVw1KqD",
 	"filament_id": "OFmpMwxS",

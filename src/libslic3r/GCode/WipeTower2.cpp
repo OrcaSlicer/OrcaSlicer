@@ -1,24 +1,46 @@
 // Orca: WipeTower2 for all non bbl printers, support all MMU device and toolchanger.
 #include "WipeTower2.hpp"
 
+#include <algorithm>
+#include <Eigen/Geometry>
 #include <cassert>
+#include <cmath>
+#include <cstdlib>
+#include <cstddef>
+#include <cstdio>
 #include <iostream>
+#include <map>
+#include <string>
+#include <math.h>
+#include <limits>
+#include <utility>
 #include <vector>
 #include <numeric>
 #include <memory>
 #include <sstream>
 #include <iomanip>
 
+#include "libslic3r/Circle.hpp"
+#include "libslic3r/ArcFitter.hpp"
 #include "ClipperUtils.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Fill/FillBase.hpp"
 #include "GCodeProcessor.hpp"
 #include "BoundingBox.hpp"
+#include "libslic3r/Line.hpp"
 #include "LocalesUtils.hpp"
 #include "Geometry.hpp"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
 #include "PrintConfig.hpp"
 #include "Surface.hpp"
-#include "Fill/FillRectilinear.hpp"
+#include "libslic3r/libslic3r.h"
 
 #include <boost/algorithm/string/predicate.hpp>
+#include "libslic3r/Config.hpp"
 
 
 namespace Slic3r
@@ -331,9 +353,6 @@ public:
         m_gcode_flavor(flavor), m_filpar(filament_parameters)
         //m_enable_arc_fitting(enable_arc_fitting)
     {
-            // ORCA: This class is only used by non BBL printers, so set the parameter appropriately.
-            // This fixes an issue where the wipe tower was using BBL tags resulting in statistics for purging in the purge tower not being displayed.
-            GCodeProcessor::s_IsBBLPrinter = false;
             // adds tag for analyzer:
             std::ostringstream str;
             str << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << m_layer_height << "\n"; // don't rely on GCodeAnalyzer knowing the layer height - it knows nothing at priming
@@ -386,7 +405,7 @@ public:
     }
 
     WipeTowerWriter2& switch_filament_monitoring(bool enable) {
-        flush_planner_queue();
+        m_gcode += flush_planner_queue_command(m_gcode_flavor);
         m_gcode += enable ? "M591 R\n" : "M591 S0\n";
         return *this;
     }
@@ -625,9 +644,10 @@ public:
 	}
 
 	// Set extruder temperature, don't wait by default.
-	WipeTowerWriter2& set_extruder_temp(int temperature, bool wait = false, const std::string& comment = std::string())
+	WipeTowerWriter2& set_extruder_temp(int temperature, bool wait = false, const std::string& comment = std::string(), bool sync = true)
 	{
-        flush_planner_queue();
+        if (sync) // sync the temperature change with motion
+            m_gcode += flush_planner_queue_command(m_gcode_flavor);
         m_gcode += "M" + std::to_string(wait ? 109 : 104) + " S" + std::to_string(temperature);
         if (!comment.empty())
             m_gcode += " " + comment;
@@ -683,7 +703,9 @@ public:
 
 	WipeTowerWriter2& flush_planner_queue()
 	{
-		m_gcode += flush_planner_queue_command(m_gcode_flavor);
+		// Toolchange boundaries: on Klipper M400 here only stalls the toolhead over the tower.
+		if (m_gcode_flavor != gcfKlipper)
+			m_gcode += flush_planner_queue_command(m_gcode_flavor);
 		return *this;
 	}
 
@@ -1033,13 +1055,14 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_z_pos(0.f),
     m_bridging(float(config.wipe_tower_bridging)),
     m_sparse_layers_skipped(wipe_tower_sparse_layers_skipped(config)),
+    m_sparse_layers_combined(wipe_tower_sparse_layers_combined(config)),
     m_gcode_flavor(config.gcode_flavor),
     m_travel_speed(config.travel_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_infill_speed(default_region_config.sparse_infill_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_perimeter_speed(default_region_config.inner_wall_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_current_tool(initial_tool),
     wipe_volumes(wiping_matrix), m_wipe_tower_max_purge_speed(float(config.wipe_tower_max_purge_speed)),
-    m_enable_arc_fitting(config.enable_arc_fitting), 
+    m_enable_arc_fitting(config.enable_arc_fitting.value == ArcFittingMode::Enabled), 
     m_used_fillet(config.wipe_tower_fillet_wall), 
     m_rib_width(config.wipe_tower_rib_width), 
     m_extra_rib_length(config.wipe_tower_extra_rib_length),
@@ -1149,6 +1172,16 @@ void WipeTower2::set_extruder(size_t idx, const PrintConfig& config)
     m_filpar[idx].filament_area = float((M_PI/4.f) * pow(config.filament_diameter.get_at(idx), 2)); // all extruders are assumed to have the same filament diameter at this point
     float nozzle_diameter = float(config.nozzle_diameter.get_at(idx));
     m_filpar[idx].nozzle_diameter = nozzle_diameter; // to be used in future with (non-single) multiextruder MM
+
+    // Orca: max_layer_height is per nozzle, so read it through the filament->nozzle map rather than
+    // by filament id. Zero means three quarters of the nozzle diameter, as in Slicing.cpp.
+    {
+        const std::vector<int> &filament_map = config.filament_map.values; // 1 based nozzle indices
+        const size_t nozzle_idx = idx < filament_map.size() && filament_map[idx] > 0 ? size_t(filament_map[idx] - 1) : 0;
+        const float  max_layer_height = float(config.max_layer_height.get_at(nozzle_idx));
+        m_filpar[idx].max_layer_height = max_layer_height > 0.f ? max_layer_height
+                                                                : 0.75f * float(config.nozzle_diameter.get_at(nozzle_idx));
+    }
 
     float max_vol_speed = float(config.filament_max_volumetric_speed.get_at(idx));
     if (max_vol_speed!= 0.f)
@@ -1383,7 +1416,7 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
             if (interface_temp > 0 && interface_temp != base_temp && !m_wait_for_temp_on_wipe_tower)
                 writer.set_extruder_temp(interface_temp, true);
             if (m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp)
-                writer.set_extruder_temp(base_temp, false);
+                writer.set_extruder_temp(base_temp, false, {}, m_gcode_flavor != gcfKlipper); // a cooldown back to base isn't timing-critical
             float pre_dist = m_filpar[tool].tower_interface_pre_extrusion_dist;
             float pre_len = m_filpar[tool].tower_interface_pre_extrusion_length;
             if (pre_dist > 0.f && pre_len > 0.f) {
@@ -1396,7 +1429,7 @@ WipeTower::ToolChangeResult WipeTower2::tool_change(size_t tool)
         if (interface_layer) {
             int interface_temp = m_filpar[tool].interface_print_temperature;
             if (!m_enable_tower_interface_cooldown_during_tower && interface_temp > 0 && interface_temp != base_temp)
-                writer.set_extruder_temp(base_temp, false);
+                writer.set_extruder_temp(base_temp, false, {}, m_gcode_flavor != gcfKlipper); // on Klipper M400 would stall the head over the tower
         }
         writer.append(";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Wipe_Tower_End) + "\n");
         ++ m_num_tool_changes;
@@ -1682,8 +1715,9 @@ void WipeTower2::toolchange_Unload(
             cleaning_box.ld.y() + m_depth_traversed + wipe_start_offset_after_ram(0.f, is_first_layer()) + m_perimeter_width));
     }
 
+    // Sync even on Klipper: [change_filament_gcode] and Tn must not run while the unload is still queued.
     writer.resume_preview()
-          .flush_planner_queue();
+          .append(flush_planner_queue_command(m_gcode_flavor));
 }
 
 // Change the tool, set a speed override for soluble and flex materials.
@@ -1701,6 +1735,8 @@ void WipeTower2::toolchange_Change(
     // This is where we want to place the custom gcodes. We will use placeholders for this.
     // These will be substituted by the actual gcodes when the gcode is generated.
     //writer.append("[end_filament_gcode]\n");
+    // Lift to the layer Z so change_filament_gcode can't hit taller printed parts.
+    writer.append("[restore_layer_z_before_toolchange]\n");
     writer.append("[change_filament_gcode]\n");
 
     if (m_is_mk4mmu3)
@@ -1804,7 +1840,7 @@ void WipeTower2::toolchange_Change(
     if (wait_for_temp_here && !wait_beside_tower)
         writer.set_extruder_temp(wait_for_temp, true, wait_for_temp_tag());
 
-    writer.append("[deretraction_from_wipe_tower_generator]");
+    writer.append("[deretraction_from_wipe_tower_generator]\n");
 
     // The toolchange Tn command will be inserted later, only in case that the user does
     // not provide a custom toolchange gcode.
@@ -2103,7 +2139,9 @@ WipeTower::ToolChangeResult WipeTower2::finish_layer()
 
     // Ask our writer about how much material was consumed.
     // Skip this in case the layer is sparse and config option to not print sparse layers is enabled.
-    if (! m_sparse_layers_skipped || toolchanges_on_layer || first_layer) {
+    // A folded layer prints nothing, so it consumes nothing and adds no height of its own.
+    const bool combined_away = m_layer_info != m_plan.end() && m_layer_info->combined_away;
+    if ((! m_sparse_layers_skipped || toolchanges_on_layer || first_layer) && ! combined_away) {
         if (m_current_tool < m_used_filament_length.size())
             m_used_filament_length[m_current_tool] += writer.get_and_reset_used_filament_length();
         m_current_height += m_layer_info->height;
@@ -2435,6 +2473,10 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
 	if (m_plan.empty())
         return;
 
+    // Before planning: the layer heights this rewrites feed the extrusion flow of every later pass.
+    if (m_sparse_layers_combined)
+        combine_sparse_wipe_tower_plan(m_plan, m_filpar, m_first_layer_idx, m_current_tool);
+
 	plan_tower();
 #if 1
     for (int i=0;i<5;++i) {
@@ -2532,6 +2574,10 @@ void WipeTower2::generate(std::vector<std::vector<WipeTower::ToolChangeResult>> 
             else
                 layer_result[idx] = merge_tcr(layer_result[idx], finish_layer_tcr);
         }
+
+        if (layer.combined_away)
+            for (WipeTower::ToolChangeResult &tcr : layer_result)
+                tcr.combined_away = true;
 
 		result.emplace_back(std::move(layer_result));
 

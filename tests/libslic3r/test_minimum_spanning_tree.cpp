@@ -1,7 +1,11 @@
 #include <catch2/catch_all.hpp>
 
 #include <algorithm>
+#include <vector>
+#include <cstddef>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_message.hpp>
 #include "libslic3r/MinimumSpanningTree.hpp"
 #include "libslic3r/Point.hpp"
 
@@ -63,4 +67,18 @@ TEST_CASE("Minimum spanning tree does not depend on the order of the non-root ve
             REQUIRE(sorted_neighbours(mst, vertex) == sorted_neighbours(reference, vertex));
         }
     }
+}
+
+TEST_CASE("Minimum spanning tree lists each vertex's edges in the order Prim adds them", "[MinimumSpanningTree]")
+{
+    // Four vertices tie at one unit from the root. Prim takes the smallest by x, then y, so the root's edges come in
+    // that order whatever the input order, and the vertex two units out joins last, through its nearest neighbour.
+    const Point root = Point::new_scale(0, 0), left = Point::new_scale(-1, 0), right = Point::new_scale(1, 0),
+                down = Point::new_scale(0, -1), up = Point::new_scale(0, 1), far = Point::new_scale(2, 0);
+    const MinimumSpanningTree mst({ root, far, right, up, left, down });
+
+    CHECK(mst.adjacent_nodes(root) == std::vector<Point>{ left, down, up, right });
+    CHECK(mst.adjacent_nodes(right) == std::vector<Point>{ root, far });
+    CHECK(mst.adjacent_nodes(far) == std::vector<Point>{ right });
+    CHECK(mst.adjacent_nodes(left) == std::vector<Point>{ root });
 }

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "FusRock PET-GF",
-	"inherits": "FusRock PET-CF",
 	"renamed_from": "FusRock Generic PET-GF",
+	"inherits": "FusRock PET-CF",
 	"from": "system",
 	"setting_id": "ZFIkUVZOklX8jUrT",
 	"filament_id": "OFzwA5Z9",

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Chuanying",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "Chuanying Generic PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "Mq3uwHDMub81SuRG",
 	"filament_id": "OFYPdQJh",

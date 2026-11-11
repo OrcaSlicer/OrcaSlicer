@@ -4,8 +4,11 @@
 #include "WideningBeadingStrategy.hpp"
 
 #include <algorithm>
+#include <string>
 #include <utility>
+#include <vector>
 
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Arachne/BeadingStrategy/BeadingStrategy.hpp"
 
 namespace Slic3r::Arachne

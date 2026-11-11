@@ -21,10 +21,23 @@
 	"filament_density": [
 		"1.19"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_is_support": [
 		"1"
 	],
 	"filament_max_volumetric_speed": [
+		"6",
+		"6",
+		"6",
+		"6",
+		"6",
 		"6"
 	],
 	"filament_multitool_ramming_flow": [
@@ -43,9 +56,19 @@
 		"60"
 	],
 	"nozzle_temperature": [
+		"210",
+		"210",
+		"210",
+		"210",
+		"210",
 		"210"
 	],
 	"nozzle_temperature_initial_layer": [
+		"210",
+		"210",
+		"210",
+		"210",
+		"210",
 		"210"
 	],
 	"slow_down_layer_time": [

@@ -2,8 +2,10 @@
 #define slic3r_GUI_ObjectSettings_hpp_
 
 #include <memory>
+#include <string>
 #include <vector>
 #include <wx/panel.h>
+#include <wx/sizer.h>
 #include "wxExtensions.hpp"
 
 #define NEW_OBJECT_SETTING 1

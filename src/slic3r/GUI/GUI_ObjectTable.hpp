@@ -1,6 +1,20 @@
 #ifndef slic3r_GUI_ObjectTable_hpp_
 #define slic3r_GUI_ObjectTable_hpp_
 
+#include <wx/event.h>
+#include <cstddef>
+#include <vector>
+#include <wx/arrstr.h>
+#include "libslic3r/Config.hpp"
+#include <wx/dynarray.h>
+#include <wx/dataobj.h>
+#include <string>
+#include <functional>
+#include <list>
+#include <wx/panel.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/rtti.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
 #include <wx/wx.h>
 #include <wx/intl.h>
 #include <wx/generic/gridsel.h>

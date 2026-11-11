@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PVA @SecKit",
-	"inherits": "fdm_filament_pva",
 	"renamed_from": "SecKit Generic PVA",
+	"inherits": "fdm_filament_pva",
 	"from": "system",
 	"setting_id": "DIUaGXpIF3fUfxqg",
 	"filament_id": "OFDvXujf",

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PVA HF @Prusa MK3.5 0.6",
-	"inherits": "fdm_filament_pva",
 	"renamed_from": "Prusa Generic PVA HF @MK3.5 0.6;Prusa Generic PVA HF MK3.5 0.6",
+	"inherits": "fdm_filament_pva",
 	"from": "system",
 	"setting_id": "8R3yU9OjRFBIp1nU",
 	"filament_id": "OFDwBwO5",

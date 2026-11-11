@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Anker",
-	"inherits": "Generic ABS @Anker base",
 	"renamed_from": "Anker Generic ABS",
+	"inherits": "Generic ABS @Anker base",
 	"from": "system",
 	"setting_id": "x3IBYtgKBx6Mszzk",
 	"instantiation": "true",

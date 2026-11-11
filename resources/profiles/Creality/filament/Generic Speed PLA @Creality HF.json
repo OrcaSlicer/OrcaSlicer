@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic Speed PLA @Creality HF",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Creality HF Generic Speed PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "pklu1YSwmDOj6gRq",
 	"filament_id": "OFXmv5p0",

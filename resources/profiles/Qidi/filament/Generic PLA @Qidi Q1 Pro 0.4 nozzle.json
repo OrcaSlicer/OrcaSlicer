@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Qidi Q1 Pro 0.4 nozzle",
-	"inherits": "Generic PLA @Qidi",
 	"renamed_from": "Qidi Generic PLA @Qidi Q1 Pro 0.4 nozzle;Qidi Generic PLA Qidi Q1 Pro 0.4 nozzle",
+	"inherits": "Generic PLA @Qidi",
 	"from": "system",
 	"setting_id": "PNCPMC8uMY9h5SZr",
 	"filament_id": "OFDSrzZ8",

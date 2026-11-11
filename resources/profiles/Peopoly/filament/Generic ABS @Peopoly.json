@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Peopoly",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "Peopoly Generic ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "HLq9urLhPLW0du6x",
 	"filament_id": "OFY9muEs",

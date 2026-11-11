@@ -5,10 +5,10 @@
 	"from": "system",
 	"setting_id": "J4EaFhnpkLDcl5wH",
 	"filament_id": "OFSqIcJC",
+	"instantiation": "true",
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge TPU 95A"
 	],

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <libslic3r/Utils.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
@@ -109,6 +109,9 @@ public:
 
     bool dirty() const;
 
+    // The capability type as the plugin dialogs show it, translated; plugin_capability_type_display_name()
+    // is the English name the logs use.
+    static std::string capability_type_label(PluginCapabilityType type);
     static nlohmann::json capabilities_payload(const std::vector<PluginCapabilityId>& caps);
     static nlohmann::json get_config_response(const PluginCapabilityId& id);
     static nlohmann::json save_config_response(const PluginCapabilityId& id, const nlohmann::json& config);

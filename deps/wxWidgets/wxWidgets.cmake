@@ -21,25 +21,35 @@ else ()
     set(_wx_edge "-DwxUSE_WEBVIEW_EDGE=OFF")
 endif ()
 
-set(_wx_patch_command "")
-if (APPLE)
-    set(_wx_patch_command
-        ${GIT_EXECUTABLE} checkout -f -- src/osx/cocoa/colour.mm
-        COMMAND ${GIT_EXECUTABLE} apply --verbose
-                ${CMAKE_CURRENT_LIST_DIR}/0001-macos-use-srgb-colour-components.patch
+# wxUSE_EXPAT=sys makes wxxml compile against the expat installed in the deps
+# prefix. That library is static, and upstream expat headers declare its API
+# __declspec(dllimport) unless XML_STATIC is defined, which wx never does.
+if (WIN32)
+    set(_wx_expat_static
+        "-DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS} -DXML_STATIC"
+        "-DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS} -DXML_STATIC"
     )
+else ()
+    set(_wx_expat_static "")
+endif ()
+
+# With a precompiled header, clang-cl can omit an exception type's copy constructor from its throw info,
+# so copies of the exception share and double-free their data: https://github.com/llvm/llvm-project/issues/53486
+if (MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    set(_wx_precomp OFF)
+else ()
+    set(_wx_precomp ON)
 endif ()
 
 orcaslicer_add_cmake_project(
     wxWidgets
-    GIT_REPOSITORY "https://github.com/SoftFever/Orca-deps-wxWidgets"
-    GIT_TAG v3.3.2
+    GIT_REPOSITORY "https://github.com/OrcaSlicer/Orca-deps-wxWidgets"
+    GIT_TAG b44c39c100975a0ac0e46f937aa3f3eae5e18631
     GIT_SHALLOW ON
     GIT_SUBMODULES 3rdparty/catch 3rdparty/pcre 3rdparty/libwebp
-    PATCH_COMMAND ${_wx_patch_command}
     DEPENDS ${PNG_PKG} ${ZLIB_PKG} ${EXPAT_PKG} ${JPEG_PKG}
     CMAKE_ARGS
-        -DwxBUILD_PRECOMP=ON
+        -DwxBUILD_PRECOMP=${_wx_precomp}
         ${_wx_toolkit}
         "-DCMAKE_DEBUG_POSTFIX:STRING=${_wx_debug_postfix}"
         -DwxBUILD_DEBUG_LEVEL=0
@@ -65,6 +75,7 @@ orcaslicer_add_cmake_project(
         -DwxUSE_LIBTIFF=OFF
         -DwxUSE_LIBWEBP=builtin
         -DwxUSE_EXPAT=sys
+        ${_wx_expat_static}
         -DwxUSE_NANOSVG=OFF
 )
 

@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Sovol SV06 ACE",
-	"inherits": "Generic PETG @System",
 	"renamed_from": "Sovol SV06 ACE PETG",
+	"inherits": "Generic PETG @System",
 	"from": "system",
 	"setting_id": "p8fGWNVkT6n5Dv9P",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],

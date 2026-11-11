@@ -1,6 +1,17 @@
+#include <boost/variant/get.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/chrono/duration.hpp>
 #include <exception>
+#include "slic3r/GUI/Jobs/ThreadSafeQueue.hpp"
+#include <utility>
+#include <future>
+#include <functional>
+#include <memory>
+#include "libslic3r/Thread.hpp"
+#include "slic3r/GUI/Jobs/Job.hpp"
 
 #include "BoostThreadWorker.hpp"
+#include "slic3r/GUI/Jobs/ProgressIndicator.hpp"
 
 namespace Slic3r { namespace GUI {
 

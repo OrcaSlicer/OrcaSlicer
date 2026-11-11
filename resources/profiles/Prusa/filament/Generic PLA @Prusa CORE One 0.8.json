@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Prusa CORE One 0.8",
-	"inherits": "Generic PLA @Prusa CORE One",
 	"renamed_from": "Prusa Generic PLA @CORE One 0.8;Prusa Generic PLA CORE One 0.8",
+	"inherits": "Generic PLA @Prusa CORE One",
 	"from": "system",
 	"setting_id": "aBengWdqRXg9i2sx",
 	"filament_id": "OFDSrzZ8",

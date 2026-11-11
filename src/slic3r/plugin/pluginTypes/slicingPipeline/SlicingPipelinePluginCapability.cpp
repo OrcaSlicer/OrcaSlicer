@@ -1,7 +1,14 @@
 #include "SlicingPipelinePluginCapability.hpp"
 #include "SlicingPipelinePluginCapabilityTrampoline.hpp"
+#include <pybind11/pybind11.h>
+#include <pybind11/cast.h>
+#include <pybind11/pytypes.h>
 #include "slic3r/plugin/PluginBindingUtils.hpp" // config_value_or_none
 #include "libslic3r/libslic3r.h"    // unscale<>, live SCALING_FACTOR
+#include "libslic3r/Print.hpp"
+#include <string>
+#include "slic3r/plugin/PythonPluginInterface.hpp"
+#include <memory>
 
 namespace py = pybind11;
 namespace Slic3r {

@@ -1,13 +1,38 @@
 #include "PhysicalPrinterDialog.hpp"
 #include "PresetComboBoxes.hpp"
 #include "PrinterCloudAuthDialog.hpp"
+#include "SavePresetDialog.hpp"
 
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/any.hpp>
+#include <cassert>
+#include <algorithm>
 #include <cstddef>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/RoundedRectangle.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <memory>
+#include "slic3r/GUI/OptionsGroup.hpp"
+#include "slic3r/GUI/Field.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <cstring>
+#include "libslic3r/Exception.hpp"
 #include <vector>
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include <wx/colour.h>
+#include <wx/busycursor.h>
+#include <wx/filedlg.h>
 #include <wx/sizer.h>
 #include <wx/tooltip.h>
 #include <wx/stattext.h>
@@ -15,9 +40,9 @@
 #include <wx/button.h>
 #include <wx/choicdlg.h>
 #include <wx/statbox.h>
+#include <wx/toplevel.h>
 #include <wx/wupdlock.h>
 
-#include "libslic3r/libslic3r.h"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
@@ -26,16 +51,12 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
-#include "format.hpp"
 #include "Tab.hpp"
-#include "wxExtensions.hpp"
+#include "libslic3r_version.h"
 #include "PrintHostDialogs.hpp"
-#include "../Utils/ASCIIFolding.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "../Utils/Flashforge.hpp"
 #include "../Utils/UndoRedo.hpp"
-#include "RemovableDriveManager.hpp"
-#include "BitmapCache.hpp"
 #include "BonjourDialog.hpp"
 #include "CrealityDiscoveryDialog.hpp"
 #include "MsgDialog.hpp"
@@ -63,7 +84,7 @@ PhysicalPrinterDialog::PhysicalPrinterDialog(wxWindow* parent) :
     m_presets = tab->get_presets();
     const Preset &sel_preset  = m_presets->get_selected_preset();
     std::string suffix = _u8L_CONTEXT(L_CONTEXT("Copy", "PresetName"), "PresetName");
-    std::string   preset_name = sel_preset.is_default ? "Untitled" : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.name;
+    std::string   preset_name = sel_preset.is_default ? _u8L("Untitled") : sel_preset.is_system ? (boost::format(("%1% - %2%")) % sel_preset.name % suffix).str() : sel_preset.name;
 
     auto input_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -265,6 +286,43 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
         return sizer;
     };
 
+
+    auto ultimaker_generate_creds = [=](wxWindow* parent) {
+        auto sizer = create_sizer_with_btn(parent, &m_printhost_generate_creds_btn, "ultimaker_generate_creds", _L("Generate API Key"));
+
+        m_printhost_generate_creds_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
+            std::unique_ptr<PrintHost> host(PrintHost::get_print_host(m_config));
+            if (!host) {
+                const wxString text = _L("Could not get a valid Printer Host reference");
+                show_error(this, text);
+                return;
+            }
+
+            wxString msg = "generate_auth_creds";
+            bool result;
+            {
+                // Show a wait cursor during the connection test, as it is blocking UI.
+                wxBusyCursor wait;
+                // Send request to printer for api key and such
+                result = host->test(msg); // using test with special input because I don't want to create the generate_auth_creds func for every printer
+
+                // Prompt user to approve access on the machine.
+                show_info(this, _L("API Key created. Go to the physical printer and hit \"authorize\" on the screen, then run \"Test\" again.") + "\n" + msg, _L("API Key created."));
+                
+                
+            }
+            if (result)
+                show_info(this, host->get_test_ok_msg(), _L("Success!"));
+            else
+                show_error(this, host->get_test_failed_msg(msg));
+
+            update();
+            });
+
+        return sizer;
+    };
+
+
     auto print_host_logout = [&](wxWindow* parent) {
         auto sizer = create_sizer_with_btn(parent, &m_printhost_logout_btn, "", _L("Log Out"));
 
@@ -303,6 +361,7 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     Line host_line = m_optgroup->create_single_option_line(option);
     host_line.append_widget(printhost_browse);
     host_line.append_widget(print_host_test);
+    host_line.append_widget(ultimaker_generate_creds);
     host_line.append_widget(print_host_logout);
     m_optgroup->append_line(host_line);
 
@@ -514,66 +573,9 @@ void PhysicalPrinterDialog::update_printhost_buttons()
 void PhysicalPrinterDialog::update_preset_input() {
     m_preset_name = into_u8(m_input_ctrl->GetValue());
 
-    m_valid_type = Valid;
-    wxString info_line;
-
-    const char *unusable_symbols = "<>[]:/\\|?*\"";
-
-    const std::string unusable_suffix = PresetCollection::get_suffix_modified(); //"(modified)";
-    for (size_t i = 0; i < std::strlen(unusable_symbols); i++) {
-        if (m_preset_name.find_first_of(unusable_symbols[i]) != std::string::npos) {
-            info_line    = _L("Name is invalid;") + "\n" + _L("illegal characters:") + " " + unusable_symbols;
-            m_valid_type = NoValid;
-            break;
-        }
-    }
-
-
-    if (m_valid_type == Valid && m_preset_name.find(unusable_suffix) != std::string::npos) {
-        info_line    = _L("Name is invalid;") + "\n" + _L("illegal suffix:") + "\n\t" + from_u8(PresetCollection::get_suffix_modified());
-        m_valid_type = NoValid;
-    }
-
-    if (m_valid_type == Valid &&
-        (m_preset_name == "Default Setting" || m_preset_name == PresetBundle::ORCA_DEFAULT_FILAMENT_PLACEHOLDER || m_preset_name == "Default Printer")) {
-        info_line    = _L("Name is unavailable.");
-        m_valid_type = NoValid;
-    }
-
-    const Preset *existing = m_presets->find_preset(m_preset_name, false);
-    if (m_valid_type == Valid && existing && (existing->is_default || existing->is_system)) {
-        info_line = _L("Overwriting a system profile is not allowed.");
-        m_valid_type = NoValid;
-    }
-
-    if (m_valid_type == Valid && existing && m_preset_name != m_presets->get_selected_preset_name()) {
-        if (existing->is_compatible)
-            info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists.")) % m_preset_name).str());
-        else
-            info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists and is incompatible with the current printer.")) % m_preset_name).str());
-        info_line += "\n" + _L("Please note that saving will overwrite the current preset.");
-        m_valid_type = Warning;
-    }
-
-    if (m_valid_type == Valid && m_preset_name.empty()) {
-        info_line    = _L("The name field is not allowed to be empty.");
-        m_valid_type = NoValid;
-    }
-
-    if (m_valid_type == Valid && m_preset_name.find_first_of(' ') == 0) {
-        info_line    = _L("The name is not allowed to start with a space.");
-        m_valid_type = NoValid;
-    }
-
-    if (m_valid_type == Valid && m_preset_name.find_last_of(' ') == m_preset_name.length() - 1) {
-        info_line    = _L("The name is not allowed to end with a space.");
-        m_valid_type = NoValid;
-    }
-
-    if (m_valid_type == Valid && m_presets->get_preset_name_by_alias(m_preset_name) != m_preset_name) {
-        info_line    = _L("The name cannot be the same as a preset alias name.");
-        m_valid_type = NoValid;
-    }
+    wxString               info_line;
+    const PresetNameStatus status = check_preset_name(*m_presets, m_preset_name, info_line);
+    m_valid_type = status == PresetNameStatus::Invalid ? NoValid : status == PresetNameStatus::Warning ? Warning : Valid;
 
     m_valid_label->SetLabel(info_line);
     m_input_area->Refresh();
@@ -606,8 +608,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
         m_optgroup->hide_field("bbl_use_print_host_webui");
         m_optgroup->enable_field("printhost_cafile");
         m_optgroup->enable_field("printhost_ssl_ignore_revoke");
-        if (m_printhost_cafile_browse_btn)
-            m_printhost_cafile_browse_btn->Enable();
+        if (m_printhost_cafile_browse_btn) { m_printhost_cafile_browse_btn->Enable(); }
 
         // hide pre-configured address, in case user switched to a different host type
         if (Field* printhost_field = m_optgroup->get_field("print_host"); printhost_field) {
@@ -704,7 +705,24 @@ void PhysicalPrinterDialog::update(bool printer_change)
             m_optgroup->hide_field("printhost_authorization_type");
         } else {
             m_optgroup->hide_field("flashforge_serial_number");
-        }
+        }        
+        
+        if (opt->value == htUltiMaker) {
+                m_optgroup->hide_field("printhost_apikey");
+                m_optgroup->hide_field("printhost_authorization_type");
+                m_optgroup->hide_field("bbl_use_print_host_webui");
+                m_optgroup->hide_field("printhost_cafile");
+                m_optgroup->show_field("printhost_user");
+                m_optgroup->show_field("printhost_password");
+                m_optgroup->enable_field("print_host");
+                m_optgroup->show_field("print_host_webui");
+                if (m_printhost_cafile_browse_btn) {
+                    m_printhost_cafile_browse_btn->Disable();
+                }
+                if (m_printhost_generate_creds_btn) {
+                    m_printhost_generate_creds_btn->Enable();
+                }
+            }
     }
     else {
         m_optgroup->set_value("host_type", int(PrintHostType::htOctoPrint), false);
@@ -719,6 +737,10 @@ void PhysicalPrinterDialog::update(bool printer_change)
         for (const char *opt_key : { "printhost_user", "printhost_password" })
             m_optgroup->show_field(opt_key, auth_type == AuthorizationType::atUserPassword);
     }
+
+    // The "Generate API Key" button is only meaningful for UltiMaker printers.
+    if (m_printhost_generate_creds_btn)
+        m_printhost_generate_creds_btn->Show(tech == ptFFF && m_config->opt_enum<PrintHostType>("host_type") == htUltiMaker);
 
     m_optgroup->show_field("printhost_port", supports_multiple_printers);
     m_printhost_port_browse_btn->Show(supports_multiple_printers);
@@ -787,6 +809,7 @@ void PhysicalPrinterDialog::on_dpi_changed(const wxRect& suggested_rect)
 
     m_printhost_browse_btn->Rescale();
     m_printhost_test_btn->Rescale();
+    m_printhost_generate_creds_btn->Rescale();
     m_printhost_logout_btn->Rescale();
     if (m_printhost_cafile_browse_btn)
         m_printhost_cafile_browse_btn->Rescale();
@@ -812,7 +835,10 @@ void PhysicalPrinterDialog::check_host_key_valid()
 
 void PhysicalPrinterDialog::OnOK(wxEvent& event)
 {
-    wxGetApp().get_tab(Preset::TYPE_PRINTER)->save_preset("", false, false, true, m_preset_name);
+    // Keep this dialog open when the save was cancelled (e.g. the unresolved-plugin warning), or it
+    // would close as if the physical printer's preset had been saved.
+    if (!wxGetApp().get_tab(Preset::TYPE_PRINTER)->save_preset("", false, false, true, m_preset_name))
+        return;
     event.Skip();
 }
 
