@@ -4288,7 +4288,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Others");
     // xgettext:no-c-format, no-boost-format
     def->tooltip = L("Fuzzy skin generation mode. Works only with Arachne!\n"
-                     "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
+                     "Displacement: Classic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
                      "Extrusion: The mode when the pattern formed by the amount of extruded plastic. "
                      "This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. "
                      "But it is more useful for forming loose walls in the entire they array.\n"
