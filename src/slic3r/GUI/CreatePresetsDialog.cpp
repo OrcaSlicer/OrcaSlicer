@@ -3936,8 +3936,7 @@ mz_bool ExportConfigsDialog::initial_zip_archive(mz_zip_archive &zip_archive, co
 
     // Initialize the ZIP file to write to the structure, using memory storage
 
-    std::string export_dir = encode_path(file_path.c_str());
-    status                 = mz_zip_writer_init_file(&zip_archive, export_dir.c_str(), 0);
+    status = mz_zip_writer_init_file(&zip_archive, file_path.c_str(), 0);
     return status;
 }
 
@@ -3971,7 +3970,7 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::save_presets_to_zip(const s
         std::string preset_name = config_path.first;
 
         // Add a file to the ZIP file
-        status = mz_zip_writer_add_file(&zip_archive, (preset_name).c_str(), encode_path(config_path.second.c_str()).c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
+        status = mz_zip_writer_add_file(&zip_archive, (preset_name).c_str(), config_path.second.c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
         // status = mz_zip_writer_add_mem(&zip_archive, ("printer/" + printer_preset->name + ".json").c_str(), json_contents, strlen(json_contents), MZ_DEFAULT_COMPRESSION);
         if (MZ_FALSE == status) {
             BOOST_LOG_TRIVIAL(info) << preset_name << " Filament preset failed to add file to ZIP archive";
@@ -4107,7 +4106,7 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_fi
 
             // Add a file to the ZIP file
             std::string printer_config_file_name = "printer/" + printer_file_path.filename().string();
-            status = mz_zip_writer_add_file(&zip_archive, printer_config_file_name.c_str(), encode_path(preset_path.c_str()).c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
+            status = mz_zip_writer_add_file(&zip_archive, printer_config_file_name.c_str(), preset_path.c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
             //status = mz_zip_writer_add_mem(&zip_archive, ("printer/" + printer_preset->name + ".json").c_str(), json_contents, strlen(json_contents), MZ_DEFAULT_COMPRESSION);
             if (MZ_FALSE == status) {
                 BOOST_LOG_TRIVIAL(info) << printer_preset->name << " Failed to add file to ZIP archive";
@@ -4129,7 +4128,7 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_fi
                     }
 
                     std::string filament_config_file_name = "filament/" + filament_file_path.filename().string();
-                    status = mz_zip_writer_add_file(&zip_archive, filament_config_file_name.c_str(), encode_path(filament_preset_path.c_str()).c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
+                    status = mz_zip_writer_add_file(&zip_archive, filament_config_file_name.c_str(), filament_preset_path.c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
                     if (MZ_FALSE == status) {
                         BOOST_LOG_TRIVIAL(info) << preset->name << " Failed to add file to ZIP archive";
                         mz_zip_writer_end(&zip_archive);
@@ -4151,7 +4150,7 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_preset_bundle_to_fi
                     }
 
                     std::string process_config_file_name = "process/" + process_file_path.filename().string();
-                    status = mz_zip_writer_add_file(&zip_archive, process_config_file_name.c_str(), encode_path(process_preset_path.c_str()).c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
+                    status = mz_zip_writer_add_file(&zip_archive, process_config_file_name.c_str(), process_preset_path.c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
                     if (MZ_FALSE == status) {
                         BOOST_LOG_TRIVIAL(info) << preset->name << " Failed to add file to ZIP archive";
                         mz_zip_writer_end(&zip_archive);
@@ -4240,7 +4239,7 @@ ExportConfigsDialog::ExportCase ExportConfigsDialog::archive_filament_bundle_to_
                 }
                 // Add a file to the ZIP file
                 std::string file_name = printer_vendor + "/" + filament_preset->name + ".json";
-                status                = mz_zip_writer_add_file(&zip_archive, file_name.c_str(), encode_path(preset_path.c_str()).c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
+                status                = mz_zip_writer_add_file(&zip_archive, file_name.c_str(), preset_path.c_str(), NULL, 0, MZ_DEFAULT_COMPRESSION);
                 // status = mz_zip_writer_add_mem(&zip_archive, ("printer/" + printer_preset->name + ".json").c_str(), json_contents, strlen(json_contents), MZ_DEFAULT_COMPRESSION);
                 if (MZ_FALSE == status) {
                     BOOST_LOG_TRIVIAL(info) << filament_preset->name << " Failed to add file to ZIP archive";
