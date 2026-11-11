@@ -1020,12 +1020,16 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("printable_area", coPoints);
     def->label = L("Printable area");
+    def->tooltip = L("The area of the bed the printer can print on, as an outline in bed coordinates. Its size and the position of "
+                     "the bed origin set where objects can be placed and where the G-code coordinates start.");
     //BBS
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPoints{ Vec2d(0, 0), Vec2d(200, 0), Vec2d(200, 200), Vec2d(0, 200) });
 
     def = this->add("extruder_printable_area", coPointsGroups);
     def->label = L("Extruder printable area");
+    def->tooltip = L("The part of the bed this nozzle can reach, as an outline in bed coordinates. Objects printed with this "
+                     "nozzle have to stay inside it. Leave it empty when the nozzle reaches the whole printable area.");
     def->mode = comAdvanced;
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPointsGroups{});
@@ -1089,12 +1093,16 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("bed_custom_texture", coString);
     def->label = L("Bed custom texture");
+    def->tooltip = L("An image drawn on the bed in the 3D view instead of the default one. It is only for display and does not "
+                     "change the print.");
     def->mode = comAdvanced;
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionString());
 
     def = this->add("bed_custom_model", coString);
     def->label = L("Bed custom model");
+    def->tooltip = L("An STL model shown as the bed in the 3D view instead of the default one. It is only for display and does "
+                     "not change the print.");
     def->mode = comAdvanced;
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionString());
@@ -1235,7 +1243,8 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("printhost_port", coString);
     def->label = L("Printer");
-    def->tooltip = L("Name of the printer.");
+    def->tooltip = L("On a print host that serves several printers (Repetier-Server, Obico), the printer that receives the "
+                     "uploaded jobs. Refresh the list to read the printers from the host.");
     def->gui_type = ConfigOptionDef::GUIType::select_open;
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
@@ -1253,14 +1262,14 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("printhost_user", coString);
     def->label = L("User");
-    //def->tooltip = L("");
+    def->tooltip = L("User name for signing in to the print host with HTTP digest authorization.");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionString());
 
     def = this->add("printhost_password", coString);
     def->label = L("Password");
-    //def->tooltip = L("");
+    def->tooltip = L("Password for signing in to the print host with HTTP digest authorization.");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionString());
@@ -1281,7 +1290,8 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("printhost_authorization_type", coEnum);
     def->label = L("Authorization Type");
-    //def->tooltip = L("");
+    def->tooltip = L("How Orca Slicer signs in to the print host: with its API key, or with a user name and password (HTTP "
+                     "digest).");
     def->enum_keys_map = &ConfigOptionEnum<AuthorizationType>::get_enum_values();
     def->enum_values.push_back("key");
     def->enum_values.push_back("user");
@@ -2219,6 +2229,7 @@ void PrintConfigDef::init_fff_params()
     //BBS.
     def        = this->add("upward_compatible_machine", coStrings);
     def->label = L("upward compatible machine");
+    def->tooltip = L("Other printer models that can also print the G-code sliced with this printer profile.");
     def->mode  = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
     def->cli   = ConfigOptionDef::nocli;
@@ -2847,7 +2858,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("nozzle_height", coFloat);
     def->label = L("Nozzle height");
-    def->tooltip = L("The height of nozzle tip.");
+    def->tooltip = L("How far the nozzle tip reaches below the rest of the toolhead. In by-object printing, objects lower than "
+                     "this only ever meet the nozzle, so they can be placed much closer together than the clearance radius.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comDevelop;
@@ -2895,6 +2907,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("grab_length",coFloats);
     def->label = L("Grab length");
+    def->tooltip = L("Length of filament the extruder pushes out after a filament change to check that it has gripped the new "
+                     "filament. The purge after the change is reduced by this amount.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comDevelop;
@@ -4884,14 +4898,15 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("wrapping_detection_layers", coInt);
     def->label    = L("Clumping detection layers");
-    def->tooltip  = L("Clumping detection layers.");
+    def->tooltip  = L("Number of layers, from the first one, that get a prime tower while clumping detection is enabled.");
     def->min      = 0;
     def->mode     = comDevelop;
     def->set_default_value(new ConfigOptionInt(20));
 
     def = this->add("wrapping_exclude_area", coPoints);
     def->label   = L("Probing exclude area of clumping");
-    def->tooltip = L("Probing exclude area of clumping.");
+    def->tooltip = L("The bed area the printer uses to detect clumping. While clumping detection is enabled, objects and the "
+                     "prime tower have to stay out of it.");
     def->mode = comAdvanced;
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPoints());
@@ -5303,6 +5318,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("time_lapse_gcode",coString);
     def->label = L("Timelapse G-code");
+    def->tooltip = L("G-code inserted at layer changes to take a timelapse photo, for example to park the toolhead and "
+                     "trigger the camera. Leave it empty if the printer takes no timelapse.");
     def->multiline = true;
     def->full_width = true;
     def->height =5;
@@ -5311,6 +5328,8 @@ void PrintConfigDef::init_fff_params()
 
     def             = this->add("wrapping_detection_gcode", coString);
     def->label      = L("Clumping detection G-code");
+    def->tooltip    = L("G-code inserted at layer changes while clumping detection is enabled, to have the printer check its "
+                        "nozzle for filament clumped around it.");
     def->multiline  = true;
     def->full_width = true;
     def->height     = 5;
@@ -5740,7 +5759,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("nozzle_diameter", coFloats);
     def->label = L("Nozzle diameter");
-    def->tooltip = L("The diameter of nozzle.");
+    def->tooltip = L("Diameter of the nozzle opening. Line widths given as a percentage, and the automatic layer height "
+                     "limits, are worked out from it, so change it when a nozzle of another size is fitted.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->max = 100;
@@ -6217,7 +6237,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("z_hop_types", coEnums);
     def->label = L("Z-hop type");
-    def->tooltip = L("Type of Z-hop.");
+    def->tooltip = L("How the nozzle rises for a Z-hop. Normal lifts straight up before traveling. Slope rises gradually "
+                     "along the travel, at the traveling angle. Spiral rises along a small circle on the spot. Auto uses Spiral "
+                     "at layer changes and where the travel starts over an overhang, and Slope elsewhere.");
     def->enum_keys_map = &ConfigOptionEnum<ZHopType>::get_enum_values();
     def->enum_values.push_back("Auto Lift");
     def->enum_values.push_back("Normal Lift");
@@ -6255,7 +6277,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("retract_lift_enforce", coEnums);
     def->label = L("On surfaces");
-    def->tooltip = L("Enforce Z-Hop behavior. This setting is impacted by the above settings (Only lift Z above/below).");
+    def->tooltip = L("Which surfaces get a Z-hop. All Surfaces lifts at every retraction. Top Only lifts only when leaving "
+                     "a top surface or ironing, Bottom Only only on the first layer, Top and Bottom on both. The Z-hop height "
+                     "limits above still apply.");
     def->enum_keys_map = &ConfigOptionEnum<RetractLiftEnforceType>::get_enum_values();
     def->enum_values.push_back("All Surfaces");
     def->enum_values.push_back("Top Only");
@@ -7179,7 +7203,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("enable_filament_ramming", coBool);
     def->label = L("Enable filament ramming");
-    def->tooltip = L("Enable filament ramming");
+    def->tooltip = L("Before a filament is unloaded at a filament change, extrude it in fast bursts on the wipe tower to "
+                     "shape its tip, so it leaves the hotend cleanly and loads again without jamming. The ramming speeds are "
+                     "set in the filament settings.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
