@@ -1309,24 +1309,6 @@ bool Model::is_fuzzy_skin_painted() const
     return std::any_of(this->objects.cbegin(), this->objects.cend(), [](const ModelObject *mo) { return mo->is_fuzzy_skin_painted(); });
 }
 
-static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelVolume* src_volume, const Transform3d& cut_matrix, const std::string& suffix = {}, ModelVolumeType type = ModelVolumeType::MODEL_PART)
-{
-    if (mesh.empty())
-        return;
-
-    mesh.transform(cut_matrix);
-    ModelVolume* vol = object->add_volume(mesh);
-    vol->set_type(type);
-
-    vol->name = src_volume->name + suffix;
-    // Don't copy the config's ID.
-    vol->config.assign_config(src_volume->config);
-    assert(vol->config.id().valid());
-    assert(vol->config.id() != src_volume->config.id());
-    vol->set_material(src_volume->material_id(), *src_volume->material());
-    vol->cut_info = src_volume->cut_info;
-}
-
 ModelObject::~ModelObject()
 {
     this->clear_volumes();
@@ -2125,7 +2107,11 @@ void ModelObject::convert_units(ModelObjectPtrs& new_objects, ConversionType con
             vol->config.assign_config(volume->config);
             assert(vol->config.id().valid());
             assert(vol->config.id() != volume->config.id());
-            vol->set_material(volume->material_id(), *volume->material());
+            // The clone is detached while it is rebuilt; point it at the source model so set_material_id()
+            // can record the entry, and detach it again.
+            new_object->set_model(this->get_model());
+            vol->set_material_id(volume->material_id());
+            new_object->set_model(nullptr);
             vol->source.input_file = volume->source.input_file;
             vol->source.object_idx = (int)new_objects.size();
             vol->source.volume_idx = vol_idx;
@@ -2776,13 +2762,6 @@ void ModelVolume::set_material_id(t_model_material_id material_id)
 ModelMaterial* ModelVolume::material() const
 {
     return this->object->get_model()->get_material(m_material_id);
-}
-
-void ModelVolume::set_material(t_model_material_id material_id, const ModelMaterial &material)
-{
-    m_material_id = material_id;
-    if (! material_id.empty())
-        this->object->get_model()->add_material(material_id, material);
 }
 
 // Extract the current extruder ID based on this ModelVolume's config and the parent ModelObject's config.
