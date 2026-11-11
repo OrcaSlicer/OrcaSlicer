@@ -5262,11 +5262,15 @@ void PrintObject::discover_sub_top_surfaces()
         if (!cache.size())
             continue;
         for (auto& record : cache) {
-            ExPolygons crop = to_expolygons(record.second.filter_by_types({stInternalSolid, stInternalBridge}));
-            ExPolygons internal = to_expolygons(record.first->fill_surfaces.filter_by_type(stInternal));
+            Surfaces new_surfaces;
+            ExPolygons crop_first  = to_expolygons(record.first->fill_surfaces.filter_by_types({stTop, stBottom}));
+            for (auto& s : record.second)
+                surfaces_append(new_surfaces, diff_ex(s.expolygon, crop_first), s.surface_type);
+            ExPolygons crop_second = to_expolygons(record.second.filter_by_types({stInternalSolid, stInternalBridge}));
+            ExPolygons internal    = to_expolygons(record.first->fill_surfaces.filter_by_type(stInternal));
             record.first->fill_surfaces.remove_type(stInternal);
-            surfaces_append(record.first->fill_surfaces.surfaces, diff_ex(internal, crop, ApplySafetyOffset::Yes), stInternal);
-            surfaces_append(record.first->fill_surfaces.surfaces, record.second.surfaces);
+            surfaces_append(record.first->fill_surfaces.surfaces, diff_ex(internal, crop_second, ApplySafetyOffset::Yes), stInternal);
+            surfaces_append(record.first->fill_surfaces.surfaces, new_surfaces);
         }
     }
 }
