@@ -8,13 +8,12 @@
 #ifndef wxMediaCtrl3_h
 #define wxMediaCtrl3_h
 
-#include <chrono>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/string.h>
+#include <cstddef>
 #include <memory>
 #include <mutex>
-#include <cstdint>
 #include "wx/window.h"
 #include "wx/bitmap.h"
 #include "wx/uri.h"
@@ -31,6 +30,7 @@ void wxMediaCtrl_OnSize(wxWindow * ctrl, wxSize const & videoSize, int width, in
 #include <thread>
 #include <wx/image.h>
 #include "Printer/BambuTunnel.h"
+#include "libslic3r/DropOldestQueue.hpp"
 
 class AVVideoDecoder;
 
@@ -79,31 +79,41 @@ protected:
 
     void PlayThread();
     int PlayFfmpeg(std::shared_ptr<wxURI> const &url, std::unique_lock<std::mutex> &lock);
+    void DisplayThread(std::shared_ptr<wxURI> url, int frame_rate, size_t queue_capacity);
+    void RequestRefresh();
 
     void NotifyStopped();
 
 private:
+#ifdef _WIN32
+    using Frame = wxBitmap;
+#else
+    using Frame = wxImage;
+#endif
+
     wxString m_idle_image;
     wxMediaState m_state  = wxMEDIASTATE_STOPPED;
     int m_error  = 0;
     wxSize m_video_size = wxDefaultSize;
     wxSize m_frame_size = wxDefaultSize;
-#ifdef _WIN32
-    wxBitmap m_frame;
-#else
-    wxImage m_frame;
-#endif
+    Frame m_frame;
 
     std::shared_ptr<wxURI> m_url;
     std::shared_ptr<wxURI> m_active_url;
     bool m_external = false;
-    std::uint64_t m_last_PTS{0};
-    std::chrono::system_clock::time_point m_last_PTS_expected;
-    std::chrono::system_clock::time_point m_last_PTS_practical;
     mutable std::mutex m_mutex;
     std::condition_variable m_cond;
     std::thread m_thread;
     std::atomic_bool m_refresh_pending{false};
+
+    // Tunnel streams: the play thread receives and decodes frames into this queue, and the display
+    // thread shows them at the stream's frame rate. The queue drops the oldest frame when full, so a
+    // display that falls behind (a busy UI, a backgrounded app) skips frames instead of running late.
+    // Each frame has one owner until it is copied into m_frame under m_mutex: wxImage and wxBitmap
+    // share their data through a reference count that is not thread-safe.
+    Slic3r::DropOldestQueue<std::unique_ptr<Frame>> m_frame_queue{1};
+    std::thread m_display_thread;
+    std::atomic_bool m_display_exit{false};
 };
 
 #endif /* wxMediaCtrl3_h */

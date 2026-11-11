@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <boost/log/trivial.hpp>
 #include "slic3r/GUI/Printer/BambuTunnel.h"
+#include "libslic3r/FramePacer.hpp"
 #include <cassert>
 #include <memory>
 #include <string>
@@ -10,9 +11,11 @@
 #include <thread>
 #include <wx/dcclient.h>
 #include <cstdarg>
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
+#include <utility>
 #include <wx/event.h>
 #include <wx/uri.h>
 #include <wx/gdicmn.h>
@@ -457,12 +460,7 @@ int wxMediaCtrl3::PlayFfmpeg(std::shared_ptr<wxURI> const &url, std::unique_lock
                     break;
                 if (frame.IsOk())
                     m_frame = frame;
-                if (!m_refresh_pending.exchange(true)) {
-                    CallAfter([this] {
-                        m_refresh_pending.store(false);
-                        Refresh();
-                    });
-                }
+                RequestRefresh();
             }
         }
         av_packet_unref(packet);
@@ -470,6 +468,47 @@ int wxMediaCtrl3::PlayFfmpeg(std::shared_ptr<wxURI> const &url, std::unique_lock
 
     av_packet_free(&packet);
     return finish(m_url == url ? 2 : 1);
+}
+
+// At most one repaint is queued at a time, so frames that arrive faster than the UI paints
+// don't pile up CallAfter events.
+void wxMediaCtrl3::RequestRefresh()
+{
+    if (!m_refresh_pending.exchange(true)) {
+        CallAfter([this] {
+            m_refresh_pending.store(false);
+            Refresh();
+        });
+    }
+}
+
+// Shows the frames of a tunnel stream when the FramePacer says: at the stream's frame rate, but
+// never settling behind it.
+void wxMediaCtrl3::DisplayThread(std::shared_ptr<wxURI> url, int frame_rate, size_t queue_capacity)
+{
+    using namespace std::chrono_literals;
+    Slic3r::FramePacer     pacer(frame_rate, queue_capacity);
+    std::unique_ptr<Frame> frame;
+    while (!m_display_exit.load()) {
+        if (!m_frame_queue.pop(frame, 100ms)) {
+            pacer.reset(); // The stream paused: start a fresh schedule with the next frame.
+            continue;
+        }
+        const auto schedule = pacer.schedule(Slic3r::FramePacer::Clock::now(), m_frame_queue.size());
+        if (schedule.skip_to_newest)
+            while (m_frame_queue.pop(frame, 0ms)) {}
+        std::this_thread::sleep_until(schedule.show_at);
+        {
+            std::lock_guard<std::mutex> lk(m_mutex);
+            // Stop() or a new Load() has moved on: leave its idle image in place.
+            if (m_url != url)
+                break;
+            // Share the data with m_frame and drop this thread's reference while still locked.
+            m_frame = *frame;
+            frame.reset();
+        }
+        RequestRefresh();
+    }
 }
 
 void wxMediaCtrl3::PlayThread()
@@ -515,13 +554,18 @@ void wxMediaCtrl3::PlayThread()
             if (error == 0)
                 error = Bambu_GetStreamInfo(tunnel, 0, &info);
             AVVideoDecoder decoder;
-            int minFrameDuration = 0;
             if (error == 0) {
                 decoder.open(info);
                 m_video_size = { info.format.video.width, info.format.video.height };
                 adjust_frame_size(m_frame_size, m_video_size, GetSize());
-                minFrameDuration = 800 / info.format.video.frame_rate; // 80%
                 NotifyStopped();
+                // Hold at most ~300 ms of frames (at least one), which bounds how far behind the picture can fall.
+                const int    frame_rate = std::max(info.format.video.frame_rate, 1);
+                const size_t capacity   = static_cast<size_t>(std::max(300 * frame_rate / 1000, 1));
+                m_frame_queue.clear();
+                m_frame_queue.set_capacity(capacity);
+                m_display_exit.store(false);
+                m_display_thread = std::thread([this, url, frame_rate, capacity] { DisplayThread(url, frame_rate, capacity); });
             }
             Bambu_Sample sample;
             while (error == 0) {
@@ -529,7 +573,8 @@ void wxMediaCtrl3::PlayThread()
                 error = Bambu_ReadSample(tunnel, &sample);
                 lk.lock();
                 while (error == int(Bambu_would_block)) {
-                    m_cond.wait_for(lk, 100ms);
+                    // Poll often enough that frames arrive one by one rather than in bursts.
+                    m_cond.wait_for(lk, 10ms);
                     if (m_url != url) {
                         error = 1;
                         break;
@@ -542,44 +587,29 @@ void wxMediaCtrl3::PlayThread()
                     auto frame_size = m_frame_size;
                     lk.unlock();
                     decoder.decode(sample);
+                    auto frame = std::make_unique<Frame>();
 #ifdef _WIN32
-                    wxBitmap bm;
-                    decoder.toWxBitmap(bm, frame_size);
+                    decoder.toWxBitmap(*frame, frame_size);
 #else
-                    wxImage bm;
-                    decoder.toWxImage(bm, frame_size);
+                    decoder.toWxImage(*frame, frame_size);
 #endif
                     lk.lock();
                     if (m_url != url) {
                         error = 1;
                         break;
                     }
-                    if (bm.IsOk()) {
-                        auto now = std::chrono::system_clock::now();
-                        if (m_last_PTS && (sample.decode_time - m_last_PTS) < 30000000ULL) { // 3s
-                            auto next_PTS_expected = m_last_PTS_expected + std::chrono::milliseconds((sample.decode_time - m_last_PTS) / 10000ULL);
-                            // The frame is late, catch up a little
-                            auto next_PTS_practical = m_last_PTS_practical + std::chrono::milliseconds(minFrameDuration);
-                            auto next_PTS = std::max(next_PTS_expected, next_PTS_practical);
-                            if(now < next_PTS)
-                                std::this_thread::sleep_until(next_PTS);
-                            else
-                                next_PTS = now;
-                            //auto text = wxString::Format(L"wxMediaCtrl3 pts diff %ld\n", std::chrono::duration_cast<std::chrono::milliseconds>(next_PTS - next_PTS_expected).count());
-                            //OutputDebugString(text);
-                            m_last_PTS = sample.decode_time;
-                            m_last_PTS_expected = next_PTS_expected;
-                            m_last_PTS_practical = next_PTS;
-                        } else {
-                            // Resync
-                            m_last_PTS           = sample.decode_time;
-                            m_last_PTS_expected  = now;
-                            m_last_PTS_practical = now;
-                        }
-                        m_frame = bm;
-                    }
-                    CallAfter([this] { Refresh(); });
+                    // Never wait here: the tunnel must be drained as fast as frames arrive, or
+                    // they queue up inside it and the picture falls further behind for good.
+                    if (frame->IsOk())
+                        m_frame_queue.push(std::move(frame));
                 }
+            }
+            if (m_display_thread.joinable()) {
+                lk.unlock();
+                m_display_exit.store(true);
+                m_display_thread.join();
+                m_frame_queue.clear();
+                lk.lock();
             }
             if (tunnel) {
                 lk.unlock();
