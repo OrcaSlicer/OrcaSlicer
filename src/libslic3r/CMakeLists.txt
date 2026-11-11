@@ -82,6 +82,7 @@ set(lisbslic3r_sources
     BlacklistedLibraryCheck.cpp
     BlacklistedLibraryCheck.hpp
     BoundingBox.cpp
+    BoostPolygonTraits.hpp
     BoundingBox.hpp
     BridgeDetector.cpp
     BridgeDetector.hpp
