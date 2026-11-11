@@ -4,7 +4,13 @@
 #include "Button.hpp"
 #include "Label.hpp"
 
+#include <wx/anybutton.h>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/panel.h>
+#include <wx/radiobox.h>
+#include <wx/string.h>
 
 // Check box with a clickable label.
 //

@@ -1,13 +1,24 @@
 #include "LabeledCheckBox.hpp"
 
+#include <wx/anybutton.h>
+#include <wx/colour.h>
 #include <wx/dcclient.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
 #include <wx/tglbtn.h> // wxEVT_TOGGLEBUTTON
 #include <wx/tooltip.h>
 #include <wx/weakref.h>
 
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <slic3r/GUI/Widgets/Label.hpp>
+#include <slic3r/GUI/Widgets/StateColor.hpp>
+
 #include <algorithm>
+#include <initializer_list>
 
 static const int LABEL_PADDING = 5; // space between the text and its focus border
 
