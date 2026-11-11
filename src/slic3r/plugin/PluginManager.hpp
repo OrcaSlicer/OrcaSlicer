@@ -267,7 +267,8 @@ public:
 
     bool download_and_install_cloud_plugin(const std::string& plugin_key, const std::string& version, std::string& error);
     bool subscribe_and_install_cloud_plugin(const std::string& plugin_key, std::string& error);
-    // If the version is empty, take the latest version.
+    // If the version is empty, take the latest version. A loaded package is reloaded afterwards;
+    // a deactivated one keeps enabled=false in its sidecar across the restart.
     bool update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version = "");
 
     bool delete_plugin(const std::string& plugin_key, std::string& error);
@@ -344,7 +345,9 @@ private:
 
     // Writes the sidecar for a loaded plugin (enabled=true plus the current per-capability flags).
     void write_loaded_plugin_install_state(const std::string& plugin_key);
-    void mark_plugin_install_state_disabled(const std::string& plugin_key);
+    // Persists enabled=false and mirrors it into the in-memory descriptor. Returns whether the
+    // sidecar was written; the unload path ignores the result, a package replacement reports it.
+    bool mark_plugin_install_state_disabled(const std::string& plugin_key);
     // Revoke permissions after a package replacement so the new package must request them again.
     void revoke_plugin_permissions(const std::string& plugin_key);
 

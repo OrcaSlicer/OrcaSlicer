@@ -138,23 +138,12 @@ bool PluginManager::initialize()
     plugin_hooks::install();
 
     // Persist auto-load / capability state to each plugin's .install_state.json sidecar.
-    // On load: write enabled=true plus the current capability flags. On unload: flip enabled=false.
-    // The on-unload callback is skipped during shutdown, so app exit does not wipe the auto-load list.
+    // On load: write enabled=true plus the current capability flags. Unloading flips enabled=false
+    // directly in unload_plugin(), not through the asynchronous completion callbacks: an update
+    // dispatches unload and load callbacks from a worker, and a deferred enabled=false write could
+    // otherwise land after the replacement package has been installed. The unload path is skipped
+    // during shutdown, so app exit does not wipe the auto-load list.
     subscribe_on_load_callback([this](const std::string& key) { write_loaded_plugin_install_state(key); });
-    subscribe_on_unload_callback([this](const std::string& key) {
-        if (m_shutting_down.load(std::memory_order_acquire))
-            return;
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
-        PluginDescriptor descriptor;
-        if (!try_get_plugin_descriptor(key, descriptor) || descriptor.plugin_root.empty())
-            return;
-        const boost::filesystem::path root(descriptor.plugin_root);
-        PluginInstallState state;
-        if (read_install_state(root, state)) {
-            state.enabled = false;
-            write_install_state(root, state);
-        }
-    });
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Plugin manager initialized";
 
@@ -382,8 +371,8 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
 
     // A package can be temporarily absent while an external side-loader replaces it. Keep the
     // descriptor and its persisted enable state until the user explicitly removes the missing
-    // entry, or a later scan rediscovers it. In particular, do not unload here: the unload callback
-    // would turn a transient filesystem gap into enabled=false in the sidecar.
+    // entry, or a later scan rediscovers it. In particular, do not unload here: unloading would turn
+    // a transient filesystem gap into enabled=false in the sidecar.
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         for (const Plugin& plugin : m_plugins) {
@@ -1023,7 +1012,7 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
         if (error == LOAD_CANCELLED)
             return; // cancelled: nothing materialized survives, and no error is recorded
         if (registration_failed)
-            mark_plugin_install_state_disabled(plugin_key);
+            (void) mark_plugin_install_state_disabled(plugin_key);
         fail(std::move(error));
         return;
     }
@@ -1119,6 +1108,12 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
         return true;
     }
 
+    // Flip the durable flag here rather than in a completion callback: the update path unloads on
+    // a worker and immediately replaces the package, so a deferred write must not race the new
+    // sidecar. Shutdown skips this to preserve the auto-load list across app exit.
+    if (!m_shutting_down.load(std::memory_order_acquire))
+        (void) mark_plugin_install_state_disabled(plugin_key);
+
     notify_unload_complete();
 
     cancel_and_wait_for_capabilities(removed.capabilities);
@@ -1128,8 +1123,6 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
     // Teardown runs outside m_mutex: it calls into Python and must not hold the registry lock.
     plugin_loader::unload(removed);
 
-    // The .install_state.json sidecar is flipped to enabled=false by the on-unload callback
-    // (skipped during shutdown), so the auto-load list survives app exit.
     BOOST_LOG_TRIVIAL(info) << "Unloaded plugin: " << plugin_key;
 
     return true;
@@ -1249,13 +1242,13 @@ void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_
     write_install_state(boost::filesystem::path(descriptor.plugin_root), descriptor, /*enabled=*/true, capabilities);
 }
 
-void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin_key)
+bool PluginManager::mark_plugin_install_state_disabled(const std::string& plugin_key)
 {
     std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
-        return;
+        return false;
 
     const boost::filesystem::path root(descriptor.plugin_root);
     PluginInstallState state;
@@ -1266,17 +1259,18 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
     if (status == InstallStateReadStatus::Unreadable) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Cannot read install state for " << plugin_key
                                    << "; leaving the sidecar untouched";
-        return;
+        return false;
     }
     if (status == InstallStateReadStatus::Absent)
         seed_install_metadata(state, descriptor);
     state.enabled = false;
     if (!write_install_state(root, state))
-        return;
+        return false;
 
     std::lock_guard<std::mutex> lock(m_mutex);
     if (Plugin* plugin = find_plugin_locked(plugin_key))
         plugin->descriptor.enabled = false;
+    return true;
 }
 
 bool PluginManager::mutate_plugin_permissions(const std::string& plugin_key, const PluginPermissionMutation& mutation,
@@ -1977,6 +1971,14 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
         return false;
     }
 
+    // Replacement unloads the package and reinstalls it, which necessarily clears the in-memory
+    // live state and seeds a fresh sidecar with enabled=true. Remember both before that happens:
+    // an active package is reloaded afterwards, while a deliberately deactivated one keeps its
+    // durable flag so the next launch does not auto-load it.
+    const bool had_local_package = descriptor.has_local_package();
+    const bool was_loaded        = had_local_package && is_plugin_loaded(plugin_key);
+    const bool was_enabled       = !had_local_package || was_loaded || descriptor.enabled;
+
     // An empty version means "update the current plugin". If there is no update available, the
     // intention is unclear.
     if (version.empty()) {
@@ -2021,6 +2023,35 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
     }
 
     clear_plugin_error(plugin_key);
+
+    if (had_local_package && !was_enabled) {
+        if (!mark_plugin_install_state_disabled(plugin_key)) {
+            error = _u8L("Updated the plugin, but failed to save its deactivated state.");
+            set_plugin_error(plugin_key, error);
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
+            return false;
+        }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Cloud plugin " << plugin_key
+                                << " updated and kept deactivated";
+        return true;
+    }
+
+    if (was_loaded) {
+        // Restore the state the user saw before the update. The package is already installed, so a
+        // failure here is reported as a reload failure rather than hiding the successful update.
+        load_plugin(plugin_key);
+        std::string load_error;
+        if (!wait_for_plugin_load(plugin_key, std::chrono::minutes(5), load_error) ||
+            !is_plugin_loaded(plugin_key)) {
+            const std::string reason = load_error.empty() ? _u8L("Plugin failed to load.") : load_error;
+            error = GUI::format(_u8L("Updated the plugin, but failed to reload it: %1%"), reason);
+            set_plugin_error(plugin_key, error);
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
+            return false;
+        }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Cloud plugin " << plugin_key
+                                << " updated and reloaded";
+    }
 
     return true;
 }
