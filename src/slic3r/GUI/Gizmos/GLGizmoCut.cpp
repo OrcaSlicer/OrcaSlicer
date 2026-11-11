@@ -439,8 +439,11 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
             CutMode(m_mode) == CutMode::cutPlanar) {
             // Check the internal part raycasters.
             const bool had_part_selection = m_part_selection.valid();
-            if (!had_part_selection)
+            if (!had_part_selection) {
+                if (!is_mouse_over_selected_object(mouse_pos))
+                    return true;
                 process_contours();
+            }
             if (!m_part_selection.toggle_selection(mouse_pos)) {
                 // An empty-space click must not enter contour cutting mode.
                 if (!had_part_selection)
@@ -463,6 +466,23 @@ bool GLGizmoCut3D::on_mouse(const wxMouseEvent &mouse_event)
     else if (pending_right_up && mouse_event.RightUp()) {
         pending_right_up = false;
         return true;
+    }
+    return false;
+}
+
+bool GLGizmoCut3D::is_mouse_over_selected_object(const Vec2d& mouse_pos) const
+{
+    const Selection& selection = m_parent.get_selection();
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    Vec3f position, normal;
+    for (unsigned int id : selection.get_volume_idxs()) {
+        const GLVolume* volume = selection.get_volume(id);
+        // Fall back to the cut-part hit test if the original raycaster is unavailable.
+        if (volume == nullptr || volume->mesh_raycaster == nullptr)
+            return true;
+        // Ignore the cut plane: this only checks whether building cut parts is necessary.
+        if (volume->mesh_raycaster->closest_hit(mouse_pos, volume->world_matrix(), camera, position, normal))
+            return true;
     }
     return false;
 }
