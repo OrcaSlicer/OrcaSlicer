@@ -12,6 +12,7 @@
 #include <wx/tglbtn.h> // wxEVT_TOGGLEBUTTON
 #include <wx/tooltip.h>
 #include <wx/weakref.h>
+#include <wx/window.h>
 
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include <slic3r/GUI/Widgets/Label.hpp>

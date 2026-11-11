@@ -12,6 +12,8 @@
 #include <wx/radiobox.h>
 #include <wx/string.h>
 
+#include "slic3r/GUI/Widgets/LabeledCheckBox.hpp"
+
 // Check box with a clickable label.
 //
 // The label is a Label with LB_AUTO_WRAP, it wraps by itself to the width the control gets. The
