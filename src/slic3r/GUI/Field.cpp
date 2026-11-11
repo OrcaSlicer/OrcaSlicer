@@ -340,7 +340,7 @@ void Field::PostInitialize()
 	case coBools:
 	case coInts:
     // BBS
-    case coEnums: {
+    case coEnums:{
 		auto tag_pos = m_opt_id.find("#");
 		if (tag_pos != std::string::npos)
 			m_opt_idx = stoi(m_opt_id.substr(tag_pos + 1, m_opt_id.size()));
@@ -758,7 +758,7 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
         m_value = out_value;
         break; }
 
-    case coPoints: {
+    case coPoints:{
         std::vector<Vec2d> out_values;
         str.Replace(" ", wxEmptyString, true);
         const bool bed_exclusion_volume_syntax = m_opt_id == "bed_exclude_area" &&
