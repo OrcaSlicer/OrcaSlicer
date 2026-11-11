@@ -4485,6 +4485,11 @@ void PrintObject::generate_support_preview()
     profiler.duration2 = (ts3 - ts2).total_milliseconds();
 }
 
+double PrintObject::print_z_max() const
+{
+    return this->print()->config().belt_printer.value ? m_max_z : scale_(m_slicing_params.object_print_z_max);
+}
+
 void PrintObject::update_slicing_parameters()
 {
     // Orca: updated function call for XYZ shrinkage compensation
