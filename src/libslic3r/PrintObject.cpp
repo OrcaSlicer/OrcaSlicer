@@ -5254,7 +5254,7 @@ void PrintObject::discover_sub_top_surfaces()
     };
 
     // Allocating caсhe to their positions
-    auto merge_surfaces = [this](SurfacesCacheRecord& cache) {
+    auto merge_surfaces = [](SurfacesCacheRecord& cache) {
         Surfaces new_surfaces;
         SurfacesPtr crop_surfaces = cache.first->filter_by_type_except(stInternal);
         ExPolygons crop_first     = union_ex(to_expolygons(crop_surfaces));
