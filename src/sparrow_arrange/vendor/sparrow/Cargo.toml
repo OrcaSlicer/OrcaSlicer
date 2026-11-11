@@ -1,0 +1,19 @@
+# Vendored from sparrow @ 50690c4 (MIT). See VENDORED.md for what was removed
+# and LICENSE for terms. Local changes are marked `SPARROW_ARRANGE PATCH`.
+[package]
+name = "sparrow"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.90"
+
+[dependencies]
+jagua-rs = { version = "0.8.0", features = ["spp"] }
+rand = "0.10"
+itertools = "0.15"
+log = { version = "0.4", features = ["release_max_level_info"] }
+tap = "1.0"
+slotmap = "1.1"
+float-cmp = "0.10"
+ordered-float = "5.5"
+rayon = "1.12"
+numfmt = "1.2"
