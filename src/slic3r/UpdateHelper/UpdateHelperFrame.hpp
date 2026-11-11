@@ -23,7 +23,8 @@ class wxStaticText;
 namespace Slic3r {
 namespace Updater {
 
-// Appends timestamped lines to handoff.log_path. Safe to call from any thread.
+// Writes timestamped lines to handoff.log_path, starting a new log for each run.
+// Safe to call from any thread.
 class LogFile
 {
 public:
@@ -34,6 +35,7 @@ public:
 private:
     std::mutex  m_mutex;
     std::string m_path;
+    bool        m_started = false;
 };
 
 class UpdateHelperFrame : public wxFrame

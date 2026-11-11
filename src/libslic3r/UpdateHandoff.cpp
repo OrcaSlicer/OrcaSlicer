@@ -1,7 +1,5 @@
 #include "UpdateHandoff.hpp"
 
-#include "libslic3r/Utils.hpp"
-
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -9,6 +7,11 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <vector>
+
+#ifdef _WIN32
+#include <boost/nowide/cstdlib.hpp>
+#endif
 
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
@@ -56,12 +59,39 @@ std::string& cache_dir_override()
     return dir;
 }
 
+// The OS cache directory, resolved without wx: the application resolves the
+// cache with wx and passes it in the handoff, so this is only reached by tests and
+// by a helper started without one. Nothing here may fall back to the data
+// directory, which the updater is not supposed to write to.
+std::string os_cache_root()
+{
+#ifdef _WIN32
+    // nowide: a profile path such as C:\Users\José\AppData is not representable in the
+    // ANSI bytes std::getenv returns, and every path the updater handles is UTF-8.
+    if (const char* local = boost::nowide::getenv("LOCALAPPDATA"); local != nullptr && local[0] != '\0')
+        return (fs::path(local) / "OrcaSlicer" / "updater").string();
+#elif defined __APPLE__
+    if (const char* home = std::getenv("HOME"); home != nullptr && home[0] != '\0')
+        return (fs::path(home) / "Library" / "Caches" / "OrcaSlicer" / "updater").string();
+#else
+    if (const char* cache = std::getenv("XDG_CACHE_HOME"); cache != nullptr && cache[0] != '\0')
+        return (fs::path(cache) / "OrcaSlicer" / "updater").string();
+    if (const char* home = std::getenv("HOME"); home != nullptr && home[0] != '\0')
+        return (fs::path(home) / ".cache" / "OrcaSlicer" / "updater").string();
+#endif
+    boost::system::error_code ec;
+    const fs::path          temp = fs::temp_directory_path(ec);
+    if (!ec)
+        return (temp / "OrcaSlicer" / "updater").string();
+    return "OrcaSlicer-updater";
+}
+
 std::string cache_root()
 {
     const std::string& override_dir = cache_dir_override();
     if (!override_dir.empty())
         return override_dir;
-    return (fs::path(data_dir()) / "cache" / "updater").string();
+    return os_cache_root();
 }
 
 void ensure_parent_dir(const std::string& path)
@@ -238,6 +268,60 @@ std::string updater_lock_path()
 std::string updater_log_path()
 {
     return (fs::path(cache_root()) / "updater.log").string();
+}
+
+DownloadPrep prepare_download_dir(const std::string& dir,
+                                  const std::string& asset_name,
+                                  const std::string& digest,
+                                  int64_t            expected_size)
+{
+    DownloadPrep      prep;
+    const fs::path    directory(dir);
+    const std::string name   = fs::path(asset_name).filename().string();
+    const std::string keep   = name.empty() ? std::string("update.part") : name;
+    const fs::path    part   = directory / (keep + ".part");
+    const fs::path    marker = directory / (keep + ".part.digest");
+
+    boost::system::error_code ec;
+    if (!fs::is_directory(directory, ec))
+        fs::create_directories(directory, ec);
+
+    // A .part is resumed only for the build it was started for, and only while it is
+    // smaller than that build: anything else is a leftover.
+    std::string recorded;
+    if (!digest.empty() && fs::is_regular_file(part, ec) && read_file(marker.string(), recorded)) {
+        while (!recorded.empty() && (recorded.back() == '\n' || recorded.back() == '\r' || recorded.back() == ' '))
+            recorded.pop_back();
+        prep.resumable = recorded == digest;
+        if (prep.resumable && expected_size > 0) {
+            const auto size = fs::file_size(part, ec);
+            if (!ec) {
+                prep.complete  = static_cast<int64_t>(size) == expected_size;
+                prep.resumable = static_cast<int64_t>(size) < expected_size;
+            }
+        }
+    }
+    if (!prep.resumable && !prep.complete) {
+        for (const fs::path& stale : {part, marker})
+            if (fs::is_regular_file(stale, ec) && fs::remove(stale, ec))
+                prep.dropped.push_back(stale.string());
+    }
+
+    // Whatever else sits here belongs to another release.
+    for (fs::directory_iterator it(directory, ec), end; !ec && it != end; it.increment(ec)) {
+        const fs::path entry = it->path();
+        if (!fs::is_regular_file(entry, ec))
+            continue;
+        if (entry == part || entry == marker)
+            continue;
+        if (fs::remove(entry, ec))
+            prep.dropped.push_back(entry.string());
+    }
+
+    // Recorded before the download, so a later run knows which build the .part belongs to.
+    if (!prep.complete)
+        (void) write_file_atomic(marker.string(), digest);
+    return prep;
 }
 
 std::string handoff_to_json(const UpdateHandoff& handoff)

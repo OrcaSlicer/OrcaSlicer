@@ -6860,6 +6860,17 @@ bool reattach_portable_data(const std::string& data_aside, const std::string& ta
     return true;
 }
 
+// A recorded install needs neither the artifact nor the helper's log any more: there is
+// nothing left to resume, and the log described a run that succeeded.
+void clear_install_leftovers()
+{
+    boost::system::error_code ec;
+    fs::remove_all(fs::path(updater_download_dir()), ec);
+    if (ec)
+        BOOST_LOG_TRIVIAL(warning) << "Could not delete the downloaded update at " << updater_download_dir() << ": "
+                                   << ec.message();
+}
+
 } // namespace
 
 void GUI_App::set_skip_version(bool skip)
@@ -7008,8 +7019,10 @@ void GUI_App::finish_pending_update()
     }
 
     InstallRecord record;
-    if (take_install_record(record))
+    if (take_install_record(record)) {
         app_config->set_installed_build(record.channel, record.digest);
+        clear_install_leftovers();
+    }
 }
 
 void GUI_App::show_check_privacy_dlg(wxCommandEvent& evt)

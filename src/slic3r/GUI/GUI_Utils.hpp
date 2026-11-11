@@ -100,9 +100,9 @@ Slic3r::InstallFlavour current_install_flavour();
 std::string app_exe_path();
 // Directory (or AppImage file / .app bundle) the running build was installed into.
 std::string app_install_root();
-// Updater cache. Portable Windows installs keep their data dir inside the install tree,
-// which the updater renames, so the cache and the extracted helper live in the temp
-// directory instead.
+// Updater cache, in the OS cache directory. A portable Windows install keeps its data
+// dir inside the install tree, which the updater renames, so its cache carries a suffix
+// derived from the install root and stays outside that tree.
 std::string update_cache_dir();
 
 // What a save entry point is about to write, for the unresolved-plugin warning below.

@@ -5,7 +5,6 @@
 #include "MsgDialog.hpp"
 #include "format.hpp"
 #include "libslic3r/Config.hpp"
-#include "libslic3r/UpdateHandoff.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 
 #include <algorithm>
@@ -20,6 +19,7 @@
 #include <wx/event.h>
 #include <wx/settings.h>
 #include <wx/panel.h>
+#include <wx/stdpaths.h>
 #include <wx/string.h>
 #include <wx/gdicmn.h>
 #include <boost/optional/optional.hpp>
@@ -361,12 +361,19 @@ std::string app_install_root()
 
 std::string update_cache_dir()
 {
-    if (current_install_flavour() != Slic3r::InstallFlavour::WindowsPortable)
-        return updater_cache_dir();
+    // The cache holds a few hundred megabytes of download and nothing the user would miss,
+    // so it belongs in the OS cache directory rather than in the data directory.
+    const wxString          base = wxStandardPaths::Get().GetUserDir(wxStandardPaths::Dir_Cache);
+    boost::filesystem::path dir(base.ToUTF8().data());
+    dir /= "OrcaSlicer";
+    dir /= "updater";
 
-    // Every portable copy runs from %TEMP%, so the cache name carries a suffix derived
-    // from the install root: install.lock, installed.json, pending.json, downloads/ and
-    // helper/ must not be shared with another portable install.
+    if (current_install_flavour() != Slic3r::InstallFlavour::WindowsPortable)
+        return dir.string();
+
+    // Every portable copy of a release shares one cache name, so the cache carries a suffix
+    // derived from the install root: install.lock, installed.json, pending.json, downloads/
+    // and helper/ must not be shared with another portable install.
     std::string root = app_install_root();
     boost::system::error_code ec;
     const boost::filesystem::path canonical = boost::filesystem::canonical(boost::filesystem::path(root), ec);
@@ -378,7 +385,7 @@ std::string update_cache_dir()
     std::snprintf(suffix, sizeof(suffix), "%012llx",
                   static_cast<unsigned long long>(hashed) & 0xffffffffffffull);
 
-    return (boost::filesystem::temp_directory_path() / ("OrcaSlicer-updater-" + std::string(suffix))).string();
+    return dir.string() + "-" + suffix;
 }
 
 namespace {

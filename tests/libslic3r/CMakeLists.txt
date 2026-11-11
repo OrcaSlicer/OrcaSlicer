@@ -78,6 +78,7 @@ add_executable(${_TEST_NAME}_tests
     test_timeutils.cpp
     test_semver.cpp
     update_channel_tests.cpp
+    update_handoff_tests.cpp
     test_voronoi.cpp
     test_wipe_tower_estimate.cpp
     test_wipe_tower.cpp

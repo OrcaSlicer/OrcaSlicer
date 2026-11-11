@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <ctime>
 #include <filesystem>
@@ -182,9 +183,12 @@ void LogFile::write(const std::string& message)
     if (!parent.empty())
         fs::create_directories(parent, ec);
 
-    std::ofstream out(path, std::ios::app | std::ios::binary);
+    // Truncated on the first write of a run: the log describes the run in progress, so it
+    // never accumulates one copy of itself per update.
+    std::ofstream out(path, (m_started ? std::ios::app : std::ios::trunc) | std::ios::binary);
     if (!out)
         return;
+    m_started = true;
     out << "[" << timestamp() << "] " << message << "\n";
 }
 
@@ -405,6 +409,16 @@ bool UpdateHelperFrame::verify_artifact(const fs::path& path, std::string& error
     return true;
 }
 
+namespace {
+
+void log_dropped(const Slic3r::DownloadPrep& prep, LogFile& log)
+{
+    for (const std::string& path : prep.dropped)
+        log.write("dropped " + path);
+}
+
+} // namespace
+
 void UpdateHelperFrame::run()
 {
     try {
@@ -436,40 +450,50 @@ void UpdateHelperFrame::run()
             return;
         }
 
-        // Every path comes from the handoff: the helper may resolve the data
+        // Every path comes from the handoff: the helper may resolve the cache
         // directory differently than the application did.
-        m_log.write("starting the download");
         std::string asset = fs::path(m_handoff.asset_name).filename().string();
         if (asset.empty())
             asset = "update.part";
-        const fs::path part = fs::path(m_handoff.cache_dir) / "downloads" / (asset + ".part");
+        const fs::path     download_dir = fs::path(m_handoff.cache_dir) / "downloads";
+        const fs::path     part         = download_dir / (asset + ".part");
+        const DownloadPrep prep = prepare_download_dir(download_dir.string(), asset, m_handoff.digest, m_handoff.size);
+        log_dropped(prep, m_log);
 
-        post(Stage::Downloading, 0, "Downloading " + m_handoff.asset_name + "...");
-        m_log.write("downloading " + m_handoff.url + " to " + part.string());
+        if (prep.complete) {
+            // A previous run downloaded and verified this build but did not install it:
+            // verify it again rather than fetch it a second time.
+            m_log.write("the download of " + asset + " is already complete");
+            post(Stage::Downloading, 100, "Downloading " + m_handoff.asset_name + "... done");
+        } else {
+            m_log.write("starting the download" + std::string(prep.resumable ? " (resuming)" : ""));
+            post(Stage::Downloading, 0, "Downloading " + m_handoff.asset_name + "...");
+            m_log.write("downloading " + m_handoff.url + " to " + part.string());
 
-        HttpDownloader downloader;
-        const DownloadResult result = downloader.download(
-            m_handoff.url, part.string(),
-            [this](int64_t done, int64_t total) {
-                const int percent = total > 0 ? static_cast<int>(done * 100 / total) : -1;
-                std::string message = "Downloading " + m_handoff.asset_name + "... " + human_bytes(done);
-                if (total > 0)
-                    message += " of " + human_bytes(total);
-                post(Stage::Downloading, percent, message);
-            },
-            m_cancel_requested);
+            HttpDownloader downloader;
+            const DownloadResult result = downloader.download(
+                m_handoff.url, part.string(),
+                [this](int64_t done, int64_t total) {
+                    const int percent = total > 0 ? static_cast<int>(done * 100 / total) : -1;
+                    std::string message = "Downloading " + m_handoff.asset_name + "... " + human_bytes(done);
+                    if (total > 0)
+                        message += " of " + human_bytes(total);
+                    post(Stage::Downloading, percent, message);
+                },
+                m_cancel_requested);
 
-        if (result.cancelled) {
-            m_log.write("download cancelled at " + std::to_string(result.done) + " bytes");
-            finish(2, "Update cancelled.", false);
-            return;
+            if (result.cancelled) {
+                m_log.write("download cancelled at " + std::to_string(result.done) + " bytes");
+                finish(2, "Update cancelled.", false);
+                return;
+            }
+            if (!result.ok) {
+                m_log.write("download failed: " + result.error);
+                finish(1, wxString::FromUTF8("The download failed: " + result.error), true);
+                return;
+            }
+            m_log.write("downloaded " + std::to_string(result.done) + " bytes");
         }
-        if (!result.ok) {
-            m_log.write("download failed: " + result.error);
-            finish(1, wxString::FromUTF8("The download failed: " + result.error), true);
-            return;
-        }
-        m_log.write("downloaded " + std::to_string(result.done) + " bytes");
 
         post(Stage::Verifying, 100, "Verifying the download...");
         m_log.write("verifying " + part.string());

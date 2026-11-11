@@ -12,12 +12,14 @@
 //   helper/         the helper, extracted so it can outlive the app
 //   updater.log     helper log
 //
-// The helper never resolves the data directory itself: when it runs from a
-// portable Windows install or from an AppImage it would resolve to a different
+// The cache lives in the OS cache directory, not in the data directory: it holds a
+// download the user can lose. The helper never resolves it itself, because when it runs
+// from a portable Windows install or from an AppImage it would resolve to a different
 // place than the application does. `UpdateHandoff::cache_dir` is authoritative.
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace Slic3r {
 
@@ -62,7 +64,7 @@ struct PendingInstall
     std::string data_aside;
 };
 
-std::string updater_cache_dir();  // <data dir>/cache/updater
+std::string updater_cache_dir();  // the OS cache dir, <cache>/OrcaSlicer/updater
 // Overrides the base directory above. The helper has no data directory of its own,
 // so it is pointed at the cache the application resolved through the handoff.
 void        set_updater_cache_dir(const std::string& dir);
@@ -74,6 +76,25 @@ std::string updater_install_record_path();
 std::string updater_pending_path();
 std::string updater_lock_path();
 std::string updater_log_path();
+
+// The state of a partial download in `dir` for `asset_name`, after the directory has been
+// reduced to it. The artifact's digest is recorded beside the .part, so a later run only
+// resumes a download started for that same build: a nightly reuses one asset name and an
+// appended-to .part could never verify.
+struct DownloadPrep
+{
+    // The .part belongs to this build and can be resumed.
+    bool resumable = false;
+    // It is already as large as the release says, so it only needs verifying.
+    bool complete = false;
+    // Paths removed from the directory, so the caller can log them.
+    std::vector<std::string> dropped;
+};
+
+DownloadPrep prepare_download_dir(const std::string& dir,
+                                  const std::string& asset_name,
+                                  const std::string& digest,
+                                  int64_t            expected_size);
 
 std::string handoff_to_json(const UpdateHandoff& handoff);
 bool        handoff_from_json(const std::string& json, UpdateHandoff& out);
