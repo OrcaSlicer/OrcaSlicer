@@ -5137,7 +5137,7 @@ void PrintObject::discover_extra_elements()
     std::vector<std::vector<SurfacesCacheRecord>> cache_surfaces(num_to_process);
 
     // Allocating caсhe to their positions
-    auto merge_surfaces = [](SurfacesCacheRecord& cache, bool make_subtop = false) {
+    auto merge_surfaces = [](SurfacesCacheRecord& cache, bool make_subtop) {
         SurfaceCollection new_surfaces;
         SurfacesPtr crop_surfaces = cache.first->fill_surfaces.filter_by_type_except(stInternal);
         ExPolygons crop_first     = union_overlapping_ex(to_expolygons(crop_surfaces));
@@ -5151,7 +5151,7 @@ void PrintObject::discover_extra_elements()
         surfaces_append(cache.first->fill_surfaces.surfaces, new_surfaces.surfaces);
     };
 
-    auto process_layer = [this, &merge_surfaces](size_t idx_layer, std::vector<SurfacesCacheRecord>& cache_record) {
+    auto process_layer = [&](size_t idx_layer, std::vector<SurfacesCacheRecord>& cache_record) {
         m_print->throw_if_canceled();
         const Layer *upper = m_layers[idx_layer + 1];
         Layer       *layer = m_layers[idx_layer];
