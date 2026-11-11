@@ -162,6 +162,31 @@ std::vector<Vec2d> circle_outline(double radius, int chords)
     return regular_polygon_outline(chords, radius);
 }
 
+// Half disc of `radius`: a flat side and a `chords`-chord semicircular wall meeting it at two right angles.
+std::vector<Vec2d> half_disc_outline(double radius, int chords)
+{
+    std::vector<Vec2d> outline;
+    outline.reserve(size_t(chords) + 1);
+    outline.emplace_back(-radius, 0.);
+    for (int i = 1; i <= chords; ++ i) {
+        const double angle = PI + PI * i / chords;
+        outline.emplace_back(radius * std::cos(angle), radius * std::sin(angle));
+    }
+    return outline;
+}
+
+// Ellipse with semi-axes `a` and `b` in `chords` chords.
+std::vector<Vec2d> ellipse_outline(double a, double b, int chords)
+{
+    std::vector<Vec2d> outline;
+    outline.reserve(size_t(chords));
+    for (int i = 0; i < chords; ++ i) {
+        const double angle = 2. * PI * i / chords;
+        outline.emplace_back(a * std::cos(angle), b * std::sin(angle));
+    }
+    return outline;
+}
+
 // Mean of the outline's vertices, in mm.
 Vec2d outline_centroid(const std::vector<Vec2d> &points)
 {
@@ -365,6 +390,38 @@ TEST_CASE("A smooth contour has no brim ears", "[Brim]")
     CHECK(make_brim_ear_points(Polygon::new_scale(circle_outline(5., 48)), detection, 125., true).empty());
     // A 24-gon is as smooth as the detector can tell at the default 1 mm detection length.
     CHECK(make_brim_ear_points(Polygon::new_scale(regular_polygon_outline(24, 10.)), detection, 125., true).empty());
+}
+
+// A corner that meets a curved wall is one corner. A point on the curve accepts only once its window reaches
+// that corner, so its candidate is the same corner seen from further away; keeping it puts a second ear 2 to
+// 7 mm from the first.
+TEST_CASE("A corner next to a curve carries one brim ear", "[Brim][Regression]")
+{
+    const coord_t detection = coord_t(scale_(1.0));
+
+    for (double radius : { 5., 10. }) {
+        DYNAMIC_SECTION("half disc of " << radius << " mm") {
+            const Points ears = make_brim_ear_points(Polygon::new_scale(half_disc_outline(radius, 64)),
+                                                     detection, 125., true);
+            // Two right angles, one at each end of the flat side, and nothing on the semicircle between them.
+            REQUIRE(ears.size() == 2);
+            for (const Point &ear : ears) {
+                CHECK_THAT(std::abs(unscale<double>(ear.x())), Catch::Matchers::WithinAbs(radius, 1.));
+                CHECK_THAT(unscale<double>(ear.y()), Catch::Matchers::WithinAbs(0., 1.));
+            }
+        }
+    }
+
+    for (int chords : { 64, 128 }) {
+        DYNAMIC_SECTION("60 x 10 mm ellipse in " << chords << " chords") {
+            const Points ears = make_brim_ear_points(Polygon::new_scale(ellipse_outline(30., 5., chords)),
+                                                     detection, 125., true);
+            // One ear at each end of the long axis, none on the flanks.
+            REQUIRE(ears.size() == 2);
+            for (const Point &ear : ears)
+                CHECK(std::abs(unscale<double>(ear.x())) > 25.);
+        }
+    }
 }
 
 TEST_CASE("A pentagon keeps one brim ear per rounded corner", "[Brim][Regression]")

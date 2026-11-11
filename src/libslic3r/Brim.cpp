@@ -493,17 +493,18 @@ Points make_brim_ear_points(const Polygon &contour, coord_t ear_detection_length
         }
         const Candidate picked = candidates[best];
         ears.emplace_back(contour.points[index_map[picked.idx]]);
-        // ORCA: suppress within twice the window that detected the ear, so ears do not crowd one corner, but
-        // never past perimeter/8: on a small part the widest window makes twice the window reach the next
-        // corner and would otherwise drop every second ear.
-        const double suppress_distance =
-            L > 0. ? std::min(2.0 * picked.scale, perimeter / 8.0) : fallback_suppress;
+        // ORCA: suppress within twice the window that detected the ear, taking the wider of the two windows: a
+        // candidate whose window already reaches the picked ear measured the same corner, which otherwise leaves
+        // a duplicate beside a corner that meets a curve. Capped at perimeter/8 so a small part keeps every ear.
         std::vector<Candidate> remaining;
         remaining.reserve(candidates.size() - 1);
         for (size_t c = 0; c < candidates.size(); ++c) {
             if (c == best)
                 continue;
             const double ds = std::abs(candidates[c].arc - picked.arc);
+            const double suppress_distance =
+                L > 0. ? std::min(2.0 * std::max(picked.scale, candidates[c].scale), perimeter / 8.0)
+                       : fallback_suppress;
             if (std::min(ds, perimeter - ds) > suppress_distance)
                 remaining.push_back(candidates[c]);
         }
