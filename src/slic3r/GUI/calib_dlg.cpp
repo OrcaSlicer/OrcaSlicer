@@ -14,6 +14,7 @@
 #include <wx/colour.h>
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
+#include <slic3r/GUI/Widgets/LabeledCheckBox.hpp>
 #include "slic3r/GUI/Widgets/LabeledStaticBox.hpp"
 #include "slic3r/GUI/Widgets/RadioGroup.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
