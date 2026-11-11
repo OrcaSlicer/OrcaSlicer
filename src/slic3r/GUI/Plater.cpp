@@ -3816,7 +3816,7 @@ void Sidebar::update_all_preset_comboboxes(bool update_filament_combos)
 
     auto p_mainframe = wxGetApp().mainframe;
     auto cfg = preset_bundle.printers.get_edited_preset().config;
-    const bool use_printer_agents = wxGetApp().app_config->get_bool("use_printer_agents");
+    const bool use_printer_agents = wxGetApp().use_printer_agents();
     const bool use_native_device_tab = preset_bundle.use_bbl_device_tab() || use_printer_agents;
 
     if (preset_bundle.use_bbl_network()) {
@@ -3852,7 +3852,7 @@ void Sidebar::update_all_preset_comboboxes(bool update_filament_combos)
             const auto host_type = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type")->value;
             if (cfg.has("printhost_apikey") && (host_type != htSimplyPrint))
                 apikey = cfg.opt_string("printhost_apikey");
-            print_btn_type = (preset_bundle.is_bbl_vendor() || wxGetApp().app_config->get_bool("use_printer_agents"))
+            print_btn_type = (preset_bundle.is_bbl_vendor() || wxGetApp().use_printer_agents())
                                  ? MainFrame::PrintSelectType::ePrintPlate
                                  : MainFrame::PrintSelectType::eSendGcode;
         }
@@ -4020,7 +4020,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
         bool is_dual_extruder = extruder_variants->size() == 2;
         // why: agent mode drives the native device tab, so the sidebar lays out like BBL
         // (no physical-printer connect button).
-        p->layout_printer(preset_bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents"),
+        p->layout_printer(preset_bundle.use_bbl_network() || wxGetApp().use_printer_agents(),
                           isBBL && is_dual_extruder);
 
         // Update nozzle titles from printer config (e.g. "Main Nozzle" / "Auxiliary Nozzle" for N6)
@@ -14137,7 +14137,7 @@ void Plater::priv::on_action_print_plate(SimpleEvent&)
     }
 
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
-    if (preset_bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents")) {
+    if (preset_bundle.use_bbl_network() || wxGetApp().use_printer_agents()) {
         open_machine_select_dialog(partplate_list.get_curr_plate_index());
     } else {
         q->send_gcode_legacy(PLATE_CURRENT_IDX, nullptr);
@@ -14218,7 +14218,7 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
     sidebar_layout.show = new_name == TAB_ID_PREPARE || new_name == TAB_ID_PREVIEW;
     update_sidebar();
     int old_sel = e.GetOldSelection();
-    const bool use_printer_agents = wxGetApp().app_config->get_bool("use_printer_agents");
+    const bool use_printer_agents = wxGetApp().use_printer_agents();
     const bool use_native_device_tab = wxGetApp().preset_bundle &&
         (wxGetApp().preset_bundle->use_bbl_device_tab() || use_printer_agents);
     if (use_native_device_tab && new_name == TAB_ID_MONITOR) {
@@ -14288,7 +14288,7 @@ void Plater::priv::on_action_print_all(SimpleEvent&)
     }
 
     PresetBundle& preset_bundle = *wxGetApp().preset_bundle;
-    if (preset_bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents")) {
+    if (preset_bundle.use_bbl_network() || wxGetApp().use_printer_agents()) {
         open_machine_select_dialog(PLATE_ALL_IDX);
     } else {
         q->send_gcode_legacy(PLATE_ALL_IDX, nullptr);

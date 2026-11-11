@@ -4351,6 +4351,18 @@ std::string GUI_App::canonical_printer_agent_id(const std::string& picked_id)
     return picked_id == resolve_printer_agent_id("") ? std::string() : picked_id;
 }
 
+bool GUI_App::use_printer_agents() const
+{
+    if (app_config && app_config->get_bool("use_printer_agents"))
+        return true;
+    // why: the U1's print options and filament mapping reach the printer only through the Snapmaker agent, so its
+    // profile turns agents on without the preference. Setting the printer's Printer Agent back to the default opts out.
+    if (!preset_bundle)
+        return false;
+    const auto* printer_agent = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionString>("printer_agent");
+    return printer_agent != nullptr && printer_agent->value == SNAPMAKER_PRINTER_AGENT_ID;
+}
+
 void GUI_App::switch_printer_agent()
 {
     if (!m_agent) {

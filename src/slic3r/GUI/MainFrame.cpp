@@ -902,7 +902,7 @@ bool MainFrame::handle_global_shortcut(const KeyChord& chord)
         m_print_enable = get_enable_print_status();
         m_print_btn->Enable(m_print_enable);
         if (m_print_enable) {
-            if (wxGetApp().preset_bundle->use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents"))
+            if (wxGetApp().preset_bundle->use_bbl_network() || wxGetApp().use_printer_agents())
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_PRINT_PLATE));
             else
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_GCODE));
@@ -1665,7 +1665,7 @@ void MainFrame::init_tabpanel() {
 void MainFrame::show_device(bool should_use_native) {
     auto idx = -1;
 
-    const bool use_printer_agents = wxGetApp().app_config->get_bool("use_printer_agents");
+    const bool use_printer_agents = wxGetApp().use_printer_agents();
 
     // The web Device page is the extra tab printer-agents mode shows alongside the native one.
     // Printers that drive the native Bambu device tab have nothing to put in it, so they don't
@@ -2230,7 +2230,7 @@ std::vector<MainFrame::PrintSelectType> MainFrame::available_print_actions() con
 {
     std::vector<PrintSelectType> actions;
     const auto preset_bundle      = wxGetApp().preset_bundle;
-    const bool use_printer_agents = wxGetApp().app_config->get_bool("use_printer_agents");
+    const bool use_printer_agents = wxGetApp().use_printer_agents();
 
     if (preset_bundle && !preset_bundle->is_bbl_vendor() && !use_printer_agents) {
         // ThirdParty actions
@@ -4656,7 +4656,7 @@ void MainFrame::load_printer_url(wxString url, wxString apikey)
 void MainFrame::load_printer_url()
 {
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
-    if (preset_bundle.use_bbl_device_tab() && !wxGetApp().app_config->get_bool("use_printer_agents"))
+    if (preset_bundle.use_bbl_device_tab() && !wxGetApp().use_printer_agents())
         return;
 
     auto     cfg = preset_bundle.printers.get_edited_preset().config;

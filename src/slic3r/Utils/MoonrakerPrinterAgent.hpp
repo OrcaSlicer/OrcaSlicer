@@ -135,6 +135,9 @@ protected:
     virtual bool print_uploaded_file(const PrintParams& params, const std::string& filename);
     // Whether the printer prints a .gcode.3mf bundle as is (its use_3mf option)
     virtual bool accepts_3mf() const;
+    // Adds capability flags to the "print" object of each status push, such as which print options the print dialog
+    // offers. Called with payload_mutex held, so an override must not take state_mutex or connect_mutex.
+    virtual void add_print_capabilities(nlohmann::json& /*print*/) const {}
     void start_status_stream(const std::string& dev_id, const std::string& base_url, const std::string& api_key);
     void stop_status_stream();
 
@@ -150,6 +153,14 @@ protected:
     // Posts the request to /printer/print/start
     bool send_jsonrpc_command(const std::string& base_url, const std::string& api_key,
                               const nlohmann::json& request, std::string& response) const;
+    // Sends one JSON-RPC request over a short-lived connection to the Moonraker websocket and waits for its answer,
+    // for endpoints Moonraker does not serve over HTTP. Sets `result` to the answer's result, or `error` to the
+    // reason it failed. A timeout does not mean the printer ignored the request.
+    bool send_websocket_request(const std::string&        method,
+                                const nlohmann::json&     params,
+                                std::chrono::milliseconds timeout,
+                                nlohmann::json&           result,
+                                std::string&              error);
 
     // Trim whitespace and convert to uppercase
     static std::string trim_and_upper(const std::string& input);
