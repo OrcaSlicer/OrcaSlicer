@@ -27,6 +27,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmoEmboss.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoSVG.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoMeshBoolean.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoPathCut.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoAssembly.hpp"
 #include <initializer_list>
 #include <wx/timer.h>
@@ -212,6 +213,9 @@ void GLGizmosManager::switch_gizmos_icon_filename()
         case (EType::BrimEars):
             gizmo->set_icon_filename(m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg");
             break;
+        case (EType::PathCut):
+            gizmo->set_icon_filename(m_is_dark ? "toolbar_pathcut_dark.svg" : "toolbar_pathcut.svg");
+            break;
         }
 
     }
@@ -257,6 +261,7 @@ bool GLGizmosManager::init()
     m_gizmos.emplace_back(new GLGizmoAssembly(m_parent, m_is_dark ? "toolbar_assembly_dark.svg" : "toolbar_assembly.svg", EType::Assembly));
     m_gizmos.emplace_back(new GLGizmoSimplify(m_parent, "reduce_triangles.svg", EType::Simplify));
     m_gizmos.emplace_back(new GLGizmoBrimEars(m_parent, m_is_dark ? "toolbar_brimears_dark.svg" : "toolbar_brimears.svg", EType::BrimEars));
+    m_gizmos.emplace_back(new GLGizmoPathCut(m_parent, m_is_dark ? "toolbar_pathcut_dark.svg" : "toolbar_pathcut.svg", EType::PathCut));
     //m_gizmos.emplace_back(new GLGizmoSlaSupports(m_parent, "sla_supports.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoFaceDetector(m_parent, "face recognition.svg", sprite_id++));
     //m_gizmos.emplace_back(new GLGizmoHollow(m_parent, "hollow.svg", sprite_id++));
@@ -901,12 +906,22 @@ bool GLGizmosManager::on_char(wxKeyEvent& evt)
             if (m_current != Undefined) {
                 if ((m_current == Measure || m_current == Assembly) && gizmo_event(SLAGizmoEventType::Escape)) {
                     // do nothing
+                } else if (GLGizmoPathCut *path_cut = active_path_cut(); path_cut != nullptr && path_cut->on_escape_key()) {
+                    // back from the preview to editing the cut
                 } else
                 //if ((m_current != SlaSupports) || !gizmo_event(SLAGizmoEventType::DiscardChanges))
                     reset_all_states();
 
                 processed = true;
             }
+            break;
+        }
+        case WXK_RETURN:
+        case WXK_NUMPAD_ENTER:
+        {
+            // Cut along path: Enter computes the preview of the cut.
+            if (GLGizmoPathCut *path_cut = active_path_cut(); path_cut != nullptr && path_cut->on_enter_key())
+                processed = true;
             break;
         }
         //case WXK_RETURN:
@@ -1043,7 +1058,7 @@ bool GLGizmosManager::on_key(wxKeyEvent& evt)
         {
             processed = true;
         }
-        else if (m_current == Cut)
+        else if (m_current == Cut && active_path_cut() == nullptr)
         {
             auto do_move = [this, &processed](double delta_z) {
                 GLGizmoCut3D* cut = dynamic_cast<GLGizmoCut3D*>(get_current());
@@ -1510,6 +1525,14 @@ bool GLGizmosManager::activate_gizmo(EType type)
 }
 
 
+GLGizmoPathCut *GLGizmosManager::active_path_cut() const
+{
+    if (m_current != Cut || m_gizmos.size() <= size_t(PathCut))
+        return nullptr;
+    const auto *cut = dynamic_cast<const GLGizmoCut3D *>(m_gizmos[Cut].get());
+    return cut != nullptr && cut->is_curve() ? dynamic_cast<GLGizmoPathCut *>(m_gizmos[PathCut].get()) : nullptr;
+}
+
 bool GLGizmosManager::grabber_contains_mouse() const
 {
     if (!m_enabled)
@@ -1556,6 +1579,8 @@ std::string get_name_from_gizmo_etype(GLGizmosManager::EType type)
         return "Cut";
     case GLGizmosManager::EType::MeshBoolean:
         return "MeshBoolean";
+    case GLGizmosManager::EType::PathCut:
+        return "PathCut";
     case GLGizmosManager::EType::FdmSupports:
         return "FdmSupports";
     case GLGizmosManager::EType::Seam:

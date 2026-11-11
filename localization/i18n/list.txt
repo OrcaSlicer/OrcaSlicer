@@ -235,6 +235,8 @@ src/libslic3r/Zipper.cpp
 src/libslic3r/PrintObject.cpp
 src/libslic3r/PrintObjectSlice.cpp
 src/libslic3r/PlaceholderParser.cpp
+src/libslic3r/PathCutConnectors.hpp
+src/libslic3r/PathCutGeometry.hpp
 src/libslic3r/Support/TreeSupport.cpp
 src/libslic3r/Model.cpp
 src/libslic3r/Format/OBJ.cpp
@@ -250,6 +252,7 @@ src/slic3r/GUI/BonjourDialog.cpp
 src/slic3r/GUI/calib_dlg.cpp
 src/slic3r/GUI/PrintHostDialogs.cpp
 src/slic3r/GUI/Gizmos/GLGizmoMeshBoolean.cpp
+src/slic3r/GUI/Gizmos/GLGizmoPathCut.cpp
 src/slic3r/GUI/NetworkTestDialog.cpp
 src/slic3r/GUI/CreatePresetsDialog.cpp
 src/slic3r/GUI/DailyTips.cpp
