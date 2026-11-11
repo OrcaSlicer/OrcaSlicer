@@ -4433,8 +4433,8 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
         // default_or_parent_region_config contains parent PrintRegion config, which already contains ModelVolume's config.
     }
     apply_to_print_region_config(config, volume.config.get(), feature_overrides, variant_index);
-    if (! volume.material_id().empty())
-        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides, variant_index);
+    if (const ModelMaterial* material = volume.material(); material != nullptr)
+        apply_to_print_region_config(config, material->config.get(), feature_overrides, variant_index);
     if (layer_range_config != nullptr) {
         // Not applicable to modifiers.
         assert(volume.is_model_part());
