@@ -53,7 +53,8 @@ public:
     // until then it asks `canvas` for the frames the wait needs, because a pointer resting still
     // produces no events. False as well while any control is being used.
     bool ready(const ImVec2 &control, GLCanvas3D &canvas);
-    // The pointer has left the controls: the next one hovered waits the full delay again.
+    // The pointer has left the controls: the next one hovered waits the full delay again. Not calling
+    // ready() for a frame does the same, so owners that call it only while hovered need not call this.
     void reset() { m_item = ImVec2(-1.f, -1.f); }
 
     // The width a tooltip needs, padding included. One carrying pictures takes the full `wrap`, since a
@@ -87,6 +88,7 @@ private:
     int         m_media_frame = -2; // the frame they were last drawn on, to spot the tooltip reopening
     // The control the pointer rests on, since when, and when a tooltip was last on screen.
     ImVec2 m_item{-1.f, -1.f};
+    int    m_asked_frame = -2; // the frame ready() was last called on
     double m_hover_since = 0.;
     double m_last_shown  = -1e9;
     // The frame a tooltip was last drawn on, and how many it has been drawn on in a row: ImGui hides one

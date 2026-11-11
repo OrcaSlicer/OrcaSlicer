@@ -54,8 +54,13 @@ bool IllustratedTooltip::ready(const ImVec2 &control, GLCanvas3D &canvas)
         return false;
     }
 
-    // Moving to another control restarts the wait, and staying on this one carries it on.
-    const double now = tip_now();
+    // Moving to another control restarts the wait, and staying on this one carries it on. So does coming
+    // back to the same control after the pointer was away: a frame on which nothing asked means it left.
+    const double now   = tip_now();
+    const int    frame = ImGui::GetFrameCount();
+    if (frame > m_asked_frame + 1)
+        m_item = ImVec2(-1.f, -1.f);
+    m_asked_frame = frame;
     if (control.x != m_item.x || control.y != m_item.y) {
         m_item        = control;
         m_hover_since = now;
@@ -130,7 +135,11 @@ void IllustratedTooltip::render(const ImVec2 &pos, float width, const std::strin
     static const ImVec4 tooltip_bg = ImGuiStyle().Colors[ImGuiCol_PopupBg];
     ImGui::PushStyleColor(ImGuiCol_PopupBg, tooltip_bg);
     ImGui::BeginTooltip();
+    // The tooltip is dark whatever the theme, so its text is white and its captions the default dimmed
+    // colour, whatever the call site pushed for its own background (the view menu's is light).
+    static const ImVec4 caption = ImGuiStyle().Colors[ImGuiCol_TextDisabled];
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
+    ImGui::PushStyleColor(ImGuiCol_TextDisabled, caption);
     ImGui::PushTextWrapPos(0.f); // the window's own edge, which is what the fixed width above sets
     if (!title.empty()) {
         const size_t eol  = title.find('\n');
@@ -146,8 +155,8 @@ void IllustratedTooltip::render(const ImVec2 &pos, float width, const std::strin
     if (!text.empty())
         ImGui::TextUnformatted(text.c_str());
     ImGui::PopTextWrapPos();
-    ImGui::PopStyleColor();
     render_media(media, width - 2.f * ImGui::GetStyle().WindowPadding.x, canvas);
+    ImGui::PopStyleColor(2);
     ImGui::EndTooltip();
     ImGui::PopStyleColor();
     ImGui::PopStyleVar();
