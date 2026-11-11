@@ -71,13 +71,13 @@ void add_process_quality_setting_tips(SettingTips &tips)
     // TRN Captions of two pictures of a scarf joint seam: a short ramp and a long one.
     tips["seam_slope_min_length"].media = two("scarf_length_short.png", _L("Short"), "scarf_length_long.png", _L("Long"));
     tips["seam_slope_steps"].media      = low_high("scarf_steps_few.png", "scarf_section.png");
-    // The wipe at the end of the outer wall, in ACCENT.
-    tips["role_based_wipe_speed"].media     = one("wipe_on_loops_off.png");
-    tips["wipe_speed"].media                = one("wipe_on_loops_off.png");
-    tips["wipe_on_loops"].media             = off_on("wipe_on_loops_off.png", "wipe_on_loops_on.png");
-    tips["wipe_inward"].media               = off_on("wipe_inward_off.png", "wipe_inward_on.png");
-    tips["wipe_inward_distance"].media      = one("wipe_inward_on.png");
-    tips["wipe_before_external_loop"].media = off_on("wipe_before_external_off.png", "wipe_before_external_on.png");
+    // The wipe at the end of the outer wall, in ACCENT, animated: the wall closes, then the nozzle wipes and leaves.
+    tips["role_based_wipe_speed"].media     = one("wipe_on_loops_off.gif");
+    tips["wipe_speed"].media                = one("wipe_on_loops_off.gif");
+    tips["wipe_on_loops"].media             = off_on("wipe_on_loops_off.gif", "wipe_on_loops_on.gif");
+    tips["wipe_inward"].media               = off_on("wipe_inward_off.gif", "wipe_inward_on.gif");
+    tips["wipe_inward_distance"].media      = one("wipe_inward_on.gif");
+    tips["wipe_before_external_loop"].media = off_on("wipe_before_external_off.gif", "wipe_before_external_on.gif");
 
     // Precision.
     tips["resolution"].media         = low_high("resolution_fine.png", "resolution_coarse.png");

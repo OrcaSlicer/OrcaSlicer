@@ -257,24 +257,6 @@ def _scarf_section(start=0.0, length=0.45, steps=10, entire=False):
     return s.finish()
 
 
-# --- wipes at the end of the outer wall, from above ------------------------------------------------
-
-
-def _wipe(case, value, centre):
-    layer = _case(case, value)[1]
-    plan = Plan(3.4, SIZE, centre=centre)
-    plan.beads(_paths(layer, lambda t: _not_moves(t) and t != "Outer wall"), _rgb(PART, 0.75))
-    plan.beads(_paths(layer, _is("Outer wall")), WALL)
-    plan.beads(_paths(layer, _is("Travel")), MOVE, edge=None, thin=0.25)
-    plan.beads(_paths(layer, _is("Wipe")), _rgb(ACCENT, 1.4), thin=0.3)
-    if case == "wipe_before_external_loop":  # where the filament is pushed back in before the wall
-        outer = _paths(layer, _is("Outer wall"))[0]
-        moves = [p for p in layer["paths"]]
-        i = next(j for j, p in enumerate(moves) if p["t"] == "Outer wall")
-        plan.dot(np.asarray(moves[i - 1]["p"][:2], float) if value == "1" else outer["pts"][0], 5.0, _rgb(ACCENT, 1.4))
-    return plan.finish()
-
-
 # --- resolution and arc fitting: how many moves a line takes ---------------------------------------
 
 
@@ -504,10 +486,6 @@ _fixed("scarf_length_short", lambda: _scarf_section(length=0.22))
 _fixed("scarf_length_long", lambda: _scarf_section(length=0.8))
 _fixed("scarf_steps_few", lambda: _scarf_section(steps=3))
 _fixed("scarf_entire_loop", lambda: _scarf_section(entire=True))
-for _v, _n in (("0", "off"), ("1", "on")):
-    _fixed("wipe_on_loops_" + _n, lambda v=_v: _wipe("wipe_on_loops", v, (-0.6, 6.4)))
-    _fixed("wipe_inward_" + _n, lambda v=_v: _wipe("wipe_inward", v, (-0.6, 6.4)))
-    _fixed("wipe_before_external_" + _n, lambda v=_v: _wipe("wipe_before_external_loop", v, (0.6, 6.2)))
 for _v, _n in (("0.01", "fine"), ("0.3", "coarse")):
     _fixed("resolution_" + _n, lambda v=_v: _resolution(v))
 for _v in ("disabled", "enabled", "sparse_infill"):

@@ -235,16 +235,6 @@ def _speed_graph(curve, ghost, corners=None, path=None):
     return c.finish()
 
 
-def _accel(a):
-    """One move, from standing to standing: gentle acceleration takes longer to reach the top speed."""
-    def picture(k, n):
-        moves = [(1.0, 0.85, 0.0)]
-        other = 9.0 if a < 3.0 else 1.6
-        return _speed_graph(_profile(moves, a, 1.6), _profile(moves, other, 1.6),
-                            path=[(0.0, 0.5), (1.0, 0.5)], corners=[(0.0, 0.5), (1.0, 0.5)])
-    return picture
-
-
 def _fit(curve, ghost):
     """Both curves scaled in time so that the longer one fills the graph."""
     span = max(curve[-1][0], ghost[-1][0])
@@ -255,28 +245,6 @@ def _zigzag(curve):
     """The path of the moves over the graph: a corner where each move ends."""
     ends = [curve[0][0]] + [x for i, (x, y) in enumerate(curve) if i % 4 == 3]
     return [(t, 0.15 if i % 2 == 0 else 0.85) for i, t in enumerate(ends)]
-
-
-def _corners(vj):
-    """Moves along a zigzag: at each corner the nozzle slows down to the jerk's (or junction deviation's)
-    speed, so a low value nearly stops at every corner."""
-    def picture(k, n):
-        other = 0.6 if vj < 0.3 else 0.08
-        curve, ghost = _fit(*(_profile([(0.5, 0.85, v)] * 3 + [(0.5, 0.85, 0.0)], 4.0, 1.0) for v in (vj, other)))
-        zig = _zigzag(curve)
-        return _speed_graph(curve, ghost, path=zig, corners=zig[1:-1])
-    return picture
-
-
-def _cruise(peak):
-    """Short moves: Klipper's accel_to_decel (minimum cruise ratio) caps the speed they reach, so a low
-    value keeps the nozzle from shooting up to speed and straight back down on each."""
-    def picture(k, n):
-        other = 0.85 if peak < 0.6 else 0.45
-        curve, ghost = _fit(*(_profile([(0.22, p, 0.0)] * 5, 5.0, 1.0) for p in (peak, other)))
-        zig = _zigzag(curve)
-        return _speed_graph(curve, ghost, path=zig, corners=zig)
-    return picture
 
 
 def _flow_step(slope=None, steps=None):
@@ -424,12 +392,6 @@ def _small_loops(limit, support=False):
     return picture
 
 
-_add("speed_accel_low", 0, _accel(1.6))
-_add("speed_accel_high", 0, _accel(9.0))
-_add("speed_jerk_low", 0, _corners(0.08))
-_add("speed_jerk_high", 0, _corners(0.6))
-_add("speed_accel_to_decel_low", 0, _cruise(0.45))
-_add("speed_accel_to_decel_high", 0, _cruise(0.85))
 _add("speed_ers_low", 0, _flow_step(slope="low"))
 _add("speed_ers_high", 0, _flow_step(slope="high"))
 _add("speed_ers_segment_low", 0, _flow_step(steps="short"))

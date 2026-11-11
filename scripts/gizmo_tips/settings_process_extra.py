@@ -591,32 +591,3 @@ def _belt_tower(width):
 
 _add("belt_purge_tower_narrow", _belt_tower(0.0))
 _add("belt_purge_tower_wide", _belt_tower(1.0))
-
-
-def _timelapse(smooth_mode):
-    """The bed from above when a layer is done: the nozzle (light) stays over the part for the snapshot, or,
-    in smooth mode, travels off to the chute and wipes on the prime tower (ACCENT) when it comes back."""
-    def picture(k, n):
-        img, draw, px = _canvas()
-        draw.rectangle([0.1 * px, 0.1 * px, 0.9 * px, 0.9 * px], fill=_rgb(GRID, 1.1))
-        draw.ellipse([0.36 * px, 0.4 * px, 0.6 * px, 0.64 * px], fill=_rgb(PART), outline=_rgb(BED, 0.5), width=SS * 2)
-        nozzle = (0.5 * px, 0.5 * px)
-        if smooth_mode:
-            draw.rectangle([0.66 * px, 0.3 * px, 0.8 * px, 0.44 * px], fill=ACC_RGB, outline=_rgb(BED, 0.5), width=SS * 2)
-            chute = (0.95 * px, 0.06 * px)
-            pts = [nozzle, (0.62 * px, 0.37 * px), chute]
-            for (xa, ya), (xb, yb) in zip(pts[:-1], pts[1:]):  # dashed
-                for s in np.arange(0.0, 1.0, 0.12):
-                    e = min(s + 0.07, 1.0)
-                    draw.line([(xa + (xb - xa) * s, ya + (yb - ya) * s), (xa + (xb - xa) * e, ya + (yb - ya) * e)],
-                              fill=ACC_RGB, width=int(2.4 * SS * 2))
-            nozzle = chute
-        r = 0.035 * px
-        draw.ellipse([nozzle[0] - r, nozzle[1] - r, nozzle[0] + r, nozzle[1] + r], fill=LIGHT_LINE,
-                     outline=_rgb(BED, 0.5), width=SS * 2)
-        return _finish(img)
-    return picture
-
-
-_add("timelapse_traditional", _timelapse(False))
-_add("timelapse_smooth", _timelapse(True))

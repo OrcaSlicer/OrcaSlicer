@@ -18,10 +18,10 @@ std::vector<TipMedia> picture(const std::string &name)
     return {{"settings/process/" + name + ".png", {}}};
 }
 
-// A low and a high value of the setting side by side: <name>_low.png and <name>_high.png.
-std::vector<TipMedia> low_high(const std::string &name)
+// A low and a high value of the setting side by side: <name>_low<ext> and <name>_high<ext>.
+std::vector<TipMedia> low_high(const std::string &name, const std::string &ext = ".png")
 {
-    return {{"settings/process/" + name + "_low.png", _L("Low")}, {"settings/process/" + name + "_high.png", _L("High")}};
+    return {{"settings/process/" + name + "_low" + ext, _L("Low")}, {"settings/process/" + name + "_high" + ext, _L("High")}};
 }
 
 } // namespace
@@ -68,8 +68,8 @@ void add_process_speed_setting_tips(SettingTips &tips)
     // Travel.
     tips["travel_speed"].media = picture("feature_travel");
 
-    // Acceleration: the nozzle's speed over one move, and the lines each acceleration is for.
-    tips["default_acceleration"].media = low_high("speed_accel");
+    // Acceleration: the nozzle's speed over one move, animated, and the lines each acceleration is for.
+    tips["default_acceleration"].media = low_high("speed_accel", ".gif");
     tips["outer_wall_acceleration"].media = picture("feature_outer_wall");
     tips["inner_wall_acceleration"].media = picture("feature_inner_wall");
     tips["bridge_acceleration"].media = picture("speed_bridges");
@@ -79,12 +79,12 @@ void add_process_speed_setting_tips(SettingTips &tips)
     tips["initial_layer_travel_acceleration"].media = picture("speed_first_layer_travel");
     tips["top_surface_acceleration"].media = picture("feature_top_surface");
     tips["travel_acceleration"].media = picture("feature_travel");
-    tips["accel_to_decel_enable"].media = picture("speed_accel_to_decel_low");
-    tips["accel_to_decel_factor"].media = low_high("speed_accel_to_decel");
+    tips["accel_to_decel_enable"].media = {{"settings/process/speed_accel_to_decel_low.gif", {}}};
+    tips["accel_to_decel_factor"].media = low_high("speed_accel_to_decel", ".gif");
 
     // Junction deviation and jerk: how much the nozzle slows down at a corner.
-    tips["default_junction_deviation"].media = low_high("speed_jerk");
-    tips["default_jerk"].media = low_high("speed_jerk");
+    tips["default_junction_deviation"].media = low_high("speed_jerk", ".gif");
+    tips["default_jerk"].media = low_high("speed_jerk", ".gif");
     tips["outer_wall_jerk"].media = picture("feature_outer_wall");
     tips["inner_wall_jerk"].media = picture("feature_inner_wall");
     tips["infill_jerk"].media = picture("speed_infill");

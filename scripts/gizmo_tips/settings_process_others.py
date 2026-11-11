@@ -302,7 +302,7 @@ def _interface_shells(value):
 _pair("interface_shells", ("0", "1"), _interface_shells)
 
 
-# --- diagrams: temperatures over time, the order of tool changes, the spiral's flow ---------------
+# --- diagrams: temperatures over time, the spiral's flow --------------------------------------
 
 
 class Chart:
@@ -370,38 +370,6 @@ _add("ooze_on", _ooze(0.45, 0.12))
 _add("ooze_delta_small", _ooze(0.18, 0.12))
 _add("ooze_preheat_short", _ooze(0.45, 0.04))
 _add("ooze_preheat_long", _ooze(0.45, 0.24))
-
-TOOLS = [_rgb(ACCENT, 1.25), _rgb(PART), _rgb(PART2, 1.1)]
-
-
-def _toolchanges(rows):
-    """Layers from the bottom up, each the filaments it prints in order, joined by the nozzle's way."""
-    def picture(k, n):
-        img = Image.new("RGB", (SIZE * SS, SIZE * SS), _rgb(BED, 0.75))
-        draw = ImageDraw.Draw(img)
-        s = SIZE * SS
-        cell, gap = 0.17 * s, 0.11 * s
-        x0 = 0.5 * s - 1.5 * cell - gap
-        for r, order in enumerate(rows):
-            y = s * 0.86 - r * (cell + 0.06 * s) - cell
-            centres = [(x0 + i * (cell + gap) + cell / 2, y + cell / 2) for i in range(len(order))]
-            draw.line(centres, fill=_rgb(PART, 0.55), width=int(2.2 * SS))
-            for (cx, cy), tool in zip(centres, order):
-                draw.rounded_rectangle([cx - cell / 2, cy - cell / 2, cx + cell / 2, cy + cell / 2], radius=0.12 * cell,
-                                       fill=TOOLS[tool], outline=_rgb(BED, 0.5), width=SS)
-            if r + 1 < len(rows):  # the step up to the next layer
-                nxt = s * 0.86 - (r + 1) * (cell + 0.06 * s) - cell / 2
-                draw.line([centres[-1], (centres[-1][0] + cell * 0.75, centres[-1][1]),
-                           (centres[-1][0] + cell * 0.75, nxt), (x0 + cell / 2, nxt)][:3],
-                          fill=_rgb(PART, 0.55), width=int(2.2 * SS))
-        return np.asarray(img.resize((SIZE, SIZE), Image.LANCZOS))
-    return picture
-
-
-_add("toolchange_default", _toolchanges([[0, 1, 2], [2, 0, 1], [1, 2, 0], [0, 1, 2]]))
-_add("toolchange_cyclic", _toolchanges([[0, 1, 2]] * 4))
-_add("toolchange_first_layer_off", _toolchanges([[1, 2, 0], [0, 1, 2], [0, 1, 2], [0, 1, 2]]))
-
 
 def _spiral_flow(start, finish):
     """The flow along the spiral's first loop (left) and last loop (right), between the plain layers."""
@@ -510,47 +478,6 @@ for _v in ("regular", "even_odd", "close_holes"):
         _items(_case("slicing_mode", v), lambda p, layer: ACC if "wall" in p["t"] else PART),
         dict(target=(0.0, 0.0, 0.2), extent=2.1, el=50.0)))(_v))
 
-
-def _print_order(value):
-    """One layer of nine small parts and the nozzle's way from one to the next, from the first part
-    (the white dot) on."""
-    def picture(k, n):
-        layer = _case("print_order", value)[0]
-        walls = _paths(layer, lambda t: True)
-        plan = Plan(34.0, SIZE)
-        starts = [p["pts"][0] for p in walls]
-        plan.draw.line(plan.xy(starts), fill=LINE, width=int(2.4 * SS * 2), joint="curve")
-        plan.beads(walls, WALL)
-        for i, s in enumerate(starts):
-            plan.dot(s, 3.2 if i == 0 else 2.0, (235, 242, 242) if i == 0 else LINE)
-        return plan.finish()
-    return picture
-
-
-# Best of and Snake take the same way as Default on a layout this small, so only these two are drawn.
-for _v in ("default", "as_obj_list"):
-    _add("print_order_" + _v, _print_order(_v))
-
-
-def _print_sequence(by_object):
-    """Two parts part-way through the print: both half done, or the first done before the second starts.
-    The layer printed last is in ACCENT."""
-    def picture(k, n):
-        layers = _case("print_sequence", "parts")
-        items = []
-        for layer in layers:
-            for p in _paths(layer, lambda t: True):
-                first = p["pts"][:, 0].mean() < 0.0
-                top = 8.0 if (by_object and first) else (1.6 if by_object else 4.0)
-                if layer["z"] <= top + 1e-6:
-                    live = abs(layer["z"] - top) < 1e-6 and not (by_object and first)
-                    items.append((layer["z"], 0.2, p, ACC if live else PART))
-        return _model(items, _fit(_items(layers, lambda p, layer: PART)))
-    return picture
-
-
-_add("print_sequence_by_layer", _print_sequence(False))
-_add("print_sequence_by_object", _print_sequence(True))
 
 _pair("spiral", ("0", "1"), lambda v: (lambda k, n: _model(
     _items(_case("spiral", "spiral_" + v), lambda p, layer: ACC if "wall" in p["t"] else PART),

@@ -13,7 +13,11 @@ namespace Slic3r::GUI {
 
 namespace {
 
-std::string picture_file(const std::string &name) { return "settings/process/" + name + ".png"; }
+// A name without an extension is a still, <name>.png; an animation is named with its .gif.
+std::string picture_file(const std::string &name)
+{
+    return "settings/process/" + name + (name.find('.') == std::string::npos ? ".png" : "");
+}
 
 // Two values of a setting side by side, captioned: {picture, caption} under settings/process. A caption that
 // is a number, an angle or a percentage is not translated; one in millimetres is, as some languages write
@@ -89,9 +93,9 @@ void add_process_others_setting_tips(SettingTips &tips)
 
     // Multimaterial: advanced.
     tips["interlocking_beam"].media = off_on("interlock_beam_0", "interlock_beam_1");
-    tips["toolchange_ordering"].values = per_value({{"default", "toolchange_default"}, {"cyclic", "toolchange_cyclic"}});
-    tips["toolchange_cyclic_order"].media = one("toolchange_cyclic");
-    tips["toolchange_cyclic_first_layer"].media = off_on("toolchange_first_layer_off", "toolchange_cyclic");
+    tips["toolchange_ordering"].values = per_value({{"default", "toolchange_default.gif"}, {"cyclic", "toolchange_cyclic.gif"}});
+    tips["toolchange_cyclic_order"].media = one("toolchange_cyclic.gif");
+    tips["toolchange_cyclic_first_layer"].media = off_on("toolchange_first_layer_off.gif", "toolchange_cyclic.gif");
     tips["interface_shells"].media = off_on("interface_shells_0", "interface_shells_1");
     tips["interlocking_beam_width"].media = compare("interlock_width_0_5", _L("0.5 mm"), "interlock_width_1_6", _L("1.6 mm"));
     tips["interlocking_orientation"].media = compare("interlock_orient_0", wxString::FromUTF8("0°"), "interlock_orient_45", wxString::FromUTF8("45°"));
@@ -122,8 +126,8 @@ void add_process_others_setting_tips(SettingTips &tips)
     tips["slicing_mode"].values = per_value({{"regular", "slicing_mode_regular"},
                                              {"even_odd", "slicing_mode_even_odd"},
                                              {"close_holes", "slicing_mode_close_holes"}});
-    tips["print_sequence"].values = per_value({{"by layer", "print_sequence_by_layer"}, {"by object", "print_sequence_by_object"}});
-    tips["print_order"].values = per_value({{"default", "print_order_default"}, {"as_obj_list", "print_order_as_obj_list"}});
+    tips["print_sequence"].values = per_value({{"by layer", "print_sequence_by_layer.gif"}, {"by object", "print_sequence_by_object.gif"}});
+    tips["print_order"].values = per_value({{"default", "print_order_default.gif"}, {"as_obj_list", "print_order_as_obj_list.gif"}});
     tips["spiral_mode"].media = off_on("spiral_0", "spiral_1");
     tips["spiral_starting_flow_ratio"].media = compare("spiral_start_0", wxString("0"), "spiral_start_half", wxString("0.5"));
     tips["spiral_finishing_flow_ratio"].media = compare("spiral_finish_0", wxString("0"), "spiral_finish_half", wxString("0.5"));
@@ -158,7 +162,7 @@ void add_process_others_setting_tips(SettingTips &tips)
     tips["exclude_object"].media = one("exclude_object_tolerance_0");
     tips["exclude_object_tolerance"].media = compare("exclude_object_tolerance_0", _L("0 mm"), "exclude_object_tolerance_1", _L("1 mm"));
     tips["reduce_infill_retraction"].media = off_on("reduce_infill_retraction_0", "reduce_infill_retraction_1");
-    tips["timelapse_type"].values = per_value({{"0", "timelapse_traditional"}, {"1", "timelapse_smooth"}});
+    tips["timelapse_type"].values = per_value({{"0", "timelapse_traditional.gif"}, {"1", "timelapse_smooth.gif"}});
 }
 
 } // namespace Slic3r::GUI
