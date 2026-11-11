@@ -73,7 +73,6 @@ public:
     // rectangular bed ignore its far Y edge. The front edge, where printing starts, and the bed
     // geometry itself stay as they are.
     void                        set_open_y(bool open)   { m_open_y = open; }
-    bool                        open_y()            const { return m_open_y; }
     // Removes the far Y edge of a containment box.
     static void                 open_y_extent(BoundingBox3Base<Vec3d> &box) { box.max.y() = std::numeric_limits<double>::max(); }
 
