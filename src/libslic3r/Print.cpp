@@ -3504,17 +3504,12 @@ Print::prepare_plugin_infills(const std::vector<PrintObject *> &objects)
             throw SlicingError(unavailable_error(key));
         }
 
-        // A project may be saved with a pattern in a setting the provider did not advertise (an
-        // older manifest, or a descriptor change). Refuse the slice instead of dispatching the
-        // pattern for a surface it was not written for.
-        for (const InfillSurfacePurpose purpose : purposes) {
-            if (!info->supports_surface(purpose)) {
-                BOOST_LOG_TRIVIAL(error) << "Plugin infill pattern '" << key << "' does not support surface purpose "
-                                         << static_cast<int>(purpose) << " selected by the project";
-                throw SlicingError(unavailable_error(key));
-            }
-        }
-
+        // select_infill() re-resolves the entry under the registry lock and repeats the checks that
+        // need the entry it is about to pin: still registered and active, plugin-provided, owned by
+        // this exact capability, and advertising every selected surface purpose. A project may be
+        // saved with a pattern in a setting the provider did not advertise (an older manifest, or a
+        // descriptor change); that is refused there instead of dispatching the pattern for a surface
+        // it was not written for. The manifest ownership check above is the one it cannot make.
         std::string error;
         InfillFactory::Selection selection =
             InfillFactory::select_infill(key, info->plugin_key, info->capability_name, purposes, error);

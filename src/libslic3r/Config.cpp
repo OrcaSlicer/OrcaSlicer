@@ -1678,23 +1678,13 @@ void ConfigBase::append_plugin_refs(std::vector<std::string>& refs) const
     });
 }
 
-std::vector<std::string> ConfigBase::collect_plugin_manifest() const
-{
-    std::vector<std::string> refs;
-    if (!resolve_capability_fn)
-        return refs;
-
-    this->append_plugin_refs(refs);
-    return refs;
-}
-
 std::vector<std::string> ConfigBase::collect_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs) const
 {
     std::vector<std::string> refs;
     if (!resolve_capability_fn)
         return refs;
 
-    refs = this->collect_plugin_manifest();
+    this->append_plugin_refs(refs);
     for (const ConfigBase* config : additional_configs)
         if (config != nullptr)
             config->append_plugin_refs(refs);
@@ -1723,7 +1713,7 @@ std::vector<UnresolvedPluginCapability> ConfigBase::unresolved_plugin_capabiliti
     return unresolved;
 }
 
-void ConfigBase::update_plugin_manifest()
+void ConfigBase::update_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs)
 {
     // Writes the derived manifest back into this config's "plugins" option (save_to_json writes the
     // same manifest into a JSON document instead), so an in-memory backend config carries a resolved
@@ -1731,15 +1721,6 @@ void ConfigBase::update_plugin_manifest()
     // resolver (CLI/headless) leave whatever manifest was loaded from disk untouched.
     if (!resolve_capability_fn)
         return;
-    if (auto* manifest = this->option<ConfigOptionStrings>("plugins", true))
-        manifest->values = this->collect_plugin_manifest();
-}
-
-void ConfigBase::update_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs)
-{
-    if (!resolve_capability_fn)
-        return;
-
     if (auto* manifest = this->option<ConfigOptionStrings>("plugins", true))
         manifest->values = this->collect_plugin_manifest(additional_configs);
 }

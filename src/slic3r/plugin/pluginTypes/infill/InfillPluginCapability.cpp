@@ -59,23 +59,6 @@ Polyline infill_path_from_python(py::handle value, size_t index)
         return py::value_error("generate() path " + std::to_string(index) + ": " + why);
     };
 
-    // The common dependency-free contract is a list/tuple of orca.host.Point values. Handle these
-    // before py::array: pybind11's NumPy type check imports numpy, even when the plugin returned an
-    // ordinary Python list and does not declare NumPy as a dependency.
-    if (py::isinstance<py::list>(value) || py::isinstance<py::tuple>(value)) {
-        const py::sequence points = py::reinterpret_borrow<py::sequence>(value);
-        Polyline path;
-        path.points.reserve((size_t) py::len(points));
-        for (py::handle point : points) {
-            if (!py::isinstance<Point>(point))
-                throw malformed("a point sequence may contain only orca.host.Point values");
-            path.points.push_back(point.cast<Point>());
-        }
-        if (path.points.size() < 2)
-            throw malformed("a path needs at least 2 points");
-        return path;
-    }
-
     // Only ask pybind11 about ndarray when NumPy is already loaded. Its array type check imports
     // NumPy, while buffer-protocol values such as memoryview do not require that dependency.
     if (PyObject_CheckBuffer(value.ptr()) &&
@@ -111,6 +94,9 @@ Polyline infill_path_from_python(py::handle value, size_t index)
         return path;
     }
 
+    // The common dependency-free contract is a list/tuple (or any other sequence) of
+    // orca.host.Point values. NumPy is never probed for these: the buffer check above rejects a
+    // list/tuple before the py::array test can import numpy.
     if (!py::isinstance<py::sequence>(value) || py::isinstance<py::str>(value) ||
         py::isinstance<py::bytes>(value))
         throw malformed("expected an (N,2) int64 ndarray, an orca.host.Polygon, or a sequence of "

@@ -2174,17 +2174,12 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
         entry->descriptor.clear_error();
 
         for (const auto& capability : entry->capabilities) {
-            if (capability)
-                capability->set_audit_plugin_key(new_key);
-        }
-
-        for (const auto& capability : entry->capabilities) {
-            if (capability && capability->type() == PluginCapabilityType::Infill)
+            if (!capability)
+                continue;
+            capability->set_audit_plugin_key(new_key);
+            if (capability->type() == PluginCapabilityType::Infill)
                 rekeyed_infill.push_back(std::dynamic_pointer_cast<InfillPluginCapability>(capability));
-        }
-
-        for (const auto& capability : entry->capabilities) {
-            if (capability && capability->is_enabled())
+            if (capability->is_enabled())
                 rekeyed.push_back(PluginCapabilityId{capability->type(), capability->name(), new_key});
         }
 

@@ -1564,6 +1564,20 @@ static void append_builtin_choice_labels(choice_ctrl* ctrl, const ConfigOptionDe
     }
 }
 
+// Append the plugin-provided rows after the built-in ones: a disabled separator followed by one
+// alias-backed row per pattern, so a stored plugin ID resolves back to its row.
+static void append_plugin_infill_choices(choice_ctrl* ctrl, InfillSurfacePurpose purpose)
+{
+    const auto plugins = registered_infill_choices(purpose);
+    if (plugins.empty())
+        return;
+    ctrl->Append(_L("Plugins"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM | DD_ITEM_STYLE_DISABLED);
+    for (const auto& plugin : plugins) {
+        const int item = ctrl->Append(from_u8(plugin.second));
+        ctrl->SetItemAlias(item, from_u8(plugin.first));
+    }
+}
+
 void Choice::refresh_plugin_infill_choices()
 {
     for (Choice* choice : plugin_infill_choices()) {
@@ -1581,14 +1595,7 @@ void Choice::refresh_plugin_infill_choices()
         choice->m_disable_change_event = true;
         ctrl->Clear();
         append_builtin_choice_labels(ctrl, choice->m_opt);
-        const auto plugins = registered_infill_choices(*purpose);
-        if (!plugins.empty()) {
-            ctrl->Append(_L("Plugins"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM | DD_ITEM_STYLE_DISABLED);
-            for (const auto& plugin : plugins) {
-                const int item = ctrl->Append(from_u8(plugin.second));
-                ctrl->SetItemAlias(item, from_u8(plugin.first));
-            }
-        }
+        append_plugin_infill_choices(ctrl, *purpose);
         // Restore through the typed overload: it resolves a plugin ID to its display row through the
         // row aliases, while a key with no row stays the stored value.
         choice->set_value(boost::any(from_u8(value)));
@@ -1691,14 +1698,7 @@ void Choice::BUILD()
 			auto& infill_choices = plugin_infill_choices();
 			if (std::find(infill_choices.begin(), infill_choices.end(), this) == infill_choices.end())
 				infill_choices.push_back(this);
-			const auto plugins = registered_infill_choices(*purpose);
-			if (!plugins.empty()) {
-				temp->Append(_L("Plugins"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM | DD_ITEM_STYLE_DISABLED);
-				for (const auto& plugin : plugins) {
-					const int item = temp->Append(from_u8(plugin.second));
-					temp->SetItemAlias(item, from_u8(plugin.first));
-				}
-			}
+			append_plugin_infill_choices(temp, *purpose);
 		}
 		set_selection();
     } else if (m_list) {

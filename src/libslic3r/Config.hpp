@@ -2903,10 +2903,9 @@ public:
     // memory for the backend (PresetBundle::full_config -> Print::apply) must refresh it here or a
     // picked-but-unsaved plugin never resolves at slice/export time. A capability the resolver cannot
     // map is omitted from the derived manifest; unresolved_plugin_capabilities() reports those
-    // values. No-op without a resolver.
-    void update_plugin_manifest();
-    // Include plugin-backed settings stored in model object/volume overrides.
-    void update_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs);
+    // values. additional_configs fold in plugin-backed settings stored in model object/volume
+    // overrides. No-op without a resolver.
+    void update_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs = {});
 
     // The plugin-backed option values the registered resolver cannot map to a plugin reference --
     // exactly the values save_to_json()/update_plugin_manifest() omit from the manifest. GUI save
@@ -2925,19 +2924,16 @@ private:
     bool set_deserialize_raw(const t_config_option_key& opt_key_src, const std::string& value, ConfigSubstitutionContext& substitutions, bool append);
     // Append the de-duplicated "name;uuid;capability" plugin references derived from this config's
     // plugin-backed options to refs, preserving insertion order and dropping values that do not
-    // resolve. Serialization, update_plugin_manifest and the additional_configs overload all share
-    // it, so object/volume overrides contribute to the same manifest. Requires a resolver.
+    // resolve. collect_plugin_manifest shares it, so object/volume overrides contribute to the same
+    // manifest. Requires a resolver.
     void append_plugin_refs(std::vector<std::string>& refs) const;
     // Collect the de-duplicated "name;uuid;capability" plugin references derived from this config's
-    // plugin-backed options via the resolver. Shared by save_to_json (serializes them into the JSON
+    // plugin-backed options via the resolver, plus those of `additional_configs` (model object,
+    // volume and layer-range overrides). Shared by save_to_json (serializes them into the JSON
     // manifest) and update_plugin_manifest (writes them back into the "plugins" option). Order is
     // preserved and values that do not resolve are dropped; returns empty without a resolver
     // (CLI/headless).
-    std::vector<std::string> collect_plugin_manifest() const;
-    // Collect the same references for this config plus `additional_configs` (model object, volume and
-    // layer-range overrides), de-duplicated. Used where a project manifest is written from a config
-    // that does not own those overrides.
-    std::vector<std::string> collect_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs) const;
+    std::vector<std::string> collect_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs = {}) const;
     // Calls fn(opt_key, plugin_type, capability_name) for every non-empty capability name held by a
     // plugin-backed option of this config, in key order. A built-in value of an "infill" option names
     // a built-in pattern rather than a plugin capability, so it is skipped: it has no reference to

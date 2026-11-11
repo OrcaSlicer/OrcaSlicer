@@ -1653,43 +1653,9 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(const FillAdapti
 			continue;
 		}
 
-        // A plugin pattern has no built-in anchor generator; it falls through to the registry below.
-        // Represent the missing enum value as ipCount so the built-in cases keep their layout; a
-        // present ipCount keeps its original behaviour of skipping the anchor generator.
-        switch (surface_fill.params.pattern.value_or(ipCount)) {
-        case ipCount:
-            if (surface_fill.params.pattern) continue;
-            break;
-        case ipSupportBase: continue; break;
-        case ipConcentricInternal: continue; break;
-        case ipLightning:
-		case ipAdaptiveCubic:
-        case ipSupportCubic:
-        case ipRectilinear:
-        case ipMonotonic:
-        case ipMonotonicLine:
-        case ipAlignedRectilinear:
-        case ipGrid:
-        case ipLateralLattice:
-        case ipTriangles:
-        case ipStars:
-        case ipCubic:
-        case ipLine:
-        case ipConcentric:
-        case ipSpiralInset:
-        case ipHoneycomb:
-        case ipLateralHoneycomb:
-        case ip3DHoneycomb:
-        case ipGyroid:
-        case ipTpmsD:
-        case ipTpmsFK:
-        case ipHilbertCurve:
-        case ipArchimedeanChords:
-        case ipOctagramSpiral:
-        case ipZigZag:
-        case ipCrossZag:
-		case ipLockedZag: break;
-        }
+        if (const auto pattern = surface_fill.params.pattern;
+            pattern && (*pattern == ipCount || *pattern == ipSupportBase || *pattern == ipConcentricInternal))
+            continue;
 
         // Create the filler object.
         std::unique_ptr<Fill> f = make_filler(surface_fill);
