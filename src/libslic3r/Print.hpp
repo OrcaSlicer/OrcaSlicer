@@ -498,6 +498,8 @@ public:
     // The slicing parameters are dependent on various configuration values
     // (layer height, first layer height, raft settings, print nozzle diameter etc).
     const SlicingParameters&    slicing_parameters() const { return m_slicing_params; }
+    // Orca: whether precise Z height shapes the layers of this object; see Print::precise_z_height_overridden().
+    bool                        precise_z_height() const;
     // Orca: XYZ shrinkage compensation has introduced the const Vec3d &object_shrinkage_compensation parameter to the function below
     static SlicingParameters    slicing_parameters(const DynamicPrintConfig &full_config, const ModelObject &model_object, float object_max_z, const Vec3d &object_shrinkage_compensation, std::vector<int> variant_index = std::vector<int>());
 
@@ -1204,6 +1206,18 @@ public:
     StringObjectException       validate_wipe_tower_layering() const;
     // Belt purge prism (belt-mode replacement for the wipe tower).
     bool                        has_belt_purge_tower() const;
+    // Orca: precise Z height fits the last layers of each object to its own height. With a prime tower
+    // and variable layer height on objects of different heights, that puts the last layers of a lower
+    // object between the layers of the others. The tower can still print them, each joined to the tower
+    // layer below (ToolOrdering::fill_wipe_tower_partitions()), but a joined layer holds the purges of
+    // both, which makes the tower deeper. So precise Z height is left out of the whole print instead:
+    // the objects stay on the same layers, and the last layer of a lower object ends where the shared
+    // layers do, a fraction of a layer off its own top.
+    // It keys on has_wipe_tower(), which reads the config, so it also applies when the tower turns out
+    // not to be needed after slicing, such as support in another filament that no object needs. Keying
+    // it on wipe_tower_certain_before_slicing() would keep precise Z there, but a plate whose support
+    // does need the tower would then be refused after slicing.
+    bool                        precise_z_height_overridden() const { return m_precise_z_height_overridden; }
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
 
@@ -1591,6 +1605,7 @@ private:
     // Estimated print time, filament consumed.
     PrintStatistics                         m_print_statistics;
     bool                                    m_support_used {false};
+    bool                                    m_precise_z_height_overridden {false};
     StatisticsByExtruderCount               m_statistics_by_extruder_count;
 
     std::vector<unsigned int> m_slice_used_filaments;

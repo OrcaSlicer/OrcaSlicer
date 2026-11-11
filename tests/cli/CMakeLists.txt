@@ -69,3 +69,11 @@ set_tests_properties(cli_malformed_input PROPERTIES
     LABELS "CLI;RequiresApp"
     SKIP_RETURN_CODE 77
     TIMEOUT 900)
+
+add_test(NAME cli_nozzle_volume_type
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_cli_nozzle_volume_type.sh $<TARGET_FILE:OrcaSlicer> ${ORCA_CLI_TEST_PYTHON}
+        ${CMAKE_SOURCE_DIR}/resources/profiles)
+set_tests_properties(cli_nozzle_volume_type PROPERTIES
+    LABELS "CLI;RequiresApp"
+    SKIP_RETURN_CODE 77
+    TIMEOUT 900)

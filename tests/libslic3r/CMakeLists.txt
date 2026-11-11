@@ -84,6 +84,7 @@ add_executable(${_TEST_NAME}_tests
     test_support_layer_schedule.cpp
     test_wipe_tower.cpp
     test_wipe_path.cpp
+    test_slicing.cpp
     test_optimizers.cpp
     test_ordering_strategies.cpp
     test_parameter_utils.cpp
