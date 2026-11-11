@@ -41,7 +41,6 @@
 #include <boost/filesystem/file_status.hpp>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/exception.hpp>
-#include <boost/locale/encoding_utf.hpp>
 #include <boost/log/detail/native_typeof.hpp>
 #include <cstdint>
 #include <iomanip>
@@ -1693,7 +1692,6 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
                     return InstallStatusUnzipFailed;
                 }
                 auto dest_path = plugin_folder / dest_file;
-                std::string dest_zip_file = encode_path(dest_path.string().c_str());
 #ifndef WIN32
                 // Validate a symlink's target before anything at the destination is replaced.
                 const bool is_link = S_ISLNK(stat.m_external_attr >> 16);
@@ -1749,23 +1747,17 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
                         }
                     } else {
 #endif
-                        res = mz_zip_reader_extract_to_file(&archive, stat.m_file_index, dest_zip_file.c_str(), 0);
+                        res = extract_zip_entry_to_file(&archive, stat.m_file_index, dest_path);
 #ifndef WIN32
                     }
 #endif
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", extract  %1% from plugin zip %2%\n") % dest_file % stat.m_filename;
                     if (res == 0) {
-#ifdef WIN32
-                        std::wstring new_dest_zip_file = boost::locale::conv::utf_to_utf<wchar_t>(dest_path.generic_string());
-                        res                            = mz_zip_reader_extract_to_file_w(&archive, stat.m_file_index, new_dest_zip_file.c_str(), 0);
-#endif
-                        if (res == 0) {
-                            mz_zip_error zip_error = mz_zip_get_last_error(&archive);
-                            BOOST_LOG_TRIVIAL(error) << "[install_plugin]Archive read error:" << mz_zip_get_error_string(zip_error) << std::endl;
-                            close_zip_reader(&archive);
-                            if (pro_fn) { pro_fn(InstallStatusUnzipFailed, 0, cancel); }
-                            return InstallStatusUnzipFailed;
-                        }
+                        mz_zip_error zip_error = mz_zip_get_last_error(&archive);
+                        BOOST_LOG_TRIVIAL(error) << "[install_plugin]Archive read error:" << mz_zip_get_error_string(zip_error) << std::endl;
+                        close_zip_reader(&archive);
+                        if (pro_fn) { pro_fn(InstallStatusUnzipFailed, 0, cancel); }
+                        return InstallStatusUnzipFailed;
                     }
                 }
                 catch (const std::exception& e)
@@ -9046,6 +9038,17 @@ void GUI_App::open_plugins_dialog(size_t open_on_tab, const std::string& highlig
     }
 }
 
+void GUI_App::notify_plugin_permissions_changed(const std::string& plugin_key)
+{
+    // The dialog owns its webview and clears m_plugins_dlg from its destroy handler, so check the
+    // pointer here on the GUI thread rather than capturing it in an asynchronous callback.
+    if (is_closing() || m_plugins_dlg == nullptr)
+        return;
+
+    BOOST_LOG_TRIVIAL(debug) << "Plugins dialog refresh after a stored permission change for " << plugin_key;
+    m_plugins_dlg->refresh_permissions_if_visible();
+}
+
 void GUI_App::refresh_plugins()
 {
     // The metadata refresh blocks on disc discovery and a cloud round-trip, so run it on a worker
@@ -9175,7 +9178,8 @@ void GUI_App::open_preferences(PreferencesTab tab, const std::string& highlight_
     static constexpr const char* opengl_render_setting_keys[] = {
         SETTING_OPENGL_FXAA_ENABLED, SETTING_OPENGL_FPS_CAP, SETTING_OPENGL_SHOW_FPS_OVERLAY, SETTING_OPENGL_SHOW_RENDER_TIMINGS,
         SETTING_OPENGL_SCENE_CACHE, SETTING_OPENGL_SKIP_IDENTICAL_FRAMES, SETTING_OPENGL_REALISTIC_SHADOWS,
-        SETTING_OPENGL_REALISTIC_GLOSS
+        SETTING_OPENGL_REALISTIC_GLOSS, SETTING_OPENGL_OUTLINE_PERSISTENT, SETTING_OPENGL_OUTLINE_COLOR,
+        SETTING_OPENGL_SELECTION_OUTLINE_COLOR
     };
     std::vector<std::string> previous_opengl_render_settings;
     for (const char* key : opengl_render_setting_keys)

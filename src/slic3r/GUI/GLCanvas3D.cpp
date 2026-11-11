@@ -1346,6 +1346,27 @@ bool GLCanvas3D::CenterOfMass::details_hovered() const
     return m_picked && hovered != nullptr && hovered == ImGui::FindWindowByName(details_window);
 }
 
+bool GLCanvas3D::CenterOfMass::details_contain(const Vec2d& point) const
+{
+    const ImGuiWindow* window = ImGui::FindWindowByName(details_window);
+    return m_picked && window != nullptr && window->Rect().Contains(ImVec2(float(point.x()), float(point.y())));
+}
+
+bool GLCanvas3D::CenterOfMass::details_pressed() const
+{
+    if (!details_hovered())
+        return false;
+    const ImGuiContext& g      = *ImGui::GetCurrentContext();
+    const ImGuiWindow*  window = g.HoveredWindow;
+    // The close button is active after a press on it, the window's move id after a press elsewhere on the window.
+    if (g.ActiveIdWindow == window && g.ActiveId != window->MoveId)
+        return false;
+    for (int button = 0; button < IM_ARRAYSIZE(g.IO.MouseDown); ++button)
+        if (g.IO.MouseDown[button] && window->Rect().Contains(g.IO.MouseClickedPos[button]))
+            return true;
+    return false;
+}
+
 bool GLCanvas3D::CenterOfMass::hide_details(GLCanvas3D& canvas)
 {
     if (!m_picked)
@@ -2019,6 +2040,8 @@ ModelInstanceEPrintVolumeState GLCanvas3D::check_volumes_outside_state(ObjectFil
     return state;
 }
 
+static constexpr double SECTION_VIEW_START_RATIO = 0.5;
+
 void GLCanvas3D::set_section_view_ratio(double ratio)
 {
     ratio = std::clamp(ratio, 0., 1.);
@@ -2038,7 +2061,7 @@ void GLCanvas3D::set_section_view_ratio(double ratio)
 void GLCanvas3D::toggle_section_view()
 {
     const double last_ratio = m_section_view->last_ratio;
-    set_section_view_ratio(is_section_view_active() ? 0. : last_ratio > 0. ? last_ratio : 0.5);
+    set_section_view_ratio(is_section_view_active() ? 0. : last_ratio > 0. ? last_ratio : SECTION_VIEW_START_RATIO);
 }
 
 void GLCanvas3D::align_section_view_to_camera()
@@ -2540,7 +2563,13 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
         return;
 
     // ensures this canvas is current and initialized
-    if (!_is_shown_on_screen() || !_set_current() || !wxGetApp().init_opengl())
+    if (!_is_shown_on_screen())
+        return;
+    if (!_set_current()) {
+        wxGetApp().get_opengl_manager().report_make_current_failure(*m_canvas, m_context);
+        return;
+    }
+    if (!wxGetApp().init_opengl())
         return;
 
     if (!is_initialized() && !init())
@@ -2602,6 +2631,11 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     camera.apply_projection(_max_bounding_box(true, true, true));
 
+    if (m_section_view->follow_camera && is_section_view_active() && m_section_view->normal != -camera.get_dir_forward()) {
+        align_section_view_to_camera();
+        scene_dirty = true;
+    }
+
     const ImGuiID active_id = ImGui::GetActiveID();
     wxGetApp().imgui()->new_frame();
 
@@ -2629,6 +2663,11 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     const bool overlay_tick = m_fps_overlay_tick;
     m_fps_overlay_tick = false;
+
+    // Whether the preview draws its reduced set is decided before the cached scene is consulted,
+    // since switching changes what the scene pass draws.
+    if (m_canvas_type == ECanvasType::CanvasPreview && m_render_preview && m_gcode_viewer.has_data() && _update_preview_interaction())
+        scene_dirty = true;
 
     // An overlay-only frame reuses the last scene pass. The overlay is rebuilt either way, and drawn
     // below once it is known whether the frame differs from the one on screen.
@@ -3890,6 +3929,10 @@ void GLCanvas3D::load_gcode_preview(const GCodeProcessorResult& gcode_result, co
     const std::vector<BoundingBoxf3>& exclude_bounding_box = plate->get_exclude_areas();
 
     _set_shown_canvas_current();
+    // The viewer uploads to the GPU from here on. Without a context the driver lets us make
+    // current, the OpenGL functions were never loaded and there is nothing to draw it with.
+    if (!wxGetApp().init_opengl())
+        return;
 
     //BBS: init is called in GLCanvas3D.render()
     //when load gcode directly, it is too late
@@ -3968,6 +4011,11 @@ void GLCanvas3D::bind_event_handlers()
                 }
 #endif
                 ImGui::SetWindowFocus(nullptr);
+                // a drag cut short never sees its button release, which would leave the reduced set drawn
+                if (m_canvas_type == CanvasPreview && m_mouse.dragging && m_gcode_viewer.is_reduced_detail())
+                    mouse_up_cleanup();
+                // nor does the navigator's, whose flag holds for as long as the button is known to be down
+                m_navigator_dragging = false;
                 render();
                 evt.Skip();
             });
@@ -3981,8 +4029,15 @@ void GLCanvas3D::bind_event_handlers()
                     for (bool& down : io.MouseDown)
                         down = false;
                 }
-                m_navigator_dragging = false;
-                m_mouse.down_on_toolbar = false;
+                // a drag cut short never sees its button release, which would leave the solid model drawn
+                if (m_canvas_type == CanvasPreview && m_mouse.dragging && m_gcode_viewer.is_reduced_detail())
+                    mouse_up_cleanup();
+                if (m_navigator_dragging) {
+                    m_navigator_dragging = false;
+                    m_mouse.down_on_toolbar = false;
+                    m_dirty = true;
+                    wxWakeUpIdle();
+                }
                 render();
             });
         m_event_handlers_bound = true;
@@ -4060,6 +4115,17 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     m_overlay_dirty |= imgui_requires_extra_frame;
 #endif // ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     m_dirty |= GLTexture::Compressor::has_compressed_texture_to_refresh();
+    // the render timer only wakes the idle loop; the frame that puts the preview's toolpaths back
+    // after a wheel burst has to be asked for here, once the settle time is really up
+    if (m_preview_settle_pending) {
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= m_preview_interaction_until) {
+            m_preview_settle_pending = false;
+            m_dirty = true;
+        }
+        else // the timer fired early
+            schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(m_preview_interaction_until - now).count()) + 1);
+    }
 
     if (!m_dirty && !m_overlay_dirty)
         return;
@@ -4560,6 +4626,11 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
         return;
     }
 
+    // only a wheel the panels did not take moves the camera; a wheel step is over before the next
+    // frame, so it holds the preview's reduced set for a settle time
+    if (m_canvas_type == CanvasPreview)
+        m_preview_interaction_until = std::chrono::steady_clock::now() + std::chrono::milliseconds(150);
+
 #ifdef __WXMSW__
 	// For some reason the Idle event is not being generated after the mouse scroll event in case of scrolling with the two fingers on the touch pad,
 	// if the event is not allowed to be passed further.
@@ -4834,7 +4905,21 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     // that incorrectly suppresses the active drag's tooltip and can interrupt its processing. The active drag always takes priority.
     const bool other_drag_active = m_gizmos.is_dragging() || m_mouse.dragging || m_rectangle_selection.is_dragging() || m_layers_editing.state == LayersEditing::Editing;
 
-    if (imgui->update_mouse_data(evt) && !other_drag_active) {
+    // A drag that starts on a marker's details moves the view, as over empty space. Checked on the first drag event only,
+    // while ImGui still hovers what was under the press. After that, m_mouse.dragging keeps the drag on the canvas.
+    const bool camera_drag = evt.Dragging() && !other_drag_active && m_center_of_mass.details_pressed();
+    if (camera_drag) {
+        // Else the object under the details keeps a left drag from turning the view.
+        m_hover_volume_idxs.clear();
+        // From the press, as the canvas does, which went to the ImGui branch below and left its position in m_mouse.position.
+        m_mouse.drag.start_position_2D = Point(m_mouse.position.x(), m_mouse.position.y());
+        // Its release is no right click on the canvas, also when the view has not turned yet, as that takes a second drag event.
+        m_mouse.ignore_right_up = true;
+    }
+    // A click that closes a context menu has no move before it, so ImGui may not yet hover the details.
+    const bool click_on_details = (evt.ButtonDown() || evt.ButtonUp()) && m_center_of_mass.details_contain(pos.cast<double>());
+
+    if ((imgui->update_mouse_data(evt) || click_on_details) && !other_drag_active && !camera_drag) {
         if ((evt.LeftDown() || (evt.Moving() && (evt.AltDown() || evt.ShiftDown()))) && m_canvas != nullptr)
             m_canvas->SetFocus();
         m_mouse.position = evt.Leaving() ? Vec2d(-1.0, -1.0) : pos.cast<double>();
@@ -5050,6 +5135,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         m_mouse.ignore_left_up = true;
         return;
     }
+    // A right click off the details hides them, as a left one does.
+    if (evt.RightDown() && !mouse_in_layer_editing)
+        m_center_of_mass.hide_details(*this);
 
     bool any_gizmo_active = m_gizmos.get_current() != nullptr;
 
@@ -6371,6 +6459,9 @@ void GLCanvas3D::mouse_up_cleanup()
     m_mouse.ignore_right_up = false;
     m_mouse.down_on_toolbar = false;
     m_dirty = true;
+    // the frame that follows a release puts the preview's toolpaths back, and on some platforms
+    // no idle event follows a button release until the next input
+    wxWakeUpIdle();
 
     if (m_canvas->HasCapture())
         m_canvas->ReleaseMouse();
@@ -6444,8 +6535,8 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
     // the moment that object goes over its limit - which is what makes the pair worth drawing at all.
     // The tier is per object, so a short object gets the narrow nozzle outline rather than the wide
     // body one it is not subject to; without that, a 3 mm object parked beside the tower would be drawn
-    // deep inside the keep-out ring while passing the check. Only the instances that already exceed
-    // allowed_rise also get a height limit plane.
+    // deep inside the keep-out ring while passing the check. Only the instances the validation refuses,
+    // next to the nozzle or within the toolhead radius, also get a height limit plane.
     Polygons                               outlines;
     std::vector<std::pair<Polygon, float>> height_polygons;
     bool                                   body_tier_used = false;
@@ -6460,15 +6551,17 @@ void GLCanvas3D::update_compacted_wipe_tower_clearance()
                 continue;
 
             // Same tiers and the same rise measured from the plate as
-            // Print::compacted_wipe_tower_clearance_valid(), so that the preview and the validation
-            // that follows it never contradict each other.
+            // Print::compacted_wipe_tower_clearance_valid(), so that the preview shows a height limit on
+            // the very objects the validation that follows refuses. Orca: like it, the preview leaves an
+            // object away from the toolhead to the check after slicing, which measures its rise from the
+            // tower as printed, so such an object gets no height limit plane.
             const double                  object_top = model_object->get_instance_max_z(i);
             const CompactedTowerClearance clearance  = compacted_wipe_tower_clearance(config, zone, inst_hull, object_top);
             body_tier_used                           = body_tier_used || compacted_tower_body_tier(clearance);
 
             const Polygon outline = compacted_wipe_tower_offender_outline(inst_hull, clearance.body_clearance);
             outlines.emplace_back(outline);
-            if (object_top <= clearance.allowed_rise + EPSILON)
+            if (! clearance.near_nozzle && ! clearance.near_body)
                 continue;
             height_polygons.emplace_back(outline, float(clearance.allowed_rise));
         }
@@ -6858,6 +6951,7 @@ void GLCanvas3D::_render_3d_navigator()
     if (!wxGetApp().show_3d_navigator()) {
         m_canvas_toolbar_pos[0] = 0;
         m_navigator_dragging = false;
+        m_navigator_animating = false;
         return;
     }
 
@@ -6952,7 +7046,17 @@ void GLCanvas3D::_render_3d_navigator()
         request_extra_frame();
     }
 
-    m_navigator_dragging = result.dragging;
+    // The navigator reports a drag only on a frame the mouse moved in, which would drop the flag on
+    // every still frame of a drag and leave it up after a release with no motion; it holds for as
+    // long as the button does.
+    m_navigator_dragging = result.dragging || (m_navigator_dragging && io.MouseDown[0]);
+    // A click on a face or a corner turns the camera over the frames that follow, with no button
+    // held, each reported as a change that is not a drag. The frame after the last of them is asked
+    // for, so that what the turn held back is drawn again.
+    const bool animating = result.changed && !result.dragging;
+    if (m_navigator_animating && !animating)
+        request_extra_frame();
+    m_navigator_animating = animating;
 }
 
 #define ENABLE_THUMBNAIL_GENERATOR_DEBUG_OUTPUT 0
@@ -8685,13 +8789,22 @@ bool GLCanvas3D::_is_scene_cacheable() const
         return false;
 #endif
 
-    // The scene follows the cursor during a drag, under a gizmo that draws at the cursor, and while
-    // the cursor is on the layer height bar, where the object shader draws a band at its height.
+    // The scene follows the cursor while the user drags, under a gizmo that draws at the cursor, and
+    // while the cursor is on the layer height bar, where the object shader draws a band at its height.
     const GLGizmoBase* gizmo = m_gizmos.get_current();
     const bool cursor_on_layers_bar = is_layers_editing_enabled() &&
         m_layers_editing.bar_rect_contains(*this, (float)m_mouse.position.x(), (float)m_mouse.position.y());
-    return !m_mouse.dragging && !m_gizmos.is_dragging() && !m_rectangle_selection.is_dragging() &&
-           (gizmo == nullptr || !gizmo->render_follows_cursor()) && !cursor_on_layers_bar;
+    return !is_user_interacting() && (gizmo == nullptr || !gizmo->render_follows_cursor()) && !cursor_on_layers_bar;
+}
+
+// Whether the user is holding something that moves the scene: the camera, the navigator, a gizmo,
+// the rectangle selection or a preview slider, or the navigator is still turning the camera for them.
+bool GLCanvas3D::is_user_interacting() const
+{
+    // the navigator's flag is cleared by the overlay, later in the frame than this is asked
+    const bool navigator_dragging = m_navigator_dragging && GImGui != nullptr && ImGui::GetIO().MouseDown[0];
+    return m_mouse.dragging || navigator_dragging || m_navigator_animating || m_gizmos.is_dragging() ||
+           m_rectangle_selection.is_dragging() || m_gcode_viewer.is_slider_dragging();
 }
 
 bool GLCanvas3D::_is_frame_skipping_enabled() const
@@ -10022,6 +10135,24 @@ void GLCanvas3D::_render_wireframe_overlay()
     shader->stop_using();
 }
 
+// The reduced set is drawn while the camera, the navigator or either slider is dragged. A wheel
+// step has no duration, so it holds the reduced set for a settle time instead, and the frame that
+// restores the full toolpaths is scheduled for when that time runs out. Returns whether what the scene
+// pass draws changed, since a frame that reuses the cached scene would hide the change.
+bool GLCanvas3D::_update_preview_interaction()
+{
+    const auto now = std::chrono::steady_clock::now();
+    const bool settling = now < m_preview_interaction_until;
+    const bool dragging = is_user_interacting();
+    const bool was_reduced = m_gcode_viewer.is_reduced_detail();
+    m_gcode_viewer.set_interacting(dragging || settling);
+    if (settling && !dragging && m_gcode_viewer.is_reduced_detail()) {
+        m_preview_settle_pending = true;
+        schedule_extra_frame(static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(m_preview_interaction_until - now).count()) + 1);
+    }
+    return m_gcode_viewer.is_reduced_detail() != was_reduced;
+}
+
 //BBS: GUI refactor: add canvas size as parameters
 void GLCanvas3D::_render_gcode(int canvas_width, int canvas_height)
 {
@@ -11172,9 +11303,11 @@ void GLCanvas3D::_render_canvas_toolbar()
         (m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE_DARK_HOVER : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_ACTIVE_HOVER) :
         (m_is_dark ? GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_DARK_HOVER        : GLGizmosManager::MENU_ICON_NAME::IC_CANVAS_SECTION_HOVER));
 
-    if (ImGui::ImageButton3(s_normal_id, s_hover_id, btn_size))
+    if (ImGui::ImageButton3(s_normal_id, s_hover_id, btn_size)) {
         m_section_view->panel_open = !m_section_view->panel_open;
-    else if (ImGui::IsItemHovered()) {
+        if (m_section_view->panel_open && !section_view)
+            set_section_view_ratio(SECTION_VIEW_START_RATIO);
+    } else if (ImGui::IsItemHovered()) {
         if (const float wheel = ImGui::GetIO().MouseWheel; wheel != 0.f)
             set_section_view_ratio(get_section_view_ratio() + (wheel < 0.f ? -0.01 : 0.01));
         if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
@@ -11298,7 +11431,7 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Outline")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             wxGetApp().show_outline(),
-            []{wxGetApp().toggle_show_outline();}
+            [this]{wxGetApp().toggle_show_outline(); m_dirty = true;}
         );
 
         create_menu_item( _utf8(L("Wireframe")),
@@ -11436,18 +11569,28 @@ void GLCanvas3D::_render_section_view_panel(const ImVec2& bottom_left)
     ImGui::AlignTextToFramePadding();
     imgui.text(_L("Section view"));
 
-    float ratio = float(get_section_view_ratio());
+    float percent = float(get_section_view_ratio() * 100.);
     ImGui::SameLine();
     ImGui::SetNextItemWidth(imgui.scaled(7.f));
-    bool changed = imgui.bbl_slider_float_style("##section_view", &ratio, 0.f, 1.f, "%.2f", 1.0f, true);
+    bool changed = imgui.bbl_slider_float_style("##section_view", &percent, 0.f, 100.f, "%.1f%%", 1.0f, true);
+    bool hovered = ImGui::IsItemHovered();
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(1.5f * imgui.get_slider_icon_size().x);
-    changed |= ImGui::BBLDragFloat("##section_view_input", &ratio, 0.05f, 0.0f, 0.0f, "%.2f");
-    if (changed)
-        set_section_view_ratio(ratio);
+    ImGui::SetNextItemWidth(ImGui::CalcTextSize("100.0%").x + 2.f * style.FramePadding.x);
+    changed |= ImGui::BBLDragFloat("##section_view_input", &percent, 1.f, 0.0f, 0.0f, "%.1f%%");
+    hovered |= ImGui::IsItemHovered();
+    if (const float wheel = ImGui::GetIO().MouseWheel; hovered && wheel != 0.f)
+        set_section_view_ratio(get_section_view_ratio() + (wheel < 0.f ? -0.01 : 0.01));
+    else if (changed)
+        set_section_view_ratio(percent / 100.);
 
     ImGui::SameLine();
+    imgui.disabled_begin(m_section_view->follow_camera);
     if (imgui.button(_L("Set viewing angle")))
+        align_section_view_to_camera();
+    imgui.disabled_end();
+
+    ImGui::SameLine();
+    if (imgui.bbl_checkbox(_L("Follow camera"), m_section_view->follow_camera))
         align_section_view_to_camera();
 
     imgui.disabled_begin(!is_section_view_active());
