@@ -9044,6 +9044,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
     }
     // New import dialogs run before any project path, calibration or material changes.
     const bool stage_geometry = (strategy & LoadStrategy::LoadModel) && !(strategy & LoadStrategy::LoadConfig) &&
+        !(strategy & LoadStrategy::BundledModel) &&
         std::any_of(input_files.begin(), input_files.end(), [](const fs::path& file) {
             return !geometry_import_format(file.string()).empty();
         });
@@ -17120,6 +17121,8 @@ bool Plater::add_model(bool imperial_units, std::string fname)
 
     auto strategy = LoadStrategy::LoadModel;
     if (imperial_units) strategy = strategy | LoadStrategy::ImperialUnits;
+    if (!fname.empty())
+        strategy = strategy | LoadStrategy::BundledModel;
     const bool loaded = !load_files(paths, strategy, ask_multi).empty();
     if (loaded) {
 
