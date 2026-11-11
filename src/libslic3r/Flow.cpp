@@ -7,6 +7,7 @@
 #include <assert.h>
 
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/format.hpp>
 #include <string>
 #include <math.h>
 #include "PrintConfig.hpp"

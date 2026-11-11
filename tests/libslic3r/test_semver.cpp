@@ -30,3 +30,18 @@ TEST_CASE("A dev build ranks above its alpha and beta and below its release", "[
 TEST_CASE("Two dev builds of the same version are equal", "[Semver]") {
     CHECK(Semver("2.5.0-dev") == Semver("2.5.0-dev"));
 }
+
+TEST_CASE("Versions print with the patch split in two, or as three parts", "[Semver]") {
+    // to_string() prints the patch as patch / 100 and patch % 100; to_string_sf() prints it whole.
+    const Semver release(2, 5, 103);
+    CHECK(release.to_string() == "2.5.1.3");
+    CHECK(release.to_string_sf() == "2.5.103");
+
+    const Semver dev(2, 6, 0, nullptr, "dev");
+    CHECK(dev.to_string() == "2.6.0.0-dev");
+    CHECK(dev.to_string_sf() == "2.6.0-dev");
+
+    const Semver tagged(1, 2, 3, "build7");
+    CHECK(tagged.to_string() == "1.2.0.3+build7");
+    CHECK(tagged.to_string_sf() == "1.2.3+build7");
+}

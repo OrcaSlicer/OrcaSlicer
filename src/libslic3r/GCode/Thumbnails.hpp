@@ -13,6 +13,7 @@
 #include <memory>
 #include <string_view>
 
+#include <boost/format.hpp>
 #include <boost/beast/core/detail/base64.hpp>
 
 namespace Slic3r { class ConfigBase; }

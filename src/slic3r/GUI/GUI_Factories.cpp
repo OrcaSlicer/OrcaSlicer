@@ -47,6 +47,7 @@
 #include "libslic3r/Point.hpp"
 #include <cstdlib>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include "slic3r/GUI/Tab.hpp"
 #include "ParamsPanel.hpp"
 #include "MsgDialog.hpp"

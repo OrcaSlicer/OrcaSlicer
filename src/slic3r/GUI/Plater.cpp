@@ -1,4 +1,5 @@
 #include "Plater.hpp"
+#include "LazyPage.hpp"
 #include "../Utils/NetworkAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "CalibUtils.hpp"

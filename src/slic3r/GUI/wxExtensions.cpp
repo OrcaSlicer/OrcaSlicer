@@ -27,6 +27,7 @@
 #include <wx/sizer.h>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <wx/utils.h>
 #include <wx/string.h>
 

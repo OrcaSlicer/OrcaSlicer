@@ -33,6 +33,7 @@
 
 #include "slic3r/GUI/3DScene.hpp"
 #include <boost/foreach.hpp>
+#include <boost/format.hpp>
 
 #ifndef NDEBUG
 // #define SLIC3R_UNDOREDO_DEBUG

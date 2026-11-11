@@ -1,4 +1,5 @@
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <cstdint>
 #include <cmath>
 #include <nlohmann/json.hpp>

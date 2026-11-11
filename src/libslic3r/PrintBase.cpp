@@ -6,6 +6,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <cstddef>
 #include <string>
 #include <vector>

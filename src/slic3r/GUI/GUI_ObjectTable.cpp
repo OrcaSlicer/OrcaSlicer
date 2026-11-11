@@ -15,6 +15,7 @@
 #include <wx/gdicmn.h>
 #include <wx/dc.h>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include "libslic3r/Config.hpp"
 #include <ostream>
 #include <wx/arrstr.h>
