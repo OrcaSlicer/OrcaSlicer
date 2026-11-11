@@ -494,7 +494,7 @@ PlateSettingsDialog::PlateSettingsDialog(wxWindow* parent, const wxString& title
     set_illustrated_tooltip(m_spiral_mode_choice,
         _L("Prints the outer wall as one continuous spiral, which turns a solid model into a single-walled vase with a solid bottom and no seam. "
            "Same as Global uses the process setting."),
-        {{"app_ui/spiral_vase_off.png", _L("Off")}, {"app_ui/spiral_vase_on.png", _L("On")}});
+        {{"app_ui/spiral_vase_off.gif", _L("Off")}, {"app_ui/spiral_vase_on.gif", _L("On")}});
 
     // First layer filament sequence
     m_first_layer_print_seq_choice = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(240), -1), 0, NULL, wxCB_READONLY);

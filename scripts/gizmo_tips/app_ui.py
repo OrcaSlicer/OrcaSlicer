@@ -203,56 +203,13 @@ VASE_LH = 0.13
 VASE_WALL = 0.035
 VASE_BOTTOM = 0.08
 SEAM_ANGLE = math.radians(-62.0)
-# The helix climbs faster than a real layer height, so its slope reads at this size as one rising line
-# and not as a stack of rings.
-SPIRAL_PITCH = 0.34
 
 
 def _vase_radius(z):
     return 0.42 + 0.10 * np.sin(z / VASE_H * math.pi * 1.1 + 0.2)
 
 
-def _vase(spiral):
-    def scene(p):
-        z = p[:, 2]
-        r = np.hypot(p[:, 0], p[:, 1])
-        theta = np.arctan2(p[:, 1], p[:, 0])
-        rz = _vase_radius(z)
-        wall = np.abs(r - rz + VASE_WALL * 0.5) - VASE_WALL * 0.5
-        if spiral:
-            # The wall ends on the helix, so the rim climbs once around instead of ending level.
-            top = VASE_H - SPIRAL_PITCH * (1.0 - (-theta / (2.0 * math.pi)) % 1.0)
-        else:
-            top = VASE_H
-        dz = np.maximum(-z, z - top)
-        bottom = np.maximum(r - rz, np.maximum(-z, z - VASE_BOTTOM))
-        shell = np.minimum(np.maximum(wall, dz), bottom) * 0.8
-        if spiral:
-            phase = z / SPIRAL_PITCH + theta / (2.0 * math.pi)
-            # No layer ridges: they would draw level rings and contradict the one rising line.
-            ridge = 0.0
-            mat = np.where((z > VASE_BOTTOM + 0.01) & (np.abs((phase % 1.0) - 0.5) < 0.09), M_ACCENT, M_PART)
-            return union(bed(p), (shell + ridge * (z > VASE_BOTTOM), mat))
-        ridge = _layer_ridges(z, VASE_LH, 0.012)
-        items = [bed(p), (shell + ridge, M_PART)]
-        # The seam: where each layer starts and ends, a small blob in a line up the side.
-        zs = np.arange(VASE_LH, VASE_H + 1e-6, VASE_LH)
-        zi = np.clip(np.round(z / VASE_LH), 1, len(zs)) * VASE_LH
-        rs = _vase_radius(zi)
-        c = np.stack([rs * math.cos(SEAM_ANGLE), rs * math.sin(SEAM_ANGLE), zi], axis=1)
-        items.append((np.linalg.norm(p - c, axis=1) - 0.021, M_ACCENT))
-        return union(*items)
-
-    cam = Camera(SIZE, target=(0.0, 0.0, 0.62), extent=2.0)
-    return Overlay(render(scene, cam), cam).finish(SIZE)
-
-
-def spiral_vase_off(k, n):
-    return _vase(False)
-
-
-def spiral_vase_on(k, n):
-    return _vase(True)
+# The vase is printed in the loops of app_ui_anim.py.
 
 
 # --- pressure advance tests: tower, lines, pattern (one camera for the three) ----------------------
@@ -329,8 +286,6 @@ FRAMES = {
     "print_seq_by_layer": 20,
     "print_seq_by_object": 20,
     "filament_seq": 21,
-    "spiral_vase_off": 0,
-    "spiral_vase_on": 0,
     "pa_tower": 0,
     "pa_line": 0,
     "pa_pattern": 0,
