@@ -2437,6 +2437,66 @@ TEST_CASE("An empty AMS placeholder does not append a filament on sync", "[Prese
     CHECK(count == before);
 }
 
+namespace {
+
+// A non-Bambu printer with `toolheads` nozzles; `semm` says whether they share one multi-material path.
+void set_toolheads(PresetBundle &bundle, size_t toolheads, bool semm)
+{
+    DynamicPrintConfig &printer = bundle.printers.get_edited_preset().config;
+    printer.set_key_value("nozzle_diameter", new ConfigOptionFloats(std::vector<double>(toolheads, 0.4)));
+    printer.set_key_value("single_extruder_multi_material", new ConfigOptionBool(semm));
+}
+
+// Three loaded trays with known ids and distinct colors, none mapped, so each one is appended.
+void fill_three_trays(PresetBundle &bundle)
+{
+    const std::vector<std::string> colours{"#111111", "#222222", "#333333"};
+    for (size_t i = 0; i < colours.size(); ++i) {
+        bundle.filament_ams_list[int(i)] = ams_tray("GFL99", "PLA", /*exist=*/true, /*placeholder=*/false);
+        bundle.filament_ams_list[int(i)].set_key_value("filament_colour", new ConfigOptionStrings{colours[i]});
+        bundle.filament_ams_list[int(i)].set_key_value("slot_id", new ConfigOptionStrings{std::to_string(i)});
+    }
+}
+
+} // namespace
+
+// A toolchanger's sidebar has one filament per toolhead and no remove button, so a sync must
+// never leave more slots than toolheads, whatever the device reported or the list held before.
+TEST_CASE("A sync on a toolchanger leaves no more filaments than toolheads", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    const size_t toolheads = 2;
+    set_toolheads(bundle, toolheads, /*semm=*/false);
+    bundle.set_num_filaments(3, std::string("#00FF00")); // one surplus slot already present
+    fill_three_trays(bundle);
+
+    REQUIRE(bundle.fixed_toolhead_filament_count() == int(toolheads));
+    const auto count = sync_one_tray(bundle, /*enable_append=*/true);
+
+    CHECK(count == toolheads);
+    CHECK(bundle.filament_presets.size() == toolheads);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == toolheads);
+    CHECK(bundle.project_config.option<ConfigOptionInts>("filament_map")->values.size() == toolheads);
+}
+
+// A shared multi-material path takes any number of filaments, so its sync is not capped.
+TEST_CASE("A sync on a single-extruder multi-material printer keeps every filament", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    set_toolheads(bundle, 2, /*semm=*/true);
+    bundle.set_num_filaments(3, std::string("#00FF00"));
+    fill_three_trays(bundle);
+
+    REQUIRE(bundle.fixed_toolhead_filament_count() == 0);
+    const size_t before = bundle.filament_presets.size();
+    const auto   count  = sync_one_tray(bundle, /*enable_append=*/true);
+
+    // The three trays are appended after the existing slots.
+    CHECK(count == before + 3);
+}
+
 // The append preference still governs a data-bearing tray: with append off the sidebar count is
 // unchanged, exactly as for a mapped-but-unlisted tray.
 TEST_CASE("The append preference gates a data-bearing AMS tray without a preset id", "[Preset][Bundle]")
@@ -8570,4 +8630,95 @@ TEST_CASE("The cloud diff force-emits a disabled override only where the cloud w
     CHECK(key_values["filament_retract_before_wipe"] == "nil");
     // An ironing override defaults to nil: an absent key stays nil, so it is not sent.
     CHECK(key_values.count("filament_ironing_flow") == 0);
+}
+
+namespace {
+
+DynamicPrintConfig device_tray(const std::string& ams_id, int extruder, const std::string& type, const std::string& colour)
+{
+    DynamicPrintConfig tray;
+    tray.set_key_value("ams_id", new ConfigOptionStrings{ams_id});
+    tray.set_key_value("slot_id", new ConfigOptionStrings{"0"});
+    tray.set_key_value("filament_id", new ConfigOptionStrings{type.empty() ? "" : "GF" + type});
+    tray.set_key_value("filament_type", new ConfigOptionStrings{type});
+    tray.set_key_value("filament_colour", new ConfigOptionStrings{colour});
+    tray.set_key_value("filament_exist", new ConfigOptionBools{!type.empty()});
+    tray.set_key_value("filament_slot_placeholder", new ConfigOptionBools{type.empty()});
+    tray.set_key_value("device_tray_extruder_id", new ConfigOptionInt(extruder));
+    return tray;
+}
+
+} // namespace
+
+TEST_CASE("A multi-toolhead device filament list syncs one slot per toolhead in toolhead order", "[Preset][Bundle]")
+{
+    // Five toolheads, one lane each (toolhead 3 empty), plus an empty external spool per toolhead,
+    // keyed the way the device list keys them: the main toolhead's entries carry 0x10000.
+    std::map<int, DynamicPrintConfig> list;
+    list[0x10000 + 0] = device_tray("0", 0, "PETG", "#FFFFFF");
+    list[1]           = device_tray("1", 1, "PETG", "#050505");
+    list[2]           = device_tray("2", 2, "PETG", "#002E96");
+    list[3]           = device_tray("3", 3, "", "");
+    list[4]           = device_tray("4", 4, "PETG", "#000000");
+    for (int extruder = 0; extruder < 5; ++extruder)
+        list[(extruder == 0 ? 0x10000 : 0) + 255 - extruder] = device_tray(std::to_string(255 - extruder), extruder, "", "");
+
+    const auto ordered = PresetBundle::order_device_filaments_by_extruder(list, 5);
+
+    const std::vector<std::string> expected_colours{"#FFFFFF", "#050505", "#002E96", "", "#000000"};
+    auto it = ordered.begin();
+    for (int extruder = 0; extruder < 5; ++extruder, ++it) {
+        INFO("toolhead " << extruder);
+        REQUIRE(it != ordered.end());
+        CHECK(it->second.opt_int("device_tray_extruder_id") == extruder);
+        CHECK(it->second.opt_string("ams_id", 0u) == std::to_string(extruder));
+        CHECK(it->second.opt_string("filament_colour", 0u) == expected_colours[extruder]);
+        const bool keep = it->second.has("filament_keep_slot") && it->second.opt_bool("filament_keep_slot");
+        CHECK(keep == (extruder == 3));
+    }
+    // The empty external spools follow the toolhead slots.
+    CHECK(ordered.size() == list.size());
+}
+
+TEST_CASE("A toolhead the device reports nothing for keeps its slot", "[Preset][Bundle]")
+{
+    // Toolhead 1 has no lane and no external spool entry at all.
+    std::map<int, DynamicPrintConfig> list;
+    list[0x10000 + 0] = device_tray("0", 0, "PLA", "#FF0000");
+    list[2]           = device_tray("2", 2, "PETG", "#0000FF");
+
+    const auto ordered = PresetBundle::order_device_filaments_by_extruder(list, 3);
+
+    REQUIRE(ordered.size() == 3);
+    auto it = ordered.begin();
+    CHECK(it->second.opt_string("filament_colour", 0u) == "#FF0000");
+    ++it;
+    CHECK(it->second.opt_int("device_tray_extruder_id") == 1);
+    CHECK(it->second.opt_bool("filament_slot_placeholder", 0u));
+    CHECK(it->second.opt_bool("filament_keep_slot"));
+    CHECK(it->second.opt_string("filament_id", 0u).empty());
+    ++it;
+    CHECK(it->second.opt_string("filament_colour", 0u) == "#0000FF");
+}
+
+TEST_CASE("A loaded external spool fills a toolhead slot that has no loaded lane", "[Preset][Bundle]")
+{
+    std::map<int, DynamicPrintConfig> list;
+    list[0x10000 + 0] = device_tray("0", 0, "PLA", "#FF0000");
+    list[1]           = device_tray("1", 1, "", "");
+    list[254]         = device_tray("254", 1, "TPU", "#00FF00");
+
+    const auto ordered = PresetBundle::order_device_filaments_by_extruder(list, 2);
+
+    REQUIRE(ordered.count(1) == 1);
+    CHECK(ordered.at(1).opt_string("filament_type", 0u) == "TPU");
+    CHECK_FALSE(ordered.at(1).has("filament_keep_slot"));
+}
+
+TEST_CASE("A single-toolhead device filament list is left as it is", "[Preset][Bundle]")
+{
+    std::map<int, DynamicPrintConfig> list;
+    list[0x10000 + 1] = device_tray("0", 0, "PLA", "#FF0000");
+    list[0x10000 + 0] = device_tray("0", 0, "PETG", "#00FF00");
+    CHECK(PresetBundle::order_device_filaments_by_extruder(list, 1) == list);
 }

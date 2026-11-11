@@ -48,7 +48,9 @@ public:
 
 public:
     /*extruder system*/
-    int command_select_extruder(int id);
+    // home_first and after_macro are for non-Bambu printers (see MoonrakerPrinterAgent): they are
+    // added to the request only when set, so Bambu requests stay unchanged.
+    int command_select_extruder(int id, bool home_first = false, const std::string& after_macro = {});
 };
 
 };

@@ -19,6 +19,9 @@ public:
 
     void set_mode(CameraStreamMode mode);
 
+    // Flip/rotate applied to the image on the next Play().
+    void set_transform(const CameraTransform& transform) { m_transform = transform; }
+
     void Play() override;
 
     void Stop() override;
@@ -27,6 +30,7 @@ private:
     wxWebView* m_webview = nullptr;
     std::string m_url;
     CameraStreamMode m_stream_mode = CameraStreamMode::http;
+    CameraTransform  m_transform;
 };
 
 }} // namespace Slic3r::GUI

@@ -588,3 +588,138 @@ TEST_CASE("A disconnect during the connection queries keeps the status stream fr
     REQUIRE(f.printer.wait_for_http_hang_ups(1));
     CHECK_FALSE(f.printer.wait_for_ready_connections(1, 500ms));
 }
+
+TEST_CASE("A toolhead change reports switching, then its outcome once, then nothing pending", "[MoonrakerPrinterAgent][ToolSelect]")
+{
+    const bool success = GENERATE(false, true);
+    INFO("command succeeded: " << success);
+    using T = MoonrakerToolSelectTracker;
+    const int count = 5, current = 1, requested = 3;
+    const int idle  = count | (current << 4);
+    const int busy  = idle | (requested << 8) | (T::SWITCH_RUNNING << 12);
+    const int ended = idle | (requested << 8) | ((success ? T::SWITCH_IDLE : T::SWITCH_FAILED) << 12);
+
+    T tracker;
+    CHECK(tracker.next_state(count, current) == idle);
+    tracker.start(requested);
+    CHECK(tracker.next_state(count, current) == busy);
+    CHECK(tracker.next_state(count, current) == busy); // still running
+    tracker.finish(success);
+    CHECK(tracker.next_state(count, current) == ended);
+    CHECK(tracker.next_state(count, current) == idle);
+}
+
+TEST_CASE("A toolhead change that answers before any status push is still reported as switching first", "[MoonrakerPrinterAgent][ToolSelect]")
+{
+    using T = MoonrakerToolSelectTracker;
+    const int count = 5, current = 1, requested = 1;
+    const int idle = count | (current << 4);
+
+    T tracker;
+    tracker.start(requested);
+    tracker.finish(true);
+    CHECK(tracker.next_state(count, current) == (idle | (requested << 8) | (T::SWITCH_RUNNING << 12)));
+    CHECK(tracker.next_state(count, current) == (idle | (requested << 8) | (T::SWITCH_IDLE << 12)));
+    CHECK(tracker.next_state(count, current) == idle);
+}
+
+TEST_CASE("A toolhead change script homes first and runs the follow-up only when asked", "[MoonrakerPrinterAgent][ToolSelect]")
+{
+    CHECK(MoonrakerPrinterAgent::tool_select_script(1, false, "") == "T1");
+    CHECK(MoonrakerPrinterAgent::tool_select_script(1, true, "") == "G28\nT1");
+    CHECK(MoonrakerPrinterAgent::tool_select_script(3, false, "PURGE_BUCKET") == "T3\nPURGE_BUCKET");
+    CHECK(MoonrakerPrinterAgent::tool_select_script(0, true, "PURGE_BUCKET") == "G28\nT0\nPURGE_BUCKET");
+}
+
+TEST_CASE("A toolhead change follow-up stays a single command", "[MoonrakerPrinterAgent][ToolSelect]")
+{
+    CHECK(MoonrakerPrinterAgent::tool_select_script(2, false, "  PURGE_BUCKET  ") == "T2\nPURGE_BUCKET");
+    CHECK(MoonrakerPrinterAgent::tool_select_script(2, false, "PURGE_BUCKET\nG28") == "T2\nPURGE_BUCKET");
+    CHECK(MoonrakerPrinterAgent::tool_select_script(2, false, "PURGE_BUCKET\r\nG28") == "T2\nPURGE_BUCKET");
+    CHECK(MoonrakerPrinterAgent::tool_select_script(2, false, "   ") == "T2");
+}
+
+TEST_CASE("The extrude buttons move the active extruder relatively and restore the G-code state", "[MoonrakerPrinterAgent][Extrude]")
+{
+    CHECK(MoonrakerPrinterAgent::extrude_script(10, 5) ==
+          "SAVE_GCODE_STATE NAME=ORCA_EXTRUDE\nM83\nG1 E10 F300\nRESTORE_GCODE_STATE NAME=ORCA_EXTRUDE");
+    CHECK(MoonrakerPrinterAgent::extrude_script(-10, 5) ==
+          "SAVE_GCODE_STATE NAME=ORCA_EXTRUDE\nM83\nG1 E-10 F300\nRESTORE_GCODE_STATE NAME=ORCA_EXTRUDE");
+    CHECK(MoonrakerPrinterAgent::extrude_script(25, 2) ==
+          "SAVE_GCODE_STATE NAME=ORCA_EXTRUDE\nM83\nG1 E25 F120\nRESTORE_GCODE_STATE NAME=ORCA_EXTRUDE");
+    CHECK(MoonrakerPrinterAgent::extrude_script(0, 5).empty());
+    CHECK(MoonrakerPrinterAgent::extrude_script(10, 0).empty());
+}
+
+TEST_CASE("A lane_data record keyed by a tool feeds that toolhead", "[MoonrakerPrinterAgent][LaneData]")
+{
+    const int toolheads = 5;
+    const nlohmann::json plain = nlohmann::json::object();
+    CHECK(MoonrakerPrinterAgent::toolhead_from_lane_name("T0", plain, toolheads) == 0);
+    CHECK(MoonrakerPrinterAgent::toolhead_from_lane_name("T4", nlohmann::json{{"lane_name", "T4"}}, toolheads) == 4);
+    CHECK(MoonrakerPrinterAgent::toolhead_from_lane_name("t2", nlohmann::json{{"lane_name", "T2"}}, toolheads) == 2);
+}
+
+TEST_CASE("A lane_data record that names no existing tool feeds no toolhead by name", "[MoonrakerPrinterAgent][LaneData]")
+{
+    const int toolheads = 5;
+    // HelixScreen's external spool record: keyed like a tool, but beyond the toolheads and named "bypass".
+    CHECK(MoonrakerPrinterAgent::toolhead_from_lane_name("T5", nlohmann::json{{"lane_name", "bypass"}}, toolheads) == -1);
+    CHECK(MoonrakerPrinterAgent::toolhead_from_lane_name("T1", nlohmann::json{{"lane_name", "bypass"}}, toolheads) == -1);
+    CHECK(MoonrakerPrinterAgent::toolhead_from_lane_name("T5", nlohmann::json::object(), toolheads) == -1);
+    CHECK(MoonrakerPrinterAgent::toolhead_from_lane_name("lane1", nlohmann::json::object(), toolheads) == -1);
+    CHECK(MoonrakerPrinterAgent::toolhead_from_lane_name("Tx", nlohmann::json::object(), toolheads) == -1);
+}
+
+TEST_CASE("An unmapped lane_data record goes to the main extruder only where that is a safe guess", "[MoonrakerPrinterAgent][LaneData]")
+{
+    CHECK(MoonrakerPrinterAgent::keep_unmapped_lane(1, false, false));   // single toolhead: the only choice
+    CHECK(MoonrakerPrinterAgent::keep_unmapped_lane(5, true, false));    // AFC keeps its fallback
+    CHECK(MoonrakerPrinterAgent::keep_unmapped_lane(5, false, true));    // Happy Hare keeps its fallback
+    CHECK_FALSE(MoonrakerPrinterAgent::keep_unmapped_lane(5, false, false)); // e.g. a toolchanger's bypass record
+}
+
+TEST_CASE("Moonraker webcams are read with their flip and rotation", "[MoonrakerPrinterAgent][Camera]")
+{
+    const auto response = nlohmann::json::parse(R"({"result":{"webcams":[
+        {"name":"DownCam","enabled":true,"service":"mjpegstreamer-adaptive","stream_url":"/webcam/?action=stream",
+         "snapshot_url":"/webcam/?action=snapshot","rotation":0,"flip_horizontal":true,"flip_vertical":true},
+        {"name":"Axiscope","enabled":false,"service":"mjpegstreamer-adaptive","stream_url":"/webcam2/?action=stream",
+         "snapshot_url":"/webcam2/?action=snapshot","rotation":270,"flip_horizontal":false,"flip_vertical":false}]}})");
+    const auto webcams = MoonrakerPrinterAgent::parse_webcams(response);
+    REQUIRE(webcams.size() == 2);
+    CHECK(webcams[0].name == "DownCam");
+    CHECK(webcams[0].transform.flip_horizontal);
+    CHECK(webcams[0].transform.flip_vertical);
+    CHECK_FALSE(webcams[1].enabled);
+    CHECK(webcams[1].transform.rotation == 270);
+}
+
+TEST_CASE("The camera shown by default is the first enabled one", "[MoonrakerPrinterAgent][Camera]")
+{
+    using W = MoonrakerPrinterAgent::MoonrakerWebcam;
+    W off; off.enabled = false;
+    W on;
+    CHECK(MoonrakerPrinterAgent::default_webcam({}) == -1);
+    CHECK(MoonrakerPrinterAgent::default_webcam({off, on}) == 1);
+    CHECK(MoonrakerPrinterAgent::default_webcam({off, off}) == 0);
+}
+
+TEST_CASE("An MJPEG webcam streams; other services fall back to snapshots", "[MoonrakerPrinterAgent][Camera]")
+{
+    using W = MoonrakerPrinterAgent::MoonrakerWebcam;
+    W mjpeg;  mjpeg.service = "mjpegstreamer"; mjpeg.stream_url = "/webcam/?action=stream"; mjpeg.snapshot_url = "/webcam/?action=snapshot";
+    W webrtc; webrtc.service = "webrtc-camerastreamer"; webrtc.stream_url = "/webcam/webrtc"; webrtc.snapshot_url = "/webcam/?action=snapshot";
+    W nothing; nothing.service = "webrtc-go2rtc"; nothing.stream_url = "/go2rtc/";
+    CHECK(MoonrakerPrinterAgent::webcam_stream_mode(mjpeg) == CameraStreamMode::http);
+    CHECK(MoonrakerPrinterAgent::webcam_stream_mode(webrtc) == CameraStreamMode::http_snapshot);
+    CHECK(MoonrakerPrinterAgent::webcam_stream_mode(nothing) == CameraStreamMode::none);
+}
+
+TEST_CASE("A webcam path is served by the printer's web host, not Moonraker's API port", "[MoonrakerPrinterAgent][Camera]")
+{
+    CHECK(MoonrakerPrinterAgent::resolve_webcam_url("http://192.168.5.90", "/webcam/?action=stream") == "http://192.168.5.90/webcam/?action=stream");
+    CHECK(MoonrakerPrinterAgent::resolve_webcam_url("http://192.168.5.90:7125", "/webcam/?action=stream") == "http://192.168.5.90/webcam/?action=stream");
+    CHECK(MoonrakerPrinterAgent::resolve_webcam_url("http://printer.local:8080/", "webcam/?action=stream") == "http://printer.local:8080/webcam/?action=stream");
+    CHECK(MoonrakerPrinterAgent::resolve_webcam_url("http://192.168.5.90", "http://10.0.0.5:8081/stream") == "http://10.0.0.5:8081/stream");
+}

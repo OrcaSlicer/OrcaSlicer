@@ -57,12 +57,16 @@ bool DevCtrlInfo::CheckCanUpdateData(const nlohmann::json& jj)
     return false;
 }
 
-    int DevCtrl::command_select_extruder(int id)
+    int DevCtrl::command_select_extruder(int id, bool home_first, const std::string& after_macro)
     {
         json j;
         j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
         j["print"]["command"] = "select_extruder";
         j["print"]["extruder_index"] = id;
+        if (home_first)
+            j["print"]["home_first"] = true;
+        if (!after_macro.empty())
+            j["print"]["after_macro"] = after_macro;
         int rtn = m_obj->publish_json(j, 1);
         if (rtn == 0)
         {

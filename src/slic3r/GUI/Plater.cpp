@@ -6643,6 +6643,13 @@ void Sidebar::load_ams_list(MachineObject* obj)
     // - Then it always reads from DevFilaSystem to build the filament list
     if (obj) {
         filament_ams_list = build_filament_ams_list(obj);
+        // A generic printer with several toolheads prints sidebar filament N with toolhead N, so
+        // the sync needs one entry per toolhead in toolhead order. Only the sidebar's copy is
+        // reordered: build_filament_ams_list's keys are tray indices other callers decode.
+        const bool is_bbl_vendor = wxGetApp().preset_bundle && wxGetApp().preset_bundle->is_bbl_vendor();
+        const int  toolheads     = obj->GetExtderSystem() ? obj->GetExtderSystem()->GetTotalExtderCount() : 0;
+        if (!is_bbl_vendor && toolheads > 1)
+            filament_ams_list = PresetBundle::order_device_filaments_by_extruder(filament_ams_list, toolheads);
     }
 
     const std::string& device = obj ? obj->get_dev_id() : "";
@@ -6995,8 +7002,13 @@ void Sidebar::show_SEMM_buttons()
     bool is_multi  = single_or_bbl && is_multi_material;  // MULTI MATERIAL WITH SINGLE EXTRUDER
     bool is_fixed  = !is_single && !is_multi;             // MULTI EXTRUDER / TOOLCHANGER / IDEX WITH FIXED MATERIAL
 
+    // A toolchanger's list is fixed at one filament per toolhead, but offer removing any surplus
+    // (left by an older sync, for example) since nothing else can take it out.
+    const int  toolheads = wxGetApp().preset_bundle->fixed_toolhead_filament_count();
+    const bool surplus   = toolheads > 0 && p->combos_filament.size() > size_t(toolheads);
+
     p->m_bpButton_add_filament->Show(single_or_bbl);
-    p->m_bpButton_del_filament->Show(is_multi);
+    p->m_bpButton_del_filament->Show(is_multi || surplus);
     p->m_flushing_volume_btn->Show(  is_multi);
 
     if (is_multi) {

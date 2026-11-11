@@ -17,6 +17,9 @@
 #include "MsgDialog.hpp"
 #include "DownloadProgressDialog.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
+#include "wxExtensions.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include <wx/dcmemory.h>
 
 
 #include <algorithm>
@@ -241,8 +244,39 @@ CameraStreamMode MediaPlayCtrl::current_mode() const
     return agent ? agent->get_camera_stream_mode() : CameraStreamMode::none;
 }
 
+namespace {
+
+// The picture shown before a non-Bambu printer's camera plays: the Orca logo on a dark field,
+// drawn from the bundled SVG so no extra image file is needed.
+wxImage orca_idle_image()
+{
+    static wxImage image;
+    if (!image.IsOk()) {
+        const wxSize size(1280, 720);
+        wxBitmap     canvas(size);
+        {
+            wxMemoryDC dc(canvas);
+            dc.SetBackground(wxBrush(wxColour("#262729")));
+            dc.Clear();
+            const wxBitmap logo = create_scaled_bitmap("OrcaSlicer_horizontal_dark", nullptr, 120);
+            if (logo.IsOk())
+                dc.DrawBitmap(logo, (size.x - logo.GetWidth()) / 2, (size.y - logo.GetHeight()) / 2, true);
+        }
+        image = canvas.ConvertToImage();
+    }
+    return image;
+}
+
+} // namespace
+
 void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
 {
+    // Bambu's placeholder for Bambu printers, Orca's for everything else.
+    if (wxGetApp().preset_bundle && !wxGetApp().preset_bundle->is_bbl_vendor())
+        m_media_ctrl->SetIdleImage(orca_idle_image());
+    else
+        m_media_ctrl->SetIdleImage(from_u8(resources_dir() + "/images/live_stream_default.png"));
+
     const CameraStreamMode mode = current_mode();
     if (mode != m_last_mode) {
         if (m_last_state != MEDIASTATE_IDLE) {
@@ -267,6 +301,11 @@ void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
         changed = machine != m_machine || url != m_agent_camera_url;
         m_agent_camera_url = url;
         m_url = from_u8(url);
+        // Show the image the way the printer's camera settings turn it.
+        const CameraTransform transform = agent ? agent->get_camera_transform() : CameraTransform{};
+        m_media_ctrl->SetTransform(transform);
+        if (auto *web_ctrl = dynamic_cast<WebMediaController *>(m_web_ctrl))
+            web_ctrl->set_transform(transform);
     } else if (uses_webrtc) {
         m_camera_exists = obj != nullptr;
         Enable(obj != nullptr);

@@ -833,7 +833,8 @@ public:
     bool m_support_mqtt_axis_control = false;
     int command_axis_control(std::string axis, double unit = 1.0f, double input_val = 1.0f, int speed = 3000);
 
-    int command_extruder_control(int nozzle_id, double val);
+    // speed_mm_s > 0 asks for that feed rate; printers that do not take one ignore it.
+    int command_extruder_control(int nozzle_id, double val, int speed_mm_s = 0);
     // calibration printer
     bool is_support_command_calibration();
     int command_start_calibration(bool vibration, bool bed_leveling, bool xcam_cali, bool motor_noise, bool nozzle_cali, bool bed_cali, bool clumppos_cali);

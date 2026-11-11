@@ -1115,6 +1115,27 @@ std::string NetworkAgent::get_local_camera_stream_url() const
     return {};
 }
 
+std::vector<std::string> NetworkAgent::get_camera_names() const
+{
+    return m_printer_agent ? m_printer_agent->get_camera_names() : std::vector<std::string>{};
+}
+
+int NetworkAgent::get_selected_camera() const
+{
+    return m_printer_agent ? m_printer_agent->get_selected_camera() : -1;
+}
+
+void NetworkAgent::select_camera(int index)
+{
+    if (m_printer_agent)
+        m_printer_agent->select_camera(index);
+}
+
+CameraTransform NetworkAgent::get_camera_transform() const
+{
+    return m_printer_agent ? m_printer_agent->get_camera_transform() : CameraTransform{};
+}
+
 int NetworkAgent::request_bind_ticket(std::string* ticket)
 {
     if (m_printer_agent)

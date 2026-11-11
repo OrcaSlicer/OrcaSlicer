@@ -398,6 +398,17 @@ void MonitorPanel::update_all()
 
     if (obj->connection_type() != last_conn_type) { last_conn_type = obj->connection_type(); }
 
+    // Storage, firmware update and HMS are Bambu services; other printers' connections don't
+    // provide them, so their tabs would only show errors.
+    {
+        const bool bambu = wxGetApp().preset_bundle && wxGetApp().preset_bundle->is_bbl_vendor();
+        for (wxWindow* page : std::initializer_list<wxWindow*>{m_media_file_panel, m_upgrade_panel, m_hms_panel}) {
+            const int index = page ? m_tabpanel->FindPage(page) : wxNOT_FOUND;
+            if (index != wxNOT_FOUND)
+                m_tabpanel->ShowPage(static_cast<size_t>(index), bambu);
+        }
+    }
+
     m_side_tools->update_status(obj);
 
     if (obj->is_connecting()) {
@@ -559,7 +570,7 @@ void MonitorPanel::jump_to_HMS()
     if (!this->IsShown())
         return;
     auto page = m_tabpanel->GetCurrentPage();
-    if (page && page != m_hms_panel)
+    if (page && page != m_hms_panel && m_tabpanel->IsPageShown(PT_HMS))
         m_tabpanel->SetSelection(PT_HMS);
 }
 
@@ -567,7 +578,7 @@ void MonitorPanel::jump_to_Upgrade()
 {
     if (this->IsShown()) {
         auto page = m_tabpanel->GetCurrentPage();
-        if (page && page != m_upgrade_panel) {
+        if (page && page != m_upgrade_panel && m_tabpanel->IsPageShown(PT_UPDATE)) {
             m_tabpanel->SetSelection(PT_UPDATE);
         }
     }

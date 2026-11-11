@@ -149,6 +149,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/DockPanel.hpp
     GUI/WebPanel.cpp
     GUI/WebPanel.hpp
+    GUI/Widgets/ToolheadLaneOverview.cpp
+    GUI/Widgets/ToolheadLaneOverview.hpp
     GUI/Widgets/WebHosting.cpp
     GUI/Widgets/WebHosting.hpp
     GUI/AuiMgr.cpp
