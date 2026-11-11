@@ -764,6 +764,18 @@ int PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds timeout
                 .count();
         };
 
+        // A hook thread an earlier call gave up on may still be running the hooks. Py_Finalize must
+        // not start under it: stopped there, it unwinds through the lambda below and releases
+        // Python objects without the GIL. It is waited for and counted like this call's own.
+        constexpr const char *hook_thread_name = "orca-threading-atexit";
+        for (const pybind11::handle thread : threading.attr("enumerate")()) {
+            if (thread.attr("name").cast<std::string>() != hook_thread_name)
+                continue;
+            thread.attr("join")(seconds_left());
+            if (thread.attr("is_alive")().cast<bool>())
+                return 1;
+        }
+
         // An idle concurrent.futures worker only ends once the hooks registered with
         // threading._register_atexit() tell it to, which Py_Finalize does before it joins the
         // threads. They run first here, on a daemon thread: a hook joins its workers without a
@@ -775,7 +787,7 @@ int PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds timeout
                                                  for (pybind11::ssize_t i = calls.size(); i-- > 0;)
                                                      calls[i]();
                                              }),
-                                             pybind11::arg("name") = "orca-threading-atexit", pybind11::arg("daemon") = true);
+                                             pybind11::arg("name") = hook_thread_name, pybind11::arg("daemon") = true);
             hooks.attr("start")();
             hooks.attr("join")(seconds_left());
         }
