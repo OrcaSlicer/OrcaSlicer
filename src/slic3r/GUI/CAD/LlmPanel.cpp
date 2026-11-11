@@ -44,6 +44,11 @@
 #include <wx/gdicmn.h>
 #include <wx/panel.h>
 #include <wx/string.h>
+#include <memory>
+#include <wx/types.h>
+#include <wx/font.h>
+#include <wx/dataobj.h>
+#include <boost/filesystem/operations.hpp>
 
 namespace Slic3r { namespace GUI {
 
