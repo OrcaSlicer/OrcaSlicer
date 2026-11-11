@@ -2549,7 +2549,9 @@ void PrintConfigDef::init_fff_params()
     auto def_top_fill_pattern = def = this->add("top_surface_pattern", coEnum);
     def->label = L("Top surface pattern");
     def->category = L("Strength");
-    def->tooltip = L("This is the line pattern for top surface infill.");
+    def->tooltip = L("Line pattern of the top surfaces, the layers left visible on top of the print. It decides how the top looks: "
+                     "the monotonic patterns lay every line in the same order for an even finish, the concentric and spiral ones "
+                     "follow the outline.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("monotonic");
     def->enum_values.push_back("monotonicline");
@@ -2627,7 +2629,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bottom_surface_pattern", coEnum);
     def->label = L("Bottom surface pattern");
     def->category = L("Strength");
-    def->tooltip = L("This is the line pattern of bottom surface infill, not including bridge infill.");
+    def->tooltip = L("Line pattern of the bottom surfaces, the layers that rest on the build plate or face down, not including "
+                     "bridges. On the first layer it is the texture the underside of the print shows.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values = def_top_fill_pattern->enum_values;
     def->enum_labels = def_top_fill_pattern->enum_labels;
@@ -2681,7 +2684,9 @@ void PrintConfigDef::init_fff_params()
 	def                = this->add("internal_solid_infill_pattern", coEnum);
     def->label         = L("Internal solid infill pattern");
     def->category      = L("Strength");
-    def->tooltip       = L("Line pattern of internal solid infill. if the detect narrow internal solid infill be enabled, the concentric pattern will be used for the small area.");
+    def->tooltip       = L("Line pattern of the internal solid infill: the solid layers under the top surfaces and over the bottom "
+                           "ones, and the small areas filled solid. Narrow areas are filled concentric instead when Detect narrow "
+                           "internal solid infills is enabled.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values   = def_top_fill_pattern->enum_values;
     def->enum_labels   = def_top_fill_pattern->enum_labels;
@@ -3651,7 +3656,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("infill_direction", coFloat);
     def->label = L("Sparse infill direction");
     def->category = L("Strength");
-    def->tooltip = L("This is the angle for sparse infill pattern, which controls the start or main direction of lines.");
+    def->tooltip = L("Turns the sparse infill pattern by this angle, measured from the X axis. Patterns whose lines change "
+                     "direction from layer to layer start from it. Ignored when a sparse infill rotation template is set.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->max = 360;
@@ -3661,7 +3667,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("solid_infill_direction", coFloat);
     def->label = L("Solid infill direction");
     def->category = L("Strength");
-    def->tooltip = L("Angle for solid infill pattern, which controls the start or main direction of line.");
+    def->tooltip = L("Turns the solid infill pattern by this angle, measured from the X axis: the internal solid infill, and the "
+                     "top and bottom surfaces unless their own direction is set. Ignored when a solid infill rotation template "
+                     "is set.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->max = 360;
@@ -3719,7 +3727,9 @@ void PrintConfigDef::init_fff_params()
     def             = this->add("fill_multiline", coInt);
     def->label      = L("Fill Multiline");
     def->category   = L("Strength");
-    def->tooltip    = L("Using multiple lines for the infill pattern, if supported by infill pattern.");
+    def->tooltip    = L("Prints each line of the sparse infill pattern as this many lines side by side. The pattern is spread "
+                        "further apart to keep the same density, so the infill has fewer, thicker walls. Not every pattern "
+                        "supports it.");
     def->min = 1;
     def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
@@ -3808,7 +3818,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("sparse_infill_pattern", coEnum);
     def->label = L("Sparse infill pattern");
     def->category = L("Strength");
-    def->tooltip = L("This is the line pattern for internal sparse infill.");
+    def->tooltip = L("Pattern of the sparse infill inside the part. It decides how strong the part is and in which directions, "
+                     "and how long the infill takes to print. Gyroid and the 3D patterns are about equally strong in every "
+                     "direction; Lightning only holds up the top surfaces and is the fastest.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("rectilinear");
     def->enum_values.push_back("alignedrectilinear");
@@ -4831,7 +4843,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("skin_infill_line_width", coFloatOrPercent);
     def->label    = L("Skin line width");
     def->category = L("Strength");
-    def->tooltip  = L("Adjust the line width of the selected skin paths.");
+    def->tooltip  = L("Line width of the skin of Locked Zag infill, the band along the walls. A percentage is of the nozzle "
+                      "diameter.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->ratio_over = "nozzle_diameter";
     def->min      = 0;
@@ -4841,7 +4854,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("skeleton_infill_line_width", coFloatOrPercent);
     def->label    = L("Skeleton line width");
     def->category = L("Strength");
-    def->tooltip  = L("Adjust the line width of the selected skeleton paths.");
+    def->tooltip  = L("Line width of the skeleton of Locked Zag infill, the infill inside the skin. A percentage is of the nozzle "
+                      "diameter.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->ratio_over = "nozzle_diameter";
     def->min      = 0;
@@ -4859,7 +4873,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("infill_complete_top", coBool);
     def->label    = L("Fill pattern tops");
     def->category = L("Strength");
-    def->tooltip  = L("Choose this option if you want to completely fill in the tops of the infill pattern");
+    def->tooltip  = L("For 3D Honeycomb infill: closes the top of each cell with lines across it where the pattern turns, so the "
+                      "layers above have more to rest on. Uses a little more material.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
     
