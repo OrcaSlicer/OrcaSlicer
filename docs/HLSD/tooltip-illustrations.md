@@ -78,10 +78,19 @@ inherit that popup's light background under the tooltip's white text.
 The painting tools share one table of text and pictures, `GLGizmoPainterBase::painter_tooltip()`, so a
 tool that appears in several of the four panels reads the same in all of them.
 
+### The 3D view and Preview
+
+The canvas's own ImGui controls - the view menu, the section view and variable layer height panels,
+the Preview legend, layer slider and plate strip, the assembly view controls and the notification
+buttons - call `GLCanvas3D::view_tooltip()` right after the control, which goes through one
+`IllustratedTooltip` for all of them, since only one tooltip is up at a time. GCodeViewer, IMSlider and
+the notifications reach it through the current canvas. A tooltip is a window of its own rather than a
+popup, so one on an item of the view menu or of a combo does not close it.
+
 ## Where the pictures live
 
-`resources/images/texture_displacement/`, `resources/images/gizmo_toolbar/` and
-`resources/images/gizmos/<panel>/`, as PNG, JPG, BMP or GIF; the folder is given when the
+`resources/images/texture_displacement/`, `resources/images/gizmo_toolbar/`,
+`resources/images/viewport/` and `resources/images/gizmos/<panel>/`, as PNG, JPG, BMP or GIF; the folder is given when the
 `IllustratedTooltip` is made, and the panels name their files with the subfolder (`"cut/connector_plug.png"`). A tooltip names them by file:
 
 ```cpp

@@ -726,6 +726,10 @@ private:
         const GLCanvas3D* owner; // whose objects place the plane
     };
     std::shared_ptr<SectionView> m_section_view{ std::make_shared<SectionView>(this) };
+    // The tooltips of the canvas's own ImGui controls: the view menu, the section view and variable
+    // layer height panels, the Preview legend, layer slider and plate strip, the assembly controls. One for
+    // all of them, since only one tooltip is up at a time. See view_tooltip().
+    IllustratedTooltip m_view_tip{ "viewport" };
     std::map<const GLVolume*, MeshClipper> m_section_view_caps;
     // Its release would open the hidden window menu on Windows.
     bool m_alt_wheel_used{ false };
@@ -1406,6 +1410,11 @@ public:
     void msw_rescale() { m_gcode_viewer.invalidate_legend(); }
 
     void request_extra_frame() { m_extra_frame_requested = true; }
+    // The tooltip of the ImGui item just submitted in one of the canvas's own panels (the view menu, the
+    // variable layer height panel, the Preview legend, layer slider and plate strip, the assembly
+    // controls), shown once the pointer has rested on it. Call it on every frame, right after the item.
+    // Pictures are named within resources/images/viewport. See IllustratedTooltip.
+    void view_tooltip(const wxString& text, const std::vector<IllustratedTooltip::Media>& media = {});
     // whether the user is holding the camera, the navigator, a gizmo, the rectangle selection or a preview slider
     bool is_user_interacting() const;
 

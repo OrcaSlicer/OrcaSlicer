@@ -141,6 +141,53 @@ static void add_swatch(ImDrawList* draw_list, const ImVec2& min, const ImVec2& m
     draw_list->AddRectFilled(min, max, ImGuiWrapper::to_ImU32(color));
 }
 
+// The tooltip of the ImGui item just submitted in the legend or the position window: the Preview canvas's,
+// see GLCanvas3D::view_tooltip().
+static void preview_tooltip(const wxString& text)
+{
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        if (GLCanvas3D* canvas = wxGetApp().plater()->get_current_canvas3D())
+            canvas->view_tooltip(text);
+}
+
+// What each entry of the legend's color scheme list shows.
+static wxString get_view_type_tooltip(libvgcode::EViewType view_type)
+{
+    switch (view_type) {
+    case libvgcode::EViewType::Summary:                  return _L("Each filament in its color, with the total filament, cost and print time of the plate.");
+    case libvgcode::EViewType::FeatureType:              return _L("Each kind of line in its own color: walls, infill, support, bridges and the rest, with the time and filament each takes.");
+    case libvgcode::EViewType::ColorPrint:               return _L("Each filament in its color, as the print will come out, including the color changes between layers.");
+    case libvgcode::EViewType::Speed:                    return _L("The speed the G-code sets for each line.");
+    case libvgcode::EViewType::ActualSpeed:              return _L("The speed the nozzle actually reaches on each line, after accelerating and slowing down. Short lines often never reach their set speed.");
+    case libvgcode::EViewType::Acceleration:             return _L("The acceleration the G-code sets for each move.");
+    case libvgcode::EViewType::Jerk:                     return _L("The jerk the G-code sets for each move.");
+    case libvgcode::EViewType::Height:                   return _L("The height of each layer, to check variable layer heights.");
+    case libvgcode::EViewType::Width:                    return _L("The width of each line.");
+    case libvgcode::EViewType::VolumetricFlowRate:       return _L("The volume of filament per second each line needs at its set speed. Compare it with the maximum volumetric speed of the filament.");
+    case libvgcode::EViewType::ActualVolumetricFlowRate: return _L("The volume of filament per second each line needs at the speed the nozzle actually reaches.");
+    case libvgcode::EViewType::LayerTimeLinear:          return _L("How long each layer takes to print. Layers that print very fast may not cool enough before the next one.");
+    case libvgcode::EViewType::LayerTimeLogarithmic:     return _L("Layer time on a logarithmic scale, which tells the short layers apart better when a few layers take very long.");
+    case libvgcode::EViewType::FanSpeed:                 return _L("The speed of the part cooling fan on each line.");
+    case libvgcode::EViewType::Temperature:              return _L("The nozzle temperature on each line.");
+    case libvgcode::EViewType::PressureAdvance:          return _L("The pressure advance value in effect on each line.");
+    default:                                             return {};
+    }
+}
+
+// What a row of the legend's Options section marks.
+static wxString get_option_tooltip(libvgcode::EOptionType option)
+{
+    switch (option) {
+    case libvgcode::EOptionType::Travels:       return _L("Moves between lines with nothing extruded. Click to show or hide them.");
+    case libvgcode::EOptionType::Wipes:         return _L("Moves that wipe the nozzle along the printed line while retracting, to leave the ooze there. Click to show or hide them.");
+    case libvgcode::EOptionType::Retractions:   return _L("Points where the filament is pulled back before a travel, so the nozzle does not ooze on the way. Click to show or hide them.");
+    case libvgcode::EOptionType::Unretractions: return _L("Points where the filament is pushed forward again after a travel. Click to show or hide them.");
+    case libvgcode::EOptionType::Seams:         return _L("Points where a wall loop starts and ends. Shown together, they trace the seam on the model. Click to show or hide them.");
+    case libvgcode::EOptionType::ToolChanges:   return _L("Points where the printer switches to another filament. Click to show or hide them.");
+    default:                                    return {};
+    }
+}
+
 static std::string get_view_type_string(libvgcode::EViewType view_type)
 {
     if (view_type == libvgcode::EViewType::Summary)
@@ -766,7 +813,10 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
 
         // ORCA use glyph based button for fixing button sizes changing depends on used font size on platform
         const wchar_t foldIcon = properties_shown ? ImGui::UnfoldButtonIcon : ImGui::FoldButtonIcon;
-        if (imgui.glyph_button(foldIcon, ImVec2(16.f, 16.f) * m_scale)) {
+        const bool fold_clicked = imgui.glyph_button(foldIcon, ImVec2(16.f, 16.f) * m_scale);
+        preview_tooltip(properties_shown ? _L("Hides the details of the current move.") :
+                                           _L("Shows the details of the current move: its layer, speed, acceleration, flow, fan speed, temperature and time."));
+        if (fold_clicked) {
             properties_shown = !properties_shown;
             static float main_wnd_height_temp = ImGui::GetWindowHeight();
             static float first_click = true;
@@ -4686,7 +4736,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         bool checkbox = true,
         float checkbox_pos = 0.f, // ORCA use calculated value for eye icon. Aligned to "Display" header or end of combo box
         bool visible = true,
-        std::function<void()> callback = nullptr)
+        std::function<void()> callback = nullptr,
+        const wxString& tooltip = {})
     {
         // render icon
         ImVec2 pos = ImVec2(ImGui::GetCursorScreenPos().x + window_padding * 3, ImGui::GetCursorScreenPos().y);
@@ -4735,6 +4786,8 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             ImGui::PopStyleColor(3);
             if (b_menu_item)
                 callback();
+            if (checkbox)
+                preview_tooltip(tooltip.empty() ? _L("Click to show or hide these lines in the preview. The totals still count them.") : tooltip);
             if (checkbox) {
                 // ORCA replace checkboxes with eye icon
                 // Use calculated position from argument. this method has predictable result compared to alingning button using window width
@@ -4951,6 +5004,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     if (imgui.glyph_button(foldIcon, ImVec2(16.f, 16.f) * m_scale)) {
         m_fold = !m_fold;
     }
+    preview_tooltip(m_fold ? _L("Unfolds the legend.") : _L("Folds the legend down to this row, to see more of the preview."));
 
     ImGui::SameLine();
     const wchar_t gCodeToggle = ImGui::gCodeButtonIcon;
@@ -4958,6 +5012,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         wxGetApp().toggle_show_gcode_window();
         wxGetApp().plater()->get_current_canvas3D()->post_event(SimpleEvent(wxEVT_PAINT));
     }
+    preview_tooltip(_L("Shows or hides the G-code window, which lists the G-code lines around the move the horizontal slider is on."));
 
     ImGui::PopStyleColor(3);
     ImGui::PopStyleVar(2);
@@ -4972,7 +5027,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0.0f);
         for (int i = 0; i < view_type_items_str.size(); i++) {
             const bool is_selected = (m_view_type_sel == i);
-            if (ImGui::BBLSelectable(view_type_items_str[i].c_str(), is_selected)) {
+            const bool picked = ImGui::BBLSelectable(view_type_items_str[i].c_str(), is_selected);
+            preview_tooltip(get_view_type_tooltip(view_type_items[i]));
+            if (picked) {
                 m_fold = false;
                 m_view_type_sel = i;
                 set_view_type(view_type_items[m_view_type_sel]);
@@ -4996,6 +5053,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::PopStyleVar(1);
         ImGui::EndCombo();
     }
+    preview_tooltip(_L("What the colors of the toolpaths show.") + "\n" + get_view_type_tooltip(view_type_items[m_view_type_sel]));
     pop_combo_style();
     ImGui::SameLine(0, window_padding);               // ORCA Without (0,window_padding) it adds unnecessary item spacing after combo box
                                                       // ORCA predictable_icon_pos helpful when window size determined by combo box.
@@ -5319,7 +5377,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             append_item(EItemType::Rect, color, columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, type]() {
                 m_viewer.toggle_option_visibility(type);
                 update_moves_slider();
-                });
+                }, get_option_tooltip(type));
         };
         const bool visible = m_viewer.is_option_visible(type);
         if (type == libvgcode::EOptionType::Travels) {
@@ -5395,7 +5453,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                 append_item(EItemType::Rect, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), columns_offsets, true, offsets.back()/*ORCA checkbox_pos*/, visible, [this, item]() {
                         m_viewer.toggle_option_visibility(item);
                         update_moves_slider();
-                    });
+                    }, get_option_tooltip(item));
             }
         }
         break;
@@ -5415,7 +5473,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
             update_moves_slider();
-            });
+            }, get_option_tooltip(libvgcode::EOptionType::Travels));
         ImGui::PopStyleVar(1);
         break;
     }
@@ -5432,7 +5490,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             // refresh(*m_gcode_result, wxGetApp().plater()->get_extruder_colors_from_plater_config(m_gcode_result));
             update_moves_slider();
-            });
+            }, get_option_tooltip(libvgcode::EOptionType::Travels));
         ImGui::PopStyleVar(1);
         break;
     }
@@ -5448,7 +5506,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             update_moves_slider();
-            });
+            }, get_option_tooltip(libvgcode::EOptionType::Travels));
         ImGui::PopStyleVar(1);
         break;
     }
@@ -5464,7 +5522,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         append_item(EItemType::None, libvgcode::convert(m_viewer.get_option_color(libvgcode::EOptionType::Travels)), { {_u8L("Travel"), offsets[0] }}, true, predictable_icon_pos/*ORCA checkbox_pos*/, travel_visible, [this]() {
             m_viewer.toggle_option_visibility(libvgcode::EOptionType::Travels);
             update_moves_slider();
-            });
+            }, get_option_tooltip(libvgcode::EOptionType::Travels));
         ImGui::PopStyleVar(1);
         break;
     }
@@ -6134,9 +6192,11 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     ImGui::SameLine(max_len);
     imgui.text(short_time(get_time_dhms(time_mode.time)));
 
-    auto show_mode_button = [this, &imgui, can_show_mode_button](const std::string& label, libvgcode::ETimeMode mode) {
+    auto show_mode_button = [this, &imgui, can_show_mode_button](const std::string& label, libvgcode::ETimeMode mode, const wxString& tooltip) {
         if (can_show_mode_button(mode)) {
-            if (imgui.button(label)) {
+            const bool clicked = imgui.button(label);
+            preview_tooltip(tooltip);
+            if (clicked) {
                 m_viewer.set_time_mode(mode);
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
                 imgui.set_requires_extra_frame();
@@ -6150,11 +6210,13 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
 
     switch (time_mode_id) {
     case libvgcode::ETimeMode::Normal: {
-        show_mode_button(_u8L("Show stealth mode"), libvgcode::ETimeMode::Stealth);
+        show_mode_button(_u8L("Show stealth mode"), libvgcode::ETimeMode::Stealth,
+                         _L("Shows the times estimated for the printer's stealth mode, its quiet mode, which has its own speed and acceleration limits."));
         break;
     }
     case libvgcode::ETimeMode::Stealth: {
-        show_mode_button(_u8L("Show normal mode"), libvgcode::ETimeMode::Normal);
+        show_mode_button(_u8L("Show normal mode"), libvgcode::ETimeMode::Normal,
+                         _L("Shows the times estimated for the printer's normal mode."));
         break;
     }
     default : { assert(false); break; }
