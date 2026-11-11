@@ -900,7 +900,8 @@ wxBoxSizer* SendMultiMachinePage::create_item_title(wxString title, wxWindow* pa
     return m_sizer_title;
 }
 
-wxBoxSizer* SendMultiMachinePage::create_item_checkbox(wxString title, wxWindow* parent, wxString tooltip, int padding_left, std::string param)
+wxBoxSizer* SendMultiMachinePage::create_item_checkbox(wxString title, wxWindow* parent, wxString tooltip, int padding_left, std::string param,
+                                                       const std::vector<TipMedia> &media)
 {
     wxBoxSizer* m_sizer_checkbox = new wxBoxSizer(wxHORIZONTAL);
     m_sizer_checkbox->Add(0, 0, 0, wxEXPAND | wxLEFT, 23);
@@ -927,7 +928,8 @@ wxBoxSizer* SendMultiMachinePage::create_item_checkbox(wxString title, wxWindow*
         e.Skip();
     });
 
-    checkbox->SetToolTip(tooltip);
+    set_illustrated_tooltip(checkbox, tooltip, media);
+    set_illustrated_tooltip(checkbox_title, tooltip, media);
     m_checkbox_map.emplace(param, checkbox);
     return m_sizer_checkbox;
 }
@@ -938,7 +940,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_input(wxString str_before, wxStrin
     auto input_title = new wxStaticText(parent, wxID_ANY, str_before);
     input_title->SetForegroundColour(SEND_DESIGN_GRAY900_COLOR);
     input_title->SetFont(::Label::Body_13);
-    input_title->SetToolTip(tooltip);
+    set_illustrated_tooltip(input_title, tooltip);
     input_title->Wrap(-1);
 
     auto input = new ::TextInput(parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, SEND_DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
@@ -951,7 +953,8 @@ wxBoxSizer* SendMultiMachinePage::create_item_input(wxString str_before, wxStrin
     auto second_title = new wxStaticText(parent, wxID_ANY, str_after, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
     second_title->SetForegroundColour(SEND_DESIGN_GRAY900_COLOR);
     second_title->SetFont(::Label::Body_13);
-    second_title->SetToolTip(tooltip);
+    set_illustrated_tooltip(second_title, tooltip);
+    set_illustrated_tooltip(input, tooltip);
     second_title->Wrap(-1);
 
     sizer_input->Add(0, 0, 0, wxEXPAND | wxLEFT, 23);
@@ -996,8 +999,8 @@ wxBoxSizer* SendMultiMachinePage::create_item_radiobox(wxString title, wxWindow*
     wxStaticText* text = new wxStaticText(parent, wxID_ANY, title, wxDefaultPosition, wxDefaultSize);
     radiobox_sizer->Add(radiobox, 0, wxLEFT, FromDIP(23));
     radiobox_sizer->Add(text, 0, wxLEFT, FromDIP(10));
-    radiobox->SetToolTip(tooltip);
-    text->SetToolTip(tooltip);
+    set_illustrated_tooltip(radiobox, tooltip);
+    set_illustrated_tooltip(text, tooltip);
     return radiobox_sizer;
 }
 
@@ -1152,6 +1155,7 @@ wxPanel* SendMultiMachinePage::create_page()
     m_task_name->SetMaxSize(wxSize(FromDIP(200), -1));
     m_rename_button = new ScalableButton(m_rename_normal_panel, wxID_ANY, "ams_editable");
     m_rename_button->SetBackgroundColour(*wxWHITE);
+    set_illustrated_tooltip(m_rename_button, _L("Renames the print job sent to the printers."));
     rename_sizer_h->Add(m_task_name, 0, wxALIGN_CENTER, 0);
     rename_sizer_h->Add(m_rename_button, 0, wxALIGN_CENTER, 0);
     rename_sizer_v->Add(rename_sizer_h, 1, wxALIGN_CENTER, 0);
@@ -1243,8 +1247,10 @@ wxPanel* SendMultiMachinePage::create_page()
     // add filament
     wxBoxSizer* title_filament = create_item_title(_L("Filament"), main_page, "");
     wxBoxSizer* radio_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxBoxSizer* use_external_sizer = create_item_radiobox(_L("Use External Spool"), main_page, "", 0, "use_external");
-    wxBoxSizer* use_ams_sizer = create_item_radiobox(_L("Use AMS"), main_page, "", 0, "use_ams");
+    wxBoxSizer* use_external_sizer = create_item_radiobox(_L("Use External Spool"), main_page,
+        _L("Every printer prints from the spool on its external holder. The AMS is not used."), 0, "use_external");
+    wxBoxSizer* use_ams_sizer = create_item_radiobox(_L("Use AMS"), main_page,
+        _L("Every printer prints from its AMS. Click a filament below to choose its AMS slot: the same slot is used on every printer."), 0, "use_ams");
     radio_sizer->Add(use_external_sizer, 0, wxLeft, FromDIP(20));
     radio_sizer->Add(use_ams_sizer, 0, wxLeft, FromDIP(5));
     sizer->Add(title_filament, 0, wxEXPAND, 0);
@@ -1276,6 +1282,7 @@ wxPanel* SendMultiMachinePage::create_page()
     m_select_checkbox = new CheckBox(m_table_head_panel, wxID_ANY);
     m_table_head_sizer->AddSpacer(FromDIP(SEND_LEFT_PADDING_LEFT));
     m_table_head_sizer->Add(m_select_checkbox, 0, wxALIGN_CENTER_VERTICAL, 0);
+    set_illustrated_tooltip(m_select_checkbox, _L("Selects every printer that is ready to print, or clears the selection."));
 
     m_select_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         if (m_select_checkbox->GetValue()) {
@@ -1316,6 +1323,7 @@ wxPanel* SendMultiMachinePage::create_page()
 
     m_table_head_sizer->Add( 0, 0, 0, wxLEFT, FromDIP(10) );
     m_table_head_sizer->Add(m_printer_name, 0, wxALIGN_CENTER_VERTICAL, 0);
+    set_illustrated_tooltip(m_printer_name, _L("Sorts the printers by name. Click again to reverse the order."));
 
     m_device_status = new Button(m_table_head_panel, _L("Device Status"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SINGLE_SIZE);
     m_device_status->SetBackgroundColor(head_bg);
@@ -1337,6 +1345,7 @@ wxPanel* SendMultiMachinePage::create_page()
         evt.Skip();
     });
     m_table_head_sizer->Add(m_device_status, 0, wxALIGN_CENTER_VERTICAL, 0);
+    set_illustrated_tooltip(m_device_status, _L("Sorts the printers by whether they are ready to print. Click again to reverse the order."));
 
     /*m_task_status = new Button(m_table_head_panel, _L("Task Status"), "toolbar_double_directional_arrow", wxNO_BORDER, ICON_SIZE);
     m_task_status->SetBackgroundColor(head_bg);
@@ -1380,6 +1389,7 @@ wxPanel* SendMultiMachinePage::create_page()
         evt.Skip();
     });
     m_table_head_sizer->Add(m_ams, 0, wxALIGN_CENTER_VERTICAL, 0);
+    set_illustrated_tooltip(m_ams, _L("Sorts the printers by their AMS state. Click again to reverse the order."));
 
     m_refresh_button = new Button(m_table_head_panel, "", "mall_control_refresh", wxNO_BORDER, ICON_SINGLE_SIZE, false);
     m_refresh_button->SetBackgroundColor(head_bg);
@@ -1398,6 +1408,7 @@ wxPanel* SendMultiMachinePage::create_page()
         evt.Skip();
     });
     m_table_head_sizer->Add(m_refresh_button, 0, wxALIGN_CENTER_VERTICAL, 0);
+    set_illustrated_tooltip(m_refresh_button, _L("Refreshes the list of printers and their states."));
 
     m_table_head_panel->SetSizer(m_table_head_sizer);
     m_table_head_panel->Layout();
@@ -1438,9 +1449,14 @@ wxPanel* SendMultiMachinePage::create_page()
 
     // add printing options
     wxBoxSizer* title_print_option = create_item_title(_L("Printing Options"), main_page, "");
-    wxBoxSizer* item_bed_level = create_item_checkbox(_L("Bed leveling"), main_page, "", 50, "bed_leveling");
-    wxBoxSizer* item_timelapse = create_item_checkbox(_L("Timelapse"), main_page, "", 50, "timelapse");
-    wxBoxSizer* item_flow_dy_ca = create_item_checkbox(_L("Flow Dynamic Calibration"), main_page, "", 50, "flow_cali");
+    wxBoxSizer* item_bed_level = create_item_checkbox(_L("Bed leveling"), main_page,
+        _L("This checks the flatness of heatbed. Leveling makes extruded height uniform."), 50, "bed_leveling", {{"device/bed_leveling.gif", {}}});
+    wxBoxSizer* item_timelapse = create_item_checkbox(_L("Timelapse"), main_page,
+        _L("Records a video of the print with the printer's camera, one frame per layer, and saves it on the printer. "
+           "In Smooth mode, chosen when slicing, the toolhead moves aside for each frame, which adds print time."), 50, "timelapse",
+        {{"device/timelapse_traditional.gif", _L("Traditional")}, {"device/timelapse_smooth.gif", _L("Smooth")}});
+    wxBoxSizer* item_flow_dy_ca = create_item_checkbox(_L("Flow Dynamic Calibration"), main_page,
+        _L("This process determines the dynamic flow values to improve overall print quality."), 50, "flow_cali");
     sizer->Add(title_print_option, 0, wxEXPAND, 0);
     wxBoxSizer* options_sizer_v = new wxBoxSizer(wxHORIZONTAL);
     options_sizer_v->Add(item_bed_level, 0, wxLEFT, 0);
@@ -1451,8 +1467,10 @@ wxPanel* SendMultiMachinePage::create_page()
 
     // add send option
     wxBoxSizer* title_send_option = create_item_title(_L("Send Options"), main_page, "");
-    wxBoxSizer* max_printer_send = create_item_input(_L("Send to"), _L("printers at the same time. (It depends on how many devices can undergo heating at the same time.)"), main_page, "", "max_send");
-    wxBoxSizer* delay_time = create_item_input(_L("Wait"), _L("minute each batch. (It depends on how long it takes to complete heating.)"), main_page, "", "sending_interval");
+    wxBoxSizer* max_printer_send = create_item_input(_L("Send to"), _L("printers at the same time. (It depends on how many devices can undergo heating at the same time.)"), main_page,
+        _L("How many printers get the job in each batch. Each one heats its bed and nozzle as it starts, so keep the batch within what the power supply can take."), "max_send");
+    wxBoxSizer* delay_time = create_item_input(_L("Wait"), _L("minute each batch. (It depends on how long it takes to complete heating.)"), main_page,
+        _L("Minutes to wait before the next batch is sent, so that one batch has finished heating before the next one starts."), "sending_interval");
     sizer->Add(title_send_option, 0, wxEXPAND, 0);
     sizer->Add(max_printer_send, 0, wxLEFT, FromDIP(20));
     sizer->AddSpacer(FromDIP(3));

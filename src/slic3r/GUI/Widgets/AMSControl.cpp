@@ -4,6 +4,7 @@
 #include "../GUI_App.hpp"
 
 #include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include "slic3r/GUI/DeviceTab/uiAmsHumidityPopup.h"
 
 #include "slic3r/GUI/DeviceCore/DevManager.h"
@@ -168,6 +169,9 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     /*option left*/
     m_button_auto_refill = new Button(m_panel_option_left, _L("Auto Refill"));
     m_button_auto_refill->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+    set_illustrated_tooltip(m_button_auto_refill,
+        _L("Shows which slots back each other up. When a spool runs out during a print, the AMS continues with a matching filament "
+           "from another slot of its group, if AMS filament backup is on in the AMS settings."));
 
     m_button_ams_setting_normal = ScalableBitmap(this, "ams_setting_normal", 24);
     m_button_ams_setting_hover = ScalableBitmap(this, "ams_setting_hover", 24);
@@ -176,6 +180,8 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     m_button_ams_setting = new wxStaticBitmap(m_panel_option_left, wxID_ANY, m_button_ams_setting_normal.bmp(), wxDefaultPosition, wxSize(FromDIP(24), FromDIP(24)));
     m_button_ams_setting->SetMinSize(wxSize(FromDIP(24), FromDIP(24)));
     m_button_ams_setting->SetMaxSize(wxSize(FromDIP(24), FromDIP(24)));
+    set_illustrated_tooltip(m_button_ams_setting,
+        _L("AMS settings: when the AMS reads the spools' information, remaining capacity estimation, filament backup and other options."));
     m_sizer_option_left->Add(m_button_auto_refill, 0, wxALIGN_CENTER, 0);
     m_sizer_option_left->Add(0, 0, 0, wxLEFT, FromDIP(20));
     m_sizer_option_left->Add(m_button_ams_setting, 0, wxALIGN_CENTER, 0);
@@ -228,6 +234,9 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     //m_sizer_option_right->Add(0, 0, 1, wxEXPAND, 0);
     m_sizer_option_right->Add(m_button_extruder_back, 0, wxLEFT, FromDIP(0));
     m_sizer_option_right->Add(m_button_extruder_feed, 0, wxLEFT, FromDIP(20));
+
+    EnableLoadFilamentBtn(m_button_extruder_feed->IsEnabled(), "", "", wxEmptyString);
+    EnableUnLoadFilamentBtn(m_button_extruder_back->IsEnabled(), "", "", wxEmptyString);
 
     m_panel_option_left->Layout();
     m_panel_option_right->Layout();
@@ -429,22 +438,45 @@ wxColour AMSControl::GetCanColour(std::string amsid, std::string canid)
     return col;
 }
 
+// An enabled Load or Unload button gets an illustrated tooltip. A disabled one gets no mouse events on most
+// platforms, so the reason it is disabled stays a native tooltip: GTK and macOS show those on disabled
+// windows, and Button::EnableTooltipEvenDisabled() shows it on Windows.
+static void set_filament_button_tip(Button *button, const wxString &text)
+{
+    if (button->IsEnabled()) {
+        set_illustrated_tooltip(button, text);
+    } else {
+        set_illustrated_tooltip(button, wxEmptyString);
+        if (button->GetToolTipText() != text)
+            button->SetToolTip(text);
+    }
+}
+
 void AMSControl::EnableLoadFilamentBtn(bool enable, const std::string& ams_id, const std::string& can_id,const wxString& tips)
 {
     m_button_extruder_feed->Enable(enable);
-    if (m_button_extruder_feed->GetToolTipText() != tips) {
+    if (m_load_btn_tip != tips) {
         BOOST_LOG_TRIVIAL(info) << "ams_id=" << ams_id << ", can_id=" << can_id << "  Set Load Filament Button ToolTip : " << tips.ToUTF8();
-        m_button_extruder_feed->SetToolTip(tips);
+        m_load_btn_tip = tips;
     }
+    wxString text = _L("Loads the filament of the selected slot into the toolhead. Filament already in the toolhead is unloaded "
+                       "first, and the nozzle heats up for the change.");
+    if (!tips.empty())
+        text += "\n\n" + tips;
+    set_filament_button_tip(m_button_extruder_feed, text);
 }
 
 void AMSControl::EnableUnLoadFilamentBtn(bool enable, const std::string& ams_id, const std::string& can_id,const wxString& tips)
 {
     m_button_extruder_back->Enable(enable);
-    if (m_button_extruder_back->GetToolTipText() != tips) {
+    if (m_unload_btn_tip != tips) {
         BOOST_LOG_TRIVIAL(info) << "ams_id=" << ams_id << ", can_id=" << can_id << "  Set Unload Filament Button ToolTip : " << tips.ToUTF8();
-        m_button_extruder_back->SetToolTip(tips);
+        m_unload_btn_tip = tips;
     }
+    wxString text = _L("Unloads the filament from the toolhead and pulls it back to its slot. The nozzle heats up for this.");
+    if (!tips.empty())
+        text += "\n\n" + tips;
+    set_filament_button_tip(m_button_extruder_back, text);
 }
 
 void AMSControl::EnterNoneAMSMode()

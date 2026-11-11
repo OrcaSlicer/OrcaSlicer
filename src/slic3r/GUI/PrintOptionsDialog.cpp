@@ -30,6 +30,7 @@
 #include "libslic3r/Utils.hpp"
 #include "Widgets/SwitchButton.hpp"
 #include "MsgDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevExtruderSystem.h"
@@ -818,6 +819,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
 {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer* line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    // Shared by the "Pausing Sensitivity" lists of every AI detection below.
+    const wxString sensitivity_tip = _L("How readily the printer pauses the print when it detects this problem. "
+                                        "High pauses at the first signs, so it stops more failures early but also pauses more prints by mistake. "
+                                        "Low pauses only on clear failures.");
 
   /*  auto m_line = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     m_line->SetBackgroundColour(wxColour(166, 169, 170));
@@ -855,6 +860,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_ai_monitoring = new CheckBox(parent);
     text_ai_monitoring = new Label(parent, _L("Enable AI monitoring of printing"));
     text_ai_monitoring->SetFont(Label::Body_14);
+    const wxString ai_monitoring_tip = _L("The printer's camera watches the print for failures and sends you a message, or pauses the print, when it sees one. "
+                                          "Unusual models can cause false alarms; the sensitivity below sets how readily it pauses.");
+    set_illustrated_tooltip(m_cb_ai_monitoring, ai_monitoring_tip);
+    set_illustrated_tooltip(text_ai_monitoring, ai_monitoring_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_ai_monitoring, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_ai_monitoring, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -865,6 +874,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     text_ai_monitoring_caption->SetFont(Label::Body_12);
     text_ai_monitoring_caption->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
     text_ai_monitoring_caption->Wrap(-1);
+    set_illustrated_tooltip(text_ai_monitoring_caption, sensitivity_tip); // the list is disabled while its detection is off
 
     ai_monitoring_level_list = new ComboBox(parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1), 0, NULL, wxCB_READONLY);
     for (auto i = AiMonitorSensitivityLevel::LOW; i < LEVELS_NUM; i = (AiMonitorSensitivityLevel) (i + 1)) {
@@ -873,6 +883,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     }
 
     if (ai_monitoring_level_list->GetCount() > 0) { ai_monitoring_level_list->SetSelection(0); }
+    set_illustrated_tooltip(ai_monitoring_level_list, sensitivity_tip);
 
     line_sizer->Add(FromDIP(30), 0, 0, 0);
     line_sizer->Add(text_ai_monitoring_caption, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -885,6 +896,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_spaghetti_detection = new CheckBox(ai_refine_panel);
     text_spaghetti_detection = new Label(ai_refine_panel, _L("Spaghetti Detection"));
     text_spaghetti_detection->SetFont(Label::Body_14);
+    const wxString spaghetti_tip = _L("The camera looks for loose strands of filament that show the print has come off the plate or collapsed. "
+                                      "Stopping such a print early saves filament and keeps the strands from wrapping around the nozzle.");
+    set_illustrated_tooltip(m_cb_spaghetti_detection, spaghetti_tip);
+    set_illustrated_tooltip(text_spaghetti_detection, spaghetti_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_spaghetti_detection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     line_sizer->Add(text_spaghetti_detection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -904,6 +919,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     text_spaghetti_detection_caption1->SetFont(Label::Body_12);
     text_spaghetti_detection_caption1->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
     text_spaghetti_detection_caption1->Wrap(-1);
+    set_illustrated_tooltip(text_spaghetti_detection_caption1, sensitivity_tip); // the list is disabled while its detection is off
 
     spaghetti_detection_level_list = new ComboBox(ai_refine_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1), 0, NULL, wxCB_READONLY);
     for (auto i = AiMonitorSensitivityLevel::LOW; i < LEVELS_NUM; i = (AiMonitorSensitivityLevel) (i + 1)) {
@@ -913,6 +929,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     if (spaghetti_detection_level_list->GetCount() > 0) {
         spaghetti_detection_level_list->SetSelection(0);
     }
+    set_illustrated_tooltip(spaghetti_detection_level_list, sensitivity_tip);
 
     line_sizer->Add(FromDIP(30), 0, 0, 0);
     line_sizer->Add(text_spaghetti_detection_caption1, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -929,6 +946,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_purgechutepileup_detection = new CheckBox(ai_refine_panel);
     text_purgechutepileup_detection = new Label(ai_refine_panel, _L("Purge Chute Pile-Up Detection"));
     text_purgechutepileup_detection->SetFont(Label::Body_14);
+    const wxString purgechute_tip = _L("The camera watches the chute where purged filament leaves the printer. "
+                                       "If the waste piles up there, the printer warns you or pauses before the pile reaches the toolhead.");
+    set_illustrated_tooltip(m_cb_purgechutepileup_detection, purgechute_tip);
+    set_illustrated_tooltip(text_purgechutepileup_detection, purgechute_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_purgechutepileup_detection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     line_sizer->Add(text_purgechutepileup_detection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -948,6 +969,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     text_purgechutepileup_detection_caption1->SetFont(Label::Body_12);
     text_purgechutepileup_detection_caption1->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
     text_purgechutepileup_detection_caption1->Wrap(-1);
+    set_illustrated_tooltip(text_purgechutepileup_detection_caption1, sensitivity_tip); // the list is disabled while its detection is off
 
     purgechutepileup_detection_level_list = new ComboBox(ai_refine_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1), 0, NULL, wxCB_READONLY);
     for (auto i = AiMonitorSensitivityLevel::LOW; i < LEVELS_NUM; i = (AiMonitorSensitivityLevel) (i + 1)) {
@@ -955,6 +977,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
         purgechutepileup_detection_level_list->Append(level_option);
     }
     if (purgechutepileup_detection_level_list->GetCount() > 0) { purgechutepileup_detection_level_list->SetSelection(0); }
+    set_illustrated_tooltip(purgechutepileup_detection_level_list, sensitivity_tip);
 
     line_sizer->Add(FromDIP(30), 0, 0, 0);
     line_sizer->Add(text_purgechutepileup_detection_caption1, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -968,6 +991,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_nozzleclumping_detection = new CheckBox(ai_refine_panel);
     text_nozzleclumping_detection = new Label(ai_refine_panel, _L("Nozzle Clumping Detection"));
     text_nozzleclumping_detection->SetFont(Label::Body_14);
+    const wxString nozzleclumping_tip = _L("The camera checks the nozzle for a lump of filament or debris stuck to it. "
+                                           "Such a lump can knock the print loose or damage the hotend, so the printer warns you or pauses.");
+    set_illustrated_tooltip(m_cb_nozzleclumping_detection, nozzleclumping_tip);
+    set_illustrated_tooltip(text_nozzleclumping_detection, nozzleclumping_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_nozzleclumping_detection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     line_sizer->Add(text_nozzleclumping_detection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -989,6 +1016,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     text_nozzleclumping_detection_caption1->SetFont(Label::Body_12);
     text_nozzleclumping_detection_caption1->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
     text_nozzleclumping_detection_caption1->Wrap(-1);
+    set_illustrated_tooltip(text_nozzleclumping_detection_caption1, sensitivity_tip); // the list is disabled while its detection is off
 
     nozzleclumping_detection_level_list = new ComboBox(ai_refine_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1), 0, NULL, wxCB_READONLY);
     for (auto i = AiMonitorSensitivityLevel::LOW; i < LEVELS_NUM; i = (AiMonitorSensitivityLevel) (i + 1)) {
@@ -996,6 +1024,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
         nozzleclumping_detection_level_list->Append(level_option);
     }
     if (nozzleclumping_detection_level_list->GetCount() > 0) { nozzleclumping_detection_level_list->SetSelection(0); }
+    set_illustrated_tooltip(nozzleclumping_detection_level_list, sensitivity_tip);
 
     line_sizer->Add(FromDIP(30), 0, 0, 0);
     line_sizer->Add(text_nozzleclumping_detection_caption1, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1009,6 +1038,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_airprinting_detection = new CheckBox(ai_refine_panel);
     text_airprinting_detection = new Label(ai_refine_panel, _L("Air Printing Detection"));
     text_airprinting_detection->SetFont(Label::Body_14);
+    const wxString airprinting_tip = _L("The printer notices when the nozzle keeps moving but no filament comes out, for example after a clog or ground filament. "
+                                        "It warns you or pauses instead of printing in the air until the job ends.");
+    set_illustrated_tooltip(m_cb_airprinting_detection, airprinting_tip);
+    set_illustrated_tooltip(text_airprinting_detection, airprinting_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_airprinting_detection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     line_sizer->Add(text_airprinting_detection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -1029,6 +1062,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     text_airprinting_detection_caption1->SetFont(Label::Body_12);
     text_airprinting_detection_caption1->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
     text_airprinting_detection_caption1->Wrap(-1);
+    set_illustrated_tooltip(text_airprinting_detection_caption1, sensitivity_tip); // the list is disabled while its detection is off
 
     airprinting_detection_level_list = new ComboBox(ai_refine_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(100), -1), 0, NULL, wxCB_READONLY);
     for (auto i = AiMonitorSensitivityLevel::LOW; i < LEVELS_NUM; i = (AiMonitorSensitivityLevel) (i + 1)) {
@@ -1036,6 +1070,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
         airprinting_detection_level_list->Append(level_option);
     }
     if (airprinting_detection_level_list->GetCount() > 0) { airprinting_detection_level_list->SetSelection(0); }
+    set_illustrated_tooltip(airprinting_detection_level_list, sensitivity_tip);
 
     line_sizer->Add(FromDIP(30), 0, 0, 0);
     line_sizer->Add(text_airprinting_detection_caption1, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1057,6 +1092,11 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_plate_mark = new CheckBox(parent);
     text_plate_mark = new Label(parent, _L("Enable detection of build plate position"));
     text_plate_mark->SetFont(Label::Body_14);
+    // The label switches between the position check and the type and position check (update_options), the tooltip covers both.
+    const wxString plate_mark_tip = _L("Before printing, the camera reads the marker on the build plate to check that the plate sits in place (and, on some printers, that it is the plate type the job was sliced for). "
+                                       "On a mismatch the print pauses. Plates without the marker cannot pass the check.");
+    set_illustrated_tooltip(m_cb_plate_mark, plate_mark_tip);
+    set_illustrated_tooltip(text_plate_mark, plate_mark_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_plate_mark, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_plate_mark, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1090,6 +1130,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_first_layer = new CheckBox(parent);
     text_first_layer = new Label(parent, _L("First Layer Inspection"));
     text_first_layer->SetFont(Label::Body_14);
+    const wxString first_layer_tip = _L("After printing the first layer, the printer inspects it for defects and alerts you if it finds any. "
+                                        "The inspection adds a short wait after the first layer.");
+    set_illustrated_tooltip(m_cb_first_layer, first_layer_tip);
+    set_illustrated_tooltip(text_first_layer, first_layer_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_first_layer, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_first_layer, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1107,6 +1151,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_auto_recovery = new CheckBox(parent);
     text_auto_recovery = new Label(parent, _L("Auto-recover from step loss"));
     text_auto_recovery->SetFont(Label::Body_14);
+    const wxString auto_recovery_tip = _L("When a motor loses steps, for example after the nozzle hits a curled edge, the printer homes its axes again and continues the print in place. "
+                                          "Without it the rest of the print is printed shifted.");
+    set_illustrated_tooltip(m_cb_auto_recovery, auto_recovery_tip);
+    set_illustrated_tooltip(text_auto_recovery, auto_recovery_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_auto_recovery, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_auto_recovery, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1124,6 +1172,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_save_remote_print_file_to_storage = new CheckBox(parent);
     text_save_remote_print_file_to_storage = new Label(parent, _L("Store Sent Files on External Storage"));
     text_save_remote_print_file_to_storage->SetFont(Label::Body_14);
+    const wxString save_remote_tip = _L("The printer keeps a copy of every file sent to it on its storage card or USB drive, so you can print it again from the printer. "
+                                        "The copies take up space on that storage until you delete them.");
+    set_illustrated_tooltip(m_cb_save_remote_print_file_to_storage, save_remote_tip);
+    set_illustrated_tooltip(text_save_remote_print_file_to_storage, save_remote_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_save_remote_print_file_to_storage, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_save_remote_print_file_to_storage, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1141,6 +1193,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_sup_sound = new CheckBox(parent);
     text_sup_sound = new Label(parent, _L("Allow Prompt Sound"));
     text_sup_sound->SetFont(Label::Body_14);
+    const wxString sup_sound_tip = _L("The printer beeps when it needs you, for example when a print pauses or an error occurs. "
+                                      "Turned off, the printer only shows the message.");
+    set_illustrated_tooltip(m_cb_sup_sound, sup_sound_tip);
+    set_illustrated_tooltip(text_sup_sound, sup_sound_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_sup_sound, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_sup_sound, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1159,6 +1215,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_filament_tangle = new CheckBox(parent);
     text_filament_tangle = new Label(parent, _L("Filament Tangle Detection"));
     text_filament_tangle->SetFont(Label::Body_14);
+    const wxString filament_tangle_tip = _L("The printer notices when filament cannot be pulled off the spool, for example because it is tangled or snagged, and pauses the print. "
+                                            "Spools that unwind stiffly can trigger it by mistake.");
+    set_illustrated_tooltip(m_cb_filament_tangle, filament_tangle_tip);
+    set_illustrated_tooltip(text_filament_tangle, filament_tangle_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_filament_tangle, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_filament_tangle, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1215,6 +1275,13 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     text_purify_air_context->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
     purify_air_switch_board = new SwitchBoard(parent, _L("Internal Circulation"), _L("Exhaust"), wxSize(FromDIP(300), FromDIP(26)));
     purify_air_switch_board->Disable();
+    // The check box is disabled during a print (update_purify_air_at_print_end), the label still shows the tooltip then.
+    const wxString purify_air_tip = _L("When a print ends, the printer runs its fans to clean the chamber air of fumes before you open the door. "
+                                       "This keeps the fans running for a while after the print. It cannot be changed while a print is running.");
+    set_illustrated_tooltip(m_cb_purify_air_at_print_end, purify_air_tip);
+    set_illustrated_tooltip(text_purify_air, purify_air_tip);
+    set_illustrated_tooltip(purify_air_switch_board, _L("Internal Circulation: the chamber air is passed through the printer's filter and stays inside. "
+                                                        "Exhaust: the exhaust fan blows the chamber air out of the printer, which clears it faster but releases it into the room."));
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_purify_air_at_print_end, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_purify_air, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1233,6 +1300,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_plate_align = new CheckBox(parent);
     text_plate_align = new Label(parent, _L("Alignment Detection"));
     text_plate_align->SetFont(Label::Body_14);
+    const wxString plate_align_tip = _L("The printer checks that the build plate sits square on the heatbed and pauses the print if it is shifted. "
+                                        "A shifted plate puts the print in the wrong place and can make the nozzle hit the plate's edge.");
+    set_illustrated_tooltip(m_cb_plate_align, plate_align_tip);
+    set_illustrated_tooltip(text_plate_align, plate_align_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_plate_align, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_plate_align, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1256,6 +1327,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_fod_check = new CheckBox(parent);
     text_fod_check = new Label(parent, _L("Foreign Object Detection"));
     text_fod_check->SetFont(Label::Body_14);
+    const wxString fod_check_tip = _L("Before the print starts, the camera looks for things left on the build plate, such as a previous print or a tool, and stops before the nozzle runs into them. "
+                                      "The check adds a little time before each print.");
+    set_illustrated_tooltip(m_cb_fod_check, fod_check_tip);
+    set_illustrated_tooltip(text_fod_check, fod_check_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_fod_check, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_fod_check, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1279,6 +1354,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_displacement_detection = new CheckBox(parent);
     text_displacement_detection = new Label(parent, _L("Printed Part Displacement Detection"));
     text_displacement_detection->SetFont(Label::Body_14);
+    const wxString displacement_tip = _L("The camera watches the printed part throughout the print and alerts you as soon as it comes loose, moves or falls over, so the rest of the print is not wasted. "
+                                         "Tall or unusual parts can cause false alarms.");
+    set_illustrated_tooltip(m_cb_displacement_detection, displacement_tip);
+    set_illustrated_tooltip(text_displacement_detection, displacement_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_displacement_detection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_displacement_detection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1315,6 +1394,11 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_smart_nozzle_blob_mode_switch = new MultiSwitchButton(parent);
     m_smart_nozzle_blob_mode_switch->SetOptions({_L("Auto"), _L("On"), _L("Off")});
     m_smart_nozzle_blob_mode_switch->SetSelection(0);
+    const wxString smart_nozzle_blob_tip = _L("Auto: the printer checks the nozzle for clumps, except with filaments prone to oozing, which would trigger it by mistake. "
+                                              "On: always checked, which can lower print quality with such filaments. "
+                                              "Off: never checked, so a clump can ruin the print or damage the nozzle.");
+    set_illustrated_tooltip(m_smart_nozzle_blob_mode_switch, smart_nozzle_blob_tip);
+    set_illustrated_tooltip(text_smart_nozzle_blob, smart_nozzle_blob_tip);
     sizer->Add(m_smart_nozzle_blob_mode_switch, 0, wxLEFT, FromDIP(30));
     smart_nozzle_blob_bottom_space = sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
     text_smart_nozzle_blob->Hide();
@@ -1329,6 +1413,12 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     text_open_door->SetFont(Label::Body_14);
     open_door_switch_board = new SwitchBoard(parent, _L("Notification"), _L("Pause printing"), wxSize(FromDIP(200), FromDIP(26)));
     open_door_switch_board->Disable();
+    const wxString open_door_tip = _L("The printer reacts when its door is opened during a print. "
+                                      "An open door lets the chamber cool, which can warp or crack materials such as ABS and ASA.");
+    set_illustrated_tooltip(m_cb_open_door, open_door_tip);
+    set_illustrated_tooltip(text_open_door, open_door_tip);
+    set_illustrated_tooltip(open_door_switch_board, _L("Notification: the printer only warns you and keeps printing. "
+                                                       "Pause printing: the print also pauses until you resume it."));
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_open_door, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_open_door, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1343,6 +1433,10 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     m_cb_snapshot_enable = new CheckBox(parent);
     Label* text_snapshot = new Label(parent, _L("Print Status Snapshot"));
     text_snapshot->SetFont(Label::Body_14);
+    const wxString snapshot_tip = _L("The printer takes photos of the print while it runs and when it ends, and uploads them to the cloud so you can check the print from anywhere. "
+                                     "The photos leave your network; turn it off if you do not want that.");
+    set_illustrated_tooltip(m_cb_snapshot_enable, snapshot_tip);
+    set_illustrated_tooltip(text_snapshot, snapshot_tip);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_snapshot_enable, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_snapshot, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1561,6 +1655,9 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     m_single_update_nozzle_button->SetSize(wxSize(FromDIP(80), FromDIP(32)));
     m_single_update_nozzle_button->SetMinSize(wxSize(-1, FromDIP(32)));
     m_single_update_nozzle_button->Bind(wxEVT_BUTTON, &PrinterPartsDialog::OnNozzleRefresh, this);
+    const wxString refresh_nozzle_tip = _L("Asks the printer to identify its installed nozzle again and updates the values above. "
+                                           "Use it after swapping a nozzle if they still show the old one.");
+    set_illustrated_tooltip(m_single_update_nozzle_button, refresh_nozzle_tip);
     single_update_nozzle_sizer->Add(0, 0, 1, wxEXPAND, FromDIP(0));
     single_update_nozzle_sizer->Add(m_single_update_nozzle_button, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(18));
 
@@ -1675,6 +1772,7 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     m_multiple_update_nozzle_button->SetSize(wxSize(FromDIP(80), FromDIP(32)));
     m_multiple_update_nozzle_button->SetMinSize(wxSize(-1, FromDIP(32)));
     m_multiple_update_nozzle_button->Bind(wxEVT_BUTTON, &PrinterPartsDialog::OnNozzleRefresh, this);
+    set_illustrated_tooltip(m_multiple_update_nozzle_button, refresh_nozzle_tip);
     multiple_update_nozzle_sizer->Add(0, 0, 1, wxEXPAND, FromDIP(0));
     multiple_update_nozzle_sizer->Add(m_multiple_update_nozzle_button, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, FromDIP(18));
 

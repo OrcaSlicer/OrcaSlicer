@@ -1,5 +1,6 @@
 #include "StatusPanel.hpp"
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "IPrinterAgent.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/Button.hpp"
@@ -439,10 +440,12 @@ ExtruderSwithingStatus::ExtruderSwithingStatus(wxWindow *parent)
     m_button_quit = new Button(this, _L_CONTEXT(L_CONTEXT("Quit", "Quit_Switching"), "Quit_Switching"), "", 0, FromDIP(22));
     m_button_quit->SetStyle(ButtonStyle::Regular, ButtonType::Window);
     m_button_quit->Bind(wxEVT_BUTTON, &ExtruderSwithingStatus::on_quit, this);
+    set_illustrated_tooltip(m_button_quit, _L("Gives up the nozzle switch that failed."));
 
     m_button_retry = new Button(this, _L("Retry"), "", 0, FromDIP(22));
     m_button_retry->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_button_retry->Bind(wxEVT_BUTTON, &ExtruderSwithingStatus::on_retry, this);
+    set_illustrated_tooltip(m_button_retry, _L("Tries the nozzle switch again, once you have fixed the problem."));
 
     wxBoxSizer *btn_sizer  = new wxBoxSizer(wxHORIZONTAL);
     btn_sizer->Add(m_button_quit, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
@@ -693,35 +696,35 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_button_partskip->SetBorderColor(*wxWHITE);
     m_button_partskip->SetFont(Label::Body_12);
     m_button_partskip->SetCornerRadius(0);
-    m_button_partskip->SetToolTip(_L("Parts Skip"));
     m_button_partskip->Bind(wxEVT_ENTER_WINDOW, [this](auto &e) { m_button_partskip->SetIcon("print_control_partskip_hover"); });
     m_button_partskip->Bind(wxEVT_LEAVE_WINDOW, [this](auto &e) { m_button_partskip->SetIcon("print_control_partskip"); });
+    // After the hover handlers above, which do not Skip(): handlers bound later run first.
+    set_illustrated_tooltip(m_button_partskip, _L("Lists the objects on the plate, so you can skip the ones that failed while the rest of the plate keeps printing."));
 
     m_button_pause_resume = new ScalableButton(progress_lr_panel, wxID_ANY, "print_control_pause", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER,true);
 
     m_button_pause_resume->Bind(wxEVT_ENTER_WINDOW, [this](auto &e) {
-        if (m_button_pause_resume->GetToolTipText() == _L_CONTEXT("Pause", "Verb")) {
+        if (m_pause_resume_type == "pause") {
             m_button_pause_resume->SetBitmap_("print_control_pause_hover");
         }
 
-        if (m_button_pause_resume->GetToolTipText() == _L("Resume")) {
+        if (m_pause_resume_type == "resume") {
             m_button_pause_resume->SetBitmap_("print_control_resume_hover");
         }
     });
 
     m_button_pause_resume->Bind(wxEVT_LEAVE_WINDOW, [this](auto &e) {
         auto        buf = m_button_pause_resume->GetClientData();
-        if (m_button_pause_resume->GetToolTipText() == _L_CONTEXT("Pause", "Verb")) {
+        if (m_pause_resume_type == "pause") {
             m_button_pause_resume->SetBitmap_("print_control_pause");
         }
 
-        if (m_button_pause_resume->GetToolTipText() == _L("Resume")) {
+        if (m_pause_resume_type == "resume") {
             m_button_pause_resume->SetBitmap_("print_control_resume");
         }
     });
 
     m_button_abort = new ScalableButton(progress_lr_panel, wxID_ANY, "print_control_stop", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
-    m_button_abort->SetToolTip(_L("Stop"));
 
     m_button_abort->Bind(wxEVT_ENTER_WINDOW, [this](auto &e) {
         m_button_abort->SetBitmap_("print_control_stop_hover");
@@ -730,6 +733,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_button_abort->Bind(wxEVT_LEAVE_WINDOW, [this](auto &e) {
         m_button_abort->SetBitmap_("print_control_stop"); }
     );
+    set_illustrated_tooltip(m_button_abort, _L("Stops the print after you confirm. A stopped print cannot be resumed."));
 
     wxBoxSizer *bSizer_buttons = new wxBoxSizer(wxHORIZONTAL);
     wxBoxSizer *bSizer_text = new wxBoxSizer(wxHORIZONTAL);
@@ -936,6 +940,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
 
     m_button_clean = new Button(m_panel_error_txt, _L("Clear"));
     m_button_clean->SetStyle(ButtonStyle::Regular, ButtonType::Window);
+    set_illustrated_tooltip(m_button_clean, _L("Hides this error message until the printer reports a different error. It does not clear the error on the printer."));
 
     static_text_sizer->Add( FromDIP(10), 0, 0, 0, 0 );
     static_text_sizer->Add(m_button_clean, 0, wxALIGN_CENTRE_VERTICAL|wxRIGHT, FromDIP(5));
@@ -1161,11 +1166,13 @@ void PrintingTaskPanel::enable_pause_resume_button(bool enable, std::string type
         m_button_pause_resume->Enable(true);
         if (type == "resume") {
         m_button_pause_resume->SetBitmap_("print_control_resume");
-        if (m_button_pause_resume->GetToolTipText() != _L("Resume")) { m_button_pause_resume->SetToolTip(_L("Resume")); }
+        if (m_pause_resume_type != type) { set_illustrated_tooltip(m_button_pause_resume, _L("Resumes the paused print from where it stopped.")); }
+        m_pause_resume_type = type;
         }
         else if (type == "pause") {
         m_button_pause_resume->SetBitmap_("print_control_pause");
-        if (m_button_pause_resume->GetToolTipText() != _L_CONTEXT("Pause", "Verb")) { m_button_pause_resume->SetToolTip(_L_CONTEXT("Pause", "Verb")); }
+        if (m_pause_resume_type != type) { set_illustrated_tooltip(m_button_pause_resume, _L("Pauses the print. Press it again to resume from where it stopped.")); }
+        m_pause_resume_type = type;
         }
     }
 }
@@ -1585,12 +1592,12 @@ wxBoxSizer *StatusBasePanel::create_monitoring_page()
     m_camera_switch_button->Bind(wxEVT_LEFT_DOWN, &StatusBasePanel::on_camera_switch_toggled, this);
     m_camera_switch_button->Hide();
 
-    m_bitmap_sdcard_img->SetToolTip(_L("Storage"));
-    m_bitmap_timelapse_img->SetToolTip(_L("Timelapse"));
-    m_bitmap_recording_img->SetToolTip(_L("Video"));
-    m_bitmap_vcamera_img->SetToolTip(_L("Go Live"));
-    m_setting_button->SetToolTip(_L("Camera Setting"));
-    m_camera_switch_button->SetToolTip(_L("Switch Camera View"));
+    set_illustrated_tooltip(m_bitmap_sdcard_img, _L("Storage: ready. The printer saves video recordings and timelapses to it."));
+    set_illustrated_tooltip(m_bitmap_timelapse_img, _L("Timelapse: whether the printer records a timelapse of this print. It is chosen when the print is sent."));
+    set_illustrated_tooltip(m_bitmap_recording_img, _L("Video recording: whether the printer records a video of its prints. Turn it on or off with Auto-record Monitoring in the camera settings."));
+    set_illustrated_tooltip(m_bitmap_vcamera_img, _L("Go Live: whether the camera stream is shared as a virtual camera on this computer, for other apps to show. Turn it on or off in the camera settings."));
+    set_illustrated_tooltip(m_setting_button, _L("Camera settings: auto-recording, Go Live, the video resolution and a custom camera source."));
+    set_illustrated_tooltip(m_camera_switch_button, _L("Switches between the custom camera source and the printer's own camera."));
 
     bSizer_monitoring_title->Add(m_camera_switch_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     bSizer_monitoring_title->Add(m_bitmap_sdcard_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
@@ -1669,6 +1676,11 @@ void StatusBasePanel::on_camera_switch_toggled(wxMouseEvent& event)
     show_custom_camera(m_custom_camera_view->IsShown() ? std::string() : CameraPopup::custom_source_url());
 }
 
+static wxString calibration_button_tip()
+{
+    return _L("Runs the printer's self-calibration, such as bed leveling, vibration compensation and motor noise cancellation, depending on the printer. Not available while printing.");
+}
+
 wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
 {
     wxBoxSizer *bSizer_right = new wxBoxSizer(wxVERTICAL);
@@ -1684,16 +1696,20 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
 
     m_parts_btn = new Button(m_panel_control_title, _L("Printer Parts"));
     m_parts_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+    set_illustrated_tooltip(m_parts_btn, _L("Shows the nozzle the printer reports as installed: its type, diameter and flow."));
 
     m_options_btn = new Button(m_panel_control_title, _L("Print Options"));
     m_options_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+    set_illustrated_tooltip(m_options_btn, _L("The printer's monitoring and detection settings, such as AI failure detection, first layer inspection and build plate detection. Which ones appear depends on the printer."));
   
     m_safety_btn = new Button(m_panel_control_title, _L("Safety Options"));
     m_safety_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+    set_illustrated_tooltip(m_safety_btn, _L("The printer's safety settings, such as open door detection and idle heating protection."));
 
     m_calibration_btn = new Button(m_panel_control_title, _L("Calibration"));
     m_calibration_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_calibration_btn->EnableTooltipEvenDisabled();
+    set_illustrated_tooltip(m_calibration_btn, calibration_button_tip());
   
     m_options_btn->Hide();
     m_safety_btn->Hide();
@@ -1735,6 +1751,7 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
     m_ams_rack_switch->updateState("left");
     m_ams_rack_switch->Hide();
     m_ams_rack_switch->Bind(wxCUSTOMEVT_SWITCH_POS, &StatusBasePanel::on_ams_rack_switch, this);
+    set_illustrated_tooltip(m_ams_rack_switch, _L("Shows either the filament units or the printer's hotend rack below."));
 
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(8));
     bSizer_control->Add(temp_axis_slot,         0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
@@ -1838,6 +1855,11 @@ wxBoxSizer *StatusBasePanel::create_temp_control(wxWindow *parent)
     m_tempCtrl_nozzle_deputy->SetTextColor(tempinput_text_colour);
     m_tempCtrl_nozzle_deputy->SetBorderColor(tempinput_border_colour);
 
+    const wxString nozzle_temp_tip = _L("Nozzle temperature: current / target. Click the target, type a new one and press Enter to heat or cool the nozzle; 0 turns its heater off. "
+                                        "On a printer with two nozzles, L and R mark the left and the right one.");
+    set_illustrated_tooltip(m_tempCtrl_nozzle, nozzle_temp_tip);
+    set_illustrated_tooltip(m_tempCtrl_nozzle_deputy, nozzle_temp_tip);
+
     sizer->Add(m_tempCtrl_nozzle_deputy, 0, wxEXPAND | wxALL, 1);
     sizer->Add(m_tempCtrl_nozzle, 0, wxEXPAND | wxALL, 1);
     m_tempCtrl_nozzle_deputy->Hide();
@@ -1857,6 +1879,7 @@ wxBoxSizer *StatusBasePanel::create_temp_control(wxWindow *parent)
     m_tempCtrl_bed->SetBorderWidth(FromDIP(2));
     m_tempCtrl_bed->SetTextColor(tempinput_text_colour);
     m_tempCtrl_bed->SetBorderColor(tempinput_border_colour);
+    set_illustrated_tooltip(m_tempCtrl_bed, _L("Bed temperature: current / target. Click the target, type a new one and press Enter to heat or cool the bed; 0 turns its heater off."));
     sizer->Add(m_tempCtrl_bed, 0, wxEXPAND | wxALL, 1);
 
     auto line = new StaticLine(parent);
@@ -1874,6 +1897,8 @@ wxBoxSizer *StatusBasePanel::create_temp_control(wxWindow *parent)
     m_tempCtrl_chamber->SetBorderWidth(FromDIP(2));
     m_tempCtrl_chamber->SetTextColor(tempinput_text_colour);
     m_tempCtrl_chamber->SetBorderColor(tempinput_border_colour);
+    set_illustrated_tooltip(m_tempCtrl_chamber, _L("Chamber temperature. On a printer that heats its chamber, click the target, type a new one and press Enter; 0 turns chamber heating off. "
+                                                   "On other printers it only shows the reading, where the printer reports one."));
     sizer->Add(m_tempCtrl_chamber, 0, wxEXPAND | wxALL, 1);
 
     m_misc_ctrl_sizer = create_misc_control(parent);
@@ -1897,6 +1922,7 @@ wxBoxSizer *StatusBasePanel::create_misc_control(wxWindow *parent)
     m_switch_speed->SetFont(Label::Head_13);
     m_switch_speed->SetTextColor(StateColor(std::make_pair(DISCONNECT_TEXT_COL, (int) StateColor::Disabled), std::make_pair(NORMAL_TEXT_COL, (int) StateColor::Normal)));
     m_switch_speed->SetValue(false);
+    set_illustrated_tooltip(m_switch_speed, _L("Print speed level: Silent, Standard, Sport or Ludicrous. It changes the speed of the running print and has no effect while the printer is idle. Faster levels can lower print quality."));
 
     line_sizer->Add(m_switch_speed, 1, wxALIGN_CENTER | wxALL, 0);
 
@@ -1913,6 +1939,7 @@ wxBoxSizer *StatusBasePanel::create_misc_control(wxWindow *parent)
     m_switch_lamp->SetBorderWidth(FromDIP(2));
     m_switch_lamp->SetFont(Label::Head_13);
     m_switch_lamp->SetTextColor(StateColor(std::make_pair(DISCONNECT_TEXT_COL, (int) StateColor::Disabled), std::make_pair(NORMAL_TEXT_COL, (int) StateColor::Normal)));
+    set_illustrated_tooltip(m_switch_lamp, _L("Turns the printer's chamber light on or off. With the light off during a print, the camera's AI monitoring (such as spaghetti detection) can fail."));
     line_sizer->Add(m_switch_lamp, 1, wxALIGN_CENTER | wxALL, 0);
 
     //sizer->Add(line_sizer, 0, wxEXPAND, FromDIP(5));
@@ -1947,6 +1974,7 @@ wxBoxSizer *StatusBasePanel::create_misc_control(wxWindow *parent)
     m_switch_fan->Bind(wxEVT_LEAVE_WINDOW, [this, parent](auto& e) {
         m_fan_panel->SetBackgroundColor(parent->GetBackgroundColour());
         });
+    set_illustrated_tooltip(m_switch_fan, _L("Opens the fan controls: the speed of each fan the printer lets you set, and the air duct mode on printers that have one."));
 
     fan_line_sizer->Add(m_switch_fan, 1, wxEXPAND|wxALL, FromDIP(2));
 
@@ -2004,6 +2032,8 @@ wxBoxSizer *StatusBasePanel::create_axis_control(wxWindow *parent)
     m_bpButton_xy->SetTextColor(StateColor(std::make_pair(DISCONNECT_TEXT_COL, (int) StateColor::Disabled), std::make_pair(NORMAL_TEXT_COL, (int) StateColor::Normal)));
     m_bpButton_xy->SetMinSize(AXIS_MIN_SIZE);
     m_bpButton_xy->SetSize(AXIS_MIN_SIZE);
+    set_illustrated_tooltip(m_bpButton_xy, _L("Moves the toolhead in X and Y in the direction of the arrow: the outer ring by 10 mm, the inner ring by 1 mm. The button in the middle homes all axes. "
+                                              "Until the axes are homed, a move asks you to home them first."));
     sizer->AddStretchSpacer();
     sizer->Add(m_bpButton_xy, 0, wxALIGN_CENTER | wxALL, 0);
     sizer->AddStretchSpacer();
@@ -2031,6 +2061,7 @@ wxPanel *StatusBasePanel::create_bed_control(wxWindow *parent)
     m_bpButton_z_10->SetMinSize(Z_BUTTON_SIZE);
     m_bpButton_z_10->SetSize(Z_BUTTON_SIZE);
     m_bpButton_z_10->SetCornerRadius(0);
+    set_illustrated_tooltip(m_bpButton_z_10, wxString::Format(_L("Moves the bed and the nozzle %d mm closer together."), 10));
     m_bpButton_z_1 = new Button(panel, wxString(" 1"), "monitor_bed_up", 0, 15); // Orca Dont scale icon size 
     m_bpButton_z_1->SetFont(::Label::Body_12);
     m_bpButton_z_1->SetBorderWidth(0);
@@ -2039,6 +2070,7 @@ wxPanel *StatusBasePanel::create_bed_control(wxWindow *parent)
     m_bpButton_z_1->SetMinSize(Z_BUTTON_SIZE);
     m_bpButton_z_1->SetSize(Z_BUTTON_SIZE);
     m_bpButton_z_1->SetTextColor(StateColor(std::make_pair(DISCONNECT_TEXT_COL, (int) StateColor::Disabled), std::make_pair(NORMAL_TEXT_COL, (int) StateColor::Normal)));
+    set_illustrated_tooltip(m_bpButton_z_1, wxString::Format(_L("Moves the bed and the nozzle %d mm closer together."), 1));
 
     //bSizer_z_ctrl->Add(0, FromDIP(6), 0, wxEXPAND, 0);
 
@@ -2055,6 +2087,7 @@ wxPanel *StatusBasePanel::create_bed_control(wxWindow *parent)
     m_bpButton_z_down_1->SetMinSize(Z_BUTTON_SIZE);
     m_bpButton_z_down_1->SetSize(Z_BUTTON_SIZE);
     m_bpButton_z_down_1->SetTextColor(StateColor(std::make_pair(DISCONNECT_TEXT_COL, (int) StateColor::Disabled), std::make_pair(NORMAL_TEXT_COL, (int) StateColor::Normal)));
+    set_illustrated_tooltip(m_bpButton_z_down_1, wxString::Format(_L("Moves the bed and the nozzle %d mm apart."), 1));
 
     m_bpButton_z_down_10 = new Button(panel, wxString("10"), "monitor_bed_down", 0, 15); // Orca Dont scale icon size 
     m_bpButton_z_down_10->SetFont(::Label::Body_12);
@@ -2064,6 +2097,7 @@ wxPanel *StatusBasePanel::create_bed_control(wxWindow *parent)
     m_bpButton_z_down_10->SetMinSize(Z_BUTTON_SIZE);
     m_bpButton_z_down_10->SetSize(Z_BUTTON_SIZE);
     m_bpButton_z_down_10->SetTextColor(StateColor(std::make_pair(DISCONNECT_TEXT_COL, (int) StateColor::Disabled), std::make_pair(NORMAL_TEXT_COL, (int) StateColor::Normal)));
+    set_illustrated_tooltip(m_bpButton_z_down_10, wxString::Format(_L("Moves the bed and the nozzle %d mm apart."), 10));
 
     bSizer_z_ctrl->Add(m_bpButton_z_10, 0, wxEXPAND | wxLEFT | wxRIGHT, 0);
     bSizer_z_ctrl->Add(m_bpButton_z_1, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(2));
@@ -2094,12 +2128,14 @@ wxBoxSizer *StatusBasePanel::create_extruder_control(wxWindow *parent)
 
     m_nozzle_btn_panel = new SwitchBoard(panel, _L_CONTEXT("Left", "Nozzle position"), _L_CONTEXT("Right", "Nozzle position"), wxSize(FromDIP(126), FromDIP(26)));
     m_nozzle_btn_panel->SetAutoDisableWhenSwitch();
+    set_illustrated_tooltip(m_nozzle_btn_panel, _L("Switches the active nozzle. Not possible while a print is running, unless it is paused."));
 
     m_bpButton_e_10 = new Button(panel, "", "monitor_extruder_up", 0, 22); // Orca Dont scale icon size 
     m_bpButton_e_10->SetBorderWidth(2);
     m_bpButton_e_10->SetBackgroundColor(e_ctrl_bg);
     m_bpButton_e_10->SetBorderColor(e_ctrl_bd);
     m_bpButton_e_10->SetMinSize(wxSize(FromDIP(40), FromDIP(40)));
+    set_illustrated_tooltip(m_bpButton_e_10, wxString::Format(_L("Retracts 10 mm of filament, pulling it back from the nozzle. The nozzle must be at %d\u2103 or hotter."), int(TEMP_THRESHOLD_ALLOW_E_CTRL)));
 
     m_extruder_book = new wxSimplebook(panel, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(45), FromDIP(112)), 0);
 
@@ -2116,6 +2152,7 @@ wxBoxSizer *StatusBasePanel::create_extruder_control(wxWindow *parent)
     m_bpButton_e_down_10->SetBackgroundColor(e_ctrl_bg);
     m_bpButton_e_down_10->SetBorderColor(e_ctrl_bd);
     m_bpButton_e_down_10->SetMinSize(wxSize(FromDIP(40), FromDIP(40)));
+    set_illustrated_tooltip(m_bpButton_e_down_10, wxString::Format(_L("Extrudes 10 mm of filament through the nozzle. The nozzle must be at %d\u2103 or hotter."), int(TEMP_THRESHOLD_ALLOW_E_CTRL)));
 
     m_extruder_switching_status = new ExtruderSwithingStatus(panel);
     m_extruder_switching_status->SetForegroundColour(TEXT_LIGHT_FONT_COL);
@@ -2205,6 +2242,7 @@ wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
 
     m_title_filament_loading->Bind(wxEVT_LEFT_DOWN, &StatusBasePanel::expand_filament_loading, this);
     m_scale_panel->Bind(wxEVT_LEFT_DOWN, &StatusBasePanel::expand_filament_loading, this);
+    set_illustrated_tooltip(m_scale_panel, _L("Shows or hides the steps of the filament change in progress."));
 
 
     auto sizer_box = new wxBoxSizer(wxVERTICAL);
@@ -2237,6 +2275,7 @@ wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
 
     m_button_retry = new Button(m_filament_load_box, _L("Retry"));
     m_button_retry->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
+    set_illustrated_tooltip(m_button_retry, _L("Tells the printer to try the failed step of the filament change again, once you have fixed the problem."));
     //m_button_retry->Hide();
 
     m_button_retry->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
@@ -2248,6 +2287,7 @@ wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
     m_fila_change_abort = new Button(m_filament_load_box, _L("Stop"));
     m_fila_change_abort->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_fila_change_abort->Hide();
+    set_illustrated_tooltip(m_fila_change_abort, _L("Stops the filament change in progress."));
     m_fila_change_abort->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         BOOST_LOG_TRIVIAL(info) << "on_ams_abort";
         if (obj) { obj->command_ams_control("abort"); }
@@ -2453,16 +2493,16 @@ void StatusPanel::update_camera_state(MachineObject* obj)
     if (m_last_sdcard != sdcard_state) {
         if (sdcard_state == DevStorage::NO_SDCARD) {
             m_bitmap_sdcard_img->SetBitmap(m_bitmap_sdcard_state_no.bmp());
-            m_bitmap_sdcard_img->SetToolTip(_L("No Storage"));
+            set_illustrated_tooltip(m_bitmap_sdcard_img, _L("Storage: none in the printer. Video recording and timelapse need it."));
         } else if (sdcard_state == DevStorage::HAS_SDCARD_NORMAL) {
             m_bitmap_sdcard_img->SetBitmap(m_bitmap_sdcard_state_normal.bmp());
-            m_bitmap_sdcard_img->SetToolTip(_L("Storage"));
+            set_illustrated_tooltip(m_bitmap_sdcard_img, _L("Storage: ready. The printer saves video recordings and timelapses to it."));
         } else if (sdcard_state == DevStorage::HAS_SDCARD_ABNORMAL) {
             m_bitmap_sdcard_img->SetBitmap(m_bitmap_sdcard_state_abnormal.bmp());
-            m_bitmap_sdcard_img->SetToolTip(_L("Storage Abnormal"));
+            set_illustrated_tooltip(m_bitmap_sdcard_img, _L("Storage: the printer reports a problem with it. Check or format it on the printer."));
         } else {
             m_bitmap_sdcard_img->SetBitmap(m_bitmap_sdcard_state_normal.bmp());
-            m_bitmap_sdcard_img->SetToolTip(_L("Storage"));
+            set_illustrated_tooltip(m_bitmap_sdcard_img, _L("Storage: ready. The printer saves video recordings and timelapses to it."));
         }
         m_last_sdcard = sdcard_state;
         m_panel_monitoring_title->Layout();
@@ -3750,12 +3790,14 @@ void StatusPanel::update_cali(MachineObject *obj)
 
     // disable calibration button in 2D
     if (!obj->is_fdm_type()) {
+        // A native tooltip here: Button shows it on a disabled button (EnableTooltipEvenDisabled), ours does not.
+        set_illustrated_tooltip(m_calibration_btn, wxEmptyString);
         m_calibration_btn->SetToolTip(_L("Printer 2D mode does not support 3D calibration"));
         m_calibration_btn->SetLabel(_L("Calibration"));
         m_calibration_btn->Disable();
         return;
     } else if (!m_calibration_btn->IsEnabled()) {
-        m_calibration_btn->SetToolTip(wxEmptyString);
+        set_illustrated_tooltip(m_calibration_btn, calibration_button_tip());
         m_calibration_btn->Enable();
     }
 

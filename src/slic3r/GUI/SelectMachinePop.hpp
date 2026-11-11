@@ -106,6 +106,7 @@ private:
     ScalableBitmap m_printer_in_lan;
 
     MachineObject *m_info;
+    wxString       m_state_tip;
 
 protected:
     wxStaticBitmap *m_bitmap_info;
@@ -126,6 +127,7 @@ public:
     void show_printer_bind(bool show, PrinterBindState state);
     void show_edit_printer_name(bool show);
     void update_machine_info(MachineObject *info, bool is_my_devices = false);
+    void set_state_tip(const wxString &tip) { m_state_tip = tip; }
 protected:
     void OnPaint(wxPaintEvent &event);
     void render(wxDC &dc);
@@ -133,6 +135,7 @@ protected:
     void on_mouse_enter(wxMouseEvent &evt);
     void on_mouse_leave(wxMouseEvent &evt);
     void on_mouse_left_up(wxMouseEvent &evt);
+    void on_mouse_move(wxMouseEvent &evt);
 };
 
 class MachinePanel

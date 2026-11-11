@@ -8,6 +8,8 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
+#include "IllustratedTipPopup.hpp"
+#include "format.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "Widgets/RoundedRectangle.hpp"
@@ -331,6 +333,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_rename_button = new wxStaticBitmap(m_rename_normal_panel, wxID_ANY, rename_editable->bmp(), wxDefaultPosition, wxSize(FromDIP(20), FromDIP(20)), 0);
     m_rename_button->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_HAND); });
     m_rename_button->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_ARROW); });
+    set_illustrated_tooltip(m_rename_button, _L("Renames the print job. The printer shows this name and keeps it in its print history."));
 
     rename_sizer_h->Add(m_rename_text, 0, wxALIGN_CENTER, 0); // ORCA align text with icon
     rename_sizer_h->Add(m_rename_button, 0, wxALIGN_CENTER| wxLEFT, FromDIP(3)); // ORCA add gap between text and icon
@@ -501,6 +504,12 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     img_ams_backup->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_ARROW); });
 
     m_ams_backup_tip->Bind(wxEVT_LEFT_DOWN, [this](auto& e) { if (!m_is_in_sending_mode) { popup_filament_backup(); on_rename_enter(); }  });
+    {
+        const wxString refill_tip = _L("When a spool runs out, the printer carries on with another AMS slot that holds the same filament type and colour. "
+                                       "Click to see which slots back each other up.");
+        set_illustrated_tooltip(m_ams_backup_tip, refill_tip);
+        set_illustrated_tooltip(img_ams_backup, refill_tip);
+    }
     img_ams_backup->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {if (!m_is_in_sending_mode) popup_filament_backup(); on_rename_enter(); });
 
     sizer_split_filament->Add(0, 0, 0, wxEXPAND, 0);
@@ -674,7 +683,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     m_timelapse_folder_btn = new ScalableButton(m_options_other, wxID_ANY, "folder-closed", wxEmptyString,
         wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
     m_timelapse_folder_btn->SetBackgroundColour(*wxWHITE);
-    m_timelapse_folder_btn->SetToolTip(_L("Select timelapse storage location"));
+    set_illustrated_tooltip(m_timelapse_folder_btn, _L("Chooses where the printer saves the timelapse video: its internal storage or the external storage card."));
     m_timelapse_folder_btn->Hide();
     m_timelapse_folder_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         show_timelapse_folder_popup();
@@ -692,11 +701,15 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
         e.Skip();
     });
     option_timelapse->insert_extra_widget(m_timelapse_folder_btn);
+    option_timelapse->set_about(_L("Records a video of the print with the printer's camera, one frame per layer, and saves it on the printer. "
+                                   "In Smooth mode, chosen when slicing, the toolhead moves aside for each frame, which adds print time."),
+                                {{"device/timelapse_traditional.gif", _L("Traditional")}, {"device/timelapse_smooth.gif", _L("Smooth")}});
 
         auto option_auto_bed_level = new PrintOption(
         m_options_other, _L("Auto Bed Leveling"),
         _L("This checks the flatness of heatbed. Leveling makes extruded height uniform.\n*Automatic mode: Run a leveling check(about 10 seconds). Skip if surface is fine."),
         ops_auto, "bed_leveling");
+    option_auto_bed_level->set_about(wxEmptyString, {{"device/bed_leveling.gif", {}}});
 
     auto option_flow_dynamics_cali =
         new PrintOption(m_options_other, _L("Flow Dynamics Calibration"),
@@ -949,6 +962,9 @@ void SelectMachineDialog::init_bind()
     m_bitmap_last_plate->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_ARROW); });
     m_bitmap_next_plate->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_HAND); });
     m_bitmap_next_plate->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_ARROW); });
+    // After the cursor handlers above, which do not Skip(): handlers bound later run first.
+    set_illustrated_tooltip(m_bitmap_last_plate, _L("Shows the previous plate of this file."));
+    set_illustrated_tooltip(m_bitmap_next_plate, _L("Shows the next plate of this file."));
 
 
     Bind(EVT_CONNECT_LAN_MODE_PRINT, [this](wxCommandEvent& e) {
@@ -6688,11 +6704,27 @@ void PrintOption::update_options(std::vector<POItem> ops, const wxString &tips)
 
 void PrintOption::update_tooltip(const wxString &tips)
 {
-    if (m_printoption_tips->GetToolTipText() != tips) {
-        m_printoption_tips->SetToolTip(tips);
-    }
+    m_tips = tips;
+    m_printoption_tips->Show(!m_tips.IsEmpty());
+    apply_tooltip();
+}
 
-    m_printoption_tips->Show(!m_printoption_tips->GetToolTipText().IsEmpty());
+void PrintOption::set_about(const wxString &about, const std::vector<TipMedia> &media)
+{
+    m_about       = about;
+    m_about_media = media;
+    apply_tooltip();
+}
+
+// One tooltip for the whole row, so the title, the question mark and the switch all show it.
+void PrintOption::apply_tooltip()
+{
+    wxString text = m_about;
+    if (!m_tips.IsEmpty() && m_tips != m_about)
+        text = text.IsEmpty() ? m_tips : text + "\n\n" + m_tips;
+    if (m_title_shortened)
+        text = text.IsEmpty() ? m_full_title : m_full_title + "\n" + text;
+    set_illustrated_tooltip(this, text, m_about_media);
 }
 
 std::string PrintOption::getValue()
@@ -6726,9 +6758,11 @@ void PrintOption::update_title_display()
     wxString displayTitle = m_full_title;
     if (titleSize.x > maxTitleWidth) {
         displayTitle = wxControl::Ellipsize(m_full_title, dc, wxELLIPSIZE_END, maxTitleWidth);
-        m_printoption_title->SetToolTip(m_full_title);
-    } else {
-        m_printoption_title->SetToolTip(wxEmptyString);
+    }
+
+    if (const bool shortened = displayTitle != m_full_title; shortened != m_title_shortened) {
+        m_title_shortened = shortened;
+        apply_tooltip();
     }
 
     m_printoption_title->SetLabel(displayTitle);
@@ -7050,7 +7084,9 @@ void PrinterInfoBox::UpdatePlate(const std::string& plate_name)
             m_bed_image->SetBitmap(create_scaled_bitmap("bed_cool_supertack", this, 40));
         }
 
-        m_bed_image->SetToolTip(name);
+        // TRN %1% is the name of a build plate type, such as Textured PEI Plate.
+        const wxString bed_tip = format_wxstr(_L("%1%: the plate type this plate was sliced for. The same type of plate should be on the printer."), name);
+        set_illustrated_tooltip(m_bed_image, name.empty() ? wxString() : bed_tip);
 
         //if (name.length() > 8) {
         //    m_text_bed_type->SetFont(Label::Body_9);
@@ -7190,9 +7226,11 @@ void PrinterInfoBox::Create()
     m_comboBox_printer->SetMaxSize(wxSize(FromDIP(300), FromDIP(60)));
     m_comboBox_printer->SetBackgroundColor(*wxWHITE);
     m_comboBox_printer->Bind(wxEVT_COMBOBOX, &SelectMachineDialog::on_selection_changed, m_select_dialog);
+    set_illustrated_tooltip(m_comboBox_printer, _L("The printer to send this plate to. Its filaments and nozzles are checked against the sliced plate below."));
 
     m_button_refresh = new ScalableButton(printer_staticbox, wxID_ANY, "refresh_printer", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
     m_button_refresh->Bind(wxEVT_BUTTON, &SelectMachineDialog::on_refresh, m_select_dialog);
+    set_illustrated_tooltip(m_button_refresh, _L("Looks for printers again, for one that was just switched on or is missing from the list."));
 
     sizer_printer_staticbox->Add(0, 0, 0, wxLEFT, FromDIP(7));
     sizer_printer_staticbox->Add(m_comboBox_printer, 0, wxALIGN_CENTER, 0);

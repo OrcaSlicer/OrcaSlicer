@@ -1,6 +1,7 @@
 #include "MultiMachineManagerPage.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "MainFrame.hpp"
 
 #include "DeviceCore/DevManager.h"
@@ -107,6 +108,11 @@ void MultiMachineItem::OnMove(wxMouseEvent& evt)
     else {
         SetCursor(wxCURSOR_ARROW);
     }
+
+    // The View button is painted in doRender(), so its tooltip follows the pointer here.
+    const wxRect view_rect(left, (GetSize().y - FromDIP(38)) / 2, FromDIP(90), FromDIP(38));
+    hover_illustrated_tooltip(this, view_rect.Contains(evt.GetPosition()) ? view_rect : wxRect(),
+                              _L("Opens this printer on the Device page and starts its camera view."));
 }
 
 void MultiMachineItem::paintEvent(wxPaintEvent& evt)
@@ -325,6 +331,8 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
         evt.Skip();
     });
 
+    set_illustrated_tooltip(m_button_edit, _L("Choose which of your printers are listed on this page."));
+
     sizer_button_printer->Add( 0, 0, 1, wxEXPAND, 5 );
     sizer_button_printer->Add(m_button_edit, 0, wxALIGN_CENTER, 0);
 
@@ -347,6 +355,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     m_printer_name->Bind(wxEVT_LEAVE_WINDOW, [&](wxMouseEvent& evt) {
         SetCursor(wxCURSOR_ARROW);
         });
+    set_illustrated_tooltip(m_printer_name, _L("Sorts the printers by name. Click again to reverse the order."));
     m_printer_name->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& evt) {
         device_dev_name_big = !device_dev_name_big;
         auto sortcb = [this](ObjState s1, ObjState s2) {
@@ -380,6 +389,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     m_status->Bind(wxEVT_LEAVE_WINDOW, [&](wxMouseEvent& evt) {
         SetCursor(wxCURSOR_ARROW);
         });
+    set_illustrated_tooltip(m_status, _L("Sorts the printers by their state, such as idle, printing or finished. Click again to reverse the order."));
     m_status->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& evt) {
         device_state_big = !device_state_big;
         auto sortcb = [this](ObjState s1, ObjState s2) {
@@ -418,6 +428,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
 
     m_button_add = new Button(m_main_panel, _L("Add"));
     m_button_add->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+    set_illustrated_tooltip(m_button_add, _L("Choose which of your printers are listed on this page."));
 
     m_button_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) {
         MultiMachinePickPage dlg;
@@ -453,6 +464,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     btn_last_page->SetMinSize(wxSize(FromDIP(20), FromDIP(20)));
     btn_last_page->SetMaxSize(wxSize(FromDIP(20), FromDIP(20)));
     btn_last_page->SetBackgroundColor(head_bg);
+    set_illustrated_tooltip(btn_last_page, _L("Previous page"));
     btn_last_page->Bind(wxEVT_LEFT_DOWN, [&](wxMouseEvent& evt) {
         evt.Skip();
         if (m_current_page == 0)
@@ -471,6 +483,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     btn_next_page->SetMinSize(wxSize(FromDIP(20), FromDIP(20)));
     btn_next_page->SetMaxSize(wxSize(FromDIP(20), FromDIP(20)));
     btn_next_page->SetBackgroundColor(head_bg);
+    set_illustrated_tooltip(btn_next_page, _L("Next page"));
     btn_next_page->Bind(wxEVT_LEFT_DOWN, [&](wxMouseEvent& evt) {
         evt.Skip();
         if (m_current_page == m_total_page - 1)
@@ -489,6 +502,7 @@ MultiMachineManagerPage::MultiMachineManagerPage(wxWindow* parent)
     StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
     m_page_num_input->SetBackgroundColor(input_bg);
     m_page_num_input->GetTextCtrl()->SetValue("1");
+    set_illustrated_tooltip(m_page_num_input, _L("Type a page number and press Enter or click Go to jump to that page."));
     wxTextValidator validator(wxFILTER_DIGITS);
     m_page_num_input->GetTextCtrl()->SetValidator(validator);
     m_page_num_input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [&](wxCommandEvent& e) {

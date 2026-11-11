@@ -9,6 +9,7 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "MainFrame.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "Widgets/RoundedRectangle.hpp"
@@ -102,6 +103,7 @@ MachineObjectPanel::MachineObjectPanel(wxWindow *parent, wxWindowID id, const wx
     this->Bind(wxEVT_ENTER_WINDOW, &MachineObjectPanel::on_mouse_enter, this);
     this->Bind(wxEVT_LEAVE_WINDOW, &MachineObjectPanel::on_mouse_leave, this);
     this->Bind(wxEVT_LEFT_UP, &MachineObjectPanel::on_mouse_left_up, this);
+    this->Bind(wxEVT_MOTION, &MachineObjectPanel::on_mouse_move, this);
 
 #ifdef __APPLE__
     wxPlatformInfo platformInfo;
@@ -270,6 +272,28 @@ void MachineObjectPanel::on_mouse_leave(wxMouseEvent &evt)
 {
     m_hover = false;
     Refresh();
+}
+
+// The edit and unbind icons are drawn by the row, so the tooltip follows the part of the row under the
+// pointer: an icon's own, or the printer's state anywhere else. Same rectangles as on_mouse_left_up().
+void MachineObjectPanel::on_mouse_move(wxMouseEvent &evt)
+{
+    evt.Skip();
+    const wxSize  size   = GetSize();
+    const wxSize  unbind = m_unbind_img.GetBmpSize();
+    const wxSize  edit   = m_edit_name_img.GetBmpSize();
+    const wxRect  unbind_rect(size.x - unbind.x - 6, (size.y - unbind.y) / 2, unbind.x, unbind.y);
+    const wxRect  edit_rect(unbind_rect.x - edit.x - 6, (size.y - edit.y) / 2, edit.x, edit.y);
+    const wxPoint pos = evt.GetPosition();
+    if (m_is_my_devices && m_show_edit && edit_rect.Contains(pos))
+        hover_illustrated_tooltip(this, edit_rect, _L("Renames this printer."));
+    else if (m_is_my_devices && m_show_bind && m_bind_state == ALLOW_UNBIND && unbind_rect.Contains(pos))
+        hover_illustrated_tooltip(this, unbind_rect,
+                                  m_info && m_info->is_lan_mode_printer() ?
+                                      _L("Logs out of this LAN printer: its access code is forgotten and has to be entered again to connect.") :
+                                      _L("Unbinds this printer from your account. It has to be bound again before it can be used from here."));
+    else
+        hover_illustrated_tooltip(this, GetClientRect(), m_state_tip);
 }
 
 void MachineObjectPanel::on_mouse_left_up(wxMouseEvent &evt)
@@ -590,7 +614,7 @@ void SelectMachinePopup::update_other_devices()
             if (mobj->is_in_printing()) {
                 op->set_printer_state(PrinterState::BUSY);
             } else {
-                op->SetToolTip(_L("Online"));
+                op->set_state_tip(_L("Online"));
                 op->set_printer_state(IDLE);
             }
         }
@@ -722,7 +746,7 @@ void SelectMachinePopup::update_user_devices()
                 if (mobj->has_access_right() && mobj->is_avaliable()) {
                     op->set_printer_state(PrinterState::IN_LAN);
                     op->show_printer_bind(true, PrinterBindState::ALLOW_UNBIND);
-                    op->SetToolTip(_L("Online"));
+                    op->set_state_tip(_L("Online"));
                 }
                 else {
                     op->set_printer_state(PrinterState::LOCK);
@@ -759,18 +783,18 @@ void SelectMachinePopup::update_user_devices()
                 });
 
             if (!mobj->is_online()) {
-                op->SetToolTip(_L("Offline"));
+                op->set_state_tip(_L("Offline"));
                 op->set_printer_state(PrinterState::OFFLINE);
             }
             else {
                 op->show_edit_printer_name(true);
                 op->show_printer_bind(true, PrinterBindState::ALLOW_UNBIND);
                 if (mobj->is_in_printing()) {
-                    op->SetToolTip(_L("Busy"));
+                    op->set_state_tip(_L("Busy"));
                     op->set_printer_state(PrinterState::BUSY);
                 }
                 else {
-                    op->SetToolTip(_L("Online"));
+                    op->set_state_tip(_L("Online"));
                     op->set_printer_state(PrinterState::IDLE);
                 }
             }
