@@ -6683,12 +6683,11 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wipe_inward", coBool);
     def->label = L("Wipe inward");
     def->category = L("Quality");
-    def->tooltip = L("Applies only to external walls, including hole boundaries. Moves the hot nozzle toward printed "
+    def->tooltip = L("Applies only to external walls, including hole boundaries. Moves the hot nozzle toward the "
                      "inner walls during wiping to reduce reheating of freshly printed plastic and seam marks.\n\n"
                      "Especially useful at layer heights below 0.1 mm, where wipe marks are more visible.\n\n"
-                     "Uses the regular wipe if no adjacent inner wall is already printed (single-wall areas or "
-                     "Outer/Inner wall order), or if no supported inward path can be found, for example at tight "
-                     "corners or seam gaps.");
+                     "Uses the regular wipe where the outer wall has no adjacent inner wall, such as in single-wall "
+                     "areas, or if no supported inward path can be found, for example at tight corners or seam gaps.");
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6701,7 +6700,10 @@ void PrintConfigDef::init_fff_params()
                      "For example, 50% shifts the path by half of the outer-wall width. The effective offset is limited "
                      "by both the actual outer-wall width and the available spacing to the adjacent wall, so values "
                      "above 100% or an equivalent absolute distance have no additional effect. "
-                     "Set to 0 to disable the offset.");
+                     "Set to 0 to disable the offset.\n\n"
+                     "With Outer/Inner or Inner/Outer/Inner wall order, the offset is limited to 50% of the actual "
+                     "outer-wall width because the adjacent inner wall is printed after the outer wall. "
+                     "This also applies to equivalent distances specified in millimeters.");
     def->sidetext = L("mm or %");
     def->ratio_over = "outer_wall_line_width";
     def->min = 0;
@@ -13857,6 +13859,37 @@ Points get_bed_shape(const PrintConfig &cfg, bool use_share)
 
 Points get_bed_shape(const SLAPrinterConfig &cfg) { return to_points(make_counter_clockwise(cfg.printable_area.values)); }
 
+bool is_valid_bed_exclude_area(const Pointfs &points)
+{
+    if (points.size() < 3)
+        return false;
+
+    for (const Vec2d &point : points) {
+        if (!std::isfinite(point.x()) || !std::isfinite(point.y()))
+            return false;
+    }
+
+    const Polygon polygon = Polygon::new_scale(points);
+    if (has_duplicate_points(polygon))
+        return false;
+
+    const Points &vertices = polygon.points;
+    if (polygon.area() == 0.0)
+        return false;
+
+    const size_t count = vertices.size();
+    for (size_t idx = 0; idx + 2 < count; ++idx) {
+        const size_t end = idx == 0 ? count - 1 : count;
+        for (size_t other = idx + 2; other < end; ++other) {
+            if (Geometry::segments_intersect(
+                    vertices[idx], vertices[idx + 1], vertices[other], vertices[(other + 1) % count]))
+                return false;
+        }
+    }
+
+    return true;
+}
+
 namespace {
 
 static bool looks_like_bed_exclusion_volume_syntax(const std::string &value)
@@ -13932,15 +13965,13 @@ static std::optional<Polygon> parse_exclude_polygon_points(const std::string &po
             return std::nullopt;
         points.emplace_back(x, y);
     }
-    if (points.size() < 3)
+    if (!is_valid_bed_exclude_area(points))
         return std::nullopt;
 
     Polygon polygon;
     polygon.points.reserve(points.size());
     for (const Vec2d &pt : points)
         polygon.points.emplace_back(scale_(pt.x()), scale_(pt.y()));
-    if (polygon.area() == 0.0)
-        return std::nullopt;
     polygon.make_counter_clockwise();
     return polygon;
 }
@@ -13950,7 +13981,7 @@ static void append_legacy_bed_exclude_regions(
     const Pointfs &legacy_points,
     const double printable_height)
 {
-    if (legacy_points.size() < 3)
+    if (!is_valid_bed_exclude_area(legacy_points))
         return;
 
     Polygon polygon;

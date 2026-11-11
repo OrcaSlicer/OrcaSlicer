@@ -2,6 +2,7 @@
 #include "Http.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
+#include "NetworkAgentFactory.hpp"
 #include "bambu_networking.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -46,8 +47,7 @@ QidiPrinterAgent::QidiPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(
 
 AgentInfo QidiPrinterAgent::get_agent_info_static()
 {
-    // The native Device and Calibration tabs have nothing to show for Qidi printers yet, so Fluidd's web Device tab is the only one
-    return AgentInfo{"qidi", "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent", false};
+    return AgentInfo{QIDI_PRINTER_AGENT_ID, "Qidi", QidiPrinterAgent_VERSION, "Qidi printer agent"};
 }
 
 bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
@@ -267,6 +267,8 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
                 tray.tray_info_idx = setting_id;
             } else {
                 tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);
+                if (tray.tray_info_idx.empty())
+                    tray.tray_info_idx = map_filament_type_to_generic_id(tray.tray_type);
             }
 
             // Look up color from dictionary

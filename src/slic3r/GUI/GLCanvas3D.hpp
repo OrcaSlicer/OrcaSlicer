@@ -39,6 +39,7 @@
 #include "Camera.hpp"
 #include "SceneRaycaster.hpp"
 #include "SceneCache.hpp"
+#include "SelectionOutline.hpp"
 #include "FrameProfiler.hpp"
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
@@ -379,6 +380,8 @@ class GLCanvas3D
         bool ignore_left_up{ false };
         Drag drag;
         bool ignore_right_up;
+        // ORCA a button was pressed on toolbar empty areas, swallow events until it is released
+        bool down_on_toolbar{ false };
 
         // Orca: The screen-space start and world-space anchor describe the same pan session.
         // Invalidating one must invalidate the other so a new drag cannot reuse stale depth.
@@ -544,6 +547,10 @@ class GLCanvas3D
         void render_details(GLCanvas3D& canvas);
         // Whether the mouse is over the details.
         bool details_hovered() const;
+        // Whether the details cover a point, also when ImGui has not seen the mouse move there.
+        bool details_contain(const Vec2d& point) const;
+        // Whether a button held down was pressed on the details, off their close button.
+        bool details_pressed() const;
         // Whether there were details to hide.
         bool hide_details(GLCanvas3D& canvas);
     };
@@ -717,6 +724,7 @@ private:
         double ratio{ 0. }; // 0 = off
         double last_ratio{ 0. }; // before it was switched off
         Vec3d  normal{ Vec3d::Zero() }; // zero until first aimed
+        bool   follow_camera{ false };
         bool   panel_open{ false };
         const GLCanvas3D* owner; // whose objects place the plane
     };
@@ -782,6 +790,12 @@ private:
     ECursorType m_cursor_type;
     GLSelectionRectangle m_rectangle_selection;
     bool m_navigator_dragging{ false };
+    // whether a click on the navigator is still turning the camera, over the frames that follow it
+    bool m_navigator_animating{ false };
+    // until when a wheel step keeps the preview's reduced set drawn
+    std::chrono::time_point<std::chrono::steady_clock> m_preview_interaction_until{};
+    // whether the frame that restores the toolpaths once that time is up is still owed
+    bool m_preview_settle_pending{ false };
 
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;
@@ -930,6 +944,9 @@ public:
     std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
     // The last scene pass, for frames that only rebuild the overlay.
     SceneCache m_scene_cache;
+    SelectionOutline m_selection_outline;
+    // Volumes the object passes of this frame drew and collected for outlining after them.
+    std::vector<GLVolume*> m_outlined_volumes;
     // Signature of the overlay on screen; empty after render(), a paint request or a frame drawn but
     // not shown, so the next frame is presented regardless.
     std::optional<size_t> m_presented_signature;
@@ -1138,6 +1155,9 @@ public:
     void select_plate();
     //BBS: GUI refactor: GLToolbar&&gizmo
     int get_main_toolbar_offset() const;
+    // ORCA the top toolbar row: main toolbar, separator, gizmo bar and assemble view toolbar (not the collapse toolbar)
+    float get_top_toolbar_width() const;
+    float get_top_toolbar_height() const;
     int get_main_toolbar_height() const { return m_main_toolbar.get_height(); }
     int get_main_toolbar_width() const { return m_main_toolbar.get_width(); }
     float get_assemble_view_toolbar_width() const { return m_assemble_view_toolbar.get_width(); }
@@ -1387,6 +1407,8 @@ public:
     void msw_rescale() { m_gcode_viewer.invalidate_legend(); }
 
     void request_extra_frame() { m_extra_frame_requested = true; }
+    // whether the user is holding the camera, the navigator, a gizmo, the rectangle selection or a preview slider
+    bool is_user_interacting() const;
 
     void schedule_extra_frame(int milliseconds);
 
@@ -1557,6 +1579,7 @@ private:
     // IMEX ghost hover tooltip: filament swatch + label drawn as an ImGui overlay.
     void _render_imex_ghost_tooltip();
     void _render_section_view_caps();
+    void _render_selection_outline();
     void _render_wireframe_overlay();
     bool _is_below_plate_view_active() const;
     void _render_below_plate_volumes();
@@ -1569,6 +1592,9 @@ private:
     // Realistic view: binds, or unbinds, the shadow map the toolpaths read on texture unit 4. False without a map.
     bool _bind_gcode_shadow_map(bool bind) const;
     void _render_gcode_overlay(int canvas_width, int canvas_height);
+    // decides whether the preview draws its reduced set this frame and returns whether what the scene
+    // pass draws changed; runs before the cached scene is consulted
+    bool _update_preview_interaction();
     //BBS: render a plane for assemble
     void _render_plane() const;
     void _render_selection();
@@ -1594,6 +1620,7 @@ private:
     void _render_section_view_panel(const ImVec2& bottom_left);
     void _render_separator_toolbar_right() const;
     void _render_separator_toolbar_left() const;
+    bool _is_mouse_over_top_toolbar(const Vec2d& mouse_pos) const;
     void _render_collapse_toolbar() const;
     // BBS
     //void _render_view_toolbar() const;

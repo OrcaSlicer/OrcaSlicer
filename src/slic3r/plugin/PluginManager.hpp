@@ -113,6 +113,33 @@ struct ScriptCompletion
     bool            cancelled = false;
 };
 
+// One string bucket of PluginPermissions. Used by PluginPermissionMutation.
+enum class PluginPermissionCategory {
+    FsRead,
+    FsReadWrite,
+    NetworkHttp,
+    NetworkSocket,
+    Process,
+    Events,
+};
+
+// A granular edit of a plugin's stored permissions, applied to the latest sidecar contents.
+// Entries are matched verbatim. An empty add/remove list means "change nothing"; the boolean
+// grants change only when the corresponding optional is engaged.
+struct PluginPermissionMutation
+{
+    struct Entry
+    {
+        PluginPermissionCategory category = PluginPermissionCategory::FsRead;
+        std::string              value;
+    };
+
+    std::vector<Entry>  add;
+    std::vector<Entry>  remove;
+    std::optional<bool> threading;
+    std::optional<bool> full_access;
+};
+
 class PluginManager
 {
 public:
@@ -163,6 +190,10 @@ public:
     bool try_get_plugin_descriptor_for_capability(const std::string& capability_name,
                                                   PluginCapabilityType type,
                                                   PluginDescriptor& out) const;
+    // The "name;uuid;capability" reference for a loaded capability, as stored in a preset's
+    // "plugins" manifest; std::nullopt when no loaded package provides it. For infill this also
+    // accepts one of the pattern IDs the owning capability advertises.
+    std::optional<PluginCapabilityRef> resolve_capability_ref(const std::string& capability_name, PluginCapabilityType type) const;
     // Per-plugin storage directory under orca_plugins/plugin_data, created if missing. Throws
     // std::runtime_error if the plugin is unregistered, the key is invalid, or (cloud plugins)
     // no user is logged in yet.
@@ -193,7 +224,23 @@ public:
     // plugin's diagnostic store, not in this string.
     static std::string plugin_infill_failure_message();
 
+    // Reads the sidecar under install_state_mutex(), so the result is not interleaved with a
+    // permission write. Returns false when the plugin is unknown or has no readable sidecar.
+    // Must not be called while already holding install_state_mutex(); the lock is not recursive.
     bool get_install_state(const std::string& plugin_key, PluginInstallState& install_state);
+
+    // Applies a granular edit to the plugin's latest sidecar contents in one locked read-modify-
+    // write. Only the named entries and engaged boolean grants change; every other stored grant,
+    // including one another writer added after the caller last read the state, is preserved.
+    // Additions are deduplicated, removals of absent entries are ignored, and empty values are
+    // skipped. Requires a known installed package with a readable sidecar; enabling full access
+    // additionally requires a loadable (non-invalid) package, while disabling it and plain list
+    // edits accept any known installed package.
+    // Accepted while the plugin is loaded or loading; the running audit re-reads the sidecar, so
+    // the edit applies to its next audited operation. On success `applied`, when non-null,
+    // receives the permissions as written.
+    bool mutate_plugin_permissions(const std::string& plugin_key, const PluginPermissionMutation& mutation,
+                                   PluginPermissions* applied = nullptr);
 
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});
     bool unload_plugin(const std::string& plugin_key);
@@ -354,8 +401,8 @@ private:
     std::map<std::string, std::string> m_load_errors;
     mutable std::condition_variable m_load_cv;
 
-    // Serialize sidecar snapshots so concurrent capability toggles cannot write stale state out of order.
-    mutable std::mutex m_install_state_mutex;
+    // Sidecar readers and writers serialize on Slic3r::install_state_mutex() (PluginFsUtils),
+    // shared with the audit grant writers. Taken before m_mutex, never after it.
 
     // Publication gate for plugin infill pattern IDs. Lock order: this mutex, then m_mutex, then the
     // InfillFactory registry lock. Load/enable publishes under it, and unload detaches and retracts
@@ -477,6 +524,15 @@ void execute_capabilities_from_refs(const ConfigOptionStrings& capabilities,
                     break;
                 }
             }
+        }
+
+        // The manifest is derived from the picker value only when that value changes, so it can be
+        // stale or empty (e.g. derived before the plugin finished loading) even though the
+        // capability is loaded now. Resolve it by name instead of silently skipping the step.
+        if (!ref) {
+            ref = plugin_mgr.resolve_capability_ref(capability, type);
+            if (ref)
+                BOOST_LOG_TRIVIAL(warning) << tag << ": capability '" << capability << "' missing from the plugins manifest; resolved by name";
         }
 
         if (!ref) {

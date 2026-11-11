@@ -805,6 +805,15 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
             }
         }
 
+        if (m_opt_id == "bed_exclude_area" && out_values.size() > 1 && !is_valid_bed_exclude_area(out_values)) {
+            wxString text_value;
+            if (const auto *previous_values = boost::any_cast<std::vector<Vec2d>>(&m_value); previous_values != nullptr)
+                text_value = from_u8(ConfigOptionPoints(*previous_values).serialize());
+            set_value(text_value, true);
+            show_error(m_parent, _L("The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."));
+            break;
+        }
+
         m_value = out_values;
         break; }
 

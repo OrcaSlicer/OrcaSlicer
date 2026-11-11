@@ -407,6 +407,10 @@ public:
     // The height is snug.
     coord_t 				     height() const         { return m_size.z(); }
     double                      max_z() const         { return m_max_z; }
+    // Top of the printed object above the bed, scaled: object_print_z_max of the slicing parameters, so the
+    // raft and the Z shrinkage compensation count, as in the printable-height check of Print::validate().
+    // On a belt printer that is the height in the tilted slicing frame, so the model's own top is used there.
+    double                      print_z_max() const;
     // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
     const Point& 			     center_offset() const  { return m_center_offset; }
     const AdaptiveInfillField*       adaptive_infill_field(AdaptiveInfillMode mode) const { return m_adaptive_infill_fields[size_t(mode)].get(); }
@@ -1230,6 +1234,12 @@ public:
 
     // Wipe tower support.
     bool                        has_wipe_tower() const;
+    // Orca: has_wipe_tower() only says the prime tower is enabled for a plate that may change filaments.
+    // This says the plate prints a tower whatever slicing finds; when false, whether it does depends on
+    // the support that slicing generates.
+    bool                        wipe_tower_certain_before_slicing() const;
+    // Orca: the layering a prime tower needs, all objects sharing their layers. Empty if they do.
+    StringObjectException       validate_wipe_tower_layering() const;
     // Belt purge prism (belt-mode replacement for the wipe tower).
     bool                        has_belt_purge_tower() const;
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
@@ -1280,7 +1290,13 @@ public:
     const std::map<const PrintObject*, ToolOrdering>& sequential_dynamic_orderings() const { return m_sequential_dynamic_orderings; }
 
     const std::vector<std::vector<DynamicPrintConfig>>& get_extruder_filament_info() const { return m_extruder_filament_info; }
-    void set_extruder_filament_info(const std::vector<std::vector<DynamicPrintConfig>>& filament_info) { m_extruder_filament_info = filament_info; }
+    // Two-phase: the setter only stashes the payload, so Print::apply() can invalidate the grouping
+    // steps once the inventory actually changed.
+    void set_extruder_filament_info(const std::vector<std::vector<DynamicPrintConfig>>& filament_info)
+    {
+        m_pending_extruder_filament_info = filament_info;
+        m_extruder_filament_info_pending = true;
+    }
 
     void set_geometric_unprintable_filaments(const std::vector<std::set<int>> &unprintables_filament_ids) { m_geometric_unprintable_filaments = unprintables_filament_ids; }
     std::vector<std::set<int>> get_geometric_unprintable_filaments() const { return m_geometric_unprintable_filaments;}
@@ -1428,7 +1444,7 @@ public:
     static int get_compatible_filament_type(const std::set<int>& types);
 
     bool is_all_objects_are_short() const {
-        return std::all_of(this->objects().begin(), this->objects().end(), [&](PrintObject* obj) { return obj->height() < scale_(this->config().nozzle_height.value); });
+        return std::all_of(this->objects().begin(), this->objects().end(), [&](PrintObject* obj) { return obj->print_z_max() < scale_(this->config().nozzle_height.value); });
     }
 
     // Post-slicing config-slot resolvers: map a (filament, layer) pair to the index of its
@@ -1605,6 +1621,9 @@ private:
     Points                                  m_skirt_convex_hull;
 
     std::vector<std::vector<DynamicPrintConfig>> m_extruder_filament_info;
+    // Payload handed to set_extruder_filament_info(), installed by Print::apply(). See the setter.
+    std::vector<std::vector<DynamicPrintConfig>> m_pending_extruder_filament_info;
+    bool                                       m_extruder_filament_info_pending { false };
 
     // Logical (extruder, nozzle) grouping result, set by ToolOrdering during reorder.
     std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> m_nozzle_group_result;
@@ -1726,6 +1745,8 @@ struct CompactedTowerClearance
     double far_clearance;
     // The object sits within the toolhead radius, so the head body limits it rather than the rod.
     bool   near_body;
+    // The object sits within the nozzle cone, so it may not rise above the tower at all.
+    bool   near_nozzle;
     // Horizontal clearance this particular object has to keep from the tower: the full toolhead
     // radius once it rises past the nozzle cone, the bare cone while it stays below. It is what the
     // error message quotes and what the plater grows the object outline by.

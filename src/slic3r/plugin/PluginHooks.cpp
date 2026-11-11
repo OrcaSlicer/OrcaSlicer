@@ -1,6 +1,7 @@
 #include "PluginHooks.hpp"
 
 #include "PluginManager.hpp"
+#include "PluginResolver.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginInterface.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
@@ -24,7 +25,6 @@
 #include <utility>
 #include <vector>
 #include "slic3r/plugin/PluginDescriptor.hpp"
-#include <slic3r/plugin/pluginTypes/infill/InfillPluginCapability.hpp>
 #include <string>
 #include <stdexcept>
 #include "libslic3r/PrintBase.hpp"
@@ -39,42 +39,8 @@ namespace {
 void install_capability_resolver()
 {
     ConfigBase::set_resolve_capability_fn([](const std::string& cap_name, const std::string& cap_type) {
-        PluginManager& plugin_mgr = PluginManager::instance();
-        const PluginCapabilityType type = plugin_capability_type_from_string(cap_type);
-
-        // A plugin-backed option stores either a capability name (e.g. slicing_pipeline_plugin) or,
-        // for an infill pattern setting, the stable pattern ID the capability advertised. Pattern
-        // IDs are resolved first for infill so a pattern ID that happens to match another
-        // capability's name cannot redirect the manifest. Disabled capabilities stay resolvable
-        // here.
-        std::shared_ptr<PluginCapabilityInterface> plugin_cap;
-        if (type == PluginCapabilityType::Infill) {
-            for (const auto& candidate :
-                 plugin_mgr.get_plugin_capabilities(/*plugin_key=*/"", PluginCapabilityType::Infill,
-                                                    /*only_enabled=*/false)) {
-                auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(candidate);
-                if (!infill)
-                    continue;
-                if (infill->find_resolved_pattern(cap_name) != nullptr) {
-                    plugin_cap = std::move(candidate);
-                    break;
-                }
-            }
-        }
-        if (!plugin_cap)
-            plugin_cap = plugin_mgr.get_plugin_capability(cap_name, type, /*only_enabled=*/false);
-        if (!plugin_cap)
-            return std::string();
-
-        PluginDescriptor descriptor;
-        if (!plugin_mgr.try_get_plugin_descriptor(plugin_cap->audit_plugin_key(), descriptor))
-            return std::string();
-
-        // Cloud plugins are resolved at runtime via the UUID in the middle field, so the first
-        // field keeps the friendly display name. Local plugins are looked up by plugin_key (the
-        // first field, with an empty UUID), so emit the plugin_key to keep them resolvable.
-        const std::string identity = descriptor.is_cloud_plugin() ? descriptor.name : descriptor.plugin_key;
-        return identity + ';' + descriptor.cloud_uuid() + ';' + plugin_cap->name();
+        const auto ref = PluginManager::instance().resolve_capability_ref(cap_name, plugin_capability_type_from_string(cap_type));
+        return ref ? create_full_ref(*ref) : std::string();
     });
 }
 
