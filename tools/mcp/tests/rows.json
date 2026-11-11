@@ -39,7 +39,7 @@
     {"tool": "click", "args": {"target": {"row": "Cube"}, "button": "right", "popup_item": "Add Modifier>Cylinder"},
      "expect": {"/ran": {"eq": "Add Modifier>Cylinder"}}},
     {"tool": "wait", "args": {"for": "idle"}},
-    {"tool": "list_objects", "expect": {"/items/0/volumes/1/type": {"eq": "modifier"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1/type": {"eq": "modifier"}}},
 
     // ---- Part rows: a click, Ctrl adds another; a right click keeps a selection it is in, so the part
     // is clicked alone before its menu changes its type ----
@@ -49,15 +49,15 @@
     {"tool": "click", "args": {"target": {"row": "Cube>Generic-Cylinder"}}},
     {"tool": "click", "args": {"target": {"row": "Cube>Generic-Cylinder"}, "button": "right", "popup_item": "Change Type>Negative Part"},
      "expect": {"/ran": {"eq": "Change Type>Negative Part"}}},
-    {"tool": "list_objects", "expect": {"/items/0/volumes/1/type": {"eq": "negative"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1/type": {"eq": "negative"}}},
 
     // ---- The Printable column acts as a click on its icon; a double click frames the object ----
     {"tool": "click", "args": {"target": {"row": "Plate 1>Cube", "column": "Printable"}}},
-    {"tool": "list_objects", "expect": {"/items/0/instances/0/printable": {"eq": false}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/instances/0/printable": {"eq": false}}},
     {"tool": "click", "args": {"target": {"row": "Plate 1>Cube", "column": "Printable"}}},
-    {"tool": "list_objects", "expect": {"/items/0/instances/0/printable": {"eq": true}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/instances/0/printable": {"eq": true}}},
     {"tool": "click", "args": {"target": {"row": "Plate 1>Cube"}, "double": true}, "expect": {"/selected": {"eq": ["Plate 1>Cube"]}}},
-    {"tool": "list_objects", "expect": {"/total": {"eq": 1}, "/items/0/instances/0/printable": {"eq": true}}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 1}, "/plates/0/objects/0/instances/0/printable": {"eq": true}}},
 
     // ---- Compare presets: a data view's rows, with both presets' values ----
     {"tool": "click", "args": {"target": {"label": "Compare presets"}}},

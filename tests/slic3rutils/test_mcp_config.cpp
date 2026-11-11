@@ -172,7 +172,7 @@ TEST_CASE("a modifier's override applies only inside its own volume", "[Mcp]")
     CHECK(e["effective"] == "15%");
     CHECK(e["source"] == "process");
     REQUIRE(e["parts"].size() == 1);
-    CHECK(e["parts"][0]["volume"] == 1);
+    CHECK(e["parts"][0]["part"] == 1);
     CHECK(e["parts"][0]["value"] == "40%");
 
     // Inside the modifier: its own value, and the object's or process's for the rest.
@@ -207,7 +207,7 @@ TEST_CASE("a filament of 0 is no filament of its own", "[Mcp]")
     CHECK(e["effective"] == "2");
     CHECK(e["source"] == "object");
     REQUIRE(e["parts"].size() == 1);
-    CHECK(e["parts"][0]["volume"] == 1);
+    CHECK(e["parts"][0]["part"] == 1);
     CHECK(e["parts"][0]["value"] == "3");
 
     e = effective_setting("extruder", s.process, *s.object, part);

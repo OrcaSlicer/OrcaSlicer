@@ -233,7 +233,7 @@ unless `captions` or `pointer` turns one on, and that one started with `encode` 
 `ffmpeg -i session.mkv -vf fps=1 frame%02d.png` extracts, for the caption, the pointer and the dialog.
 
 `tests/multicolor.json` assigns filaments to objects and parts through `set_settings`' object and
-volume scopes, with undo and redo, and reads them back with `get_settings`' effective values. It then
+part scopes, with undo and redo, and reads them back with `get_settings`' effective values. It then
 sets the project's slot colours, flushing multiplier, one flushing volume and plate type through the
 project scope (in one call, the colour first), checks the refusals that leave everything as it was
 (the read-only `filament_is_mixed`, a bad colour, a purge mode the printer has no button for, a non-zero

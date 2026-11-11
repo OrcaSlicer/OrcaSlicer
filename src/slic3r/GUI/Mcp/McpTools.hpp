@@ -27,6 +27,7 @@ class PythonSession;
 struct Calib_Params;
 class ConfigOptionDef;
 class DynamicPrintConfig;
+class Model;
 class ModelObject;
 class ModelVolume;
 enum class ModelVolumeType : int;
@@ -38,6 +39,7 @@ namespace CustomGCode { struct Info; }
 namespace GUI {
 
 class IMSlider;
+class PartPlateList;
 class Plater;
 
 namespace Mcp {
@@ -100,7 +102,7 @@ ToolDef mutate_tool(std::string name, std::string title, std::string description
 // The schema of an expected ID argument: the id list_objects reports for an object or part (`of`), which
 // orca.host shows too, so a script addresses what it read.
 nlohmann::json expected_id_prop(const char* of);
-// Refuses the call when `args` names an expected object_id, or volume_id, that is not the id of `object`,
+// Refuses the call when `args` names an expected object_id, or part_id, that is not the id of `object`,
 // or `volume`, which its index names now: the model changed since the caller read the index. Call it
 // before the tool changes anything.
 void check_expected_ids(const ModelObject& object, const ModelVolume* volume, const nlohmann::json& args);
@@ -114,6 +116,9 @@ void settle(ToolContext& ctx);
 // The plater, or ToolFailure while the main window is not up yet (startup, language change).
 // UI thread only.
 Plater& ui_plater();
+
+// What a tool says of a plate index the project does not have: the index, and the plates there are.
+std::string no_such_plate(int plate, int count);
 
 // Typed argument access with defaults; schema validation has already checked the types.
 std::string arg_string(const nlohmann::json& args, const char* key, const std::string& fallback = {});
@@ -438,6 +443,20 @@ nlohmann::json object_info(const ModelObject& object, std::size_t index);
 // A part as list_objects describes it: its type, filament, placement on the bed measured on instance 0,
 // rotation and scale in the object's frame, mesh, paint, and what a text or SVG part was made from.
 nlohmann::json volume_info(const ModelVolume& volume, std::size_t index);
+// What list_objects replies with, laid out as the Objects panel is: `plates`, each {index, name, objects}
+// with the objects that have an instance on it, and `outside`, the objects with an instance on no plate.
+// An object row lists the instances of its plate only, so an object on two plates has a row under each.
+// `plate_of(object, instance)` is the plate an instance is on, or -1, and `plate_names` has a name per
+// plate. Of `args`, plate lists that plate alone, without `outside`, and limit (default 200) and offset
+// page the objects listed, in the model's order: total counts them, each once, and next_offset is there
+// while more follow. A page lists its objects under every plate they are on.
+nlohmann::json objects_by_plate(const Model& model, const std::vector<std::string>& plate_names,
+                                const std::function<int(std::size_t object, std::size_t instance)>& plate_of,
+                                const nlohmann::json& args);
+
+// The plate an instance is on, or -1 on none: the plate registry's answer or, for an instance the
+// registry does not hold, as Fill bed leaves its new ones, the first plate it stands on. UI thread.
+int instance_plate(PartPlateList& plates, int object, int instance);
 
 // What `canvas` has selected, in the indices select_objects takes: its objects, the instances [[object, instance]]
 // they are selected in and, when the selection holds parts rather than whole instances, those parts

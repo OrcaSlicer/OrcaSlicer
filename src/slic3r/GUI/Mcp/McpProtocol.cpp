@@ -161,8 +161,6 @@ const std::vector<std::pair<std::string, std::vector<std::string>>>& argument_al
     static const std::vector<std::pair<std::string, std::vector<std::string>>> aliases{
         {"ref", {"target"}},          {"key", {"keys"}},        {"text", {"value"}},   {"action", {"id", "button"}},
         {"object", {"objects"}},      {"plate", {"plates"}},    {"filter", {"query"}}, {"settings", {"values"}},
-        // A part is a volume in argument names.
-        {"part", {"volume"}},         {"parts", {"volumes"}},   {"part_id", {"volume_id"}}, {"part_ids", {"volume_ids"}},
         // A capture's output file, where the tool has no path of its own.
         {"path", {"save_path"}},
         // set_view's 3D view, or the camera's direction, whichever takes the value.
@@ -172,11 +170,11 @@ const std::vector<std::pair<std::string, std::vector<std::string>>>& argument_al
 }
 
 // Values agents reach for in place of the ones an enum lists, each with the value it stands for: the
-// process preset is the print preset in OrcaSlicer's files, a part is a volume in argument names, and
-// the main window is "the window" where no other window can be meant.
+// process preset is the print preset in OrcaSlicer's files, and the main window is "the window" where no
+// other window can be meant.
 const std::vector<std::pair<std::string, std::string>>& value_aliases()
 {
-    static const std::vector<std::pair<std::string, std::string>> aliases{{"print", "process"}, {"part", "volume"}, {"window", "main"}};
+    static const std::vector<std::pair<std::string, std::string>> aliases{{"print", "process"}, {"window", "main"}};
     return aliases;
 }
 

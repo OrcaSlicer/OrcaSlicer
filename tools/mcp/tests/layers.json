@@ -18,7 +18,7 @@
     {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "transform", "args": {"object": 0, "size": [20, 20, 20]}},
     {"tool": "set_settings", "args": {"scope": "process", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_config_ranges": {"exists": false}}},
 
     // ---- Two ranges, given in any order: the lower half at 40 % infill, the upper half at 0.1 mm ----
     {"tool": "set_height_ranges",
@@ -32,24 +32,24 @@
                 "/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
                 "/layer_config_ranges/1/values/extruder": {"eq": "0"},
                 "/warnings": {"exists": false}}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges/0/values/sparse_infill_density": {"eq": "40%"},
-                                        "/items/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
-                                        "/items/0/layer_config_ranges/2": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_config_ranges/0/values/sparse_infill_density": {"eq": "40%"},
+                                        "/plates/0/objects/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
+                                        "/plates/0/objects/0/layer_config_ranges/2": {"exists": false}}},
     // Ranges are not the object's own overrides.
     {"tool": "get_settings", "args": {"scope": "object", "object": 0, "keys": ["sparse_infill_density"], "include_meta": false},
      "expect": {"/items/0/value": {"eq": null}}},
 
     // ---- One undo step; the same ranges again add none ----
     {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_config_ranges": {"exists": false}}},
     {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
     {"tool": "set_height_ranges",
      "args": {"object": 0, "ranges": [{"min_z": 0, "max_z": 10, "values": {"sparse_infill_density": "40%"}},
                                                    {"min_z": 10, "max_z": 20, "values": {"layer_height": 0.1}}]}},
     {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_config_ranges": {"exists": false}}},
     {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"}}},
 
     // ---- The slicer prints them: 50 layers of 0.2 mm, then 100 of 0.1 mm ----
     {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
@@ -66,9 +66,9 @@
     {"tool": "set_height_ranges", "args": {"object": 0, "ranges": [{"min_z": 0, "max_z": 5, "values": {"enable_support": true}}]},
      "optional": true},
     {"tool": "set_height_ranges", "args": {"object": 0, "ranges": [{"min_z": 5, "max_z": 5}]}, "optional": true},
-    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges/0/max_z": {"eq": 10},
-                                        "/items/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
-                                        "/items/0/layer_config_ranges/2": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_config_ranges/0/max_z": {"eq": 10},
+                                        "/plates/0/objects/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
+                                        "/plates/0/objects/0/layer_config_ranges/2": {"exists": false}}},
 
     // ---- A range printed with the second filament, above the object's top ----
     {"tool": "set_view", "args": {"tab": "prepare"}},
@@ -85,13 +85,13 @@
     // Loading a project asks about preset edits an earlier replay left; the project brings its own.
     {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "unsaved changes", "button": "Discard"}]}},
     {"tool": "open_files", "args": {"paths": ["${out_dir}/layers.3mf"], "discard_changes": true}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges/0/values/sparse_infill_density": {"eq": "40%"},
-                                        "/items/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
-                                        "/items/0/layer_config_ranges/2/values/extruder": {"eq": "2"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_config_ranges/0/values/sparse_infill_density": {"eq": "40%"},
+                                        "/plates/0/objects/0/layer_config_ranges/1/values/layer_height": {"eq": "0.1"},
+                                        "/plates/0/objects/0/layer_config_ranges/2/values/extruder": {"eq": "2"}}},
 
     // ---- [] removes them all ----
     {"tool": "set_height_ranges", "args": {"object": 0, "ranges": []}, "expect": {"/layer_config_ranges": {"eq": []}}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_config_ranges": {"exists": false}}},
     {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
     {"tool": "set_view", "args": {"tab": "preview", "layer": 1}, "expect": {"/layers/2": {"eq": 100}}},
 
@@ -99,7 +99,7 @@
     {"tool": "new_project", "args": {"discard_changes": true}},
     {"tool": "open_files", "args": {"paths": ["${vars.benchy}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "set_settings", "args": {"scope": "process", "values": {"layer_height": 0.2, "initial_layer_print_height": 0.2}}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_height_profile": {"exists": false}}},
     {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "adaptive"},
      "expect": {"/height": {"ge": 47.99, "le": 48.01},
@@ -108,7 +108,7 @@
                 "/layer_height_profile/max_height": {"gt": 0.2},
                 "/warnings": {"exists": false}}},
     {"tool": "get_app_state", "expect": {"/tab": {"eq": "prepare"}}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile/points": {"gt": 250}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_height_profile/points": {"gt": 250}}},
     // Toward quality more layers, toward speed fewer.
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "adaptive", "quality": 0},
      "expect": {"/layer_height_profile/points": {"gt": 380}}},
@@ -122,14 +122,14 @@
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "smooth", "radius": 10, "keep_min": true},
      "expect": {"/layer_height_profile/max_height": {"lt": 0.28}}},
     {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile/max_height": {"eq": 0.28}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_height_profile/max_height": {"eq": 0.28}}},
     {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile/max_height": {"lt": 0.28}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_height_profile/max_height": {"lt": 0.28}}},
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "reset"}, "expect": {"/layer_height_profile": {"exists": false}}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_height_profile": {"exists": false}}},
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "reset"}},
     {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile/max_height": {"lt": 0.28}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_height_profile/max_height": {"lt": 0.28}}},
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "reset"}},
 
     // ---- Refusals change nothing: an argument of another action, the assemble view ----
@@ -137,7 +137,7 @@
     {"tool": "set_view", "args": {"canvas": "assemble"}},
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "adaptive"}, "optional": true},
     {"tool": "set_view", "args": {"canvas": "3d"}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_height_profile": {"exists": false}}},
 
     // ---- With height ranges: Smooth starts from the ranges' heights, Adaptive keeps them inside each
     // range, and the profile then decides ----
@@ -150,15 +150,15 @@
                 "/warnings/0": {"contains": "decides its layer heights"}}},
     {"tool": "set_variable_layer_height", "args": {"object": 0, "action": "adaptive", "quality": 0},
      "expect": {"/layer_height_profile/min_height": {"eq": 0.12}}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_config_ranges/1/values/layer_height": {"eq": "0.28"},
-                                        "/items/0/layer_height_profile/min_height": {"eq": 0.12}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_config_ranges/1/values/layer_height": {"eq": "0.28"},
+                                        "/plates/0/objects/0/layer_height_profile/min_height": {"eq": 0.12}}},
 
     // ---- A 3MF keeps the profile ----
     {"tool": "save_project", "args": {"path": "${out_dir}/profile.3mf", "overwrite": true}},
     {"tool": "new_project", "args": {"discard_changes": true}},
     {"tool": "open_files", "args": {"paths": ["${out_dir}/profile.3mf"], "discard_changes": true}},
-    {"tool": "list_objects", "expect": {"/items/0/layer_height_profile/min_height": {"eq": 0.12},
-                                        "/items/0/layer_height_profile/points": {"gt": 100}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/layer_height_profile/min_height": {"eq": 0.12},
+                                        "/plates/0/objects/0/layer_height_profile/points": {"gt": 100}}},
     {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
 
     // ---- Layer G-codes on a 20 mm cube of 100 layers of 0.2 mm: none before a slice ----

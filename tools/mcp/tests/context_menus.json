@@ -28,11 +28,11 @@
     {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 0, "spot": "top"}, "popup_item": "add modifier>cylinder"},
      "expect": {"/ran": {"eq": "Add Modifier>Cylinder"}}},
     {"tool": "wait", "args": {"for": "idle"}},
-    {"tool": "list_objects", "expect": {"/items/0/volumes/1/type": {"eq": "modifier"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1/type": {"eq": "modifier"}}},
     {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
-    {"tool": "list_objects", "expect": {"/items/0/volumes/1": {"exists": false}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1": {"exists": false}}},
     {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
-    {"tool": "list_objects", "expect": {"/items/0/volumes/1/type": {"eq": "modifier"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1/type": {"eq": "modifier"}}},
 
     // ---- Empty space with nothing selected: the default menu ----
     {"tool": "select_objects", "args": {"none": true}},

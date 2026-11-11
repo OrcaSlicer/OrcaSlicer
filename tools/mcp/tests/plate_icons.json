@@ -34,13 +34,13 @@
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "list_objects", "expect": {"/total": {"eq": 2},
-      "/items/0/instances/0/plate": {"eq": 1}, "/items/1/instances/0/plate": {"eq": 1},
-      "/items/0/instances/0/offset/1": {"eq": 128.0}, "/items/1/instances/0/offset/1": {"eq": 128.0}}},
+      "/plates/1/objects/0/instances/0/index": {"eq": 0}, "/plates/1/objects/1/instances/0/index": {"eq": 0},
+      "/plates/1/objects/0/instances/0/offset/1": {"eq": 128.0}, "/plates/1/objects/1/instances/0/offset/1": {"eq": 128.0}}},
     {"tool": "click", "args": {"target": {"plate_icon": "arrange", "plate": 1}},
      "expect": {"/started": {"eq": true}, "/done": {"eq": true}}},
     {"tool": "wait", "args": {"for": "idle", "timeout_s": 2}, "expect": {"/satisfied": {"eq": true}}},
-    {"tool": "list_objects", "expect": {"/items/0/instances/0/plate": {"eq": 1}, "/items/1/instances/0/plate": {"eq": 1},
-      "/items/0/instances/0/offset/1": {"ne": 128.0}, "/items/1/instances/0/offset/1": {"ne": 128.0}}},
+    {"tool": "list_objects", "expect": {"/plates/1/objects/0/instances/0/index": {"eq": 0}, "/plates/1/objects/1/instances/0/index": {"eq": 0},
+      "/plates/1/objects/0/instances/0/offset/1": {"ne": 128.0}, "/plates/1/objects/1/instances/0/offset/1": {"ne": 128.0}}},
 
     // ---- A right click opens the plate menu: listed, or one of its items run ----
     {"tool": "click", "args": {"target": {"plate_icon": "plate", "plate": 1}, "button": "right"},
@@ -52,7 +52,7 @@
     // ---- Move to front: the second plate becomes the first, with its cubes ----
     {"tool": "click", "args": {"target": {"plate_icon": "move_to_front", "plate": 1}}, "expect": {"/current": {"eq": 0}}},
     {"tool": "get_app_state", "expect": {"/plates/current": {"eq": 0}, "/plates/count": {"eq": 2}}},
-    {"tool": "list_objects", "expect": {"/items/0/instances/0/plate": {"eq": 0}, "/items/1/instances/0/plate": {"eq": 0}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/instances/0/index": {"eq": 0}, "/plates/0/objects/1/instances/0/index": {"eq": 0}}},
     {"tool": "get_app_state", "expect": {"/dialogs": {"empty": true}, "/closed_menus": {"empty": true}}}
   ]
 }

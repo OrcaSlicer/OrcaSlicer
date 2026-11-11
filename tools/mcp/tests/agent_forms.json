@@ -19,14 +19,14 @@
     {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "select_objects", "args": {"object": "1"}},
     {"tool": "run_action", "args": {"id": "obj_rename", "param": "renamed"}, "expect": {"/ran": {"eq": "orca_command:obj_rename:orca"}}},
-    {"tool": "list_objects", "expect": {"/items/1/name": {"eq": "renamed"}, "/items/0/name": {"ne": "renamed"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/1/name": {"eq": "renamed"}, "/plates/0/objects/0/name": {"ne": "renamed"}}},
     {"tool": "run_action", "args": {"action": "view_top"}, "expect": {"/ran": {"eq": "orca_command:view_top:orca"}}},
 
     // ---- A camera direction as view; position for an absolute move; key for keys; wait for idle ----
     {"tool": "set_view", "args": {"view": "front"}, "expect": {"/camera": {"eq": "front"}}},
     {"tool": "transform", "args": {"object": 0, "position": [100, 110, 0]}},
-    {"tool": "list_objects", "expect": {"/items/0/instances/0/offset/0": {"ge": 99.99, "le": 100.01},
-                                        "/items/0/instances/0/offset/1": {"ge": 109.99, "le": 110.01}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/instances/0/offset/0": {"ge": 99.99, "le": 100.01},
+                                        "/plates/0/objects/0/instances/0/offset/1": {"ge": 109.99, "le": 110.01}}},
     {"tool": "press_keys", "args": {"key": "Escape"}},
     {"tool": "wait", "args": {}, "expect": {"/satisfied": {"eq": true}}},
 

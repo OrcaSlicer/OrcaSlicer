@@ -254,7 +254,7 @@ void register_app_tools(McpService& service)
         "Preferences and restarts). The project: current tab and mode, printer technology, name, path and unsaved changes, "
         "selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the "
         "instances [[object, instance]] they are selected in and, when parts rather than whole instances are selected, "
-        "volumes [[object, part]], in the indices select_objects takes; wipe_tower when a prime tower is selected; canvas is the 3D "
+        "parts [[object, part]], in the indices select_objects takes; wipe_tower when a prime tower is selected; canvas is the 3D "
         "view it belongs to), slicing state, "
         "the Preview's view type, time mode and layer range (1-based, with their Z), and the camera of the 3D view shown "
         "(camera: type, look_at, position, zoom, click_px_per_mm, elevation and azimuth, as set_view replies with it). What "

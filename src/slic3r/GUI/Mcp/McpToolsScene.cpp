@@ -56,6 +56,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <functional>
 #include <initializer_list>
 #include <memory>
 #include <optional>
@@ -223,10 +224,8 @@ json screen_rect(GLCanvas3D& canvas, int object, int instance)
 
 json list_objects(const json& args)
 {
-    Plater&          plater = ui_plater();
-    PartPlateList&   plates = plater.get_partplate_list();
-    const ModelObjectPtrs& objects = plater.model().objects;
-    const int        only_plate = arg_int(args, "plate", -1);
+    Plater&        plater = ui_plater();
+    PartPlateList& plates = plater.get_partplate_list();
     // Screen rectangles are of the 3D view shown, Prepare's or the assemble view's.
     GLCanvas3D* canvas = nullptr;
     if (arg_bool(args, "screen", false)) {
@@ -234,28 +233,23 @@ json list_objects(const json& args)
         if (canvas == nullptr || canvas == plater.get_preview_canvas3D())
             throw ToolFailure("screen needs the Prepare view or the assemble view shown (set_view)");
     }
-    json             items = json::array();
-    for (size_t i = 0; i < objects.size(); ++i) {
-        const ModelObject* o = objects[i];
-        std::vector<int>   on(o->instances.size());
-        bool               on_plate = only_plate < 0;
-        for (size_t j = 0; j < o->instances.size(); ++j) {
-            on[j]    = plates.find_instance(int(i), int(j));
-            on_plate = on_plate || on[j] == only_plate;
-        }
-        if (!on_plate)
-            continue;
-        json item = object_info(*o, i);
-        for (size_t j = 0; j < o->instances.size(); ++j) {
-            json& inst    = item["instances"][j];
-            inst["plate"] = on[j];
-            if (canvas != nullptr)
-                inst["screen"] = screen_rect(*canvas, int(i), int(j));
-        }
-        items.push_back(std::move(item));
+    std::vector<std::string> names;
+    for (int i = 0; i < plates.get_plate_count(); ++i)
+        names.push_back(plates.get_plate(i)->get_plate_name());
+    json out = objects_by_plate(plater.model(), names,
+                                [&](std::size_t object, std::size_t instance) { return instance_plate(plates, int(object), int(instance)); },
+                                args);
+    if (canvas != nullptr) {
+        const auto add_screen = [&](json& objects) {
+            for (json& object : objects)
+                for (json& instance : object["instances"])
+                    instance["screen"] = screen_rect(*canvas, object["index"].get<int>(), instance["index"].get<int>());
+        };
+        for (json& plate : out["plates"])
+            add_screen(plate["objects"]);
+        if (out.contains("outside"))
+            add_screen(out["outside"]);
     }
-    json out    = page(items, args, 200);
-    out["plates"] = plates.get_plate_count();
     return out;
 }
 
@@ -294,7 +288,7 @@ json transform_instance(Plater& plater, int oi, const json& args)
     if (args.contains("plate")) {
         const int to = arg_int(args, "plate", 0);
         if (to >= plates.get_plate_count())
-            throw ToolFailure("plate " + std::to_string(to) + " does not exist; run_action plate_add makes one");
+            throw ToolFailure(no_such_plate(to, plates.get_plate_count()) + "; run_action plate_add makes one");
         const int from = plates.find_instance(oi, ii);
         if (from < 0)
             throw ToolFailure("instance " + std::to_string(ii) + " is off every plate; place it with translate (absolute) first");
@@ -339,9 +333,9 @@ json transform_instance(Plater& plater, int oi, const json& args)
 json transform_part(Plater& plater, int oi, const json& args)
 {
     ModelObject* object = plater.model().objects[size_t(oi)];
-    const int    vi     = arg_int(args, "volume", 0);
+    const int    vi     = arg_int(args, "part", 0);
     if (vi >= int(object->volumes.size()))
-        throw ToolFailure("volume index out of range");
+        throw ToolFailure("part index out of range");
     check_expected_ids(*object, object->volumes[size_t(vi)], args);
     // A single part has no row of its own in the object list, so the panel can't select it.
     if (object->volumes.size() == 1)
@@ -349,7 +343,7 @@ json transform_part(Plater& plater, int oi, const json& args)
     if (arg_int(args, "instance", 0) != 0)
         throw ToolFailure("a part belongs to its object and moves on every instance; leave instance out");
     if (args.contains("plate"))
-        throw ToolFailure("plate moves an instance; leave volume out");
+        throw ToolFailure("plate moves an instance; leave part out");
     const bool absolute = arg_string(args, "mode", "relative") == "absolute";
     if (absolute && args.contains("rotate"))
         throw ToolFailure("rotate a part relative to its current rotation (mode \"relative\")");
@@ -392,7 +386,7 @@ json transform_part(Plater& plater, int oi, const json& args)
         sel.scale(*scale, TransformationType::Local_Relative_Joint);
         canvas.do_scale("");
     }
-    return {{"object", oi}, {"volume", vi}, {"size", vec3(part_size(*volume))}, {"volume_info", volume_info(*volume, size_t(vi))}};
+    return {{"object", oi}, {"part", vi}, {"size", vec3(part_size(*volume))}, {"part_info", volume_info(*volume, size_t(vi))}};
 }
 
 // An arrange or Fill bed the call started, and what its reply compares with once the job is done.
@@ -447,7 +441,7 @@ ArrangeStart start_arrange(Plater& plater, const json& args)
     } else {
         plate = p.get<int>();
         if (plate < 0 || plate >= plates.get_plate_count())
-            throw ToolFailure("plate " + std::to_string(plate) + " does not exist; there are " + std::to_string(plates.get_plate_count()));
+            throw ToolFailure(no_such_plate(plate, plates.get_plate_count()));
     }
     const std::string plate_name = "Plate " + std::to_string(plate);
     if (plate >= 0 && plates.get_plate(plate)->is_locked())
@@ -629,10 +623,19 @@ json add_part(Plater& plater, const json& args)
         canvas.do_move("");
     }
     const auto vi = std::size_t(std::find(object->volumes.begin(), object->volumes.end(), volume) - object->volumes.begin());
-    return {{"object", oi}, {"volume", vi}, {"volume_count", object->volumes.size()}, {"volume_info", volume_info(*volume, vi)}};
+    return {{"object", oi}, {"part", vi}, {"part_count", object->volumes.size()}, {"part_info", volume_info(*volume, vi)}};
 }
 
 } // namespace
+
+int instance_plate(PartPlateList& plates, int object, int instance)
+{
+    int plate = plates.find_instance(object, instance);
+    for (int p = 0; plate < 0 && p < plates.get_plate_count(); ++p)
+        if (plates.get_plate(p)->intersect_instance(object, instance))
+            plate = p;
+    return plate;
+}
 
 json selection_state(GLCanvas3D& canvas)
 {
@@ -656,7 +659,7 @@ json selection_state(GLCanvas3D& canvas)
     json out{{"canvas", canvas_name(&canvas)}, {"empty", sel.is_empty()}, {"objects", objects}, {"instances", instances}};
     // A whole instance brings all its parts along; only a selection of parts lists them.
     if (sel.get_mode() == Selection::Volume && !volumes.empty())
-        out["volumes"] = volumes;
+        out["parts"] = volumes;
     if (wipe_tower)
         out["wipe_tower"] = true;
     return out;
@@ -724,7 +727,7 @@ json object_info(const ModelObject& object, std::size_t index)
              {"filament", object_filament(object)},
              {"auto_drop", object.auto_drop},
              {"instances", std::move(instances)},
-             {"volumes", std::move(volumes)},
+             {"parts", std::move(volumes)},
              {"bbox", object.instances.empty() ? json(nullptr) : box_json(object.instance_bounding_box(0))},
              {"brim_ears", object.brim_points.size()},
              {"overrides", std::move(overrides)}};
@@ -793,6 +796,61 @@ json volume_info(const ModelVolume& v, std::size_t index)
     }
     if (v.emboss_shape && v.emboss_shape->svg_file)
         out["svg"] = {{"path", v.emboss_shape->svg_file->path}, {"path_in_3mf", v.emboss_shape->svg_file->path_in_3mf}};
+    return out;
+}
+
+json objects_by_plate(const Model& model, const std::vector<std::string>& plate_names,
+                      const std::function<int(std::size_t, std::size_t)>& plate_of, const json& args)
+{
+    const int plate_count = int(plate_names.size());
+    const int only        = arg_int(args, "plate", -1);
+    if (args.contains("plate") && (only < 0 || only >= plate_count))
+        throw ToolFailure(no_such_plate(only, plate_count));
+
+    // The plate of every instance (-1: none), and the objects to list: all, or those on the plate asked for.
+    std::vector<std::vector<int>> on(model.objects.size());
+    std::vector<std::size_t>      listed;
+    for (std::size_t i = 0; i < model.objects.size(); ++i) {
+        for (std::size_t j = 0; j < model.objects[i]->instances.size(); ++j)
+            on[i].push_back(std::max(-1, plate_of(i, j)));
+        if (only < 0 || std::find(on[i].begin(), on[i].end(), only) != on[i].end())
+            listed.push_back(i);
+    }
+
+    json plates = json::array();
+    for (int plate = 0; plate < plate_count; ++plate)
+        if (only < 0 || plate == only)
+            plates.push_back({{"index", plate}, {"name", plate_names[std::size_t(plate)]}, {"objects", json::array()}});
+    json              outside = json::array();
+    const std::size_t total   = listed.size();
+    const std::size_t offset  = std::min<std::size_t>(std::size_t(std::max(0, arg_int(args, "offset", 0))), total);
+    const std::size_t limit   = std::size_t(std::max(1, arg_int(args, "limit", 200)));
+    for (std::size_t n = offset; n < total && n - offset < limit; ++n) {
+        const std::size_t i     = listed[n];
+        json              item  = object_info(*model.objects[i], i);
+        const json        every = std::move(item["instances"]);
+        // The object's row where it has an instance; one without any instance is on no plate either.
+        const auto add_row = [&](int plate, json& into) {
+            json instances = json::array();
+            for (std::size_t j = 0; j < on[i].size(); ++j)
+                if (on[i][j] == plate)
+                    instances.push_back(every[j]);
+            if (instances.empty() && (plate >= 0 || !on[i].empty()))
+                return;
+            json row         = item;
+            row["instances"] = std::move(instances);
+            into.push_back(std::move(row));
+        };
+        for (json& plate : plates)
+            add_row(plate["index"].get<int>(), plate["objects"]);
+        if (only < 0)
+            add_row(-1, outside);
+    }
+    json out{{"plates", std::move(plates)}, {"total", total}, {"offset", offset}};
+    if (only < 0)
+        out["outside"] = std::move(outside);
+    if (offset + limit < total)
+        out["next_offset"] = offset + limit;
     return out;
 }
 
@@ -901,37 +959,41 @@ void register_scene_tools(McpService& service)
 
     reg.add(inspect_tool(
         "list_objects", L("List objects"),
-        "Objects in the project: filament, auto_drop, bounding box (instance 0), brim ear count and the settings they "
-        "override; their instances (plate, offset, rotation in degrees, scale, mirrored, bbox); their parts and modifiers "
-        "(type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets "
+        "The project as the Objects panel lists it. plates: each {index, name, objects}, with the objects that have an "
+        "instance on it; outside: the objects with an instance on no plate. An object with instances on two plates is "
+        "listed under both, each time with that plate's instances. An object has its filament, auto_drop, bounding box "
+        "(instance 0), brim ear count and the settings it overrides; its instances (offset, rotation in degrees, scale, "
+        "mirrored, bbox); its parts, one or more: parts, negative parts, modifiers, support blockers and enforcers and "
+        "precise seams (type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets "
         "one; position, bbox and scaled_volume in mm3 on the bed, measured on instance 0; rotation_deg and scale in the "
         "object's frame; mirrored; triangle count; mesh_volume, the unscaled mesh's mm3; painted facets: supports and "
         "seam enforcers/blockers, fuzzy_skin, mmu per filament, texture per layer; a text part's text and font, an SVG "
         "part's file); its height range modifiers when it has any (layer_config_ranges: [{min_z, max_z, values}], as "
         "set_height_ranges takes them) and its variable layer height profile when it has one (layer_height_profile: "
         "{points, min_height, max_height}). A bbox is {min, max, size} in mm of model parts only, so unlike the panel's Size it "
-        "leaves out modifiers. Indices are what select_objects, transform, mouse_gesture targets and the object/volume settings scopes take. "
+        "leaves out modifiers. An object's index numbers it in the project and a part's in its object, whatever the plate: "
+        "they are what select_objects, transform, mouse_gesture targets and the object/part settings scopes take. "
         "Each object and part also has an id, which stays with it when a delete, split or assemble shifts the indices: pass "
-        "it as object_id / volume_id to transform, add_part, set_settings, set_height_ranges and set_variable_layer_height "
-        "(object_ids, volume_ids and instance_object_ids to select_objects), and a call whose index names another one now is "
-        "refused instead of acting on it.",
-        object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Only objects on this plate."}}},
+        "it as object_id / part_id to transform, add_part, set_settings, set_height_ranges and set_variable_layer_height "
+        "(object_ids, part_ids and instance_object_ids to select_objects), and a call whose index names another one now is "
+        "refused instead of acting on it. limit and offset page the objects and total counts them, each once.",
+        object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "List this plate alone, without outside."}}},
                        {"screen", prop("boolean", "Add each instance's rectangle in the shown 3D view, logical pixels [x, y, w, h].")},
-                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 200."}}},
+                       {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Objects, default 200."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_objects(args); })); }));
 
     reg.add(mutate_tool(
         "select_objects", L("Select objects"),
         "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, "
-        "instances ([[object, instance], ...]) or volumes ([[object, part], ...]); add keeps the current selection; all / "
+        "instances ([[object, instance], ...]) or parts ([[object, part], ...]); add keeps the current selection; all / "
         "none select everything or nothing. The reply is the selection as get_app_state.selection gives it.",
         object_schema({{"objects", array_prop({{"type", "integer"}}, "Object indices.")},
                        {"instances", array_prop({{"type", "array"}}, "[[object, instance], ...]")},
-                       {"volumes", array_prop({{"type", "array"}}, "[[object, part], ...]")},
+                       {"parts", array_prop({{"type", "array"}}, "[[object, part], ...]")},
                        {"object_ids", array_prop({{"type", "integer"}}, "The ids list_objects reports for objects, one per "
                                                                          "entry: refused when an index names another object now.")},
-                       {"volume_ids", array_prop({{"type", "integer"}}, "The ids list_objects reports for the parts of volumes, "
+                       {"part_ids", array_prop({{"type", "integer"}}, "The ids list_objects reports for the entries of parts, "
                                                                          "one per entry: refused when a pair names another part now.")},
                        {"instance_object_ids", array_prop({{"type", "integer"}}, "The ids list_objects reports for the objects of "
                                                                                   "instances, one per entry: refused when a pair names "
@@ -978,7 +1040,7 @@ void register_scene_tools(McpService& service)
                                           std::to_string(i) + " (list_objects lists them)");
                 };
                 // Expected ids are checked for every entry before the selection changes.
-                const json objects = args.value("objects", json::array()), volumes = args.value("volumes", json::array());
+                const json objects = args.value("objects", json::array()), volumes = args.value("parts", json::array());
                 if (args.contains("object_ids")) {
                     if (args["object_ids"].size() != objects.size())
                         throw ToolFailure("object_ids takes one id per entry of objects");
@@ -998,14 +1060,14 @@ void register_scene_tools(McpService& service)
                                            json{{"object_id", args["instance_object_ids"][k]}});
                     }
                 }
-                if (args.contains("volume_ids")) {
-                    if (args["volume_ids"].size() != volumes.size())
-                        throw ToolFailure("volume_ids takes one id per entry of volumes");
+                if (args.contains("part_ids")) {
+                    if (args["part_ids"].size() != volumes.size())
+                        throw ToolFailure("part_ids takes one id per entry of parts");
                     for (std::size_t k = 0; k < volumes.size(); ++k) {
                         check_in(volumes[k], false);
                         const ModelObject& object = *plater.model().objects[size_t(volumes[k].at(0).get<int>())];
                         check_expected_ids(object, object.volumes[size_t(volumes[k].at(1).get<int>())],
-                                           json{{"volume_id", args["volume_ids"][k]}});
+                                           json{{"part_id", args["part_ids"][k]}});
                     }
                 }
                 for (const json& o : objects) {
@@ -1018,7 +1080,7 @@ void register_scene_tools(McpService& service)
                     sel.add_instance(unsigned(p.at(0).get<int>()), unsigned(p.at(1).get<int>()), first);
                     first = false;
                 }
-                for (const json& p : args.value("volumes", json::array())) {
+                for (const json& p : args.value("parts", json::array())) {
                     check_in(p, false);
                     sel.add_volume(unsigned(p.at(0).get<int>()), unsigned(p.at(1).get<int>()), 0, first);
                     first = false;
@@ -1033,7 +1095,7 @@ void register_scene_tools(McpService& service)
 
     reg.add(mutate_tool(
         "transform", L("Move, rotate or scale an instance or a part"),
-        "Change one instance's placement, or one part's with volume. translate is in mm, position where it goes (mm, as "
+        "Change one instance's placement, or one part's with part. translate is in mm, position where it goes (mm, as "
         "the Move panel shows it, whatever mode says), rotate in degrees about X/Y/Z, "
         "scale a factor (one number or [x, y, z]), size [x, y, z] mm along the object's or part's own axes, plate moves "
         "the instance onto that plate at the same place. mode \"relative\" (default) adds to the current placement, "
@@ -1041,12 +1103,12 @@ void register_scene_tools(McpService& service)
         "Object manipulation panel moves it: translate and rotate along the bed's axes, measured on instance 0, scale and "
         "size along its own axes; every instance shows the change, and Auto Drop may lower the object afterwards. One "
         "undo step. Reply: the instance's offset, scale and plate, or the part's size along its own axes and its "
-        "list_objects entry (volume_info).",
+        "list_objects entry (part_info).",
         object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
                        {"instance", {{"type", "integer"}, {"minimum", 0}, {"description", "Default 0."}}},
-                       {"volume", {{"type", "integer"}, {"minimum", 0}, {"description", "Transform this part instead of the instance."}}},
+                       {"part", {{"type", "integer"}, {"minimum", 0}, {"description", "Transform this part instead of the instance."}}},
                        {"object_id", expected_id_prop("object")},
-                       {"volume_id", expected_id_prop("part")},
+                       {"part_id", expected_id_prop("part")},
                        {"translate", array_prop({{"type", "number"}}, "[x, y, z] mm")},
                        {"position", array_prop({{"type", "number"}}, "[x, y, z] mm: the position to move to. Not with translate.")},
                        {"rotate", array_prop({{"type", "number"}}, "[x, y, z] degrees; relative only for a part")},
@@ -1068,7 +1130,7 @@ void register_scene_tools(McpService& service)
                 if (args.contains("translate") && args.contains("position"))
                     throw ToolFailure("give translate or position, not both");
                 check_expected_ids(*plater.model().objects[size_t(oi)], nullptr, args);
-                return args.contains("volume") ? transform_part(plater, oi, args) : transform_instance(plater, oi, args);
+                return args.contains("part") ? transform_part(plater, oi, args) : transform_instance(plater, oi, args);
             });
             settle(ctx);
             return ToolResult::ok(out);
@@ -1083,7 +1145,7 @@ void register_scene_tools(McpService& service)
         "(the instance's scale then reads 1). Refused for an object with several instances: add parts first. A STEP file "
         "may ask for mesh options (blocked_by_dialog). The new part is selected; one undo step. Reply: its index, which is "
         "not always the last (parts are ordered by type), the object's part count and the part's list_objects entry "
-        "(volume_info).",
+        "(part_info).",
         object_schema({{"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (list_objects)."}}},
                        {"object_id", expected_id_prop("object")},
                        {"type", enum_prop({"part", "negative", "modifier", "support_blocker", "support_enforcer", "precise_seam"},
@@ -1191,7 +1253,7 @@ void register_scene_tools(McpService& service)
                 } else if (plates_arg.is_number_integer()) {
                     const int index = plates_arg.get<int>();
                     if (index < 0 || index >= list.get_plate_count())
-                        throw ToolFailure("plate index out of range");
+                        throw ToolFailure(no_such_plate(index, list.get_plate_count()));
                     ticket->plates.push_back(index);
                 } else {
                     ticket->plates.push_back(list.get_curr_plate_index());

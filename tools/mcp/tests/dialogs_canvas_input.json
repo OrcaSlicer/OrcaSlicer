@@ -45,10 +45,10 @@
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "click", "args": {"target": {"imgui": "Cut"}}},
     {"tool": "click", "args": {"target": {"imgui": "Done"}}},
-    {"tool": "list_objects", "expect": {"/items/0/volumes/1/type": {"eq": "negative"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1/type": {"eq": "negative"}}},
     // The text's size, and so which of its ends the cube hides, differs between platforms; the step is
     // about the part resolving as a target, so it skips the visibility check.
-    {"tool": "mouse_gesture", "args": {"action": "move", "at": {"object": 0, "volume": 1, "spot": "right"}, "check": "point"}},
+    {"tool": "mouse_gesture", "args": {"action": "move", "at": {"object": 0, "part": 1, "spot": "right"}, "check": "point"}},
 
     // ---- From below, the bed hides nothing ----
     {"tool": "set_view", "args": {"camera": "bottom"}},

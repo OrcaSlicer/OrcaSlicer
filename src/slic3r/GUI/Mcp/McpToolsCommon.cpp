@@ -227,6 +227,12 @@ std::string arg_string(const json& args, const char* key, const std::string& fal
     return it != args.end() && it->is_string() ? it->get<std::string>() : fallback;
 }
 
+std::string no_such_plate(int plate, int count)
+{
+    return "Plate " + std::to_string(plate) + " does not exist (the project has " +
+           (count == 1 ? "plate 0 only" : "plates 0.." + std::to_string(count - 1)) + ")";
+}
+
 int arg_int(const json& args, const char* key, int fallback)
 {
     auto it = args.find(key);
@@ -319,9 +325,9 @@ void check_expected_ids(const ModelObject& object, const ModelVolume* volume, co
                               "), not the expected id " + std::to_string(args["object_id"].get<std::size_t>()) +
                               ": list_objects again",
                           {{"id", object.id().id}});
-    if (volume != nullptr && args.contains("volume_id") && args["volume_id"].get<std::size_t>() != volume->id().id)
+    if (volume != nullptr && args.contains("part_id") && args["part_id"].get<std::size_t>() != volume->id().id)
         throw ToolFailure("The part at this index is now \"" + volume->name + "\" (id " + std::to_string(volume->id().id) +
-                              "), not the expected id " + std::to_string(args["volume_id"].get<std::size_t>()) +
+                              "), not the expected id " + std::to_string(args["part_id"].get<std::size_t>()) +
                               ": list_objects again",
                           {{"id", volume->id().id}});
 }

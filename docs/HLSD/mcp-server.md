@@ -75,12 +75,12 @@ arguments included, are `isError` results the model can act on; an unknown tool 
 replay steps alike, so the journal records the schema's form. An argument under a name the tool does
 not take is read as one it does, when the call leaves that one out and the value fits it: `ref` as `target`, `key` as `keys`, `text`
 as `value`, `action` as `id` or `button`, `object` as `objects`, `plate` as `plates`, `filter` as
-`query`, `settings` as `values`, `part` as `volume` (and `parts`, `part_id`, `part_ids` likewise), `path`
+`query`, `settings` as `values`, `path`
 as `save_path` where the tool has no `path` of its own, and `view` as `set_view`'s `canvas` or `camera`,
 whichever takes the value. A value in another JSON form is converted: a
 number, boolean, array or object written as a string, an index as a string where a name may also go
 (`"0"` for a plate), a single item for an array. A value an enum lacks is read as the one it stands
-for, when the enum lists that one: `print` as `process`, `part` as `volume`, `window` as `main`. A
+for, when the enum lists that one: `print` as `process`, `window` as `main`. A
 value outside its argument's enum moves to the one other argument whose enum takes it, when the call
 leaves that out: `set_view`'s `canvas: "front"` is its `camera`. Each enum lists only its own values,
 since listing a camera direction under both had agents give it to the wrong one. Anything that still
@@ -392,10 +392,10 @@ Script panel, which runs Python.
 | | `set_settings` | set values the way the settings tab does, all or none; one entry of a per-variant value; object and part overrides and filaments; the project's and a plate's own settings through their controls' and dialogs' code; `null` takes a preset's key back to its saved or parent value, `reset_all` drops a preset's unsaved changes first; replies with every setting that `changed` |
 | | `save_preset` | save the preset being edited under a name, as a user preset or inside the project |
 | | `delete_preset` | delete a user or project preset, selected or not, as the tab's Delete does (destructive) |
-| Objects | `list_objects` | objects (filament, auto drop, overrides, brim ears, height range modifiers, variable layer height profile), instances (placement, mirrored, bounding box, canvas rectangle on request) and parts (type, filament, placement and bounding box on the bed, scaled and mesh volume, painted facets, text and SVG sources), paged |
-| | `list_plates` | plates with the settings they print with and those they set themselves, objects, name, lock, slice state, prime tower position and layer G-codes, paged |
+| Objects | `list_objects` | each plate with the objects on it, then the objects on no plate: objects (filament, auto drop, overrides, brim ears, height range modifiers, variable layer height profile), their instances there (placement, mirrored, bounding box, canvas rectangle on request) and parts (type, filament, placement and bounding box on the bed, scaled and mesh volume, painted facets, text and SVG sources), paged |
+| | `list_plates` | plates with the settings they print with and those they set themselves, how many objects are on each, name, lock, slice state, prime tower position and layer G-codes, paged |
 | | `select_objects` | select objects, instances or parts (indices checked against what the object has), all, or none |
-| | `transform` | translate, rotate, scale or size one instance, relative or absolute, move it to a `position` or to another plate; or the same for one part (`volume`) |
+| | `transform` | translate, rotate, scale or size one instance, relative or absolute, move it to a `position` or to another plate; or the same for one part (`part`) |
 | | `add_part` | add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object: a shape at a size or a model file, optionally at a position |
 | | `arrange` | arrange every unlocked plate or one plate, or fill an object's plate with instances or copies, with the Arrange options panel's settings; waits for the job |
 | | `set_height_ranges` | replace an object's height range modifiers: Z ranges with their own layer height, filament and process settings |
@@ -458,10 +458,10 @@ copy), `run_javascript` (the page's own reach), and through what they run `run_a
 `sync_presets`), `call_tool`, `run_replay` and `run_script`, which has the app's access to the computer.
 No client is known to ask on it. `idempotent`: the same call again changes nothing more.
 
-The tools that take an object index (`set_settings` object and volume scopes, `transform`, `add_part`,
+The tools that take an object index (`set_settings` object and part scopes, `transform`, `add_part`,
 `set_height_ranges`, `set_variable_layer_height`) also take an optional `object_id`, and where they take a
-part index a `volume_id`; `select_objects` takes `object_ids`, `instance_object_ids` and `volume_ids`, one per
-entry of `objects`, `instances` and `volumes`: the `ObjectID` values `list_objects` reports as `id`, which `orca.host` shows
+part index a `part_id`; `select_objects` takes `object_ids`, `instance_object_ids` and `part_ids`, one per
+entry of `objects`, `instances` and `parts`: the `ObjectID` values `list_objects` reports as `id`, which `orca.host` shows
 too. `check_expected_ids()` refuses the call before anything changes when the index names another object
 or part now, so a replay or script addresses what it read. `list_objects`' description says what the ids are for
 and names the tools that take them, so each property only points back at it. Ids are allocated per
@@ -473,8 +473,8 @@ Descriptions keep one order: what the tool does, the arguments that change it, `
 fields it has, then edge cases; a long one puts each case on a line of its own (the scopes of
 `get_settings` and `set_settings`, `click`'s web pages). What several tools share is written once,
 since every session loads the whole tool list: the locator grammar in `list_widgets`'s description,
-which hands out the refs, each `target` giving two examples and pointing there; the paging shape, and
-that a part is a `volume` in argument names, in the server instructions.
+which hands out the refs, each `target` giving two examples and pointing there; the paging shape in
+the server instructions.
 
 An argument name means one thing across the tools, so what an agent learns from one tool holds for
 the next. `target` is the window or element a UI tool acts on (a ref, a locator, or `main`, `dialog`
@@ -482,8 +482,12 @@ and the like), `canvas` a 3D view, `path` the file a tool is about, and `save_pa
 writes its file beside its reply. So the point `set_view`'s camera looks at is `look_at`, which
 `camera_state` reads back under the same name, and a drag's intermediate points are `waypoints`.
 The main window is `main` wherever a tool names it, as `list_windows` calls its kind; `window` is
-another kind there. A tool that takes one plate calls it `plate`, an index; one that also takes
-`"current"` or `"all"` calls it `plates`. Where a tool takes two unlike things of one word, each says
+another kind there. A part of an object is `part` in arguments and replies, the Objects panel's word
+for what the model calls a volume, which leaves `mesh_volume` and `scaled_volume` to mean cubic
+millimetres. A tool that takes one plate calls it `plate`, an index; one that also takes
+`"current"` or `"all"` calls it `plates`. Each refuses an index the project lacks in the same words
+(`no_such_plate()`), which give the index and the plates there are, so an agent learns the range from
+any of them. Where a tool takes two unlike things of one word, each says
 whose it is: `discard_changes` drops the project's unsaved changes, `preset_changes` keeps, transfers
 or discards the presets'.
 
@@ -501,7 +505,8 @@ protocol layer free of the GUI: `tools/call`, `call_tool`, `search_tools {tool}`
 plugin's or script's call. `run_action`, `call_cad_tool` and `describe_cad_tool` ask it themselves.
 
 Each tool family registers itself from its own `McpTools*.cpp` through `register_*_tools()`.
-List tools take `limit` and `offset` and reply `{items, offset, total}` (`page()`), with `next_offset` while
+List tools take `limit` and `offset` and reply `{items, offset, total}` (`page()`; `list_objects`, a tree,
+has `plates` and `outside` in place of `items`), with `next_offset` while
 more remain: `search_actions` and `list_cad_tools` too, whose one page holds every CAD tool by default. The
 server instructions give that shape once, rather
 than every description, and each `limit` states its default. `McpPaths.hpp` requires
@@ -513,9 +518,29 @@ narrow conversion would use the ANSI code page.
 
 ### list_objects
 
-`list_objects` describes the model through `object_info()` and `volume_info()` (McpToolsScene.cpp,
-libslic3r only, so unit tests build them from a `Model`); the handler adds what the GUI knows: each
-instance's plate from the plate registry and, on request, its canvas rectangle. Bounding boxes are
+`list_objects` lays the model out as the Objects panel does: `plates`, each `{index, name, objects}`
+with the objects that have an instance on it, then `outside`, the objects with an instance on no
+plate. `objects_by_plate()` builds it from `object_info()` and `volume_info()` (McpToolsScene.cpp,
+libslic3r only, so unit tests build them from a `Model`) and a callback that says which plate an
+instance is on. The handler's is `instance_plate()`: the plate registry's answer or, for an instance
+the registry does not hold, as Fill bed leaves its new ones, the first plate the instance stands on,
+so the copies that fill a plate are listed on it. `list_plates` counts a plate's objects the same
+way. On request the handler adds each instance's canvas rectangle.
+
+The reply differs from the panel in two places, both so that a row says all an agent needs to act
+on it. A plate holds instances, not objects, so an object row lists the instances of its plate only,
+and an object with instances on two plates has a row under each; the panel shows it once, under its
+first instance's plate. And an object always lists its `parts`, even a single one, which the panel
+folds into the object's row: painting, a part's filament and its settings address the part. An
+object with several parts is what Assemble makes, and the reply has no other kind for it.
+
+An object's `index` numbers it in the project and a part's in its object, whatever the plate, since
+those are what the other tools take. `plate` lists one plate alone, without `outside`. `limit` and
+`offset` page the objects listed, in the model's order, and `total` counts them, each once however
+many plates it is on. A page lists its objects under every plate they are on, so the rows of one
+object come together.
+
+Bounding boxes are
 `ModelObject::instance_bounding_box()`, on the bed and of model parts only, which is what prints; the
 Object manipulation panel's Size also counts modifiers and negative parts. A part's `position`,
 `bbox` and `scaled_volume` (the mesh's volume times the determinant of its placement) are measured on
@@ -527,7 +552,7 @@ column: an object's `extruder`, 1 when unset; a part's own, else its object's; a
 it sets one, since a modifier without one leaves the filament of what it covers alone; none for
 negative parts, support blockers and enforcers, and precise seams. A precise seam has `type:
 "precise_seam"` and its `subtype` (`center`, `left`, `right`, `enforced`, `blocked`, `neutral`, the 3MF
-names without their prefix). The `transform` reply on a part carries the same `volume_info`. An
+names without their prefix). The `transform` reply on a part carries the same entry as `part_info`. An
 object with height range modifiers lists them as `layer_config_ranges` (`layer_config_ranges_json()`),
 each with its whole config serialized as `get_settings` serializes values, so a range always shows
 its `layer_height` and `extruder`, and the list can be handed back to `set_height_ranges` unchanged. An
@@ -554,7 +579,7 @@ leaving it sunk, and the instance is registered with the plate it is on now
 `GLCanvas3D::do_move()` does for a person's moves. Slicing and `list_objects` read plates from that
 registry.
 
-On a part (`volume`), it takes the Object manipulation panel's path. It refuses the assemble view, an
+On a part (`part`), it takes the Object manipulation panel's path. It refuses the assemble view, an
 open gizmo and an object with one part (which has no row of its own), selects the part's row in the
 object list with nothing else selected, so the 3D view selects it on instance 0, takes one undo
 snapshot, and runs `Selection::translate()` / `rotate()` along the bed's axes and `scale()` along the
@@ -716,7 +741,7 @@ object or across a spiral vase change. The journal records the plate the call re
 
 ### Object and part settings
 
-The object and volume scopes of `get_settings` and `set_settings` take the keys the object list
+The object and part scopes of `get_settings` and `set_settings` take the keys the object list
 offers to add to an object, or to a part or modifier: `SettingsFactory::get_options()` less what
 `SettingsFactory::is_improper_category()` hides with the current filament count, the rule of the
 list's Add Settings menu. Keys a person cannot add there, such as the internal `print_extruder_id`,
@@ -727,7 +752,7 @@ than stored and ignored by slicing. Parts and modifiers take region keys only.
 it through `ObjectList::set_extruder_for_items()`, the Change Filament code without the selection,
 so a call leaves the user's selection alone. An object's filament clears its parts' own; 0 or null
 is Default, which is filament 1 on an object, the object's filament on a part and no filament
-override on a modifier. A single-part object has no part row, so its volume 0 sets the object's
+override on a modifier. A single-part object has no part row, so its part 0 sets the object's
 filament, and the reply notes it. Filament numbers (`extruder`, the per-feature and the support
 filaments) past the project's slots are refused before anything changes, and the support filaments
 refuse a mixed slot, as their combos do. A call is one undo step (`Plater::SingleSnapshot`).
@@ -760,7 +785,7 @@ There is no subset of edits to save. `set_settings {"reset_all": true, "values":
 scope first discards every unsaved change with `Tab::on_roll_back_value()`, the tab's undo button,
 then applies the values in the same call, so `save_preset` keeps exactly those. The reply lists the
 discarded keys in `reverted`. The values are parsed before the reset, so a bad one leaves the edits in
-place. The object and volume scopes refuse `reset_all`; a null value removes an override there.
+place. The object and part scopes refuse `reset_all`; a null value removes an override there.
 
 ### Reading, comparing and changing preset values
 
@@ -845,7 +870,7 @@ On a preset scope, a `null` value takes the key back to the saved preset's value
 arrow does, and with `reset_to: "parent"` to the value of the preset it inherits from (the `:parent`
 of `compare`), as its lock icon does. The value joins the call's other values in the tab's
 transaction, so its handling runs as for a typed value. `reset_to` without a null value, and in the
-object and volume scopes, is refused.
+object and part scopes, is refused.
 
 `select_preset` finds the name in the selector the GUI picks from: the sidebar's filament combo of the
 slot, or the tab's combo, by the label shown or the internal name. A selector lists the visible,
@@ -993,7 +1018,7 @@ and `changed`. The plate tab's `skirt_start_angle` and the per-plate filament gr
 scope.
 
 `list_plates` reports every plate with these values as it prints them, `overrides` (the keys it sets
-itself), `current`, `objects` (`[object, instance]`, as `list_objects` places instances), `sliced` (an
+itself), `current`, `objects` (how many objects have an instance on it; `list_objects` lists them), `sliced` (an
 up-to-date slice), `wipe_tower` (the project's tower position for the plate) and `layer_gcode`, the
 plate's entry of `Model::plates_custom_gcodes`: the Preview slider's ticks, pauses, custom G-code,
 templates and filament changes, each `{z, layer, type, filament, color, gcode}` by height. `z` is rounded
@@ -1558,7 +1583,7 @@ gives it (`selection_state()`): in `select_objects`'s own indices, the objects, 
 in and, when the selection holds parts rather than whole instances, those parts. An agent reads it
 before an operation that acts on the selection: `run_action` runs the object operations the catalog
 has (delete, split, mirror, center, drop, instances, arrange, orient, change type, rename, assemble,
-set as individual objects, order by), and `set_settings` with the object or volume scope edits their
+set as individual objects, order by), and `set_settings` with the object or part scope edits their
 settings and filament. `add_part` adds parts, modifiers and support shapes,
 `set_height_ranges` sets height range modifiers, and `set_variable_layer_height` runs the Variable layer
 height panel's buttons. `set_custom_gcode_at_layer` does what the Preview layer slider's right-click menu does.
@@ -1934,8 +1959,8 @@ panel fields or `transform` set those values. Pickers inside a gizmo go through 
 actions are the bodies of those pickers (`GLGizmoSVG::change_file()`, `save_svg_as()`,
 `GLGizmoTextureDisplacement::import_texture()`).
 
-`mouse_gesture` takes points of the model (`CanvasTarget`): `{object, instance, volume}` with `point` in
-the part's mesh coordinates (`frame: "volume"`, mapped by `GLVolume::world_matrix()`, which follows
+`mouse_gesture` takes points of the model (`CanvasTarget`): `{object, instance, part}` with `point` in
+the part's mesh coordinates (`frame: "part"`, mapped by `GLVolume::world_matrix()`, which follows
 the assemble view's offset and explosion) or in the scene's (`"world"`), or `spot`, where a ray along
 an axis through the part's displayed bounding box first meets it. A point is projected through the
 camera the canvas was drawn with and converted to logical pixels. With `check: "surface"` (the
@@ -3448,7 +3473,7 @@ dialog's description, a web dialog rule's wx buttons and web view handles;
 budget, non-blocking push, finish, abort and failed frames, the video transform, overlays and frame
 repeats, captions and what they hide, the ffmpeg command and listings, the files recordings and
 encodes reserve, and the journal's recording paths; `test_mcp_tools` setting serialization, how a query ranks
-the Speed Dial's actions, and which catalog a name its own lacks is pointed to; `test_mcp_config` the object and volume scopes' keys and
+the Speed Dial's actions, and which catalog a name its own lacks is pointed to; `test_mcp_config` the object and part scopes' keys and
 effective values, the names and places `save_preset` accepts, enum labels and descriptions, the settings search,
 per-variant entries and their writes, preset comparison, `changed`, which unsaved changes a call discarded, which presets
 `delete_preset` refuses or deletes with a custom printer, the project scope's slot colours,
@@ -3502,8 +3527,9 @@ connection. See `tools/mcp/README.md`.
 commands' size param, notifications updated before the first ImGui frame, `arrange`'s option rules,
 worker-job admission on a stand-in worker (a job past the reply budget, a slow cancel and a timeout,
 three ways to start one, recover input and a person's job), `list_objects`' descriptions of a `Model`
-built in the test (placement and boxes on the bed, mirrors, filament fallback, precise seam subtypes,
-height ranges, the summary of a variable layer height profile), `add_part`'s type names and shape
+built in the test (its rows by plate, the plate filter and paging, placement and boxes on the bed,
+mirrors, filament fallback, precise seam subtypes, height ranges, the summary of a variable layer
+height profile), `add_part`'s type names and shape
 sizes, the object structure commands' params, the height ranges `set_height_ranges` accepts (order,
 overlaps, bounds, keys), and `set_custom_gcode_at_layer`'s edits of a layer slider built in the test (by layer
 and height, in-place edits, refusals that leave the slider as it was, the type names). On the app,

@@ -391,18 +391,12 @@ TEST_CASE("argument normalization reads the names agents reach for as the ones a
     CHECK(click == json{{"action", "click"}});
 }
 
-TEST_CASE("argument normalization reads a part, an output path and a view by the names agents give them", "[Mcp]")
+TEST_CASE("argument normalization reads an output path and a view by the names agents give them", "[Mcp]")
 {
     const auto normalized = [](const json& properties, json args) {
         normalize_arguments({{"type", "object"}, {"properties", properties}, {"additionalProperties", false}}, args);
         return args;
     };
-    // A part is a volume in argument names.
-    const json part = {{"volume", {{"type", "integer"}}}, {"volume_id", {{"type", "integer"}}}};
-    CHECK(normalized(part, {{"part", 1}, {"part_id", 7}}) == json{{"volume", 1}, {"volume_id", 7}});
-    const json parts = {{"volumes", {{"type", "array"}}}, {"volume_ids", {{"type", "array"}, {"items", {{"type", "integer"}}}}}};
-    CHECK(normalized(parts, {{"parts", {{0, 1}}}, {"part_ids", {7}}}) == json{{"volumes", {{0, 1}}}, {"volume_ids", {7}}});
-
     // A capture's output file is its save_path; a tool with a path of its own keeps that.
     const json capture = {{"save_path", {{"type", "string"}}}};
     CHECK(normalized(capture, {{"path", "/a.png"}}) == json{{"save_path", "/a.png"}});
@@ -420,7 +414,7 @@ TEST_CASE("argument normalization reads the values agents reach for as the ones 
 {
     const json schema = {{"type", "object"},
                          {"properties",
-                          {{"scope", {{"type", "string"}, {"enum", {"process", "filament", "volume"}}}},
+                          {{"scope", {{"type", "string"}, {"enum", {"process", "filament", "part"}}}},
                            {"target", {{"type", "string"}, {"enum", {"main", "canvas"}}}},
                            {"kind", {{"type", "string"}, {"enum", {"main", "window"}}}}}},
                          {"additionalProperties", false}};
@@ -429,7 +423,6 @@ TEST_CASE("argument normalization reads the values agents reach for as the ones 
         return args;
     };
     CHECK(normalized({{"scope", "print"}}) == json{{"scope", "process"}});
-    CHECK(normalized({{"scope", "part"}}) == json{{"scope", "volume"}});
     CHECK(normalized({{"target", "window"}}) == json{{"target", "main"}});
     // A value the enum lists itself stays, and so does one with no stand-in, for the validator to name.
     CHECK(normalized({{"kind", "window"}}) == json{{"kind", "window"}});

@@ -577,7 +577,7 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"obj_orient", "Auto-orient the selection, or every object when nothing is selected; the call returns when it is done."},
         // Object structure: the object list's Change Type, Rename, instance and Assemble items, and the plate
         // menu's Order By. A param stands in for the item's dialog.
-        {"obj_type_part", "Make the selected parts (select_objects {volumes} first) solid parts, as Change Type does. Parts are listed by type, so part indices change."},
+        {"obj_type_part", "Make the selected parts (select_objects {parts} first) solid parts, as Change Type does. Parts are listed by type, so part indices change."},
         {"obj_type_negative", "Make the selected parts negative parts, as Change Type does; not the object's last solid part. Parts are listed by type, so part indices change."},
         {"obj_type_modifier", "Make the selected parts modifiers, as Change Type does; not the object's last solid part. Parts are listed by type, so part indices change."},
         {"obj_type_support_blocker", "Make the selected parts support blockers, as Change Type does; not the object's last solid part, nor a text or SVG part. Parts are listed by type, so part indices change."},

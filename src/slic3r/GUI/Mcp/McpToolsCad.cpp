@@ -904,7 +904,7 @@ json tool_rows()
                      {"title": "An STL mesh turned into an editable body", "needs": "an STL or OBJ mesh file", "calls": [
                          {"tool": "import_mesh", "args": {"path": "/path/to/part.stl"}}]}])json")}},
             json{{"name", "commit"}, {"summary", "Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions and show Prepare."},
-                 {"details", "It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (list_objects index after replace, name, volumes), bodies_sent, bodies_hidden, replaced."},
+                 {"details", "It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (list_objects index after replace, name, parts: how many), bodies_sent, bodies_hidden, replaced."},
                  {"params", json::array({
                      json{{"name", "mode"},    {"type", "string"}, {"enum", json::array({"assembly", "bodies"})}, {"default", ""}, {"description", "assembly: one object with a part per body; bodies: an object per body. Default: the Commit button's mode, which this leaves as it is."}},
                      json{{"name", "replace"}, {"type", "array"}, {"default", json::array()}, {"description", "list_objects indices to delete in the same undo step, such as an earlier commit. Their settings, modifiers and paint go with them."}},
@@ -4145,7 +4145,7 @@ json action_commit(DesignPanel* panel, const json& params)
     json objects = json::array();
     for (const ModelObject* o : made) {
         const auto it = std::find(model.objects.begin(), model.objects.end(), o);
-        objects.push_back(json{{"index", int(it - model.objects.begin())}, {"name", o->name}, {"volumes", o->volumes.size()}});
+        objects.push_back(json{{"index", int(it - model.objects.begin())}, {"name", o->name}, {"parts", o->volumes.size()}});
     }
     json hidden = json::array();
     for (int b = 0; b < int(doc.bodies.size()); ++b)

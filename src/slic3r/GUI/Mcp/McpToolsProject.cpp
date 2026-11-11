@@ -671,7 +671,7 @@ void register_project_tools(McpService& service)
                 if (plate.is_number_integer()) {
                     const int index = plate.get<int>();
                     if (index < 0 || index >= plater.get_partplate_list().get_plate_count())
-                        throw ToolFailure("plate index out of range");
+                        throw ToolFailure(no_such_plate(index, plater.get_partplate_list().get_plate_count()));
                     plater.select_plate(index);
                 }
                 if (format == "gcode") {

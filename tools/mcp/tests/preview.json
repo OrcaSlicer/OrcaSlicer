@@ -110,7 +110,7 @@
     {"tool": "select_objects", "args": {"none": true}},
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
-    {"tool": "list_plates", "expect": {"/items/1/objects/0": {"exists": true}}},
+    {"tool": "list_plates", "expect": {"/items/1/objects": {"gt": 0}}},
     {"tool": "slice", "args": {"plates": "all"}, "expect": {"/plates/0/outcome": {"eq": "ok"}, "/plates/1/outcome": {"eq": "ok"}}},
     // Slicing every plate leaves the Preview on its all-plates statistics; plate 0 is shown from Prepare.
     {"tool": "set_view", "args": {"tab": "prepare"}},

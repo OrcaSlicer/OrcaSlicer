@@ -144,6 +144,12 @@ TEST_CASE("a name its catalog lacks is pointed to the catalog that has it", "[Mc
 #endif
 }
 
+TEST_CASE("a plate the project lacks is refused by its number, with the plates the project has", "[Mcp]")
+{
+    CHECK(no_such_plate(5, 3) == "Plate 5 does not exist (the project has plates 0..2)");
+    CHECK(no_such_plate(1, 1) == "Plate 1 does not exist (the project has plate 0 only)");
+}
+
 TEST_CASE("a listing summary is a documentation's first sentence on one line", "[Mcp]")
 {
     CHECK(first_sentence("Return the mesh.\nIt is a copy.") == "Return the mesh.");
@@ -386,7 +392,7 @@ TEST_CASE("a call naming an object's id is refused once its index names another 
     Slic3r::ModelVolume* part   = first->add_volume(Slic3r::TriangleMesh());
 
     CHECK_NOTHROW(check_expected_ids(*first, nullptr, json{{"object", 0}, {"object_id", first->id().id}}));
-    CHECK_NOTHROW(check_expected_ids(*first, part, json{{"object", 0}, {"volume_id", part->id().id}}));
+    CHECK_NOTHROW(check_expected_ids(*first, part, json{{"object", 0}, {"part_id", part->id().id}}));
     // Without expected ids the index alone decides, as before.
     CHECK_NOTHROW(check_expected_ids(*second, nullptr, json{{"object", 0}}));
     try {
@@ -396,12 +402,12 @@ TEST_CASE("a call naming an object's id is refused once its index names another 
         CHECK(std::string(f.what()).find("lid") != std::string::npos);
         CHECK(f.details["id"] == second->id().id);
     }
-    CHECK_THROWS_AS(check_expected_ids(*first, part, json{{"volume_id", part->id().id + 1000}}), ToolFailure);
+    CHECK_THROWS_AS(check_expected_ids(*first, part, json{{"part_id", part->id().id + 1000}}), ToolFailure);
 }
 
 TEST_CASE("the journal records indices without expected ids, except a Python step's arguments", "[Mcp]")
 {
-    CHECK(without_expected_ids("set_settings", json{{"object", 0}, {"object_id", 7}, {"volume_id", 8}}) == json{{"object", 0}});
+    CHECK(without_expected_ids("set_settings", json{{"object", 0}, {"object_id", 7}, {"part_id", 8}}) == json{{"object", 0}});
     CHECK(without_expected_ids("set_height_ranges", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
     CHECK(without_expected_ids("set_variable_layer_height", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
     const json replay{{"replay", {{"orca_replay", 1},

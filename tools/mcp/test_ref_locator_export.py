@@ -68,7 +68,7 @@ def main():
     if row:
         client.call("click", target={"imgui_name": "Remove", "index": 0})
         clicked = client.call("click", target=row[0])
-        layers = client.call("list_objects")["items"][0]["volumes"][0]["painted"]["texture"]
+        layers = client.call("list_objects")["plates"][0]["objects"][0]["parts"][0]["painted"]["texture"]
         checks.append(("the old ref clicks the renamed row", len(layers) == 2, (clicked, len(layers))))
     # Its icon closes it: in a small window the object's info notification covers the panel's Close.
     client.call("click", target={"gizmo": "Texture Displacement"})

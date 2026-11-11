@@ -39,7 +39,7 @@
     {"tool": "generate_calibration_test", "args": {"test": "temperature", "step": 5, "discard_changes": true, "preset_changes": "discard"}, "optional": true},
     {"tool": "generate_calibration_test", "args": {"test": "pressure_advance", "start": 0.01, "end": 0.05, "step": 0.051,
                                    "discard_changes": true, "preset_changes": "discard"}, "optional": true},
-    {"tool": "list_objects", "expect": {"/total": {"eq": 1}, "/items/0/name": {"eq": "temperature_tower.drc"}}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 1}, "/plates/0/objects/0/name": {"eq": "temperature_tower.drc"}}},
     {"tool": "list_presets", "args": {"type": "filament"},
      "expect": {"/items/0/name": {"eq": "Bambu PLA Basic @BBL X1C"}, "/items/0/modified": {"eq": true}}},
 

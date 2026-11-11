@@ -505,7 +505,7 @@ TEST_CASE("a part's position and bounding box are on the bed", "[Mcp][Scene]")
     const json object_json = Mcp::object_info(*object, 0);
     CHECK(object_json["instances"][0]["bbox"] == object_json["bbox"]);
     CHECK(object_json["bbox"]["max"][1].get<double>() < 141.);
-    CHECK(object_json["volumes"][2]["bbox"]["max"][1].get<double>() > 200.);
+    CHECK(object_json["parts"][2]["bbox"]["max"][1].get<double>() > 200.);
 }
 
 TEST_CASE("a mirrored copy reports mirrored", "[Mcp][Scene]")
@@ -525,9 +525,9 @@ TEST_CASE("a mirrored copy reports mirrored", "[Mcp][Scene]")
     CHECK(info["instances"][1]["mirrored"] == true);
     check_vec3(info["instances"][1]["scale"], Vec3d::Ones());
     CHECK(info["instances"][2]["mirrored"] == false);
-    CHECK(info["volumes"][0]["mirrored"] == true);
-    check_vec3(info["volumes"][0]["scale"], Vec3d::Ones());
-    CHECK(info["volumes"][1]["mirrored"] == false);
+    CHECK(info["parts"][0]["mirrored"] == true);
+    check_vec3(info["parts"][0]["scale"], Vec3d::Ones());
+    CHECK(info["parts"][1]["mirrored"] == false);
 }
 
 TEST_CASE("a part's filament falls back to its object's", "[Mcp][Scene]")
@@ -545,18 +545,18 @@ TEST_CASE("a part's filament falls back to its object's", "[Mcp][Scene]")
     // Unset ("Default") is filament 1 on an object.
     json info = Mcp::object_info(*object, 0);
     CHECK(info["filament"] == 1);
-    CHECK(info["volumes"][0]["filament"] == 1);
+    CHECK(info["parts"][0]["filament"] == 1);
 
     object->config.set("extruder", 2);
     info = Mcp::object_info(*object, 0);
     CHECK(info["filament"] == 2);
-    CHECK(info["volumes"][0]["filament"] == 2);
-    CHECK(info["volumes"][1]["filament"] == 2);
-    CHECK(info["volumes"][2]["filament"] == 3);
+    CHECK(info["parts"][0]["filament"] == 2);
+    CHECK(info["parts"][1]["filament"] == 2);
+    CHECK(info["parts"][2]["filament"] == 3);
     // A modifier without its own filament leaves the filament of what it covers alone.
-    CHECK_FALSE(info["volumes"][3].contains("filament"));
-    CHECK(info["volumes"][4]["filament"] == 4);
-    CHECK_FALSE(info["volumes"][5].contains("filament"));
+    CHECK_FALSE(info["parts"][3].contains("filament"));
+    CHECK(info["parts"][4]["filament"] == 4);
+    CHECK_FALSE(info["parts"][5].contains("filament"));
 }
 
 TEST_CASE("a precise seam reports its subtype, and an object its auto drop", "[Mcp][Scene]")
@@ -571,11 +571,126 @@ TEST_CASE("a precise seam reports its subtype, and an object its auto drop", "[M
 
     const json info = Mcp::object_info(*object, 0);
     CHECK(info["auto_drop"] == false);
-    CHECK_FALSE(info["volumes"][0].contains("subtype"));
-    CHECK(info["volumes"][1]["type"] == "precise_seam");
-    CHECK(info["volumes"][1]["subtype"] == "left");
-    CHECK(info["volumes"][2]["subtype"] == "neutral");
-    CHECK_FALSE(info["volumes"][1].contains("filament"));
+    CHECK_FALSE(info["parts"][0].contains("subtype"));
+    CHECK(info["parts"][1]["type"] == "precise_seam");
+    CHECK(info["parts"][1]["subtype"] == "left");
+    CHECK(info["parts"][2]["subtype"] == "neutral");
+    CHECK_FALSE(info["parts"][1].contains("filament"));
+}
+
+namespace {
+
+// Three objects of one cube each: "alone" on plate 0, "twice" with an instance on plate 0 and one on
+// plate 1, and "off" on no plate.
+struct PlatedModel
+{
+    Model                         model;
+    std::vector<std::vector<int>> on{{0}, {0, 1}, {-1}};
+    std::vector<std::string>      plate_names{"", "second", "spare"};
+
+    PlatedModel()
+    {
+        for (const char* name : {"alone", "twice", "off"}) {
+            ModelObject* object = model.add_object();
+            object->name        = name;
+            object->add_volume(make_cube(10., 10., 10.), ModelVolumeType::MODEL_PART, false);
+            for (std::size_t i = 0; i < on[model.objects.size() - 1].size(); ++i)
+                object->add_instance();
+        }
+    }
+
+    json list(const json& args = json::object()) const
+    {
+        return Mcp::objects_by_plate(model, plate_names, [this](std::size_t object, std::size_t instance) { return on[object][instance]; },
+                                     args);
+    }
+};
+
+} // namespace
+
+TEST_CASE("list_objects lists each plate's objects, then those on no plate", "[Mcp][Scene]")
+{
+    const PlatedModel scene;
+    const json        out = scene.list();
+    REQUIRE(out["plates"].size() == 3);
+    const json& first = out["plates"][0];
+    CHECK(first["index"] == 0);
+    CHECK(first["name"] == "");
+    REQUIRE(first["objects"].size() == 2);
+    CHECK(first["objects"][0]["name"] == "alone");
+    CHECK(first["objects"][0]["parts"].size() == 1);
+    // An object keeps its index and id in the project, and lists the instances on this plate only.
+    const json& twice = first["objects"][1];
+    CHECK(twice["index"] == 1);
+    CHECK(twice["id"] == scene.model.objects[1]->id().id);
+    REQUIRE(twice["instances"].size() == 1);
+    CHECK(twice["instances"][0]["index"] == 0);
+    CHECK_FALSE(twice["instances"][0].contains("plate"));
+
+    const json& second = out["plates"][1];
+    CHECK(second["name"] == "second");
+    REQUIRE(second["objects"].size() == 1);
+    CHECK(second["objects"][0]["index"] == 1);
+    REQUIRE(second["objects"][0]["instances"].size() == 1);
+    CHECK(second["objects"][0]["instances"][0]["index"] == 1);
+
+    // A plate with nothing on it is listed.
+    CHECK(out["plates"][2]["objects"].empty());
+    REQUIRE(out["outside"].size() == 1);
+    CHECK(out["outside"][0]["name"] == "off");
+    // The object on two plates is listed under both and counted once.
+    CHECK(out["total"] == 3);
+    CHECK_FALSE(out.contains("next_offset"));
+}
+
+TEST_CASE("list_objects with a plate lists that plate alone", "[Mcp][Scene]")
+{
+    const PlatedModel scene;
+    const json        out = scene.list({{"plate", 1}});
+    REQUIRE(out["plates"].size() == 1);
+    CHECK(out["plates"][0]["index"] == 1);
+    REQUIRE(out["plates"][0]["objects"].size() == 1);
+    CHECK(out["plates"][0]["objects"][0]["name"] == "twice");
+    CHECK_FALSE(out.contains("outside"));
+    CHECK(out["total"] == 1);
+
+    CHECK_THROWS_WITH(scene.list({{"plate", 3}}), ContainsSubstring("Plate 3 does not exist (the project has plates 0..2)"));
+}
+
+TEST_CASE("list_objects pages the objects, listing each under every plate it is on", "[Mcp][Scene]")
+{
+    const PlatedModel scene;
+    // The second of the three objects is the one on two plates.
+    json out = scene.list({{"offset", 1}, {"limit", 1}});
+    CHECK(out["total"] == 3);
+    CHECK(out["offset"] == 1);
+    CHECK(out["next_offset"] == 2);
+    REQUIRE(out["plates"].size() == 3);
+    REQUIRE(out["plates"][0]["objects"].size() == 1);
+    CHECK(out["plates"][0]["objects"][0]["name"] == "twice");
+    REQUIRE(out["plates"][1]["objects"].size() == 1);
+    CHECK(out["plates"][1]["objects"][0]["name"] == "twice");
+    CHECK(out["outside"].empty());
+
+    out = scene.list({{"offset", 2}, {"limit", 1}});
+    CHECK(out["plates"][0]["objects"].empty());
+    CHECK(out["plates"][1]["objects"].empty());
+    REQUIRE(out["outside"].size() == 1);
+    CHECK(out["outside"][0]["name"] == "off");
+    CHECK_FALSE(out.contains("next_offset"));
+}
+
+TEST_CASE("list_objects with a plate pages and counts that plate's objects", "[Mcp][Scene]")
+{
+    const PlatedModel scene;
+    const json        out = scene.list({{"plate", 0}, {"offset", 1}, {"limit", 1}});
+    CHECK(out["total"] == 2);
+    CHECK(out["offset"] == 1);
+    CHECK_FALSE(out.contains("next_offset"));
+    REQUIRE(out["plates"][0]["objects"].size() == 1);
+    CHECK(out["plates"][0]["objects"][0]["name"] == "twice");
+    REQUIRE(out["plates"][0]["objects"][0]["instances"].size() == 1);
+    CHECK(out["plates"][0]["objects"][0]["instances"][0]["index"] == 0);
 }
 
 TEST_CASE("part types round-trip between names and ModelVolumeType", "[Mcp][Scene]")

@@ -206,7 +206,7 @@ int gcode_plate(Plater& plater, const json& args)
     PartPlateList& plates = plater.get_partplate_list();
     const int      index  = arg_int(args, "plate", plates.get_curr_plate_index());
     if (index < 0 || index >= plates.get_plate_count())
-        throw ToolFailure("plate must be 0.." + std::to_string(plates.get_plate_count() - 1));
+        throw ToolFailure(no_such_plate(index, plates.get_plate_count()));
     PartPlate&        plate = *plates.get_plate(index);
     const std::string name  = "plate " + std::to_string(index);
     // The slider's menus offer no codes on a plate printed by object, and it erases them all when it

@@ -44,7 +44,7 @@
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "list_plates", "save_as": "start",
-     "expect": {"/total": {"eq": 2}, "/items/0/objects/0": {"eq": [0, 0]}, "/items/1/objects/0": {"eq": [1, 0]},
+     "expect": {"/total": {"eq": 2}, "/items/0/objects": {"eq": 1}, "/items/1/objects": {"eq": 1},
                 "/items/0/overrides": {"empty": true}, "/items/1/overrides": {"empty": true}, "/items/1/current": {"eq": true},
                 "/items/0/locked": {"eq": false}, "/items/0/print_sequence": {"eq": "by layer"}, "/items/0/spiral_mode": {"eq": false},
                 "/items/0/first_layer_print_sequence": {"eq": null}, "/items/0/layer_gcode": {"empty": true},

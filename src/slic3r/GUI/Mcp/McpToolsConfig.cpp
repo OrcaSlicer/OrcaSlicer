@@ -560,7 +560,7 @@ int scope_plate(const json& args)
     PartPlateList& plates = ui_plater().get_partplate_list();
     const int      index  = arg_int(args, "plate", plates.get_curr_plate_index());
     if (index < 0 || index >= plates.get_plate_count())
-        throw ToolFailure("plate must be 0.." + std::to_string(plates.get_plate_count() - 1));
+        throw ToolFailure(no_such_plate(index, plates.get_plate_count()));
     return index;
 }
 
@@ -774,12 +774,16 @@ json list_plates(const json& args)
             if (is_plate_setting(key) && !plate_value(plate, key, false).is_null())
                 overrides.push_back(key);
         entry["overrides"] = std::move(overrides);
-        json objects       = json::array();
-        for (std::size_t o = 0; o < model.objects.size(); ++o)
-            for (std::size_t j = 0; j < model.objects[o]->instances.size(); ++j)
-                if (plates.find_instance(int(o), int(j)) == i)
-                    objects.push_back({int(o), int(j)});
-        entry["objects"] = std::move(objects);
+        // How many objects have an instance on the plate; list_objects lists them.
+        int objects = 0;
+        for (std::size_t o = 0; o < model.objects.size(); ++o) {
+            const std::size_t instances = model.objects[o]->instances.size();
+            std::size_t       j         = 0;
+            while (j < instances && instance_plate(plates, int(o), int(j)) != i)
+                ++j;
+            objects += j < instances;
+        }
+        entry["objects"] = objects;
         entry["sliced"]  = plate.is_slice_result_valid();
         if (tower_x != nullptr && tower_y != nullptr && !tower_x->empty() && !tower_y->empty())
             entry["wipe_tower"] = {tower_x->get_at(std::size_t(i)), tower_y->get_at(std::size_t(i))};
@@ -801,7 +805,7 @@ ConfigTarget resolve_target(const json& args, bool for_write)
     const std::string scope = arg_string(args, "scope", "process");
     PresetBundle&     bundle = *wxGetApp().preset_bundle;
     ConfigTarget      t;
-    if (scope == "object" || scope == "volume") {
+    if (scope == "object" || scope == "part") {
         Plater&     plater = ui_plater();
         const int   idx    = arg_int(args, "object", -1);
         ModelObjectPtrs& objects = plater.model().objects;
@@ -809,10 +813,10 @@ ConfigTarget resolve_target(const json& args, bool for_write)
             throw ToolFailure("object must be an index from list_objects (0.." + std::to_string(int(objects.size()) - 1) + ")");
         t.object       = objects[size_t(idx)];
         t.object_index = idx;
-        if (scope == "volume") {
-            const int v = arg_int(args, "volume", -1);
+        if (scope == "part") {
+            const int v = arg_int(args, "part", -1);
             if (v < 0 || v >= int(t.object->volumes.size()))
-                throw ToolFailure("volume must be a part index from list_objects");
+                throw ToolFailure("part must be a part index from list_objects");
             t.volume = t.object->volumes[size_t(v)];
             t.config = &t.volume->config.get();
         } else {
@@ -946,7 +950,7 @@ wxDataViewItem filament_row(const ConfigTarget& t)
 {
     ObjectDataViewModel& rows = *wxGetApp().obj_list()->GetModel();
     if (t.volume != nullptr && !t.volume->is_model_part() && !t.volume->is_modifier())
-        throw ToolFailure("Only parts and modifiers take a filament; this volume is a negative part, a support blocker or enforcer, "
+        throw ToolFailure("Only parts and modifiers take a filament; this one is a negative part, a support blocker or enforcer, "
                           "or a seam modifier");
     if (t.volume == nullptr || t.object->volumes.size() == 1)
         return rows.GetItemById(t.object_index);
@@ -1079,7 +1083,7 @@ json effective_setting(const std::string& key, const DynamicPrintConfig& process
             const ModelVolume& v = *object.volumes[i];
             if (v.is_model_part() || v.is_modifier())
                 if (const ConfigOption* opt = own(v.config))
-                    parts.push_back({{"volume", int(i)}, {"value", opt->serialize()}});
+                    parts.push_back({{"part", int(i)}, {"value", opt->serialize()}});
         }
         if (!parts.empty())
             out["parts"] = std::move(parts);
@@ -1884,7 +1888,7 @@ void register_config_tools(McpService& service)
     ToolRegistry& reg        = service.registry();
     const json    plate_prop = {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index (plate scope; default: the current plate)."}};
     // get_settings and set_settings take the same scopes and differ in what they do without one.
-    const std::vector<std::string> scopes{"process", "filament", "printer", "object", "volume", "project", "plate", "preferences"};
+    const std::vector<std::string> scopes{"process", "filament", "printer", "object", "part", "project", "plate", "preferences"};
     const std::string              scope_text = "Which settings: the process, filament or printer preset being edited, an "
                                                 "object's / part's own overrides, the project's own settings, a plate's, or the "
                                                 "app's preferences (read only).";
@@ -2153,7 +2157,7 @@ void register_config_tools(McpService& service)
         "- process, filament, printer: the preset being edited, or with preset a saved one; compare lists only "
         "the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what "
         "each entry is for) and active (the entry each extruder prints with).\n"
-        "- object, volume: the overrides that object or part carries, each with effective (the value it prints with) and "
+        "- object, part: the overrides that object or part carries, each with effective (the value it prints with) and "
         "source (part, object, process or default); an object's item lists in parts the parts and modifiers that override "
         "the key inside their own volume.\n"
         "- project: the plate type, slot colours, flushing volumes, purge mode, prime tower position per plate, mixed slots "
@@ -2169,8 +2173,8 @@ void register_config_tools(McpService& service)
                                                 "matches unless limit says otherwise.")},
                        {"where", prop("string", "A settings page, or \"Page > Group\" as meta.where gives it, e.g. "
                                                 "\"Strength > Walls\".")},
-                       {"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (object/volume scope)."}}},
-                       {"volume", {{"type", "integer"}, {"minimum", 0}, {"description", "Part index (volume scope)."}}},
+                       {"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (object/part scope)."}}},
+                       {"part", {{"type", "integer"}, {"minimum", 0}, {"description", "Part index (part scope)."}}},
                        {"plate", plate_prop},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}},
                        {"preset", prop("string", "Preset scopes: read this saved preset (a name from list_presets) instead of the "
@@ -2200,7 +2204,7 @@ void register_config_tools(McpService& service)
         "parent's; reset_all first discards every unsaved change, as the tab's undo button does (reply: reverted). A "
         "per-variant value (get_settings meta.variants) takes one value for the entries in use (meta.active), {index, "
         "value} for one entry, or an array of all.\n"
-        "- object, volume: overrides of the keys the object list offers there; null removes one. extruder is the object's "
+        "- object, part: overrides of the keys the object list offers there; null removes one. extruder is the object's "
         "or part's filament (1-based; 0 or null for Default), set as the Change Filament menu does.\n"
         "- project, as the sidebar's controls write them: curr_bed_type, filament_colour (#RRGGBB per slot), "
         "flush_multiplier, flush_volumes_matrix, prime_volume_mode, and wipe_tower_x/y (mm from the plate's origin, one per "
@@ -2216,10 +2220,10 @@ void register_config_tools(McpService& service)
                        {"reset_all", prop("boolean", "Preset scopes: discard the unsaved changes before applying values.")},
                        {"reset_to", enum_prop({"saved", "parent"}, "Preset scopes: what a null value takes a key back to: the "
                                                                      "saved preset (default) or the preset it inherits from.")},
-                       {"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (object/volume scope)."}}},
-                       {"volume", {{"type", "integer"}, {"minimum", 0}, {"description", "Part index (volume scope)."}}},
+                       {"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (object/part scope)."}}},
+                       {"part", {{"type", "integer"}, {"minimum", 0}, {"description", "Part index (part scope)."}}},
                        {"object_id", expected_id_prop("object")},
-                       {"volume_id", expected_id_prop("part")},
+                       {"part_id", expected_id_prop("part")},
                        {"plate", plate_prop},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}}}),
         [](const json& args, ToolContext& ctx) {
@@ -2360,7 +2364,7 @@ void register_config_tools(McpService& service)
 
     reg.add(inspect_tool(
         "list_plates", L("List plates"),
-        "Plates with name, locked, current, objects ([object, instance]), and the settings they print with: curr_bed_type, "
+        "Plates with name, locked, current, objects (how many are on it; list_objects lists them), and the settings they print with: curr_bed_type, "
         "print_sequence, spiral_mode, first_layer_print_sequence and other_layers_print_sequence (null: Auto); overrides "
         "lists those the plate sets itself (set_settings scope plate). Also sliced (an up-to-date slice), wipe_tower [x, y] "
         "and layer_gcode: the plate's pauses, custom G-code, templates and filament changes, each {z, layer, type, "

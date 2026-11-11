@@ -608,7 +608,7 @@ void register_view_tools(McpService& service)
                 const int      current = plates.get_curr_plate_index();
                 const int      index   = arg_int(args, "plate", current);
                 if (index >= plates.get_plate_count())
-                    throw ToolFailure("plate index out of range (0.." + std::to_string(plates.get_plate_count() - 1) + ")");
+                    throw ToolFailure(no_such_plate(index, plates.get_plate_count()));
                 GLCanvas3D* canvas = plater.get_preview_canvas3D();
                 if (canvas == nullptr)
                     throw ToolFailure("The preview is not available");

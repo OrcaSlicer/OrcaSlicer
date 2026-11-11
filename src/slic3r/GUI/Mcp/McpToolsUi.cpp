@@ -1661,15 +1661,15 @@ void register_ui_tools(McpService& service)
 
     const json target_schema = {
         {"type", "object"},
-        {"description", "A point of the model: {object, instance (default 0), volume (part, default 0), and point [x, y, z] in "
-                        "the part's own mesh coordinates (frame \"volume\", the default) or the scene's (frame \"world\"), or "
+        {"description", "A point of the model: {object, instance (default 0), part (default 0), and point [x, y, z] in "
+                        "the part's own mesh coordinates (frame \"part\", the default) or the scene's (frame \"world\"), or "
                         "spot: top | bottom | front | back | left | right, where a ray along that axis first meets the part}."},
         {"properties",
          {{"object", {{"type", "integer"}, {"minimum", 0}}},
           {"instance", {{"type", "integer"}, {"minimum", 0}}},
-          {"volume", {{"type", "integer"}, {"minimum", 0}}},
+          {"part", {{"type", "integer"}, {"minimum", 0}}},
           {"point", array_prop({{"type", "number"}}, "[x, y, z] mm")},
-          {"frame", enum_prop({"volume", "world"}, "Default volume.")},
+          {"frame", enum_prop({"part", "world"}, "Default part.")},
           {"spot", enum_prop({"top", "bottom", "front", "back", "left", "right"}, "A side of the part.")}}},
         {"required", {"object"}},
         {"additionalProperties", false}};

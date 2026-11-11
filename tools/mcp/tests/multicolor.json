@@ -36,8 +36,8 @@
     {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
     {"tool": "get_settings", "args": {"scope": "object", "object": 1, "keys": ["extruder"]}, "expect": {"/items/0/effective": {"eq": "2"}}},
 
-    // ---- A single-part object's volume 0 is the object: its filament is set there ----
-    {"tool": "set_settings", "args": {"scope": "volume", "object": 1, "volume": 0, "values": {"extruder": 1}},
+    // ---- A single-part object's part 0 is the object: its filament is set there ----
+    {"tool": "set_settings", "args": {"scope": "part", "object": 1, "part": 0, "values": {"extruder": 1}},
      "expect": {"/applied/extruder": {"eq": "1"}, "/note": {"exists": true}}},
     {"tool": "get_settings", "args": {"scope": "object", "object": 1, "keys": ["extruder"]}, "expect": {"/items/0/effective": {"eq": "1"}}},
     {"tool": "set_settings", "args": {"scope": "object", "object": 1, "values": {"extruder": 2}}},
@@ -47,15 +47,15 @@
     {"tool": "click", "args": {"target": {"gizmo": "Text"}}, "expect": {"/created": {"eq": true}, "/active": {"eq": true}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "click", "args": {"target": {"imgui": "Done"}}},
-    {"tool": "list_objects", "expect": {"/items/0/volumes/1/text": {"exists": true}}},
-    {"tool": "set_settings", "args": {"scope": "volume", "object": 0, "volume": 1, "values": {"extruder": 2}}, "expect": {"/applied/extruder": {"eq": "2"}}},
-    {"tool": "get_settings", "args": {"scope": "volume", "object": 0, "volume": 1, "keys": ["extruder"]},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1/text": {"exists": true}}},
+    {"tool": "set_settings", "args": {"scope": "part", "object": 0, "part": 1, "values": {"extruder": 2}}, "expect": {"/applied/extruder": {"eq": "2"}}},
+    {"tool": "get_settings", "args": {"scope": "part", "object": 0, "part": 1, "keys": ["extruder"]},
      "expect": {"/items/0/effective": {"eq": "2"}, "/items/0/source": {"eq": "part"}, "/note": {"exists": true}}},
     {"tool": "get_settings", "args": {"scope": "object", "object": 0, "keys": ["extruder"]},
-     "expect": {"/items/0/effective": {"eq": "1"}, "/items/0/parts/0/volume": {"eq": 1}, "/items/0/parts/0/value": {"eq": "2"}, "/note": {"exists": true}}},
+     "expect": {"/items/0/effective": {"eq": "1"}, "/items/0/parts/0/part": {"eq": 1}, "/items/0/parts/0/value": {"eq": "2"}, "/note": {"exists": true}}},
     // Default on a part is its object's filament.
-    {"tool": "set_settings", "args": {"scope": "volume", "object": 0, "volume": 1, "values": {"extruder": null}}, "expect": {"/applied/extruder": {"eq": "1"}}},
-    {"tool": "set_settings", "args": {"scope": "volume", "object": 0, "volume": 1, "values": {"extruder": 2}}},
+    {"tool": "set_settings", "args": {"scope": "part", "object": 0, "part": 1, "values": {"extruder": null}}, "expect": {"/applied/extruder": {"eq": "1"}}},
+    {"tool": "set_settings", "args": {"scope": "part", "object": 0, "part": 1, "values": {"extruder": 2}}},
 
     // ---- A filament and another setting in one call are one undo step; the object's filament clears the part's ----
     {"tool": "set_settings", "args": {"scope": "object", "object": 0, "values": {"extruder": 2, "wall_loops": 5}},

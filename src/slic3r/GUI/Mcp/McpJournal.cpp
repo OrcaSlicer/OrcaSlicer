@@ -55,7 +55,7 @@ json without_expected_ids(const std::string& tool, json args)
         return args;
     }
     if (takes_ids.count(tool) != 0)
-        for (const char* key : {"object_id", "volume_id", "object_ids", "volume_ids", "instance_object_ids"})
+        for (const char* key : {"object_id", "part_id", "object_ids", "part_ids", "instance_object_ids"})
             args.erase(key);
     return args;
 }

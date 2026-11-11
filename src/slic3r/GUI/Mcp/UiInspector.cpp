@@ -3,6 +3,7 @@
 
 #include "CanvasTarget.hpp"
 #include "McpService.hpp"
+#include "McpTools.hpp"
 #include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "ScreenCapture.hpp"
@@ -1006,13 +1007,13 @@ CanvasView canvas_view(GLCanvas3D& canvas)
 }
 
 // The logical pixel of `canvas` showing a point of the model: {object, instance, volume} and either
-// `point` (with `frame` "volume", the part's mesh coordinates, or "world", the scene's) or `spot`.
+// `point` (with `frame` "part", the part's mesh coordinates, or "world", the scene's) or `spot`.
 // With `check` "surface" a click there must land on that part at that point (see check_surface()).
 wxPoint target_pixel(GLCanvas3D& canvas, const json& target, const std::string& check, double tolerance)
 {
     if (!target.is_object())
-        throw ToolFailure("A model target is {object, instance, volume, point | spot}");
-    const int oi = target.value("object", -1), ii = target.value("instance", 0), vi = target.value("volume", 0);
+        throw ToolFailure("A model target is {object, instance, part, point | spot}");
+    const int oi = target.value("object", -1), ii = target.value("instance", 0), vi = target.value("part", 0);
     const std::string what = "object " + std::to_string(oi) + " instance " + std::to_string(ii) + " part " + std::to_string(vi);
     // The instance the open gizmo works on draws its parts itself, even while their scene entries are
     // inactive (the painters deactivate them).
@@ -1047,11 +1048,11 @@ wxPoint target_pixel(GLCanvas3D& canvas, const json& target, const std::string& 
         if (!p.is_array() || p.size() != 3)
             throw ToolFailure("point is [x, y, z]");
         point = Vec3d(p[0].get<double>(), p[1].get<double>(), p[2].get<double>());
-        const std::string frame = target.value("frame", "volume");
-        if (frame == "volume")
+        const std::string frame = target.value("frame", "part");
+        if (frame == "part")
             point = world * point;
         else if (frame != "world")
-            throw ToolFailure("frame is volume or world");
+            throw ToolFailure("frame is part or world");
     } else {
         throw ToolFailure("A model target needs point or spot");
     }
@@ -1200,11 +1201,6 @@ std::string plate_label(PartPlate& plate)
     if (!plate.get_plate_name().empty())
         label += " (" + plate.get_plate_name() + ")";
     return label;
-}
-
-std::string no_such_plate(int plate, int count)
-{
-    return "Plate " + std::to_string(plate) + " does not exist (plates 0.." + std::to_string(count - 1) + ")";
 }
 
 } // namespace
