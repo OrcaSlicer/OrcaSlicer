@@ -254,6 +254,12 @@ if (SLIC3R_GUI)
     else ()
         add_executable(OrcaSlicerUpdater ${UPDATER_HELPER_SOURCES})
     endif ()
+    if (APPLE)
+        # A plain executable, not an .app: CMake turns every executable into a bundle
+        # here (CMAKE_MACOSX_BUNDLE), and the application starts the helper by path
+        # from Contents/MacOS, where build_release_macos.sh copies it as a file.
+        set_target_properties(OrcaSlicerUpdater PROPERTIES MACOSX_BUNDLE FALSE)
+    endif ()
 
     target_include_directories(OrcaSlicerUpdater PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     if (wxWidgets_INCLUDE_DIRS)
