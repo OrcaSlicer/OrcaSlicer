@@ -17,7 +17,9 @@
 #include <boost/log/expressions/formatters/stream.hpp>
 #include <boost/log/expressions/attr.hpp>
 #include <boost/log/expressions/formatters/date_time.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/log/attributes/current_thread_id.hpp>
 #include <boost/log/expressions/message.hpp>

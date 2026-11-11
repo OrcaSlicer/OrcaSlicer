@@ -9,7 +9,9 @@
 #include <boost/polygon/polygon.hpp>
 
 #include "ExPolygon.hpp"
+#include "Point.hpp"
 #include "Polygon.hpp"
+#include "libslic3r.h"
 
 namespace boost { namespace polygon {
     template <>
