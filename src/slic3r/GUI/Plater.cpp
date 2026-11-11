@@ -7267,6 +7267,7 @@ struct Plater::priv
     std::string m_cloud_missing_shown_sig;
     std::string m_inactive_shown_sig;
     std::string m_broken_shown_sig;
+    bool m_plugin_status_refresh_pending {false};
     bool auto_reslice_pending {false};
     bool auto_reslice_after_cancel {false};
     int m_is_RightClickInLeftUI{-1};
@@ -9495,9 +9496,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                         auto* rotate_template = config_loaded.option<ConfigOptionString>("sparse_infill_rotate_template");
                         if (rotate_template == nullptr || rotate_template->value.empty())
                             return;
-                        const auto* pattern_opt = config_loaded.option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern");
-                        const auto _sparse_infill_pattern =
-                            pattern_opt != nullptr ? pattern_opt->value : FullPrintConfig::defaults().sparse_infill_pattern.value;
+                        const auto* pattern_opt = config_loaded.option<ConfigOptionString>("sparse_infill_pattern");
+                        const auto _sparse_infill_pattern = infill_pattern_from_key(
+                            pattern_opt != nullptr ? pattern_opt->value : FullPrintConfig::defaults().sparse_infill_pattern.value);
                         bool is_safe_to_rotate = _sparse_infill_pattern == ipRectilinear || _sparse_infill_pattern == ipLine ||
                                                  _sparse_infill_pattern == ipZigZag || _sparse_infill_pattern == ipCrossZag ||
                                                  _sparse_infill_pattern == ipLockedZag;
@@ -13837,6 +13838,10 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         update_fff_scene_only_shells();
         q->Thaw();
     }
+    // Plugin changes during a slice must not apply a new config to the running print. Once the
+    // whole job is done, revalidate and refresh the buttons using the current plugin state.
+    if (m_plugin_status_refresh_pending && !m_is_slicing && !background_process.running())
+        q->refresh_missing_plugin_notifications();
     if (auto_reslice_after_cancel) {
         auto_reslice_after_cancel = false;
         schedule_auto_reslice_if_needed();
@@ -17613,11 +17618,11 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
         _obj->config.set_key_value("bottom_shell_thickness", new ConfigOptionFloat(0));
         _obj->config.set_key_value("detect_thin_wall", new ConfigOptionBool(true));
         _obj->config.set_key_value("filter_out_gap_fill", new ConfigOptionFloat(0));
-        _obj->config.set_key_value("sparse_infill_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
+        _obj->config.set_key_value("sparse_infill_pattern", new ConfigOptionString(ConfigOptionEnum<InfillPattern>(ipRectilinear).serialize()));
         _obj->config.set_key_value("top_surface_line_width", new ConfigOptionFloatOrPercent(infill_line_width, false));
         _obj->config.set_key_value("internal_solid_infill_line_width", new ConfigOptionFloatOrPercent(infill_line_width, false));
         // ORCA: use the pattern parameter
-        _obj->config.set_key_value("top_surface_pattern", new ConfigOptionEnum<InfillPattern>(pattern));
+        _obj->config.set_key_value("top_surface_pattern", new ConfigOptionString(ConfigOptionEnum<InfillPattern>(pattern).serialize()));
         const auto *top_solid_flow = dynamic_cast<const ConfigOptionFloatsNullable *>(_obj->config.option("top_solid_infill_flow_ratio"));
         _obj->config.set_key_value("top_solid_infill_flow_ratio",
                                    new ConfigOptionFloatsNullable(top_solid_flow ? top_solid_flow->size() : 1, 1.0f));
@@ -18301,7 +18306,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
-    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
+    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionString(ConfigOptionEnum<InfillPattern>(ipRectilinear).serialize()));
     const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));
     const double machine_max_acceleration = printer_config->option<ConfigOptionFloats>("machine_max_acceleration_extruding")->get_at(0);
     set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", machine_max_speed);
@@ -18368,7 +18373,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
-    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
+    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionString(ConfigOptionEnum<InfillPattern>(ipRectilinear).serialize()));
     const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));
     const double machine_max_acceleration = printer_config->option<ConfigOptionFloats>("machine_max_acceleration_extruding")->get_at(0);
     set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", machine_max_speed);
@@ -18436,7 +18441,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
-    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
+    print_config->set_key_value("bottom_surface_pattern", new ConfigOptionString(ConfigOptionEnum<InfillPattern>(ipRectilinear).serialize()));
     const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));
     const double machine_max_acceleration = printer_config->option<ConfigOptionFloats>("machine_max_acceleration_extruding")->get_at(0);
     set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", machine_max_speed);
@@ -23515,6 +23520,10 @@ void Plater::revalidate_current_plate_if_plugins_missing()
     if (p->m_local_missing_shown_sig.empty() && p->m_cloud_missing_shown_sig.empty() &&
         p->m_inactive_shown_sig.empty() && p->m_broken_shown_sig.empty())
         return;
+    if (p->background_process.running() || p->m_is_slicing) {
+        p->m_plugin_status_refresh_pending = true;
+        return;
+    }
     bool model_fits = true, validate_error = false;
     validate_current_plate(model_fits, validate_error);
 }
@@ -23522,10 +23531,42 @@ void Plater::revalidate_current_plate_if_plugins_missing()
 void Plater::refresh_missing_plugin_notifications()
 {
     bool block_toggled = false;
-    refresh_missing_plugin_block(&block_toggled);
-    // update() re-evaluates the Slice button, which honors plugins_block_slicing().
-    if (block_toggled)
-        update();
+    const bool blocked = refresh_missing_plugin_block(&block_toggled);
+
+    if (p->background_process.running() || p->m_is_slicing) {
+        // A running slice keeps the providers it pinned; retry from on_process_completed() once it
+        // ends. Nothing below may invalidate its steps now. The retry is unconditional: a provider
+        // can change behind a still-selected pattern ID without toggling the block, and only the
+        // identity check after the job can tell that the fills it cached belong to another provider.
+        p->m_plugin_status_refresh_pending = true;
+        if (blocked)
+            p->partplate_list.get_curr_plate()->update_slice_ready_status(false);
+        return;
+    }
+
+    // A completed slice whose selected pattern now resolves to a different provider (replaced,
+    // removed, or its descriptor changed) is stale. Drop the affected fills and the G-code that used
+    // them instead of resetting the background process, which would also stop an unrelated job.
+    if (Print* print = p->background_process.fff_print();
+        print != nullptr && print->plugin_infill_identity_changed() && print->invalidate_plugin_infill())
+        if (PartPlate* plate = p->background_process.get_current_plate())
+            plate->update_slice_result_valid_state(false);
+
+    if (!block_toggled && !p->m_plugin_status_refresh_pending)
+        return;
+
+    if (blocked)
+        p->partplate_list.get_curr_plate()->update_slice_ready_status(false);
+
+    p->m_plugin_status_refresh_pending = false;
+    bool model_fits = false;
+    if (!blocked) {
+        bool validate_error = false;
+        validate_current_plate(model_fits, validate_error);
+    }
+    // Re-evaluate the buttons without update(), which schedules a background config apply and
+    // could cancel a pinned slice or its export when a plugin is unloaded.
+    p->main_frame->update_slice_print_status(MainFrame::eEventObjectUpdate, model_fits);
 }
 
 void Plater::install_missing_cloud_plugins(const std::vector<std::string>& cloud_refs)

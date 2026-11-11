@@ -45,6 +45,8 @@ add_executable(${_TEST_NAME}_tests
     test_qidi_printer_agent.cpp
     test_plugin_install.cpp
     test_plugin_lifecycle.cpp
+    test_plugin_infill.cpp
+    test_plugin_infill_callbacks.cpp
     test_plugin_resource_texture.cpp
     test_plugin_printer_agent.cpp
     test_post_processor.cpp

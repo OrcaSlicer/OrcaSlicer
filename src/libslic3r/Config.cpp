@@ -1543,18 +1543,20 @@ std::optional<PluginCapabilityRef> parse_capability_ref(const std::string& value
 }
 
 //BBS: add json support
-void ConfigBase::save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const
+void ConfigBase::save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version,
+                              const std::vector<const ConfigBase*> &additional_configs) const
 {
     // Serialize first: if that throws (invalid UTF-8), the existing file stays untouched.
     std::ostringstream ss;
-    this->save_to_json(ss, name, from, version);
+    this->save_to_json(ss, name, from, version, false, additional_configs);
     if (const std::error_code ec = write_file_atomically(file, ss.str()))
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(": failed to save config to %1%: %2%") % file % ec.message();
     else
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;
 }
 
-void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8) const
+void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version,
+                              bool replace_invalid_utf8, const std::vector<const ConfigBase*> &additional_configs) const
 {
     json j;
     //record the headers
@@ -1596,7 +1598,7 @@ void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const s
     // the resolver cannot map is omitted; unresolved_plugin_capabilities() reports it so a GUI save
     // entry point can prompt before writing.
     if (resolve_capability_fn) {
-        std::vector<std::string> unique_refs = this->collect_plugin_manifest();
+        std::vector<std::string> unique_refs = this->collect_plugin_manifest(additional_configs);
         if (unique_refs.empty())
             j.erase("plugins");
         else
@@ -1644,25 +1646,28 @@ void ConfigBase::for_each_plugin_capability(const std::function<void(const std::
         if (opt_def == nullptr || opt == nullptr || !opt_def->is_plugin_backed())
             continue;
 
+        // An infill option also accepts the option's own built-in patterns, which are not
+        // capabilities: they have no plugin reference to derive and must not be reported as
+        // unresolved. Same built-in test as the infill-pattern validation in validate().
+        const auto is_capability_value = [opt_def](const std::string& value) {
+            return !value.empty() && !(opt_def->plugin_type == "infill" && opt_def->has_enum_value(value));
+        };
+
         // Scalar options carry a single capability name; vector options carry a list. Same
         // scalar/vector dispatch as PluginResolver::find_option_for_capability.
         if (const auto* scalar_option = dynamic_cast<const ConfigOptionString*>(opt)) {
-            if (!scalar_option->value.empty())
+            if (is_capability_value(scalar_option->value))
                 fn(opt_key, opt_def->plugin_type, scalar_option->value);
         } else if (const auto* vector_option = dynamic_cast<const ConfigOptionVectorBase*>(opt)) {
             for (const std::string& capability_name : vector_option->vserialize())
-                if (!capability_name.empty())
+                if (is_capability_value(capability_name))
                     fn(opt_key, opt_def->plugin_type, capability_name);
         }
     }
 }
 
-std::vector<std::string> ConfigBase::collect_plugin_manifest() const
+void ConfigBase::append_plugin_refs(std::vector<std::string>& refs) const
 {
-    std::vector<std::string> refs;
-    if (!resolve_capability_fn)
-        return refs;
-
     // Resolve each capability value and append its full reference, dropping duplicates (preserving
     // insertion order). A value that resolves nowhere has no reference to write, so it is skipped;
     // unresolved_plugin_capabilities() reports those values so a GUI save can prompt.
@@ -1671,6 +1676,18 @@ std::vector<std::string> ConfigBase::collect_plugin_manifest() const
         if (!ref.empty() && std::find(refs.begin(), refs.end(), ref) == refs.end())
             refs.emplace_back(std::move(ref));
     });
+}
+
+std::vector<std::string> ConfigBase::collect_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs) const
+{
+    std::vector<std::string> refs;
+    if (!resolve_capability_fn)
+        return refs;
+
+    this->append_plugin_refs(refs);
+    for (const ConfigBase* config : additional_configs)
+        if (config != nullptr)
+            config->append_plugin_refs(refs);
     return refs;
 }
 
@@ -1696,7 +1713,7 @@ std::vector<UnresolvedPluginCapability> ConfigBase::unresolved_plugin_capabiliti
     return unresolved;
 }
 
-void ConfigBase::update_plugin_manifest()
+void ConfigBase::update_plugin_manifest(const std::vector<const ConfigBase*>& additional_configs)
 {
     // Writes the derived manifest back into this config's "plugins" option (save_to_json writes the
     // same manifest into a JSON document instead), so an in-memory backend config carries a resolved
@@ -1705,7 +1722,7 @@ void ConfigBase::update_plugin_manifest()
     if (!resolve_capability_fn)
         return;
     if (auto* manifest = this->option<ConfigOptionStrings>("plugins", true))
-        manifest->values = this->collect_plugin_manifest();
+        manifest->values = this->collect_plugin_manifest(additional_configs);
 }
 
 DynamicConfig::DynamicConfig(const ConfigBase& rhs, const t_config_option_keys& keys)

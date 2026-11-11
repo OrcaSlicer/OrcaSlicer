@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <boost/algorithm/string/erase.hpp>
 #include <cstdlib>
+#include <memory>
 #include "libslic3r/Point.hpp"
 #include <string>
 #include <vector>
@@ -12,6 +13,8 @@
 #include <wx/string.h>
 
 #include "libslic3r/Config.hpp"
+#include "libslic3r/Fill/InfillFactory.hpp"
+#include "libslic3r/Fill/InfillPurpose.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include "I18N.hpp"
@@ -28,6 +31,28 @@ std::string get_pure_opt_key(const std::string& opt_key)
     if (pos > 0)
         boost::erase_tail(pure_key, pure_key.size() - pos);
     return pure_key;
+}
+
+// The four pattern settings are key-choice strings: they store the raw built-in key or a plugin
+// pattern ID, and their enum_values/enum_labels describe the built-in choices. Show the label that
+// matches a built-in key, the provider's presentation name for a known plugin pattern, or the raw
+// value otherwise. Other key-choice string options keep showing their raw value, as before.
+wxString get_string_from_infill_pattern(const std::string& opt_key, const DynamicPrintConfig& config)
+{
+    const std::string key = config.opt_string(opt_key);
+    if (!infill_purpose_for_option(opt_key))
+        return from_u8(key);
+
+    const ConfigOptionDef* def = config.def()->get(opt_key);
+    if (def != nullptr && !def->enum_values.empty() && def->enum_labels.size() == def->enum_values.size()) {
+        auto it = std::find(def->enum_values.begin(), def->enum_values.end(), key);
+        if (it != def->enum_values.end())
+            return from_u8(_utf8(def->enum_labels[it - def->enum_values.begin()]));
+        if (const std::shared_ptr<const InfillInfo> info = InfillFactory::find_infill(key);
+            info != nullptr && info->is_plugin() && !info->display_name.empty())
+            return from_u8(info->display_name);
+    }
+    return from_u8(key);
 }
 
 wxString get_string_from_enum(const std::string& opt_key, const DynamicPrintConfig& config, bool is_infill, int idx)
@@ -170,7 +195,7 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
         return _L("Undefined");
     }
     case coString:
-        return from_u8(config.opt_string(pure_key));
+        return get_string_from_infill_pattern(pure_key, config);
     case coStrings: {
         const ConfigOptionStrings* strings = config.opt<ConfigOptionStrings>(pure_key);
         if (strings) {
@@ -212,10 +237,6 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
     }
     case coEnum: {
         return get_string_from_enum(pure_key, config,
-            pure_key == "top_surface_pattern" ||
-            pure_key == "bottom_surface_pattern" ||
-            pure_key == "internal_solid_infill_pattern" ||
-            pure_key == "sparse_infill_pattern" ||
             pure_key == "ironing_pattern" ||
             pure_key == "support_ironing_pattern" ||
             pure_key == "support_pattern" ||
@@ -226,10 +247,6 @@ wxString get_string_value(const std::string& opt_key, const DynamicPrintConfig& 
         if (!opt_vector || opt_idx >= opt_vector->size())
             return _L("Undefined");
         return get_string_from_enum(pure_key, config,
-            pure_key == "top_surface_pattern" ||
-            pure_key == "bottom_surface_pattern" ||
-            pure_key == "internal_solid_infill_pattern" ||
-            pure_key == "sparse_infill_pattern" ||
             pure_key == "ironing_pattern" ||
             pure_key == "support_ironing_pattern" ||
             pure_key == "support_pattern" ||

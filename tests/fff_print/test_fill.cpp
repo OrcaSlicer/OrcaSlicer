@@ -17,10 +17,13 @@
 #include "libslic3r/Line.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include <libslic3r/Config.hpp>
+#include <libslic3r/Exception.hpp>
 #include <limits>
 #include "libslic3r/Model.hpp"
 #include <map>
 #include <memory>
+#include <mutex>
 #include <math.h>
 #include <numeric>
 #include <sstream>
@@ -38,6 +41,8 @@
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Fill/FillAdaptive.hpp"
 #include "libslic3r/Fill/FillGyroid.hpp"
+#include "libslic3r/Fill/InfillFactory.hpp"
+#include "libslic3r/Fill/InfillPurpose.hpp"
 #include "libslic3r/Fill/AdaptiveInfillField.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
@@ -62,6 +67,248 @@ TEST_CASE("Adjusted solid distance", "[Fill]") {
     REQUIRE(surface_width % distance == 0);
 }
 #endif
+
+namespace {
+
+// A native plugin pattern that records the surface purpose and whether a built-in pattern was set
+// for each dispatch call. It stands in for InfillPluginCapability::generate() without needing the
+// Python plugin layer in this suite.
+class PurposeRecordingFill final : public Fill
+{
+public:
+    PurposeRecordingFill() = default;
+    PurposeRecordingFill(std::vector<InfillSurfacePurpose>& recorded, std::mutex& mutex,
+                         std::vector<bool>* pattern_present = nullptr)
+        : m_recorded(&recorded), m_mutex(&mutex), m_pattern_present(pattern_present)
+    {}
+
+    Fill*    clone() const override
+    {
+        auto* copy = new PurposeRecordingFill();
+        copy->m_recorded        = m_recorded;
+        copy->m_mutex           = m_mutex;
+        copy->m_pattern_present = m_pattern_present;
+        return copy;
+    }
+    bool     is_self_crossing() override { return false; }
+
+protected:
+    void _fill_surface_single(const FillParams&                params,
+                              unsigned int /*thickness_layers*/,
+                              const std::pair<float, Point>& /*direction*/,
+                              ExPolygon /*expolygon*/,
+                              Polylines&                     polylines_out) override
+    {
+        if (m_recorded != nullptr && m_mutex != nullptr) {
+            std::lock_guard<std::mutex> lock(*m_mutex);
+            m_recorded->push_back(params.purpose);
+            if (m_pattern_present != nullptr)
+                m_pattern_present->push_back(params.pattern.has_value());
+        }
+        polylines_out.clear();
+    }
+
+private:
+    std::vector<InfillSurfacePurpose>* m_recorded        = nullptr;
+    std::mutex*                        m_mutex           = nullptr;
+    std::vector<bool>*                 m_pattern_present = nullptr;
+};
+
+// Unregisters the fixture pattern on every exit path, including a failed REQUIRE.
+struct ScopedPluginInfill
+{
+    std::string plugin_key;
+    std::string capability;
+
+    ~ScopedPluginInfill() { InfillFactory::unregister_plugin_infills(plugin_key, capability); }
+};
+
+} // namespace
+
+TEST_CASE("An enum value without a built-in pattern cannot create a fill", "[Fill]")
+{
+    // Plugin patterns have no InfillPattern value: they are created by InfillFactory from the
+    // stable ID selected by the project. ipCount is one past the last built-in pattern, so the
+    // enum overload must reject it rather than guess a provider.
+    CHECK_THROWS_AS(Fill::new_from_type(ipCount), Slic3r::InvalidArgument);
+}
+
+TEST_CASE("A plugin pattern selected for a surface dispatches with that surface purpose", "[Fill][InfillPlugin]")
+{
+    const std::string id         = "fff-print-surface-pattern";
+    const std::string plugin_key = "fff-print-surface-plugin";
+    const std::string capability = "FFF Print Surface Infill";
+    ScopedPluginInfill cleanup{plugin_key, capability};
+
+    std::vector<InfillSurfacePurpose> recorded;
+    std::vector<bool>                 pattern_present;
+    std::mutex                        mutex;
+    REQUIRE(InfillFactory::register_plugin_infill(
+        id, "Surface Pattern", plugin_key, capability,
+        {InfillSurfacePurpose::InternalSolid, InfillSurfacePurpose::TopSurface,
+         InfillSurfacePurpose::BottomSurface},
+        {},
+        [&recorded, &pattern_present, &mutex]() -> std::unique_ptr<Fill> {
+            return std::make_unique<PurposeRecordingFill>(recorded, mutex, &pattern_present);
+        }));
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"sparse_infill_pattern", "rectilinear"},
+        {"sparse_infill_density", "15%"},
+        {"top_surface_pattern", id},
+        {"bottom_surface_pattern", id},
+        {"internal_solid_infill_pattern", id},
+        {"top_surface_density", "50%"},
+        {"bottom_surface_density", "100%"},
+        {"top_shell_layers", 2},
+        {"bottom_shell_layers", 2},
+        {"top_shell_thickness", 0},
+        {"bottom_shell_thickness", 0},
+        // Force one middle layer to stInternalSolid, so the internal-solid setting is exercised even
+        // on a flat cube. Disable vertical-shell detection so plain top/bottom shell discovery runs.
+        {"ensure_vertical_shell_thickness", "none"},
+        {"extra_solid_infills", "5"},
+        {"layer_height", 0.4},
+        {"initial_layer_print_height", 0.4},
+    });
+    // "plugins" holds one "plugin;uuid;capability" entry per reference. Setting it through the
+    // coStrings deserializer would split the entry on its semicolons.
+    config.set_key_value("plugins", new ConfigOptionStrings({plugin_key + ";;" + capability}));
+
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({Slic3r::Test::cube(20.)}, print, model, config);
+    print.process();
+
+    std::lock_guard<std::mutex> lock(mutex);
+    for (const InfillSurfacePurpose purpose : {InfillSurfacePurpose::InternalSolid,
+                                               InfillSurfacePurpose::TopSurface,
+                                               InfillSurfacePurpose::BottomSurface}) {
+        INFO(static_cast<int>(purpose));
+        CHECK(std::find(recorded.begin(), recorded.end(), purpose) != recorded.end());
+    }
+    // The ID is selected for three solid surfaces only; it must never run as sparse infill.
+    CHECK(std::find(recorded.begin(), recorded.end(), InfillSurfacePurpose::Sparse) == recorded.end());
+    // A plugin pattern has no built-in InfillPattern value, so no dispatch may invent one.
+    REQUIRE_FALSE(pattern_present.empty());
+    CHECK(std::none_of(pattern_present.begin(), pattern_present.end(), [](bool present) { return present; }));
+}
+
+TEST_CASE("A sparse plugin pattern dispatches without a built-in pattern while anchoring", "[Fill][InfillPlugin]")
+{
+    const std::string id         = "fff-anchor-sparse-pattern";
+    const std::string plugin_key = "fff-anchor-sparse-plugin";
+    const std::string capability = "FFF Anchor Sparse Infill";
+    ScopedPluginInfill cleanup{plugin_key, capability};
+
+    std::vector<InfillSurfacePurpose> recorded;
+    std::vector<bool>                 pattern_present;
+    std::mutex                        mutex;
+    REQUIRE(InfillFactory::register_plugin_infill(
+        id, "Anchor Sparse Pattern", plugin_key, capability, {InfillSurfacePurpose::Sparse}, {},
+        [&recorded, &pattern_present, &mutex]() -> std::unique_ptr<Fill> {
+            return std::make_unique<PurposeRecordingFill>(recorded, mutex, &pattern_present);
+        }));
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"sparse_infill_pattern", id},
+        {"sparse_infill_density", "15%"},
+        {"top_shell_layers", 0},
+        {"bottom_shell_layers", 0},
+        {"top_shell_thickness", 0},
+        {"bottom_shell_thickness", 0},
+        {"ensure_vertical_shell_thickness", "none"},
+        {"layer_height", 0.2},
+        {"initial_layer_print_height", 0.2},
+    });
+    // "plugins" holds one "plugin;uuid;capability" entry per reference. Setting it through the
+    // coStrings deserializer would split the entry on its semicolons.
+    config.set_key_value("plugins", new ConfigOptionStrings({plugin_key + ";;" + capability}));
+
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({make_cube(20, 20, 1)}, print, model, config);
+    print.process();
+
+    const PrintObject *object = print.objects().front();
+    REQUIRE(object != nullptr);
+    REQUIRE(object->layers().size() > 1);
+    const Layer &layer = *object->get_layer(object->layers().size() / 2);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex);
+        recorded.clear();
+        pattern_present.clear();
+    }
+    layer.generate_sparse_infill_polylines_for_anchoring(nullptr, nullptr);
+
+    // The anchor path must dispatch the sparse plugin, and like the normal fill path it must not
+    // invent a built-in pattern for it.
+    std::lock_guard<std::mutex> lock(mutex);
+    REQUIRE_FALSE(recorded.empty());
+    REQUIRE_FALSE(pattern_present.empty());
+    CHECK(std::none_of(pattern_present.begin(), pattern_present.end(), [](bool present) { return present; }));
+}
+
+TEST_CASE("An unknown pattern value is accepted at load and fails preflight with its ID", "[Fill][InfillPlugin]")
+{
+    // A stored value that names neither a built-in key nor a provider registered here is a possible
+    // plugin pattern installed on another computer (or a CLI project). Loading it and validation must
+    // keep it: rejecting the value would turn a project written elsewhere into a load failure instead
+    // of missing-plugin guidance. The slice preflight is where it is refused, with the ID in the error,
+    // rather than silently falling back to a built-in pattern.
+    const std::string id = "unavailable-plugin-pattern";
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{"sparse_infill_pattern", id}, {"sparse_infill_density", "15%"}});
+    CHECK(config.validate().count("sparse_infill_pattern") == 0);
+    CHECK(config.validate(/*under_cli=*/true).count("sparse_infill_pattern") == 0);
+
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({Slic3r::Test::cube(20.)}, print, model, config);
+
+    try {
+        print.process();
+        FAIL("the preflight must refuse a pattern that no registered provider resolves");
+    } catch (const SlicingError &error) {
+        CHECK(std::string(error.what()).find(id) != std::string::npos);
+    }
+}
+
+TEST_CASE("A plugin pattern selected for a surface it does not declare fails the slice", "[Fill][InfillPlugin]")
+{
+    const std::string id         = "fff-print-sparse-only-pattern";
+    const std::string plugin_key = "fff-print-sparse-only-plugin";
+    const std::string capability = "FFF Print Sparse Infill";
+    ScopedPluginInfill cleanup{plugin_key, capability};
+
+    // Declared sparse-only, but stored in the top-surface setting.
+    REQUIRE(InfillFactory::register_plugin_infill(
+        id, "Sparse Only", plugin_key, capability, {InfillSurfacePurpose::Sparse}, {},
+        []() -> std::unique_ptr<Fill> { return std::make_unique<PurposeRecordingFill>(); }));
+
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"sparse_infill_pattern", "rectilinear"},
+        {"sparse_infill_density", "15%"},
+        {"top_surface_pattern", id},
+        {"top_shell_layers", 2},
+        {"bottom_shell_layers", 2},
+        {"layer_height", 0.4},
+        {"initial_layer_print_height", 0.4},
+    });
+    // "plugins" holds one "plugin;uuid;capability" entry per reference. Setting it through the
+    // coStrings deserializer would split the entry on its semicolons.
+    config.set_key_value("plugins", new ConfigOptionStrings({plugin_key + ";;" + capability}));
+
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({Slic3r::Test::cube(20.)}, print, model, config);
+    CHECK_THROWS_AS(print.process(), Slic3r::SlicingError);
+}
 
 TEST_CASE("Pattern path length", "[Fill]") {
     std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("rectilinear"));

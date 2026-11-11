@@ -47,7 +47,8 @@ public:
     // Index reserved in the enum table for an int the writing build could not
     // name — a nullable option's nil, or a definition carrying no
     // enum_keys_map. The raw int32 follows it on the wire and is loaded
-    // verbatim, so those values survive too.
+    // verbatim, so those values survive too — except into a retyped string,
+    // which has no spelling for an ordinal (see load_enum_option).
     static constexpr uint16_t ENUM_UNNAMED = 0;
 
     // ---- writing ----
@@ -68,7 +69,9 @@ public:
     // then dropped, which is what a JSON profile gets for an option this build
     // no longer has; with a definition of another type it is placed as a JSON
     // profile's text would be (see read_config), so the key is never left at
-    // the collection default while a JSON profile would have mapped it.
+    // the collection default while a JSON profile would have mapped it. The one
+    // value with no such text is an enum value the writer could not name: an
+    // ordinal must not be spelled into a retyped string, so that key is dropped.
     const ConfigOptionDef* def_at(uint16_t idx) const { return m_defs[idx]; }
     const std::string&     key_at(uint16_t idx) const { return m_keys[idx]; }
     ConfigOptionType       type_at(uint16_t idx) const { return ConfigOptionType(m_types[idx]); }

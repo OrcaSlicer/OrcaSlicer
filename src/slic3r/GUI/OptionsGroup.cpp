@@ -82,6 +82,11 @@ const t_field& OptionsGroup::build_field(const t_config_option_key& id, const Co
 			case coPercent:
 			case coPercents:
 			case coString:
+                if (is_key_choice_option(opt))
+                    m_fields.emplace(id, Choice::Create<Choice>(this->ctrl_parent(), opt, id));
+                else
+                    m_fields.emplace(id, TextCtrl::Create<TextCtrl>(this->ctrl_parent(), opt, id));
+                break;
 			case coStrings:
                 m_fields.emplace(id, TextCtrl::Create<TextCtrl>(this->ctrl_parent(), opt, id));
                 break;

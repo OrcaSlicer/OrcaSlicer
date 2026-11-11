@@ -2564,6 +2564,11 @@ bool MainFrame::get_enable_slice_status()
         }
     }
 
+    // The plugin requirement applies to both Slice plate and Slice all, even when a caller passes
+    // can_slice=false (which update_slice_print_status otherwise ignores for Slice all).
+    if (enable && m_plater->plugins_block_slicing())
+        enable = false;
+
     // A mixed filament whose components were deleted, or whose components disagree in type,
     // cannot be resolved at slicing time. Block the slice until the user fixes it.
     if (enable && m_plater->sidebar().has_broken_mixed_filament())

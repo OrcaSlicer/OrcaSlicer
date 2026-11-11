@@ -36,7 +36,11 @@ namespace {
 // dtype is accepted, and integer arrays cannot hold NaN/inf.
 Polygon parse_polygon(py::handle h, const char* who)
 {
-    if (!py::isinstance<py::array>(h))
+    // py::array's isinstance check imports NumPy. Avoid that import for ordinary inputs and return
+    // the documented validation error when the optional dependency is absent.
+    if (!PyObject_CheckBuffer(h.ptr()) ||
+        PyDict_GetItemString(PyImport_GetModuleDict(), "numpy") == nullptr ||
+        !py::isinstance<py::array>(h))
         throw py::value_error(std::string(who) + ": each contour/hole must be an (N,2) int64 ndarray");
     py::array a = py::reinterpret_borrow<py::array>(h);
     if (a.dtype().kind() != 'i' || a.itemsize() != (py::ssize_t) sizeof(coord_t))

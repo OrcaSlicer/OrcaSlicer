@@ -191,7 +191,8 @@ public:
                                                   PluginCapabilityType type,
                                                   PluginDescriptor& out) const;
     // The "name;uuid;capability" reference for a loaded capability, as stored in a preset's
-    // "plugins" manifest; std::nullopt when no loaded package provides it.
+    // "plugins" manifest; std::nullopt when no loaded package provides it. For infill this also
+    // accepts one of the pattern IDs the owning capability advertises.
     std::optional<PluginCapabilityRef> resolve_capability_ref(const std::string& capability_name, PluginCapabilityType type) const;
     // Per-plugin storage directory under orca_plugins/plugin_data, created if missing. Throws
     // std::runtime_error if the plugin is unregistered, the key is invalid, or (cloud plugins)
@@ -208,6 +209,20 @@ public:
     std::shared_ptr<PluginCapabilityInterface> get_plugin_capability(const std::string& capability_name,
                                                                      PluginCapabilityType type = PluginCapabilityType::Unknown,
                                                                      bool only_enabled         = true) const;
+
+    // Record a runtime capability failure in the plugin's existing error store. The diagnostic is
+    // deliberately verbose (plugin, capability, exception) and persists until the plugin is
+    // reloaded or unloaded; there is no clear-on-success path. This may be called from a generation
+    // worker, so it never waits for discovery: unload after discovery waits for the caller's job
+    // lease. The optional refresh callback runs on the GUI thread, after the store is updated, and
+    // never with the registry lock held.
+    bool report_plugin_diagnostic(const std::string& plugin_key, std::string error);
+    // Narrow GUI refresh hook: called with the plugin key after report_plugin_diagnostic() stores a
+    // diagnostic. It is the only notification a runtime plugin failure emits.
+    void subscribe_on_runtime_error_callback(PluginLifecycleCompleteFn fn);
+    // Generic, user-facing message for a plugin infill failure. The actionable detail lives in the
+    // plugin's diagnostic store, not in this string.
+    static std::string plugin_infill_failure_message();
 
     // Reads the sidecar under install_state_mutex(), so the result is not interleaved with a
     // permission write. Returns false when the plugin is unknown or has no readable sidecar.
@@ -333,6 +348,17 @@ private:
     void cancel_and_wait_for_capabilities(
         const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities);
 
+    // Publish or retract one loaded plugin's infill patterns from its current enable state. Holds
+    // m_infill_publication_mutex across reading that state and touching the registry, so a pass
+    // that observed an older state cannot republish a pattern whose capability is now disabled or
+    // unloaded.
+    void sync_infill_patterns_for_plugin(const std::string& plugin_key);
+    // Caller holds m_infill_publication_mutex.
+    void sync_infill_patterns_for_plugin_locked(const std::string& plugin_key);
+    // Caller holds m_infill_publication_mutex.
+    void retract_infill_patterns_locked(
+        const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities);
+
     // Snapshot subscribers under m_mutex so they can be invoked without holding it.
     std::vector<PluginLifecycleCompleteFn> copy_callbacks(CallbackType type) const;
     std::vector<CapabilityLifecycleFn> copy_capability_callbacks(CallbackType type) const;
@@ -378,8 +404,16 @@ private:
     // Sidecar readers and writers serialize on Slic3r::install_state_mutex() (PluginFsUtils),
     // shared with the audit grant writers. Taken before m_mutex, never after it.
 
+    // Publication gate for plugin infill pattern IDs. Lock order: this mutex, then m_mutex, then the
+    // InfillFactory registry lock. Load/enable publishes under it, and unload detaches and retracts
+    // under it, so the last operation to run always reflects the live capability state.
+    std::mutex m_infill_publication_mutex;
+
     std::map<CallbackType, std::vector<PluginLifecycleCompleteFn>> m_callbacks;
     std::map<CallbackType, std::vector<CapabilityLifecycleFn>> m_capability_callbacks;
+    // Narrow runtime-error subscribers; see report_plugin_diagnostic(). Copied and invoked outside
+    // the registry lock, so a GUI refresh may safely query the manager.
+    std::vector<PluginLifecycleCompleteFn> m_runtime_error_callbacks;
 
     bool m_discovery_complete    = false;
     bool m_discovery_in_progress = false;

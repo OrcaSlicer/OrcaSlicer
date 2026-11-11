@@ -40,6 +40,8 @@
 #include <slic3r/plugin/PluginLoader.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <slic3r/plugin/pluginTypes/script/ScriptPluginCapability.hpp>
+#include <slic3r/plugin/pluginTypes/infill/InfillPluginCapability.hpp>
+#include <libslic3r/Fill/InfillFactory.hpp>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -255,6 +257,44 @@ std::string PluginManager::check_registry_locked(const std::string& plugin_key, 
         }
     }
 
+    // Infill pattern IDs are the values presets store, so they must be globally unique too. The
+    // loader has already checked IDs within one capability (and against built-ins); compare the
+    // candidate's IDs with every other loaded provider and with its own other capabilities.
+    std::unordered_set<std::string> candidate_patterns;
+    for (const auto& capability : candidate.capabilities) {
+        const auto* candidate_infill = dynamic_cast<const InfillPluginCapability*>(capability.get());
+        if (candidate_infill == nullptr)
+            continue;
+
+        for (const InfillPluginPattern& pattern : candidate_infill->resolved_patterns()) {
+            if (!candidate_patterns.insert(pattern.id).second)
+                return GUI::format(_u8L("Plugin declares duplicate infill pattern '%1%'"), pattern.id);
+
+            for (const Plugin& other : m_plugins) {
+                if (!other.is_loaded() || other.descriptor.plugin_key == plugin_key)
+                    continue;
+                for (const auto& existing : other.capabilities) {
+                    const auto* existing_infill = dynamic_cast<const InfillPluginCapability*>(existing.get());
+                    if (existing_infill == nullptr)
+                        continue;
+                    for (const InfillPluginPattern& existing_pattern : existing_infill->resolved_patterns()) {
+                        if (existing_pattern.id == pattern.id)
+                            // TRN %1% is the pattern ID, %2% the plugin that already provides it.
+                            return GUI::format(_u8L("Infill pattern '%1%' is already provided by plugin '%2%'"),
+                                               pattern.id, other.descriptor.plugin_key);
+                    }
+                }
+            }
+
+            // The registry also contains a pattern retired by an in-flight job. Reusing its ID
+            // must wait until that job releases the pin; otherwise the new provider would be
+            // unavailable while the old one still owns the identity.
+            if (InfillFactory::is_infill_registered(pattern.id))
+                // TRN %1% is the stable infill pattern ID.
+                return GUI::format(_u8L("Infill pattern '%1%' is already registered"), pattern.id);
+        }
+    }
+
     return {};
 }
 
@@ -373,6 +413,11 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
             // instances are left alone.
             if (!descriptor.install_state_valid)
                 descriptor.enabled = existing->descriptor.enabled;
+            // Keep a runtime diagnostic recorded while this scan ran: report_plugin_diagnostic()
+            // deliberately does not wait for discovery, and the scanned descriptor carries no
+            // runtime state of its own.
+            if (descriptor.error.empty())
+                descriptor.error = std::move(existing->descriptor.error);
             existing->descriptor = std::move(descriptor);
         }
 
@@ -574,19 +619,46 @@ bool PluginManager::try_get_plugin_descriptor_for_capability(const std::string& 
 std::optional<PluginCapabilityRef> PluginManager::resolve_capability_ref(const std::string& capability_name,
                                                                          PluginCapabilityType type) const
 {
+    // A plugin-backed option stores either a capability name (e.g. slicing_pipeline_plugin) or,
+    // for an infill pattern setting, the stable pattern ID the capability advertised. Pattern
+    // IDs are resolved first for infill so a pattern ID that happens to match another
+    // capability's name cannot redirect the manifest.
+    std::shared_ptr<PluginCapabilityInterface> capability;
+    bool resolved_by_pattern = false;
+    if (type == PluginCapabilityType::Infill) {
+        for (const auto& candidate : get_plugin_capabilities(/*plugin_key=*/"", PluginCapabilityType::Infill,
+                                                             /*only_enabled=*/false)) {
+            auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(candidate);
+            if (!infill)
+                continue;
+            if (infill->find_resolved_pattern(capability_name) != nullptr) {
+                capability          = std::move(candidate);
+                resolved_by_pattern = true;
+                break;
+            }
+        }
+    }
     // only_enabled = false: a stored reference must stay resolvable whether or not the user
     // currently has the capability enabled; the dispatchers report "disabled" separately.
-    if (!get_plugin_capability(capability_name, type, /*only_enabled=*/false))
+    if (!capability)
+        capability = get_plugin_capability(capability_name, type, /*only_enabled=*/false);
+    if (!capability)
         return std::nullopt;
 
     PluginDescriptor descriptor;
-    if (!try_get_plugin_descriptor_for_capability(capability_name, type, descriptor))
+    if (resolved_by_pattern) {
+        // A pattern ID is not a capability name, so the owning package is identified by the
+        // capability's audit key rather than by the value stored in the preset.
+        if (!try_get_plugin_descriptor(capability->audit_plugin_key(), descriptor))
+            return std::nullopt;
+    } else if (!try_get_plugin_descriptor_for_capability(capability_name, type, descriptor)) {
         return std::nullopt;
+    }
 
     // Cloud plugins are resolved at runtime via the UUID, so the name field keeps the friendly
     // display name. Local plugins are looked up by plugin_key with an empty UUID.
     const std::string identity = descriptor.is_cloud_plugin() ? descriptor.name : descriptor.plugin_key;
-    return PluginCapabilityRef{identity, capability_name, descriptor.cloud_uuid()};
+    return PluginCapabilityRef{identity, capability->name(), descriptor.cloud_uuid()};
 }
 
 std::string PluginManager::get_storage_dir(const std::string& plugin_key) const
@@ -807,12 +879,22 @@ void PluginManager::release_load_slot(const std::string& plugin_key)
 void PluginManager::cancel_and_wait_for_capabilities(
     const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities)
 {
+    const auto has_infill_job_lease = [](const std::shared_ptr<PluginCapabilityInterface>& capability) {
+        if (!capability || capability->type() != PluginCapabilityType::Infill)
+            return false;
+        const auto* infill = dynamic_cast<const InfillPluginCapability*>(capability.get());
+        return infill != nullptr &&
+               InfillFactory::has_pinned_infills(infill->audit_plugin_key(), infill->name());
+    };
+
     // Ask the plugin to cancel first, then schedule the async cancellation: on_cancelled() can
     // observe/record state while the run is still intact, and only afterwards is its asyncio task
     // cancelled. Draining of capability references still follows, so the module is not unloaded
-    // until the run has settled.
+    // until the run has settled. An infill capability with a live job lease is the exception: that
+    // slice is deliberately allowed to finish, so asking the provider to cancel it would defeat the
+    // whole point. Its work is drained by the lease instead.
     for (const auto& capability : capabilities) {
-        if (!capability || !capability->is_enabled())
+        if (!capability || !capability->is_enabled() || has_infill_job_lease(capability))
             continue;
 
         try {
@@ -835,23 +917,33 @@ void PluginManager::cancel_and_wait_for_capabilities(
     // plugin can no longer couple to this one (each invocation owns a thread). A Script worker is
     // drained without a deadline — forcing module unload while one is outstanding would leave Python
     // executing against a freed module, or let a blocking preset selection mutate presets after the
-    // plugin is gone. Non-Script synchronous calls keep the historical bounded grace. On the GUI
-    // thread the event loop is pumped so a modal selection can settle instead of being starved by a
-    // blocking wait.
+    // plugin is gone. An infill job lease (and a live infill call, pinned or not) is drained the same
+    // way: forcing the unload would leave that worker calling into a provider whose module was torn
+    // down. Other synchronous calls keep the historical bounded grace. On the GUI thread the event
+    // loop is pumped so a modal selection can settle instead of being starved by a blocking wait.
     const auto grace_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    if (std::any_of(capabilities.begin(), capabilities.end(), has_infill_job_lease))
+        BOOST_LOG_TRIVIAL(info) << "Unload is waiting for an active infill slice to release its provider lease";
     for (;;) {
         const bool all_released = std::all_of(capabilities.begin(), capabilities.end(), [](const auto& capability) {
             return !capability || capability->ref_count() == 0;
         });
         // A cancellation that arrived before the invocation ran skips the ref counter, so an active
         // worker must also be gone: never unload the module while any Script thread is still live.
+        // An infill capability call is Python execution too (generate/no_sort/aligned_to_origin
+        // increment its ref counter), so a live one also blocks the bounded grace path: force
+        // unloading it would leave that caller running against a torn-down module.
         const bool invocation_active = std::any_of(capabilities.begin(), capabilities.end(), [](const auto& capability) {
-            return capability != nullptr && ScriptAsyncRuntime::instance().has_active_run(capability.get());
+            if (capability == nullptr)
+                return false;
+            return ScriptAsyncRuntime::instance().has_active_run(capability.get()) ||
+                   (capability->type() == PluginCapabilityType::Infill && capability->ref_count() > 0);
         });
-        if (all_released && !invocation_active)
+        const bool job_lease_active = std::any_of(capabilities.begin(), capabilities.end(), has_infill_job_lease);
+        if (all_released && !invocation_active && !job_lease_active)
             return;
 
-        if (!invocation_active && std::chrono::steady_clock::now() >= grace_deadline)
+        if (!invocation_active && !job_lease_active && std::chrono::steady_clock::now() >= grace_deadline)
             break;
 
         if (wxTheApp != nullptr && wxIsMainThread())
@@ -868,6 +960,46 @@ void PluginManager::cancel_and_wait_for_capabilities(
             BOOST_LOG_TRIVIAL(warning) << "Forcing unload of plugin capability with " << refs
                                        << " active call(s): " << capability->audit_plugin_key() << "/" << capability->name();
         }
+    }
+}
+
+void PluginManager::sync_infill_patterns_for_plugin(const std::string& plugin_key)
+{
+    // Registration reads the live enable state AND publishes under the same gate unload uses to
+    // detach a package. A pass that raced a disable/unload therefore either publishes first (and is
+    // retracted by that disable/unload) or observes the new state and publishes nothing.
+    std::lock_guard<std::mutex> publication_lock(m_infill_publication_mutex);
+    sync_infill_patterns_for_plugin_locked(plugin_key);
+}
+
+void PluginManager::sync_infill_patterns_for_plugin_locked(const std::string& plugin_key)
+{
+    const auto capabilities = get_plugin_capabilities(plugin_key, PluginCapabilityType::Infill,
+                                                      /*only_enabled=*/false);
+    for (const auto& capability : capabilities) {
+        auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
+        if (!infill)
+            continue;
+
+        if (!infill->is_enabled()) {
+            unregister_infill_patterns(plugin_key, infill->name());
+            continue;
+        }
+
+        std::string error;
+        if (!register_infill_patterns(infill, error))
+            BOOST_LOG_TRIVIAL(error) << "Could not register infill patterns for capability '"
+                                     << plugin_key << "/" << infill->name() << "': " << error;
+    }
+}
+
+void PluginManager::retract_infill_patterns_locked(
+    const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities)
+{
+    for (const auto& capability : capabilities) {
+        auto infill = std::dynamic_pointer_cast<InfillPluginCapability>(capability);
+        if (infill)
+            unregister_infill_patterns(infill->audit_plugin_key(), infill->name());
     }
 }
 
@@ -1043,6 +1175,10 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
     bool cancelled = false;
     std::string registry_error;
     {
+        // The pattern-ID reservation check and the commit must be one step with respect to
+        // publication: otherwise a concurrent enable could publish an ID between the check and the
+        // commit and leave this package loaded with unregistered patterns.
+        std::lock_guard<std::mutex> publication_lock(m_infill_publication_mutex);
         std::lock_guard<std::mutex> lock(m_mutex);
 
         cancelled = is_plugin_load_cancelled_locked(plugin_key);
@@ -1080,6 +1216,10 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
         m_load_errors.erase(plugin_key);
     }
 
+    // Publish this package's enabled infill patterns before the load callbacks run, so a slicing
+    // job started from a load notification already sees them.
+    sync_infill_patterns_for_plugin(plugin_key);
+
     BOOST_LOG_TRIVIAL(info) << "[load_plugin_impl] SUCCESS plugin=" << plugin_key;
 }
 
@@ -1095,22 +1235,34 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
     bool found     = false;
 
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        // Detach and retract under the publication gate: a concurrent load/enable sync either
+        // publishes before this (and is retracted here) or runs after it and observes no loaded
+        // capability, so its pattern IDs can never be republished.
+        std::lock_guard<std::mutex> publication_lock(m_infill_publication_mutex);
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
 
-        // Cancel any in-progress load for this plugin so its worker discards the result.
-        cancelled = cancel_plugin_load_locked(plugin_key);
+            // Cancel any in-progress load for this plugin so its worker discards the result.
+            cancelled = cancel_plugin_load_locked(plugin_key);
 
-        Plugin* plugin = find_plugin_locked(plugin_key);
-        if (plugin != nullptr && plugin->is_loaded()) {
-            found = true;
+            Plugin* plugin = find_plugin_locked(plugin_key);
+            if (plugin != nullptr && plugin->is_loaded()) {
+                found = true;
 
-            // Take the live parts out of the entry via Plugin's own move assignment; the
-            // descriptor stays behind, so the package remains discovered. Everything
-            // capability-shaped is discarded with the capabilities — the user's enable choices
-            // live on in the .install_state.json sidecar.
-            PluginDescriptor kept_descriptor = std::move(plugin->descriptor);
-            removed                          = std::move(*plugin);
-            plugin->descriptor               = std::move(kept_descriptor);
+                // Take the live parts out of the entry via Plugin's own move assignment; the
+                // descriptor stays behind, so the package remains discovered. Everything
+                // capability-shaped is discarded with the capabilities — the user's enable choices
+                // live on in the .install_state.json sidecar.
+                PluginDescriptor kept_descriptor = std::move(plugin->descriptor);
+                removed                          = std::move(*plugin);
+                plugin->descriptor               = std::move(kept_descriptor);
+            }
+        }
+
+        if (found) {
+            // Retire this package's pattern IDs before teardown. A pinned entry keeps its provider
+            // lease, so the slicing job that won the pin can still create Fills.
+            retract_infill_patterns_locked(removed.capabilities);
         }
     }
 
@@ -1141,20 +1293,27 @@ void PluginManager::unload_all_plugins()
     std::vector<std::string> removed_keys;
     std::vector<std::shared_ptr<PluginCapabilityInterface>> capabilities;
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        for (Plugin& plugin : m_plugins) {
-            if (!plugin.is_loaded())
-                continue;
+        std::lock_guard<std::mutex> publication_lock(m_infill_publication_mutex);
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            for (Plugin& plugin : m_plugins) {
+                if (!plugin.is_loaded())
+                    continue;
 
-            // Take the live parts out via Plugin's own move; the descriptor stays behind, as in
-            // unload_plugin() above.
-            PluginDescriptor kept_descriptor = std::move(plugin.descriptor);
-            Plugin           taken           = std::move(plugin);
-            plugin.descriptor                = std::move(kept_descriptor);
-            removed.push_back(std::move(taken));
-            removed_keys.push_back(plugin.descriptor.plugin_key);
-            capabilities.insert(capabilities.end(), removed.back().capabilities.begin(), removed.back().capabilities.end());
+                // Take the live parts out via Plugin's own move; the descriptor stays behind, as in
+                // unload_plugin() above.
+                PluginDescriptor kept_descriptor = std::move(plugin.descriptor);
+                Plugin           taken           = std::move(plugin);
+                plugin.descriptor                = std::move(kept_descriptor);
+                removed.push_back(std::move(taken));
+                removed_keys.push_back(plugin.descriptor.plugin_key);
+                capabilities.insert(capabilities.end(), removed.back().capabilities.begin(), removed.back().capabilities.end());
+            }
         }
+
+        // Same publication gate as unload_plugin(): retract before any sync can observe the
+        // packages as still loaded.
+        retract_infill_patterns_locked(capabilities);
     }
 
     // Bulk shutdown intentionally skips the normal unload notification path, but resources owned
@@ -1194,23 +1353,31 @@ void PluginManager::set_capability_enabled(const PluginCapabilityId& id, bool en
     bool did_change = false;
 
     {
-        std::lock_guard<std::mutex> lock(m_mutex);
+        // Keep the enable-state mutation and corresponding registry update atomic relative to
+        // package rekey/unload. Rekey takes publication -> manager locks in that order as well.
+        std::lock_guard<std::mutex> publication_lock(m_infill_publication_mutex);
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
 
-        Plugin* plugin = find_plugin_locked(id.plugin_key);
-        if (plugin == nullptr || !plugin->is_loaded())
-            return;
+            Plugin* plugin = find_plugin_locked(id.plugin_key);
+            if (plugin == nullptr || !plugin->is_loaded())
+                return;
 
-        for (const auto& capability : plugin->capabilities) {
-            if (!capability || capability->name() != id.name ||
-                (id.type != PluginCapabilityType::Unknown && capability->type() != id.type) ||
-                capability->is_enabled() == enabled)
-                continue;
+            for (const auto& capability : plugin->capabilities) {
+                if (!capability || capability->name() != id.name ||
+                    (id.type != PluginCapabilityType::Unknown && capability->type() != id.type) ||
+                    capability->is_enabled() == enabled)
+                    continue;
 
-            capability->set_enabled(enabled);
-            changed    = capability->identity();
-            did_change = true;
-            break;
+                capability->set_enabled(enabled);
+                changed    = capability->identity();
+                did_change = true;
+                break;
+            }
         }
+
+        if (did_change && changed.type == PluginCapabilityType::Infill)
+            sync_infill_patterns_for_plugin_locked(changed.plugin_key);
     }
 
     if (!did_change)
@@ -1395,6 +1562,7 @@ void PluginManager::clear_callbacks()
     std::lock_guard<std::mutex> lock(m_mutex);
     m_callbacks.clear();
     m_capability_callbacks.clear();
+    m_runtime_error_callbacks.clear();
 }
 
 std::vector<PluginManager::PluginLifecycleCompleteFn> PluginManager::copy_callbacks(CallbackType type) const
@@ -1533,6 +1701,68 @@ bool PluginManager::clear_plugin_error(const std::string& plugin_key)
 
     plugin->descriptor.clear_error();
     return true;
+}
+
+bool PluginManager::report_plugin_diagnostic(const std::string& plugin_key, std::string error)
+{
+    BOOST_LOG_TRIVIAL(error) << "Plugin runtime diagnostic [" << plugin_key << "]: " << error;
+
+    // A generation worker can report here while it still holds an infill lease. Never wait for
+    // discovery: an unload that follows discovery waits for exactly that lease, so a worker blocked
+    // on discovery could never release it and the unload could never finish. Recording the
+    // diagnostic therefore only takes the registry lock, which discovery never holds while it runs.
+    // A scan that is already in progress preserves this error when it merges its descriptor.
+    bool stored = false;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        Plugin* plugin = find_plugin_locked(plugin_key);
+        if (plugin != nullptr) {
+            plugin->descriptor.set_error(std::move(error));
+            stored = true;
+        }
+    }
+    if (!stored)
+        return false;
+
+    // Copy the callbacks under the lock and invoke them without it: a GUI refresh may query the
+    // manager, and the registry lock must never be held across that re-entry. A subscriber runs on
+    // the GUI thread like every other lifecycle notification; a throw from one must not replace the
+    // SlicingError the caller is about to raise or escape the generation worker.
+    std::vector<PluginLifecycleCompleteFn> callbacks;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        callbacks = m_runtime_error_callbacks;
+    }
+    auto notify = [callbacks = std::move(callbacks), plugin_key] {
+        for (const PluginLifecycleCompleteFn& callback : callbacks) {
+            if (!callback)
+                continue;
+            try {
+                callback(plugin_key);
+            } catch (const std::exception& ex) {
+                BOOST_LOG_TRIVIAL(error) << "Plugin runtime-error callback failed for " << plugin_key << ": " << ex.what();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "Plugin runtime-error callback failed for " << plugin_key;
+            }
+        }
+    };
+    if (wxTheApp == nullptr || wxIsMainThread())
+        notify();
+    else
+        GUI::wxGetApp().CallAfter(std::move(notify));
+    return true;
+}
+
+void PluginManager::subscribe_on_runtime_error_callback(PluginLifecycleCompleteFn fn)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_runtime_error_callbacks.emplace_back(std::move(fn));
+}
+
+std::string PluginManager::plugin_infill_failure_message()
+{
+    // Deliberately generic: the plugin, capability and exception belong in the diagnostic store.
+    return _u8L("Plugin infill failed. Check the plugin's diagnostic details.");
 }
 
 // ── Install / inspect ───────────────────────────────────────────────────────────────────────
@@ -2086,10 +2316,14 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
     // Re-key the entry in place, carrying the live module/capabilities (if any) with it. The
     // capabilities' audit key must follow, since it is what identifies their owning package.
     std::vector<PluginCapabilityId> rekeyed;
+    std::vector<std::shared_ptr<InfillPluginCapability>> rekeyed_infill;
     {
         // Sidecar read-modify-write first, then the registry lock: that is the lock order every
         // install-state writer uses (install_state_mutex -> m_mutex).
         std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        // Serialize the manager identity change with plugin pattern publication. Existing registry
+        // selections remain pinned across the rekey and future lookups must see the new owner.
+        std::lock_guard<std::mutex> publication_lock(m_infill_publication_mutex);
         std::lock_guard<std::mutex> lock(m_mutex);
 
         Plugin* entry = find_plugin_locked(old_key);
@@ -2138,14 +2372,20 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
         entry->descriptor.clear_error();
 
         for (const auto& capability : entry->capabilities) {
-            if (capability)
-                capability->set_audit_plugin_key(new_key);
-        }
-
-        for (const auto& capability : entry->capabilities) {
-            if (capability && capability->is_enabled())
+            if (!capability)
+                continue;
+            capability->set_audit_plugin_key(new_key);
+            if (capability->type() == PluginCapabilityType::Infill)
+                rekeyed_infill.push_back(std::dynamic_pointer_cast<InfillPluginCapability>(capability));
+            if (capability->is_enabled())
                 rekeyed.push_back(PluginCapabilityId{capability->type(), capability->name(), new_key});
         }
+
+        // Transfer each published ID in place. Unregister-then-register would fail when an active
+        // slice pins the old owner, leaving the still-loaded capability without a published pattern.
+        for (const auto& capability : rekeyed_infill)
+            if (capability)
+                InfillFactory::rekey_plugin_infills(old_key, new_key, capability->name());
     }
 
     // Subscribers key their own state by plugin_key. Publish the identity transition after the
