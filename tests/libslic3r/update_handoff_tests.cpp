@@ -1,11 +1,17 @@
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <boost/filesystem.hpp>
+#include <cstdint>
+#include <cstddef>
 #include <fstream>
+#include <ios>
 #include <iterator>
 #include <string>
 #include <vector>
 
+#include "catch2/catch_test_macros.hpp"
 #include "libslic3r/UpdateHandoff.hpp"
 #include "libslic3r/Utils.hpp"
 #include "test_utils.hpp"

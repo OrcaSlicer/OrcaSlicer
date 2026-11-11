@@ -12,6 +12,7 @@
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
 
+#include <libslic3r/UpdateChannel.hpp>
 #include <wx/event.h>
 #include <wx/gdicmn.h>
 #include <wx/panel.h>

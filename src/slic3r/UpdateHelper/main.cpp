@@ -1,10 +1,14 @@
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <ios>
 #include <iterator>
 #include <string>
 
+#include <system_error>
 #include <wx/app.h>
+#include <wx/chartype.h>
+#include <wx/event.h>
 #include <wx/msgdlg.h>
 #include <wx/string.h>
 

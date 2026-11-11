@@ -11,7 +11,9 @@
 #include <string>
 #include <thread>
 
+#include <wx/event.h>
 #include <wx/frame.h>
+#include <wx/string.h>
 
 #include "libslic3r/UpdateHandoff.hpp"
 #include "slic3r/UpdateHelper/InstallApply.hpp"

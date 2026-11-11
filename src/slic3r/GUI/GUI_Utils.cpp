@@ -10,10 +10,14 @@
 #include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include "libslic3r/Utils.hpp"
 #include <boost/log/trivial.hpp>
+#include <linux/limits.h>
+#include <stdlib.h>
+#include <libslic3r/UpdateChannel.hpp>
 #include <string>
 #include <functional>
 #include <wx/event.h>

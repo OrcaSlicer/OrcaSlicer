@@ -1,7 +1,10 @@
 #include "slic3r/UpdateHelper/InstallApply.hpp"
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <cerrno>
 #include <cstring>
+#include <libslic3r/UpdateHandoff.hpp>
 #include <string>
 #include <system_error>
 

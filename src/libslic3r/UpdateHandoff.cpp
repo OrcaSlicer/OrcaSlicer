@@ -1,10 +1,15 @@
 #include "UpdateHandoff.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <fstream>
+#include <ios>
 #include <iterator>
 #include <string>
 #include <vector>

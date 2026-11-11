@@ -1,4 +1,7 @@
 #include "slic3r/UpdateHelper/InstallPlatform.hpp"
+#include <slic3r/UpdateHelper/InstallApply.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 
 #if defined(__linux__)
 

@@ -1,4 +1,6 @@
 #include "slic3r/UpdateHelper/InstallPlatform.hpp"
+#include <libslic3r/UpdateHandoff.hpp>
+#include <slic3r/UpdateHelper/InstallApply.hpp>
 
 #if defined(__APPLE__)
 

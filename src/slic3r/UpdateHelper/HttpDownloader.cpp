@@ -1,10 +1,14 @@
 #include "slic3r/UpdateHelper/HttpDownloader.hpp"
 
 #include <algorithm>
+#include <atomic>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <filesystem>
 #include <mutex>
+#include <stdio.h>
+#include <string>
 #include <system_error>
 
 #include <curl/curl.h>

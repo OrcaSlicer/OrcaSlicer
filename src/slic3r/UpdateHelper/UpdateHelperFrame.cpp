@@ -7,15 +7,26 @@
 #include <cstdint>
 #include <cstdio>
 #include <ctime>
+#include <exception>
 #include <filesystem>
 #include <fstream>
+#include <string>
+#include <signal.h>
+#include <mutex>
+#include <ios>
+#include <libslic3r/UpdateHandoff.hpp>
+#include <slic3r/UpdateHelper/InstallApply.hpp>
 #include <system_error>
 
 #include <openssl/evp.h>
 
+#include <utility>
+#include <thread>
 #include <wx/app.h>
 #include <wx/button.h>
+#include <wx/event.h>
 #include <wx/gauge.h>
+#include <wx/gdicmn.h>
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
