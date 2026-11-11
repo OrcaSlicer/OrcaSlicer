@@ -6339,9 +6339,11 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
 
     // The bounding box above still allows a corner a delta or hexagonal bed does not have, and the
     // prime tower is validated against the real outline — pull it onto the bed before storing.
-    // An empty shared area moves nothing, so the plate clamp above stands.
     {
         Polygons bed{part_plate->get_shared_printable_polygon()};
+        // Without an area every extruder reaches the tower cannot be printed, but it still stays on the plate.
+        if (bed.front().points.empty())
+            bed.front() = Polygon::new_scale(part_plate->get_shape());
         bed.front().translate(Point(-scaled(plate_origin.x()), -scaled(plate_origin.y()))); // into the frame x/y live in
         const BoundingBox tower(Point::new_scale(x, y),
                                 Point::new_scale(x + wipe_tower_size(0), y + wipe_tower_size(1)));
