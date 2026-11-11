@@ -78,7 +78,7 @@ GLGizmosManager::GLGizmosManager(GLCanvas3D& parent)
     , m_icons_texture_dirty(true)
     , m_current(Undefined)
     , m_hover(Undefined)
-    , m_tooltip("")
+    , m_tooltip_hover(Undefined)
     , m_serializing(false)
     //BBS: GUI refactor: add object manipulation in gizmo
     , m_object_manipulation(parent)
@@ -115,20 +115,7 @@ GLGizmosManager::EType GLGizmosManager::get_gizmo_from_mouse(const Vec2d &mouse_
 
     float icons_size = m_layout.scaled_icons_size();
     float border     = m_layout.scaled_border();
-
-    //BBS: GUI refactor: GLToolbar&&Gizmo adjust
-    //float space_width = GLGizmosManager::Default_Icons_Size * wxGetApp().toolbar_icon_scale();;
-    float top_x;
-    if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView) {
-        const float cnv_w = (float)m_parent.get_canvas_size().get_width();
-
-        top_x = 0.5f * cnv_w + 0.5f * (m_parent.get_assembly_paint_toolbar_width());
-    } else {
-        const float separator_width = m_parent.get_separator_toolbar_width();
-
-        top_x = m_parent.get_main_toolbar_offset();
-        top_x += m_parent.get_main_toolbar_width() + separator_width / 2 + border;
-    }
+    float top_x      = get_icons_left();
     float top_y = 0;
     float stride_x = m_layout.scaled_stride_x();
 
@@ -147,6 +134,17 @@ GLGizmosManager::EType GLGizmosManager::get_gizmo_from_mouse(const Vec2d &mouse_
         }
     }
     return Undefined;
+}
+
+float GLGizmosManager::get_icons_left() const
+{
+    //BBS: GUI refactor: GLToolbar&&Gizmo adjust
+    if (m_parent.get_canvas_type() == GLCanvas3D::CanvasAssembleView) {
+        const float cnv_w = (float)m_parent.get_canvas_size().get_width();
+        return 0.5f * cnv_w + 0.5f * (m_parent.get_assembly_paint_toolbar_width());
+    }
+    return m_parent.get_main_toolbar_offset() + m_parent.get_main_toolbar_width() + m_parent.get_separator_toolbar_width() / 2 +
+           m_layout.scaled_border();
 }
 
 void GLGizmosManager::switch_gizmos_icon_filename()
@@ -705,6 +703,114 @@ void GLGizmosManager::render_overlay_input_window()
         return;
 
     do_render_overlay(false);
+    render_toolbar_tooltip();
+}
+
+namespace {
+
+// What a toolbar tool's tooltip says under its name, and the pictures under that, named by file within
+// resources/images/gizmo_toolbar. scripts/gen_gizmo_tips.py (scripts/gizmo_tips/toolbar.py) draws them.
+struct ToolbarTip
+{
+    std::string                            text;
+    std::vector<IllustratedTooltip::Media> media;
+};
+
+ToolbarTip toolbar_tip(GLGizmosManager::EType type)
+{
+    using T = GLGizmosManager::EType;
+    switch (type) {
+    case T::Move:
+        return {_u8L("Moves the selected objects or parts. Drag an arrow to move along one axis, or type the position."),
+                {{"move.gif", {}}}};
+    case T::Rotate:
+        return {_u8L("Turns the selected objects or parts. Drag a ring to turn around one axis, or type the angles."),
+                {{"rotate.gif", {}}}};
+    case T::Scale:
+        return {_u8L("Resizes the selected objects or parts, evenly or along one axis, by a percentage or to a size in mm."),
+                {{"scale.gif", {}}}};
+    case T::Flatten:
+        return {_u8L("Click a face of the object to lay it flat on the plate, so that face prints first."),
+                {{"lay_on_face.gif", {}}}};
+    case T::Cut:
+        return {_u8L("Splits an object in two along a plane you place and tilt. Connectors such as plugs and dowels "
+                     "can be added to fit the halves back together."),
+                {{"cut.gif", {}}}};
+    case T::MeshBoolean:
+        return {_u8L("Combines two parts of an object into one shape: joins them, subtracts one from the other, or "
+                     "keeps only where they overlap."),
+                {{"boolean_union.png", _L("Union")},
+                 {"boolean_difference.png", _L("Difference")},
+                 {"boolean_intersection.png", _L("Intersection")}}};
+    case T::FdmSupports:
+        return {_u8L("Paint where supports must be generated, or where they must not be, regardless of the automatic "
+                     "support settings."),
+                {{"support_painting.gif", {}}}};
+    case T::Seam:
+        return {_u8L("Paint where the seam of each wall should go, or where it must not, to keep it off a visible face."),
+                {{"seam_painting.gif", {}}}};
+    case T::FuzzySkin:
+        return {_u8L("Paint the areas that get a fuzzy skin: a rough, textured outer wall printed only where it is painted."),
+                {{"fuzzy_skin_painting.gif", {}}}};
+    case T::MmSegmentation:
+        return {_u8L("Paint areas of the model in different filaments, with a brush, by filling connected faces, or by "
+                     "height."),
+                {{"color_painting.gif", {}}}};
+    case T::TextureDisplacement:
+        return {_u8L("Covers the surface in a pattern taken from an image, raised and lowered by its brightness, and "
+                     "turns it into real geometry."),
+                {{"texture_displacement.gif", {}}}};
+    case T::Emboss:
+        return {_u8L("Adds text that sits on the surface of the model, raised from it or cut into it."),
+                {{"text.gif", {}}}};
+    case T::Svg:
+        return {_u8L("Adds a shape from an SVG file onto the surface of the model, raised from it or cut into it."),
+                {{"svg.gif", {}}}};
+    case T::Measure:
+        return {_u8L("Measures distances and angles between points, edges, circles and faces of the model."),
+                {{"measure.gif", {}}}};
+    case T::Assembly:
+        return {_u8L("Brings two parts together: pick a face or a point on each, and the second part is moved to meet "
+                     "the first."),
+                {{"assembly.gif", {}}}};
+    case T::Simplify:
+        return {_u8L("Reduces the number of triangles in a mesh, which keeps its shape while making it lighter to slice "
+                     "and to work with."),
+                {{"simplify.gif", {}}}};
+    case T::BrimEars:
+        return {_u8L("Adds small round brim pads at chosen points of the first layer, such as sharp corners, to stop "
+                     "them lifting. They are printed when the brim type is set to Painted."),
+                {{"brim_ears.gif", {}}}};
+    default: return {};
+    }
+}
+
+} // namespace
+
+// The tooltip of the toolbar icon under the pointer: the tool's name and shortcut, what it is for, and
+// a picture of it at work. Drawn here rather than by GLCanvas3D's text tooltip, which follows the mouse
+// and so would cover the next icons along the toolbar while the user is reading along it.
+void GLGizmosManager::render_toolbar_tooltip()
+{
+    if (m_tooltip_hover == Undefined)
+        return;
+    const std::vector<size_t> selectable = get_selectable_idxs();
+    const auto                it         = std::find(selectable.begin(), selectable.end(), size_t(m_tooltip_hover));
+    if (it == selectable.end())
+        return;
+    const float icon_left = get_icons_left() + float(it - selectable.begin()) * m_layout.scaled_stride_x();
+    if (!m_toolbar_tip.ready(ImVec2(icon_left, 0.f), m_parent))
+        return;
+
+    const ToolbarTip  tip   = toolbar_tip(m_tooltip_hover);
+    const std::string title = m_gizmos[m_tooltip_hover]->get_name();
+    ImGuiWrapper     &imgui = *wxGetApp().imgui();
+    const float       width = IllustratedTooltip::width(title + "\n" + tip.text, !tip.media.empty(), imgui.scaled(20.f));
+    // Under the icon and centred on it, kept inside the canvas.
+    const float cnv_w = (float) m_parent.get_canvas_size().get_width();
+    const float x     = std::clamp(icon_left + 0.5f * (m_layout.scaled_icons_size() - width), 0.f, std::max(0.f, cnv_w - width));
+    const float y     = get_scaled_total_height() + imgui.scaled(0.3f);
+    m_toolbar_tip.render(ImVec2(x, y), width, title, tip.text, tip.media, m_parent);
 }
 
 size_t GLGizmosManager::get_overlay_state_hash() const
@@ -712,6 +818,7 @@ size_t GLGizmosManager::get_overlay_state_hash() const
     size_t hash = 0;
     boost::hash_combine(hash, m_enabled);
     boost::hash_combine(hash, (int)m_hover);
+    boost::hash_combine(hash, (int)m_tooltip_hover);
     boost::hash_combine(hash, (int)m_current);
     boost::hash_combine(hash, (int)m_highlight.first);
     boost::hash_combine(hash, m_highlight.second);
@@ -720,8 +827,9 @@ size_t GLGizmosManager::get_overlay_state_hash() const
 
 std::string GLGizmosManager::get_tooltip() const
 {
-    if (!m_tooltip.empty())
-        return m_tooltip;
+    // A toolbar icon under the pointer draws its own tooltip, see render_toolbar_tooltip().
+    if (m_tooltip_hover != Undefined)
+        return {};
 
     const GLGizmoBase* curr = get_current();
     return (curr != nullptr) ? curr->get_tooltip() : "";
@@ -1445,15 +1553,15 @@ bool GLGizmosManager::generate_icons_texture()
 void GLGizmosManager::update_hover_state(const EType &type)
 {
     assert(m_enabled);
-    if (type == Undefined) { 
+    m_tooltip_hover = type;
+    if (type == Undefined) {
         m_hover = Undefined;
-        m_tooltip.clear();
+        m_toolbar_tip.reset();
         return;
     }
 
     const GLGizmoBase &hovered_gizmo = *m_gizmos[type];
-    m_hover = hovered_gizmo.is_activable() ? type : Undefined;    
-    m_tooltip = hovered_gizmo.get_name();
+    m_hover = hovered_gizmo.is_activable() ? type : Undefined;
 }
 
 bool GLGizmosManager::activate_gizmo(EType type)

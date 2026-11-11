@@ -16,7 +16,6 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/format.hpp"
 
-#include <slic3r/GUI/AnimatedTexture.hpp>
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/CameraUtils.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -4059,29 +4058,6 @@ void GLGizmoTextureDisplacement::ensure_panel_icons()
         m_panel_icon_map[names[i]] = icons[i];
 }
 
-// Seconds on a real clock, for the tooltips' own timing.
-//
-// Not ImGui::GetTime(): ImGuiWrapper::new_frame() feeds io.DeltaTime the real frame time but caps it
-// at 1/60 s, so the idle gaps of the event-driven canvas don't count as time a +/- button is held.
-// That cap also means ImGui's clock stalls while the canvas is idle - a pointer resting still on a
-// control renders nothing, so the tooltip delay would never run out on ImGui's clock. A real clock
-// keeps the tooltip timing and media playback independent of how often the canvas renders.
-static double tip_now()
-{
-    using clock = std::chrono::steady_clock;
-    static const clock::time_point base = clock::now();
-    return std::chrono::duration<double>(clock::now() - base).count();
-}
-
-// How long the pointer has to rest on a control before its tooltip appears. The panel is dense and the
-// tooltip lands on the model beside it, so with no wait at all a sweep from the top of the panel down to
-// Bake flashes a dozen large panels over the scene. Once one has just been up the wait drops to almost
-// nothing, so reading several settings in a row stays quick - but not to nothing, or that same sweep
-// would flash again the moment one tooltip had been seen.
-static constexpr double TIP_DELAY       = 0.45;
-static constexpr double TIP_DELAY_AGAIN = 0.10;
-static constexpr double TIP_STICKY      = 0.70;
-
 void GLGizmoTextureDisplacement::panel_tooltip(const wxString &text, const std::vector<TipMedia> &media)
 {
     panel_tooltip(into_u8(text), media);
@@ -4089,158 +4065,18 @@ void GLGizmoTextureDisplacement::panel_tooltip(const wxString &text, const std::
 
 void GLGizmoTextureDisplacement::panel_tooltip(const std::string &text, const std::vector<TipMedia> &media)
 {
-    // Nothing explains a control while the control is being used: dragging a slider, typing a value
-    // into one, picking from a combo, dragging a layer card. The pointer sits on the very thing being
-    // edited, so without this the tooltip covers the model exactly while the user is watching it change.
-    // The full wait comes back afterwards rather than the short one - having just let go of a slider is
-    // not a reason to be shown a picture of it.
-    if (ImGui::IsAnyItemActive() || ImGui::IsAnyMouseDown()) {
-        m_tip_item       = ImVec2(-1.f, -1.f);
-        m_tip_last_shown = -1e9;
+    // The item's position stands in for its identity: moving to another control restarts the wait.
+    if (!m_tip.ready(ImGui::GetItemRectMin(), m_parent))
         return;
-    }
-
-    // The item's position stands in for its identity: moving to another control restarts the wait, and
-    // staying on this one carries it on.
-    const double now  = tip_now();
-    const ImVec2 item = ImGui::GetItemRectMin();
-    if (item.x != m_tip_item.x || item.y != m_tip_item.y) {
-        m_tip_item        = item;
-        m_tip_hover_since = now;
-    }
-    if (now - m_tip_hover_since < (now - m_tip_last_shown < TIP_STICKY ? TIP_DELAY_AGAIN : TIP_DELAY)) {
-        // A pointer resting on a control produces no events at all, so unless the wait asks for frames
-        // itself nothing redraws the canvas and the wait never finishes - the tooltip then appears only
-        // on the next pixel of mouse movement.
-        //
-        // request_extra_frame() and not schedule_extra_frame(): the latter only arranges a timer, whose
-        // event an idle event is assumed to follow, and GLCanvas3D::on_idle() renders nothing unless the
-        // canvas was already dirty when it ran. request_extra_frame() ends on_idle with
-        // evt.RequestMore(), which obliges wx to deliver the next one. It is what 3DBed's fade uses.
-        // Costing a few hundred milliseconds of frames is the cheaper half of that trade.
-        m_parent.request_extra_frame();
-        return;
-    }
-    m_tip_last_shown = now;
-
-    // ImGui hides a window on the first frame it is submitted, to measure it before showing it - and
-    // for a tooltip it does so every time one reappears, because the windows are recycled (see the
-    // Popup|Tooltip branch of Begin()). So the frame on which a tooltip is decided is never the frame
-    // on which it is seen, and one that then asks for nothing more stays invisible until the next pixel
-    // of mouse movement happens to produce another frame. Keep frames coming until it has settled.
-    const int shown_frame = ImGui::GetFrameCount();
-    m_tip_settled         = (shown_frame == m_tip_shown_frame + 1) ? m_tip_settled + 1 : 0;
-    m_tip_shown_frame     = shown_frame;
-    if (m_tip_settled < 2)
-        m_parent.request_extra_frame();
-
-    const ImGuiStyle &style = ImGui::GetStyle();
-    const float       gap   = m_imgui->scaled(0.5f);
-    const float       wrap  = m_imgui->scaled(20.f);
-    // The width has to be known here, not left to ImGui, because the tooltip is placed by its left edge
-    // (below) and an illustration has to be laid out against something. One carrying illustrations takes
-    // the full wrap width; a plain one takes exactly what its text needs, as it did when ImGui sized it,
-    // so a two-word tooltip is not a wide box with two words in it.
-    const float text_w = ImGui::CalcTextSize(text.c_str(), nullptr, false, wrap).x;
-    const float width  = (media.empty() ? std::min(wrap, std::ceil(text_w)) : wrap) + 2.f * style.WindowPadding.x;
 
     // Beside the anchor (the panel, or the texture picker when the tooltip comes from inside it), never
-    // over it - the same reasoning, and the same placement, as the picker popup itself. ImGui normally
-    // keeps a tooltip glued to the mouse; it honours a position set here instead (see the Orca branch in
-    // imgui's Begin()), and still clamps the result inside the canvas.
-    const bool  left = m_tooltip_anchor_min.x - gap - width >= 0.f;
-    const float x    = left ? m_tooltip_anchor_min.x - gap - width : m_tooltip_anchor_max.x + gap;
-    ImGui::SetNextWindowPos(ImVec2(x, ImGui::GetItemRectMin().y)); // level with the control it explains
-    ImGui::SetNextWindowSize(ImVec2(width, 0.f));                  // height still follows the content
-
-    ImGui::BeginTooltip();
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
-    ImGui::PushTextWrapPos(0.f); // the window's own edge, which is what the fixed width above sets
-    ImGui::TextUnformatted(text.c_str());
-    ImGui::PopTextWrapPos();
-    ImGui::PopStyleColor();
-    render_tip_media(media, width - 2.f * style.WindowPadding.x);
-    ImGui::EndTooltip();
-}
-
-void GLGizmoTextureDisplacement::render_tip_media(const std::vector<TipMedia> &media, float width)
-{
-    // Collect what is actually there first: the layout divides the width between the illustrations, so
-    // one that is missing has to drop out of the count rather than leave a gap.
-    std::vector<std::pair<const AnimatedTexture *, const TipMedia *>> shown;
-    std::string                                                       key;
-    for (const TipMedia &m : media) {
-        const AnimatedTexture *texture =
-            m_tip_media.get((boost::filesystem::path(resources_dir()) / "images" / "texture_displacement" / m.file).string());
-        if (texture != nullptr && texture->is_valid() && texture->width() > 0 && texture->height() > 0) {
-            shown.emplace_back(texture, &m);
-            key += m.file + "|";
-        }
-    }
-    if (shown.empty())
-        return;
-
-    // Each animation plays from its first frame when its tooltip opens: these are short loops showing
-    // one setting going from one value to another, and joining one halfway through shows the user the
-    // end of a change they never saw the start of.
-    // Restart on a different tooltip, and on the same one opening again - which is what a gap in the
-    // frames it was drawn on means, since it is drawn on every frame for as long as it is on screen.
-    const int this_frame = ImGui::GetFrameCount();
-    if (key != m_tip_media_key || this_frame != m_tip_media_frame + 1) {
-        m_tip_media_key   = key;
-        m_tip_media_start = tip_now();
-    }
-    m_tip_media_frame = this_frame;
-    const double time = tip_now() - m_tip_media_start;
-
-    const ImGuiStyle &style   = ImGui::GetStyle();
-    const float       spacing = style.ItemSpacing.x;
-    const float       cell_w  = (width - spacing * float(shown.size() - 1)) / float(shown.size());
-    const ImU32       frame   = ImGui::GetColorU32(ImGuiCol_Text, 0.25f);
-
-    // A single illustration would otherwise be drawn at the tooltip's full width, and a square one at
-    // full width is a picture as tall as the text beside it is long. Capped and centred in its column.
-    const float max_h = m_imgui->scaled(10.f);
-
-    ImGui::Spacing();
-    for (size_t i = 0; i < shown.size(); ++i) {
-        const AnimatedTexture *texture = shown[i].first;
-        const TipMedia        &entry   = *shown[i].second;
-        const float            cell_x  = ImGui::GetCursorPosX();
-
-        float w = cell_w;
-        float h = std::round(cell_w * float(texture->height()) / float(texture->width()));
-        if (h > max_h) {
-            w = std::round(max_h * float(texture->width()) / float(texture->height()));
-            h = max_h;
-        }
-
-        ImGui::BeginGroup();
-        const unsigned int id = texture->texture_id(time);
-        ImGui::SetCursorPosX(cell_x + std::round(0.5f * (cell_w - w)));
-        ImGui::Image((ImTextureID) (intptr_t) id, ImVec2(w, h));
-        ImGui::GetWindowDrawList()->AddRect(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), frame, style.FrameRounding);
-        // The canvas only redraws on demand, so an animation has to ask for its own frames. It asks for
-        // them as fast as they come rather than pacing itself with a timer: which frame is drawn is
-        // decided by the clock above, so a redraw that arrives early simply draws the same frame again,
-        // and a guaranteed frame is worth more here than a frugal one that may never arrive.
-        if (texture->is_animated())
-            m_parent.request_extra_frame();
-
-        if (!entry.caption.empty()) {
-            // Centred under its own illustration, and never wider than its column.
-            const std::string caption = into_u8(entry.caption);
-            const float       text_w  = ImGui::CalcTextSize(caption.c_str()).x;
-            ImGui::SetCursorPosX(cell_x + std::max(0.f, (cell_w - text_w) * 0.5f));
-            ImGui::PushTextWrapPos(cell_x + cell_w);
-            ImGui::TextDisabled("%s", caption.c_str());
-            ImGui::PopTextWrapPos();
-        }
-        ImGui::EndGroup();
-
-        if (i + 1 < shown.size())
-            ImGui::SameLine(0.f, spacing);
-    }
+    // over it - the same reasoning, and the same placement, as the picker popup itself.
+    const float gap   = m_imgui->scaled(0.5f);
+    const float width = IllustratedTooltip::width(text, !media.empty(), m_imgui->scaled(20.f));
+    const bool  left  = m_tooltip_anchor_min.x - gap - width >= 0.f;
+    const float x     = left ? m_tooltip_anchor_min.x - gap - width : m_tooltip_anchor_max.x + gap;
+    // Level with the control it explains.
+    m_tip.render(ImVec2(x, ImGui::GetItemRectMin().y), width, {}, text, media, m_parent);
 }
 
 void GLGizmoTextureDisplacement::add_texture_layer()

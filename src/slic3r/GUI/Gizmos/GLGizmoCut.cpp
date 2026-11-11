@@ -571,6 +571,9 @@ bool GLGizmoCut3D::render_cut_mode_combo()
     int selection_idx = int(m_mode);
     const bool is_changed = m_imgui->combo(_u8L("Mode"), m_modes, selection_idx, 0, m_label_width, m_control_width);
     ImGuiWrapper::pop_combo_style();
+    panel_tooltip(_u8L("Planar cuts straight along the plane. Dovetail cuts a sliding joint into the cut, so the printed "
+                       "parts slide into each other and hold together. Cannot be changed while the cut has connectors."),
+                  {{"cut/mode_planar.png", _L("Planar")}, {"cut/mode_dovetail.png", _L("Dovetail")}});
 
     if (is_changed) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Change cut mode"), UndoRedo::SnapshotType::GizmoAction);
@@ -601,7 +604,8 @@ bool GLGizmoCut3D::render_double_input(const std::string& label, double& value_i
     return !is_approx(old_val, value);
 }
 
-bool GLGizmoCut3D::render_slider_two_input(const std::string& label, float& value_in, float& tolerance_in, float min_val/* = -0.1f*/, float max_tolerance/* = -0.1f*/)
+bool GLGizmoCut3D::render_slider_two_input(const std::string& label, float& value_in, float& tolerance_in, const std::string& tip,
+                                           const std::string& tolerance_tip, float min_val/* = -0.1f*/, float max_tolerance/* = -0.1f*/)
 {
     // -------- [ ] -------- [ ]
     // slider_with + item_in_gap + first_input_width + item_out_gap + slider_with + item_in_gap + second_input_width
@@ -639,10 +643,12 @@ bool GLGizmoCut3D::render_slider_two_input(const std::string& label, float& valu
     std::string format = value_in < 0.f ? " " : m_imperial_units ? "%.4f " + _u8L_CONTEXT("in", "inches") : "%.2f " + _u8L("mm");
 
     m_imgui->bbl_slider_float_style(("##" + label).c_str(), &value, min_size, mean_size, format.c_str());
+    panel_tooltip(tip);
 
     ImGui::SameLine(left_width);
     ImGui::PushItemWidth(first_input_width);
     ImGui::BBLDragFloat(("##input_" + label).c_str(), &value, 0.05f, min_size, mean_size, format.c_str());
+    panel_tooltip(tip);
 
     value_in = value * float(m_imperial_units ? GizmoObjectManipulation::in_to_mm : 1.0);
 
@@ -658,20 +664,21 @@ bool GLGizmoCut3D::render_slider_two_input(const std::string& label, float& valu
     float min_tolerance = tolerance_in < 0.f ? UndefMinVal : 0.f;
     const float max_tolerance_v = max_tolerance > 0.f ? std::min(max_tolerance, 0.5f * mean_size) : 0.5f * mean_size;
 
-    m_imgui->bbl_slider_float_style("##tolerance_" + label, &tolerance, min_tolerance, max_tolerance_v, format.c_str(), 1.f, true,
-                                    _L("Tolerance"));
+    m_imgui->bbl_slider_float_style("##tolerance_" + label, &tolerance, min_tolerance, max_tolerance_v, format.c_str(), 1.f, true);
+    panel_tooltip(tolerance_tip);
 
     left_width += (slider_with + item_in_gap);
     ImGui::SameLine(left_width);
     ImGui::PushItemWidth(second_input_width);
     ImGui::BBLDragFloat(("##tolerance_input_" + label).c_str(), &tolerance, 0.05f, min_tolerance, max_tolerance_v, format.c_str());
+    panel_tooltip(tolerance_tip);
 
     tolerance_in = tolerance * float(m_imperial_units ? GizmoObjectManipulation::in_to_mm : 1.0);
 
     return !is_approx(old_val, value) || !is_approx(old_tolerance, tolerance);
 }
 
-bool GLGizmoCut3D::render_slider_input(const std::string& label, float& value_in, float min_val /* = -0.1f*/, float max_val /* = 100.f*/)
+bool GLGizmoCut3D::render_slider_input(const std::string& label, float& value_in, const std::string& tip, float min_val /* = -0.1f*/, float max_val /* = 100.f*/)
 {
     // -------- [ ]
     // slider_with + input_width + slider_with + item_in_gap
@@ -710,10 +717,12 @@ bool GLGizmoCut3D::render_slider_input(const std::string& label, float& value_in
     std::string format = value_in < 0.f ? " " : m_imperial_units ? "%.4f  " + _u8L_CONTEXT("in", "inches") : "%.2f  " + _u8L("mm");
 
     m_imgui->bbl_slider_float_style(("##" + label).c_str(), &value, min_size, max_value, format.c_str());
+    panel_tooltip(tip);
 
     ImGui::SameLine(left_width);
     ImGui::PushItemWidth(input_width);
     ImGui::BBLDragFloat(("##input_" + label).c_str(), &value, 0.05f, min_size, max_value, format.c_str());
+    panel_tooltip(tip);
 
     value_in = value * float(m_imperial_units ? GizmoObjectManipulation::in_to_mm : 1.0);
 
@@ -749,7 +758,26 @@ bool GLGizmoCut3D::render_connect_type_radio_button(CutConnectorType type)
 {
     ImGui::SameLine(type == CutConnectorType::Plug ? m_label_width : 0);
     ImGui::PushItemWidth(m_control_width);
-    if (ImGui::RadioButton(m_connector_types[size_t(type)].c_str(), m_connector_type == type)) {
+    const bool clicked = ImGui::RadioButton(m_connector_types[size_t(type)].c_str(), m_connector_type == type);
+    switch (type) {
+    case CutConnectorType::Plug:
+        panel_tooltip(_u8L("A peg on one part that fits a hole in the other. It is printed as part of the piece, so "
+                           "there is nothing extra to print."),
+                      {{"cut/connector_plug.png", {}}});
+        break;
+    case CutConnectorType::Dowel:
+        panel_tooltip(_u8L("Holes in both parts and a separate pin that joins them. The pin is added as an object of its "
+                           "own, to print and glue in."),
+                      {{"cut/connector_dowel.png", {}}});
+        break;
+    case CutConnectorType::Snap:
+        panel_tooltip(_u8L("A split peg with a bulge that clicks into a plain hole in the other part, and holds "
+                           "without glue."),
+                      {{"cut/connector_snap.png", {}}});
+        break;
+    default: break;
+    }
+    if (clicked) {
         m_connector_type = type;
 //        update_connector_shape();
         return true;
@@ -765,7 +793,7 @@ void GLGizmoCut3D::render_connect_mode_radio_button(CutConnectorMode mode)
         m_connector_mode = mode;
 }
 
-bool GLGizmoCut3D::render_reset_button(const std::string& label_id, const std::string& tooltip) const
+bool GLGizmoCut3D::render_reset_button(const std::string& label_id, const std::string& tooltip)
 {
     const ImGuiStyle &style = ImGui::GetStyle();
 
@@ -780,8 +808,7 @@ bool GLGizmoCut3D::render_reset_button(const std::string& label_id, const std::s
 
     ImGui::PopStyleColor(3);
 
-    if (ImGui::IsItemHovered())
-        m_imgui->tooltip(tooltip.c_str(), ImGui::GetFontSize() * 20.0f);
+    panel_tooltip(tooltip);
 
     ImGui::PopStyleVar(2); // ORCA
 
@@ -2461,7 +2488,11 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
             m_connector_style = int(CutConnectorStyle::Prism);
             apply_selected_connectors([this, &connectors](size_t idx) { connectors[idx].attribs.style = CutConnectorStyle(m_connector_style); });
         }
-        if (render_combo(m_labels_map["Style"], m_connector_styles, m_connector_style, m_label_width, m_editing_window_width))
+        const bool style_changed = render_combo(m_labels_map["Style"], m_connector_styles, m_connector_style, m_label_width, m_editing_window_width);
+        panel_tooltip(_u8L("Prism keeps the same width all the way up. Frustum narrows towards the tip, so the plug "
+                           "finds its way into the hole more easily. Plugs only."),
+                      {{"cut/style_prism.png", _L("Prism")}, {"cut/style_frustum.png", _L("Frustum")}});
+        if (style_changed)
             apply_selected_connectors([this, &connectors](size_t idx) { connectors[idx].attribs.style = CutConnectorStyle(m_connector_style); });
     m_imgui->disabled_end();
 
@@ -2470,12 +2501,20 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
             m_connector_shape_id = int(CutConnectorShape::Circle);
             apply_selected_connectors([this, &connectors](size_t idx) { connectors[idx].attribs.shape = CutConnectorShape(m_connector_shape_id); });
         }
-        if (render_combo(m_labels_map["Shape"], m_connector_shapes, m_connector_shape_id, m_label_width, m_editing_window_width))
+        const bool shape_changed = render_combo(m_labels_map["Shape"], m_connector_shapes, m_connector_shape_id, m_label_width, m_editing_window_width);
+        panel_tooltip(_u8L("Cross-section of the connector. A round one can turn in its hole; any other shape keeps the "
+                           "parts from twisting against each other. Snaps are always round."));
+        if (shape_changed)
             apply_selected_connectors([this, &connectors](size_t idx) { connectors[idx].attribs.shape = CutConnectorShape(m_connector_shape_id); });
     m_imgui->disabled_end();
 
     const float depth_min_value = m_connector_type == CutConnectorType::Snap ? m_connector_size : -0.1f;
-    if (render_slider_two_input(m_labels_map["Depth"], m_connector_depth_ratio, m_connector_depth_ratio_tolerance, depth_min_value))
+    if (render_slider_two_input(m_labels_map["Depth"], m_connector_depth_ratio, m_connector_depth_ratio_tolerance,
+                                _u8L("How far the connector reaches into the part with the hole. A dowel goes this deep into "
+                                     "each part, so its pin is twice as long."),
+                                _u8L("Tolerance: makes each hole this much deeper than the connector, so the parts close "
+                                     "fully."),
+                                depth_min_value))
         apply_selected_connectors([this, &connectors](size_t idx) {
             if (m_connector_depth_ratio > 0)
                 connectors[idx].height           = m_connector_depth_ratio;
@@ -2483,7 +2522,10 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
                 connectors[idx].height_tolerance = m_connector_depth_ratio_tolerance;
         });
 
-    if (render_slider_two_input(m_labels_map["Size"], m_connector_size, m_connector_size_tolerance))
+    if (render_slider_two_input(m_labels_map["Size"], m_connector_size, m_connector_size_tolerance,
+                                _u8L("Diameter of the connector. A thicker one is stronger, but needs more wall around it."),
+                                _u8L("Tolerance: makes each hole this much wider than the connector, so it still fits "
+                                     "after printing. Raise it if the connectors are too tight.")))
         apply_selected_connectors([this, &connectors](size_t idx) {
             if (m_connector_size > 0)
                 connectors[idx].radius           = 0.5f * m_connector_size;
@@ -2491,14 +2533,22 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
                 connectors[idx].radius_tolerance = 0.5f * m_connector_size_tolerance;
         });
 
-    if (render_angle_input(m_labels_map["Rotation"], m_connector_angle, 0.f, 0.f, 180.f))
+    if (render_angle_input(m_labels_map["Rotation"], m_connector_angle, 0.f, 0.f, 180.f,
+                           _u8L("Turns the connector about its own axis, for example to line a square one up with the "
+                                "part's edges. Makes no difference to a round one.")))
         apply_selected_connectors([this, &connectors](size_t idx) {
             connectors[idx].z_angle = m_connector_angle;
         });
 
     if (m_connector_type == CutConnectorType::Snap) {
-        render_snap_specific_input(_u8L("Bulge"), _L("Bulge proportion related to radius"), m_snap_bulge_proportion, 0.15f, 5.f, 100.f * m_snap_space_proportion);
-        render_snap_specific_input(_u8L("Space"), _L("Space proportion related to radius"), m_snap_space_proportion, 0.3f, 10.f, 50.f);
+        render_snap_specific_input(_u8L("Bulge"),
+                                   _L("How far the bulge sticks out, as a share of the snap's radius. A bigger bulge holds "
+                                      "harder but takes more force to push in. It cannot exceed Space."),
+                                   m_snap_bulge_proportion, 0.15f, 5.f, 100.f * m_snap_space_proportion);
+        render_snap_specific_input(_u8L("Space"),
+                                   _L("Width of the slit that splits the snap in two, as a share of its radius. A wider slit "
+                                      "lets the halves flex more, so the snap goes in more easily and holds less firmly."),
+                                   m_snap_space_proportion, 0.3f, 10.f, 50.f);
     }
 
     ImGui::Separator();
@@ -2512,6 +2562,7 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
         unselect_all_connectors();
         set_connectors_editing(false);
     }
+    panel_tooltip(_u8L("Keep these connectors and go back to the cut settings."));
     GLGizmoUtils::pop_orca_button_style();
 
     ImGui::SameLine();
@@ -2519,6 +2570,7 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
         reset_connectors();
         set_connectors_editing(false);
     }
+    panel_tooltip(_u8L("Remove all the connectors and go back to the cut settings."));
 
     ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
 }
@@ -2636,6 +2688,9 @@ void GLGizmoCut3D::render_flip_plane_button(bool disable_pred /*=false*/)
     m_imgui->disabled_begin(disable_pred);
         if (m_imgui->button(_L("Flip cut plane")))
             flip_cut_plane();
+        panel_tooltip(_u8L("Turns the cut plane over, which swaps the parts' roles: the part that had the plugs or snaps "
+                           "gets the holes, and the other way round. The cut stays where it is. Available once there are connectors."),
+                      {{"cut/flip_plane_a.png", {}}, {"cut/flip_plane_b.png", {}}});
     m_imgui->disabled_end();
 
     if (m_hover_id == CutPlane)
@@ -2668,13 +2723,14 @@ void GLGizmoCut3D::render_color_marker(float size, const ImU32& color)
     ImGui::SameLine();
 }
 
-void GLGizmoCut3D::render_groove_two_float_input(const std::string& label, float& in_val, const float& init_val, float& in_tolerance)
+void GLGizmoCut3D::render_groove_two_float_input(const std::string& label, float& in_val, const float& init_val, float& in_tolerance,
+                                                 const std::string& tip, const std::string& tolerance_tip)
 {
     bool is_changed{false};
 
     float val = in_val;
     float tolerance = in_tolerance;
-    if (render_slider_two_input(label, val, tolerance, -0.1f, std::min(0.3f*in_val, 1.5f))) {
+    if (render_slider_two_input(label, val, tolerance, tip, tolerance_tip, -0.1f, std::min(0.3f*in_val, 1.5f))) {
         if (m_imgui->get_last_slider_status().can_take_snapshot) {
             Plater::TakeSnapshot snapshot(wxGetApp().plater(), GUI::format("%1%: %2%", _u8L("Groove change"), label), UndoRedo::SnapshotType::GizmoAction);
             m_imgui->get_last_slider_status().invalidate_snapshot();
@@ -2689,7 +2745,7 @@ void GLGizmoCut3D::render_groove_two_float_input(const std::string& label, float
 
     m_imgui->disabled_begin(is_approx(in_val, init_val) && is_approx(in_tolerance, 0.1f));
         const std::string act_name = _u8L("Reset");
-        if (render_reset_button("##groove_" + label + act_name, act_name)) {
+        if (render_reset_button("##groove_" + label + act_name, _u8L("Reset the value and its tolerance to the defaults."))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), GUI::format("%1%: %2%", act_name, label), UndoRedo::SnapshotType::GizmoAction);
             in_val = init_val;
             in_tolerance = 0.1f;
@@ -2708,7 +2764,7 @@ void GLGizmoCut3D::render_groove_two_float_input(const std::string& label, float
     }
 }
 
-void GLGizmoCut3D::render_groove_float_input(const std::string& label, float& in_val, const float& init_val, const bool disabled)
+void GLGizmoCut3D::render_groove_float_input(const std::string& label, float& in_val, const float& init_val, const bool disabled, const std::string& tip)
 {
     if (disabled)
         m_imgui->disabled_begin(true);
@@ -2718,7 +2774,7 @@ void GLGizmoCut3D::render_groove_float_input(const std::string& label, float& in
     float max_val    = std::max(plate_size.x(), plate_size.y()) / (std::max(m_groove_count - 1, 1));
 
     float val       = in_val;
-    if (render_slider_input(label, val, -0.1f, max_val)) {
+    if (render_slider_input(label, val, tip, -0.1f, max_val)) {
         if (m_imgui->get_last_slider_status().can_take_snapshot) {
             Plater::TakeSnapshot snapshot(wxGetApp().plater(), GUI::format("%1%: %2%", _u8L("Groove change"), label),
                                           UndoRedo::SnapshotType::GizmoAction);
@@ -2733,7 +2789,7 @@ void GLGizmoCut3D::render_groove_float_input(const std::string& label, float& in
 
     if (!disabled) m_imgui->disabled_begin(is_approx(in_val, init_val) );
     const std::string act_name = _u8L("Reset");
-    if (render_reset_button("##groove_" + label + act_name, act_name)) {
+    if (render_reset_button("##groove_" + label + act_name, _u8L("Reset to the default value."))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), GUI::format("%1%: %2%", act_name, label), UndoRedo::SnapshotType::GizmoAction);
         in_val       = init_val;
         is_changed   = true;
@@ -2754,7 +2810,7 @@ void GLGizmoCut3D::render_groove_float_input(const std::string& label, float& in
         m_imgui->disabled_end();
 }
 
-void GLGizmoCut3D::render_groove_int_input(const std::string& label, int& in_val, const int& init_val, int min_val, int max_val)
+void GLGizmoCut3D::render_groove_int_input(const std::string& label, int& in_val, const int& init_val, int min_val, int max_val, const std::string& tip)
 {
     bool is_changed{false};
 
@@ -2772,11 +2828,12 @@ void GLGizmoCut3D::render_groove_int_input(const std::string& label, int& in_val
         }
     }
     m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
+    panel_tooltip(tip); // InputInt() ends in a group, so this covers the field and its +/- buttons
     
     ImGui::SameLine();
     m_imgui->disabled_begin(in_val == init_val);
     const std::string act_name = _u8L("Reset");
-    if (render_reset_button("##int_" + label + act_name, act_name)) {
+    if (render_reset_button("##int_" + label + act_name, _u8L("Reset to the default value."))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), GUI::format("%1%: %2%", act_name, label), UndoRedo::SnapshotType::GizmoAction);
         in_val     = init_val;
         is_changed = true;
@@ -2789,7 +2846,8 @@ void GLGizmoCut3D::render_groove_int_input(const std::string& label, int& in_val
     }
 }
 
-bool GLGizmoCut3D::render_angle_input(const std::string& label, float& in_val, const float& init_val, float min_val, float max_val)
+bool GLGizmoCut3D::render_angle_input(const std::string& label, float& in_val, const float& init_val, float min_val, float max_val,
+                                      const std::string& tip, const std::vector<TipMedia>& media)
 {
     // -------- [ ]
     // slider_with + item_in_gap + input_width
@@ -2810,11 +2868,13 @@ bool GLGizmoCut3D::render_angle_input(const std::string& label, float& in_val, c
     const float old_val = val;
 
     const std::string format = "%.0f°";
-    m_imgui->bbl_slider_float_style("##angle_" + label, &val, min_val, max_val, format.c_str(), 1.f, true, from_u8(label));
+    m_imgui->bbl_slider_float_style("##angle_" + label, &val, min_val, max_val, format.c_str(), 1.f, true);
+    panel_tooltip(tip, media);
 
     ImGui::SameLine(left_width);
     ImGui::PushItemWidth(input_width);
     ImGui::BBLDragFloat(("##angle_input_" + label).c_str(), &val, 0.05f, min_val, max_val, format.c_str());
+    panel_tooltip(tip, media);
 
     m_is_slider_editing_done |= m_imgui->get_last_slider_status().deactivated_after_edit;
     if (!is_approx(old_val, val)) {
@@ -2833,7 +2893,7 @@ bool GLGizmoCut3D::render_angle_input(const std::string& label, float& in_val, c
 
     m_imgui->disabled_begin(is_approx(in_val, init_val));
     const std::string act_name = _u8L("Reset");
-    if (render_reset_button("##angle_" + label + act_name, act_name)) {
+    if (render_reset_button("##angle_" + label + act_name, _u8L("Reset to the default value."))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), GUI::format("%1%: %2%", act_name, label), UndoRedo::SnapshotType::GizmoAction);
         in_val = init_val;
         is_changed = true;
@@ -2843,9 +2903,10 @@ bool GLGizmoCut3D::render_angle_input(const std::string& label, float& in_val, c
     return is_changed;
 }
 
-void GLGizmoCut3D::render_groove_angle_input(const std::string& label, float& in_val, const float& init_val, float min_val, float max_val)
+void GLGizmoCut3D::render_groove_angle_input(const std::string& label, float& in_val, const float& init_val, float min_val, float max_val,
+                                             const std::string& tip, const std::vector<TipMedia>& media)
 {
-    if (render_angle_input(label, in_val, init_val, min_val, max_val)) {
+    if (render_angle_input(label, in_val, init_val, min_val, max_val, tip, media)) {
         update_plane_model();
         reset_cut_by_contours();
     }
@@ -2876,11 +2937,13 @@ void GLGizmoCut3D::render_snap_specific_input(const std::string& label, const wx
 
     float val = in_val * 100.f;
     const float old_val = val;
-    m_imgui->bbl_slider_float_style("##snap_" + label, &val, min_val, max_val, format.c_str(), 1.f, true, tooltip);
+    m_imgui->bbl_slider_float_style("##snap_" + label, &val, min_val, max_val, format.c_str(), 1.f, true);
+    panel_tooltip(tooltip);
 
     ImGui::SameLine(left_width);
     ImGui::PushItemWidth(input_width);
     ImGui::BBLDragFloat(("##snap_input_" + label).c_str(), &val, 0.05f, min_val, max_val, format.c_str());
+    panel_tooltip(tooltip);
 
     if (!is_approx(old_val, val)) {
         in_val = val * 0.01f;
@@ -2891,7 +2954,7 @@ void GLGizmoCut3D::render_snap_specific_input(const std::string& label, const wx
 
     m_imgui->disabled_begin(is_approx(in_val, init_val));
     const std::string act_name = _u8L("Reset");
-    if (render_reset_button("##snap_" + label + act_name, act_name)) {
+    if (render_reset_button("##snap_" + label + act_name, _u8L("Reset to the default value."))) {
         in_val = init_val;
         is_changed = true;
     }
@@ -2925,11 +2988,14 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
         m_imgui->text(_L("Cut position"));
         ImGui::SameLine(m_label_width);
         render_move_center_input(Z);
+        panel_tooltip(_u8L("Height of the cut plane's centre above the bed. You can also drag the plane's arrow in the "
+                           "3D view."));
         ImGui::SameLine();
 
         m_imgui->disabled_begin(is_cut_plane_init);
             std::string act_name = _u8L("Reset cutting plane");
-            if (render_reset_button("cut_plane", act_name)) {
+            if (render_reset_button("cut_plane", _u8L("Put the cut plane back where it started: level, through the middle "
+                                                      "of the object."))) {
                 Plater::TakeSnapshot snapshot(wxGetApp().plater(), act_name, UndoRedo::SnapshotType::GizmoAction);
                 reset_cut_plane();
             }
@@ -2941,21 +3007,43 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
             m_imgui->disabled_begin(!m_keep_upper || !m_keep_lower || m_keep_as_parts || (m_part_selection.valid() && m_part_selection.is_one_object()));
                 if (m_imgui->button(has_connectors ? _L("Edit connectors") : _L("Add connectors")))
                     set_connectors_editing(true);
+                panel_tooltip(_u8L("Place connectors on the cut face: pegs, pins or snaps that line the parts up and hold "
+                                   "them together when you join them after printing. Needs both parts kept and Cut to parts "
+                                   "off."),
+                              {{"cut/connector_plug.png", _L("Plug")}, {"cut/connector_dowel.png", _L("Dowel")},
+                               {"cut/connector_snap.png", _L("Snap")}});
             m_imgui->disabled_end();
         }
         else if (mode == CutMode::cutTongueAndGroove) {
             m_is_slider_editing_done = false;
             ImGui::Separator();
             m_imgui->text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, m_labels_map["Groove"] + ": ");
-            render_groove_two_float_input(m_labels_map["Depth"], m_groove.depth, m_groove.depth_init, m_groove.depth_tolerance);
-            render_groove_two_float_input(m_labels_map["Width"], m_groove.width, m_groove.width_init, m_groove.width_tolerance);
-            render_groove_angle_input(m_labels_map["Flap Angle"], m_groove.flaps_angle, m_groove.flaps_angle_init, 30.f, 120.f);
-            render_groove_angle_input(m_labels_map["Groove Angle"], m_groove.angle, m_groove.angle_init, 0.f, 15.f);
+            render_groove_two_float_input(m_labels_map["Depth"], m_groove.depth, m_groove.depth_init, m_groove.depth_tolerance,
+                                          _u8L("Height of the dovetail's key, the ridge of one part that slides into a slot "
+                                               "in the other. A taller key holds better but needs a thicker part around it."),
+                                          _u8L("Tolerance: makes the key this much shorter than its slot, so the parts "
+                                               "close fully."));
+            render_groove_two_float_input(m_labels_map["Width"], m_groove.width, m_groove.width_init, m_groove.width_tolerance,
+                                          _u8L("Width of the dovetail's key where it leaves its part. Flap Angle sets how "
+                                               "much wider or narrower it gets towards its tip."),
+                                          _u8L("Tolerance: makes the key this much narrower than its slot, so the parts "
+                                               "slide together after printing. Raise it if they are too tight."));
+            render_groove_angle_input(m_labels_map["Flap Angle"], m_groove.flaps_angle, m_groove.flaps_angle_init, 30.f, 120.f,
+                                      _u8L("Slope of the key's sides. Below 90° the key widens towards its tip and locks the "
+                                           "parts, so they only come apart by sliding along it. At 90° it is a straight "
+                                           "tongue, above 90° it narrows so the parts simply push together."),
+                                      {{"cut/groove_flap_angle.gif", {}}});
+            render_groove_angle_input(m_labels_map["Groove Angle"], m_groove.angle, m_groove.angle_init, 0.f, 15.f,
+                                      _u8L("Tapers the key along its length, so one end is wider than the other. The parts "
+                                           "then slide together only from one side and wedge tight at the end."),
+                                      {{"cut/groove_angle.gif", {}}});
 
             ImGui::Spacing();
             m_imgui->text_colored(ImGuiWrapper::COL_ORANGE_LIGHT, m_labels_map["Multiple"] + ": ");
-            render_groove_int_input(m_labels_map["Count"], m_groove_count, m_groove_count_init , 1, 100);
-            render_groove_float_input(m_labels_map["Gap"], m_groove_gap, m_groove_gap_init, m_groove_count == 1);
+            render_groove_int_input(m_labels_map["Count"], m_groove_count, m_groove_count_init , 1, 100,
+                                    _u8L("Number of dovetails cut side by side across the plane."));
+            render_groove_float_input(m_labels_map["Gap"], m_groove_gap, m_groove_gap_init, m_groove_count == 1,
+                                      _u8L("Distance between neighbouring dovetails. Used only when Count is more than one."));
 
             m_imgui->disabled_begin(true);
             const float groove_width = Cut::calculate_groove_width(m_groove, m_radius);
@@ -2993,8 +3081,12 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
 
             ImGui::SameLine(h_shift);
 
+            const std::string part = suffix == "##upper" ? "upper" : "lower";
+
             m_imgui->disabled_begin(!connectors.empty() || m_keep_as_parts);
             m_imgui->bbl_checkbox(_L("Keep") + suffix, connectors.empty() ? keep_part : keep);
+            panel_tooltip(_u8L("Keep this part after the cut. Clear it to throw the part away. Always on while the cut "
+                               "has connectors or Cut to parts is on."));
             m_imgui->disabled_end();
 
             ImGui::SameLine();
@@ -3002,9 +3094,16 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
             m_imgui->disabled_begin(!keep_part || m_keep_as_parts);
             if (m_imgui->bbl_checkbox(_L("Place on cut") + suffix, place_on_cut_part))
                 rotate_part = false;
+            panel_tooltip(_u8L("Lay this part on the bed on its cut face, which is flat and prints without supports. "
+                               "Takes the tilt of the cut plane into account."),
+                          {{"cut/" + part + "_as_is.png", m_part_orientation_names["none"]},
+                           {"cut/" + part + "_on_cut.png", m_part_orientation_names["on_cut"]}});
             ImGui::SameLine();
             if (m_imgui->bbl_checkbox(_L("Flip") + suffix, rotate_part))
                 place_on_cut_part = false;
+            panel_tooltip(_u8L("Turn this part upside down after the cut, ignoring the tilt of the cut plane."),
+                          {{"cut/" + part + "_as_is.png", m_part_orientation_names["none"]},
+                           {"cut/" + part + "_flip.png", m_part_orientation_names["flip"]}});
             m_imgui->disabled_end();
         };
 
@@ -3018,6 +3117,9 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
                 m_keep_as_parts = false;
 
             m_imgui->bbl_checkbox(_L("Cut to parts"), m_keep_as_parts);
+            panel_tooltip(_u8L("Keep the pieces as parts of one object instead of separate objects. They stay where they "
+                               "are, and each can be given its own filament or settings. Not available with connectors "
+                               "or in Dovetail mode."));
             if (m_keep_as_parts) {
                 m_keep_upper = m_keep_lower = true;
                 m_place_on_cut_upper = m_place_on_cut_lower = false;
@@ -3033,11 +3135,12 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
     if (mode == CutMode::cutPlanar) {
         ImGui::SameLine();
         m_imgui->disabled_begin(is_cut_plane_init && !has_connectors);
-        if (m_imgui->button(_L("Reset"), _L("Reset cutting plane and remove connectors"))) {
+        if (m_imgui->button(_L("Reset"))) {
             Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Reset Cut"), UndoRedo::SnapshotType::GizmoAction);
             reset_cut_plane();
             reset_connectors();
         }
+        panel_tooltip(_L("Reset cutting plane and remove connectors"));
         m_imgui->disabled_end();
     }
 
@@ -3047,6 +3150,8 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
     GLGizmoUtils::push_orca_button_style();
     if(m_imgui->button(_L("Perform cut")))
         perform_cut(m_parent.get_selection());
+    panel_tooltip(_u8L("Cut the object as shown. The pieces replace it on the plate, and Undo brings it back whole. "
+                       "Unavailable while a warning below says what is wrong."));
     GLGizmoUtils::pop_orca_button_style();
     m_imgui->disabled_end();
 
@@ -3054,6 +3159,7 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
     if (m_imgui->button(_L("Cancel"))) {
         m_parent.reset_all_gizmos();
     }
+    panel_tooltip(_u8L("Close the Cut tool without cutting."));
 
     ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
 }

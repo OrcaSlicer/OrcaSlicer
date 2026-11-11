@@ -25,6 +25,7 @@
 #include <string_view>
 #include <string>
 #include <wx/event.h>
+#include <wx/string.h>
 #include <vector>
 
 namespace Slic3r{

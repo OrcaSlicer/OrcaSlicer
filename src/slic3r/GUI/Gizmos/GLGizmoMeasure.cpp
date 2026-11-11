@@ -1349,11 +1349,13 @@ void GLGizmoMeasure::render_dimensioning()
             m_imgui->text(txt);
             if (m_hit_different_volumes.size() < 2 && wxGetApp().plater()->canvas3D()->get_canvas_type() == GLCanvas3D::ECanvasType::CanvasView3D) {
                 ImGui::SameLine();
-                if (m_imgui->image_button(ImGui::SliderFloatEditBtnIcon, _L("Edit to scale"))) {
+                if (m_imgui->image_button(ImGui::SliderFloatEditBtnIcon, wxEmptyString)) {
                     m_editing_distance = true;
                     edit_value         = curr_value;
                     m_imgui->requires_extra_frame();
                 }
+                panel_tooltip(_u8L("Scales the selected objects so that this distance becomes the length you type. "
+                                   "They are scaled evenly on all three axes, so their proportions are kept."));
             }
             m_imgui->end();
             ImGui::PopStyleVar(3);
@@ -1949,7 +1951,8 @@ void GLGizmoMeasure::show_selection_ui()
             ImGui::SameLine(selection_cap_length + feature_first_text_length + space_size * 2);
             ImGui::PushItemWidth(space_size * 2);
             ImGui::PushID("Reset1"); // for image_button
-            if (m_imgui->image_button(m_is_dark_mode ? ImGui::RevertBtn : ImGui::RevertBtn, _L("Reset"))) { reset_feature1(); }
+            if (m_imgui->image_button(m_is_dark_mode ? ImGui::RevertBtn : ImGui::RevertBtn, wxEmptyString)) { reset_feature1(); }
+            panel_tooltip(_u8L("Clears the first selection. If a second one is picked, it takes the first one's place."));
             ImGui::PopID();
         }
         ImGui::PopStyleColor();
@@ -1975,7 +1978,8 @@ void GLGizmoMeasure::show_selection_ui()
             ImGui::SameLine(selection_cap_length + feature_second_text_length + space_size * 2);
             ImGui::PushItemWidth(space_size * 2);
             ImGui::PushID("Reset2");
-            if (m_imgui->image_button(m_is_dark_mode ? ImGui::RevertBtn : ImGui::RevertBtn, _L("Reset"))) { reset_feature2(); }
+            if (m_imgui->image_button(m_is_dark_mode ? ImGui::RevertBtn : ImGui::RevertBtn, wxEmptyString)) { reset_feature2(); }
+            panel_tooltip(_u8L("Clears the second selection, so that another feature can be picked in its place."));
             ImGui::PopID();
         }
         ImGui::PopStyleColor();
@@ -1998,20 +2002,34 @@ void GLGizmoMeasure::show_distance_xyz_ui()
     if (m_measure_mode == EMeasureMode::ONLY_MEASURE) {
         m_imgui->text(_u8L("Measure"));
     }
-    auto add_measure_row_to_table = [this](const std::string &col_1, const ImVec4 &col_1_color, const std::string &col_2, const ImVec4 &col_2_color) {
+    // `tip` says what the value is, since the row's name has no tooltip of its own; the copy button carries it.
+    auto add_measure_row_to_table = [this](const std::string &col_1, const ImVec4 &col_1_color, const std::string &col_2, const ImVec4 &col_2_color,
+                                           const std::string &tip, const std::vector<TipMedia> &media) {
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
         m_imgui->text_colored(col_1_color, col_1);
         ImGui::TableSetColumnIndex(1);
         m_imgui->text_colored(col_2_color, col_2);
         ImGui::TableSetColumnIndex(2);
-        if (m_imgui->image_button(m_is_dark_mode ? ImGui::ClipboardBtnDarkIcon : ImGui::ClipboardBtnIcon, _L("Copy to clipboard"))) {
+        if (m_imgui->image_button(m_is_dark_mode ? ImGui::ClipboardBtnDarkIcon : ImGui::ClipboardBtnIcon, wxEmptyString)) {
             wxTheClipboard->Open();
             wxTheClipboard->SetData(new wxTextDataObject(wxString((col_1 + ": " + col_2).c_str(), wxConvUTF8)));
             wxTheClipboard->Close();
         }
+        panel_tooltip(tip + "\n\n" + _u8L("Click to copy the value to the clipboard."), media);
     };
-    auto add_edit_distance_xyz_box = [this](Vec3d &distance) {
+    const std::vector<TipMedia> xyz_media = {{"measure/distance_xyz.png", {}}};
+    // In Measure the boxes only show the distance; in Assemble, typing into one moves the second selection.
+    const auto xyz_tip = [this](const std::string &axis_tip, bool z) {
+        if (m_measure_mode == EMeasureMode::ONLY_MEASURE)
+            return axis_tip;
+        std::string tip = axis_tip + " " + _u8L("Type a new value to move the moving part along this axis to match. "
+                                                "This works between two points or between two circles.");
+        if (z)
+            tip += "\n\n" + _u8L("Objects stand on the bed, so this one can only be changed between two parts of the same object.");
+        return tip;
+    };
+    auto add_edit_distance_xyz_box = [this, &xyz_tip, &xyz_media](Vec3d &distance) {
         //m_imgui->disabled_begin(m_hit_different_volumes.size() == 1);
         //{
             if (m_measure_mode == EMeasureMode::ONLY_MEASURE) {
@@ -2025,6 +2043,7 @@ void GLGizmoMeasure::show_distance_xyz_ui()
             ImGui::PushItemWidth(m_input_size_max);
             m_imgui->disabled_begin(volume || !m_can_set_xyz_distance); // ORCA disable only input box othervise axis colors rendered dimmed
             ImGui::BBLInputDouble("##measure_distance_x", &m_buffered_distance[0], 0.0f, 0.0f, "%.2f");
+            panel_tooltip(xyz_tip(_u8L("How far apart the two selections are along the X axis."), false), xyz_media);
             m_imgui->disabled_end();
 
             ImGui::TableNextRow();
@@ -2033,6 +2052,7 @@ void GLGizmoMeasure::show_distance_xyz_ui()
             ImGui::TableSetColumnIndex(1);
             m_imgui->disabled_begin(volume || !m_can_set_xyz_distance); // ORCA disable only input box othervise axis colors rendered dimmed
             ImGui::BBLInputDouble("##measure_distance_y", &m_buffered_distance[1], 0.0f, 0.0f, "%.2f");
+            panel_tooltip(xyz_tip(_u8L("How far apart the two selections are along the Y axis."), false), xyz_media);
             m_imgui->disabled_end();
 
             ImGui::TableNextRow();
@@ -2041,6 +2061,7 @@ void GLGizmoMeasure::show_distance_xyz_ui()
             ImGui::TableSetColumnIndex(1);
             m_imgui->disabled_begin(volume || !(m_same_model_object && m_can_set_xyz_distance)); // ORCA disable only input box othervise axis colors rendered dimmed
             ImGui::BBLInputDouble("##measure_distance_z", &m_buffered_distance[2], 0.0f, 0.0f, "%.2f");
+            panel_tooltip(xyz_tip(_u8L("How far apart the two selections are along the Z axis."), true), xyz_media);
             m_imgui->disabled_end();
         //}
         //m_imgui->disabled_end();
@@ -2068,20 +2089,31 @@ void GLGizmoMeasure::show_distance_xyz_ui()
                 {
                 ImGui::PushID("ClipboardAngle");
                 add_measure_row_to_table(_u8L("Angle"), ImGuiWrapper::COL_ORCA, format_double(Geometry::rad2deg(measure.angle->angle)) + "°",
-                                            ImGui::GetStyleColorVec4(ImGuiCol_Text));
+                                            ImGui::GetStyleColorVec4(ImGuiCol_Text),
+                                            _u8L("The angle between the two selected edges or faces."), {{"measure/angle.png", {}}});
                 ++measure_row_count;
                 ImGui::PopID();
             }
 
             const bool show_strict = measure.distance_strict.has_value() &&
                                         (!measure.distance_infinite.has_value() || std::abs(measure.distance_strict->dist - measure.distance_infinite->dist) > EPSILON);
+            // Both kinds are listed only when they differ, and that is when the comparison explains them.
+            const bool both_kinds = show_strict && measure.distance_infinite.has_value() && m_measure_mode == EMeasureMode::ONLY_MEASURE;
+            const std::vector<TipMedia> kinds_media = both_kinds ?
+                std::vector<TipMedia>{{"measure/distance_perpendicular.png", _L("Perpendicular distance")},
+                                      {"measure/distance_direct.png", _L("Direct distance")}} :
+                std::vector<TipMedia>{};
 
             if (measure.distance_infinite.has_value() && m_measure_mode == EMeasureMode::ONLY_MEASURE) {
                 double distance = measure.distance_infinite->dist;
                 if (m_use_inches) distance = GizmoObjectManipulation::mm_to_in * distance;
                 ImGui::PushID("ClipboardDistanceInfinite");
                 add_measure_row_to_table(show_strict ? _u8L("Perpendicular distance") : _u8L("Distance"), ImGuiWrapper::COL_ORCA, format_double(distance) + m_units,
-                                            ImGui::GetStyleColorVec4(ImGuiCol_Text));
+                                            ImGui::GetStyleColorVec4(ImGuiCol_Text),
+                                            show_strict ? _u8L("Measured at right angles to the selected edge or face, as if it carried on past its ends.") :
+                                                          _u8L("The distance between the two selections. Where one of them is a face, it is measured at right "
+                                                               "angles to it."),
+                                            kinds_media);
                 ++measure_row_count;
                 ImGui::PopID();
             }
@@ -2093,7 +2125,10 @@ void GLGizmoMeasure::show_distance_xyz_ui()
                 if (m_use_inches)
                     distance = GizmoObjectManipulation::mm_to_in * distance;
                 ImGui::PushID("ClipboardDistanceStrict");
-                add_measure_row_to_table(_u8L("Direct distance"), ImGuiWrapper::COL_ORCA, format_double(distance) + m_units, ImGui::GetStyleColorVec4(ImGuiCol_Text));
+                add_measure_row_to_table(_u8L("Direct distance"), ImGuiWrapper::COL_ORCA, format_double(distance) + m_units, ImGui::GetStyleColorVec4(ImGuiCol_Text),
+                                         both_kinds ? _u8L("The shortest straight line to the selected edge or face itself, ending where it ends.") :
+                                                      _u8L("The straight-line distance between the two selections."),
+                                         kinds_media);
                 ++measure_row_count;
                 ImGui::PopID();
             }
@@ -2102,7 +2137,8 @@ void GLGizmoMeasure::show_distance_xyz_ui()
                 if (m_use_inches) distance = GizmoObjectManipulation::mm_to_in * distance;
                 if (measure.distance_xyz->norm() > EPSILON) {
                     ImGui::PushID("ClipboardDistanceXYZ");
-                    add_measure_row_to_table(_u8L("Distance XYZ"), ImGuiWrapper::COL_ORCA, format_vec3(distance), ImGui::GetStyleColorVec4(ImGuiCol_Text));
+                    add_measure_row_to_table(_u8L("Distance XYZ"), ImGuiWrapper::COL_ORCA, format_vec3(distance), ImGui::GetStyleColorVec4(ImGuiCol_Text),
+                                             _u8L("How far apart the two selections are along each axis of the bed: X, Y and Z."), xyz_media);
                     ++measure_row_count;
                     ImGui::PopID();
                 }
@@ -2144,6 +2180,9 @@ void GLGizmoMeasure::show_face_face_assembly_common() {
             if (m_imgui->button(_L("Center coincidence"))) {
                 set_to_center_coincidence(m_same_model_object);
             }
+            panel_tooltip(_u8L("Turns the moving part until Face 2 faces Face 1, then moves it until the centers of the two "
+                               "faces meet. The parts end up touching, face to face."),
+                          {{"measure/center_coincidence.gif", {}}});
             ImGui::PopStyleColor(4);
             ImGui::SameLine(set_to_center_coincidence_size + m_space_size * 2);
         }
@@ -2152,6 +2191,9 @@ void GLGizmoMeasure::show_face_face_assembly_common() {
         m_imgui->disabled_begin(!action.can_set_to_parallel);
         {
             if (m_imgui->button(_L("Parallel"))) { set_to_parallel(m_same_model_object); }
+            panel_tooltip(_u8L("Turns the moving part until Face 2 faces Face 1, without moving it closer. "
+                               "Greyed out when the faces are already parallel."),
+                          {{"measure/parallel.gif", {}}});
         }
         m_imgui->disabled_end();
     }
@@ -2171,12 +2213,18 @@ void GLGizmoMeasure::show_face_face_assembly_senior()
         if (m_imgui->bbl_checkbox(_L("Flip by Face 2"), m_flip_volume_2)) {
             set_to_reverse_rotation(m_same_model_object, 1);
         }
+        panel_tooltip(_u8L("Turns the moving part over about the center of Face 2. The face stays where it is but points "
+                           "the other way, so the part ends up on the other side of it. Click again to turn it back."),
+                      {{"measure/flip_off.png", _L("Off")}, {"measure/flip_on.png", _L("On")}});
 
         if (action.has_parallel_distance) {
             m_imgui->text(_u8L("Parallel distance:"));
             ImGui::SameLine(parallel_distance_size + m_space_size);
             ImGui::PushItemWidth(m_input_size_max);
             ImGui::BBLInputDouble("##parallel_distance_z", &m_buffered_parallel_distance, 0.0f, 0.0f, "%.2f");
+            panel_tooltip(_u8L("The gap between the two parallel faces, from Face 1 to the center of Face 2. Type a new "
+                               "value to move the moving part to it: 0 puts the faces in contact, a negative value moves "
+                               "it past Face 1."));
             if (m_last_active_item_imgui != m_current_active_imgui_id && std::abs(m_buffered_parallel_distance - action.parallel_distance) > EPSILON) {
                 set_parallel_distance(m_same_model_object, m_buffered_parallel_distance);
             }
@@ -2186,6 +2234,10 @@ void GLGizmoMeasure::show_face_face_assembly_senior()
             ImGui::SameLine(rotate_around_center_size + m_space_size);
             ImGui::PushItemWidth(m_input_size_max);
             ImGui::BBLInputDouble("##rotate_around_center", &m_buffered_around_center, 0.0f, 0.0f, "%.2f");
+            panel_tooltip(_u8L("Turns the moving part by this many degrees about an axis through the center of Face 2, "
+                               "square to it, so the face stays where it is. The turn is made once and the box goes back "
+                               "to 0: typing 90 again turns it a further 90 degrees."),
+                          {{"measure/rotate_around_center.gif", {}}});
             if (m_last_active_item_imgui != m_current_active_imgui_id && std::abs(m_buffered_around_center) > EPSILON) {
                 set_to_around_center_of_faces(m_same_model_object, m_buffered_around_center);
                 m_buffered_around_center = 0;
@@ -2259,6 +2311,7 @@ void GLGizmoMeasure::on_render_input_window(float x, float y, float bottom_limit
     if (m_imgui->button(_L("Done"))) {
         m_parent.reset_all_gizmos();
     }
+    panel_tooltip(_u8L("Closes Measure. The selections and the dimensions drawn on the model go with it."));
 
     ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
 

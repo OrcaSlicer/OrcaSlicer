@@ -130,6 +130,7 @@ void GLGizmoAssembly::on_render_input_window(float x, float y, float bottom_limi
     if (m_imgui->button(_L("Done"))) {
         m_parent.reset_all_gizmos();
     }
+    panel_tooltip(_u8L("Closes Assemble. The parts stay where they were put; undo moves them back."));
 
     render_input_window_warning(m_same_model_object);
 
@@ -189,6 +190,10 @@ bool GLGizmoAssembly::render_assembly_mode_combo(double label_width, float item_
         is_changed = true;
         switch_to_mode((AssemblyMode) selection_idx);
     }
+    panel_tooltip(_u8L("What is picked on the two parts. Faces: put one part against the other, face to face. "
+                       "Points or circles: place one at an exact X, Y and Z distance from the other. "
+                       "Changing it clears the selection."),
+                  {{"measure/mode_face.png", _L("Face and face assembly")}, {"measure/mode_point.png", _L("Point and point assembly")}});
     ImGuiWrapper::pop_combo_style();
     return is_changed;
 }

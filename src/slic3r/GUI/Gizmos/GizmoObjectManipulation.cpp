@@ -33,6 +33,7 @@
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
 #include "libslic3r/libslic3r.h"
 #include "slic3r/GUI/GUI_Geometry.hpp"
+#include <string>
 #include <vector>
 #include <string_view>
 #include "libslic3r/Color.hpp"
@@ -740,6 +741,11 @@ bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper,  bo
      return result;
 }
 
+void GizmoObjectManipulation::panel_tooltip(const std::string &text, const std::vector<IllustratedTooltip::Media> &media)
+{
+    m_tip.item_tooltip(text, media, m_glcanvas);
+}
+
 void GizmoObjectManipulation::set_init_rotation(const Geometry::Transformation &value) {
     m_init_rotation_scale_tran = value.get_matrix_no_offset();
     m_init_rotation      = value.get_rotation();
@@ -859,11 +865,9 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         combox_changed = true;
     }
     ImGuiWrapper::pop_combo_style();
-    // After pop_combo_style(): its light popup background would hide the tooltip's white text.
-    if (ImGui::IsItemHovered()) {
-        auto tooltip_str = _L("Coordinate system used for transform actions.");
-        imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
-    }
+    panel_tooltip(_u8L("Which axes the position fields and the arrows in the view follow. World: the plate's axes. "
+                       "Object: the selected object's own axes, which turn with it."),
+                  {{"transform/move_world.gif", _L("World")}, {"transform/move_object.gif", _L("Object")}});
 
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
@@ -877,22 +881,34 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     index      = 1;
     index_unit = 1;
     ImGui::AlignTextToFramePadding();
-    if (selection.is_single_full_instance() && is_instance_coordinates()) {
+    const bool relative_position = selection.is_single_full_instance() && is_instance_coordinates();
+    if (relative_position) {
         imgui_wrapper->text(_L("Relative")); // ORCA
     }
     else {
         imgui_wrapper->text(_L("Position"));
     }
+    // What a typed value does depends on the coordinate system: see update_settings_value() and change_position_value().
+    const std::string position_tip =
+        relative_position        ? _u8L("Moves the object by the distance typed, along its own axes rather than the plate's. "
+                                        "The fields go back to zero after each move.") :
+        is_instance_coordinates() ? _u8L("Where the part sits inside its object, along the object's own axes. "
+                                        "Type a value to move the part along that axis.") :
+                                   _u8L("Position on the plate: X runs from left to right, Y from front to back and Z up "
+                                        "from the plate. Typing a value moves the selection along that axis only.");
 
     ImGui::SameLine(caption_max + index * space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_values[0][0], &display_position[0], 0.0f, 0.0f, "%.2f");
+    panel_tooltip(position_tip);
     ImGui::SameLine(caption_max + unit_size + (++index) * space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_values[0][1], &display_position[1], 0.0f, 0.0f, "%.2f");
+    panel_tooltip(position_tip);
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_values[0][2], &display_position[2], 0.0f, 0.0f, "%.2f");
+    panel_tooltip(position_tip);
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
     imgui_wrapper->text(this->m_new_unit_string);
     bool is_avoid_one_update{false};
@@ -974,10 +990,19 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
             m_align_to_parent = align_mode_idx + 1 == align_modes.size();
         ImGui::PopID();
         ImGuiWrapper::pop_combo_style();
-        // After pop_combo_style(): its light popup background would hide the tooltip's white text.
-        if (ImGui::IsItemHovered()) {
-            wxString tooltip_str = _L("Reference for alignment");
-            imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
+        const bool parts = m_alignment_helper.is_parts_selection(true);
+        if (ImGui::IsItemHovered()) { // skip building the text on the frames that need none
+            using Media = IllustratedTooltip::Media;
+            panel_tooltip(_u8L("What the align buttons line the selection up with.") + "\n\n" +
+                              _u8L("Selection: each selected item moves on its own, to the matching side or center of "
+                                   "the selection as a whole.") + "\n" +
+                              (parts ? _u8L("Object: the selected parts move together, keeping their spacing, to the "
+                                            "side or center of their object.") :
+                                       _u8L("Plate: the selected objects move together, keeping their spacing, to the "
+                                            "side or center of the plate.")),
+                          parts ? std::vector<Media>{{"transform/align_selection.gif", _L("Selection")}} :
+                                  std::vector<Media>{{"transform/align_selection.gif", _L("Selection")},
+                                                     {"transform/align_plate.gif", _L("Plate")}});
         }
 
         const bool dark_mode    = wxGetApp().dark_mode();
@@ -1014,19 +1039,24 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
             }
 
             if (ImGui::IsItemHovered()) {
-                wxString text = tip;
                 if (enabled)
                     hovered_align_type = type;
-                else {
+                std::string text = into_u8(tip) + "\n" +
+                    (distribute         ? _u8L("The two outermost items stay where they are; the ones between them move "
+                                               "along this axis so their centers are evenly spaced.") :
+                     !m_align_to_parent ? _u8L("Each selected item moves along this axis only, up to the same line.") :
+                     parts              ? _u8L("The selected parts move together along this axis, up to their object.") :
+                                          _u8L("The selected objects move together along this axis, up to the plate."));
+                if (!enabled) {
                     // Too few items is the reason when there are items to move (only distribute needs three);
                     // otherwise the helper names it.
                     std::string why_not;
                     if (m_alignment_helper.get_items_count(type, m_align_to_parent, &why_not) > 0)
                         why_not = _u8L("Select at least 3 parts or objects");
                     if (!why_not.empty())
-                        text += "\n" + from_u8(why_not);
+                        text += "\n\n" + why_not;
                 }
-                imgui_wrapper->tooltip(text, imgui_wrapper->calc_text_size(text).x + 3 * space_size);
+                panel_tooltip(text);
             }
         };
         ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
@@ -1077,14 +1107,14 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         UpdateAndShow(true);
     }
     imgui_wrapper->disabled_end();
-    if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-        imgui_wrapper->tooltip(_L("Move the selection along Z so that its lowest point touches the bed."), ImGui::GetFontSize() * 20.0f);
+    panel_tooltip(_u8L("Move the selection along Z so that its lowest point touches the bed."), {{"transform/drop.gif", {}}});
 
     ImGui::SameLine();
     GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
     if (imgui_wrapper->button(_L("Done"))) {
         m_glcanvas.reset_all_gizmos();
     }
+    panel_tooltip(_u8L("Closes the tool. The changes made in it are kept."));
 
     m_last_active_item = current_active_id;
     last_move_input_window_width = ImGui::GetWindowWidth();
@@ -1159,10 +1189,8 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     unsigned int current_active_id = ImGui::GetActiveID();
     ImGui::PushItemWidth(caption_max);
     imgui_wrapper->text(_L("World")); // ORCA
-    if (ImGui::IsItemHovered()) {
-        auto tooltip_str = _L("Coordinate system used for transform actions.");
-        imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
-    }
+    panel_tooltip(_u8L("Rotation here is always about the plate's axes: X runs from left to right, Y from front to back "
+                       "and Z straight up."));
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
     ImGui::SameLine(caption_max + index * space_size + offset_to_center);
@@ -1175,6 +1203,11 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     index      = 1;
     index_unit = 1;
 
+    const std::string relative_tip = _u8L("Turns the selection by the angle typed, about this axis of the plate. The "
+                                          "field goes back to zero after each turn, so typing 90 twice turns it by 180 "
+                                          "degrees.");
+    const std::string absolute_tip = _u8L("The current orientation, as angles about X, Y and Z measured from the "
+                                          "unrotated model. Type an angle to turn the selection to it on this axis.");
     // ImGui::PushItemWidth(unit_size * 2);
     bool is_relative_input = false;
     ImGui::AlignTextToFramePadding();
@@ -1184,16 +1217,19 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     if (ImGui::BBLInputDouble(label_values[1][0], &rotation[0], 0.0f, 0.0f, "%.2f")) {
         is_relative_input = true;
     }
+    panel_tooltip(relative_tip);
     ImGui::SameLine(caption_max + unit_size + (++index) * space_size);
     ImGui::PushItemWidth(unit_size);
     if (ImGui::BBLInputDouble(label_values[1][1], &rotation[1], 0.0f, 0.0f, "%.2f")) {
         is_relative_input = true;
     }
+    panel_tooltip(relative_tip);
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
     ImGui::PushItemWidth(unit_size);
     if (ImGui::BBLInputDouble(label_values[1][2], &rotation[2], 0.0f, 0.0f, "%.2f")) {
         is_relative_input = true;
     }
+    panel_tooltip(relative_tip);
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
     imgui_wrapper->text("°");
     m_buffered_rotation = rotation;
@@ -1210,10 +1246,8 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     ImGui::SameLine(caption_max + index_unit * unit_size + (++index) * space_size + end_text_size);
     if (reset_button(imgui_wrapper, m_show_clear_rotation)) // ORCA reserve icon space to prevent changes on layout
         reset_rotation_value(true);
-    if (m_show_clear_rotation && ImGui::IsItemHovered()) {
-        float tooltip_size = imgui_wrapper->calc_text_size(_L("Reset current rotation to the value when open the rotation tool.")).x + 3 * space_size;
-        imgui_wrapper->tooltip(_u8L("Reset current rotation to the value when open the rotation tool."), tooltip_size);
-    }
+    if (m_show_clear_rotation) // hidden otherwise, though its space is kept
+        panel_tooltip(_u8L("Reset current rotation to the value when open the rotation tool."));
 
     // send focus to m_glcanvas
     bool focued_on_text = false;
@@ -1236,16 +1270,19 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     if (ImGui::BBLInputDouble(label_values[2][0], &absolute_rotation[0], 0.0f, 0.0f, "%.2f")) {
         is_absolute_input = true;
     }
+    panel_tooltip(absolute_tip);
     ImGui::SameLine(caption_max + unit_size + (++index) * space_size);
     ImGui::PushItemWidth(unit_size);
     if (ImGui::BBLInputDouble(label_values[2][1], &absolute_rotation[1], 0.0f, 0.0f, "%.2f")) {
         is_absolute_input = true;
     }
+    panel_tooltip(absolute_tip);
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
     ImGui::PushItemWidth(unit_size);
     if (ImGui::BBLInputDouble(label_values[2][2], &absolute_rotation[2], 0.0f, 0.0f, "%.2f")) {
         is_absolute_input = true;
     }
+    panel_tooltip(absolute_tip);
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
     imgui_wrapper->text("°");
     m_buffered_absolute_rotation = absolute_rotation;
@@ -1262,10 +1299,8 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     ImGui::SameLine(caption_max + index_unit * unit_size + (++index) * space_size + end_text_size);
     if (reset_zero_button(imgui_wrapper, m_show_reset_0_rotation)) // ORCA reserve icon space to prevent changes on layout
         reset_rotation_value(false);
-    if (m_show_reset_0_rotation && ImGui::IsItemHovered()) {
-        float tooltip_size = imgui_wrapper->calc_text_size(_L("Reset current rotation to real zeros.")).x + 3 * space_size;
-        imgui_wrapper->tooltip(_L("Reset current rotation to real zeros."), tooltip_size);
-    }
+    if (m_show_reset_0_rotation) // hidden otherwise, though its space is kept
+        panel_tooltip(_u8L("Reset current rotation to real zeros."));
     // send focus to m_glcanvas
     bool absolute_focued_on_text = false;
     for (int j = 0; j < 3; j++) {
@@ -1292,6 +1327,7 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     if (imgui_wrapper->button(_L("Done"))) {
         m_glcanvas.reset_all_gizmos();
     }
+    panel_tooltip(_u8L("Closes the tool. The changes made in it are kept."));
 
     m_last_active_item = current_active_id;
     last_rotate_input_window_width = ImGui::GetWindowWidth();
@@ -1388,11 +1424,10 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         combox_changed = true;
     }
     ImGuiWrapper::pop_combo_style();
-    // After pop_combo_style(): its light popup background would hide the tooltip's white text.
-    if (ImGui::IsItemHovered()) {
-        auto tooltip_str = _L("Coordinate system used for transform actions.");
-        imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
-    }
+    panel_tooltip(_u8L("Which axes the Scale and Size fields and the handles in the view work along. World: the plate's "
+                       "axes, so stretching a rotated object along one of them skews it out of square. Object: the "
+                       "object's own axes, which turn with it. Part: the selected part's own axes."),
+                  {{"transform/scale_world.gif", _L("World")}, {"transform/scale_object.gif", _L("Object")}});
 
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
@@ -1406,18 +1441,25 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     index      = 2;
     index_unit = 1;
 
+    const std::string scale_tip = _u8L("Scales the selection along this axis, in percent. With Uniform scale on, the "
+                                       "other two axes change by the same ratio.");
+    const std::string size_tip  = _u8L("The selection's size along this axis. Type a size to scale it to exactly that; "
+                                       "with Uniform scale on, the other two axes change by the same ratio.");
     //ImGui::PushItemWidth(unit_size * 2);
     ImGui::AlignTextToFramePadding();
     imgui_wrapper->text(_L_CONTEXT("Scale", "Noun"));
     ImGui::SameLine(caption_max + space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_scale_values[0][0], &scale[0], 0.0f, 0.0f, "%.2f");
+    panel_tooltip(scale_tip);
     ImGui::SameLine(caption_max + unit_size + index * space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_scale_values[0][1], &scale[1], 0.0f, 0.0f, "%.2f");
+    panel_tooltip(scale_tip);
     ImGui::SameLine(caption_max + (++index_unit) *unit_size + (++index) * space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_scale_values[0][2], &scale[2], 0.0f, 0.0f, "%.2f");
+    panel_tooltip(scale_tip);
     ImGui::SameLine(caption_max + (++index_unit) *unit_size + (++index) * space_size);
     imgui_wrapper->text("%");
     if (scale.x() > 0 && scale.y() > 0 && scale.z() > 0) {
@@ -1427,6 +1469,8 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     ImGui::SameLine(caption_max + 3 * unit_size + 4 * space_size + end_text_size);
     if (reset_button(imgui_wrapper, m_show_clear_scale))
         reset_scale_value();
+    if (m_show_clear_scale) // hidden otherwise, though its space is kept
+        panel_tooltip(_u8L("Undoes the scaling: back to 100 percent on all three axes."));
 
     //Size
     Vec3d original_size;
@@ -1443,12 +1487,15 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     ImGui::SameLine(caption_max + space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_scale_values[1][0], &display_size[0], 0.0f, 0.0f, "%.2f");
+    panel_tooltip(size_tip);
     ImGui::SameLine(caption_max + unit_size + index * space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_scale_values[1][1], &display_size[1], 0.0f, 0.0f, "%.2f");
+    panel_tooltip(size_tip);
     ImGui::SameLine(caption_max + (++index_unit) *unit_size + (++index) * space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_scale_values[1][2], &display_size[2], 0.0f, 0.0f, "%.2f");
+    panel_tooltip(size_tip);
     ImGui::SameLine(caption_max + (++index_unit) *unit_size + (++index) * space_size);
     imgui_wrapper->text(this->m_new_unit_string);
     for (int i = 0; i < display_size.size(); i++) {
@@ -1490,6 +1537,10 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     //} else {
         imgui_wrapper->bbl_checkbox(_L("Uniform scale"), uniform_scale);
     //}
+    panel_tooltip(_u8L("Keeps the proportions when you type in Scale or Size: the other two axes change by the same "
+                       "ratio. Turn it off to stretch or squash along one axis only. The handles in the view do not "
+                       "follow it: the corner ones always scale evenly, the ones on the sides along one axis."),
+                  {{"transform/uniform_on.gif", _L("On")}, {"transform/uniform_off.gif", _L("Off")}});
     if (uniform_scale != this->m_uniform_scale) { this->set_uniform_scaling(uniform_scale); }
 
      // for (int index = 0; index < 3; index++)
@@ -1543,6 +1594,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     if (imgui_wrapper->button(_L("Done"))) {
         m_glcanvas.reset_all_gizmos();
     }
+    panel_tooltip(_u8L("Closes the tool. The changes made in it are kept."));
 
     m_last_active_item = current_active_id;
 

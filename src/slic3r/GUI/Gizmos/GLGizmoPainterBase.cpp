@@ -47,6 +47,8 @@
 #include "slic3r/GUI/GLShader.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include <imgui/imgui.h>
 
 namespace Slic3r::GUI { class ImGuiWrapper; }
 namespace cereal { class BinaryInputArchive; }
@@ -117,6 +119,92 @@ Vec3f GLGizmoPainterBase::get_tilt_up_direction() const
 float GLGizmoPainterBase::get_highlight_angle_limit_deg() const
 {
     return m_highlight_by_angle_threshold_deg > 0.f ? std::min(m_highlight_by_angle_threshold_deg + 1.f, 90.f) : 0.f;
+}
+
+void GLGizmoPainterBase::painter_tooltip(PainterTip tip)
+{
+    // Nothing to build while the pointer is elsewhere: this runs for every control on every frame.
+    if (!ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        return;
+
+    switch (tip) {
+    case PainterTip::Circle:
+        panel_tooltip(_u8L("Circle - paints everything inside the circle as you see it, however far back the surface is: "
+                           "down into recesses and across steps alike. Only faces turned towards you are painted."),
+                      {{"painting/brush_circle.png", _L("Circle")}, {"painting/brush_sphere.png", _L("Sphere")}});
+        break;
+    case PainterTip::Sphere:
+        panel_tooltip(_u8L("Sphere - paints only the surface within a ball around the point under the cursor, so it "
+                           "stays on the part you point at and does not reach surfaces further back."),
+                      {{"painting/brush_circle.png", _L("Circle")}, {"painting/brush_sphere.png", _L("Sphere")}});
+        break;
+    case PainterTip::Triangle:
+        panel_tooltip(_u8L("Triangle - paints whole triangles of the mesh: the one you click and every one you drag "
+                           "across. Suits models with large flat faces."),
+                      {{"painting/tool_triangle.gif", {}}});
+        break;
+    case PainterTip::HeightRange:
+        panel_tooltip(_u8L("Height range - paints a horizontal band all the way around the object, starting at the "
+                           "height you click and as tall as the Height range set below. Good for stripes of color."),
+                      {{"painting/tool_height_range.gif", {}}});
+        break;
+    case PainterTip::SmartFill:
+        panel_tooltip(_u8L("Smart fill - paints the connected area around the face you click, spreading until it meets "
+                           "an edge sharper than the Smart fill angle. Hover to see the area before you click."),
+                      {{"painting/tool_smart_fill.gif", {}}});
+        break;
+    case PainterTip::BucketFill:
+        panel_tooltip(_u8L("Fill - paints the connected area of the color you click, up to where another color begins. "
+                           "With Edge detection on, it also stops at sharp edges of the model. Hover to see the area "
+                           "before you click."),
+                      {{"painting/tool_bucket_fill.gif", {}}});
+        break;
+    case PainterTip::GapFill:
+        panel_tooltip(_u8L("Gap fill - cleans up the small specks and slivers painting leaves behind. Patches smaller than "
+                           "the Gap area are shown in the paint around them, and Apply makes that permanent."),
+                      {{"painting/gap_fill_before.png", _L("Before")}, {"painting/gap_fill_after.png", _L("After")}});
+        break;
+    case PainterTip::BrushSize:
+        panel_tooltip(_u8L("Radius of the brush, in millimeters. A small brush follows fine details, a large one covers "
+                           "big areas quickly."));
+        break;
+    case PainterTip::SmartFillAngle:
+        panel_tooltip(_u8L("How sharp an edge has to be to stop the fill. A low angle keeps the fill on one flat face, a "
+                           "high one lets it run over bevels and rounded edges."),
+                      {{"painting/smart_fill_angle_low.png", _L("Low")}, {"painting/smart_fill_angle_high.png", _L("High")}});
+        break;
+    case PainterTip::CursorHeight:
+        panel_tooltip(_u8L("How tall a band the Height range tool paints, in millimeters, measured up from the height "
+                           "you click."));
+        break;
+    case PainterTip::GapArea:
+        panel_tooltip(_u8L("Patches of paint, or gaps in it, smaller than this area in square millimeters count as "
+                           "specks. They are shown in the paint around them, and Apply merges them into it."),
+                      {{"painting/gap_fill_before.png", _L("Before")}, {"painting/gap_fill_after.png", _L("After")}});
+        break;
+    case PainterTip::ApplyGapFill:
+        panel_tooltip(_u8L("Merges every patch smaller than the Gap area into the paint around it, so the stray specks "
+                           "and slivers do not end up in the print. Can be undone."),
+                      {{"painting/gap_fill_before.png", _L("Before")}, {"painting/gap_fill_after.png", _L("After")}});
+        break;
+    case PainterTip::Vertical:
+        panel_tooltip(_u8L("Keeps a brush stroke on a straight vertical line on the screen, however much the mouse "
+                           "wanders sideways. Handy for straight seams and stripes."),
+                      {{"painting/stroke_vertical_off.png", _L("Off")}, {"painting/stroke_vertical_on.png", _L("On")}});
+        break;
+    case PainterTip::Horizontal:
+        panel_tooltip(_u8L("Keeps a brush stroke on a straight horizontal line on the screen, however much the mouse "
+                           "wanders up and down. Handy for straight stripes."),
+                      {{"painting/stroke_horizontal_off.png", _L("Off")}, {"painting/stroke_horizontal_on.png", _L("On")}});
+        break;
+    case PainterTip::EraseAll:
+        panel_tooltip(_u8L("Removes all the paint of this tool from the object. What the other painting tools painted "
+                           "stays. Can be undone."));
+        break;
+    case PainterTip::Done:
+        panel_tooltip(_u8L("Closes the tool. Your paint stays on the object."));
+        break;
+    }
 }
 
 void GLGizmoPainterBase::render_triangles(const Selection& selection, const ModelVolume* skip) const
