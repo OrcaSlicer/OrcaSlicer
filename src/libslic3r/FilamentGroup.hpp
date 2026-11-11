@@ -15,7 +15,7 @@
 #include <queue>
 #include "GCode/ToolOrderUtils.hpp"
 #include "FilamentGroupUtils.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "MultiNozzleUtils.hpp"
 
 const static int DEFAULT_CLUSTER_SIZE = 16;

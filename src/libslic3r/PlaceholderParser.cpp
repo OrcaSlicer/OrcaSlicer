@@ -2,7 +2,7 @@
 #include "Config.hpp"
 #include "Exception.hpp"
 #include "Flow.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "Point.hpp"
 #include "Utils.hpp"
 #include "I18N.hpp"

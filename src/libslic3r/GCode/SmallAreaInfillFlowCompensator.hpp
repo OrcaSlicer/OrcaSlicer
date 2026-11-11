@@ -1,7 +1,7 @@
 #ifndef slic3r_GCode_SmallAreaInfillFlowCompensator_hpp_
 #define slic3r_GCode_SmallAreaInfillFlowCompensator_hpp_
 
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 #include <memory>
 #include <vector>
 #include <cstdint>

@@ -8,7 +8,7 @@
 #include <boost/uuid/random_generator.hpp>
 #include <chrono>
 #include <cctype>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <iostream>
 #include <map>
 #include <mutex>

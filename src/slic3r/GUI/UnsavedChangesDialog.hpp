@@ -7,7 +7,7 @@
 #include <string>
 #include <utility>
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <array>
 #include <cstddef>
 #include <wx/dataview.h>

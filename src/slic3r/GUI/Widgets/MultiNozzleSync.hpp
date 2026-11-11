@@ -18,7 +18,7 @@
 // it), and the device-sync path only runs for a connected machine whose rack reports as supported.
 
 #include "../GUI_Utils.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "slic3r/GUI/DeviceCore/DevNozzleRack.h"
 #include "slic3r/GUI/DeviceTab/wgtDeviceNozzleRack.h"

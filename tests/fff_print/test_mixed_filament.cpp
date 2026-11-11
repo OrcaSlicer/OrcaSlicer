@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <catch2/catch_all.hpp>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <string>
 #include <cstddef>
 #include "libslic3r/Model.hpp"

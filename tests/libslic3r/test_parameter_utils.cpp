@@ -5,7 +5,7 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ParameterUtils.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 using namespace Slic3r;
 

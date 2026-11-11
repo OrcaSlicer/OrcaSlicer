@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <map>
 #include <cstddef>
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "Config.hpp"
 #include <algorithm>
 #include <iterator>

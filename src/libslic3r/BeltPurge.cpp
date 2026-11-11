@@ -17,7 +17,7 @@
 // (Declarations live in Print.hpp alongside the rest of the Print interface.)
 
 #include "Print.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "Exception.hpp"
 #include "GCode/ToolOrdering.hpp"
 #include "Layer.hpp"

@@ -30,7 +30,7 @@
 #include <wx/chartype.h>
 #include <wx/log.h>
 #include <wx/dynarray.h>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <wx/wxcrt.h>
 #include <string>
 #include "slic3r/GUI/PartPlate.hpp"

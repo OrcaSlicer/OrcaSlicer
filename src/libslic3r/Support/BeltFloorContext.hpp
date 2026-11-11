@@ -4,7 +4,7 @@
 #include "../Point.hpp"
 #include "../Polygon.hpp"
 #include "../Slicing.hpp"
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 #include <cstddef>
 #include <functional>
 #include <vector>

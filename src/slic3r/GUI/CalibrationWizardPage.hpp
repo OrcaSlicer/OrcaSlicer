@@ -15,7 +15,7 @@
 #include "slic3r/GUI/DeviceManager.hpp"
 #include <wx/panel.h>
 #include <wx/gdicmn.h>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <string>
 #include "slic3r/GUI/Widgets/CheckBox.hpp"
 #include <vector>

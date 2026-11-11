@@ -18,7 +18,7 @@
 #include <string>
 #include <map>
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <functional>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>

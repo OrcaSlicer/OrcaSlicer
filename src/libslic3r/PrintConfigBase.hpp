@@ -1,5 +1,4 @@
-#ifndef slic3r_PrintConfigBase_hpp_
-#define slic3r_PrintConfigBase_hpp_
+#pragma once
 
 // The print configuration without the generated static config classes: the option enums,
 // PrintConfigDef, DynamicPrintConfig, the StaticPrintConfig base, ModelConfig and helpers that take
@@ -1516,6 +1515,3 @@ namespace cereal {
         }
     }
 }
-
-
-#endif // slic3r_PrintConfigBase_hpp_

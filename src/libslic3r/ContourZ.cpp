@@ -16,7 +16,7 @@
 #include <utility>
 #include "Config.hpp"
 #include "Polyline.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 
 namespace Slic3r {
 

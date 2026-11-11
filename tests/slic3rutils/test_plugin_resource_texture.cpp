@@ -48,7 +48,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PNGReadWrite.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Semver.hpp"
 #include "libslic3r/TextureDisplacement.hpp"
 #include "libslic3r/TriangleMesh.hpp"

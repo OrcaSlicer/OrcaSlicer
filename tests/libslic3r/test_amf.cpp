@@ -9,7 +9,7 @@
 #include "libslic3r/Format/AMF.hpp"
 #include "libslic3r/Format/ProjectStrategy.hpp"
 #include "libslic3r/Model.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/libslic3r.h"
 

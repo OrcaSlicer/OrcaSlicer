@@ -49,7 +49,7 @@
 #include <wx/time.h>
 #include <wx/toplevel.h>
 #include <wx/window.h>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 #if defined(__WXMSW__) && wxUSE_POPUPWIN
 #include <wx/popupwin.h>

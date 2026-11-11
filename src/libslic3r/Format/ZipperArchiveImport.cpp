@@ -4,7 +4,7 @@
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/miniz_extension.hpp"
 #include "libslic3r/Exception.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <algorithm>

@@ -5,7 +5,7 @@
 #include "Polygon.hpp"
 #include "Print.hpp"
 #include "BoundingBox.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "libslic3r.h"
 
 #include <Eigen/Core>

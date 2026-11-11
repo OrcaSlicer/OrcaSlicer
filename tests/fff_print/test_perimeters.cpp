@@ -15,7 +15,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <cstddef>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/BoundingBox.hpp"

@@ -17,7 +17,7 @@
 #include "libslic3r/Polygon.hpp"
 #include "WipeTower.hpp"
 #include "libslic3r/BoundingBox.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 namespace Slic3r
 {
 

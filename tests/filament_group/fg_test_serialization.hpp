@@ -6,7 +6,7 @@
 #include <libslic3r/FilamentGroup.hpp>
 #include <libslic3r/FilamentGroupUtils.hpp>
 #include <libslic3r/MultiNozzleUtils.hpp>
-#include <libslic3r/PrintConfig.hpp>
+#include <libslic3r/PrintConfigBase.hpp>
 
 #include <fstream>
 #include <optional>

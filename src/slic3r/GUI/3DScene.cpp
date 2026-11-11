@@ -30,7 +30,7 @@
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/GCode/WipeTowerEstimate.hpp"
 #include "libslic3r/Tesselate.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"

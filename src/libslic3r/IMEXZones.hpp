@@ -9,7 +9,7 @@
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 namespace Slic3r {
 

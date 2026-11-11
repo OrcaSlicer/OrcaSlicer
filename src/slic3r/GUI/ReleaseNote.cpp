@@ -67,7 +67,7 @@
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "slic3r/GUI/DeviceManager.hpp"
 #include "slic3r/GUI/HMS.hpp"
 #include "slic3r/GUI/Widgets/ComboBox.hpp"

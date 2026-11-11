@@ -2,7 +2,7 @@
 #define slic3r_GCodeThumbnails_hpp_
 
 #include "../Point.hpp"
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 #include "../enum_bitmask.hpp"
 #include "ThumbnailData.hpp"
 

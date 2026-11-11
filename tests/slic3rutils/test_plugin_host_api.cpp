@@ -48,7 +48,7 @@
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <pybind11/detail/common.h>
 
 namespace py = pybind11;

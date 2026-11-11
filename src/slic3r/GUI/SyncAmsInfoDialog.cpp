@@ -17,7 +17,7 @@
 #include "slic3r/GUI/BBLStatusBarPrint.hpp"
 #include <nlohmann/json.hpp>
 #include <cassert>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <cstdlib>
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 #include <map>

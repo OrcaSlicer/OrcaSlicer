@@ -6,7 +6,7 @@
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include <nlohmann/json.hpp>
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <string>
 #include <vector>
 #include <optional>

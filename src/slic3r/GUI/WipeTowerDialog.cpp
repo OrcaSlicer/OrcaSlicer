@@ -10,7 +10,7 @@
 #include <wx/colour.h>
 #include "slic3r/GUI/Widgets/SpinInput.hpp"
 #include <cstddef>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "libslic3r/FlushVolPredictor.hpp"
 #include "libslic3r/Utils.hpp"

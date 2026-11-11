@@ -11,7 +11,7 @@
 #include <memory>
 #include <cstdint>
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <nlohmann/json.hpp>
 #include <atomic>
 #include <boost/filesystem/path.hpp>

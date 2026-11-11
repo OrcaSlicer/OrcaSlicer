@@ -2,7 +2,7 @@
 #include "libslic3r/Point.hpp"
 #include <string>
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "slic3r/GUI/GUI.hpp"
 
 #include <boost/any.hpp>

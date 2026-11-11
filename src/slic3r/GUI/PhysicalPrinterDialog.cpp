@@ -43,7 +43,7 @@
 #include <wx/toplevel.h>
 #include <wx/wupdlock.h>
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
 #include "Widgets/DialogButtons.hpp"

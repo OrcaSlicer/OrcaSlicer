@@ -11,7 +11,7 @@
 #include <Eigen/Geometry>
 #include "Config.hpp"
 #include "libslic3r/BoundingBox.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 

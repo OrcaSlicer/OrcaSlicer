@@ -3,7 +3,7 @@
 
 #include "libslic3r/Config.hpp"
 #include <libslic3r/Preset.hpp>
-#include <libslic3r/PrintConfig.hpp>
+#include <libslic3r/PrintConfigBase.hpp>
 #include <slic3r/plugin/PluginResolver.hpp>
 
 #include <memory>

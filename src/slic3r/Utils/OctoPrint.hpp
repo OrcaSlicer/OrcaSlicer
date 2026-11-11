@@ -8,7 +8,7 @@
 #include <boost/asio/ip/address.hpp>
 
 #include "PrintHost.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/enum_bitmask.hpp"
 
 

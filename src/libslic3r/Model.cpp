@@ -8,7 +8,7 @@
 #include "Format/STL.hpp"
 #include "Format/objparser.hpp"
 #include "CustomGCode.hpp"
-#include "PrintConfigBase.hpp"
+#include "PrintConfig.hpp"
 #include "ObjectID.hpp"
 #include "BoundingBox.hpp"
 #include "Point.hpp"

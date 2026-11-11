@@ -3,7 +3,7 @@
 
 #include "FilamentMapPanel.hpp"
 #include <string>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <vector>
 #include <wx/string.h>
 #include <wx/event.h>

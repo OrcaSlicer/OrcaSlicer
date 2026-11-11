@@ -12,7 +12,7 @@
 #include <set>
 #include <string>
 #include "Point.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "BoundingBox.hpp"
 #include "ExPolygon.hpp"
 #include "Polygon.hpp"

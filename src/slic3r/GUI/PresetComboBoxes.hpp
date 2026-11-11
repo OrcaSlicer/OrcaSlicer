@@ -8,7 +8,7 @@
 #include <string>
 #include <wx/colour.h>
 #include <vector>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <map>
 #include <utility>
 #include <wx/event.h>

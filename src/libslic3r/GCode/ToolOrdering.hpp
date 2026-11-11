@@ -21,7 +21,7 @@
 #include "../FilamentMixer.hpp"
 #include "../MultiNozzleUtils.hpp"
 #include "../ObjectID.hpp"
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 
 namespace Slic3r { class ExtrusionEntity; }
 namespace Slic3r { class ExtrusionEntityCollection; }

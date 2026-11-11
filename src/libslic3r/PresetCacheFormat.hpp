@@ -14,7 +14,7 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Semver.hpp"
 
 namespace cereal { class BinaryInputArchive; }

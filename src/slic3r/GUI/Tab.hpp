@@ -15,7 +15,7 @@
 //	   Slic3r::GUI::Tab::Preset;
 //	       - Single preset item: name, file is default or external.
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <cstddef>
 #include "libslic3r/Config.hpp"
 #include <functional>

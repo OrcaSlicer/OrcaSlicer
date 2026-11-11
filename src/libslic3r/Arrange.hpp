@@ -4,7 +4,7 @@
 #include "ExPolygon.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "Print.hpp"
 #include <cmath>
 #include "libslic3r.h"

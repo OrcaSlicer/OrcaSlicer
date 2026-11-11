@@ -16,8 +16,12 @@
 #ifndef slic3r_PrintConfig_hpp_
 #define slic3r_PrintConfig_hpp_
 
-
 #include "PrintConfigBase.hpp"
+
+#include <cassert>
+#include <cstddef>
+#include <map>
+#include <string>
 
 #include <boost/container_hash/hash.hpp>
 #include <boost/preprocessor/facilities/empty.hpp>

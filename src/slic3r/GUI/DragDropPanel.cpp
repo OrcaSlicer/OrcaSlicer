@@ -9,7 +9,7 @@
 #include "slic3r/GUI/BitmapCache.hpp"
 #include <algorithm>
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <slic3r/GUI/wxExtensions.hpp>
 #include <wx/event.h>
 #include <string>

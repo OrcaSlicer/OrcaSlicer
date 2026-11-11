@@ -9,7 +9,7 @@
 
 #include <wx/bitmap.h>
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "wxExtensions.hpp"
 
 class wxMenu;
