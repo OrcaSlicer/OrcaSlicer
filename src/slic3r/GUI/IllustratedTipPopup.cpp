@@ -1124,6 +1124,12 @@ void refresh_illustrated_tooltip(wxWindow *window)
         show_now();
 }
 
+wxString illustrated_tooltip_text(const wxWindow *window)
+{
+    const auto it = registry().find(const_cast<wxWindow *>(window));
+    return it == registry().end() ? wxString() : it->second.tip.text;
+}
+
 bool is_illustrated_tooltip_shown_for(const wxWindow *window)
 {
     const State &st = state();
