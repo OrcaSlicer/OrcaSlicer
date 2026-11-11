@@ -34,7 +34,8 @@ enum class DecomposeBaseColor {
     White,
     Red,
     Green,
-    Blue
+    Blue,
+    Black   // CMYKW
 };
 
 struct DecomposeComponent {
@@ -48,6 +49,14 @@ struct ColorDecomposeResult {
     DecomposeMode                  mode{DecomposeMode::MaterialList};
     wxColour                       matched_color;
     std::vector<DecomposeComponent> components;
+};
+
+// Predicted 1-based filament IDs shown on the decompose dialog swatches.
+// 0 means "no ID".
+struct DecomposePreviewIds {
+    int              source_id{0};
+    int              mixed_id{0};
+    std::vector<int> component_ids;
 };
 
 class ColorDecomposeDialog : public DPIDialog
@@ -72,13 +81,19 @@ public:
     // that cannot see not-yet-committed virtual base colors.
     void set_missing_physical_calculator(std::function<size_t(const ColorDecomposeResult&)> fn);
 
+    // The filament numbers on the swatches follow the sidebar order of the project. Callers whose
+    // numbering differs (the texture import) turn them off.
+    void set_show_filament_ids(bool show);
+    // CMYK+W only lists a mix and creates no mixed filament; callers that need one must turn it off.
+    void set_cmykw_enabled(bool enabled);
+
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
 
 private:
     void build_ui();
     wxBoxSizer* create_filament_selector();
-    wxBoxSizer* create_target_color_section();
+    wxBoxSizer* create_result_section();
     wxBoxSizer* create_mode_selection_section();
     wxPanel*    create_mode_card(wxWindow* parent, DecomposeMode mode, const wxString& title);
     wxBoxSizer* create_button_panel();
@@ -91,6 +106,12 @@ private:
     void update_matched_color_display();
     void update_ok_button_state();
     void update_filament_limit_warning();
+    void update_basic_support_warning();
+    DecomposePreviewIds preview_ids_for(const ColorDecomposeResult& result) const;
+    // True when preview_id already maps to a filament of the project; other IDs get a "New" badge.
+    bool is_existing_physical_id(int preview_id) const;
+    bool has_usable_card() const;
+    void fit_around_center();
 
     void compute_decomposition();
 
@@ -105,8 +126,8 @@ private:
     };
 
     ColorDecomposeResult        m_result;
-    std::array<ColorDecomposeResult, 3> m_mode_results;
-    std::array<ModeCardControls, 3>     m_mode_cards;
+    std::array<ColorDecomposeResult, 4> m_mode_results;  // MaterialList, CMYW, RYBW, CMYKW
+    std::array<ModeCardControls, 4>     m_mode_cards;
     int                         m_filament_idx{-1};
     wxColour                    m_target_color;
     std::vector<std::string>    m_physical_colors;
@@ -126,28 +147,44 @@ private:
     wxPanel*                    m_target_swatch{nullptr};
     wxStaticText*               m_target_rgb_text{nullptr};
     wxPanel*                    m_matched_swatch{nullptr};
+    wxPanel*                    m_filament_card{nullptr};
+    wxPanel*                    m_decomposed_container{nullptr};
+    wxPanel*                    m_result_v_divider{nullptr};
+    wxWindow*                   m_result_arrow{nullptr};
+    wxStaticText*               m_decomposed_label{nullptr};
+    wxBoxSizer*                 m_result_components_sizer{nullptr};
     wxStaticText*               m_matched_rgb_text{nullptr};
 
     // Mode cards
     wxPanel*                    m_card_material_list{nullptr};
     wxPanel*                    m_card_cmyw{nullptr};
     wxPanel*                    m_card_rybw{nullptr};
+    wxPanel*                    m_card_cmykw{nullptr};
+    bool                        m_cmykw_enabled{true};
+    bool                        m_show_filament_ids{true};
     wxPanel*                    m_arb_column_panel{nullptr};
     CheckBox*                   m_chk_material_list{nullptr};
     CheckBox*                   m_chk_cmyw{nullptr};
     CheckBox*                   m_chk_rybw{nullptr};
+    CheckBox*                   m_chk_cmykw{nullptr};
     DecomposeMode               m_selected_mode{DecomposeMode::MaterialList};
 
     // Hint shown when no mode card is visible
     wxStaticText*               m_no_card_hint{nullptr};
 
     // Warning shown when decomposition would exceed filament limit
+    wxPanel*                    m_basic_warning_panel{nullptr};
+    wxStaticText*               m_basic_warning_text{nullptr};
     wxPanel*                    m_limit_warning_panel{nullptr};
     wxStaticText*               m_limit_warning_text{nullptr};
 
     Button*                     m_btn_ok{nullptr};
     Button*                     m_btn_cancel{nullptr};
 };
+
+// Shows the CMYK+W mix of target_color, which creates no mixed filament: the colors and the share of
+// the five fixed filament slots.
+void show_cmykw_mix_dialog(wxWindow* parent, const ColorDecomposeResult& result, const wxColour& target_color);
 
 } // namespace GUI
 } // namespace Slic3r

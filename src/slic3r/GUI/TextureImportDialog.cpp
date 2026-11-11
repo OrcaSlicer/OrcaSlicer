@@ -3272,6 +3272,10 @@ bool TextureImportDialog::add_decomposed_mixed_filament(size_t row_index)
     ColorDecomposeDialog dlg(this, -1, target, physical_colors, physical_names, physical_types,
                              m_filament_entries.size(), max_filament_count(),
                              std::move(physical_config_indices));
+    // The mapping below needs a mixed filament, which CMYK+W does not create.
+    dlg.set_cmykw_enabled(false);
+    // The texture import numbers its filaments on its own, so the sidebar numbers would not match.
+    dlg.set_show_filament_ids(false);
     // Count "new physical filaments" with the exact reuse rule of the write-back
     // loop below: a base color is only new if no existing OR virtual official
     // Bambu Basic filament already carries that color. This keeps the dialog's
