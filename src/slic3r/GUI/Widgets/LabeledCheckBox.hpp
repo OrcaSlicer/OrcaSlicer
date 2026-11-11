@@ -1,96 +1,70 @@
 #ifndef slic3r_GUI_LabeledCheckBox_hpp_
 #define slic3r_GUI_LabeledCheckBox_hpp_
 
-#include "Button.hpp"
+#include "CheckBox.hpp"
 #include "Label.hpp"
+#include "StaticBox.hpp"
 
-#include <wx/anybutton.h>
 #include <wx/colour.h>
+#include <wx/defs.h>
 #include <wx/event.h>
-#include <wx/gdicmn.h>
+#include <wx/font.h>
 #include <wx/panel.h>
-#include <wx/radiobox.h>
 #include <wx/string.h>
+#include <wx/tooltip.h>
+#include <wx/window.h>
+#include <wx/windowid.h>
 
-#include "slic3r/GUI/Widgets/LabeledCheckBox.hpp"
-
-// Check box with a clickable label.
-//
-// The label is a Label with LB_AUTO_WRAP, it wraps by itself to the width the control gets. The
-// control asks for the width of the whole text on one line, so the label only wraps where the
-// control is allowed to be narrower than that:
-//   cb->SetMaxSize(wxSize(width, -1));               // wraps when longer than width
-//   cb->SetMinSize(wxSize(width, -1)) + wxEXPAND     // follows the parent, down to width
-//
-// Like wxCheckBox, a change made by the user sends wxEVT_CHECKBOX (and wxEVT_TOGGLEBUTTON, to be a
-// drop-in replacement for CheckBox as well) while SetValue() does not send anything.
+// CheckBox with a clickable label
 class LabeledCheckBox : public wxPanel
 {
 public:
     LabeledCheckBox(wxWindow* parent, const wxString& label = wxEmptyString, wxWindowID id = wxID_ANY);
 
     void SetValue(bool value);
-    bool GetValue() const { return m_value; }
-    bool IsChecked() const { return m_value; }
-
-    // Only changes the look, the next SetValue() or click of the user resets it
+    bool GetValue() const { return m_check->GetValue(); }
+    bool IsChecked() const { return m_check->GetValue(); }
     void SetHalfChecked(bool half = true);
-    bool IsHalfChecked() const { return m_half_checked; }
 
-    // Direct access to the inner controls, for anything that is not wrapped by this class (binding
-    // events, measuring the text...). Prefer SetLabel() / SetFont() / SetForegroundColour() of this
-    // class to the ones of the label, they keep the layout and the disabled look in sync.
-    // Call Rescale() after changing the label in a way that changes its size.
-    Label*        GetLabelCtrl() { return m_text; }
-    const Label*  GetLabelCtrl() const { return m_text; }
-    Button*       GetCheckCtrl() { return m_check; }
-    const Button* GetCheckCtrl() const { return m_check; }
+    void Wrap(int width);
+    void AutoWrap(bool enable = true);
+
+    Label*          GetLabelCtrl() { return m_text; }
+    const Label*    GetLabelCtrl() const { return m_text; }
 
     void Rescale();
 
     void SetLabel(const wxString& label) override;
     bool SetFont(const wxFont& font) override;
-    bool SetForegroundColour(const wxColour& colour) override; // color of the label
+    bool SetForegroundColour(const wxColour& colour) override; // label color
     bool SetBackgroundColour(const wxColour& colour) override;
-    void SetMaxSize(const wxSize& size) override; // wraps the label right away when it is longer
 
-    // The panel itself stays enabled, a natively disabled label ignores its color on Windows.
-    // wxWindow::IsEnabled() is not virtual, this one hides it.
     bool Enable(bool enable = true) override;
-    bool IsEnabled() const { return m_enabled; }
+    bool IsEnabled() const { return m_check->IsEnabled(); }
 
-    bool HasFocus() const override;
-    bool Layout() override;
+    bool HasFocus() const override { return m_check->HasFocus(); }
 
 protected:
-    wxSize DoGetBestClientSize() const override;
-    void   DoSetToolTip(wxToolTip* tip) override;
+    void DoSetToolTip(wxToolTip* tip) override;
 
 private:
-    void Toggle();        // change made by the user, sends the events
-    void UpdateState();   // icon and label color for the current state
-    void UpdateMetrics(); // borders and width for the current font and DPI
-    void Relayout();      // text, font or size limits changed
-    void CheckBestSize(); // asks the parent for a new layout when the best size changed
+    void OnToggled();                  // sends the events
+    void OnLabelClick(wxMouseEvent& e);
+    void OnLabelHover(wxMouseEvent& e);
+    void OnSize(wxSizeEvent& e);
+    void ShowFocus(bool focused);
+    void ShowHover();                  // hover icon on the check while the mouse is on the label
+    void UpdateLabelColor();
+    void UpdateMetrics();              // borders and wrap
+    void Relayout();
 
-    void OnClick(wxMouseEvent& e);
-    void OnHover(wxMouseEvent& e);
-    void OnFocus(wxFocusEvent& e);
-    void OnLabelSize(wxSizeEvent& e);
-    void OnPaint(wxPaintEvent& e);
+    CheckBox*  m_check    {nullptr};
+    StaticBox* m_text_box {nullptr};
+    Label*     m_text     {nullptr};
 
-    Button* m_check {nullptr};
-    Label*  m_text  {nullptr};
-
-    bool m_value        {false};
-    bool m_half_checked {false};
-    bool m_enabled      {true};
-    bool m_hovered      {false};
-    bool m_focused      {false};
-
-    int    m_held_key   {WXK_NONE}; // key being held down on the check
-    int    m_text_width {0};        // width the label needs to stay on one line
-    wxSize m_best_size;             // last best size the parent was told about
+    int  m_wrap_width {-1};            // control width to wrap for, -1: no wrap
+    bool m_auto_wrap  {false};
+    bool m_hovered    {false};         // mouse is on the label
 };
 
 #endif // !slic3r_GUI_LabeledCheckBox_hpp_
