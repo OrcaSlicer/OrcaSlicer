@@ -6,12 +6,19 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"
 
+#include <wx/colour.h>
 #include <wx/control.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcgraph.h>
+#include <wx/defs.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/peninfobase.h>
+#include <wx/string.h>
 
 #include <algorithm>
 #include <utility>
+#include <vector>
 
 wxDEFINE_EVENT(EVT_TOOLHEAD_LANE_OVERVIEW_SELECT, wxCommandEvent);
 
@@ -160,9 +167,14 @@ void ToolheadLaneOverview::on_paint(wxPaintEvent&)
                 ++loaded_count;
                 only_loaded = &lane;
             }
-        wxString caption = lanes.size() == 1 ? (lanes[0].loaded ? lanes[0].material : _L("Empty"))
-                                             : (loaded_count == 1 ? only_loaded->material
-                                                                  : format_wxstr(_L("%1% loaded"), loaded_count));
+        wxString caption;
+        if (lanes.size() == 1)
+            caption = lanes[0].loaded ? lanes[0].material : _L_CONTEXT("Empty", "Filament lane");
+        else if (loaded_count == 1)
+            caption = only_loaded->material;
+        else
+            // TRN %1% is the number of a toolhead's filament lanes that hold a spool.
+            caption = format_wxstr(_L_PLURAL("%1% loaded", "%1% loaded", static_cast<unsigned int>(loaded_count)), loaded_count);
         dc.SetFont(Label::Body_10);
         dc.SetTextForeground(text);
         caption = wxControl::Ellipsize(caption, dc, wxELLIPSIZE_END, column.width - FromDIP(4));
@@ -243,7 +255,8 @@ void ToolheadLaneOverview::on_motion(wxMouseEvent& event)
         } else {
             wxString tip = wxString::Format("T%d", column + 1);
             for (const auto& lane : m_toolheads[column])
-                tip += "\n" + lane.name + ": " + (lane.loaded ? lane.material : _L("Empty"));
+                // TRN Tooltip line for one filament lane: %1% is the lane name, %2% its material or "Empty".
+                tip += "\n" + format_wxstr(_L("%1%: %2%"), lane.name, lane.loaded ? lane.material : _L_CONTEXT("Empty", "Filament lane"));
             SetToolTip(tip);
         }
     }

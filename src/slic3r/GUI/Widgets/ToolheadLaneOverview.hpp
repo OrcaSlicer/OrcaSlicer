@@ -1,8 +1,8 @@
-#ifndef slic3r_GUI_ToolheadLaneOverview_hpp_
-#define slic3r_GUI_ToolheadLaneOverview_hpp_
+#pragma once
 
 #include <wx/colour.h>
 #include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/string.h>
 #include <wx/window.h>
 
@@ -55,5 +55,3 @@ private:
 };
 
 }} // namespace Slic3r::GUI
-
-#endif // slic3r_GUI_ToolheadLaneOverview_hpp_

@@ -446,10 +446,6 @@ protected:
 
 
     CameraItem *m_setting_button;
-    // Printers with several cameras (e.g. Moonraker webcams): which one the view shows.
-    ::ComboBox*              m_camera_choice{nullptr};
-    std::vector<std::string> m_camera_names;
-    std::string              m_camera_choice_device; // the printer the saved choice was applied for
 
     wxBitmap m_bitmap_camera;
     ScalableBitmap m_bitmap_sdcard_state_normal;
@@ -777,9 +773,10 @@ protected:
     void on_axis_ctrl_z_down_1(wxCommandEvent &event);
     void on_axis_ctrl_z_down_10(wxCommandEvent &event);
     void on_axis_ctrl_e_up_10(wxCommandEvent &event);
-    // Extrude (direction 1) or retract (-1) on the active extruder, if it is hot enough.
-    void move_filament(int direction);
     void on_axis_ctrl_e_down_10(wxCommandEvent &event);
+    // Extrude (direction 1) or retract (-1) on a non-Bambu printer's active extruder, if it is hot
+    // enough, as far and as fast as chosen. Bambu printers keep their fixed 10 mm.
+    void move_generic_filament(int direction);
     void axis_ctrl_e_hint(bool up_down);
 
     void on_nozzle_selected(wxCommandEvent &event);
