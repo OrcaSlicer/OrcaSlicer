@@ -8,8 +8,6 @@
 #include <cstdio>
 #include <ctime>
 #include <exception>
-#include <filesystem>
-#include <fstream>
 #include <string>
 #include <signal.h>
 #include <mutex>
@@ -17,6 +15,10 @@
 #include <libslic3r/UpdateHandoff.hpp>
 #include <slic3r/UpdateHelper/InstallApply.hpp>
 #include <system_error>
+
+#include <boost/filesystem.hpp>
+#include <boost/nowide/cstdio.hpp>
+#include <boost/nowide/fstream.hpp>
 
 #include <openssl/evp.h>
 
@@ -30,6 +32,7 @@
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/utils.h>
 
 #if defined(_WIN32)
 #include <process.h>
@@ -40,10 +43,23 @@
 #include <unistd.h>
 #endif
 
-namespace fs = std::filesystem;
+namespace fs = boost::filesystem;
 
 namespace Slic3r {
 namespace Updater {
+
+bool relaunch_app(const UpdateHandoff& handoff)
+{
+#if defined(__linux__)
+    // The handoff's exe_path lies inside the AppImage mount, which is gone once the app exits.
+    const std::string& exe = handoff.install_root;
+#else
+    const std::string& exe = handoff.exe_path;
+#endif
+    if (exe.empty())
+        return false;
+    return wxExecute(wxString::FromUTF8("\"" + exe + "\""), wxEXEC_ASYNC) > 0;
+}
 
 namespace {
 
@@ -118,9 +134,52 @@ bool process_alive(int64_t pid)
 #endif
 }
 
+// Holds the verified installer open without share-write or share-delete. On
+// Windows nothing can then replace or rename it until the install has run it,
+// which is elevated. Elsewhere the handle is not used.
+class ArtifactHold
+{
+public:
+    explicit ArtifactHold(const fs::path& path)
+    {
+#if defined(_WIN32)
+        m_handle = ::CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+                                 FILE_ATTRIBUTE_NORMAL, nullptr);
+#else
+        (void) path;
+#endif
+    }
+    ~ArtifactHold() { close(); }
+    ArtifactHold(const ArtifactHold&) = delete;
+    ArtifactHold& operator=(const ArtifactHold&) = delete;
+
+    bool held() const
+    {
+#if defined(_WIN32)
+        return m_handle != INVALID_HANDLE_VALUE;
+#else
+        return true;
+#endif
+    }
+
+    void close()
+    {
+#if defined(_WIN32)
+        if (m_handle != INVALID_HANDLE_VALUE)
+            ::CloseHandle(m_handle);
+        m_handle = INVALID_HANDLE_VALUE;
+#endif
+    }
+
+private:
+#if defined(_WIN32)
+    HANDLE m_handle = INVALID_HANDLE_VALUE;
+#endif
+};
+
 bool sha256_hex(const fs::path& path, std::string& hex, std::string& error)
 {
-    std::FILE* file = std::fopen(path.string().c_str(), "rb");
+    std::FILE* file = boost::nowide::fopen(path.string().c_str(), "rb");
     if (!file) {
         error = "Could not read the downloaded file.";
         return false;
@@ -189,14 +248,14 @@ void LogFile::write(const std::string& message)
 
     std::lock_guard<std::mutex> lock(m_mutex);
     const fs::path            path(m_path);
-    std::error_code           ec;
+    boost::system::error_code ec;
     const fs::path            parent = path.parent_path();
     if (!parent.empty())
         fs::create_directories(parent, ec);
 
     // Truncated on the first write of a run: the log describes the run in progress, so it
     // never accumulates one copy of itself per update.
-    std::ofstream out(path, (m_started ? std::ios::app : std::ios::trunc) | std::ios::binary);
+    boost::nowide::ofstream out(path.string(), (m_started ? std::ios::app : std::ios::trunc) | std::ios::binary);
     if (!out)
         return;
     m_started = true;
@@ -321,7 +380,12 @@ void UpdateHelperFrame::finish(int code, const wxString& message, bool alert)
 {
     m_exit_code.store(code);
     m_worker_done.store(true);
-    wxTheApp->CallAfter([this, message, alert]() {
+    // The application closed itself for this update: if the update does not go
+    // through, start it again rather than leave the user without one.
+    const bool relaunch = code != 0 && m_parent_gone;
+    wxTheApp->CallAfter([this, message, alert, relaunch]() {
+        if (relaunch && !relaunch_app(m_handoff))
+            m_log.write("could not start the application again");
         if (!message.empty()) {
             m_status->SetLabel(message);
             Layout();
@@ -389,7 +453,7 @@ UpdateHelperFrame::LockResult UpdateHelperFrame::take_install_lock(std::string& 
 
 bool UpdateHelperFrame::verify_artifact(const fs::path& path, std::string& error) const
 {
-    std::error_code ec;
+    boost::system::error_code ec;
     const auto      size = fs::file_size(path, ec);
     if (ec) {
         error = "The downloaded file is missing.";
@@ -448,6 +512,7 @@ void UpdateHelperFrame::run()
             finish(1, "OrcaSlicer is still running.", true);
             return;
         }
+        m_parent_gone = true;
         m_log.write("parent process is gone");
 
         // The lock is taken here, not at startup: the application still owned it
@@ -472,8 +537,17 @@ void UpdateHelperFrame::run()
             asset = "update.part";
         const fs::path     download_dir = fs::path(m_handoff.cache_dir) / "downloads";
         const fs::path     part         = download_dir / (asset + ".part");
+        const fs::path     artifact     = download_dir / asset;
         const DownloadPrep prep = prepare_download_dir(download_dir.string(), asset, m_handoff.digest, m_handoff.size);
         log_dropped(prep, m_log);
+
+        boost::system::error_code ec;
+        if (!prep.resumable && !prep.complete && fs::exists(part, ec)) {
+            // The download would resume on top of bytes from another build.
+            m_log.write("could not remove the partial download " + part.string());
+            finish(1, "An earlier partial download could not be removed.", true);
+            return;
+        }
 
         if (prep.complete) {
             // A previous run downloaded and verified this build but did not install it:
@@ -510,13 +584,30 @@ void UpdateHelperFrame::run()
             m_log.write("downloaded " + std::to_string(result.done) + " bytes");
         }
 
+        // The installer runs through the shell, which picks its handler by extension,
+        // so the verified file needs the asset's name rather than ".part".
+        fs::rename(part, artifact, ec);
+        if (ec) {
+            m_log.write("could not rename " + part.string() + ": " + ec.message());
+            finish(1, "The downloaded file could not be prepared.", true);
+            return;
+        }
+
+        // Held from here until the install returns: what is verified is what runs.
+        ArtifactHold hold(artifact);
+        if (!hold.held()) {
+            m_log.write("could not hold " + artifact.string() + " open");
+            finish(1, "The downloaded file could not be secured.", true);
+            return;
+        }
+
         post(Stage::Verifying, 100, "Verifying the download...");
-        m_log.write("verifying " + part.string());
+        m_log.write("verifying " + artifact.string());
         std::string verify_error;
-        if (!verify_artifact(part, verify_error)) {
+        if (!verify_artifact(artifact, verify_error)) {
             m_log.write("verification failed: " + verify_error);
-            std::error_code ec;
-            fs::remove(part, ec);
+            hold.close();
+            fs::remove(artifact, ec);
             finish(1, "The downloaded file is damaged.", true);
             return;
         }
@@ -530,7 +621,7 @@ void UpdateHelperFrame::run()
         sink.cancelled = [this]() { return m_cancel_requested.load(); };
 
         std::string install_error;
-        if (!apply_update(m_handoff, part.string(), sink, install_error)) {
+        if (!apply_update(m_handoff, artifact.string(), sink, install_error)) {
             m_log.write("install failed: " + install_error);
             finish(1, wxString::FromUTF8("The update could not be installed: " + install_error), true);
             return;

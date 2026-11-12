@@ -2485,7 +2485,6 @@ void PreferencesDialog::create_items()
                 app_config->set("skip_version", "");
                 app_config->set_skip_artifact("");
             }
-            wxGetApp().check_new_version_sf(true, 0);
         }));
 
     auto item_user_sync        = create_item_checkbox(_L("Auto sync user presets (Printer/Filament/Process)"), "", "sync_user_preset");

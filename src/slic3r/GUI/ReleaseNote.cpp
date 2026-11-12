@@ -317,11 +317,13 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     m_text_channel = new Label(this, Label::Body_12, wxEmptyString);
     m_text_channel->SetForegroundColour(wxColour(0x26, 0x2E, 0x30));
 
-    // Store builds get updates from the Microsoft Store: wxID_YES opens the Store
-    // product page there (see the EVT_SLIC3R_VERSION_ONLINE handler) instead of GitHub.
+    // Opens the page without closing the dialog: wxID_YES means install, not browse.
     auto github_link = new HyperLink(this, is_running_in_msix() ? _L("Check on Microsoft Store") : _L("Check on GitHub"), "", LB_AUTO_WRAP);
     github_link->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
-        EndModal(wxID_YES);
+        if (is_running_in_msix())
+            open_ms_store_product_page();
+        else
+            wxLaunchDefaultBrowser(m_release_url);
     });
 
     m_simplebook_release_note = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSIMPLE_BORDER);
@@ -569,6 +571,19 @@ void UpdateVersionDialog::set_channel_label(const wxString& label)
 {
     if (m_text_channel != nullptr)
         m_text_channel->SetLabel(label);
+}
+
+void UpdateVersionDialog::set_release_url(const wxString& url)
+{
+    m_release_url = url;
+}
+
+void UpdateVersionDialog::set_install_in_app(bool in_app)
+{
+    if (is_running_in_msix())
+        return;
+    // TRN Button label: downloads the update, installs it in OrcaSlicer, then restarts.
+    m_button_download->SetLabel(in_app ? _L("Install and restart") : _L("Download"));
 }
 
 SecondaryCheckDialog::SecondaryCheckDialog(wxWindow* parent, wxWindowID id, const wxString& title, enum VisibleButtons btn_style, const wxPoint& pos, const wxSize& size, long style, bool not_show_again_check) // ORCA VisibleButtons instead ButtonStyle 

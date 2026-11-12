@@ -37,6 +37,7 @@ declare -a lib_paths=(
     "$APPDIR/lib/orca-runtime"
     "$APPDIR/lib"
     "$APPDIR/bin"
+    "$APPDIR/bin/updater"
 )
 
 for candidate in \

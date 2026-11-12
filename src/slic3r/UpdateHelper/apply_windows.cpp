@@ -23,6 +23,7 @@
     #include <vector>
 
     #include <boost/filesystem.hpp>
+    #include <boost/log/trivial.hpp>
 
     #include "libslic3r/UpdateHandoff.hpp"
 
@@ -69,6 +70,37 @@ fs::path to_path(const std::string& utf8)
     return fs::path(widen_utf8(utf8));
 }
 
+// CreateProcessW does not search PATH for an explicit application name.
+std::wstring system_tar_path()
+{
+    wchar_t dir[MAX_PATH] = { 0 };
+    ::GetSystemDirectoryW(dir, MAX_PATH);
+    return std::wstring(dir) + L"\\tar.exe";
+}
+
+// The helper inherits the application's working folder, which on a portable
+// install is inside the tree being renamed. Windows refuses to rename a folder
+// that holds a process's working folder.
+void leave_install_folder()
+{
+    wchar_t temp[MAX_PATH] = { 0 };
+    const DWORD length = ::GetTempPathW(MAX_PATH, temp);
+    if (length > 0 && length < MAX_PATH)
+        ::SetCurrentDirectoryW(temp);
+}
+
+// Antivirus and indexers can hold a file for a moment after it was written.
+void rename_tree(const fs::path& from, const fs::path& to, boost::system::error_code& ec)
+{
+    for (int attempt = 1;; ++attempt) {
+        ec.clear();
+        fs::rename(from, to, ec);
+        if (!ec || attempt == 5)
+            return;
+        ::Sleep(500);
+    }
+}
+
 bool run_and_wait(const std::wstring& exe, const std::wstring& args, int timeout_seconds, DWORD& exit_code, std::string& error)
 {
     std::wstring cmdline = args.empty() ? exe : exe + L" " + args;
@@ -113,7 +145,7 @@ bool extract_zip(const std::string& zip_path, const std::string& destination, st
     // archive library needed, and it handles long paths and UTF-8 names.
     const std::wstring args = L"-xf \"" + widen_utf8(zip_path) + L"\" -C \"" + widen_utf8(destination) + L"\"";
     DWORD              exit_code = 1;
-    if (!run_and_wait(L"tar.exe", args, 1800, exit_code, error))
+    if (!run_and_wait(system_tar_path(), args, 1800, exit_code, error))
         return false;
     if (exit_code != 0) {
         error = "The downloaded archive could not be unpacked (tar exit code " + std::to_string(static_cast<long long>(exit_code)) + ").";
@@ -142,7 +174,7 @@ bool verify_signature(const std::string& artifact_path, std::string& error)
     ::ZeroMemory(&trust_data, sizeof(trust_data));
     trust_data.cbStruct            = sizeof(trust_data);
     trust_data.dwUIChoice          = WTD_UI_NONE;
-    trust_data.fdwRevocationChecks = WTD_REVOKE_NONE;
+    trust_data.fdwRevocationChecks = WTD_REVOKE_WHOLECHAIN;
     trust_data.dwUnionChoice       = WTD_CHOICE_FILE;
     trust_data.pFile               = &file_info;
     trust_data.dwStateAction       = WTD_STATEACTION_VERIFY;
@@ -153,7 +185,10 @@ bool verify_signature(const std::string& artifact_path, std::string& error)
     trust_data.dwStateAction = WTD_STATEACTION_CLOSE;
     ::WinVerifyTrust(nullptr, &action, &trust_data);
 
-    if (status != ERROR_SUCCESS) {
+    // A revocation server that cannot be reached is not a bad installer; the
+    // signature and chain were already verified above.
+    const bool revocation_unreachable = status == CRYPT_E_REVOCATION_OFFLINE || status == CERT_E_REVOCATION_FAILURE;
+    if (status != ERROR_SUCCESS && !revocation_unreachable) {
         char buffer[16] = { 0 };
         std::snprintf(buffer, sizeof(buffer), "0x%08lX", static_cast<unsigned long>(status));
         error = std::string("The installer's digital signature could not be verified (status ") + buffer +
@@ -227,6 +262,8 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
         return false;
     }
 
+    leave_install_folder();
+
     const std::string label = handoff.version_label.empty() ? std::string("the new version") : handoff.version_label;
     sink.say(Stage::Installing, 0, "Installing " + label);
 
@@ -274,9 +311,10 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
         record.digest  = handoff.digest;
         record.channel = handoff.channel;
         record.version = handoff.version;
-        write_install_record(record);
+        if (!write_install_record(record))
+            BOOST_LOG_TRIVIAL(warning) << "Could not record the installed build " << handoff.version;
 
-        const std::string exe_path = handoff.exe_path.empty() ? install_root + "\\OrcaSlicer.exe" : handoff.exe_path;
+        const std::string exe_path = handoff.exe_path.empty() ? install_root + "\\orca-slicer.exe" : handoff.exe_path;
         if (!launch_detached(exe_path, error)) {
             remove_path_quietly(updater_install_record_path());
             remove_pending_install();
@@ -291,6 +329,8 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
     const std::string pid        = std::to_string(static_cast<long long>(::GetCurrentProcessId()));
     const std::string staged     = install_root + ".staged-" + pid;
     const std::string backup     = install_root + ".backup-" + pid;
+    // Where a new tree is parked during rollback, so it is never deleted in place.
+    const std::string rejected   = install_root + ".rejected-" + pid;
     const std::string data_dir   = install_root + "\\data_dir";
     // A sibling of both trees, so `data_dir` can leave the install folder
     // before anything is renamed or deleted there.
@@ -311,6 +351,24 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
     sink.say(Stage::Installing, 30, "Unpacking " + label);
     if (!extract_zip(artifact_path, staged, error)) {
         remove_path_quietly(staged);
+        return false;
+    }
+
+    // The release zip is flat; the nightly zip wraps the tree in one folder.
+    fs::path new_tree = to_path(staged);
+    if (!fs::is_regular_file(new_tree / "orca-slicer.exe", ec)) {
+        ec.clear();
+        fs::directory_iterator entry(new_tree, ec), end;
+        if (!ec && entry != end) {
+            const fs::path only = entry->path();
+            entry.increment(ec);
+            if (!ec && entry == end && fs::is_directory(only, ec))
+                new_tree = only;
+        }
+    }
+    if (!fs::is_regular_file(new_tree / "orca-slicer.exe", ec)) {
+        remove_path_quietly(staged);
+        error = "The downloaded archive does not contain orca-slicer.exe, so the update was not installed.";
         return false;
     }
 
@@ -347,8 +405,7 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
 
         if (data_placed) {
             // Pull the user's data out of the new tree before removing it.
-            ignore.clear();
-            fs::rename(to_path(data_dir), to_path(data_aside), ignore);
+            rename_tree(to_path(data_dir), to_path(data_aside), ignore);
             if (ignore) {
                 problem = "Your portable settings are still inside " + install_root + " and could not be moved aside (" + ignore.message() + ")";
                 return false; // the new tree holds the data, so it is not deleted
@@ -357,19 +414,19 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
             data_aside_ready = true;
         }
 
+        // Parked rather than deleted in place: a file held open by another
+        // process would otherwise leave the new tree half-removed.
         if (placed_new) {
-            ignore.clear();
-            fs::remove_all(to_path(install_root), ignore);
+            rename_tree(to_path(install_root), to_path(rejected), ignore);
             if (ignore) {
-                problem = "The new version could not be removed from " + install_root + " (" + ignore.message() + ")";
+                problem = "The new version could not be moved aside from " + install_root + " (" + ignore.message() + ")";
                 return false;
             }
             placed_new = false;
         }
 
         if (moved_old) {
-            ignore.clear();
-            fs::rename(to_path(backup), to_path(install_root), ignore);
+            rename_tree(to_path(backup), to_path(install_root), ignore);
             if (ignore) {
                 problem = "The previous version is still at " + backup + " and could not be moved back (" + ignore.message() + ")";
                 return false;
@@ -382,8 +439,7 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
                 problem = "Your portable settings are still at " + data_aside + " because the installation folder is missing";
                 return false;
             }
-            ignore.clear();
-            fs::rename(to_path(data_aside), to_path(data_dir), ignore);
+            rename_tree(to_path(data_aside), to_path(data_dir), ignore);
             if (ignore) {
                 problem = "Your portable settings are still at " + data_aside + " and could not be moved back (" + ignore.message() + ")";
                 return false;
@@ -392,6 +448,7 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
         }
 
         // Everything is back: only now is there nothing left to recover.
+        remove_path_quietly(rejected);
         remove_path_quietly(staged);
         remove_path_quietly(updater_install_record_path());
         remove_pending_install();
@@ -409,7 +466,7 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
     };
 
     if (has_data) {
-        fs::rename(to_path(data_dir), to_path(data_aside), ec);
+        rename_tree(to_path(data_dir), to_path(data_aside), ec);
         if (ec)
             return fail("Your portable settings could not be moved aside: " + ec.message() + ".");
         data_aside_ready = true;
@@ -418,20 +475,20 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
     sink.say(Stage::Installing, 70, "Replacing the installation folder");
 
     ec.clear();
-    fs::rename(to_path(install_root), to_path(backup), ec);
+    rename_tree(to_path(install_root), to_path(backup), ec);
     if (ec)
         return fail("The current installation could not be moved aside: " + ec.message() + ".");
     moved_old = true;
 
     ec.clear();
-    fs::rename(to_path(staged), to_path(install_root), ec);
+    rename_tree(new_tree, to_path(install_root), ec);
     if (ec)
         return fail("The new version could not be put in place: " + ec.message() + ".");
     placed_new = true;
+    remove_path_quietly(staged);
 
     if (data_aside_ready) {
-        ec.clear();
-        fs::rename(to_path(data_aside), to_path(data_dir), ec);
+        rename_tree(to_path(data_aside), to_path(data_dir), ec);
         if (ec)
             return fail("Your portable settings could not be moved into the new version: " + ec.message() + ".");
         data_aside_ready = false;
@@ -446,9 +503,10 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
     record.digest  = handoff.digest;
     record.channel = handoff.channel;
     record.version = handoff.version;
-    write_install_record(record);
+    if (!write_install_record(record))
+        BOOST_LOG_TRIVIAL(warning) << "Could not record the installed build " << handoff.version;
 
-    const std::string exe_path = handoff.exe_path.empty() ? install_root + "\\OrcaSlicer.exe" : handoff.exe_path;
+    const std::string exe_path = handoff.exe_path.empty() ? install_root + "\\orca-slicer.exe" : handoff.exe_path;
     if (!launch_detached(exe_path, error)) {
         std::string problem;
         if (rollback(problem))

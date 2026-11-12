@@ -6,10 +6,11 @@
 // only ever touches wxWidgets on the main thread.
 
 #include <atomic>
-#include <filesystem>
 #include <mutex>
 #include <string>
 #include <thread>
+
+#include <boost/filesystem/path.hpp>
 
 #include <wx/event.h>
 #include <wx/frame.h>
@@ -24,6 +25,9 @@ class wxStaticText;
 
 namespace Slic3r {
 namespace Updater {
+
+// Starts the application again after an update that did not install. False when it could not be started.
+bool relaunch_app(const UpdateHandoff& handoff);
 
 // Writes timestamped lines to handoff.log_path, starting a new log for each run.
 // Safe to call from any thread.
@@ -63,7 +67,7 @@ private:
     WaitResult wait_for_parent();
     // Taken only after the parent is gone: until then it still holds the lock.
     LockResult take_install_lock(std::string& error);
-    bool verify_artifact(const std::filesystem::path& path, std::string& error) const;
+    bool verify_artifact(const boost::filesystem::path& path, std::string& error) const;
 
     void post(Stage stage, int percent, const std::string& message);
     void show_progress(Stage stage, int percent, const wxString& message);
@@ -80,6 +84,8 @@ private:
     std::atomic<bool>  m_cancel_requested{ false };
     std::atomic<bool>  m_worker_done{ false };
     std::atomic<int>   m_exit_code{ 1 };
+    // Worker thread only. Set once the parent is gone, so the application can be started again.
+    bool               m_parent_gone = false;
     std::thread        m_worker;
 };
 

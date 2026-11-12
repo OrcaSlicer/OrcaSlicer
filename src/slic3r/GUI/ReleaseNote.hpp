@@ -103,6 +103,8 @@ public:
     void on_dpi_changed(const wxRect& suggested_rect) override;
     void update_version_info(wxString release_note, wxString version);
     void set_channel_label(const wxString& label);
+    void set_release_url(const wxString& url);
+    void set_install_in_app(bool in_app);
     std::vector<std::string> splitWithStl(std::string str, std::string pattern);
 
     wxStaticBitmap*   m_brand{nullptr};
@@ -119,6 +121,7 @@ public:
     Button*           m_button_cancel;
     std::string       url_line;
     std::string       html_source;
+    wxString          m_release_url;
 };
 
 class SecondaryCheckDialog : public DPIFrame

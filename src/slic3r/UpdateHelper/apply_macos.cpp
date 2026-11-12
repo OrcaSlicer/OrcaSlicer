@@ -8,7 +8,6 @@
 #include <chrono>
 #include <cstddef>
 #include <cstring>
-#include <fstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -130,38 +129,22 @@ std::string apple_script_quoted(const std::string& text)
     return out;
 }
 
-// Reads the step counter the elevated script writes. Returns 0 when the file is
-// missing or does not hold a number.
-size_t read_step_count(const std::string& path)
+bool path_exists(const std::string& path)
 {
-    std::ifstream in(path);
-    if (!in)
-        return 0;
-    long long value = 0;
-    if (!(in >> value) || value < 0)
-        return 0;
-    return static_cast<size_t>(value);
+    boost::system::error_code ec;
+    return boost::filesystem::exists(boost::filesystem::path(path), ec);
 }
 
 // Move pairs of paths as the administrator, through one Finder-style prompt.
-// The script records on disk how many moves finished, so a partly applied swap
-// is never mistaken for a swap that did nothing. `completed` receives that count.
-bool elevated_moves(const std::vector<std::pair<std::string, std::string>>& moves,
-                    const std::string& marker,
-                    size_t&            completed,
-                    std::string&       error)
+// Returns true only when the script exits 0; callers read the filesystem for how
+// far a failed run got.
+bool elevated_moves(const std::vector<std::pair<std::string, std::string>>& moves, std::string& error)
 {
-    completed = 0;
-    if (moves.empty())
-        return true;
-
-    std::string script = "/bin/echo 0 > " + shell_quoted(marker);
-    size_t      step   = 0;
+    std::string script;
     for (const auto& move : moves) {
-        ++step;
-        script += " && /bin/mv -f " + shell_quoted(move.first) + " " + shell_quoted(move.second);
-        // Written right after the move, so a later failure still says how far it got.
-        script += " && /bin/echo " + std::to_string(step) + " > " + shell_quoted(marker);
+        if (!script.empty())
+            script += " && ";
+        script += "/bin/mv -f " + shell_quoted(move.first) + " " + shell_quoted(move.second);
     }
 
     const std::vector<std::string> argv = {
@@ -169,27 +152,11 @@ bool elevated_moves(const std::vector<std::pair<std::string, std::string>>& move
         "-e",
         "do shell script \"" + apple_script_quoted(script) + "\" with administrator privileges",
     };
-    int        status = -1;
-    const bool ran    = spawn_and_wait(argv, 600, status, error);
-
-    completed = read_step_count(marker);
-    if (completed > moves.size())
-        completed = moves.size();
-    remove_path_quietly(marker);
-
-    if (!ran)
+    int status = -1;
+    if (!spawn_and_wait(argv, 600, status, error))
         return false;
     if (status != 0) {
-        if (completed == 0)
-            error = "Administrator approval was not given.";
-        else
-            error = "The administrator step stopped after " + std::to_string(completed) + " of " +
-                    std::to_string(moves.size()) + " moves.";
-        return false;
-    }
-    if (completed < moves.size()) {
-        error = "The administrator step reported success, but only " + std::to_string(completed) + " of " +
-                std::to_string(moves.size()) + " moves could be confirmed.";
+        error = "The administrator step did not complete.";
         return false;
     }
     return true;
@@ -222,7 +189,10 @@ struct MountGuard
         if (attached) {
             std::string ignored;
             int         status = 0;
-            spawn_and_wait({"/usr/bin/hdiutil", "detach", mount}, 120, status, ignored);
+            const bool  detached = spawn_and_wait({"/usr/bin/hdiutil", "detach", mount}, 120, status, ignored) && status == 0;
+            // Still mounted: leave the mount point alone, the image is not ours to delete from.
+            if (!detached)
+                return;
             attached = false;
         }
         remove_path_quietly(mount);
@@ -254,8 +224,6 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
     const std::string pid    = std::to_string(static_cast<long long>(::getpid()));
     const std::string staged = bundle + ".staged-" + pid;
     const std::string backup = bundle + ".backup-" + pid;
-    // Where the elevated script records how many of its moves finished.
-    const std::string move_log = "/tmp/orca-updater-" + pid + ".moves";
     const std::string download_folder = boost::filesystem::path(artifact_path).parent_path().string();
 
     boost::system::error_code ec;
@@ -315,7 +283,7 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
         remove_path_quietly(staged);
         return false;
     }
-    if (status != 0) {
+    if (status != 0 || !path_exists(staged)) {
         remove_path_quietly(staged);
         error = "The new version could not be copied out of the disk image.";
         return false;
@@ -337,30 +305,39 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
 
     bool moved_old  = false;
     bool placed_new = false;
-    // True only when the previous bundle is demonstrably back at `bundle`.
+    bool elevated   = false;
+    // Undoes the moves that happened. The new tree is moved aside to `staged`, not
+    // deleted, so a failed restore still leaves it on disk. True only when the
+    // previous bundle is demonstrably back at `bundle`.
     auto rollback = [&]() -> bool {
-        boost::system::error_code ignore;
-        bool                     restored = true;
-        if (placed_new) {
-            boost::filesystem::remove_all(boost::filesystem::path(bundle), ignore);
-            if (ignore)
-                restored = false;
-            placed_new = false;
+        std::vector<std::pair<std::string, std::string>> undo;
+        if (placed_new)
+            undo.push_back({bundle, staged});
+        if (moved_old)
+            undo.push_back({backup, bundle});
+
+        bool restored = true;
+        if (elevated) {
+            std::string ignored;
+            restored = elevated_moves(undo, ignored);
+        } else {
+            for (const auto& move : undo) {
+                boost::system::error_code move_ec;
+                boost::filesystem::rename(boost::filesystem::path(move.first), boost::filesystem::path(move.second), move_ec);
+                if (move_ec) {
+                    restored = false;
+                    break;
+                }
+            }
         }
-        if (moved_old) {
-            boost::filesystem::rename(boost::filesystem::path(backup), boost::filesystem::path(bundle), ignore);
-            if (ignore)
-                restored = false;
-            else
-                moved_old = false;
-        }
-        remove_path_quietly(staged);
-        remove_path_quietly(updater_install_record_path());
-        // A rename that reported success is not enough: the bundle has to be at
-        // the target now, or the pending record must stay for the next start.
-        if (restored && !boost::filesystem::is_directory(boost::filesystem::path(bundle), ignore))
-            restored = false;
         if (restored) {
+            boost::system::error_code dir_ec;
+            restored = boost::filesystem::is_directory(boost::filesystem::path(bundle), dir_ec) && !path_exists(backup);
+        }
+
+        remove_path_quietly(updater_install_record_path());
+        if (restored) {
+            remove_path_quietly(staged);
             // Nothing is left to recover: the pending record would only make the
             // next start look for a backup that is no longer there.
             remove_pending_install();
@@ -372,7 +349,7 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
     // build is back.
     auto rollback_failure = [&](const std::string& message) {
         if (rollback())
-            return message;
+            return message + " The previous version was put back.";
         return message + " The previous version could not be restored; the previous bundle is still at " + backup + ".";
     };
 
@@ -385,12 +362,12 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
             error = rollback_failure("The current application could not be moved aside: " + ec.message() + ".");
             return false;
         }
-        // A system-wide install: one administrator prompt does both moves, and
-        // its result says which of them actually happened.
-        size_t completed = 0;
-        if (!elevated_moves({{bundle, backup}, {staged, bundle}}, move_log, completed, error)) {
-            moved_old  = completed >= 1;
-            placed_new = completed >= 2;
+        // A system-wide install: one administrator prompt does both moves. After a
+        // failed run, what happened is read from which paths still exist.
+        elevated = true;
+        if (!elevated_moves({{bundle, backup}, {staged, bundle}}, error)) {
+            moved_old  = path_exists(backup);
+            placed_new = !path_exists(staged);
             error = rollback_failure(error + " The downloaded disk image is still in " + download_folder + ".");
             return false;
         }
@@ -403,9 +380,9 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
         if (!ec) {
             placed_new = true;
         } else if (ec.value() == EACCES || ec.value() == EPERM) {
-            size_t completed = 0;
-            if (!elevated_moves({{staged, bundle}}, move_log, completed, error)) {
-                placed_new = completed >= 1;
+            elevated = true;
+            if (!elevated_moves({{staged, bundle}}, error)) {
+                placed_new = !path_exists(staged);
                 error = rollback_failure(error + " The downloaded disk image is still in " + download_folder + ".");
                 return false;
             }
@@ -426,14 +403,13 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
     record.digest  = handoff.digest;
     record.channel = handoff.channel;
     record.version = handoff.version;
-    write_install_record(record);
+    if (!write_install_record(record)) {
+        error = rollback_failure("The update could not be recorded.");
+        return false;
+    }
 
     if (!spawn_unwaited({"/usr/bin/open", "-n", bundle}, error)) {
-        const bool restored = rollback();
-        if (restored)
-            error += " The previous version was put back.";
-        else
-            error += " The previous version could not be restored; the previous bundle is still at " + backup + ".";
+        error = rollback_failure(error);
         return false;
     }
 

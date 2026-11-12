@@ -8,6 +8,7 @@ if(NOT DEFINED ORCA_CHECK_GCODE_PLACEHOLDERS)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libslic3r_version.h.in ${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libslic3r_build_timestamp.h.in ${CMAKE_CURRENT_BINARY_DIR}/libslic3r_build_timestamp.h @ONLY)
 
 if (MINGW)
     add_compile_options(-Wa,-mbig-obj)
@@ -617,6 +618,7 @@ endif ()
 
 add_library(libslic3r STATIC ${lisbslic3r_sources}
     "${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h"
+    "${CMAKE_CURRENT_BINARY_DIR}/libslic3r_build_timestamp.h"
     ${OpenVDBUtils_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
 

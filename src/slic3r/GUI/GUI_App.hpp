@@ -616,6 +616,8 @@ public:
     void            start_in_app_update();
     // Cleans up after an install that happened while this build was being replaced.
     void            finish_pending_update();
+    // Moves portable user data back before the data directory is chosen.
+    void            recover_portable_data();
     // Offers to migrate user filament presets made against an older release that lost printers their parent
     // listed then. At startup it asks on every start that finds such presets, unless the user chose not to be
     // reminded; while the user presets sync with the cloud, it waits until they have been pulled. by_user also

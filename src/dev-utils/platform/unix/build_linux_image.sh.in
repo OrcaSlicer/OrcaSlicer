@@ -197,12 +197,17 @@ echo -n "[9/9] Generating Linux app..."
     fi
     cp -fl "${ORIGINAL_BINARY_LOCATION}" "$BIN_DIR/@SLIC3R_APP_CMD@"
 
-    # The updater helper sits beside the main binary so its rpath ($ORIGIN entries)
-    # resolves; the dependency pass below then bundles its libraries too.
+    # The updater helper ships in bin/updater with the shared libraries it needs: the folder
+    # extract_updater_helper() copies out of the AppImage. Its $ORIGIN rpath (src/CMakeLists.txt)
+    # finds them there without the LD_LIBRARY_PATH the env wrapper sets for the app. The main
+    # dependency pass below skips this folder.
     UPDATER_HELPER_SRC="$(dirname "${ORIGINAL_BINARY_LOCATION}")/OrcaSlicerUpdater"
+    UPDATER_DIR="$BIN_DIR/updater"
     if [ -f "$UPDATER_HELPER_SRC" ]; then
-        cp -fL "$UPDATER_HELPER_SRC" "$BIN_DIR/OrcaSlicerUpdater"
-        chmod +x "$BIN_DIR/OrcaSlicerUpdater"
+        mkdir -p "$UPDATER_DIR"
+        cp -fL "$UPDATER_HELPER_SRC" "$UPDATER_DIR/OrcaSlicerUpdater"
+        chmod +x "$UPDATER_DIR/OrcaSlicerUpdater"
+        bundle_dependency_closure "$UPDATER_DIR" "$UPDATER_DIR/OrcaSlicerUpdater"
     else
         echo "Warning: updater helper not found at ${UPDATER_HELPER_SRC}; in-app updates will fall back to the release page."
     fi
@@ -291,7 +296,7 @@ echo -n "[9/9] Generating Linux app..."
     # built with -g makes those helper paths unusable on Fedora and vice versa,
     # so rely on the host WebKitGTK runtime instead of copying the helper stack.
 
-    mapfile -d '' BUNDLE_TARGETS < <(find "$BIN_DIR" "$LIB_DIR" "$LIBEXEC_DIR" -type f -print0 2>/dev/null)
+    mapfile -d '' BUNDLE_TARGETS < <(find "$BIN_DIR" "$LIB_DIR" "$LIBEXEC_DIR" -type f -not -path "$UPDATER_DIR/*" -print0 2>/dev/null)
     bundle_dependency_closure "$PRIVATE_LIB_DIR" "${BUNDLE_TARGETS[@]}"
 
 cat << EOF >"$LIBEXEC_DIR/@SLIC3R_APP_CMD@-env"

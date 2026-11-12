@@ -190,3 +190,41 @@ TEST_CASE("The build a partial download belongs to is recorded next to it", "[Up
     CHECK(prep.dropped.empty());
     CHECK(read_text(marker_path(dir.path())) == kDigest);
 }
+
+TEST_CASE("A leftover partial download that cannot be removed is not recorded for resuming", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    // A directory where the .part should be: it is not a regular file, so it cannot be dropped.
+    fs::create_directories(part_path(dir.path()));
+
+    prepare_download_dir(dir.string(), kAsset, kDigest, kSize);
+    CHECK_FALSE(fs::exists(marker_path(dir.path())));
+}
+
+TEST_CASE("Only https release downloads from the OrcaSlicer repository are accepted", "[UpdateHandoff]")
+{
+    CHECK(is_release_download_url("https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/app.AppImage"));
+    CHECK_FALSE(is_release_download_url(""));
+    CHECK_FALSE(is_release_download_url("http://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/app.AppImage"));
+    CHECK_FALSE(is_release_download_url("https://github.com/someone/OrcaSlicer/releases/download/v2.5.0/app.AppImage"));
+    CHECK_FALSE(is_release_download_url("https://example.com/https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/app"));
+}
+
+TEST_CASE("The handoff round-trips through a cache directory with non-ASCII characters", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    const fs::path     cache = dir.path() / "caf\xc3\xa9";
+    set_updater_cache_dir(cache.string());
+
+    UpdateHandoff written;
+    written.version = "2.5.0";
+    written.url     = "https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/app.AppImage";
+    CHECK(write_handoff(written));
+
+    UpdateHandoff read;
+    CHECK(read_handoff(read));
+    CHECK(read.version == "2.5.0");
+    CHECK(read.url == written.url);
+
+    clear_updater_cache_dir();
+}

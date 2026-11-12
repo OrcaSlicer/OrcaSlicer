@@ -121,6 +121,9 @@ bool asset_matches_flavour(const std::string& name, InstallFlavour flavour, cons
     case InstallFlavour::LinuxAppImage:
         if (!contains(name, "AppImage") || !ends_with(name, ".AppImage"))
             return false;
+        // _belt builds are discontinued; their assets are never refreshed.
+        if (contains(name, "_belt"))
+            return false;
         return is_arm ? contains(name, "aarch64") : (is_x64 ? !contains(name, "aarch64") : false);
     case InstallFlavour::Msix:
     case InstallFlavour::Flatpak:
@@ -229,6 +232,12 @@ bool in_app_install_supported(InstallFlavour flavour)
     return false;
 }
 
+bool can_install_in_app(const UpdateCandidate& candidate, InstallFlavour flavour)
+{
+    return in_app_install_supported(flavour) && !candidate.asset.name.empty() && !candidate.asset.url.empty() &&
+           !candidate.asset.digest.empty();
+}
+
 UpdateCandidate resolve_update(const std::string& releases_json,
                                UpdateChannel       channel,
                                const std::string&  installed_artifact,
@@ -240,6 +249,12 @@ UpdateCandidate resolve_update(const std::string& releases_json,
 {
     UpdateCandidate candidate;
     candidate.channel = channel;
+
+    // The Store only ships the stable channel.
+    if (flavour == InstallFlavour::Msix && channel != UpdateChannel::Stable) {
+        candidate.reason = "store_channel";
+        return candidate;
+    }
 
     json releases;
     try {
@@ -268,16 +283,14 @@ UpdateCandidate resolve_update(const std::string& releases_json,
         candidate.version       = string_field(*release, "updated_at");
         candidate.version_label = nightly_label(candidate.version);
     } else {
-        // Stable and Pre-Release differ only in which entries they look at: Stable
-        // never offers a prerelease, Pre-Release offers nothing else. The nightly
-        // release is not semver, so neither channel ever picks it up.
+        // Stable never offers a prerelease. Pre-Release offers the newest release of
+        // either kind. The nightly release is not semver, so neither channel picks it up.
         Semver best;
         bool   have_best = false;
         for (const auto& entry : releases) {
             if (!entry.is_object())
                 continue;
-            const bool is_prerelease = bool_field(entry, "prerelease");
-            if (channel == UpdateChannel::PreRelease ? !is_prerelease : is_prerelease)
+            if (channel == UpdateChannel::Stable && bool_field(entry, "prerelease"))
                 continue;
             Semver parsed;
             if (!parse_tag_version(string_field(entry, "tag_name"), parsed))
@@ -301,8 +314,8 @@ UpdateCandidate resolve_update(const std::string& releases_json,
     candidate.asset         = pick_asset(*release, channel, candidate.version, flavour, arch);
 
     // Switching channel normally offers that channel's current artifact even when it sorts
-    // lower. Pre-Release is the exception: it holds only prereleases, so the override could
-    // only hand back something older than what is running.
+    // lower. Pre-Release is the exception: its candidate is the newest release of any kind,
+    // so the override could only hand back something older than what is running.
     const bool channel_switch = channel != UpdateChannel::PreRelease &&
                                 !installed_channel.empty() && installed_channel != update_channel_key(channel);
 
@@ -316,17 +329,11 @@ UpdateCandidate resolve_update(const std::string& releases_json,
         release_is_newer = true;
     }
 
-    if (candidate.asset.name.empty()) {
-        // Store, Flatpak and other flavours have no asset; offer the release so that the
-        // caller can open the Store or release page instead of hiding the update forever.
-        // A flavour that installs in-app must not be offered without an asset: there is
-        // nothing to download, so the caller would hand the updater an empty URL.
-        candidate.reason    = "no_asset_for_platform";
-        candidate.available = !in_app_install_supported(flavour) && (release_is_newer || channel_switch);
-        return candidate;
-    }
-    if (candidate.asset.digest.empty()) {
-        candidate.reason = "no_digest";
+    if (candidate.asset.name.empty() || candidate.asset.digest.empty()) {
+        // Offer the release even without an installable asset: the caller opens the Store or
+        // the release page instead, so the update is not hidden forever.
+        candidate.reason    = candidate.asset.name.empty() ? "no_asset_for_platform" : "no_digest";
+        candidate.available = release_is_newer || channel_switch;
         return candidate;
     }
     if (!installed_artifact.empty() && installed_artifact == candidate.asset.digest) {

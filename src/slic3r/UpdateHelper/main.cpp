@@ -1,10 +1,11 @@
 #include <cstdio>
-#include <filesystem>
-#include <fstream>
 #include <ios>
 #include <iterator>
 #include <string>
 
+#include <boost/filesystem.hpp>
+#include <boost/nowide/filesystem.hpp>
+#include <boost/nowide/fstream.hpp>
 #include <system_error>
 #include <wx/app.h>
 #include <wx/chartype.h>
@@ -15,7 +16,7 @@
 #include "libslic3r/UpdateHandoff.hpp"
 #include "slic3r/UpdateHelper/UpdateHelperFrame.hpp"
 
-namespace fs = std::filesystem;
+namespace fs = boost::filesystem;
 
 namespace {
 
@@ -43,7 +44,7 @@ bool parse_handoff_path(int argc, wxChar** argv, wxString& out)
 // never falls back to the default file.
 bool read_handoff_from_file(const std::string& path, Slic3r::UpdateHandoff& out)
 {
-    std::ifstream in(path, std::ios::binary);
+    boost::nowide::ifstream in(path, std::ios::binary);
     if (!in)
         return false;
     const std::string json{ std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>() };
@@ -78,8 +79,10 @@ void UpdateHelperApp::release_lock()
 
 bool UpdateHelperApp::OnInit()
 {
-    if (!wxApp::OnInit())
-        return false;
+    // Before any path is built: on Windows, std::filesystem and the narrow streams
+    // would otherwise read UTF-8 paths such as a profile under C:\Users\José as ANSI.
+    boost::nowide::nowide_filesystem();
+    // Not wxApp::OnInit(): its command-line parser rejects --handoff and returns false.
     SetAppName("OrcaSlicerUpdater");
 
     wxString handoff_arg;
@@ -120,13 +123,15 @@ bool UpdateHelperApp::OnInit()
     // stale file can never replay this update.
     Slic3r::remove_handoff();
     {
-        std::error_code ec;
+        boost::system::error_code ec;
         fs::remove(path, ec);
     }
 
-    if (handoff.url.empty()) {
+    if (!Slic3r::is_release_download_url(handoff.url)) {
         release_lock();
-        wxMessageBox("The update information is incomplete.", kDialogTitle, wxOK | wxICON_ERROR);
+        Slic3r::Updater::relaunch_app(handoff);
+        wxMessageBox("The update information is incomplete or does not point to an OrcaSlicer release.", kDialogTitle,
+                     wxOK | wxICON_ERROR);
         m_startup_failed = true;
         return true;
     }

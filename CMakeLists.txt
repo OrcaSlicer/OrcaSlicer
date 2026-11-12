@@ -1261,7 +1261,7 @@ elseif (MSVC AND NOT IS_CLANG_CL)
 endif ()
 
 # SLIC3R_BUILD_TIMESTAMP is the CI build time (UTC ISO-8601); empty on source
-# builds. libslic3r configures it into libslic3r_version.h when src is added below.
+# builds. libslic3r configures it into libslic3r_build_timestamp.h when src is added below.
 set(SLIC3R_BUILD_TIMESTAMP "${ORCA_BUILD_TIMESTAMP}")
 if(NOT SLIC3R_BUILD_TIMESTAMP AND DEFINED ENV{ORCA_BUILD_TIMESTAMP})
     set(SLIC3R_BUILD_TIMESTAMP "$ENV{ORCA_BUILD_TIMESTAMP}")

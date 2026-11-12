@@ -50,6 +50,7 @@
 #ifdef __APPLE__
 #include <cstdint>
 #include <mach-o/dyld.h>
+#include <sys/statvfs.h>
 #endif
 
 #ifdef _WIN32
@@ -255,8 +256,18 @@ void open_ms_store_product_page()
 bool is_running_in_appimage()
 {
 #ifdef __linux__
+    // The AppImage runtime exports APPIMAGE and APPDIR to every child, so a program started
+    // from a terminal inside an AppImage inherits them. Only an executable under the mounted
+    // AppDir is the AppImage itself.
     const char* appimage = std::getenv("APPIMAGE");
-    return appimage != nullptr && appimage[0] != '\0';
+    const char* appdir   = std::getenv("APPDIR");
+    if (appimage == nullptr || appimage[0] == '\0' || appdir == nullptr || appdir[0] == '\0')
+        return false;
+    char resolved[PATH_MAX];
+    if (::realpath(appdir, resolved) == nullptr)
+        return false;
+    const std::string prefix = std::string(resolved) + "/";
+    return app_exe_path().compare(0, prefix.size(), prefix) == 0;
 #else
     return false;
 #endif
@@ -298,6 +309,15 @@ bool inside_build_tree(const std::string& exe_path)
         dir = parent;
     }
     return false;
+}
+#endif
+
+#ifdef __APPLE__
+// A bundle on a read-only volume (a mounted disk image or an App Translocation copy) cannot be replaced.
+bool on_read_only_volume(const std::string& path)
+{
+    struct statvfs fs;
+    return ::statvfs(path.c_str(), &fs) == 0 && (fs.f_flag & ST_RDONLY) != 0;
 }
 #endif
 
@@ -359,9 +379,11 @@ Slic3r::InstallFlavour current_install_flavour()
     }
     return Slic3r::InstallFlavour::WindowsPortable;
 #elif defined __APPLE__
-    if (app_exe_path().find(".app/Contents/MacOS/") != std::string::npos)
-        return inside_build_tree(app_exe_path()) ? Slic3r::InstallFlavour::Other
-                                                 : Slic3r::InstallFlavour::MacOSBundle;
+    if (app_exe_path().find(".app/Contents/MacOS/") != std::string::npos) {
+        if (inside_build_tree(app_exe_path()) || on_read_only_volume(app_install_root()))
+            return Slic3r::InstallFlavour::Other;
+        return Slic3r::InstallFlavour::MacOSBundle;
+    }
     return Slic3r::InstallFlavour::Other;
 #elif defined __linux__
     if (is_running_in_appimage())
@@ -383,14 +405,18 @@ std::string app_install_root()
     if (bundle != std::string::npos)
         return exe.substr(0, bundle + 4); // include the ".app" extension
 #elif defined __linux__
-    const char* appimage = std::getenv("APPIMAGE");
-    if (appimage != nullptr && appimage[0] != '\0')
-        return appimage;
+    if (is_running_in_appimage())
+        return std::getenv("APPIMAGE");
 #endif
     return parent_directory(exe);
 }
 
 std::string update_cache_dir()
+{
+    return update_cache_dir(app_install_root());
+}
+
+std::string update_cache_dir(const std::string& install_root)
 {
     // The cache holds a few hundred megabytes of download and nothing the user would miss,
     // so it belongs in the OS cache directory rather than in the data directory.
@@ -405,11 +431,14 @@ std::string update_cache_dir()
     // Every portable copy of a release shares one cache name, so the cache carries a suffix
     // derived from the install root: install.lock, installed.json, pending.json, downloads/
     // and helper/ must not be shared with another portable install.
-    std::string root = app_install_root();
+    std::string root = install_root;
     boost::system::error_code ec;
-    const boost::filesystem::path canonical = boost::filesystem::canonical(boost::filesystem::path(root), ec);
+    const boost::filesystem::path path(install_root);
+    const boost::filesystem::path canonical = boost::filesystem::canonical(path, ec);
     if (!ec)
         root = canonical.string();
+    else if (const boost::filesystem::path parent = boost::filesystem::canonical(path.parent_path(), ec); !ec)
+        root = (parent / path.filename()).string(); // The folder itself is gone, as after a swap.
 
     const std::size_t hashed = std::hash<std::string>{}(root);
     char              suffix[13];

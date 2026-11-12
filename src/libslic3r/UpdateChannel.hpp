@@ -14,7 +14,7 @@ namespace Slic3r {
 
 enum class UpdateChannel {
     Stable,      // the newest published release
-    PreRelease,  // the newest alpha, beta or rc; a final release is never offered here
+    PreRelease,  // the newest release of any kind, alpha, beta, rc or final
     Nightly,     // the rolling nightly-builds release
 };
 
@@ -59,10 +59,13 @@ struct UpdateCandidate {
     // Why nothing is offered, for the log. Empty when available.
     std::string   reason;
 
-    // The identity of the artifact, used for skip and for "already installed".
-    // Empty when the release list carries no digest.
-    std::string   identity() const { return asset.digest; }
+    // The identity of the artifact, used for skip and for "already installed". Falls back to
+    // the version when the release list carries no digest, so a skip still sticks.
+    std::string   identity() const { return asset.digest.empty() ? version : asset.digest; }
 };
+
+// True when the candidate names an artifact the in-app updater can fetch and verify.
+bool can_install_in_app(const UpdateCandidate& candidate, InstallFlavour flavour);
 
 // releases_json is the array returned by /latest (GitHub releases shape).
 // running_version is SoftFever_VERSION; build_timestamp is SLIC3R_BUILD_TIMESTAMP

@@ -260,6 +260,12 @@ if (SLIC3R_GUI)
         # from Contents/MacOS, where build_release_macos.sh copies it as a file.
         set_target_properties(OrcaSlicerUpdater PROPERTIES MACOSX_BUNDLE FALSE)
     endif ()
+    if (UNIX AND NOT APPLE)
+        # The AppImage copies the helper with its libraries from bin/updater. --disable-new-dtags
+        # makes the $ORIGIN entry an RPATH, which ld.so also applies to the transitive dependencies.
+        set_target_properties(OrcaSlicerUpdater PROPERTIES BUILD_RPATH "$ORIGIN")
+        target_link_options(OrcaSlicerUpdater PRIVATE "LINKER:--disable-new-dtags")
+    endif ()
 
     target_include_directories(OrcaSlicerUpdater PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
     if (wxWidgets_INCLUDE_DIRS)

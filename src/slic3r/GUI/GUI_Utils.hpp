@@ -90,7 +90,8 @@ wxString format_nozzle_diameter(float diameter);
 bool is_running_in_msix();
 // Opens the Microsoft Store product page for the current package. No-op when not packaged.
 void open_ms_store_product_page();
-// True when started from an AppImage ($APPIMAGE is set and non-empty); always false elsewhere.
+// True when the executable runs from an AppImage's mounted $APPDIR ($APPIMAGE and $APPDIR are set);
+// always false elsewhere.
 bool is_running_in_appimage();
 // True when running inside a Flatpak sandbox (/.flatpak-info exists); always false elsewhere.
 bool is_running_in_flatpak();
@@ -104,6 +105,8 @@ std::string app_install_root();
 // dir inside the install tree, which the updater renames, so its cache carries a suffix
 // derived from the install root and stays outside that tree.
 std::string update_cache_dir();
+// The same cache for the install at `install_root`, which need not be the running build.
+std::string update_cache_dir(const std::string& install_root);
 
 // What a save entry point is about to write, for the unresolved-plugin warning below.
 enum class SaveSubject { Preset, Project };

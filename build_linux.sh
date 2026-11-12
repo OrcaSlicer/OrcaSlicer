@@ -384,6 +384,9 @@ function run_in_docker() {
     if [[ -n "${ORCA_UPDATER_SIG_KEY}" ]] ; then
         container_env+=( -e "ORCA_UPDATER_SIG_KEY=${ORCA_UPDATER_SIG_KEY}" )
     fi
+    if [[ -n "${ORCA_BUILD_TIMESTAMP}" ]] ; then
+        container_env+=( -e "ORCA_BUILD_TIMESTAMP=${ORCA_BUILD_TIMESTAMP}" )
+    fi
 
     ensure_docker_runner_image "${container_cli}" "${runner_image}"
 

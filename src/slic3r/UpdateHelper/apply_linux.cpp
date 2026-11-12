@@ -10,6 +10,7 @@
 #include <string>
 #include <system_error>
 
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -39,6 +40,16 @@ std::string parent_dir_of(const std::string& path)
 bool is_writable_dir(const std::string& dir)
 {
     return ::access(dir.c_str(), W_OK | X_OK) == 0;
+}
+
+bool sync_file(const std::string& path)
+{
+    const int fd = ::open(path.c_str(), O_RDONLY);
+    if (fd < 0)
+        return false;
+    const bool synced = ::fsync(fd) == 0;
+    ::close(fd);
+    return synced;
 }
 
 } // namespace
@@ -80,6 +91,37 @@ bool apply_linux_install(const UpdateHandoff& handoff, const std::string& artifa
         return false;
     }
 
+    // Staged beside the target, so the final rename stays on one filesystem. The
+    // artifact moves cheaply in the common case; a cache on another mount is copied
+    // and synced first.
+    const std::string staged = target + ".new-" + pid;
+    boost::filesystem::rename(boost::filesystem::path(artifact_path), boost::filesystem::path(staged), ec);
+    if (ec) {
+        boost::system::error_code copy_ec;
+        boost::filesystem::copy_file(boost::filesystem::path(artifact_path), boost::filesystem::path(staged),
+                                     boost::filesystem::copy_options::overwrite_existing, copy_ec);
+        if (copy_ec) {
+            remove_path_quietly(staged);
+            error = "The new AppImage could not be copied to " + install_dir + ": " + copy_ec.message() + ".";
+            return false;
+        }
+        if (!sync_file(staged)) {
+            remove_path_quietly(staged);
+            error = "The new AppImage could not be written to " + install_dir + ".";
+            return false;
+        }
+    }
+
+    // vfat, exFAT and NTFS mounts refuse chmod but already report the file as executable.
+    if (::chmod(staged.c_str(), 0755) != 0) {
+        const int chmod_errno = errno;
+        if (::access(staged.c_str(), X_OK) != 0) {
+            remove_path_quietly(staged);
+            error = "The new AppImage could not be made executable: " + std::string(std::strerror(chmod_errno)) + ".";
+            return false;
+        }
+    }
+
     // Written before anything moves: if we die between "old moved aside" and
     // "new in place", the application restores the backup on its next start.
     PendingInstall pending;
@@ -89,6 +131,7 @@ bool apply_linux_install(const UpdateHandoff& handoff, const std::string& artifa
     pending.channel = handoff.channel;
     pending.version = handoff.version;
     if (!write_pending_install(pending)) {
+        remove_path_quietly(staged);
         error = "The update could not be recorded, so nothing was changed.";
         return false;
     }
@@ -98,33 +141,32 @@ bool apply_linux_install(const UpdateHandoff& handoff, const std::string& artifa
     boost::filesystem::rename(boost::filesystem::path(target), boost::filesystem::path(backup), ec);
     if (ec) {
         remove_pending_install();
+        remove_path_quietly(staged);
         error = "The current AppImage could not be moved aside: " + ec.message() + ".";
         return false;
     }
 
-    // Same filesystem in the common case, so the artifact moves cheaply; a
-    // cache on another mount falls back to a copy.
-    boost::filesystem::rename(boost::filesystem::path(artifact_path), boost::filesystem::path(target), ec);
-    if (ec) {
-        boost::system::error_code copy_ec;
-        boost::filesystem::copy_file(boost::filesystem::path(artifact_path), boost::filesystem::path(target),
-                                     boost::filesystem::copy_options::overwrite_existing, copy_ec);
-        if (copy_ec) {
-            boost::filesystem::rename(boost::filesystem::path(backup), boost::filesystem::path(target), ec);
-            remove_pending_install();
-            error = "The new AppImage could not be written to " + target + ": " + copy_ec.message() + ".";
+    // True only when the previous AppImage is back at target. The pending record
+    // is kept otherwise, so the next start restores it.
+    auto restore_previous = [&]() -> bool {
+        boost::system::error_code restore_ec;
+        boost::filesystem::rename(boost::filesystem::path(backup), boost::filesystem::path(target), restore_ec);
+        if (restore_ec)
             return false;
-        }
-    }
-
-    if (::chmod(target.c_str(), 0755) != 0) {
-        boost::system::error_code ignore;
-        boost::filesystem::remove(boost::filesystem::path(target), ignore);
-        boost::filesystem::rename(boost::filesystem::path(backup), boost::filesystem::path(target), ignore);
         remove_pending_install();
-        error = "The new AppImage could not be made executable: " + std::string(std::strerror(errno)) + ".";
+        return true;
+    };
+    auto fail = [&](const std::string& message) -> bool {
+        const bool restored = restore_previous();
+        remove_path_quietly(staged);
+        error = message + (restored ? " The previous version was put back."
+                                    : " The previous version could not be restored; it is still at " + backup + ".");
         return false;
-    }
+    };
+
+    boost::filesystem::rename(boost::filesystem::path(staged), boost::filesystem::path(target), ec);
+    if (ec)
+        return fail("The new AppImage could not be put in place: " + ec.message() + ".");
 
     sink.say(Stage::Launching, 90, "Starting " + label);
 
@@ -134,20 +176,16 @@ bool apply_linux_install(const UpdateHandoff& handoff, const std::string& artifa
     record.digest  = handoff.digest;
     record.channel = handoff.channel;
     record.version = handoff.version;
-    write_install_record(record);
+    if (!write_install_record(record))
+        return fail("The update could not be recorded.");
 
     // Always the installed AppImage: handoff.exe_path points inside the running
     // mount and is gone as soon as the application exits.
     const std::string exe_path = target;
     std::string launch_error;
     if (!launch_detached(exe_path, launch_error)) {
-        boost::system::error_code ignore;
         remove_path_quietly(updater_install_record_path());
-        boost::filesystem::remove(boost::filesystem::path(target), ignore);
-        boost::filesystem::rename(boost::filesystem::path(backup), boost::filesystem::path(target), ignore);
-        remove_pending_install();
-        error = launch_error + " The previous version was put back.";
-        return false;
+        return fail(launch_error);
     }
 
     // Success: the backup and the pending record stay behind on purpose. Only

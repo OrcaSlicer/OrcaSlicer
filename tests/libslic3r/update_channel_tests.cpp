@@ -83,6 +83,76 @@ const char* nightly_releases_json()
     ])JSON";
 }
 
+// The nightly release lists the discontinued _belt AppImage before the main one.
+const char* nightly_belt_first_releases_json()
+{
+    return R"JSON([
+        {
+            "tag_name": "nightly-builds",
+            "prerelease": true,
+            "html_url": "https://example.invalid/releases/nightly-builds",
+            "body": "nightly release",
+            "updated_at": "2026-11-10T08:31:54Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly_belt.AppImage",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly_belt.AppImage",
+                    "digest": "sha256:belt",
+                    "size": 310
+                },
+                {
+                    "name": "OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly.AppImage",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly.AppImage",
+                    "digest": "sha256:nightly2",
+                    "size": 300
+                }
+            ]
+        }
+    ])JSON";
+}
+
+const char* nightly_belt_only_releases_json()
+{
+    return R"JSON([
+        {
+            "tag_name": "nightly-builds",
+            "prerelease": true,
+            "html_url": "https://example.invalid/releases/nightly-builds",
+            "body": "nightly release",
+            "updated_at": "2026-11-10T08:31:54Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly_belt.AppImage",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly_belt.AppImage",
+                    "digest": "sha256:belt",
+                    "size": 310
+                }
+            ]
+        }
+    ])JSON";
+}
+
+// The nightly release with its only asset carrying no digest.
+const char* nightly_release_without_digest_json()
+{
+    return R"JSON([
+        {
+            "tag_name": "nightly-builds",
+            "prerelease": true,
+            "html_url": "https://example.invalid/releases/nightly-builds",
+            "body": "nightly release",
+            "updated_at": "2026-11-10T08:31:54Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Windows_Installer_x64_nightly.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_x64_nightly.exe",
+                    "size": 300
+                }
+            ]
+        }
+    ])JSON";
+}
+
 // A stable release whose only asset carries no digest.
 const char* stable_release_without_digest_json()
 {
@@ -106,7 +176,7 @@ const char* stable_release_without_digest_json()
 
 // The shape the service returns while 2.6.0 is in flight: the final release, the
 // rolling nightly and the three prereleases, deliberately not in version order. The
-// final release sorts above every prerelease, so a channel that offered it would pick it.
+// final release sorts above every prerelease, so both Stable and Pre-Release offer it.
 const char* prerelease_releases_json()
 {
     return R"JSON([
@@ -325,25 +395,34 @@ TEST_CASE("Switching from stable to nightly offers the nightly release", "[Updat
     CHECK(candidate.reason == "channel_switch");
 }
 
-TEST_CASE("The pre-release channel offers the newest prerelease, never the final release", "[UpdateChannel]")
+TEST_CASE("The pre-release channel offers the final release when it is newer than every prerelease", "[UpdateChannel]")
 {
     const UpdateCandidate candidate = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease, "",
                                                      "", "2.5.0", "", InstallFlavour::WindowsInstaller, "x86_64");
 
     CHECK(candidate.available);
     CHECK(candidate.channel == UpdateChannel::PreRelease);
-    CHECK(candidate.version == "2.6.0-rc");
-    CHECK(candidate.asset.name == "OrcaSlicer_Windows_Installer_V2.6.0-rc_x64.exe");
-    CHECK(candidate.asset.digest == "sha256:2600rc");
+    CHECK(candidate.version == "2.6.0");
+    CHECK(candidate.asset.name == "OrcaSlicer_Windows_Installer_V2.6.0_x64.exe");
+    CHECK(candidate.asset.digest == "sha256:2600");
 }
 
-TEST_CASE("The pre-release channel offers nothing when no release is tagged as a prerelease", "[UpdateChannel]")
+TEST_CASE("The pre-release channel offers a prerelease newer than the newest final release", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(newer_prerelease_release_json(), UpdateChannel::PreRelease, "",
+                                                     "", "2.5.0", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.version == "2.7.0-alpha");
+}
+
+TEST_CASE("The pre-release channel offers the newest final release when no prerelease exists", "[UpdateChannel]")
 {
     const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::PreRelease, "", "",
                                                      "2.4.9", "", InstallFlavour::WindowsInstaller, "x86_64");
 
-    CHECK_FALSE(candidate.available);
-    CHECK(candidate.reason == "no_release");
+    CHECK(candidate.available);
+    CHECK(candidate.version == "2.5.0");
 }
 
 TEST_CASE("Stable never offers a prerelease that outranks every final release", "[UpdateChannel]")
@@ -356,35 +435,34 @@ TEST_CASE("Stable never offers a prerelease that outranks every final release", 
     CHECK(candidate.version == "2.6.0");
 }
 
-TEST_CASE("A prerelease older than the running build is not offered", "[UpdateChannel]")
+TEST_CASE("The pre-release channel offers nothing when the running build is the final release", "[UpdateChannel]")
 {
-    // Running the 2.6.0 final, the newest prerelease is its own rc, which is older.
+    // The newest release is the 2.6.0 final itself, so nothing is newer than the running build.
     const UpdateCandidate candidate = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease, "",
                                                      "", "2.6.0", "", InstallFlavour::WindowsInstaller, "x86_64");
 
     CHECK_FALSE(candidate.available);
     CHECK(candidate.reason == "up_to_date");
-    CHECK(candidate.version == "2.6.0-rc");
+    CHECK(candidate.version == "2.6.0");
 }
 
-TEST_CASE("A beta is offered the next release candidate", "[UpdateChannel]")
+TEST_CASE("A beta is offered the final release of its version", "[UpdateChannel]")
 {
     const UpdateCandidate candidate = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease, "",
                                                      "", "2.6.0-beta", "", InstallFlavour::WindowsInstaller, "x86_64");
 
     CHECK(candidate.available);
-    CHECK(candidate.version == "2.6.0-rc");
+    CHECK(candidate.version == "2.6.0");
 }
 
-TEST_CASE("A dev build ranks above the prereleases of its own version", "[UpdateChannel]")
+TEST_CASE("A dev build is offered the final release of its own version", "[UpdateChannel]")
 {
-    // Nightly builds keep the -dev suffix after the alpha and beta are tagged, and Semver
-    // ranks dev above every other prerelease identifier, so nothing here is newer.
+    // Semver ranks the final release above the -dev build of the same version.
     const UpdateCandidate candidate = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease, "",
                                                      "", "2.6.0-dev", "", InstallFlavour::WindowsInstaller, "x86_64");
 
-    CHECK_FALSE(candidate.available);
-    CHECK(candidate.reason == "up_to_date");
+    CHECK(candidate.available);
+    CHECK(candidate.version == "2.6.0");
 }
 
 TEST_CASE("Switching to pre-release does not offer a prerelease older than the running build", "[UpdateChannel]")
@@ -407,19 +485,20 @@ TEST_CASE("Switching to pre-release offers a prerelease newer than the running b
     CHECK(candidate.version == "2.7.0-alpha");
 }
 
-TEST_CASE("A skipped prerelease stays skipped until a newer one appears", "[UpdateChannel]")
+TEST_CASE("A skipped pre-release stays skipped until a newer one appears", "[UpdateChannel]")
 {
-    const UpdateCandidate candidate = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease, "",
-                                                     "", "2.5.0", "", InstallFlavour::WindowsInstaller, "x86_64");
+    const UpdateCandidate candidate = resolve_update(newer_prerelease_release_json(), UpdateChannel::PreRelease, "",
+                                                     "", "2.6.0", "", InstallFlavour::WindowsInstaller, "x86_64");
     REQUIRE(candidate.available);
 
-    CHECK(update_is_skipped(candidate, "2.6.0-rc", ""));
-    CHECK_FALSE(update_is_skipped(candidate, "2.6.0-beta", ""));
+    CHECK(update_is_skipped(candidate, "2.7.0-alpha", ""));
+    CHECK(update_is_skipped(candidate, "2.7.0", ""));
+    CHECK_FALSE(update_is_skipped(candidate, "2.6.0", ""));
 
-    std::string skip_version  = "2.6.0-beta";
+    std::string skip_version  = "2.6.0";
     std::string skip_artifact = "sha256:nightly2";
     update_skip_values(candidate, skip_version, skip_artifact);
-    CHECK(skip_version == "2.6.0-rc");
+    CHECK(skip_version == "2.7.0-alpha");
     CHECK(skip_artifact == "sha256:nightly2");
 }
 
@@ -433,28 +512,77 @@ TEST_CASE("An asset version matches regardless of case", "[UpdateChannel]")
     CHECK(candidate.asset.name == "OrcaSlicer_Windows_Installer_V2.3.2-RC_x64.exe");
 }
 
-TEST_CASE("A release asset without a digest is not offered", "[UpdateChannel]")
+TEST_CASE("A release asset without a digest is offered but cannot be installed in-app", "[UpdateChannel]")
 {
     const UpdateCandidate candidate = resolve_update(stable_release_without_digest_json(), UpdateChannel::Stable,
                                                      "", "", "2.4.9", "", InstallFlavour::WindowsInstaller,
                                                      "x86_64");
 
-    CHECK_FALSE(candidate.available);
+    CHECK(candidate.available);
     CHECK(candidate.reason == "no_digest");
     CHECK(candidate.asset.name == "OrcaSlicer_Windows_Installer_V2.5.0_x64.exe");
+    CHECK_FALSE(can_install_in_app(candidate, InstallFlavour::WindowsInstaller));
 }
 
-TEST_CASE("A supported flavour with no matching asset is not offered", "[UpdateChannel]")
+TEST_CASE("A supported flavour with no matching asset is offered so the release page can open", "[UpdateChannel]")
 {
     // An AppImage has nothing to download from a release that only ships a Windows
-    // installer: offering it would leave the updater with an empty URL.
+    // installer, so the caller falls back to the release page.
     const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::Stable, "", "",
                                                      "2.4.9", "", InstallFlavour::LinuxAppImage, "x86_64");
 
-    CHECK_FALSE(candidate.available);
+    CHECK(candidate.available);
     CHECK(candidate.reason == "no_asset_for_platform");
     CHECK(candidate.asset.name.empty());
     CHECK(candidate.version == "2.5.0");
+    CHECK(candidate.release_url == "https://example.invalid/releases/v2.5.0");
+    CHECK_FALSE(can_install_in_app(candidate, InstallFlavour::LinuxAppImage));
+}
+
+TEST_CASE("Only a candidate with an asset, URL and digest is installed in-app", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::Stable, "", "",
+                                                     "2.4.9", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(can_install_in_app(candidate, InstallFlavour::WindowsInstaller));
+    CHECK_FALSE(can_install_in_app(candidate, InstallFlavour::Msix));
+}
+
+TEST_CASE("The Store offers only the stable channel", "[UpdateChannel]")
+{
+    const UpdateCandidate nightly = resolve_update(nightly_releases_json(), UpdateChannel::Nightly,
+                                                   "sha256:nightly1", "nightly", "2.6.0-dev",
+                                                   "2026-11-01T00:00:00Z", InstallFlavour::Msix, "x86_64");
+    const UpdateCandidate prerelease = resolve_update(prerelease_releases_json(), UpdateChannel::PreRelease, "",
+                                                      "", "2.5.0", "", InstallFlavour::Msix, "x86_64");
+
+    CHECK_FALSE(nightly.available);
+    CHECK(nightly.reason == "store_channel");
+    CHECK_FALSE(prerelease.available);
+    CHECK(prerelease.reason == "store_channel");
+}
+
+TEST_CASE("An AppImage update takes the main build over a discontinued _belt build", "[UpdateChannel]")
+{
+    // The _belt asset is listed first, as it is on the nightly release.
+    const UpdateCandidate candidate = resolve_update(nightly_belt_first_releases_json(), UpdateChannel::Nightly,
+                                                     "sha256:nightly1", "nightly", "2.6.0-dev",
+                                                     "2026-11-01T00:00:00Z", InstallFlavour::LinuxAppImage, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.asset.name == "OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly.AppImage");
+    CHECK(candidate.asset.digest == "sha256:nightly2");
+}
+
+TEST_CASE("A _belt AppImage alone leaves the release offered without an in-app asset", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(nightly_belt_only_releases_json(), UpdateChannel::Nightly,
+                                                     "sha256:nightly1", "nightly", "2.6.0-dev",
+                                                     "2026-11-01T00:00:00Z", InstallFlavour::LinuxAppImage, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.reason == "no_asset_for_platform");
+    CHECK(candidate.asset.name.empty());
 }
 
 TEST_CASE("A Store flavour with no matching asset is offered so the Store or release page can open", "[UpdateChannel]")
@@ -518,6 +646,21 @@ TEST_CASE("A skipped nightly digest stays skipped until the build changes", "[Up
     CHECK(update_is_skipped(candidate, "", "sha256:nightly2"));
     CHECK_FALSE(update_is_skipped(candidate, "", "sha256:nightly1"));
     CHECK_FALSE(update_is_skipped(candidate, "", ""));
+}
+
+TEST_CASE("A nightly without a digest is skipped by its build time", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(nightly_release_without_digest_json(), UpdateChannel::Nightly,
+                                                     "sha256:nightly1", "nightly", "2.6.0-dev",
+                                                     "2026-11-01T00:00:00Z", InstallFlavour::WindowsInstaller,
+                                                     "x86_64");
+    REQUIRE(candidate.available);
+
+    std::string skip_version;
+    std::string skip_artifact;
+    update_skip_values(candidate, skip_version, skip_artifact);
+    CHECK(skip_artifact == "2026-11-10T08:31:54Z");
+    CHECK(update_is_skipped(candidate, "", skip_artifact));
 }
 
 TEST_CASE("Skipping records the version for stable and the digest for nightly", "[UpdateChannel]")

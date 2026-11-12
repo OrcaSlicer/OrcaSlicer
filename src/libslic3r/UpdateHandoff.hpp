@@ -96,6 +96,9 @@ DownloadPrep prepare_download_dir(const std::string& dir,
                                   const std::string& digest,
                                   int64_t            expected_size);
 
+// Only https downloads from the OrcaSlicer release page are fetched and installed.
+bool is_release_download_url(const std::string& url);
+
 std::string handoff_to_json(const UpdateHandoff& handoff);
 bool        handoff_from_json(const std::string& json, UpdateHandoff& out);
 bool        write_handoff(const UpdateHandoff& handoff);

@@ -8,11 +8,13 @@
 #include <cstdlib>
 #include <cstring>
 #include <exception>
-#include <fstream>
 #include <ios>
 #include <iterator>
 #include <string>
 #include <vector>
+
+#include <boost/nowide/convert.hpp>
+#include <boost/nowide/fstream.hpp>
 
 #ifdef _WIN32
 #include <boost/nowide/cstdlib.hpp>
@@ -20,6 +22,8 @@
 
 #include <boost/filesystem.hpp>
 #include <nlohmann/json.hpp>
+
+#include "Utils.hpp"
 
 #ifdef _WIN32
 #include <fcntl.h>
@@ -110,42 +114,17 @@ void ensure_parent_dir(const std::string& path)
 
 bool read_file(const std::string& path, std::string& out)
 {
-    std::ifstream input(path.c_str(), std::ios::binary);
+    boost::nowide::ifstream input(path, std::ios::binary);
     if (!input)
         return false;
     out.assign(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
     return true;
 }
 
-// Writes "<path>.tmp" and renames it over `path`, so a reader never sees half a record.
 bool write_file_atomic(const std::string& path, const std::string& payload)
 {
     ensure_parent_dir(path);
-    const std::string temporary = path + ".tmp";
-
-    {
-        std::ofstream output(temporary.c_str(), std::ios::binary | std::ios::trunc);
-        if (!output)
-            return false;
-        output.write(payload.data(), static_cast<std::streamsize>(payload.size()));
-        output.flush();
-        if (!output)
-            return false;
-    }
-
-    boost::system::error_code ec;
-    fs::rename(temporary, path, ec);
-    if (ec) {
-        // Windows refuses to rename over an existing file.
-        fs::remove(path, ec);
-        fs::rename(temporary, path, ec);
-    }
-    if (ec) {
-        boost::system::error_code ignored;
-        fs::remove(temporary, ignored);
-        return false;
-    }
-    return true;
+    return !write_file_atomically(path, payload, /*binary=*/true);
 }
 
 void remove_file(const std::string& path)
@@ -199,7 +178,7 @@ bool create_lock_file(const std::string& path, int64_t owner_pid)
 {
     const std::string text = std::to_string(owner_pid);
 #ifdef _WIN32
-    const int fd = ::_open(path.c_str(), _O_CREAT | _O_EXCL | _O_WRONLY | _O_BINARY, _S_IREAD | _S_IWRITE);
+    const int fd = ::_wopen(boost::nowide::widen(path).c_str(), _O_CREAT | _O_EXCL | _O_WRONLY | _O_BINARY, _S_IREAD | _S_IWRITE);
 #else
     const int fd = ::open(path.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0644);
 #endif
@@ -324,9 +303,16 @@ DownloadPrep prepare_download_dir(const std::string& dir,
     }
 
     // Recorded before the download, so a later run knows which build the .part belongs to.
-    if (!prep.complete)
+    // Not while an old .part survives: the download would resume on top of it.
+    if (!prep.complete && !fs::exists(part, ec))
         (void) write_file_atomic(marker.string(), digest);
     return prep;
+}
+
+bool is_release_download_url(const std::string& url)
+{
+    static const std::string prefix = "https://github.com/OrcaSlicer/OrcaSlicer/releases/download/";
+    return url.compare(0, prefix.size(), prefix) == 0;
 }
 
 std::string handoff_to_json(const UpdateHandoff& handoff)

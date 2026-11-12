@@ -4,14 +4,18 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
-#include <filesystem>
 #include <mutex>
 #include <stdio.h>
 #include <string>
 #include <system_error>
 
+#include <boost/filesystem.hpp>
+#include <boost/nowide/cstdio.hpp>
+
 #include <curl/curl.h>
+#include <curl/curlver.h>
 
 #if defined(_WIN32)
 #include <io.h>
@@ -21,7 +25,7 @@
 
 #include "libslic3r_version.h" // SoftFever_VERSION
 
-namespace fs = std::filesystem;
+namespace fs = boost::filesystem;
 
 namespace Slic3r {
 namespace Updater {
@@ -117,6 +121,29 @@ int progress_cb(void* userdata, curl_off_t dltotal, curl_off_t dlnow, curl_off_t
     return 0;
 }
 
+// The helper may not inherit the application's environment, so it finds the CA
+// bundle the way Http.cpp does for static builds. Windows has none of these
+// paths and relies on CURLSSLOPT_NATIVE_CA instead.
+std::string ca_bundle()
+{
+    static const char* kBundles[] = {
+        "/etc/pki/tls/certs/ca-bundle.crt",
+        "/etc/ssl/certs/ca-certificates.crt",
+        "/usr/share/ssl/certs/ca-bundle.crt",
+        "/usr/local/share/certs/ca-root-nss.crt",
+        "/etc/ssl/cert.pem",
+        "/etc/ssl/ca-bundle.pem",
+    };
+    boost::system::error_code ec;
+    if (const char* from_env = std::getenv("SSL_CERT_FILE"); from_env && fs::exists(fs::path(from_env), ec))
+        return from_env;
+    for (const char* bundle : kBundles) {
+        if (fs::exists(fs::path(bundle), ec))
+            return bundle;
+    }
+    return std::string();
+}
+
 std::string respond_error(CURLcode result, long http_code, const char* error_buffer)
 {
     std::string message;
@@ -154,7 +181,7 @@ DownloadResult HttpDownloader::download(const std::string&       url,
     }
 
     {
-        std::error_code ec;
+        boost::system::error_code ec;
         const fs::path parent = fs::path(part_path).parent_path();
         if (!parent.empty())
             fs::create_directories(parent, ec);
@@ -166,14 +193,14 @@ DownloadResult HttpDownloader::download(const std::string&       url,
 
     curl_off_t resume = 0;
     {
-        std::error_code ec;
+        boost::system::error_code ec;
         const auto size = fs::file_size(part_path, ec);
         if (!ec)
             resume = static_cast<curl_off_t>(size);
     }
     out.resumed_from = static_cast<int64_t>(resume);
 
-    std::FILE* file = std::fopen(part_path.c_str(), resume > 0 ? "ab" : "wb");
+    std::FILE* file = boost::nowide::fopen(part_path.c_str(), resume > 0 ? "ab" : "wb");
     if (!file) {
         out.error = "Could not open the download file: " + part_path;
         return out;
@@ -199,14 +226,26 @@ DownloadResult HttpDownloader::download(const std::string&       url,
 
     char error_buffer[CURL_ERROR_SIZE] = { 0 };
     const std::string agent = user_agent();
+    const std::string bundle = ca_bundle();
 
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+#if LIBCURL_VERSION_NUM >= 0x075500 // 7.85.0: CURLOPT_PROTOCOLS_STR
+    curl_easy_setopt(curl, CURLOPT_PROTOCOLS_STR, "https");
+    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS_STR, "https");
+#else
+    curl_easy_setopt(curl, CURLOPT_PROTOCOLS, static_cast<long>(CURLPROTO_HTTPS));
+    curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS, static_cast<long>(CURLPROTO_HTTPS));
+#endif
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_MAXREDIRS, kMaxRedirects);
+    curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
     curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, kConnectTimeoutSeconds);
     curl_easy_setopt(curl, CURLOPT_LOW_SPEED_LIMIT, kLowSpeedBytesPerSecond);
     curl_easy_setopt(curl, CURLOPT_LOW_SPEED_TIME, kLowSpeedSeconds);
+    curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
+    if (!bundle.empty())
+        curl_easy_setopt(curl, CURLOPT_CAINFO, bundle.c_str());
     curl_easy_setopt(curl, CURLOPT_USERAGENT, agent.c_str());
     curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error_buffer);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
@@ -232,7 +271,7 @@ DownloadResult HttpDownloader::download(const std::string&       url,
     std::fclose(file);
 
     {
-        std::error_code ec;
+        boost::system::error_code ec;
         const auto size = fs::file_size(part_path, ec);
         if (!ec)
             out.done = static_cast<int64_t>(size);
