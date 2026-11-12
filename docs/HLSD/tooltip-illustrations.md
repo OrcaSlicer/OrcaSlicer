@@ -77,8 +77,8 @@ slider rather than the slider itself.
 
 The hover test allows disabled items, since a control that cannot be used is the one whose tooltip
 has to say why. For the same reason the tooltip resets the style alpha that `disabled_begin()` halves,
-and it sets its own background colour, because a call from inside a combo or popup would otherwise
-inherit that popup's light background under the tooltip's white text.
+and it pushes the tooltip colours itself (`ImGuiWrapper::push_tooltip_style()`), because a call from
+inside a combo or popup would otherwise inherit that popup's light background under the tooltip's text.
 
 The painting tools share one table of text and pictures, `GLGizmoPainterBase::painter_tooltip()`, so a
 tool that appears in several of the four panels reads the same in all of them.
@@ -169,19 +169,28 @@ a key or the wheel hides the tooltip; it comes back, after the full wait, once t
 as the 3D view's does after a control has been let go. It also goes when the pointer leaves the control,
 when the application is deactivated, and when the control is hidden, moved or destroyed. Text wraps at
 the width of the 3D view's tooltips (300 DIP, its 20 em) and pictures are at most 150 DIP tall, laid out
-side by side at equal widths with their captions under them. Colours are the drop-down lists' palette,
-mapped for dark mode when it is drawn.
+side by side at equal widths with their captions under them. Colours are the dark mode palette of the
+drop-down lists, in both themes, and the 3D view's tooltips use the same ones
+(`ImGuiWrapper::push_tooltip_style()`): every tooltip in the application looks the same, and the
+pictures, drawn on dark, sit the same way in all of them.
 
 ### Where it goes
 
-Beside the control, never under the mouse and never on the control. In a settings page and most
-windows it goes below the control, level with its left edge, and above it when there is no room below.
-Rows of a page run top to bottom, so the label and the undo buttons beside a field stay in view and the
-next row is what is covered, as with any tooltip. For a control inside a popup - an item of a drop-down
-list - it goes beside the popup, level with the item: below the item it would cover the next items,
-which are what the user is choosing between. It is kept inside the work area of the control's display;
-on Wayland, where screen coordinates are relative to the window and the displays are unknown, inside
-the window the control is in.
+Beside the control, never under the mouse and never on the control, and off the controls around it
+where there is room, the way the texture-displacement panel's tooltips sit beside the panel:
+
+- For a control inside a popup - an item of a drop-down list - beside the popup, level with the item:
+  below the item it would cover the next items, which are what the user is choosing between.
+- For a control in a column of controls - the sidebar with the settings pages, a side panel - beside
+  the column, level with the control, so it covers the 3D view rather than the next rows of the page.
+  The column is found by walking up from the control: the outermost window below the top-level one that
+  is at least as tall as it is wide and at most three fifths of the top-level window's width.
+- In a dialog, beside the dialog. Not on Wayland, where a tooltip is kept inside its window.
+- Otherwise - a toolbar, a page as wide as the window - or when there is no room on either side: below
+  the control, level with its left edge, and above it when there is no room below.
+
+It is kept inside the work area of the control's display; on Wayland, where screen coordinates are
+relative to the window and the displays are unknown, inside the window the control is in.
 
 There is one popup window for all of them, a plain `wxPopupWindow` that draws everything itself and has
 no children. Not a `wxPopupTransientWindow` (Orca's `PopupWindow`): that kind grabs the pointer on GTK,
@@ -253,7 +262,8 @@ text, not its index, since some lists leave values out or are filled elsewhere.
 
 `scripts/gen_gizmo_tips.py` draws the toolbar's set (`scripts/gizmo_tips/toolbar.py`, the main toolbar's
 tools included) and the gizmo
-panels' sets (one module each in `scripts/gizmo_tips/`). Each picture is a scene - a model on the
+panels' sets (one module each in `scripts/gizmo_tips/`, except that `gizmos_anim.py` draws the loops of
+several panels and names each by its panel's folder). Each picture is a scene - a model on the
 print bed with the tool's handles, the pointer and the brush drawn over it - rendered by a small ray
 marcher from signed distance functions, which makes a cut, a boolean operation or an embossed letter a
 line of arithmetic each. The view is the plater's default, from the front right and above, so the

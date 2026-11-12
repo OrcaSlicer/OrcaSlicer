@@ -190,12 +190,12 @@ void GLGizmoPainterBase::painter_tooltip(PainterTip tip)
     case PainterTip::Vertical:
         panel_tooltip(_u8L("Keeps a brush stroke on a straight vertical line on the screen, however much the mouse "
                            "wanders sideways. Handy for straight seams and stripes."),
-                      {{"painting/stroke_vertical_off.png", _L("Off")}, {"painting/stroke_vertical_on.png", _L("On")}});
+                      {{"painting/stroke_vertical_off.gif", _L("Off")}, {"painting/stroke_vertical_on.gif", _L("On")}});
         break;
     case PainterTip::Horizontal:
         panel_tooltip(_u8L("Keeps a brush stroke on a straight horizontal line on the screen, however much the mouse "
                            "wanders up and down. Handy for straight stripes."),
-                      {{"painting/stroke_horizontal_off.png", _L("Off")}, {"painting/stroke_horizontal_on.png", _L("On")}});
+                      {{"painting/stroke_horizontal_off.gif", _L("Off")}, {"painting/stroke_horizontal_on.gif", _L("On")}});
         break;
     case PainterTip::EraseAll:
         panel_tooltip(_u8L("Removes all the paint of this tool from the object. What the other painting tools painted "
