@@ -32,6 +32,8 @@
 #include <utility>
 #include <wx/dataview.h>
 #include <wx/menu.h>
+#include <wx/menuitem.h>
+#include <wx/window.h>
 #include <wx/string.h>
 #include <wx/event.h>
 #include <cstddef>
@@ -417,6 +419,18 @@ static ObjectDataViewModel* list_model()
 static const Selection& get_selection()
 {
     return plater()->get_current_canvas3D(true)->get_selection();
+}
+
+// Most context menus are built once, so the item's label gets the shortcut's current key each
+// time its menu opens, which keeps it right after the user rebinds the shortcut.
+static void show_shortcut_key(wxWindow* parent, wxMenuItem* item, Shortcut shortcut)
+{
+    // Handlers bound later run first; Skip() lets append_menu_item()'s enable handler run too.
+    parent->Bind(wxEVT_UPDATE_UI, [label = item->GetItemLabel(), shortcut](wxUpdateUIEvent& evt) {
+        const std::string accel = wxGetApp().shortcuts().accelerator(shortcut);
+        evt.SetText(accel.empty() ? label : label + "\t" + from_u8(accel));
+        evt.Skip();
+    }, item->GetId());
 }
 
 //				  category ->		vector 			 ( option	;  label )
@@ -1117,9 +1131,10 @@ void MenuFactory::append_menu_item_export_drc(wxMenu* menu, bool is_mulity_menu)
 
 void MenuFactory::append_menu_item_reload_from_disk(wxMenu* menu)
 {
-    append_menu_item(menu, wxID_ANY, _L("Reload from disk"), _L("Reload the selected parts from disk"),
+    wxMenuItem* item = append_menu_item(menu, wxID_ANY, _L("Reload from disk"), _L("Reload the selected parts from disk"),
         [](wxCommandEvent&) { plater()->reload_from_disk(); }, "", menu,
         []() { return plater()->can_reload_from_disk(); }, m_parent);
+    show_shortcut_key(m_parent, item, Shortcut::ReloadFromDisk);
 }
 
 void MenuFactory::append_menu_item_replace_with_stl(wxMenu *menu)
@@ -2418,14 +2433,14 @@ wxMenu* MenuFactory::assemble_part_menu()
 
 void MenuFactory::append_menu_item_clone(wxMenu* menu)
 {
-    const std::string accel = wxGetApp().shortcuts().accelerator(Shortcut::CloneSelected);
-    append_menu_item(menu, wxID_ANY, _L("Clone") + (accel.empty() ? wxString() : "\t" + from_u8(accel)), "",
+    wxMenuItem* item = append_menu_item(menu, wxID_ANY, _L("Clone"), "",
         [](wxCommandEvent&) {
             plater()->clone_selection();
         }, "", nullptr,
         []() {
             return true;
         }, m_parent);
+    show_shortcut_key(m_parent, item, Shortcut::CloneSelected);
 }
 
 void MenuFactory::append_menu_item_simplify(wxMenu* menu)
