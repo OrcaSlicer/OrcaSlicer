@@ -3435,8 +3435,6 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_max_layer_z  = 0.f;
     m_last_width = 0.f;
     m_last_layer_accumulated_mass = 0.0;
-    m_is_role_based_fan_on.fill(false);
-    m_role_based_fan_marker_layer.fill(-1);
 
     m_fan_mover.reset();
     m_ordering_cache.clear();
@@ -6662,6 +6660,9 @@ LayerResult GCode::process_layer(
 
     // Initialize config with the 1st object to be printed at this layer.
     m_config.apply(layer.object()->config(), true);
+    // Orca: CoolingBuffer consumes role fan markers per layer, so continuing
+    // role-based fan regions need a fresh START marker on each new layer.
+    m_is_role_based_fan_on.fill(false);
 
     // Check whether it is possible to apply the spiral vase logic for this layer.
     // Just a reminder: A spiral vase mode is allowed for a single object, single material print only.
@@ -9952,14 +9953,11 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         assert(m_enable_cooling_markers);
 
         if (fan_on) {
-            // Orca: CoolingBuffer consumes role fan markers per layer, so continuing
-            // role-based fan regions need a fresh START marker on each new layer.
-            if (!m_is_role_based_fan_on[role] || m_role_based_fan_marker_layer[role] != m_layer_index) {
+            if (!m_is_role_based_fan_on[role]) {
                 gcode += ";";
                 gcode += marker_prefix;
                 gcode += "_FAN_START\n";
                 m_is_role_based_fan_on[role] = true;
-                m_role_based_fan_marker_layer[role] = m_layer_index;
             }
         } else {
             if (m_is_role_based_fan_on[role]) {
@@ -9967,7 +9965,6 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
                 gcode += marker_prefix;
                 gcode += "_FAN_END\n";
                 m_is_role_based_fan_on[role] = false;
-                m_role_based_fan_marker_layer[role] = -1;
             }
         }
     };
