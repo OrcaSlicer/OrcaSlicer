@@ -1,4 +1,6 @@
 #include "ExPolygon.hpp"
+#include "AdaptiveLayerMerge.hpp"
+#include "ExtrusionEntity.hpp"
 #include "Config.hpp"
 #include "Exception.hpp"
 #include "Line.hpp"
@@ -552,6 +554,8 @@ void PrintObject::make_perimeters()
     m_typed_slices = false;
     anchor_bridges_in_neighbours(m_layers, [this]() { m_print->throw_if_canceled(); });
 
+    this->compute_adaptive_merge_groups();
+
     // compare each layer to the one below, and mark those slices needing
     // one additional inner perimeter, like the top of domed objects-
 
@@ -810,6 +814,8 @@ void PrintObject::prepare_infill()
     this->combine_infill();
     m_print->throw_if_canceled();
 
+    this->combine_adaptive_infill();
+    m_print->throw_if_canceled();
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
         for (const Layer *layer : m_layers) {
@@ -1558,6 +1564,7 @@ bool PrintObject::invalidate_state_by_config_options(
             steps.emplace_back(posPerimeters);
         } else if (
                opt_key == "layer_height"
+            || opt_key == "extruder_layer_height"
             || opt_key == "mmu_segmented_region_max_width"
             || opt_key == "mmu_segmented_region_interlocking_depth"
             || opt_key == "raft_layers"
@@ -2527,6 +2534,19 @@ void PrintObject::process_external_surfaces()
     BOOST_LOG_TRIVIAL(debug) << "Processing external surfaces in parallel - end";
 }
 
+// Shell counts refer to deposited layers, while shell discovery operates on the fine grid.
+static int shell_layers_on_grid(const PrintObject &object, const PrintRegionConfig &config, bool top)
+{
+    const int layers = top ? config.top_shell_layers.value : config.bottom_shell_layers.value;
+    if (layers <= 0 || !has_extruder_layer_heights(object))
+        return layers;
+    const unsigned int filament = top ? config.top_surface_filament_id.value : config.bottom_surface_filament_id.value;
+    const double height = extruder_layer_height_for_filament(object.print()->config(), filament, object.config().layer_height.value);
+    const double grid = object.slicing_parameters().layer_height;
+    return top ? int(std::ceil(layers * height / grid - EPSILON)) :
+                 1 + int(std::ceil((layers - 1) * height / grid - EPSILON));
+}
+
 void PrintObject::discover_vertical_shells()
 {
     PROFILE_FUNC();
@@ -2651,9 +2671,9 @@ void PrintObject::discover_vertical_shells()
         Polygons        shell;
         Polygons        holes;
     };
-    const auto accumulation_key = [](const PrintRegionConfig &region_config, const LayerRegion *layerm) {
-        return AccumulationKey{ double(region_config.top_shell_layers.value), region_config.top_shell_thickness.value,
-                                double(region_config.bottom_shell_layers.value), region_config.bottom_shell_thickness.value,
+    const auto accumulation_key = [this](const PrintRegionConfig &region_config, const LayerRegion *layerm) {
+        return AccumulationKey{ double(shell_layers_on_grid(*this, region_config, true)), region_config.top_shell_thickness.value,
+                                double(shell_layers_on_grid(*this, region_config, false)), region_config.bottom_shell_thickness.value,
                                 double(layerm->flow(frExternalPerimeter).scaled_spacing()) };
     };
     const auto accumulate_shell = [this, &cache_top_botom_regions](size_t idx_layer, const PrintRegionConfig &region_config,
@@ -2677,7 +2697,7 @@ void PrintObject::discover_vertical_shells()
                             }
                         };
                         static constexpr const bool one_more_layer_below_top_bottom_surfaces = false;
-    			        if (int n_top_layers = region_config.top_shell_layers.value; n_top_layers > 0) {
+                        if (int n_top_layers = shell_layers_on_grid(*this, region_config, true); n_top_layers > 0) {
                             // Gather top regions projected to this layer.
                             coordf_t print_z = layer->print_z;
                             int i = int(idx_layer) + 1;
@@ -2706,7 +2726,7 @@ void PrintObject::discover_vertical_shells()
                                     (i <= itop || m_layers[i]->bottom_z() - print_z < region_config.top_shell_thickness - EPSILON))
                                     combine_holes(cache_top_botom_regions[i].holes);
     	                }
-    	                if (int n_bottom_layers = region_config.bottom_shell_layers.value; n_bottom_layers > 0) {
+                        if (int n_bottom_layers = shell_layers_on_grid(*this, region_config, false); n_bottom_layers > 0) {
                             // Gather bottom regions projected to this layer.
                             coordf_t bottom_z = layer->bottom_z();
                             int i = int(idx_layer) - 1;
@@ -4514,8 +4534,9 @@ void PrintObject::update_slicing_parameters()
               object_height = hr.object_height / shrinkage_compensation.z();
               belt_floor    = hr.floor_params;
           }
+          const auto layer_filaments = this->print()->layer_height_filaments();
           m_slicing_params = SlicingParameters::create_from_config(pcfg, m_config, object_height,
-                                                                   this->object_extruders(), shrinkage_compensation);
+                                                                   this->object_extruders(), shrinkage_compensation, &layer_filaments);
           // Populate belt floor parameters into slicing params for support clipping.
           m_slicing_params.belt_floor_shear_factor = belt_floor.shear_factor;
           m_slicing_params.belt_floor_from_axis    = belt_floor.from_axis;
@@ -4807,7 +4828,7 @@ void PrintObject::discover_horizontal_shells()
             for (size_t idx_surface_type = 0; idx_surface_type < 3; ++ idx_surface_type) {
                 m_print->throw_if_canceled();
                 SurfaceType type = (idx_surface_type == 0) ? stTop : (idx_surface_type == 1) ? stBottom : stBottomBridge;
-                int num_solid_layers = (type == stTop) ? region_config.top_shell_layers.value : region_config.bottom_shell_layers.value;
+                int num_solid_layers = shell_layers_on_grid(*this, region_config, type == stTop);
                 if (num_solid_layers == 0)
                 	continue;
                 // Find slices of current type for current layer.

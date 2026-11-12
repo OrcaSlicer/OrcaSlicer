@@ -1,3 +1,4 @@
+#include "AdaptiveLayerMerge.hpp"
 #include "ClipperUtils.hpp"
 #include "IMEXHelpers.hpp"
 #include "Geometry.hpp"
@@ -1357,6 +1358,8 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     check_model_ids_validity(model);
 #endif /* _DEBUG */
 
+    const auto previous_layer_filaments = layer_height_filaments();
+    const bool previous_layer_heights = has_extruder_layer_heights(m_config, previous_layer_filaments);
     //BBS: add more logs
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: enter")%__LINE__;
     // Normalize the config.
@@ -2305,8 +2308,37 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // Update SlicingParameters for each object where the SlicingParameters is not valid.
     // If it is not valid, then it is ensured that PrintObject.m_slicing_params is not in use
     // (posSlicing and posSupportMaterial was invalidated).
+    const bool current_layer_heights = has_extruder_layer_heights(m_config, layer_height_filaments());
     for (PrintObject *object : m_objects)
     {
+        // Keep automatic assignments in the project, but choose a stable physical
+        // tool before computing support slab heights and nozzle limits.
+        // Preserve assignments already resolved while applying the object config.
+        // Rebuilding from the model here can turn Auto back into Default and
+        // invalidate completed supports on an otherwise unchanged apply.
+        // When disabling per-tool heights, discard only the derived support
+        // assignments and restore the project's choices, including Auto.
+        PrintObjectConfig support_config = previous_layer_heights && !current_layer_heights ?
+            PrintObject::object_config_from_model_object(
+                m_default_object_config, *object->model_object(), num_extruders, print_variant_index) :
+            object->config();
+        if (object->has_support_material() && current_layer_heights) {
+            const auto filaments = object->object_extruders();
+            if (!filaments.empty()) {
+                if (support_config.support_filament.value == 0)
+                    support_config.support_filament.value = int(filaments.front() + 1);
+                if (support_config.support_interface_filament.value == 0)
+                    support_config.support_interface_filament = support_config.support_filament;
+            }
+        }
+        t_config_option_keys support_diff;
+        for (const char *key : {"support_filament", "support_interface_filament"})
+            if (*object->config().option(key) != *support_config.option(key))
+                support_diff.emplace_back(key);
+        if (!support_diff.empty()) {
+            update_apply_status(object->invalidate_state_by_config_options(object->config(), support_config, support_diff));
+            object->config_apply_only(support_config, support_diff, true);
+        }
         object->update_slicing_parameters();
         m_support_used |= object->config().enable_support;
     }
@@ -2337,10 +2369,17 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     check_model_ids_equal(m_model, model);
 #endif /* _DEBUG */
 
+    const auto current_layer_filaments = layer_height_filaments();
+    if (previous_layer_filaments != current_layer_filaments &&
+        (previous_layer_heights || has_extruder_layer_heights(m_config, current_layer_filaments)))
+        for (PrintObject *object : m_objects)
+            update_apply_status(object->invalidate_step(posSlice));
+
 	//BBS: add timestamp logic
 	if (apply_status != APPLY_STATUS_UNCHANGED)
 		m_modified_count++;
 	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: finished,  this %2%, m_modified_count %3%, apply_status %4%, m_support_used %5%")%__LINE__ %this %m_modified_count %apply_status %m_support_used;
+
 	return static_cast<ApplyStatus>(apply_status);
 }
 

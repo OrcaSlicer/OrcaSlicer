@@ -1182,6 +1182,7 @@ bool Preset::has_cali_lines(PresetBundle* preset_bundle)
 
 static std::vector<std::string> s_Preset_print_options{
     "layer_height",
+    "extruder_layer_height",
     "initial_layer_print_height",
     "wall_loops",
     "alternate_extra_wall",

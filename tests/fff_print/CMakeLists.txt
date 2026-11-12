@@ -3,6 +3,8 @@ add_executable(${_TEST_NAME}_tests
 	${_TEST_NAME}_tests.cpp
 	test_helpers.cpp
 	test_helpers.hpp
+	test_extruder_layer_height.cpp
+	test_active_nozzle.cpp
 	test_adaptive_pressure_advance.cpp
 	test_bridge.cpp
 	test_calib.cpp
@@ -33,6 +35,7 @@ add_executable(${_TEST_NAME}_tests
 	test_mixed_filament.cpp
 	test_seam_placer.cpp
 	test_skirt_brim.cpp
+	test_slicing_parameters.cpp
 	test_slicing_pipeline_hook.cpp
 	test_spiral_vase.cpp
 	test_support_material.cpp

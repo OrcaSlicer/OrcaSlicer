@@ -22,6 +22,7 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/log/trivial.hpp>          // the offer/atlas join check reports on the log
+#include <wx/defs.h>
 #include <wx/aui/framemanager.h>
 #include <wx/longlong.h>
 #include <wx/stopwatch.h>
