@@ -3145,9 +3145,14 @@ TEST_CASE("Organic leaning roots acquire a printable interface under their bead 
 TEST_CASE("Organic bottom interfaces anchor the run of a load hanging on from where it stands", "[TreeSupport][Organic][Material][Regression]")
 {
     // A base path 0.2 mm wide and 10 mm long stands at its start on an interface path 1 mm long, its run beyond in the air
-    // over a strip of bottom interface 0.5 mm wide, across the lines of the bottom interface at 45 degrees.
-    const double angle = GENERATE(0., M_PI / 4.);
-    CAPTURE(angle);
+    // over a strip of bottom interface, across the lines of the bottom interface at an angle. Lines 2.5 mm apart under a
+    // strip 0.5 mm wide, and 0.2 mm apart under a strip a little wider, where a grid of short lines touching the path
+    // takes the place of an anchor along it.
+    struct Case { double angle, width, spacing; };
+    const Case c = GENERATE(Case{ 0., .5, 2.5 }, Case{ M_PI / 4., .5, 2.5 }, Case{ M_PI / 12., .504822, .2 },
+        Case{ M_PI / 10., .525152, .2 });
+    CAPTURE(c.angle, c.width, c.spacing);
+    const double angle = c.angle;
     DynamicPrintConfig settings = DynamicPrintConfig::full_print_config();
     settings.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"}, {"support_style", "organic"},
         {"support_interface_bottom_layers", 1}, {"support_on_build_plate_only", 0}, {"layer_height", .1},
@@ -3159,13 +3164,14 @@ TEST_CASE("Organic bottom interfaces anchor the run of a load hanging on from wh
     object.slice();
     SupportParameters params(object);
     params.support_material_interface_flow = Flow(.4f, .1f, .4f);
-    params.bottom_interface_spacing = 2.5;
+    params.bottom_interface_spacing = c.spacing;
     SupportLayer &lower = *object.add_support_layer(0, 0, .1, .4);
     SupportLayer &upper = *object.add_support_layer(1, 1, .1, .5);
     const Flow base(.2f, .1f, .4f), interface(.4f, .1f, .4f);
     Polyline load(Point::new_scale(0., 0.), Point::new_scale(10., 0.));
     Polyline footing(Point::new_scale(0., 0.), Point::new_scale(1., 0.));
-    Polygon  strip({Point::new_scale(-.3, -.25), Point::new_scale(10.3, -.25), Point::new_scale(10.3, .25), Point::new_scale(-.3, .25)});
+    Polygon  strip({ Point::new_scale(-.3, -.5 * c.width), Point::new_scale(10.3, -.5 * c.width), Point::new_scale(10.3, .5 * c.width),
+        Point::new_scale(-.3, .5 * c.width) });
     load.rotate(angle);
     footing.rotate(angle);
     strip.rotate(angle);

@@ -262,6 +262,10 @@ TEST_CASE("Organic footing near a box grows near the box as the whole of it does
     // The footing of a bead 0.2 mm wide, its start bent by nanometres.
     cases.push_back({ offset(organic_bead(Polyline(Points{ {-4000000, 30}, {-2000000, 2}, {-1999500, 0}, {3000000, 0} }),
         scaled<double>(.2)), 10000.f), -310199, .4 });
+    // An outline 0.4 um thin, which offset() drops whole, and a hole listed apart from it, which offset() then grows into
+    // nothing and a union would fill.
+    cases.push_back({ { Polygon{ {-4000000, -200}, {4000000, -200}, {4000000, 200}, {-4000000, 200} },
+        Polygon{ {-3000000, -100}, {0, 150}, {3000000, -100} } }, 100000, .4 });
     for (size_t i = 0; i < cases.size(); ++ i) {
         const Case &c = cases[i];
         CAPTURE(i);

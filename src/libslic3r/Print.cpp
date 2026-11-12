@@ -3722,8 +3722,9 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 if (obj->set_started(posContouring))
                     obj->set_done(posContouring);
                 if (obj->set_started(posSupportMaterial)) {
-                    obj->set_done(posSupportMaterial);
+                    // Found while the step is started, as when generated: cancelled, the step runs again.
                     organic_update_loaded_support_warning(*obj);
+                    obj->set_done(posSupportMaterial);
                 }
                 if (obj->set_started(posDetectOverhangsForLift))
                     obj->set_done(posDetectOverhangsForLift);

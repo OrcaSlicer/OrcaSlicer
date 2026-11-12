@@ -405,7 +405,8 @@ void organic_anchor_bottom_interfaces(const std::vector<SupportLayer*> &layers,
                         [&](const Load &load) { return load.width + SCALED_EPSILON < flow.scaled_width(); })) {
                     // Plan a group of parallel beads before publishing individual anchors: a wide bead under one
                     // thin stem can otherwise occupy the only space for its neighbour. Accept a group only when
-                    // it carries every remaining component, so an incomplete grid cannot obstruct the fallback.
+                    // it holds all that hangs: a grid leaving a run of a load hanging stands where an anchor along
+                    // the run would go.
                     const BoundingBox box = get_extents(unheld);
                     const Point center = box.center();
                     const coord_t pitch = flow.scaled_width() + 2 * SCALED_EPSILON;
@@ -429,17 +430,15 @@ void organic_anchor_bottom_interfaces(const std::vector<SupportLayer*> &layers,
                                 append(material, bead);
                                 anchors.emplace_back(std::move(axis));
                             }
-                        const Polygons footing = offset(union_(material), float(scaled<double>(0.01)));
-                        if (std::all_of(loads.begin(), loads.end(), [&](const ExPolygon &part) {
-                                return ! intersection(to_polygons(part), footing).empty(); })) {
-                            printed = union_(material);
-                            extrusion_entities_append_paths(plane.layer->support_fills.entities, std::move(anchors),
-                                ExtrusionRole::erSupportMaterialInterface, flow.mm3_per_mm(), flow.width(), flow.height());
-                            // A run of a load hanging on from where it stands, which the grid may leave as it is, is left
-                            // to the anchors below.
-                            unheld = unsupported();
-                            break;
+                        Polygons previous = std::exchange(printed, union_(material));
+                        if (! unsupported().empty()) {
+                            printed = std::move(previous);
+                            continue;
                         }
+                        extrusion_entities_append_paths(plane.layer->support_fills.entities, std::move(anchors),
+                            ExtrusionRole::erSupportMaterialInterface, flow.mm3_per_mm(), flow.width(), flow.height());
+                        unheld.clear();
+                        break;
                     }
                     if (unheld.empty())
                         break;
@@ -1315,7 +1314,11 @@ Polygons organic_footing_near_box(const Polygons &footing, const BoundingBox &bo
     for (const Polygon &polygon : footing)
         if (get_extents(polygon).overlap(box))
             whole.push_back(polygon);
-    const Polygons cut  = ClipperUtils::clip_clipper_polygons_with_subject_bbox(offset_input(whole, delta), box);
+    Polygons thinned = offset_input(whole, delta);
+    // An outline offset() drops whole may leave a hole of it on its own, which a union would fill.
+    if (thinned.size() < whole.size())
+        return whole;
+    const Polygons cut  = ClipperUtils::clip_clipper_polygons_with_subject_bbox(std::move(thinned), box);
     Polygons       near = union_(cut);
     using Edge = std::pair<Point, Point>;
     const auto edge = [](const Point &p, const Point &q) {
