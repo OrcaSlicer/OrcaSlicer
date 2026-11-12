@@ -9791,7 +9791,10 @@ bool GLCanvas3D::_update_inactive_plates_visibility()
     if (plate != nullptr)
         for (const GLVolume* volume : m_volumes.volumes) {
             Instance& instance = instances[{ volume->object_idx(), volume->instance_idx() }];
-            instance.box.merge(volume->transformed_convex_hull_bounding_box());
+            // The footprint counts the same volumes plate membership does, the parts: a modifier
+            // or negative volume reaching over another plate does not put the object on it.
+            if (!volume->is_modifier)
+                instance.box.merge(volume->transformed_convex_hull_bounding_box());
             instance.selected |= volume->selected;
         }
 
