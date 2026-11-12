@@ -758,32 +758,6 @@ void GLTexture::render_sub_texture(unsigned int tex_id, float left, float right,
 // that it reports as framebuffer 0.
 enum class ECopyMethod : unsigned char { Unknown, Copy, Blit };
 
-// Copies into the bound texture and tells how copies should go from now on, Unknown to check again next time.
-static ECopyMethod first_copy(unsigned int width, unsigned int height)
-{
-    GLint sample_buffers = 0;
-    glsafe(::glGetIntegerv(GL_SAMPLE_BUFFERS, &sample_buffers));
-    if (sample_buffers == 0) {
-        glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
-        return ECopyMethod::Copy;
-    }
-    while (::glGetError() != GL_NO_ERROR) {} // so the check below sees only this copy
-    ::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height);
-    const GLenum error = ::glGetError();
-    if (error == GL_NO_ERROR) {
-        BOOST_LOG_TRIVIAL(info) << "Copying from the multisampled window framebuffer resolves it";
-        return ECopyMethod::Copy;
-    }
-    // Any other error says nothing about the samples.
-    if (error != GL_INVALID_OPERATION)
-        return ECopyMethod::Unknown;
-    // The blit uses the core framebuffer functions.
-    if (OpenGLManager::get_framebuffers_type() == OpenGLManager::EFramebufferType::Arb)
-        return ECopyMethod::Blit;
-    BOOST_LOG_TRIVIAL(warning) << "Neither a copy nor a blit resolves the multisampled window framebuffer";
-    return ECopyMethod::Copy;
-}
-
 // Resolves the bound read framebuffer into the texture, through framebuffer_id, created on first use. With check,
 // tells whether the blit worked.
 static bool blit_into_texture(unsigned int tex_id, unsigned int& framebuffer_id, unsigned int width, unsigned int height, bool check)
@@ -810,6 +784,37 @@ static bool blit_into_texture(unsigned int tex_id, unsigned int& framebuffer_id,
     return blitted;
 }
 
+// Copies the window into the bound texture, tex_id, and tells how to copy it from now on, Unknown to check again
+// next time.
+static ECopyMethod first_copy(unsigned int tex_id, unsigned int& framebuffer_id, unsigned int width, unsigned int height)
+{
+    GLint sample_buffers = 0;
+    glsafe(::glGetIntegerv(GL_SAMPLE_BUFFERS, &sample_buffers));
+    if (sample_buffers == 0) {
+        glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+        return ECopyMethod::Copy;
+    }
+    while (::glGetError() != GL_NO_ERROR) {} // so the check below sees only this copy
+    ::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height);
+    const GLenum error = ::glGetError();
+    if (error == GL_NO_ERROR) {
+        BOOST_LOG_TRIVIAL(info) << "Copying from the multisampled window framebuffer resolves it";
+        return ECopyMethod::Copy;
+    }
+    // Any other error says nothing about the samples.
+    if (error != GL_INVALID_OPERATION)
+        return ECopyMethod::Unknown;
+    // The blit uses the core framebuffer functions.
+    if (OpenGLManager::get_framebuffers_type() == OpenGLManager::EFramebufferType::Arb &&
+        blit_into_texture(tex_id, framebuffer_id, width, height, true)) {
+        BOOST_LOG_TRIVIAL(info) << "Copying from the multisampled window framebuffer failed; resolving it with a blit instead";
+        return ECopyMethod::Blit;
+    }
+    // Nothing resolves the samples: keep the copy.
+    BOOST_LOG_TRIVIAL(warning) << "Neither a copy nor a blit resolves the multisampled window framebuffer";
+    return ECopyMethod::Copy;
+}
+
 void GLTexture::copy_from_framebuffer(unsigned int& tex_id, unsigned int& framebuffer_id, std::array<unsigned int, 2>& tex_size,
                                       unsigned int width, unsigned int height, int filter)
 {
@@ -825,29 +830,19 @@ void GLTexture::copy_from_framebuffer(unsigned int& tex_id, unsigned int& frameb
         glsafe(::glBindTexture(GL_TEXTURE_2D, tex_id));
 
     if (tex_size[0] != width || tex_size[1] != height) {
-        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
+        // Sized like the window's colour buffer, as a resolve blit may need identical formats.
+        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
         tex_size = { width, height };
     }
 
     static ECopyMethod method = ECopyMethod::Unknown;
-    const bool first = method == ECopyMethod::Unknown;
-    if (first)
-        method = first_copy(width, height);
+    if (method == ECopyMethod::Unknown)
+        method = first_copy(tex_id, framebuffer_id, width, height);
     else if (method == ECopyMethod::Copy)
         glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+    else
+        blit_into_texture(tex_id, framebuffer_id, width, height, false);
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
-
-    if (method == ECopyMethod::Blit) {
-        const bool blitted = blit_into_texture(tex_id, framebuffer_id, width, height, first);
-        if (first) {
-            // Where the blit fails too, nothing resolves the samples: keep the copy.
-            method = blitted ? ECopyMethod::Blit : ECopyMethod::Copy;
-            if (blitted)
-                BOOST_LOG_TRIVIAL(info) << "Copying from the multisampled window framebuffer failed; resolving it with a blit instead";
-            else
-                BOOST_LOG_TRIVIAL(warning) << "Neither a copy nor a blit resolves the multisampled window framebuffer";
-        }
-    }
 }
 
 static bool to_squared_power_of_two(const std::string& filename, int max_size_px, int& w, int& h)
