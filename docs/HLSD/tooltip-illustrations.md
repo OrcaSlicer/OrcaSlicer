@@ -1,11 +1,26 @@
 # Tooltip illustrations
 
-The texture-displacement panel's tooltips can carry a picture under their text: a still image, or a
-short animation that loops while the tooltip is open. Several settings in that panel describe a shape
-rather than a number - what Rotation turns, what Tile repeats, what Invert turns inside out - and a
-sentence about a shape is read twice and understood once.
+Three sets of tooltips carry a picture under their text: a still image, or a short animation that
+loops while the tooltip is open.
+
+- The texture-displacement panel's settings. Several of them describe a shape rather than a number -
+  what Rotation turns, what Tile repeats, what Invert turns inside out - and a sentence about a shape
+  is read twice and understood once.
+- The tools of the toolbar over the 3D view: the gizmos, and the main and assemble view tools before
+  them (Add, Add plate, Orient, Arrange, the instance and split tools, Variable layer height, Assembly
+  view). A tool's name says little about what it does until it has been used once, and an icon even
+  less; a few seconds of the tool at work says it outright.
+- The controls in every other gizmo's panel: Move, Rotate and Scale, Cut, Mesh Boolean, the painting
+  tools, Text and SVG, Measure and Assemble, Simplify and Brim Ears. Pictures go only to the controls
+  that are a shape, a placement or a behaviour; a number or a plain on/off gets text alone.
+
+Both go through `slic3r/GUI/IllustratedTooltip.hpp`, which keeps the part that has to stay the same
+everywhere: when a tooltip appears, and how its pictures are decoded and played. Where it goes and how
+wide it is are left to the owner.
 
 ## Where a tooltip is drawn
+
+### The texture-displacement panel
 
 `GLGizmoTextureDisplacement::panel_tooltip()` replaces `ImGuiWrapper::tooltip()` throughout the panel.
 It differs in two ways.
@@ -25,9 +40,58 @@ tooltip near the bottom edge on screen.
 It also gives the tooltip a fixed width rather than one derived from its text, because a picture has
 to be laid out against something, and a column of tooltips that are all one width is steadier to read.
 
+### The gizmo toolbar
+
+`GLGizmosManager::render_toolbar_tooltip()` draws the tooltip of the toolbar icon under the pointer,
+in place of the one-line name `GLCanvas3D`'s own tooltip used to show for it. It goes under the icon,
+centred on it and kept inside the canvas, so reading along the toolbar never covers the next icons.
+It shows the tool's name and shortcut in bold, a sentence on what the tool is for, and one picture -
+three, captioned, for Mesh Boolean's three operations. When the tool cannot be opened yet, the reason
+`get_name()` gives for that follows the name, dimmed.
+
+The text and pictures for each tool are a table in `GLGizmosManager.cpp` (`toolbar_tip()`), keyed by
+the gizmo type, next to the list of gizmos it describes.
+
+The tools before the gizmos belong to `GLCanvas3D`'s main and assemble view toolbars, and
+`GLCanvas3D::_render_toolbar_tooltip()` gives them the same tooltip, from a table keyed by the tool's
+name (`toolbar_item_tip()`). The title is the tool's existing tooltip, shortcuts included, so its
+wording and translations stay as they were. A tool whose menu is open under it (Arrange, Variable layer
+height) keeps the plain tooltip, which would otherwise land on its own menu. From the moment the pointer
+reaches a tool with a picture, the plain tooltip that follows the mouse is held back, also during the
+wait, so the two never take turns.
+
+### The gizmo panels
+
+`GLGizmoBase::panel_tooltip()` is called right after the control it explains, on every frame, and
+checks the hover itself, so a panel needs no `if (IsItemHovered())` around it. It goes through
+`IllustratedTooltip::item_tooltip()`, which places the tooltip beside the panel's root window - to the
+right, or to the left when there is no room - level with the control. `GizmoObjectManipulation`, which
+draws the Move, Rotate and Scale panels but is not a gizmo, calls `item_tooltip()` directly.
+`slider_with_tooltip()` covers ImGuiWrapper's sliders, whose last item is the edit button beside the
+slider rather than the slider itself.
+
+The hover test allows disabled items, since a control that cannot be used is the one whose tooltip
+has to say why. For the same reason the tooltip resets the style alpha that `disabled_begin()` halves,
+and it sets its own background colour, because a call from inside a combo or popup would otherwise
+inherit that popup's light background under the tooltip's white text.
+
+The painting tools share one table of text and pictures, `GLGizmoPainterBase::painter_tooltip()`, so a
+tool that appears in several of the four panels reads the same in all of them.
+
+### The 3D view and Preview
+
+The canvas's own ImGui controls - the view menu, the section view and variable layer height panels,
+the Preview legend, layer slider and plate strip, the assembly view controls and the notification
+buttons - call `GLCanvas3D::view_tooltip()` right after the control, which goes through one
+`IllustratedTooltip` for all of them, since only one tooltip is up at a time. GCodeViewer, IMSlider and
+the notifications reach it through the current canvas. A tooltip is a window of its own rather than a
+popup, so one on an item of the view menu or of a combo does not close it.
+
 ## Where the pictures live
 
-`resources/images/texture_displacement/`, as PNG, JPG, BMP or GIF. A tooltip names them by file:
+`resources/images/texture_displacement/`, `resources/images/gizmo_toolbar/`,
+`resources/images/viewport/` and `resources/images/gizmos/<panel>/`, as PNG, JPG, BMP or GIF; the folder is given when the
+`IllustratedTooltip` is made, and the panels name their files with the subfolder (`"cut/connector_plug.png"`). A tooltip names them by file:
 
 ```cpp
 hover_tip(_u8L("Repeats the texture across the painted area. ..."),
@@ -89,6 +153,25 @@ than seconds. On a canvas that renders only when asked, that is not a clock at a
 by it crawls while the canvas is idle and races while a moving mouse is rendering it flat out.
 
 ## Making one
+
+### The toolbar
+
+`scripts/gen_gizmo_tips.py` draws the toolbar's set (`scripts/gizmo_tips/toolbar.py`, the main toolbar's
+tools included) and the gizmo
+panels' sets (one module each in `scripts/gizmo_tips/`, except that `gizmos_anim.py` draws the loops of
+several panels and names each by its panel's folder). Each picture is a scene - a model on the
+print bed with the tool's handles, the pointer and the brush drawn over it - rendered by a small ray
+marcher from signed distance functions, which makes a cut, a boolean operation or an embossed letter a
+line of arithmetic each. The view is the plater's default, from the front right and above, so the
+pictures look like the view the user is in. The model is grey; the one accent colour marks what the
+tool made or acts on: a painted area, a cut face, a selected face, the second part.
+
+The animations either loop with no step (Move, Rotate, Scale, Simplify and the embossing ones swing
+from one end of the change to the other and back) or show an action once and hold its result before
+starting over (the painting tools, Cut, Lay on Face, Assemble, Brim Ears). Frames that repeat are merged
+into one longer frame by the GIF encoder.
+
+### The texture-displacement panel
 
 `scripts/gen_texture_displacement_tips.py` draws the lot, in four languages, picked by what the
 setting actually is:

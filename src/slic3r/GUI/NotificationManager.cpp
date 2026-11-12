@@ -1047,6 +1047,7 @@ void NotificationManager::PopNotification::render_minimize_button(ImGuiWrapper& 
 	{
 		m_multiline = false;
 	}
+	wxGetApp().plater()->get_current_canvas3D()->view_tooltip(_L("Shows only the start of this notification."));
 
 	ImGui::PopStyleColor(5);
 	m_minimize_b_visible = true;
@@ -1507,6 +1508,7 @@ void NotificationManager::URLDownloadNotification::render_pause_button_inner(ImG
 	{
 		trigger_user_action_callback(m_download_paused ? DownloaderUserAction::DownloadUserContinued : DownloaderUserAction::DownloadUserPaused);
 	}
+	wxGetApp().plater()->get_current_canvas3D()->view_tooltip(m_download_paused ? _L("Resumes the download.") : _L("Pauses the download."));
 	ImGui::PopStyleColor(5);
 }
 
@@ -1548,6 +1550,7 @@ void NotificationManager::URLDownloadNotification::render_open_button_inner(ImGu
 	{
 		trigger_user_action_callback(DownloaderUserAction::DownloadUserOpenedFolder);
 	}
+	wxGetApp().plater()->get_current_canvas3D()->view_tooltip(_L("Opens the folder the file was downloaded to."));
 	ImGui::PopStyleColor(5);
 }
 
@@ -1587,6 +1590,7 @@ void NotificationManager::URLDownloadNotification::render_cancel_button_inner(Im
 	{
 		trigger_user_action_callback(DownloaderUserAction::DownloadUserCanceled);
 	}
+	wxGetApp().plater()->get_current_canvas3D()->view_tooltip(_L("Cancels the download."));
 	ImGui::PopStyleColor(5);
 
 }
@@ -1873,6 +1877,7 @@ void NotificationManager::ProgressIndicatorNotification::render_cancel_button(Im
 	{
 		on_cancel_button();
 	}
+	wxGetApp().plater()->get_current_canvas3D()->view_tooltip(_L("Cancels this operation."));
 	ImGui::PopStyleColor(5);
 }
 void NotificationManager::ProgressIndicatorNotification::render_close_button(ImGuiWrapper& imgui, const float win_size_x, const float win_size_y, const float win_pos_x, const float win_pos_y)

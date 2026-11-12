@@ -43,6 +43,7 @@
 #include "SelectionOutline.hpp"
 #include "FrameProfiler.hpp"
 #include "IMToolbar.hpp"
+#include "IllustratedTooltip.hpp"
 #include "slic3r/GUI/3DBed.hpp"
 #include "libslic3r/Slicing.hpp"
 
@@ -813,6 +814,10 @@ private:
         const GLCanvas3D* owner; // whose objects place the plane
     };
     std::shared_ptr<SectionView> m_section_view{ std::make_shared<SectionView>(this) };
+    // The tooltips of the canvas's own ImGui controls: the view menu, the section view and variable
+    // layer height panels, the Preview legend, layer slider and plate strip, the assembly controls. One for
+    // all of them, since only one tooltip is up at a time. See view_tooltip().
+    IllustratedTooltip m_view_tip{ "viewport" };
     std::map<const GLVolume*, MeshClipper> m_section_view_caps;
     // Its release would open the hidden window menu on Windows.
     bool m_alt_wheel_used{ false };
@@ -916,6 +921,8 @@ private:
     CenterOfMass m_center_of_mass;
     Tooltip m_tooltip;
     bool m_tooltip_enabled{ true };
+    // The tooltips with pictures of the main and assemble view toolbars' tools, see _render_toolbar_tooltip().
+    IllustratedTooltip m_toolbar_tip{"gizmo_toolbar"};
     Slope m_slope;
 
     OrientSettings m_orient_settings_fff, m_orient_settings_sla;
@@ -1493,6 +1500,11 @@ public:
     void msw_rescale() { m_gcode_viewer.invalidate_legend(); }
 
     void request_extra_frame() { m_extra_frame_requested = true; }
+    // The tooltip of the ImGui item just submitted in one of the canvas's own panels (the view menu, the
+    // variable layer height panel, the Preview legend, layer slider and plate strip, the assembly
+    // controls), shown once the pointer has rested on it. Call it on every frame, right after the item.
+    // Pictures are named within resources/images/viewport. See IllustratedTooltip.
+    void view_tooltip(const wxString& text, const std::vector<IllustratedTooltip::Media>& media = {});
     // whether the user is holding the camera, the navigator, a gizmo, the rectangle selection or a preview slider
     bool is_user_interacting() const;
 
@@ -1725,6 +1737,7 @@ private:
     //BBS: GUI refactor: adjust main toolbar position
     bool _render_orient_menu(float left, float right, float bottom, float top);
     void _render_arrange_menu(float left, float right, float bottom, float top);
+    bool _render_toolbar_tooltip(GLToolbar &toolbar);
     void _render_3d_navigator();
 
     void _update_volumes_hover_state();

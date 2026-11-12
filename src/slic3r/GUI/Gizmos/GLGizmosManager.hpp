@@ -3,6 +3,7 @@
 
 #include "slic3r/GUI/GLTexture.hpp"
 #include "slic3r/GUI/GLToolbar.hpp"
+#include "slic3r/GUI/IllustratedTooltip.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosCommon.hpp"
 //BBS: GUI refactor: add object manipulation
@@ -150,7 +151,14 @@ private:
 
     bool activate_gizmo(EType type);
 
-    std::string m_tooltip;
+    // The toolbar icon under the pointer, whether or not its tool can be opened (m_hover is only set when
+    // it can), and the tooltip that explains it.
+    EType m_tooltip_hover;
+    IllustratedTooltip m_toolbar_tip{"gizmo_toolbar"};
+    void render_toolbar_tooltip();
+    // Screen x, in pixels, of the left edge of the first icon on the toolbar.
+    float get_icons_left() const;
+
     bool m_serializing;
     std::unique_ptr<CommonGizmosDataPool> m_common_gizmos_data;
 

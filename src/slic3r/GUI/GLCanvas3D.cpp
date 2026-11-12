@@ -461,17 +461,15 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
 
     if (imgui.button(_L("Adaptive")))
         wxPostEvent((wxEvtHandler*)canvas.get_wxglcanvas(), Event<float>(EVT_GLCANVAS_ADAPTIVE_LAYER_HEIGHT_PROFILE, m_adaptive_quality));
+    canvas.view_tooltip(_L("Sets the layer heights from the shape of the object: thin layers where its surface slopes gently, thick ones on steep walls. Replaces the current layer heights."),
+                         { { "vlh_adaptive.png", {} } });
     ImGui::SameLine();
     static float text_align = ImGui::GetCursorPosX();
     ImGui::AlignTextToFramePadding();
     text_align = std::max(text_align, ImGui::GetCursorPosX());
     ImGui::SetCursorPosX(text_align);
     imgui.text(_L("Quality / Speed"));
-    if (ImGui::IsItemHovered()) {
-        //ImGui::BeginTooltip();
-        //ImGui::TextUnformatted(_L("Higher print quality versus higher print speed.").ToUTF8());
-        //ImGui::EndTooltip();
-    }
+    const wxString quality_tip = _L("How fine Adaptive makes the layers. Toward Quality, thinner layers on sloped surfaces for a smoother finish; toward Speed, thicker ones for a faster print. Takes effect on clicking Adaptive.");
     ImGui::SameLine();
     static float slider_align = ImGui::GetCursorPosX();
     ImGui::PushItemWidth(sliders_width);
@@ -479,15 +477,19 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
     slider_align = std::max(slider_align, ImGui::GetCursorPosX());
     ImGui::SetCursorPosX(slider_align);
     imgui.bbl_slider_float_style("##adaptive_slider", &m_adaptive_quality, 0.0f, 1.f, "%.2f");
+    canvas.view_tooltip(quality_tip);
     ImGui::SameLine();
     static float input_align = ImGui::GetCursorPosX();
     ImGui::PushItemWidth(input_box_width);
     input_align = std::max(input_align, ImGui::GetCursorPosX());
     ImGui::SetCursorPosX(input_align);
     ImGui::BBLDragFloat("##adaptive_input", &m_adaptive_quality, 0.05f, 0.0f, 0.0f, "%.2f");
+    canvas.view_tooltip(quality_tip);
 
     if (imgui.button(_L_CONTEXT("Smooth", "Mesh action")))
         wxPostEvent((wxEvtHandler*)canvas.get_wxglcanvas(), HeightProfileSmoothEvent(EVT_GLCANVAS_SMOOTH_LAYER_HEIGHT_PROFILE, m_smooth_params));
+    canvas.view_tooltip(_L("Evens out sudden changes of layer height between neighboring layers, so they show less on the surface of the print."),
+                         { { "vlh_adaptive.png", _L("Before") }, { "vlh_smooth.png", _L("After") } });
     ImGui::SameLine();
     text_align = std::max(text_align, ImGui::GetCursorPosX());
     ImGui::SetCursorPosX(text_align);
@@ -504,10 +506,12 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(238 / 255.0f, 238 / 255.0f, 238 / 255.0f, 0.00f));
     ImGui::PushStyleColor(ImGuiCol_SliderGrab, ImVec4(0.81f, 0.81f, 0.81f, 1.0f));
     ImGui::PushStyleColor(ImGuiCol_SliderGrabActive, ImVec4(0.00f, 0.59f, 0.53f, 1.00f));
+    const wxString radius_tip = _L("How far Smooth reaches: a larger radius blends each layer height with more of the layers around it, for gentler changes.");
     if(ImGui::BBLSliderScalar("##radius_slider", ImGuiDataType_S32, &radius, &v_min, &v_max)){
         radius = std::clamp(radius, 1, 10);
         m_smooth_params.radius = (unsigned int)radius;
     }
+    canvas.view_tooltip(radius_tip);
     ImGui::PopStyleColor(4);
     ImGui::PopStyleVar();
     ImGui::SameLine();
@@ -519,11 +523,15 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
     ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.00f, 0.59f, 0.53f, 0.00f));
     ImGui::BBLDragScalar("##radius_input", ImGuiDataType_S32, &radius, 1, &v_min, &v_max);
     ImGui::PopStyleColor(3);
+    canvas.view_tooltip(radius_tip);
 
+    const wxString keep_min_tip = _L("Smooth never makes a layer thicker than it was, so the thin layers that hold fine detail stay thin.");
     imgui.bbl_checkbox("##keep_min", m_smooth_params.keep_min);
+    canvas.view_tooltip(keep_min_tip);
     ImGui::SameLine();
     ImGui::AlignTextToFramePadding();
     imgui.text(_L("Keep min"));
+    canvas.view_tooltip(keep_min_tip);
 
     if (!m_other_object_ids.empty()) {
         // Several objects are selected: by default they share one profile, which the prime tower requires.
@@ -557,6 +565,7 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
     if (imgui.button(_L("Reset"))) {
         wxPostEvent((wxEvtHandler*) canvas.get_wxglcanvas(), SimpleEvent(EVT_GLCANVAS_RESET_LAYER_HEIGHT_PROFILE));
     }
+    canvas.view_tooltip(_L("Returns the object to the even layer height of its process settings, discarding the changes made here."));
     imgui.disabled_end();
 
     ImGui::SameLine();
@@ -570,6 +579,7 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
         canvas.set_as_dirty();
         canvas.request_extra_frame();
     }
+    canvas.view_tooltip(_L("Closes this panel. The layer heights stay as they are."));
 
     GLCanvas3D::LayersEditing::s_overlay_window_width = ImGui::GetWindowSize().x;
     imgui.end();
@@ -3253,6 +3263,7 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
 
     std::string tooltip;
+    bool        toolbar_tip = false; // a toolbar tool's tooltip with a picture is up, or waiting to be
 
 	// Negative coordinate means out of the window, likely because the window was deactivated.
 	// In that case the tooltip should be hidden.
@@ -3263,11 +3274,14 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 	    if (tooltip.empty())
 	        tooltip = m_gizmos.get_tooltip();
 
-	    if (tooltip.empty())
+        if (tooltip.empty())
+            toolbar_tip = _render_toolbar_tooltip(m_main_toolbar) || _render_toolbar_tooltip(m_assemble_view_toolbar);
+
+	    if (tooltip.empty() && !toolbar_tip)
 	        tooltip = m_main_toolbar.get_tooltip();
 
         //BBS: GUI refactor: GLToolbar
-        if (tooltip.empty())
+        if (tooltip.empty() && !toolbar_tip)
             tooltip = m_assemble_view_toolbar.get_tooltip();
 
 	    if (tooltip.empty())
@@ -3286,6 +3300,8 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
         tooltip.clear();
 
     set_tooltip(tooltip);
+    if (!toolbar_tip)
+        m_toolbar_tip.reset();
 
     if (m_tooltip_enabled)
         m_tooltip.render(m_mouse.position, *this);
@@ -7341,6 +7357,89 @@ bool GLCanvas3D::_render_orient_menu(float left, float right, float bottom, floa
 }
 
 //BBS: GUI refactor: adjust main toolbar position
+namespace {
+
+// What a main or assemble view toolbar tool's tooltip says under its name and shortcut, and the picture
+// under that, named within resources/images/gizmo_toolbar. scripts/gizmo_tips/toolbar.py draws them, with
+// the gizmo tools' ones beside them.
+struct ToolbarItemTip
+{
+    std::string text;
+    std::string picture;
+};
+
+ToolbarItemTip toolbar_item_tip(const std::string &name)
+{
+    if (name == "add")
+        return {_u8L("Loads models from files, such as STL, STEP, OBJ or 3MF, and places them on the plate."), "add.gif"};
+    if (name == "addplate")
+        return {_u8L("Adds an empty plate. Each plate is sliced and printed as a job of its own, so one project can "
+                     "hold several prints."),
+                "add_plate.gif"};
+    if (name == "orient")
+        return {_u8L("Turns the objects so they need as little support as possible and rest on a large flat face."),
+                "orient.gif"};
+    if (name == "arrange")
+        return {_u8L("Lays the objects out on the plate so none of them overlap. Click it for the options, such as "
+                     "spacing and rotation, and the Arrange button."),
+                "arrange.gif"};
+    if (name == "more")
+        return {_u8L("Adds a copy of the selected object. Copies share its parts, settings and modifiers, and each "
+                     "one can still be moved and turned on its own."),
+                "instance_add.gif"};
+    if (name == "fewer")
+        return {_u8L("Removes a copy of the selected object."), "instance_remove.gif"};
+    if (name == "splitobjects")
+        return {_u8L("Turns each separate piece of the selected object into an object of its own, which can then be "
+                     "placed and set up on its own."),
+                "split_objects.gif"};
+    if (name == "splitvolumes")
+        return {_u8L("Turns each separate piece of the selected object into a part of it. The parts stay together, "
+                     "but each can take its own filament and settings."),
+                "split_parts.gif"};
+    if (name == "layersediting")
+        return {_u8L("Opens the variable layer height editor: thinner layers where the surface curves, for smoother "
+                     "slopes, and thicker ones where it does not, to save time."),
+                "variable_layer_height.gif"};
+    if (name == "assembly_view")
+        return {_u8L("Shows the objects as an assembly, with a slider that spreads their parts apart to see how they "
+                     "fit together."),
+                "assembly_view.gif"};
+    return {};
+}
+
+} // namespace
+
+// The tooltip of the toolbar tool under the pointer, when that tool has a picture: its name and shortcut as
+// before, what it does, and the tool at work. Under the toolbar, centred on the tool, like the gizmo tools'
+// tooltips (GLGizmosManager::render_toolbar_tooltip()), so the whole row of tools reads alike. True while
+// such a tool is hovered, also during the wait before the tooltip appears, so the plain tooltip that
+// follows the mouse stays away; false otherwise, and for a tool whose menu is open under it.
+bool GLCanvas3D::_render_toolbar_tooltip(GLToolbar &toolbar)
+{
+    const GLToolbarItem *item = toolbar.get_hovered_item();
+    if (!m_tooltip_enabled || item == nullptr || item->is_pressed())
+        return false;
+    const ToolbarItemTip tip = toolbar_item_tip(item->get_name());
+    if (tip.picture.empty())
+        return false;
+
+    const float cnv_w     = float(get_canvas_size().get_width());
+    const float icon_left = (1.f + item->render_left_pos) * cnv_w / 2.f; // render_left_pos is in -1..1
+    if (!m_toolbar_tip.ready(ImVec2(icon_left, 0.f), *this))
+        return true;
+
+    std::string title = item->get_tooltip();
+    if (!item->get_additional_tooltip().empty())
+        title += "\n" + item->get_additional_tooltip();
+    ImGuiWrapper &imgui = *wxGetApp().imgui();
+    const float   width = IllustratedTooltip::width(title + "\n" + tip.text, true, imgui.scaled(20.f));
+    const float   x     = std::clamp(icon_left + 0.5f * (toolbar.get_scaled_icons_size() - width), 0.f, std::max(0.f, cnv_w - width));
+    const float   y     = toolbar.get_height() + imgui.scaled(0.3f);
+    m_toolbar_tip.render(ImVec2(x, y), width, title, tip.text, {{tip.picture, {}}}, *this);
+    return true;
+}
+
 void GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, float top)
 {
     ImGuiWrapper *imgui = wxGetApp().imgui();
@@ -11391,6 +11490,9 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                 }
             }
         }
+        view_tooltip(all_plates_stats_item->slice_state == IMToolbarItem::SliceState::SLICE_FAILED ?
+            _L("Some plates could not be sliced. Click a plate marked in red to go back to Prepare and review it.") :
+            _L("Slices every plate that has objects on it, then shows the print time and filament use of all of them together."));
 
         ImGui::PopStyleColor(3);
 
@@ -11520,6 +11622,23 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
                 evt->SetInt(i);
                 wxQueueEvent(wxGetApp().plater(), evt);
             }
+        }
+        if (ImGui::IsItemHovered()) {
+            // The plate's number and name, then what clicking it does in the state it is in.
+            const std::string plate_name = current_plate->get_plate_name();
+            wxString tip = plate_name.empty() ? format_wxstr(_L("Plate %1%"), i + 1) : format_wxstr(_L("Plate %1%: %2%"), i + 1, from_u8(plate_name));
+            tip += "\n";
+            if (is_empty)
+                tip += _L("Nothing to slice on this plate.");
+            else if (!can_slice || item->slice_state == IMToolbarItem::SliceState::SLICE_FAILED)
+                tip += _L("This plate could not be sliced. Click to go back to Prepare and review it.");
+            else if (item->slice_state == IMToolbarItem::SliceState::SLICING)
+                tip += _L("Slicing this plate.");
+            else if (item->slice_state == IMToolbarItem::SliceState::SLICED)
+                tip += _L("Sliced. Click to preview it.");
+            else
+                tip += _L("Not sliced yet. Click to slice it and preview the result.");
+            view_tooltip(tip);
         }
         ImGui::PopStyleColor(4);
         ImGui::PopStyleVar();
@@ -11789,6 +11908,12 @@ void GLCanvas3D::_render_return_toolbar() const
     imgui.end();
 }
 
+void GLCanvas3D::view_tooltip(const wxString& text, const std::vector<IllustratedTooltip::Media>& media)
+{
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        m_view_tip.item_tooltip(into_u8(text), media, *this);
+}
+
 void GLCanvas3D::_render_canvas_toolbar() 
 {
     ImGuiWrapper &imgui    = *wxGetApp().imgui();
@@ -11912,16 +12037,21 @@ void GLCanvas3D::_render_canvas_toolbar()
         Plater*    p   = wxGetApp().plater();
         AppConfig* cfg = wxGetApp().app_config;
 
-        auto create_menu_item = [sc](
+        using Media = IllustratedTooltip::Media;
+        auto create_menu_item = [this, sc](
             const std::string& name,
             bool enable,
             bool condition,
-            const std::function<void()>& action
+            const std::function<void()>& action,
+            const wxString& tooltip,
+            const std::vector<Media>& media = {}
         ) {
             ImGui::Dummy({2.f * sc,0});
             ImGui::SameLine();
             if (ImGui::BBLMenuItem(("        " + _u8L(name)).c_str(), nullptr, false, enable, ImGui::CalcTextSize(_u8L(name).c_str()).y))
                 action();
+            // Beside the menu, level with the item; it does not close the menu, being a tooltip and not a popup.
+            view_tooltip(tooltip, media);
             ImGui::SameLine(12.f * sc);
             ImGui::TextColored(enable ? ImVec4(1,1,1,1) : ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled), "%s", into_u8(condition ? ImGui::VisibleIcon : ImGui::HiddenIcon).c_str());
         };
@@ -11933,7 +12063,8 @@ void GLCanvas3D::_render_canvas_toolbar()
             []{
                 wxGetApp().toggle_show_3d_navigator();
                 ImGui::CloseCurrentPopup(); // Close popup to show changes on UI
-            }
+            },
+            _L("Shows the view cube in the corner of the view. Click one of its faces to look at the scene from that side.")
         );
 
         create_menu_item( _utf8(L("Zoom button")),
@@ -11942,7 +12073,8 @@ void GLCanvas3D::_render_canvas_toolbar()
             []{
                 wxGetApp().toggle_canvas_zoom_button();
                 ImGui::CloseCurrentPopup(); // Close popup to show changes on UI
-            }
+            },
+            _L("Shows a button under this menu that zooms the view to the selected objects, or to the whole plate when nothing is selected.")
         );
 
         ImGui::Separator();
@@ -11950,26 +12082,34 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Overhangs")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->is_view3D_overhang_shown(),
-            [p]{p->show_view3D_overhang(!p->is_view3D_overhang_shown());}
+            [p]{p->show_view3D_overhang(!p->is_view3D_overhang_shown());},
+            _L("Colors the faces that overhang steeply enough to need support, by the support threshold angle of the process settings. Prepare only."),
+            { { "view_overhangs.png", {} } }
         );
 
         create_menu_item( _utf8(L("Outline")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             wxGetApp().show_outline(),
-            [this]{wxGetApp().toggle_show_outline(); m_dirty = true;}
+            [this]{wxGetApp().toggle_show_outline(); m_dirty = true;},
+            _L("Draws an outline around the selected objects, so the selection stands out against the rest. Not in Preview."),
+            { { "view_outline.png", {} } }
         );
 
         create_menu_item( _utf8(L("Wireframe")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             p->is_show_wireframe(),
-            [this, p]{p->toggle_show_wireframe(); m_dirty = true;}
+            [this, p]{p->toggle_show_wireframe(); m_dirty = true;},
+            _L("Draws the edges of the triangles the models are made of, to see how finely a model is meshed. Not in Preview."),
+            { { "view_wireframe.png", {} } }
         );
 
         // TRN View toggle that draws models see-through, so hidden parts show.
         create_menu_item( _utf8(L("X-Ray")),
             m_canvas_type != ECanvasType::CanvasPreview, // not work on preview
             p->is_show_xray(),
-            [this, p]{p->toggle_show_xray(); m_dirty = true;}
+            [this, p]{p->toggle_show_xray(); m_dirty = true;},
+            _L("Draws the models see-through, so the parts inside them and behind them show. Not in Preview."),
+            { { "view_xray.png", {} } }
         );
 
         create_menu_item( _utf8(L("Realistic View")),
@@ -11978,7 +12118,8 @@ void GLCanvas3D::_render_canvas_toolbar()
             [&cfg]{
                 cfg->set_bool(SETTING_OPENGL_REALISTIC_MODE, !cfg->get_bool(SETTING_OPENGL_REALISTIC_MODE));
                 cfg->save();
-            }
+            },
+            _L("Lights the scene with shading and shadows closer to a real print. It costs graphics performance; Preferences sets what it includes, and whether Preview uses it too.")
         );
 
         ImGui::Separator();
@@ -11989,7 +12130,9 @@ void GLCanvas3D::_render_canvas_toolbar()
             [&cfg]{
                 cfg->set_bool("use_perspective_camera", !(cfg->get_bool("use_perspective_camera")));
                 wxGetApp().update_ui_from_settings();
-            }
+            },
+            _L("On, things further away look smaller, as they do to the eye. Off, the view is orthographic: sizes and parallel edges stay true at any distance, which suits lining things up."),
+            { { "view_perspective.png", _L("Perspective") }, { "view_orthographic.png", _L("Orthographic") } }
         );
 
         ImGui::Separator();
@@ -11997,13 +12140,15 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Axes")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             m_show_world_axes,
-            [this]{toggle_world_axes_visibility(false);}
+            [this]{toggle_world_axes_visibility(false);},
+            _L("Shows the X, Y and Z axes at the origin of the bed.")
         );
 
         create_menu_item( _utf8(L("Gridlines")),
             m_canvas_type != ECanvasType::CanvasAssembleView, // not work on assembly
             wxGetApp().show_plate_gridlines(),
-            []{wxGetApp().toggle_show_plate_gridlines();}
+            []{wxGetApp().toggle_show_plate_gridlines();},
+            _L("Draws the grid on the plates, a guide to sizes and spacing on the bed.")
         );
 
         create_menu_item( _utf8(L("Focus mode")),
@@ -12014,7 +12159,8 @@ void GLCanvas3D::_render_canvas_toolbar()
                 if (wxGetApp().focus_mode())
                     zoom_to_plate(REQUIRES_ZOOM_TO_CUR_PLATE);
                 m_dirty = true;
-            }
+            },
+            _L("Shows only the current plate and hides the others, with a strip of plates to switch between them. Prepare only.")
         );
 
         ImGui::Separator();
@@ -12022,13 +12168,15 @@ void GLCanvas3D::_render_canvas_toolbar()
         create_menu_item( _utf8(L("Labels")),
             m_canvas_type == ECanvasType::CanvasView3D, // work only on prepare
             p->are_view3D_labels_shown(),
-            [p]{p->show_view3D_labels(!p->are_view3D_labels_shown());}
+            [p]{p->show_view3D_labels(!p->are_view3D_labels_shown());},
+            _L("Shows the name of each object over it on the plate. Prepare only.")
         );
 
         create_menu_item( _utf8(L("Center of mass")),
             m_canvas_type != ECanvasType::CanvasAssembleView && !m_design_canvas, // work on prepare and preview
             wxGetApp().show_center_of_mass(),
-            [this]{wxGetApp().toggle_show_center_of_mass(); m_dirty = true;}
+            [this]{wxGetApp().toggle_show_center_of_mass(); m_dirty = true;},
+            _L("Marks the center of mass of each object. In Preview it also marks that of the part printed up to the layer shown, to judge whether a tall print may tip over.")
         );
 
         // Belt printers, G-code preview only: show the raw machine-frame G-code instead of
@@ -12043,7 +12191,8 @@ void GLCanvas3D::_render_canvas_toolbar()
                 [this, p]{
                     m_gcode_viewer.toggle_belt_show_designed();
                     p->CallAfter([p]{ p->refresh_belt_view(); });
-                }
+                },
+                _L("Shows the G-code in the printer's own tilted frame, as it is sent to the belt printer, instead of turned upright to match the model.")
             );
         }
 
@@ -12112,11 +12261,13 @@ void GLCanvas3D::_render_section_view_panel(const ImVec2& bottom_left)
     imgui.disabled_begin(m_section_view->follow_camera);
     if (imgui.button(_L("Set viewing angle")))
         align_section_view_to_camera();
+    view_tooltip(_L("Turns the section plane square to the current view, so the cut is seen face-on. Follow camera does this all the time."));
     imgui.disabled_end();
 
     ImGui::SameLine();
     if (imgui.bbl_checkbox(_L("Follow camera"), m_section_view->follow_camera))
         align_section_view_to_camera();
+    view_tooltip(_L("Keeps the section plane square to the view while the camera turns."));
 
     imgui.disabled_begin(!is_section_view_active());
     ImGui::SameLine();
@@ -12443,11 +12594,14 @@ void GLCanvas3D::_render_assemble_control()
         ImGui::SameLine(same_line_width);
         ImGui::PushItemWidth(slider_width);
         bool explosion_slider_changed = imgui->bbl_slider_float_style("##ratio_slider", &m_explosion_ratio, 1.0f, 3.0f, "%1.2f");
+        const wxString explosion_tip = _L("Moves the parts of the assembly apart, away from its center, to show how they fit together. At 1 they stay where they are.");
+        view_tooltip(explosion_tip, { { "assembly_explode.gif", {} } });
 
         same_line_width +=  (slider_width + item_spacing);
         ImGui::SameLine(same_line_width);
         ImGui::PushItemWidth(value_size);
         bool explosion_input_changed = ImGui::BBLDragFloat("##ratio_input", &m_explosion_ratio, 0.1f, 1.0f, 3.0f, "%1.2f");
+        view_tooltip(explosion_tip, { { "assembly_explode.gif", {} } });
         same_line_width    +=   (value_size + item_spacing*2);
     }
     {
@@ -12480,6 +12634,7 @@ void GLCanvas3D::_render_assemble_control()
             }
             ImGui::EndCombo();
         }
+        view_tooltip(_L("What a click in the view selects. Object: the whole object. Part: the one part of it under the pointer, to move or inspect it on its own."));
         ImGuiWrapper::pop_combo_style();
         if (selection_idx != selection_out) {//do
             if (selection_out == 0) { m_selection.unlock_volume_selection_mode(); }
