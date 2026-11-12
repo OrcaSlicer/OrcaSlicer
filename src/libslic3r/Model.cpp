@@ -815,6 +815,26 @@ bool Model::add_default_instances()
     return true;
 }
 
+void Model::set_assembly_pos(ModelObject *model_object, const std::vector<const ModelObject*> &ignore)
+{
+    for (ModelInstance *instance : model_object->instances)
+        if (!instance->is_assemble_initialized())
+            instance->set_assemble_transformation(instance->get_transformation());
+
+    const BoundingBoxf3 box = model_object->bounding_box_in_assembly_view();
+    if (!box.defined)
+        return;
+    BoundingBoxf3 others;
+    for (const ModelObject *o : this->objects)
+        if (o != model_object && std::find(ignore.begin(), ignore.end(), o) == ignore.end())
+            others.merge(o->bounding_box_in_assembly_view());
+
+    const Vec2d target = others.defined ? Vec2d(others.max.x() + 10. + 0.5 * box.size().x(), others.center().y()) : Vec2d::Zero();
+    const Vec3d shift(target.x() - box.center().x(), target.y() - box.center().y(), 0.);
+    for (ModelInstance *instance : model_object->instances)
+        instance->set_assemble_offset(instance->get_assemble_offset() + shift);
+}
+
 // this returns the bounding box of the *transformed* instances
 BoundingBoxf3 Model::bounding_box_approx() const
 {
@@ -1307,24 +1327,6 @@ bool Model::is_mm_painted() const
 bool Model::is_fuzzy_skin_painted() const
 {
     return std::any_of(this->objects.cbegin(), this->objects.cend(), [](const ModelObject *mo) { return mo->is_fuzzy_skin_painted(); });
-}
-
-static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelVolume* src_volume, const Transform3d& cut_matrix, const std::string& suffix = {}, ModelVolumeType type = ModelVolumeType::MODEL_PART)
-{
-    if (mesh.empty())
-        return;
-
-    mesh.transform(cut_matrix);
-    ModelVolume* vol = object->add_volume(mesh);
-    vol->set_type(type);
-
-    vol->name = src_volume->name + suffix;
-    // Don't copy the config's ID.
-    vol->config.assign_config(src_volume->config);
-    assert(vol->config.id().valid());
-    assert(vol->config.id() != src_volume->config.id());
-    vol->set_material(src_volume->material_id(), *src_volume->material());
-    vol->cut_info = src_volume->cut_info;
 }
 
 ModelObject::~ModelObject()
@@ -1892,6 +1894,17 @@ BoundingBoxf3 ModelObject::instance_bounding_box(const ModelInstance &instance, 
     return bb;
 }
 
+BoundingBoxf3 ModelObject::bounding_box_in_assembly_view() const
+{
+    // The cached raw box keeps this cheap: placing an object measures every other object in the model.
+    BoundingBoxf3 bb;
+    const BoundingBoxf3 &raw_bbox = this->raw_mesh_bounding_box();
+    if (raw_bbox.defined)
+        for (const ModelInstance *instance : this->instances)
+            bb.merge(raw_bbox.transformed(instance->get_assemble_transformation().get_matrix()));
+    return bb;
+}
+
 
 //BBS: add convex bounding box
 BoundingBoxf3 ModelObject::instance_convex_hull_bounding_box(size_t instance_idx, bool dont_translate) const
@@ -2125,7 +2138,11 @@ void ModelObject::convert_units(ModelObjectPtrs& new_objects, ConversionType con
             vol->config.assign_config(volume->config);
             assert(vol->config.id().valid());
             assert(vol->config.id() != volume->config.id());
-            vol->set_material(volume->material_id(), *volume->material());
+            // The clone is detached while it is rebuilt; point it at the source model so set_material_id()
+            // can record the entry, and detach it again.
+            new_object->set_model(this->get_model());
+            vol->set_material_id(volume->material_id());
+            new_object->set_model(nullptr);
             vol->source.input_file = volume->source.input_file;
             vol->source.object_idx = (int)new_objects.size();
             vol->source.volume_idx = vol_idx;
@@ -2776,13 +2793,6 @@ void ModelVolume::set_material_id(t_model_material_id material_id)
 ModelMaterial* ModelVolume::material() const
 {
     return this->object->get_model()->get_material(m_material_id);
-}
-
-void ModelVolume::set_material(t_model_material_id material_id, const ModelMaterial &material)
-{
-    m_material_id = material_id;
-    if (! material_id.empty())
-        this->object->get_model()->add_material(material_id, material);
 }
 
 // Extract the current extruder ID based on this ModelVolume's config and the parent ModelObject's config.
