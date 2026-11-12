@@ -30,6 +30,7 @@
 #include <wx/stattext.h>
 #include "slic3r/GUI/DeviceManager.hpp"
 #include <boost/log/trivial.hpp>
+#include <vector>
 
 static wxColour FG_COLOR = wxColour(0x32, 0x3A, 0x3D);
 static wxColour BG_COLOR = wxColour(0xF8, 0xF8, 0xF8);
