@@ -3097,13 +3097,13 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
             panel_tooltip(_u8L("Lay this part on the bed on its cut face, which is flat and prints without supports. "
                                "Takes the tilt of the cut plane into account."),
                           {{"cut/" + part + "_as_is.png", m_part_orientation_names["none"]},
-                           {"cut/" + part + "_on_cut.png", m_part_orientation_names["on_cut"]}});
+                           {"cut/" + part + "_on_cut.gif", m_part_orientation_names["on_cut"]}});
             ImGui::SameLine();
             if (m_imgui->bbl_checkbox(_L("Flip") + suffix, rotate_part))
                 place_on_cut_part = false;
             panel_tooltip(_u8L("Turn this part upside down after the cut, ignoring the tilt of the cut plane."),
                           {{"cut/" + part + "_as_is.png", m_part_orientation_names["none"]},
-                           {"cut/" + part + "_flip.png", m_part_orientation_names["flip"]}});
+                           {"cut/" + part + "_flip.gif", m_part_orientation_names["flip"]}});
             m_imgui->disabled_end();
         };
 
