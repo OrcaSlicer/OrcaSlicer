@@ -129,17 +129,10 @@ void IllustratedTooltip::render(const ImVec2 &pos, float width, const std::strin
     // Fully opaque even for a control inside a disabled region (ImGuiWrapper::disabled_begin() halves the
     // style alpha), whose tooltip is the one that has to say why it cannot be used.
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1.f);
-    // The default tooltip background, whatever is pushed at the call site: a tooltip for an item in a combo
-    // or popup would otherwise take that popup's light background under its white text. Orca never sets
-    // PopupBg globally, so a default-constructed style holds the colour every other tooltip uses.
-    static const ImVec4 tooltip_bg = ImGuiStyle().Colors[ImGuiCol_PopupBg];
-    ImGui::PushStyleColor(ImGuiCol_PopupBg, tooltip_bg);
+    // The tooltip colours, whatever is pushed at the call site: a tooltip for an item in a combo or popup
+    // would otherwise take that popup's background, and the view menu's light text colours.
+    ImGuiWrapper::push_tooltip_style();
     ImGui::BeginTooltip();
-    // The tooltip is dark whatever the theme, so its text is white and its captions the default dimmed
-    // colour, whatever the call site pushed for its own background (the view menu's is light).
-    static const ImVec4 caption = ImGuiStyle().Colors[ImGuiCol_TextDisabled];
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
-    ImGui::PushStyleColor(ImGuiCol_TextDisabled, caption);
     ImGui::PushTextWrapPos(0.f); // the window's own edge, which is what the fixed width above sets
     if (!title.empty()) {
         const size_t eol  = title.find('\n');
@@ -148,7 +141,7 @@ void IllustratedTooltip::render(const ImVec2 &pos, float width, const std::strin
         ImGui::TextUnformatted(title.c_str(), title.c_str() + std::min(eol, title.size()));
         imgui.pop_bold_font();
         if (eol != std::string::npos)
-            ImGui::TextColored(ImVec4(1.f, 1.f, 1.f, 0.6f), "%s", title.c_str() + eol + 1);
+            ImGui::TextDisabled("%s", title.c_str() + eol + 1);
         if (!text.empty())
             ImGui::Spacing();
     }
@@ -156,9 +149,8 @@ void IllustratedTooltip::render(const ImVec2 &pos, float width, const std::strin
         ImGui::TextUnformatted(text.c_str());
     ImGui::PopTextWrapPos();
     render_media(media, width - 2.f * ImGui::GetStyle().WindowPadding.x, canvas);
-    ImGui::PopStyleColor(2);
     ImGui::EndTooltip();
-    ImGui::PopStyleColor();
+    ImGuiWrapper::pop_tooltip_style();
     ImGui::PopStyleVar();
 }
 
@@ -195,7 +187,7 @@ void IllustratedTooltip::render_media(const std::vector<Media> &media, float wid
     const ImGuiStyle &style   = ImGui::GetStyle();
     const float       spacing = style.ItemSpacing.x;
     const float       cell_w  = (width - spacing * float(shown.size() - 1)) / float(shown.size());
-    const ImU32       frame   = ImGui::GetColorU32(ImGuiCol_Text, 0.25f);
+    const ImU32       frame   = ImGui::GetColorU32(ImGuiCol_Border); // the picture frame of the wx tooltips
 
     // A single picture would otherwise be drawn at the tooltip's full width, and a square one at full
     // width is a picture as tall as the text beside it is long. Capped and centred in its column.
