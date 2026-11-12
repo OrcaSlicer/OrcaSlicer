@@ -42,9 +42,6 @@ public:
     void Rescale();
     bool InsertPage(size_t n, const wxString& text, bool bSelect = false, const std::string& bmp_name = "");
     void RemovePage(size_t n);
-    // Shows or hides a page's button; the page keeps its index.
-    void ShowPageButton(size_t n, bool show);
-    bool IsPageButtonShown(size_t n) const;
     bool SetPageImage(size_t n, const std::string& bmp_name);
     void SetPageText(size_t n, const wxString& strText);
     wxString GetPageText(size_t n) const;
@@ -208,18 +205,6 @@ public:
 
         return ret;
     }
-
-    // Hides or shows a page's tab without removing it, so page indices stay valid. Hiding the
-    // selected page selects the first page.
-    void ShowPage(size_t n, bool show)
-    {
-        if (n >= GetPageCount() || GetBtnsListCtrl()->IsPageButtonShown(n) == show)
-            return;
-        GetBtnsListCtrl()->ShowPageButton(n, show);
-        if (!show && GetSelection() == static_cast<int>(n))
-            SetSelection(0);
-    }
-    bool IsPageShown(size_t n) { return n < GetPageCount() && GetBtnsListCtrl()->IsPageButtonShown(n); }
 
     virtual int ChangeSelection(size_t n) override
     {

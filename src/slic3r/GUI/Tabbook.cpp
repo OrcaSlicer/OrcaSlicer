@@ -171,20 +171,6 @@ void TabButtonsListCtrl::RemovePage(size_t n)
     m_sizer->Layout();
 }
 
-void TabButtonsListCtrl::ShowPageButton(size_t n, bool show)
-{
-    if (n >= m_pageButtons.size() || m_pageButtons[n]->IsShown() == show)
-        return;
-    m_pageButtons[n]->Show(show);
-    m_sizer->Layout();
-    Refresh();
-}
-
-bool TabButtonsListCtrl::IsPageButtonShown(size_t n) const
-{
-    return n < m_pageButtons.size() && m_pageButtons[n]->IsShown();
-}
-
 bool TabButtonsListCtrl::SetPageImage(size_t n, const std::string &bmp_name)
 {
     if (n >= m_pageButtons.size())

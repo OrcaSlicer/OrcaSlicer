@@ -191,10 +191,6 @@ public:
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull);
     CameraStreamMode get_camera_stream_mode() const;
     std::string get_local_camera_stream_url() const;
-    std::vector<std::string> get_camera_names() const;
-    int  get_selected_camera() const;
-    void select_camera(int index);
-    CameraTransform get_camera_transform() const;
     std::string to_orca_filament_id(const std::string& printer_filament_id) const;
     std::string from_orca_filament_id(const std::string& orca_filament_id) const;
     int request_bind_ticket(std::string* ticket);

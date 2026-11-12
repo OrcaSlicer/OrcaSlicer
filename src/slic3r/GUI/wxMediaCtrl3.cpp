@@ -1,7 +1,4 @@
 #include "wxMediaCtrl3.h"
-#include <wx/bitmap.h>
-#include <wx/dcclient.h>
-#include <wx/image.h>
 #include "AVVideoDecoder.hpp"
 #include <algorithm>
 #include <boost/log/trivial.hpp>
@@ -61,7 +58,7 @@ wxMediaCtrl3::~wxMediaCtrl3()
     {
         std::unique_lock<std::mutex> lk(m_mutex);
         m_url.reset(new wxURI);
-        m_frame = idle_frame();
+        m_frame = wxImage(m_idle_image);
         m_cond.notify_all();
     }
     m_thread.join();
@@ -98,7 +95,7 @@ void wxMediaCtrl3::Stop()
 {
     std::unique_lock<std::mutex> lk(m_mutex);
     m_url.reset();
-    m_frame = idle_frame();
+    m_frame = wxImage(m_idle_image);
     NotifyStopped();
     m_cond.notify_all();
     Refresh();
@@ -143,7 +140,7 @@ void wxMediaCtrl3::BeginExternalStream()
     m_url.reset();
     m_active_url.reset();
     m_video_size = wxDefaultSize;
-    m_frame = idle_frame();
+    m_frame = wxImage(m_idle_image);
     m_cond.notify_all();
     Refresh();
 }
@@ -155,34 +152,20 @@ void wxMediaCtrl3::EndExternalStream()
     m_url.reset();
     m_active_url.reset();
     m_video_size = wxDefaultSize;
-    m_frame = idle_frame();
+    m_frame = wxImage(m_idle_image);
     m_cond.notify_all();
     Refresh();
 }
 
 void wxMediaCtrl3::SetIdleImage(wxString const &image)
 {
-    if (m_idle_image == image && !m_idle_frame.IsOk())
+    if (m_idle_image == image)
         return;
     m_idle_image = image;
-    m_idle_frame = wxImage();
     if (m_url == nullptr) {
         std::unique_lock<std::mutex> lk(m_mutex);
-        m_frame = idle_frame();
+        m_frame = wxImage(m_idle_image);
         assert(m_frame.IsOk());
-        Refresh();
-    }
-}
-
-void wxMediaCtrl3::SetIdleImage(wxImage const &image)
-{
-    // IsSameAs compares the shared image data, so re-setting the same image costs nothing.
-    if (!image.IsOk() || (m_idle_frame.IsOk() && m_idle_frame.IsSameAs(image)))
-        return;
-    m_idle_frame = image;
-    if (m_url == nullptr) {
-        std::unique_lock<std::mutex> lk(m_mutex);
-        m_frame = idle_frame();
         Refresh();
     }
 }
@@ -218,16 +201,6 @@ static void adjust_frame_size(wxSize & frame, wxSize const & video, wxSize const
         frame = { window.x, video.y * window.x / video.x };
 }
 
-void wxMediaCtrl3::SetTransform(const Slic3r::CameraTransform& transform)
-{
-    std::unique_lock<std::mutex> lk(m_mutex);
-    if (m_transform == transform)
-        return;
-    m_transform = transform;
-    lk.unlock();
-    Refresh();
-}
-
 void wxMediaCtrl3::paintEvent(wxPaintEvent &evt)
 {
     wxPaintDC dc(this);
@@ -237,35 +210,6 @@ void wxMediaCtrl3::paintEvent(wxPaintEvent &evt)
     std::unique_lock<std::mutex> lk(m_mutex);
     if (!m_frame.IsOk())
         return;
-    if (m_state == wxMEDIASTATE_PLAYING && !m_transform.is_identity()) {
-        // A turned copy of the video frame: rotate, then mirror, as the printer's web UI draws it.
-#ifdef _WIN32
-        wxImage image = m_frame.ConvertToImage();
-#else
-        wxImage image = m_frame;
-#endif
-        // Drop the decoder's row padding first (the plain path below draws it off the right
-        // edge), or turning the frame would bring it into view.
-        if (image.GetHeight() == m_frame_size.y && m_frame_size.x > 0 && m_frame_size.x < image.GetWidth())
-            image = image.GetSubImage(wxRect(0, 0, m_frame_size.x, image.GetHeight()));
-        switch (m_transform.rotation) {
-        case 90: image = image.Rotate90(true); break;
-        case 180: image = image.Rotate180(); break;
-        case 270: image = image.Rotate90(false); break;
-        default: break;
-        }
-        if (m_transform.flip_horizontal)
-            image = image.Mirror(true);
-        if (m_transform.flip_vertical)
-            image = image.Mirror(false);
-        const wxBitmap turned(image);
-        lk.unlock();
-        const wxSize turned_size = turned.GetSize();
-        const double scale = std::min(double(size.x) / turned_size.x, double(size.y) / turned_size.y);
-        dc.SetUserScale(scale, scale);
-        dc.DrawBitmap(turned, int((size.x / scale - turned_size.x) / 2), int((size.y / scale - turned_size.y) / 2));
-        return;
-    }
     auto size2 = m_frame.GetSize();
     if (size2.x != m_frame_size.x && size2.y == m_frame_size.y)
         size2.x = m_frame_size.x;
