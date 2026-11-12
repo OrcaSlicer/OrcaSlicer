@@ -191,6 +191,9 @@ where there is room, the way the texture-displacement panel's tooltips sit besid
   the first window above the control that is at least three fifths of the top-level window's width; the
   column ends at the right edge of the narrower windows in it, so a G-code editor that spans the page
   does not push the tooltip off the window. Never to the left of the column, which is over its labels.
+- On Wayland, in a dialog with no room for it inside: beside the dialog after all. The screen is unknown
+  there, so the popup leaves its position to the compositor with `gdk_window_move_to_rect()`: to the
+  right of the dialog, level with the control, flipped to the left when the right has no room.
 - Otherwise - a toolbar, a page as wide as the window - or when there is no room on either side: below
   the control, level with its left edge, and above it when there is no room below.
 
