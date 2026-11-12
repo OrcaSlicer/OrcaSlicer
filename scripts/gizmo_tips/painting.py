@@ -400,54 +400,7 @@ def gap_fill_after(k, n):
     return _gap_fill(True)
 
 
-# --- Vertical and Horizontal -----------------------------------------------------------------------
-#
-# The same wall. The mouse wanders (the dashed line); with the option off the stroke follows it, with it
-# on the stroke runs straight, from where it started.
-
-
-def _stroke(direction, locked):
-    y = -_WALL[1] - 0.001
-    t = np.linspace(0.0, 1.0, 40)
-    wobble = 0.09 * np.sin(t * 2.0 * math.pi * 1.6) + 0.04 * np.sin(t * 2.0 * math.pi * 3.7)
-    if direction == "vertical":
-        mouse = [np.array([-0.15 + w, y, 0.18 + 0.85 * s]) for s, w in zip(t, wobble)]
-        stroke = [np.array([mouse[0][0], y, m[2]]) for m in mouse] if locked else mouse
-    else:
-        mouse = [np.array([-0.55 + 1.1 * s, y, 0.55 + w]) for s, w in zip(t, wobble)]
-        stroke = [np.array([m[0], y, mouse[0][2]]) for m in mouse] if locked else mouse
-    stroke_r = 0.1
-
-    def painted(q):
-        front = q[:, 1] < -_WALL[1] + 0.01
-        return np.where(front & (_path_dist(q, stroke) < stroke_r), M_ACCENT, M_PART)
-
-    def scene(p):
-        d = sd_box(p, (0.0, 0.0, _WALL[2]), _WALL, 0.02)
-        return union(bed(p), (d, _shade(d, p, painted)))
-
-    cam = Camera(SIZE, target=(0.0, 0.0, 0.6), extent=2.2, az=28.0, el=22.0)
-    o = Overlay(render(scene, cam), cam)
-    _dashed(o, mouse, PATH)
-    o.circle_on(stroke[-1], (0.0, -1.0, 0.0), stroke_r, CURSOR)
-    o.pointer(mouse[-1])
-    return o.finish(SIZE)
-
-
-def stroke_vertical_off(k, n):
-    return _stroke("vertical", False)
-
-
-def stroke_vertical_on(k, n):
-    return _stroke("vertical", True)
-
-
-def stroke_horizontal_off(k, n):
-    return _stroke("horizontal", False)
-
-
-def stroke_horizontal_on(k, n):
-    return _stroke("horizontal", True)
+# Vertical and Horizontal: drawn as loops in gizmos_anim.py.
 
 
 # --- Support painting: overhang highlight ----------------------------------------------------------
@@ -540,10 +493,6 @@ FRAMES = {
     "edge_detection_on": 0,
     "gap_fill_before": 0,
     "gap_fill_after": 0,
-    "stroke_vertical_off": 0,
-    "stroke_vertical_on": 0,
-    "stroke_horizontal_off": 0,
-    "stroke_horizontal_on": 0,
     "overhang_highlight_low": 0,
     "overhang_highlight_high": 0,
     "overhangs_only_off": 0,

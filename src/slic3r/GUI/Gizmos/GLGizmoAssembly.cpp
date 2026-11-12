@@ -193,7 +193,7 @@ bool GLGizmoAssembly::render_assembly_mode_combo(double label_width, float item_
     panel_tooltip(_u8L("What is picked on the two parts. Faces: put one part against the other, face to face. "
                        "Points or circles: place one at an exact X, Y and Z distance from the other. "
                        "Changing it clears the selection."),
-                  {{"measure/mode_face.png", _L("Face and face assembly")}, {"measure/mode_point.png", _L("Point and point assembly")}});
+                  {{"measure/mode_face.gif", _L("Face and face assembly")}, {"measure/mode_point.gif", _L("Point and point assembly")}});
     ImGuiWrapper::pop_combo_style();
     return is_changed;
 }

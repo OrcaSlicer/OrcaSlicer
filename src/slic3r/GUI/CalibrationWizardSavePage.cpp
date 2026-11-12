@@ -695,7 +695,6 @@ void CaliPASaveAutoPanel::sync_cali_result_for_multi_extruder(const std::vector<
         wxButton *tray_title = new wxButton(m_multi_extruder_grid_panel, wxID_ANY, {}, wxDefaultPosition, wxSize(FromDIP(20), FromDIP(20)), wxBU_EXACTFIT | wxBU_AUTODRAW | wxBORDER_NONE);
         tray_title->SetBackgroundColour(*wxWHITE);
         tray_title->SetBitmap(*get_extruder_color_icon(full_filament_ams_list[item.tray_id].opt_string("filament_colour", 0u), tray_name.ToStdString(), FromDIP(20), FromDIP(20)));
-        tray_title->SetToolTip("");
 
         auto k_value = new GridTextInput(m_multi_extruder_grid_panel, "", "", CALIBRATION_SAVE_NUMBER_INPUT_SIZE, item.tray_id, GridTextInputType::K, item.extruder_id);
         auto n_value = new GridTextInput(m_multi_extruder_grid_panel, "", "", CALIBRATION_SAVE_NUMBER_INPUT_SIZE, item.tray_id, GridTextInputType::N, item.extruder_id);

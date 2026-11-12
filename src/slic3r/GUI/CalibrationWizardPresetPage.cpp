@@ -628,10 +628,24 @@ int CalibrationPresetPage::get_extruder_id_by_tray_id(int tray_id)
     return 0;
 }
 
-// The nozzle diameter list of a single nozzle printer, before and after it is synchronized from the printer.
+// The nozzle diameter lists, before and after they are synchronized from the printer.
 static wxString nozzle_diameter_tip()
 {
     return _L("The nozzle the test is sliced for. The filaments offered are the presets for this nozzle size.");
+}
+
+// The nozzle flow lists, single nozzle and left and right, which the printer fills in.
+static wxString nozzle_flow_tip()
+{
+    return _L("The nozzle's flow type, as the printer reports it. A Flow Dynamics result applies only to the flow type it was "
+              "calibrated with.");
+}
+
+// A nozzle diameter list, with or without the note that the printer reported the diameter.
+static void set_nozzle_diameter_tip(wxWindow *combo, bool synced)
+{
+    set_illustrated_tooltip(combo, synced ? nozzle_diameter_tip() + "\n\n" + _L("The nozzle diameter has been synchronized from the printer Settings") :
+                                            nozzle_diameter_tip());
 }
 
 void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
@@ -640,7 +654,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 
     auto sync_button_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_btn_sync = new Button(parent, "", "ams_nozzle_sync");
-    m_btn_sync->SetToolTip(_L("Synchronize nozzle and AMS information"));
+    set_illustrated_tooltip(m_btn_sync, _L("Synchronize nozzle and AMS information"));
     m_btn_sync->SetCornerRadius(8);
     StateColor btn_sync_bg_col(std::pair<wxColour, int>(wxColour("#CECECE"), StateColor::Pressed),
                                std::pair<wxColour, int>(wxColour("#F8F8F8"), StateColor::Hovered),
@@ -731,6 +745,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 
         m_comboBox_nozzle_volume = new ComboBox(m_single_nozzle_info_panel, wxID_ANY, "", wxDefaultPosition, CALIBRATION_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
         m_comboBox_nozzle_volume->Disable();
+        set_illustrated_tooltip(m_comboBox_nozzle_volume, nozzle_flow_tip());
 
         single_nozzle_sizer->Add(nozzle_volume_type_text, 0, wxALL, 0);
         single_nozzle_sizer->AddSpacer(FromDIP(5));
@@ -763,6 +778,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 
             m_left_comboBox_nozzle_dia = new ComboBox(m_multi_nozzle_info_panel, wxID_ANY, "", wxDefaultPosition, CALIBRATION_FILAMENT_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
             m_left_comboBox_nozzle_dia->Disable();
+            set_nozzle_diameter_tip(m_left_comboBox_nozzle_dia, false);
 
             m_left_nozzle_volume_type_sizer->AddSpacer(FromDIP(5));
             m_left_nozzle_volume_type_sizer->Add(nozzle_diameter_text, 0, wxLEFT | wxRIGHT, 10);
@@ -777,6 +793,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 
             m_left_comboBox_nozzle_volume = new ComboBox(m_multi_nozzle_info_panel, wxID_ANY, "", wxDefaultPosition, CALIBRATION_FILAMENT_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
             m_left_comboBox_nozzle_volume->Disable();
+            set_illustrated_tooltip(m_left_comboBox_nozzle_volume, nozzle_flow_tip());
 
             m_left_nozzle_volume_type_sizer->Add(nozzle_volume_type_text, 0, wxLEFT | wxRIGHT, 10);
             m_left_nozzle_volume_type_sizer->AddSpacer(FromDIP(5));
@@ -797,6 +814,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 
             m_right_comboBox_nozzle_dia = new ComboBox(m_multi_nozzle_info_panel, wxID_ANY, "", wxDefaultPosition, CALIBRATION_FILAMENT_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
             m_right_comboBox_nozzle_dia->Disable();
+            set_nozzle_diameter_tip(m_right_comboBox_nozzle_dia, false);
 
             m_right_nozzle_volume_type_sizer->AddSpacer(FromDIP(5));
             m_right_nozzle_volume_type_sizer->Add(nozzle_diameter_text, 0, wxLEFT | wxRIGHT, 10);
@@ -811,6 +829,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
 
             m_right_comboBox_nozzle_volume = new ComboBox(m_multi_nozzle_info_panel, wxID_ANY, "", wxDefaultPosition, CALIBRATION_FILAMENT_COMBOX_SIZE, 0, nullptr, wxCB_READONLY);
             m_right_comboBox_nozzle_volume->Disable();
+            set_illustrated_tooltip(m_right_comboBox_nozzle_volume, nozzle_flow_tip());
 
             m_right_nozzle_volume_type_sizer->Add(nozzle_volume_type_text, 0, wxLEFT | wxRIGHT, 10);
             m_right_nozzle_volume_type_sizer->AddSpacer(FromDIP(5));
@@ -863,7 +882,7 @@ void CalibrationPresetPage::create_selection_panel(wxWindow* parent)
     filament_for_title_sizer->AddSpacer(FromDIP(25));
     m_ams_sync_button = new ScalableButton(parent, wxID_ANY, "ams_fila_sync", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, false, 18);
     m_ams_sync_button->SetBackgroundColour(*wxWHITE);
-    m_ams_sync_button->SetToolTip(_L("Synchronize filament list from AMS"));
+    set_illustrated_tooltip(m_ams_sync_button, _L("Synchronize filament list from AMS"));
     filament_for_title_sizer->Add(m_ams_sync_button, 0, wxALIGN_CENTER);
     panel_sizer->Add(filament_for_title_sizer);
     panel_sizer->AddSpacer(FromDIP(6));
@@ -2222,10 +2241,9 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
         wxCommandEvent event(wxEVT_COMBOBOX);
         event.SetEventObject(this);
         wxPostEvent(m_comboBox_nozzle_dia, event);
-        set_illustrated_tooltip(m_comboBox_nozzle_dia, nozzle_diameter_tip() + "\n\n" +
-                                                           _L("The nozzle diameter has been synchronized from the printer Settings"));
+        set_nozzle_diameter_tip(m_comboBox_nozzle_dia, true);
     } else {
-        set_illustrated_tooltip(m_comboBox_nozzle_dia, nozzle_diameter_tip());
+        set_nozzle_diameter_tip(m_comboBox_nozzle_dia, false);
         // set default to 0.4
         if (m_comboBox_nozzle_dia->GetCount() > NOZZLE_LIST_DEFAULT)
             m_comboBox_nozzle_dia->SetSelection(NOZZLE_LIST_DEFAULT);
@@ -2240,10 +2258,10 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
                     wxCommandEvent event(wxEVT_COMBOBOX);
                     event.SetEventObject(this);
                     wxPostEvent(m_left_comboBox_nozzle_dia, event);
-                    m_left_comboBox_nozzle_dia->SetToolTip(_L("The nozzle diameter has been synchronized from the printer Settings"));
+                    set_nozzle_diameter_tip(m_left_comboBox_nozzle_dia, true);
                 }
                 else {
-                    m_left_comboBox_nozzle_dia->SetToolTip(wxEmptyString);
+                    set_nozzle_diameter_tip(m_left_comboBox_nozzle_dia, false);
                     if (m_left_comboBox_nozzle_dia->GetCount() > NOZZLE_LIST_DEFAULT)
                         m_left_comboBox_nozzle_dia->SetSelection(NOZZLE_LIST_DEFAULT);
                 }
@@ -2261,9 +2279,9 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
                     wxCommandEvent event(wxEVT_COMBOBOX);
                     event.SetEventObject(this);
                     wxPostEvent(m_right_comboBox_nozzle_dia, event);
-                    m_right_comboBox_nozzle_dia->SetToolTip(_L("The nozzle diameter has been synchronized from the printer Settings"));
+                    set_nozzle_diameter_tip(m_right_comboBox_nozzle_dia, true);
                 } else {
-                    m_right_comboBox_nozzle_dia->SetToolTip(wxEmptyString);
+                    set_nozzle_diameter_tip(m_right_comboBox_nozzle_dia, false);
                     if (m_right_comboBox_nozzle_dia->GetCount() > NOZZLE_LIST_DEFAULT)
                         m_right_comboBox_nozzle_dia->SetSelection(NOZZLE_LIST_DEFAULT);
                 }
