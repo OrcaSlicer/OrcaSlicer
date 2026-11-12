@@ -453,7 +453,21 @@ void DesignCanvas::swap_camera()
 {
     Plater* plater = wxGetApp().plater();
     if (plater == nullptr) return;
-    std::swap(plater->get_camera(), m_parked_camera);
+    Camera& cam = plater->get_camera();
+    PartPlate* plate = plater->get_partplate_list().get_curr_plate();
+    const Vec3d origin = plate ? plate->get_origin() : Vec3d::Zero();
+    if (!m_camera_swapped) {
+        // Into Design: look the way Prepare was looking (the first time the canvas opens on its iso view).
+        // The Design bed sits at the printer bed's home, whichever plate is current.
+        if (m_view_carried) { m_parked_camera = cam; m_parked_camera.translate_world(-origin); }
+        std::swap(cam, m_parked_camera);
+    } else {
+        // Out of Design: Prepare/Preview take the Design view, so the angle does not jump on the tab switch.
+        std::swap(cam, m_parked_camera);
+        cam = m_parked_camera;
+        cam.translate_world(origin);
+        m_view_carried = true;
+    }
     m_camera_swapped = !m_camera_swapped;
 }
 

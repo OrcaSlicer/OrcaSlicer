@@ -487,6 +487,7 @@ private:
     // Design is up, this canvas's view while it is not. Seeded in the constructor so the first
     // entry inherits the view the user was already looking at.
     Camera      m_parked_camera;
+    bool        m_view_carried{false};     // after the first visit the camera follows the user between Design and Prepare
     bool        m_camera_swapped{false};   // guards a leave without an enter, and the reverse
     Model       m_model;
     int         m_hl_body_target{-1};
