@@ -1003,6 +1003,7 @@ class SlowPackage(orca.base):
     // The key is registered before the worker is spawned, so this is not a race.
     REQUIRE(manager.is_plugin_load_in_progress("Slow_Load_Plugin"));
     REQUIRE(manager.cancel_plugin_load("Slow_Load_Plugin"));
+    CHECK(manager.is_plugin_load_cancelled("Slow_Load_Plugin"));
 
     // Cancelling must not release the worker's slot. shutdown() unloads everything and GUI_App
     // finalizes the interpreter as soon as this wait returns, so reporting "no loads in progress"
@@ -1013,6 +1014,7 @@ class SlowPackage(orca.base):
     // The worker releases the slot itself, once it has unwound.
     CHECK(manager.wait_for_all_plugin_loads(std::chrono::seconds(60)));
     CHECK_FALSE(manager.is_plugin_load_in_progress("Slow_Load_Plugin"));
+    CHECK_FALSE(manager.is_plugin_load_cancelled("Slow_Load_Plugin"));
     CHECK_FALSE(manager.is_plugin_loaded("Slow_Load_Plugin"));
 }
 

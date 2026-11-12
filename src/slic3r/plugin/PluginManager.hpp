@@ -230,6 +230,11 @@ public:
     void unload_cloud_plugins();
     bool is_plugin_loaded(const std::string& plugin_key) const;
     bool is_plugin_load_in_progress(const std::string& plugin_key) const;
+    // True when an in-flight load has been cancelled but its worker has not released the slot yet.
+    // Such a load stays "in progress" for wait_for_all_plugin_loads(), but it is no longer treated
+    // as a live plugin when cancellation is observed. A dialog racing with cancellation may still
+    // appear or remain open, but its answer is discarded unless the commit already won.
+    bool is_plugin_load_cancelled(const std::string& plugin_key) const;
     void wait_for_all_plugin_loads() const;
     bool wait_for_all_plugin_loads(std::chrono::milliseconds timeout) const; // false on timeout
     bool wait_for_plugin_load(const std::string& plugin_key, std::chrono::milliseconds timeout, std::string& error) const;

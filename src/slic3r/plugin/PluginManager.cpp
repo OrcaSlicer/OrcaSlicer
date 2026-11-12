@@ -711,6 +711,12 @@ bool PluginManager::is_plugin_load_in_progress(const std::string& plugin_key) co
     return m_load_in_progress.count(plugin_key) > 0;
 }
 
+bool PluginManager::is_plugin_load_cancelled(const std::string& plugin_key) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return is_plugin_load_cancelled_locked(plugin_key);
+}
+
 void PluginManager::wait_for_all_plugin_loads() const
 {
     std::unique_lock<std::mutex> lock(m_mutex);
@@ -759,6 +765,13 @@ bool PluginManager::cancel_plugin_load(const std::string& plugin_key)
         std::lock_guard<std::mutex> lock(m_mutex);
         cancelled = cancel_plugin_load_locked(plugin_key);
     }
+
+    // A queued or active audit prompt for this load would keep its worker blocked on an answer
+    // that can no longer authorize anything. Mark the load cancelled first, then discard outside
+    // m_mutex, matching unload_plugin(): a prompt whose answer has not begun committing loses to
+    // the cancellation, while an in-progress commit stays atomic.
+    if (cancelled)
+        PluginAuditManager::discard_pending_permission_prompts_for(plugin_key);
 
     notify_plugin_load_state_changed(cancelled);
     return cancelled;

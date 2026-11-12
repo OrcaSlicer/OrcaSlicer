@@ -156,7 +156,11 @@ thread, while a queued request for them is an OK-only informational denial with 
 choice. Blocking a worker on a marshalled modal is avoided because the UI thread can itself
 be parked on the slicing worker. A load worker does block on its declared-permission answer:
 shutdown or plugin unload cancels queued requests and active requests whose accepted answer
-has not begun committing, releasing waiting workers with a denial.
+has not begun committing, releasing waiting workers with a denial. An admission that races
+that cancellation is discarded as soon as it becomes visible. A cancelled load stops being
+treated as a live plugin even while its worker is still unwinding. A cancellation observed before
+display suppresses the prompt; a dialog racing with cancellation may still appear or remain on
+screen, but its answer is ignored unless committing won the race.
 
 Runtime approvals store the target observed by the audit hook. A URL with a path, port or
 query is therefore an exact grant; a bare host remains usable for raw sockets. The

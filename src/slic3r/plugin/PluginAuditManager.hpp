@@ -236,7 +236,7 @@ public:
     // Drops runtime audit prompts that have not been shown yet, and cancels any blocked worker
     // waiting on one (including the prompt currently on screen: its late answer is ignored). Called
     // when the application shuts down so a queued prompt cannot open after the GUI is gone, and
-    // when a plugin is unloaded so its prompts cannot outlive it.
+    // when a plugin is unloaded or its in-flight load is cancelled so its prompts cannot outlive it.
     static void discard_pending_permission_prompts();
     static void discard_pending_permission_prompts_for(const std::string& plugin_key);
 

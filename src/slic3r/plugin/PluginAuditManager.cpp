@@ -1876,22 +1876,25 @@ void drain_runtime_prompts()
 
     // A request may have been enqueued concurrently with plugin unload, after its queued
     // requests were discarded. Keep requests raised during plugin loading valid as well: plugin
-    // code can run before the manager commits it as loaded.
+    // code can run before the manager commits it as loaded. A cancelled load keeps its in-progress
+    // slot until its worker unwinds, but an observed cancellation makes it ineligible for a new
+    // prompt or a grant that has not begun committing; the queue cancels a dialog already up.
     PluginManager& manager = PluginManager::instance();
-    const auto plugin_exists = [&manager](const std::string& key) {
-        return manager.is_plugin_loaded(key) || manager.is_plugin_load_in_progress(key);
+    const auto plugin_alive = [&manager](const std::string& key) {
+        return manager.is_plugin_loaded(key) ||
+               (manager.is_plugin_load_in_progress(key) && !manager.is_plugin_load_cancelled(key));
     };
 
     bool satisfied = false;
     try {
-        const bool alive   = plugin_exists(request->plugin_key);
+        const bool alive   = plugin_alive(request->plugin_key);
         const bool granted = alive && show_queued_prompt(*request);
 
         // Decide under the still-active queue entry so a shutdown/unload that arrives before the
         // sidecar write cancels this request. begin_commit() makes an accepted answer atomic
         // against cancellation: if cancel wins, nothing is persisted; if commit wins, the answer is
         // valid and complete() cannot report it as cancelled afterwards.
-        const bool alive_after_prompt = plugin_exists(request->plugin_key);
+        const bool alive_after_prompt = plugin_alive(request->plugin_key);
         satisfied = granted && alive_after_prompt && !PluginManager::instance().is_shutting_down() &&
                     runtime_audit_prompts().begin_commit();
 
@@ -1990,7 +1993,8 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
     if (s_permission_prompt_for_testing)
         return s_permission_prompt_for_testing(event_name, shown);
 
-    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing() || PluginManager::instance().is_shutting_down())
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing() || PluginManager::instance().is_shutting_down() ||
+        PluginManager::instance().is_plugin_load_cancelled(plugin_key))
         return false;
 
     const bool on_gui_thread = wxIsMainThread() != 0;
@@ -2032,7 +2036,9 @@ bool request_permission(AuditEventCategory category, const std::string& plugin_k
     // approved only when the user says Yes to it and no unload cancelled it while it was up.
     bool granted = false;
     try {
-        granted = show_queued_prompt(request);
+        const bool alive = !PluginManager::instance().is_shutting_down() &&
+                           !PluginManager::instance().is_plugin_load_cancelled(plugin_key);
+        granted = alive && show_queued_prompt(request);
     } catch (const std::exception& ex) {
         BOOST_LOG_TRIVIAL(error) << "[AUDIT PROMPT] Failed to show permission prompt for plugin=" << plugin_key
                                  << ": " << ex.what();
@@ -2419,6 +2425,11 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     if (missing_buckets.empty())
         return true;
 
+    // A cancelled load no longer represents a live plugin: do not ask, and do not save a grant
+    // that the discarded load would otherwise leave behind. Re-checked after enqueue below.
+    if (PluginManager::instance().is_plugin_load_cancelled(plugin_key))
+        return false;
+
     if (PluginAuditDetail::s_permission_message_prompt_for_testing) {
         // Tests run without a wxApp to host the dialog: hand the seam the message it would show.
         try {
@@ -2438,7 +2449,8 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
         return false;
     }
 
-    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing() || PluginManager::instance().is_shutting_down())
+    if (wxTheApp == nullptr || GUI::wxGetApp().is_closing() || PluginManager::instance().is_shutting_down() ||
+        PluginManager::instance().is_plugin_load_cancelled(plugin_key))
         return false;
 
     const bool on_gui_thread = wxIsMainThread() != 0;
@@ -2473,9 +2485,13 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     if (admission == AuditPromptQueue::Admission::ShowNow) {
         bool satisfied = false;
         try {
-            const bool granted = PluginAuditDetail::prompt_for_permission_message(
-                PluginAuditDetail::build_permission_message(descriptor.name, missing_buckets));
+            const bool alive = !PluginManager::instance().is_shutting_down() &&
+                               !PluginManager::instance().is_plugin_load_cancelled(plugin_key);
+            const bool granted =
+                alive && PluginAuditDetail::prompt_for_permission_message(
+                             PluginAuditDetail::build_permission_message(descriptor.name, missing_buckets));
             satisfied = granted && !PluginManager::instance().is_shutting_down() &&
+                        !PluginManager::instance().is_plugin_load_cancelled(plugin_key) &&
                         PluginAuditDetail::runtime_audit_prompts().begin_commit();
             if (satisfied) {
                 satisfied = PluginAuditDetail::persist_declared_permissions(
@@ -2501,9 +2517,11 @@ bool PluginAuditManager::request_permissions(const std::string& plugin_key, cons
     if (!PluginAuditDetail::schedule_runtime_prompt_drain_checked())
         return false;
 
-    // A load that began before shutdown must not wait forever on a prompt that will not open.
-    // Re-check after enqueue so a discard racing this admission cannot strand the worker.
-    if (PluginManager::instance().is_shutting_down()) {
+    // A load that began before shutdown or was cancelled by unload must not wait forever on a
+    // prompt that will not open. Re-check after enqueue so a discard racing this admission cannot
+    // strand the worker, and a request admitted after unload's discard still learns it is dead.
+    if (PluginManager::instance().is_shutting_down() ||
+        PluginManager::instance().is_plugin_load_cancelled(plugin_key)) {
         PluginAuditDetail::discard_runtime_prompts_for(plugin_key);
         return false;
     }
