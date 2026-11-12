@@ -219,14 +219,38 @@ jobs:
         # installed into it here; the source tree keeps its JSONs for later jobs.
         run: ./scripts/build_preset_cache.sh -b build/${{ inputs.arch }} build/${{ inputs.arch }}/OrcaSlicer/OrcaSlicer.app/Contents/Resources/profiles
 
+      # A pull request builds no universal app (build_all.yml), so each arch it
+      # builds ships as its own DMG; every other run packs the bundle for the
+      # universal job below.
+      - name: Create DMG ${{ inputs.arch }} without notary
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && github.event_name == 'pull_request'
+        working-directory: ${{ github.workspace }}
+        run: |
+          # Load the `retry` and `create_dmg` helpers.
+          source ${{ github.workspace }}/scripts/retry.sh
+          source ${{ github.workspace }}/scripts/create_dmg.sh
+          dmg_dir=${{ github.workspace }}/build/${{ inputs.arch }}/OrcaSlicer_dmg
+          mkdir -p "$dmg_dir"
+          rm -rf "$dmg_dir"/*
+          cp -R ${{ github.workspace }}/build/${{ inputs.arch }}/OrcaSlicer/OrcaSlicer.app "$dmg_dir/"
+          ln -sfn /Applications "$dmg_dir/Applications"
+          create_dmg "OrcaSlicer" "$dmg_dir" OrcaSlicer_Mac_${{ inputs.arch }}_${{ env.ver }}.dmg
+
+      - name: Upload DMG ${{ inputs.arch }}
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: OrcaSlicer_Mac_${{ inputs.arch }}_${{ env.ver }}
+          path: ${{ github.workspace }}/OrcaSlicer_Mac_${{ inputs.arch }}_${{ env.ver }}.dmg
+
       - name: Pack macOS app bundle ${{ inputs.arch }}
-        if: runner.os == 'macOS' && !inputs.macos-combine-only
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && github.event_name != 'pull_request'
         working-directory: ${{ github.workspace }}
         run: |
           tar -czvf OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}.tar.gz -C build/${{ inputs.arch }} OrcaSlicer
 
       - name: Upload macOS app bundle ${{ inputs.arch }}
-        if: runner.os == 'macOS' && !inputs.macos-combine-only
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v7
         with:
           name: OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}
@@ -707,6 +731,12 @@ jobs:
       - name: Build slicer and tests
         if: runner.os == 'Linux'
         shell: bash
+        env:
+          # libstdc++'s checks, so the unit tests abort on an out-of-range
+          # access here too. The Flatpak gets them from its SDK's default
+          # flags and was the only leg catching those on pull requests, which
+          # build it only on request.
+          ORCA_EXTRA_BUILD_ARGS: -DSLIC3R_GLIBCXX_ASSERTIONS=ON
         run: |
           # Build + tar the unit tests (-t) on both Linux legs so each arch
           # (x86_64 + aarch64) gets tested by its own unit_tests_linux_* job.
