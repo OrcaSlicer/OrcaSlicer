@@ -5124,7 +5124,7 @@ void PrintObject::combine_infill()
 // A top island that an erosion of this radius wipes out is too narrow to justify a sub-top band
 // underneath it. Eroding rather than measuring the area also rejects long thin slivers, whose area
 // can be large while no part of them is wide enough to matter.
-static constexpr double SUB_TOP_MIN_TOP_EROSION_MM = 1.5;
+//static constexpr double SUB_TOP_MIN_TOP_EROSION_MM = 1.5;
 
 void PrintObject::discover_extra_elements()
 {
@@ -5140,7 +5140,7 @@ void PrintObject::discover_extra_elements()
     auto merge_surfaces = [](SurfacesCacheRecord& cache, bool make_subtop) { 
         SurfaceCollection new_surfaces;
         SurfacesPtr crop_surfaces = cache.first->fill_surfaces.filter_by_type_except(stInternal);
-        ExPolygons crop_first     = union_overlapping_ex(to_expolygons(crop_surfaces));
+        ExPolygons crop_first     = union_ex(to_expolygons(crop_surfaces));
         for (auto& s : cache.second)
             new_surfaces.append(diff_ex(s.expolygon, crop_first), s.surface_type);
         ExPolygons internal_solid = union_ex(to_expolygons(cache.first->fill_surfaces.filter_by_type(stInternalSolid)),
@@ -5164,21 +5164,21 @@ void PrintObject::discover_extra_elements()
         if (top_mask.empty())
             return;
 
-        const auto    erosion    = float(scale_(SUB_TOP_MIN_TOP_EROSION_MM));
-        const coord_t min_extent = coord_t(scale_(2. * SUB_TOP_MIN_TOP_EROSION_MM));
-        ExPolygons    large_tops;
-        for (ExPolygon &top : union_ex(top_mask)) {
-            // An island narrower than the erosion diameter cannot survive it, and its extents are a
-            // linear scan against a boolean, so check them before paying for the offset.
-            const Point extents = get_extents(top).size();
-            if (extents.x() < min_extent || extents.y() < min_extent)
-                continue;
-            if (! offset_ex(top, - erosion).empty())
-                large_tops.emplace_back(std::move(top));
-        }
-        if (large_tops.empty())
-            return;
-        top_mask = std::move(large_tops);
+        //const auto    erosion    = float(scale_(SUB_TOP_MIN_TOP_EROSION_MM));
+        //const coord_t min_extent = coord_t(scale_(2. * SUB_TOP_MIN_TOP_EROSION_MM));
+        //ExPolygons    large_tops;
+        //for (ExPolygon &top : union_ex(top_mask)) {
+        //    // An island narrower than the erosion diameter cannot survive it, and its extents are a
+        //    // linear scan against a boolean, so check them before paying for the offset.
+        //    const Point extents = get_extents(top).size();
+        //    if (extents.x() < min_extent || extents.y() < min_extent)
+        //        continue;
+        //    if (! offset_ex(top, - erosion).empty())
+        //        large_tops.emplace_back(std::move(top));
+        //}
+        //if (large_tops.empty())
+        //    return;
+        //top_mask = std::move(large_tops);
 
         // The vertex cull below runs once per island of every region, and it walks the points of
         // every mask polygon. Caching the extents here lets a polygon whose box misses the island
@@ -5251,7 +5251,7 @@ void PrintObject::discover_extra_elements()
                     for (LayerRegion* lowerm : lower->m_regions) {
                         Surfaces new_lower_surfaces;
                         ExPolygons crop_mask_lower = lowerm->fill_no_overlap_expolygons;
-                        ExPolygons slab = offset_ex((j <= top_shell_layers) ? walls_solid : diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), base_width / 4 * j);
+                        ExPolygons slab = offset_ex((j < top_shell_layers) ? walls_solid : diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), base_width / 4 * j);
                         for (Surface& lower_surface : lowerm->fill_surfaces.surfaces)
                             surfaces_append(new_lower_surfaces, intersection_ex(slab, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
                         
