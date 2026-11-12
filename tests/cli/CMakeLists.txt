@@ -55,9 +55,25 @@ set_tests_properties(cli_filament_colour_count PROPERTIES
     SKIP_RETURN_CODE 77
     TIMEOUT 300)
 
+add_test(NAME cli_load_filaments_count
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_cli_load_filaments_count.sh $<TARGET_FILE:OrcaSlicer> ${ORCA_CLI_TEST_PYTHON}
+        ${CMAKE_SOURCE_DIR}/resources/profiles/BBL)
+set_tests_properties(cli_load_filaments_count PROPERTIES
+    LABELS "CLI;RequiresApp"
+    SKIP_RETURN_CODE 77
+    TIMEOUT 300)
+
 add_test(NAME cli_malformed_input
     COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_cli_malformed_input.sh $<TARGET_FILE:OrcaSlicer> ${ORCA_CLI_TEST_PYTHON})
 set_tests_properties(cli_malformed_input PROPERTIES
+    LABELS "CLI;RequiresApp"
+    SKIP_RETURN_CODE 77
+    TIMEOUT 900)
+
+add_test(NAME cli_nozzle_volume_type
+    COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/test_cli_nozzle_volume_type.sh $<TARGET_FILE:OrcaSlicer> ${ORCA_CLI_TEST_PYTHON}
+        ${CMAKE_SOURCE_DIR}/resources/profiles)
+set_tests_properties(cli_nozzle_volume_type PROPERTIES
     LABELS "CLI;RequiresApp"
     SKIP_RETURN_CODE 77
     TIMEOUT 900)

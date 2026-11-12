@@ -15,6 +15,10 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
+#include <string>
+#include <vector>
+#include <imgui/imgui.h>
+#include "slic3r/GUI/AnimatedTexture.hpp"
 
 namespace Slic3r::GUI {
 
