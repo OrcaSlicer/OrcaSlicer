@@ -429,8 +429,7 @@ std::string pending_install_to_json(const PendingInstall& pending)
     j["target"]  = pending.target;
     j["digest"]  = pending.digest;
     j["channel"] = pending.channel;
-    j["version"]    = pending.version;
-    j["data_aside"] = pending.data_aside;
+    j["version"] = pending.version;
     return j.dump();
 }
 
@@ -449,8 +448,7 @@ bool pending_install_from_json(const std::string& text, PendingInstall& out)
     out.target  = text_field(j, "target");
     out.digest  = text_field(j, "digest");
     out.channel = text_field(j, "channel");
-    out.version    = text_field(j, "version");
-    out.data_aside = text_field(j, "data_aside");
+    out.version = text_field(j, "version");
     return true;
 }
 

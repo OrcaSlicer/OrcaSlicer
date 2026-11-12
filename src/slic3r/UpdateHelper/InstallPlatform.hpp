@@ -16,7 +16,6 @@ namespace Updater {
 // when a change already made was rolled back.
 bool apply_windows_install(const UpdateHandoff& handoff, const std::string& artifact_path, ProgressSink& sink, std::string& error);
 bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifact_path, ProgressSink& sink, std::string& error);
-bool apply_linux_install(const UpdateHandoff& handoff, const std::string& artifact_path, ProgressSink& sink, std::string& error);
 
 // Shared: delete a path (file or folder) without failing the caller, and launch
 // the new build detached.

@@ -19,8 +19,6 @@
 
     #include <cstdio>
     #include <string>
-    #include <system_error>
-    #include <vector>
 
     #include <boost/filesystem.hpp>
     #include <boost/log/trivial.hpp>
@@ -51,107 +49,10 @@ std::wstring widen_utf8(const std::string& text)
     return out;
 }
 
-std::string narrow_utf8(const std::wstring& text)
-{
-    if (text.empty())
-        return std::string();
-    const int needed = ::WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, nullptr, 0, nullptr, nullptr);
-    if (needed <= 0)
-        return std::string();
-    std::string out(static_cast<size_t>(needed), '\0');
-    ::WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, out.data(), needed, nullptr, nullptr);
-    out.resize(static_cast<size_t>(needed) - 1);
-    return out;
-}
-
 // Handoff paths travel as UTF-8; boost::filesystem on Windows takes UTF-16.
 fs::path to_path(const std::string& utf8)
 {
     return fs::path(widen_utf8(utf8));
-}
-
-// CreateProcessW does not search PATH for an explicit application name.
-std::wstring system_tar_path()
-{
-    wchar_t dir[MAX_PATH] = { 0 };
-    ::GetSystemDirectoryW(dir, MAX_PATH);
-    return std::wstring(dir) + L"\\tar.exe";
-}
-
-// The helper inherits the application's working folder, which on a portable
-// install is inside the tree being renamed. Windows refuses to rename a folder
-// that holds a process's working folder.
-void leave_install_folder()
-{
-    wchar_t temp[MAX_PATH] = { 0 };
-    const DWORD length = ::GetTempPathW(MAX_PATH, temp);
-    if (length > 0 && length < MAX_PATH)
-        ::SetCurrentDirectoryW(temp);
-}
-
-// Antivirus and indexers can hold a file for a moment after it was written.
-void rename_tree(const fs::path& from, const fs::path& to, boost::system::error_code& ec)
-{
-    for (int attempt = 1;; ++attempt) {
-        ec.clear();
-        fs::rename(from, to, ec);
-        if (!ec || attempt == 5)
-            return;
-        ::Sleep(500);
-    }
-}
-
-bool run_and_wait(const std::wstring& exe, const std::wstring& args, int timeout_seconds, DWORD& exit_code, std::string& error)
-{
-    std::wstring cmdline = args.empty() ? exe : exe + L" " + args;
-    std::vector<wchar_t> buffer(cmdline.begin(), cmdline.end());
-    buffer.push_back(L'\0');
-
-    STARTUPINFOW startup;
-    ::ZeroMemory(&startup, sizeof(startup));
-    startup.cb = sizeof(startup);
-    PROCESS_INFORMATION process;
-    ::ZeroMemory(&process, sizeof(process));
-
-    if (!::CreateProcessW(exe.c_str(), buffer.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr,
-                          &startup, &process)) {
-        error = "Could not run " + narrow_utf8(exe) + " (error " + std::to_string(static_cast<long long>(::GetLastError())) + ").";
-        return false;
-    }
-
-    const DWORD waited = ::WaitForSingleObject(process.hProcess, static_cast<DWORD>(timeout_seconds) * 1000u);
-    if (waited != WAIT_OBJECT_0) {
-        ::TerminateProcess(process.hProcess, 1);
-        ::CloseHandle(process.hThread);
-        ::CloseHandle(process.hProcess);
-        error = "A step of the update took too long and was stopped.";
-        return false;
-    }
-    if (!::GetExitCodeProcess(process.hProcess, &exit_code)) {
-        exit_code = 1;
-        ::CloseHandle(process.hThread);
-        ::CloseHandle(process.hProcess);
-        error = "A step of the update ended without a result.";
-        return false;
-    }
-    ::CloseHandle(process.hThread);
-    ::CloseHandle(process.hProcess);
-    return true;
-}
-
-bool extract_zip(const std::string& zip_path, const std::string& destination, std::string& error)
-{
-    // tar.exe (bsdtar) ships with Windows 10 and later; no COM shell setup or
-    // archive library needed, and it handles long paths and UTF-8 names.
-    const std::wstring args = L"-xf \"" + widen_utf8(zip_path) + L"\" -C \"" + widen_utf8(destination) + L"\"";
-    DWORD              exit_code = 1;
-    if (!run_and_wait(system_tar_path(), args, 1800, exit_code, error))
-        return false;
-    if (exit_code != 0) {
-        error = "The downloaded archive could not be unpacked (tar exit code " + std::to_string(static_cast<long long>(exit_code)) + ").";
-        return false;
-    }
-    return true;
 }
 
 // Checks that the downloaded installer carries a valid Authenticode signature.
@@ -262,8 +163,6 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
         return false;
     }
 
-    leave_install_folder();
-
     const std::string label = handoff.version_label.empty() ? std::string("the new version") : handoff.version_label;
     sink.say(Stage::Installing, 0, "Installing " + label);
 
@@ -283,216 +182,23 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
         return false;
     }
 
-    if (handoff.flavour == "windows_installer") {
-        // No backup folder here on purpose: the installer removes and rewrites
-        // the whole tree itself, and a pre-rename would make its uninstall
-        // step fail. The pending record still marks the install as in flight.
-        PendingInstall pending;
-        pending.target  = install_root;
-        pending.digest  = handoff.digest;
-        pending.channel = handoff.channel;
-        pending.version = handoff.version;
-        if (!write_pending_install(pending)) {
-            error = "The update could not be recorded, so nothing was changed.";
-            return false;
-        }
-
-        sink.say(Stage::Installing, 30, "Running the installer");
-        if (!run_installer(artifact_path, install_root, error)) {
-            remove_pending_install();
-            return false;
-        }
-
-        sink.say(Stage::Launching, 90, "Starting " + label);
-
-        // Recorded before the launch: a crash while the new build starts still
-        // leaves the application knowing what it is running.
-        InstallRecord record;
-        record.digest  = handoff.digest;
-        record.channel = handoff.channel;
-        record.version = handoff.version;
-        if (!write_install_record(record))
-            BOOST_LOG_TRIVIAL(warning) << "Could not record the installed build " << handoff.version;
-
-        const std::string exe_path = handoff.exe_path.empty() ? install_root + "\\orca-slicer.exe" : handoff.exe_path;
-        if (!launch_detached(exe_path, error)) {
-            remove_path_quietly(updater_install_record_path());
-            remove_pending_install();
-            error += " The installer finished, but the new version did not start.";
-            return false;
-        }
-        return true;
-    }
-
-    // Portable build: a zip that unpacks beside the install folder, with the
-    // portable user data kept inside that folder.
-    const std::string pid        = std::to_string(static_cast<long long>(::GetCurrentProcessId()));
-    const std::string staged     = install_root + ".staged-" + pid;
-    const std::string backup     = install_root + ".backup-" + pid;
-    // Where a new tree is parked during rollback, so it is never deleted in place.
-    const std::string rejected   = install_root + ".rejected-" + pid;
-    const std::string data_dir   = install_root + "\\data_dir";
-    // A sibling of both trees, so `data_dir` can leave the install folder
-    // before anything is renamed or deleted there.
-    const std::string data_aside = install_root + ".data-" + pid;
-    const bool        has_data   = fs::is_directory(to_path(data_dir), ec);
-
-    remove_path_quietly(staged);
-    if (fs::exists(to_path(data_aside), ec)) {
-        error = "The update could not be prepared: " + data_aside + " already exists.";
-        return false;
-    }
-    fs::create_directories(to_path(staged), ec);
-    if (!fs::is_directory(to_path(staged), ec)) {
-        error = "The update could not be prepared: " + staged + " could not be created.";
-        return false;
-    }
-
-    sink.say(Stage::Installing, 30, "Unpacking " + label);
-    if (!extract_zip(artifact_path, staged, error)) {
-        remove_path_quietly(staged);
-        return false;
-    }
-
-    // The release zip is flat; the nightly zip wraps the tree in one folder.
-    fs::path new_tree = to_path(staged);
-    if (!fs::is_regular_file(new_tree / "orca-slicer.exe", ec)) {
-        ec.clear();
-        fs::directory_iterator entry(new_tree, ec), end;
-        if (!ec && entry != end) {
-            const fs::path only = entry->path();
-            entry.increment(ec);
-            if (!ec && entry == end && fs::is_directory(only, ec))
-                new_tree = only;
-        }
-    }
-    if (!fs::is_regular_file(new_tree / "orca-slicer.exe", ec)) {
-        remove_path_quietly(staged);
-        error = "The downloaded archive does not contain orca-slicer.exe, so the update was not installed.";
-        return false;
-    }
-
-    // Written before anything moves: the application restores the backup on its
-    // next start if we die between "old moved aside" and "new in place". The
-    // aside path is recorded so recovery can find the user's data even when the
-    // process dies after moving it out of the tree.
+    // No backup folder here on purpose: the installer removes and rewrites
+    // the whole tree itself, and a pre-rename would make its uninstall
+    // step fail. The pending record still marks the install as in flight.
     PendingInstall pending;
-    pending.backup     = backup;
-    pending.target     = install_root;
-    pending.digest     = handoff.digest;
-    pending.channel    = handoff.channel;
-    pending.version    = handoff.version;
-    pending.data_aside = has_data ? data_aside : std::string();
+    pending.target  = install_root;
+    pending.digest  = handoff.digest;
+    pending.channel = handoff.channel;
+    pending.version = handoff.version;
     if (!write_pending_install(pending)) {
-        remove_path_quietly(staged);
         error = "The update could not be recorded, so nothing was changed.";
         return false;
     }
 
-    // `data_dir` is at its original place, at `data_aside`, or inside the new
-    // tree. Nothing that may hold it is deleted before it has been moved back.
-    bool data_aside_ready = false;
-    bool data_placed      = false;
-    bool moved_old        = false;
-    bool placed_new       = false;
-
-    // Restores the previous tree and always puts the user's data back into it.
-    // Returns true only when nothing is left to recover, which is the only case
-    // where the pending record may be deleted. On failure `problem` says what is
-    // still out of place and no tree that may hold the data has been touched.
-    auto rollback = [&](std::string& problem) -> bool {
-        boost::system::error_code ignore;
-
-        if (data_placed) {
-            // Pull the user's data out of the new tree before removing it.
-            rename_tree(to_path(data_dir), to_path(data_aside), ignore);
-            if (ignore) {
-                problem = "Your portable settings are still inside " + install_root + " and could not be moved aside (" + ignore.message() + ")";
-                return false; // the new tree holds the data, so it is not deleted
-            }
-            data_placed      = false;
-            data_aside_ready = true;
-        }
-
-        // Parked rather than deleted in place: a file held open by another
-        // process would otherwise leave the new tree half-removed.
-        if (placed_new) {
-            rename_tree(to_path(install_root), to_path(rejected), ignore);
-            if (ignore) {
-                problem = "The new version could not be moved aside from " + install_root + " (" + ignore.message() + ")";
-                return false;
-            }
-            placed_new = false;
-        }
-
-        if (moved_old) {
-            rename_tree(to_path(backup), to_path(install_root), ignore);
-            if (ignore) {
-                problem = "The previous version is still at " + backup + " and could not be moved back (" + ignore.message() + ")";
-                return false;
-            }
-            moved_old = false;
-        }
-
-        if (data_aside_ready) {
-            if (!fs::is_directory(to_path(install_root), ignore)) {
-                problem = "Your portable settings are still at " + data_aside + " because the installation folder is missing";
-                return false;
-            }
-            rename_tree(to_path(data_aside), to_path(data_dir), ignore);
-            if (ignore) {
-                problem = "Your portable settings are still at " + data_aside + " and could not be moved back (" + ignore.message() + ")";
-                return false;
-            }
-            data_aside_ready = false;
-        }
-
-        // Everything is back: only now is there nothing left to recover.
-        remove_path_quietly(rejected);
-        remove_path_quietly(staged);
-        remove_path_quietly(updater_install_record_path());
+    sink.say(Stage::Installing, 30, "Running the installer");
+    if (!run_installer(artifact_path, install_root, error)) {
         remove_pending_install();
-        return true;
-    };
-
-    // Rolls back and keeps the pending record when anything is still out of
-    // place, so the application can retry on its next start.
-    auto fail = [&](std::string message) -> bool {
-        std::string problem;
-        if (!rollback(problem))
-            message += " " + problem + ", so the update was left recorded for the next start.";
-        error = message;
         return false;
-    };
-
-    if (has_data) {
-        rename_tree(to_path(data_dir), to_path(data_aside), ec);
-        if (ec)
-            return fail("Your portable settings could not be moved aside: " + ec.message() + ".");
-        data_aside_ready = true;
-    }
-
-    sink.say(Stage::Installing, 70, "Replacing the installation folder");
-
-    ec.clear();
-    rename_tree(to_path(install_root), to_path(backup), ec);
-    if (ec)
-        return fail("The current installation could not be moved aside: " + ec.message() + ".");
-    moved_old = true;
-
-    ec.clear();
-    rename_tree(new_tree, to_path(install_root), ec);
-    if (ec)
-        return fail("The new version could not be put in place: " + ec.message() + ".");
-    placed_new = true;
-    remove_path_quietly(staged);
-
-    if (data_aside_ready) {
-        rename_tree(to_path(data_aside), to_path(data_dir), ec);
-        if (ec)
-            return fail("Your portable settings could not be moved into the new version: " + ec.message() + ".");
-        data_aside_ready = false;
-        data_placed      = true;
     }
 
     sink.say(Stage::Launching, 90, "Starting " + label);
@@ -508,16 +214,11 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
 
     const std::string exe_path = handoff.exe_path.empty() ? install_root + "\\orca-slicer.exe" : handoff.exe_path;
     if (!launch_detached(exe_path, error)) {
-        std::string problem;
-        if (rollback(problem))
-            error += " The previous version was put back.";
-        else
-            error += " " + problem + ", so the update was left recorded for the next start.";
+        remove_path_quietly(updater_install_record_path());
+        remove_pending_install();
+        error += " The installer finished, but the new version did not start.";
         return false;
     }
-
-    // Success: the backup and the pending record stay behind on purpose; the
-    // application cleans both up on its next start.
     return true;
 }
 

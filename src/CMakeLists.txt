@@ -234,7 +234,7 @@ endif ()
 # downloads and verifies the new build and hands it to the per-platform install.
 # Deliberately built from its own sources only, so it never pulls the Plater or
 # the main application's GUI headers.
-if (SLIC3R_GUI)
+if (SLIC3R_GUI AND (WIN32 OR APPLE))
     set(UPDATER_HELPER_SOURCES
         slic3r/UpdateHelper/main.cpp
         slic3r/UpdateHelper/UpdateHelperFrame.cpp
@@ -246,7 +246,6 @@ if (SLIC3R_GUI)
         slic3r/UpdateHelper/InstallPlatform.hpp
         slic3r/UpdateHelper/apply_windows.cpp
         slic3r/UpdateHelper/apply_macos.cpp
-        slic3r/UpdateHelper/apply_linux.cpp
     )
 
     if (WIN32)
@@ -259,12 +258,6 @@ if (SLIC3R_GUI)
         # here (CMAKE_MACOSX_BUNDLE), and the application starts the helper by path
         # from Contents/MacOS, where build_release_macos.sh copies it as a file.
         set_target_properties(OrcaSlicerUpdater PROPERTIES MACOSX_BUNDLE FALSE)
-    endif ()
-    if (UNIX AND NOT APPLE)
-        # The AppImage copies the helper with its libraries from bin/updater. --disable-new-dtags
-        # makes the $ORIGIN entry an RPATH, which ld.so also applies to the transitive dependencies.
-        set_target_properties(OrcaSlicerUpdater PROPERTIES BUILD_RPATH "$ORIGIN")
-        target_link_options(OrcaSlicerUpdater PRIVATE "LINKER:--disable-new-dtags")
     endif ()
 
     target_include_directories(OrcaSlicerUpdater PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -471,8 +464,7 @@ else ()
         install(FILES ${output_sos_${build_type}} DESTINATION "${CMAKE_INSTALL_PREFIX}")
     endif()
     install(TARGETS OrcaSlicer RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR})
-    # Beside the main binary, so the helper's rpath and (macOS) framework paths resolve.
-    if (TARGET OrcaSlicerUpdater)
+    if (APPLE AND TARGET OrcaSlicerUpdater)
         install(TARGETS OrcaSlicerUpdater RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
     endif ()
 endif ()

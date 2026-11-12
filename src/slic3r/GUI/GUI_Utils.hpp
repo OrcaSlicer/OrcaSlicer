@@ -99,14 +99,10 @@ bool is_running_in_flatpak();
 Slic3r::InstallFlavour current_install_flavour();
 // Absolute path of the running executable, resolved where the platform allows it.
 std::string app_exe_path();
-// Directory (or AppImage file / .app bundle) the running build was installed into.
+// Directory (or .app bundle) the running build was installed into.
 std::string app_install_root();
-// Updater cache, in the OS cache directory. A portable Windows install keeps its data
-// dir inside the install tree, which the updater renames, so its cache carries a suffix
-// derived from the install root and stays outside that tree.
+// Updater cache, in the OS cache directory.
 std::string update_cache_dir();
-// The same cache for the install at `install_root`, which need not be the running build.
-std::string update_cache_dir(const std::string& install_root);
 
 // What a save entry point is about to write, for the unresolved-plugin warning below.
 enum class SaveSubject { Preset, Project };

@@ -52,12 +52,7 @@ namespace Updater {
 
 bool relaunch_app(const UpdateHandoff& handoff)
 {
-#if defined(__linux__)
-    // The handoff's exe_path lies inside the AppImage mount, which is gone once the app exits.
-    const std::string& exe = handoff.install_root;
-#else
     const std::string& exe = handoff.exe_path;
-#endif
     if (exe.empty())
         return false;
     return wxExecute(wxString::FromUTF8("\"" + exe + "\""), wxEXEC_ASYNC) > 0;

@@ -404,19 +404,11 @@ std::string app_install_root()
     const auto        bundle = exe.find(suffix);
     if (bundle != std::string::npos)
         return exe.substr(0, bundle + 4); // include the ".app" extension
-#elif defined __linux__
-    if (is_running_in_appimage())
-        return std::getenv("APPIMAGE");
 #endif
     return parent_directory(exe);
 }
 
 std::string update_cache_dir()
-{
-    return update_cache_dir(app_install_root());
-}
-
-std::string update_cache_dir(const std::string& install_root)
 {
     // The cache holds a few hundred megabytes of download and nothing the user would miss,
     // so it belongs in the OS cache directory rather than in the data directory.
@@ -424,28 +416,7 @@ std::string update_cache_dir(const std::string& install_root)
     boost::filesystem::path dir(base.ToUTF8().data());
     dir /= "OrcaSlicer";
     dir /= "updater";
-
-    if (current_install_flavour() != Slic3r::InstallFlavour::WindowsPortable)
-        return dir.string();
-
-    // Every portable copy of a release shares one cache name, so the cache carries a suffix
-    // derived from the install root: install.lock, installed.json, pending.json, downloads/
-    // and helper/ must not be shared with another portable install.
-    std::string root = install_root;
-    boost::system::error_code ec;
-    const boost::filesystem::path path(install_root);
-    const boost::filesystem::path canonical = boost::filesystem::canonical(path, ec);
-    if (!ec)
-        root = canonical.string();
-    else if (const boost::filesystem::path parent = boost::filesystem::canonical(path.parent_path(), ec); !ec)
-        root = (parent / path.filename()).string(); // The folder itself is gone, as after a swap.
-
-    const std::size_t hashed = std::hash<std::string>{}(root);
-    char              suffix[13];
-    std::snprintf(suffix, sizeof(suffix), "%012llx",
-                  static_cast<unsigned long long>(hashed) & 0xffffffffffffull);
-
-    return dir.string() + "-" + suffix;
+    return dir.string();
 }
 
 namespace {

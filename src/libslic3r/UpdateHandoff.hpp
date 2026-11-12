@@ -13,9 +13,9 @@
 //   updater.log     helper log
 //
 // The cache lives in the OS cache directory, not in the data directory: it holds a
-// download the user can lose. The helper never resolves it itself, because when it runs
-// from a portable Windows install or from an AppImage it would resolve to a different
-// place than the application does. `UpdateHandoff::cache_dir` is authoritative.
+// download the user can lose. The helper never resolves it itself, because its environment
+// can differ from the application's and resolve to a different place.
+// `UpdateHandoff::cache_dir` is authoritative.
 
 #include <cstdint>
 #include <string>
@@ -33,7 +33,7 @@ struct UpdateHandoff
     std::string digest;         // "sha256:<hex>"
     int64_t     size = 0;
     std::string flavour;        // install_flavour_key()
-    std::string install_root;   // install dir, .app bundle, or AppImage file
+    std::string install_root;   // install dir or .app bundle
     std::string exe_path;       // binary to launch when done
     std::string cache_dir;      // updater cache, resolved by the application
     int64_t     parent_pid = 0; // wait for this process to exit before installing
@@ -60,8 +60,6 @@ struct PendingInstall
     std::string digest;
     std::string channel;
     std::string version;
-    // Windows portable: the user's data_dir, moved aside while the trees swap.
-    std::string data_aside;
 };
 
 std::string updater_cache_dir();  // the OS cache dir, <cache>/OrcaSlicer/updater

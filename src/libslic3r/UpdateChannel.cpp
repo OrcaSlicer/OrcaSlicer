@@ -220,10 +220,26 @@ bool in_app_install_supported(InstallFlavour flavour)
 {
     switch (flavour) {
     case InstallFlavour::WindowsInstaller:
-    case InstallFlavour::WindowsPortable:
     case InstallFlavour::MacOSBundle:
+        return true;
+    case InstallFlavour::WindowsPortable:
+    case InstallFlavour::LinuxAppImage:
+    case InstallFlavour::Msix:
+    case InstallFlavour::Flatpak:
+    case InstallFlavour::Other:
+        return false;
+    }
+    return false;
+}
+
+bool is_download_only(InstallFlavour flavour)
+{
+    switch (flavour) {
+    case InstallFlavour::WindowsPortable:
     case InstallFlavour::LinuxAppImage:
         return true;
+    case InstallFlavour::WindowsInstaller:
+    case InstallFlavour::MacOSBundle:
     case InstallFlavour::Msix:
     case InstallFlavour::Flatpak:
     case InstallFlavour::Other:

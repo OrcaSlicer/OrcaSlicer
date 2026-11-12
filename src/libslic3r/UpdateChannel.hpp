@@ -36,9 +36,11 @@ enum class InstallFlavour {
 
 std::string   install_flavour_key(InstallFlavour flavour);
 bool          in_app_install_supported(InstallFlavour flavour);
+// The app cannot replace itself, but the matching asset is downloaded directly (WindowsPortable, LinuxAppImage).
+bool          is_download_only(InstallFlavour flavour);
 
 struct UpdateAsset {
-    std::string name;    // e.g. OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.5.0.AppImage
+    std::string name;    // e.g. OrcaSlicer_Windows_Installer_V2.5.0_x64.exe
     std::string url;     // browser_download_url
     std::string digest;  // "sha256:<hex>", empty when the release list omits it
     int64_t     size = 0;

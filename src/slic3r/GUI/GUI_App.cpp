@@ -1921,6 +1921,9 @@ namespace {
     constexpr int POLL_INTERVAL_MS            = 50;   // Polling interval for state checks
     constexpr int MAX_YIELD_ITERATIONS        = 20;   // Maximum wxYield calls per drain cycle
 
+    // Page the update dialog opens for the Flatpak build.
+    constexpr const char* flathub_app_url = "https://flathub.org/apps/com.orcaslicer.OrcaSlicer";
+
     // The Orca agent's health check reports into GUI_App from a worker thread, and the agent can
     // outlive GUI_App's use of it (the plugin service keeps a reference), so stop the check before
     // the agent is deleted or replaced. The cast is null when no Orca agent is attached.
@@ -2770,7 +2773,6 @@ void GUI_App::init_app_config()
         // On macOS, the executable is inside the .app bundle.
         _app_folder = _app_folder.parent_path().parent_path().parent_path();
 #endif
-        recover_portable_data();
         boost::filesystem::path app_data_dir_path = _app_folder / "data_dir";
         if (boost::filesystem::exists(app_data_dir_path)) {
             set_data_dir(app_data_dir_path.string());
@@ -3510,17 +3512,23 @@ bool GUI_App::on_init_inner()
             dialog.update_version_info(wxString::FromUTF8(m_update_candidate.release_notes),
                                        wxString::FromUTF8(m_update_candidate.version_label));
             switch (dialog.ShowModal()) {
-            case wxID_YES:
-                // Store builds get updates from the Microsoft Store, not the release page.
-                // An install without a verifiable asset falls back to the release page too
-                // instead of preparing an empty handoff.
-                if (can_install_in_app(m_update_candidate, current_install_flavour()))
+            case wxID_YES: {
+                // Store builds get updates from the Microsoft Store and Flatpak builds from Flathub.
+                // Download-only installs open the asset itself. An install without a verifiable
+                // asset falls back to the release page instead of preparing an empty handoff.
+                const InstallFlavour flavour = current_install_flavour();
+                if (can_install_in_app(m_update_candidate, flavour))
                     start_in_app_update();
                 else if (is_running_in_msix())
                     open_ms_store_product_page();
+                else if (flavour == InstallFlavour::Flatpak)
+                    wxLaunchDefaultBrowser(from_u8(flathub_app_url));
+                else if (is_download_only(flavour) && is_release_download_url(m_update_candidate.asset.url))
+                    wxLaunchDefaultBrowser(from_u8(m_update_candidate.asset.url));
                 else
                     wxLaunchDefaultBrowser(from_u8(m_update_candidate.release_url));
                 break;
+            }
             case wxID_NO:
                 break;
             default:
@@ -6840,41 +6848,6 @@ std::string extract_updater_helper()
     }
 }
 
-// Puts the portable user data back beside the installed build. The helper moves
-// `<install_root>\data_dir` aside before swapping the trees, so a crash can leave it
-// at `data_aside` with the new tree already in place and no data_dir in it.
-// Returns false when it could not be put back: the pending record must then stay.
-bool reattach_portable_data(const std::string& data_aside, const std::string& target)
-{
-    boost::system::error_code ec;
-    if (!fs::exists(fs::path(data_aside), ec))
-        return true; // Nothing was moved aside, or it is already back.
-
-    if (target.empty() || !fs::is_directory(fs::path(target), ec)) {
-        BOOST_LOG_TRIVIAL(error) << "The portable data at " << data_aside << " cannot be put back: " << target
-                                 << " is not a directory; keeping the pending update record";
-        return false;
-    }
-
-    const fs::path data_dir = fs::path(target) / "data_dir";
-    if (fs::exists(data_dir, ec)) {
-        // Both copies belong to the user: keep them rather than overwrite either.
-        BOOST_LOG_TRIVIAL(warning) << "The portable data at " << data_aside << " was left in place: "
-                                   << data_dir.string() << " already exists";
-        return true;
-    }
-
-    fs::rename(fs::path(data_aside), data_dir, ec);
-    if (ec) {
-        BOOST_LOG_TRIVIAL(error) << "Could not move the portable data from " << data_aside << " to "
-                                 << data_dir.string() << ": " << ec.message()
-                                 << "; keeping the pending update record";
-        return false;
-    }
-    BOOST_LOG_TRIVIAL(info) << "Moved the portable data from " << data_aside << " to " << data_dir.string();
-    return true;
-}
-
 // True when this process runs from `path`. Compared on disk, so a differently spelled path still matches.
 bool running_from(const std::string& path)
 {
@@ -6894,34 +6867,6 @@ void clear_install_leftovers()
     if (ec)
         BOOST_LOG_TRIVIAL(warning) << "Could not delete the downloaded update at " << updater_download_dir() << ": "
                                    << ec.message();
-}
-
-// The install folder a `<install>.backup-<pid>` copy was moved aside from, or empty.
-std::string backup_source_root(const std::string& root)
-{
-    static const std::string marker = ".backup-";
-    const std::size_t        at     = root.rfind(marker);
-    if (at == std::string::npos || at == 0)
-        return std::string();
-    const std::string pid = root.substr(at + marker.size());
-    if (pid.empty() || pid.find_first_not_of("0123456789") != std::string::npos)
-        return std::string();
-    return root.substr(0, at);
-}
-
-// Selects the cache that holds the pending record. A copy running from its backup folder
-// cannot be launched to reach the record, so it also looks in the cache of the install
-// it was moved aside from.
-void select_updater_cache()
-{
-    const std::string origin = backup_source_root(app_install_root());
-    if (!origin.empty()) {
-        set_updater_cache_dir(update_cache_dir(origin));
-        boost::system::error_code ec;
-        if (fs::exists(fs::path(updater_pending_path()), ec))
-            return;
-    }
-    set_updater_cache_dir(update_cache_dir());
 }
 
 } // namespace
@@ -6953,7 +6898,6 @@ void GUI_App::start_in_app_update()
         return;
     }
 
-    // Resolve the cache once: on a portable install it must sit outside the tree being replaced.
     set_updater_cache_dir(update_cache_dir());
 
     // Refuse while this app has a local job: an install closes the app and would lose it.
@@ -7017,18 +6961,9 @@ void GUI_App::start_in_app_update()
         return;
     }
 
-    // The helper outlives this process, so it must not inherit the AppImage mount or its
-    // library paths, and must not keep the log folder as its working directory.
+    // The helper outlives this process and must not keep the log folder as its working directory.
     wxExecuteEnv exec_env;
     exec_env.cwd = from_u8(updater_helper_dir());
-    if (wxGetEnv("APPIMAGE", nullptr)) {
-        wxGetEnvMap(&exec_env.env);
-        exec_env.env.erase("APPIMAGE");
-        exec_env.env.erase("APPDIR");
-        exec_env.env.erase("LD_LIBRARY_PATH");
-        exec_env.env.erase("LD_PRELOAD");
-        exec_env.env.erase("UNION_PRELOAD");
-    }
 
     const wxWCharBuffer helper_arg  = from_u8(helper).wc_str();
     const wxWCharBuffer handoff_arg = from_u8(updater_handoff_path()).wc_str();
@@ -7043,9 +6978,7 @@ void GUI_App::start_in_app_update()
 
 void GUI_App::finish_pending_update()
 {
-    // The helper writes its records into the same cache the application resolved,
-    // which on a portable install is outside the install tree.
-    select_updater_cache();
+    set_updater_cache_dir(update_cache_dir());
 
     // The helper writes this only before the new build starts, so it is safe to take even
     // while the helper still holds the install lock.
@@ -7102,30 +7035,12 @@ void GUI_App::finish_pending_update()
             }
         }
 
-        if (settled && !pending.data_aside.empty() && !reattach_portable_data(pending.data_aside, pending.target))
-            settled = false;
-
         if (settled)
             remove_pending_install();
     }
 
     if (has_record)
         clear_install_leftovers();
-    release_install_lock(lock_path);
-}
-
-void GUI_App::recover_portable_data()
-{
-    select_updater_cache();
-
-    // Before the data directory is chosen, so the application finds the user's data where it was.
-    const std::string lock_path = updater_lock_path();
-    if (!acquire_install_lock(lock_path, current_process_id()))
-        return;
-
-    PendingInstall pending;
-    if (read_pending_install(pending) && !pending.data_aside.empty())
-        reattach_portable_data(pending.data_aside, pending.target);
     release_install_lock(lock_path);
 }
 

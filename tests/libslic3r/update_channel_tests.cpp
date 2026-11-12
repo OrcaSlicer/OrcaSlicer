@@ -52,8 +52,8 @@ const char* stable_releases_json()
             "updated_at": "2026-11-10T08:31:54Z",
             "assets": [
                 {
-                    "name": "OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly.AppImage",
-                    "browser_download_url": "https://example.invalid/OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly.AppImage",
+                    "name": "OrcaSlicer_Windows_Installer_x64_nightly.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_x64_nightly.exe",
                     "digest": "sha256:nightly2",
                     "size": 300
                 }
@@ -73,8 +73,8 @@ const char* nightly_releases_json()
             "updated_at": "2026-11-10T08:31:54Z",
             "assets": [
                 {
-                    "name": "OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly.AppImage",
-                    "browser_download_url": "https://example.invalid/OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly.AppImage",
+                    "name": "OrcaSlicer_Windows_Installer_x64_nightly.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_x64_nightly.exe",
                     "digest": "sha256:nightly2",
                     "size": 300
                 }
@@ -318,6 +318,34 @@ const char* mixed_case_asset_release_json()
     ])JSON";
 }
 
+// A stable release shipping both the Windows installer and the portable zip.
+const char* stable_portable_release_json()
+{
+    return R"JSON([
+        {
+            "tag_name": "v2.5.0",
+            "prerelease": false,
+            "html_url": "https://example.invalid/releases/v2.5.0",
+            "body": "newer release",
+            "updated_at": "2026-10-01T10:00:00Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Windows_Installer_V2.5.0_x64.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_V2.5.0_x64.exe",
+                    "digest": "sha256:2222",
+                    "size": 200
+                },
+                {
+                    "name": "OrcaSlicer_Windows_portable_V2.5.0_x64.zip",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_portable_V2.5.0_x64.zip",
+                    "digest": "sha256:2222portable",
+                    "size": 210
+                }
+            ]
+        }
+    ])JSON";
+}
+
 } // namespace
 
 TEST_CASE("A stable release newer than the running version is offered", "[UpdateChannel]")
@@ -351,7 +379,7 @@ TEST_CASE("A nightly with a different digest than the installed build is offered
 {
     const UpdateCandidate candidate = resolve_update(nightly_releases_json(), UpdateChannel::Nightly,
                                                      "sha256:nightly1", "nightly", "2.6.0-dev",
-                                                     "2026-11-01T00:00:00Z", InstallFlavour::LinuxAppImage,
+                                                     "2026-11-01T00:00:00Z", InstallFlavour::WindowsInstaller,
                                                      "x86_64");
 
     CHECK(candidate.available);
@@ -366,7 +394,7 @@ TEST_CASE("A nightly with the same digest as the installed build is up to date",
 {
     const UpdateCandidate candidate = resolve_update(nightly_releases_json(), UpdateChannel::Nightly,
                                                      "sha256:nightly2", "nightly", "2.6.0-dev",
-                                                     "2026-11-01T00:00:00Z", InstallFlavour::LinuxAppImage,
+                                                     "2026-11-01T00:00:00Z", InstallFlavour::WindowsInstaller,
                                                      "x86_64");
 
     CHECK_FALSE(candidate.available);
@@ -388,7 +416,7 @@ TEST_CASE("Switching from stable to nightly offers the nightly release", "[Updat
 {
     const UpdateCandidate candidate = resolve_update(nightly_releases_json(), UpdateChannel::Nightly,
                                                      "sha256:2222", "stable", "2.5.0",
-                                                     "2026-11-01T00:00:00Z", InstallFlavour::LinuxAppImage,
+                                                     "2026-11-01T00:00:00Z", InstallFlavour::WindowsInstaller,
                                                      "x86_64");
 
     CHECK(candidate.available);
@@ -526,17 +554,17 @@ TEST_CASE("A release asset without a digest is offered but cannot be installed i
 
 TEST_CASE("A supported flavour with no matching asset is offered so the release page can open", "[UpdateChannel]")
 {
-    // An AppImage has nothing to download from a release that only ships a Windows
+    // A macOS bundle has nothing to download from a release that only ships a Windows
     // installer, so the caller falls back to the release page.
     const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::Stable, "", "",
-                                                     "2.4.9", "", InstallFlavour::LinuxAppImage, "x86_64");
+                                                     "2.4.9", "", InstallFlavour::MacOSBundle, "x86_64");
 
     CHECK(candidate.available);
     CHECK(candidate.reason == "no_asset_for_platform");
     CHECK(candidate.asset.name.empty());
     CHECK(candidate.version == "2.5.0");
     CHECK(candidate.release_url == "https://example.invalid/releases/v2.5.0");
-    CHECK_FALSE(can_install_in_app(candidate, InstallFlavour::LinuxAppImage));
+    CHECK_FALSE(can_install_in_app(candidate, InstallFlavour::MacOSBundle));
 }
 
 TEST_CASE("Only a candidate with an asset, URL and digest is installed in-app", "[UpdateChannel]")
@@ -546,6 +574,20 @@ TEST_CASE("Only a candidate with an asset, URL and digest is installed in-app", 
 
     CHECK(can_install_in_app(candidate, InstallFlavour::WindowsInstaller));
     CHECK_FALSE(can_install_in_app(candidate, InstallFlavour::Msix));
+}
+
+TEST_CASE("A portable Windows build is offered the portable zip directly", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(stable_portable_release_json(), UpdateChannel::Stable, "", "",
+                                                     "2.4.9", "", InstallFlavour::WindowsPortable, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.reason.empty());
+    CHECK(candidate.asset.name == "OrcaSlicer_Windows_portable_V2.5.0_x64.zip");
+    CHECK(candidate.asset.url == "https://example.invalid/OrcaSlicer_Windows_portable_V2.5.0_x64.zip");
+    CHECK(candidate.asset.digest == "sha256:2222portable");
+    CHECK_FALSE(can_install_in_app(candidate, InstallFlavour::WindowsPortable));
+    CHECK(is_download_only(InstallFlavour::WindowsPortable));
 }
 
 TEST_CASE("The Store offers only the stable channel", "[UpdateChannel]")
@@ -572,9 +614,11 @@ TEST_CASE("An AppImage update takes the main build over a discontinued _belt bui
     CHECK(candidate.available);
     CHECK(candidate.asset.name == "OrcaSlicer_Linux_AppImage_Ubuntu2404_nightly.AppImage");
     CHECK(candidate.asset.digest == "sha256:nightly2");
+    CHECK_FALSE(can_install_in_app(candidate, InstallFlavour::LinuxAppImage));
+    CHECK(is_download_only(InstallFlavour::LinuxAppImage));
 }
 
-TEST_CASE("A _belt AppImage alone leaves the release offered without an in-app asset", "[UpdateChannel]")
+TEST_CASE("A _belt AppImage alone leaves the release offered without an asset", "[UpdateChannel]")
 {
     const UpdateCandidate candidate = resolve_update(nightly_belt_only_releases_json(), UpdateChannel::Nightly,
                                                      "sha256:nightly1", "nightly", "2.6.0-dev",
@@ -620,7 +664,7 @@ TEST_CASE("A release that is not newer is not offered when its flavour has no as
 TEST_CASE("A source build has no nightly identity to compare against", "[UpdateChannel]")
 {
     const UpdateCandidate candidate = resolve_update(nightly_releases_json(), UpdateChannel::Nightly, "", "",
-                                                     "2.6.0-dev", "", InstallFlavour::LinuxAppImage, "x86_64");
+                                                     "2.6.0-dev", "", InstallFlavour::WindowsInstaller, "x86_64");
 
     CHECK_FALSE(candidate.available);
     CHECK(candidate.reason == "source_build");
@@ -640,7 +684,7 @@ TEST_CASE("A skipped nightly digest stays skipped until the build changes", "[Up
 {
     const UpdateCandidate candidate = resolve_update(nightly_releases_json(), UpdateChannel::Nightly,
                                                      "sha256:nightly1", "nightly", "2.6.0-dev",
-                                                     "2026-11-01T00:00:00Z", InstallFlavour::LinuxAppImage,
+                                                     "2026-11-01T00:00:00Z", InstallFlavour::WindowsInstaller,
                                                      "x86_64");
 
     CHECK(update_is_skipped(candidate, "", "sha256:nightly2"));
@@ -675,7 +719,7 @@ TEST_CASE("Skipping records the version for stable and the digest for nightly", 
 
     const UpdateCandidate nightly = resolve_update(nightly_releases_json(), UpdateChannel::Nightly,
                                                    "sha256:nightly1", "nightly", "2.6.0-dev",
-                                                   "2026-11-01T00:00:00Z", InstallFlavour::LinuxAppImage,
+                                                   "2026-11-01T00:00:00Z", InstallFlavour::WindowsInstaller,
                                                    "x86_64");
     skip_version  = "keep";
     skip_artifact = "";
@@ -704,10 +748,21 @@ TEST_CASE("Channel and flavour keys round-trip through their strings", "[UpdateC
     CHECK(install_flavour_key(InstallFlavour::Other) == "other");
 
     CHECK(in_app_install_supported(InstallFlavour::WindowsInstaller));
-    CHECK(in_app_install_supported(InstallFlavour::WindowsPortable));
     CHECK(in_app_install_supported(InstallFlavour::MacOSBundle));
-    CHECK(in_app_install_supported(InstallFlavour::LinuxAppImage));
+    CHECK_FALSE(in_app_install_supported(InstallFlavour::WindowsPortable));
+    CHECK_FALSE(in_app_install_supported(InstallFlavour::LinuxAppImage));
     CHECK_FALSE(in_app_install_supported(InstallFlavour::Msix));
     CHECK_FALSE(in_app_install_supported(InstallFlavour::Flatpak));
     CHECK_FALSE(in_app_install_supported(InstallFlavour::Other));
+}
+
+TEST_CASE("Only the portable and AppImage flavours are download-only", "[UpdateChannel]")
+{
+    CHECK(is_download_only(InstallFlavour::WindowsPortable));
+    CHECK(is_download_only(InstallFlavour::LinuxAppImage));
+    CHECK_FALSE(is_download_only(InstallFlavour::WindowsInstaller));
+    CHECK_FALSE(is_download_only(InstallFlavour::MacOSBundle));
+    CHECK_FALSE(is_download_only(InstallFlavour::Msix));
+    CHECK_FALSE(is_download_only(InstallFlavour::Flatpak));
+    CHECK_FALSE(is_download_only(InstallFlavour::Other));
 }

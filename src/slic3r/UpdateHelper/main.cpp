@@ -85,10 +85,9 @@ bool UpdateHelperApp::OnInit()
     SetAppName("OrcaSlicerUpdater");
 
     wxString handoff_arg;
-    // A path given on the command line wins: the cache lives in the OS cache directory,
-    // which may differ between the app's environment and this one (HOME or XDG_CACHE_HOME
-    // changed, or a portable install's suffixed cache), so the default can name the wrong
-    // file. The default is only used when nothing was passed.
+    // A path given on the command line wins: the cache directory may differ between the
+    // app's environment and this one (HOME or XDG_CACHE_HOME changed), so the default can
+    // name the wrong file. The default is only used when nothing was passed.
     const bool from_command_line = parse_handoff_path(argc, argv, handoff_arg) && !handoff_arg.empty();
     const std::string path = from_command_line ? std::string(handoff_arg.ToUTF8().data())
                                                : Slic3r::updater_handoff_path();

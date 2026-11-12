@@ -49,12 +49,10 @@ bool apply_update(const UpdateHandoff& handoff,
                   ProgressSink&        sink,
                   std::string&         error)
 {
-    if (handoff.flavour == "windows_installer" || handoff.flavour == "windows_portable")
+    if (handoff.flavour == "windows_installer")
         return apply_windows_install(handoff, artifact_path, sink, error);
     if (handoff.flavour == "macos_bundle")
         return apply_macos_install(handoff, artifact_path, sink, error);
-    if (handoff.flavour == "linux_appimage")
-        return apply_linux_install(handoff, artifact_path, sink, error);
     error = "This installation cannot update itself.";
     return false;
 }
