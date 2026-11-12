@@ -271,7 +271,8 @@ public:
     // old one is replaced, so a download failure leaves the installed package and its state intact.
     // On success the previous per-capability choices are retained while every permission is reset,
     // and a loaded package is reloaded afterwards; a deactivated one keeps enabled=false in its
-    // sidecar across the restart.
+    // sidecar across the restart. A load already in progress makes the update fail instead of
+    // being cancelled by the replacement.
     bool update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version = "");
 
     bool delete_plugin(const std::string& plugin_key, std::string& error);
@@ -392,6 +393,10 @@ private:
     std::unordered_set<std::string> m_missing_plugin_keys;
 
     std::unordered_set<std::string> m_load_in_progress;
+    // Keys owned by an in-flight package update. load_plugin() refuses to start while a key is
+    // here, so the old package cannot be imported while it is unloaded or replaced on disk. The
+    // updater removes the key before it reloads the replacement itself.
+    std::unordered_set<std::string> m_updates_in_progress;
     // Keys whose in-flight load has been cancelled. Cancellation does NOT remove the key from
     // m_load_in_progress: the detached worker is still inside the loader touching Python, and it
     // releases its own slot only once it has unwound. Dropping the key here would let

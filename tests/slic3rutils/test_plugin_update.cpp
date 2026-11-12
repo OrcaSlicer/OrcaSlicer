@@ -417,3 +417,45 @@ TEST_CASE("A failed install leaves the installed package and activation intent u
     check_untouched_state(plugin_dir, entry_path, /*expected_enabled=*/false);
 }
 
+TEST_CASE("An update is refused while the plugin is still loading", "[PluginUpdate][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string user_id = "update-user";
+    const std::string uuid    = "77777777-8888-9999-aaaa-bbbbbbbbbbbb";
+    const fs::path plugin_dir = write_cloud_package(user_id, uuid, "1.0", true, {{"Echo", false}}, {"/old/grant"});
+    const fs::path entry_path = plugin_dir / "Cloud_Update_Plugin.py";
+    {
+        std::ofstream out(entry_path.string(), std::ios::binary | std::ios::trunc);
+        out << cloud_plugin_source("1.0", /*slow=*/true);
+    }
+
+    PluginManager& manager = PluginManager::instance();
+    manager.set_cloud_user(user_id);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    manager.load_plugin(uuid, /*skip_deps=*/true);
+    REQUIRE(manager.is_plugin_load_in_progress(uuid));
+
+    // The update check runs before the download. No cloud service is configured, so any request
+    // that got that far would fail for a different reason; the load refusal must win.
+    std::string error;
+    CHECK_FALSE(manager.update_cloud_plugin(uuid, error, "2.0"));
+    CHECK(error.find("still in progress") != std::string::npos);
+
+    // The refused update did not delete or unload the loading package.
+    check_untouched_state(plugin_dir, entry_path, /*expected_enabled=*/true);
+
+    CHECK(manager.cancel_plugin_load(uuid));
+    CHECK(manager.wait_for_all_plugin_loads(std::chrono::seconds(60)));
+    CHECK_FALSE(manager.is_plugin_load_in_progress(uuid));
+
+    // The refusal released its update claim: a later attempt reaches the download step instead of
+    // being rejected as a concurrent update. No cloud service is configured, so it fails there.
+    std::string retry_error;
+    CHECK_FALSE(manager.update_cloud_plugin(uuid, retry_error, "2.0"));
+    CHECK(retry_error.find("still in progress") == std::string::npos);
+    CHECK(retry_error.find("already in progress") == std::string::npos);
+}

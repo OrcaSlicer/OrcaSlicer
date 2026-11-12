@@ -870,6 +870,7 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
     bool load_in_progress = false;
     bool load_slot_claimed = false;
     bool shutting_down     = false;
+    bool update_in_progress = false;
     std::string invalid_error;
     std::vector<std::string> loaded_capability_names;
 
@@ -892,11 +893,20 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
 
         load_in_progress = m_load_in_progress.count(plugin_id) > 0;
         shutting_down   = m_shutting_down.load(std::memory_order_acquire);
-        if (exists && !invalid && !already_loaded && !load_in_progress && !shutting_down) {
+        update_in_progress = m_updates_in_progress.count(plugin_id) > 0;
+        if (exists && !invalid && !already_loaded && !load_in_progress && !update_in_progress && !shutting_down) {
             m_load_in_progress.insert(plugin_id);
             m_load_errors.erase(plugin_id);
             load_slot_claimed = true;
         }
+    }
+
+    // An update owns the key until it has finished replacing the package on disk and reloads the
+    // new one itself. Starting a load here would import the old package while it is being moved
+    // aside, so the request is dropped rather than left to race the replacement.
+    if (update_in_progress) {
+        BOOST_LOG_TRIVIAL(info) << "Plugin load skipped — update in progress: " << plugin_id;
+        return;
     }
 
     if (already_loaded) {
@@ -2076,6 +2086,35 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
         return false;
     }
 
+    // Claim the key before any network or filesystem work. Both checks and the insert happen under
+    // m_mutex, and load_plugin() checks the same set under it, so an in-flight load cannot be
+    // cancelled halfway by the replacement and a new one cannot start while the package is being
+    // moved aside.
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_load_in_progress.count(plugin_key) > 0)
+            error = _u8L("Plugin load is still in progress");
+        else if (!m_updates_in_progress.insert(plugin_key).second)
+            error = _u8L("A plugin update is already in progress.");
+    }
+    if (!error.empty()) {
+        set_plugin_error(plugin_key, error);
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
+        return false;
+    }
+
+    // Release the claim on every path. The reload of the replacement must run without it, so it
+    // is released explicitly first and the scope guard then has nothing left to do.
+    auto release_update = [this, &plugin_key]() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_updates_in_progress.erase(plugin_key);
+    };
+    struct UpdateScope
+    {
+        std::function<void()> release;
+        ~UpdateScope() { if (release) release(); }
+    } update_scope{release_update};
+
     // An empty version means "update the current plugin". If there is no update available, the
     // intention is unclear.
     if (version.empty()) {
@@ -2179,6 +2218,8 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
             restore_plugin_state_after_failed_update(previous, previous_state, had_previous_state, was_enabled);
 
         if (was_loaded) {
+            release_update();
+            update_scope.release = {};
             load_plugin(plugin_key);
             std::string load_error;
             if (!wait_for_plugin_load(plugin_key, std::chrono::minutes(5), load_error) ||
@@ -2250,6 +2291,8 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
         // Restore the state the user saw before the update. The package is already installed and
         // its state persisted, so a failure here is reported as a reload failure rather than
         // hiding the successful update.
+        release_update();
+        update_scope.release = {};
         load_plugin(plugin_key);
         std::string load_error;
         if (!wait_for_plugin_load(plugin_key, std::chrono::minutes(5), load_error) ||
