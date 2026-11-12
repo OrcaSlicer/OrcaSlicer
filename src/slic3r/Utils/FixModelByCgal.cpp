@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <cstddef>
 #include <exception>
+#include <iterator>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -38,10 +39,12 @@ bool fix_model_with_cgal_gui(ModelObject &model_object, int volume_idx, GUI::Pro
     // Keeps the backup manager from reading a mesh while the worker replaces it.
     SaveObjectGaurd backup_gaurd(model_object);
 
+    // A painted modifier follows the mesh of its host.
     std::vector<ModelVolume *> volumes;
     if (volume_idx < 0)
-        volumes = model_object.volumes;
-    else if (std::size_t(volume_idx) < model_object.volumes.size())
+        std::copy_if(model_object.volumes.begin(), model_object.volumes.end(), std::back_inserter(volumes),
+                     [](const ModelVolume *volume) { return !volume->is_painted_modifier(); });
+    else if (std::size_t(volume_idx) < model_object.volumes.size() && !model_object.volumes[volume_idx]->is_painted_modifier())
         volumes.push_back(model_object.volumes[volume_idx]);
 
     std::mutex              mtx;
