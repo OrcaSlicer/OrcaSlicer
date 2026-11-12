@@ -3215,7 +3215,8 @@ except OSError:
     REQUIRE(fs::exists(copied_file));
     CHECK(fs::equivalent(copied_file, fs::path(python.str("TREE")) / "one" / "f.txt"));
     CHECK(harness.saved_permissions(PLUGIN).fs_read.empty());
-    CHECK(harness.saved_permissions(PLUGIN).fs_readwrite.empty());
+    const std::vector<std::string> expected_readwrite{python.str("TREE"), destination.string()};
+    CHECK(harness.saved_permissions(PLUGIN).fs_readwrite == expected_readwrite);
 }
 
 TEST_CASE("A hardlink needs read/write permission for a source outside a writable root", "[audit][Python]")
