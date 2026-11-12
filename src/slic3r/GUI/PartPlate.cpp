@@ -7271,6 +7271,7 @@ int PartPlateList::notify_instance_update(int obj_id, int instance_id, bool is_n
 			config.has("enable_support") && !config.opt_bool("enable_support") &&
 			config.has("enforce_support_layers") && config.opt_int("enforce_support_layers") == 0 &&
 			config.has("ensure_vertical_shell_thickness") && config.opt_bool("ensure_vertical_shell_thickness") &&
+			config.has("ensure_walls_foundation") &&
 			config.has("detect_thin_wall") && !config.opt_bool("detect_thin_wall") &&
 			config.has("timelapse_type") && config.opt_enum<TimelapseType>("timelapse_type") == TimelapseType::tlTraditional)
 			return true;

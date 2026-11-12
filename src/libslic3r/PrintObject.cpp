@@ -1706,6 +1706,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "align_infill_direction_to_model" 
             || opt_key == "extra_solid_infills"
             || opt_key == "ensure_vertical_shell_thickness"
+            || opt_key == "ensure_walls_foundation"
             || opt_key == "bridge_angle"
             || opt_key == "internal_bridge_angle" // ORCA: Internal bridge angle override
             || opt_key == "relative_bridge_angle" // ORCA: Relative bridge angle
@@ -5136,7 +5137,7 @@ void PrintObject::discover_extra_elements()
     typedef std::pair<LayerRegion*, SurfaceCollection> SurfacesCacheRecord;
     std::vector<std::vector<SurfacesCacheRecord>> cache_surfaces(num_to_process);
 
-    auto merge_surfaces = [](SurfacesCacheRecord& cache) { // , bool make_subtop
+    auto merge_surfaces = [](SurfacesCacheRecord& cache, bool make_subtop) { 
         SurfaceCollection new_surfaces;
         SurfacesPtr crop_surfaces = cache.first->fill_surfaces.filter_by_type_except(stInternal);
         ExPolygons crop_first     = union_overlapping_ex(to_expolygons(crop_surfaces));
@@ -5200,9 +5201,9 @@ void PrintObject::discover_extra_elements()
             int bottom_shell_layers  = layerm->m_region->config().bottom_shell_layers.value;
             bool is_not_solid        = layerm->m_region->config().top_surface_density.value < 100;
             ExPolygons crop_mask     = layerm->fill_no_overlap_expolygons;
+            
             // A claimed island keeps its geometry and every other field, only its type changes, so
             // retype in place rather than rebuilding the collection.
-
             Surfaces new_surfaces;
             for (Surface &surface : layerm->fill_surfaces.surfaces) {
                 //if (surface.surface_type != stInternalSolid) // to crop all surfaces
@@ -5215,7 +5216,7 @@ void PrintObject::discover_extra_elements()
                 for (size_t i = 0; i < top_mask.size(); ++ i)
                     if (top_extents[i].overlap(island_bbox))
                         append(local_mask, ClipperUtils::clip_clipper_polygons_with_subject_bbox(top_mask[i], island_bbox));
-                int number_of_walls    = layerm->m_region->config().wall_loops.value; // number of internal walls+1 if perimeters will be used
+                int number_of_walls    = layerm->m_region->config().wall_loops.value;
                 float offset_distance  = base_width * std::max(number_of_walls - 1, 0);
                 ExPolygons walls_solid = offset_ex(local_mask, offset_distance);
                     
@@ -5227,12 +5228,17 @@ void PrintObject::discover_extra_elements()
                 // If the top surface does not have 100% density, the underlying layer follows the contours of the upper one, which is visible through it.
                 // The space under the perimeters will be filled with a bridge infill. This is done for decorative purposes. 
                 // If the density is solid, then the lower layer will also be solid, even under the perimeters.
+
+                // Fixme: When implementing stSubTop, need ensure that the under top surface to be not stInternalSolid but stSubTop.
                 if (is_not_solid) {
-                    surfaces_append(new_surfaces, intersection_ex(local_mask, crop_mask, ApplySafetyOffset::Yes), stInternalSolid); // Fix to stSubTop if this type will be used.
+                    surfaces_append(new_surfaces, intersection_ex(local_mask, crop_mask, ApplySafetyOffset::Yes), stInternalSolid);
                     surfaces_append(new_surfaces, intersection_ex(diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), crop_mask, ApplySafetyOffset::Yes), stInternalBridge);
                 } else
                     surfaces_append(new_surfaces, intersection_ex(walls_solid, crop_mask, ApplySafetyOffset::Yes), stInternalSolid);
-                    
+                
+                if (!layerm->m_region->config().ensure_walls_foundation)
+                    continue;
+
                 // The cache is filled with polygons that have solid fill and are located beneath each top surface with nearest perimeters.
                 // Each such polygon extends downward by 1/4 of the line width for each layer to provide additional strength against the side bend of the upper element.
                 // Below the perimeters, there are additional solid layers with a height equal to the width of all internal walls.
@@ -5254,7 +5260,7 @@ void PrintObject::discover_extra_elements()
                 }
             }
             SurfacesCacheRecord cache(layerm, new_surfaces);
-            merge_surfaces(cache);
+            merge_surfaces(cache, true);
         }
     };
 
@@ -5297,7 +5303,7 @@ void PrintObject::discover_extra_elements()
     tbb::parallel_for(tbb::blocked_range<size_t>(0, optimized_surfaces.size()), 
         [&merge_surfaces, &optimized_surfaces](const tbb::blocked_range<size_t> &range) {
             for (size_t k = range.begin(); k < range.end(); ++k) {
-                merge_surfaces(optimized_surfaces[k]);
+                merge_surfaces(optimized_surfaces[k], false);
             }
     });
 } // end of discover_extra_elements
