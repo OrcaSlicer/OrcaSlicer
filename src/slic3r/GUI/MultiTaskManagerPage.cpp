@@ -1,5 +1,6 @@
 #include "MultiTaskManagerPage.hpp"
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
@@ -85,6 +86,7 @@ MultiTaskItem::MultiTaskItem(wxWindow* parent, MachineObject* obj, int type)
     m_button_resume->SetTextColor(StateColor::darkModeColorFor("#FFFFFE"));
     m_button_resume->SetMinSize(wxSize(FromDIP(70), FromDIP(35)));
     m_button_resume->SetCornerRadius(6);
+    set_illustrated_tooltip(m_button_resume, _L("Resumes this paused print on its printer."));
 
 
     StateColor clean_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled), std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
@@ -100,6 +102,7 @@ MultiTaskItem::MultiTaskItem(wxWindow* parent, MachineObject* obj, int type)
     m_button_cancel->SetFont(Label::Body_12);
     m_button_cancel->SetCornerRadius(6);
     m_button_cancel->SetMinSize(wxSize(FromDIP(70), FromDIP(35)));
+    set_illustrated_tooltip(m_button_cancel, _L("Stops sending this task. The printer does not start it."));
 
     m_button_pause = new Button(this, _L_CONTEXT("Pause", "Verb"));
     m_button_pause->SetBackgroundColor(clean_bg);
@@ -108,6 +111,7 @@ MultiTaskItem::MultiTaskItem(wxWindow* parent, MachineObject* obj, int type)
     m_button_pause->SetFont(Label::Body_12);
     m_button_pause->SetCornerRadius(6);
     m_button_pause->SetMinSize(wxSize(FromDIP(70), FromDIP(35)));
+    set_illustrated_tooltip(m_button_pause, _L("Pauses this print on its printer. Resume it later from here or on the printer."));
 
     m_button_stop = new Button(this, _L("Stop"));
     m_button_stop->SetBackgroundColor(clean_bg);
@@ -116,6 +120,7 @@ MultiTaskItem::MultiTaskItem(wxWindow* parent, MachineObject* obj, int type)
     m_button_stop->SetFont(Label::Body_12);
     m_button_stop->SetCornerRadius(6);
     m_button_stop->SetMinSize(wxSize(FromDIP(70), FromDIP(35)));
+    set_illustrated_tooltip(m_button_stop, _L("Stops this print at once, without asking. A stopped print cannot be resumed."));
 
 
     item_sizer->Add(0, 0, 1, wxEXPAND, 0);
@@ -319,6 +324,12 @@ void MultiTaskItem::OnMove(wxMouseEvent& evt)
     else {
         SetCursor(wxCURSOR_ARROW);
     }
+
+    // The check box is painted in doRender(), so its tooltip follows the pointer here.
+    const wxRect check_rect(left, 0, m_bitmap_check_disable.GetBmpWidth(), GetSize().y);
+    hover_illustrated_tooltip(this, check_rect.Contains(evt.GetPosition()) ? check_rect : wxRect(),
+                              m_task_type == 0 ? _L("Selects this task for the Stop button under the list.") :
+                                                 _L("Selects this print for the Pause, Resume and Stop buttons under the list."));
 }
 
 void MultiTaskItem::paintEvent(wxPaintEvent& evt)
@@ -593,6 +604,7 @@ LocalTaskManagerPage::LocalTaskManagerPage(wxWindow* parent)
     m_select_checkbox->SetMinSize(wxSize(FromDIP(TASK_LEFT_PRINTABLE), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_select_checkbox->SetMaxSize(wxSize(FromDIP(TASK_LEFT_PRINTABLE), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     m_table_head_sizer->Add(m_select_checkbox, 0, wxALIGN_CENTER_VERTICAL, 0);
+    set_illustrated_tooltip(m_select_checkbox, _L("Selects every task that is still waiting or being sent, for the Stop button under the list."));
 
     m_select_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         if (m_select_checkbox->GetValue()) {
@@ -635,6 +647,7 @@ LocalTaskManagerPage::LocalTaskManagerPage(wxWindow* parent)
     m_printer_name->Bind(wxEVT_LEAVE_WINDOW, [&](wxMouseEvent& evt) {
         SetCursor(wxCURSOR_ARROW);
     });
+    set_illustrated_tooltip(m_printer_name, _L("Sorts the tasks by printer name. Click again to reverse the order."));
     m_printer_name->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& evt) {
         device_name_big = !device_name_big;
         this->m_sort.set_role(SortItem::SortRule::SR_DEV_NAME, device_name_big);
@@ -655,6 +668,7 @@ LocalTaskManagerPage::LocalTaskManagerPage(wxWindow* parent)
     m_status->Bind(wxEVT_LEAVE_WINDOW, [&](wxMouseEvent& evt) {
         SetCursor(wxCURSOR_ARROW);
     });
+    set_illustrated_tooltip(m_status, _L("Sorts the tasks by their state. Click again to reverse the order."));
     m_status->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& evt) {
         device_state_big = !device_state_big;
         this->m_sort.set_role(SortItem::SortRule::SR_LOCAL_TASK_STATE, device_state_big);
@@ -684,6 +698,7 @@ LocalTaskManagerPage::LocalTaskManagerPage(wxWindow* parent)
     m_send_time->Bind(wxEVT_LEAVE_WINDOW, [&](wxMouseEvent& evt) {
         SetCursor(wxCURSOR_ARROW);
     });
+    set_illustrated_tooltip(m_send_time, _L("Sorts the tasks by the time they were sent. Click again to reverse the order."));
     m_send_time->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& evt) {
         device_send_time = !device_send_time;
         this->m_sort.set_role(SortItem::SortRule::SR_SEND_TIME, device_send_time);
@@ -740,6 +755,7 @@ LocalTaskManagerPage::LocalTaskManagerPage(wxWindow* parent)
     btn_stop_all = new Button(m_ctrl_btn_panel, _L("Stop"));
     btn_stop_all->SetBackgroundColor(ctrl_bg);
     btn_stop_all->SetCornerRadius(FromDIP(5));
+    set_illustrated_tooltip(btn_stop_all, _L("Stops sending the selected tasks that are still waiting or being sent."));
     m_sel_text = new wxStaticText(m_ctrl_btn_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize);
 
     m_btn_sizer->Add(m_sel_text, 0, wxLEFT, FromDIP(15));;
@@ -964,6 +980,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
     m_select_checkbox->SetMaxSize(wxSize(FromDIP(TASK_LEFT_PRINTABLE), FromDIP(DEVICE_ITEM_MAX_HEIGHT)));
     //m_table_head_sizer->AddSpacer(FromDIP(TASK_LEFT_PADDING_LEFT));
     m_table_head_sizer->Add(m_select_checkbox, 0, wxALIGN_CENTER_VERTICAL, 0);
+    set_illustrated_tooltip(m_select_checkbox, _L("Selects every print that is still running, for the Pause, Resume and Stop buttons under the list."));
 
     m_select_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         if (m_select_checkbox->GetValue()) {
@@ -1007,6 +1024,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
     m_printer_name->Bind(wxEVT_LEAVE_WINDOW, [&](wxMouseEvent& evt) {
         SetCursor(wxCURSOR_ARROW);
     });
+    set_illustrated_tooltip(m_printer_name, _L("Sorts the tasks by printer name. Click again to reverse the order."));
     m_printer_name->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& evt) {
         device_name_big = !device_name_big;
         this->m_sort.set_role(SortItem::SortRule::SR_DEV_NAME, device_name_big);
@@ -1027,6 +1045,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
     m_status->Bind(wxEVT_LEAVE_WINDOW, [&](wxMouseEvent& evt) {
         SetCursor(wxCURSOR_ARROW);
     });
+    set_illustrated_tooltip(m_status, _L("Sorts the tasks by their state. Click again to reverse the order."));
     m_status->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& evt) {
         device_state_big = !device_state_big;
         this->m_sort.set_role(SortItem::SortRule::SR_CLOUD_TASK_STATE, device_state_big);
@@ -1056,6 +1075,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
     m_send_time->Bind(wxEVT_LEAVE_WINDOW, [&](wxMouseEvent& evt) {
         SetCursor(wxCURSOR_ARROW);
     });
+    set_illustrated_tooltip(m_send_time, _L("Sorts the tasks by the time they were sent. Click again to reverse the order."));
     m_send_time->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& evt) {
         device_send_time = !device_send_time;
         this->m_sort.set_role(SortItem::SortRule::SR_SEND_TIME, device_send_time);
@@ -1121,6 +1141,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
     btn_last_page->SetMinSize(wxSize(FromDIP(20), FromDIP(20)));
     btn_last_page->SetMaxSize(wxSize(FromDIP(20), FromDIP(20)));
     btn_last_page->SetBackgroundColor(head_bg);
+    set_illustrated_tooltip(btn_last_page, _L("Previous page"));
     btn_last_page->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [&](auto& evt) {
         evt.Skip();
         if (m_current_page == 0)
@@ -1141,6 +1162,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
     btn_next_page->SetMinSize(wxSize(FromDIP(20), FromDIP(20)));
     btn_next_page->SetMaxSize(wxSize(FromDIP(20), FromDIP(20)));
     btn_next_page->SetBackgroundColor(head_bg);
+    set_illustrated_tooltip(btn_next_page, _L("Next page"));
     btn_next_page->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [&](auto& evt) {
         evt.Skip();
         if (m_current_page == m_total_page - 1)
@@ -1161,6 +1183,7 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
     StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
     m_page_num_input->SetBackgroundColor(input_bg);
     m_page_num_input->GetTextCtrl()->SetValue("1");
+    set_illustrated_tooltip(m_page_num_input, _L("Type a page number and press Enter or click Go to jump to that page."));
     wxTextValidator validator(wxFILTER_DIGITS);
     m_page_num_input->GetTextCtrl()->SetValidator(validator);
     m_page_num_input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [&](wxCommandEvent& e) {
@@ -1196,12 +1219,15 @@ CloudTaskManagerPage::CloudTaskManagerPage(wxWindow* parent)
     btn_pause_all = new Button(m_ctrl_btn_panel, _L_CONTEXT("Pause", "Verb"));
     btn_pause_all->SetBackgroundColor(ctrl_bg);
     btn_pause_all->SetCornerRadius(FromDIP(5));
+    set_illustrated_tooltip(btn_pause_all, _L("Pauses the selected prints on their printers."));
     btn_continue_all = new Button(m_ctrl_btn_panel, _L("Resume"));
     btn_continue_all->SetBackgroundColor(ctrl_bg);
     btn_continue_all->SetCornerRadius(FromDIP(5));
+    set_illustrated_tooltip(btn_continue_all, _L("Resumes the selected paused prints."));
     btn_stop_all = new Button(m_ctrl_btn_panel, _L("Stop"));
     btn_stop_all->SetBackgroundColor(ctrl_bg);
     btn_stop_all->SetCornerRadius(FromDIP(5));
+    set_illustrated_tooltip(btn_stop_all, _L("Stops the selected prints at once, without asking. Stopped prints cannot be resumed."));
     m_sel_text = new wxStaticText(m_ctrl_btn_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize);
 
     btn_pause_all->Bind(wxEVT_BUTTON, &CloudTaskManagerPage::pause_all, this);

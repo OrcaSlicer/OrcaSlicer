@@ -1,6 +1,7 @@
 #include "CameraPopup.hpp"
 
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "Widgets/Label.hpp"
 #include "libslic3r/Utils.hpp"
 #include <wx/object.h>
@@ -83,6 +84,7 @@ CameraPopup::CameraPopup(wxWindow *parent)
     m_text_recording->SetFont(Label::Head_14);
     m_text_recording->SetForegroundColour(TEXT_COL);
     m_switch_recording = new SwitchButton(m_panel);
+    set_illustrated_tooltip(m_switch_recording, _L("The printer records a video of each print to its storage. Needs storage in the printer."));
 
     //vcamera
     m_text_vcamera = new wxStaticText(m_panel, wxID_ANY, _L("Go Live"));
@@ -90,6 +92,8 @@ CameraPopup::CameraPopup(wxWindow *parent)
     m_text_vcamera->SetFont(Label::Head_14);
     m_text_vcamera->SetForegroundColour(TEXT_COL);
     m_switch_vcamera = new SwitchButton(m_panel);
+    set_illustrated_tooltip(m_switch_vcamera, _L("Shares the printer's camera stream as a virtual camera on this computer, so that other apps (streaming, video calls) can show it. "
+                                                 "Needs the Virtual Camera Tools, which Orca offers to download when they are missing."));
 
     top_sizer->Add(m_text_recording, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxALL, FromDIP(5));
     top_sizer->Add(m_switch_recording, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxALL, FromDIP(5));
@@ -123,7 +127,8 @@ CameraPopup::CameraPopup(wxWindow *parent)
     top_sizer->Add(0, 0, wxALL, 0);
     for (int i = 0; i < (int)RESOLUTION_OPTIONS_NUM; ++i)
     {
-        m_resolution_options[i] = create_item_radiobox(to_resolution_label_string(CameraResolution(i)), m_panel, wxEmptyString, FromDIP(10));
+        m_resolution_options[i] = create_item_radiobox(to_resolution_label_string(CameraResolution(i)), m_panel,
+                                                       _L("Resolution of the printer camera's video. A higher one shows more detail but needs more network bandwidth."), FromDIP(10));
         top_sizer->Add(m_resolution_options[i], 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxALL, FromDIP(5));
         top_sizer->Add(0, 0, wxALL, 0);
     }
@@ -136,13 +141,14 @@ CameraPopup::CameraPopup(wxWindow *parent)
     m_custom_camera_input = new TextInput(m_panel, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize);
     m_custom_camera_input->GetTextCtrl()->SetHint(_L("Camera stream URL"));
     m_custom_camera_input->GetTextCtrl()->SetFont(Label::Body_14);
-    m_custom_camera_input->SetToolTip(_L("URL of an MJPEG stream or of a web page that shows the camera, for example http://192.168.1.10:8080/?action=stream"));
+    set_illustrated_tooltip(m_custom_camera_input, _L("URL of an MJPEG stream or of a web page that shows the camera, for example http://192.168.1.10:8080/?action=stream"));
     m_custom_camera_input_confirm = new Button(m_panel, _L("Enable"));
     m_custom_camera_input_confirm->SetTextColor(wxColour(0xFFFFFE));
     m_custom_camera_input_confirm->SetFont(Label::Body_14);
     m_custom_camera_input_confirm->SetMinSize(wxSize(FromDIP(90), FromDIP(30)));
     m_custom_camera_input_confirm->SetCornerRadius(FromDIP(12));
     m_custom_camera_input_confirm->Bind(wxEVT_BUTTON, &CameraPopup::on_camera_source_changed, this);
+    set_illustrated_tooltip(m_custom_camera_input_confirm, _L("Enable shows the camera at the URL above in the Device tab instead of the printer's own camera. Disable goes back to the printer's camera."));
 
     const std::string custom_source = wxGetApp().app_config->get("camera", "custom_source");
     m_custom_camera_input->GetTextCtrl()->SetValue(wxString::FromUTF8(custom_source));
@@ -314,8 +320,7 @@ wxWindow* CameraPopup::create_item_radiobox(wxString title, wxWindow* parent, wx
         }
         });
 
-    radiobox->SetToolTip(tooltip);
-    text->SetToolTip(tooltip);
+    set_illustrated_tooltip(item, tooltip);
     return item;
 }
 

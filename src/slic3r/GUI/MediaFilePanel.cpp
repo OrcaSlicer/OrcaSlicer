@@ -1,5 +1,6 @@
 #include "MediaFilePanel.h"
 #include "ImageGrid.h"
+#include "IllustratedTipPopup.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "GUI.hpp"
@@ -74,9 +75,9 @@ MediaFilePanel::MediaFilePanel(wxWindow * parent)
     m_button_year  = new ::Button(m_time_panel, _L("Year"), "", wxBORDER_NONE);
     m_button_month = new ::Button(m_time_panel, _L("Month"), "", wxBORDER_NONE);
     m_button_all = new ::Button(m_time_panel, _L("All Files"), "", wxBORDER_NONE);
-    m_button_year->SetToolTip(_L("Group files by year, recent first."));
-    m_button_month->SetToolTip(_L("Group files by month, recent first."));
-    m_button_all->SetToolTip(_L("Show all files, recent first."));
+    set_illustrated_tooltip(m_button_year, _L("Group files by year, recent first."));
+    set_illustrated_tooltip(m_button_month, _L("Group files by month, recent first."));
+    set_illustrated_tooltip(m_button_all, _L("Show all files, recent first."));
     m_button_all->SetFont(Label::Head_14); // sync with m_last_mode
     for (auto b : {m_button_year, m_button_month, m_button_all}) {
         b->SetBackgroundColor(StateColor());
@@ -107,11 +108,11 @@ MediaFilePanel::MediaFilePanel(wxWindow * parent)
     m_type_panel->SetCornerRadius(FromDIP(5));
     m_type_panel->SetMinSize({-1, 48 * em_unit(this) / 10});
     m_button_timelapse = new ::Button(m_type_panel, _L("Timelapse"), "", wxBORDER_NONE);
-    m_button_timelapse->SetToolTip(_L("Switch to timelapse files."));
+    set_illustrated_tooltip(m_button_timelapse, _L("Switch to timelapse files."));
     m_button_video = new ::Button(m_type_panel, _L("Video"), "", wxBORDER_NONE);
-    m_button_video->SetToolTip(_L("Switch to video files."));
+    set_illustrated_tooltip(m_button_video, _L("Switch to video files."));
     m_button_model = new ::Button(m_type_panel, _L("Model"), "", wxBORDER_NONE);
-    m_button_video->SetToolTip(_L("Switch to 3MF model files."));
+    set_illustrated_tooltip(m_button_model, _L("Switch to 3MF model files."));
     for (auto b : {m_button_timelapse, m_button_video, m_button_model}) {
         b->SetBackgroundColor(background);
         b->SetCanFocus(false);
@@ -129,15 +130,15 @@ MediaFilePanel::MediaFilePanel(wxWindow * parent)
     m_manage_panel      = new ::StaticBox(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
     m_manage_panel->SetBackgroundColor(StateColor());
     m_button_delete     = new ::Button(m_manage_panel, _L("Delete"));
-    m_button_delete->SetToolTip(_L("Delete selected files from printer."));
+    set_illustrated_tooltip(m_button_delete, _L("Delete selected files from printer."));
     m_button_download = new ::Button(m_manage_panel, _L("Download"));
-    m_button_download->SetToolTip(_L("Download selected files from printer."));
+    set_illustrated_tooltip(m_button_download, _L("Download selected files from printer."));
     m_button_select_all = new ::Button(m_manage_panel, _L("Select All"));
-    m_button_select_all->SetToolTip(_L("Select all files in the list for batch management."));
+    set_illustrated_tooltip(m_button_select_all, _L("Select all files in the list for batch management."));
     m_button_management = new ::Button(m_manage_panel, _L("Select"));
-    m_button_management->SetToolTip(_L("Batch manage files."));
+    set_illustrated_tooltip(m_button_management, _L("Batch manage files."));
     m_button_refresh = new ::Button(m_manage_panel, _L("Refresh"));
-    m_button_refresh->SetToolTip(_L("Reload file list from printer."));
+    set_illustrated_tooltip(m_button_refresh, _L("Reload file list from printer."));
     for (auto b : {m_button_delete, m_button_download, m_button_refresh, m_button_management, m_button_select_all}) {
         b->SetFont(Label::Body_12);
         b->SetCornerRadius(12);

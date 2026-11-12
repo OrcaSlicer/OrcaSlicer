@@ -13,6 +13,7 @@
 #include "Widgets/TextInput.hpp"
 #include "AmsMappingPopup.hpp"
 #include "SelectMachine.hpp"
+#include "IllustratedTipPopup.hpp"
 #include <wx/string.h>
 #include <wx/list.h>
 #include <wx/dc.h>
@@ -193,7 +194,8 @@ public:
 
     bool get_ams_mapping_result(std::string &mapping_array_str, std::string &mapping_array_str2, std::string &ams_mapping_info);
     wxBoxSizer* create_item_title(wxString title, wxWindow* parent, wxString tooltip);
-    wxBoxSizer* create_item_checkbox(wxString title, wxWindow* parent, wxString tooltip, int padding_left, std::string param);
+    wxBoxSizer* create_item_checkbox(wxString title, wxWindow* parent, wxString tooltip, int padding_left, std::string param,
+                                     const std::vector<TipMedia> &media = {});
     wxBoxSizer* create_item_input(wxString str_before, wxString str_after, wxWindow* parent, wxString tooltip, std::string param);
     wxBoxSizer* create_item_radiobox(wxString title, wxWindow* parent, wxString tooltip, int groupid, std::string param);
 
