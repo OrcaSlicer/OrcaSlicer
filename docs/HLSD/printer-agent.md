@@ -152,6 +152,18 @@ The methods remain on the common interface so an agent that supports them can ov
 `sequence_id` remains part of the command contract because `DeviceManager` creates and tracks it as
 the command ID.
 
+Some requests carry optional fields for non-Bambu printers. They are added only when set, so a
+Bambu request is unchanged, and an agent that does not know them can ignore them:
+
+| Command | Field | Meaning |
+| --- | --- | --- |
+| `select_extruder` | `home_first` | home all axes before the toolhead change |
+| `select_extruder` | `after_macro` | one command to run after a successful change |
+| `set_extrusion_length` | `speed` | extrusion speed in mm/s |
+
+An agent that handles `select_extruder` reports the change through the extruder switch state as
+described in [multi-extruder-ams.md](multi-extruder-ams.md): switching, then the outcome once.
+
 ## Device ownership and stale responses
 
 Printer-agent ownership is represented by `printer_agent_id` on device records and `MachineObject`

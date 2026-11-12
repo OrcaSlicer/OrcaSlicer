@@ -59,6 +59,14 @@ The legacy single/dual representation is the pair of scalar fields `nozzle_tempe
 `ExtderSystemParser::ParseV1_0`. That parser is a fallback and only fills the main extruder when the
 reported toolhead count is one.
 
+A toolhead change requested from the Device page sets `MachineObject::targ_nozzle_id_from_pc`, which
+keeps the toolhead selector disabled until the request is released. Bambu firmware releases it when
+the current id reaches the target or the switch state reports a failure. A non-Bambu agent must
+report the switch state as switching (`ES_SWITCHING`) in at least one push after the request, then
+its outcome once: the parser releases the request when the state leaves switching, whether or not
+the current toolhead changed. A rejected `T<n>`, or one for the toolhead already in use, therefore
+still frees the selector. An agent that never reports switching leaves the selector disabled.
+
 Physical extruder ids are fixed (`MAIN_EXTRUDER_ID = 0`, `DEPUTY_EXTRUDER_ID = 1`). Bambu printers
 present the two toolheads as a left/right pair and invert the physical-to-logical mapping; generic
 printers use the toolhead id itself as the logical id. `DevNozzle::GetLogicExtruderId()` /
@@ -152,6 +160,33 @@ association so generic entries are grouped under the correct toolhead after sync
 is removed before the configs enter the slicing pipeline. Bambu keeps the existing key-based
 left/right grouping.
 
+On a non-Bambu printer with several toolheads, sidebar filament N is printed by toolhead N, so the
+sync works on one entry per toolhead in toolhead order
+(`PresetBundle::order_device_filaments_by_extruder`): the toolhead's first loaded lane, else its
+loaded external spool, else an empty placeholder marked `filament_keep_slot`. The sync keeps the
+filament already in a kept slot instead of dropping it as it drops an empty AMS slot, which would
+move every later toolhead's spool one slot down. Lanes beyond the first per toolhead follow the
+toolhead entries. Only the sidebar's copy of the device list is reordered.
+
+When single-extruder multi-material is off, such a printer's filament list holds exactly one
+filament per toolhead (`PresetBundle::fixed_toolhead_filament_count`), and the sidebar offers no
+add or remove button. A full sync therefore trims its result to the toolhead count. The remove
+button appears whenever the list holds more filaments than toolheads, so the list can always be
+brought back to one filament per toolhead.
+
+### Moonraker lane records
+
+A Moonraker printer reports lanes in the `lane_data` database namespace, which has no toolhead
+field. `MoonrakerPrinterAgent` places a record on a toolhead by, in order: an explicit
+`extruder_index`/`extruder_id` field, the AFC lane objects, a `T<n>` key (written by toolchanger
+lane writers, accepted when `n` is a live toolhead and the record's `lane_name`, if any, is the same
+key), then the Happy Hare unit layout. On a printer with one toolhead, or with AFC or Happy Hare
+installed, a record none of these place goes to the main toolhead. On a multi-toolhead printer
+without either, it is skipped: such a record (for example HelixScreen's `bypass` external-spool
+record) names no toolhead, and showing it on the first one would add a lane that does not exist.
+Whether AFC or Happy Hare is installed comes from Klipper's object list, so a failed lane query does
+not read as "absent".
+
 ### Virtual-slot recognition
 
 `devPrinterUtil::IsVirtualSlot()` decides whether an id denotes a virtual tray. On Bambu printers it
@@ -181,6 +216,21 @@ The device-control widgets follow the same device-reported counts.
   `GetTotalExtderCount()`. Non-Bambu printers choose the active toolhead through
   `m_generic_nozzle_selector` (shown when more than one toolhead exists); Bambu keeps its left/right
   `m_nozzle_btn_panel`. Nozzle temperature controls are created on demand per toolhead.
+- On a non-Bambu printer, choosing a toolhead asks for confirmation before sending
+  `select_extruder`, because the change is a physical tool change on a toolchanger. The dialog
+  offers homing first when the axes are not homed and one optional follow-up command, sent as the
+  request's `home_first` and `after_macro` fields (see [printer-agent.md](printer-agent.md)). The
+  follow-up exists because a toolhead chosen here is usually about to extrude, which means heating
+  and purge waste. It runs the printer's existing macro that moves the toolhead over its purge
+  bucket, so that waste lands there and not wherever the tool-change G-code left the toolhead. It
+  runs only after a successful change, and Orca remembers it per printer. The command is sent only
+  if the same printer is still connected and idle when the dialog is confirmed.
+- With three or more toolheads (the `CreateAmsMultiNozzle` layout), a non-Bambu printer's AMS area
+  shows `ToolheadLaneOverview`: every toolhead side by side with the lanes feeding it, the active
+  toolhead highlighted. Clicking a column chooses whose AMS details are shown below; it does not
+  change the toolhead.
+- The extrude and retract buttons of a non-Bambu printer send the chosen length and speed with
+  `set_extrusion_length`. Bambu keeps its fixed length and speed.
 
 ## Constraints
 
@@ -218,7 +268,7 @@ The device-control widgets follow the same device-reported counts.
 - [`DevMapping.cpp`](../../src/slic3r/GUI/DeviceCore/DevMapping.cpp) — filament-to-device tray matching
   for Bambu and generic external/AMS slots
 - [`PresetBundle.cpp`](../../src/libslic3r/PresetBundle.cpp) — per-extruder grouping of the transient
-  device filament list
+  device filament list, the one-slot-per-toolhead order, and the sync trim
 - [`DevDefs.h`](../../src/slic3r/GUI/DeviceCore/DevDefs.h) — `DevAmsType`, extruder ids, and virtual
   tray ids
 - [`DeviceManager.cpp`](../../src/slic3r/GUI/DeviceManager.cpp) — message dispatch, `vir_slot`
@@ -227,7 +277,9 @@ The device-control widgets follow the same device-reported counts.
   (`CreateAmsMultiNozzle`) and the generic layout
 - [`AMSItem.hpp`](../../src/slic3r/GUI/Widgets/AMSItem.hpp) — `AMSModel` and the variable-lane AMS
   rendering
-- [`StatusPanel.cpp`](../../src/slic3r/GUI/StatusPanel.cpp) — `ExtruderImage`, the toolhead selector,
-  and per-toolhead temperature controls
+- [`StatusPanel.cpp`](../../src/slic3r/GUI/StatusPanel.cpp) — `ExtruderImage`, the toolhead selector
+  and its change dialog, and per-toolhead temperature controls
+- [`ToolheadLaneOverview.cpp`](../../src/slic3r/GUI/Widgets/ToolheadLaneOverview.cpp) — the side-by-side
+  toolhead and lane view
 - [`MoonrakerPrinterAgent.cpp`](../../src/slic3r/Utils/MoonrakerPrinterAgent.cpp) — producer example
   (AMS payload and the `device.extruder` encoding)
