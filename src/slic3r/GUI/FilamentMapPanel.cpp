@@ -1,6 +1,7 @@
 #include "FilamentMapPanel.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "Plater.hpp"
 #include "Widgets/MultiNozzleSync.hpp" // manuallySetNozzleCount producer for extruder_nozzle_stats
 #include <algorithm>
@@ -319,6 +320,9 @@ FilamentMapManualPanel::FilamentMapManualPanel(wxWindow                       *p
     m_left_panel  = new DragDropPanel(this, _L("Left Nozzle"), false);
     m_right_panel = new SeparatedDragDropPanel(this, _L("Right Nozzle"), false);
     m_switch_btn  = new ScalableButton(this, wxID_ANY, "switch_filament_maps");
+    set_illustrated_tooltip(m_switch_btn, _L("Swap the two groups: the filaments of the left nozzle move to the right one, and those "
+                                             "of the right nozzle to the left."),
+                            {{"settings/filament/filament_map_swap.gif", {}}});
 
     UpdateNozzleVolumeType();
 
@@ -369,6 +373,7 @@ FilamentMapManualPanel::FilamentMapManualPanel(wxWindow                       *p
     suggestion_text->SetBackgroundColour(*wxWHITE);
     auto suggestion_btn   = new ScalableButton(m_suggestion_panel, wxID_ANY, "edit", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true, 14);
     suggestion_btn->SetBackgroundColour(*wxWHITE);
+    set_illustrated_tooltip(suggestion_btn, _L("Close this dialog and set how many nozzles of each type the extruder carries."));
     auto suggestion_text2 = new Label(m_suggestion_panel, _L(" to set nozzle count"));
     suggestion_text2->SetFont(Label::Body_13);
     suggestion_text2->SetForegroundColour(TextErrorColor);

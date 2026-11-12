@@ -485,6 +485,14 @@ int GLToolbar::get_item_id(const std::string& name) const
     return -1;
 }
 
+const GLToolbarItem* GLToolbar::get_hovered_item() const
+{
+    for (const GLToolbarItem* item : m_items)
+        if (item->is_hovered())
+            return item;
+    return nullptr;
+}
+
 std::string GLToolbar::get_tooltip() const
 {
     std::string tooltip;

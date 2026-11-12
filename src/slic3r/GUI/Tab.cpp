@@ -50,6 +50,7 @@
 #include "libslic3r/LifecycleEvents.hpp"
 #include "libslic3r/Point.hpp"
 #include "slic3r/GUI/SettingsIndex.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include <wx/app.h>
 #include <wx/bookctrl.h>
@@ -628,7 +629,7 @@ void Tab::create_preset_tab()
 
         ScalableButton* icon = nullptr;
         add_scaled_button(panel, &icon, "multi_extruder");
-        icon->SetToolTip(_L("Parameters with this icon can be configured per nozzle."));
+        set_illustrated_tooltip(icon, _L("Parameters with this icon can be configured per nozzle."));
         create_extruder_sync();
 
         wxBoxSizer *top_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -4516,6 +4517,8 @@ void TabFilament::add_filament_overrides_page()
                 evt.Skip();
             }, check_box->GetId());
 
+            set_illustrated_tooltip(check_box, _L("Tick to give this filament its own value of this setting. Unticked, the value of "
+                                                  "the printer profile is used, shown greyed out."));
             m_overrides_options[opt_key] = check_box;
             return check_box;
         };
@@ -4628,6 +4631,8 @@ void TabFilament::add_filament_overrides_page()
                 evt.Skip();
             }, check_box->GetId());
 
+            set_illustrated_tooltip(check_box, _L("Tick to give this filament its own value of this setting. Unticked, the value of "
+                                                  "the process profile is used, shown greyed out."));
             m_overrides_options[opt_key] = check_box;
             return check_box;
         };
@@ -4980,7 +4985,9 @@ void TabFilament::build()
         optgroup->append_single_option_line("full_fan_speed_layer", "material_cooling#full-fan-speed-at-layer");
 
         optgroup = page->new_optgroup(L("Part cooling fan"), L"param_cooling_part_fan");
-        line = { L("Min fan speed threshold"), L("The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time.") };
+        line = { L("Min fan speed threshold"), L("Layers that take less time than this get the part cooling fan, starting at the minimum fan speed and "
+                                                 "speeding up as the layers get shorter, up to the maximum fan speed. Longer layers get no fan, unless "
+                                                 "Keep fan always on is ticked.") };
         line.label_path = "material_cooling#material-part-cooling-fan";
         line.append_option(optgroup->get_option("fan_min_speed", 0));
         line.append_option(optgroup->get_option("fan_cooling_layer_time"));
@@ -5009,14 +5016,16 @@ void TabFilament::build()
 
         optgroup->append_single_option_line("activate_air_filtration", "material_cooling#activate-air-filtration");
 
-        line = {L("During print"), ""};
+        line = {L("During print"), L("Turn the exhaust fan on at the start of the print, at the speed beside it. With several filaments that "
+                                     "ask for it, the fastest of their speeds is used.")};
         line.append_option(optgroup->get_option("activate_air_filtration_during_print"));
         line.append_option(optgroup->get_option("during_print_exhaust_fan_speed"));
         line.label_path = "material_cooling#during-print";
         optgroup->append_line(line);
 
 
-        line = {L("Complete print"), ""};
+        line = {L("Complete print"), L("Run the exhaust fan at the speed beside it once the print has finished, to clear the fumes left in "
+                                       "the chamber.")};
         line.append_option(optgroup->get_option("activate_air_filtration_on_completion"));
         line.append_option(optgroup->get_option("complete_print_exhaust_fan_speed"));
         line.label_path = "material_cooling#complete-print";
@@ -5096,6 +5105,9 @@ void TabFilament::build()
             // ORCA modernize button style
             Button* btn = new Button(parent, _(L("Set")) + " " + dots);
             btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+            set_illustrated_tooltip(btn, _L("Edit the ramming: how fast the filament is pushed out over time just before it is unloaded, "
+                                            "and the width and spacing of the ramming lines on the wipe tower."),
+                                    {{"settings/filament/toolchange_unload.gif", {}}});
 
             auto sizer = new wxBoxSizer(wxHORIZONTAL);
             sizer->Add(btn);
@@ -8602,6 +8614,18 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
     btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
     deps.btn = btn;
 
+    const bool for_printers = deps.type == Preset::TYPE_PRINTER;
+    const wxString all_tip  = for_printers ?
+        _L("Ticked, this profile can be used with every printer that passes the condition below. Unticked, only with the printers "
+           "picked with Set...") :
+        _L("Ticked, this profile can be used with every process profile that passes the condition below. Unticked, only with the "
+           "process profiles picked with Set...");
+    set_illustrated_tooltip(deps.checkbox, all_tip);
+    set_illustrated_tooltip(deps.checkbox_title, all_tip);
+    set_illustrated_tooltip(btn, for_printers ?
+        _L("Pick the printer profiles this profile can be used with. Picking all of them is the same as ticking All.") :
+        _L("Pick the process profiles this profile can be used with. Picking all of them is the same as ticking All."));
+
     auto sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add((deps.checkbox), 0, wxALIGN_CENTER_VERTICAL);
     sizer->Add((deps.checkbox_title), 0, wxALIGN_CENTER_VERTICAL);
@@ -9037,6 +9061,12 @@ void Tab::update_extruder_variants(int extruder_id, bool reload)
 
         if (!options.empty())
             m_variant_combo->SetSelection(selection < 0 || selection >= (int) options.size() ? 0 : selection);
+
+        // The buttons are made anew with the options, so each gets the tooltip here.
+        for (unsigned int i = 0; i < m_variant_combo->GetCount(); ++i)
+            if (Button *btn = m_variant_combo->GetButton(i))
+                set_illustrated_tooltip(btn, _L("Shows and edits this filament's values for this nozzle. Parameters with the nozzle "
+                                                "icon can differ from one nozzle to another."));
 
         m_variant_combo->Enable(options.size() > 1);
     }
