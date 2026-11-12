@@ -23,6 +23,7 @@
 #include "wxExtensions.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "Preferences.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/DialogButtons.hpp"
@@ -273,7 +274,7 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
     auto icon_button = [&](const char* icon, const wxString& tooltip) {
         auto button = new ScalableButton(scrollable_panel, wxID_ANY, icon);
         button->SetBackgroundColour(page_colour);
-        button->SetToolTip(tooltip);
+        set_illustrated_tooltip(button, tooltip);
         return button;
     };
 
@@ -305,15 +306,15 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const Page& page)
 
         wxBoxSizer* buttons = new wxBoxSizer(wxHORIZONTAL);
         if (const MouseAction* mouse = std::get_if<MouseAction>(&row.content)) {
-            auto settings = icon_button("settings", _L("Preferences"));
+            auto settings = icon_button("settings", _L("Opens Preferences at the setting that controls this mouse action."));
             settings->Bind(wxEVT_BUTTON, [this, preference = mouse->preference](wxCommandEvent&) { open_mouse_preferences(preference); });
             buttons->Add(settings, 0, wxALIGN_CENTRE_VERTICAL);
             m_preference_rows.push_back({ mouse->preference, desc });
         } else if (const Shortcut* editable = std::get_if<Shortcut>(&row.content)) {
             const Shortcut shortcut = *editable;
-            auto change = icon_button("edit", _L("Edit"));
+            auto change = icon_button("edit", _L("Assigns a new key combination to this command."));
             change->Bind(wxEVT_BUTTON, [this, shortcut](wxCommandEvent&) { edit_shortcut(shortcut); });
-            auto reset = icon_button("undo", _L("Reset"));
+            auto reset = icon_button("undo", _L("Puts back the default key combination of this command."));
             reset->Bind(wxEVT_BUTTON, [this, shortcut](wxCommandEvent&) { reset_shortcut(shortcut); });
             reset->Show(wxGetApp().shortcuts().is_customized(shortcut));
             buttons->Add(change, 0, wxALIGN_CENTRE_VERTICAL | wxRIGHT, FromDIP(6));
