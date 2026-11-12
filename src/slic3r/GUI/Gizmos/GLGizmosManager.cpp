@@ -62,6 +62,7 @@
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/IllustratedTooltip.hpp"
 
 namespace Slic3r {
 namespace GUI {

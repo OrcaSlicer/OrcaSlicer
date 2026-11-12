@@ -64,8 +64,15 @@ public:
         return send_message(std::move(dev_id), std::move(json_str), qos, flag);
     }
 
+    int connect_printer(const PrinterConnectionParams& params) override
+    {
+        connected_ca_file = params.ca_file;
+        return 0;
+    }
+
     std::string published_device;
     json published_message;
+    std::string connected_ca_file;
 
 private:
     AgentInfo m_info;
@@ -268,6 +275,53 @@ TEST_CASE("Logging out cancels a pending last-machine restore", "[DeviceManager]
     REQUIRE(manager.has_pending_last_machine_restore());
     manager.clean_user_info(true);
     CHECK_FALSE(manager.has_pending_last_machine_restore());
+}
+
+TEST_CASE("A CA file stays with the agent that saved it when a device is rebound", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    auto agent_a = std::make_shared<TestPrinterAgent>("integration-agent-a");
+    auto agent_b = std::make_shared<TestPrinterAgent>("integration-agent-b");
+    NetworkAgent network(nullptr, agent_a);
+    DeviceManager manager(&network, false, &app_config.config);
+
+    BBLocalMachine machine;
+    machine.dev_id       = "integration-lan-device";
+    machine.dev_name     = "Integration LAN device";
+    machine.dev_ip       = "192.0.2.10";
+    machine.printer_type = "C11";
+
+    MachineObject* object = manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    REQUIRE(object != nullptr);
+    object->set_ca_file("agent-a-ca.crt");
+    CHECK(app_config.config.get_local_machines().at(machine.dev_id).ca_file == "agent-a-ca.crt");
+
+    // Rebinding under the same agent keeps the CA file.
+    manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    CHECK(object->get_ca_file() == "agent-a-ca.crt");
+
+    network.set_printer_agent(agent_b);
+    manager.insert_local_device(machine, "lan", "free", "", "access-code");
+    CHECK(object->printer_agent_id == "integration-agent-b");
+    CHECK(object->get_ca_file().empty());
+    CHECK(app_config.config.get_local_machines().at(machine.dev_id).ca_file.empty());
+}
+
+TEST_CASE("A device saved without an agent id connects with the CA file of the agent that connects it", "[DeviceManager][integration]")
+{
+    ScopedAppConfig app_config;
+    const std::string agent_id = GENERATE(std::string(BBL_PRINTER_AGENT_ID), std::string("integration-agent"));
+    auto agent = std::make_shared<TestPrinterAgent>(agent_id);
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+    MachineObject object(&manager, &network, "Test printer", "integration-device", "192.0.2.10");
+    object.set_access_code("access-code", false);
+    object.set_ca_file("device-ca.crt", false);
+    REQUIRE(object.printer_agent_id.empty());
+
+    REQUIRE(object.connect() == 0);
+    // Other agents take the CA from the printer preset, which this test has none of.
+    CHECK(agent->connected_ca_file == (agent_id == BBL_PRINTER_AGENT_ID ? "device-ca.crt" : ""));
 }
 
 TEST_CASE("AMS filament settings keep legacy single-color commands compatible", "[DeviceManager][AMSMaterialsSetting][integration]")
