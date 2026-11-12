@@ -5130,8 +5130,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
             support_interface_filament_opt->value = 0;
     }
     // Orca: a toolchanger holds one filament per toolhead. A sync must never leave more: the merge
-    // keeps every existing slot and the append adds unmapped trays, so an extra slot (an external
-    // spool record, a stale earlier sync) would otherwise stay with no way to remove it.
+    // keeps every existing slot and the append adds unmapped trays, so an extra slot (from an
+    // extra device record, or one the list already held) would otherwise stay.
     if (const size_t toolheads = size_t(fixed_toolhead_filament_count()); !color_only && toolheads > 0 && this->filament_presets.size() > toolheads) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": trimming %1% filaments to %2% toolheads") % this->filament_presets.size() % toolheads;
         this->filament_presets.resize(toolheads);

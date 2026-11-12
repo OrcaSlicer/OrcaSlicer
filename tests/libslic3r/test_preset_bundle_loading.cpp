@@ -2458,6 +2458,15 @@ void fill_three_trays(PresetBundle &bundle)
     }
 }
 
+// Run the sync over every tray in the bundle's device list and return the filament count it reports.
+unsigned int sync_trays(PresetBundle &bundle, bool use_map)
+{
+    std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+    std::map<int, AMSMapInfo>                                  maps;
+    MergeFilamentInfo                                          merge;
+    return bundle.sync_ams_list(unknowns, use_map, maps, /*enable_append=*/true, merge, /*color_only=*/false);
+}
+
 } // namespace
 
 // A toolchanger's sidebar has one filament per toolhead and no remove button, so a sync must
@@ -2472,7 +2481,7 @@ TEST_CASE("A sync on a toolchanger leaves no more filaments than toolheads", "[P
     fill_three_trays(bundle);
 
     REQUIRE(bundle.fixed_toolhead_filament_count() == int(toolheads));
-    const auto count = sync_one_tray(bundle, /*enable_append=*/true);
+    const auto count = sync_trays(bundle, /*use_map=*/true);
 
     CHECK(count == toolheads);
     CHECK(bundle.filament_presets.size() == toolheads);
@@ -2491,10 +2500,37 @@ TEST_CASE("A sync on a single-extruder multi-material printer keeps every filame
 
     REQUIRE(bundle.fixed_toolhead_filament_count() == 0);
     const size_t before = bundle.filament_presets.size();
-    const auto   count  = sync_one_tray(bundle, /*enable_append=*/true);
+    const auto   count  = sync_trays(bundle, /*use_map=*/true);
 
     // The three trays are appended after the existing slots.
     CHECK(count == before + 3);
+}
+
+// An empty toolhead of a multi-toolhead printer comes to the sync as a placeholder marked
+// filament_keep_slot (see order_device_filaments_by_extruder). It keeps its position and the filament
+// already there; dropping it like an empty AMS slot would move every later toolhead's spool one slot down.
+TEST_CASE("A sync keeps the filament of an empty toolhead slot in place", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    bundle.set_num_filaments(3, std::string("#00FF00"));
+    const std::string kept_preset = bundle.filament_presets[1];
+
+    bundle.filament_ams_list[0] = ams_tray("GFL99", "PLA", /*exist=*/true, /*placeholder=*/false);
+    bundle.filament_ams_list[0].set_key_value("filament_colour", new ConfigOptionStrings{"#111111"});
+    bundle.filament_ams_list[1] = ams_tray(/*filament_id=*/{}, /*filament_type=*/{}, /*exist=*/false, /*placeholder=*/true);
+    bundle.filament_ams_list[1].set_key_value("filament_keep_slot", new ConfigOptionBool(true));
+    bundle.filament_ams_list[2] = ams_tray("GFL99", "PLA", /*exist=*/true, /*placeholder=*/false);
+    bundle.filament_ams_list[2].set_key_value("filament_colour", new ConfigOptionStrings{"#333333"});
+
+    const auto count = sync_trays(bundle, /*use_map=*/false);
+
+    REQUIRE(count == 3);
+    const auto &colours = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+    CHECK(colours[0] == "#111111");
+    CHECK(colours[1] == "#00FF00");
+    CHECK(bundle.filament_presets[1] == kept_preset);
+    CHECK(colours[2] == "#333333");
 }
 
 // The append preference still governs a data-bearing tray: with append off the sidebar count is
