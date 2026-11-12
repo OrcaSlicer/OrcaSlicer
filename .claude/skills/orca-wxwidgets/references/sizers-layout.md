@@ -636,7 +636,9 @@ single-line `wxST_ELLIPSIZE_END` labels; other modes are generic (`src/msw/statt
 - the label needs a real width: a ctor size `wxSize(FromDIP(w), -1)`, min = max width, or `wxEXPAND` in a
   vertical sizer whose container width is fixed;
 - `Label::split_lines(dc, width, text, out, max_count)` exposes the same wrapper for owner-drawn text.
-Orca's wrapping is preferred over `wxST_WRAP` for CJK text.
+Orca's wrapping is preferred over `wxST_WRAP` for CJK text. A check box label wraps through
+`LabeledCheckBox::Wrap(width)`/`AutoWrap()`, which also re-fit the control (`references/orca-widgets.md
+§LabeledCheckBox`).
 
 **Pitfalls**
 - **Rule:** Re-wrapping after `SetLabel` must defeat the wrap cache.
