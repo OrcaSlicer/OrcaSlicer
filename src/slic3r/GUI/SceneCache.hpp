@@ -36,7 +36,7 @@ public:
         }
     };
 
-    // Copies the bound read framebuffer, sized by key.size, and remembers key.
+    // Copies the window framebuffer, sized by key.size, and remembers key.
     void capture(Key key);
     bool matches(const Key& key) const { return m_valid && m_key == key; }
     // Draws the last capture over the whole viewport, on the given full screen quad.

@@ -774,13 +774,19 @@ static ECopyMethod first_copy(unsigned int width, unsigned int height)
         BOOST_LOG_TRIVIAL(info) << "Copying from the multisampled window framebuffer resolves it";
         return ECopyMethod::Copy;
     }
-    // Any other error says nothing about the samples. The blit uses the core framebuffer functions.
-    return error == GL_INVALID_OPERATION && OpenGLManager::get_framebuffers_type() == OpenGLManager::EFramebufferType::Arb ?
-        ECopyMethod::Blit : ECopyMethod::Unknown;
+    // Any other error says nothing about the samples.
+    if (error != GL_INVALID_OPERATION)
+        return ECopyMethod::Unknown;
+    // The blit uses the core framebuffer functions.
+    if (OpenGLManager::get_framebuffers_type() == OpenGLManager::EFramebufferType::Arb)
+        return ECopyMethod::Blit;
+    BOOST_LOG_TRIVIAL(warning) << "Neither a copy nor a blit resolves the multisampled window framebuffer";
+    return ECopyMethod::Copy;
 }
 
-// Resolves the bound read framebuffer into the texture, through framebuffer_id, created on first use.
-static void blit_into_texture(unsigned int tex_id, unsigned int& framebuffer_id, unsigned int width, unsigned int height)
+// Resolves the bound read framebuffer into the texture, through framebuffer_id, created on first use. With check,
+// tells whether the blit worked.
+static bool blit_into_texture(unsigned int tex_id, unsigned int& framebuffer_id, unsigned int width, unsigned int height, bool check)
 {
     GLint draw_framebuffer = 0;
     glsafe(::glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_framebuffer));
@@ -792,10 +798,16 @@ static void blit_into_texture(unsigned int tex_id, unsigned int& framebuffer_id,
     glsafe(::glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex_id, 0));
     if (scissor_test)
         glsafe(::glDisable(GL_SCISSOR_TEST));
-    glsafe(::glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST));
+    ::glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    bool blitted = true;
+    if (check) // read here, as glsafe() would assert on the error in Debug builds
+        blitted = ::glGetError() == GL_NO_ERROR;
+    else
+        glcheck();
     if (scissor_test)
         glsafe(::glEnable(GL_SCISSOR_TEST));
     glsafe(::glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(draw_framebuffer)));
+    return blitted;
 }
 
 void GLTexture::copy_from_framebuffer(unsigned int& tex_id, unsigned int& framebuffer_id, std::array<unsigned int, 2>& tex_size,
@@ -826,10 +838,9 @@ void GLTexture::copy_from_framebuffer(unsigned int& tex_id, unsigned int& frameb
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
 
     if (method == ECopyMethod::Blit) {
-        blit_into_texture(tex_id, framebuffer_id, width, height);
+        const bool blitted = blit_into_texture(tex_id, framebuffer_id, width, height, first);
         if (first) {
-            // Where the blit fails too, nothing resolves the samples: keep the copy, as before.
-            const bool blitted = ::glGetError() == GL_NO_ERROR;
+            // Where the blit fails too, nothing resolves the samples: keep the copy.
             method = blitted ? ECopyMethod::Blit : ECopyMethod::Copy;
             if (blitted)
                 BOOST_LOG_TRIVIAL(info) << "Copying from the multisampled window framebuffer failed; resolving it with a blit instead";
