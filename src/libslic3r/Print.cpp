@@ -1823,6 +1823,17 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
         // Moving the tower does not help when no area is reached by every extruder.
         if (printable_polys.empty())
             return {L("The extruder printable areas share no common area, so the prime tower cannot be printed.\n")};
+        // Before slicing the tower is an estimate, and a thinner layer, from the preset, a variable layer height
+        // or a layer range, grows it past where it stands. Slicing moves a tower that does not fit to the nearest
+        // place where it does (_make_wipe_tower()), so it is refused here only when the plate has no such place.
+        // The plater moves it as well, but not before every validation: most of those edits reload no scene.
+        if (!exact_footprint && tower_polys_checked.size() == 1) {
+            Polygon footprint = tower_polys_checked.front();
+            footprint.translate(-Point(scale_(x), scale_(y)));
+            if (print.nearest_fitting_wipe_tower_position(footprint, Vec2d(config.wipe_tower_x.get_at(plate_index),
+                                                                           config.wipe_tower_y.get_at(plate_index))))
+                return {};
+        }
         return {L("Prime tower is partially outside the printable area, and it cannot be printed.\n")};
     }
     if (warning && !diff(tower_polys_estimated, printable_polys).empty())

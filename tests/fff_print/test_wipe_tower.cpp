@@ -619,6 +619,53 @@ TEST_CASE("A tower that fits nowhere on the plate is still refused", "[WipeTower
     CHECK_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("printable area"));
 }
 
+TEST_CASE("A tower a thinner layer grows past the bed is moved when sliced instead of refused", "[WipeTower]")
+{
+    // At 0.2 mm one purge is 100 / (0.2 * 50) = 10 mm of depth, at 0.1 mm twice that. The tower sits with its
+    // 3 mm brim 2 mm inside the back edge of the 200 mm bed at 0.2 mm, so at 0.1 mm it reaches past the edge.
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    config.set_deserialize_strict({ { "layer_change_gcode", "G92 E0\n" } }); // validate() relative-E reset
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model, config, nullptr, false);
+    print.apply(model, config);
+    const double y = 200. - print.wipe_tower_data(2).depth - 3. - 2.;
+    config.set_deserialize_strict({ { "wipe_tower_x", "100" }, { "wipe_tower_y", std::to_string(y) } });
+    print.apply(model, config);
+    REQUIRE(print.validate().string == "");
+
+    config.set_deserialize_strict({ { "layer_height", "0.1" } });
+    print.apply(model, config);
+    REQUIRE(y + print.wipe_tower_data(2).depth + 3. > 200.);
+    CHECK(print.validate().string == "");
+
+    CHECK_FALSE(gcode(print).empty());
+    REQUIRE(print.wipe_tower_data().wipe_tower_mesh_data.has_value());
+    const double moved_y = print.config().wipe_tower_y.get_at(0);
+    CHECK(moved_y < y);
+    Polygon footprint = print.wipe_tower_data().wipe_tower_mesh_data->bottom;
+    footprint.translate(Point(scale_(print.config().wipe_tower_x.get_at(0)), scale_(moved_y)));
+    CHECK(unscaled(get_extents(footprint).max.y()) <= 200.);
+}
+
+TEST_CASE("Validation refuses a tower whose estimate fits nowhere on the plate", "[WipeTower]")
+{
+    // The 50 mm wide tower with its 3 mm brim on each side is 56 mm wide, wider than the 55 mm bed.
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    config.set_deserialize_strict({ { "layer_change_gcode", "G92 E0\n" }, // validate() relative-E reset
+                                    { "printable_area",     "0x0,55x0,55x200,0x200" },
+                                    { "wipe_tower_x",       "2" },
+                                    { "wipe_tower_y",       "100" } });
+    TriangleMesh mesh = cube(20);
+    mesh.translate(20.f, 20.f, 0.f);
+    Print print;
+    Model model;
+    init_print({ std::move(mesh) }, print, model, config, nullptr, false);
+    print.apply(model, config);
+    REQUIRE(print.has_wipe_tower());
+    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("printable area"));
+}
+
 // A 20 mm and a 10 mm tall box sharing one variable layer height profile: 0.2 mm layers up to
 // 5 mm, thinning to 0.1 mm at 10 mm and staying there. `fit` says whether the lower box gets the
 // profile cut to its own height, or the tall box's profile as it is. Each box prints with its own
@@ -1138,12 +1185,12 @@ TEST_CASE("The final unload is generated for a short tower when the last filamen
     CHECK_FALSE(print.wipe_tower_data(2).final_purge->gcode.empty());
 }
 
-TEST_CASE("A tower printed without a tool change is still validated against the bed", "[WipeTower]")
+TEST_CASE("A tower printed without a tool change is still kept on the bed", "[WipeTower]")
 {
     // Wrapping detection prints a tower on a plate that purges one filament. Neither the old
     // estimate (which read the wall type and smooth timelapse) nor the old containment gate (the
     // filament count or smooth timelapse) knew about it, so between them that tower was never
-    // checked against the bed.
+    // checked against the bed. Placed off the bed, it is now moved onto it when sliced.
     Print print;
     Model model;
     DynamicPrintConfig config = tower_estimate_config("rectangle", 1);
@@ -1157,7 +1204,17 @@ TEST_CASE("A tower printed without a tool change is still validated against the 
     REQUIRE(print.extruders(true).size() == 1);
     REQUIRE(print.has_wipe_tower());
     CHECK(print.wipe_tower_data(1).depth > 0.f);
-    CHECK_THAT(print.validate().string, Catch::Matchers::ContainsSubstring("printable area"));
+    REQUIRE(print.validate().string == "");
+
+    CHECK_FALSE(gcode(print).empty());
+    REQUIRE(print.wipe_tower_data().wipe_tower_mesh_data.has_value());
+    Polygon footprint = print.wipe_tower_data().wipe_tower_mesh_data->bottom;
+    footprint.translate(Point(scale_(print.config().wipe_tower_x.get_at(0)), scale_(print.config().wipe_tower_y.get_at(0))));
+    const BoundingBox extents = get_extents(footprint);
+    CHECK(unscaled(extents.min.x()) >= 0.);
+    CHECK(unscaled(extents.min.y()) >= 0.);
+    CHECK(unscaled(extents.max.x()) <= 200.);
+    CHECK(unscaled(extents.max.y()) <= 200.);
 }
 
 // Two nozzles over a 200 mm bed, nozzle 1 reaching x up to `left_max` and nozzle 2 x from `right_min`,

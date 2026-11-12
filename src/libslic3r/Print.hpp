@@ -1397,6 +1397,9 @@ public:
     // Where the tower is printed when the plate places it at `position` (plate-local), which it did not fit
     // once generated. Empty when the tower was not moved from `position`.
     std::optional<Vec2d> wipe_tower_moved_position(const Vec2d &position) const;
+    // The position nearest `position` (plate-local) where the tower's `footprint` (relative to its position,
+    // brim included) fits the printable area, clear of the objects and the exclusion areas.
+    std::optional<Vec2d> nearest_fitting_wipe_tower_position(const Polygon &footprint, const Vec2d &position) const;
 
     void set_check_multi_filaments_compatibility(bool check) { m_need_check_multi_filaments_compatibility = check; }
     bool need_check_multi_filaments_compatibility() const { return m_need_check_multi_filaments_compatibility; }
@@ -1510,9 +1513,6 @@ private:
     // A tower that does not fit where it is placed is moved to the nearest spot where it does when
     // move_to_fit is set, and refused otherwise.
     void                _make_wipe_tower(bool move_to_fit = true);
-    // The position nearest `position` where the generated tower's `footprint` (relative to its position,
-    // brim included) fits the printable area, clear of the objects and the exclusion areas.
-    std::optional<Vec2d> nearest_fitting_wipe_tower_position(const Polygon &footprint, const Vec2d &position) const;
     // Belt mode: route filament-change purging into the belt purge prism
     // (flush-into-objects) without generating a classic wipe tower.
     void                _plan_belt_purge();
