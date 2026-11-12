@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PAHT-CF @System",
+	"inherits": "NOVTAU PAHT-CF @base",
+	"from": "system",
+	"setting_id": "hQygf4P4ZIWOoPnC",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PAHT-CF @System"
+	],
+	"compatible_printers": []
+}

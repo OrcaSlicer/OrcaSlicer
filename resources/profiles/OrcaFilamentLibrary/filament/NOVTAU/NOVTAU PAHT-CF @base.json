@@ -1,0 +1,68 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PAHT-CF @base",
+	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"filament_id": "OF9WNSBW",
+	"instantiation": "false",
+	"filament_vendor": [
+		"NOVTAU"
+	],
+	"filament_type": [
+		"PA-CF"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"filament_density": [
+		"1.04"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"nozzle_temperature": [
+		"275"
+	],
+	"nozzle_temperature_initial_layer": [
+		"275"
+	],
+	"nozzle_temperature_range_low": [
+		"260"
+	],
+	"nozzle_temperature_range_high": [
+		"300"
+	],
+	"hot_plate_temp": [
+		"100"
+	],
+	"hot_plate_temp_initial_layer": [
+		"100"
+	],
+	"textured_plate_temp": [
+		"100"
+	],
+	"textured_plate_temp_initial_layer": [
+		"100"
+	],
+	"cool_plate_temp": [
+		"0"
+	],
+	"cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"eng_plate_temp": [
+		"100"
+	],
+	"eng_plate_temp_initial_layer": [
+		"100"
+	],
+	"fan_min_speed": [
+		"10"
+	],
+	"fan_max_speed": [
+		"30"
+	]
+}

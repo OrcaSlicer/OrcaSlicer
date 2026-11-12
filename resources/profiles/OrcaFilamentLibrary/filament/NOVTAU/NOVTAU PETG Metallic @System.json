@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PETG Metallic @System",
+	"inherits": "NOVTAU PETG Metallic @base",
+	"from": "system",
+	"setting_id": "y3dO5M1PDETgGAPd",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PETG Metallic @System"
+	],
+	"compatible_printers": []
+}

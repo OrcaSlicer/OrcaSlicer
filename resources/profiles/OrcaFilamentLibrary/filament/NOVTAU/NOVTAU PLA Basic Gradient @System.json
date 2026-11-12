@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Basic Gradient @System",
+	"inherits": "NOVTAU PLA Basic Gradient @base",
+	"from": "system",
+	"setting_id": "MaKeBp4fC3JLMK4F",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Basic Gradient @System"
+	],
+	"compatible_printers": []
+}

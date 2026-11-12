@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Basic @System",
+	"inherits": "NOVTAU PLA Basic @base",
+	"from": "system",
+	"setting_id": "ECF18nnxL32V89ex",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Basic @System"
+	],
+	"compatible_printers": []
+}
