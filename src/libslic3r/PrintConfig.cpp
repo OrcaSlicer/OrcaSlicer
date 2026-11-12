@@ -5094,6 +5094,28 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def           = this->add("mmu_segmented_region_min_area", coFloat);
+    def->label    = L("Minimum area of a segmented region");
+    def->tooltip  = L("Painted regions (and the slices they are cut from) smaller than this area are dropped "
+                      "during multi-material segmentation, because they are too small to print. "
+                      "Lower the value to keep very small painted features. A value of 0 disables the filtering.");
+    def->sidetext = L("mm²");
+    def->min      = 0;
+    def->category = L("Advanced");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0.01));
+
+    def           = this->add("mmu_segmented_region_opening_threshold", coFloat);
+    def->label    = L("Opening radius of segmented regions");
+    def->tooltip  = L("Radius of the morphological opening that removes thin projections from painted top and bottom "
+                      "surfaces. A value of -1 derives it automatically from the wall line width. "
+                      "A value of 0 disables the opening, which keeps thin painted features.");
+    def->sidetext = L("mm");
+    def->min      = -1;
+    def->category = L("Advanced");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(-1.));
+
     def           = this->add("mmu_segmented_region_interlocking_depth", coFloat);
     def->label    = L("Interlocking depth of a segmented region");
     def->tooltip  = L("Interlocking depth of a segmented region. On every other layer, the segmented region "

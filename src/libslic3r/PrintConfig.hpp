@@ -1304,6 +1304,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                interface_shells))
     ((ConfigOptionFloat,               layer_height))
     ((ConfigOptionFloat,               mmu_segmented_region_max_width))
+    ((ConfigOptionFloat,               mmu_segmented_region_min_area))
+    ((ConfigOptionFloat,               mmu_segmented_region_opening_threshold))
     ((ConfigOptionFloat,               mmu_segmented_region_interlocking_depth))
     ((ConfigOptionFloat,               raft_contact_distance))
     ((ConfigOptionFloat,               raft_expansion))
