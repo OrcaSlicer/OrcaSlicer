@@ -222,7 +222,10 @@ grants while updating install metadata, the enabled flag, and capability flags.
 The Plugins dialog edits the same sidecar, including while the plugin is loaded or loading.
 Each committed edit is applied immediately to the latest stored state, preserving unrelated
 permissions, install metadata, the enabled flag, and capability flags. Concurrent changes to
-the same permission take effect in write order. The dialog validates added or changed
+the same permission take effect in write order. An open Permissions tab merges a grant made
+outside the dialog into its displayed rows. Unsaved edits identify their original value, including
+when the edited text matches another grant. If the original grant disappears, the edit stays visible
+as no longer granted and can be added as a new grant or discarded. The dialog validates added or changed
 targets; unchanged entries, including grants written by an older release, are carried across
 byte-for-byte. New filesystem targets must be absolute on the current
 platform: a POSIX path starts at `/`, and a Windows path names a drive plus root or a UNC

@@ -242,7 +242,7 @@ namespace Clipper2Lib {
 		inline void UpdateEdgeIntoAEL(Active *e);
 		void IntersectEdges(Active &e1, Active &e2, const Point64& pt);
 		inline void DeleteFromAEL(Active &e);
-		inline void AdjustCurrXAndCopyToSEL(const int64_t top_y);
+		inline bool AdjustCurrXAndCopyToSEL(const int64_t top_y);
 		void DoIntersections(const int64_t top_y);
 		void AddNewIntersectNode(Active &e1, Active &e2, const int64_t top_y);
 		bool BuildIntersectList(const int64_t top_y);
