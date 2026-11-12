@@ -34,6 +34,7 @@
 #include "slic3r/GUI/Widgets/SpinInput.hpp"
 #include <slic3r/GUI/Widgets/Button.hpp>
 #include <slic3r/GUI/Widgets/Label.hpp>
+#include <slic3r/GUI/Widgets/LabeledCheckBox.hpp>
 #include "libslic3r/TriangleMesh.hpp"
 #include <memory>
 #include <mutex>
