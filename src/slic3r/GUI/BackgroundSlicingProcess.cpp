@@ -288,19 +288,22 @@ void BackgroundSlicingProcess::process_fff()
         m_temp_output_path = this->get_current_plate()->get_tmp_gcode_path();
         m_fff_print->export_gcode(m_temp_output_path, m_gcode_result,
                                   [this](const ThumbnailsParams& params) { return this->render_thumbnails(params); });
-        // Orca: BBL printers post-process the g-code in place here, in the file the G-code viewer maps, so
-        // the preview re-reads its moves and line offsets from the edited file. The rest of m_gcode_result,
-        // including nozzle_group_result (consumed by the H2C print-dispatch nozzle mapping), is kept.
-        if (m_fff_print->is_BBL_printer()) {
-            try {
-                if (run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config()))
-                    m_fff_print->reload_gcode_moves(m_gcode_result);
-            } catch (...) {
-                // A failed script or plugin may have left the G-code half edited, so the next run exports
-                // it again instead of reusing it.
-                m_fff_print->invalidate_gcode_export_from_worker();
-                throw;
-            }
+        // Orca: post-process the g-code in place for every printer profile, in the file the G-code viewer
+        // maps, so the preview re-reads its moves and line offsets from the edited file and shows the result
+        // right after slicing (previously BBL-only, see #10814). The rest of m_gcode_result, including
+        // nozzle_group_result (consumed by the H2C print-dispatch nozzle mapping), is kept. The flag makes
+        // the export and upload paths skip their own copy-based run, so scripts and plugins apply once.
+        m_gcode_post_processed = false;
+        try {
+            m_gcode_post_processed =
+                run_post_process_scripts(m_temp_output_path, false, "File", m_temp_output_path, m_fff_print->full_print_config());
+            if (m_gcode_post_processed)
+                m_fff_print->reload_gcode_moves(m_gcode_result);
+        } catch (...) {
+            // A failed script or plugin may have left the G-code half edited, so the next run exports
+            // it again instead of reusing it.
+            m_fff_print->invalidate_gcode_export_from_worker();
+            throw;
         }
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": export gcode finished");
@@ -634,6 +637,9 @@ bool BackgroundSlicingProcess::reset()
 {
     bool stopped = this->stop();
     this->reset_export();
+    // The G-code file on disk may be replaced by a loaded project, so the in-place post-processing
+    // state of the previous slice no longer describes it.
+    m_gcode_post_processed = false;
     // BBS: don't clear print for print is not owned by background slicing process anymore
     // do it in the part_plate
     // m_print->clear();
@@ -868,7 +874,13 @@ void BackgroundSlicingProcess::finalize_gcode()
     // export_path may be changed by the post-processing script as well if the post processing script decides so, see GH #6042.
     // Runs both post-processing scripts and plugins on a single .pp copy of the G-code (make_copy = true),
     // so neither touches the original file the G-code viewer keeps memory-mapped.
-    bool post_processed = run_post_process_scripts(output_path, true, "File", export_path, m_fff_print->full_print_config());
+    // When the slice already applied post-processing in place on m_temp_output_path (m_gcode_post_processed,
+    // every printer profile since #10814), that file is copied to the export target as-is: running the copy
+    // based pass again would apply scripts and plugins twice. post_processed below only tracks whether a .pp
+    // copy was created and has to be cleaned up.
+    bool post_processed = false;
+    if (!m_gcode_post_processed)
+        post_processed = run_post_process_scripts(output_path, true, "File", export_path, m_fff_print->full_print_config());
 
     auto remove_post_processed_temp_file = [post_processed, &output_path]() {
         if (post_processed)
@@ -1004,12 +1016,13 @@ void BackgroundSlicingProcess::prepare_upload()
                 throw Slic3r::ExportError(_utf8(L("Copying of the temporary G-code to the output G-code failed.")));
             m_upload_job.upload_data.upload_path = m_fff_print->print_statistics().finalize_output_path(
                 m_upload_job.upload_data.upload_path.string());
-            // Orca: skip post-processing scripts for BBL printers as we have run them already in finalize_gcode()
+            // Orca: skip post-processing when the slice already ran it in place on m_temp_output_path
+            // (m_gcode_post_processed; every profile since #10814), and for BBL printers as before.
             // todo: do we need to copy the file?
 
             // Make a copy of the source path, as run_post_process_scripts() is allowed to change it when making a copy of the source file
             // (not here, but when the final target is a file).
-            if (!m_fff_print->is_BBL_printer()) {
+            if (!m_fff_print->is_BBL_printer() && !m_gcode_post_processed) {
                 std::string source_path_str = source_path.string();
                 std::string output_name_str = m_upload_job.upload_data.upload_path.string();
                 // source_path_str is already a dedicated copy of the temp G-code (see copy_file above), not the

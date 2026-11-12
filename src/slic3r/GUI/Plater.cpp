@@ -20998,7 +20998,9 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
     p->partplate_list.store_to_3mf_structure(plate_data_list, (strategy & SaveStrategy::WithGcode || strategy & SaveStrategy::WithSliceInfo), export_plate_idx,
                                              strategy & SaveStrategy::WithStatistics);
 
-    // Orca: non-BBL G-code isn't post-processed in place, so run the scripts on a copy before packing it.
+    // Orca: non-BBL G-code used to need a copy-based post-processing pass before packing it. Since the slice
+    // runs post-processing in place for every profile (#10814), skip that pass when the current slice already
+    // applied it, or the scripts and plugins would run twice on the same G-code.
     std::vector<std::string> pp_tmp_files;
     ScopeGuard remove_pp_tmp_files([&pp_tmp_files]() {
         for (const std::string& f : pp_tmp_files) {
@@ -21009,7 +21011,8 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
 
     // Backups (SkipStatic) don't pack G-code, so don't run user scripts for them.
     if ((strategy & SaveStrategy::WithGcode) && !(strategy & SaveStrategy::SkipStatic) &&
-        p->printer_technology == ptFFF && !wxGetApp().preset_bundle->is_bbl_vendor()) {
+        p->printer_technology == ptFFF && !wxGetApp().preset_bundle->is_bbl_vendor() &&
+        !background_process().is_gcode_post_processed()) {
         try {
             for (PlateData* pd : plate_data_list) {
                 if (pd == nullptr || pd->gcode_file.empty())
