@@ -485,7 +485,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             {
 #ifndef __WXGTK__
                 e.Skip();
-                temp->GetToolTip()->Enable(true);
+                if (wxToolTip *tip = temp->GetToolTip()) // none once the field's tooltip is an illustrated one
+                    tip->Enable(true);
 #endif // __WXGTK__
                 // Remove all leading and trailing spaces from the input
                 std::string trimed_str, str = trimed_str = temp->GetValue().ToStdString();

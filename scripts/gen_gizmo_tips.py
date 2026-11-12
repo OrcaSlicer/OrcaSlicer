@@ -62,7 +62,10 @@ def main():
         os.makedirs(out_dir, exist_ok=True)
         if count == 0:
             path = os.path.join(out_dir, picture + ".png")
-            Image.fromarray(frames[0]).save(path, optimize=True)
+            # 256 colours with dithering: indistinguishable from full colour at this size, and less than
+            # half the bytes, which counts with several hundred pictures shipped in resources/.
+            Image.fromarray(frames[0]).quantize(colors=256, method=Image.Quantize.MEDIANCUT,
+                                                dither=Image.Dither.FLOYDSTEINBERG).save(path, optimize=True)
         else:
             path = os.path.join(out_dir, picture + ".gif")
             # One palette for the whole loop, so a colour does not shift from one frame to the next.
