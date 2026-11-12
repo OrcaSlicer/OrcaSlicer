@@ -3,6 +3,7 @@
 #include <objc/runtime.h>
 #include <wx/window.h>
 #include "wx/osx/core/cfstring.h"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #import <Cocoa/Cocoa.h>
 
 // ---------------------------------------------------------------------------
