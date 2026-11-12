@@ -405,6 +405,10 @@ public:
     // The height is snug.
     coord_t 				     height() const         { return m_size.z(); }
     double                      max_z() const         { return m_max_z; }
+    // Top of the printed object above the bed, scaled: object_print_z_max of the slicing parameters, so the
+    // raft and the Z shrinkage compensation count, as in the printable-height check of Print::validate().
+    // On a belt printer that is the height in the tilted slicing frame, so the model's own top is used there.
+    double                      print_z_max() const;
     // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
     const Point& 			     center_offset() const  { return m_center_offset; }
     const AdaptiveInfillField*       adaptive_infill_field(AdaptiveInfillMode mode) const { return m_adaptive_infill_fields[size_t(mode)].get(); }
@@ -494,6 +498,8 @@ public:
     // The slicing parameters are dependent on various configuration values
     // (layer height, first layer height, raft settings, print nozzle diameter etc).
     const SlicingParameters&    slicing_parameters() const { return m_slicing_params; }
+    // Orca: whether precise Z height shapes the layers of this object; see Print::precise_z_height_overridden().
+    bool                        precise_z_height() const;
     // Orca: XYZ shrinkage compensation has introduced the const Vec3d &object_shrinkage_compensation parameter to the function below
     static SlicingParameters    slicing_parameters(const DynamicPrintConfig &full_config, const ModelObject &model_object, float object_max_z, const Vec3d &object_shrinkage_compensation, std::vector<int> variant_index = std::vector<int>());
 
@@ -1196,6 +1202,18 @@ public:
     StringObjectException       validate_wipe_tower_layering() const;
     // Belt purge prism (belt-mode replacement for the wipe tower).
     bool                        has_belt_purge_tower() const;
+    // Orca: precise Z height fits the last layers of each object to its own height. With a prime tower
+    // and variable layer height on objects of different heights, that puts the last layers of a lower
+    // object between the layers of the others. The tower can still print them, each joined to the tower
+    // layer below (ToolOrdering::fill_wipe_tower_partitions()), but a joined layer holds the purges of
+    // both, which makes the tower deeper. So precise Z height is left out of the whole print instead:
+    // the objects stay on the same layers, and the last layer of a lower object ends where the shared
+    // layers do, a fraction of a layer off its own top.
+    // It keys on has_wipe_tower(), which reads the config, so it also applies when the tower turns out
+    // not to be needed after slicing, such as support in another filament that no object needs. Keying
+    // it on wipe_tower_certain_before_slicing() would keep precise Z there, but a plate whose support
+    // does need the tower would then be refused after slicing.
+    bool                        precise_z_height_overridden() const { return m_precise_z_height_overridden; }
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
 
@@ -1398,7 +1416,7 @@ public:
     static int get_compatible_filament_type(const std::set<int>& types);
 
     bool is_all_objects_are_short() const {
-        return std::all_of(this->objects().begin(), this->objects().end(), [&](PrintObject* obj) { return obj->height() < scale_(this->config().nozzle_height.value); });
+        return std::all_of(this->objects().begin(), this->objects().end(), [&](PrintObject* obj) { return obj->print_z_max() < scale_(this->config().nozzle_height.value); });
     }
 
     // Post-slicing config-slot resolvers: map a (filament, layer) pair to the index of its
@@ -1583,6 +1601,7 @@ private:
     // Estimated print time, filament consumed.
     PrintStatistics                         m_print_statistics;
     bool                                    m_support_used {false};
+    bool                                    m_precise_z_height_overridden {false};
     StatisticsByExtruderCount               m_statistics_by_extruder_count;
 
     std::vector<unsigned int> m_slice_used_filaments;

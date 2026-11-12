@@ -7,6 +7,7 @@
 #include <wx/string.h>
 
 #include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 
 namespace Slic3r::GUI {
 
