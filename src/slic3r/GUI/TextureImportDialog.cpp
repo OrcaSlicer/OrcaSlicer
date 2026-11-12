@@ -1,4 +1,6 @@
 #include <array>
+#include <initializer_list>
+#include "IllustratedTipPopup.hpp"
 #include <cstdlib>
 #include <functional>
 #include <glad/gl.h>
@@ -593,7 +595,7 @@ public:
         add_label->SetCursor(wxCursor(add_enabled ? wxCURSOR_HAND : wxCURSOR_ARROW));
         decompose_label->SetCursor(wxCursor(add_enabled ? wxCURSOR_HAND : wxCURSOR_ARROW));
         if (!add_enabled)
-            add_label->SetToolTip(wxString::Format(
+            set_illustrated_tooltip(add_label, wxString::Format(
                 _L_PLURAL("The project supports up to %d filament. Extra filaments will be discarded.",
                           "The project supports up to %d filaments. Extra filaments will be discarded.",
                           (int)EnforcerBlockerType::ExtruderMax),
@@ -709,7 +711,7 @@ private:
 
         wxString name_str = (idx < m_names.size()) ? filament_name_to_wx_string(m_names[idx])
                                                     : wxString::Format(_L("Filament %d"), display_number((int)idx));
-        row->SetToolTip(name_str);
+        set_illustrated_tooltip(row, name_str);
 
         row->Bind(wxEVT_PAINT, [this, idx, sq, sq_r, sq_x, gap1, fil_clr, name_str, row_bg, hover_bg, name_fg](wxPaintEvent& e) {
             auto* p = static_cast<wxPanel*>(e.GetEventObject());
@@ -791,7 +793,7 @@ private:
         row->SetBackgroundColour(row_bg);
         row->SetBackgroundStyle(wxBG_STYLE_PAINT);
         row->SetCursor(wxCursor(wxCURSOR_HAND));
-        row->SetToolTip(entry.name.empty() ? wxString::Format(_L("Filament %d"), display_number(idx)) : filament_name_to_wx_string(entry.name));
+        set_illustrated_tooltip(row, entry.name.empty() ? wxString::Format(_L("Filament %d"), display_number(idx)) : filament_name_to_wx_string(entry.name));
 
         row->Bind(wxEVT_PAINT, [this, entry, idx, row_bg, hover_bg, name_fg](wxPaintEvent& e) {
             auto* p = static_cast<wxPanel*>(e.GetEventObject());
@@ -1993,8 +1995,8 @@ void TextureImportDialog::build_preview_panel(wxWindow* parent, wxSizer* sizer)
     m_btn_view_multicolor->SetId(ID_VIEW_MULTICOLOR);
 
     const int view_button_height = FromDIP(27);
-    m_btn_view_original->SetToolTip(_L("Your input texture model"));
-    m_btn_view_multicolor->SetToolTip(_L("Processed multi-color model"));
+    set_illustrated_tooltip(m_btn_view_original, _L("Your input texture model"));
+    set_illustrated_tooltip(m_btn_view_multicolor, _L("Processed multi-color model"));
 
     wxBoxSizer* tab_sizer = new wxBoxSizer(wxHORIZONTAL);
     tab_sizer->Add(m_btn_view_original,   0, wxRIGHT, FromDIP(2));
@@ -2098,6 +2100,15 @@ void TextureImportDialog::build_params_panel(wxWindow* parent, wxSizer* sizer)
     color_slider_sizer->Add(m_color_spin, 0, wxALIGN_CENTER_VERTICAL);
     sizer->Add(color_slider_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(8));
 
+    const std::vector<TipMedia> color_media = {{"app_ui/tex_colors_few.png", _L("Fewer colors")},
+                                               {"app_ui/tex_colors_many.png", _L("More colors")}};
+    const wxString color_tip = _L("How many colors the texture is reduced to, each of which becomes a filament. "
+                                  "More colors keep more detail of the texture but need more filaments. Click Apply to see the result.");
+    for (wxWindow* w : std::initializer_list<wxWindow*>{lbl_colors, m_color_slider, m_color_spin})
+        set_illustrated_tooltip(w, color_tip, color_media);
+    for (Button* preset : {m_btn_color_4, m_btn_color_8, m_btn_color_16})
+        set_illustrated_tooltip(preset, _L("Set the color count to this number."), color_media);
+
     wxStaticText* lbl_smooth = new wxStaticText(parent, wxID_ANY, _L("Smooth Level"));
     lbl_smooth->SetForegroundColour(label_fg);
     lbl_smooth->SetFont(Label::Head_14);
@@ -2118,6 +2129,13 @@ void TextureImportDialog::build_params_panel(wxWindow* parent, wxSizer* sizer)
     smooth_sizer->Add(m_smooth_spin, 0, wxALIGN_CENTER_VERTICAL);
     sizer->Add(smooth_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
 
+    const std::vector<TipMedia> smooth_media = {{"app_ui/tex_smooth_low.png", _L("Low")},
+                                                {"app_ui/tex_smooth_high.png", _L("High")}};
+    const wxString smooth_tip = _L("How much the edges between the colors are smoothed. At a low level they follow the triangles of the "
+                                   "model in steps, at a high level they run in smooth curves.");
+    for (wxWindow* w : std::initializer_list<wxWindow*>{lbl_smooth, m_smooth_slider, m_smooth_spin})
+        set_illustrated_tooltip(w, smooth_tip, smooth_media);
+
     m_btn_apply = new Button(parent, _L("Apply"));
     m_btn_apply->SetId(ID_BTN_APPLY);
     m_btn_apply->SetStyle(ButtonStyle::Regular, ButtonType::Window);
@@ -2135,9 +2153,9 @@ void TextureImportDialog::build_params_panel(wxWindow* parent, wxSizer* sizer)
         m_initial_tooltips_set = true;
         CallAfter([this]() {
             if (m_btn_color_auto)
-                m_btn_color_auto->SetToolTip(_L("Automatically determine the optimal color count only and recompute filament mapping"));
+                set_illustrated_tooltip(m_btn_color_auto, _L("Automatically determine the optimal color count only and recompute filament mapping"));
             if (m_btn_apply)
-                m_btn_apply->SetToolTip(_L("Convert texture to painting using the specified color count and smooth level"));
+                set_illustrated_tooltip(m_btn_apply, _L("Convert texture to painting using the specified color count and smooth level"));
         });
     });
 
@@ -2173,7 +2191,7 @@ void TextureImportDialog::build_mapping_panel(wxWindow* parent, wxSizer* sizer)
     m_btn_mix_reset = new Button(parent, "", "revert_btn", wxBORDER_NONE, 16);
     m_btn_mix_reset->SetCanFocus(false);
     m_btn_mix_reset->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
-    m_btn_mix_reset->SetToolTip(_L("Reset filament mapping to the state before one-click mixing"));
+    set_illustrated_tooltip(m_btn_mix_reset, _L("Reset filament mapping to the state before one-click mixing"));
     m_btn_mix_reset->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) {
         reset_auto_mix();
         evt.Skip();
@@ -2185,7 +2203,7 @@ void TextureImportDialog::build_mapping_panel(wxWindow* parent, wxSizer* sizer)
 
     m_btn_auto_mix = new Button(parent, auto_mix_mode_label(m_auto_mix_mode), "drop_down", 0, 16);
     m_btn_auto_mix->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
-    m_btn_auto_mix->SetToolTip(_L("Choose the one-click auto-mix mode for texture color import"));
+    set_illustrated_tooltip(m_btn_auto_mix, _L("Choose the one-click auto-mix mode for texture color import"));
     m_btn_auto_mix->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) { // ORCA show popup on click instead
         show_auto_mix_popup();
         evt.Skip();
@@ -2197,7 +2215,7 @@ void TextureImportDialog::build_mapping_panel(wxWindow* parent, wxSizer* sizer)
     wxBoxSizer* merge_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_auto_merge_cb = new wxCheckBox(parent, wxID_ANY, _L("Auto-merge same filament"));
     m_auto_merge_cb->SetFont(Label::Body_14);
-    m_auto_merge_cb->SetToolTip(_L("Automatically merge identical filaments into existing filaments in the project"));
+    set_illustrated_tooltip(m_auto_merge_cb, _L("Automatically merge identical filaments into existing filaments in the project"));
     m_auto_merge_cb->SetForegroundColour(secondary_fg);
     m_auto_merge_cb->SetValue(true);
     m_auto_merge_cb->Bind(wxEVT_CHECKBOX, &TextureImportDialog::on_auto_merge_toggled, this);
@@ -2233,7 +2251,7 @@ void TextureImportDialog::build_bottom_buttons(wxSizer* sizer)
     wxBoxSizer* btn_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_btn_skip = new Button(this, _L("Skip Matching"));
     m_btn_skip->SetId(ID_BTN_SKIP);
-    m_btn_skip->SetToolTip(_L("Skip filament mapping and import as a single-color model"));
+    set_illustrated_tooltip(m_btn_skip, _L("Skip filament mapping and import as a single-color model"));
     m_btn_skip->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
 
     m_btn_ok = new Button(this, _L("Confirm"));
@@ -3394,7 +3412,7 @@ void TextureImportDialog::show_filament_popup(size_t row_index)
             wxString label = (idx >= 0 && idx < (int)m_filament_names.size())
                 ? filament_name_to_wx_string(m_filament_names[idx])
                 : wxString::Format(_L("Filament %d"), display_number(idx));
-            m_mapping_rows[row_index].target_panel->SetToolTip(label);
+            set_illustrated_tooltip(m_mapping_rows[row_index].target_panel, label);
             m_mapping_rows[row_index].target_panel->Refresh();
         }
         update_filament_color_map();
@@ -3762,7 +3780,7 @@ void TextureImportDialog::rebuild_mapping_rows()
         row.target_panel = new wxPanel(row_panel, wxID_ANY, wxDefaultPosition, wxSize(-1, row_h),
                                        wxTAB_TRAVERSAL | wxFULL_REPAINT_ON_RESIZE);
         row.target_panel->SetMinSize(wxSize(target_min_w, row_h));
-        row.target_panel->SetToolTip(get_filament_label(row.target_filament_idx));
+        set_illustrated_tooltip(row.target_panel, get_filament_label(row.target_filament_idx));
         row.target_panel->SetBackgroundStyle(wxBG_STYLE_PAINT);
         row.target_panel->SetCursor(wxCursor(wxCURSOR_HAND));
 
@@ -4149,9 +4167,9 @@ void TextureImportDialog::update_confirm_button_state()
 void TextureImportDialog::style_confirm_button(bool dirty)
 {
     if (dirty) {
-        m_btn_ok->SetToolTip(_L("Reminder: parameters changed, click Apply to take effect"));
+        set_illustrated_tooltip(m_btn_ok, _L("Reminder: parameters changed, click Apply to take effect"));
     } else {
-        m_btn_ok->UnsetToolTip();
+        set_illustrated_tooltip(m_btn_ok, wxEmptyString);
     }
     if (m_hint_label)
         m_hint_label->Show(dirty);

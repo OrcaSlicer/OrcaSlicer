@@ -1,4 +1,5 @@
 #include "GeometryImportDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -234,10 +235,10 @@ void ImportCheckBox::Enable(bool enable) const
     label->Refresh();
 }
 
-void ImportCheckBox::SetToolTip(const wxString& tip) const
+void ImportCheckBox::SetToolTip(const wxString& tip, const std::vector<TipMedia>& media) const
 {
-    box->SetToolTip(tip);
-    label->SetToolTip(tip);
+    set_illustrated_tooltip(box, tip, media);
+    set_illustrated_tooltip(label, tip, media);
 }
 
 ImportCheckBox add_import_checkbox(wxWindow* parent, wxSizer& sizer, const wxString& text, bool value, int flags, int border)
@@ -295,9 +296,12 @@ bool show_geometry_import_options(wxWindow* parent, const std::string& format, G
     if (format != "3mf") {
         load_mode = add_radio_group(dialog, {_L("Load as separate objects"), _L("Load as an assembly"), _L("Load as a single object (can be split later)")},
                                     options.separate_objects ? 0 : options.load_as_assembly ? 1 : 2, wxVERTICAL);
-        load_mode->SetRadioTooltip(0, _L("Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."));
-        load_mode->SetRadioTooltip(1, _L("The bodies of each group in the file become parts of one object, in their relative positions."));
-        load_mode->SetRadioTooltip(2, _L("The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."));
+        load_mode->SetRadioIllustratedTooltip(0, _L("Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."),
+                                              {{"app_ui/load_separate.png", {}}});
+        load_mode->SetRadioIllustratedTooltip(1, _L("The bodies of each group in the file become parts of one object, in their relative positions."),
+                                              {{"app_ui/load_assembly.png", {}}});
+        load_mode->SetRadioIllustratedTooltip(2, _L("The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."),
+                                              {{"app_ui/load_single.png", {}}});
         sizer->Add(load_mode, 0, wxLEFT | wxRIGHT | wxTOP, dialog.FromDIP(12));
     }
     const auto keep = add_checkbox(dialog, *sizer, _L("Keep original names"), options.keep_names);
@@ -364,11 +368,12 @@ bool prepare_geometry_import_names(wxWindow* parent, const std::vector<Model*>& 
         add_tip(dialog, *sizer, _L("Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."), 520);
         // Item 0 removes the characters, item 1 replaces them with the text right after it.
         auto* rule = add_radio_group(dialog, {_L("Remove unsupported characters"), _L("Replace with:")}, policy.remove ? 0 : 1, wxHORIZONTAL);
-        rule->SetRadioTooltip(1, _L("Each unsupported character is replaced with this text. It may be longer than one character."));
+        rule->SetRadioIllustratedTooltip(1, _L("Each unsupported character is replaced with this text. It may be longer than one character."), {});
         auto* replacement_row = new wxBoxSizer(wxHORIZONTAL);
         replacement_row->Add(rule, 0, wxALIGN_CENTER_VERTICAL);
         auto* replacement = new ::TextInput(&dialog, from_u8(policy.replacement));
         replacement->GetTextCtrl()->SetFont(::Label::Body_14);
+        set_illustrated_tooltip(replacement, _L("Each unsupported character is replaced with this text. It may be longer than one character."));
         replacement_row->Add(replacement, 1, wxALIGN_CENTER_VERTICAL);
         sizer->Add(replacement_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, dialog.FromDIP(12));
         auto* preview = new wxTextCtrl(&dialog, wxID_ANY, wxEmptyString, wxDefaultPosition, dialog.FromDIP(wxSize(540, 180)),

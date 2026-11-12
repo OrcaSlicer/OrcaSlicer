@@ -1,4 +1,5 @@
 #include "EditGCodeDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
@@ -97,7 +98,7 @@ EditGCodeDialog::EditGCodeDialog(wxWindow* parent, const std::string& key, const
     param_sizer->Add(m_params_list, 1, wxEXPAND | wxALL, border);
 
     m_add_btn = new ScalableButton(this, wxID_ANY, "add_copies");
-    m_add_btn->SetToolTip(_L("Add selected placeholder to G-code"));
+    set_illustrated_tooltip(m_add_btn, _L("Add selected placeholder to G-code"));
 
     m_gcode_editor = new wxTextCtrl(this, wxID_ANY, wxString::FromUTF8(value), wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE
     #ifdef _WIN32

@@ -495,6 +495,9 @@ public:
     //SoftFever
     void show_device(bool should_use_native);
     void fit_tab_labels(); // ORCA
+    // Tooltips of the tab buttons: the page's name with its jump-to shortcut, and what the page is for.
+    // They are set by page id, so this runs again whenever tabs come and go or a shortcut changes.
+    void update_tab_tooltips();
     // True while either of the two tabs backed by m_plater is selected.
     bool is_prepare_or_preview_tab() const;
     PluginPages& plugin_pages() { return m_plugin_pages; }

@@ -316,6 +316,15 @@ protected:
     bool m_vertical_only = false;
     bool m_horizontal_only = false;
 
+    // The controls the painting panels have in common. Their tooltips live here, so that a tool reads
+    // and looks the same in every panel that has it.
+    enum class PainterTip {
+        Circle, Sphere, Triangle, HeightRange, SmartFill, BucketFill, GapFill, // the tool row
+        BrushSize, SmartFillAngle, CursorHeight, GapArea, ApplyGapFill, Vertical, Horizontal, EraseAll, Done
+    };
+    // The tooltip of one of those controls: call it right after the control, like panel_tooltip().
+    void painter_tooltip(PainterTip tip);
+
     // It stores the value of the previous mesh_id to which the seed fill was applied.
     // It is used to detect when the mouse has moved from one volume to another one.
     int      m_seed_fill_last_mesh_id     = -1;

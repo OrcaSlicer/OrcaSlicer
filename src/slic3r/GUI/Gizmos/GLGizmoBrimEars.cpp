@@ -717,9 +717,16 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     if (m_imgui->get_last_slider_status().deactivated_after_edit) {
         apply_radius_change();
     }
+    // The value box beside each slider shows the slider's pictures too, so the two read as one control.
+    const std::vector<TipMedia> radius_media = {{"brim_ears/radius_small.png", _L("Small")}, {"brim_ears/radius_large.png", _L("Large")}};
+    panel_tooltip(_u8L("The size of the ears you add, and of the selected ones as you drag it. A larger ear holds a "
+                       "corner down better, but leaves more to trim off."),
+                  radius_media);
     ImGui::SameLine(drag_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##brim_ear_radius_input", &m_new_point_head_radius, 0.05f, BRIM_EAR_RADIUS_MIN, BRIM_EAR_RADIUS_MAX, "%.1f");
+    // Unlike the slider, this one does not resize the selected ears.
+    panel_tooltip(_u8L("The size of the ears you add. Drag the slider to resize the selected ones as well."), radius_media);
 
     ImGui::Separator();
 
@@ -728,27 +735,39 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     ImGui::SameLine(caption_size);
     ImGui::PushItemWidth(slider_width);
     m_imgui->bbl_slider_float_style("##max_angle", &m_max_angle, 0, 180, "%.1f", 1.0f, true);
+    const std::string max_angle_tip = _u8L("Auto-generate puts an ear on every corner sharper than this angle. Lower "
+                                           "it to give ears to the sharpest corners only, raise it to reach blunter ones.");
+    const std::vector<TipMedia> max_angle_media = {{"brim_ears/max_angle_low.png", _L("Low")}, {"brim_ears/max_angle_high.png", _L("High")}};
+    panel_tooltip(max_angle_tip, max_angle_media);
     ImGui::SameLine(drag_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##max_angle_input", &m_max_angle, 0.05f, 0.0f, 180.0f, "%.1f");
+    panel_tooltip(max_angle_tip, max_angle_media);
 
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["detection_radius"]);
     ImGui::SameLine(caption_size);
     ImGui::PushItemWidth(slider_width);
     m_imgui->bbl_slider_float_style("##detection_radius", &m_detection_radius, 0, static_cast<int>(m_detection_radius_max), "%.1f", 1.0f, true);
+    const std::string detection_tip = _u8L("Before looking for corners, Auto-generate straightens the outline of the "
+                                           "first layer by up to this distance, so a rounded corner made of many small "
+                                           "facets counts as one corner. 0 uses the outline as it is.");
+    const std::vector<TipMedia> detection_media = {{"brim_ears/detection_zero.png", "0"}, {"brim_ears/detection_large.png", _L("Large")}};
+    panel_tooltip(detection_tip, detection_media);
     ImGui::SameLine(drag_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##detection_radius_input", &m_detection_radius, 0.05f, 0.0f, static_cast<float>(m_detection_radius_max), "%.1f");
+    panel_tooltip(detection_tip, detection_media);
         
     ImGui::Separator();
 
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["create"]);
     ImGui::SameLine(caption_size);
-    if (m_imgui->button(m_desc["auto_generate"], m_desc["auto-generate-tooltip"])) {
+    if (m_imgui->button(m_desc["auto_generate"])) {
         auto_generate();
     }
+    panel_tooltip(m_desc["auto-generate-tooltip"]);
 
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc["remove"]);
@@ -758,6 +777,7 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
         delete_selected_points();
     }
     m_imgui->disabled_end();
+    panel_tooltip(_u8L("Removes the selected ears. Click an ear to select it."));
     ImGui::SameLine();
     m_imgui->disabled_begin(m_editing_cache.empty());
     if (m_imgui->button(m_desc["remove_all"])) {
@@ -767,6 +787,7 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
         }
     }
     m_imgui->disabled_end();
+    panel_tooltip(_u8L("Removes every brim ear of this object."));
 
     ImGui::Separator();
 
@@ -777,6 +798,7 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
     if (m_imgui->button(_L("Done"))) {
         m_parent.reset_all_gizmos();
     }
+    panel_tooltip(_u8L("Closes Brim Ears. The ears stay on the object."));
 
     bool brim_not_painted = (obj_cfg.option("brim_type")) ? (obj_cfg.opt_enum<BrimType>("brim_type") != btPainted) :
                                                             (glb_cfg.opt_enum<BrimType>("brim_type") != btPainted);
@@ -814,6 +836,8 @@ void GLGizmoBrimEars::on_render_input_window(float x, float y, float bottom_limi
             } else {
                 m_link_text_hover = false;
             }
+            panel_tooltip(_u8L("Sets Brim type to Painted for this object only, so its ears are used when it is "
+                               "sliced. Other objects keep their brim."));
             ImGui::PopStyleColor(1); // Pop HyperColor
         }
 

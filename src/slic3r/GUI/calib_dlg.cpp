@@ -2,6 +2,7 @@
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 #include <algorithm>
 #include <sstream>
 #include <iterator>
@@ -48,6 +49,40 @@ std::vector<InputShaperType> input_shaper_types_for_flavor(GCodeFlavor flavor);
 
 namespace {
 
+// A TextInput is mostly covered by its text field, which is a window of its own.
+void set_input_tooltip(TextInput* input, const wxString& text, const std::vector<TipMedia>& media = {})
+{
+    set_illustrated_tooltip(input, text, media);
+    set_illustrated_tooltip(input->GetTextCtrl(), text, media);
+}
+
+// The start, end and step of a test whose value changes with height share one picture of the test, with the
+// part each one sets in the accent colour: `name` is the picture set, e.g. "speed" for app_ui/calib_speed_*.png.
+std::vector<TipMedia> calib_tip(const std::string& name, const char* part)
+{
+    return {{"app_ui/calib_" + name + "_" + part + ".png", {}}};
+}
+
+// One text for every item of a radio group, where the items differ only in the value they pick.
+void set_radio_tooltips(RadioGroup* group, size_t count, const wxString& text)
+{
+    for (size_t i = 0; i < count; ++i)
+        group->SetRadioIllustratedTooltip(int(i), text, {});
+}
+
+void set_tower_model_tooltips(RadioGroup* group)
+{
+    group->SetRadioIllustratedTooltip(0, _L("The large ringing tower: its long straight walls show the ripples after each corner clearly."),
+                                      {{"app_ui/calib_ringing_tower.png", {}}});
+    group->SetRadioIllustratedTooltip(1, _L("A much smaller tower of the same height, quicker to print and small enough for little beds."),
+                                      {{"app_ui/calib_fast_tower.png", {}}});
+}
+
+void set_shaper_type_tooltips(RadioGroup* group, size_t count)
+{
+    set_radio_tooltips(group, count, _L("The input shaper algorithm the test sets on the printer. Only the types this printer's firmware supports are listed."));
+}
+
 void ParseStringValues(std::string str, std::vector<double> &vec)
 {
     vec.clear();
@@ -71,11 +106,12 @@ CheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
     auto cb   = new CheckBox(parent);
     cb->SetValue(true);
     auto text = new wxStaticText(parent, wxID_ANY, _L("Auto-scale for nozzle"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    cb->SetToolTip(_L("This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
-                      "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter"
-                      " and an appropriate layer height, making the test both accurate and easy to read.\n"
-                      "Turn scaling off only if you wish to print the reference model exactly as-is."));
-    text->SetToolTip(cb->GetToolTipText());
+    const wxString tip = _L("This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height.\n"
+                            "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter"
+                            " and an appropriate layer height, making the test both accurate and easy to read.\n"
+                            "Turn scaling off only if you wish to print the reference model exactly as-is.");
+    set_illustrated_tooltip(cb, tip);
+    set_illustrated_tooltip(text, tip);
     row->Add(cb  , 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
     row->Add(text, 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
     settings_sizer->Add(row, 0, wxLEFT | wxTOP, parent->FromDIP(3));
@@ -124,6 +160,16 @@ std::vector<wxString> make_shaper_type_labels()
     for (const auto& label : values)
         labels.emplace_back(wxString::FromUTF8(label.c_str()));
     return labels;
+}
+
+// The start, end and step inputs of the PA dialog show the test of the chosen method: 0 tower, 1 line, 2 pattern.
+void set_pa_input_tooltips(TextInput* start, TextInput* end, TextInput* step, int method)
+{
+    const std::string test = method == 1 ? "pa_line" : method == 2 ? "pa_pattern" : "pa_tower";
+    set_input_tooltip(start, _L("The pressure advance of the first line or pattern, or at the bottom of the tower."), calib_tip(test, "start"));
+    set_input_tooltip(end, _L("The pressure advance of the last line or pattern, or at the top of the tower."), calib_tip(test, "end"));
+    set_input_tooltip(step, _L("How much the pressure advance changes from one line or pattern to the next, or from one step of the tower to the next. "
+                               "A smaller step tests more values."), calib_tip(test, "step"));
 }
 
 // ORCA-Belt: PA Line / PA Pattern have belt plumbing in place (drawn on the
@@ -231,7 +277,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto sp_accel_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto sp_accel_text = new wxStaticText(this, wxID_ANY, sp_accel_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiBMAccels = new TextInput(this, "", "", "", wxDefaultPosition, ti_size, wxTE_PROCESS_ENTER);
-    m_tiBMAccels->SetToolTip(_L("Comma-separated list of printing accelerations"));
+    set_illustrated_tooltip(m_tiBMAccels, _L("Comma-separated list of printing accelerations"));
     m_tiBMAccels->GetTextCtrl()->SetValidator(val_list_validator);
     sp_accel_sizer->Add(sp_accel_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     sp_accel_sizer->Add(m_tiBMAccels , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -240,7 +286,7 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
     auto sp_speed_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto sp_speed_text = new wxStaticText(this, wxID_ANY, sp_speed_str, wxDefaultPosition, st_size, wxALIGN_LEFT);
     m_tiBMSpeeds = new TextInput(this, "", "", "", wxDefaultPosition, ti_size, wxTE_PROCESS_ENTER);
-    m_tiBMSpeeds->SetToolTip(_L("Comma-separated list of printing speeds"));
+    set_illustrated_tooltip(m_tiBMSpeeds, _L("Comma-separated list of printing speeds"));
     m_tiBMSpeeds->GetTextCtrl()->SetValidator(val_list_validator);
     sp_speed_sizer->Add(sp_speed_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     sp_speed_sizer->Add(m_tiBMSpeeds , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
@@ -255,7 +301,14 @@ PA_Calibration_Dlg::PA_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+
+    const wxString extruder_tip = _L("A Bowden extruder needs much more pressure advance than a direct drive one, so this sets the range of values the test starts from.");
+    m_rbExtruderType->SetRadioIllustratedTooltip(0, extruder_tip, {});
+    m_rbExtruderType->SetRadioIllustratedTooltip(1, extruder_tip, {});
+    const wxString print_numbers_tip = _L("Print each line's pressure advance next to it, so the best line can be read off the print. The pattern always prints them.");
+    set_illustrated_tooltip(cb_title, print_numbers_tip);
+    set_illustrated_tooltip(m_cbPrintNum, print_numbers_tip);
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -322,6 +375,7 @@ void PA_Calibration_Dlg::reset_params() {
             m_tiBMSpeeds->Enable(false);
             break;
     }
+    set_pa_input_tooltips(m_tiStartPA, m_tiEndPA, m_tiPAStep, method);
 
     if (!isDDE) {
         m_tiEndPA->GetTextCtrl()->SetValue(wxString::FromDouble(1.0));
@@ -405,15 +459,19 @@ void PA_Calibration_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 void PA_Calibration_Dlg::on_show(wxShowEvent& event) {
     // ORCA-Belt: the dialog is cached across printer switches, so refresh the
     // belt restriction on every show.
-    if (is_belt_printer_selected()) {
+    const bool belt = is_belt_printer_selected();
+    if (belt)
         m_rbMethod->SetSelection(0);
-        const wxString tip = _L("Not enabled yet on belt printers — use the PA Tower method instead.");
-        m_rbMethod->SetRadioTooltip(1, tip);
-        m_rbMethod->SetRadioTooltip(2, tip);
-    } else {
-        m_rbMethod->SetRadioTooltip(1, wxEmptyString);
-        m_rbMethod->SetRadioTooltip(2, wxEmptyString);
-    }
+    const wxString belt_tip = belt ? "\n" + _L("Not enabled yet on belt printers — use the PA Tower method instead.") : wxString();
+    m_rbMethod->SetRadioIllustratedTooltip(0,
+        _L("A thin-walled tower whose pressure advance rises with its height. The height where the corners are sharpest gives the value."),
+        {{"app_ui/pa_tower.png", {}}});
+    m_rbMethod->SetRadioIllustratedTooltip(1,
+        _L("Lines printed slow, fast and slow again, one line per pressure advance value. The line that stays evenly wide where the speed changes gives the value.") + belt_tip,
+        {{"app_ui/pa_line.png", {}}});
+    m_rbMethod->SetRadioIllustratedTooltip(2,
+        _L("Nested chevrons a few layers high, one per pressure advance value. The one with the sharpest tip, without a bulge or a gap at the corner, gives the value.") + belt_tip,
+        {{"app_ui/pa_pattern.png", {}}});
     PA_Calibration_Dlg::reset_params();
 }
 
@@ -517,7 +575,17 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/temp_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+
+    set_input_tooltip(m_tiStart, _L("The nozzle temperature of the bottom block of the tower. Each block above it is 5 degrees cooler, down to the end temperature."),
+                      calib_tip("temp", "start"));
+    set_input_tooltip(m_tiEnd, _L("The nozzle temperature of the top block. It has to be at least 5 degrees below the start temperature."),
+                      calib_tip("temp", "end"));
+    set_input_tooltip(m_tiStep, _L("The temperature difference between neighboring blocks, fixed at 5 degrees."));
+    set_radio_tooltips(m_rbFilamentType, 8, _L("Fills in a start and end temperature that suit this kind of filament. You can still change them."));
+    m_rbModel->SetRadioIllustratedTooltip(0, _L("A tower of blocks, one for each temperature."), {{"app_ui/calib_temp_standard.png", {}}});
+    m_rbModel->SetRadioIllustratedTooltip(1, _L("A row of small test pieces with an overhang, one for each temperature, to compare how the overhangs come out."),
+                                         {{"app_ui/calib_temp_overhang.png", {}}});
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -728,7 +796,13 @@ MaxVolumetricSpeed_Test_Dlg::MaxVolumetricSpeed_Test_Dlg(wxWindow* parent, wxWin
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/volumetric_speed_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+
+    set_input_tooltip(m_tiStart, _L("The volumetric speed at the bottom of the test. The speed rises steadily with height, so the height where the walls start to fail gives the maximum."),
+                      calib_tip("speed", "start"));
+    set_input_tooltip(m_tiEnd, _L("The volumetric speed at the top of the test. A higher end makes the test taller."), calib_tip("speed", "end"));
+    set_input_tooltip(m_tiStep, _L("How much the volumetric speed rises for every millimeter of height. A smaller step gives a taller test and a finer reading."),
+                      calib_tip("speed", "step"));
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -840,10 +914,11 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     m_cbAutoAdjust = new CheckBox(this);
     m_cbAutoAdjust->SetValue(true);
     auto auto_adjust_text = new wxStaticText(this, wxID_ANY, _L("Auto-adjust to max volumetric speed"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    m_cbAutoAdjust->SetToolTip(_L("If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer "
-                                  "height (keeping standard values and staying within the machine's limits) to reach it. If even the "
-                                  "minimum layer height is not enough, lower the end speed instead."));
-    auto_adjust_text->SetToolTip(m_cbAutoAdjust->GetToolTipText());
+    const wxString auto_adjust_tip = _L("If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer "
+                                        "height (keeping standard values and staying within the machine's limits) to reach it. If even the "
+                                        "minimum layer height is not enough, lower the end speed instead.");
+    set_illustrated_tooltip(m_cbAutoAdjust, auto_adjust_tip);
+    set_illustrated_tooltip(auto_adjust_text, auto_adjust_tip);
     auto_adjust_sizer->Add(m_cbAutoAdjust  , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     auto_adjust_sizer->Add(auto_adjust_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
     settings_sizer->Add(auto_adjust_sizer, 0, wxLEFT | wxTOP, FromDIP(3));
@@ -859,7 +934,11 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/vfa_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+
+    set_input_tooltip(m_tiStart, _L("The outer wall speed of the bottom block of the tower. Each block above it is one step faster, up to the end speed."), calib_tip("vfa", "start"));
+    set_input_tooltip(m_tiEnd, _L("The outer wall speed of the top block."), calib_tip("vfa", "end"));
+    set_input_tooltip(m_tiStep, _L("How much faster each block prints than the one below it. A smaller step adds blocks."), calib_tip("vfa", "step"));
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -1105,7 +1184,14 @@ Retraction_Test_Dlg::Retraction_Test_Dlg(wxWindow* parent, wxWindowID id, Plater
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/retraction_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+
+    set_input_tooltip(m_tiStart, _L("The retraction length at the bottom of the towers. It grows by one step for every millimeter of height."),
+                      calib_tip("retraction", "start"));
+    set_input_tooltip(m_tiEnd, _L("The retraction length at the top of the towers. A longer end makes the towers taller."),
+                      calib_tip("retraction", "end"));
+    set_input_tooltip(m_tiStep, _L("How much the retraction length grows for every millimeter of height. The lowest height without strings between the towers gives the length."),
+                      calib_tip("retraction", "step"));
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -1259,8 +1345,6 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
         m_tiFreqEndY->Hide();
         settings_sizer->Hide(y_freq_sizer);
         start_x_text->SetLabel(_L("Frequency (Start / End): "));
-        m_tiFreqStartX->GetTextCtrl()->SetToolTip(_L("RepRapFirmware uses the same frequency range for both axes."));
-        m_tiFreqEndX->GetTextCtrl()->SetToolTip(_L("RepRapFirmware uses the same frequency range for both axes."));
     }
 
     // Damping Factor
@@ -1292,7 +1376,20 @@ Input_Shaping_Freq_Test_Dlg::Input_Shaping_Freq_Test_Dlg(wxWindow* parent, wxWin
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/input_shaping_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+
+    {
+        const wxString note = reprap_firmware ? "\n" + _L("RepRapFirmware uses the same frequency range for both axes.") : wxString();
+        const wxString freq_tip = _L("The input shaper frequency at the bottom of the tower (left) and at the top (right). It changes steadily with height, "
+                                     "so the height where the ringing after the corners is weakest gives the frequency.");
+        set_input_tooltip(m_tiFreqStartX, freq_tip + note, calib_tip("ringing", "start"));
+        set_input_tooltip(m_tiFreqEndX, freq_tip + note, calib_tip("ringing", "end"));
+        set_input_tooltip(m_tiFreqStartY, freq_tip, calib_tip("ringing", "start"));
+        set_input_tooltip(m_tiFreqEndY, freq_tip, calib_tip("ringing", "end"));
+        set_input_tooltip(m_tiDampingFactor, _L("The damping ratio used for the whole test. 0 keeps the printer's own value."));
+        set_tower_model_tooltips(m_rbModel);
+        set_shaper_type_tooltips(m_rbType, type_labels.size());
+    }
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -1465,7 +1562,6 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
         m_tiFreqY->GetTextCtrl()->SetValue(m_tiFreqX->GetTextCtrl()->GetValue());
         m_tiFreqY->Hide();
         freq_text->SetLabel(freq_str);
-        m_tiFreqX->GetTextCtrl()->SetToolTip(_L("RepRapFirmware uses the same frequency for both axes."));
     }
 
     // Damping Factor Start and End
@@ -1498,7 +1594,20 @@ Input_Shaping_Damp_Test_Dlg::Input_Shaping_Damp_Test_Dlg(wxWindow* parent, wxWin
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/input_shaping_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+
+    {
+        const wxString note = reprap_firmware ? "\n" + _L("RepRapFirmware uses the same frequency for both axes.") : wxString();
+        const wxString freq_tip = _L("The input shaper frequency of the X axis (left) and the Y axis (right), as found with the frequency test.");
+        set_input_tooltip(m_tiFreqX, freq_tip + note);
+        set_input_tooltip(m_tiFreqY, freq_tip);
+        const wxString damp_tip = _L("The damping ratio at the bottom of the tower (left) and at the top (right). It changes steadily with height, "
+                                     "so the height where the ringing after the corners is weakest gives the ratio.");
+        set_input_tooltip(m_tiDampingFactorStart, damp_tip, calib_tip("ringing", "start"));
+        set_input_tooltip(m_tiDampingFactorEnd, damp_tip, calib_tip("ringing", "end"));
+        set_tower_model_tooltips(m_rbModel);
+        set_shaper_type_tooltips(m_rbType, type_labels.size());
+    }
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -1701,7 +1810,16 @@ Cornering_Test_Dlg::Cornering_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* 
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/cornering_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+
+    set_input_tooltip(m_tiJDStart, _L("The cornering limit at the bottom of the tower: junction deviation or jerk, whichever the printer's firmware uses. "
+                                      "It changes steadily with height up to the end value."),
+                      calib_tip("ringing", "start"));
+    set_input_tooltip(m_tiJDEnd, _L("The cornering limit at the top of the tower. The highest point where the corners still look clean gives the value."),
+                      calib_tip("ringing", "end"));
+    set_tower_model_tooltips(m_rbModel);
+    m_rbModel->SetRadioIllustratedTooltip(2, _L("A test model made for cornering tests (square corner velocity)."),
+                                         {{"app_ui/calib_scv.png", {}}});
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -1847,7 +1965,20 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
 
     auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
     auto wiki_url = "https://www.orcaslicer.com/wiki/flow_ratio_calib";
-    wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+
+    m_rbType->SetRadioIllustratedTooltip(0, _L("Blocks whose flow ratio differs in large steps around the current one. "
+                                               "Set the flow ratio of the smoothest block, then run Pass 2."),
+                                         {{"app_ui/calib_flow_pass1.png", {}}});
+    m_rbType->SetRadioIllustratedTooltip(1, _L("Blocks in small steps below the current flow ratio, to refine the result of Pass 1."),
+                                         {{"app_ui/calib_flow_pass2.png", {}}});
+    m_rbType->SetRadioIllustratedTooltip(2, _L("One print that covers a narrow range around the current flow ratio, read off by the smoothest block. "
+                                               "Quicker than two passes."),
+                                         {{"app_ui/calib_flow_yolo.png", {}}});
+    m_rbType->SetRadioIllustratedTooltip(3, _L("The same as YOLO, with smaller steps between the blocks."),
+                                         {{"app_ui/calib_flow_yolo_fine.png", {}}});
+    set_illustrated_tooltip(m_rbPattern, _L("The pattern of the top surfaces the test is judged by. Archimedean Chords prints the center last, "
+                                            "so too much flow leaves a raised lip there that can be felt. Monotonic gives plain straight lines."));
+    set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
     wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
     wiki_btn->SetCanFocus(false);
     wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));

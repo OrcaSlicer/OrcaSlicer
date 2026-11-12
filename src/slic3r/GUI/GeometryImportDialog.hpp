@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "IllustratedTipPopup.hpp"
+
 class CheckBox;
 class wxSizer;
 class wxStaticText;
@@ -57,7 +59,8 @@ struct ImportCheckBox {
     void SetValue(bool value) const;
     // Greys the label too and stops it toggling the box.
     void Enable(bool enable) const;
-    void SetToolTip(const wxString& tip) const;
+    // An illustrated tooltip on the box and its label.
+    void SetToolTip(const wxString& tip, const std::vector<TipMedia>& media = {}) const;
 };
 // A click on the label toggles the box and sends its wxEVT_TOGGLEBUTTON, as a click on the box does.
 ImportCheckBox add_import_checkbox(wxWindow* parent, wxSizer& sizer, const wxString& text, bool value, int flags, int border);

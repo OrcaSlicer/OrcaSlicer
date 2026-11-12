@@ -5,6 +5,7 @@
 #include <wx/event.h>
 #include <vector>
 #include <cstddef>
+#include <functional>
 #include <utility>
 #include <wx/gdicmn.h>
 #include "slic3r/GUI/Widgets/StateColor.hpp"
@@ -79,6 +80,10 @@ private:
     ScalableBitmap check_bitmap;
     ScalableBitmap arrow_bitmap;
 
+    // Told which item the pointer rests on, for a tooltip beside the list (see SetItemHoverHandler).
+    std::function<void(int, const wxRect &)> item_hover_handler;
+    int                                      hovered_item_notified = -1;
+
     bool pressedDown = false;
     boost::posix_time::ptime dismissTime;
     wxPoint                  offset; // x not used
@@ -116,12 +121,20 @@ public:
 
     void SetAlignIcon(bool align);
 
+    // `handler(item, row)` is called when the pointer moves onto another item of the open list, with the
+    // item's index in the items and its row in the list's client coordinates, and with -1 and an empty
+    // rect when it is on no item, a drag starts or the list closes. Used for an illustrated tooltip of
+    // the item (hover_illustrated_tooltip), which is hidden this way before the list itself is.
+    void SetItemHoverHandler(std::function<void(int item, const wxRect &row)> handler);
+
 public:
     void Rescale();
 
     bool HasDismissLongTime();
 
     void Popup(wxWindow *focus = nullptr) override;
+
+    bool Show(bool show = true) override;
 
 protected:
     void Dismiss() override;
@@ -151,6 +164,9 @@ private:
     void mouseCaptureLost(wxMouseCaptureLostEvent &event);
     void mouseMove(wxMouseEvent &event);
     void mouseWheelMoved(wxMouseEvent &event);
+
+    void notifyItemHover(const wxPoint &pt);
+    void updateHover(wxMouseEvent &event);
 
     void sendDropDownEvent();
     void sendDropDownActionEvent(int index);

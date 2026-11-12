@@ -1,4 +1,5 @@
 #include "CreatePresetsDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 #include <algorithm>
 #include <any>
 #include <boost/algorithm/string/trim.hpp>
@@ -366,8 +367,7 @@ static wxBoxSizer* create_checkbox(wxWindow* parent, Preset* preset, wxString& p
     sizer->Add(checkbox, 0, 0, 0);
     preset_checkbox.push_back(std::make_pair(checkbox, preset));
     wxStaticText *preset_name_str = new wxStaticText(parent, wxID_ANY, preset_name);
-    wxToolTip *   toolTip         = new wxToolTip(preset_name);
-    preset_name_str->SetToolTip(toolTip);
+    set_illustrated_tooltip(preset_name_str, preset_name);
     sizer->Add(preset_name_str, 0, wxLEFT, 5);
     return sizer;
 }
@@ -1349,8 +1349,8 @@ wxBoxSizer *CreateFilamentPresetDialog::create_radio_item(wxString title, wxWind
     text->Bind(wxEVT_LEFT_DOWN, [this, &radiobox_list, btn_idx](wxMouseEvent &e) { select_curr_radiobox(radiobox_list, btn_idx); });
     horizontal_sizer->Add(text, 0, wxEXPAND | wxLEFT, 0);
 
-    radiobox->SetToolTip(tooltip);
-    text->SetToolTip(tooltip);
+    set_illustrated_tooltip(radiobox, tooltip);
+    set_illustrated_tooltip(text, tooltip);
     return horizontal_sizer;
 }
 
@@ -3876,8 +3876,8 @@ wxBoxSizer *ExportConfigsDialog::create_radio_item(wxString title, wxWindow *par
         });
     horizontal_sizer->Add(text, 0, wxEXPAND | wxLEFT, 0);
 
-    radiobox->SetToolTip(tooltip);
-    text->SetToolTip(tooltip);
+    set_illustrated_tooltip(radiobox, tooltip);
+    set_illustrated_tooltip(text, tooltip);
     return horizontal_sizer;
 }
 
@@ -4806,8 +4806,7 @@ wxBoxSizer *EditFilamentPresetDialog::create_filament_basic_info()
         show_filament_serial = from_u8(m_filament_serial.substr(0, 20)) + "...";
     }
     wxStaticText *serial_text = new wxStaticText(this, wxID_ANY, show_filament_serial, wxDefaultPosition, wxDefaultSize);
-    wxToolTip *   toolTip     = new wxToolTip(full_filamnet_serial);
-    serial_text->SetToolTip(toolTip);
+    set_illustrated_tooltip(serial_text, full_filamnet_serial);
     serial_value_sizer->Add(serial_text, 0, wxEXPAND | wxALL, 0);
     serial_sizer->Add(serial_value_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM, FromDIP(10));
 

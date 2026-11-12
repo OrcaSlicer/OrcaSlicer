@@ -1,4 +1,5 @@
 #include "UnsavedChangesDialog.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include <climits>
 #include <cmath>
@@ -1131,7 +1132,7 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     if (dependent_presets != nullptr) {
         auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
         auto wiki_url = "https://www.orcaslicer.com/wiki/transfer_discard_changes";
-        wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+        set_illustrated_tooltip(wiki_btn, _L("Wiki Guide") + "\n" + wiki_url);
         wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
         wiki_btn->SetCanFocus(false);
         wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
@@ -1197,21 +1198,21 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
         const wxString new_profile      = new_selected_preset.empty() ? _L("the new profile") : from_u8(new_selected_preset);
 
         if (m_discard_btn) {
-            m_discard_btn->SetToolTip(format_wxstr(
+            set_illustrated_tooltip(m_discard_btn, format_wxstr(
                 _L("Switch to\n\"%1%\"\ndiscarding any changes made in\n\"%2%\"."),
                 new_profile,
                 previous_profile));
         }
 
         if (m_transfer_btn) {
-            m_transfer_btn->SetToolTip(format_wxstr(
+            set_illustrated_tooltip(m_transfer_btn, format_wxstr(
                 _L("All \"New Value\" settings modified in\n\"%1%\"\nwill be transferred to\n\"%2%\"."),
                 previous_profile,
                 new_profile));
         }
 
         if (m_save_btn) {
-            m_save_btn->SetToolTip(format_wxstr(
+            set_illustrated_tooltip(m_save_btn, format_wxstr(
                 _L("All \"New Value\" settings are saved in\n\"%1%\"\nand \"%2%\" will open without any changes."),
                 previous_profile,
                 new_profile));
@@ -2306,7 +2307,7 @@ void DiffPresetDialog::create_edit_sizer()
 {
     // Add check box for the edit mode
     m_use_for_transfer = new wxCheckBox(this, wxID_ANY, _L("Transfer values from left to right"));
-    m_use_for_transfer->SetToolTip(_L("If enabled, this dialog can be used for transfer selected values from left to right preset."));
+    set_illustrated_tooltip(m_use_for_transfer, _L("If enabled, this dialog can be used for transfer selected values from left to right preset."));
     m_use_for_transfer->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
         bool use = m_use_for_transfer->GetValue();
         m_tree->GetColumn(DiffModel::colToggle)->SetHidden(!use);
@@ -2487,7 +2488,7 @@ void DiffPresetDialog::update_tree()
         if (!left_preset || !right_preset) {
             bottom_info = _L("One of the presets does not exist");
             preset_combos.equal_bmp->SetBitmap_(ScalableBitmap(this, "question"));
-            preset_combos.equal_bmp->SetToolTip(bottom_info);
+            set_illustrated_tooltip(preset_combos.equal_bmp, bottom_info);
             continue;
         }
 
@@ -2498,7 +2499,7 @@ void DiffPresetDialog::update_tree()
         if (left_pt != right_preset->printer_technology()) {
             bottom_info = _L("Compared presets has different printer technology");
             preset_combos.equal_bmp->SetBitmap_(ScalableBitmap(this, "question"));
-            preset_combos.equal_bmp->SetToolTip(bottom_info);
+            set_illustrated_tooltip(preset_combos.equal_bmp, bottom_info);
             continue;
         }
 
@@ -2514,7 +2515,7 @@ void DiffPresetDialog::update_tree()
             //bottom_info = _L("Presets are the same");
             bottom_info = wxEmptyString;
             preset_combos.equal_bmp->SetBitmap_(ScalableBitmap(this, "equal"));
-            preset_combos.equal_bmp->SetToolTip(bottom_info);
+            set_illustrated_tooltip(preset_combos.equal_bmp, bottom_info);
             continue;
         }
 
@@ -2523,7 +2524,7 @@ void DiffPresetDialog::update_tree()
         /*preset_combos.equal_bmp->SetToolTip(_L("Presets are different.\n"
                                                "Click this button to select the same preset for the right and left preset."));*/
 
-        preset_combos.equal_bmp->SetToolTip(wxEmptyString);
+        set_illustrated_tooltip(preset_combos.equal_bmp, wxEmptyString);
 
         // TRN Header of a preset comparison: the two preset names.
         m_tree->model->AddPreset(type, format_wxstr(_L("\"%1%\" vs \"%2%\""), left_preset->name, right_preset->name), left_pt);
