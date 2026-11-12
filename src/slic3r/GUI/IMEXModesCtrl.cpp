@@ -32,6 +32,7 @@
 #include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 
 namespace Slic3r {
 namespace GUI {

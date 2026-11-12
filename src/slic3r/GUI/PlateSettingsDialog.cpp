@@ -28,6 +28,8 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "libslic3r/ParameterUtils.hpp"
 #include <cstddef>
+#include "slic3r/GUI/DragCanvas.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r { namespace GUI {
 static constexpr int MIN_LAYER_VALUE = 2;
