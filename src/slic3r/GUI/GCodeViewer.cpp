@@ -1543,11 +1543,8 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
         apply_belt ? &belt_inv : nullptr);
     // ORCA Tilt the marker to the layer normal of the designed belt view
     Vec3d nozzle_axis = Vec3d::UnitZ();
-    if (apply_belt) {
-        nozzle_axis = belt_inv.linear().inverse().row(2).transpose();
-        if (nozzle_axis.z() < 0.) // keep it above the layer
-            nozzle_axis = -nozzle_axis;
-    }
+    if (apply_belt)
+        nozzle_axis = BeltTransformPipeline::build_rotation_matrix(print.config()).row(2).transpose();
     m_sequential_view.marker.set_nozzle_axis(nozzle_axis);
 
 //#define ENABLE_DATA_EXPORT 1
