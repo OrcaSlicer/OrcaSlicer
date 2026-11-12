@@ -164,12 +164,13 @@ The markers drawn last are kept, and a left click is tested against them before 
 center and a point a radius to its right are projected to the screen, and the click hits a marker
 within that distance. The solid markers are tested before the faded ones and the smaller kinds
 before the larger, the order in which they cover each other. A hit opens the details of that marker
-and keeps the click from changing the selection; a click anywhere else, or Esc, closes them. The box is an
+and keeps the click from changing the selection; a left or right click anywhere else, or Esc, closes them. The box is an
 ImGui window beside the marker, redrawn with the overlay from the markers of the last scene, so it
 follows a dragged object, and in Preview the layer slider. It closes when its marker is gone, or when
 the number of markers of its kind changes, as then it may stand for something else. As it moves with
 the view, zooming toward the cursor can bring it under the mouse, so the wheel zooms over it rather
-than going to ImGui.
+than going to ImGui. It also covers the model, so a drag that starts on it, off its close button,
+turns or pans the view as one over empty space would.
 
 Its title says what the marker stands for: the plate, an object, an assembly or a part, the body of
 an assembly. The G-code export lists the object instances for the processor, marking assemblies, as

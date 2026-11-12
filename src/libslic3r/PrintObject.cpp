@@ -514,6 +514,22 @@ std::vector<std::set<int>> PrintObject::detect_extruder_geometric_unprintables()
     return geometric_unprintables;
 }
 
+// Orca: See Layer::anchor_bridges_in_neighbours(). Applied to the untyped slices restored from the raw slices, so that
+// the anchors follow the current wall widths. A layer only reads the lslices of the layers next to it, which this does
+// not change.
+template<typename ThrowOnCancel>
+static void anchor_bridges_in_neighbours(const LayerPtrs &layers, ThrowOnCancel throw_on_cancel)
+{
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, layers.size()),
+        [&layers, &throw_on_cancel](const tbb::blocked_range<size_t> &range) {
+            for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
+                throw_on_cancel();
+                layers[layer_idx]->anchor_bridges_in_neighbours();
+            }
+        });
+    throw_on_cancel();
+}
+
 // 1) Merges typed region slices into stInternal type.
 // 2) Increases an "extra perimeters" counter at region slices where needed.
 // 3) Generates perimeters, gap fills and fill regions (fill regions of type stInternal).
@@ -528,14 +544,13 @@ void PrintObject::make_perimeters()
     m_print->set_status(15, L("Generating walls"));
     BOOST_LOG_TRIVIAL(info) << "Generating walls..." << log_memory_info();
 
-    // Revert the typed slices into untyped slices.
-    if (m_typed_slices) {
-        for (Layer *layer : m_layers) {
-            layer->restore_untyped_slices();
-            m_print->throw_if_canceled();
-        }
-        m_typed_slices = false;
+    // Revert the typed slices into untyped slices, together with the anchors handed to bridges by a previous run.
+    for (Layer *layer : m_layers) {
+        layer->restore_untyped_slices();
+        m_print->throw_if_canceled();
     }
+    m_typed_slices = false;
+    anchor_bridges_in_neighbours(m_layers, [this]() { m_print->throw_if_canceled(); });
 
     // compare each layer to the one below, and mark those slices needing
     // one additional inner perimeter, like the top of domed objects-
@@ -638,6 +653,8 @@ void PrintObject::prepare_infill()
             layer->restore_untyped_slices_no_extra_perimeters();
             m_print->throw_if_canceled();
         }
+        // The walls and the fill regions were generated with the anchors.
+        anchor_bridges_in_neighbours(m_layers, [this]() { m_print->throw_if_canceled(); });
     }
 
     // This will assign a type (top/bottom/internal) to $layerm->slices.
@@ -855,6 +872,11 @@ void PrintObject::ironing()
         BOOST_LOG_TRIVIAL(debug) << "Ironing in parallel - end";
         this->set_done(posIroning);
     }
+}
+
+bool PrintObject::precise_z_height() const
+{
+    return m_config.precise_z_height.value && !m_print->precise_z_height_overridden();
 }
 
 bool PrintObject::need_z_contouring() const
@@ -2483,8 +2505,9 @@ void PrintObject::process_external_surfaces()
 	}
 
     BOOST_LOG_TRIVIAL(debug) << "Processing external surfaces in parallel - start";
-    // The regions of a layer do not see each other here, and a layer cut through a fine relief takes far longer than the
-    // others, so the regions run next to each other instead of one after another, each still over all layers.
+    // The regions of a layer only write their own fill surfaces here, and a layer cut through a fine relief takes far
+    // longer than the others, so the regions run next to each other instead of one after another, each still over all
+    // layers.
     tbb::parallel_for(size_t(0), this->num_printing_regions(), [this, &surfaces_covered](size_t region_id) {
         tbb::parallel_for(
             tbb::blocked_range<size_t>(0, m_layers.size()),
@@ -4416,8 +4439,8 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
         // default_or_parent_region_config contains parent PrintRegion config, which already contains ModelVolume's config.
     }
     apply_to_print_region_config(config, volume.config.get(), feature_overrides, variant_index);
-    if (! volume.material_id().empty())
-        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides, variant_index);
+    if (const ModelMaterial* material = volume.material(); material != nullptr)
+        apply_to_print_region_config(config, material->config.get(), feature_overrides, variant_index);
     if (layer_range_config != nullptr) {
         // Not applicable to modifiers.
         assert(volume.is_model_part());
@@ -4459,6 +4482,11 @@ void PrintObject::generate_support_preview()
     this->generate_support_material();
     boost::posix_time::ptime ts3 = boost::posix_time::microsec_clock::local_time();
     profiler.duration2 = (ts3 - ts2).total_milliseconds();
+}
+
+double PrintObject::print_z_max() const
+{
+    return this->print()->config().belt_printer.value ? m_max_z : scale_(m_slicing_params.object_print_z_max);
 }
 
 void PrintObject::update_slicing_parameters()

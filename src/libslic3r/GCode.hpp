@@ -831,6 +831,8 @@ protected:
     // Orca: the last extruded wall is an outer wall with retract_after_outer_wall on,
     // so the next travel ignores the retraction threshold
     bool                                m_retract_after_last_path { false };
+    // Orca: the next extruded path starts an outer wall on an overhang; tag it for the preview.
+    bool                                m_outer_overhang_tag_pending{false};
     // How many times will change_layer() be called?
     // change_layer() will update the progress bar.
     unsigned int                        m_layer_count;
