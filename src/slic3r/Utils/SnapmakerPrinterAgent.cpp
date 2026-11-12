@@ -3,6 +3,7 @@
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
 #include "NetworkAgentFactory.hpp"
+#include "bambu_networking.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
@@ -10,6 +11,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
 #include <chrono>
+#include <functional>
 #include <exception>
 #include <regex>
 #include <tuple>

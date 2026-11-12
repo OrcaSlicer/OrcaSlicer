@@ -2,6 +2,7 @@
 
 #include "IPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
+#include "bambu_networking.hpp"
 
 #include <atomic>
 #include <functional>

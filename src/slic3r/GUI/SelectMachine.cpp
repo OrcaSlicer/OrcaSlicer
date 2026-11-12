@@ -135,6 +135,7 @@
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 
 using json = nlohmann::json;
 
