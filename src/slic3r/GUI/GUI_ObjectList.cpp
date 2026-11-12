@@ -2832,9 +2832,8 @@ void ObjectList::load_mesh_object(const std::vector<std::pair<const TriangleMesh
 
     new_object->ensure_on_bed();
 
-    //BBS init assmeble transformation
-    Geometry::Transformation t = new_object->instances[0]->get_transformation();
-    new_object->instances[0]->set_assemble_transformation(t);
+    // Its pose on the plate would put it far from the other objects in the assembly view.
+    model.set_assembly_pos(new_object);
 
     object_idxs.push_back(model.objects.size() - 1);
 #ifdef _DEBUG
@@ -3389,9 +3388,12 @@ void ObjectList::merge(bool to_multipart_object)
         new_object->center_around_origin();
         new_object->translate_instances(-new_object->origin_translation);
         new_object->origin_translation = Vec3d::Zero();
-        //BBS init asssmble transformation
         Geometry::Transformation new_object_trsf = new_object->instances[0]->get_transformation();
-        new_object->instances[0]->set_assemble_transformation(new_object_trsf);
+        // Place it beside the objects that remain in the assembly view; the merged ones are removed below.
+        std::vector<const ModelObject*> merged_objects;
+        for (int obj_idx : obj_idxs)
+            merged_objects.push_back((*m_objects)[obj_idx]);
+        model->set_assembly_pos(new_object, merged_objects);
 
         const Transform3d& new_object_inverse_matrix = new_object_trsf.get_matrix().inverse();
         for (auto& p : new_object->brim_points) {
