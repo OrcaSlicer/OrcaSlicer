@@ -223,24 +223,7 @@ def _mode_scene(p, circles):
     return union(bed(p), (a, M_PART), (peg, M_PART2))
 
 
-def mode_face(k, n):
-    cam = _assembly_camera(SIZE)
-    face = _face2(cam)
-    o = _assembly_frame(SIZE, _R0, _C0, face, centres=True)
-    return o.finish(SIZE)
-
-
-def mode_point(k, n):
-    cam = _assembly_camera(SIZE)
-    o = Overlay(render(lambda p: _mode_scene(p, True), cam), cam)
-    hole = np.array([-0.45, -0.1, 0.5])
-    boss = np.array([0.62, 0.25, 1.05])
-    o.circle_on(hole, (0, 0, 1), 0.2, LINE, width=2.6)
-    o.circle_on(boss, (0, 0, 1), 0.2, LINE, width=2.6)
-    _xyz_legs(o, hole, boss, width=2.2)
-    _picked(o, hole, 3.0)
-    _picked(o, boss, 3.0)
-    return o.finish(SIZE)
+# The modes, picked one after the other, are drawn as loops in gizmos_anim.py.
 
 
 # Flip by Face 2: a narrowing part stands on a table by its wide face. Flipped, the face stays on the
@@ -271,10 +254,6 @@ def flip_off(k, n):
     return _flip(False)
 
 
-def flip_on(k, n):
-    return _flip(True)
-
-
 def rotate_around_center(k, n):
     a = math.radians(90.0) * ease(k / n)
     top = 2.0 * _BASE_H[2]
@@ -303,11 +282,8 @@ FRAMES = {
     "distance_direct": 0,
     "angle": 0,
     "distance_xyz": 0,
-    "mode_face": 0,
-    "mode_point": 0,
     "center_coincidence": 20,
     "parallel": 18,
     "flip_off": 0,
-    "flip_on": 0,
     "rotate_around_center": 16,
 }

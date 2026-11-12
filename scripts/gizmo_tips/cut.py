@@ -169,24 +169,11 @@ def upper_as_is(k, n):
     return _part(True, "as_is")
 
 
-def upper_on_cut(k, n):
-    return _part(True, "on_cut")
-
-
-def upper_flip(k, n):
-    return _part(True, "flip")
-
-
 def lower_as_is(k, n):
     return _part(False, "as_is")
 
 
-def lower_on_cut(k, n):
-    return _part(False, "on_cut")
-
-
-def lower_flip(k, n):
-    return _part(False, "flip")
+# Place on cut and Flip turn the part, which gizmos_anim.py draws as loops.
 
 
 # --- connectors ----------------------------------------------------------------------------------
@@ -337,11 +324,7 @@ FRAMES = {
     "groove_flap_angle": 18,
     "groove_angle": 16,
     "upper_as_is": 0,
-    "upper_on_cut": 0,
-    "upper_flip": 0,
     "lower_as_is": 0,
-    "lower_on_cut": 0,
-    "lower_flip": 0,
     "connector_plug": 0,
     "connector_dowel": 0,
     "connector_snap": 0,
