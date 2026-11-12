@@ -1355,7 +1355,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     ${LIBDIR_BIN}/libswscale.so.8
     ${LIBDIR_BIN}/libswscale.so.8.1.100
     )
-    install(FILES ${LIBRARY_FILES} DESTINATION "${CMAKE_INSTALL_PREFIX}/bin")
+    install(FILES ${LIBRARY_FILES} DESTINATION "${CMAKE_INSTALL_PREFIX}/lib")
 endif ()
 
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE.txt DESTINATION ".")
