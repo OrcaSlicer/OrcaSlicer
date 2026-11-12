@@ -16,6 +16,10 @@
 
 #include "RammingChart.hpp"
 
+// The range the Flushing volumes dialog takes for a nozzle's flush multiplier.
+inline constexpr float g_min_flush_multiplier = 0.f;
+inline constexpr float g_max_flush_multiplier = 3.f;
+
 
 class RammingPanel : public wxPanel {
 public:

@@ -1,0 +1,121 @@
+// Records how the Preview's layers are set through its two routes, the go_to_layer command run with run_action
+// and its percent param (0, 50, 100, past 100, negative, not a number, none) and set_view's layer, layer_range
+// and layer_z (in range, past the top, a layer_z above it): on plates the Preview has no layers for (one with no
+// objects, one whose slice fails validation: spiral vase with two objects), then on a sliced one. A plate that
+// could slice is left out of the first part, since showing the Preview slices it while the call runs, so what
+// the call finds depends on timing. After each it reads get_app_state's tab and preview, and at the end of each
+// part the undo snapshots taken (fixtures/ops_undo.py). Every call it records is optional. Run it with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_show_layer_range.json --out <dir>
+{
+  "orca_replay": 1,
+  "name": "ops show_layer_range",
+  "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "Spiral mode only works", "button": "yes"}]}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    // The Preview's sliders keep the last slice's layers after a new project, so one known slice comes first:
+    // a 20 mm cube, 100 layers.
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "slice", "expect": {"/plates/0/layers": {"eq": 100}}},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- No objects ----
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "50"}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "set_view", "args": {"layer": 10}, "optional": true},
+    {"tool": "set_view", "args": {"layer_range": [2, 5]}, "optional": true},
+    {"tool": "set_view", "args": {"layer_z": 5.0}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- A plate whose slice fails validation ----
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "select_objects", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "arrange", "args": {}},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"spiral_mode": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "50"}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "list_plates"},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "set_view", "args": {"layer": 10}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "set_view", "args": {"layer_range": [2, 5]}, "optional": true},
+    {"tool": "set_view", "args": {"layer_z": 5.0}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- A sliced plate: the command ----
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "0"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "50"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "100"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "25.5"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "150"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "-5"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "abc"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "10"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca"}, "optional": true},
+    {"tool": "get_app_state"},
+    // the command after set_view showed a range: does it keep the range's bottom?
+    {"tool": "set_view", "args": {"layer_range": [20, 60]}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "80"}, "optional": true},
+    {"tool": "get_app_state"},
+    // from the Prepare tab
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "run_action", "args": {"id": "orca_command:go_to_layer:orca", "param": "30"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- A sliced plate: the tool ----
+    {"tool": "set_view", "args": {"layer": 1}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "set_view", "args": {"layer": 50}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "set_view", "args": {"layer": 100}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "set_view", "args": {"layer": 9999}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "set_view", "args": {"layer_range": [5, 20]}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "set_view", "args": {"layer_range": [30, 10]}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "set_view", "args": {"layer_range": [5]}, "optional": true},
+    {"tool": "set_view", "args": {"layer_z": 5.0}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "set_view", "args": {"layer_z": 999}, "optional": true},
+    {"tool": "set_view", "args": {"layer": 3, "layer_z": 5.0}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "set_view", "args": {"layer": 40}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    {"tool": "new_project", "args": {"discard_changes": true}}
+  ]
+}

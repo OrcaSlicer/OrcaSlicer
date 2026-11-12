@@ -15,7 +15,8 @@ Each script writes what happened to out_<name>.json in the plugin's storage fold
 "thread" calls it from a thread the script starts, "rule" registers an auto-answer rule, "export" asks for
 export_replay, which a plugin is refused, and "handle" opens a progress dialog and keeps its handle in
 HANDLE, for a script to find and use. The plugin also offers the operation "measure", which doubles its
-argument a.
+argument a, and its first capability adds a line to new_projects.txt in the storage folder for each
+NewProject event it is sent.
 """
 import json
 import os
@@ -59,6 +60,11 @@ class CallTool(orca.script.ScriptPluginCapabilityBase):
 
     def execute(self):
         return record("call", lambda: orca.host.tools.call("get_app_state").get("ready"))
+
+    def on_lifecycle_event(self, event, ctx):
+        if event == orca.LifecycleEvent.NewProject:
+            with open(os.path.join(orca.host.plugin.storage(), "new_projects.txt"), "a", encoding="utf-8") as f:
+                f.write("new\n")
 
 
 class CallFromThread(orca.script.ScriptPluginCapabilityBase):

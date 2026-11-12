@@ -1,0 +1,59 @@
+// Records what the STL export does through its two routes, the export_stl command run with run_action and a path
+// param and the export tool's stl format: with no objects and with two. After each it reads whether the file is
+// there (an stl export to the same path with a plate the project lacks refuses with "exists" when it is, with
+// the plate when not; for the files written with no objects, once a cube is added), the project and the undo
+// snapshots taken since the last read (fixtures/ops_undo.py), and last opens each file into an empty project to
+// show what it holds. Every call it records is optional. Run it into a fresh --out directory (a command's JSON
+// path param can't carry a Windows ${out_dir}, so the commands write without overwrite and refuse the files of
+// an earlier run):
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_export_stl.json --out <new dir>
+{
+  "orca_replay": 1,
+  "name": "ops export_stl",
+  "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- No objects ----
+    {"tool": "run_action", "args": {"id": "orca_command:export_stl:orca", "param": "${out_dir}/empty_cmd.stl"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/empty_tool.stl", "overwrite": true}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- With two objects ----
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "select_objects", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca", "param": "20 10"}},
+    {"tool": "arrange", "args": {}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/empty_cmd.stl", "plates": 999}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/empty_tool.stl", "plates": 999}, "optional": true},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:export_stl:orca", "param": "${out_dir}/ok_cmd.stl"}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ok_cmd.stl", "plates": 999}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ok_tool.stl", "overwrite": true}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ok_tool.stl", "plates": 999}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- What the files hold ----
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/empty_cmd.stl"]}, "await": false, "save_as": "open_empty", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.open_empty}"}, "optional": true},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/ok_cmd.stl"]}, "optional": true},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/ok_tool.stl"]}, "optional": true},
+    {"tool": "list_objects"},
+
+    {"tool": "new_project", "args": {"discard_changes": true}}
+  ]
+}

@@ -515,18 +515,15 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
         unsigned long t = 0;
         if(!ti->GetTextCtrl()->GetValue().ToULong(&t))
             return;
-        if(t> 500 || t < 155){
+        if (const unsigned long clamped = (unsigned long) clamp_calib_temp(double(t)); clamped != t) {
             // TRN %s is the temperature unit
             MessageDialog msg_dlg(nullptr, wxString::Format(_L("Supported range: 170%s - 500%s"),
                 _L("\u2103" /* °C */), _L("\u2103" /* °C */)),
                 wxEmptyString, wxICON_WARNING | wxOK);
             msg_dlg.ShowModal();
-            if(t > 500)
-                t = 500;
-            else
-                t = 155;
+            t = clamped;
         }
-        t = (t / 5) * 5;
+        t = (unsigned long) round_calib_temp(double(t));
         ti->GetTextCtrl()->SetValue(std::to_string(t));
     };
 

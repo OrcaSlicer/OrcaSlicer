@@ -2565,6 +2565,14 @@ std::vector<const char*> primitive_size_names(const std::string& type_name)
     return {};
 }
 
+// A dimension a primitive can have.
+static bool is_primitive_dimension(double value) { return std::isfinite(value) && value > 0.; }
+
+bool is_primitive_size(const std::string& type_name, const std::vector<double>& size)
+{
+    return size.size() == primitive_size_names(type_name).size() && std::all_of(size.begin(), size.end(), is_primitive_dimension);
+}
+
 // The dimensions the size dialog asks for, filled with the default size of the primitive.
 static std::vector<PrimitiveSizeDialog::Field> primitive_size_fields(const std::string& type_name)
 {
@@ -2587,27 +2595,23 @@ static void apply_saved_primitive_size(std::vector<PrimitiveSizeDialog::Field>& 
 {
     std::vector<std::string> tokens;
     boost::split(tokens, saved, boost::is_space(), boost::token_compress_on);
-    if (tokens.size() != fields.size())
-        return;
     std::vector<double> values;
-    for (const std::string& token : tokens) {
-        const double value = string_to_double_decimal_point(token);
-        if (!std::isfinite(value) || value <= 0.)
-            return;
-        values.push_back(value);
-    }
+    for (const std::string& token : tokens)
+        values.push_back(string_to_double_decimal_point(token));
+    if (values.size() != fields.size() || !std::all_of(values.begin(), values.end(), is_primitive_dimension))
+        return;
     for (size_t i = 0; i < fields.size(); ++i)
         fields[i].value = values[i];
 }
 
 // The size given, when it has a value per field. Otherwise interactive starts from the size the user saved and asks
 // for the size unless the user turned the dialog off, and a call that is not interactive gets the built-in default
-// size. nullopt when the user cancels or the given size has the wrong number of values.
+// size. nullopt when the user cancels or the given size is not one for the shape (is_primitive_size()).
 static std::optional<std::vector<double>> primitive_size(const std::string& type_name, bool interactive, const std::vector<double>& given)
 {
     std::vector<PrimitiveSizeDialog::Field> fields = primitive_size_fields(type_name);
     if (!given.empty())
-        return given.size() == fields.size() ? std::optional(given) : std::nullopt;
+        return is_primitive_size(type_name, given) ? std::optional(given) : std::nullopt;
     AppConfig* app_config = wxGetApp().app_config;
     if (interactive && !fields.empty()) {
         apply_saved_primitive_size(fields, app_config->get("primitive_size", type_name));

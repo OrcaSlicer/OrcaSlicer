@@ -229,19 +229,31 @@ PresetComboBox::NameMatch PresetComboBox::find_by_name(const std::string& reques
     return match;
 }
 
+int row_for_preset(const std::vector<PresetRow>& rows, const std::string& name)
+{
+    int labelled = -1;
+    for (std::size_t row = 0; row < rows.size(); ++row) {
+        if (rows[row].marker)
+            continue;
+        if (!rows[row].stored.empty() && rows[row].stored == name)
+            return int(row);
+        if (labelled < 0 && rows[row].stored.empty() && rows[row].label == name)
+            labelled = int(row);
+    }
+    return labelled;
+}
+
 int PresetComboBox::item_for_preset(const std::string& preset_name)
 {
-    const std::string want       = Preset::remove_suffix_modified(preset_name);
-    const int         item_count = GetCount();
+    // One row for each item, so a row's index is its item's.
+    std::vector<PresetRow> rows;
+    const int              item_count = GetCount();
     for (int item = 0; item < item_count; ++item) {
-        if (is_marker_item(item))
-            continue;
-        const wxString    alias      = GetItemAlias(item);
-        const std::string alias_name = alias.empty() ? std::string() : Preset::remove_suffix_modified(alias.ToUTF8().data());
-        if (!alias_name.empty() && alias_name == want)
-            return item;
+        const wxString alias = GetItemAlias(item);
+        rows.push_back({alias.empty() ? std::string() : Preset::remove_suffix_modified(alias.ToUTF8().data()),
+                        Preset::remove_suffix_modified(GetString(item).ToUTF8().data()), is_marker_item(item)});
     }
-    return -1;
+    return row_for_preset(rows, Preset::remove_suffix_modified(preset_name));
 }
 
 void PresetComboBox::set_label_marker(int item, LabelItemType label_item_type)
@@ -1089,12 +1101,17 @@ void PlaterPresetComboBox::OnSelect(wxCommandEvent &evt)
         //}
         return;
     } else if (marker == LABEL_ITEM_PHYSICAL_PRINTER ||  selected_item >= 0 || m_collection->current_is_dirty()) {
-        m_last_selected = selected_item;
-        if (m_type == Preset::TYPE_FILAMENT)
-            update_ams_color();
+        item_picked(selected_item);
     }
 
     evt.Skip();
+}
+
+void PlaterPresetComboBox::item_picked(int item)
+{
+    m_last_selected = item;
+    if (m_type == Preset::TYPE_FILAMENT)
+        update_ams_color();
 }
 
 void PlaterPresetComboBox::update_badge_according_flag() {

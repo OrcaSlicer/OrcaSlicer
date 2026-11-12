@@ -295,6 +295,11 @@ public:
 #endif
 
     std::vector<PlaterPresetComboBox*>&   combos_filament();
+    // Assigns the filament preset `preset_name` (internal name) to slot `slot_index` as picking it in the
+    // slot's selector does: the slot's colour, the mapping, the flushing volumes, the project state and,
+    // on a printer with one filament, the filament tab. `switch_tab` false leaves the tab to a caller
+    // that has made it edit the preset already.
+    void                                 select_filament_preset(size_t slot_index, const std::string& preset_name, bool switch_tab = true);
     void                                 clear_combos_filament_badge();
     void                                 udpate_combos_filament_badge();
 
@@ -380,7 +385,10 @@ public:
     // Helper: returns config indices where filament_is_mixed == false
     std::vector<size_t> physical_filament_config_indices() const;
 
-    int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString(), bool reload_presets = true);
+    // `silent` leaves the shown tab as it is and sends plugins no NewProject event; `tell_plugins` sends
+    // the event all the same, for a silent caller whose new project is one a person asked for.
+    int new_project(bool skip_confirm = false, bool silent = false, const wxString& project_name = wxString(), bool reload_presets = true,
+                    bool tell_plugins = false);
     // BBS: save & backup
     void load_project(wxString const & filename = "", wxString const & originfile = "-");
     // `path` saves there without asking (automation); empty keeps the interactive behaviour.
@@ -757,6 +765,9 @@ public:
     void show_uv_editor(bool show);
 
     void arrange();
+    // Arranges every unlocked plate as the toolbar's Arrange does, or the current plate alone as its
+    // Arrange icon does.
+    void arrange(bool current_plate_only);
     void orient();
     void find_new_position(const ModelInstancePtrs  &instances);
     //BBS: add job state related functions
@@ -891,6 +902,8 @@ public:
     bool plugins_block_slicing() const;
     //BBS: select the plate by index
     int select_plate(int plate_index, bool need_slice = false);
+    // Locks or unlocks a plate as its lock icon does, as one undo step. Returns PartPlateList::lock_plate()'s result.
+    int set_plate_locked(int plate_index, bool locked);
     //BBS: update progress result
     void apply_background_progress();
     //BBS: select the plate by hover_id
@@ -916,9 +929,12 @@ public:
     void request_slice(bool all_plates);
     // What the slicing progress notification's cancel button does.
     void cancel_slicing();
-    // Starts a G-code export to `output_path` without a dialog. Refused while the background process
-    // is running; when it cannot start, nothing is left scheduled. Returns whether it started.
-    bool export_gcode_to(const boost::filesystem::path& output_path);
+    // Why export_gcode_to() started no export: None when it did.
+    enum class ExportRefusal { None, NoObjects, AlreadyExporting, Slicing, SliceHasErrors, NotSliced, NotStarted };
+    // Starts a G-code export of the current plate to `output_path` without a dialog. Refused while the
+    // background process is running or another export is scheduled; when it cannot start, nothing is
+    // left scheduled and no dialog opens.
+    ExportRefusal export_gcode_to(const boost::filesystem::path& output_path);
 
     // Bookkeeping that lets an automated caller tell its own slice or export from anyone else's.
     // The project revision moves on every edit (snapshot, undo/redo, preset or setting change,
@@ -1220,6 +1236,7 @@ private:
 
     void on_filament_map_mode_change();
     friend class SuppressBackgroundProcessingUpdate;
+    friend class Sidebar; // select_filament_preset() runs the plater's part of a selector pick
     friend class PlaterDropTarget;
 };
 

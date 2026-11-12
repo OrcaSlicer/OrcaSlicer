@@ -41,6 +41,9 @@ struct NativeCommand
     std::string       description; // English, for agents; not shown in the palette
     CommandParam      param;
     CommandCompletion completion = CommandCompletion::None;
+    // The operations (GUI/Operations) the runner reaches when it is given a param, by function name. A
+    // command with a param names them or is on the exception list of the catalog test.
+    std::vector<std::string> operations;
 };
 
 namespace NativeCommands {

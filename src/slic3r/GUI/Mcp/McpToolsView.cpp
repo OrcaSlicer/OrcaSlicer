@@ -20,6 +20,8 @@
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "slic3r/GUI/Operations/PlateOps.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #ifdef SLIC3R_CAD
@@ -664,7 +666,7 @@ void register_view_tools(McpService& service)
     tabs.insert(tabs.begin() + 1, "design");
 #endif
 
-    reg.add(mutate_tool(
+    reg.add(reaching({"show_layer_range"}, mutate_tool(
         "set_view", L("Point the view"),
         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: Prepare's, the "
         "preview or the assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the "
@@ -788,37 +790,40 @@ void register_view_tools(McpService& service)
                         done["time_mode"] = arg_string(args, "time_mode");
                     }
                     if (args.contains("layer") || args.contains("layer_range") || args.contains("layer_z")) {
+                        const Ops::Outcome<int> count = Ops::layer_count();
+                        if (!count)
+                            throw refused(count.refusal());
                         IMSlider* layers = viewer.get_layers_slider();
-                        if (layers == nullptr || layers->GetMaxValue() <= 0)
-                            throw ToolFailure("The preview has no layers; slice first");
-                        const int max = layers->GetMaxValue();
-                        int       lo = 0, hi = max;
+                        const int max    = count.value() - 1;
+                        // Every layer up to the one asked for, unless a range says where to start. The
+                        // operation brings the numbers into the plate's layers.
+                        Ops::ShowLayerRangeArgs range;
+                        range.first = 1;
+                        range.last  = max + 1;
                         if (args.contains("layer"))
-                            hi = std::clamp(args["layer"].get<int>() - 1, 0, max);
+                            range.last = args["layer"].get<int>();
                         if (args.contains("layer_range")) {
                             const json& r = args["layer_range"];
                             if (!r.is_array() || r.size() != 2)
                                 throw ToolFailure("layer_range must be [first, last]");
-                            lo = std::clamp(r[0].get<int>() - 1, 0, max);
-                            hi = std::clamp(r[1].get<int>() - 1, lo, max);
+                            range.first = r[0].get<int>();
+                            range.last  = r[1].get<int>();
                         }
                         if (args.contains("layer_z")) {
                             // The slider's own rule for a height, which set_custom_gcode_at_layer's z follows too.
-                            const double z = args["layer_z"].get<double>();
-                            hi             = layers->get_tick_from_value(z, true);
-                            if (hi < 0 || hi > max)
+                            const double z    = args["layer_z"].get<double>();
+                            const int    tick = layers->get_tick_from_value(z, true);
+                            if (tick < 0 || tick > max)
                                 throw ToolFailure("layer_z " + json(z).dump() + " is above the top layer (" +
                                                   json(rounded(layers->GetMaxValueD(), 1000.)).dump() + " mm)");
+                            range.last = tick + 1;
                         }
-                        layers->SetHigherValue(hi);
-                        layers->SetLowerValue(lo);
-                        layers->set_as_dirty();
-                        if (IMSlider* moves = viewer.get_moves_slider()) {
-                            moves->SetHigherValue(moves->GetMaxValue());
-                            moves->set_as_dirty();
-                        }
-                        done["layers"] = {lo + 1, hi + 1, max + 1};
-                        done["z"]      = {rounded(layers->GetLowerValueD(), 1000.), rounded(layers->GetHigherValueD(), 1000.)};
+                        const Ops::Outcome<Ops::ShownLayers> shown = Ops::show_layer_range(range);
+                        if (!shown)
+                            throw refused(shown.refusal());
+                        // The reply echoes the range asked for; z is of the layers the slider shows.
+                        done["layers"] = {shown.value().asked_first, shown.value().asked_last, shown.value().count};
+                        done["z"]      = {rounded(shown.value().z_first, 1000.), rounded(shown.value().z_last, 1000.)};
                     }
                     canvas->set_as_dirty();
                 }
@@ -895,7 +900,7 @@ void register_view_tools(McpService& service)
                     return read;
                 }));
             return ToolResult::ok(out);
-        }));
+        })));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

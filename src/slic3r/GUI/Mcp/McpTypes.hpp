@@ -157,6 +157,9 @@ struct ToolDef
     bool           journal   = true;
     // How long a call may run before the reply returns a job envelope and the call continues.
     int            budget_ms = 45000;
+    // The operations (GUI/Operations) the handler reaches, by function name. A tool that changes something
+    // names them or is on the exception list of the catalog test; no listing shows the field.
+    std::vector<std::string> operations;
     ToolHandler    handler;
 };
 

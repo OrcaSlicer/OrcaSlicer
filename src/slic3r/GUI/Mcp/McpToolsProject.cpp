@@ -1,7 +1,6 @@
 // open_files, new_project, save_project and export: files in and out without file dialogs. generate_calibration_test: the
 // Calibration menu's tests, which start a new project.
 
-#include "libslic3r/Format/ProjectStrategy.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "McpPaths.hpp"
 #include "McpService.hpp"
@@ -10,6 +9,10 @@
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/Operations/ExportOps.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "slic3r/GUI/Operations/PlateOps.hpp"
+#include "slic3r/GUI/Operations/ProjectOps.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/calib_dlg.hpp"
@@ -31,6 +34,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -59,20 +63,21 @@ json objects_summary(Plater& plater)
     return {{"objects", plater.model().objects.size()}, {"names", std::move(names)}, {"plates", plater.get_partplate_list().get_plate_count()}};
 }
 
-// Fails when the project has unsaved changes the caller did not say to drop.
-void require_project_discardable(Plater& plater, bool discard)
+json project_json(const Ops::ProjectSummary& project)
 {
-    if (plater.is_project_dirty() && !discard)
-        throw ToolFailure("The project has unsaved changes; save_project first, or pass discard_changes: true");
+    return {{"objects", project.object_names.size()}, {"names", project.object_names}, {"plates", project.plates}};
 }
 
-// Discards unsaved changes without a prompt when the caller said so, or fails.
-void require_clean_or_discard(Plater& plater, bool discard)
+Ops::UnsavedChanges unsaved_changes_answer(bool discard) { return discard ? Ops::UnsavedChanges::Discard : Ops::UnsavedChanges::Refuse; }
+
+// What a tool that replaces the project adds to the refusal of unsaved changes.
+constexpr const char* kUnsavedChangesHint = "save_project first, or pass discard_changes: true.";
+
+// Fails when the project has unsaved changes the caller did not say to drop.
+void require_project_discardable(bool discard)
 {
-    if (!plater.is_project_dirty())
-        return;
-    require_project_discardable(plater, discard);
-    plater.new_project(/*skip_confirm=*/true, /*silent=*/true);
+    if (const std::optional<Ops::Refusal> refusal = Ops::unsaved_changes_refusal(unsaved_changes_answer(discard)))
+        throw refused(*refusal, kUnsavedChangesHint);
 }
 
 // A number for a message, as an agent writes it: 250, not 250.0.
@@ -283,11 +288,12 @@ Calib_Params calib_params_from_args(const json& args, const DynamicPrintConfig& 
         // As the dialog's fields do when they lose focus: clamp, then round down to the tower's 5 °C blocks.
         for (auto [name, t] : {std::make_pair("start", &p.start), std::make_pair("end", &p.end)}) {
             const double given = *t;
-            if (*t > 500 || *t < 155) {
-                *t = *t > 500 ? 500 : 155;
-                warnings.push_back(std::string(name) + " " + num(given) + " °C is outside the supported range 155-500 °C; clamped to " + num(*t) + " °C");
+            if (const double clamped = clamp_calib_temp(*t); clamped != *t) {
+                *t = clamped;
+                warnings.push_back(std::string(name) + " " + num(given) + " °C is outside the supported range " + num(kCalibTempMin) +
+                                   "-" + num(kCalibTempMax) + " °C; clamped to " + num(*t) + " °C");
             }
-            if (const double rounded = std::floor(*t / 5) * 5; rounded != *t) {
+            if (const double rounded = round_calib_temp(*t); rounded != *t) {
                 warnings.push_back(std::string(name) + " " + num(*t) + " °C rounded down to " + num(rounded) + " °C, the tower's 5 °C blocks");
                 *t = rounded;
             }
@@ -384,7 +390,7 @@ void register_project_tools(McpService& service)
 {
     ToolRegistry& reg = service.registry();
 
-    reg.add(mutate_tool(
+    reg.add(reaching({"open_project", "import_models"}, mutate_tool(
         "open_files", L("Open files"),
         "Open model files (STL, 3MF, STEP, OBJ, AMF, SVG...), a project (.3mf) or G-code by absolute path, without a file "
         "dialog. Models are added to the current project. A .3mf opens as a project, replacing the current one, unless as "
@@ -417,26 +423,31 @@ void register_project_tools(McpService& service)
                     return {{"opened", "gcode"}, {"path", path_to_utf8(paths[0])}};
                 }
                 if (paths.size() == 1 && as != "geometry" && has_extension(paths[0], {".3mf"})) {
-                    require_clean_or_discard(plater, discard);
-                    plater.load_project(from_path(paths[0]));
-                    json o   = objects_summary(plater);
+                    Ops::OpenProjectArgs open;
+                    open.path    = paths[0];
+                    open.unsaved = unsaved_changes_answer(discard);
+                    const Ops::Outcome<Ops::ProjectSummary> opened = Ops::open_project(open);
+                    if (!opened)
+                        throw refused(opened.refusal(), kUnsavedChangesHint);
+                    json o      = project_json(opened.value());
                     o["opened"] = "project";
                     return o;
                 }
-                const size_t before = plater.model().objects.size();
-                const auto   loaded = plater.load_files(paths, LoadStrategy::LoadModel);
-                if (loaded.empty() && plater.model().objects.size() == before)
-                    throw ToolFailure("Nothing was loaded (see get_log for the reason)");
+                Ops::ImportModelsArgs models;
+                models.paths = paths;
+                const Ops::Outcome<Ops::ImportModelsResult> imported = Ops::import_models(models);
+                if (!imported)
+                    throw refused(imported.refusal(), "See get_log for the reason.");
                 json o      = objects_summary(plater);
                 o["opened"] = "models";
-                o["added"]  = plater.model().objects.size() - before;
+                o["added"]  = imported.value().added;
                 return o;
             });
             settle(ctx);
             return ToolResult::ok(out);
-        }));
+        })));
 
-    reg.add(mutate_tool(
+    reg.add(reaching({"new_project"}, mutate_tool(
         "new_project", L("New project"),
         "Start a new, empty project. Fails, changing nothing, when the current project has unsaved changes, unless "
         "discard_changes. The presets' unsaved changes carry over to the new project unless preset_changes is \"discard\", as "
@@ -450,21 +461,21 @@ void register_project_tools(McpService& service)
             const bool discard         = arg_bool(args, "discard_changes", false) || service.discard_authorized(ctx.lineage());
             const bool discard_presets = arg_string(args, "preset_changes", "keep") == "discard";
             json       out             = ctx.run_ui([&] {
-                Plater& plater = ui_plater();
-                require_project_discardable(plater, discard);
-                const json before = unsaved_changes();
-                // The prompt's Discard, before the reset as in the GUI; only with changes to drop, since it
-                // reloads the presets, which can ask about the printer's.
-                if (discard_presets && wxGetApp().has_current_preset_changes())
-                    wxGetApp().discard_current_preset_changes();
-                plater.new_project(/*skip_confirm=*/true, /*silent=*/true);
-                json o = objects_summary(plater);
+                ui_plater();
+                const json          before = unsaved_changes();
+                Ops::NewProjectArgs fresh;
+                fresh.unsaved                = unsaved_changes_answer(discard);
+                fresh.discard_preset_changes = discard_presets;
+                const Ops::Outcome<Ops::ProjectSummary> started = Ops::new_project(fresh);
+                if (!started)
+                    throw refused(started.refusal(), kUnsavedChangesHint);
+                json o = project_json(started.value());
                 o.update(unsaved_changes_outcome(before));
                 return o;
             });
             settle(ctx);
             return ToolResult::ok(out);
-        }));
+        })));
 
     reg.add(mutate_tool(
         "generate_calibration_test", L("Generate a calibration test"),
@@ -524,7 +535,7 @@ void register_project_tools(McpService& service)
                                                                       bundle.printers.get_edited_preset().config;
                 std::vector<std::string> warnings;
                 Calib_Params             params = calib_params_from_args(args, printer, warnings);
-                require_project_discardable(plater, discard);
+                require_project_discardable(discard);
                 // The GUI asks whether to keep or discard modified presets here; the caller answers with preset_changes.
                 const json before = unsaved_changes();
                 if (!before.empty() && !args.contains("preset_changes")) {
@@ -615,30 +626,30 @@ void register_project_tools(McpService& service)
             return ToolResult::ok(out);
         }));
 
-    reg.add(mutate_tool(
+    reg.add(reaching({"save_project_as"}, mutate_tool(
         "save_project", L("Save the project"),
         "Save the project as a .3mf at an absolute path without a dialog; it becomes the project's file.",
         object_schema({{"path", prop("string", "Absolute .3mf path.")}, {"overwrite", prop("boolean", "Replace an existing file.")}}, {"path"}),
         [](const json& args, ToolContext& ctx) {
-            // A project file holds no G-code, so a .gcode.3mf saved here would lack what its name promises.
-            if (boost::algorithm::iends_with(arg_string(args, "path"), ".gcode.3mf"))
-                throw ToolFailure("save_project writes the project without G-code; a .gcode.3mf with the sliced plates is "
-                                  "export {format: \"sliced_3mf\"} (plates \"all\" for every plate)");
             std::string err;
             auto        path = resolve_output_path(arg_string(args, "path"), arg_bool(args, "overwrite", false), err);
             if (!path)
                 throw ToolFailure(err);
             ctx.run_ui([&] {
-                ui_plater().save_project(true, from_path(*path));
+                ui_plater();
+                Ops::SaveProjectAsArgs save;
+                save.path = *path;
+                if (const Ops::Outcome<Ops::Done> saved = Ops::save_project_as(save); !saved)
+                    throw refused(saved.refusal(), std::string(saved.refusal().code) == "sliced_file_name" ?
+                                                       "That is export {format: \"sliced_3mf\"} (plates \"all\" for every plate)." :
+                                                       "See get_log.");
                 return json();
             });
             settle(ctx);
-            if (!fs::exists(*path))
-                throw ToolFailure("The project was not saved (see get_log)");
             return ToolResult::ok({{"path", path_to_utf8(*path)}, {"bytes", fs::file_size(*path)}});
-        }));
+        })));
 
-    reg.add(mutate_tool(
+    reg.add(reaching({"start_gcode_export", "export_sliced_3mf", "export_model_3mf", "export_stl"}, mutate_tool(
         "export", L("Export"),
         "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the "
         "background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf. 3mf: "
@@ -661,47 +672,46 @@ void register_project_tools(McpService& service)
             const bool all   = plate.is_string() && plate.get<std::string>() == "all";
             if (all && format != "sliced_3mf")
                 throw ToolFailure("plates \"all\" applies to sliced_3mf only");
-            json started = ctx.run_ui([&]() -> json {
+            std::optional<Ops::ExportTicket> ticket;
+            ctx.run_ui([&]() -> json {
                 // A G-code export finishes in the background: held from before it starts.
                 if (format == "gcode")
                     ctx.begin_operation();
-                Plater& plater = ui_plater();
-                if (plater.model().objects.empty())
-                    throw ToolFailure("The project has no objects");
-                if (plate.is_number_integer()) {
-                    const int index = plate.get<int>();
-                    if (index < 0 || index >= plater.get_partplate_list().get_plate_count())
-                        throw ToolFailure(no_such_plate(index, plater.get_partplate_list().get_plate_count()));
-                    plater.select_plate(index);
-                }
+                ui_plater();
+                const std::optional<int> index = plate.is_number_integer() ? std::optional<int>(plate.get<int>()) : std::nullopt;
                 if (format == "gcode") {
-                    if (plater.is_slicing_any())
-                        throw ToolFailure("Slicing is in progress; wait {for:\"idle\"} and export again");
-                    if (!plater.get_partplate_list().get_curr_plate()->is_slice_result_valid())
-                        throw ToolFailure("The plate is not sliced; slice it first");
-                    const uint64_t before   = plater.export_seq();
-                    const uint64_t revision = plater.project_revision();
-                    plater.export_gcode_to(*path);
-                    return {{"before", before}, {"after", plater.export_seq()}, {"revision", revision}};
+                    Ops::ExportGcodeArgs gcode;
+                    gcode.path  = *path;
+                    gcode.plate = index;
+                    const Ops::Outcome<Ops::ExportTicket> started = Ops::start_gcode_export(gcode);
+                    if (!started) {
+                        const std::string code = started.refusal().code;
+                        throw refused(started.refusal(), code == "slicing_in_progress" ? "wait {for:\"idle\"} waits for it." :
+                                                         code == "export_not_started"  ? "Check get_app_state.notifications." :
+                                                                                         "");
+                    }
+                    ticket = started.value();
+                    return json();
                 }
-                if (format == "sliced_3mf") {
-                    if (!plater.export_gcode_3mf(all, *path))
-                        throw ToolFailure("The sliced file was not written; slice first and check for errors");
-                } else if (format == "3mf") {
-                    plater.export_core_3mf(from_path(*path));
-                } else {
-                    plater.export_stl(false, false, false, FT_STL, from_path(*path));
-                }
+                Ops::ExportSlicedArgs sliced;
+                sliced.path       = *path;
+                sliced.all_plates = all;
+                sliced.plate      = index;
+                Ops::ExportFileArgs file;
+                file.path  = *path;
+                file.plate = index;
+                const Ops::Outcome<Ops::Done> written = format == "sliced_3mf" ? Ops::export_sliced_3mf(sliced) :
+                                                        format == "3mf"        ? Ops::export_model_3mf(file) :
+                                                                                 Ops::export_stl(file);
+                if (!written)
+                    throw refused(written.refusal(), std::string(written.refusal().code) == "file_not_written" ? "See get_log." : "");
                 return json();
             });
-            if (format == "gcode")
-                return await_gcode_export(ctx, started["before"], started["after"], started["revision"],
-                                          "The export did not start; check get_app_state.notifications");
+            if (ticket)
+                return await_gcode_export(ctx, *ticket);
             settle(ctx);
-            if (!fs::exists(*path))
-                throw ToolFailure("The file was not written (see get_log)");
             return ToolResult::ok({{"path", path_to_utf8(*path)}, {"bytes", fs::file_size(*path)}});
-        }));
+        })));
 }
 
 }}} // namespace Slic3r::GUI::Mcp

@@ -1,4 +1,4 @@
-#include "McpOperations.hpp"
+#include "RunStatus.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -6,7 +6,7 @@
 #include <optional>
 #include <vector>
 
-namespace Slic3r { namespace GUI { namespace Mcp {
+namespace Slic3r { namespace GUI { namespace Ops {
 
 const char* to_string(PlateOutcome outcome)
 {
@@ -132,4 +132,4 @@ ExportStatus export_status(uint64_t seq_before, uint64_t seq_after, const std::o
     return ExportStatus::Ok;
 }
 
-}}} // namespace Slic3r::GUI::Mcp
+}}} // namespace Slic3r::GUI::Ops

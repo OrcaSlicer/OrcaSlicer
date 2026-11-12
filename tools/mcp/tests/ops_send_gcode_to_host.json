@@ -1,0 +1,52 @@
+// Records the refusals of the send_gcode command (run_action), and nothing else: it never sets a print host, so
+// nothing is ever sent. A Bambu network printer (the harness's X1 Carbon as it starts, then with
+// bbl_use_printhost off) with no objects, on a plate not sliced and on a sliced one; then the same printer set
+// to print through a host (bbl_use_printhost on, OctoPrint) with no host address, sliced, not sliced and with no
+// objects. After each it reads the dialogs and uploads (get_app_state) and the undo snapshots taken since the
+// last read (fixtures/ops_undo.py). It ends by discarding the printer changes. Every call it records is
+// optional. Run it with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_send_gcode_to_host.json --out <dir>
+{
+  "orca_replay": 1,
+  "name": "ops send_gcode_to_host",
+  "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "get_settings", "args": {"scope": "printer", "keys": ["bbl_use_printhost", "host_type", "print_host"]}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- A Bambu network printer: no objects, not sliced, sliced ----
+    {"tool": "run_action", "args": {"id": "orca_command:send_gcode:orca"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_action", "args": {"id": "orca_command:send_gcode:orca"}, "optional": true},
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "run_action", "args": {"id": "orca_command:send_gcode:orca"}, "optional": true},
+    {"tool": "set_settings", "args": {"scope": "printer", "values": {"bbl_use_printhost": false}}},
+    {"tool": "run_action", "args": {"id": "orca_command:send_gcode:orca"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Through a print host with no address: sliced, not sliced, no objects ----
+    {"tool": "set_settings", "args": {"scope": "printer", "values": {"bbl_use_printhost": true, "host_type": "octoprint", "print_host": "", "use_3mf": false}}},
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "list_plates"},
+    {"tool": "run_action", "args": {"id": "orca_command:send_gcode:orca"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "transform", "args": {"object": 0, "translate": [5, 0, 0]}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_plates"},
+    {"tool": "run_action", "args": {"id": "orca_command:send_gcode:orca"}, "optional": true},
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:send_gcode:orca"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "get_settings", "args": {"scope": "printer", "keys": ["bbl_use_printhost", "host_type", "print_host"]}}
+  ]
+}

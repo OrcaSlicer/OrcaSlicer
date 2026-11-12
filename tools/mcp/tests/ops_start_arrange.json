@@ -1,0 +1,93 @@
+// Records what an arrange does through its two routes, the obj_arrange command run with run_action and the
+// arrange tool (every plate, and one plate by index): with no objects, with two cubes on one spot, in the
+// assemble view, with the Move gizmo open, and with the plate locked. After each it reads the objects' offsets,
+// the tab, canvas and gizmo, and the undo snapshots taken since the last read (fixtures/ops_undo.py), and once
+// runs undo to show what the arrange's step takes back. An arrange running while another call comes needs two
+// clients. Every call it records is optional. Run it with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_start_arrange.json --out <dir>
+{
+  "orca_replay": 1,
+  "name": "ops start_arrange",
+  "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_window", "args": {"size": [1600, 1000]}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- No objects ----
+    {"tool": "run_action", "args": {"id": "orca_command:obj_arrange:orca"}, "optional": true},
+    {"tool": "arrange", "args": {}, "optional": true},
+    {"tool": "arrange", "args": {"plates": 0}, "optional": true},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Two cubes on one spot: the command, undone, then the tool ----
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "select_objects", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 2}, "/plates/0/objects/0/instances/0/offset/0": {"eq": 128.0},
+                                        "/plates/0/objects/1/instances/0/offset/0": {"eq": 128.0}}},
+    {"tool": "set_view", "args": {"tab": "preview"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_arrange:orca"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects"},
+    {"tool": "set_view", "args": {"tab": "preview"}},
+    {"tool": "arrange", "args": {}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects"},
+    {"tool": "arrange", "args": {"plates": 0}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- In the assemble view ----
+    {"tool": "set_view", "args": {"canvas": "assemble"}},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_arrange:orca"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "set_view", "args": {"canvas": "assemble"}},
+    {"tool": "arrange", "args": {}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "set_view", "args": {"canvas": "3d"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- With the Move gizmo open ----
+    {"tool": "select_objects", "args": {"objects": [0]}},
+    {"tool": "click", "args": {"target": {"gizmo": "Move"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_arrange:orca"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "arrange", "args": {}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "get_app_state"},
+    {"tool": "click", "args": {"target": {"gizmo": "Move"}}, "optional": true},
+    {"tool": "get_app_state"},
+
+    // ---- With the plate locked (the cubes back on one spot) ----
+    {"tool": "transform", "args": {"object": 0, "translate": [128, 128, 10], "mode": "absolute"}},
+    {"tool": "transform", "args": {"object": 1, "translate": [128, 128, 10], "mode": "absolute"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_toggle_lock:orca"}},
+    {"tool": "list_plates", "expect": {"/items/0/locked": {"eq": true}}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_arrange:orca"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "arrange", "args": {}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "arrange", "args": {"plates": 0}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_toggle_lock:orca"}},
+
+    {"tool": "new_project", "args": {"discard_changes": true}}
+  ]
+}

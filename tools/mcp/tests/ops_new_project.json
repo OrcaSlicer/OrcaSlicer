@@ -1,0 +1,112 @@
+// Records what a new project does through its two routes, the new_project command run with run_action and the
+// new_project tool: on a clean project, with unsaved project changes (a cube; the tool with and without
+// discard_changes) and with unsaved preset changes (top_shell_layers 7; the command's question answered Discard,
+// then Transfer when it offers that, and the tool's preset_changes keep and discard). Each call starts from the
+// Home tab, so the reads show the tab it leaves. The command runs with "await": false; get_app_state lists its
+// question, which the replay answers by its title. After each it reads the objects, the project, the presets'
+// unsaved keys and the undo snapshots taken since the last read (fixtures/ops_undo.py). Plugins get the
+// NewProject event on both routes, which no replay can observe without a plugin. Every call it records is
+// optional. Run it with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_new_project.json --out <dir>
+{
+  "orca_replay": 1,
+  "name": "ops new_project",
+  "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+
+    // ---- A clean project: the command, then the tool ----
+    {"tool": "set_view", "args": {"tab": "home"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:new_project:orca"}, "await": false, "save_as": "clean_cmd", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "- Save"}, "button": "no"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.clean_cmd}"}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "set_view", "args": {"tab": "home"}},
+    {"tool": "new_project", "args": {}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Unsaved project changes: the command asks ----
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "set_view", "args": {"tab": "home"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:new_project:orca"}, "await": false, "save_as": "dirty_cmd", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "- Save"}, "button": "no"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.dirty_cmd}"}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    // ---- the tool, without discard_changes, then with it ----
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "set_view", "args": {"tab": "home"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "new_project", "args": {}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "new_project", "args": {"discard_changes": true}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Unsaved preset changes, no objects: the command, answered Discard ----
+    {"tool": "set_settings", "args": {"values": {"top_shell_layers": 7}}},
+    {"tool": "set_view", "args": {"tab": "home"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:new_project:orca"}, "await": false, "save_as": "presets_cmd", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "- Save"}, "button": "no"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "unsaved changes"}, "button": "Discard"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.presets_cmd}"}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "get_settings", "args": {"scope": "process", "compare": ":saved"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    // ---- answered Transfer ----
+    {"tool": "set_settings", "args": {"values": {"top_shell_layers": 7}}},
+    {"tool": "set_view", "args": {"tab": "home"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_action", "args": {"id": "orca_command:new_project:orca"}, "await": false, "save_as": "presets_cmd2", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "- Save"}, "button": "no"}, "optional": true},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "unsaved changes"}, "button": "Transfer"}, "optional": true},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "unsaved changes"}, "button": "Discard"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.presets_cmd2}"}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "get_settings", "args": {"scope": "process", "compare": ":saved"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    // ---- the tool: no discard_changes, then preset_changes keep (default) and discard ----
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_settings", "args": {"values": {"top_shell_layers": 7}}},
+    {"tool": "set_view", "args": {"tab": "home"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "new_project", "args": {}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "new_project", "args": {"discard_changes": true}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "get_settings", "args": {"scope": "process", "compare": ":saved"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "set_view", "args": {"tab": "home"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "get_settings", "args": {"scope": "process", "compare": ":saved"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}}
+  ]
+}

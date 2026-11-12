@@ -4,7 +4,6 @@
 #include "Camera.hpp"
 #include "CreatePresetsDialog.hpp"
 #include "DailyTips.hpp"
-#include "GCodeViewer.hpp"
 #include "GLCanvas3D.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
@@ -14,13 +13,17 @@
 #include "Gizmos/GLGizmosManager.hpp"
 #include "I18N.hpp"
 #include "Shortcuts.hpp"
-#include "IMSlider.hpp"
 #include "Jobs/Job.hpp"
 #include "Jobs/Worker.hpp"
 #include "MainFrame.hpp"
 #include "RunScriptPanel.hpp"
 #include "ObjectDataViewModel.hpp"
 #include "NetworkTestDialog.hpp"
+#include "Operations/ExportOps.hpp"
+#include "Operations/Outcome.hpp"
+#include "Operations/PlateOps.hpp"
+#include "Operations/PresetOps.hpp"
+#include "Operations/ProjectOps.hpp"
 #include "Plater.hpp"
 #include "PluginsDialog.hpp"
 #include "PartPlate.hpp"
@@ -120,20 +123,41 @@ AppActionRunResult object_op(Plater* plater, bool (*ok)(Plater*), void (*op)(Pla
     return {AppActionRunResult::Level::Success};
 }
 
-// Arrange and orient as the toolbar runs them: on every plate, in the background. Plater::can_arrange()
-// is false with no objects or while another job runs, and each gets its own message.
-AppActionRunResult arrange_op(Plater* plater, void (*op)(Plater*), const wxString& no_objects)
+// What a command answers when its operation refuses: the refusal in the UI's language, shown at
+// `level`, as a command that did nothing; automation reads the refusal itself.
+AppActionRunResult refused(const Ops::Refusal& refusal, AppActionRunResult::Level level = AppActionRunResult::Level::Error)
+{
+    AppActionRunResult result{level, refusal.translated(), false};
+    result.refusal = std::make_shared<const Ops::Refusal>(refusal);
+    return result;
+}
+
+AppActionRunResult worker_busy() { return {AppActionRunResult::Level::Info, _L("Wait for the running background job to finish."), false}; }
+
+// Arrange as the toolbar runs it: on every unlocked plate, in the background. No objects and a running
+// job each get their own message.
+AppActionRunResult arrange_all(Plater* plater)
+{
+    if (!plater)
+        return {AppActionRunResult::Level::Info, _L("Open the 3D view first."), false};
+    if (const Ops::Outcome<Ops::Done> started = Ops::start_arrange({}); !started)
+        return refused(started.refusal(), AppActionRunResult::Level::Info);
+    return {AppActionRunResult::Level::Success};
+}
+
+// Orient as the toolbar runs it, with the guards arrange has.
+AppActionRunResult orient_all(Plater* plater)
 {
     if (!plater)
         return {AppActionRunResult::Level::Info, _L("Open the 3D view first."), false};
     ensure_3d_view(plater);
     if (plater->model().objects.empty())
-        return {AppActionRunResult::Level::Info, no_objects, false};
+        return {AppActionRunResult::Level::Info, _L("There are no objects to orient."), false};
     if (!plater->get_ui_job_worker().is_idle())
-        return {AppActionRunResult::Level::Info, _L("Wait for the running background job to finish."), false};
-    // A plate's Arrange or Auto Rotate icon leaves the plate-only state behind.
+        return worker_busy();
+    // A plate's Auto Rotate icon leaves the plate-only state behind.
     plater->set_prepare_state(Job::PREPARE_STATE_DEFAULT);
-    op(plater);
+    plater->orient();
     return {AppActionRunResult::Level::Success};
 }
 
@@ -191,38 +215,24 @@ AppActionRunResult ordered(Plater& plater, ObjectOrder order, bool all_plates)
     return with_reply({{"order", list}, {"descending", descending}});
 }
 
-// Jump the preview to a layer selected by a 0-100 percent of the layer range. The caller has already
-// switched to Preview (which may request a slice); if a slicer result is present the slider is
-// repositioned immediately, otherwise the jump is a no-op until the user re-slices.
-void go_to_layer(Plater* plater, const std::string& param)
+// Jumps the Preview to the layer a 0-100 percent of its layers stands for. The percent moves the top
+// of the shown range; its bottom stays. The caller has already switched to the Preview.
+AppActionRunResult go_to_layer(const std::string& param)
 {
-    if (!plater)
-        return;
     double pct = 50.0;
     try {
         pct = std::stod(param);
     } catch (const std::exception&) {}
     pct = std::clamp(pct, 0.0, 100.0);
 
-    GLCanvas3D* canvas = plater->get_current_canvas3D();
-    if (!canvas)
-        return;
-    GCodeViewer& viewer = canvas->get_gcode_viewer();
-    IMSlider* layers    = viewer.get_layers_slider();
-    IMSlider* moves     = viewer.get_moves_slider();
-    if (!layers || layers->GetMaxValue() <= 0)
-        return;
-
-    const double max = double(layers->GetMaxValue());
-    const int target = int(std::lround(pct / 100.0 * max));
-    layers->SetHigherValue(target);
-    if (layers->is_one_layer())
-        layers->SetLowerValue(target);
-    layers->set_as_dirty();
-    if (moves) {
-        moves->SetHigherValue(moves->GetMaxValue());
-        moves->set_as_dirty();
-    }
+    const Ops::Outcome<int> count = Ops::layer_count();
+    if (!count)
+        return refused(count.refusal(), AppActionRunResult::Level::Info);
+    Ops::ShowLayerRangeArgs range;
+    range.last = int(std::lround(pct / 100.0 * double(count.value() - 1))) + 1;
+    if (const Ops::Outcome<Ops::ShownLayers> shown = Ops::show_layer_range(range); !shown)
+        return refused(shown.refusal(), AppActionRunResult::Level::Info);
+    return {AppActionRunResult::Level::Success};
 }
 
 // The path a command was given, checked for reading (`output` false) or writing. nullopt with an
@@ -239,12 +249,10 @@ std::optional<boost::filesystem::path> path_param(const std::string& param, bool
     return path;
 }
 
-AppActionRunResult written(const boost::filesystem::path& path)
+// What a command that wrote `path` answers, or its operation's refusal.
+AppActionRunResult written(const Ops::Outcome<Ops::Done>& outcome, const boost::filesystem::path& path)
 {
-    boost::system::error_code ec;
-    if (boost::filesystem::exists(path, ec))
-        return {AppActionRunResult::Level::Success, from_u8(path.string())};
-    return {AppActionRunResult::Level::Error, _L("The file was not written.")};
+    return outcome ? AppActionRunResult{AppActionRunResult::Level::Success, from_u8(path.string())} : refused(outcome.refusal());
 }
 
 // A screenshot or recording saved into the MCP output folder, which a person would not find by themselves: a
@@ -403,29 +411,16 @@ std::optional<bool> import_overwrites(const std::string& param, AppActionRunResu
     return conflict == "overwrite";
 }
 
-// Imports preset files from `path` (UTF-8) as the Import Configs dialog does, answering for each preset
-// that exists already as the dialog's Yes or No would, so that every one of them is asked about and can
-// be named: the message lists the presets imported, replaced and kept.
-AppActionRunResult import_preset_file(MainFrame& mf, const std::string& path, bool overwrite)
+// Imports the preset file at `path` (Ops::import_presets()) and words what came of it: the message lists
+// the presets imported, replaced and kept.
+AppActionRunResult import_preset_file(const boost::filesystem::path& path, bool overwrite)
 {
-    const PresetBundle& bundle = *wxGetApp().preset_bundle;
-    const auto          names  = [&bundle] {
-        std::set<std::pair<int, std::string>> out;
-        for (const PresetCollection* presets : std::initializer_list<const PresetCollection*>{&bundle.prints, &bundle.filaments, &bundle.printers})
-            for (const Preset& preset : presets->get_presets())
-                out.emplace(int(presets->type()), preset.name);
-        return out;
-    };
-    const auto               before = names();
-    std::vector<std::string> replaced, kept;
-    mf.import_configs({path}, [&](const std::string& name) {
-        (overwrite ? replaced : kept).push_back(name);
-        return overwrite ? 1 : 0; // never "to all", which would stop the questions
-    });
-    std::vector<std::string> added;
-    for (const auto& name : names())
-        if (before.count(name) == 0)
-            added.push_back(name.second);
+    Ops::ImportPresetsArgs presets;
+    presets.path      = path;
+    presets.overwrite = overwrite;
+    const Ops::Outcome<Ops::ImportedPresets> imported = Ops::import_presets(presets);
+    if (!imported)
+        return refused(imported.refusal());
 
     wxString   message;
     const auto add = [&message](const wxString& text, const std::vector<std::string>& list) {
@@ -433,14 +428,11 @@ AppActionRunResult import_preset_file(MainFrame& mf, const std::string& path, bo
             message += (message.empty() ? "" : " ") + format_wxstr(text, boost::algorithm::join(list, ", "));
     };
     // TRN %1% is a comma-separated list of preset names.
-    add(_L("Imported presets: %1%."), added);
+    add(_L("Imported presets: %1%."), imported.value().imported);
     // TRN %1% is a comma-separated list of preset names.
-    add(_L("Replaced presets: %1%."), replaced);
+    add(_L("Replaced presets: %1%."), imported.value().replaced);
     // TRN %1% is a comma-separated list of preset names.
-    add(_L("Kept the existing presets: %1%."), kept);
-    if (message.empty())
-        return {AppActionRunResult::Level::Error,
-                _L("No presets were imported.") + _L("\nHint: Make sure you have added the corresponding printer before importing the configs.")};
+    add(_L("Kept the existing presets: %1%."), imported.value().kept);
     return {AppActionRunResult::Level::Success, message};
 }
 
@@ -489,11 +481,11 @@ void describe_commands(std::vector<NativeCommand>& commands)
     static const Detail details[] = {
         {"slice_and_preview", "Slice the current plate and show the Preview tab. Returns at once; use the slice tool to wait for the result."},
         {"slice_all", "Slice every plate and show the Preview tab. Returns at once; use the slice tool to wait for results."},
-        {"go_to_layer", "Show the Preview tab at a layer chosen as a percentage of the layer range.", CommandParamType::Percent, "0-100"},
+        {"go_to_layer", "Show the Preview tab at a layer chosen as a percentage of the layer range; an error while the Preview has no layers (slice first).", CommandParamType::Percent, "0-100"},
         {"go_to_tab", "Switch to a main window tab.", CommandParamType::Tab, "tab id: home, prepare, preview, monitor, project, calibration, or a plugin page id"},
         {"load_project", "Open a project. With a path, opens that file without a dialog (asks first if the current project has unsaved changes).", CommandParamType::Path, "absolute path of a .3mf project"},
         {"save_project", "Save the project to its current file (asks for a name if it has none)."},
-        {"save_project_as", "Save the project as a .3mf file. With a path, saves there without a dialog.", CommandParamType::Path, "absolute output path, or {\"path\": ..., \"overwrite\": true}"},
+        {"save_project_as", "Save the project as a .3mf file. With a path, saves there without a dialog; a name ending in .gcode.3mf is refused (export_sliced_file writes that).", CommandParamType::Path, "absolute output path, or {\"path\": ..., \"overwrite\": true}"},
         {"new_project", "Start a new, empty project (asks first if the current one has unsaved changes)."},
         {"undo", "Undo the last change to the project."},
         {"redo", "Redo the last undone change."},
@@ -547,7 +539,9 @@ void describe_commands(std::vector<NativeCommand>& commands)
                           "the presets (their checkboxes are named after them), press OK, then answer the result message. With a "
                           "directory, OK writes there instead of asking for a folder.",
          CommandParamType::Path, "absolute path of an existing directory"},
-        {"import_file", "Import models (3MF/STL/STEP/SVG/OBJ/AMF). With a path, imports that file without a dialog.", CommandParamType::Path, "absolute path of a model file"},
+        {"import_file", "Import models (3MF/STL/STEP/SVG/OBJ/AMF). With a path, adds that file's geometry without a dialog, as one undo step; "
+                        "a project file's settings are not loaded (load_project opens a project).",
+         CommandParamType::Path, "absolute path of a model file"},
         {"import_zip_archive", "Import models from a ZIP archive (opens a file dialog)."},
         {"import_configs", "Import presets. With a path, imports a preset .json, a .zip of them or an .orca_printer, "
                            ".orca_filament or .orca_bundle without a dialog, and the message names the presets imported, "
@@ -604,7 +598,7 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"plate_delete", "Delete the current plate."},
         {"plate_rename", "Rename the current plate (opens a dialog)."},
         {"plate_toggle_lock", "Lock or unlock the current plate."},
-        {"plate_goto", "Make a plate the current one.", CommandParamType::Index, "0-based plate index"},
+        {"plate_goto", "Make a plate the current one; an index the project lacks is an error.", CommandParamType::Index, "0-based plate index"},
         {"sync_ams", "Synchronize the filament list from the connected printer's AMS."},
         {"preset_bundle", "Open the preset bundle manager."},
         {"sync_presets", "Synchronize user presets with the cloud account."},
@@ -636,7 +630,29 @@ void describe_commands(std::vector<NativeCommand>& commands)
                             "filament (project scope filament_is_mixed) is refused.", CommandParamType::Index,
          "1-based filament slot; without it, the last physical slot, as the - button"},
     };
+    // The operations (GUI/Operations) a runner reaches once it has what it needs to run without asking.
+    static const std::pair<const char*, std::vector<std::string>> reaches[] = {
+        {"slice_and_preview", {"start_slice"}},
+        {"slice_all", {"start_slice"}},
+        {"go_to_layer", {"show_layer_range"}},
+        {"save_project_as", {"save_project_as"}},
+        {"export_gcode", {"start_gcode_export"}},
+        {"export_stl", {"export_stl"}},
+        {"export_3mf", {"export_model_3mf"}},
+        {"export_sliced_file", {"export_sliced_3mf"}},
+        {"export_all_sliced_file", {"export_sliced_3mf"}},
+        {"send_gcode", {"send_gcode_to_host"}},
+        {"import_file", {"import_models"}},
+        {"import_configs", {"import_presets"}},
+        {"obj_arrange", {"start_arrange"}},
+        {"obj_set_instances", {"set_instance_count"}},
+        {"plate_toggle_lock", {"set_plate_locked"}},
+        {"plate_goto", {"select_plate"}},
+    };
     for (NativeCommand& c : commands) {
+        if (const auto ops = std::find_if(std::begin(reaches), std::end(reaches), [&](const auto& r) { return c.key == r.first; });
+            ops != std::end(reaches))
+            c.operations = ops->second;
         auto it = std::find_if(std::begin(details), std::end(details), [&](const Detail& d) { return c.key == d.key; });
         if (it != std::end(details)) {
             c.description = it->description;
@@ -671,21 +687,15 @@ std::vector<NativeCommand> build_command_catalog()
     // ---- Slice & Export ----
     // Slices through the toolbar's path, so it counts as a user slice request (Plater::request_slice).
     add_with_icon("slice_and_preview", L("Slice and Preview"), L("Slice & Export"), "media_play", [](const std::string&) {
-        Plater* plater = wxGetApp().plater();
-        if (plater) {
-            plater->request_slice(false);
-            plater->select_view_3D("Preview", false);
-            if (MainFrame* mf = wxGetApp().mainframe; mf)
-                mf->select_tab(TAB_ID_PREVIEW);
-        }
+        if (wxGetApp().plater() != nullptr)
+            Ops::start_slice({});
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("slice_all", L("Slice All Plates"), L("Slice & Export"), "media_play", [](const std::string&) {
-        Plater* plater = wxGetApp().plater();
-        if (plater) {
-            plater->request_slice(true);
-            if (MainFrame* mf = wxGetApp().mainframe; mf)
-                mf->select_tab(TAB_ID_PREVIEW);
+        if (wxGetApp().plater() != nullptr) {
+            Ops::SliceArgs slice;
+            slice.all_plates = true;
+            Ops::start_slice(slice);
         }
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
@@ -694,13 +704,12 @@ std::vector<NativeCommand> build_command_catalog()
         "go_to_layer", L("Go to layer (percent)"), L("Commands"), "height_range_layer",
         [](const std::string& param) {
             Plater* plater = wxGetApp().plater();
-            if (plater) {
-                plater->select_view_3D("Preview", false);
-                if (MainFrame* mf = wxGetApp().mainframe; mf)
-                    mf->select_tab(TAB_ID_PREVIEW);
-                go_to_layer(plater, param);
-            }
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            if (plater == nullptr)
+                return AppActionRunResult{AppActionRunResult::Level::Success};
+            plater->select_view_3D("Preview", false);
+            if (MainFrame* mf = wxGetApp().mainframe; mf)
+                mf->select_tab(TAB_ID_PREVIEW);
+            return go_to_layer(param);
         },
         "percent");
 
@@ -747,9 +756,7 @@ std::vector<NativeCommand> build_command_catalog()
         const auto         path = path_param(param, true, fail);
         if (!path)
             return fail;
-        if (plater->save_project(true, from_path(*path)) != wxID_YES && !boost::filesystem::exists(*path))
-            return AppActionRunResult{AppActionRunResult::Level::Error, _L("The project was not saved.")};
-        return written(*path);
+        return written(Ops::save_project_as({*path}), *path);
     });
     add_with_icon("new_project", L("New Project"), L("Commands"), "menu_open", [](const std::string&) {
         if (Plater* plater = wxGetApp().plater())
@@ -868,10 +875,10 @@ std::vector<NativeCommand> build_command_catalog()
         const auto         path = path_param(param, true, fail);
         if (!path)
             return fail;
-        if (plater->is_slicing_any())
-            return AppActionRunResult{AppActionRunResult::Level::Error, _L("Slicing is in progress. Wait for it to finish and export again.")};
-        if (!plater->export_gcode_to(*path))
-            return AppActionRunResult{AppActionRunResult::Level::Error, _L("The export could not start. Slice the plate first and check for slicing errors.")};
+        Ops::ExportGcodeArgs gcode;
+        gcode.path = *path;
+        if (const Ops::Outcome<Ops::ExportTicket> started = Ops::start_gcode_export(gcode); !started)
+            return refused(started.refusal());
         return AppActionRunResult{AppActionRunResult::Level::Info, from_u8(path->string())};
     });
     add_with_icon("export_stl", L("Export STL"), L("Slice & Export"), "save", [](const std::string& param) {
@@ -886,8 +893,7 @@ std::vector<NativeCommand> build_command_catalog()
         const auto         path = path_param(param, true, fail);
         if (!path)
             return fail;
-        plater->export_stl(false, false, false, FT_STL, from_path(*path));
-        return written(*path);
+        return written(Ops::export_stl({*path}), *path);
     });
     add_with_icon("export_3mf", L("Export 3MF"), L("Slice & Export"), "menu_save", [](const std::string& param) {
         Plater* plater = wxGetApp().plater();
@@ -901,8 +907,7 @@ std::vector<NativeCommand> build_command_catalog()
         const auto         path = path_param(param, true, fail);
         if (!path)
             return fail;
-        plater->export_core_3mf(from_path(*path));
-        return written(*path);
+        return written(Ops::export_model_3mf({*path}), *path);
     });
     auto export_sliced = [](bool all) {
         return [all](const std::string& param) {
@@ -917,9 +922,10 @@ std::vector<NativeCommand> build_command_catalog()
             const auto         path = path_param(param, true, fail);
             if (!path)
                 return fail;
-            if (!plater->export_gcode_3mf(all, *path))
-                return AppActionRunResult{AppActionRunResult::Level::Error, _L("The sliced file was not written. Slice first and check for slicing errors.")};
-            return written(*path);
+            Ops::ExportSlicedArgs sliced;
+            sliced.path       = *path;
+            sliced.all_plates = all;
+            return written(Ops::export_sliced_3mf(sliced), *path);
         };
     };
     add_with_icon("export_sliced_file", L("Export Sliced File"), L("Slice & Export"), "save", export_sliced(false));
@@ -929,19 +935,10 @@ std::vector<NativeCommand> build_command_catalog()
     // The Print button's send for a printer with a print host: the Send G-code dialog, then the upload queue. Where
     // the button would not send to a print host, the command says why instead of doing nothing.
     add_with_icon("send_gcode", L("Send G-code to printer host"), L("Slice & Export"), "printer", [](const std::string&) {
-        Plater* plater = wxGetApp().plater();
-        if (plater == nullptr)
+        if (wxGetApp().plater() == nullptr)
             return AppActionRunResult{};
-        PresetBundle& bundle = *wxGetApp().preset_bundle;
-        if (bundle.use_bbl_network() || wxGetApp().app_config->get_bool("use_printer_agents"))
-            // TRN "Print plate" is the print button's action, which sends to such a printer through its own dialog.
-            return AppActionRunResult{AppActionRunResult::Level::Error, _L("This printer prints with Print plate, not through a print host.")};
-        // The Print button sends only to a printer with a print host address, as MainFrame::can_send_gcode() checks.
-        const auto* host = bundle.printers.get_edited_preset().config.option<ConfigOptionString>("print_host");
-        if (host == nullptr || host->value.empty())
-            return AppActionRunResult{AppActionRunResult::Level::Error,
-                                      _L("This printer has no print host. Set one in the printer's connection settings.")};
-        plater->send_gcode_legacy();
+        if (const Ops::Outcome<Ops::Done> sent = Ops::send_gcode_to_host(); !sent)
+            return refused(sent.refusal());
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
 
@@ -1062,10 +1059,10 @@ std::vector<NativeCommand> build_command_catalog()
             wxGetApp().plater(), [](Plater* p) { return p->can_decrease_instances(); }, [](Plater* p) { p->decrease_instances(); });
     });
     add_with_icon("obj_arrange", L("Auto-Arrange"), L("Object"), "toolbar_arrange", [](const std::string&) {
-        return arrange_op(wxGetApp().plater(), [](Plater* p) { p->arrange(); }, _L("There are no objects to arrange."));
+        return arrange_all(wxGetApp().plater());
     });
     add_with_icon("obj_orient", L("Auto-Orient"), L("Object"), "toolbar_orient", [](const std::string&) {
-        return arrange_op(wxGetApp().plater(), [](Plater* p) { p->orient(); }, _L("There are no objects to orient."));
+        return orient_all(wxGetApp().plater());
     });
 
     // ---- Object structure ---- (the object list's context menus and the plate menu's Order By)
@@ -1109,28 +1106,28 @@ std::vector<NativeCommand> build_command_catalog()
         ObjectList* list   = object_list_in_3d_view();
         if (list == nullptr)
             return AppActionRunResult{};
+        // A selection to make and a job to wait for are told as information, the other reasons as errors.
+        const auto refused_count = [](const Ops::Refusal& refusal) {
+            const std::string code = refusal.code;
+            return refused(refusal, code == "no_object_selected" || code == "job_running" ? AppActionRunResult::Level::Info :
+                                                                                               AppActionRunResult::Level::Error);
+        };
         const std::optional<int> count = param.empty() ? std::nullopt : NativeCommands::parse_count(param);
-        if (!param.empty() && (!count || *count > 1000))
-            return AppActionRunResult{AppActionRunResult::Level::Error, from_u8("The number of instances is a whole number from 1 to 1000.")};
+        if (!param.empty() && !count)
+            return refused_count(Ops::bad_instance_count());
         if (count == 0)
             return AppActionRunResult{AppActionRunResult::Level::Error, from_u8("0 instances would delete the object; use obj_delete.")};
-        const int obj_idx = plater->get_selected_object_idx();
-        if (obj_idx < 0)
-            return AppActionRunResult{AppActionRunResult::Level::Info, _L("Select an object first."), false};
-        // The menu item is enabled by can_increase_instances(); each of its reasons gets a message.
-        const ModelObject* object = plater->model().objects[obj_idx];
-        if (list->has_selected_cut_object())
-            return AppActionRunResult{AppActionRunResult::Level::Error, _L("A cut object keeps its number of instances.")};
-        if (std::any_of(object->instances.begin(), object->instances.end(), [](const ModelInstance* i) { return !i->printable; }))
-            return AppActionRunResult{AppActionRunResult::Level::Error, _L("Make every instance of the object printable first.")};
-        if (!plater->can_increase_instances())
-            return AppActionRunResult{AppActionRunResult::Level::Info, _L("Wait for the running background job to finish."), false};
         if (!count) {
+            // The asking path: the item's dialog, enabled as the menu enables it.
+            if (const std::optional<Ops::Refusal> refusal = Ops::instance_count_refusal())
+                return refused_count(*refusal);
             plater->set_number_of_copies();
             return AppActionRunResult{AppActionRunResult::Level::Success};
         }
-        plater->set_number_of_copies(*count);
-        return with_reply({{"object", obj_idx}, {"instances", object->instances.size()}});
+        const Ops::Outcome<Ops::InstanceCount> set = Ops::set_instance_count({*count});
+        if (!set)
+            return refused_count(set.refusal());
+        return with_reply({{"object", set.value().object}, {"instances", set.value().instances}});
     });
     add("obj_assemble", L("Assemble"), L("Object"), [](const std::string&) {
         ObjectList* list = object_list_in_3d_view();
@@ -1201,7 +1198,7 @@ std::vector<NativeCommand> build_command_catalog()
             std::vector<double> size;
             if (!param.empty()) {
                 const std::optional<std::vector<double>> parsed = NativeCommands::parse_sizes(param);
-                if (!parsed || parsed->size() != primitive_size_names(type_name).size())
+                if (!parsed || !is_primitive_size(type_name, *parsed))
                     return AppActionRunResult{AppActionRunResult::Level::Error,
                                               from_u8(std::string("The size is ") + NativeCommands::find(key)->param.help + ".")};
                 size = *parsed;
@@ -1305,10 +1302,11 @@ std::vector<NativeCommand> build_command_catalog()
         Plater* plater = wxGetApp().plater();
         if (!is_fff_plater(plater))
             return plate_unavailable();
-        PartPlateList& plates = plater->get_partplate_list();
-        const int index       = plates.get_curr_plate_index();
-        plater->take_snapshot("lock partplate");
-        plates.lock_plate(index, !plates.is_locked(index));
+        PartPlateList&          plates = plater->get_partplate_list();
+        Ops::SetPlateLockedArgs lock;
+        lock.locked = !plates.is_locked(plates.get_curr_plate_index());
+        if (const Ops::Outcome<Ops::PlateLocked> locked = Ops::set_plate_locked(lock); !locked)
+            return refused(locked.refusal());
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("plate_goto", L("Go to Plate"), L("Plate"), "go_next_plate", [](const std::string& param) {
@@ -1319,12 +1317,12 @@ std::vector<NativeCommand> build_command_catalog()
         const int count       = plates.get_plate_count();
         if (count <= 0)
             return AppActionRunResult{AppActionRunResult::Level::Info, _L("No plates available.")};
-        int index = 0;
+        Ops::SelectPlateArgs plate;
         try {
-            index = std::stoi(param);
+            plate.plate = std::stoi(param);
         } catch (const std::exception&) {}
-        index = std::clamp(index, 0, count - 1);
-        plater->select_plate(index, false);
+        if (const Ops::Outcome<Ops::Done> selected = Ops::select_plate(plate); !selected)
+            return refused(selected.refusal());
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
 
@@ -1421,8 +1419,10 @@ std::vector<NativeCommand> build_command_catalog()
         const auto         path = path_param(param, false, fail);
         if (!path)
             return fail;
-        if (plater->load_files(std::vector<boost::filesystem::path>{*path}).empty())
-            return AppActionRunResult{AppActionRunResult::Level::Error, _L("Nothing was imported.")};
+        Ops::ImportModelsArgs models;
+        models.paths = {*path};
+        if (const Ops::Outcome<Ops::ImportModelsResult> imported = Ops::import_models(models); !imported)
+            return refused(imported.refusal());
         return AppActionRunResult{AppActionRunResult::Level::Success};
     });
     add_with_icon("import_zip_archive", L("Import ZIP Archive"), L("Import"), "menu_open", [](const std::string&) {
@@ -1451,7 +1451,7 @@ std::vector<NativeCommand> build_command_catalog()
         }
         for (const char* ext : {".json", ".zip", ".orca_printer", ".orca_filament", ".orca_bundle"})
             if (boost::iends_with(file, ext))
-                return import_preset_file(*mf, file, *overwrite);
+                return import_preset_file(*path, *overwrite);
         return AppActionRunResult{AppActionRunResult::Level::Error,
                                   "Not a preset file: give a .json, .zip, .orca_printer, .orca_filament, .orca_bundle or .gcode"};
     });

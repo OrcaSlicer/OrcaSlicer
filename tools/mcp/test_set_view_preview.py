@@ -8,7 +8,9 @@ Picking a view type is the legend combo's pick: a feature type hidden by a click
 shows again when Line Type is picked, and the pick is written to the app config for the "Last used"
 preview default. A canvas screenshot taken straight after a layer change shows the new layers, not
 the previous ones under the new slider position, and one after a view type change shows the legend
-laid out for it. The refusals: legend rows before a slice, a height above the top layer, layer with
+laid out for it. A range given backwards shows its first layer alone, and in the slider's one-layer
+mode the reply still echoes the range asked for while the one layer shown is its first. The refusals:
+legend rows before a slice, a height above the top layer, layer with
 layer_z, an unknown legend row (named with the rows the print has), a value that is not true or
 false, and a silent-mode estimate the print does not have; a refused call changes nothing. Exits 0
 when every check passes.
@@ -106,6 +108,19 @@ def main():
     reply = client.call("set_view", legend={"Sparse infill": False, "travel": True}, layer_z=1.05)
     check("layer_z between two tops shows up to the upper one", reply.get("layers") == [1, 6, 128] and reply.get("z") == [0.2, 1.2], reply)
     check("the legend reply gives each row's state", reply.get("legend") == {"Sparse infill": False, "travel": True}, reply)
+
+    reply = client.call("set_view", layer_range=[60, 20])
+    check("a range given backwards shows its first layer alone", reply.get("layers") == [60, 60, 128] and reply.get("z") == [12.0, 12.0],
+          reply)
+    # L switches the layer slider's one-layer mode.
+    client.call("press_keys", keys="L")
+    reply = client.call("set_view", layer_range=[2, 5])
+    shown = client.call("get_app_state")["preview"]
+    check("in one-layer mode the reply echoes the range and the slider shows its first layer",
+          reply.get("layers") == [2, 5, 128] and reply.get("z") == [0.4, 0.4] and shown.get("layers") == [2, 2], (reply, shown))
+    client.call("press_keys", keys="L")
+    shown = client.call("get_app_state")["preview"]
+    check("leaving one-layer mode shows every layer again", shown.get("layers") == [1, 128], shown)
 
     message = refusal(layer_z=80)
     check("a height above the top layer is refused", "above the top layer (25.6 mm)" in message, message)

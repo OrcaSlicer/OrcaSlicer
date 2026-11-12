@@ -15,6 +15,8 @@
 #include <slic3r/GUI/GUI.hpp>
 #include <slic3r/GUI/GUI_App.hpp>
 #include <slic3r/GUI/MainFrame.hpp>
+#include <slic3r/GUI/Operations/Outcome.hpp>
+#include <slic3r/GUI/Operations/PresetOps.hpp>
 #include <slic3r/GUI/Plater.hpp>
 #include <slic3r/GUI/PresetComboBoxes.hpp> // TabPresetComboBox::set_filament_idx
 #include <slic3r/GUI/Tab.hpp>
@@ -23,6 +25,7 @@
 
 #include <wx/string.h>
 
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -105,21 +108,22 @@ struct SelectionCancelled : std::runtime_error
 // pipeline hook.
 //
 // Known limits of this implementation, kept explicit rather than hidden:
-//   * A requested preset_name is resolved by the exact name its dropdown entry shows: the item's
-//     display label or its stored item alias (the internal preset name). A name two entries carry
-//     is rejected as ambiguous instead of being resolved by position. Process and printer resolve
-//     against the tab dropdown; a filament preset_name resolves against the requested slot's own
-//     sidebar selector, not the tab's, so its compatibility filter is the one that applies. A
-//     target the selector does not offer fails before the flow's unsaved-edit prompt. The flow
-//     itself is unchanged and the target is still confirmed as the edited preset afterwards.
-//   * A filament preset_name that names a different preset for a slot selects it through
-//     Tab::select_preset() (the normal flow, honouring unsaved-edit prompts) and then updates the
-//     slot mapping with PresetBundle::set_filament_preset() plus every dependent side effect the
-//     sidebar selection path performs: the project-dirty/selection refresh, the dynamic filament
-//     list, the slot's own combo (re-run so it lists and selects the assigned target), the
-//     conditional support-filament flushing recalc and the slot's AMS sync badge (read from the
-//     slot combo's own flag). The private Plater::priv::on_select_preset() path cannot be reused
-//     from here, so this mirrors its filament branch rather than calling it.
+//   * A requested preset_name is resolved by GUI::Ops::resolve_preset(), the rule every caller that
+//     selects a preset by name shares: the exact name a dropdown entry shows, its display label or
+//     its stored item alias (the internal preset name). A name two entries carry is rejected as
+//     ambiguous instead of being resolved by position. Process and printer resolve against the tab
+//     dropdown; a filament preset_name resolves against the requested slot's own sidebar selector,
+//     not the tab's, so its compatibility filter is the one that applies. A hidden compatible
+//     preset the name stands for is shown in the selectors first, where it stays until the app
+//     restarts. A target the selector does not offer fails before the flow's unsaved-edit prompt. A
+//     process or printer selection that leaves another preset edited is refused
+//     (GUI::Ops::select_preset()).
+//   * A filament preset_name that names a different preset for a slot first makes the filament tab
+//     edit it through Tab::select_preset() (the normal flow, honouring unsaved-edit prompts), since
+//     the transaction edits that preset, and then assigns it to the slot with
+//     GUI::Ops::assign_filament_preset(), which does what picking the preset in the slot's sidebar
+//     selector does: the slot's colour follows the preset, the mapping, the flushing volumes and the
+//     project state are updated and every plate's slice result is invalidated.
 //   * A user-declined selection does not undo decisions the user already accepted in an earlier
 //     dialog. It aborts before any slot assignment or transaction is created, so no staged
 //     setting is applied.
@@ -182,19 +186,31 @@ GUI::Tab* require_tab(GUI::GUI_App& app, Preset::Type type)
     return tab;
 }
 
-// Resolve `requested` to the internal preset name its dropdown entry names, or throw. `category`
-// and `selector` are used only for the error text. A name the selector does not offer, or that two
-// entries share, raises std::invalid_argument.
-std::string resolve_preset_in_combo(GUI::PresetComboBox& combo, const std::string& requested,
-                                    const std::string& category, const std::string& selector)
+GUI::Ops::PresetKind preset_kind(Preset::Type type)
 {
-    const GUI::PresetComboBox::NameMatch match = combo.find_by_name(requested);
-    if (match.ambiguous)
-        throw std::invalid_argument("The " + category + " name \"" + requested + "\" is ambiguous in the " + selector
-                                    + "; more than one entry shows it, so name the preset by its own entry");
-    if (match.item < 0)
-        throw std::invalid_argument("The " + category + " preset \"" + requested + "\" is not offered by the " + selector);
-    return match.internal_name;
+    switch (type) {
+    case Preset::TYPE_PRINTER:  return GUI::Ops::PresetKind::Printer;
+    case Preset::TYPE_FILAMENT: return GUI::Ops::PresetKind::Filament;
+    default:                    return GUI::Ops::PresetKind::Process;
+    }
+}
+
+// Raises a preset operation's refusal as the exception a plugin has had for it, which pybind11 maps:
+// IndexError for a slot the printer lacks, ValueError for a mixed-color slot and for a name that
+// resolves to no selectable preset, SelectionCancelled for a declined prompt, RuntimeError
+// otherwise. The text is the operation's.
+[[noreturn]] void throw_refusal(const GUI::Ops::Refusal& refusal)
+{
+    const std::string code = refusal.code;
+    const std::string text = refusal.english();
+    if (code == "no_such_slot")
+        throw std::out_of_range(text);
+    if (code == "mixed_filament_slot" || code == "ambiguous_preset_name" || code == "ambiguous_hidden_preset" ||
+        code == "preset_incompatible" || code == "preset_not_offered")
+        throw std::invalid_argument(text);
+    if (code == "selection_cancelled")
+        throw SelectionCancelled(text);
+    throw std::runtime_error(text);
 }
 
 // The preset a filament slot currently resolves to, by its internal name. A slot whose stored
@@ -292,12 +308,12 @@ PresetUpdateResult PresetTransaction::commit()
 
 // Process/printer target resolution: the active preset when no name is given, otherwise the named
 // preset selected through the normal tab-selection flow (which enforces the dropdown/compatibility
-// rules and the unsaved-edit prompt). Binds only after confirming the requested preset is edited.
+// rules and the unsaved-edit prompt, and refuses when it leaves another preset edited).
 // Runs on the UI thread with the GIL released, called from begin_preset_update().
 void bind_preset_target(Preset::Type type, const std::string& preset_name, PresetTransaction& transaction)
 {
-    GUI::GUI_App&     app        = require_gui_app();
-    GUI::Tab*         tab        = require_tab(app, type);
+    GUI::GUI_App& app = require_gui_app();
+    require_tab(app, type);
     PresetCollection& collection = collection_for(*app.preset_bundle, type);
 
     const std::string current = collection.get_edited_preset().name;
@@ -305,38 +321,24 @@ void bind_preset_target(Preset::Type type, const std::string& preset_name, Prese
     bool              selection_changed = false;
 
     if (!preset_name.empty()) {
-        // Resolve by the name the tab's dropdown actually shows (display label or item alias), so a
-        // plugin can pass exactly what the user sees. With no populated dropdown there is nothing
-        // to resolve against, so fall back to collection internal names.
-        GUI::TabPresetComboBox* combo = tab->get_combo_box();
-        std::string             resolved;
-        if (combo != nullptr && combo->GetCount() > 0)
-            resolved = resolve_preset_in_combo(*combo, preset_name, preset_tab_name(type),
-                                               "preset selector for the selected printer");
-        else
-            resolved = preset_name;
-
-        Preset* requested = collection.find_preset(resolved);
-        if (requested == nullptr)
-            throw std::invalid_argument("No " + std::string(preset_tab_name(type)) + " preset named \"" + resolved
-                                        + "\" is available to select");
-        target = requested->name;
+        // Resolved by the name the tab's dropdown shows (display label or item alias), so a plugin
+        // can pass exactly what the user sees.
+        GUI::Ops::ResolvePresetArgs resolve;
+        resolve.kind = preset_kind(type);
+        resolve.name = preset_name;
+        const GUI::Ops::Outcome<GUI::Ops::ResolvedPreset> resolved = GUI::Ops::resolve_preset(resolve);
+        if (!resolved)
+            throw_refusal(resolved.refusal());
+        target = resolved.value().name;
         if (target != current) {
-            // Normal UI selection: honours the unsaved-edit prompt; a declined prompt returns false
-            // and is a user cancellation, distinct from any other resolution failure.
-            if (!tab->select_preset(target))
-                throw SelectionCancelled("Switching the edited " + std::string(preset_tab_name(type)) + " preset to \""
-                                         + target + "\" was canceled; nothing was staged");
+            // Normal UI selection: honours the unsaved-edit prompt; a declined prompt is a user
+            // cancellation, distinct from any other resolution failure.
+            const GUI::Ops::Outcome<GUI::Ops::Done> selected = GUI::Ops::select_preset({preset_kind(type), target, GUI::Ops::PresetChanges::Ask});
+            if (!selected)
+                throw_refusal(selected.refusal());
             selection_changed = true;
         }
     }
-
-    // select_preset() can still leave a different preset edited (e.g. the target is not an
-    // allowed dropdown choice), so confirm before binding.
-    if (collection.get_edited_preset().name != target)
-        throw std::runtime_error("The edited " + std::string(preset_tab_name(type)) + " preset is \""
-                                 + collection.get_edited_preset().name + "\", not \"" + target
-                                 + "\"; the transaction was not created");
 
     transaction.type              = type;
     transaction.target_name       = target;
@@ -366,72 +368,46 @@ void bind_filament_target(int slot_number, const std::string& preset_name, Prese
 {
     GUI::GUI_App& app    = require_gui_app();
     PresetBundle& bundle = *app.preset_bundle;
-    GUI::Plater*  plater = app.plater();
 
     // A mixed-color virtual slot has no single filament preset behind it, so every form of this
     // call is rejected: with or without a preset_name there is no one preset to edit or assign.
-    // Range-guarded so an out-of-range slot still gets resolved_slot_preset()'s clear error.
-    if (slot_number >= 1 && static_cast<size_t>(slot_number) <= bundle.filament_presets.size()
-        && bundle.is_mixed_filament(static_cast<size_t>(slot_number) - 1))
-        throw std::invalid_argument("Filament slot " + std::to_string(slot_number)
-                                    + " is a mixed-color virtual slot; it has no single filament preset to edit or assign");
+    if (const std::optional<GUI::Ops::Refusal> refusal = GUI::Ops::mixed_slot_refusal(slot_number))
+        throw_refusal(*refusal);
 
     // Resolve and validate before any selection, so a bad slot fails without a prompt.
     const std::string assigned_internal = resolved_slot_preset(bundle, slot_number);
 
     GUI::Tab* tab = require_tab(app, Preset::TYPE_FILAMENT);
 
-    const size_t slot_index = static_cast<size_t>(slot_number) - 1;
-
     std::string target = assigned_internal;
     if (!preset_name.empty()) {
-        // Resolve against the requested sidebar slot's own selector, not the tab's: that is the
-        // model the user picks this slot's filament from, including its compatibility filter. The
-        // selector matches the exact name shown (display label or item alias).
-        std::vector<GUI::PlaterPresetComboBox*>& slot_combos = plater->sidebar().combos_filament();
-        GUI::PlaterPresetComboBox* slot_combo = slot_index < slot_combos.size() ? slot_combos[slot_index] : nullptr;
-        std::string                resolved;
-        if (slot_combo != nullptr && slot_combo->GetCount() > 0) {
-            const GUI::PresetComboBox::NameMatch match = slot_combo->find_by_name(preset_name);
-            if (match.ambiguous)
-                throw std::invalid_argument("The filament name \"" + preset_name
-                                            + "\" is ambiguous in the filament preset selector for filament slot "
-                                            + std::to_string(slot_number)
-                                            + "; more than one entry shows it, so name the preset by its own entry");
-            if (match.item >= 0) {
-                resolved = match.internal_name;
-            } else {
-                // Not shown by this slot's selector. Only the slot's current assignment stays
-                // targetable (a hidden or incompatible-but-selected preset the dropdown omits);
-                // resolve it by internal name or by display alias and accept only that preset. A
-                // different preset the tab happens to edit is a globally edited target, not an
-                // offered choice for this slot, and is rejected.
-                Preset* by_name = bundle.filaments.find_preset(preset_name);
-                if (by_name == nullptr) {
-                    const std::string& alias_name = bundle.filaments.get_preset_name_by_alias(preset_name);
-                    by_name                       = bundle.filaments.find_preset(alias_name);
-                }
-                if (by_name == nullptr || by_name->name != assigned_internal)
-                    throw std::invalid_argument("Filament preset \"" + preset_name
-                                                + "\" is not offered by the filament preset selector for filament slot "
-                                                + std::to_string(slot_number));
-                resolved = by_name->name;
-            }
+        // Resolved against the requested sidebar slot's own selector, not the tab's: that is the
+        // model the user picks this slot's filament from, including its compatibility filter.
+        GUI::Ops::ResolvePresetArgs resolve;
+        resolve.kind          = GUI::Ops::PresetKind::Filament;
+        resolve.name          = preset_name;
+        resolve.filament_slot = slot_number;
+        const GUI::Ops::Outcome<GUI::Ops::ResolvedPreset> resolved = GUI::Ops::resolve_preset(resolve);
+        if (resolved) {
+            target = resolved.value().name;
         } else {
-            // The slot selector is not populated; fall back to the tab selector, then to collection
-            // internal names, so the call still works when the sidebar has not been laid out.
-            GUI::TabPresetComboBox* tab_combo = tab->get_combo_box();
-            if (tab_combo != nullptr && tab_combo->GetCount() > 0)
-                resolved = resolve_preset_in_combo(*tab_combo, preset_name, "filament",
-                                                   "filament preset selector for the selected printer");
-            else
-                resolved = preset_name;
+            // Not shown by this slot's selector. Only the slot's current assignment stays
+            // targetable (a hidden or incompatible-but-selected preset the dropdown omits);
+            // resolve it by internal name or by display alias and accept only that preset. A
+            // different preset the tab happens to edit is a globally edited target, not an
+            // offered choice for this slot, and is rejected.
+            const std::string code = resolved.refusal().code;
+            if (code != "preset_not_offered" && code != "preset_incompatible")
+                throw_refusal(resolved.refusal());
+            Preset* by_name = bundle.filaments.find_preset(preset_name);
+            if (by_name == nullptr) {
+                const std::string& alias_name = bundle.filaments.get_preset_name_by_alias(preset_name);
+                by_name                       = bundle.filaments.find_preset(alias_name);
+            }
+            if (by_name == nullptr || by_name->name != assigned_internal)
+                throw_refusal(resolved.refusal());
+            target = by_name->name;
         }
-
-        Preset* requested = bundle.filaments.find_preset(resolved);
-        if (requested == nullptr)
-            throw std::invalid_argument("No filament preset named \"" + resolved + "\" is available to select");
-        target = requested->name;
     }
 
     bool selection_changed = false;
@@ -452,36 +428,16 @@ void bind_filament_target(int slot_number, const std::string& preset_name, Prese
     if (!preset_name.empty() && target != assigned_internal) {
         if (app.app_config == nullptr)
             throw std::runtime_error("Application configuration is not available");
-        // Mirror the filament branch of Plater::priv::on_select_preset() (the sidebar's normal
-        // preset selection): update the mapping, then every dependent project/UI side effect,
-        // rather than the vector entry alone.
-        const bool was_support = GUI::is_support_filament(static_cast<int>(slot_index));
-        bundle.set_filament_preset(slot_index, target);
-        plater->update_project_dirty_from_presets();
-        bundle.export_selections(*app.app_config);
-        plater->sidebar().update_dynamic_filament_list();
-        // Assigning a support filament (or moving away from one) changes which filaments the
-        // flush rules apply to, so the normal flow recalculates the flushing volumes when
-        // auto-calc covers every filament.
-        if (GUI::is_support_filament(static_cast<int>(slot_index)) != was_support
-            && app.app_config->get("auto_calculate_flush") == "all")
-            plater->sidebar().auto_calc_flushing_volumes(static_cast<int>(slot_index));
-        // Refresh the requested slot's own sidebar combo so its list and current selection show the
-        // newly assigned target (the list may not have contained it), matching the sidebar
-        // selection path. Fetch the pointer after update_dynamic_filament_list(), which may
-        // rebuild the combo vector.
-        std::vector<GUI::PlaterPresetComboBox*>& slot_combos = plater->sidebar().combos_filament();
-        if (slot_index < slot_combos.size() && slot_combos[slot_index] != nullptr) {
-            GUI::PlaterPresetComboBox* slot_combo = slot_combos[slot_index];
-            slot_combo->update();
-            // Keep the slot's AMS sync badge truthful, reading the item's own flag, the same source
-            // on_select_preset() reads, so no UI state is invented here.
-            const int item = slot_combo->item_for_preset(target);
-            if (item >= 0)
-                slot_combo->set_sync_badge(slot_combo->GetFlag(item)
-                                           == static_cast<int>(GUI::PresetComboBox::FilamentAMSType::FROM_AMS));
-        }
-        plater->on_filament_change(slot_index);
+        // What picking the preset in the slot's sidebar selector does. The tab edits it already, so
+        // it is not switched again: a second switch would ask again about changes the first one
+        // transferred.
+        GUI::Ops::AssignFilamentArgs assign;
+        assign.filament_slot = slot_number;
+        assign.preset        = target;
+        assign.switch_tab    = false;
+        const GUI::Ops::Outcome<std::string> assigned = GUI::Ops::assign_filament_preset(assign);
+        if (!assigned)
+            throw_refusal(assigned.refusal());
         assignment_changed = true;
     }
 
@@ -695,8 +651,10 @@ void host_bindings::register_presets(py::module_& host)
             },
             py::arg("preset_name") = "",
             "Resolve and bind this category's target preset and return a PresetTransaction. With no preset_name the "
-            "currently active preset is targeted; a preset_name must be a preset this category can select, and is "
-            "selected through the normal preset-selection flow (which prompts about unsaved edits). The call blocks "
+            "currently active preset is targeted; a preset_name must be a preset this category's selector offers, by "
+            "the name it shows or its internal name, and is "
+            "selected through the normal preset-selection flow (which prompts about unsaved edits). A hidden preset "
+            "that suits the printer is shown in the selectors first and stays shown until the app restarts. The call blocks "
             "the background Script worker until any such dialog is answered, leaving the UI thread responsive. A "
             "selection the user cancels raises RuntimeError; an unavailable or invalid target raises ValueError. "
             "Either failure creates no transaction and stages no setting. Call it from the background Script worker, "
@@ -713,10 +671,12 @@ void host_bindings::register_presets(py::module_& host)
             py::arg("slot_number"), py::arg("preset_name") = "",
             "Resolve and bind a filament preset by 1-based slot and return a PresetTransaction. Omitting preset_name "
             "targets the preset assigned to the slot; supplying a different name selects it for the slot through the "
-            "normal flow (prompting about unsaved edits) and, once that succeeds, records the new slot assignment with "
-            "the same Plater side effects the sidebar selection performs (project/selection refresh, dynamic filament "
-            "list, conditional support-filament flushing recalc and the slot's AMS sync badge). A requested preset "
-            "this slot's dropdown does not offer is rejected before that flow, so it raises no prompt; the slot's own "
+            "normal flow (prompting about unsaved edits) and, once that succeeds, assigns it to the slot as picking it "
+            "in the slot's sidebar selector does: the slot's filament colour follows the preset, the flushing volumes "
+            "are recalculated unless their automatic calculation is disabled, the project is marked changed and every "
+            "plate's slice result is invalidated. A hidden preset that suits the printer is shown in the selectors "
+            "first and stays shown until the app restarts. A requested preset "
+            "this slot's dropdown still does not offer is rejected before that flow, so it raises no prompt; the slot's own "
             "current assignment stays targetable even when the dropdown hides it. A selection the user cancels raises "
             "RuntimeError and changes neither the slot assignment nor any setting. An out-of-range, empty or "
             "unresolved slot is rejected, and a mixed-color virtual slot is rejected whether or not preset_name is "

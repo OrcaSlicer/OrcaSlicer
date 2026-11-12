@@ -70,6 +70,8 @@ public:
 
     int    GetMinValue() const { return m_min_value; }
     int    GetMaxValue() const { return m_max_value; }
+    // How many values the slider was given (SetSliderValues()): none until then, whatever its range says.
+    size_t values_count() const { return m_values.size(); }
     double GetMinValueD() { return m_values.empty() ? 0. : m_values[m_min_value]; }
     double GetMaxValueD() { return m_values.empty() ? 0. : m_values[m_max_value]; }
     int    GetLowerValue() const { return m_lower_value; }

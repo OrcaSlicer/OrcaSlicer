@@ -1,0 +1,58 @@
+// Records what the model 3MF export does through its two routes, the export_3mf command run with run_action and
+// a path param and the export tool's 3mf format: with no objects and with one. After each it reads whether the
+// file is there (an stl export to the same path with a plate the project lacks refuses with "exists" when it is,
+// with the plate when not; for the files written with no objects, once a cube is added), the project's name,
+// file and unsaved state, the recent projects and the undo snapshots taken since the last read
+// (fixtures/ops_undo.py). Every call it records is optional. Run it into a fresh --out directory (a command's
+// JSON path param can't carry a Windows ${out_dir}, so the commands write without overwrite and refuse the files
+// of an earlier run):
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_export_model_3mf.json --out <new dir>
+{
+  "orca_replay": 1,
+  "name": "ops export_model_3mf",
+  "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- No objects ----
+    {"tool": "run_action", "args": {"id": "orca_command:export_3mf:orca", "param": "${out_dir}/empty_cmd.3mf"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "export", "args": {"format": "3mf", "path": "${out_dir}/empty_tool.3mf", "overwrite": true}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "search_actions", "args": {"group": "Recent Projects"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- With an object ----
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/empty_cmd.3mf", "plates": 999}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/empty_tool.3mf", "plates": 999}, "optional": true},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:export_3mf:orca", "param": "${out_dir}/ok_cmd.3mf"}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ok_cmd.3mf", "plates": 999}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "export", "args": {"format": "3mf", "path": "${out_dir}/ok_tool.3mf", "overwrite": true}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ok_tool.3mf", "plates": 999}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "search_actions", "args": {"group": "Recent Projects"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- What the files hold: each opened as geometry into an empty project ----
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/empty_cmd.3mf"], "as": "geometry"}, "await": false, "save_as": "open_empty", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.open_empty}"}, "optional": true},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/ok_cmd.3mf"], "as": "geometry"}, "optional": true},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/ok_tool.3mf"], "as": "geometry"}, "optional": true},
+    {"tool": "list_objects"},
+
+    {"tool": "new_project", "args": {"discard_changes": true}}
+  ]
+}

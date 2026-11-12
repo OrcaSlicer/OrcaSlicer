@@ -274,6 +274,36 @@ refusals that leave the project as it was (modified presets without `preset_chan
 does not take), `preset_changes: "keep"` keeping an edit, and `new_project` dropping the test's settings. It
 starts from the harness's default printer and reruns on the same datadir.
 
+`tests/ops_*.json` drive each operation of the operations layer (`docs/HLSD/mcp-server.md`, "The
+operations layer") through every route that reaches it: the Speed Dial command run with `run_action`,
+the typed tool and, for presets, a pick in the sidebar and the plugin API called from a `run_script`
+step. One replay per operation, named after it: G-code, sliced 3MF, model 3MF and STL exports, a model
+import, a project opened, started anew and saved, a plate selected and locked, arrange, slice, the
+Preview's layer range, a printer or process preset selected (`ops_select_preset`), a filament assigned
+to a slot on a printer with one slot and with several (`ops_assign_filament_preset_one_slot`,
+`_multi_slot`), presets imported, an object's instance count, and the refusals of `send_gcode`, which
+never sets a print host, so nothing is sent. Each records what a call leaves: its reply or its
+refusal's text, the state read back after it, and the undo snapshots it took, which
+`tests/fixtures/ops_undo.py` reads from the app's log since no tool lists the undo history. Their
+`expect`s are on the setup and on what is read back. A replay cannot assert a refusal's text, so a
+call that a route refuses is `optional`, and `result.json` is the record of those texts, to compare
+between two builds.
+The preset replays share `tests/fixtures/ops_presets.py`, which sets the slots, colours and flushing
+volumes to known values before each case, and each needs a freshly launched app, since a hidden
+preset that `select_preset` shows stays shown until a restart. The replays whose commands write files
+need a fresh `--out`: a command's JSON path param can't hold a Windows `${out_dir}`, so those commands
+write without `overwrite`. Launch the app from a folder that holds no `.py` files, since the app's
+working directory is on Python's module path and a file there can shadow a standard module that
+`run_script` needs.
+
+`test_operation_routes.py` asserts what those replays only record: that a command, the tool that does
+the same thing and the plugin API's binding refuse the same states with the same code and words, and
+accept the same ones. It covers a project saved under a `.gcode.3mf` name, the exports of a project
+with no objects, a layer asked of a Preview with none, an arrangement from the assemble view and with
+a gizmo open, a mixed-colour filament slot, and a hidden printer selected through the plugin API. Run
+it on a freshly launched app, for the reasons above and because the Preview keeps the last slice's
+layers.
+
 The Design-tab replays drive `call_cad_tool` and need an instance launched with `--cad`. Each starts
 from a new project and checks what it builds by volume and by what `call_cad_tool` reads back; steps
 marked `optional` are calls that must be refused and change nothing.

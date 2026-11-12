@@ -624,6 +624,16 @@ public:
         //BBS: add more arrangeSettings
         bool is_seq_print        = false;
         bool  align_to_y_axis    = false;
+
+        // The Arrange options panel's rule between two of its options: Align to Y axis is off while auto
+        // rotation is on. Returns whether that turned it off.
+        bool apply_option_rules()
+        {
+            const bool turned_off = enable_rotation && align_to_y_axis;
+            if (turned_off)
+                align_to_y_axis = false;
+            return turned_off;
+        }
     };
 
     struct OrientSettings

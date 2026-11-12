@@ -398,6 +398,14 @@ public:
 	// Deletes the selected preset. `ask` false skips the confirmations, for a caller that has made the
 	// same checks itself; the refusal for a preset other presets inherit from still shows.
 	void		delete_preset(bool ask = true);
+    // What keeps a preset from being deleted: a system (or default) preset and a preset of a bundle are
+    // never deleted, and a base preset is not while other presets inherit from it.
+    enum class DeleteBlock { None, System, FromBundle, InheritedFrom };
+    // What keeps `preset` of `presets` from being deleted. The tab applies it in two places: it shows no
+    // Delete button for the first two (Preset::can_overwrite()), and delete_preset() refuses the third in
+    // a dialog. `inherited_by` gets the presets that inherit from it when it is a base preset, whatever
+    // blocks it first.
+    static DeleteBlock can_delete_preset(const PresetCollection& presets, const Preset& preset, std::vector<std::string>* inherited_by = nullptr);
 	void		toggle_show_hide_incompatible();
 	void		update_show_hide_incompatible_button();
 	void		update_ui_from_settings();

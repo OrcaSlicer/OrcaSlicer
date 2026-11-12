@@ -97,6 +97,10 @@ std::pair<double, double> cornering_end_limits(const DynamicPrintConfig& printer
     return has_junction_deviation(printer) ? std::make_pair(0.3, 0.25) : std::make_pair(100., 20.);
 }
 
+double clamp_calib_temp(double temperature) { return std::clamp(temperature, kCalibTempMin, kCalibTempMax); }
+
+double round_calib_temp(double temperature) { return std::floor(temperature / kCalibTempBlock) * kCalibTempBlock; }
+
 CalibParamsError check_calib_params(const Calib_Params& p, const DynamicPrintConfig& printer)
 {
     using E = CalibParamsError;
@@ -104,7 +108,8 @@ CalibParamsError check_calib_params(const Calib_Params& p, const DynamicPrintCon
     const auto* flavor = printer.option<ConfigOptionEnum<GCodeFlavor>>("gcode_flavor");
     const bool  rrf    = flavor != nullptr && flavor->value == GCodeFlavor::gcfRepRapFirmware;
     switch (p.mode) {
-    case CalibMode::Calib_Temp_Tower: return p.start > 500 || p.end < 155 || p.end > p.start - 5 ? E::Range : E::None;
+    case CalibMode::Calib_Temp_Tower:
+        return p.start > kCalibTempMax || p.end < kCalibTempMin || p.end > p.start - kCalibTempBlock ? E::Range : E::None;
     case CalibMode::Calib_Vol_speed_Tower: return p.start <= 0 || p.step <= 0 || p.end < p.start + p.step ? E::Range : E::None;
     case CalibMode::Calib_PA_Tower:
     case CalibMode::Calib_PA_Line:

@@ -8404,6 +8404,25 @@ bool Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     return true;
 }
 
+Tab::DeleteBlock Tab::can_delete_preset(const PresetCollection& presets, const Preset& preset, std::vector<std::string>* inherited_by)
+{
+    std::vector<std::string> children;
+    // Only a base preset is inherited from: the presets under it would no longer load.
+    if (presets.get_preset_base(preset) == &preset)
+        for (const Preset& other : presets)
+            if (other.inherits() == preset.name)
+                children.push_back(other.name);
+    const bool inherited = !children.empty();
+    if (inherited_by != nullptr)
+        *inherited_by = std::move(children);
+    // Preset::can_overwrite(), which shows the Delete button, is these two.
+    if (preset.is_system || preset.is_default)
+        return DeleteBlock::System;
+    if (preset.is_from_bundle())
+        return DeleteBlock::FromBundle;
+    return inherited ? DeleteBlock::InheritedFrom : DeleteBlock::None;
+}
+
 // Called for a currently selected preset.
 void Tab::delete_preset(bool ask)
 {
@@ -8434,13 +8453,12 @@ void Tab::delete_preset(bool ask)
                 confirm_delete_third_party_printer = true;
             }
         }
-        int count = 0;
-        wxString presets;
-        for (auto &preset2 : *m_presets)
-            if (preset2.inherits() == current_preset.name) {
-                ++count;
-                presets += "\n - " + from_u8(preset2.name);
-            }
+        std::vector<std::string> inherited_by;
+        can_delete_preset(*m_presets, current_preset, &inherited_by);
+        const int count = int(inherited_by.size());
+        wxString  presets;
+        for (const std::string& name : inherited_by)
+            presets += "\n - " + from_u8(name);
         if (count > 0) {
             msg = _L("Presets inherited by other presets cannot be deleted!");
             msg += "\n";

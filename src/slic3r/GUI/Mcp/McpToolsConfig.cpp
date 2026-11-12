@@ -18,6 +18,9 @@
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "slic3r/GUI/Operations/PlateOps.hpp"
+#include "slic3r/GUI/Operations/PresetOps.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/PresetComboBoxes.hpp"
@@ -170,91 +173,22 @@ std::map<std::string, std::string> setting_places(Preset::Type type)
 
 // Preset names that share the most words with `name`, those compatible with the printer first, for a
 // name no preset has.
-json similar_presets(const PresetCollection& presets, const std::string& name)
-{
-    std::vector<std::string> words;
-    std::istringstream       in(lower(name));
-    for (std::string w; in >> w;)
-        words.push_back(w);
-    std::vector<std::pair<int, std::string>> scored;
-    for (std::size_t i = 0; i < presets.size(); ++i) {
-        const Preset& p = presets.preset(i);
-        if (p.is_default)
-            continue;
-        const std::string n       = lower(p.name);
-        const int         matched = int(std::count_if(words.begin(), words.end(), [&n](const std::string& w) { return n.find(w) != std::string::npos; }));
-        if (matched > 0)
-            scored.emplace_back(-(2 * matched + (p.is_compatible ? 1 : 0)), p.name);
-    }
-    std::sort(scored.begin(), scored.end());
-    json out = json::array();
-    for (std::size_t i = 0; i < scored.size() && i < 5; ++i)
-        out.push_back(scored[i].second);
-    return out;
-}
+json similar_presets(const PresetCollection& presets, const std::string& name) { return Ops::similar_preset_names(presets, name); }
 
-// The presets `name` names, by name or alias, that `keep` accepts. The real presets, not the edited copy. UI thread.
-template<class Keep> std::vector<Preset*> presets_named(PresetCollection& presets, const std::string& name, Keep keep)
+// What select_preset replies when a preset operation refuses: the hint an agent can act on, and the names
+// under the key each refusal has had here.
+ToolFailure preset_refused(const Ops::Refusal& refusal)
 {
-    const std::string    want = Preset::remove_suffix_modified(name);
-    std::vector<Preset*> found;
-    for (std::size_t i = 0; i < presets.size(); ++i)
-        if (Preset& p = presets.preset(i, true); (p.name == want || p.alias == want) && keep(p))
-            found.push_back(&p);
-    return found;
-}
-
-// Shows the hidden preset `name` names in the selectors, as they show the preset selected and the filaments an AMS
-// holds: in memory, so the setup wizard's list, and with it what the next start shows, stays as it is. A hidden
-// preset is one the wizard has not added (a filament, a printer model), not a refusal, so selecting one by name
-// needs no detour through the wizard. Only a compatible one, as the selectors list no other. Returns its name, empty
-// when `name` names no hidden compatible preset. UI thread.
-std::string show_hidden_preset(PresetCollection& presets, const std::string& name)
-{
-    std::vector<Preset*> hidden = presets_named(presets, name, [](const Preset& p) { return !p.is_visible && p.is_compatible; });
-    // A preset's own name wins over another's alias that reads the same ("Generic PLA").
-    const std::string want  = Preset::remove_suffix_modified(name);
-    const auto        exact = std::find_if(hidden.begin(), hidden.end(), [&want](const Preset* p) { return p->name == want; });
-    if (exact != hidden.end())
-        hidden = {*exact};
-    if (hidden.size() > 1) {
-        json names = json::array();
-        for (const Preset* p : hidden)
-            names.push_back(p->name);
-        throw ToolFailure("\"" + name + "\" names several hidden presets; use the internal name", {{"presets", std::move(names)}});
-    }
-    if (hidden.empty())
-        return {};
-    hidden.front()->is_visible = true;
-    return hidden.front()->name;
-}
-
-// Shows the default filaments of a printer show_hidden_preset() showed when no shown filament suits it, as adding the
-// printer in the setup wizard does (PresetBundle::load_installed_filaments()), so selecting the printer lands on
-// one of them rather than on the default filament. In memory, as the printer is. UI thread.
-void show_default_filaments(PresetBundle& bundle, const std::string& printer_name)
-{
-    const Preset*                      printer = bundle.printers.find_preset(printer_name, false);
-    const VendorProfile::PrinterModel* model   = printer != nullptr ? PresetUtils::system_printer_model(*printer) : nullptr;
-    if (model == nullptr)
-        return;
-    const PresetWithVendorProfile with_vendor = bundle.printers.get_preset_with_vendor_profile(*printer);
-    for (const Preset& filament : bundle.filaments)
-        if (filament.is_visible && is_compatible_with_printer(bundle.filaments.get_preset_with_vendor_profile(filament), with_vendor))
-            return;
-    for (const std::string& name : model->default_materials)
-        if (Preset* filament = bundle.filaments.find_preset(name, false, true); filament != nullptr && filament->is_system)
-            filament->is_visible = true;
-}
-
-// The refusal of a name `selector` does not list: incompatible with the printer, or no preset's name, with the
-// closest names. UI thread.
-ToolFailure not_offered(PresetCollection& presets, const std::string& name, const std::string& selector)
-{
-    if (!presets_named(presets, name, [](const Preset& p) { return !p.is_compatible; }).empty())
-        return ToolFailure("\"" + name + "\" is not compatible with the selected printer (list_presets include_incompatible "
-                                         "lists such presets)");
-    return ToolFailure(selector + " does not offer \"" + name + "\" (see list_presets)", {{"similar", similar_presets(presets, name)}});
+    const std::string code = refusal.code;
+    if (code == "preset_not_offered")
+        return refused(refusal, "See list_presets.", "similar");
+    if (code == "ambiguous_hidden_preset")
+        return refused(refusal, "", "presets");
+    if (code == "preset_incompatible")
+        return refused(refusal, "list_presets include_incompatible lists such presets.");
+    if (code == "transfer_not_offered")
+        return refused(refusal, "Pass preset_changes: \"discard\", or save_preset first.");
+    return refused(refusal);
 }
 
 struct ConfigTarget
@@ -719,10 +653,12 @@ ToolResult set_plate_settings(const json& args, ToolContext& ctx)
             plater.take_snapshot("Plate Settings");
             plater.apply_plate_settings(index, bed_type, first_layer, other_layers, sequence, spiral);
         }
-        if (values_in.contains("locked") && values_in["locked"].get<bool>() != plate.is_locked()) {
-            plater.take_snapshot("lock partplate");
-            plates.lock_plate(index, values_in["locked"].get<bool>());
-            plater.set_current_canvas_as_dirty();
+        if (values_in.contains("locked")) {
+            Ops::SetPlateLockedArgs lock;
+            lock.plate  = index;
+            lock.locked = values_in["locked"].get<bool>();
+            if (const Ops::Outcome<Ops::PlateLocked> locked = Ops::set_plate_locked(lock); !locked)
+                throw refused(locked.refusal());
         }
         if (rename)
             plater.rename_plate(index, values_in["name"].get<std::string>());
@@ -1106,13 +1042,14 @@ bool save_preset_inside_project(const PresetCollection& presets, const std::stri
         throw ToolFailure("Preset \"" + name + "\" already exists" +
                           (existing != nullptr && !existing->is_compatible ? " and is incompatible with the current printer" : "") +
                           "; pass overwrite: true to replace it");
-    if (existing == nullptr)
+    // The dialog locks the choice to where an existing preset is (locked_save_location()).
+    const std::optional<bool> locked = locked_save_location(presets, name);
+    if (!locked)
         return arg_bool(args, "inside_project", presets.get_edited_preset().is_project_embedded);
-    // The dialog locks the choice to where the existing preset is.
-    if (args.contains("inside_project") && args["inside_project"].get<bool>() != existing->is_project_embedded)
-        throw ToolFailure("Preset \"" + name + "\" is " + (existing->is_project_embedded ? "kept inside the project" : "a user preset") +
+    if (args.contains("inside_project") && args["inside_project"].get<bool>() != *locked)
+        throw ToolFailure("Preset \"" + name + "\" is " + (*locked ? "kept inside the project" : "a user preset") +
                           " and is saved there; leave inside_project out");
-    return existing->is_project_embedded;
+    return *locked;
 }
 
 json option_meta(const ConfigOptionDef& def)
@@ -1375,21 +1312,20 @@ json check_preset_deletable(const PresetCollection& presets, const std::string& 
     const Preset*     preset = presets.find_preset(name, false);
     if (preset == nullptr)
         throw ToolFailure(std::string("No ") + type + " preset \"" + name + "\" (see list_presets)", {{"similar", similar_presets(presets, name)}});
-    // The tab shows its Delete button for these only (Tab::update_btns_enabling()).
-    if (preset->is_system || preset->is_default)
+    // The tab's own rule (Tab::can_delete_preset()), worded for an agent.
+    std::vector<std::string> inherited_by;
+    switch (Tab::can_delete_preset(presets, *preset, &inherited_by)) {
+    case Tab::DeleteBlock::System:
         throw ToolFailure("\"" + name + "\" is a system preset; only user presets and presets inside the project can be deleted");
-    if (preset->is_from_bundle())
+    case Tab::DeleteBlock::FromBundle:
         throw ToolFailure("\"" + name + "\" comes from a preset bundle; only user presets and presets inside the project can be deleted");
+    case Tab::DeleteBlock::InheritedFrom:
+        throw ToolFailure("\"" + name + "\" cannot be deleted while other presets inherit from it; delete them first",
+                          {{"inherited_by", inherited_by}});
+    case Tab::DeleteBlock::None: break;
+    }
     if (presets.get_preset_base(*preset) != preset)
         return json::object();
-    // A base preset: the tab refuses it while presets inherit from it, since they would no longer load.
-    json children = json::array();
-    for (const Preset& p : presets)
-        if (p.inherits() == preset->name)
-            children.push_back(p.name);
-    if (!children.empty())
-        throw ToolFailure("\"" + name + "\" cannot be deleted while other presets inherit from it; delete them first",
-                          {{"inherited_by", std::move(children)}});
     // A custom printer takes the user presets made for it alone with it (Tab::select_preset()).
     json attached = json::object();
     if (presets.type() == Preset::TYPE_PRINTER)
@@ -1438,10 +1374,12 @@ std::vector<double> check_flush_multipliers(std::vector<double> multipliers, std
         multipliers = std::vector<double>(nozzles, multipliers.front());
     if (multipliers.size() != nozzles)
         throw ToolFailure("flush_multiplier takes one value per nozzle (" + std::to_string(nozzles) + "), or one for all");
-    // The Flushing volumes dialog's range (g_min_flush_multiplier, g_max_flush_multiplier).
+    // The Flushing volumes dialog's range.
     for (const double m : multipliers)
-        if (m < 0. || m > 3.)
-            throw ToolFailure("flush_multiplier " + to_config_string(json(m)) + " is outside 0..3, the Flushing volumes dialog's range");
+        if (m < g_min_flush_multiplier || m > g_max_flush_multiplier)
+            throw ToolFailure("flush_multiplier " + to_config_string(json(m)) + " is outside " +
+                              to_config_string(json(double(g_min_flush_multiplier))) + ".." +
+                              to_config_string(json(double(g_max_flush_multiplier))) + ", the Flushing volumes dialog's range");
     return multipliers;
 }
 
@@ -1910,7 +1848,7 @@ void register_config_tools(McpService& service)
                       {"type"}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_presets(args); })); }));
 
-    reg.add(mutate_tool(
+    reg.add(reaching({"resolve_preset", "select_preset", "assign_filament_preset"}, mutate_tool(
         "select_preset", L("Select a preset"),
         "Select a printer, process or filament preset by the name its selector shows (or its internal name), as a person "
         "would. A hidden one (list_presets include_hidden) is shown in the selectors first, until the app restarts. With "
@@ -1930,84 +1868,46 @@ void register_config_tools(McpService& service)
             const std::string  name    = arg_string(args, "name");
             const std::string  changes = arg_string(args, "preset_changes");
             json result = ctx.run_ui([&]() -> json {
-                Plater&       plater = ui_plater();
-                PresetBundle& bundle = *wxGetApp().preset_bundle;
-                Tab*          tab    = wxGetApp().get_tab(type);
-                if (tab == nullptr)
-                    throw ToolFailure("The settings tab is not available");
-                const int             slot = arg_int(args, "filament_slot", 1);
-                PlaterPresetComboBox* filament_combo = nullptr;
-                int                   filament_item  = -1;
-                std::string           target         = name;
-                std::string           shown;
-                if (type == Preset::TYPE_FILAMENT) {
-                    auto& combos = plater.sidebar().combos_filament();
-                    if (slot < 1 || slot > int(combos.size()) || combos[size_t(slot - 1)] == nullptr)
-                        throw ToolFailure("filament_slot must be 1.." + std::to_string(combos.size()));
-                    filament_combo = combos[size_t(slot - 1)];
-                    auto match     = filament_combo->find_by_name(name);
-                    if (match.item < 0 && !match.ambiguous && !(shown = show_hidden_preset(bundle.filaments, name)).empty()) {
-                        for (PlaterPresetComboBox* combo : combos)
-                            if (combo != nullptr)
-                                combo->update();
-                        match = filament_combo->find_by_name(shown);
-                    }
-                    if (match.ambiguous)
-                        throw ToolFailure("\"" + name + "\" is ambiguous in filament slot " + std::to_string(slot) + "'s selector; use the internal name");
-                    if (match.item < 0)
-                        throw not_offered(bundle.filaments, name, "Filament slot " + std::to_string(slot));
-                    filament_item = match.item;
-                    target        = match.internal_name;
-                } else if (TabPresetComboBox* combo = tab->get_combo_box(); combo != nullptr && combo->GetCount() > 0) {
-                    auto match = combo->find_by_name(name);
-                    if (match.item < 0 && !match.ambiguous && !(shown = show_hidden_preset(collection(type), name)).empty()) {
-                        if (type == Preset::TYPE_PRINTER)
-                            show_default_filaments(bundle, shown);
-                        combo->update();
-                        match = combo->find_by_name(shown);
-                    }
-                    if (match.ambiguous)
-                        throw ToolFailure("\"" + name + "\" is ambiguous; use the internal name");
-                    if (match.item < 0)
-                        throw not_offered(collection(type), name, "The selector");
-                    target = match.internal_name;
-                }
-                // The prompt about the tab's own changes offers Transfer only where can_transfer_changes_to() says;
-                // refused here, before anything changes. The sidebar switches the filament tab for a single filament only.
-                const bool switches_tab = type != Preset::TYPE_FILAMENT || !plater.sidebar().is_multifilament();
-                if (changes == "transfer" && switches_tab && collection(type).current_is_dirty() && !tab->can_transfer_changes_to(target))
-                    throw ToolFailure(std::string("The unsaved-changes prompt offers no Transfer here: ") +
-                                      (type == Preset::TYPE_PRINTER ? "a printer's changes stay with it" :
-                                                                      "\"" + target + "\" is a filament of another type") +
-                                      ". Pass preset_changes: \"discard\", or save_preset first.");
+                ui_plater();
+                const int                slot = arg_int(args, "filament_slot", 1);
+                const Ops::PresetKind    kind = type == Preset::TYPE_PRINTER  ? Ops::PresetKind::Printer :
+                                                type == Preset::TYPE_FILAMENT ? Ops::PresetKind::Filament :
+                                                                                Ops::PresetKind::Process;
+                const Ops::PresetChanges answer = changes == "transfer" ? Ops::PresetChanges::Transfer :
+                                                  changes == "discard"  ? Ops::PresetChanges::Discard :
+                                                                          Ops::PresetChanges::Ask;
+                Ops::ResolvePresetArgs resolve;
+                resolve.kind          = kind;
+                resolve.name          = name;
+                resolve.filament_slot = slot;
+                const Ops::Outcome<Ops::ResolvedPreset> resolved = Ops::resolve_preset(resolve);
+                if (!resolved)
+                    throw preset_refused(resolved.refusal());
                 const json before = unsaved_changes();
-                tab->m_dirty_preset_answer = changes == "transfer" ? Tab::DirtyPresetAnswer::Transfer :
-                                             changes == "discard"  ? Tab::DirtyPresetAnswer::Discard :
-                                                                     Tab::DirtyPresetAnswer::Ask;
-                ScopeGuard ask_again([tab] { tab->m_dirty_preset_answer = Tab::DirtyPresetAnswer::Ask; });
-                json out;
-                if (filament_combo != nullptr) {
-                    // The sidebar's own selection path: mapping, flush volumes, badges, project state.
-                    filament_combo->SetSelection(filament_item);
-                    wxCommandEvent evt(wxEVT_COMBOBOX, filament_combo->GetId());
-                    evt.SetEventObject(filament_combo);
-                    evt.SetInt(filament_item);
-                    evt.SetString(filament_combo->GetString(filament_item));
-                    filament_combo->GetEventHandler()->ProcessEvent(evt);
-                    out = {{"type", "filament"}, {"filament_slot", slot}, {"selected", bundle.filament_presets[size_t(slot - 1)]}};
+                json       out;
+                if (kind == Ops::PresetKind::Filament) {
+                    Ops::AssignFilamentArgs assign;
+                    assign.filament_slot = slot;
+                    assign.preset        = resolved.value().name;
+                    assign.changes       = answer;
+                    const Ops::Outcome<std::string> assigned = Ops::assign_filament_preset(assign);
+                    if (!assigned)
+                        throw preset_refused(assigned.refusal());
+                    out = {{"type", "filament"}, {"filament_slot", slot}, {"selected", assigned.value()}};
                 } else {
-                    if (!tab->select_preset(target))
-                        throw ToolFailure("Selecting \"" + target + "\" was cancelled");
-                    out = {{"type", arg_string(args, "type")}, {"selected", collection(type).get_selected_preset_name()}};
+                    const Ops::Outcome<Ops::Done> selected = Ops::select_preset({kind, resolved.value().name, answer});
+                    if (!selected)
+                        throw preset_refused(selected.refusal());
+                    out = {{"type", arg_string(args, "type")}, {"selected", resolved.value().name}};
                 }
-                if (!shown.empty())
-                    out["shown"] = shown;
+                if (!resolved.value().shown.empty())
+                    out["shown"] = resolved.value().shown;
                 out.update(unsaved_changes_outcome(before));
                 return out;
             });
             settle(ctx);
             return ToolResult::ok(result);
-        }));
+        })));
 
     ToolDef save = mutate_tool(
         "save_preset", L("Save a preset"),
@@ -2192,7 +2092,7 @@ void register_config_tools(McpService& service)
             }));
         }));
 
-    reg.add(mutate_tool(
+    reg.add(reaching({"set_plate_locked"}, mutate_tool(
         "set_settings", L("Change settings"),
         "Change settings of one scope (default the process) as typing them into its settings tab would. Values are strings "
         "in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as [x, y]). All are "
@@ -2360,7 +2260,7 @@ void register_config_tools(McpService& service)
             });
             settle(ctx);
             return ToolResult::ok(result);
-        }));
+        })));
 
     reg.add(inspect_tool(
         "list_plates", L("List plates"),

@@ -36,6 +36,17 @@ namespace GUI {
 
 class BitmapCache;
 
+// A selector's row as a pick of a preset by name sees it.
+struct PresetRow
+{
+    std::string stored;         // the preset name the row stores; empty for a row that stores none, as an AMS filament's
+    std::string label;          // what the row shows
+    bool        marker = false; // a group header or another row that is not a preset
+};
+// The index of the row a pick of preset `name` selects: the row that stores `name`, else the first
+// that stores no name and is labelled `name`; never a marker. -1 when there is none.
+int row_for_preset(const std::vector<PresetRow>& rows, const std::string& name);
+
 // ---------------------------------
 // ***  PresetComboBox  ***
 // ---------------------------------
@@ -86,7 +97,9 @@ public:
     // filament slot combo that slot's compatibility). A name two distinct items carry is reported
     // ambiguous instead of being resolved by position. Used by scripts and automation.
     NameMatch find_by_name(const std::string& requested);
-    // Index of the item whose internal name is `preset_name`, or -1.
+    // The item a pick of `preset_name` selects (row_for_preset()), or -1. `preset_name` is a name as
+    // find_by_name() resolves one (internal_name): a preset's name, or the label of a row that stores
+    // none.
     int item_for_preset(const std::string& preset_name);
 
     void set_selection_changed_function(std::function<void(int)> sel_changed) { on_selection_changed = sel_changed; }
@@ -231,6 +244,9 @@ public:
     void update() override;
     void msw_rescale() override;
     void OnSelect(wxCommandEvent& evt) override;
+    // The selector's own part of a pick of `item`, which OnSelect() runs before the plater's: the item
+    // becomes the last selection and, for a filament, the slot's colour follows the preset.
+    void item_picked(int item);
     void update_badge_according_flag();
     void set_sync_badge(bool show);
 

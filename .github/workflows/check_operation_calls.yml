@@ -1,0 +1,36 @@
+name: Check operation calls
+
+# The Speed Dial's command runners, the MCP tools and the plugin API's bindings change the app through
+# src/slic3r/GUI/Operations. This fails when one of their files calls an owner method an operation
+# stands for and scripts/operation_calls_baseline.txt does not list the line with its reason.
+on:
+  push:
+    paths:
+    - 'src/slic3r/GUI/NativeCommands.cpp'
+    - 'src/slic3r/GUI/Mcp/McpTools*.cpp'
+    - 'src/slic3r/plugin/host/*.cpp'
+    - 'scripts/check_operation_calls.py'
+    - 'scripts/operation_calls_baseline.txt'
+    - '.github/workflows/check_operation_calls.yml'
+  pull_request:
+    paths:
+    - 'src/slic3r/GUI/NativeCommands.cpp'
+    - 'src/slic3r/GUI/Mcp/McpTools*.cpp'
+    - 'src/slic3r/plugin/host/*.cpp'
+    - 'scripts/check_operation_calls.py'
+    - 'scripts/operation_calls_baseline.txt'
+    - '.github/workflows/check_operation_calls.yml'
+
+permissions: {}
+
+jobs:
+  check_operation_calls:
+    name: Check operation calls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Check the callers of the operations layer
+        run: python3 scripts/check_operation_calls.py

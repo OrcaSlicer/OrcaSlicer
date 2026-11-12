@@ -1,0 +1,414 @@
+// Records the assignment of a filament preset to a slot on a printer with three slots. Slot 2 is assigned
+// through each route: a pick in its selector in the sidebar (its list opened with click and the row clicked),
+// the select_preset tool, and the plugin API's orca.host.preset.filament.begin_update(2, name) run from
+// run_script; for an ordinary change to a filament with a default colour and to one without, and for a change to
+// a support filament, under each value of the automatic flush calculation (Preferences > Behaviour > Auto flush
+// after changing...). Then the plugin API's other forms, unsaved changes in the preset the filament tab edits,
+// the refusals (no such slot, no such name, an incompatible preset, a mixed-colour slot) and a hidden preset. Each
+// case starts from slot presets, colours and flushing volumes set to sentinels by fixtures/ops_presets.py, and
+// after each call reads what it left once queued events have settled (the slot mapping, the edited filament
+// preset, the three colour settings, the project's colours and flushing volumes, dialogs, undo snapshots).
+// Refused calls are optional. Run it on a freshly launched app (a hidden preset stays shown until a restart)
+// with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_assign_filament_preset_multi_slot.json --out <dir>
+{
+  "orca_replay": 1,
+  "name": "ops assign_filament_preset, several slots",
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_window", "args": {"size": [1920, 1040]}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    // Simple mode, as on a fresh datadir: the unsaved-changes prompt lists the settings the mode shows.
+    {"tool": "run_action", "args": {"id": "orca_command:mode_simple:orca"}},
+    // One slot first, so the presets below are shown and selected on the harness's default printer.
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle", "preset_changes": "discard"}},
+    {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "preset_changes": "discard"}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1, "preset_changes": "discard"}},
+    // The filaments the cases pick, hidden on a fresh datadir, are shown in every selector (until the app
+    // restarts) by selecting each once with the tool. FilAr PLA Blanco Calido has a default colour
+    // (#FFF8E7); the Bambu ones have none.
+    {"tool": "select_preset", "args": {"type": "filament", "name": "FilAr PLA Blanco Calido", "filament_slot": 1}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Matte", "filament_slot": 1}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu Support For PLA", "filament_slot": 1}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu Support for ABS", "filament_slot": 1}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_add:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_add:orca"}},
+    {"tool": "get_app_state", "expect": {"/presets/filaments/2": {"exists": true}, "/presets/filaments/3": {"exists": false}}},
+
+    // ==== Automatic flush calculation "All" (all) ====
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "behaviour:auto_calculate_flush"}, "await": false, "save_as": "prefs1"},
+    // The choice is saved by the drop-down's own handler, so it is picked from its list.
+    {"tool": "click", "args": {"target": {"name": "auto_calculate_flush", "within": "Preferences"}}},
+    {"tool": "click", "args": {"target": {"row": "All"}}},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs1}"}},
+    {"tool": "get_settings", "args": {"scope": "preferences", "keys": ["auto_calculate_flush"]}, "expect": {"/items/0/value": {"eq": "all"}}},
+
+    // ---- Slot 2, an ordinary change to a filament with a default colour: FilAr PLA Blanco Calido ----
+    // Picked in slot 2's selector, its list opened with a click and the row clicked.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "click", "args": {"target": {"class": "PlaterPresetComboBox", "index": 2}}},
+    {"tool": "click", "args": {"target": {"row": "FilAr PLA Blanco Calido"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The tool.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "FilAr PLA Blanco Calido", "filament_slot": 2}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The plugin API, begin_update(2, name) and commit().
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "FilAr PLA Blanco Calido", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ---- Slot 2, an ordinary change to a filament without one: Bambu PLA Matte ----
+    // Picked in slot 2's selector, its list opened with a click and the row clicked.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "click", "args": {"target": {"class": "PlaterPresetComboBox", "index": 2}}},
+    {"tool": "click", "args": {"target": {"row": "Bambu PLA Matte"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The tool.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Matte", "filament_slot": 2}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The plugin API, begin_update(2, name) and commit().
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "Bambu PLA Matte", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ---- Slot 2, a change that makes the slot hold a support filament: Bambu Support For PLA ----
+    // Picked in slot 2's selector, its list opened with a click and the row clicked.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "click", "args": {"target": {"class": "PlaterPresetComboBox", "index": 2}}},
+    {"tool": "click", "args": {"target": {"row": "Bambu Support For PLA"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The tool.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu Support For PLA", "filament_slot": 2}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The plugin API, begin_update(2, name) and commit().
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "Bambu Support For PLA", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ==== Automatic flush calculation "Color" (color change) ====
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "behaviour:auto_calculate_flush"}, "await": false, "save_as": "prefs2"},
+    // The choice is saved by the drop-down's own handler, so it is picked from its list.
+    {"tool": "click", "args": {"target": {"name": "auto_calculate_flush", "within": "Preferences"}}},
+    {"tool": "click", "args": {"target": {"row": "Color"}}},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs2}"}},
+    {"tool": "get_settings", "args": {"scope": "preferences", "keys": ["auto_calculate_flush"]}, "expect": {"/items/0/value": {"eq": "color change"}}},
+
+    // ---- Slot 2, an ordinary change to a filament with a default colour: FilAr PLA Blanco Calido ----
+    // Picked in slot 2's selector, its list opened with a click and the row clicked.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "click", "args": {"target": {"class": "PlaterPresetComboBox", "index": 2}}},
+    {"tool": "click", "args": {"target": {"row": "FilAr PLA Blanco Calido"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The tool.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "FilAr PLA Blanco Calido", "filament_slot": 2}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The plugin API, begin_update(2, name) and commit().
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "FilAr PLA Blanco Calido", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ---- Slot 2, an ordinary change to a filament without one: Bambu PLA Matte ----
+    // Picked in slot 2's selector, its list opened with a click and the row clicked.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "click", "args": {"target": {"class": "PlaterPresetComboBox", "index": 2}}},
+    {"tool": "click", "args": {"target": {"row": "Bambu PLA Matte"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The tool.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Matte", "filament_slot": 2}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The plugin API, begin_update(2, name) and commit().
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "Bambu PLA Matte", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ---- Slot 2, a change that makes the slot hold a support filament: Bambu Support For PLA ----
+    // Picked in slot 2's selector, its list opened with a click and the row clicked.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "click", "args": {"target": {"class": "PlaterPresetComboBox", "index": 2}}},
+    {"tool": "click", "args": {"target": {"row": "Bambu Support For PLA"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The tool.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu Support For PLA", "filament_slot": 2}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The plugin API, begin_update(2, name) and commit().
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "Bambu Support For PLA", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ==== Automatic flush calculation "None" (disabled) ====
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "behaviour:auto_calculate_flush"}, "await": false, "save_as": "prefs3"},
+    // The choice is saved by the drop-down's own handler, so it is picked from its list.
+    {"tool": "click", "args": {"target": {"name": "auto_calculate_flush", "within": "Preferences"}}},
+    {"tool": "click", "args": {"target": {"row": "None"}}},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs3}"}},
+    {"tool": "get_settings", "args": {"scope": "preferences", "keys": ["auto_calculate_flush"]}, "expect": {"/items/0/value": {"eq": "disabled"}}},
+
+    // ---- Slot 2, an ordinary change to a filament with a default colour: FilAr PLA Blanco Calido ----
+    // Picked in slot 2's selector, its list opened with a click and the row clicked.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "click", "args": {"target": {"class": "PlaterPresetComboBox", "index": 2}}},
+    {"tool": "click", "args": {"target": {"row": "FilAr PLA Blanco Calido"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The tool.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "FilAr PLA Blanco Calido", "filament_slot": 2}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The plugin API, begin_update(2, name) and commit().
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "FilAr PLA Blanco Calido", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ---- Slot 2, an ordinary change to a filament without one: Bambu PLA Matte ----
+    // Picked in slot 2's selector, its list opened with a click and the row clicked.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "click", "args": {"target": {"class": "PlaterPresetComboBox", "index": 2}}},
+    {"tool": "click", "args": {"target": {"row": "Bambu PLA Matte"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The tool.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Matte", "filament_slot": 2}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The plugin API, begin_update(2, name) and commit().
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "Bambu PLA Matte", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ---- Slot 2, a change that makes the slot hold a support filament: Bambu Support For PLA ----
+    // Picked in slot 2's selector, its list opened with a click and the row clicked.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "click", "args": {"target": {"class": "PlaterPresetComboBox", "index": 2}}},
+    {"tool": "click", "args": {"target": {"row": "Bambu Support For PLA"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The tool.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu Support For PLA", "filament_slot": 2}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The plugin API, begin_update(2, name) and commit().
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "Bambu Support For PLA", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ==== Back to "All": the other forms, unsaved changes, refusals ====
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "behaviour:auto_calculate_flush"}, "await": false, "save_as": "prefs4"},
+    // The choice is saved by the drop-down's own handler, so it is picked from its list.
+    {"tool": "click", "args": {"target": {"name": "auto_calculate_flush", "within": "Preferences"}}},
+    {"tool": "click", "args": {"target": {"row": "All"}}},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "Preferences"}, "button": "close"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs4}"}},
+    {"tool": "get_settings", "args": {"scope": "preferences", "keys": ["auto_calculate_flush"]}, "expect": {"/items/0/value": {"eq": "all"}}},
+
+    // ---- The selector's value set with set_widget_value, which also reaches both handlers ----
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "set_widget_value", "args": {"target": {"class": "PlaterPresetComboBox", "index": 2}, "value": "FilAr PLA Blanco Calido"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ---- The plugin API's other forms. begin_update(2, name) without commit(): it assigns at once ----
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "FilAr PLA Blanco Calido"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // begin_update(2, name) naming the preset slot 2 already holds: the tab switches, nothing is assigned.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Matte", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "Bambu PLA Matte", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // begin_update(2) with no name, slot 2 holding another preset than the tab edits.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Matte", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // begin_update(2) with a setting staged and committed.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Matte", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "set": ["slow_down_layer_time", "8"], "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // update(2, key, value).
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Matte", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "update", "slot": 2, "key": "slow_down_layer_time", "value": "8"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // update(key, value): the preset the tab edits.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Matte", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "update", "key": "slow_down_layer_time", "value": "8"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ---- Unsaved changes in the preset the tab edits (slot 1's): only the plugin API switches the tab ----
+    // The sidebar.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"], "dirty": true}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}, "/result/filament_tab": {"regex": " \\(modified\\)$"}}},
+    {"tool": "click", "args": {"target": {"class": "PlaterPresetComboBox", "index": 2}}},
+    {"tool": "click", "args": {"target": {"row": "FilAr PLA Blanco Calido"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The tool without preset_changes, then with each value.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"], "dirty": true}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}, "/result/filament_tab": {"regex": " \\(modified\\)$"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "FilAr PLA Blanco Calido", "filament_slot": 2}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"], "dirty": true}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}, "/result/filament_tab": {"regex": " \\(modified\\)$"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "FilAr PLA Blanco Calido", "filament_slot": 2, "preset_changes": "transfer"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"], "dirty": true}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}, "/result/filament_tab": {"regex": " \\(modified\\)$"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "FilAr PLA Blanco Calido", "filament_slot": 2, "preset_changes": "discard"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The plugin API, begin_update(2, name) and commit(): the prompt answered Transfer, Discard and closed.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"], "dirty": true}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}, "/result/filament_tab": {"regex": " \\(modified\\)$"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "FilAr PLA Blanco Calido", "commit": true}}, "await": false, "save_as": "api5"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "answer_dialog", "args": {"button": "Transfer"}, "optional": true},
+    // A second prompt, if one opens, is counted here and answered so the call can end.
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 3}},
+    {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.api5}", "timeout_s": 30}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"], "dirty": true}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}, "/result/filament_tab": {"regex": " \\(modified\\)$"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "FilAr PLA Blanco Calido", "commit": true}}, "await": false, "save_as": "api6"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "answer_dialog", "args": {"button": "Discard"}, "optional": true},
+    // A second prompt, if one opens, is counted here and answered so the call can end.
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 3}},
+    {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.api6}", "timeout_s": 30}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"], "dirty": true}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}, "/result/filament_tab": {"regex": " \\(modified\\)$"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "FilAr PLA Blanco Calido", "commit": true}}, "await": false, "save_as": "api7"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
+    // A second prompt, if one opens, is counted here and answered so the call can end.
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 3}},
+    {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.api7}", "timeout_s": 30}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // begin_update(2) and update(2, key, value), slot 2 holding another preset: the prompt closed.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Matte", "Bambu PLA Basic"], "dirty": true}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}, "/result/filament_tab": {"regex": " \\(modified\\)$"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "commit": true}}, "await": false, "save_as": "api8"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
+    // A second prompt, if one opens, is counted here and answered so the call can end.
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 3}},
+    {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.api8}", "timeout_s": 30}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Matte", "Bambu PLA Basic"], "dirty": true}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}, "/result/filament_tab": {"regex": " \\(modified\\)$"}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "update", "slot": 2, "key": "slow_down_layer_time", "value": "8"}}, "await": false, "save_as": "api9"},
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
+    // A second prompt, if one opens, is counted here and answered so the call can end.
+    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 3}},
+    {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.api9}", "timeout_s": 30}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+
+    // ---- Refusals. A slot the project lacks ----
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "FilAr PLA Blanco Calido", "filament_slot": 5}, "optional": true},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 5, "name": "FilAr PLA Blanco Calido", "commit": true}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 0, "name": "FilAr PLA Blanco Calido", "commit": true}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "update", "slot": 5, "key": "slow_down_layer_time", "value": "8"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // A name that matches nothing.
+    {"tool": "select_preset", "args": {"type": "filament", "name": "No Such Filament", "filament_slot": 2}, "optional": true},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "No Such Filament", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // A preset that is not compatible with the printer.
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic @BBL A1", "filament_slot": 2}, "optional": true},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "Bambu PLA Basic @BBL A1", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // A hidden preset is shown and assigned: the plugin API takes Bambu PETG HF, the tool Bambu PETG Basic
+    // (on a rerun without a restart both are shown already).
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 2, "name": "Bambu PETG HF @BBL X1C", "commit": true}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PETG Basic", "filament_slot": 2}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    // The filament editor's begin_update() takes a slot number first.
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "name": "FilAr PLA Blanco Calido"}}},
+    // A mixed-colour slot (slot 4, made from slots 1 and 2 in the Add Mixed Filament dialog).
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.arrange_filaments(args)", "args": {"slots": ["Bambu PLA Basic", "Bambu PLA Basic", "Bambu PLA Basic"]}}, "expect": {"/result/dialogs": {"empty": true}, "/result/project/flush_volumes_matrix": {"eq": "0,777,777,777,0,777,777,777,0"}}},
+    {"tool": "click", "args": {"target": {"label": "Add Mixed Filament"}}, "await": false, "save_as": "mix10"},
+    {"tool": "wait", "args": {"for": "dialog"}},
+    {"tool": "get_app_state", "expect": {"/dialogs/0/title": {"eq": "Add Mixed Filament"}}},
+    {"tool": "answer_dialog", "args": {"button": "OK"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.mix10}"}},
+    {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_is_mixed"]}, "expect": {"/items/0/value": {"eq": "0,0,0,1"}}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "FilAr PLA Blanco Calido", "filament_slot": 4}, "optional": true},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 4, "name": "FilAr PLA Blanco Calido", "commit": true}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "begin_update", "slot": 4, "commit": true}}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.preset_api(args)", "args": {"editor": "filament", "form": "update", "slot": 4, "key": "slow_down_layer_time", "value": "8"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
+    {"tool": "click", "args": {"target": {"label": "Remove last mixed filament"}}},
+    {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_is_mixed"]}, "expect": {"/items/0/value": {"eq": "0,0,0"}}},
+
+    // ---- Back to the harness's default printer with one slot ----
+    {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.drop_filament_edits()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca"}, "optional": true},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "select_preset", "args": {"type": "printer", "name": "Bambu Lab X1 Carbon 0.4 nozzle", "preset_changes": "discard"}},
+    {"tool": "select_preset", "args": {"type": "process", "name": "0.20mm Standard @BBL X1C", "preset_changes": "discard"}},
+    {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1, "preset_changes": "discard"}}
+  ]
+}

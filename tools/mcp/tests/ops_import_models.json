@@ -1,0 +1,178 @@
+// Records what a model import does through its two routes, the import_file command run with run_action and a
+// path param and the open_files tool (models, and a .3mf with as "geometry"), each of which adds the files'
+// geometry as one undo step and loads no settings: an STL into an empty project and into one with objects, a
+// project .3mf saved here from a cube with wall_loops 5 into a project with a cylinder and top_shell_layers 7,
+// and imports that load nothing (a path that does not exist, a PNG, a preset .json, each of the last two opening
+// a warning and an error, which it answers). After each it reads the objects, the project's name and file, the
+// selected presets and their unsaved keys, the recent projects (search_actions) and the dialogs, then the undo
+// snapshots taken since the last read (fixtures/ops_undo.py), and runs undo once to show what that step takes
+// back. Last, File > Import (import_file without a param) with a rule that answers its picker with a path: the
+// picker is multi-select, which takes no path, so it is cancelled. Every call it records is optional. Run it
+// with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_import_models.json --out <dir>
+{
+  "orca_replay": 1,
+  "name": "ops import_models",
+  "vars": {
+    "stl": "${replay_dir}/../../../tests/data/test_stl/ASCII/20mmbox-LF.stl",
+    "png": "${replay_dir}/fixtures/heightmap.png",
+    "preset_json": "${replay_dir}/fixtures/mcp_import_pla.json",
+    "undo": "${replay_dir}/fixtures/ops_undo.py"
+  },
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+
+    // ---- The source project: a cube with wall_loops 5, saved ----
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "set_settings", "args": {"values": {"wall_loops": 5}}},
+    {"tool": "save_project", "args": {"path": "${out_dir}/src_project.3mf", "overwrite": true}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "search_actions", "args": {"group": "Recent Projects"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- An STL into an empty project: the command ----
+    {"tool": "run_action", "args": {"id": "orca_command:import_file:orca", "param": "${vars.stl}"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "list_objects"},
+    {"tool": "search_actions", "args": {"group": "Recent Projects"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects"},
+    // ---- the tool ----
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "open_files", "args": {"paths": ["${vars.stl}"]}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "list_objects"},
+    {"tool": "search_actions", "args": {"group": "Recent Projects"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects"},
+
+    // ---- An STL into a project with a cylinder and an unsaved process change: the command ----
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca", "param": "20 10"}},
+    {"tool": "set_settings", "args": {"values": {"top_shell_layers": 7}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 1}}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:import_file:orca", "param": "${vars.stl}"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "list_objects"},
+    {"tool": "get_settings", "args": {"scope": "process", "compare": ":saved"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects"},
+    // ---- the tool ----
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca", "param": "20 10"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 1}}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "open_files", "args": {"paths": ["${vars.stl}"]}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "list_objects"},
+    {"tool": "get_settings", "args": {"scope": "process", "compare": ":saved"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects"},
+
+    // ---- The project .3mf into a project with a cylinder and top_shell_layers 7: the command ----
+    // A dialog it opens is listed by get_app_state and cancelled.
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca", "param": "20 10"}},
+    {"tool": "set_settings", "args": {"values": {"top_shell_layers": 7}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "search_actions", "args": {"group": "Recent Projects"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:import_file:orca", "param": "${out_dir}/src_project.3mf"}, "await": false, "save_as": "cmd3mf", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.cmd3mf}"}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "list_objects"},
+    {"tool": "get_settings", "args": {"scope": "process", "compare": ":saved"}},
+    {"tool": "get_settings", "args": {"scope": "filament", "compare": ":saved"}},
+    {"tool": "get_settings", "args": {"scope": "printer", "compare": ":saved"}},
+    {"tool": "get_settings", "args": {"keys": ["wall_loops", "top_shell_layers"]}},
+    {"tool": "search_actions", "args": {"group": "Recent Projects"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects"},
+    {"tool": "get_settings", "args": {"keys": ["wall_loops", "top_shell_layers"]}},
+    // ---- the tool, as geometry ----
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca", "param": "20 10"}},
+    {"tool": "set_settings", "args": {"values": {"top_shell_layers": 7}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/src_project.3mf"], "as": "geometry"}, "await": false, "save_as": "tool3mf", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.tool3mf}"}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "get_app_state"},
+    {"tool": "list_objects"},
+    {"tool": "get_settings", "args": {"scope": "process", "compare": ":saved"}},
+    {"tool": "get_settings", "args": {"scope": "filament", "compare": ":saved"}},
+    {"tool": "get_settings", "args": {"scope": "printer", "compare": ":saved"}},
+    {"tool": "get_settings", "args": {"keys": ["wall_loops", "top_shell_layers"]}},
+    {"tool": "search_actions", "args": {"group": "Recent Projects"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects"},
+
+    // ---- Imports that load nothing, on a project with a cube ----
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:import_file:orca", "param": "${out_dir}/missing.stl"}, "optional": true},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/missing.stl"]}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_file:orca", "param": "${vars.png}"}, "await": false, "save_as": "cmdpng", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.cmdpng}"}, "optional": true},
+    {"tool": "open_files", "args": {"paths": ["${vars.png}"]}, "await": false, "save_as": "toolpng", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.toolpng}"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_file:orca", "param": "${vars.preset_json}"}, "await": false, "save_as": "cmdjson", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.cmdjson}"}, "optional": true},
+    {"tool": "open_files", "args": {"paths": ["${vars.preset_json}"]}, "await": false, "save_as": "tooljson", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.tooljson}"}, "optional": true},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects"},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects"},
+
+    // ---- File > Import: the multi-select picker takes no path, so the rule cancels it ----
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "Choose one or more files", "button": "ok", "path": "${vars.stl}"}]}},
+    {"tool": "run_action", "args": {"id": "orca_command:import_file:orca"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.log_lines('multi-select', 1)"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}}
+  ]
+}

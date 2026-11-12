@@ -149,8 +149,7 @@ void describe_command(Builder& b, const std::string& key, const std::string& par
         b.flag(StepFlag::ChangesPresets);
         b.replace("app_asked");
     }
-    if (one_of(key, {"load_project", "new_project"}) ||
-        (key == "import_file" && file && has_extension(*file, {".3mf", ".gcode", ".bgcode"}))) {
+    if (one_of(key, {"load_project", "new_project"})) {
         b.flag(StepFlag::ReplacesProject);
         b.replace("app_asked");
     }

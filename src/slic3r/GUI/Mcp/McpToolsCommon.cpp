@@ -4,6 +4,8 @@
 
 #include "McpTypes.hpp"
 #include "UiInspector.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "slic3r/GUI/Operations/PlateOps.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
@@ -68,6 +70,12 @@ ToolDef inspect_tool(std::string name, std::string title, std::string descriptio
     d.journal      = false;
     d.handler      = std::move(handler);
     return d;
+}
+
+ToolDef reaching(std::vector<std::string> operations, ToolDef def)
+{
+    def.operations = std::move(operations);
+    return def;
 }
 
 ToolDef mutate_tool(std::string name, std::string title, std::string description, json schema, ToolHandler handler, bool destructive)
@@ -227,10 +235,14 @@ std::string arg_string(const json& args, const char* key, const std::string& fal
     return it != args.end() && it->is_string() ? it->get<std::string>() : fallback;
 }
 
-std::string no_such_plate(int plate, int count)
+std::string no_such_plate(int plate, int count) { return Ops::no_such_plate(plate, count).english(); }
+
+ToolFailure refused(const Ops::Refusal& refusal, const std::string& hint, const char* names_key)
 {
-    return "Plate " + std::to_string(plate) + " does not exist (the project has " +
-           (count == 1 ? "plate 0 only" : "plates 0.." + std::to_string(count - 1)) + ")";
+    json details{{"code", refusal.code}};
+    if (names_key != nullptr)
+        details[names_key] = refusal.names;
+    return ToolFailure(refusal.english() + (hint.empty() ? "" : " " + hint), std::move(details));
 }
 
 int arg_int(const json& args, const char* key, int fallback)

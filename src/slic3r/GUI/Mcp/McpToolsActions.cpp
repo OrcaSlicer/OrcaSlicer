@@ -1,7 +1,6 @@
 // search_actions and run_action: every Speed Dial action - built-in commands, plates, recent projects,
 // plugin scripts and pages, and (on request) settings - is reachable through these two tools.
 
-#include "McpOperations.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
@@ -13,6 +12,9 @@
 #include "slic3r/GUI/Mcp/McpToolsCad.hpp"
 #endif
 #include "slic3r/GUI/NativeCommands.hpp"
+#include "slic3r/GUI/Operations/ExportOps.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "slic3r/GUI/Operations/RunStatus.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
 #include <algorithm>
@@ -161,25 +163,19 @@ std::string other_catalog_hint(const ToolRegistry& registry, const std::string& 
     return {};
 }
 
-ToolResult await_gcode_export(ToolContext& ctx, uint64_t before, uint64_t after, uint64_t revision, const std::string& rejection)
+ToolResult await_gcode_export(ToolContext& ctx, const Ops::ExportTicket& ticket)
 {
-    if (after == before)
-        return ToolResult::error(rejection.empty() ? "The export did not start" : rejection);
     json done = poll_ui(
         ctx,
-        [before, after, revision]() -> json {
-            Plater& plater = ui_plater();
-            auto    run    = plater.export_run(after);
-            std::optional<ExportRecord> record;
-            if (run) {
-                record = ExportRecord{run->seq, run->path, run->finished, run->ok, run->cancelled, run->error, run->revision_at_finish};
-            }
-            const ExportStatus status = export_status(before, after, record, revision);
-            if (status == ExportStatus::Pending)
+        [&ticket]() -> json {
+            ui_plater();
+            std::string             error;
+            const Ops::ExportStatus status = Ops::gcode_export_state(ticket, &error);
+            if (status == Ops::ExportStatus::Pending)
                 return json();
-            json out{{"export", to_string(status)}, {"path", run ? run->path : std::string()}};
-            if (run && !run->error.empty())
-                out["error"] = run->error;
+            json out{{"export", Ops::to_string(status)}, {"path", ticket.path}};
+            if (!error.empty())
+                out["error"] = error;
             return out;
         },
         std::chrono::minutes(10), "the export to finish");
@@ -243,6 +239,7 @@ void register_action_tools(McpService& service)
         [&service](const json& args, ToolContext& ctx) {
             std::string       id    = arg_string(args, "id");
             const std::string param = arg_string(args, "param");
+            Ops::ExportTicket ticket; // of an action that completes in the background
             json started = ctx.run_ui([&]() -> json {
                 ActionRegistry&  actions = registry_or_fail();
                 const AppAction& action  = find_action(actions, id, service.registry());
@@ -262,24 +259,41 @@ void register_action_tools(McpService& service)
                 }
                 const AppActionRunResult r = actions.run(id, param, /*record_stats=*/false);
                 json out{{"level", level_name(r.level)}, {"message", into_u8(r.message)}, {"done", r.done}, {"background", background}};
+                // An operation's refusal is worded once, in English here as in a tool's reply.
+                if (r.refusal) {
+                    out["message"] = r.refusal->english();
+                    out["refusal"] = {{"code", r.refusal->code}};
+                    if (!r.refusal->names.empty())
+                        out["refusal"]["names"] = r.refusal->names;
+                }
                 if (!r.reply.empty())
                     out["reply"] = json::parse(r.reply, nullptr, /*allow_exceptions=*/false);
-                if (background && plater != nullptr)
-                    out.update({{"before", before}, {"after", plater->export_seq()}, {"revision", revision}});
+                if (background && plater != nullptr) {
+                    ticket.seq_before = before;
+                    ticket.seq_after  = plater->export_seq();
+                    ticket.revision   = revision;
+                    if (const auto run = plater->export_run(ticket.seq_after))
+                        ticket.path = run->path;
+                }
                 return out;
             });
             // A command that did nothing (no selection, no objects) fails here, though the palette
             // shows it as information.
-            const bool done = started["done"].get<bool>();
+            const bool done    = started["done"].get<bool>();
+            const json details = started.value("refusal", json());
             if (started["background"].get<bool>()) {
                 if (started["level"] == "error" || !done)
-                    return ToolResult::error(started["message"].get<std::string>());
-                return await_gcode_export(ctx, started["before"], started["after"], started["revision"], started["message"]);
+                    return ToolResult::error(started["message"].get<std::string>(), details);
+                if (ticket.seq_after == ticket.seq_before)
+                    return ToolResult::error(started["message"].get<std::string>().empty() ? "The export did not start." :
+                                                                                             started["message"].get<std::string>());
+                return await_gcode_export(ctx, ticket);
             }
             settle(ctx);
             const std::string level = started["level"];
             if (level == "error" || level == "busy" || !done)
-                return ToolResult::error(started["message"].get<std::string>().empty() ? "The action failed" : started["message"].get<std::string>());
+                return ToolResult::error(started["message"].get<std::string>().empty() ? "The action failed" : started["message"].get<std::string>(),
+                                         details);
             json out{{"ran", id}, {"level", level}};
             if (!started["message"].get<std::string>().empty())
                 out["message"] = started["message"];

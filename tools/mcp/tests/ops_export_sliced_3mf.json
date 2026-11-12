@@ -1,0 +1,89 @@
+// Records what the sliced-file export does through its routes, the export_sliced_file and export_all_sliced_file
+// commands run with run_action and a path param, and the export tool's sliced_3mf format (the current plate, a
+// plate index, all): with no objects, on a plate not sliced, sliced, and with one plate of two sliced, from
+// either plate. After each it reads whether the file is there (an stl export to the same path with a plate the
+// project lacks refuses with "exists" when it is, with the plate when not), the plates, the project and the undo
+// snapshots taken since the last read (fixtures/ops_undo.py). Every call it records is optional. Run it into a
+// fresh --out directory (a command's JSON path param can't carry a Windows ${out_dir}, so the commands write
+// without overwrite and refuse the files of an earlier run):
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_export_sliced_3mf.json --out <new dir>
+{
+  "orca_replay": 1,
+  "name": "ops export_sliced_3mf",
+  "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- No objects ----
+    {"tool": "run_action", "args": {"id": "orca_command:export_sliced_file:orca", "param": "${out_dir}/empty_cmd.gcode.3mf"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_all_sliced_file:orca", "param": "${out_dir}/empty_all_cmd.gcode.3mf"}, "optional": true},
+    {"tool": "export", "args": {"format": "sliced_3mf", "path": "${out_dir}/empty_tool.gcode.3mf", "overwrite": true}, "optional": true},
+    {"tool": "export", "args": {"format": "sliced_3mf", "path": "${out_dir}/empty_all_tool.gcode.3mf", "plates": "all", "overwrite": true}, "optional": true},
+    {"tool": "get_app_state"},
+
+    // ---- A plate that is not sliced ----
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:export_sliced_file:orca", "param": "${out_dir}/ns_cmd.gcode.3mf"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_all_sliced_file:orca", "param": "${out_dir}/ns_all_cmd.gcode.3mf"}, "optional": true},
+    {"tool": "export", "args": {"format": "sliced_3mf", "path": "${out_dir}/ns_tool.gcode.3mf", "overwrite": true}, "optional": true},
+    {"tool": "export", "args": {"format": "sliced_3mf", "path": "${out_dir}/ns_all_tool.gcode.3mf", "plates": "all", "overwrite": true}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/empty_cmd.gcode.3mf", "plates": 999}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/empty_all_cmd.gcode.3mf", "plates": 999}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ns_cmd.gcode.3mf", "plates": 999}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ns_all_cmd.gcode.3mf", "plates": 999}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ns_tool.gcode.3mf", "plates": 999}, "optional": true},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Sliced ----
+    {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:export_sliced_file:orca", "param": "${out_dir}/ok_cmd.gcode.3mf"}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ok_cmd.gcode.3mf", "plates": 999}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_all_sliced_file:orca", "param": "${out_dir}/ok_all_cmd.gcode.3mf"}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ok_all_cmd.gcode.3mf", "plates": 999}, "optional": true},
+    {"tool": "export", "args": {"format": "sliced_3mf", "path": "${out_dir}/ok_tool.gcode.3mf", "overwrite": true}, "optional": true},
+    {"tool": "export", "args": {"format": "sliced_3mf", "path": "${out_dir}/ok_all_tool.gcode.3mf", "plates": "all", "overwrite": true}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- One plate of two sliced: plate 0 sliced, plate 1 not ----
+    {"tool": "run_action", "args": {"id": "orca_command:plate_add:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}},
+    {"tool": "select_objects", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "slice", "args": {"plates": 0}, "expect": {"/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_plates", "expect": {"/total": {"eq": 2}, "/items/0/sliced": {"eq": true}, "/items/1/sliced": {"eq": false}}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}},
+    {"tool": "run_action", "args": {"id": "orca_command:export_sliced_file:orca", "param": "${out_dir}/half_p0_cmd.gcode.3mf"}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/half_p0_cmd.gcode.3mf", "plates": 999}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_all_sliced_file:orca", "param": "${out_dir}/half_all_cmd.gcode.3mf"}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/half_all_cmd.gcode.3mf", "plates": 999}, "optional": true},
+    {"tool": "export", "args": {"format": "sliced_3mf", "path": "${out_dir}/half_p0_tool.gcode.3mf", "plates": 0, "overwrite": true}, "optional": true},
+    {"tool": "export", "args": {"format": "sliced_3mf", "path": "${out_dir}/half_p1_tool.gcode.3mf", "plates": 1, "overwrite": true}, "optional": true},
+    {"tool": "export", "args": {"format": "sliced_3mf", "path": "${out_dir}/half_all_tool.gcode.3mf", "plates": "all", "overwrite": true}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}},
+    {"tool": "run_action", "args": {"id": "orca_command:export_sliced_file:orca", "param": "${out_dir}/half_p1_cmd.gcode.3mf"}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/half_p1_cmd.gcode.3mf", "plates": 999}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_all_sliced_file:orca", "param": "${out_dir}/half_all_from1_cmd.gcode.3mf"}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/half_all_from1_cmd.gcode.3mf", "plates": 999}, "optional": true},
+    {"tool": "export", "args": {"format": "sliced_3mf", "path": "${out_dir}/half_cur1_tool.gcode.3mf", "overwrite": true}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    {"tool": "new_project", "args": {"discard_changes": true}}
+  ]
+}

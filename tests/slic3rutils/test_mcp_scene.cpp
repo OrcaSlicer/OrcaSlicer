@@ -50,6 +50,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <limits>
 #include <cmath>
 #include <condition_variable>
 #include <cstddef>
@@ -86,6 +87,39 @@ TEST_CASE("size targets scale uniformly when one axis is given", "[Mcp][Scene]")
     CHECK_THROWS_AS(Mcp::size_factors(current, json::array({nullptr, nullptr, nullptr})), Mcp::ToolFailure);
     // A flat shape has no size to scale along its flat axis.
     CHECK_THROWS_AS(Mcp::size_factors(Vec3d(50., 50., 0.), json::array({nullptr, nullptr, 2})), Mcp::ToolFailure);
+}
+
+TEST_CASE("a primitive's size has one number above 0 per dimension its dialog asks for", "[Mcp][Scene]")
+{
+    CHECK(is_primitive_size("Cube", {40., 40., 10.}));
+    CHECK(is_primitive_size("Cylinder", {90., 4.}));
+    CHECK(is_primitive_size("Sphere", {25.6}));
+    CHECK(is_primitive_size("Torus", {30., 10.}));
+
+    CHECK_FALSE(is_primitive_size("Cube", {40., 40.}));
+    CHECK_FALSE(is_primitive_size("Sphere", {25., 25.}));
+    CHECK_FALSE(is_primitive_size("Cube", {40., 0., 10.}));
+    CHECK_FALSE(is_primitive_size("Cube", {40., -1., 10.}));
+    CHECK_FALSE(is_primitive_size("Cube", {40., std::numeric_limits<double>::infinity(), 10.}));
+    CHECK_FALSE(is_primitive_size("Cube", {}));
+    // A shape with no size dialog takes the empty size alone.
+    CHECK(is_primitive_size("Benchy", {}));
+    CHECK_FALSE(is_primitive_size("Benchy", {10.}));
+}
+
+TEST_CASE("the arrange options keep Align to Y axis off while auto rotation is on", "[Mcp][Scene]")
+{
+    GLCanvas3D::ArrangeSettings settings;
+    settings.align_to_y_axis = true;
+    CHECK_FALSE(settings.apply_option_rules());
+    CHECK(settings.align_to_y_axis);
+
+    settings.enable_rotation = true;
+    CHECK(settings.apply_option_rules());
+    CHECK_FALSE(settings.align_to_y_axis);
+    // Nothing left to turn off.
+    CHECK_FALSE(settings.apply_option_rules());
+    CHECK(settings.enable_rotation);
 }
 
 TEST_CASE("primitive size params parse numbers separated by spaces or commas", "[Mcp][Scene]")

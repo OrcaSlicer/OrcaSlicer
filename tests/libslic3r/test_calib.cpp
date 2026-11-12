@@ -113,3 +113,19 @@ TEST_CASE("PA pattern resets the extruder after the final layer in absolute E mo
     REQUIRE(state.max_e > 1.);
     REQUIRE_THAT(state.final_e, Catch::Matchers::WithinAbs(0., 1e-9));
 }
+
+TEST_CASE("a temperature tower's temperatures are brought into 155-500 and rounded down to 5 degree blocks", "[Calib]")
+{
+    using Catch::Matchers::WithinAbs;
+    CHECK_THAT(clamp_calib_temp(154.), WithinAbs(155., 1e-9));
+    CHECK_THAT(clamp_calib_temp(155.), WithinAbs(155., 1e-9));
+    CHECK_THAT(clamp_calib_temp(230.), WithinAbs(230., 1e-9));
+    CHECK_THAT(clamp_calib_temp(500.), WithinAbs(500., 1e-9));
+    CHECK_THAT(clamp_calib_temp(501.), WithinAbs(500., 1e-9));
+
+    CHECK_THAT(round_calib_temp(232.), WithinAbs(230., 1e-9));
+    CHECK_THAT(round_calib_temp(234.9), WithinAbs(230., 1e-9));
+    CHECK_THAT(round_calib_temp(235.), WithinAbs(235., 1e-9));
+    CHECK_THAT(round_calib_temp(clamp_calib_temp(999.)), WithinAbs(500., 1e-9));
+    CHECK_THAT(round_calib_temp(clamp_calib_temp(1.)), WithinAbs(155., 1e-9));
+}

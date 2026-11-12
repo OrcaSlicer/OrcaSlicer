@@ -70,9 +70,10 @@ coroutine loop are described in
 - **Filament:** `slot_number` identifies the slot. If `preset_name` is omitted,
   the transaction targets the preset currently assigned to that slot. If supplied,
   it requests that preset for the slot and selects it through the normal UI flow;
-  the name must be among the presets offered by that slot's dropdown, with one
-  exception: the preset currently assigned to the slot stays targetable even when the
-  slot's dropdown hides it (for example an incompatible-but-selected preset). Selecting
+  the name must be among the presets offered by that slot's dropdown, with two
+  exceptions: a hidden preset that suits the printer is shown in the selectors first,
+  and the preset currently assigned to the slot stays targetable even when the
+  slot's dropdown omits it (for example an incompatible-but-selected preset). Selecting
   a different preset changes the slot-to-preset mapping. In both cases the transaction
   edits the shared preset, not an isolated slot override.
 - **Process and printer:** omitting `preset_name` targets the currently active
@@ -80,6 +81,9 @@ coroutine loop are described in
   dropdown. It must be one of the choices the dropdown currently offers, rather
   than merely any preset present in the collection. This is particularly important
   for process presets, whose selectable choices can depend on the current context.
+  A hidden preset that suits the printer (a system printer or filament the setup
+  wizard has not added) is shown in the selectors first and stays shown until the
+  app restarts.
 - A transaction targets exactly one preset. Multi-preset transactions are not
   supported: applying them would require switching among targets while the
   application has only one managed edited copy per collection.
@@ -216,21 +220,30 @@ undo decisions the user already accepted in an earlier dialog. Target resolution
 preserves those side effects and then verifies the resulting edited target.
 
 Filament `preset_name` is an additional integration on top of `Tab::select_preset()`:
-selecting a different name for a slot also updates the slot-to-preset mapping and its
-dependent UI/configuration state, mirroring the filament branch of the Plater's normal
-selection path (`PresetBundle::set_filament_preset()` plus the project/selection refresh,
-the dynamic filament list, the conditional support-filament flushing recalc, the slot
-combo refresh and its AMS sync badge). A mixed-color virtual slot is not targetable.
+once the filament tab edits the preset, a different name for a slot is assigned to the
+slot by `GUI::Ops::assign_filament_preset()`, the operation the MCP `select_preset` tool
+calls too (docs/HLSD/mcp-server.md, "The operations layer"). It does what picking the
+preset in the slot's sidebar selector does (`Sidebar::select_filament_preset()`): the
+slot's colour settings follow the preset, the slot-to-preset mapping, the dynamic
+filament list and the slot's AMS sync badge are updated, the flushing volumes are
+recalculated as the automatic calculation's setting says, the project is marked changed
+and every plate's slice result is invalidated. The tab is not switched a second time,
+which would ask again about changes the first switch transferred. A mixed-color virtual
+slot is not targetable.
 
 Process and printer dropdown choices are constrained by visibility and compatibility,
-and compatibility may depend on the active context. Target resolution checks the tab
+and compatibility may depend on the active context. Target resolution
+(`GUI::Ops::resolve_preset()`, the rule the `select_preset` tool resolves by, which
+words its refusals) checks the tab
 dropdown's actual items before the selection flow, so a target the user cannot pick
 fails without raising that flow's unsaved-edit prompt; a name two entries carry is
-rejected as ambiguous. A filament `preset_name` resolves against the requested slot's
-own sidebar selector rather than the tab's, so that slot's compatibility filter is the
-one that applies. A name the slot's dropdown does not show is rejected unless it names
-that slot's current assignment (a hidden or incompatible-but-selected preset), which
-stays targetable.
+rejected as ambiguous. A hidden preset that suits the printer is shown in the
+selectors first, as for the tool, and a process or printer selection that leaves
+another preset edited is refused by `GUI::Ops::select_preset()`. A filament
+`preset_name` resolves against the requested slot's own sidebar selector rather than
+the tab's, so that slot's compatibility filter is the one that applies. A name the
+slot's dropdown still does not show is rejected unless it names that slot's current
+assignment (an incompatible-but-selected preset), which stays targetable.
 
 `commit()` applies its batch through `Tab::apply_preset_config_values`, which parses and
 validates the whole batch before touching the edited preset and restores the edited

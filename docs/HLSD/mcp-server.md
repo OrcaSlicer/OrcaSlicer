@@ -351,7 +351,8 @@ unchanged number means it never started; otherwise its `ExportRecord` ends `ok`,
 `cancelled` or `superseded`. A G-code export with a path is refused while slicing runs, and
 `run_action export_gcode` needs a path: without one it would ask in a native file dialog that MCP
 can't fill in. The
-decision logic is in `McpOperations`, which uses neither wx nor `Plater`.
+decision logic is in `Operations/RunStatus`, which uses neither wx nor `Plater` (see The operations
+layer).
 
 **Idle.** `wait {for: "idle"}` holds when no modal is open, nothing slices (`Plater::is_slicing_any()`:
 the background process, Slice All, a scheduled background update or a pending automatic reslice)
@@ -362,6 +363,144 @@ preview). It also needs no job running other than the caller and its ancestors,
 so a replay or script waiting for idle doesn't wait on itself. Only the job registry, the `ModalTracker`
 snapshot and the journal are shared between threads, each behind a mutex. All app state is read on
 the UI thread.
+
+## The operations layer
+
+Three interfaces ask the app to do things by name: the Speed Dial's commands, the MCP tools, and the
+plugin API (`orca.host`). What one of them does is often what another does too: exporting G-code is a
+command, a tool, and a command run through `run_action`. The checks, the refusal and its wording, the
+undo snapshot and the order of the owner calls of such a function are in one place,
+`src/slic3r/GUI/Operations/` (namespace `Slic3r::GUI::Ops`), and the three interfaces convert their
+arguments and results around it. A command keeps its key and param, a tool its name, arguments and
+reply, and a binding its signature; what they share is the rule.
+
+**What is an operation.** An effect, or a rule about one owner's state that its own widgets also
+apply, is a public method of the owner (`Plater`, `Sidebar`, `Tab`, `GCodeViewer`) or a function in
+its header: `Tab::can_delete_preset()` is what the tab's Delete and the `delete_preset` tool both ask,
+and `locked_save_location()` what the Save preset dialog and `save_preset` both follow. What an
+automation caller invokes by name is an operation, for every function that more than one interface
+reaches and for every function added from now on. A caller calls an operation to change something
+and an owner to read. A tool that changes something through a function with one entry point is left
+as it is: nothing can drift there until a second entry point appears, and then the rule applies to it.
+
+**Shape.** An operation is a free function, `Outcome<Result> op(const Args&)`. `Args` and `Result`
+are plain structs of bool, int, double, string, path, enum, optional and vector, with fields named
+as the tool's arguments are: no JSON, no `wxString`, no pointer to a GUI object. An `Outcome` holds
+the result or a `Refusal`:
+
+| Field | What it holds |
+|---|---|
+| `kind` | `Precondition` (the caller can change something and call again), `Busy` (the same call works later) or `Failed` (it was tried and did not happen) |
+| `code` | a stable id, such as `slicing_in_progress` |
+| `msgid`, `args` | one English message, marked with `L()`, and the values of its `%1%` placeholders |
+| `names` | names that help the caller: the candidates of an ambiguous name, the closest names to an unknown one |
+
+The palette shows `translated()`. A tool and a Python exception carry `english()`, and a tool's
+error also carries the code (`code`) and puts the names under the key it has always used (`similar`,
+`presets`). `run_action` replies with the English text and the code too, where the command ran an
+operation, so a command's refusal reads the same through every route. A caller may add a hint after
+the text (the `export` tool's `wait {for:"idle"}`), never a second wording. A check of an argument's
+form (a path that does not resolve, a param that does not parse, an extension the tool does not
+write) stays with the caller that owns the argument.
+
+**Undo.** An operation takes the undo snapshot its function takes, once, after its checks pass. A
+tool may still make one call one undo step with `Plater::SingleSnapshot`, as `set_settings` does;
+that is the tool's own contract.
+
+**Threads and waits.** An operation runs on the UI thread and returns at once. It does not marshal
+and does not wait for background work: it returns a ticket, and a status function, itself an
+operation, says how the work stands (`start_gcode_export()` and `gcode_export_state()`;
+`start_slice()` with `slice_status()` of `Operations/RunStatus`). The caller owns the loop, the
+timeout and the cancel, and reaches the status function through its own way to the UI thread:
+`ctx.run_ui()` and `poll_ui()` for a tool, nothing for the palette, `run_on_ui_thread()` for Python.
+An operation adds no guard and refuses on the state of the project only; each interface keeps its
+own guards.
+
+**Dialogs.** An operation asks nothing of its own. An answer the owner lets a caller give is a field
+of `Args`: whether unsaved project changes are refused or dropped (`UnsavedChanges`), whether a
+preset's unsaved changes are transferred or dropped (`PresetChanges`). An owner's effect can still
+open a dialog of its own (a STEP file's mesh options, the modified-presets question of
+`Plater::load_project()`, the Transfer-or-discard prompt of `Tab::select_preset()` when no answer is
+given). A call that stops there behaves as any call behind a dialog: a tool replies
+`blocked_by_dialog`, and a plugin's call waits for the person. A path that asks a person keeps its
+owner method: with no param, and for `load_project` and `new_project` with or without one, a
+command is the asking path and calls the owner.
+
+**The plugin API.** Where an operation exists for what a binding does, the binding calls it and
+takes its refusals, raised as the exception type the binding has always raised for that case. Its
+way to the UI thread stays its own. `orca.host.preset.process` and `.printer`'s
+`begin_update(preset_name)` resolve and select through `resolve_preset()` and `select_preset()`,
+and `orca.host.preset.filament.begin_update(slot_number, preset_name)` resolves and assigns through
+`resolve_preset()` and `assign_filament_preset()`, with one step of its own between the two: it
+makes the filament tab edit the preset, since its transaction edits that preset.
+
+**What the layer includes.** Owner headers, libslic3r and wx. Nothing from `GUI/Mcp`,
+`NativeCommands.hpp` or `plugin/`, and neither nlohmann/json nor pybind11. The three interfaces
+include it, and GUI code may. The dispatch core (`McpCore`, `ToolRegistry`, `JobRegistry`) includes
+nothing from it, and `plugin/` includes nothing from `GUI/Mcp`.
+
+| File | Operations | Reached by |
+|---|---|---|
+| `ExportOps` | `start_gcode_export`, `gcode_export_state` | command `export_gcode`, tool `export`, `run_action` |
+| | `export_sliced_3mf`, `export_model_3mf`, `export_stl` | commands `export_sliced_file`, `export_all_sliced_file`, `export_3mf`, `export_stl`; tool `export` |
+| | `send_gcode_to_host` | command `send_gcode` |
+| `ProjectOps` | `import_models` | command `import_file`, tool `open_files` |
+| | `open_project`, `new_project` | tools `open_files`, `new_project` |
+| | `save_project_as` | command `save_project_as`, tool `save_project` |
+| | `set_instance_count` | command `obj_set_instances` |
+| `PlateOps` | `select_plate` | command `plate_goto`; the exports of `ExportOps` that write their file at once, for a plate their caller names |
+| | `set_plate_locked` | command `plate_toggle_lock`, tool `set_settings` (the plate's lock icon calls the same owner effect) |
+| | `start_arrange` | command `obj_arrange`, tool `arrange` |
+| | `start_slice` | commands `slice_and_preview`, `slice_all`; tool `slice` |
+| | `show_layer_range` | command `go_to_layer`, tool `set_view` |
+| `PresetOps` | `resolve_preset`, `select_preset` | tool `select_preset`, the plugin API's `begin_update(preset_name)` |
+| | `assign_filament_preset` | tool `select_preset`, the plugin API's `begin_update(slot_number, preset_name)` (the sidebar's selector calls the same owner effect, `Sidebar::select_filament_preset()`) |
+| | `import_presets` | command `import_configs` |
+| `RunStatus` | `slice_status`, `export_status`, `classify_plates` | the status rules of a slice and an export, free of wx and `Plater` |
+
+**What every route gets.** An operation holds what every route of its function does, so these are
+the same whichever interface asks:
+
+- A project is not saved under a name ending in `.gcode.3mf`, which is a sliced file's name, since a
+  project file holds no G-code.
+- An STL, a sliced file and G-code need objects. A `.3mf` of the model does not: a project that
+  holds only a Design-tab recipe has none.
+- An arrangement shows the Prepare view first, runs with a gizmo open as the toolbar's does, and is
+  refused while the job worker is busy.
+- A slice is requested as the Slice button requests it, with no check of the printer's technology.
+- A mixed-colour filament slot is refused as one, since it holds no preset of its own.
+- A hidden preset that suits the printer is shown in the selectors and then selected.
+- A printer or process selection that leaves another preset selected is a refusal, and that preset
+  stays selected.
+- A layer asked of a Preview that has none is a refusal: the layer slider has a range from the
+  start, so what counts is whether a print gave it layers (`Ops::layer_count()`). It keeps the last
+  slice's layers, so a plate that is no longer sliced can still have layers to show.
+
+A check only one route makes stays with that route, as a step of its own before the call:
+
+- The `arrange` tool refuses a locked or an empty plate it was given by index; the `obj_arrange`
+  command names no plate. Fill bed is the tool's alone.
+- The plugin API refuses a filament slot whose preset is empty or does not resolve, since its
+  transaction edits that preset; the `select_preset` tool only assigns one.
+
+**Keeping it so.** Two checks, neither of which reads what a handler does:
+
+- `ToolDef` and `NativeCommand` have a field naming the operations an entry reaches (`reaching()`
+  where a tool is registered, the `reaches` table of the commands). It is in no listing. A unit test
+  (`test_operations`) walks `McpService::offline_catalog()` and `NativeCommands::catalog()` and
+  requires every tool that is not read-only and every command with a param to name an operation or
+  to be on the test's exception list, with the reason: it runs what its arguments name, it drives the
+  GUI, it changes the session and not the project, its function has one entry point, or it is an
+  asking path. A new tool or param command has to say which it is.
+- `scripts/check_operation_calls.py`, run by the `Check operation calls` workflow, bans in the
+  callers' files (`NativeCommands.cpp`, the `McpTools*.cpp` files but the CAD tools',
+  `plugin/host/*.cpp`) the owner methods the operations call, by name. A banned call that stays,
+  because another function uses the same owner method or the caller is an asking path, is listed in
+  `scripts/operation_calls_baseline.txt` by file and exact source line, under its reason. The check
+  fails on a banned call that is not listed and on a listed line the source no longer has.
+
+Neither catches a rule written again through calls that are not banned, such as a check made of
+getters. That is for review: a caller's handler converts, calls, and shapes the reply.
 
 ## Tool catalog
 
@@ -616,8 +755,12 @@ camera looks.
 `PREPARE_STATE_MENU` and `arrange()`, as the plate's Arrange icon does, without its
 `last_arrange_job_is_finished()` flag, which a cancelled job never clears; with `fill`, the object's
 row selected and `fill_bed_with_instances()` or `fill_bed_with_copies()`, which fill the object's own
-plate. Each takes one "Arrange" undo snapshot. It refuses the assemble view, an open gizmo, a locked
-or empty plate, `fill` with `plates`, and an object Fill bed refuses (`can_increase_instances()`).
+plate. Each takes one "Arrange" undo snapshot. An arrangement shows the Prepare view first and runs
+with a gizmo open, as the toolbar's does (`Ops::start_arrange()`, which the `obj_arrange` command
+calls too), and is refused while another job runs. Fill bed selects the object's row, so it refuses
+the assemble view and an open gizmo as the tools that select do. The tool also refuses a locked or
+empty plate given by index, `fill` with `plates`, and an object Fill bed refuses
+(`can_increase_instances()`).
 `spacing`, `rotate`, `align_y` and `multi_material` go into the current print mode's
 `GLCanvas3D::ArrangeSettings`, which both jobs read, by the panel's rules (`apply_arrange_args()`:
 Align to Y axis stays off while rotation is on), and `GLCanvas3D::store_arrange_settings()` saves
@@ -870,8 +1013,11 @@ of `compare`), as its lock icon does. The value joins the call's other values in
 transaction, so its handling runs as for a typed value. `reset_to` without a null value, and in the
 object and part scopes, is refused.
 
-`select_preset` finds the name in the selector the GUI picks from: the sidebar's filament combo of the
-slot, or the tab's combo, by the label shown or the internal name. A selector lists the visible,
+`select_preset` finds the name in the selector the GUI picks from (`Ops::resolve_preset()`, which the
+plugin API's `begin_update()` uses too): the sidebar's filament combo of the
+slot, or the tab's combo, by the label shown or the internal name. It then selects the printer or process
+preset (`Ops::select_preset()`), or assigns the filament to its slot as a pick in the slot's selector does
+(`Ops::assign_filament_preset()`, `Sidebar::select_filament_preset()`). A selector lists the visible,
 compatible presets, and a hidden one is a system filament or printer the setup wizard has not added,
 which a fresh data folder has for all but a few. Such a name is shown first (`show_hidden_preset()`):
 the preset becomes visible in memory and the selectors are rebuilt, as they show the selected preset and
@@ -880,7 +1026,9 @@ stays as it is; the reply names it in `shown`. A printer shown this way also sho
 filaments when no shown filament suits it, as adding the printer in the wizard does
 (`PresetBundle::load_installed_filaments()`), so the switch lands on one of them rather than on the
 default filament. A preset's own name wins over another's alias that reads the same. An incompatible preset is refused as such, since no selector lists it, and an unknown name with
-the closest names.
+the closest names. A mixed-colour slot is refused as one (`mixed_filament_slot`), since it holds no
+preset of its own. A printer or process selection that leaves another preset selected than the one
+asked for is refused too (`other_preset_selected`), and that preset stays selected.
 
 `Tab::select_preset()` asks about unsaved changes through `Tab::may_discard_current_dirty_preset()`:
 for the preset it leaves, and for each modified preset a process or printer switch may replace (the
@@ -894,7 +1042,7 @@ before anything changes. The GUI's outcomes stay as they are: a modified filamen
 process keeps its changes whatever the answer. Without `preset_changes` the prompt opens, as it does for a
 person, and the reply is `blocked_by_dialog`. The message box that a printer switch shows when it drops
 other extruder variants' values is shown only to a person. With several filament slots the sidebar does
-not move the filament tab when a slot's filament changes (`Plater::priv::on_select_preset()`), so no
+not move the filament tab when a slot's filament changes (`Plater::priv::filament_preset_picked()`), so no
 prompt opens there: the edits stay with the preset the tab edits, and the reply's `modified` lists them.
 
 `new_project` without `preset_changes`, or with `"keep"`, keeps modified presets for the new project, as
@@ -1426,20 +1574,21 @@ with `completes_in_background` that gets a path runs as an export operation and 
 file is written.
 
 Given a path, a command with a `Path` param skips its file dialog and calls an entry point that has
-none. Without a param, it behaves as it does in the palette. The param is an absolute path, or, for
+none: an operation of `GUI/Operations` where a tool does the same thing (see The operations layer).
+Without a param, it behaves as it does in the palette. The param is an absolute path, or, for
 outputs, a JSON object string `{"path": "...", "overwrite": true}`. `path_param()` resolves it and
 turns a bad path into an Error result.
 
 | Command | Takes | Entry point |
 |---|---|---|
 | `load_project` | `.3mf` | `Plater::load_project(path)`; still asks about unsaved changes |
-| `import_file` | model file | `Plater::load_files({path})` |
-| `import_configs` | `.json`, `.zip`, `.orca_printer`, `.orca_filament`, `.orca_bundle`; `.gcode` | `MainFrame::import_configs(files, confirm)`; for G-code `MainFrame::load_config_file(path)` |
-| `save_project_as` | output `.3mf` | `Plater::save_project(true, path)` |
-| `export_gcode` | output `.gcode` | `Plater::export_gcode_to(path)`; completion `Export` |
-| `export_sliced_file`, `export_all_sliced_file` | output `.gcode.3mf` | `Plater::export_gcode_3mf(all, path)` |
-| `export_stl` | output `.stl` | `Plater::export_stl(..., path)` |
-| `export_3mf` | output `.3mf` | `Plater::export_core_3mf(path)` |
+| `import_file` | model file | `Ops::import_models()`: the file's geometry (a project file's settings are not loaded), as one undo step |
+| `import_configs` | `.json`, `.zip`, `.orca_printer`, `.orca_filament`, `.orca_bundle`; `.gcode` | `Ops::import_presets()`; for G-code `MainFrame::load_config_file(path)` |
+| `save_project_as` | output `.3mf` | `Ops::save_project_as()` |
+| `export_gcode` | output `.gcode` | `Ops::start_gcode_export()`; completion `Export` |
+| `export_sliced_file`, `export_all_sliced_file` | output `.gcode.3mf` | `Ops::export_sliced_3mf()` |
+| `export_stl` | output `.stl` | `Ops::export_stl()` |
+| `export_3mf` | output `.3mf` | `Ops::export_model_3mf()` |
 | `export_stl_multi` | existing directory | `Plater::export_stl(..., multiple, dir)` |
 | `add_primitive_svg` | `.svg` | `GLGizmoSVG::create_volume(path, type)`: a new object, or a part of the selected one; a job |
 | `export_config` | existing directory | `ExportConfigsDialog(parent, dir)`: the dialog still opens, and its OK writes there |
@@ -1458,7 +1607,7 @@ Order By. Like those items, they act on the object list's selected rows, which `
 |---|---|---|---|
 | `obj_type_part`, `_negative`, `_modifier`, `_support_blocker`, `_support_enforcer`, `_precise_seam` | none | `ObjectList::set_volume_type(type, true, false)` | a selected row is not a part; the object's last solid part; a text or SVG part to a support or seam type |
 | `obj_rename` | Text: the name | `ObjectList::rename_item(item, name)` | not one object or part row; characters a file name cannot hold |
-| `obj_set_instances` | Index: 1-1000 | `Plater::set_number_of_copies(num)` | no object selected; 0 (use `obj_delete`); a cut object; an unprintable instance |
+| `obj_set_instances` | Index: 1-1000 | `Ops::set_instance_count()` | no object selected; 0 (use `obj_delete`); a cut object; an unprintable instance |
 | `obj_assemble` | none | `ObjectList::merge(true)` | fewer than two object rows; a cut object |
 | `obj_instances_to_objects` | none | `ObjectList::split_instances()` | no object with more than one instance selected |
 | `obj_order_by_name`, `_filament`, `_height`, `_size` | Text: `all` for every plate | `ObjectList::order_objects(order, all)` | no objects to order; a gizmo is open |
@@ -1530,6 +1679,11 @@ Most features need only a Speed Dial command:
 
 The command then appears in the palette, in `search_actions` and `run_action`, and in replays.
 
+What the command does goes into an operation of `GUI/Operations` (see The operations layer): its
+checks, its refusals and their wording, its undo snapshot. The runner resolves its param, calls the
+operation and answers `refused()` with the refusal or a result, and names the operation in the
+`reaches` table. A command with no param that asks the person calls the owner's method.
+
 When an agent needs structured arguments or results, or has to wait for the effect, add a typed
 tool to the matching `McpTools*.cpp`. Use `inspect_tool()` for pure observation, which runs inline,
 read-only and unjournaled. Use `mutate_tool()` for anything that changes the app; it runs as a
@@ -1537,8 +1691,11 @@ journaled job under the mutate guard and may be marked `destructive`, and a tool
 the app sets `open_world` (see Tool catalog). Build the schema with
 `object_schema()`, `prop()`, `enum_prop()` and `array_prop()`. It is validated before the handler
 runs, so `arg_string()` and its siblings can read the arguments. Do all wx work in `ctx.run_ui()`,
-and get the plater with `ui_plater()`, which fails until the main window is up. Throw `ToolFailure`
-with a message the model can act on. Call `settle()` after a change so queued events are handled
+and get the plater with `ui_plater()`, which fails until the main window is up. A tool that changes
+something calls an operation of `GUI/Operations` for it, the one its command calls where there is
+one, throws `refused()` for the operation's refusal and is registered through `reaching()` with the
+operations it calls. Throw `ToolFailure`
+with a message the model can act on for what is the tool's own to check, such as the form of an argument. Call `settle()` after a change so queued events are handled
 before the reply, and page lists with `page()`. For work that finishes later, call
 `ctx.begin_operation()`, wait with `poll_ui()`, and give the work an identity, as slicing and
 export do. Work on the UI job worker needs none of that: the call that starts it holds it as its
@@ -3464,8 +3621,9 @@ and values read in place of a tool's own, and the error for an unknown tool anot
 `test_mcp_http` the endpoint rules and a live server (deadlines, eviction, stop); `test_mcp_token`
 who owns the discovery file and when a port counts as held by another window; `test_mcp_core`
 `UiInvoker`, `McpCore` and `JobRegistry` on a hand-stepped dispatcher (guards, abandoned calls,
-jobs, blocked_by_dialog, admission, slots, idle, journal); `test_mcp_operations` the slice and
-export outcomes; `test_mcp_replay` parsing, substitution, matchers and await; `test_mcp_ui` labels,
+jobs, blocked_by_dialog, admission, slots, idle, journal); `test_operations` (tagged `[Operations]`)
+the slice and export outcomes, an operation's `Outcome` and `Refusal`, and the catalogs' operation
+names and exception lists; `test_mcp_replay` parsing, substitution, matchers and await; `test_mcp_ui` labels,
 snapshot text, ref liveness, synthetic key state, a key's way through the hooks of its target's
 parents (with a display), how ImGui items are labelled and named, value
 matching and the model-target projection and surface check (`CanvasTarget`); `test_mcp_results`

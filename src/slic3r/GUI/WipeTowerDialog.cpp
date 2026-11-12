@@ -233,9 +233,6 @@ std::string RammingPanel::get_parameters()
     return stream.str();
 }
 
-static const float g_min_flush_multiplier = 0.f;
-static const float g_max_flush_multiplier = 3.f;
-
 bool is_flush_config_modified()
 {
     const auto                &project_config    = wxGetApp().preset_bundle->project_config;

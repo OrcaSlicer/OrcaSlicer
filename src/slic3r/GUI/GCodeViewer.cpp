@@ -2904,6 +2904,22 @@ void GCodeViewer::update_sequential_view_current(unsigned int first, unsigned in
 #endif // ENABLE_ACTUAL_SPEED_DEBUG
 }
 
+void GCodeViewer::show_layer_range(std::optional<int> low, int high)
+{
+    if (m_layers_slider == nullptr)
+        return;
+    m_layers_slider->SetHigherValue(high);
+    if (low)
+        m_layers_slider->SetLowerValue(*low);
+    else if (m_layers_slider->is_one_layer())
+        m_layers_slider->SetLowerValue(high);
+    m_layers_slider->set_as_dirty();
+    if (m_moves_slider != nullptr) {
+        m_moves_slider->SetHigherValue(m_moves_slider->GetMaxValue());
+        m_moves_slider->set_as_dirty();
+    }
+}
+
 void GCodeViewer::enable_moves_slider(bool enable) const
 {
     bool render_as_disabled = !enable;

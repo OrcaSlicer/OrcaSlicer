@@ -1,6 +1,6 @@
 // list_objects, select_objects, transform, add_part, arrange, slice and cancel_job: the model on the plates, the
 // arrange and Fill bed jobs, and the slice operation, which reports its own outcome per plate (see
-// McpOperations).
+// Operations/RunStatus).
 
 #include "CanvasTarget.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -8,7 +8,6 @@
 #include "McpCore.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Point.hpp"
-#include "McpOperations.hpp"
 #include "McpPaths.hpp"
 #include "McpService.hpp"
 #include "McpTools.hpp"
@@ -22,10 +21,12 @@
 #include "slic3r/GUI/GUI_Geometry.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
-#include "slic3r/GUI/Jobs/Job.hpp"
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
+#include "slic3r/GUI/Operations/Outcome.hpp"
+#include "slic3r/GUI/Operations/PlateOps.hpp"
+#include "slic3r/GUI/Operations/RunStatus.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/Selection.hpp"
@@ -68,6 +69,11 @@
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 using nlohmann::json;
+using Ops::PlateObservation;
+using Ops::PlateOutcome;
+using Ops::SliceObservation;
+using Ops::SliceTicketState;
+using Ops::TicketStatus;
 
 namespace {
 
@@ -93,6 +99,17 @@ GLCanvas3D& object_canvas()
             mf->select_tab(TAB_ID_PREPARE);
     }
     return *plater.canvas3D();
+}
+
+// The Prepare view's canvas, the view shown first when another is, as Ops::start_arrange() shows it.
+GLCanvas3D& shown_prepare_canvas(Plater& plater)
+{
+    Ops::show_prepare_view();
+    GLCanvas3D& canvas = *plater.canvas3D();
+    // A canvas hidden while the model changed loads its scene on its next draw; it is loaded now.
+    if (canvas.is_reload_delayed())
+        canvas.reload_scene(true);
+    return canvas;
 }
 
 } // namespace
@@ -253,6 +270,8 @@ json list_objects(const json& args)
     return out;
 }
 
+// The slice tool's view of its request: slice_status()'s state, which adds when the tool started
+// waiting to what the operation's ticket holds.
 struct SliceTicket
 {
     SliceTicketState state;
@@ -413,17 +432,19 @@ std::set<std::pair<int, std::string>> shown_notifications(Plater& plater)
 // plate's Arrange icon or Fill bed starts. UI thread.
 ArrangeStart start_arrange(Plater& plater, const json& args)
 {
-    GLCanvas3D&            canvas  = require_prepare_scene(plater);
+    const bool fill = args.contains("fill");
+    // Fill bed selects its object first, so it needs what every tool that selects needs. An arrangement
+    // runs from whatever view and with whatever gizmo is open, as the toolbar's Arrange does.
+    GLCanvas3D&            canvas  = fill ? require_prepare_scene(plater) : shown_prepare_canvas(plater);
     PartPlateList&         plates  = plater.get_partplate_list();
     const ModelObjectPtrs& objects = plater.model().objects;
     ArrangeStart           start;
-    const bool             fill = args.contains("fill");
     if (fill && args.contains("plates"))
         throw ToolFailure("fill fills the object's own plate; leave plates out");
     if (!fill && args.contains("fill_with"))
         throw ToolFailure("fill_with goes with fill");
-    if (objects.empty())
-        throw ToolFailure("There are no objects to arrange");
+    if (const std::optional<Ops::Refusal> refusal = Ops::arrange_refusal({}))
+        throw refused(*refusal);
     int plate = -1; // every unlocked plate
     if (fill) {
         start.fill_object = arg_int(args, "fill", 0);
@@ -480,14 +501,12 @@ ArrangeStart start_arrange(Plater& plater, const json& args)
             plater.fill_bed_with_copies();
         else
             plater.fill_bed_with_instances();
-    } else if (plate < 0) {
-        plater.set_prepare_state(Job::PREPARE_STATE_DEFAULT);
-        plater.arrange();
     } else {
-        if (plate != plates.get_curr_plate_index() && plater.select_plate(plate) != 0)
-            throw ToolFailure(plate_name + " could not be selected");
-        plater.set_prepare_state(Job::PREPARE_STATE_MENU);
-        plater.arrange();
+        Ops::ArrangeArgs arrange;
+        if (plate >= 0)
+            arrange.plate = plate;
+        if (const Ops::Outcome<Ops::Done> started = Ops::start_arrange(arrange); !started)
+            throw refused(started.refusal());
     }
     if (plater.get_ui_job_worker().is_idle())
         throw ToolFailure("The arrangement did not start");
@@ -697,11 +716,9 @@ std::vector<double> part_shape_size(const std::string& shape, const json& size)
         return {};
     const std::vector<const char*> names = primitive_size_names(type_name);
     std::vector<double>            out;
-    if (size.is_array() && size.size() == names.size())
-        for (const json& value : size)
-            if (value.is_number() && std::isfinite(value.get<double>()) && value.get<double>() > 0.)
-                out.push_back(value.get<double>());
-    if (out.size() != names.size()) {
+    if (size.is_array() && std::all_of(size.begin(), size.end(), [](const json& value) { return value.is_number(); }))
+        out = size.get<std::vector<double>>();
+    if (!is_primitive_size(type_name, out)) {
         std::string fields;
         for (const char* name : names)
             fields += (fields.empty() ? "" : ", ") + std::string(name);
@@ -865,11 +882,8 @@ std::string apply_arrange_args(GLCanvas3D::ArrangeSettings& settings, const json
     if (args.contains("align_y"))
         settings.align_to_y_axis = args["align_y"].get<bool>();
     // The panel disables Align to Y axis while rotation is on, and clears it.
-    if (settings.enable_rotation && settings.align_to_y_axis) {
-        settings.align_to_y_axis = false;
-        if (arg_bool(args, "align_y", false))
-            return "align_y is off while rotate is on, as in the Arrange options panel.";
-    }
+    if (settings.apply_option_rules() && arg_bool(args, "align_y", false))
+        return "align_y is off while rotate is on, as in the Arrange options panel.";
     return {};
 }
 
@@ -1164,7 +1178,7 @@ void register_scene_tools(McpService& service)
             return ToolResult::ok(out);
         }));
 
-    reg.add(mutate_tool(
+    reg.add(reaching({"start_arrange"}, mutate_tool(
         "arrange", L("Arrange objects or fill the bed"),
         "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or "
         "\"current\") as its Arrange icon does. With fill, fill that object's plate with more of it instead, as Fill bed "
@@ -1209,9 +1223,9 @@ void register_scene_tools(McpService& service)
                 ctx.observe_ui([&] { return json(service.core().cancel_worker(ctx.job_id())); });
                 throw ToolFailure("The arrangement did not finish within " + std::to_string(timeout.count()) + " s, so it was cancelled");
             }
-        }));
+        })));
 
-    ToolDef slice = mutate_tool(
+    ToolDef slice = reaching({"start_slice"}, mutate_tool(
         "slice", L("Slice"),
         "Slice the current plate, all plates, or one plate by index, the way the toolbar's Slice button does, and wait for "
         "the result (or reply with a job id when it takes longer than the reply budget). Each requested plate reports ok, "
@@ -1229,8 +1243,6 @@ void register_scene_tools(McpService& service)
             // under the slice, and a cancel meanwhile finds the operation.
             const uint64_t cancels_before = ctx.run_ui([&] {
                 ctx.begin_operation();
-                if (ui_plater().printer_technology() != ptFFF)
-                    throw ToolFailure("Slicing through MCP supports FFF printers only");
                 return json(ui_plater().slice_cancel_seq());
             }).get<uint64_t>();
             // A change made just before (set_settings, open_files) is validated by an update
@@ -1245,36 +1257,26 @@ void register_scene_tools(McpService& service)
                 std::chrono::seconds(10), "the pending update of the slicing state");
             const bool cancelled = ctx.run_ui([&] {
                 Plater&        plater = ui_plater();
-                PartPlateList& list   = plater.get_partplate_list();
-                const bool     all    = plates_arg.is_string() && plates_arg.get<std::string>() == "all";
-                if (all) {
-                    for (int i = 0; i < list.get_plate_count(); ++i)
-                        ticket->plates.push_back(i);
-                } else if (plates_arg.is_number_integer()) {
-                    const int index = plates_arg.get<int>();
-                    if (index < 0 || index >= list.get_plate_count())
-                        throw ToolFailure(no_such_plate(index, list.get_plate_count()));
-                    ticket->plates.push_back(index);
-                } else {
-                    ticket->plates.push_back(list.get_curr_plate_index());
-                }
+                Ops::SliceArgs slice;
+                slice.all_plates = plates_arg.is_string() && plates_arg.get<std::string>() == "all";
+                if (plates_arg.is_number_integer())
+                    slice.plate = plates_arg.get<int>();
+                const Ops::Outcome<std::vector<int>> plates = Ops::slice_plates(slice);
+                if (!plates)
+                    throw refused(plates.refusal());
+                ticket->plates = plates.value();
                 // A cancel that came while the update was pending stops the slice before it starts.
                 if (plater.slice_cancel_seq() != cancels_before)
                     return json(true);
-                if (!all && ticket->plates.front() != list.get_curr_plate_index())
-                    plater.select_plate(ticket->plates.front());
-                ticket->state.run_seq_before    = plater.slice_run_seq();
-                ticket->state.revision_at_start = plater.project_revision();
-                ticket->state.started           = std::chrono::steady_clock::now();
-                plater.request_slice(all);
-                ticket->state.request_seq_mine = plater.slice_request_seq();
-                ticket->state.seen_running     = plater.is_slicing_any();
-                if (plater.slice_run_seq() == ticket->state.run_seq_before)
-                    if (auto running = plater.slice_run(ticket->state.run_seq_before); running && !running->finished)
-                        ticket->state.adopted_run = running->seq;
-                // The Preview tab shows the result, as after the Slice button.
-                if (MainFrame* frame = wxGetApp().mainframe)
-                    frame->select_tab(wxString(TAB_ID_PREVIEW));
+                ticket->state.started = std::chrono::steady_clock::now();
+                const Ops::Outcome<Ops::SliceTicket> started = Ops::start_slice(slice);
+                if (!started)
+                    throw refused(started.refusal());
+                ticket->state.run_seq_before    = started.value().run_seq_before;
+                ticket->state.revision_at_start = started.value().revision;
+                ticket->state.request_seq_mine  = started.value().request_seq;
+                ticket->state.seen_running      = started.value().slicing;
+                ticket->state.adopted_run       = started.value().adopted_run;
                 return json(false);
             }).get<bool>();
             if (cancelled) {
@@ -1344,7 +1346,7 @@ void register_scene_tools(McpService& service)
                 },
                 timeout, "slicing to finish");
             return ToolResult::ok(result);
-        });
+        }));
     slice.budget_ms = 45000;
     reg.add(slice);
 

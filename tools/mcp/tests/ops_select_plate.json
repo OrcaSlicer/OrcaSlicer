@@ -1,0 +1,92 @@
+// Records how a plate is selected: the plate_goto command run with run_action and a param in range, past the
+// last plate and negative (refused), not a number and empty (plate 0), and each tool that takes a plate index
+// given one the project lacks (slice, export, arrange, set_settings and get_settings plate scope, list_objects,
+// transform) and given one it has. After each it reads the current plate (get_app_state, list_plates) and the
+// undo snapshots taken since the last read (fixtures/ops_undo.py). The project has three plates with a cube on
+// the first. Every call it records is optional. Run it with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_select_plate.json --out <dir>
+{
+  "orca_replay": 1,
+  "name": "ops select_plate",
+  "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_add:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_add:orca"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_plates", "expect": {"/total": {"eq": 3}}},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- plate_goto: in range, past the last, negative, not a number, empty ----
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "2"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "3"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "7"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "-3"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "2"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "abc"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "2"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1.7"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "2"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca"}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Tools given a plate the project lacks, from plate 1 ----
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "slice", "args": {"plates": 5}, "optional": true},
+    {"tool": "slice", "args": {"plates": -1}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/noplate.stl", "plates": 5, "overwrite": true}, "optional": true},
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/noplate.stl", "plates": -1, "overwrite": true}, "optional": true},
+    {"tool": "arrange", "args": {"plates": 5}, "optional": true},
+    {"tool": "arrange", "args": {"plates": -1}, "optional": true},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 5, "values": {"name": "x"}}, "optional": true},
+    {"tool": "get_settings", "args": {"scope": "plate", "plate": 5, "keys": ["name"]}, "optional": true},
+    {"tool": "list_objects", "args": {"plate": 5}, "optional": true},
+    {"tool": "transform", "args": {"object": 0, "plate": 5}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Tools given a plate the project has: which one is current afterwards ----
+    {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/plate2.stl", "plates": 2, "overwrite": true}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 1, "values": {"name": "One"}}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "get_settings", "args": {"scope": "plate", "plate": 2, "keys": ["name"]}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "slice", "args": {"plates": 0}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "arrange", "args": {"plates": 2}, "optional": true},
+    {"tool": "arrange", "args": {"plates": 0}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "transform", "args": {"object": 0, "plate": 2}, "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    {"tool": "new_project", "args": {"discard_changes": true}}
+  ]
+}

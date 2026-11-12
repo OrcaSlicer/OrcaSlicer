@@ -1,0 +1,54 @@
+# Owner calls that scripts/check_operation_calls.py bans in the callers of the operations layer and
+# that stay where they are, by file and exact source line (trimmed), each under the reason it stays.
+# A [file] line starts a file's lines; a # line is a reason for the lines after it.
+#
+# The check fails on a banned call that is not here and on a line here that the source no longer has.
+# Generate candidates with: python3 scripts/check_operation_calls.py --print
+
+[src/slic3r/GUI/NativeCommands.cpp]
+# The asking path of a command: with no param, and for load_project with or without one, the command
+# calls the owner's method, which asks the person what an operation would be told.
+plater->load_project();
+plater->load_project(from_path(*path));
+plater->save_project(false);
+plater->save_project(true);
+plater->new_project();
+plater->export_stl();
+plater->export_core_3mf();
+plater->export_gcode_3mf(all);
+plater->set_number_of_copies();
+# Another function that uses the same owner method: every object as its own STL, and the Draco exports.
+plater->export_stl(false, false, true);
+plater->export_stl(false, false, true, FT_STL, from_path(*dir));
+plater->export_stl(false, false, false, FT_DRC);
+plater->export_stl(false, false, true, FT_DRC);
+# Another function that uses the same owner method: orient, which leaves a plate-only state behind as arrange does.
+plater->set_prepare_state(Job::PREPARE_STATE_DEFAULT);
+
+[src/slic3r/GUI/Mcp/McpToolsConfig.cpp]
+# The undo step of a tool whose function has one automation entry point (set_settings' object, plate
+# and project scopes).
+plater.take_snapshot("Move object");
+plater.take_snapshot("Plate Settings");
+plater.take_snapshot("Change object settings");
+# A tool selecting the plate it was given before its own work, as the plate's settings icon does.
+plater.select_plate(index);
+# Another function that uses the same owner method: set_settings makes the filament tab edit a slot's
+# preset, and delete_preset selects the preset, deletes it and selects back.
+if (!tab->select_preset(name))
+if (!tab->select_preset(name))
+tab->select_preset(selected);
+
+[src/slic3r/GUI/Mcp/McpToolsLayers.cpp]
+# The undo step of a tool whose function has one automation entry point (set_height_ranges).
+plater.take_snapshot("Edit height ranges");
+
+[src/slic3r/GUI/Mcp/McpToolsScene.cpp]
+# The undo step of a tool whose function has one automation entry point (transform).
+plater.take_snapshot("Transform object");
+plater.take_snapshot("Transform part", UndoRedo::SnapshotType::GizmoAction);
+
+[src/slic3r/plugin/host/PluginHostPresets.cpp]
+# The plugin API's own step between resolving a filament and assigning it: its transaction edits the
+# preset, so the filament tab is made to edit it first, and a declined prompt ends the call there.
+if (!tab->select_preset(target))

@@ -77,6 +77,12 @@ bool has_junction_deviation(const DynamicPrintConfig& printer);
 // are junction deviation or jerk values, as the printer corners.
 Calib_Params calib_default_params(CalibMode mode, const DynamicPrintConfig& printer, bool bowden = false);
 
+// A temperature tower's start and end, as its dialog takes them when a field loses focus: brought into
+// the range a tower is made for, then rounded down to the tower's blocks.
+inline constexpr double kCalibTempMin = 155., kCalibTempMax = 500., kCalibTempBlock = 5.;
+double clamp_calib_temp(double temperature);
+double round_calib_temp(double temperature);
+
 // The first rule of its dialog that `params` breaks for its mode on `printer`, in the order the dialog
 // checks them. Each dialog shows its own message for the error.
 enum class CalibParamsError { None, Range, Damping, AccelBelowSpeed, BeltMethod };

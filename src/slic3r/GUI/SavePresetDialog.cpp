@@ -17,6 +17,7 @@
 #include "slic3r/GUI/GUI_Utils.hpp"
 #include "slic3r/GUI/OptionsGroup.hpp"
 #include <vector>
+#include <optional>
 #include <string>
 #include <set>
 #include <algorithm>
@@ -292,6 +293,12 @@ PresetNameStatus check_preset_name(const PresetCollection &presets, const std::s
     return PresetNameStatus::Valid;
 }
 
+std::optional<bool> locked_save_location(const PresetCollection &presets, const std::string &name)
+{
+    const Preset *existing = presets.find_preset(name, false);
+    return existing != nullptr ? std::optional<bool>(existing->is_project_embedded) : std::nullopt;
+}
+
 void SavePresetDialog::Item::update()
 {
     m_preset_name = into_u8(m_input_ctrl->GetTextCtrl()->GetValue());
@@ -300,17 +307,10 @@ void SavePresetDialog::Item::update()
     const PresetNameStatus   status = check_preset_name(*m_presets, m_preset_name, info_line);
     m_valid_type = status == PresetNameStatus::Invalid ? NoValid : status == PresetNameStatus::Warning ? Warning : Valid;
 
-    const Preset *existing = m_presets->find_preset(m_preset_name, false);
-
     // BBS: add project embedded presets logic
-    if (existing) { // ORCA RadioGroup
-        if (existing->is_project_embedded) {
-            m_radio_group->SetSelection(1);
-            m_save_to_project = true;
-        } else {
-            m_radio_group->SetSelection(0);
-            m_save_to_project = false;
-        }
+    if (const std::optional<bool> locked = locked_save_location(*m_presets, m_preset_name)) { // ORCA RadioGroup
+        m_radio_group->SetSelection(*locked ? 1 : 0);
+        m_save_to_project = *locked;
         m_radio_group->Disable();
     } else {
         m_radio_group->Enable();

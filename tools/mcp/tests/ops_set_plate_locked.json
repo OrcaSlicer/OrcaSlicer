@@ -1,0 +1,80 @@
+// Records how a plate is locked through its three routes: the plate_toggle_lock command run with run_action (the
+// current plate), set_settings' plate scope with locked, and a click on the plate's lock icon ({plate_icon:
+// "lock", plate}). Each is run twice on plate 0, then on plate 1 while plate 0 is current; the tool also with a
+// plate the project lacks. After each it reads the lock state and the current plate (list_plates) and the undo
+// snapshots taken since the last read (fixtures/ops_undo.py), and last it locks through each route and runs undo
+// once, to show that the lock is one undo step. Every call it records is optional. Run it with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_set_plate_locked.json --out <dir>
+{
+  "orca_replay": 1,
+  "name": "ops set_plate_locked",
+  "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_window", "args": {"size": [1600, 1000]}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_add:orca"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_plates", "expect": {"/total": {"eq": 2}, "/items/0/current": {"eq": true}}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- The command, twice on plate 0 ----
+    {"tool": "run_action", "args": {"id": "orca_command:plate_toggle_lock:orca"}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_toggle_lock:orca"}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- The tool, locked true twice, then false, then a plate the project lacks ----
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"locked": true}}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"locked": true}}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"locked": false}}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 5, "values": {"locked": true}}, "optional": true},
+    {"tool": "list_plates"},
+
+    // ---- The lock icon, twice on plate 0 ----
+    {"tool": "click", "args": {"target": {"plate_icon": "lock", "plate": 0}}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "click", "args": {"target": {"plate_icon": "lock", "plate": 0}}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Plate 1 while plate 0 is current: the tool and the icon (the command has no plate) ----
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 1, "values": {"locked": true}}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}},
+    {"tool": "click", "args": {"target": {"plate_icon": "lock", "plate": 1}}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Undo after each route's lock ----
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_toggle_lock:orca"}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_plates"},
+    {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"locked": true}}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_plates"},
+    {"tool": "click", "args": {"target": {"plate_icon": "lock", "plate": 0}}, "optional": true},
+    {"tool": "list_plates"},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_plates"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    {"tool": "new_project", "args": {"discard_changes": true}}
+  ]
+}

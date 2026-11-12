@@ -147,6 +147,18 @@ set(SLIC3R_GUI_SOURCES
     GUI/ActionReplayDialog.hpp
     GUI/NativeCommands.cpp
     GUI/NativeCommands.hpp
+    GUI/Operations/ExportOps.cpp
+    GUI/Operations/ExportOps.hpp
+    GUI/Operations/Outcome.cpp
+    GUI/Operations/Outcome.hpp
+    GUI/Operations/PlateOps.cpp
+    GUI/Operations/PlateOps.hpp
+    GUI/Operations/PresetOps.cpp
+    GUI/Operations/PresetOps.hpp
+    GUI/Operations/ProjectOps.cpp
+    GUI/Operations/ProjectOps.hpp
+    GUI/Operations/RunStatus.cpp
+    GUI/Operations/RunStatus.hpp
     GUI/SyntheticInput.cpp
     GUI/SyntheticInput.hpp
     GUI/Mcp/CanvasTarget.cpp
@@ -159,8 +171,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpHttpServer.hpp
     GUI/Mcp/McpJournal.cpp
     GUI/Mcp/McpJournal.hpp
-    GUI/Mcp/McpOperations.cpp
-    GUI/Mcp/McpOperations.hpp
     GUI/Mcp/McpPersonRun.cpp
     GUI/Mcp/McpPersonRun.hpp
     GUI/Mcp/McpProtocol.cpp

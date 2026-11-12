@@ -1,0 +1,118 @@
+// Records what the obj_set_instances command (run_action with a count param) does: nothing selected, one object,
+// two objects, one instance of an object, a part, counts of 1, 0, negative, past 1000, a fraction and a word, an
+// object with an instance that is not printable, a cut object, and no param (it opens its dialog, which the
+// replay cancels). After each it reads the objects' instances and the undo snapshots taken since the last read
+// (fixtures/ops_undo.py), and once runs undo to show the change is one step. Every call it records is optional.
+// Run it with
+//   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_set_instance_count.json --out <dir>
+{
+  "orca_replay": 1,
+  "name": "ops set_instance_count",
+  "vars": {"undo": "${replay_dir}/fixtures/ops_undo.py"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_window", "args": {"size": [1600, 1000]}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 1}}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Nothing selected ----
+    {"tool": "select_objects", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "3"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- One object: 3, undone, then 1 ----
+    {"tool": "select_objects", "args": {"objects": [0]}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "3"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "get_app_state"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
+    {"tool": "list_objects"},
+    {"tool": "select_objects", "args": {"objects": [0]}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "3"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": " 2 "}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "1"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Counts it refuses ----
+    {"tool": "select_objects", "args": {"objects": [0]}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "0"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "-2"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "1001"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "2.5"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "three"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- Two objects selected, one instance of an object, a part ----
+    {"tool": "select_objects", "args": {"none": true}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca", "param": "20 10"}},
+    {"tool": "arrange", "args": {}},
+    {"tool": "select_objects", "args": {"objects": [0, 1]}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "2"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "select_objects", "args": {"objects": [0]}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "2"}, "optional": true},
+    {"tool": "select_objects", "args": {"instances": [[0, 1]]}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "4"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "add_part", "args": {"object": 1, "type": "modifier", "shape": "cube", "size": [5, 5, 5]}},
+    {"tool": "select_objects", "args": {"parts": [[1, 1]]}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "2"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- An instance that is not printable (the cylinder back to one instance, made not printable as the
+    // object list's Printable column does) ----
+    {"tool": "select_objects", "args": {"objects": [1]}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "1"}},
+    {"tool": "click", "args": {"target": {"row": "Plate 1>Cylinder", "column": "Printable"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/1/instances/0/printable": {"eq": false}}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "select_objects", "args": {"objects": [1]}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "2"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "click", "args": {"target": {"row": "Plate 1>Cylinder", "column": "Printable"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/1/instances/0/printable": {"eq": true}}},
+
+    // ---- No param: its dialog opens, and is cancelled ----
+    {"tool": "select_objects", "args": {"objects": [1]}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca"}, "await": false, "save_as": "dialog", "optional": true},
+    {"tool": "get_app_state"},
+    {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.dialog}"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    // ---- A cut object: a cube cut at 10 mm with a connector, which keeps the halves linked ----
+    {"tool": "new_project", "args": {"discard_changes": true}},
+    {"tool": "set_view", "args": {"tab": "prepare", "camera": "top"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "select_objects", "args": {"objects": [0]}},
+    {"tool": "click", "args": {"target": {"gizmo": "Cut"}}, "expect": {"/active": {"eq": true}}},
+    {"tool": "set_widget_value", "args": {"target": {"imgui_name": "move_Z"}, "value": 10}},
+    {"tool": "click", "args": {"target": {"imgui": "Add connectors"}}},
+    {"tool": "mouse_gesture", "args": {"at": {"object": 0, "spot": "top"}, "check": "point"}},
+    {"tool": "click", "args": {"target": {"imgui": "Confirm connectors"}}},
+    {"tool": "click", "args": {"target": {"imgui": "Perform cut"}}},
+    {"tool": "wait", "args": {"for": "idle"}},
+    {"tool": "list_objects", "expect": {"/total": {"eq": 2}, "/plates/0/objects/0/parts/1": {"exists": true}}},
+    {"tool": "select_objects", "args": {"objects": [0]}},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+    {"tool": "run_action", "args": {"id": "orca_command:obj_set_instances:orca", "param": "2"}, "optional": true},
+    {"tool": "list_objects"},
+    {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
+
+    {"tool": "new_project", "args": {"discard_changes": true}}
+  ]
+}

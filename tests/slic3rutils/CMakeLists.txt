@@ -31,7 +31,7 @@ add_executable(${_TEST_NAME}_tests
     test_mcp_config.cpp
     test_mcp_core.cpp
     test_mcp_http.cpp
-    test_mcp_operations.cpp
+    test_operations.cpp
     test_mcp_protocol.cpp
     test_mcp_recording.cpp
     test_mcp_replay.cpp

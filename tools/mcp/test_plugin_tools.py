@@ -3,7 +3,8 @@
 Launches OrcaSlicer on a fresh data folder with tests/plugins/mcp_tools_fixture side-loaded, and
 tests/plugins/mcp_tools_broken, whose load fails after declaring an operation: over MCP, then once without
 MCP, running a replay with --mcp-run, so the plugin's calls go to the catalog-only service. The first launch
-ends by unticking the fixture in the Plugins dialog, as a person unloads it. Run it as
+also checks that the plugin is sent the NewProject event when the new_project tool or command starts a
+project, and ends by unticking the fixture in the Plugins dialog, as a person unloads it. Run it as
 python tools/mcp/test_plugin_tools.py [--bin PATH].
 """
 import json
@@ -70,6 +71,15 @@ def wait_for(predicate, timeout):
             return True
         time.sleep(0.5)
     return predicate()
+
+
+def lines_of(path):
+    """How many lines a file has, 0 while it does not exist."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return len(f.readlines())
+    except OSError:
+        return 0
 
 
 def harness(env, *args):
@@ -156,6 +166,13 @@ def main():
               journal)
         broken = orca.call_raw("search_tools", {"tool": f"plugin.{BROKEN}.measure"})
         check("a plugin whose load failed offers none of its operations", broken.get("isError"), broken)
+        # A project started by the tool or by the command tells plugins, as File > New Project does.
+        started = lambda: lines_of(os.path.join(plugin_dir, "new_projects.txt"))
+        before = started()
+        orca.call("new_project", discard_changes=True)
+        check("the new_project tool sends plugins the NewProject event", wait_for(lambda: started() == before + 1, 10), started())
+        orca.call("run_action", id="orca_command:new_project:orca")
+        check("and so does the new_project command", wait_for(lambda: started() == before + 2, 10), started())
         held = run_plugin_script(orca, plugin_dir, "handle", CAPABILITIES[4])
         check("the plugin opens a progress dialog and keeps its handle", held.get("ok") is True, held)
         grab = orca.await_job(orca.call("run_script", code=GRAB_HANDLE))

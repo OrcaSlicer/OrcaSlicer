@@ -42,6 +42,11 @@ class IMSlider;
 class PartPlateList;
 class Plater;
 
+namespace Ops {
+struct ExportTicket;
+struct Refusal;
+} // namespace Ops
+
 namespace Mcp {
 
 class McpService;
@@ -94,6 +99,8 @@ nlohmann::json array_prop(nlohmann::json items, const std::string& description);
 // Pure observation: inline, read-only, inspect guard, not journaled.
 ToolDef inspect_tool(std::string name, std::string title, std::string description, nlohmann::json schema, ToolHandler handler);
 // Anything that changes the app: a job under the mutate guard, journaled.
+// `def`, naming the operations (GUI/Operations) its handler reaches, by function name.
+ToolDef reaching(std::vector<std::string> operations, ToolDef def);
 ToolDef mutate_tool(std::string name, std::string title, std::string description, nlohmann::json schema, ToolHandler handler,
                     bool destructive = false);
 
@@ -117,8 +124,14 @@ void settle(ToolContext& ctx);
 // UI thread only.
 Plater& ui_plater();
 
-// What a tool says of a plate index the project does not have: the index, and the plates there are.
+// What a tool says of a plate index the project does not have: the index, and the plates there are
+// (Ops::no_such_plate()'s text).
 std::string no_such_plate(int plate, int count);
+
+// What a tool replies when an operation refuses: the refusal's English text, then `hint` when the tool
+// has something to add for an agent, with the refusal's code as `code` and the names it carries under
+// `names_key` when the tool gives one.
+ToolFailure refused(const Ops::Refusal& refusal, const std::string& hint = {}, const char* names_key = nullptr);
 
 // Typed argument access with defaults; schema validation has already checked the types.
 std::string arg_string(const nlohmann::json& args, const char* key, const std::string& fallback = {});
@@ -356,7 +369,7 @@ nlohmann::json page(const nlohmann::json& items, const nlohmann::json& args, std
 // Waits for a G-code export started between Plater export sequence numbers `before` and `after`
 // (unchanged = it never started: `rejection` explains why) and reports how it ended; `revision` is
 // the project revision when it started.
-ToolResult await_gcode_export(ToolContext& ctx, uint64_t before, uint64_t after, uint64_t revision, const std::string& rejection);
+ToolResult await_gcode_export(ToolContext& ctx, const Ops::ExportTicket& ticket);
 
 // Polls `poll` on the UI thread every 200 ms until it returns a non-null value or `timeout`
 // passes; throws ToolFailure on timeout or cancellation.

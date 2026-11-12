@@ -515,6 +515,12 @@ public:
     /* BBS IMSlider */
     IMSlider *get_moves_slider() { return m_moves_slider; }
     IMSlider *get_layers_slider() { return m_layers_slider; }
+    // Shows layers `low`..`high` (slider ticks) with every move of the top one, as dragging the layer
+    // slider's thumbs does: the upper thumb, then the lower one. Where the slider shows one layer at a
+    // time the two are one, so that layer is `low`. Without `low` the upper thumb alone is moved, and the
+    // slider brings the lower one to `high` as it does under the mouse: when `high` is at or below it,
+    // and always where it shows one layer at a time.
+    void show_layer_range(std::optional<int> low, int high);
     void enable_moves_slider(bool enable) const;
     void update_moves_slider(bool set_to_max = false);
     void update_layers_slider_mode();

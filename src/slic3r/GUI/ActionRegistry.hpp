@@ -26,6 +26,10 @@ enum class AppActionKind { Plugin, Command };
 
 // Result of running an AppAction, in the action layer's own vocabulary. Concrete
 // actions translate their runner-specific result into this generic shape.
+namespace Ops {
+struct Refusal;
+}
+
 struct AppActionRunResult
 {
     enum class Level { Success, Info, Error, Busy };
@@ -39,6 +43,9 @@ struct AppActionRunResult
     // (the new object order, the object an Assemble made). run_action adds its fields to the reply;
     // the palette never shows it.
     std::string reply;
+    // The operation's refusal that `message` words in the UI's language, when the command ran an
+    // operation that refused: automation replies with its English text and its code.
+    std::shared_ptr<const Ops::Refusal> refusal;
 };
 
 // Tag carrying a precomputed action id, used by the explicit-id ctor below. It exists so the

@@ -6,6 +6,7 @@
 #include "libslic3r/Preset.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "GUI_Utils.hpp"
+#include <optional>
 #include <string>
 #include <wx/anybutton.h>
 #include <wx/sizer.h>
@@ -34,6 +35,11 @@ enum class PresetNameStatus { Valid, Warning, Invalid };
 
 // ORCA Shared profile name validation for SavePresetDialog and PhysicalPrinterDialog.
 PresetNameStatus check_preset_name(const PresetCollection &presets, const std::string &name, wxString &info_line);
+
+// Where a preset saved under `name` goes when that is not the person's to choose: a preset that exists is
+// saved where it is (true: inside the project), and the dialog locks its choice to that. nullopt for a new
+// name, which can go either way.
+std::optional<bool> locked_save_location(const PresetCollection &presets, const std::string &name);
 
 class SavePresetDialog : public DPIDialog
 {

@@ -70,6 +70,9 @@ void set_import_volume_order(ModelObject& object, bool sort_names);
 // The dimensions the Primitive size dialog asks for a shape ("Cube", "Cylinder", "Sphere", "Cone", "Disc", "Torus"), in its
 // order, as untranslated labels; none for another name.
 std::vector<const char*> primitive_size_names(const std::string& type_name);
+// Whether `size` is a size for that shape: one value per dimension the dialog asks for, each a number above 0.
+// A name the dialog asks nothing for takes the empty size alone.
+bool is_primitive_size(const std::string& type_name, const std::vector<double>& size);
 
 // The layer heights the height range editor accepts for a range printed with filament extruder_idx (0 = the
 // object's): the printer's min_layer_height and max_layer_height, the latter 75 % of the nozzle diameter when 0.

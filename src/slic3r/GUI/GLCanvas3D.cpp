@@ -7007,7 +7007,7 @@ void GLCanvas3D::_render_arrange_menu(float left, float right, float bottom, flo
     {
         if (settings_out.enable_rotation) {  // do not allow align to Y axis if rotation is enabled
             imgui->disabled_begin(true);
-            settings_out.align_to_y_axis = false;
+            settings_out.apply_option_rules();
         }
 
         imgui->bbl_checkbox(_L("Align to Y axis"), settings_out.align_to_y_axis);

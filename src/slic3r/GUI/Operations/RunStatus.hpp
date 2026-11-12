@@ -6,10 +6,11 @@
 #include <string>
 #include <vector>
 
-namespace Slic3r { namespace GUI { namespace Mcp {
+namespace Slic3r { namespace GUI { namespace Ops {
 
-// The decision logic of the slice and export operations, kept free of wx and Plater so it can be
-// unit-tested: the tools observe Plater on the UI thread and feed the observations in here.
+// How a started slice or export stands, decided from what Plater recorded of it. Free of wx and of
+// Plater, so it is unit-tested: a caller observes Plater on the UI thread and feeds the observations
+// in here.
 
 enum class PlateOutcome { Ok, Error, Cancelled, Empty, Skipped };
 
@@ -126,4 +127,4 @@ const char* to_string(ExportStatus status);
 // export; an unchanged sequence means it never started. `record` is the record of `seq_after`.
 ExportStatus export_status(uint64_t seq_before, uint64_t seq_after, const std::optional<ExportRecord>& record, uint64_t revision_at_start);
 
-}}} // namespace Slic3r::GUI::Mcp
+}}} // namespace Slic3r::GUI::Ops

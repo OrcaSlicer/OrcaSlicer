@@ -7662,6 +7662,11 @@ struct Plater::priv
     void on_combobox_select(wxCommandEvent&);
     void on_select_bed_type(wxCommandEvent&);
     void on_select_preset(wxCommandEvent&);
+    // The plater's part of a filament preset picked for slot `idx`, after the selector's own
+    // (PlaterPresetComboBox::item_picked()): the mapping, the flushing volumes, the project state and, on a
+    // printer with one filament, the filament tab unless `switch_tab` is false. `combo` is the slot's
+    // selector and `item` the picked item, -1 when the selector lists none for the preset.
+    void filament_preset_picked(int idx, const std::string& preset_name, PlaterPresetComboBox* combo, int item, bool switch_tab);
     void on_slicing_update(SlicingStatusEvent&);
     void on_slicing_completed(wxCommandEvent&);
     void on_process_completed(SlicingProcessCompletedEvent&);
@@ -13292,6 +13297,98 @@ void Plater::priv::on_select_bed_type(wxCommandEvent &evt)
     }
 }
 
+// The internal name of the preset that item `selection` of `combo` stands for.
+static std::string preset_name_of_item(PlaterPresetComboBox& combo, int selection)
+{
+    //! Because of The MSW and GTK version of wxBitmapComboBox derived from wxComboBox,
+    //! but the OSX version derived from wxOwnerDrawnCombo.
+    //! So, to get selected string we do
+    //!     combo->GetString(combo->GetSelection())
+    //! instead of
+    //!     combo->GetStringSelection().ToUTF8().data());
+
+    // Prefer the internal preset name stored per combo item to avoid alias collisions
+    // (e.g. user preset and bundle preset sharing the same display alias).
+    wxString wx_stored_name = combo.GetItemAlias(selection);
+    if (!wx_stored_name.empty())
+        return Preset::remove_suffix_modified(wx_stored_name.ToUTF8().data());
+    wxString wx_name = combo.GetString(selection);
+    return wxGetApp().preset_bundle->get_preset_name_by_alias(combo.get_type(), Preset::remove_suffix_modified(wx_name.ToUTF8().data()));
+}
+
+void Sidebar::select_filament_preset(size_t slot_index, const std::string& preset_name, bool switch_tab)
+{
+    PlaterPresetComboBox* combo = slot_index < p->combos_filament.size() ? p->combos_filament[slot_index] : nullptr;
+    const int             item  = combo != nullptr ? combo->item_for_preset(preset_name) : -1;
+    std::string           name  = preset_name;
+    if (item >= 0) {
+        // The selector's part of a pick, then the plater's, in the order its event runs them.
+        combo->SetSelection(item);
+        combo->item_picked(item);
+        name = preset_name_of_item(*combo, item);
+    }
+    p->plater->p->filament_preset_picked(int(slot_index), name, combo, item, switch_tab);
+    // What the sidebar's handler does after the plater's part of any selector's pick
+    // (Plater::priv::on_combobox_select()).
+    update_printer_thumbnail();
+}
+
+void Plater::priv::filament_preset_picked(int idx, const std::string& preset_name, PlaterPresetComboBox* combo, int item, bool switch_tab)
+{
+    const bool was_support = is_support_filament(idx);
+    wxGetApp().preset_bundle->set_filament_preset(idx, preset_name);
+    wxGetApp().plater()->update_project_dirty_from_presets();
+    wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
+    sidebar->update_dynamic_filament_list();
+    if (was_support != is_support_filament(idx) && wxGetApp().app_config->get("auto_calculate_flush") == "all") {
+        sidebar->auto_calc_flushing_volumes(idx);
+    }
+    if (combo != nullptr && item >= 0)
+        combo->set_sync_badge(combo->GetFlag(item) == (int)PresetComboBox::FilamentAMSType::FROM_AMS);
+    q->on_filament_change(idx);
+
+    if (sidebar->is_multifilament()) {
+        // Only update the plater UI for the 2nd and other filaments.
+        if (combo != nullptr)
+            combo->update();
+    }
+    else if (switch_tab) {
+        wxWindowUpdateLocker noUpdates2(sidebar->filament_panel());
+        wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(preset_name);
+        // update plater with new config
+        q->on_config_change(wxGetApp().preset_bundle->full_config());
+    }
+
+    // ORCA: Always refresh the selected filament combo so its color swatch (clr_picker)
+    // matches the chosen preset. update_ams_color() (in item_picked()) updates the project
+    // filament color when the preset defines one; this repaints the swatch to match.
+    if (combo != nullptr)
+        combo->update();
+
+    // update plater with new config
+    q->on_config_change(wxGetApp().preset_bundle->full_config());
+
+#ifdef __WXMSW__
+    // From the Win 2004 preset combobox lose a focus after change the preset selection
+    // and that is why the up/down arrow doesn't work properly
+    // So, set the focus to the combobox explicitly
+    if (combo != nullptr && item >= 0)
+        combo->SetFocus();
+#endif
+    if (wxGetApp().app_config->get("auto_calculate_flush") == "all") {
+        wxGetApp().plater()->sidebar().auto_calc_flushing_volumes(idx);
+    }
+
+    // BBS: log modify of filament selection
+    Slic3r::put_other_changes();
+
+    // update slice state and set bedtype default for 3rd-party printer
+    auto plate_list = partplate_list.get_plate_list();
+    for (auto plate : plate_list) {
+         plate->update_slice_result_valid_state(false);
+    }
+}
+
 void Plater::priv::on_select_preset(wxCommandEvent &evt)
 {
     PlaterPresetComboBox* combo = static_cast<PlaterPresetComboBox*>(evt.GetEventObject());
@@ -13309,6 +13406,11 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
     }
 
     auto idx = combo->get_filament_idx();
+
+    if (preset_type == Preset::TYPE_FILAMENT) {
+        filament_preset_picked(idx, preset_name_of_item(*combo, selection), combo, selection, /*switch_tab=*/true);
+        return;
+    }
 
     // BBS:Save the plate parameters before switching
     PartPlateList& old_plate_list = this->partplate_list;
@@ -13328,46 +13430,10 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
         plate_object.emplace_back(obj_idxs);
     }
 
-    bool flag = is_support_filament(idx);
-    //! Because of The MSW and GTK version of wxBitmapComboBox derived from wxComboBox,
-    //! but the OSX version derived from wxOwnerDrawnCombo.
-    //! So, to get selected string we do
-    //!     combo->GetString(combo->GetSelection())
-    //! instead of
-    //!     combo->GetStringSelection().ToUTF8().data());
+    std::string preset_name = preset_name_of_item(*combo, selection);
 
-    // Prefer the internal preset name stored per combo item to avoid alias collisions
-    // (e.g. user preset and bundle preset sharing the same display alias).
-    wxString wx_stored_name = combo->GetItemAlias(selection);
-    std::string preset_name;
-    if (!wx_stored_name.empty()) {
-        preset_name = Preset::remove_suffix_modified(wx_stored_name.ToUTF8().data());
-    } else {
-        wxString wx_name = combo->GetString(selection);
-        preset_name = wxGetApp().preset_bundle->get_preset_name_by_alias(preset_type,
-            Preset::remove_suffix_modified(wx_name.ToUTF8().data()));
-    }
-
-    if (preset_type == Preset::TYPE_FILAMENT) {
-        wxGetApp().preset_bundle->set_filament_preset(idx, preset_name);
-        wxGetApp().plater()->update_project_dirty_from_presets();
-        wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
-        sidebar->update_dynamic_filament_list();
-        bool flag_is_change = is_support_filament(idx);
-        if (flag != flag_is_change && wxGetApp().app_config->get("auto_calculate_flush") == "all") {
-            sidebar->auto_calc_flushing_volumes(idx);
-        }
-        auto select_flag = combo->GetFlag(selection);
-        combo->set_sync_badge(select_flag == (int)PresetComboBox::FilamentAMSType::FROM_AMS);
-        q->on_filament_change(idx);
-    }
     bool select_preset = !combo->selection_is_changed_according_to_physical_printers();
-    // TODO: ?
-    if (preset_type == Preset::TYPE_FILAMENT && sidebar->is_multifilament()) {
-        // Only update the plater UI for the 2nd and other filaments.
-        combo->update();
-    }
-    else if (select_preset) {
+    if (select_preset) {
         if (preset_type == Preset::TYPE_PRINTER) {
             PhysicalPrinterCollection& physical_printers = wxGetApp().preset_bundle->physical_printers;
             if(combo->is_selected_physical_printer())
@@ -13431,12 +13497,6 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
         }
     }
 
-    // ORCA: Always refresh the selected filament combo so its color swatch (clr_picker)
-    // matches the chosen preset. update_ams_color() (in OnSelect) updates the project
-    // filament color when the preset defines one; this repaints the swatch to match.
-    if (preset_type == Preset::TYPE_FILAMENT)
-        combo->update();
-
     // update plater with new config
     q->on_config_change(wxGetApp().preset_bundle->full_config());
     if (preset_type == Preset::TYPE_PRINTER) {
@@ -13495,9 +13555,6 @@ void Plater::priv::on_select_preset(wxCommandEvent &evt)
     // So, set the focus to the combobox explicitly
     combo->SetFocus();
 #endif
-    if (preset_type == Preset::TYPE_FILAMENT && wxGetApp().app_config->get("auto_calculate_flush") == "all") {
-        wxGetApp().plater()->sidebar().auto_calc_flushing_volumes(idx);
-    }
 
     // BBS: log modify of filament selection
     Slic3r::put_other_changes();
@@ -16466,7 +16523,7 @@ Print&          Plater::fff_print()         { return p->fff_print; }
 const SLAPrint& Plater::sla_print() const   { return p->sla_print; }
 SLAPrint&       Plater::sla_print()         { return p->sla_print; }
 
-int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_name, bool reload_presets)
+int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_name, bool reload_presets, bool tell_plugins)
 {
     model().calib_pa_pattern.reset(nullptr);
     model().plates_custom_gcodes.clear();
@@ -16503,7 +16560,7 @@ int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_
     //get_partplate_list().reinit();
     //get_partplate_list().update_slice_context_to_current_plate(p->background_process);
     //p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
-    if (!silent) {
+    if (!silent || tell_plugins) {
         Slic3r::LifecycleEventContext ctx;
         ctx.code = Slic3r::LifecycleEvtCode::Ok;
         Slic3r::fire_lifecycle_event(Slic3r::LifecycleEvent::NewProject, ctx);
@@ -22736,6 +22793,12 @@ void Plater::arrange()
     }
 }
 
+void Plater::arrange(bool current_plate_only)
+{
+    set_prepare_state(current_plate_only ? Job::PREPARE_STATE_MENU : Job::PREPARE_STATE_DEFAULT);
+    arrange();
+}
+
 void Plater::set_current_canvas_as_dirty()
 {
     p->set_current_canvas_as_dirty();
@@ -23213,6 +23276,14 @@ void Plater::apply_background_progress()
 }
 
 //BBS: select Plate
+int Plater::set_plate_locked(int plate_index, bool locked)
+{
+    take_snapshot("lock partplate");
+    const int ret = p->partplate_list.lock_plate(plate_index, locked);
+    set_current_canvas_as_dirty();
+    return ret;
+}
+
 int Plater::select_plate(int plate_index, bool need_slice)
 {
     int ret;
@@ -24000,8 +24071,7 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
     else if ((action == 4)&&(!right_click))
     {
         //lock the plate
-        take_snapshot("lock partplate");
-        ret = p->partplate_list.lock_plate(plate_index, !p->partplate_list.is_locked(plate_index));
+        ret = set_plate_locked(plate_index, !p->partplate_list.is_locked(plate_index));
     }
     else if ((action == 5)&&(!right_click))
     {
@@ -24221,24 +24291,31 @@ void Plater::cancel_slicing()
         p->background_process.stop();
 }
 
-bool Plater::export_gcode_to(const boost::filesystem::path& output_path)
+Plater::ExportRefusal Plater::export_gcode_to(const boost::filesystem::path& output_path)
 {
+    if (p->model.objects.empty())
+        return ExportRefusal::NoObjects;
+    // priv::export_gcode() answers a scheduled export with an error dialog, which suits the Export
+    // button and not a caller that named the file.
+    if (p->background_process.is_export_scheduled())
+        return ExportRefusal::AlreadyExporting;
     // Only a finished, valid slice is exported: anything that would start the background process
     // first could leave the export scheduled behind a running slice, out of the caller's sight.
-    if (p->model.objects.empty() || is_slicing_any())
-        return false;
-    if (p->process_completed_with_error == p->partplate_list.get_curr_plate_index() ||
-        !p->partplate_list.get_curr_plate()->is_slice_result_valid())
-        return false;
+    if (is_slicing_any())
+        return ExportRefusal::Slicing;
+    if (p->process_completed_with_error == p->partplate_list.get_curr_plate_index())
+        return ExportRefusal::SliceHasErrors;
+    if (!p->partplate_list.get_curr_plate()->is_slice_result_valid())
+        return ExportRefusal::NotSliced;
     p->notification_manager->new_export_began(false);
     p->exporting_status     = ExportingStatus::EXPORTING_TO_LOCAL;
     p->last_output_path     = output_path.string();
     p->last_output_dir_path = output_path.parent_path().string();
     if (!p->export_gcode(output_path, false, /*tracked=*/true)) {
         p->exporting_status = ExportingStatus::NOT_EXPORTING;
-        return false;
+        return ExportRefusal::NotStarted;
     }
-    return true;
+    return ExportRefusal::None;
 }
 
 uint64_t Plater::project_revision() const { return p->project_revision; }
