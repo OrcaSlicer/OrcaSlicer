@@ -15,7 +15,9 @@
 #include <boost/format.hpp>
 #include "libslic3r/Utils.hpp"
 #include <boost/log/trivial.hpp>
+#if defined(__linux__)
 #include <linux/limits.h>
+#endif
 #include <stdlib.h>
 #include <libslic3r/UpdateChannel.hpp>
 #include <string>
