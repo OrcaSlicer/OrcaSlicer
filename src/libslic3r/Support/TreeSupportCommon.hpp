@@ -605,6 +605,16 @@ public:
         return num_layers_widened > 0 ? std::min(coord_t(branch_radius + num_layers_widened * bp_radius_increase_per_layer), max_radius) : 0;
     }
 
+    // How much faster a layer a tree near the bed may move, where its foot is to be no wider than recommendedMinRadius(): by
+    // the growth of a foot, which leans a low tree toward the trees beside it to merge near the bed, but by no more than the
+    // step a body grows by a layer, half a line or the move of a branch where the branch angle sets more, less the move of
+    // a branch, so by nothing where the branch angle sets the step. A tree leaning farther would leave its body behind, see
+    // organic_limit_body_growth().
+    [[nodiscard]] coord_t foot_move_increase() const
+    {
+        return std::min(coord_t(bp_radius_increase_per_layer), std::max(support_line_width / 2, maximum_move_distance) - maximum_move_distance);
+    }
+
     // Ported from PrusaSlicer: the base of a low tree is not wider than the tree is tall.
     [[nodiscard]] inline coord_t recommendedMinRadius(LayerIndex layer_idx, LayerIndex dtt) const
     {

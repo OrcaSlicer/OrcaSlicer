@@ -104,6 +104,7 @@ public:
         void>::type
     construct_voronoi(const PointIterator first, const PointIterator last)
     {
+        this->clear();
         boost::polygon::construct_voronoi(first, last, &m_voronoi_diagram);
         m_state      = State::UNKNOWN;
         m_issue_type = IssueType::UNKNOWN;
@@ -119,6 +120,7 @@ public:
         void>::type
     construct_voronoi(const PointIterator p_first, const PointIterator p_last, const SegmentIterator s_first, const SegmentIterator s_last)
     {
+        this->clear();
         boost::polygon::construct_voronoi(p_first, p_last, s_first, s_last, &m_voronoi_diagram);
         m_state      = State::UNKNOWN;
         m_issue_type = IssueType::UNKNOWN;

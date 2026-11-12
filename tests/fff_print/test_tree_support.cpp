@@ -3142,6 +3142,82 @@ TEST_CASE("Organic leaning roots acquire a printable interface under their bead 
     CHECK_FALSE(upper.support_fills.empty());
 }
 
+TEST_CASE("Organic bottom interfaces anchor the run of a load hanging on from where it stands", "[TreeSupport][Organic][Material][Regression]")
+{
+    // A base path 0.2 mm wide and 10 mm long stands at its start on an interface path 1 mm long, its run beyond in the air
+    // over a strip of bottom interface 0.5 mm wide, across the lines of the bottom interface at 45 degrees.
+    const double angle = GENERATE(0., M_PI / 4.);
+    CAPTURE(angle);
+    DynamicPrintConfig settings = DynamicPrintConfig::full_print_config();
+    settings.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"}, {"support_style", "organic"},
+        {"support_interface_bottom_layers", 1}, {"support_on_build_plate_only", 0}, {"layer_height", .1},
+        {"initial_layer_print_height", .1}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, settings, nullptr, false);
+    PrintObject &object = *print.get_object(0);
+    object.slice();
+    SupportParameters params(object);
+    params.support_material_interface_flow = Flow(.4f, .1f, .4f);
+    params.bottom_interface_spacing = 2.5;
+    SupportLayer &lower = *object.add_support_layer(0, 0, .1, .4);
+    SupportLayer &upper = *object.add_support_layer(1, 1, .1, .5);
+    const Flow base(.2f, .1f, .4f), interface(.4f, .1f, .4f);
+    Polyline load(Point::new_scale(0., 0.), Point::new_scale(10., 0.));
+    Polyline footing(Point::new_scale(0., 0.), Point::new_scale(1., 0.));
+    Polygon  strip({Point::new_scale(-.3, -.25), Point::new_scale(10.3, -.25), Point::new_scale(10.3, .25), Point::new_scale(-.3, .25)});
+    load.rotate(angle);
+    footing.rotate(angle);
+    strip.rotate(angle);
+    extrusion_entities_append_paths(upper.support_fills.entities, Polylines{load}, erSupportMaterial, base.mm3_per_mm(), base.width(),
+        base.height());
+    extrusion_entities_append_paths(lower.support_fills.entities, Polylines{footing}, erSupportMaterialInterface, interface.mm3_per_mm(),
+        interface.width(), interface.height());
+    std::vector<SupportGeneratorLayer> interfaces(1);
+    interfaces.front().layer_type = SupporLayerType::BottomInterface;
+    interfaces.front().print_z = .4;
+    interfaces.front().height = .1;
+    interfaces.front().polygons = {strip};
+    organic_anchor_bottom_interfaces({&lower, &upper}, interfaces, params);
+    Polygons material;
+    for_each_extrusion_path(lower.support_fills, [&](const ExtrusionPath &path) {
+        append(material, organic_bead(path.as_polyline(), scale_(path.width)));
+    });
+    // What of the load lies farther than half its width from the interface below.
+    double hanging = 0.;
+    for (const Polyline &run : diff_pl(Polylines{load}, offset(union_(material), scale_(.11), jtRound, SCALED_EPSILON)))
+        hanging += unscale<double>(run.length());
+    CHECK_THAT(hanging, Catch::Matchers::WithinAbs(0., 1e-6));
+}
+
+TEST_CASE("Organic support loaded with its object warns of what stands on nothing as when generated", "[TreeSupport][Organic][Material][Regression]")
+{
+    // A plate 1 mm thick at 2 mm over a post, its Organic support standing in part on nothing at Z 0.8 mm.
+    DynamicPrintConfig settings = DynamicPrintConfig::full_print_config();
+    settings.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"}, {"support_style", "organic"},
+        {"support_on_build_plate_only", 0}, {"support_threshold_angle", 30}, {"raft_layers", 0}, {"layer_height", .2},
+        {"tree_support_tip_diameter", .8}, {"support_interface_spacing", .5}, {"tree_support_branch_angle_organic", 40.}});
+    TriangleMesh mesh = make_cube(20., 20., 1.);
+    mesh.translate(0.f, 0.f, 2.f);
+    mesh.merge(make_cube(1., 1., 2.5));
+    Model model;
+    Print print;
+    init_print({mesh}, print, model, settings);
+    print.set_status_silent();
+    print.process();
+    const auto generated = organic_support_warning_statuses(print);
+    REQUIRE(generated.size() == 1);
+    // Loaded with the object from a cache, the support keeps no warning.
+    PrintObject &object = *print.get_object(0);
+    object.update_step_warning(posSupportMaterial, PrintStateBase::WarningLevel::NON_CRITICAL, "",
+        PrintStateBase::SlicingOrganicSupportWarning);
+    REQUIRE(organic_support_warning_statuses(print).empty());
+    organic_update_loaded_support_warning(object);
+    const auto loaded = organic_support_warning_statuses(print);
+    REQUIRE(loaded.size() == 1);
+    CHECK(loaded.front().text == generated.front().text);
+}
+
 TEST_CASE("Organic model roots retain a chain through sparse bottom interface layers", "[TreeSupport][Organic][Material][Regression]")
 {
     using namespace organic_tdd;
@@ -3955,11 +4031,17 @@ TEST_CASE("Organic warnings judge a bead printed in several paths as a whole", "
     // the 0.65 mm the support may span, with a path ending in the middle of it, of an open bead and of a loop. 3 and 4: a
     // narrow end hanging 0.24 mm past what its own width reaches, whether the far end of the bead is wide or as narrow.
     // 5, 6 and 7: a bridge of 0.76 mm across the seam of a bead closed on itself, past the 0.65 mm the support may span, with
-    // paths of two widths and ends 0.1 mm apart, of one width, and with ends that meet.
-    const int shape = GENERATE(0, 1, 2, 3, 4, 5, 6, 7);
+    // paths of two widths and ends 0.1 mm apart, of one width, and with ends that meet. 8 and 9: a wide path that barely
+    // leaves what it reaches goes on in a free narrow end, shorter than the wide path is wide and far longer than it is
+    // itself wide. 10: the same across a bridge of 0.78 mm, too long for the narrow path. 11: a wide path hanging 0.66 mm,
+    // less than it is wide, with a narrow end of 0.01 mm, too short to change that. 12 and 13: a free end 0.6 mm wide
+    // whose tip lies 0.55 and 0.61 mm from the start of the bead, 0.4 mm wide: the round caps 0.05 and 0.11 mm apart,
+    // and what the end spans would pass for a bridge across the seam of a closed bead.
+    const int shape = GENERATE(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
     CAPTURE(shape);
     auto settings = organic_tdd::config("default");
-    settings.set_deserialize_strict({{"layer_height", .1}, {"initial_layer_print_height", .1}, {"support_on_build_plate_only", 1}});
+    settings.set_deserialize_strict({{"layer_height", .1}, {"initial_layer_print_height", .1}, {"support_on_build_plate_only", 1},
+        {"support_base_pattern_spacing", shape >= 12 ? 2.5 : .25}});
     Model model;
     Print print;
     init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, settings, nullptr, false);
@@ -3997,6 +4079,27 @@ TEST_CASE("Organic warnings judge a bead printed in several paths as a whole", "
         multi->paths.push_back(bead({Vec2d(0., 0.), Vec2d(2.2, 0.)}));
         multi->paths.push_back(bead({Vec2d(2.2, 0.), Vec2d(4., 0.)}));
         upper.support_fills.entities.push_back(multi);
+    } else if (shape >= 12) {
+        add(lower, Polyline({point(0., 0.), point(0., 3.), point(3., 3.), point(3., 0.)}));
+        auto *multi = new ExtrusionMultiPath();
+        multi->paths.push_back(bead({Vec2d(0., 0.), Vec2d(0., 3.), Vec2d(3., 3.), Vec2d(3., 0.)}));
+        multi->paths.push_back(bead({Vec2d(3., 0.), Vec2d(shape == 12 ? .55 : .61, 0.)}, .6f));
+        upper.support_fills.entities.push_back(multi);
+    } else if (shape == 10) {
+        add(lower, Polyline({point(0., 0.), point(1., 0.)}));
+        add(lower, Polyline({point(2.7, 0.), point(4., 0.)}));
+        auto *multi = new ExtrusionMultiPath();
+        multi->paths.push_back(bead({Vec2d(0., 0.), Vec2d(1.63, 0.)}, .8f));
+        multi->paths.push_back(bead({Vec2d(1.63, 0.), Vec2d(4., 0.)}, .2f));
+        upper.support_fills.entities.push_back(multi);
+    } else if (shape >= 8) {
+        add(lower, Polyline({point(0., 0.), point(4., 0.)}));
+        const float  wide  = shape == 9 ? .4f : .8f;
+        const double joint = shape == 11 ? 1.1 : shape == 9 ? .42 : .62;
+        auto *multi = new ExtrusionMultiPath();
+        multi->paths.push_back(bead({Vec2d(0., 0.), Vec2d(1., joint)}, wide));
+        multi->paths.push_back(bead({Vec2d(1., joint), Vec2d(1., shape == 11 ? 1.11 : shape == 9 ? .75 : 1.37)}, .2f));
+        upper.support_fills.entities.push_back(multi);
     } else if (shape >= 5) {
         add(lower, Polyline({point(2.7902, 0.), point(4., 0.), point(4., 1.), point(0., 1.), point(0., 0.), point(1.2598, 0.)}));
         auto *multi = new ExtrusionMultiPath();
@@ -4016,7 +4119,202 @@ TEST_CASE("Organic warnings judge a bead printed in several paths as a whole", "
         loop->paths.push_back(bead({Vec2d(2.2, 0.), Vec2d(4., 0.), Vec2d(4., 1.), Vec2d(0., 1.), Vec2d(0., 0.)}));
         upper.support_fills.entities.push_back(loop);
     }
-    CHECK(floating_support_islands(object, scale_(1.) * scale_(flow.width())).empty() == (shape == 1 || shape == 2));
+    CHECK(floating_support_islands(object, scale_(1.) * scale_(flow.width())).empty() == (shape == 1 || shape == 2 || shape == 11));
+}
+
+// Paths of a bead given by their points in mm and their widths.
+using OrganicTestBead = std::vector<std::pair<std::vector<Vec2d>, float>>;
+
+// How many parts of a bead of several paths over beads one layer below the warning about support over nothing counts.
+static size_t organic_multi_path_warnings(const double spacing, const OrganicTestBead &below, const OrganicTestBead &above,
+    const bool reversed)
+{
+    auto settings = organic_tdd::config("default");
+    settings.set_deserialize_strict({{"layer_height", .1}, {"initial_layer_print_height", .1}, {"support_on_build_plate_only", 1},
+        {"support_base_pattern_spacing", spacing}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, settings, nullptr, false);
+    print.process();
+    PrintObject &object = *print.get_object(0);
+    object.clear_support_layers();
+    const Flow flow(.4f, .2f, .2f);
+    const auto path = [&](const std::vector<Vec2d> &points, const float width) {
+        ExtrusionPath path(erSupportMaterial, flow.mm3_per_mm(), width, flow.height());
+        for (const Vec2d &p : points) {
+            const Point at = Point::new_scale(p.x(), p.y()) - object.center_offset();
+            path.polyline.points.emplace_back(double(at.x()), double(at.y()), 0.);
+        }
+        return path;
+    };
+    SupportLayer &lower = *object.add_support_layer(0, 0, .2, .2);
+    for (const auto &[points, width] : below)
+        lower.support_fills.entities.push_back(new ExtrusionPath(path(points, width)));
+    auto *multi = new ExtrusionMultiPath();
+    for (const auto &[points, width] : above)
+        multi->paths.push_back(path(points, width));
+    if (reversed)
+        multi->reverse();
+    object.add_support_layer(1, 1, .2, .4)->support_fills.entities.push_back(multi);
+    return floating_support_islands(object, 0.).size();
+}
+
+TEST_CASE("Organic warnings over a bead do not depend on support out of its reach", "[TreeSupport][Organic][Material][Regression]")
+{
+    DynamicPrintConfig settings = DynamicPrintConfig::full_print_config();
+    settings.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"}, {"support_style", "organic"},
+        {"support_base_pattern", "default"}, {"support_on_build_plate_only", 1}, {"support_base_pattern_spacing", .25},
+        {"support_interface_bottom_layers", 0}, {"layer_height", .1}, {"initial_layer_print_height", .1}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, settings, nullptr, false);
+    PrintObject &object = *print.get_object(0);
+    object.slice();
+    const auto bead = [](const Points &points, const float width) {
+        const Flow flow(width, .1f, .4f);
+        ExtrusionPath path(erSupportMaterial, flow.mm3_per_mm(), width, .1f);
+        for (const Point &p : points)
+            path.polyline.points.emplace_back(double(p.x()), double(p.y()), 0.);
+        return path;
+    };
+    // Points in nanometres. A path 0.4 mm wide and 1 mm long, joined to one 0.8 mm wide, runs along the edge of the reach of
+    // a long sloped bead below, within nanometres of it, where whether it hangs turns on the last nanometre. A path 0.3 mm
+    // wide on the sloped bead has the layer checked. A bead below bent around the far end of the sloped one lies far beyond
+    // the reach of the path.
+    const auto warnings = [&](const bool far, const bool reversed) {
+        object.clear_support_layers();
+        SupportLayer &lower = *object.add_support_layer(0, 0, .1, .1);
+        SupportLayer &upper = *object.add_support_layer(1, 1, .1, .2);
+        lower.support_fills.entities.push_back(new ExtrusionPath(bead({{-20000000, -2530000}, {20000000, 2950000}}, .4f)));
+        if (far)
+            lower.support_fills.entities.push_back(new ExtrusionPath(bead({{-9000000, 277000}, {2050000, 1790850},
+                {2850000, 2400450}, {24000000, 5298000}, {24500000, 4566500}, {25000000, 2435000}, {24000000, 1698000},
+                {3250000, -1144750}, {2250000, -781750}, {-9000000, -2323000}}, .4f)));
+        upper.support_fills.entities.push_back(new ExtrusionPath(bead({{-5000000, -475000}, {-4000000, -338000}}, .3f)));
+        auto *multi = new ExtrusionMultiPath();
+        multi->paths.push_back(bead({{-1001001, -341169}, {-1001, -204169}}, .8f));
+        multi->paths.push_back(bead({{-1001, -204169}, {998999, -67169}}, .4f));
+        if (reversed)
+            multi->reverse();
+        upper.support_fills.entities.push_back(multi);
+        return floating_support_islands(object, 0.).size();
+    };
+    for (const bool reversed : {false, true}) {
+        CAPTURE(reversed);
+        CHECK(warnings(true, reversed) == warnings(false, reversed));
+    }
+}
+
+TEST_CASE("Organic warnings over a run of a bead as long as it is wide do not depend on its direction", "[TreeSupport][Organic][Material][Regression]")
+{
+    DynamicPrintConfig settings = DynamicPrintConfig::full_print_config();
+    settings.set_deserialize_strict({{"enable_support", 1}, {"support_type", "tree(auto)"}, {"support_style", "organic"},
+        {"support_base_pattern", "default"}, {"support_on_build_plate_only", 1}, {"support_base_pattern_spacing", .25},
+        {"support_interface_bottom_layers", 0}, {"layer_height", .1}, {"initial_layer_print_height", .1}});
+    Model model;
+    Print print;
+    init_print(std::vector<TriangleMesh>{make_cube(1., 1., .1)}, print, model, settings, nullptr, false);
+    PrintObject &object = *print.get_object(0);
+    object.slice();
+    const auto bead = [](const Points &points, const float width) {
+        const Flow flow(width, .1f, .4f);
+        ExtrusionPath path(erSupportMaterial, flow.mm3_per_mm(), width, .1f);
+        for (const Point &p : points)
+            path.polyline.points.emplace_back(double(p.x()), double(p.y()), 0.);
+        return path;
+    };
+    // Points in nanometres. A bead of paths 0.2, 0.4 and 0.8 mm wide starts in the air, its run before a bead 0.4 mm wide
+    // below exactly one width long in the widths of its paths, 112349 / 200000 + 123466 / 400000 + 103672 / 800000, a sum
+    // in floating point that differs in its last digit with the order the bead runs in.
+    const auto warnings = [&](const bool reversed) {
+        object.clear_support_layers();
+        SupportLayer &lower = *object.add_support_layer(0, 0, .1, .1);
+        SupportLayer &upper = *object.add_support_layer(1, 1, .1, .2);
+        lower.support_fills.entities.push_back(new ExtrusionPath(bead({{949687, -2000000}, {949687, 2000000}}, .4f)));
+        auto *multi = new ExtrusionMultiPath();
+        multi->paths.push_back(bead({{0, 0}, {112349, 0}}, .2f));
+        multi->paths.push_back(bead({{112349, 0}, {235815, 0}}, .4f));
+        multi->paths.push_back(bead({{235815, 0}, {1000000, 0}}, .8f));
+        if (reversed)
+            multi->reverse();
+        upper.support_fills.entities.push_back(multi);
+        return floating_support_islands(object, 0.).size();
+    };
+    CHECK(warnings(true) == warnings(false));
+}
+
+TEST_CASE("Organic warnings over a bead of several paths do not depend on its direction", "[TreeSupport][Organic][Material][Regression]")
+{
+    // A bead closed on itself across a seam 0.35 mm long between a path 0.8 mm wide and one 0.2 mm wide, whose round caps
+    // touch. The bead 0.4 mm wide below leaves a gap under the seam, its far end at far_end.
+    const double far_end = GENERATE(2.12, 2.2602, 2.5);
+    CAPTURE(far_end);
+    const OrganicTestBead below{{{{.6898, 0.}, {0., 0.}, {0., 3.}, {4., 3.}, {4., 0.}, {far_end, 0.}}, .4f}};
+    const OrganicTestBead above{{{{1.75, 0.}, {4., 0.}, {4., 3.}, {0., 3.}, {0., 0.}}, .2f}, {{{0., 0.}, {1.4, 0.}}, .8f}};
+    CHECK(organic_multi_path_warnings(.25, below, above, false) == organic_multi_path_warnings(.25, below, above, true));
+}
+
+TEST_CASE("Organic warnings count only the part of a seam out of reach of the bead below", "[TreeSupport][Organic][Material][Regression]")
+{
+    // The bead of the test above, shifted by shift: the far end of the bead below moves by 0.01 mm under the start of the
+    // narrow path, which then leaves its last 0.005 mm free and the seam starts hanging on from it. What the seam adds is no
+    // more than what of it is out of reach, as for a bead of one width.
+    const auto row = GENERATE(table<double, double, double>({ { .1898, 0., 2.055 }, { .2948, .3, 2.355 } }));
+    const double near_end = std::get<0>(row), shift = std::get<1>(row), far_end = std::get<2>(row);
+    CAPTURE(near_end, shift, far_end);
+    const auto warnings = [&](const double end) {
+        const OrganicTestBead below{{{{near_end, 0.}, {0., 0.}, {0., 3.}, {4., 3.}, {4., 0.}, {end, 0.}}, .4f}};
+        const OrganicTestBead above{{{{1.75 + shift, 0.}, {4., 0.}, {4., 3.}, {0., 3.}, {0., 0.}}, .2f},
+            {{{0., 0.}, {1.4 + shift, 0.}}, .8f}};
+        return organic_multi_path_warnings(.25, below, above, false);
+    };
+    CHECK(warnings(far_end) == warnings(far_end + .01));
+}
+
+TEST_CASE("Organic warnings hold the seam of a bead only where the caps of its ends touch the bead below", "[TreeSupport][Organic][Material][Regression]")
+{
+    // A bead closed on itself across a seam 0.49 mm long between a path 0.2 mm wide and one 0.8 mm wide, whose round caps
+    // just touch, over a U-shaped bead 0.4 mm wide below starting at near_end and a post 0.2 mm wide ending at post_end
+    // beside the seam. A band 0.5 mm wide along the seam would reach the post at 0.34 mm or the end of the U at -0.4102 mm,
+    // which neither cap touches: the bead hangs there as with the post at 0.6 mm. A post at 0.14 mm touches the narrow cap.
+    const auto row = GENERATE(table<double, double, size_t>({ { -.5302, .34, 1 }, { -.4102, .6, 1 }, { -.5302, .14, 0 } }));
+    const double near_end = std::get<0>(row), post_end = std::get<1>(row);
+    const size_t expected = std::get<2>(row);
+    CAPTURE(near_end, post_end);
+    const OrganicTestBead below{{{{near_end, 0.}, {-3., 0.}, {-3., -3.}, {3., -3.}, {3., 0.}, {1.5002, 0.}}, .4f},
+        {{{.06, post_end}, {.06, 1.2}}, .2f}};
+    const OrganicTestBead above{{{{0., 0.}, {-3., 0.}, {-3., -3.}, {3., -3.}, {3., 0.}}, .2f}, {{{3., 0.}, {.49, 0.}}, .8f}};
+    CHECK(organic_multi_path_warnings(.25, below, above, false) == expected);
+    CHECK(organic_multi_path_warnings(.25, below, above, true) == expected);
+}
+
+TEST_CASE("Organic warnings join the free stretches on both sides of a seam however short", "[TreeSupport][Organic][Material][Regression]")
+{
+    // A bead closed on itself, a path 0.4 mm wide and one 0.3 mm wide whose ends lie gap apart, from nothing to well beyond
+    // the geometric tolerance. The bead below leaves 0.38 mm of it free on each side of the seam, a bridge of 0.76 mm
+    // together, past the 0.65 mm the support may span.
+    const double gap = GENERATE(0., 1e-6, 5e-5, 1e-4, 1.01e-4, 2e-4, .1);
+    CAPTURE(gap);
+    const OrganicTestBead below{{{{2.7902, 0.}, {4., 0.}, {4., 1.}, {0., 1.}, {0., 0.}, {1.2598, 0.}}, .4f}};
+    const OrganicTestBead above{{{{2., 0.}, {4., 0.}}, .4f}, {{{4., 0.}, {4., 1.}, {0., 1.}, {0., 0.}, {2. - gap, 0.}}, .3f}};
+    CHECK(organic_multi_path_warnings(.25, below, above, false) == 1);
+    CHECK(organic_multi_path_warnings(.25, below, above, true) == 1);
+}
+
+TEST_CASE("Organic warnings over a bead do not depend on how its straight paths are divided", "[TreeSupport][Organic][Material][Regression]")
+{
+    // A path 0.5 mm wide turns 0.42 mm off the line between two bearings 2.17 mm apart, where a path 0.2 mm wide starts: the
+    // narrow path leaves its own corridor and hangs, whether or not a point divides its first straight stretch.
+    const bool divided = GENERATE(false, true);
+    CAPTURE(divided);
+    const OrganicTestBead below{{{{-.46, -1.}, {-.46, 1.}}, .4f}, {{{1.71, -1.}, {1.71, 1.}}, .4f}};
+    std::vector<Vec2d> narrow{{.2, .42}};
+    if (divided)
+        narrow.emplace_back(.68, .252);
+    narrow.emplace_back(1.4, 0.);
+    narrow.emplace_back(1.8, 0.);
+    const OrganicTestBead above{{{{-.65, 0.}, {0., 0.}, {.2, .42}}, .5f}, {narrow, .2f}};
+    CHECK(organic_multi_path_warnings(2., below, above, false) == 1);
 }
 
 TEST_CASE("Organic warning and cleanup passes stop when the slicing is cancelled", "[TreeSupport][Organic][Regression]")

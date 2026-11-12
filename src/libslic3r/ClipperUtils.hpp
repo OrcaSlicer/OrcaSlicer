@@ -361,6 +361,10 @@ Slic3r::Polygons   offset(const Slic3r::Polyline3 &polyline, const float delta, 
 // cap_tolerance: the arc tolerance of round end caps when joinType is not jtRound, 0 for the default.
 Slic3r::Polygons   offset(const Slic3r::Polylines &polylines, const float delta, JoinType joinType = DefaultLineJoinType, double miterLimit = DefaultLineMiterLimit, EndType end_type = DefaultEndType, double cap_tolerance = 0.);
 Slic3r::Polygons   offset(const Slic3r::Polygons &polygons, const float delta, JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
+// The polygons as offset() by delta takes them: going around each from its first point, a point closer than
+// ClipperOffsetShortestEdgeFactor * |delta| to the last one kept is dropped, and so are the last points as close to the first;
+// a polygon left with fewer than three points is dropped.
+Slic3r::Polygons   offset_input(const Slic3r::Polygons &polygons, const float delta);
 Slic3r::Polygons   offset(const Slic3r::ExPolygon &expolygon, const float delta, JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
 Slic3r::Polygons   offset(const Slic3r::ExPolygons &expolygons, const float delta, JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);
 Slic3r::Polygons   offset(const Slic3r::Surfaces &surfaces, const float delta, JoinType joinType = DefaultJoinType, double miterLimit = DefaultMiterLimit);

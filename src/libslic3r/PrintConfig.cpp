@@ -9870,9 +9870,10 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         value = "hollow";
     } else if (opt_key == "tree_support_wall_count" && value == "-1") {
         value = "0";
-    } else if (opt_key == "tree_support_top_rate" && string_to_double_decimal_point(value) > 100.) {
-        // Older projects and presets may hold a Branch Density above the limit of 100 %.
-        value = "100%";
+    } else if (opt_key == "tree_support_top_rate") {
+        // Older projects and presets may hold a Branch Density above the limit of 100 %, in any form the option reads.
+        if (ConfigOptionPercent rate; rate.deserialize(value) && rate.value > 100.)
+            value = "100%";
     } else if (opt_key == "different_settings_to_system") {
         std::string copy_value = value;
         copy_value.erase(std::remove(copy_value.begin(), copy_value.end(), '\"'), copy_value.end()); // remove '"' in string

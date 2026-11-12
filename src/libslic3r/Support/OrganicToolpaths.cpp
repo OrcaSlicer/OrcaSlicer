@@ -31,6 +31,7 @@
 #include "../libslic3r.h"
 #include "../format.hpp"
 
+#include <boost/container_hash/hash.hpp>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>
 
@@ -41,6 +42,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -142,16 +144,25 @@ static bool at_axis_end(const Polyline &part, const Polyline &axis)
     return is_axis_end(part.first_point()) || is_axis_end(part.last_point());
 }
 
-// Whether a run of the axis of a bead width wide outside what holds it hangs: longer than a line and ending in the air or
-// leaving the bead-wide corridor between its bearings, or a straight bridge between bearings longer than max_span.
-static bool run_hangs(const Polyline &run, const Polyline &axis, const bool closed, const double width, const double max_span)
+// Whether a run of the axis of a bead outside what holds it hangs: longer than a line and ending in the air or leaving the
+// bead-wide corridor between its bearings, or a straight bridge between bearings longer than the support may span. in_widths
+// is its length in the widths of its bead and in_spans in such bridges, and segment_width the width of the bead along a
+// segment of it.
+template<typename SegmentWidth>
+static bool run_hangs(const Polyline &run, const Polyline &axis, const bool closed, const double in_widths, const double in_spans,
+    const SegmentWidth &segment_width)
 {
-    if (run.length() <= width)
+    // Added up segment by segment in the order the run goes, in_widths and in_spans differ in their last digits from one way
+    // along it to the other: a run as long as a width or a span is no longer than it either way.
+    constexpr double rounding = 1e-9;
+    if (in_widths <= 1. + rounding)
         return false;
     const Line span(run.first_point(), run.last_point());
-    const bool bent = std::any_of(run.points.begin(), run.points.end(),
-        [&](const Point &point) { return span.distance_to(point) > width + scale_(.01); });
-    return bent || run.length() > max_span || (! closed && at_axis_end(run, axis));
+    // The distance to the span is convex along a segment, so a segment leaves the corridor of its own width at an end if at all.
+    bool       bent = false;
+    for (size_t i = 0; i + 1 < run.size() && ! bent; ++ i)
+        bent = std::max(span.distance_to(run.points[i]), span.distance_to(run.points[i + 1])) > segment_width(i) + scale_(.01);
+    return bent || in_spans > 1. + rounding || (! closed && at_axis_end(run, axis));
 }
 
 // The runs of an axis of a bead width wide outside reachable that hang.
@@ -168,7 +179,10 @@ static Polylines hanging_parts(const Polyline &axis, const double width, const P
     } else
         parts = diff_pl(Polylines{ axis }, reachable);
     parts.erase(std::remove_if(parts.begin(), parts.end(),
-        [&](const Polyline &part) { return ! run_hangs(part, axis, closed, width, max_span); }), parts.end());
+        [&](const Polyline &part) {
+            const double length = part.length();
+            return ! run_hangs(part, axis, closed, length / width, length / max_span, [width](size_t) { return width; });
+        }), parts.end());
     return parts;
 }
 
@@ -178,23 +192,88 @@ struct BeadPiece {
     coord_t  width;
 };
 
+// A run outside what holds a bead of several paths, with the width of the path of each of its segments.
+struct BeadRun {
+    Polyline             axis;
+    std::vector<coord_t> widths;
+};
+
+// The parts of the seam from a to b of a bead closed on itself that footing leaves free. Only the round caps of its ends,
+// width_a and width_b wide, lie over it: a point of it is held where the cross-section of the caps there meets footing.
+static Polylines free_seam_parts(const Point &a, const Point &b, const coord_t width_a, const coord_t width_b, const Polygons &footing)
+{
+    const Vec2d  from   = a.cast<double>();
+    const Vec2d  along  = (b - a).cast<double>();
+    const double length = along.norm();
+    const Vec2d  dir    = along / length;
+    const Vec2d  across = Vec2d(- dir.y(), dir.x()) * double(std::max(width_a, width_b));
+    Polygon      cap_a  = make_circle(0.5 * double(width_a), double(SCALED_EPSILON));
+    Polygon      cap_b  = make_circle(0.5 * double(width_b), double(SCALED_EPSILON));
+    cap_a.translate(a);
+    cap_b.translate(b);
+    const auto point_at = [&](const Vec2d &p) { return Point(coord_t(std::round(p.x())), coord_t(std::round(p.y()))); };
+    Polygon    slab({ point_at(from + across), point_at(from + along + across), point_at(from + along - across), point_at(from - across) });
+    slab.make_counter_clockwise();
+    // The stretches of the seam over which the caps meet footing.
+    std::vector<std::pair<double, double>> held;
+    for (const Polygon &contact : intersection(intersection(union_(Polygons{ cap_a, cap_b }), Polygons{ slab }), footing)) {
+        double low = length, high = 0.;
+        for (const Point &p : contact.points) {
+            const double t = std::clamp((p.cast<double>() - from).dot(dir), 0., length);
+            low  = std::min(low, t);
+            high = std::max(high, t);
+        }
+        held.emplace_back(low, high);
+    }
+    // Free whole, however short: it joins the free stretches on both sides of it.
+    if (held.empty())
+        return { Polyline(a, b) };
+    std::sort(held.begin(), held.end());
+    const auto at = [&](const double t) { return t <= 0. ? a : t >= length ? b : point_at(from + dir * t); };
+    Polylines  free;
+    double     start = 0.;
+    for (const auto &[low, high] : held) {
+        if (low > start + double(SCALED_EPSILON))
+            free.emplace_back(at(start), at(low));
+        start = std::max(start, high);
+    }
+    if (length > start + double(SCALED_EPSILON))
+        free.emplace_back(at(start), at(length));
+    return free;
+}
+
 // How many runs hang of a bead of paths of different widths whose whole axis is axis. Each path is held only as far as its
-// own width reaches, while a run goes on across the ends of the paths, which are no ends of the bead, and is as wide as the
-// widest path it spans.
+// own width reaches, while a run goes on across the ends of the paths, which are no ends of the bead, each of its segments
+// counting against the width of its own path: a short stretch of a wide path lends a narrow end hanging on from it nothing.
+// reach(width, path, around) is where a bead width wide stands, as far as around from path.
 template<typename Reach, typename Span>
 static size_t varying_bead_hanging_runs(const std::vector<BeadPiece> &pieces, const Polyline &axis, const Reach &reach, const Span &max_span)
 {
-    const bool             closed = axis.first_point().distance_to(axis.last_point()) <= std::max(pieces.front().width, pieces.back().width);
-    std::vector<BeadPiece> runs;
-    BeadPiece              tail{ {}, 0 };
+    // Closed on itself where the round caps of its ends touch.
+    const bool             closed = axis.first_point().distance_to(axis.last_point()) <= 0.5 * double(pieces.front().width + pieces.back().width);
+    std::vector<BeadRun>   runs;
+    BeadRun                tail;
     const auto close_tail = [&] {
         if (! tail.axis.points.empty())
             runs.emplace_back(std::move(tail));
-        tail = BeadPiece{ {}, 0 };
+        tail = BeadRun{};
+    };
+    const auto extend = [](BeadRun &run, const Points &points, const size_t from, const coord_t width) {
+        run.axis.points.insert(run.axis.points.end(), points.begin() + from, points.end());
+        run.widths.resize(run.axis.points.size() - 1, width);
     };
     const auto touches = [](const Polyline &part, const Point &point) { return part.first_point() == point || part.last_point() == point; };
-    for (const BeadPiece &piece : pieces) {
-        Polylines   parts = diff_pl(Polylines{ piece.axis }, reach(piece.width));
+    // The seam of a bead closed on itself where its ends do not quite meet is a path of its own, as wide as the mean of their
+    // widths whichever way the bead runs. Only the caps of the ends lie over it, and it is held where they reach.
+    const bool             seam  = closed && axis.last_point() != axis.first_point();
+    std::vector<BeadPiece> paths = pieces;
+    if (seam)
+        paths.push_back(BeadPiece{ Polyline(axis.last_point(), axis.first_point()), (pieces.back().width + pieces.front().width) / 2 });
+    for (const BeadPiece &piece : paths) {
+        Polylines   parts = seam && &piece == &paths.back() ?
+            free_seam_parts(piece.axis.first_point(), piece.axis.last_point(), pieces.back().width, pieces.front().width,
+                reach(0, piece.axis, std::max(pieces.back().width, pieces.front().width))) :
+            diff_pl(Polylines{ piece.axis }, reach(piece.width, piece.axis, piece.width));
         const Point in = piece.axis.first_point(), out = piece.axis.last_point();
         const auto  next = std::find_if(parts.begin(), parts.end(), [&](const Polyline &part) { return touches(part, in); });
         if (next != parts.end() && ! tail.axis.points.empty() && tail.axis.last_point() == in) {
@@ -202,8 +281,7 @@ static size_t varying_bead_hanging_runs(const std::vector<BeadPiece> &pieces, co
             parts.erase(next);
             if (part.first_point() != in)
                 part.reverse();
-            tail.axis.points.insert(tail.axis.points.end(), part.points.begin() + 1, part.points.end());
-            tail.width = std::max(tail.width, piece.width);
+            extend(tail, part.points, 1, piece.width);
             if (part.last_point() != out)
                 close_tail();
         } else
@@ -212,25 +290,33 @@ static size_t varying_bead_hanging_runs(const std::vector<BeadPiece> &pieces, co
             if (touches(part, out)) {
                 if (part.last_point() != out)
                     part.reverse();
-                tail = BeadPiece{ std::move(part), piece.width };
+                tail = BeadRun{};
+                extend(tail, part.points, 0, piece.width);
             } else
-                runs.push_back(BeadPiece{ std::move(part), piece.width });
+                extend(runs.emplace_back(), part.points, 0, piece.width);
     }
-    // The seam of a bead closed on itself, whether or not its ends quite meet, joins its last run to its first.
+    // The last run of a bead closed on itself, ending where it starts, joins its first.
     if (! tail.axis.points.empty() && closed) {
-        const auto first = std::find_if(runs.begin(), runs.end(), [&](const BeadPiece &run) { return touches(run.axis, axis.first_point()); });
+        const auto first = std::find_if(runs.begin(), runs.end(), [&](const BeadRun &run) { return touches(run.axis, axis.first_point()); });
         if (first != runs.end()) {
-            if (first->axis.first_point() != axis.first_point())
+            if (first->axis.first_point() != axis.first_point()) {
                 first->axis.reverse();
-            const bool meet = tail.axis.last_point() == first->axis.first_point();
-            tail.axis.points.insert(tail.axis.points.end(), first->axis.points.begin() + (meet ? 1 : 0), first->axis.points.end());
-            tail.width = std::max(tail.width, first->width);
+                std::reverse(first->widths.begin(), first->widths.end());
+            }
+            tail.axis.points.insert(tail.axis.points.end(), first->axis.points.begin() + 1, first->axis.points.end());
+            tail.widths.insert(tail.widths.end(), first->widths.begin(), first->widths.end());
             runs.erase(first);
         }
     }
     close_tail();
-    return size_t(std::count_if(runs.begin(), runs.end(), [&](const BeadPiece &run) {
-        return run_hangs(run.axis, axis, closed, double(run.width), max_span(double(run.width)));
+    return size_t(std::count_if(runs.begin(), runs.end(), [&](const BeadRun &run) {
+        double in_widths = 0., in_spans = 0.;
+        for (size_t i = 0; i < run.widths.size(); ++ i) {
+            const double length = (run.axis.points[i + 1] - run.axis.points[i]).cast<double>().norm();
+            in_widths += length / double(run.widths[i]);
+            in_spans  += length / max_span(double(run.widths[i]));
+        }
+        return run_hangs(run.axis, axis, closed, in_widths, in_spans, [&run](const size_t i) { return double(run.widths[i]); });
     }));
 }
 
@@ -349,7 +435,9 @@ void organic_anchor_bottom_interfaces(const std::vector<SupportLayer*> &layers,
                             printed = union_(material);
                             extrusion_entities_append_paths(plane.layer->support_fills.entities, std::move(anchors),
                                 ExtrusionRole::erSupportMaterialInterface, flow.mm3_per_mm(), flow.width(), flow.height());
-                            unheld.clear();
+                            // A run of a load hanging on from where it stands, which the grid may leave as it is, is left
+                            // to the anchors below.
+                            unheld = unsupported();
                             break;
                         }
                     }
@@ -1075,9 +1163,13 @@ static Polygons support_footing(const PrintObject &object, const std::vector<Pol
 // Where the axis of a bead width wide stands on footing: within half its width of it. trim_unsupported_base() joins the
 // ends it cuts along the edge of that reach grown by SCALED_EPSILON, which holds them, and the reach takes such a join in
 // with a margin of as much again: lying on its edge, rounding would leave the join over nothing.
+static float bead_reach_offset(const double width)
+{
+    return float(.5 * width + 2. * SCALED_EPSILON);
+}
 static Polygons bead_reach(const Polygons &footing, const double width)
 {
-    return offset(footing, float(.5 * width + 2. * SCALED_EPSILON), jtRound, SCALED_EPSILON);
+    return offset(footing, bead_reach_offset(width), jtRound, SCALED_EPSILON);
 }
 
 // Where the axes of a layer leave what holds up the narrowest of them, a wider bead reaching only farther. Clipping all the
@@ -1209,6 +1301,48 @@ template<typename Visitor> static void for_each_bead(const ExtrusionEntityCollec
             visitor(*entity);
 }
 
+// Only the outlines whose boxes overlap the box reach into it. The cut drops only corners out of the box and keeps each edge
+// crossing it as it is: cut at the box, an edge would turn by the rounding of the cut, and a bead along the edge of the reach
+// could hang or not by that. The union mends the outlines so cut short, which grow wrong as they are. Where it returns an edge
+// the cut outlines do not have, it cut one where they cross out of the box, whether the crossing rounds to a new point or
+// onto a corner, or it joined edges in line. offset() drops a point closer than a fraction of the offset to the last one it
+// kept, going around an outline from its first point, and which of two such points it keeps sets the slope of an edge: the
+// outlines are cut as offset() takes them, and where offset() would drop a point of what is left, two points the cut leaves
+// as close, an edge would turn again. In either case the outlines the box meets are taken whole instead.
+Polygons organic_footing_near_box(const Polygons &footing, const BoundingBox &box, const float delta)
+{
+    Polygons whole;
+    for (const Polygon &polygon : footing)
+        if (get_extents(polygon).overlap(box))
+            whole.push_back(polygon);
+    const Polygons cut  = ClipperUtils::clip_clipper_polygons_with_subject_bbox(offset_input(whole, delta), box);
+    Polygons       near = union_(cut);
+    using Edge = std::pair<Point, Point>;
+    const auto edge = [](const Point &p, const Point &q) {
+        return p.x() < q.x() || (p.x() == q.x() && p.y() < q.y()) ? Edge(p, q) : Edge(q, p);
+    };
+    // Each coordinate of the ends mixed into the hash in turn: the edges of footing laid out in rows differ by multiples of
+    // their step, and any sum of the coordinates, as PointHash and a sum of the hashes of the ends are, takes the same
+    // value for many of them, or values that fall into a few buckets.
+    const auto hash = [](const Edge &e) {
+        size_t seed = 0;
+        for (const coord_t c : { e.first.x(), e.first.y(), e.second.x(), e.second.y() })
+            boost::hash_combine(seed, c);
+        return seed;
+    };
+    std::unordered_set<Edge, decltype(hash)> kept(16, hash);
+    for (const Polygon &polygon : cut)
+        for (size_t i = 0; i < polygon.size(); ++ i)
+            kept.insert(edge(polygon.points[i], polygon.points[(i + 1) % polygon.size()]));
+    const bool mended = std::any_of(near.begin(), near.end(), [&kept, &edge](const Polygon &polygon) {
+        for (size_t i = 0; i < polygon.size(); ++ i)
+            if (kept.count(edge(polygon.points[i], polygon.points[(i + 1) % polygon.size()])) == 0)
+                return true;
+        return false;
+    });
+    return mended || count_points(offset_input(near, delta)) < count_points(near) ? whole : near;
+}
+
 // The number of runs of the beads of layer i outside its floating islands that hang, see hanging_parts(), over the
 // material below: the support below and, where the support may stand on it, the model. Sideways contact joins such a run
 // to a rooted XY island but puts nothing below it, so the island check does not see it.
@@ -1229,6 +1363,15 @@ static size_t hanging_runs(const PrintObject &object, const std::vector<Polygons
         if (inserted)
             it->second = bead_reach(footing, double(width));
         return it->second;
+    };
+    // The reach near a path of a bead of several widths, grown from the footing within a box around the path only: Arachne
+    // prints the paths of such a bead each as wide as it fits, and growing the footing of the whole layer for each width
+    // took most of the time of these checks. The box leaves out only footing farther from the path than around, more than
+    // the reach extends from the path and the caps of the ends of a seam from it.
+    const auto reach_near = [&footing](const coord_t width, const Polyline &path, const coord_t around) {
+        BoundingBox box = get_extents(path);
+        box.offset(double(around) + scaled<double>(.1));
+        return bead_reach(organic_footing_near_box(footing, box, bead_reach_offset(double(width))), double(width));
     };
     const auto max_span = [&](const double width) { return free_span(config, width); };
     AxesOutsideReach outside;
@@ -1252,7 +1395,7 @@ static size_t hanging_runs(const PrintObject &object, const std::vector<Polygons
         const bool    uniform = std::all_of(pieces.begin(), pieces.end(), [width](const BeadPiece &piece) { return piece.width == width; });
         const auto    hanging = [&] {
             return uniform ? hanging_parts(axis, double(width), reach(width), max_span(double(width))).size() :
-                varying_bead_hanging_runs(pieces, axis, reach, max_span);
+                varying_bead_hanging_runs(pieces, axis, reach_near, max_span);
         };
         size_t found = hanging();
         // Most beads stand on support. Construct the model footing only once one needs it.
@@ -1385,6 +1528,15 @@ void organic_update_support_warning(PrintObject &object, std::vector<coordf_t> h
     }
     object.update_step_warning(posSupportMaterial, PrintStateBase::WarningLevel::NON_CRITICAL, message,
         PrintStateBase::SlicingOrganicSupportWarning);
+}
+
+void organic_update_loaded_support_warning(PrintObject &object)
+{
+    if (object.support_layers().empty() || ! hollow_organic(object.config()))
+        return;
+    const SupportParameters support_params(object);
+    organic_update_support_warning(object,
+        floating_support_islands(object, scaled<double>(1.) * support_params.support_material_flow.scaled_width()));
 }
 
 OrganicScarfFooting::OrganicScarfFooting(Print &print)

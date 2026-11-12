@@ -3721,8 +3721,10 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     obj->set_done(posIroning);
                 if (obj->set_started(posContouring))
                     obj->set_done(posContouring);
-                if (obj->set_started(posSupportMaterial))
+                if (obj->set_started(posSupportMaterial)) {
                     obj->set_done(posSupportMaterial);
+                    organic_update_loaded_support_warning(*obj);
+                }
                 if (obj->set_started(posDetectOverhangsForLift))
                     obj->set_done(posDetectOverhangsForLift);
             }

@@ -84,6 +84,11 @@ Polylines organic_uncovered_wall_parts(const Polyline &axis, const Polygons &cov
 // parts on the other side joins them, so that the wall does not change its role for a dot.
 std::pair<Polylines, Polylines> organic_split_wall_axis(const Polyline &axis, const Polygons &region, coord_t min_length);
 
+// The outlines of footing near box, to be offset by delta near what lies within it as the whole of footing is offset there:
+// each edge of them crossing the box kept as it is, and each point offset() keeps of them kept by offset() as it keeps it
+// from footing. The polygons of footing may overlap.
+Polygons organic_footing_near_box(const Polygons &footing, const BoundingBox &box, float delta);
+
 // The part of an island of a hollow Organic body printed solid, given the solid polygons of its layer: all of an island
 // mostly solid, a tip, printed with no wall, or else the solid part two lines inside its outline, where its walls lie.
 // walled tells whether the island is printed with a wall.
@@ -111,6 +116,9 @@ std::vector<coordf_t> floating_support_islands(const PrintObject &object, double
     const std::map<const Layer*, int> &nozzle_layers = {});
 bool organic_support_needs_final_check(const PrintObject &object);
 void organic_update_support_warning(PrintObject &object, std::vector<coordf_t> heights);
+// The warning of an Organic support loaded with its object, which keeps none: what stands on nothing is found again as
+// generating the support finds it, after dropping its crumbs.
+void organic_update_loaded_support_warning(PrintObject &object);
 
 // Scarf selection happens during export. With zero Scarf flow, record only material actually
 // emitted by each instance, so conditional and partial seams cannot supply imaginary footing.
