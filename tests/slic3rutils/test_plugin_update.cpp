@@ -1,5 +1,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <catch2/catch_all.hpp>
 
 #include <boost/asio/buffer.hpp>
@@ -14,6 +15,7 @@
 #include <chrono>
 #include <cstddef>
 #include <fstream>
+#include <ios>
 #include <iterator>
 #include <memory>
 #include <stdexcept>
@@ -30,6 +32,7 @@
 #include <slic3r/plugin/PythonInterpreter.hpp>
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 
+#include "catch2/catch_message.hpp"
 #include "plugin_test_utils.hpp"
 #include "test_utils.hpp"
 
