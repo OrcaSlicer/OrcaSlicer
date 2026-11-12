@@ -378,6 +378,14 @@ public:
 
     void set_content(const wxString &text, const std::vector<TipMedia> &media);
     bool has_content() const { return !m_lines.empty() || !m_pictures.empty(); }
+    // On Wayland only: leave the position to the compositor, which puts the tooltip `gap` to the right of
+    // `side` (in the coordinates of the window it belongs to), level with its top, or to its left when
+    // the right has no room. An empty `side` goes back to the position set with SetSize().
+    void place_beside_on_wayland(const wxRect &side, int gap)
+    {
+        m_wayland_side = side;
+        m_wayland_gap  = gap;
+    }
     void show_tip();
 
     void wait(double seconds) { m_wait.StartOnce(std::max(1, int(std::lround(seconds * 1000.)))); }
@@ -415,6 +423,9 @@ private:
     size_t frame_at(const Picture &picture, double t, double *next_change) const;
     void   schedule_frame(double t);
 
+    wxRect                m_wayland_side;
+    int                   m_wayland_gap     = 0;
+    bool                  m_wayland_by_rect = false; // the last showing was placed by the compositor
     wxFont                m_font;
     wxFont                m_caption_font;
     std::vector<wxString> m_lines;
@@ -640,6 +651,27 @@ void TipWindow::show_tip()
                 gtk_widget_get_visible(GTK_WIDGET(l->data)))
                 gtk_widget_hide(GTK_WIDGET(l->data));
         g_list_free(toplevels);
+    }
+#endif
+#ifdef __WXGTK__
+    // An xdg_popup is placed by the compositor against a rectangle of its parent, with rules for when it
+    // does not fit: the only way to put it beside its window without knowing the screen. It has to be
+    // asked before the popup maps.
+    if (on_wayland() && (!m_wayland_side.IsEmpty() || m_wayland_by_rect)) {
+        GtkWidget *widget = GetHandle();
+        gtk_widget_realize(widget);
+        if (GdkWindow *window = gtk_widget_get_window(widget)) {
+            if (!m_wayland_side.IsEmpty()) {
+                const GdkRectangle side{m_wayland_side.x, m_wayland_side.y, m_wayland_side.width, m_wayland_side.height};
+                gdk_window_move_to_rect(window, &side, GDK_GRAVITY_NORTH_EAST, GDK_GRAVITY_NORTH_WEST,
+                                        GdkAnchorHints(GDK_ANCHOR_FLIP_X | GDK_ANCHOR_SLIDE_Y), m_wayland_gap, 0);
+            } else {
+                // Back to the position SetSize() gave, which GTK does not send again when it is unchanged.
+                const wxPoint pos = GetPosition();
+                gdk_window_move(window, pos.x, pos.y);
+            }
+        }
+        m_wayland_by_rect = !m_wayland_side.IsEmpty();
     }
 #endif
     m_anim_start = tip_now();
@@ -964,10 +996,13 @@ bool place_after_content(const wxRect &content, const wxRect &anchor, const wxSi
 //   the next items, which are the ones the user is choosing between.
 // - In a column of controls (the sidebar's settings pages), beside the column and level with the control,
 //   over the 3D view rather than over the next rows of the page.
-// - In a dialog, beside the dialog. Not on Wayland, where a tooltip is kept inside its window.
+// - In a dialog, beside the dialog.
 // - On a page that spans its window (a settings page in its own window), to the right of the page's
 //   column of controls, level with the control, when the window leaves room there: on the free side of
 //   the page rather than over the next rows.
+// - On Wayland, where the screen is unknown and the rules above keep a tooltip inside its window: in a
+//   dialog with no room for it there, beside the dialog after all, placed by the compositor, which
+//   puts it on the other side when one side has no room.
 // - Otherwise (a toolbar, a full-width page), or when there is no room beside: below the control and
 //   level with its left edge, or above it when there is no room below.
 void place(TipWindow &popup, const State &st)
@@ -978,6 +1013,7 @@ void place(TipWindow &popup, const State &st)
     const int    gap    = popup.FromDIP(ANCHOR_GAP);
     wxPoint      pos;
     wxWindow    *top = wxGetTopLevelParent(st.owner);
+    popup.place_beside_on_wayland({}, 0);
     if (top != nullptr && dynamic_cast<wxPopupWindow *>(top) != nullptr) {
         const wxRect side = top->GetScreenRect();
         pos.x = place_axis(side.x, side.x + side.width, size.x, bounds.x, bounds.x + bounds.width, gap);
@@ -989,6 +1025,13 @@ void place(TipWindow &popup, const State &st)
             (top != nullptr && dynamic_cast<wxDialog *>(top) != nullptr && !on_wayland() &&
              place_beside(top->GetScreenRect(), anchor, size, bounds, gap, pos)) ||
             place_after_content(content_column(st.owner), anchor, size, bounds, gap, pos);
+        if (!beside && top != nullptr && dynamic_cast<wxDialog *>(top) != nullptr && on_wayland()) {
+            // Only the size: moving the popup itself would replace the compositor's placement.
+            const wxRect dialog = top->GetScreenRect();
+            popup.SetSize(size);
+            popup.place_beside_on_wayland(wxRect(dialog.x, anchor.y, std::max(1, dialog.width), std::max(1, anchor.height)), gap);
+            return;
+        }
         if (!beside) {
             pos.x = clamp_to(anchor.x, bounds.x, bounds.x + bounds.width - size.x);
             pos.y = place_axis(anchor.y, anchor.y + anchor.height, size.y, bounds.y, bounds.y + bounds.height, gap);
