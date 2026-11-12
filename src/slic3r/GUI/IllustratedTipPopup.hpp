@@ -59,6 +59,11 @@ void hover_illustrated_tooltip_deferred(wxWindow *window, const wxRect &item, co
 // whose pictures follow its value, when the value changes.
 void refresh_illustrated_tooltip(wxWindow *window);
 
+// The text of the tooltip given to `window` with set_illustrated_tooltip(), or an empty string. The
+// popup replaces the native tooltip, so code that named a control by its tooltip (an icon-only button
+// read by a screen reader) asks here instead.
+wxString illustrated_tooltip_text(const wxWindow *window);
+
 // Whether a tooltip is on screen for `window` or for a window inside it.
 bool is_illustrated_tooltip_shown_for(const wxWindow *window);
 

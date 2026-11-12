@@ -2215,7 +2215,7 @@ void GLGizmoMeasure::show_face_face_assembly_senior()
         }
         panel_tooltip(_u8L("Turns the moving part over about the center of Face 2. The face stays where it is but points "
                            "the other way, so the part ends up on the other side of it. Click again to turn it back."),
-                      {{"measure/flip_off.png", _L("Off")}, {"measure/flip_on.png", _L("On")}});
+                      {{"measure/flip_off.png", _L("Off")}, {"measure/flip_on.gif", _L("On")}});
 
         if (action.has_parallel_distance) {
             m_imgui->text(_u8L("Parallel distance:"));
