@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 
 namespace Slic3r::GUI {
 
