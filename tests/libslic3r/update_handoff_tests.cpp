@@ -3,11 +3,13 @@
 #include <catch2/catch_all.hpp>
 
 #include <boost/filesystem.hpp>
+#include <boost/nowide/filesystem.hpp>
 #include <cstdint>
 #include <cstddef>
 #include <fstream>
 #include <ios>
 #include <iterator>
+#include <locale>
 #include <string>
 #include <vector>
 
@@ -31,6 +33,19 @@ public:
 
 private:
     std::string m_previous;
+};
+
+// Converts paths as UTF-8 for the test's lifetime, as the app does from startup
+// (boost::nowide::nowide_filesystem() in OrcaSlicer.cpp). Without it Boost.Filesystem reads a
+// narrow path as the ANSI code page on Windows, while the file writes go through nowide.
+class Utf8PathConversion
+{
+public:
+    Utf8PathConversion() : m_previous(boost::nowide::nowide_filesystem()) {}
+    ~Utf8PathConversion() { fs::path::imbue(m_previous); }
+
+private:
+    std::locale m_previous;
 };
 
 const char* kAsset  = "OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.5.0.AppImage";
@@ -213,6 +228,7 @@ TEST_CASE("Only https release downloads from the OrcaSlicer repository are accep
 TEST_CASE("The handoff round-trips through a cache directory with non-ASCII characters", "[UpdateHandoff]")
 {
     ScopedTemporaryDir dir;
+    Utf8PathConversion utf8; // before the path below is built
     const fs::path     cache = dir.path() / "caf\xc3\xa9";
     set_updater_cache_dir(cache.string());
 
