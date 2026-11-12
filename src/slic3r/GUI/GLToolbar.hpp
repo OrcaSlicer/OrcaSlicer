@@ -423,6 +423,10 @@ public:
     bool on_mouse(wxMouseEvent& evt, GLCanvas3D& parent);
     // get item pointer for highlighter timer
     GLToolbarItem* get_item(const std::string& item_name);
+    // The item under the pointer, or nullptr.
+    const GLToolbarItem* get_hovered_item() const;
+    // The size of an icon on screen, in pixels.
+    float get_scaled_icons_size() const { return m_layout.icons_size * m_layout.scale; }
 
     //BBS: GUI refactor: GLToolbar
     int generate_button_text_textures(wxFont& font);

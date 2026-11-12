@@ -22,6 +22,10 @@ set(SLIC3R_GUI_SOURCES
     GUI/AboutDialog.hpp
     GUI/AnimatedTexture.cpp
     GUI/AnimatedTexture.hpp
+    GUI/IllustratedTooltip.cpp
+    GUI/IllustratedTooltip.hpp
+    GUI/IllustratedTipPopup.cpp
+    GUI/IllustratedTipPopup.hpp
     GUI/AmsMappingPopup.cpp
     GUI/AmsMappingPopupUpdate.cpp
     GUI/AmsMappingPopup.hpp
@@ -526,6 +530,11 @@ set(SLIC3R_GUI_SOURCES
     GUI/Search.hpp
     GUI/SettingsIndex.cpp
     GUI/SettingsIndex.hpp
+    GUI/SettingTips.cpp
+    GUI/SettingTips.hpp
+    GUI/SettingTipsFilament.cpp
+    GUI/SettingTipsPrinter.cpp
+    GUI/SettingTipsProcess.cpp
     GUI/Selection.cpp
     GUI/Selection.hpp
     GUI/SelectMachine.cpp

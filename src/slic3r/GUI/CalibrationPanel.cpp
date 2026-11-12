@@ -13,7 +13,10 @@
 #include "slic3r/GUI/Widgets/SideTools.hpp"
 #include <cstddef>
 #include "slic3r/GUI/Tabbook.hpp"
+#include "slic3r/GUI/TabButton.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include <wx/colour.h>
+#include <wx/window.h>
 #include "slic3r/GUI/CalibrationWizard.hpp"
 #include "slic3r/GUI/CalibrationWizardPage.hpp"
 #include "slic3r/GUI/CalibrationWizardPresetPage.hpp"
@@ -403,7 +406,7 @@ void SelectMObjectPopup::update_user_devices()
             else {
                 if (mobj->has_access_right() && mobj->is_avaliable()) {
                     op->set_printer_state(PrinterState::IN_LAN);
-                    op->SetToolTip(_L("Online"));
+                    set_illustrated_tooltip(op, _L("Online"));
                 }
                 else {
                     op->set_printer_state(PrinterState::LOCK);
@@ -412,16 +415,16 @@ void SelectMObjectPopup::update_user_devices()
         }
         else {
             if (!mobj->is_online()) {
-                op->SetToolTip(_L("Offline"));
+                set_illustrated_tooltip(op, _L("Offline"));
                 op->set_printer_state(PrinterState::OFFLINE);
             }
             else {
                 if (mobj->is_in_printing()) {
-                    op->SetToolTip(_L("Busy"));
+                    set_illustrated_tooltip(op, _L("Busy"));
                     op->set_printer_state(PrinterState::BUSY);
                 }
                 else {
-                    op->SetToolTip(_L("Online"));
+                    set_illustrated_tooltip(op, _L("Online"));
                     op->set_printer_state(PrinterState::IDLE);
                 }
             }
@@ -519,6 +522,25 @@ void CalibrationPanel::init_tabpanel() {
         m_tabpanel->AddPage(m_cali_panels[i],
             get_calibration_type_name(m_cali_panels[i]->get_calibration_mode()),
             selected);
+    }
+
+    // The tabs are the TabButtons of the button list, in the order of the pages.
+    int tab = 0;
+    for (wxWindow* child : m_tabpanel->GetBtnsListCtrl()->GetChildren()) {
+        if (dynamic_cast<TabButton*>(child) == nullptr || tab >= (int)CALI_MODE_COUNT)
+            continue;
+        switch (m_cali_panels[tab++]->get_calibration_mode()) {
+        case CalibMode::Calib_PA_Line:
+            set_illustrated_tooltip(child, _L("Finds the Flow Dynamics factor (pressure advance) of a filament: how far the extruder runs ahead "
+                                              "of a change of speed, so lines keep an even width into and out of corners. The result is "
+                                              "stored on the printer."));
+            break;
+        case CalibMode::Calib_Flow_Rate:
+            set_illustrated_tooltip(child, _L("Finds the flow ratio of a filament, which scales how much of it is extruded, so top surfaces "
+                                              "come out smooth instead of gappy or ridged. The result is saved to a filament preset."));
+            break;
+        default: break;
+        }
     }
 
     for (int i = 0; i < (int)CALI_MODE_COUNT; i++)

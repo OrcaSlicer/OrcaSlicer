@@ -10,6 +10,19 @@
 
 namespace Slic3r::GUI {
 
+// One frame of a decoded illustration: the whole picture, already composited, as interleaved RGBA.
+struct IllustrationFrame
+{
+    std::vector<unsigned char> rgba;
+    double                     delay{0.}; // seconds it stays up; 0 for a still image
+};
+
+// Decodes an illustration on the CPU: PNG, JPG and BMP through wxImage, GIF (animated or not) through
+// wxGIFDecoder, with each frame composited the way the file asks. False, and nothing in `frames`, if the
+// file is missing or cannot be decoded. Shared by the GL tooltips (AnimatedTexture) and the wx ones
+// (IllustratedTipPopup), so a picture looks and plays the same in both.
+bool decode_illustration(const std::string &path, int &width, int &height, std::vector<IllustrationFrame> &frames);
+
 // An illustration for the UI to draw: one still image, or the frames of an animated GIF together with
 // the delays the file asks for. Decoded on the CPU once and uploaded as one GL texture per frame.
 //
