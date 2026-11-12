@@ -268,6 +268,8 @@ typedef struct _sliced_info {
     bool                strict_mode {false};
 }sliced_info_t;
 std::vector<PrintBase::SlicingStatus> g_slicing_warnings;
+// The objects generate their support in parallel, each reporting its warnings from a thread of its own.
+std::mutex g_slicing_warnings_mutex;
 
 #if defined(__linux__) || defined(__LINUX__)
 #define PIPE_BUFFER_SIZE 512
@@ -457,7 +459,10 @@ cli_callback_mgr_t g_cli_callback_mgr;
 void cli_status_callback(const PrintBase::SlicingStatus& slicing_status)
 {
     if (slicing_status.warning_step != -1) {
-        g_slicing_warnings.push_back(slicing_status);
+        {
+            std::lock_guard<std::mutex> lock(g_slicing_warnings_mutex);
+            g_slicing_warnings.push_back(slicing_status);
+        }
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": percent=%1%, warning_step=%2%, message=%3%, message_type=%4%, flag=%5%")
             %slicing_status.percent %slicing_status.warning_step %slicing_status.text %(int)(slicing_status.message_type) %slicing_status.flags;
     }
@@ -469,6 +474,7 @@ void cli_status_callback(const PrintBase::SlicingStatus& slicing_status)
 void default_status_callback(const PrintBase::SlicingStatus& slicing_status)
 {
     if (slicing_status.warning_step != -1) {
+        std::lock_guard<std::mutex> lock(g_slicing_warnings_mutex);
         g_slicing_warnings.push_back(slicing_status);
     }
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": percent=%1%, warning_step=%2%, message=%3%, message_type=%4%")%slicing_status.percent %slicing_status.warning_step %slicing_status.text %(int)(slicing_status.message_type);

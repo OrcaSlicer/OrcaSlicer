@@ -198,6 +198,19 @@ in PrusaSlicer, a tree widens only until its base is as wide as the tree is tall
 so the trees under low overhangs do not get wide feet that would join them at the
 bed; a branch already wider than that keeps its width.
 
+Near the bed, where its foot is not to widen, a tree may move faster by the
+growth of a foot a layer, as in CuraEngine, which leans low trees toward each
+other so that they merge near the bed. This lean is no more than the step the
+bodies grow by a layer, half a line or the branch angle where it sets more, less
+the move of the branch angle, so nothing where the branch angle sets the step: a
+tree leaning farther would leave its body behind, its leading side cut off. Only
+the lean is limited so, not the whole move of a layer. The slow move gets no more
+lean, though the branch angle bounds it already: with the whole growth of a foot
+in it, more floating support islands were counted in some of the configurations
+measured and fewer in none. At fine layers the whole growth of a foot fits; at
+0.2 mm layers and 0.42 mm lines the lean is what half a line leaves of the branch
+angle.
+
 The Trunk Diameter (`tree_support_trunk_diameter`, CuraEngine's
 `support_tree_max_diameter`) limits the radius of every branch, its foot included,
 but not below the branch diameter. CuraEngine defaults it to 25 mm; here the
@@ -575,9 +588,17 @@ the support may stand on it. A run farther than half a bead from it hangs when
 it is longer than a bead and ends in the air or leaves a corridor within one
 bead width of the chord between its bearings, or when it bridges straight
 between two bearings farther than the support spans anywhere else: a line
-between two lines of the base pattern, or of a bottom interface. This bead-scale test also applies below
-the whole-island area cutoff. Closed axes, including bead-overlapping seam
-gaps, are rejoined across their source seam.
+between two lines of the base pattern, or of a bottom interface. Along a bead
+that Arachne prints in paths of several widths, each segment of a run counts in
+its length, its span and its corridor against the width of its own path, so a
+short stretch of a wide path lends a narrow one hanging on from it nothing.
+This bead-scale test also applies below the whole-island area cutoff. A bead
+whose ends lie within reach of each other, within a width for a bead of one
+width or with the round caps of its ends touching for one of several, is
+closed, and its runs are rejoined across the seam. Between the ends of a bead
+of several widths only those caps lie over the gap, so its seam is held only
+where their cross-section meets the material below, and a seam nothing holds
+joins the free stretches on both sides of it however short it is.
 
 A wall excursion is shortened only when nothing needs it. With support on the
 build plate only, the upward load check must find no interface or model contact

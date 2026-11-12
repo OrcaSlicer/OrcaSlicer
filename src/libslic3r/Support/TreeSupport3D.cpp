@@ -2238,11 +2238,14 @@ static void increase_areas_one_layer(
 
             if (config.layer_start_bp_radius > layer_idx &&
                 config.recommendedMinRadius(layer_idx - 1, elem.distance_to_top) < config.getRadius(elem.effective_radius_height + 1, elem.elephant_foot_increases)) {
-                // can guarantee elephant foot radius increase
+                // Near the bed a tree leans faster, as in CuraEngine, but by no more than foot_move_increase(), the room the
+                // step of the bodies leaves beyond the move of a branch. The slow move, though the move of a branch bounds it
+                // already, gets no more: with the whole growth of a foot in it, more floating support islands were counted in
+                // some of the configurations measured and fewer in none.
                 if (ceiled_parent_radius == volumes.ceilRadius(config.getRadius(parent.state.effective_radius_height + 1, parent.state.elephant_foot_increases + 1), parent.state.use_min_xy_dist))
-                    extra_speed += config.bp_radius_increase_per_layer;
+                    extra_speed += config.foot_move_increase();
                 else
-                    extra_slow_speed += std::min(coord_t(config.bp_radius_increase_per_layer),
+                    extra_slow_speed += std::min(config.foot_move_increase(),
                                                  config.maximum_move_distance - (config.maximum_move_distance_slow + extra_slow_speed));
             }
 

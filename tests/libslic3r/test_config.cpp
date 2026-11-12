@@ -1600,6 +1600,10 @@ TEST_CASE("handle_legacy caps the Branch Density of older projects at 100 %", "[
         { "100%", 100. },
         { "150%", 100. },
         { "250",  100. },
+        // Other forms the option itself reads.
+        { "+120%", 100. },
+        { " 120%", 100. },
+        { "\t120%", 100. },
     }));
     INFO(value);
     ConfigSubstitutionContext ctxt(ForwardCompatibilitySubstitutionRule::Disable);
