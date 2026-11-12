@@ -169,8 +169,6 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     const float sliders_width = m_imgui->scaled(7.0f);
     const float drag_left_width = ImGui::GetStyle().WindowPadding.x + sliders_width - space_size;
 
-    const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
-
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc.at("tool_type"));
     std::array<wchar_t, 2> tool_ids = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon };
@@ -179,7 +177,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
         icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon};
     else
         icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon };
-    std::array<wxString, 2> tool_tips = { _L("Circle"), _L("Sphere")};
+    const std::array<PainterTip, 2> tool_tips = { PainterTip::Circle, PainterTip::Sphere };
     for (int i = 0; i < tool_ids.size(); i++) {
         //std::string  str_label = std::string("##");
         //std::wstring btn_name = icons[i] + boost::nowide::widen(str_label);
@@ -208,9 +206,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
             }
         }
 
-        if (ImGui::IsItemHovered()) {
-            m_imgui->tooltip(tool_tips[i], max_tooltip_width);
-        }
+        painter_tooltip(tool_tips[i]);
     }
 
     if (m_current_tool != old_tool)
@@ -231,11 +227,14 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     ImGui::SameLine(sliders_left_width);
     ImGui::PushItemWidth(sliders_width);
     m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+    painter_tooltip(PainterTip::BrushSize);
     ImGui::SameLine(drag_left_width + sliders_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+    painter_tooltip(PainterTip::BrushSize);
 
     m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only);
+    painter_tooltip(PainterTip::Vertical);
 
     ImGui::Separator();
 
@@ -257,6 +256,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
         update_model_object();
         m_parent.set_as_dirty();
     }
+    painter_tooltip(PainterTip::EraseAll);
     m_imgui->disabled_end();
 
     ImGui::SameLine();
@@ -264,6 +264,7 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     if (m_imgui->button(_L("Done"))) {
         m_parent.reset_all_gizmos();
     }
+    painter_tooltip(PainterTip::Done);
 
     ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     GizmoImguiEnd();

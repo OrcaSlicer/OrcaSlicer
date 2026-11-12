@@ -8,6 +8,8 @@
 #include "Plater.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
+#include "IllustratedTipPopup.hpp"
+#include "SettingTips.hpp"
 
 #include "libslic3r/PrintConfig.hpp"
 
@@ -58,6 +60,7 @@
 #include <wx/font.h>
 #include <wx/numformatter.h>
 #include <wx/settings.h>
+#include <wx/weakref.h>
 #include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/tglbtn.h>
@@ -412,6 +415,49 @@ wxString Field::get_tooltip_text(const wxString &default_string)
 
     return tooltip_text.length() > 0 ? tooltip_text : default_string;
 }
+
+// The texts the drop-down list of an option with a list of values shows, in the order of its
+// enum_values, as Choice::BUILD() appends them. A list item is matched to its value by its text rather
+// than by its index, since some lists leave values out (host_type) or are filled elsewhere.
+static std::vector<wxString> enum_item_texts(const ConfigOptionDef &opt)
+{
+    std::vector<wxString> texts;
+    texts.reserve(opt.enum_values.size());
+    for (size_t i = 0; i < opt.enum_values.size(); ++i)
+        texts.push_back(opt.enum_labels.empty() ? wxString(opt.enum_values[i]) :
+                        i < opt.enum_labels.size() ? _(opt.enum_labels[i]) : wxString());
+    return texts;
+}
+
+TipMediaSource Field::tip_media()
+{
+    std::string              key = m_opt_id.substr(0, m_opt_id.find('#'));
+    std::vector<std::string> values;
+    std::vector<wxString>    texts;
+    wxWeakRef<wxWindow>      list;
+    if (dynamic_cast<::ComboBox *>(getWindow()) != nullptr && !m_opt.enum_values.empty()) {
+        list   = getWindow();
+        values = m_opt.enum_values;
+        texts  = enum_item_texts(m_opt);
+    }
+    return [key = std::move(key), values = std::move(values), texts = std::move(texts), list]() {
+        std::string value;
+        wxString    label;
+        if (auto *combo = dynamic_cast<::ComboBox *>(list.get())) {
+            const int sel = combo->GetSelection();
+            if (sel >= 0 && sel < int(combo->GetCount())) {
+                const auto it = std::find(texts.begin(), texts.end(), combo->GetString(sel));
+                if (it != texts.end()) {
+                    value = values[size_t(it - texts.begin())];
+                    label = *it;
+                }
+            }
+        }
+        return setting_tip_media(key, value, label);
+    };
+}
+
+void Field::set_tooltip(wxWindow *win, const wxString &text) { set_illustrated_tooltip_deferred(win, text, tip_media()); }
 
 bool Field::is_matched(const std::string& string, const std::string& pattern)
 {
@@ -1033,18 +1079,13 @@ void TextCtrl::BUILD() {
     text_ctrl->OSXDisableAllSmartSubstitutions(); // BBS
 #endif // __WXOSX__
 
-	temp->SetToolTip(get_tooltip_text(text_value));
+	set_tooltip(temp, get_tooltip_text(text_value));
 
     if (!m_opt.multiline) {
-        text_ctrl->Bind(wxEVT_TEXT_ENTER, ([
-#if !defined(__WXGTK__)
-            temp,
-#endif // __WXGTK__
-            this](wxEvent &e)
+        text_ctrl->Bind(wxEVT_TEXT_ENTER, ([this](wxEvent &e)
         {
 #if !defined(__WXGTK__)
             e.Skip();
-            temp->GetToolTip()->Enable(true);
 #endif // __WXGTK__
             EnterPressed enter(this);
             propagate_value();
@@ -1059,29 +1100,11 @@ void TextCtrl::BUILD() {
         });
     }
 
-	text_ctrl->Bind(wxEVT_LEFT_DOWN, ([temp](wxEvent &event)
-	{
-		//! to allow the default handling
-		event.Skip();
-		//! eliminating the g-code pop up text description
-		bool flag = false;
-#ifdef __WXGTK__
-		// I have no idea why, but on GTK flag works in other way
-		flag = true;
-#endif // __WXGTK__
-		temp->GetToolTip()->Enable(flag);
-	}), text_ctrl->GetId());
-
-	temp->Bind(wxEVT_KILL_FOCUS, ([
-#if !defined(__WXGTK__)
-		temp,
-#endif // __WXGTK__
-		this](wxEvent &e)
+	// The tooltip hides itself on the click and stays away while the text is being edited
+	// (IllustratedTipPopup), so the field no longer toggles wxToolTip globally around editing.
+	temp->Bind(wxEVT_KILL_FOCUS, ([this](wxEvent &e)
 	{
 		e.Skip();
-#if !defined(__WXGTK__)
-		temp->GetToolTip()->Enable(true);
-#endif // __WXGTK__
         if (!bEnterPressed)
             propagate_value();
 	}), temp->GetId());
@@ -1275,7 +1298,7 @@ void CheckBox::BUILD() {
 		e.Skip();
 	}), temp->GetId());
 
-	temp->SetToolTip(get_tooltip_text(check_value ? "true" : "false"));
+	set_tooltip(temp, get_tooltip_text(check_value ? "true" : "false"));
 
 	// recast as a wxWindow to fit the calling convention
 	window = dynamic_cast<wxWindow*>(temp);
@@ -1443,7 +1466,7 @@ void SpinCtrl::BUILD() {
         }
 	}), temp->GetTextCtrl()->GetId());
 
-	temp->SetToolTip(get_tooltip_text(text_value));
+	set_tooltip(temp, get_tooltip_text(text_value));
 
 	// recast as a wxWindow to fit the calling convention
 	window = dynamic_cast<wxWindow*>(temp);
@@ -1625,7 +1648,10 @@ void Choice::BUILD()
     temp->Bind(wxEVT_COMBOBOX_DROPDOWN, [this](wxCommandEvent&) { m_is_dropped = true; }, temp->GetId());
     temp->Bind(wxEVT_COMBOBOX_CLOSEUP,  [this](wxCommandEvent&) { m_is_dropped = false; }, temp->GetId());
 
-    temp->Bind(wxEVT_COMBOBOX,          [this](wxCommandEvent&) { on_change_field(); }, temp->GetId());
+    temp->Bind(wxEVT_COMBOBOX,          [this](wxCommandEvent&) {
+        refresh_illustrated_tooltip(window); // its picture is the value's
+        on_change_field();
+    }, temp->GetId());
 
     if (m_is_editable) {
         temp->Bind(wxEVT_KILL_FOCUS, [this](wxEvent& e) {
@@ -1640,7 +1666,27 @@ void Choice::BUILD()
         }, temp->GetId() );
     }
 
-	temp->SetToolTip(get_tooltip_text(temp->GetValue()));
+	set_tooltip(temp, get_tooltip_text(temp->GetValue()));
+
+    // The open list shows the picture of the value under the pointer, beside the list, for a setting
+    // whose values have pictures (SettingTip::values). The pictures are looked up when that tooltip
+    // opens, not here or on every move.
+    if (!m_opt.enum_values.empty()) {
+        DropDown &drop = temp->GetDropDown();
+        drop.SetItemHoverHandler([&drop, temp, key = m_opt_id.substr(0, m_opt_id.find('#')), values = m_opt.enum_values,
+                                  texts = enum_item_texts(m_opt)](int item, const wxRect &row) {
+            const auto it = item >= 0 && item < int(temp->GetCount()) ?
+                                std::find(texts.begin(), texts.end(), temp->GetString(unsigned(item))) : texts.end();
+            if (it == texts.end()) {
+                hover_illustrated_tooltip(&drop, wxRect(), wxString());
+                return;
+            }
+            hover_illustrated_tooltip_deferred(&drop, row, wxString(),
+                                               [key, value = values[size_t(it - texts.begin())], label = *it]() {
+                                                   return setting_value_media(key, value, label);
+                                               });
+        });
+    }
 }
 
 void Choice::propagate_value()
@@ -1751,6 +1797,7 @@ void Choice::set_value(const std::string& value, bool change_event)  //! Redunda
 		field->SetValue(value);
 	else
 		field->SetSelection(idx);
+    refresh_illustrated_tooltip(window);
 
 	m_disable_change_event = false;
 }
@@ -1878,6 +1925,7 @@ void Choice::set_value(const boost::any& value, bool change_event)
 	default:
 		break;
 	}
+    refresh_illustrated_tooltip(window);
 
 	m_disable_change_event = false;
 }
@@ -2150,7 +2198,7 @@ void PrinterAgentChoice::BUILD()
     reload_rows();
 
     temp->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { on_change_field(); }, temp->GetId());
-    temp->SetToolTip(get_tooltip_text(temp->GetValue()));
+    set_tooltip(temp, get_tooltip_text(temp->GetValue()));
 }
 
 // Resolve CONFIG id string to a matching row in the live REGISTRY. "" uses the vendor default.
@@ -2326,7 +2374,7 @@ void PluginField::add_plugin_row(const wxString& value, bool is_last)
 
     ComboBox* display = new ComboBox(window, wxID_ANY, value, wxDefaultPosition, wxDefaultSize, 0, NULL, wxCB_READONLY | CB_NO_DROP_ICON);
     display->SetIcon("edit");
-    display->SetToolTip(get_tooltip_text(value));
+    set_tooltip(display, get_tooltip_text(value));
 
     ScalableButton* remove_btn = new ScalableButton(window, wxID_ANY, "cross", wxEmptyString,
         wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true, 16);
@@ -2428,7 +2476,7 @@ void PluginField::set_row_value(size_t index, const wxString& value)
     if (index >= m_rows.size() || !m_rows[index].display)
         return;
     m_rows[index].display->SetValue(value);
-    m_rows[index].display->SetToolTip(get_tooltip_text(value));
+    set_tooltip(m_rows[index].display, get_tooltip_text(value));
 }
 
 void PluginField::set_value(const boost::any& value, bool change_event)
@@ -2522,7 +2570,7 @@ void PluginConfigField::BUILD()
     m_button->SetSize(size);
 
     m_button->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { open_dialog(); });
-    m_button->SetToolTip(get_tooltip_text(_L("Configure")));
+    set_tooltip(m_button, get_tooltip_text(_L("Configure")));
 
     window = m_button;
 
@@ -2645,7 +2693,7 @@ void ColourPicker::BUILD()
         draw_bmp_btn();
         event.Skip();
     });
-    button->SetToolTip(get_tooltip_text(clr_str));
+    set_tooltip(button, get_tooltip_text(clr_str));
 }
 
 void ColourPicker::draw_bmp_btn()
@@ -2814,8 +2862,8 @@ void PointCtrl::BUILD()
     window = dynamic_cast<wxWindow*>(x_input);
 	sizer = dynamic_cast<wxSizer*>(temp);
 
-	x_textctrl->SetToolTip(get_tooltip_text(X+", "+Y));
-	y_textctrl->SetToolTip(get_tooltip_text(X+", "+Y));
+	set_tooltip(x_input, get_tooltip_text(X+", "+Y));
+	set_tooltip(y_input, get_tooltip_text(X+", "+Y));
 }
 
 void PointCtrl::msw_rescale()
@@ -2938,7 +2986,7 @@ void StaticText::BUILD()
 	// 	// recast as a wxWindow to fit the calling convention
 	window = dynamic_cast<wxWindow*>(temp);
 
-	temp->SetToolTip(get_tooltip_text(legend));
+	set_tooltip(temp, get_tooltip_text(legend));
 }
 
 void StaticText::msw_rescale()

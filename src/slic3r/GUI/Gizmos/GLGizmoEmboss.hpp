@@ -147,25 +147,31 @@ private:
 
     bool select_facename(const wxString& facename);
 
+    // The revertible controls below draw their tooltip with panel_tooltip(), which is why they are not const.
     template<typename T> bool rev_input_mm(const std::string &name, T &value, const T *default_value,
-        const std::string &undo_tooltip, T step, T step_fast, const char *format, bool use_inch, const std::optional<float>& scale) const;
+        const std::string &undo_tooltip, const std::string &tooltip, T step, T step_fast, const char *format, bool use_inch,
+        const std::optional<float>& scale);
 
     /// <summary>
     /// Reversible input float with option to restor default value
-    /// TODO: make more general, static and move to ImGuiWrapper 
+    /// TODO: make more general, static and move to ImGuiWrapper
     /// </summary>
     /// <returns>True when value changed otherwise FALSE.</returns>
-    template<typename T> bool rev_input(const std::string &name, T &value, const T *default_value, 
-        const std::string &undo_tooltip, T step, T step_fast, const char *format, ImGuiInputTextFlags flags = 0) const;
-    bool rev_checkbox(const std::string &name, bool &value, const bool* default_value, const std::string  &undo_tooltip) const;
+    template<typename T> bool rev_input(const std::string &name, T &value, const T *default_value,
+        const std::string &undo_tooltip, const std::string &tooltip, T step, T step_fast, const char *format, ImGuiInputTextFlags flags = 0);
+    bool rev_checkbox(const std::string &name, bool &value, const bool* default_value, const std::string  &undo_tooltip,
+        const std::string &tooltip, const std::vector<TipMedia> &media = {});
     bool rev_slider(const std::string &name, std::optional<int>& value, const std::optional<int> *default_value,
-        const std::string &undo_tooltip, int v_min, int v_max, const std::string &format, const wxString &tooltip) const;
+        const std::string &undo_tooltip, int v_min, int v_max, const std::string &format, const wxString &tooltip,
+        const std::vector<TipMedia> &media = {});
     bool rev_slider(const std::string &name, std::optional<float>& value, const std::optional<float> *default_value,
-        const std::string &undo_tooltip, float v_min, float v_max, const std::string &format, const wxString &tooltip) const;
-    bool rev_slider(const std::string &name, float &value, const float *default_value, 
-        const std::string &undo_tooltip, float v_min, float v_max, const std::string &format, const wxString &tooltip) const;
+        const std::string &undo_tooltip, float v_min, float v_max, const std::string &format, const wxString &tooltip,
+        const std::vector<TipMedia> &media = {});
+    bool rev_slider(const std::string &name, float &value, const float *default_value,
+        const std::string &undo_tooltip, float v_min, float v_max, const std::string &format, const wxString &tooltip,
+        const std::vector<TipMedia> &media = {});
     template<typename T, typename Draw> bool revertible(const std::string &name, T &value, const T *default_value,
-        const std::string &undo_tooltip, float undo_offset, Draw draw) const;
+        const std::string &undo_tooltip, float undo_offset, Draw draw);
 
     // process mouse event
     bool on_mouse_for_rotation(const wxMouseEvent &mouse_event);

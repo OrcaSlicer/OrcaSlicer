@@ -440,8 +440,6 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     const float sliders_width = m_imgui->scaled(7.0f);
     const float drag_left_width = ImGui::GetStyle().WindowPadding.x + sliders_width - space_size;
 
-    const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
-
     m_imgui->text(m_desc.at("filaments"));
 
     size_t n_extruder_colors = std::min((size_t)EnforcerBlockerType::ExtruderMax, m_extruders_colors.size());
@@ -463,12 +461,20 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             m_selected_extruder_idx = extruder_idx;
         }
 
-        if (extruder_idx < int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT) && ImGui::IsItemHovered()) m_imgui->tooltip(wxString::Format(_L("Shortcut Key %d"), extruder_idx + 1), max_tooltip_width);
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            std::string tip = _u8L("Paint with this filament.");
+            if (extruder_idx < int(GLGizmoMmuSegmentation::EXTRUDERS_LIMIT))
+                tip += "\n" + into_u8(wxString::Format(_L("Shortcut Key %d"), extruder_idx + 1));
+            panel_tooltip(tip);
+        }
     }
     // ORCA: Remap filaments section (Border only, Title in border). 
     // Styled as a panel for visual grouping.
-    if (ImGui::TreeNodeEx(m_desc.at("perform_remap").c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding)){
-        render_filament_remap_ui(window_width, max_tooltip_width, scale);
+    const bool remap_open = ImGui::TreeNodeEx(m_desc.at("perform_remap").c_str(), ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding);
+    panel_tooltip(_u8L("Moves the paint of one filament over to another, across the whole object. Click a filament "
+                       "used here, pick the one its paint should become, then press Remap."));
+    if (remap_open) {
+        render_filament_remap_ui(window_width, scale);
 
         bool has_mapping = false;
         for (size_t i = 0; i < m_extruder_remap.size(); ++i){
@@ -487,6 +493,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             // Reset mapping to identity after apply
             for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
         }
+        panel_tooltip(_u8L("Repaints the object with the filaments chosen above. Can be undone."));
         m_imgui->disabled_end(/*m_is_unknown_font*/);
 
         if (has_mapping){  // show only when it has mapping
@@ -495,6 +502,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
                 // Reset mapping to identity
                 for (size_t i = 0; i < m_extruder_remap.size(); ++i) m_extruder_remap[i] = i;
             }
+            panel_tooltip(_u8L("Clears the choices above. The paint is not changed."));
         }
 
         //ImGui::Dummy(ImVec2(0.0f, 3.f * scale));
@@ -513,7 +521,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon, ImGui::TriangleButtonDarkIcon, ImGui::HeightRangeDarkIcon, ImGui::FillButtonDarkIcon, ImGui::GapFillDarkIcon };
     else
         icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::TriangleButtonIcon, ImGui::HeightRangeIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon };
-    std::array<wxString, 6> tool_tips = { _L("Circle"), _L("Sphere"), _L("Triangle"), _L("Height Range"), _L("Fill"), _L("Gap Fill") };
+    const std::array<PainterTip, 6> tool_tips = { PainterTip::Circle, PainterTip::Sphere, PainterTip::Triangle, PainterTip::HeightRange, PainterTip::BucketFill, PainterTip::GapFill };
     for (int i = 0; i < tool_ids.size(); i++) {
         //std::string  str_label = std::string("");
         //std::wstring btn_name  = icons[i] + boost::nowide::widen(str_label);
@@ -542,9 +550,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             }
         }
 
-        if (ImGui::IsItemHovered()) {
-            m_imgui->tooltip(tool_tips[i], max_tooltip_width);
-        }
+        painter_tooltip(tool_tips[i]);
     }
 
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetFontSize() * 0.1));
@@ -564,20 +570,24 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);
         m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        painter_tooltip(PainterTip::BrushSize);
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+        painter_tooltip(PainterTip::BrushSize);
 
         if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
             if (m_vertical_only) {
                 m_horizontal_only = false;
             }
         }
+        painter_tooltip(PainterTip::Vertical);
         if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
             if (m_horizontal_only) {
                 m_vertical_only = false;
             }
         }
+        painter_tooltip(PainterTip::Horizontal);
     } 
     else if (m_current_tool == ImGui::TriangleButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
@@ -588,11 +598,13 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
                 m_horizontal_only = false;
             }
         }
+        painter_tooltip(PainterTip::Vertical);
         if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
             if (m_horizontal_only) {
                 m_vertical_only = false;
             }
         }
+        painter_tooltip(PainterTip::Horizontal);
     } 
     else if (m_current_tool == ImGui::FillButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
@@ -610,15 +622,20 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
                     triangle_selector->seed_fill_unselect_all_triangles();
                     triangle_selector->request_update_render_data();
                 }
+            painter_tooltip(PainterTip::SmartFillAngle);
             ImGui::SameLine(drag_left_width + sliders_left_width);
             ImGui::PushItemWidth(1.5 * slider_icon_width);
             ImGui::BBLDragFloat("##smart_fill_angle_input", &m_smart_fill_angle, 0.05f, 0.0f, 0.0f, "%.2f");
+            painter_tooltip(PainterTip::SmartFillAngle);
         } else {
             // set to negative value to disable edge detection
             m_smart_fill_angle = -1.f;
         }
                 
         m_imgui->bbl_checkbox(m_desc["edge_detection"], m_detect_geometry_edge);
+        panel_tooltip(_u8L("Also stops the fill at sharp edges of the model, not only where another color begins. The "
+                           "Smart fill angle sets how sharp an edge has to be."),
+                      {{"painting/edge_detection_off.png", _L("Off")}, {"painting/edge_detection_on.png", _L("On")}});
     } 
     else if (m_current_tool == ImGui::HeightRangeIcon) {
         m_tool_type   = ToolType::BRUSH;
@@ -629,9 +646,11 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         ImGui::PushItemWidth(sliders_width);
         std::string format_str = std::string("%.2f") + I18N::translate_utf8("mm", "Height range," "Facet in [cursor z, cursor z + height] will be selected.");
         m_imgui->bbl_slider_float_style("##cursor_height", &m_cursor_height, CursorHeightMin, CursorHeightMax, format_str.data(), 1.0f, true);
+        painter_tooltip(PainterTip::CursorHeight);
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_height_input", &m_cursor_height, 0.05f, 0.0f, 0.0f, "%.2f");
+        painter_tooltip(PainterTip::CursorHeight);
     }
     else if (m_current_tool == ImGui::GapFillIcon) {
         m_tool_type = ToolType::GAP_FILL;
@@ -642,9 +661,11 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         ImGui::PushItemWidth(sliders_width);
         std::string format_str = std::string("%.2f") + I18N::translate_utf8("", "Triangle patch area threshold,""triangle patch will be merged to neighbor if its area is less than threshold");
         m_imgui->bbl_slider_float_style("##gap_area", &TriangleSelectorPatch::gap_area, TriangleSelectorPatch::GapAreaMin, TriangleSelectorPatch::GapAreaMax, format_str.data(), 1.0f, true);
+        painter_tooltip(PainterTip::GapArea);
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##gap_area_input", &TriangleSelectorPatch::gap_area, 0.05f, 0.0f, 0.0f, "%.2f");
+        painter_tooltip(PainterTip::GapArea);
 
         // Apply Gap fill button
         if (m_imgui->button(m_desc.at("perform"))) {
@@ -658,6 +679,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             update_model_object();
             m_parent.set_as_dirty();
         }
+        painter_tooltip(PainterTip::ApplyGapFill);
     }
 
     ImGui::Separator();
@@ -680,6 +702,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         update_model_object();
         m_parent.set_as_dirty();
     }
+    painter_tooltip(PainterTip::EraseAll);
     m_imgui->disabled_end();
 
     ImGui::SameLine();
@@ -687,6 +710,7 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     if (m_imgui->button(_L("Done"))) {
         m_parent.reset_all_gizmos();
     }
+    painter_tooltip(PainterTip::Done);
 
     ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     GizmoImguiEnd();
@@ -1003,7 +1027,7 @@ void GLGizmoMmuSegmentation::update_used_filaments()
     }
 }
 
-void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float max_tooltip_width, float scale)
+void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float scale)
 {
     size_t n_extr = std::min((size_t)EnforcerBlockerType::ExtruderMax, m_extruders_colors.size());
 
@@ -1051,8 +1075,12 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
             ImGui::OpenPopup(pop_id.c_str());
         }
 
-        if (ImGui::IsItemHovered() && src != m_extruder_remap[src]) // show tooltip if it has mapping info
-            m_imgui->tooltip(std::to_string(src + 1) + " >> " + std::to_string(m_extruder_remap[src] + 1), max_tooltip_width);
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            std::string tip = _u8L("Choose the filament this one's paint becomes.");
+            if (src != m_extruder_remap[src]) // the mapping chosen so far
+                tip += "\n" + std::to_string(src + 1) + " >> " + std::to_string(m_extruder_remap[src] + 1);
+            panel_tooltip(tip);
+        }
         
         // Apply popup styling before BeginPopup using standard Orca colors
         ImGui::PushStyleVar(ImGuiStyleVar_PopupRounding  , 8.0f * scale);

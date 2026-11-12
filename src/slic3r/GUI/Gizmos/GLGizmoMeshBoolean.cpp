@@ -309,14 +309,18 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
     if (selectable(_u8L("Union"), m_operation_mode == MeshBooleanOperation::Union, ImVec2(max_tab_length, 0.0f))) {
         m_operation_mode = MeshBooleanOperation::Union;
     }
+    // The operations are drawn by the toolbar's own pictures of them.
+    panel_tooltip(_u8L("Merges the two parts into one."), {{"../gizmo_toolbar/boolean_union.png", {}}});
     ImGui::SameLine(0, 0);
     if (selectable(_u8L("Difference"), m_operation_mode == MeshBooleanOperation::Difference, ImVec2(max_tab_length, 0.0f))) {
         m_operation_mode = MeshBooleanOperation::Difference;
     }
+    panel_tooltip(_u8L("Cuts the shape of the second part out of the first."), {{"../gizmo_toolbar/boolean_difference.png", {}}});
     ImGui::SameLine(0, 0);
     if (selectable(_u8L("Intersection"), m_operation_mode == MeshBooleanOperation::Intersection, ImVec2(max_tab_length, 0.0f))) {
         m_operation_mode = MeshBooleanOperation::Intersection;
     }
+    panel_tooltip(_u8L("Keeps only the space the two parts share."), {{"../gizmo_toolbar/boolean_intersection.png", {}}});
     ImGui::PopStyleVar();
 
     ImGui::AlignTextToFramePadding();
@@ -329,6 +333,8 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
     ImGui::PushItemWidth(select_btn_length);
     if (selectable(select_src_str, m_selecting_state == MeshBooleanSelectingState::SelectSource, ImVec2(select_btn_length, 0)))
         m_selecting_state = MeshBooleanSelectingState::SelectSource;
+    panel_tooltip(_u8L("Press this, then click a part in the 3D view to pick the first part. The result takes its "
+                       "place, its name and its settings."));
     ImGui::PopItemWidth();
     if (m_src.mv) {
         ImGui::SameLine();
@@ -345,6 +351,7 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
         {
             m_src.reset();
         }
+        panel_tooltip(_u8L("Clears the part picked here."));
         ImGui::PopStyleColor(5);
     }
 
@@ -357,6 +364,7 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
     ImGui::PushItemWidth(select_btn_length);
     if (selectable(select_tool_str, m_selecting_state == MeshBooleanSelectingState::SelectTool, ImVec2(select_btn_length, 0)))
         m_selecting_state = MeshBooleanSelectingState::SelectTool;
+    panel_tooltip(_u8L("Press this, then click a part in the 3D view to pick the second part."));
     ImGui::PopItemWidth();
     if (m_tool.mv) {
         ImGui::SameLine();
@@ -373,10 +381,17 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
         {
             m_tool.reset();
         }
+        panel_tooltip(_u8L("Clears the part picked here."));
         ImGui::PopStyleColor(5);
     }
 
     bool enable_button = m_src.mv && m_tool.mv;
+    // What the operation button does, or why it does nothing yet.
+    const auto operate_tip = [this, enable_button](const std::string &what) {
+        panel_tooltip(enable_button ? what : _u8L("Pick both parts first: press Select, then click the part in the 3D view."));
+    };
+    const std::string delete_input_tip = _u8L("Removes the second part once the operation is done. Off keeps it, to "
+                                              "use again. The first part is replaced by the result either way.");
     if (m_operation_mode == MeshBooleanOperation::Union)
     {
         if (operate_button(_L("Union") + "##btn", enable_button)) {
@@ -396,9 +411,12 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
                 wxGetApp().notification_manager()->push_plater_warning_notification(warning_text);
             }
         }
+        operate_tip(_u8L("Merges the two parts. The result replaces both of them."));
     }
     else if (m_operation_mode == MeshBooleanOperation::Difference) {
         m_imgui->bbl_checkbox(_L("Delete input"), m_diff_delete_input);
+        panel_tooltip(delete_input_tip,
+                      {{"boolean/difference_keep.png", _L("Off")}, {"boolean/difference_delete.png", _L("On")}});
         if (operate_button(_L("Difference") + "##btn", enable_button)) {
             TriangleMesh temp_src_mesh = m_src.mv->mesh();
             temp_src_mesh.transform(m_src.trafo);
@@ -416,9 +434,12 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
                 wxGetApp().notification_manager()->push_plater_warning_notification(warning_text);
             }
         }
+        operate_tip(_u8L("Cuts the second part out of the first. The result replaces the first part."));
     }
     else if (m_operation_mode == MeshBooleanOperation::Intersection){
         m_imgui->bbl_checkbox(_L("Delete input"), m_inter_delete_input);
+        panel_tooltip(delete_input_tip,
+                      {{"boolean/intersection_keep.png", _L("Off")}, {"boolean/intersection_delete.png", _L("On")}});
         if (operate_button(_L("Intersection") + "##btn", enable_button)) {
             TriangleMesh temp_src_mesh = m_src.mv->mesh();
             temp_src_mesh.transform(m_src.trafo);
@@ -436,6 +457,7 @@ void GLGizmoMeshBoolean::on_render_input_window(float x, float y, float bottom_l
                 wxGetApp().notification_manager()->push_plater_warning_notification(warning_text);
             }
         }
+        operate_tip(_u8L("Keeps only where the two parts overlap. The result replaces the first part."));
     }
 
     float win_w = ImGui::GetWindowWidth();
