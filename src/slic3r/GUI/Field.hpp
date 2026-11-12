@@ -31,6 +31,7 @@
 #include "libslic3r/Config.hpp"
 
 #include "wxExtensions.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "Widgets/SpinInput.hpp"
 
 class ComboBox;
@@ -259,6 +260,14 @@ public:
     void			toggle(bool en);
 
 	virtual wxString	get_tooltip_text(const wxString& default_string);
+
+    // The pictures of this option's tooltip (SettingTips), worked out when the tooltip opens: the
+    // setting's own, then, for a list of values, the one of the value the field shows at that moment.
+    // Safe to keep beyond the field: it holds the option's key and values and a weak reference to the
+    // field's window.
+    TipMediaSource      tip_media();
+    // Gives `win` the tooltip of this option: `text` (get_tooltip_text() as a rule) with tip_media().
+    void                set_tooltip(wxWindow* win, const wxString& text);
 
     void				field_changed() { on_change_field(); }
 

@@ -12,6 +12,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 
 #include "Search.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "OG_CustomCtrl.hpp"
 
 #include "libslic3r/Config.hpp"
@@ -5937,7 +5938,9 @@ PageShp TabPrinter::build_kinematics_page()
     optgroup->append_single_option_line("resonance_avoidance", "printer_motion_ability#resonance-avoidance");
     // Resonance‑avoidance speed inputs
     {
-        Line resonance_line = {L("Resonance Avoidance Speed"), L""};
+        Line resonance_line = {L("Resonance Avoidance Speed"),
+                               L("The speed range in which the printer resonates. With resonance avoidance on, an outer wall "
+                                 "speed inside it is moved to the nearer end of the range: down to Min or up to Max.")};
         resonance_line.label_path = "printer_motion_ability#resonance-avoidance";
         resonance_line.append_option(optgroup->get_option("min_resonance_avoidance_speed"));
         resonance_line.append_option(optgroup->get_option("max_resonance_avoidance_speed"));
@@ -6195,8 +6198,9 @@ if (is_marlin_flavor)
             auto line = Line{ placeholder_def.label, placeholder_def.tooltip };
             line.label_path = "printer_multimaterial_idex_iqex#pre-slice-warnings";
             line.append_option(Option{ placeholder_def, "imex_pre_slice_warnings" });
-            line.widget = [](wxWindow* parent) -> wxSizer* {
+            line.widget = [tooltip = placeholder_def.tooltip](wxWindow* parent) -> wxSizer* {
                 auto* cb = new ::CheckBox(parent);
+                set_illustrated_tooltip(cb, _(tooltip));
                 const bool enabled = wxGetApp().app_config->get("imex_pre_slice_warnings") != "false";
                 cb->SetValue(enabled);
                 cb->Bind(wxEVT_TOGGLEBUTTON, [cb](wxCommandEvent& e) {
@@ -6213,7 +6217,8 @@ if (is_marlin_flavor)
         {
             // In the configuration group rather than a group of its own: a full-width widget line
             // records no mode, so a group holding only this line would show in every mode.
-            auto line = Line{ L("Modes"), "" };
+            auto line = Line{ L("Modes"), L("The parallel print modes a plate can choose from: which tool heads print, the "
+                                             "role each one plays, and the G-code that sets the printer up for the mode.") };
             line.full_width = 1;
             line.widget = [this](wxWindow* parent) -> wxSizer* {
                 int n_cols = 0, n_rows = 0, layout = 0;
@@ -8754,6 +8759,9 @@ wxSizer* TabPrinter::create_bed_shape_widget(wxWindow* parent)
     // ORCA modernize button style
     Button* btn = new Button(parent, _(L("Set")) + " " + dots);
     btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+    set_illustrated_tooltip(btn, _L("Set the shape and size of the bed and where its origin is, and choose a custom texture or "
+                                    "model to show it with in the 3D view."),
+                            {{"settings/printer/printable_area.png", {}}});
 
     auto sizer = new wxBoxSizer(wxHORIZONTAL);
     sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL);
@@ -8996,6 +9004,11 @@ void Tab::update_extruder_variants(int extruder_id, bool reload)
         if (m_extruder_switch_variants || (m_type == Preset::TYPE_PRINTER && extruder_nums >= 2)) {
             auto options = generate_extruder_options();
             m_extruder_switch->SetOptions(options);
+            // The options are new buttons each time, so each gets the tooltip again.
+            for (unsigned int i = 0; i < m_extruder_switch->GetCount(); ++i)
+                set_illustrated_tooltip(m_extruder_switch->GetButton(i),
+                                        _L("The extruder, and nozzle flow type, whose values are shown and edited here. Only the "
+                                           "settings that can differ per nozzle change with it."));
             int item_n = options.empty() ? 0 : options.size();
             if (m_type == Preset::TYPE_PRINTER){ // we are on printer settings dialog and larger padding can be used
                 int h_pad  = item_n > 8 ? 6 : (item_n > 6 ? 9 : (item_n > 5 ? 12 : (item_n > 4 ? 18 : (item_n > 3 ? 24 : (item_n > 2 ? 36 : 48)))));

@@ -25,6 +25,7 @@
 #include "slic3r/GUI/Event.hpp"
 #include "libslic3r/Utils.hpp"
 
+#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/Plater.hpp"
@@ -540,6 +541,17 @@ void GLGizmoBase::render_input_window(float x, float y, float bottom_limit)
 }
 
 
+
+void GLGizmoBase::panel_tooltip(const std::string &text, const std::vector<TipMedia> &media)
+{
+    m_panel_tip.item_tooltip(text, media, m_parent);
+}
+
+void GLGizmoBase::panel_tooltip(const wxString &text, const std::vector<TipMedia> &media)
+{
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) // skip the conversion on the frames that need none
+        m_panel_tip.item_tooltip(into_u8(text), media, m_parent);
+}
 
 std::string GLGizmoBase::get_name(bool include_shortcut) const
 {

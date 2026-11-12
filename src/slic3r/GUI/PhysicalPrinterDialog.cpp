@@ -16,6 +16,7 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "libslic3r/Config.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 #include <memory>
 #include "slic3r/GUI/OptionsGroup.hpp"
 #include "slic3r/GUI/Field.hpp"
@@ -100,6 +101,7 @@ PhysicalPrinterDialog::PhysicalPrinterDialog(wxWindow* parent) :
 
     m_input_ctrl = new wxTextCtrl(m_input_area, -1, from_u8(preset_name), wxDefaultPosition, wxSize(wxSize(FromDIP(360), FromDIP(32)).x, -1), 0 | wxBORDER_NONE);
     m_input_ctrl->SetBackgroundColour(wxColour(255, 255, 255));
+    set_illustrated_tooltip(m_input_ctrl, _L("Name to save the printer preset under, together with these connection settings."));
     m_input_ctrl->Bind(wxEVT_TEXT, [this](wxCommandEvent &) { update(); });
 
 
@@ -161,9 +163,11 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
 
     m_optgroup->append_single_option_line("host_type");
 
-    auto create_sizer_with_btn = [](wxWindow* parent, Button** btn, const std::string& icon_name, const wxString& label) {
+    auto create_sizer_with_btn = [](wxWindow* parent, Button** btn, const std::string& icon_name, const wxString& label,
+                                    const wxString& tooltip) {
         *btn = new Button(parent, label);
         (*btn)->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
+        set_illustrated_tooltip(*btn, tooltip);
 
         auto sizer = new wxBoxSizer(wxHORIZONTAL);
         sizer->Add(*btn);
@@ -172,7 +176,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
 
     auto printhost_browse = [=](wxWindow* parent)
     {
-        auto sizer = create_sizer_with_btn(parent, &m_printhost_browse_btn, "printer_host_browser", _L("Browse") + " " + dots);
+        auto sizer = create_sizer_with_btn(parent, &m_printhost_browse_btn, "printer_host_browser", _L("Browse") + " " + dots,
+                                           _L("Look for printers on the local network and fill in the address of the one you pick."));
         m_printhost_browse_btn->Bind(wxEVT_BUTTON, [=](wxCommandEvent& e) {
             const auto host_type = m_config->opt_enum<PrintHostType>("host_type");
 
@@ -230,7 +235,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     };
 
     auto print_host_test = [=](wxWindow* parent) {
-        auto sizer = create_sizer_with_btn(parent, &m_printhost_test_btn, "printer_host_test", _L("Test"));
+        auto sizer = create_sizer_with_btn(parent, &m_printhost_test_btn, "printer_host_test", _L("Test"),
+                                           _L("Connect to the print host with the settings above and report whether it worked."));
 
         m_printhost_test_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
             std::unique_ptr<PrintHost> host(PrintHost::get_print_host(m_config));
@@ -288,7 +294,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
 
 
     auto ultimaker_generate_creds = [=](wxWindow* parent) {
-        auto sizer = create_sizer_with_btn(parent, &m_printhost_generate_creds_btn, "ultimaker_generate_creds", _L("Generate API Key"));
+        auto sizer = create_sizer_with_btn(parent, &m_printhost_generate_creds_btn, "ultimaker_generate_creds", _L("Generate API Key"),
+                                           _L("Ask the printer for a new API key. Authorize it on the printer's screen, then press Test."));
 
         m_printhost_generate_creds_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
             std::unique_ptr<PrintHost> host(PrintHost::get_print_host(m_config));
@@ -324,7 +331,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
 
 
     auto print_host_logout = [&](wxWindow* parent) {
-        auto sizer = create_sizer_with_btn(parent, &m_printhost_logout_btn, "", _L("Log Out"));
+        auto sizer = create_sizer_with_btn(parent, &m_printhost_logout_btn, "", _L("Log Out"),
+                                           _L("Sign out of the account this print host is connected with."));
 
         m_printhost_logout_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) {
             std::unique_ptr<PrintHost> host(PrintHost::get_print_host(m_config));
@@ -348,7 +356,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
 
     auto print_host_printers = [this, create_sizer_with_btn](wxWindow* parent) {
         //add_scaled_button(parent, &m_printhost_port_browse_btn, "browse", _(L("Refresh Printers")), wxBU_LEFT | wxBU_EXACTFIT);
-        auto sizer = create_sizer_with_btn(parent, &m_printhost_port_browse_btn, "monitor_signal_strong", _L("Refresh") + " " + dots);
+        auto sizer = create_sizer_with_btn(parent, &m_printhost_port_browse_btn, "monitor_signal_strong", _L("Refresh") + " " + dots,
+                                           _L("Read the list of printers from the print host."));
         Button* btn = m_printhost_port_browse_btn;
         btn->SetStyle(ButtonStyle::Regular, ButtonType::Parameter);
         btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) { update_printers(); });
@@ -406,7 +415,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
         Line cafile_line = m_optgroup->create_single_option_line(option);
 
         auto printhost_cafile_browse = [=](wxWindow* parent) {
-            auto sizer = create_sizer_with_btn(parent, &m_printhost_cafile_browse_btn, "monitor_signal_strong", _L("Browse") + " " + dots);
+            auto sizer = create_sizer_with_btn(parent, &m_printhost_cafile_browse_btn, "monitor_signal_strong", _L("Browse") + " " + dots,
+                                               _L("Choose the CA certificate file, in crt or pem format."));
             m_printhost_cafile_browse_btn->Bind(wxEVT_BUTTON, [this, m_optgroup](wxCommandEvent e) {
                 static const auto filemasks = _L("Certificate files (*.crt, *.pem)|*.crt;*.pem|All files|*.*");
                 wxFileDialog openFileDialog(this, _L("Open CA certificate file"), "", "", filemasks, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
@@ -475,7 +485,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             {
 #ifndef __WXGTK__
                 e.Skip();
-                temp->GetToolTip()->Enable(true);
+                if (wxToolTip *tip = temp->GetToolTip()) // none once the field's tooltip is an illustrated one
+                    tip->Enable(true);
 #endif // __WXGTK__
                 // Remove all leading and trailing spaces from the input
                 std::string trimed_str, str = trimed_str = temp->GetValue().ToStdString();

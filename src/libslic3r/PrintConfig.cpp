@@ -1020,12 +1020,16 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("printable_area", coPoints);
     def->label = L("Printable area");
+    def->tooltip = L("The area of the bed the printer can print on, as an outline in bed coordinates. Its size and the position of "
+                     "the bed origin set where objects can be placed and where the G-code coordinates start.");
     //BBS
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPoints{ Vec2d(0, 0), Vec2d(200, 0), Vec2d(200, 200), Vec2d(0, 200) });
 
     def = this->add("extruder_printable_area", coPointsGroups);
     def->label = L("Extruder printable area");
+    def->tooltip = L("The part of the bed this nozzle can reach, as an outline in bed coordinates. Objects printed with this "
+                     "nozzle have to stay inside it. Leave it empty when the nozzle reaches the whole printable area.");
     def->mode = comAdvanced;
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPointsGroups{});
@@ -1089,12 +1093,16 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("bed_custom_texture", coString);
     def->label = L("Bed custom texture");
+    def->tooltip = L("An image drawn on the bed in the 3D view instead of the default one. It is only for display and does not "
+                     "change the print.");
     def->mode = comAdvanced;
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionString());
 
     def = this->add("bed_custom_model", coString);
     def->label = L("Bed custom model");
+    def->tooltip = L("An STL model shown as the bed in the 3D view instead of the default one. It is only for display and does "
+                     "not change the print.");
     def->mode = comAdvanced;
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionString());
@@ -1141,7 +1149,8 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("printable_height", coFloat);
     def->label = L("Printable height");
-    def->tooltip = L("This is the maximum printable height which is limited by the height of the build area.");
+    def->tooltip = L("The tallest an object can be on this printer, from the bed up to the highest layer the nozzle can "
+                     "reach. Taller objects are outside the build volume and cannot be sliced.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->max = 214700;
@@ -1159,7 +1168,8 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("preferred_orientation", coFloat);
     def->label = L("Preferred orientation");
-    def->tooltip = L("Automatically orient STL files on the Z axis upon initial import.");
+    def->tooltip = L("Turns models imported from a file other than a 3MF (STL, OBJ, STEP, ...) about the Z axis by "
+                     "this angle, so they face the way that suits the printer.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->max = 360;
     def->min = -360;
@@ -1235,7 +1245,8 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("printhost_port", coString);
     def->label = L("Printer");
-    def->tooltip = L("Name of the printer.");
+    def->tooltip = L("On a print host that serves several printers (Repetier-Server, Obico), the printer that receives the "
+                     "uploaded jobs. Refresh the list to read the printers from the host.");
     def->gui_type = ConfigOptionDef::GUIType::select_open;
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
@@ -1253,14 +1264,14 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("printhost_user", coString);
     def->label = L("User");
-    //def->tooltip = L("");
+    def->tooltip = L("User name for signing in to the print host with HTTP digest authorization.");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionString());
 
     def = this->add("printhost_password", coString);
     def->label = L("Password");
-    //def->tooltip = L("");
+    def->tooltip = L("Password for signing in to the print host with HTTP digest authorization.");
     def->mode = comAdvanced;
     def->cli = ConfigOptionDef::nocli;
     def->set_default_value(new ConfigOptionString());
@@ -1281,7 +1292,8 @@ void PrintConfigDef::init_common_params()
 
     def = this->add("printhost_authorization_type", coEnum);
     def->label = L("Authorization Type");
-    //def->tooltip = L("");
+    def->tooltip = L("How Orca Slicer signs in to the print host: with its API key, or with a user name and password (HTTP "
+                     "digest).");
     def->enum_keys_map = &ConfigOptionEnum<AuthorizationType>::get_enum_values();
     def->enum_values.push_back("key");
     def->enum_values.push_back("user");
@@ -2219,6 +2231,7 @@ void PrintConfigDef::init_fff_params()
     //BBS.
     def        = this->add("upward_compatible_machine", coStrings);
     def->label = L("upward compatible machine");
+    def->tooltip = L("Other printer models that can also print the G-code sliced with this printer profile.");
     def->mode  = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
     def->cli   = ConfigOptionDef::nocli;
@@ -2847,7 +2860,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("nozzle_height", coFloat);
     def->label = L("Nozzle height");
-    def->tooltip = L("The height of nozzle tip.");
+    def->tooltip = L("How far the nozzle tip reaches below the rest of the toolhead. In by-object printing, objects lower than "
+                     "this only ever meet the nozzle, so they can be placed much closer together than the clearance radius.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comDevelop;
@@ -2895,6 +2909,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("grab_length",coFloats);
     def->label = L("Grab length");
+    def->tooltip = L("Length of filament the extruder pushes out after a filament change to check that it has gripped the new "
+                     "filament. The purge after the change is reduced by this amount.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comDevelop;
@@ -2910,10 +2926,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("extruder_offset", coPoints);
     def->label = L("Extruder offset");
-    //def->tooltip = L("If your firmware doesn't handle the extruder displacement you need the G-code "
-    //               "to take it into account. This option lets you specify the displacement of each extruder "
-    //               "with respect to the first one. It expects positive coordinates (they will be subtracted "
-    //               "from the XY coordinate).");
+    def->tooltip = L("Where this nozzle sits relative to the first one, in X and Y. Orca subtracts it from the coordinates "
+                     "it writes for this extruder, for firmware that does not apply the offset itself.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPoints { Vec2d(0,0) });
@@ -4507,7 +4521,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("printer_structure", coEnum);
     def->label = L("Printer structure");
-    def->tooltip = L("The physical arrangement and components of a printing device.");
+    def->tooltip = L("How the printer moves its head and bed. Some defaults follow it: on an I3 printer (a bed that moves "
+                     "in Y) the prime tower starts in another place, and Arrange aligns objects to the Y axis by default.");
     def->enum_keys_map = &ConfigOptionEnum<PrinterStructure>::get_enum_values();
     def->enum_values.push_back("undefine");
     def->enum_values.push_back("corexy");
@@ -4524,7 +4539,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("best_object_pos", coPoint);
     def->label = L("Best object position");
-    def->tooltip = L("Best auto arranging position in range [0,1] w.r.t. bed shape.");
+    def->tooltip = L("Where Arrange gathers the objects on the plate, as fractions of the bed's width (X) and depth (Y): "
+                     "0.5, 0.5 is the center of the bed and 0.5, 1 the middle of its back edge.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPoint(Vec2d(0.5, 0.5)));
 
@@ -4536,7 +4552,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("fan_direction", coEnum);
     def->label = L("Fan direction");
-    def->tooltip = L("Cooling fan direction of the printer");
+    def->tooltip = L("The side of the printer the auxiliary part cooling fan blows from. Auto orient and newly added shapes "
+                     "turn a model's largest overhangs toward it.");
     def->enum_keys_map = &ConfigOptionEnum<FanDirection>::get_enum_values();
     def->enum_values.push_back("undefine");
     def->enum_values.push_back("left");
@@ -4564,7 +4581,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("fan_speedup_overhangs", coBool);
     def->label = L("Only overhangs");
-    def->tooltip = L("Will only take into account the delay for the cooling of overhangs.");
+    def->tooltip = L("Start the fan earlier by the speed-up time only for overhangs. Other fan changes stay where they are.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -4604,7 +4621,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("time_cost", coFloat);
     def->label = L("Time cost");
-    def->tooltip = L("The printer cost per hour.");
+    def->tooltip = L("What an hour of printing on this printer costs. It is added to the filament cost in the cost "
+                     "estimate after slicing.");
     def->sidetext = L("money/h");
     def->min     = 0;
     def->mode    = comAdvanced;
@@ -4686,7 +4704,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("support_multi_bed_types", coBool);
     def->label = L("Support multi bed types");
-    def->tooltip = L("Enable this option if you want to use multiple bed types.");
+    def->tooltip = L("Lets each plate choose its bed type (the build plate surface) in the plate settings, with the bed "
+                     "temperatures the filament settings give for that type. Enable it if the printer has interchangeable "
+                     "build plates.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -4884,14 +4904,15 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("wrapping_detection_layers", coInt);
     def->label    = L("Clumping detection layers");
-    def->tooltip  = L("Clumping detection layers.");
+    def->tooltip  = L("Number of layers, from the first one, that get a prime tower while clumping detection is enabled.");
     def->min      = 0;
     def->mode     = comDevelop;
     def->set_default_value(new ConfigOptionInt(20));
 
     def = this->add("wrapping_exclude_area", coPoints);
     def->label   = L("Probing exclude area of clumping");
-    def->tooltip = L("Probing exclude area of clumping.");
+    def->tooltip = L("The bed area the printer uses to detect clumping. While clumping detection is enabled, objects and the "
+                     "prime tower have to stay out of it.");
     def->mode = comAdvanced;
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionPoints());
@@ -5303,6 +5324,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("time_lapse_gcode",coString);
     def->label = L("Timelapse G-code");
+    def->tooltip = L("G-code inserted at layer changes to take a timelapse photo, for example to park the toolhead and "
+                     "trigger the camera. Leave it empty if the printer takes no timelapse.");
     def->multiline = true;
     def->full_width = true;
     def->height =5;
@@ -5311,6 +5334,8 @@ void PrintConfigDef::init_fff_params()
 
     def             = this->add("wrapping_detection_gcode", coString);
     def->label      = L("Clumping detection G-code");
+    def->tooltip    = L("G-code inserted at layer changes while clumping detection is enabled, to have the printer check its "
+                        "nozzle for filament clumped around it.");
     def->multiline  = true;
     def->full_width = true;
     def->height     = 5;
@@ -5336,7 +5361,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("template_custom_gcode", coString);
     def->label = L("Custom G-code");
-    def->tooltip = L("This G-code will be used as a custom code.");
+    def->tooltip = L("G-code inserted at a layer when you add a custom template from the layer slider of the preview.");
     def->multiline = true;
     def->full_width = true;
     def->height = 12;
@@ -5393,11 +5418,12 @@ void PrintConfigDef::init_fff_params()
             (void)L("Maximum speed E");
             def->category = L("Machine limits");
             def->readonly = false;
-            def->tooltip  = (boost::format("Maximum speed of the %1% axis") % axis_upper).str();
-            (void)L("Maximum speed of the X axis");
-            (void)L("Maximum speed of the Y axis");
-            (void)L("Maximum speed of the Z axis");
-            (void)L("Maximum speed of the E axis");
+            // One text for X, Y and Z, whose label names the axis, and one for the extruder.
+            def->tooltip  = axis.name == "e" ?
+                L("The highest speed of the extruder motor, extruding or retracting. Orca writes it to the G-code (M203) "
+                  "when Emit limits to G-code is enabled, and the print time estimate never feeds faster.") :
+                L("The highest speed of this axis. Orca writes it to the G-code (M203) when Emit limits to G-code is "
+                  "enabled, and the print time estimate never moves the axis faster.");
             def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
             def->min = 0;
             def->mode = comSimple;
@@ -5411,11 +5437,12 @@ void PrintConfigDef::init_fff_params()
             (void)L("Maximum acceleration E");
             def->category = L("Machine limits");
             def->readonly = false;
-            def->tooltip  = (boost::format("Maximum acceleration of the %1% axis") % axis_upper).str();
-            (void)L("Maximum acceleration of the X axis");
-            (void)L("Maximum acceleration of the Y axis");
-            (void)L("Maximum acceleration of the Z axis");
-            (void)L("Maximum acceleration of the E axis");
+            def->tooltip  = axis.name == "e" ?
+                L("The highest acceleration of the extruder motor. Orca writes it to the G-code (M201) when Emit limits "
+                  "to G-code is enabled, and the print time estimate uses it.") :
+                L("The highest acceleration of this axis. Orca writes it to the G-code (M201) when Emit limits to G-code "
+                  "is enabled, and the print time estimate uses it. An axis that moves a heavy part, such as the bed, "
+                  "needs a lower value.");
             def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
             def->min = 0;
             def->mode = comSimple;
@@ -5429,11 +5456,12 @@ void PrintConfigDef::init_fff_params()
             (void)L("Maximum jerk E");
             def->category = L("Machine limits");
             def->readonly = false;
-            def->tooltip  = (boost::format("Maximum jerk of the %1% axis") % axis_upper).str();
-            (void)L("Maximum jerk of the X axis");
-            (void)L("Maximum jerk of the Y axis");
-            (void)L("Maximum jerk of the Z axis");
-            (void)L("Maximum jerk of the E axis");
+            def->tooltip  = axis.name == "e" ?
+                L("The speed change the extruder motor may make at once, without accelerating (M205, or M566 on "
+                  "RepRapFirmware). It sets how abruptly a retraction can start.") :
+                L("The speed change this axis may make at once, without accelerating: at the start and end of a move "
+                  "and at corners (M205, or M566 on RepRapFirmware). Higher values take corners faster but shake the "
+                  "printer more.");
             def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
             def->min = 0;
             def->mode = comSimple;
@@ -5508,7 +5536,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("machine_max_acceleration_extruding", coFloats);
     def->full_label = L("Maximum acceleration for extruding");
     def->category = L("Machine limits");
-    def->tooltip = L("Maximum acceleration for extruding (M204 P)");
+    def->tooltip = L("The highest acceleration of printing moves (M204 P). Accelerations set higher in the process "
+                     "settings are lowered to it.");
     //                 "Marlin (legacy) firmware flavor will use this also "
     //                 "as travel acceleration (M204 T).");
     def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
@@ -5522,7 +5551,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("machine_max_acceleration_retracting", coFloats);
     def->full_label = L("Maximum acceleration for retracting");
     def->category = L("Machine limits");
-    def->tooltip = L("Maximum acceleration for retracting (M204 R)");
+    def->tooltip = L("The highest acceleration of retractions and deretractions (M204 R).");
     def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
     def->min = 0;
     def->readonly = false;
@@ -5551,7 +5580,8 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("min_resonance_avoidance_speed", coFloat);
     def->label    = L("Min");
-    def->tooltip  = L("Minimum speed of resonance avoidance.");
+    def->tooltip  = L("The lower end of the speed range in which the printer resonates. An outer wall speed in the lower "
+                      "half of the range is lowered to it.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min      = 0;
     def->mode     = comAdvanced;
@@ -5559,7 +5589,8 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("max_resonance_avoidance_speed", coFloat);
     def->label    = L("Max");
-    def->tooltip  = L("Maximum speed of resonance avoidance.");
+    def->tooltip  = L("The upper end of the speed range in which the printer resonates. An outer wall speed in the upper "
+                      "half of the range is raised to it.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min      = 0;
     def->mode     = comAdvanced;
@@ -5740,7 +5771,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("nozzle_diameter", coFloats);
     def->label = L("Nozzle diameter");
-    def->tooltip = L("The diameter of nozzle.");
+    def->tooltip = L("Diameter of the nozzle opening. Line widths given as a percentage, and the automatic layer height "
+                     "limits, are worked out from it, so change it when a nozzle of another size is fitted.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->max = 100;
@@ -6217,7 +6249,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("z_hop_types", coEnums);
     def->label = L("Z-hop type");
-    def->tooltip = L("Type of Z-hop.");
+    def->tooltip = L("How the nozzle rises for a Z-hop. Normal lifts straight up before traveling. Slope rises gradually "
+                     "along the travel, at the traveling angle. Spiral rises along a small circle on the spot. Auto uses Spiral "
+                     "at layer changes and where the travel starts over an overhang, and Slope elsewhere.");
     def->enum_keys_map = &ConfigOptionEnum<ZHopType>::get_enum_values();
     def->enum_values.push_back("Auto Lift");
     def->enum_values.push_back("Normal Lift");
@@ -6255,7 +6289,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("retract_lift_enforce", coEnums);
     def->label = L("On surfaces");
-    def->tooltip = L("Enforce Z-Hop behavior. This setting is impacted by the above settings (Only lift Z above/below).");
+    def->tooltip = L("Which surfaces get a Z-hop. All Surfaces lifts at every retraction. Top Only lifts only when leaving "
+                     "a top surface or ironing, Bottom Only only on the first layer, Top and Bottom on both. The Z-hop height "
+                     "limits above still apply.");
     def->enum_keys_map = &ConfigOptionEnum<RetractLiftEnforceType>::get_enum_values();
     def->enum_values.push_back("All Surfaces");
     def->enum_values.push_back("Top Only");
@@ -6462,7 +6498,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("retraction_speed", coFloats);
     def->label = L("Retraction speed");
     def->full_label = L("Retraction speed");
-    def->tooltip = L("Speed for retracting filament from the nozzle.");
+    def->tooltip = L("How fast the filament is pulled back. A fast retraction stops the ooze sooner, but too fast can "
+                     "grind the filament or make the extruder skip.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 30. });
@@ -7014,7 +7051,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("single_extruder_multi_material", coBool);
     def->label = L("Single Extruder Multi Material");
-    def->tooltip = L("Use single nozzle to print multi filament.");
+    def->tooltip = L("The printer feeds several filaments through one nozzle, one at a time. At each filament change the "
+                     "old filament is unloaded and the new one loaded and purged, on the wipe tower.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -7173,13 +7211,17 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("purge_in_prime_tower", coBool);
     def->label = L("Purge in prime tower");
-    def->tooltip = L("Purge remaining filament into prime tower.");
+    def->tooltip = L("On a single extruder multi-material printer with a Type 2 wipe tower, purge as much as the flushing "
+                     "volumes ask for at each filament change, on the tower or into infill and objects set to take it. When "
+                     "disabled, each change purges only the prime volume.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("enable_filament_ramming", coBool);
     def->label = L("Enable filament ramming");
-    def->tooltip = L("Enable filament ramming");
+    def->tooltip = L("Before a filament is unloaded at a filament change, extrude it in fast bursts on the wipe tower to "
+                     "shape its tip, so it leaves the hotend cleanly and loads again without jamming. The ramming speeds are "
+                     "set in the filament settings.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 

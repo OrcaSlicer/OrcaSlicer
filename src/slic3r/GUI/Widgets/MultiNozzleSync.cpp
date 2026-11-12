@@ -3,6 +3,7 @@
 #include "../GUI.hpp"
 #include "../GUI_App.hpp"
 #include "../I18N.hpp"
+#include "../IllustratedTipPopup.hpp"
 #include "../Plater.hpp"
 #include "../DeviceManager.hpp"
 #include "../DeviceCore/DevConfigUtil.h"
@@ -140,6 +141,8 @@ ManualNozzleCountDialog::ManualNozzleCountDialog(wxWindow *parent, NozzleVolumeT
         for (const wxString &item : nozzle_choices)
             choice->Append(item);
         choice->SetSelection(count);
+        set_illustrated_tooltip(choice, _L("How many nozzles of this flow type are installed on this extruder. Slicing only "
+                                           "plans with the nozzles counted here."));
         row_sizer->Add(choice, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
         choice_sizer->Add(row_sizer, 0, wxTOP | wxRIGHT, FromDIP(15));
         return choice;
