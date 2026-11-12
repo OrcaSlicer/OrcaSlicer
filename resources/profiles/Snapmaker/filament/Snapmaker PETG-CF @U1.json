@@ -3,9 +3,81 @@
 	"name": "Snapmaker PETG-CF @U1",
 	"inherits": "Snapmaker PETG-CF @U1 base",
 	"from": "system",
-	"setting_id": "9504590820",
+	"setting_id": "i982wlNMSJujh6Vs",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_multitool_ramming": [
+		"0",
+		"1"
+	],
+	"nozzle_temperature": [
+		"245",
+		"260"
+	],
+	"filament_max_volumetric_speed": [
+		"6.4",
+		"18"
+	],
+	"fan_max_speed": [
+		"20",
+		"40"
+	],
+	"additional_cooling_fan_speed": [
+		"0",
+		"20"
+	],
+	"pressure_advance": [
+		"0.03",
+		"0.028"
+	],
+	"filament_multitool_ramming_flow": [
+		"10",
+		"13"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"0",
+		"30"
+	],
+	"nozzle_temperature_range_high": [
+		"255",
+		"270"
+	],
+	"nozzle_temperature_range_low": [
+		"220",
+		"240"
+	],
+	"filament_flow_ratio": [
+		"0.95",
+		"1.01"
+	],
+	"fan_min_speed": [
+		"0",
+		"5"
+	],
+	"filament_multitool_ramming_volume": [
+		"0",
+		"0.5"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250",
+		"260"
+	],
+	"filament_retract_length_toolchange": [
+		"nil",
+		"nil"
+	],
+	"enable_pressure_advance": [
+		"0",
+		"1"
+	],
+	"filament_retraction_length": [
+		"nil",
+		"0.6"
 	]
 }

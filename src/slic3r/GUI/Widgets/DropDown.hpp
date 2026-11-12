@@ -2,10 +2,22 @@
 #define slic3r_GUI_DropDown_hpp_
 
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <wx/event.h>
+#include <vector>
+#include <cstddef>
+#include <utility>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <boost/date_time/posix_time/ptime.hpp>
+#include <wx/dc.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include "../wxExtensions.hpp"
 #include "StateHandler.hpp"
 #include "PopupWindow.hpp"
+
+class wxDC;
+class wxWindow;
 
 #define DD_NO_CHECK_ICON    0x0001
 #define DD_NO_TEXT          0x0002
@@ -13,8 +25,10 @@
 
 #define DD_ITEM_STYLE_SPLIT_ITEM  0x0001 // ----text----, text with horizontal line arounds
 #define DD_ITEM_STYLE_DISABLED    0x0002 // ----text----, text with horizontal line arounds
+#define DD_ITEM_STYLE_DIMMED      0x0004 // gray text, but still selectable
 
 wxDECLARE_EVENT(EVT_DISMISS, wxCommandEvent);
+wxDECLARE_EVENT(EVT_DROPDOWN_ITEM_ACTION, wxCommandEvent);
 
 class DropDown : public PopupWindow
 {
@@ -25,6 +39,7 @@ public:
         wxString text_static_tips;// display static tips for TextInput.eg.PrinterInfoBox
         wxBitmap icon;
         wxBitmap icon_textctrl;// display icon for TextInput.eg.PrinterInfoBox
+        wxBitmap action_icon;
         void *   data{nullptr};
         wxString group_key{};
         wxString group_label{};
@@ -53,6 +68,7 @@ private:
 
     wxSize textSize;
     wxSize iconSize;
+    int    actionIconWidth = 0;
     wxSize rowSize;
 
     StateHandler state_handler;
@@ -123,6 +139,7 @@ private:
     int hoverIndex();
 
     int selectedItem();
+    std::pair<int, int> actionColumn() const;
 
     friend class ComboBox;
     void messureSize();
@@ -136,6 +153,7 @@ private:
     void mouseWheelMoved(wxMouseEvent &event);
 
     void sendDropDownEvent();
+    void sendDropDownActionEvent(int index);
 
 
     DECLARE_EVENT_TABLE()

@@ -2,6 +2,9 @@
 #include <strsafe.h>
 //#include <atlconv.h>
 #include <dbghelp.h>
+#include <cstdarg>
+#include <cstddef>
+#include <cstring>
 #pragma comment(lib, "version.lib")
 #pragma comment( lib, "dbghelp.lib" )
 
@@ -364,7 +367,7 @@ void CStackWalker::GetModuleInformation(LPMODULE_INFO pmi)
 
 	if (dwInfoSize > 0)
 	{
-		LPVOID lpData = new byte[dwInfoSize];
+		byte *lpData = new byte[dwInfoSize];
 		ZeroMemory(lpData, dwInfoSize * sizeof(byte));
 
 		if (GetFileVersionInfo(pmi->szModulePath, dwHandle, dwInfoSize, lpData) > 0 )
@@ -425,7 +428,7 @@ LPSTACKINFO CStackWalker::StackWalker(HANDLE hThread, const CONTEXT* context)
 	else
 		c = *context;
 
-	STACKFRAME64 sf = {0};
+	STACKFRAME64 sf = {};
 	DWORD imageType;
 
 //intel X86
@@ -456,6 +459,15 @@ LPSTACKINFO CStackWalker::StackWalker(HANDLE hThread, const CONTEXT* context)
 	sf.AddrBStore.Offset = c.RsBSP;
 	sf.AddrBStore.Mode = AddrModeFlat;
 	sf.AddrStack.Offset = c.IntSp;
+	sf.AddrStack.Mode = AddrModeFlat;
+	// ARM64
+#elif defined(_M_ARM64)
+	imageType = IMAGE_FILE_MACHINE_ARM64;
+	sf.AddrPC.Offset = c.Pc;
+	sf.AddrPC.Mode = AddrModeFlat;
+	sf.AddrFrame.Offset = c.Fp;
+	sf.AddrFrame.Mode = AddrModeFlat;
+	sf.AddrStack.Offset = c.Sp;
 	sf.AddrStack.Mode = AddrModeFlat;
 #else
 #error "Platform not supported!"

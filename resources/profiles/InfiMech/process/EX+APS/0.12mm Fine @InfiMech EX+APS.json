@@ -3,7 +3,7 @@
 	"name": "0.12mm Fine @InfiMech EX+APS",
 	"inherits": "fdm_process_common_EX+APS",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "psgRIR1JNT5btIOU",
 	"instantiation": "true",
 	"inner_wall_acceleration": "3000",
 	"bottom_shell_layers": "5",

@@ -3,13 +3,26 @@
 	"name": "Bambu PC @System",
 	"inherits": "Bambu PC @base",
 	"from": "system",
-	"setting_id": "OGFSC00",
+	"setting_id": "piqS3ekvyUfN9dgG",
 	"instantiation": "true",
 	"fan_max_speed": [
+		"40",
+		"40",
+		"40",
+		"40",
+		"40",
 		"40"
 	],
 	"slow_down_layer_time": [
 		"12"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"filament_max_volumetric_speed": [
+		"12",
+		"12",
+		"30",
+		"12",
+		"12",
+		"20"
+	]
 }

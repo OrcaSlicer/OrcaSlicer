@@ -1,6 +1,30 @@
 #include <algorithm>
+#include <string>
+#include <wx/dialog.h>
+#include <sstream>
+#include <vector>
+#include <utility>
+#include "slic3r/GUI/RammingChart.hpp"
+#include <wx/dcclient.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include <cstddef>
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Plater.hpp"
+#include "libslic3r/FlushVolPredictor.hpp"
+#include "libslic3r/Utils.hpp"
+#include <boost/log/trivial.hpp>
 #include <wx/display.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/filename.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/spinctrl.h>
+#include <wx/toplevel.h>
+#include <wx/webview.h>
 #include "libslic3r/FlushVolCalc.hpp"
 #include "WipeTowerDialog.hpp"
 #include "GUI.hpp"
@@ -8,12 +32,25 @@
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "format.hpp"
-#include "libslic3r/Color.hpp"
 #include "Widgets/StaticLine.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "libslic3r/Config.hpp"
 #include "Widgets/Label.hpp"
 #include "MainFrame.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Preset.hpp"
+#include "DeviceCore/DevConfigUtil.h"
+#include "DeviceCore/DevDefs.h"
+#include <nlohmann/json.hpp>
+#include "slic3r/GUI/Jobs/SendJob.hpp"
+#include "slic3r/GUI/Widgets/WebViewHostDialog.hpp"
+#include <boost/filesystem.hpp>
+
+using json = nlohmann::json;
+
+class wxWindow;
+
+namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
@@ -204,6 +241,10 @@ bool is_flush_config_modified()
     const auto                &project_config    = wxGetApp().preset_bundle->project_config;
     const std::vector<double> &config_matrix     = (project_config.option<ConfigOptionFloats>("flush_volumes_matrix"))->values;
     const std::vector<double> &config_multiplier = (project_config.option<ConfigOptionFloats>("flush_multiplier"))->values;
+    // The config matrix is N x N per nozzle over every slot, while CalcFlushingVolumes is p x p
+    // over the physical slots (mixed slots never flush): map each default cell to its config index.
+    const auto   physical_indices = wxGetApp().preset_bundle->physical_filament_config_indices();
+    const size_t full_n           = project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
 
     bool has_modify = false;
     for (int i = 0; i < config_multiplier.size(); i++) {
@@ -212,11 +253,12 @@ bool is_flush_config_modified()
             break;
         }
         std::vector<std::vector<double>> default_matrix = WipingDialog::CalcFlushingVolumes(i);
-        int len = default_matrix.size();
-        for (int m = 0; m < len; m++) {
-            for (int n = 0; n < len; n++) {
-                int idx = i * len * len + m * len + n;
-                if (config_matrix[idx] != default_matrix[m][n] * config_multiplier[i]) {
+        size_t p_len         = default_matrix.size();
+        size_t nozzle_offset = i * full_n * full_n;
+        for (size_t m = 0; m < p_len; m++) {
+            for (size_t n = 0; n < p_len; n++) {
+                size_t cfg_idx = nozzle_offset + physical_indices[m] * full_n + physical_indices[n];
+                if (cfg_idx < config_matrix.size() && config_matrix[cfg_idx] != default_matrix[m][n] * config_multiplier[i]) {
                     has_modify = true;
                     break;
                 }
@@ -256,6 +298,40 @@ static std::vector<float> MatrixFlatten(const WipingDialog::VolumeMatrix& matrix
     return vec;
 }
 
+// Mixed-color slots are virtual and have no flushing volumes, so the dialog shows only the
+// physical filaments. That means converting between the full config matrix (indexed by config
+// slot) and a dense physical sub-matrix (indexed by row/column in the table).
+static std::vector<double> extract_physical_sub_matrix(
+    const std::vector<double>& full_matrix, size_t full_n,
+    const std::vector<size_t>& indices)
+{
+    size_t p = indices.size();
+    std::vector<double> sub(p * p, 0.0);
+    if (full_matrix.size() < full_n * full_n)
+        return sub;
+    for (size_t pi = 0; pi < p; ++pi)
+        for (size_t pj = 0; pj < p; ++pj)
+            sub[pi * p + pj] = full_matrix[indices[pi] * full_n + indices[pj]];
+    return sub;
+}
+
+// Write the edited physical sub-matrix back into a copy of the full matrix, leaving the
+// entries that belong to mixed slots untouched.
+static std::vector<double> expand_physical_to_full_matrix(
+    const std::vector<double>& sub_matrix,
+    const std::vector<size_t>& indices, size_t full_n,
+    const std::vector<double>& original_matrix)
+{
+    std::vector<double> full = original_matrix;
+    if (full.size() < full_n * full_n)
+        return full;
+    size_t p = indices.size();
+    for (size_t pi = 0; pi < p; ++pi)
+        for (size_t pj = 0; pj < p; ++pj)
+            full[indices[pi] * full_n + indices[pj]] = sub_matrix[pi * p + pj];
+    return full;
+}
+
 wxString WipingDialog::BuildTableObjStr()
 {
     auto full_config = wxGetApp().preset_bundle->full_config();
@@ -265,9 +341,22 @@ wxString WipingDialog::BuildTableObjStr()
     auto raw_matrix_data = full_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
     auto nozzle_flush_dataset = full_config.option<ConfigOptionIntsNullable>("nozzle_flush_dataset")->values;
 
+    // Restrict the table to physical filaments; mixed slots have no flushing volumes.
+    m_physical_indices = wxGetApp().preset_bundle->physical_filament_config_indices();
+    const size_t full_n = filament_colors.size();
+    {
+        std::vector<std::string> physical_colors;
+        physical_colors.reserve(m_physical_indices.size());
+        for (size_t i : m_physical_indices)
+            if (i < filament_colors.size())
+                physical_colors.push_back(filament_colors[i]);
+        filament_colors = std::move(physical_colors);
+    }
+
     std::vector<std::vector<double>> flush_matrixs;
     for (int idx = 0; idx < nozzle_num; ++idx) {
-        flush_matrixs.emplace_back(get_flush_volumes_matrix(raw_matrix_data, idx, nozzle_num));
+        auto fm = get_flush_volumes_matrix(raw_matrix_data, idx, nozzle_num);
+        flush_matrixs.emplace_back(extract_physical_sub_matrix(fm, full_n, m_physical_indices));
     }
     flush_multiplier.resize(nozzle_num, 1);
 
@@ -324,14 +413,18 @@ wxString WipingDialog::BuildTextObjStr(bool multi_language)
     wxString ok_btn_label;
     wxString cancel_btn_label;
 
+    const std::string pt = wxGetApp().preset_bundle->printers.get_edited_preset().get_printer_type(wxGetApp().preset_bundle);
+    const std::string extruder_name_0 = DevPrinterConfigUtil::get_toolhead_display_name(pt, DEPUTY_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::SentenceCase);
+    const std::string extruder_name_1 = DevPrinterConfigUtil::get_toolhead_display_name(pt, MAIN_EXTRUDER_ID, ToolHeadComponent::Extruder, ToolHeadNameCase::SentenceCase);
+
     if (multi_language) {
         auto_flush_tip = _L("Orca would re-calculate your flushing volumes everytime the filaments color changed or filaments changed. You could disable the auto-calculate in Orca Slicer > Preferences");
         volume_desp_panel = _L("Flushing volume (mm³) for each filament pair.");
         volume_range_panel = wxString::Format(_L("Suggestion: Flushing Volume in range [%d, %d]"), 0, 700);
-        multiplier_range_panel = wxString::Format(_L("The multiplier should be in range [%.2f, %.2f]."), 0, 3);
+        multiplier_range_panel = wxString::Format(_L("The multiplier should be in range [%.2f, %.2f]."), 0., 3.);
         calc_btn_panel = _L("Re-calculate");
-        extruder_label_0 = _L("Left extruder");
-        extruder_label_1 = _L("Right extruder");
+        extruder_label_0 = _L(extruder_name_0);
+        extruder_label_1 = _L(extruder_name_1);
         multiplier_label = _L("Multiplier");
         ok_btn_label = _L("OK");
         cancel_btn_label = _L("Cancel");
@@ -339,10 +432,10 @@ wxString WipingDialog::BuildTextObjStr(bool multi_language)
         auto_flush_tip = "Orca would re-calculate your flushing volumes everytime the filaments color changed or filaments changed. You could disable the auto-calculate in Orca Slicer > Preferences";
         volume_desp_panel = wxString::FromUTF8("Flushing volume (mm³) for each filament pair.");
         volume_range_panel = wxString::Format("Suggestion: Flushing Volume in range [%d, %d]", 0, 700);
-        multiplier_range_panel = wxString::Format("The multiplier should be in range [%.2f, %.2f].", 0, 3);
+        multiplier_range_panel = wxString::Format("The multiplier should be in range [%.2f, %.2f].", 0., 3.);
         calc_btn_panel = "Re-calculate";
-        extruder_label_0 = "Left extruder";
-        extruder_label_1 = "Right extruder";
+        extruder_label_0 = wxString::FromUTF8(extruder_name_0);
+        extruder_label_1 = wxString::FromUTF8(extruder_name_1);
         multiplier_label = "Multiplier";
         ok_btn_label = "OK";
         cancel_btn_label = "Cancel";
@@ -372,7 +465,7 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
     this->SetSizer(main_sizer);
     this->SetBackgroundColour(*wxWHITE);
-    auto filament_count = wxGetApp().preset_bundle->project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
+    auto filament_count = wxGetApp().preset_bundle->physical_filament_config_indices().size();
 
     // Estimate table scroll area size based on filament count
     // Each table cell is ~60x25 DIP, plus headers and borders
@@ -405,13 +498,19 @@ WipingDialog::WipingDialog(wxWindow* parent, const int max_flush_volume) :
         wxNO_BORDER);
 
     m_webview->AddScriptMessageHandler("wipingDialog");
+    // The page's strings (resources/web/flush/WipingDialog.html), keyed by their T() ids.
+    const nlohmann::json page_strings = {
+        // TRN Corner header of the flushing volume table: rows are the filament flushed from, columns the filament changed to.
+        {"from_to", _u8L("from/to")},
+    };
+    m_webview->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(page_strings)));
     main_sizer->Add(m_webview, 1, wxEXPAND);
 
     fs::path filepath = fs::path(resources_dir()) / "web/flush/WipingDialog.html";
     wxString filepath_str = from_path(filepath);
     wxFileName fn(filepath_str);
     if(fn.FileExists()) {
-        wxString url = wxFileSystem::FileNameToURL(fn);
+        wxString url = file_url_from_path(filepath);
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< "File exists and load url " << url.ToStdString();
         m_webview->LoadURL(url);
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__<< "Successfully loaded url: " << url.ToStdString();
@@ -523,55 +622,51 @@ WipingDialog::VolumeMatrix WipingDialog::CalcFlushingVolumes(int extruder_id)
     auto& preset_bundle = wxGetApp().preset_bundle;
     auto full_config = preset_bundle->full_config();
     auto& ams_multi_color_filament = preset_bundle->ams_multi_color_filment;
+    // Mixed-colour slots are virtual and never flushed: compute a p x p matrix over the physical
+    // slots only, laid out like the table; row/column k belongs to config slot physical_indices[k].
+    auto physical_indices = preset_bundle->physical_filament_config_indices();
 
-    std::vector<std::string> filament_color_strs = full_config.option<ConfigOptionStrings>("filament_colour")->values;
-    std::vector<std::vector<wxColour>> multi_colors;
-    std::vector<wxColour> filament_colors;
-    for (auto color_str : filament_color_strs)
-        filament_colors.emplace_back(color_str);
-
+    std::vector<std::string> all_color_strs = full_config.option<ConfigOptionStrings>("filament_colour")->values;
     int flush_dataset_value = full_config.option<ConfigOptionIntsNullable>("nozzle_flush_dataset")->values[extruder_id];
+    const std::vector<int> min_flush_volumes = get_min_flush_volumes(full_config, extruder_id);
+
     // Support for multi-color filament
-    for (int i = 0; i < filament_colors.size(); ++i) {
+    std::vector<std::vector<wxColour>> multi_colors;
+    for (size_t cfg_idx : physical_indices) {
         std::vector<wxColour> single_filament;
-        if (i < ams_multi_color_filament.size()) {
-            if (!ams_multi_color_filament[i].empty()) {
-                std::vector<std::string> colors = ams_multi_color_filament[i];
-                for (int j = 0; j < colors.size(); ++j) {
-                    single_filament.push_back(wxColour(colors[j]));
-                }
-                multi_colors.push_back(single_filament);
-                continue;
-            }
+        if (cfg_idx < ams_multi_color_filament.size() && !ams_multi_color_filament[cfg_idx].empty()) {
+            for (const auto& c : ams_multi_color_filament[cfg_idx])
+                single_filament.push_back(wxColour(c));
+        } else if (cfg_idx < all_color_strs.size()) {
+            single_filament.push_back(wxColour(all_color_strs[cfg_idx]));
         }
-        single_filament.push_back(wxColour(filament_colors[i]));
         multi_colors.push_back(single_filament);
     }
 
     VolumeMatrix matrix;
-    const std::vector<int> min_flush_volumes = get_min_flush_volumes(full_config, extruder_id);
-
-    for (int from_idx = 0; from_idx < multi_colors.size(); ++from_idx) {
-        bool is_from_support = is_support_filament(from_idx);
+    for (size_t pi = 0; pi < physical_indices.size(); ++pi) {
+        int from_cfg = (int)physical_indices[pi];
+        bool is_from_support = is_support_filament(from_cfg);
         matrix.emplace_back();
-        for (int to_idx = 0; to_idx < multi_colors.size(); ++to_idx) {
-            if (from_idx == to_idx) {
+        for (size_t pj = 0; pj < physical_indices.size(); ++pj) {
+            int to_cfg = (int)physical_indices[pj];
+            if (from_cfg == to_cfg) {
                 matrix.back().emplace_back(0);
                 continue;
             }
 
-            bool is_to_support = is_support_filament(to_idx);
-
+            bool is_to_support = is_support_filament(to_cfg);
             int flushing_volume = 0;
             if (is_to_support) {
                 flushing_volume = Slic3r::g_flush_volume_to_support;
             }
             else {
-                for (int i = 0; i < multi_colors[from_idx].size(); ++i) {
-                    const wxColour& from = multi_colors[from_idx][i];
-                    for (int j = 0; j < multi_colors[to_idx].size(); ++j) {
-                        const wxColour& to = multi_colors[to_idx][j];
-                        int volume = CalcFlushingVolume(from, to, min_flush_volumes[from_idx], flush_dataset_value);
+                int min_flush_from = (from_cfg < (int)min_flush_volumes.size()) ? min_flush_volumes[from_cfg] : 0;
+                for (size_t i = 0; i < multi_colors[pi].size(); ++i) {
+                    const wxColour& from = multi_colors[pi][i];
+                    for (size_t j = 0; j < multi_colors[pj].size(); ++j) {
+                        const wxColour& to = multi_colors[pj][j];
+                        int volume = CalcFlushingVolume(from, to, min_flush_from, flush_dataset_value);
                         flushing_volume = std::max(flushing_volume, volume);
                     }
                 }
@@ -592,11 +687,29 @@ void WipingDialog::StoreFlushData(int extruder_num, const std::vector<std::vecto
     m_raw_matrixs = flush_volume_vecs;
 }
 
+// The table edits a physical-only sub-matrix; GetFlattenMatrix has to hand back a full-size
+// matrix so the config layout stays indexed by config slot. Mixed-slot entries keep whatever
+// the config already held.
+std::vector<double> WipingDialog::ExpandToFullMatrix(const std::vector<double>& sub_matrix, int nozzle_idx) const
+{
+    const auto& project_config = wxGetApp().preset_bundle->project_config;
+    const size_t full_n = project_config.option<ConfigOptionStrings>("filament_colour")->values.size();
+    if (m_physical_indices.size() == full_n)
+        return sub_matrix;   // no mixed slots: sub-matrix already is the full matrix
+
+    auto raw = project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
+    int nozzle_num = (int)wxGetApp().preset_bundle->project_config.option<ConfigOptionFloats>("flush_multiplier")->values.size();
+    if (nozzle_num < 1) nozzle_num = 1;
+    auto original = get_flush_volumes_matrix(raw, nozzle_idx, nozzle_num);
+    return expand_physical_to_full_matrix(sub_matrix, m_physical_indices, full_n, original);
+}
+
 std::vector<double> WipingDialog::GetFlattenMatrix()const
 {
     std::vector<double> ret;
-    for (auto& matrix : m_raw_matrixs) {
-        ret.insert(ret.end(), matrix.begin(), matrix.end());
+    for (size_t idx = 0; idx < m_raw_matrixs.size(); ++idx) {
+        auto full = ExpandToFullMatrix(m_raw_matrixs[idx], (int)idx);
+        ret.insert(ret.end(), full.begin(), full.end());
     }
     return ret;
 }

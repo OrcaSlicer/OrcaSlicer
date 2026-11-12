@@ -3,6 +3,7 @@
 	"name": "0.12mm Standard @Thinker X400",
 	"inherits": "0.20mm Standard @Thinker X400",
 	"from": "User",
+	"setting_id": "jifvkql7qz6po7bB",
 	"instantiation": "true",
 	"brim_object_gap": "0",
 	"default_acceleration": "10000",

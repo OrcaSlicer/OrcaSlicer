@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSA04",
 	"name": "QIDI ABS Odorless @Qidi X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ABS Odorless@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "tOi3ws4LIN7tR2qs",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"24.5"
 	],

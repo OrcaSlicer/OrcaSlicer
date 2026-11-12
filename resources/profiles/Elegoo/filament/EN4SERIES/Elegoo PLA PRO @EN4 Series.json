@@ -1,9 +1,9 @@
 {
 	"type": "filament",
 	"name": "Elegoo PLA PRO @EN4 Series",
-	"inherits": "Elegoo PLA @base",
+	"inherits": "Elegoo PLA PRO @base",
 	"from": "system",
-	"setting_id": "EPLAPROEN4",
+	"setting_id": "912jZphbXGIftHOj",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"20"

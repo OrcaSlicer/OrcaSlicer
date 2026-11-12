@@ -3,7 +3,7 @@
 	"name": "0.20mm High Flow @MINIIS",
 	"inherits": "process_highflow_miniis",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "ScxJeGOa12CObqRg",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa MINIIS 0.4 nozzle"

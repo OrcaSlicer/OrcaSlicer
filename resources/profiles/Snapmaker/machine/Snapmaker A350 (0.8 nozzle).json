@@ -3,7 +3,7 @@
 	"name": "Snapmaker A350 (0.8 nozzle)",
 	"inherits": "fdm_a350",
 	"from": "system",
-	"setting_id": "3167088385",
+	"setting_id": "a6OxhjcNKg2iHakM",
 	"instantiation": "true",
 	"printer_model": "Snapmaker A350",
 	"default_print_profile": "0.24 Standard @Snapmaker (0.8 nozzle)",

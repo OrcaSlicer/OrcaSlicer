@@ -3,7 +3,7 @@
 	"name": "Bambu ASA-CF @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "OGFB51",
+	"filament_id": "OF0wBGNx",
 	"instantiation": "false",
 	"eng_plate_temp": [
 		"100"
@@ -15,15 +15,33 @@
 		"25"
 	],
 	"filament_cost": [
-		"36.99"
+		"33.99"
 	],
 	"filament_density": [
 		"1.02"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_flow_ratio": [
+		"0.9",
+		"0.9",
+		"0.9",
+		"0.9",
+		"0.9",
 		"0.9"
 	],
 	"filament_max_volumetric_speed": [
+		"12",
+		"12",
+		"12",
+		"12",
+		"12",
 		"12"
 	],
 	"filament_type": [
@@ -39,9 +57,19 @@
 		"100"
 	],
 	"nozzle_temperature": [
+		"275",
+		"275",
+		"275",
+		"275",
+		"275",
 		"275"
 	],
 	"nozzle_temperature_initial_layer": [
+		"275",
+		"275",
+		"275",
+		"275",
+		"275",
 		"275"
 	],
 	"nozzle_temperature_range_low": [

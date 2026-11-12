@@ -1,13 +1,17 @@
 #ifndef slic3r_WxFontUtils_hpp_
 #define slic3r_WxFontUtils_hpp_
 
+#include "libslic3r/TextConfiguration.hpp"
 #include <memory>
 #include <optional>
+#include <string>
 #include <string_view>
 #include <boost/bimap.hpp>
 #include <wx/dc.h>
 #include <wx/font.h>
 #include "libslic3r/Emboss.hpp"
+
+class wxDC;
 
 namespace Slic3r::GUI {
 

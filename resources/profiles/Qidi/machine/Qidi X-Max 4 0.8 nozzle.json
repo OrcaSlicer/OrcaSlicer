@@ -1,10 +1,10 @@
 {
 	"type": "machine",
-	"setting_id": "GM008",
 	"name": "Qidi X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Qidi X-Max 4 0.4 nozzle",
+	"from": "system",
+	"setting_id": "pJbz2SGfvEar8cGh",
+	"instantiation": "true",
 	"default_filament_profile": [
 		"QIDI PLA Rapido @Qidi X-Max 4 0.8 nozzle"
 	],

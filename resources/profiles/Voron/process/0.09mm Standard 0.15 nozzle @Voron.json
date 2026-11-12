@@ -3,7 +3,7 @@
 	"name": "0.09mm Standard 0.15 nozzle @Voron",
 	"inherits": "fdm_process_voron_common_0_1_5",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "SAL9phdxeRYwE6e0",
 	"instantiation": "true",
 	"layer_height": "0.09",
 	"bottom_shell_layers": "5",

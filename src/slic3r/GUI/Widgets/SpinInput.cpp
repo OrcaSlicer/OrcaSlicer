@@ -3,7 +3,28 @@
 #include "Button.hpp"
 #include "TextCtrl.h"
 
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <algorithm>
+#include <utility>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/containr.h>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/valtext.h>
+#include <wx/textctrl.h>
+#include <wx/timer.h>
+#include <wx/spinctrl.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+
+#ifdef __WXGTK__
+#include "../GUI_Utils.hpp"
+#endif
+
+wxDEFINE_EVENT(EVT_SPINCTRL_TEXT, wxCommandEvent);
 
 BEGIN_EVENT_TABLE(SpinInput, StaticBox)
 
@@ -24,7 +45,7 @@ SpinInput::SpinInput()
     : label_color(std::make_pair(0x6B6B6B, (int) StateColor::Disabled), std::make_pair(0x6B6B6B, (int) StateColor::Normal))
     , text_color(std::make_pair(0x6B6B6B, (int) StateColor::Disabled), std::make_pair(0x262E30, (int) StateColor::Normal))
 {
-    radius = 0;
+    input_corner_radius = true;
     border_width     = 1;
     border_color     = StateColor(std::make_pair(0xDBDBDB, (int) StateColor::Disabled), std::make_pair(0x009688, (int) StateColor::Hovered),
                               std::make_pair(0xDBDBDB, (int) StateColor::Normal));
@@ -53,11 +74,17 @@ void SpinInput::Create(wxWindow *parent,
                      int min, int max, int initial, int step)
 {
     StaticBox::Create(parent, wxID_ANY, pos, size);
+    apply_input_corner_radius();
     SetFont(Label::Body_12);
     wxWindow::SetLabel(label);
     state_handler.attach({&label_color, &text_color});
     state_handler.update_binds();
     text_ctrl = new TextCtrl(this, wxID_ANY, text, {20, 4}, wxDefaultSize, style | wxBORDER_NONE | wxTE_PROCESS_ENTER, wxTextValidator(wxFILTER_DIGITS));
+
+#ifdef __WXGTK__
+    Slic3r::GUI::RemoveInputBorder(text_ctrl);
+#endif
+
     text_ctrl->SetFont(Label::Body_14);
     text_ctrl->SetBackgroundColour(background_color.colorForStates(state_handler.states()));
     text_ctrl->SetForegroundColour(text_color.colorForStates(state_handler.states()));
@@ -65,8 +92,9 @@ void SpinInput::Create(wxWindow *parent,
     state_handler.attach_child(text_ctrl);
     text_ctrl->Bind(wxEVT_KILL_FOCUS, &SpinInput::onTextLostFocus, this);
     text_ctrl->Bind(wxEVT_TEXT_ENTER, &SpinInput::onTextEnter, this);
+    text_ctrl->Bind(wxEVT_TEXT, &SpinInput::onTextChanged, this);
     text_ctrl->Bind(wxEVT_KEY_DOWN, &SpinInput::keyPressed, this);
-    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable context menu
+    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable context menu
     button_inc = createButton(true);
     button_dec = createButton(false);
     delta      = 0;
@@ -78,12 +106,6 @@ void SpinInput::Create(wxWindow *parent,
     SetValue(initial);
     SetStep(step);
     messureSize();
-}
-
-void SpinInput::SetCornerRadius(double radius)
-{
-    this->radius = radius;
-    Refresh();
 }
 
 void SpinInput::SetLabel(const wxString &label)
@@ -147,6 +169,7 @@ void SpinInput::Rescale()
 {
     button_inc->Rescale();
     button_dec->Rescale();
+    apply_input_corner_radius();
     messureSize();
 }
 
@@ -210,17 +233,19 @@ void SpinInput::messureSize()
     minSize.x      = GetMinWidth();
     StaticBox::SetSize(size);
     SetMinSize(size);
-    wxSize btnSize = {14, (size.y - 4) / 2};
+    // Keep the buttons inside the border and clear of the rounded corners: they paint over whatever is under them
+    const int btn_x = std::max(3, int(radius));
+    wxSize btnSize = {14, (size.y - 6) / 2};
     btnSize.x = btnSize.x * btnSize.y / 10;
     wxClientDC dc(this);
     labelSize  = dc.GetMultiLineTextExtent(GetLabel());
-    textSize.x = size.x - labelSize.x - btnSize.x - 16;
+    textSize.x = size.x - labelSize.x - btnSize.x - btn_x - 13;
     text_ctrl->SetSize(textSize);
-    text_ctrl->SetPosition({6 + btnSize.x, (size.y - textSize.y) / 2});
+    text_ctrl->SetPosition({btn_x + 3 + btnSize.x, (size.y - textSize.y) / 2});
     button_inc->SetSize(btnSize);
     button_dec->SetSize(btnSize);
-    button_inc->SetPosition({3, size.y / 2 - btnSize.y - 1});
-    button_dec->SetPosition({3, size.y / 2 + 1});
+    button_inc->SetPosition({btn_x, size.y / 2 - btnSize.y - 1});
+    button_dec->SetPosition({btn_x, size.y / 2 + 1});
 }
 
 Button *SpinInput::createButton(bool inc)
@@ -289,6 +314,19 @@ void SpinInput::onTextEnter(wxCommandEvent &event)
     }
     event.SetId(GetId());
     ProcessEventLocally(event);
+}
+
+void SpinInput::onTextChanged(wxCommandEvent &event)
+{
+    long value;
+    if (text_ctrl->GetValue().ToLong(&value)) {
+        wxCommandEvent e(EVT_SPINCTRL_TEXT, GetId());
+        e.SetEventObject(this);
+        e.SetInt((int) value);
+        e.SetString(text_ctrl->GetValue());
+        GetEventHandler()->ProcessEvent(e);
+    }
+    event.Skip();
 }
 
 void SpinInput::mouseWheelMoved(wxMouseEvent &event)

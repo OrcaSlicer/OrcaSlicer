@@ -10,9 +10,9 @@
 <link rel="stylesheet" type="text/css" href="24.css" />
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />	
 <!-- <script type="text/javascript" src="test.js"></script> -->
-<script type="text/javascript" src="../js/jquery-3.6.0.min.js"></script>
+<script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
 <script type="text/javascript" src="../js/json2.js"></script>	
-<script type="text/javascript" src="../../data/text.js"></script>	
+<script type="text/javascript" src="../../include/i18n.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
 <script type="text/javascript" src="../js/common.js"></script>
 <script type="text/javascript" src="../21/common.js"></script> <!-- ORCA use common sources for setup guide and standalone dialog -->
@@ -20,12 +20,12 @@
 </head>
 <body onLoad="OnInit()">
 <div id="Title">
-	<div class="trans" tid="t10">Printer Selection</div>
+	<div data-i18n="printer_selection">Printer Selection</div>
 </div>
 
 <div id="SidebarContainer">
 	<div id="Sidebar" class="thin-scroll">
-		<div class="title">Vendors</div>
+		<div class="title" data-i18n="vendors">Vendors</div>
 		<div class="area" id="SidebarVendors">
 			<!-- <div class="SidebarItem"></div> -->
 		</div>
@@ -39,7 +39,7 @@
 <div class="search" hasvalue="0">
 	<div class="search-icon icon16"></div>
 	<input type="text" class="searchTerm" placeholder=" " oninput="textInput(this)">
-	<span class="search-placeholder trans">Search...</span>
+	<span class="search-placeholder" data-i18n="search">Search</span>
 </div>
 <div class="LayoutSelector">
 	<div class="TabGroup">
@@ -81,18 +81,19 @@
 	
 </div>
 <div id="AcceptArea">
-	<div class="ButtonStyleRegular ButtonTypeChoice trans"           id="CreateBtn"  onclick="CreateNewPrinter()">Create</div>
-	<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t39" id="AcceptBtn"  onclick="ConfirmSelect()">Confirm</div>	
-	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t38" id="PreBtn"  onclick="CancelSelect()">Cancel</div>
+	<div class="ButtonStyleRegular ButtonTypeChoice" id="CreateBtn" onclick="CreateNewPrinter()" data-i18n="create">Create</div>
+	<div class="ButtonStyleRegular ButtonTypeChoice" id="CheckNewPrintersBtn" onclick="CheckForNewPrinters()" data-i18n="check_new_printers">Check for new printers</div>
+	<div class="ButtonStyleConfirm ButtonTypeChoice" id="AcceptBtn" onclick="ConfirmSelect()" data-i18n="confirm">Confirm</div>
+	<div class="ButtonStyleRegular ButtonTypeChoice" id="PreBtn" onclick="CancelSelect()" data-i18n="cancel">Cancel</div>
 </div>
 	
 <div id="NoticeMask"></div>
 <div id="NoticeBody">
-	<div id="NoticeBar" class="trans" tid="t18">error</div>
+	<div id="NoticeBar" data-i18n="error">Error</div>
 	<div id="NoticeContent">
-	<div id="NoticeText" class="trans" tid="t37">At least one printer must be selected.</div>
+	<div id="NoticeText" data-i18n="printer_required">At least one printer must be selected.</div>
 	<div id="NoticeBtns">
-		<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t36" onClick="ShowNotice(0)">ok</div>
+		<div class="ButtonStyleConfirm ButtonTypeChoice" onClick="ShowNotice(0)" data-i18n="ok">OK</div>
 	</div>
 	</div>
 </div>	

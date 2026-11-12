@@ -9,9 +9,17 @@
 #include "Jobs/ProgressIndicator.hpp"
 #include "Downloader.hpp"
 
+#include <cstdint>
+#include <cstddef>
+#include <imgui.h>
 #include <libslic3r/ObjectID.hpp>
+#include "libslic3r/PrintBase.hpp"
 #include <libslic3r/Technologies.hpp>
 
+#include <wx/event.h>
+#include <wx/app.h>
+#include <limits>
+#include <memory>
 #include <wx/time.h>
 
 #include <string>
@@ -20,6 +28,9 @@
 #include <vector>
 #include <deque>
 #include <unordered_set>
+
+#include <libslic3r/Preset.hpp>
+#include <wx/utils.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -43,6 +54,13 @@ enum class InfoItemType;
 #define BBL_NOTICE_OBJECTS_OBJID        1024+2
 
 #define BBL_NOTICE_MAX_INTERVAL         86400 * 10
+
+struct JumpTo
+{
+	std::string text;
+	std::string opt;
+	Preset::Type opt_type;
+};
 
 enum class NotificationType
 {
@@ -153,6 +171,8 @@ enum class NotificationType
 	//BBL: plugin install hint
 	BBLPluginInstallHint,
     BBLFlushingVolumeZero,
+    // A mixed-color filament references a deleted component, or its components disagree in type.
+    BBLMixedFilamentBroken,
 	BBLPluginUpdateAvailable,
 	BBLPreviewOnlyMode,
     BBLPrinterConfigUpdateAvailable,
@@ -163,9 +183,24 @@ enum class NotificationType
 	BBLBedFilamentIncompatible,
     BBLMixUsePLAAndPETG,
 	BBLNozzleFilamentIncompatible,
+    // A mixed-color filament is printed on a single-nozzle printer (frequent changes and purging).
+    BBLSingleExtruderMixedFilamentRisk,
     OrcaSharedProfilesAvailable,
 	OrcaCloudAPIError,
     OrcaSyncConflict,
+    // Active preset requires plugin capabilities that are not installed/loadable. Persistent,
+    // non-modal; offers install (cloud) / OrcaCloud search (local) and blocks slicing.
+    OrcaLocalPluginMissingError,
+    OrcaCloudPluginMissingError,
+    // Active preset references capabilities that are installed but not active (plugin not loaded, or
+    // capability disabled). Resolved locally by activating them; persistent, blocks slicing.
+    OrcaPluginInactiveError,
+    // Active preset references a capability the installed+loaded plugin does not provide (outdated
+    // plugin). Informational; cannot be auto-resolved; persistent, blocks slicing.
+    OrcaPluginCapabilityUnavailableError,
+    // One aggregate notice that installed OrcaCloud plugins have updates. "More" opens the
+    // Plugins dialog, where the updates can be installed.
+    OrcaCloudPluginUpdateAvailable,
     NotificationTypeCount
 
 };
@@ -282,6 +317,13 @@ public:
 		int conflict_code,
 		std::function<bool(wxEvtHandler*)> pull_callback,
 		std::function<bool(wxEvtHandler*)> force_push_callback);
+	// Non-closable, persistent missing-plugin notification with a single resolve action (install /
+	// open OrcaCloud). The callback returns true to close the notification, or false to keep it
+	// visible while resolution continues.
+	void push_plugin_missing_notification(NotificationType type, const std::string& text,
+		const std::string& resolve_label,
+		std::vector<JumpTo> body,
+		std::function<bool(wxEvtHandler*)> resolve_callback);
 
     // Download URL progress notif
     void push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback);
@@ -327,6 +369,8 @@ public:
     void render_notifications(GLCanvas3D &canvas, float overlay_width, float bottom_margin, float right_margin);
 	// finds and closes all notifications of given type
 	void close_notification_of_type(const NotificationType type);
+	// True while a notification of this type is on screen (not closed or finished).
+	bool has_notification_of_type(const NotificationType type) const;
     void remove_notification_of_type(const NotificationType type);
     void clear_all();
 	// Hides warnings in G-code preview. Should be called from plater only when 3d view/ preview is changed
@@ -348,7 +392,9 @@ public:
     void bbl_close_plateinfo_notification();
 
     //BBS-- 3mf warning
-    void bbl_show_3mf_warn_notification(const std::string &text);
+    // level defaults to the historical error styling; callers reporting informational
+    // 3MF load notices (published settings) pass WarningNotificationLevel instead.
+    void bbl_show_3mf_warn_notification(const std::string &text, NotificationLevel level = NotificationLevel::ErrorNotificationLevel);
     void bbl_close_3mf_warn_notification();
 
     //BBS--preview only mode
@@ -591,8 +637,8 @@ private:
 		// Aditional text after hypertext - currently not used
 		std::string      m_text2;
 		// mark for render operation
-		size_t           pos_start = string::npos;
-		size_t	         pos_end = string::npos;
+		size_t           pos_start = std::string::npos;
+		size_t	         pos_end = std::string::npos;
 		std::string      error_start = "<Error>";
 		std::string      error_end = "</Error>";
 
@@ -925,6 +971,46 @@ private:
 		std::function<bool(wxEvtHandler*)> m_force_push_callback;
 		int conflict_code;
 	};
+
+	// Persistent, non-closable notification for preset plugin capabilities that are required but
+	// unavailable. Offers per-capability "Jump to" links and a single resolve action; it stays up
+	// until every missing plugin is resolved.
+	class PluginMissingNotification : public PopNotification
+	{
+	public:
+		PluginMissingNotification(const NotificationData& n, NotificationIDProvider& id_provider, wxEvtHandler* evt_handler,
+			std::string resolve_label,
+			std::vector<JumpTo> body,
+			std::function<bool(wxEvtHandler*)> resolve_callback)
+			: PopNotification(n, id_provider, evt_handler)
+			, m_resolve_label(std::move(resolve_label))
+			, m_body(std::move(body))
+			, m_resolve_callback(std::move(resolve_callback))
+		{
+			m_multiline = true;
+		}
+    protected:
+		void init() override;
+		void render_text(ImGuiWrapper& imgui,
+			const float win_size_x, const float win_size_y,
+			const float win_pos_x, const float win_pos_y) override;
+		// Non-closable: the notification stays up until the missing plugins are resolved.
+		void render_close_button(ImGuiWrapper& /*imgui*/,
+			const float /*win_size_x*/, const float /*win_size_y*/,
+			const float /*win_pos_x*/, const float /*win_pos_y*/) override {}
+		void render_minimize_button(ImGuiWrapper& /*imgui*/,
+			const float /*win_pos_x*/, const float /*win_pos_y*/) override { m_minimize_b_visible = false; }
+		void bbl_render_block_notif_text(ImGuiWrapper& imgui,
+			const float win_size_x, const float win_size_y,
+			const float win_pos_x, const float win_pos_y) override;
+		void bbl_render_block_notif_buttons(ImGuiWrapper& /*imgui*/,
+			ImVec2 /*win_size*/, ImVec2 /*win_pos*/) override {}
+
+		std::string m_resolve_label;
+		std::vector<JumpTo> m_body;
+		std::function<bool(wxEvtHandler*)> m_resolve_callback;
+	};
+
 	class SlicingProgressNotification;
 
 	// in HintNotification.hpp
@@ -982,6 +1068,11 @@ private:
 	bool m_is_dark = false;
 	// set by init(), until false notifications are only added not updated and frame is not requested after push
 	bool m_initialized{ false };
+	// set by render_notifications() on the first rendered frame. m_initialized only proves the
+	// manager exists, not that the ImGui context can measure text: the font atlas is built lazily
+	// in ImGuiWrapper::new_frame() on the first GL render, so updating a notification before that
+	// (PopNotification::init -> count_spaces -> ImGui::CalcTextSize) dereferences a null font.
+	bool m_imgui_ready{ false };
 	// Target for wxWidgets events sent by clicking on the hyperlink available at some notifications.
 	wxEvtHandler*                m_evt_handler;
 	// Cache of IDs to identify and reuse ImGUI windows.
@@ -1005,13 +1096,17 @@ private:
 		NotificationType::PlaterWarning,
 		NotificationType::ProgressBar,
 		NotificationType::PrintHostUpload,
-        NotificationType::SimplifySuggestion
+        NotificationType::SimplifySuggestion,
+        NotificationType::ValidateWarning,
+        // A published file load can produce several distinct 3MF warnings (invalid values,
+        // skipped settings, changed slots); let them stack rather than clobber each other.
+        NotificationType::BBL3MFInfo
 	};
 	//prepared (basic) notifications
 	// non-static so its not loaded too early. If static, the translations wont load correctly.
 	const std::vector<NotificationData> basic_notifications = {
         NotificationData{NotificationType::Mouse3dDisconnected, NotificationLevel::RegularNotificationLevel, 10, _u8L("3D Mouse disconnected.")},
-        NotificationData{NotificationType::PresetUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL, _u8L("Configuration can update now."), _u8L("Detail."),
+        NotificationData{NotificationType::PresetUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL, _u8L("A new configuration is available. Update now\?"), _u8L("More"),
 		[](wxEvtHandler* evnthndlr) {
 			if (evnthndlr != nullptr)
 				wxPostEvent(evnthndlr, PresetUpdateAvailableClickedEvent(EVT_PRESET_UPDATE_AVAILABLE_CLICKED));
@@ -1039,6 +1134,20 @@ private:
 				 return true;
              }},
 
+        // One notice for all OrcaCloud plugin updates found by a successful metadata fetch.
+        NotificationData{NotificationType::OrcaCloudPluginUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL,
+                         _u8L("Updates are available for your OrcaCloud plugins."), _u8L("More"),
+                         [](wxEvtHandler*) {
+                             // Defer past the notification's render frame: the Plugins dialog is a
+                             // webview window and must not be created from inside an ImGui pass.
+                             if (wxTheApp != nullptr)
+                                 wxGetApp().CallAfter([] {
+                                     if (wxTheApp != nullptr && !wxGetApp().is_closing())
+                                         wxGetApp().open_plugins_dialog();
+                                 });
+                             return true;
+                         }},
+
         NotificationData{NotificationType::BBLPrinterConfigUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL,
                          _u8L("New printer config available."), _u8L("Details"),
                          [](wxEvtHandler *evnthndlr) {
@@ -1056,8 +1165,8 @@ private:
 
         NotificationData{NotificationType::UndoDesktopIntegrationFail, NotificationLevel::WarningNotificationLevel, 10,
 		_u8L("Undo integration failed.") },
-        NotificationData{NotificationType::ExportOngoing, NotificationLevel::RegularNotificationLevel, 0, _u8L("Exporting.")},
-        NotificationData{NotificationType::NewAppAvailable, NotificationLevel::ImportantNotificationLevel, 20, _u8L("Software has New version."), _u8L("Goto download page."),
+        NotificationData{NotificationType::ExportOngoing, NotificationLevel::RegularNotificationLevel, 0, _u8L("Exporting")},
+        NotificationData{NotificationType::NewAppAvailable, NotificationLevel::ImportantNotificationLevel, 20, _u8L("An update is available!"), _u8L("Go to download page"),
                          [](wxEvtHandler *evnthndlr) {
 				//BBS set feishu release page by default
 				wxGetApp().open_browser_with_warning_dialog("https://www.thingiverse.com/"); return true;

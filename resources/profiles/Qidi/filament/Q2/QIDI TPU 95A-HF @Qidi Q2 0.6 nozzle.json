@@ -3,7 +3,7 @@
 	"name": "QIDI TPU 95A-HF @Qidi Q2 0.6 nozzle",
 	"inherits": "QIDI TPU 95A-HF@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSR99",
+	"setting_id": "ooW5XfQhmdOt0bY5",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2 0.6 nozzle"

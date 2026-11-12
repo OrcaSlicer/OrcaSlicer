@@ -3,7 +3,15 @@
 	"name": "Flashforge PLA Luminous @FF C5",
 	"inherits": "Generic PLA @System",
 	"from": "system",
+	"setting_id": "4sE1LTVVuRglRbpD",
+	"filament_id": "OFdqkWtz",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"additional_cooling_fan_speed": [
 		"40"
 	],

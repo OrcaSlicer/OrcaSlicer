@@ -1,9 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge PLA Luminous @FF G4",
-	"inherits": "Flashforge Generic HS PLA",
+	"inherits": "Generic HS PLA @Flashforge",
 	"from": "system",
+	"setting_id": "sTplnj3gMAzwtLWE",
+	"filament_id": "OFdqkWtz",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_air_filtration": [
 		"1"
 	],

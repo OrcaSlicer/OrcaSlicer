@@ -3,7 +3,7 @@
 	"name": "Arena PET-CF @Arena X1C",
 	"inherits": "Arena PET-CF @base",
 	"from": "system",
-	"setting_id": "GFST01",
+	"setting_id": "vvn0qtZmexMRlvSa",
 	"instantiation": "true",
 	"slow_down_for_layer_cooling": [
 		"1"

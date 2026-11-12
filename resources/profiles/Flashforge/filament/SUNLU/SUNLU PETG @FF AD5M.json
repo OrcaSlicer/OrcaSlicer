@@ -3,7 +3,7 @@
 	"name": "SUNLU PETG @FF AD5M",
 	"inherits": "SUNLU PETG @base",
 	"from": "system",
-	"setting_id": "GFSNLS08",
+	"setting_id": "sZhSd1bOSlpCaLF8",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"24"

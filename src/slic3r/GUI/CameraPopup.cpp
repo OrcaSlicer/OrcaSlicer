@@ -3,13 +3,39 @@
 #include "I18N.hpp"
 #include "Widgets/Label.hpp"
 #include "libslic3r/Utils.hpp"
-#include "BitmapCache.hpp"
+#include <wx/object.h>
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
+#include <wx/event.h>
+#include <wx/colour.h>
+#include <wx/popupwin.h>
+#include "slic3r/GUI/Widgets/SwitchButton.hpp"
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <cstddef>
+#include "slic3r/GUI/Widgets/RadioBox.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/stattext.h>
+#include <wx/textctrl.h>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <wx/dcclient.h>
+#include <wx/dc.h>
 #include <wx/progdlg.h>
 #include <wx/clipbrd.h>
 #include <wx/dcgraph.h>
+#include <wx/string.h>
+#include <wx/scrolwin.h>
+#include <wx/sizer.h>
+#include <wx/timer.h>
 #include <wx/utils.h>
 #include "GUI_App.hpp"
 #include <slic3r/GUI/StatusPanel.hpp>
+#include "slic3r/Utils/IPrinterAgent.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include <boost/algorithm/string/trim.hpp>
 
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevStorage.h"
@@ -82,7 +108,7 @@ CameraPopup::CameraPopup(wxWindow *parent)
     top_sizer->Add(m_text_liveview_retry, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxALL, FromDIP(5));
     top_sizer->Add(m_switch_liveview_retry, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxALL, FromDIP(5));
 
-    m_switch_liveview_retry->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) {
+    m_switch_liveview_retry->Bind(wxEVT_TOGGLEBUTTON, [](wxCommandEvent &e) {
         wxGetApp().app_config->set("liveview", "auto_retry", e.IsChecked());
         e.Skip();
     });
@@ -102,37 +128,34 @@ CameraPopup::CameraPopup(wxWindow *parent)
         top_sizer->Add(0, 0, wxALL, 0);
     }
 
-    // custom IP camera
-    m_custom_camera_input_confirm = new Button(m_panel, _L("Enable"));
-    m_custom_camera_input_confirm->SetBackgroundColor(wxColour(38, 166, 154));
-    m_custom_camera_input_confirm->SetBorderColor(wxColour(38, 166, 154));
-    m_custom_camera_input_confirm->SetTextColor(wxColour(0xFFFFFE));
-    m_custom_camera_input_confirm->SetFont(Label::Body_14);
-    m_custom_camera_input_confirm->SetMinSize(wxSize(FromDIP(90), FromDIP(30)));
-    m_custom_camera_input_confirm->SetPosition(wxDefaultPosition);
-    m_custom_camera_input_confirm->SetCornerRadius(FromDIP(12));
-    m_custom_camera_input = new TextInput(m_panel, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize);
-    m_custom_camera_input->GetTextCtrl()->SetHint(_L("Hostname or IP"));
-    m_custom_camera_input->GetTextCtrl()->SetFont(Label::Body_14);
+    // Custom camera source: show any camera URL in the Device tab instead of the printer's own stream
     m_custom_camera_hint = new wxStaticText(m_panel, wxID_ANY, _L("Custom camera source"));
     m_custom_camera_hint->Wrap(-1);
     m_custom_camera_hint->SetFont(Label::Head_14);
     m_custom_camera_hint->SetForegroundColour(TEXT_COL);
-
+    m_custom_camera_input = new TextInput(m_panel, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxDefaultSize);
+    m_custom_camera_input->GetTextCtrl()->SetHint(_L("Camera stream URL"));
+    m_custom_camera_input->GetTextCtrl()->SetFont(Label::Body_14);
+    m_custom_camera_input->SetToolTip(_L("URL of an MJPEG stream or of a web page that shows the camera, for example http://192.168.1.10:8080/?action=stream"));
+    m_custom_camera_input_confirm = new Button(m_panel, _L("Enable"));
+    m_custom_camera_input_confirm->SetTextColor(wxColour(0xFFFFFE));
+    m_custom_camera_input_confirm->SetFont(Label::Body_14);
+    m_custom_camera_input_confirm->SetMinSize(wxSize(FromDIP(90), FromDIP(30)));
+    m_custom_camera_input_confirm->SetCornerRadius(FromDIP(12));
     m_custom_camera_input_confirm->Bind(wxEVT_BUTTON, &CameraPopup::on_camera_source_changed, this);
 
-    if (!wxGetApp().app_config->get("camera", "custom_source").empty()) {
-        m_custom_camera_input->GetTextCtrl()->SetValue(wxGetApp().app_config->get("camera", "custom_source"));
-        set_custom_cam_button_state(wxGetApp().app_config->get("camera", "enable_custom_source") == "true");
-    }
+    const std::string custom_source = wxGetApp().app_config->get("camera", "custom_source");
+    m_custom_camera_input->GetTextCtrl()->SetValue(wxString::FromUTF8(custom_source));
+    set_custom_cam_button_state(!custom_source.empty() && wxGetApp().app_config->get("camera", "enable_custom_source") == "true");
 
     top_sizer->Add(m_custom_camera_hint, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT | wxALL, FromDIP(5));
     top_sizer->Add(0, 0, wxALL, 0);
     top_sizer->Add(m_custom_camera_input, 2, wxALIGN_CENTER_VERTICAL | wxEXPAND | wxALL, FromDIP(5));
     top_sizer->Add(m_custom_camera_input_confirm, 1, wxALIGN_CENTER_VERTICAL | wxALIGN_RIGHT | wxALL, FromDIP(5));
+
     main_sizer->Add(top_sizer, 0, wxALL, FromDIP(10));
 
-    auto url = wxString::Format(L"https://wiki.bambulab.com/%s/software/bambu-studio/virtual-camera", L"en");
+    auto url = wxString(L"https://www.orcaslicer.com/wiki/"); // Orca: neutral wiki link (vendor URL removed)
     auto text = _L("Show \"Live Video\" guide page.");
 
     wxBoxSizer* link_sizer = new wxBoxSizer(wxVERTICAL);
@@ -140,7 +163,7 @@ CameraPopup::CameraPopup(wxWindow *parent)
     vcamera_guide_link->Wrap(-1);
     vcamera_guide_link->SetForegroundColour(wxColour(0x1F, 0x8E, 0xEA));
     auto text_size = vcamera_guide_link->GetTextExtent(text);
-    vcamera_guide_link->Bind(wxEVT_LEFT_DOWN, [this, url](wxMouseEvent& e) {wxLaunchDefaultBrowser(url); });
+    vcamera_guide_link->Bind(wxEVT_LEFT_DOWN, [url](wxMouseEvent& e) {wxLaunchDefaultBrowser(url); });
 
     link_underline = new wxPanel(m_panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
     link_underline->SetBackgroundColour(wxColour(0x1F, 0x8E, 0xEA));
@@ -184,37 +207,6 @@ void CameraPopup::sdcard_absent_hint()
     GetEventHandler()->ProcessEvent(evt);
 }
 
-void CameraPopup::on_camera_source_changed(wxCommandEvent &event)
-{
-    if (m_obj && !m_custom_camera_input->GetTextCtrl()->IsEmpty()) {
-        handle_camera_source_change();
-    }
-}
-
-void CameraPopup::handle_camera_source_change()
-{
-    m_custom_camera_enabled = !m_custom_camera_enabled;
-
-    set_custom_cam_button_state(m_custom_camera_enabled);
-
-    wxGetApp().app_config->set("camera", "custom_source", m_custom_camera_input->GetTextCtrl()->GetValue().ToStdString());
-    wxGetApp().app_config->set("camera", "enable_custom_source", m_custom_camera_enabled);
-
-    wxCommandEvent evt(EVT_CAM_SOURCE_CHANGE);
-    evt.SetEventObject(this);
-    GetEventHandler()->ProcessEvent(evt);
-}
-
-void CameraPopup::set_custom_cam_button_state(bool state)
-{
-    m_custom_camera_enabled = state;
-    auto stateColour = state ? wxColour(170, 0, 0) : wxColour(38, 166, 154);
-    auto stateText = state ? "Disable" : "Enable";
-    m_custom_camera_input_confirm->SetBackgroundColor(stateColour);
-    m_custom_camera_input_confirm->SetBorderColor(stateColour);
-    m_custom_camera_input_confirm->SetLabel(_L(stateText));
-}
-
 void CameraPopup::on_switch_recording(wxCommandEvent& event)
 {
     if (!m_obj) return;
@@ -225,6 +217,54 @@ void CameraPopup::on_switch_recording(wxCommandEvent& event)
     bool value = m_switch_recording->GetValue();
     m_switch_recording->SetValue(!value);
     m_obj->command_ipcam_record(!value);
+}
+
+void CameraPopup::on_camera_source_changed(wxCommandEvent& event)
+{
+    const std::string url = boost::algorithm::trim_copy(std::string(m_custom_camera_input->GetTextCtrl()->GetValue().ToUTF8().data()));
+    if (!m_custom_camera_enabled && url.empty())
+        return;
+
+    set_custom_cam_button_state(!m_custom_camera_enabled);
+    if (m_custom_camera_enabled) {
+        m_custom_camera_input->GetTextCtrl()->SetValue(wxString::FromUTF8(url));
+        wxGetApp().app_config->set("camera", "custom_source", url);
+    }
+    wxGetApp().app_config->set("camera", "enable_custom_source", m_custom_camera_enabled);
+
+    wxCommandEvent evt(EVT_CAM_SOURCE_CHANGE);
+    evt.SetEventObject(this);
+    GetEventHandler()->ProcessEvent(evt);
+}
+
+bool CameraPopup::custom_source_supported()
+{
+    // Temporary: a patch for the Bambu printer agent only. Once printer agents are fully
+    // implemented, the custom source is to be deprecated in favour of the agents' own camera
+    // handling, or extended to the other agents; this gate is where that change starts.
+    auto agent         = wxGetApp().getAgent();
+    auto printer_agent = agent ? agent->get_printer_agent() : nullptr;
+    return printer_agent && printer_agent->get_agent_info().id == BBL_PRINTER_AGENT_ID;
+}
+
+std::string CameraPopup::custom_source_url()
+{
+    if (wxGetApp().app_config->get("camera", "enable_custom_source") != "true" || !custom_source_supported())
+        return {};
+    std::string url = boost::algorithm::trim_copy(wxGetApp().app_config->get("camera", "custom_source"));
+    if (!url.empty() && url.find("://") == std::string::npos)
+        url = "http://" + url;
+    return url;
+}
+
+void CameraPopup::set_custom_cam_button_state(bool state)
+{
+    m_custom_camera_enabled = state;
+    m_custom_camera_input->Enable(!state);
+    const wxColour colour = state ? wxColour(170, 0, 0) : wxColour(38, 166, 154);
+    m_custom_camera_input_confirm->SetBackgroundColor(colour);
+    m_custom_camera_input_confirm->SetBorderColor(colour);
+    m_custom_camera_input_confirm->SetLabel(state ? _L("Disable") : _L("Enable"));
 }
 
 void CameraPopup::on_set_resolution()
@@ -365,6 +405,11 @@ void CameraPopup::check_func_supported(MachineObject *obj2)
         link_underline->Hide();
     }
 
+    const bool custom_source = custom_source_supported();
+    m_custom_camera_hint->Show(custom_source);
+    m_custom_camera_input->Show(custom_source);
+    m_custom_camera_input_confirm->Show(custom_source);
+
     allow_alter_resolution = ( (m_obj->camera_resolution_supported.size() > 1?true:false) && m_obj->has_ipcam);
 
     //check u2 version
@@ -479,7 +524,7 @@ void CameraPopup::OnLeftUp(wxMouseEvent &event)
         //hyper link
         auto h_rect = vcamera_guide_link->ClientToScreen(wxPoint(0, 0));
         if (mouse_pos.x > h_rect.x && mouse_pos.y > h_rect.y && mouse_pos.x < (h_rect.x + vcamera_guide_link->GetSize().x) && mouse_pos.y < (h_rect.y + vcamera_guide_link->GetSize().y)) {
-            auto url = wxString::Format(L"https://wiki.bambulab.com/%s/software/bambu-studio/virtual-camera", L"en");
+            auto url = wxString(L"https://www.orcaslicer.com/wiki/"); // Orca: neutral wiki link (vendor URL removed)
             wxLaunchDefaultBrowser(url);
         }
     }

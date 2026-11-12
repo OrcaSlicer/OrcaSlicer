@@ -3,8 +3,8 @@
 	"name": "Eryone ABS",
 	"inherits": "Eryone Standard PLA",
 	"from": "system",
-	"setting_id": "EFSA01",
-	"filament_id": "EFL91",
+	"setting_id": "JfQiR5qK9Ue3JDt5",
+	"filament_id": "OFOzwywz",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Thinker X400 0.4 nozzle"

@@ -3,7 +3,7 @@
 	"name": "Generic ASA @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "GASAB00",
+	"filament_id": "OFLPAxz3",
 	"instantiation": "false",
 	"filament_max_volumetric_speed": [
 		"12"

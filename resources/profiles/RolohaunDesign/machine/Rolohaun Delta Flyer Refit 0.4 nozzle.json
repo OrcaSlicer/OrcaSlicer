@@ -3,8 +3,8 @@
 	"name": "Rolohaun Delta Flyer Refit 0.4 nozzle",
 	"inherits": "fdm_common_Rook MK1 LDO",
 	"from": "system",
+	"setting_id": "xRvK2POOU8rx7dLH",
 	"instantiation": "true",
-	"setting_id": "RDFR_01",
 	"bed_custom_model": "",
 	"printer_structure": "delta",
 	"deretraction_speed": [

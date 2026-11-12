@@ -1,5 +1,12 @@
 //#include "D:/dev/bamboo_slicer/build_release/src/slic3r/CMakeFiles/libslic3r_gui.dir/Release/cmake_pch.hxx"
 #include "DevHMS.h"
+#include <string>
+#include <cstdio>
+#include <nlohmann/json.hpp>
+#include <exception>
+#include <cassert>
+
+using json = nlohmann::json;
 
 namespace Slic3r
 {
@@ -29,6 +36,7 @@ bool DevHMSItem::parse_hms_info(unsigned attr, unsigned code)
 std::string DevHMSItem::get_long_error_code() const
 {
     char buf[64];
+    // Orca: HMS long-error-code format excludes the reserved byte and keys the Orca HMS wiki lookups
     ::sprintf(buf, "%02X%02X%02X00000%1X%04X",
         this->m_module_id,
         this->m_module_num,

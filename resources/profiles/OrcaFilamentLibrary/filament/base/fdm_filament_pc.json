@@ -3,7 +3,6 @@
 	"name": "fdm_filament_pc",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OGFC99",
 	"instantiation": "false",
 	"supertack_plate_temp": [
 		"0"
@@ -85,6 +84,9 @@
 	],
 	"filament_max_volumetric_speed": [
 		"12"
+	],
+	"filament_multitool_ramming_flow": [
+		"16"
 	],
 	"filament_flow_ratio": [
 		"0.94"

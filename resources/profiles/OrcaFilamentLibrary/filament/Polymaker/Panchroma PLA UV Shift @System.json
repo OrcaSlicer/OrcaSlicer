@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA UV Shift @System",
 	"inherits": "Panchroma PLA UV Shift @base",
 	"from": "system",
-	"setting_id": "OGFSPM014",
+	"setting_id": "TxKc151gb5dKD6zS",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"

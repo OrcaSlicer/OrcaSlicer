@@ -3,6 +3,7 @@
 	"name": "0.07mm DETAIL @MK4S 0.25",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "6brG7IXHDzmGRXqk",
 	"instantiation": "true",
 	"bottom_shell_layers": "9",
 	"bridge_acceleration": "1000",

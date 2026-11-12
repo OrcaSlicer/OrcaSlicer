@@ -1,8 +1,13 @@
 #include <iostream>
 #include <fstream>
 #include <catch2/catch_all.hpp>
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/libslic3r.h"
 
+#include <catch2/catch_test_macros.hpp>
 #include "libslic3r/SLA/Hollowing.hpp"
+
+#include "test_utils.hpp"
 
 TEST_CASE("Hollow two overlapping spheres") {
     using namespace Slic3r;
@@ -16,6 +21,6 @@ TEST_CASE("Hollow two overlapping spheres") {
 
     sla::hollow_mesh(sphere1, sla::HollowingConfig{}, sla::HollowingFlags::hfRemoveInsideTriangles);
 
-    sphere1.WriteOBJFile("twospheres.obj");
+    write_debug_obj("hollowing/twospheres.obj", sphere1);
 }
 

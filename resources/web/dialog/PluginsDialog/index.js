@@ -1,0 +1,2195 @@
+const pluginsById = new Map();
+const pluginInstallActions = {
+  "explore": {
+    label: T("install_plugin", "Install plugin"),
+    command: "open_plugin_hub"
+  },
+  "install-local": {
+    label: T("install_local_plugin", "Install local plugin"),
+    command: "install_local_plugin"
+  }
+};
+
+let expandedPluginIds = new Set();
+
+// why: transient per-search override (id -> bool) on top of expandedPluginIds. A search auto-expands
+//      matching rows, so a triangle click during search must not touch the base expand state.
+let searchExpandOverride = new Map();
+let selectedPluginId = "";
+let contextPluginId = "";
+let activeDetailTab = "plugin-info";
+let selectedInstallAction = "explore";
+const fullAccessRequestPrefix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+let fullAccessRequestNumber = 0;
+let renderedPermissionsSignature = null;
+const permissionDrafts = new Map();
+let pendingPermissionSave = null;
+// Config tab: the capability whose config is shown. Name and type together address it natively.
+let selectedCapabilityName = "";
+let selectedCapabilityType = "";
+// The plugin that selection belongs to. Capability names are only unique within a plugin, so
+// without the owner, selecting another plugin could keep the selection and show the wrong config.
+let configPluginId = "";
+
+let pluginList = null;
+let ctxMenu = null;
+let exploreMenu = null;
+let exploreMenuButton = null;
+
+// Split pane. The ratio is the list's share of the content height, so it survives a dialog resize.
+const SPLIT_STORAGE_KEY = "orca.plugins.split_ratio";
+const SPLIT_DEFAULT_RATIO = 0.62;
+const SPLIT_MIN_LIST_PX = 180;
+const SPLIT_MIN_DETAILS_PX = 160;
+
+let contentPane = null;
+let paneSplitter = null;
+let splitRatio = SPLIT_DEFAULT_RATIO;
+
+function OnInit() {
+  pluginList = document.getElementById("pluginList");
+  ctxMenu = document.getElementById("ctxMenu");
+  exploreMenu = document.getElementById("exploreMenu");
+  exploreMenuButton = document.getElementById("explore_menu_btn");
+
+  TranslatePage();
+
+  document.getElementById("refresh_btn")?.addEventListener("click", () => SendMessage("refresh_plugins"));
+  document.getElementById("explore_btn")?.addEventListener("click", () => {
+    HideExploreMenu();
+    RunSelectedInstallAction();
+  });
+  exploreMenuButton?.addEventListener("click", ToggleExploreMenu);
+  exploreMenuButton?.addEventListener("keydown", OnExploreMenuButtonKeyDown);
+  exploreMenu?.addEventListener("click", OnExploreMenuClick);
+  document.getElementById("open_terminal")?.addEventListener("click", () => SendMessage("open_terminal"));
+  document.getElementById("detailUpdateBtn")?.addEventListener("click", UpdateSelectedPlugin);
+
+  document.querySelectorAll("[role='tab']").forEach((tab) => {
+    tab.addEventListener("click", () => ActivateDetailTab(String(tab.dataset.tab || "")));
+    tab.addEventListener("keydown", OnDetailTabKeyDown);
+  });
+  document.getElementById("detailThumbnail")?.addEventListener("error", (event) => {
+    event.currentTarget.hidden = true;
+  });
+
+  pluginList?.addEventListener("click", OnPluginListClick);
+  pluginList?.addEventListener("change", OnPluginListChange);
+  pluginList?.addEventListener("contextmenu", OnPluginContextMenu);
+  ctxMenu?.addEventListener("click", OnContextMenuClick);
+
+  InitPaneSplitter();
+
+  document.getElementById("configSidebar")?.addEventListener("click", OnConfigSidebarClick);
+  document.getElementById("configSaveBtn")?.addEventListener("click", SaveCapabilityConfig);
+  document.getElementById("configRestoreBtn")?.addEventListener("click", RestoreCapabilityConfig);
+  // Keep native keyboard behavior for permission controls despite the document-level shortcut guard.
+  document.getElementById("permissionsContent")?.addEventListener("keydown", (event) => {
+    if (event.target.closest("input, select, button, summary"))
+      event.stopPropagation();
+  });
+
+  const configText = document.getElementById("configText");
+  // why: common.js cancels every key at the document level (returnValue=false) to block webview
+  //      shortcuts, which also swallows typing; don't bubble to it, so the textarea stays editable.
+  //      Same treatment as the search field (see plugin-search.js).
+  configText?.addEventListener("keydown", (event) => event.stopPropagation());
+  configText?.addEventListener("input", ValidateConfigText);
+  // The custom UI is sandboxed into an opaque origin, so postMessage is its only channel.
+  // OnCustomConfigMessage matches on the frame's contentWindow, not the origin ("null" when
+  // sandboxed), and ignores anything else.
+  window.addEventListener("message", OnCustomConfigMessage);
+  OrcaWatchThemeForFrame("configCustom");
+
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".ctx"))
+      HideContextMenu();
+    if (!event.target.closest(".explore-dropdown"))
+      HideExploreMenu();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      HideContextMenu();
+      HideExploreMenu();
+    }
+  });
+
+  ActivateDetailTab(activeDetailTab);
+  SetSelectedInstallAction(selectedInstallAction, false);
+  RequestPlugins();
+}
+
+function InitPaneSplitter() {
+  contentPane = document.querySelector(".content");
+  paneSplitter = document.getElementById("paneSplitter");
+  if (!contentPane || !paneSplitter)
+    return;
+
+  ApplySplitRatio(ReadStoredSplitRatio());
+
+  paneSplitter.addEventListener("pointerdown", OnSplitterPointerDown);
+  paneSplitter.addEventListener("dblclick", () => {
+    ApplySplitRatio(SPLIT_DEFAULT_RATIO);
+    StoreSplitRatio(splitRatio);
+  });
+  // A resized dialog changes what the ratio is a ratio *of*, so re-clamp it against the new height
+  // rather than letting a pane fall below its minimum.
+  window.addEventListener("resize", () => ApplySplitRatio(splitRatio));
+}
+
+// Clamped so neither pane drops below its minimum. When the dialog is too short to honor both, the
+// panes just split what there is.
+function ApplySplitRatio(ratio) {
+  const available = contentPane.clientHeight;
+  const sash = paneSplitter.offsetHeight;
+  let next = Number.isFinite(ratio) ? ratio : SPLIT_DEFAULT_RATIO;
+
+  if (available > 0) {
+    const min = SPLIT_MIN_LIST_PX / available;
+    const max = (available - sash - SPLIT_MIN_DETAILS_PX) / available;
+    next = min > max ? 0.5 : Math.min(Math.max(next, min), max);
+  }
+
+  splitRatio = next;
+  contentPane.style.setProperty("--plugin-list-height", `${(next * 100).toFixed(2)}%`);
+}
+
+function OnSplitterPointerDown(event) {
+  if (event.button !== 0)
+    return;
+
+  const bounds = contentPane.getBoundingClientRect();
+  // Offset of the grab point inside the strip, so the splitter does not jump under the cursor.
+  const grabOffset = event.clientY - paneSplitter.getBoundingClientRect().top;
+
+  const onMove = (moveEvent) => {
+    ApplySplitRatio((moveEvent.clientY - bounds.top - grabOffset) / bounds.height);
+  };
+  const onUp = (upEvent) => {
+    paneSplitter.releasePointerCapture(upEvent.pointerId);
+    paneSplitter.removeEventListener("pointermove", onMove);
+    paneSplitter.removeEventListener("pointerup", onUp);
+    paneSplitter.classList.remove("dragging");
+    document.body.classList.remove("pane-resizing");
+    StoreSplitRatio(splitRatio);
+  };
+
+  // Captured, so the drag keeps tracking once the pointer leaves the strip (which it does at once).
+  paneSplitter.setPointerCapture(event.pointerId);
+  paneSplitter.addEventListener("pointermove", onMove);
+  paneSplitter.addEventListener("pointerup", onUp);
+  paneSplitter.classList.add("dragging");
+  document.body.classList.add("pane-resizing");
+  event.preventDefault();
+}
+
+function ReadStoredSplitRatio() {
+  try {
+    const stored = Number.parseFloat(window.localStorage.getItem(SPLIT_STORAGE_KEY));
+    return Number.isFinite(stored) ? stored : SPLIT_DEFAULT_RATIO;
+  } catch (err) {
+    return SPLIT_DEFAULT_RATIO; // storage can be unavailable in the webview; the default still works
+  }
+}
+
+function StoreSplitRatio(ratio) {
+  try {
+    window.localStorage.setItem(SPLIT_STORAGE_KEY, String(ratio));
+  } catch (err) {
+    // Persisting the position is a nicety, never a reason to break the drag.
+  }
+}
+
+function NormalizeInstallAction(action) {
+  const normalized = String(action || "");
+  return pluginInstallActions[normalized] ? normalized : "explore";
+}
+
+function SetSelectedInstallAction(action, notifyNative = false) {
+  selectedInstallAction = NormalizeInstallAction(action);
+
+  const selected = pluginInstallActions[selectedInstallAction];
+  const button = document.getElementById("explore_btn");
+  if (button)
+    button.textContent = selected.label;
+
+  document.querySelectorAll("[data-install-action]").forEach((item) => {
+    const isSelected = NormalizeInstallAction(item.dataset.installAction) === selectedInstallAction;
+    item.classList.toggle("selected", isSelected);
+  });
+
+  if (notifyNative) {
+    SendMessage("set_plugin_install_action", {
+      action: selectedInstallAction
+    });
+  }
+}
+
+function RunSelectedInstallAction() {
+  SendMessage(pluginInstallActions[selectedInstallAction].command);
+}
+
+function ToggleExploreMenu(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  if (!exploreMenu || !exploreMenuButton)
+    return;
+
+  if (exploreMenu.hidden)
+    ShowExploreMenu();
+  else
+    HideExploreMenu();
+}
+
+function ShowExploreMenu() {
+  if (!exploreMenu || !exploreMenuButton)
+    return;
+
+  exploreMenu.hidden = false;
+  exploreMenuButton.setAttribute("aria-expanded", "true");
+}
+
+function HideExploreMenu() {
+  if (!exploreMenu || !exploreMenuButton)
+    return;
+
+  exploreMenu.hidden = true;
+  exploreMenuButton.setAttribute("aria-expanded", "false");
+}
+
+function OnExploreMenuButtonKeyDown(event) {
+  if (event.key !== "ArrowDown")
+    return;
+
+  event.preventDefault();
+  ShowExploreMenu();
+  exploreMenu?.querySelector(".explore-menu-item")?.focus();
+}
+
+function OnExploreMenuClick(event) {
+  const item = event.target.closest("[data-install-action]");
+  if (!item)
+    return;
+
+  event.preventDefault();
+  const action = String(item.dataset.installAction || "");
+  HideExploreMenu();
+  SetSelectedInstallAction(action, true);
+}
+
+function ActivateDetailTab(tabId, focusTab = false) {
+  const tabs = Array.from(document.querySelectorAll("[role='tab'][data-tab]"));
+  if (!tabs.some((tab) => tab.dataset.tab === tabId))
+    return;
+
+  const enteringPermissions = tabId === "permissions" && activeDetailTab !== tabId;
+  activeDetailTab = tabId;
+  tabs.forEach((tab) => {
+    const isActive = tab.dataset.tab === activeDetailTab;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", isActive ? "true" : "false");
+    tab.tabIndex = isActive ? 0 : -1;
+    if (isActive && focusTab)
+      tab.focus();
+  });
+
+  document.querySelectorAll("[role='tabpanel'][data-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.panel !== activeDetailTab;
+  });
+  if (enteringPermissions)
+    RequestPlugins();
+}
+
+function OnDetailTabKeyDown(event) {
+  const tabs = Array.from(document.querySelectorAll("[role='tab'][data-tab]"));
+  const currentIndex = tabs.indexOf(event.currentTarget);
+  if (currentIndex < 0)
+    return;
+
+  let nextIndex = currentIndex;
+  if (event.key === "ArrowRight")
+    nextIndex = (currentIndex + 1) % tabs.length;
+  else if (event.key === "ArrowLeft")
+    nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+  else if (event.key === "Home")
+    nextIndex = 0;
+  else if (event.key === "End")
+    nextIndex = tabs.length - 1;
+  else
+    return;
+
+  event.preventDefault();
+  ActivateDetailTab(String(tabs[nextIndex].dataset.tab || ""), true);
+}
+
+function RequestPlugins() {
+  SendMessage("request_plugins");
+}
+
+function SendMessage(command, payload = {}) {
+  const message = {
+    sequence_id: Math.round(Date.now() / 1000),
+    command: command
+  };
+  Object.keys(payload).forEach((key) => {
+    message[key] = payload[key];
+  });
+  SendWXMessage(JSON.stringify(message));
+}
+
+function HandleStudio(value) {
+  const payload = (typeof value === "string") ? SafeJsonParse(value) : value;
+  if (!payload || typeof payload !== "object")
+    return;
+
+  if (payload.command === "list_plugins") {
+    SetSelectedInstallAction(payload.install_action, false);
+    if (typeof NormalizePluginSort === "function") {
+      pluginSort = NormalizePluginSort(payload.sort_key, payload.sort_order);
+      RenderSortHeaders();
+    }
+    ApplyPlugins(payload.data || []);
+  } else if (payload.command === "status_message") {
+    ShowStatusMessage(String(payload.message || ""), String(payload.level || "info"));
+  } else if (payload.command === "capability_config") {
+    ApplyCapabilityConfig(payload);
+  } else if (payload.command === "capability_config_saved") {
+    ApplyCapabilityConfigSaved(payload);
+  } else if (payload.command === "plugin_permissions_result" && pendingPermissionSave &&
+             payload.plugin_key === pendingPermissionSave.pluginKey &&
+             payload.request_id === pendingPermissionSave.requestId) {
+    const request = pendingPermissionSave;
+    pendingPermissionSave = null;
+    const draft = permissionDrafts.get(request.pluginKey);
+    if (payload.success === true && draft && request.operation === "add" && request.draftOriginal !== undefined)
+      delete draft.edits[request.category]?.[request.draftOriginal];
+    if (payload.success === true && draft && request.operation === "add" && request.draftOriginal === undefined &&
+        draft.additions[request.category] === request.value)
+      delete draft.additions[request.category];
+    if (payload.success === true && draft && (request.operation === "replace" || request.operation === "remove"))
+      delete draft.edits[request.category]?.[request.old_value];
+    // The host sends the updated list before this result. Re-read it instead of dropping the
+    // draft: edits the user made while this request was in flight must survive the reply.
+    if (draft)
+      ApplyLatestPermissionSource(request.pluginKey);
+    renderedPermissionsSignature = null;
+    RenderDetails();
+    if (request.focusId && selectedPluginId === request.pluginKey && activeDetailTab === "permissions" &&
+        (document.activeElement === document.body || !document.activeElement)) {
+      let focusId = request.focusId;
+      if (payload.success === true && (request.operation === "replace" || request.draftOriginal !== undefined)) {
+        const values = pluginsById.get(request.pluginKey)?.permissions?.[request.category];
+        const index = Array.isArray(values) ? values.indexOf(request.value) : -1;
+        focusId = `permission-input-${request.category}-${index < 0 ? "add" : index}`;
+      } else if (payload.success === true && request.operation === "remove") {
+        focusId = `permission-input-${request.category}-add`;
+      }
+      const input = document.getElementById(focusId);
+      if (input && !input.matches(":disabled")) {
+        input.focus({ preventScroll: true });
+        if (request.selection && input.type === "text")
+          input.setSelectionRange(request.selection[0], request.selection[1]);
+      }
+    }
+  }
+}
+
+// Each request changes one permission against the current stored state in the host.
+function CommitPermission(pluginKey, mutation, draftOriginal) {
+  if (pendingPermissionSave)
+    return;
+  const requestId = `${fullAccessRequestPrefix}-${++fullAccessRequestNumber}`;
+  const active = document.activeElement;
+  const input = active?.closest(".permission-form")?.querySelector("input[type='text']") ||
+    (active?.id ? active : null);
+  const selection = input?.type === "text" ? [input.selectionStart, input.selectionEnd] : null;
+  pendingPermissionSave = { pluginKey, requestId, ...mutation, draftOriginal, focusId: input?.id, selection };
+  SendMessage("mutate_plugin_permission", { plugin_key: pluginKey, request_id: requestId, ...mutation });
+  renderedPermissionsSignature = null;
+  RenderDetails();
+}
+
+// Footer status bar for the latest operation result; the native side already localizes the text.
+function ShowStatusMessage(message, level) {
+  const bar = document.getElementById("statusBar");
+  const text = document.getElementById("statusText");
+  if (!bar || !text)
+    return;
+
+  const normalizedLevel = ["success", "warn", "error", "info"].includes(level) ? level : "info";
+  text.textContent = message;
+  text.title = message;
+  bar.classList.remove("is-empty", "level-success", "level-warn", "level-error", "level-info");
+  bar.classList.add(`level-${normalizedLevel}`);
+}
+
+function SafeJsonParse(value) {
+  try {
+    return JSON.parse(value);
+  } catch (err) {
+    return null;
+  }
+}
+
+function ApplyPlugins(plugins) {
+  pluginsById.clear();
+
+  for (const plugin of plugins) {
+    const key = String(plugin.plugin_key || "");
+    if (!key)
+      continue;
+    pluginsById.set(key, plugin);
+  }
+
+  if (selectedPluginId)
+    selectedPluginId = FindEquivalentPluginKey(selectedPluginId);
+  if (!selectedPluginId && pluginsById.size > 0)
+    selectedPluginId = String(pluginsById.keys().next().value || "");
+
+  expandedPluginIds = new Set(Array.from(expandedPluginIds).filter((pluginKey) => pluginsById.has(pluginKey)));
+
+  RenderPlugins();
+  RenderDetails();
+}
+
+function FindEquivalentPluginKey(pluginKey) {
+  if (pluginsById.has(pluginKey))
+    return pluginKey;
+
+  const cloudUuid = ExtractCloudUuid(pluginKey);
+  if (!cloudUuid)
+    return "";
+
+  for (const candidateKey of pluginsById.keys()) {
+    if (ExtractCloudUuid(candidateKey) === cloudUuid)
+      return candidateKey;
+  }
+  return "";
+}
+
+function ExtractCloudUuid(pluginKey) {
+  const match = String(pluginKey || "").match(/:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i);
+  return match ? match[1] : "";
+}
+
+function SyncPluginListHeaderGutter() {
+  const listPane = document.querySelector(".plugin-list-pane");
+  if (!pluginList || !listPane)
+    return;
+
+  // Keep header columns aligned with row columns when the scroll body shows a vertical scrollbar.
+  const scrollbarWidth = Math.max(0, pluginList.offsetWidth - pluginList.clientWidth);
+  listPane.style.setProperty("--plugin-list-scrollbar-width", `${scrollbarWidth}px`);
+}
+
+// why: paint matched-character ranges as <mark> without an innerHTML build
+function ApplyHighlight(container, text, ranges) {
+  if (!ranges || !ranges.length) {
+    container.appendChild(document.createTextNode(text));
+    return;
+  }
+  let pos = 0;
+  for (const [start, end] of ranges) {
+    if (start > pos)
+      container.appendChild(document.createTextNode(text.slice(pos, start)));
+    const mark = document.createElement("mark");
+    mark.className = "plugin-search-hit";
+    mark.textContent = text.slice(start, end);
+    container.appendChild(mark);
+    pos = end;
+  }
+  if (pos < text.length)
+    container.appendChild(document.createTextNode(text.slice(pos)));
+}
+
+function RenderPlugins() {
+  if (!pluginList)
+    return;
+
+  pluginList.innerHTML = "";
+
+  if (pluginsById.size === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = T("no_plugins", "No plugins found");
+    pluginList.appendChild(empty);
+    SyncPluginListHeaderGutter();
+    return;
+  }
+
+  // why: stable filter over the existing C++ sort order - no scoring, no reorder. The empty query
+  //      short-circuits, leaving every existing render path untouched.
+  const searching = typeof PluginSearchActive === "function" && PluginSearchActive();
+  let shown = 0;
+
+  for (const plugin of pluginsById.values()) {
+    const pluginKey = String(plugin.plugin_key || "");
+    const capabilities = GetCapabilities(plugin);
+    const match = searching ? ComputePluginMatch(plugin) : null;
+    if (searching && !match.matched)
+      continue;
+    shown++;
+
+    // why: the transient override wins; while searching, auto-expand only capability matches. The
+    //      base is never written while searching, so clearing it restores exactly what the user had.
+    const open = searchExpandOverride.has(pluginKey)
+      ? searchExpandOverride.get(pluginKey)
+      : (searching ? match.hasCapMatch : expandedPluginIds.has(pluginKey));
+    const isExpanded = open && capabilities.length > 0;
+
+    const block = document.createElement("div");
+    block.className = "plugin-block";
+    block.dataset.pluginKey = pluginKey;
+    block.classList.toggle("selected", pluginKey === selectedPluginId);
+    block.classList.toggle("expanded", isExpanded);
+
+    const row = document.createElement("div");
+    row.className = "row plugin-row plugin-cols";
+    row.dataset.pluginKey = pluginKey;
+
+    if (pluginKey === selectedPluginId)
+      row.classList.add("selected");
+
+    row.appendChild(CheckCell(row, plugin));
+    row.appendChild(LabelCell(plugin, isExpanded, capabilities.length, match?.nameRanges));
+    row.appendChild(VersionCell(plugin));
+    row.appendChild(SourceCell(plugin));
+    row.appendChild(StatusCell(plugin));
+
+    block.appendChild(row);
+    if (isExpanded)
+      block.appendChild(RenderCapabilityTree(plugin, capabilities, match?.capRanges));
+    pluginList.appendChild(block);
+  }
+
+  // why: distinct from the size===0 "no plugins" state - here plugins exist but none match the query.
+  if (searching && shown === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    const term = document.createElement("b");
+    term.textContent = pluginSearch.query;
+    AppendTemplate(empty, T("no_match", 'No plugins match "%s"'), term);
+    pluginList.appendChild(empty);
+  }
+
+  // why: recompute the scrollbar gutter on every render - search and sort re-render via RenderPlugins
+  SyncPluginListHeaderGutter();
+}
+
+function GetErrorText(plugin) {
+  return String(plugin?.error || "").trim();
+}
+
+function GetStatus(plugin) {
+  return String(plugin?.status || "");
+}
+
+function GetUpdateStatus(plugin) {
+  return String(plugin?.update_status || "normal");
+}
+
+function IsPluginInstalled(plugin) {
+  return plugin?.installed === true;
+}
+
+function GetInstalledVersion(plugin) {
+  return String(plugin?.installed_version || "");
+}
+
+function GetLatestVersion(plugin) {
+  return String(plugin?.latest_version || plugin?.version || "");
+}
+
+function GetDisplayVersion(plugin) {
+  const installed = GetInstalledVersion(plugin);
+  if (IsPluginInstalled(plugin) && installed)
+    return installed;
+  return GetLatestVersion(plugin);
+}
+
+function GetCapabilities(plugin) {
+  return Array.isArray(plugin?.capabilities) ? plugin.capabilities : [];
+}
+
+function GetPluginTypes(plugin) {
+  const pluralTypes = Array.isArray(plugin?.types)
+    ? plugin.types
+    : (Array.isArray(plugin?.capability_types) ? plugin.capability_types : []);
+  const types = pluralTypes.map((type) => {
+    if (typeof type === "string")
+      return type;
+    return String(type?.label || type?.type || type?.name || "");
+  }).filter(Boolean);
+
+  if (types.length > 0)
+    return `[${types.join(", ")}]`;
+  return String(plugin?.type || "-");
+}
+
+function CapabilityCanRun(plugin, capability) {
+  if (capability?.type_key !== "script" || !String(capability?.name || ""))
+    return false;
+  if (capability?.can_run !== undefined)
+    return capability.can_run === true;
+  return plugin?.can_run_script === true && capability?.enabled === true;
+}
+
+function IsPluginChecked(plugin) {
+  return plugin.is_loaded;
+}
+
+function HasMixedCapabilityState(plugin) {
+  if (!IsPluginChecked(plugin))
+    return false;
+
+  const toggleableCapabilities = GetCapabilities(plugin).filter((capability) =>
+    capability?.can_toggle !== false &&
+    String(capability?.name || "") &&
+    String(capability?.type_key || "")
+  );
+
+  const hasDisabled = toggleableCapabilities.some((capability) => capability?.enabled !== true);
+  return toggleableCapabilities.length > 0 && hasDisabled;
+}
+
+function IsPluginLoading(plugin) {
+  return GetStatus(plugin) === "Loading";
+}
+
+function SourceLabel(source) {
+  switch (String(source || "").toLowerCase()) {
+    case "mine":
+      return T("source_mine", "Mine");
+    case "subscribed":
+      return T("source_subscribed", "Subscribed");
+    case "orphaned":
+      return T("source_orphaned", "Orphaned");
+    default:
+      return T("source_local", "Local");
+  }
+}
+
+// Shared source pill, used both after the row name and in the info panel.
+function SourceBadge(source) {
+  const normalized = String(source || "").toLowerCase();
+  const variant = (normalized === "mine" || normalized === "subscribed" || normalized === "orphaned") ? normalized : "local";
+  const badge = document.createElement("span");
+  badge.className = `plugin-source-badge source-${variant}`;
+  badge.textContent = SourceLabel(source);
+  return badge;
+}
+
+function CheckCell(row, plugin) {
+  const checkCell = document.createElement("span");
+  checkCell.className = "check-cell";
+  const isLoading = IsPluginLoading(plugin);
+  const checkboxLabel = document.createElement("label");
+  checkboxLabel.className = "plugin-checkbox";
+  if (isLoading)
+    checkboxLabel.classList.add("loading");
+  if (!plugin.can_toggle)
+    checkboxLabel.classList.add("disabled");
+  const hasMixedCapabilityState = HasMixedCapabilityState(plugin);
+  if (hasMixedCapabilityState)
+    checkboxLabel.classList.add("mixed");
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "plugin-checkbox-input";
+  checkbox.checked = IsPluginChecked(plugin);
+  checkbox.indeterminate = hasMixedCapabilityState;
+  checkbox.disabled = isLoading || !plugin.can_toggle;
+  checkbox.dataset.pluginKey = row.dataset.pluginKey;
+  if (checkbox.indeterminate) {
+    checkbox.setAttribute("aria-checked", "mixed");
+    checkbox.setAttribute("aria-label", T("mixed_capabilities", "Some plugin capabilities are enabled"));
+  }
+  const checkboxMark = document.createElement("span");
+  checkboxMark.className = "plugin-checkbox-mark";
+  checkboxLabel.appendChild(checkbox);
+  checkboxLabel.appendChild(checkboxMark);
+  checkCell.appendChild(checkboxLabel);
+
+  return checkCell;
+}
+
+function LabelCell(plugin, isExpanded = false, capabilityCount = 0, nameRanges = null) {
+  const labelCell = document.createElement("span");
+  labelCell.className = "label-cell";
+
+  const hasCloudLink = plugin.source === "mine" || plugin.source === "subscribed" || plugin.source === "orphaned";
+  const pluginLabelText = plugin.label || plugin.name || plugin.plugin_id || "";
+  const canExpand = capabilityCount > 0;
+
+  if (canExpand) {
+    const expandButton = document.createElement("button");
+    expandButton.type = "button";
+    expandButton.className = "plugin-expand-btn";
+    const labelName = pluginLabelText || "plugin";
+    expandButton.setAttribute("aria-label", isExpanded
+      ? T("collapse_named", "Collapse %s capabilities", labelName)
+      : T("expand_named", "Expand %s capabilities", labelName));
+    expandButton.setAttribute("aria-expanded", isExpanded ? "true" : "false");
+    expandButton.title = isExpanded
+      ? T("collapse", "Collapse capabilities")
+      : T("expand", "Expand capabilities");
+    const icon = document.createElement("span");
+    icon.className = "plugin-expand-icon";
+    expandButton.appendChild(icon);
+    labelCell.appendChild(expandButton);
+  } else {
+    const spacer = document.createElement("span");
+    spacer.className = "plugin-expand-spacer";
+    spacer.setAttribute("aria-hidden", "true");
+    labelCell.appendChild(spacer);
+  }
+
+  const nameWrap = document.createElement("span");
+  nameWrap.className = "plugin-name-wrap";
+
+  const labelElement = document.createElement(hasCloudLink ? "a" : "span");
+  ApplyHighlight(labelElement, pluginLabelText, nameRanges);
+  labelElement.className = "plugin-name-text";
+
+  if (hasCloudLink) {
+    labelElement.href = "#";
+    labelElement.classList.add("plugin-cloud-link");
+    labelElement.title = T("open_in_browser", "Open this plugin in your browser");
+  }
+
+  nameWrap.appendChild(labelElement);
+  if (canExpand) {
+    const countBadge = document.createElement("span");
+    countBadge.className = "plugin-capability-count";
+    countBadge.textContent = String(capabilityCount);
+    countBadge.title = T("capability_count", "Capabilities: %s", capabilityCount);
+    nameWrap.appendChild(countBadge);
+  }
+  labelCell.appendChild(nameWrap);
+
+  return labelCell;
+}
+
+function SourceCell(plugin) {
+  const cell = document.createElement("span");
+  const normalized = String(plugin.source || "").toLowerCase();
+  const variant = (normalized === "mine" || normalized === "subscribed" || normalized === "orphaned") ? normalized : "local";
+  cell.className = `source-cell source-${variant}`;
+
+  const sourceLabel = document.createElement("span");
+  sourceLabel.className = "source-label";
+  sourceLabel.textContent = SourceLabel(plugin.source);
+  cell.appendChild(sourceLabel);
+
+  return cell;
+}
+
+function RenderCapabilityTree(plugin, capabilities, capRanges = null) {
+  const tree = document.createElement("div");
+  tree.className = "capabilities-tree";
+  tree.setAttribute("role", "group");
+  tree.setAttribute("aria-label", T("capabilities", "Capabilities"));
+
+  capabilities.forEach((capability, index) => {
+    tree.appendChild(RenderCapabilityRow(plugin, capability, index === capabilities.length - 1, capRanges));
+  });
+
+  return tree;
+}
+
+function RenderCapabilityRow(plugin, capability, isLast, capRanges = null) {
+  const row = document.createElement("div");
+  row.className = "capability-row plugin-cols";
+  row.classList.toggle("is-last", isLast);
+  row.dataset.pluginKey = String(plugin?.plugin_key || "");
+
+  row.appendChild(CapabilityCheckCell(plugin, capability));
+
+  const nameCell = document.createElement("span");
+  nameCell.className = "capability-name-cell";
+  const branch = document.createElement("span");
+  branch.className = "capability-branch";
+  branch.setAttribute("aria-hidden", "true");
+  const name = document.createElement("span");
+  name.className = "capability-name";
+  const capabilityLabel = String(capability?.name || "");
+  ApplyHighlight(name, capabilityLabel || "-", capRanges?.get(capabilityLabel));
+  nameCell.appendChild(branch);
+  nameCell.appendChild(name);
+  row.appendChild(nameCell);
+
+  const typeCell = document.createElement("span");
+  typeCell.className = "capability-type-cell";
+  typeCell.textContent = String(capability?.type || "-");
+  row.appendChild(typeCell);
+
+  // why: empty placeholder for the new Source column so the run-action cell stays under Status.
+  const sourceSpacer = document.createElement("span");
+  sourceSpacer.className = "capability-source-cell";
+  row.appendChild(sourceSpacer);
+
+  const actionsCell = document.createElement("span");
+  actionsCell.className = "capability-actions-cell";
+  const capabilityName = String(capability?.name || "");
+  if (CapabilityCanRun(plugin, capability)) {
+    const runButton = document.createElement("button");
+    runButton.type = "button";
+    runButton.className = "capability-run-btn script-run-btn";
+    runButton.title = T("run_named", 'Run "%s"', capabilityName);
+    runButton.setAttribute("aria-label", runButton.title);
+    const runIcon = document.createElement("span");
+    runIcon.className = "icon16 plugin-run-icon";
+    runButton.appendChild(runIcon);
+    runButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      RunScriptPlugin(String(plugin?.plugin_key || ""), capabilityName);
+    });
+    actionsCell.appendChild(runButton);
+  }
+  row.appendChild(actionsCell);
+
+  return row;
+}
+
+function CapabilityCheckCell(plugin, capability) {
+  const checkCell = document.createElement("span");
+  checkCell.className = "check-cell capability-check-cell";
+  const capabilityName = String(capability?.name || "");
+  const capabilityType = String(capability?.type_key || "");
+
+  if (capability?.can_toggle === false || !capabilityName || !capabilityType)
+    return checkCell;
+
+  const checkboxLabel = document.createElement("label");
+  checkboxLabel.className = "plugin-checkbox";
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.className = "plugin-checkbox-input capability-checkbox-input";
+  checkbox.checked = capability?.enabled === true;
+  checkbox.dataset.pluginKey = String(plugin?.plugin_key || "");
+  checkbox.dataset.capabilityToggle = "true";
+  checkbox.dataset.capabilityName = capabilityName;
+  checkbox.dataset.capabilityType = capabilityType;
+  checkbox.setAttribute("aria-label", T("enable_named", "Enable %s", capabilityName));
+  const checkboxMark = document.createElement("span");
+  checkboxMark.className = "plugin-checkbox-mark";
+  checkboxLabel.appendChild(checkbox);
+  checkboxLabel.appendChild(checkboxMark);
+  checkCell.appendChild(checkboxLabel);
+
+  return checkCell;
+}
+
+function TableTextCell(text) {
+  const cell = document.createElement("td");
+  cell.textContent = String(text || "");
+  return cell;
+}
+
+function VersionCell(plugin) {
+  const cell = document.createElement("span");
+  cell.className = "version-cell";
+
+  const versionLabel = document.createElement("span");
+  versionLabel.className = "version-value";
+  versionLabel.textContent = GetDisplayVersion(plugin) || T("not_available", "N/A");
+  cell.appendChild(versionLabel);
+
+  const updateBadge = UpdateStatusBadge(plugin);
+  if (updateBadge)
+    cell.appendChild(updateBadge);
+
+  return cell;
+}
+
+function UpdateStatusBadge(plugin) {
+  const updateStatus = GetUpdateStatus(plugin);
+  if (updateStatus !== "update_available" && updateStatus !== "unauthorized")
+    return null;
+
+  const badge = document.createElement("span");
+  badge.className = "version-update-badge";
+  if (updateStatus === "unauthorized") {
+    badge.classList.add("is-warning");
+    badge.title = T("unauthorized", "Unauthorized for updates");
+    badge.setAttribute("aria-label", badge.title);
+  } else {
+    badge.title = T("update_available", "Update available");
+    badge.setAttribute("aria-label", badge.title);
+  }
+
+  return badge;
+}
+
+function StatusCell(plugin) {
+  const cell = document.createElement("span");
+  cell.className = "status-cell";
+  cell.classList.add(`status-${GetStatus(plugin).toLowerCase()}`);
+
+  const statusLabel = document.createElement("span");
+  statusLabel.className = "status-label";
+  statusLabel.textContent = StatusLabel(plugin);
+  cell.appendChild(statusLabel);
+
+  return cell;
+}
+
+function RenderDetails() {
+  const plugin = selectedPluginId ? pluginsById.get(selectedPluginId) : null;
+  const detailUpdateBadge = document.getElementById("detailUpdateBadge");
+  const detailUpdateBtn = document.getElementById("detailUpdateBtn");
+  const detailStatusBody = document.getElementById("detailStatusBody");
+
+  SetText("detailInstalledVersion",
+    plugin ? (IsPluginInstalled(plugin) ? (GetInstalledVersion(plugin) || "-") : T("not_installed", "Not installed")) : "-");
+  SetText("detailLatestVersion", plugin ? (GetLatestVersion(plugin) || "-") : "-");
+  const detailSource = document.getElementById("detailSource");
+  if (detailSource) {
+    detailSource.replaceChildren();
+    if (plugin && plugin.source)
+      detailSource.appendChild(SourceBadge(plugin.source));
+    else
+      detailSource.textContent = "-";
+  }
+  SetText("detailTypes", plugin ? GetPluginTypes(plugin) : "-");
+  SetText("detailAuthor", plugin ? (plugin.author || "-") : "-");
+  RenderThumbnail(plugin);
+  RenderDescription(plugin);
+  RenderChangelog(plugin);
+  RenderPermissions(plugin);
+
+  if (detailStatusBody)
+    RenderDetailSummary(detailStatusBody, plugin);
+  if (detailUpdateBadge)
+    ApplyDetailUpdateBadge(detailUpdateBadge, plugin);
+  if (detailUpdateBtn)
+    ApplyDetailUpdateButton(detailUpdateBtn, plugin);
+
+  RenderConfig(plugin);
+}
+
+// Drop bookkeeping that cannot be rendered. A successful remove, or a category leaving the
+// stored state, can leave an edit keyed by a value with no row.
+function PrunePermissionDraftBookkeeping(draft) {
+  for (const [category, edits] of Object.entries(draft.edits || {})) {
+    const values = Array.isArray(draft.values[category]) ? draft.values[category] : [];
+    for (const [original, value] of Object.entries(edits))
+      if (!values.includes(original))
+        delete edits[original];
+    if (Object.keys(edits).length === 0)
+      delete draft.edits[category];
+  }
+
+  for (const [category, value] of Object.entries(draft.additions || {}))
+    if (String(value ?? "").length === 0)
+      delete draft.additions[category];
+}
+
+// A permission grant can arrive while the tab is open. Merge the latest stored list into the
+// rows on screen, but keep every unsaved value the user typed and let the draft win a conflict.
+// Edits are keyed by the original source value, so a grant that adds or reorders rows does not
+// move the text to another row.
+function MergePermissionSource(draft, sourcePermissions) {
+  const previousValues = draft.values || {};
+  const nextValues = {};
+  const nextPending = {};
+
+  for (const [category, entries] of Object.entries(sourcePermissions || {})) {
+    if (category === "threading" && typeof entries === "boolean") {
+      nextValues[category] = entries;
+      continue;
+    }
+    if (!Array.isArray(entries))
+      continue;
+
+    const merged = entries.map(String);
+    const previous = Array.isArray(previousValues[category]) ? previousValues[category] : [];
+    // Keep the row of an unsaved edit even if the latest stored list dropped its original
+    // value. The user can add the edited value as a new grant or discard the edit.
+    for (const original of previous) {
+      const edited = draft.edits[category]?.[original];
+      if (edited !== undefined && !merged.includes(original))
+        merged.push(original);
+    }
+
+    nextValues[category] = merged;
+    nextPending[category] = merged.map((value) => draft.edits[category]?.[value] ?? value);
+  }
+
+  // Keep drafts visible but disabled while a category is unavailable.
+  for (const [category, previous] of Object.entries(previousValues)) {
+    if (category in nextValues || !Array.isArray(previous))
+      continue;
+    const retained = previous.filter((value) => draft.edits[category]?.[value] !== undefined);
+    if (retained.length) {
+      nextValues[category] = retained;
+      nextPending[category] = retained.map((value) => draft.edits[category][value]);
+    }
+  }
+
+  draft.values = nextValues;
+  draft.pending = nextPending;
+  PrunePermissionDraftBookkeeping(draft);
+  draft.sourceSignature = JSON.stringify(sourcePermissions);
+}
+
+function ApplyLatestPermissionSource(pluginKey) {
+  const draft = permissionDrafts.get(pluginKey);
+  if (!draft)
+    return;
+  MergePermissionSource(draft, pluginsById.get(pluginKey)?.permissions ?? null);
+}
+
+function RenderPermissions(plugin) {
+  const content = document.getElementById("permissionsContent");
+  if (!content)
+    return;
+
+  if (!plugin) {
+    renderedPermissionsSignature = null;
+    content.replaceChildren();
+    content.textContent = T("select_plugin", "Select a plugin to view its status and details.");
+    return;
+  }
+
+  const pluginKey = String(plugin.plugin_key || "");
+  const sourcePermissions = plugin.permissions && typeof plugin.permissions === "object" ? plugin.permissions : null;
+  let draft = permissionDrafts.get(pluginKey);
+  if (!draft) {
+    draft = { values: {}, pending: {}, additions: {}, edits: {} };
+    permissionDrafts.set(pluginKey, draft);
+  }
+  // While a save is in flight the rows are disabled and the request predates any source change
+  // that arrives now. Merge on the result instead, so the pending row cannot flip underneath it.
+  if (pendingPermissionSave?.pluginKey !== pluginKey || sourcePermissions === null)
+    MergePermissionSource(draft, sourcePermissions);
+  const signature = JSON.stringify([pluginKey, plugin.label, plugin.name, plugin.plugin_id, plugin.installed,
+    draft.sourceSignature, pendingPermissionSave?.requestId]);
+  if (signature === renderedPermissionsSignature)
+    return;
+  const active = document.activeElement;
+  const focusId = content.dataset.pluginKey === pluginKey && content.contains(active) && active.id ? active.id : null;
+  const focusOriginal = focusId ? active.dataset.permissionOriginal : undefined;
+  const focusCategory = focusId ? active.dataset.permissionCategory : undefined;
+  const selection = focusId && active.type === "text" ? [active.selectionStart, active.selectionEnd] : null;
+  const scrollPositions = [];
+  for (let element = content; element; element = element.parentElement)
+    scrollPositions.push([element, element.scrollLeft, element.scrollTop]);
+  if (content.dataset.pluginKey === pluginKey) {
+    for (const group of content.querySelectorAll("details.permission-group"))
+      (draft.openGroups ||= {})[group.dataset.group] = group.open;
+  }
+  renderedPermissionsSignature = signature;
+  content.replaceChildren();
+  content.dataset.pluginKey = pluginKey;
+
+  const consoleHeader = document.createElement("header");
+  consoleHeader.className = "permission-console-header";
+  const headerText = document.createElement("div");
+  const pluginName = document.createElement("p");
+  pluginName.className = "permission-console-plugin";
+  pluginName.textContent = String(plugin.label || plugin.name || plugin.plugin_id || pluginKey);
+  headerText.appendChild(pluginName);
+  const title = document.createElement("h2");
+  title.className = "permission-console-title";
+  title.textContent = T("permissions_tab", "Permissions");
+  headerText.appendChild(title);
+  consoleHeader.appendChild(headerText);
+  content.appendChild(consoleHeader);
+
+  const categories = [
+    ["fs_read", "permissions_fs_read", "File system read"],
+    ["fs_readwrite", "permissions_fs_readwrite", "File system read and write"],
+    ["network_http", "permissions_network_http", "HTTP network"],
+    ["network_socket", "permissions_network_socket", "Network sockets"],
+    ["process", "permissions_process", "Processes"],
+    ["threading", "permissions_threading", "Threading"],
+    ["events", "permissions_events", "Events"]
+  ];
+  const categoryGuidance = {
+    fs_read: [T("permissions_filesystem_help", "Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
+    fs_readwrite: [T("permissions_filesystem_help", "Enter an absolute path on this computer. Add /* at the end to include the folder and everything below it; no other wildcard is accepted. A read/write grant can create files through open(), but it does not cover create or delete events such as os.mkdir and os.remove. Without Full access, each such event outside allowed folders needs its own approval, which is never saved. When a plugin runs in the background, these events are denied without asking."), T("permissions_filesystem_placeholder", "/path/to/directory/*")],
+    network_http: [null, "https://example.com"],
+    network_socket: [null, "https://example.com"],
+    process: [T("permissions_process_help", "Enter the exact value recorded by the audit. It may be a Python representation of the command."), T("permissions_process_placeholder", "Exact audited value")],
+    threading: [T("permissions_threading_help_short", "Allow this plugin to create threads."), ""],
+    events: [T("permissions_events_help", "Enter a category and event separated by a colon, such as Socket:socket.__new__."), T("permissions_events_placeholder", "Socket:socket.__new__")]
+  };
+  const placeholder = document.createElement("label");
+  placeholder.className = "permission-placeholder";
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.id = "permissionFullAccess";
+  checkbox.setAttribute("role", "switch");
+  const fullAccessAvailable = typeof plugin.permissions?.full_access === "boolean";
+  const fullAccess = plugin.permissions?.full_access === true;
+  const installed = IsPluginInstalled(plugin) && !!pluginKey;
+  checkbox.checked = fullAccess;
+  const fullAccessLocked = !fullAccessAvailable || !installed || !!pendingPermissionSave;
+  checkbox.disabled = fullAccessLocked;
+  const checkboxInset = document.createElement("span");
+  checkboxInset.className = "permission-checkbox-inset";
+  const checkboxTrack = document.createElement("span");
+  checkboxTrack.className = "permission-switch-track";
+  checkboxTrack.setAttribute("aria-hidden", "true");
+  checkboxInset.append(checkbox, checkboxTrack);
+  const placeholderText = document.createElement("span");
+  placeholderText.textContent = T("permissions_full_access_label", "Full access");
+  placeholder.append(placeholderText, checkboxInset);
+  const overview = document.createElement("div");
+  overview.className = "permission-overview";
+  content.appendChild(overview);
+
+  const accessCard = document.createElement("div");
+  accessCard.className = "permission-access-card";
+  if (fullAccess)
+    accessCard.classList.add("is-active");
+  if (fullAccessLocked)
+    accessCard.classList.add("is-disabled");
+  accessCard.appendChild(placeholder);
+  overview.appendChild(accessCard);
+  const fullAccessHelp = document.createElement("p");
+  fullAccessHelp.id = "permissionFullAccessHelp";
+  fullAccessHelp.className = "permission-full-access-help";
+  fullAccessHelp.textContent = T("permissions_full_access_help", "Full access bypasses permission checks. The plugin can read and write most files you can access; modifying startup or application files can let code run outside these checks. Direct Python access to OrcaSlicer's configuration, secret, certificate and install-state paths stays blocked, but subprocesses are not restricted.");
+  accessCard.appendChild(fullAccessHelp);
+  checkbox.setAttribute("aria-describedby", fullAccessHelp.id);
+  if (!fullAccessAvailable) {
+    const status = document.createElement("p");
+    status.className = "permission-full-access-help";
+    status.setAttribute("role", "status");
+    status.textContent = T("permissions_full_access_unavailable", "Full access status is unavailable.");
+    overview.insertBefore(status, accessCard);
+  }
+
+  const editor = document.createElement("fieldset");
+  editor.className = "permission-editor";
+  editor.disabled = !installed || !fullAccessAvailable || fullAccess || !!pendingPermissionSave;
+  checkbox.addEventListener("change", () => {
+    const enabled = checkbox.checked;
+    checkbox.checked = fullAccess;
+    CommitPermission(pluginKey, { operation: "set", category: "full_access", value: enabled });
+  });
+  if (fullAccess) {
+    const notice = document.createElement("p");
+    notice.className = "permission-access-notice";
+    notice.textContent = T("permissions_full_access_editor_disabled", "Permission list editing is disabled while full access is on.");
+    overview.insertBefore(notice, accessCard);
+  }
+  content.appendChild(editor);
+
+  if (!installed) {
+    const notice = document.createElement("p");
+    notice.className = "permission-notice";
+    notice.textContent = T("permissions_install_to_edit", "Install this plugin to edit its permissions.");
+    overview.insertBefore(notice, accessCard);
+  }
+
+  const rows = document.createElement("div");
+  rows.className = "permission-rows";
+  editor.appendChild(rows);
+  const groups = [
+    { keys: ["fs_read", "fs_readwrite"], title: T("permissions_group_filesystem", "File system") },
+    { keys: ["network_http", "network_socket"], title: T("permissions_network_access_title", "Network access"),
+      guidance: T("permissions_network_access_guidance", "Enter a full http:// or https:// URL; only its scheme and host are saved, so the grant covers every port, path, and query on that host. A network socket grant also accepts a bare host name or IP address, with or without a port, and covers every port on that host. Other schemes are not accepted. Grants in either list are checked for HTTP and socket access.") },
+    { keys: ["process", "threading"], title: T("permissions_group_execution", "Execution") },
+    { keys: ["events"], title: T("permissions_group_events", "Audit events") }
+  ];
+  const groupBodies = new Map();
+  groups.forEach((group, index) => {
+    const card = document.createElement("details");
+    card.className = "permission-group";
+    card.dataset.group = group.keys[0];
+    card.open = draft.openGroups?.[card.dataset.group] ?? false;
+    card.addEventListener("toggle", () => {
+      if (card.isConnected && content.dataset.pluginKey === pluginKey)
+        (draft.openGroups ||= {})[card.dataset.group] = card.open;
+    });
+    const header = document.createElement("summary");
+    header.className = "permission-group-header";
+    const title = document.createElement("span");
+    title.className = "permission-group-title";
+    title.id = `permission-group-${index}`;
+    title.textContent = group.title;
+    card.setAttribute("aria-labelledby", title.id);
+    header.appendChild(title);
+    const chevron = document.createElement("span");
+    chevron.className = "permission-group-chevron";
+    chevron.setAttribute("aria-hidden", "true");
+    header.appendChild(chevron);
+    const body = document.createElement("div");
+    body.className = "permission-group-body";
+    if (group.guidance) {
+      const guidance = document.createElement("p");
+      guidance.className = "permission-guidance permission-group-guidance";
+      guidance.id = "permission-guidance-network";
+      guidance.textContent = group.guidance;
+      body.appendChild(guidance);
+    }
+    card.append(header, body);
+    rows.appendChild(card);
+    group.keys.forEach((key) => groupBodies.set(key, body));
+  });
+  for (const [key, translation, fallback] of categories) {
+    if (key === "fs_read") {
+      groupBodies.get(key).appendChild(RenderFilesystemSection(plugin, pluginKey, draft, installed, categoryGuidance.fs_read));
+      continue;
+    }
+    if (key === "fs_readwrite")
+      continue;
+    const section = document.createElement("section");
+    section.className = "permission-section";
+    const description = document.createElement("div");
+    description.className = "permission-description";
+    const controls = document.createElement("div");
+    controls.className = "permission-controls";
+    section.append(description, controls);
+    const heading = document.createElement("h4");
+    heading.className = "permission-heading";
+    heading.id = `permission-heading-${key}`;
+    heading.textContent = T(translation, fallback);
+    description.appendChild(heading);
+    const guidanceId = key === "network_http" || key === "network_socket"
+      ? "permission-guidance-network" : `permission-guidance-${key}`;
+    if (categoryGuidance[key][0]) {
+      const guidance = document.createElement("p");
+      guidance.className = "permission-guidance";
+      guidance.id = guidanceId;
+      guidance.textContent = categoryGuidance[key][0];
+      description.appendChild(guidance);
+    }
+    const entries = draft.values[key];
+    const available = key === "threading" ? typeof entries === "boolean" : Array.isArray(entries);
+    if (!available) {
+      const unavailable = document.createElement("p");
+      unavailable.className = "permission-notice";
+      unavailable.textContent = T("permissions_unavailable", "Permissions are unavailable.");
+      controls.appendChild(unavailable);
+      groupBodies.get(key).appendChild(section);
+      continue;
+    }
+
+    const categoryEnabled = installed && (key === "threading"
+      ? typeof plugin.permissions?.[key] === "boolean"
+      : Array.isArray(plugin.permissions?.[key]));
+    if (key === "threading") {
+      const threadLabel = document.createElement("label");
+      threadLabel.className = "permission-thread-toggle";
+      const threadCheckbox = document.createElement("input");
+      threadCheckbox.type = "checkbox";
+      threadCheckbox.setAttribute("role", "switch");
+      threadCheckbox.id = "permission-thread-toggle";
+      threadCheckbox.checked = entries;
+      threadCheckbox.disabled = !categoryEnabled;
+      threadCheckbox.setAttribute("aria-labelledby", heading.id);
+      threadCheckbox.setAttribute("aria-describedby", guidanceId);
+      const threadInset = document.createElement("span");
+      threadInset.className = "permission-checkbox-inset";
+      const threadTrack = document.createElement("span");
+      threadTrack.className = "permission-switch-track";
+      threadTrack.setAttribute("aria-hidden", "true");
+      threadInset.append(threadCheckbox, threadTrack);
+      threadLabel.appendChild(threadInset);
+      controls.appendChild(threadLabel);
+      threadCheckbox.addEventListener("change", () => {
+        const value = threadCheckbox.checked;
+        threadCheckbox.checked = entries;
+        CommitPermission(pluginKey, { operation: "set", category: key, value });
+      });
+      groupBodies.get(key).appendChild(section);
+      continue;
+    }
+
+    const list = document.createElement("ul");
+    list.className = "permission-list";
+    if (entries.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "permission-notice";
+      empty.textContent = T("permissions_values_empty", "No values added.");
+      controls.appendChild(empty);
+    }
+    for (let index = 0; index < entries.length; index++) {
+      const item = document.createElement("li");
+      item.appendChild(PermissionForm(pluginKey, key, heading.textContent, index, categoryEnabled, categoryGuidance[key][1], guidanceId, draft));
+      list.appendChild(item);
+    }
+    controls.appendChild(list);
+    controls.appendChild(PermissionForm(pluginKey, key, heading.textContent, null, categoryEnabled, categoryGuidance[key][1], guidanceId, draft));
+    groupBodies.get(key).appendChild(section);
+  }
+  const restored = focusOriginal === undefined ? (focusId && document.getElementById(focusId)) :
+    Array.from(content.querySelectorAll("input[data-permission-original]"))
+      .find((input) => input.dataset.permissionCategory === focusCategory && input.dataset.permissionOriginal === focusOriginal);
+  if (restored && !restored.matches(":disabled")) {
+    restored.focus({ preventScroll: true });
+    if (selection && restored.type === "text")
+      restored.setSelectionRange(selection[0], selection[1]);
+  }
+  for (const [element, left, top] of scrollPositions) {
+    element.scrollLeft = left;
+    element.scrollTop = top;
+  }
+}
+
+function RenderFilesystemSection(plugin, pluginKey, draft, editable, guidanceText) {
+  const section = document.createElement("section");
+  section.className = "permission-section permission-filesystem";
+  const description = document.createElement("div");
+  description.className = "permission-description";
+  const controls = document.createElement("div");
+  controls.className = "permission-controls";
+  section.append(description, controls);
+  const heading = document.createElement("h4");
+  heading.className = "permission-heading";
+  heading.textContent = T("permissions_files_folders", "Files and folders");
+  const guidance = document.createElement("p");
+  guidance.className = "permission-guidance";
+  guidance.id = "permission-guidance-filesystem";
+  guidance.textContent = guidanceText[0];
+  description.append(heading, guidance);
+
+  const types = [
+    { key: "fs_read", label: T("permissions_access_read", "Read"), name: T("permissions_filesystem_read_name", "File system: Read"), unavailable: T("permissions_read_unavailable", "Read permissions are unavailable.") },
+    { key: "fs_readwrite", label: T("permissions_access_readwrite", "Read and write"), name: T("permissions_filesystem_readwrite_name", "File system: Read and write"), unavailable: T("permissions_readwrite_unavailable", "Read and write permissions are unavailable.") }
+  ];
+  for (const type of types) {
+    const bucket = document.createElement("section");
+    bucket.className = "permission-filesystem-bucket";
+    const typeHeading = document.createElement("h4");
+    typeHeading.className = "permission-heading";
+    typeHeading.textContent = type.label;
+    bucket.appendChild(typeHeading);
+    const entries = draft.values[type.key];
+    type.available = Array.isArray(entries) && Array.isArray(plugin.permissions?.[type.key]);
+    type.enabled = editable && type.available;
+    if (!type.available) {
+      const notice = document.createElement("p");
+      notice.className = "permission-notice";
+      notice.textContent = type.unavailable;
+      bucket.appendChild(notice);
+    }
+    if (Array.isArray(entries)) {
+      if (!entries.length && type.available) {
+        const empty = document.createElement("p");
+        empty.className = "permission-notice";
+        empty.textContent = T("permissions_values_empty", "No values added.");
+        bucket.appendChild(empty);
+      }
+      const list = document.createElement("ul");
+      list.className = "permission-list";
+      for (let index = 0; index < entries.length; index++) {
+        const item = document.createElement("li");
+        item.appendChild(PermissionForm(pluginKey, type.key, type.name, index, type.enabled, guidanceText[1], guidance.id, draft));
+        list.appendChild(item);
+      }
+      bucket.appendChild(list);
+      if (type.available)
+        bucket.appendChild(PermissionForm(pluginKey, type.key, type.name, null, type.enabled, guidanceText[1], guidance.id, draft));
+    }
+    controls.appendChild(bucket);
+  }
+  return section;
+}
+
+function PermissionForm(pluginKey, category, categoryName, index, enabled, placeholder, guidanceId, draft) {
+  const isAdd = index === null;
+  const oldValue = isAdd ? null : draft.values[category][index];
+  const sourceValues = pluginsById.get(pluginKey)?.permissions?.[category];
+  const noLongerGranted = !isAdd && Array.isArray(sourceValues) && !sourceValues.includes(oldValue);
+  const form = document.createElement("form");
+  form.className = "permission-form";
+  form.noValidate = true;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.id = `permission-input-${category}-${isAdd ? "add" : index}`;
+  if (!isAdd) {
+    input.dataset.permissionCategory = category;
+    input.dataset.permissionOriginal = oldValue;
+  }
+  input.value = isAdd ? (draft.additions[category] ?? "") : draft.pending[category][index];
+  input.required = true;
+  input.disabled = !enabled;
+  input.setAttribute("aria-describedby", guidanceId);
+  input.setAttribute("aria-label", isAdd
+    ? T("permissions_add_value_label", "New value for %s", categoryName)
+    : T("permissions_edit_value_label", "Edit value for %s", categoryName));
+  if (!isAdd) {
+    const valueDescription = document.createElement("span");
+    valueDescription.id = `${input.id}-original`;
+    valueDescription.className = "permission-edit-status";
+    valueDescription.textContent = noLongerGranted
+      ? T("permissions_edit_no_longer_granted", "The original value is no longer granted: %s. Add the edited value or discard it.", oldValue)
+      : T("permissions_edit_original", "Unsaved edit of: %s", oldValue);
+    valueDescription.hidden = !noLongerGranted && input.value === oldValue;
+    form.appendChild(valueDescription);
+    if (!valueDescription.hidden)
+      input.setAttribute("aria-describedby", `${guidanceId} ${valueDescription.id}`);
+  }
+  input.placeholder = isAdd ? placeholder : "";
+  // common.js handles document keydown globally; keep text editing native.
+  input.addEventListener("keydown", (event) => event.stopPropagation());
+  input.addEventListener("input", () => {
+    if (isAdd) {
+      if (input.value)
+        draft.additions[category] = input.value;
+      else
+        delete draft.additions[category];
+    } else {
+      draft.pending[category][index] = input.value;
+      if (input.value === oldValue && !noLongerGranted) {
+        delete draft.edits[category]?.[oldValue];
+        if (draft.edits[category] && Object.keys(draft.edits[category]).length === 0)
+          delete draft.edits[category];
+      } else {
+        (draft.edits[category] ||= {})[oldValue] = input.value;
+      }
+      const valueDescription = form.querySelector(".permission-edit-status");
+      valueDescription.hidden = !noLongerGranted && input.value === oldValue;
+      input.setAttribute("aria-describedby", valueDescription.hidden ? guidanceId : `${guidanceId} ${valueDescription.id}`);
+    }
+    submit.disabled = !enabled || !input.value.trim();
+    submit.hidden = !isAdd && !noLongerGranted && input.value === oldValue;
+  });
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.disabled = !enabled || !input.value.trim();
+  submit.hidden = !isAdd && !noLongerGranted && input.value === oldValue;
+  submit.textContent = isAdd || noLongerGranted ? T("permissions_add", "Add") : T("permissions_apply", "Apply");
+  submit.setAttribute("aria-label", isAdd || noLongerGranted
+    ? T("permissions_add_label", "Add value to %s", categoryName)
+    : T("permissions_apply_value_label", "Apply value for %s", categoryName));
+  form.appendChild(input);
+  form.appendChild(submit);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (!input.value.trim() || (!isAdd && !noLongerGranted && input.value === oldValue))
+      return;
+    CommitPermission(pluginKey, { operation: isAdd || noLongerGranted ? "add" : "replace", category,
+      ...(isAdd || noLongerGranted ? {} : { old_value: oldValue }), value: input.value },
+      noLongerGranted ? oldValue : undefined);
+  });
+  if (!isAdd) {
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.disabled = !enabled;
+    remove.textContent = noLongerGranted ? T("permissions_discard", "Discard") : T("permissions_remove", "Remove");
+    remove.setAttribute("aria-label", noLongerGranted
+      ? T("permissions_discard_edit_label", "Discard edit of %s", oldValue)
+      : T("permissions_remove_label", "Remove %s", oldValue));
+    remove.addEventListener("click", () => {
+      if (noLongerGranted) {
+        delete draft.edits[category]?.[oldValue];
+        ApplyLatestPermissionSource(pluginKey);
+        renderedPermissionsSignature = null;
+        RenderDetails();
+        const next = document.getElementById(`permission-input-${category}-add`);
+        if (next && !next.matches(":disabled"))
+          next.focus({ preventScroll: true });
+      } else {
+        CommitPermission(pluginKey, { operation: "remove", category, old_value: oldValue });
+      }
+    });
+    form.appendChild(remove);
+  }
+  return form;
+}
+
+// Config tab: the sidebar lists the selected plugin's configurable capabilities; the view shows the
+// host's JSON editor or, when the capability ships one, its own HTML UI in a sandboxed frame. Both
+// edit the same stored config; the page renders what the native side sends.
+
+// Rows built natively by PluginConfig::capabilities_payload. Only loaded, addressable capabilities
+// appear: the descriptor-only rows of an inactive plugin carry no name, so nothing to address.
+function GetConfigurableCapabilities(plugin) {
+  return Array.isArray(plugin?.config_capabilities) ? plugin.config_capabilities : [];
+}
+
+function RenderConfig(plugin) {
+  const empty = document.getElementById("configEmpty");
+  const layout = document.getElementById("configLayout");
+  const sidebar = document.getElementById("configSidebar");
+  if (!empty || !layout || !sidebar)
+    return;
+
+  const capabilities = plugin ? GetConfigurableCapabilities(plugin) : [];
+  const pluginKey = String(plugin?.plugin_key || "");
+
+  // A different plugin: drop the selection rather than trusting the name to mean the same here.
+  if (pluginKey !== configPluginId) {
+    configPluginId = pluginKey;
+    selectedCapabilityName = "";
+    selectedCapabilityType = "";
+    ClearCapabilityConfigView();
+  }
+
+  if (!plugin || capabilities.length === 0) {
+    // Capabilities only exist once the plugin is activated: say that, rather than claiming it has
+    // none to configure.
+    empty.textContent = !plugin
+      ? T("config_select_plugin", "Select a plugin to configure its capabilities")
+      : (IsPluginLoading(plugin)
+        ? T("config_loading", "Loading the plugin…")
+        : (GetStatus(plugin) === "Activated"
+          ? T("config_no_capabilities", "This plugin exposes no capabilities")
+          : T("config_activate", "Activate this plugin to configure its capabilities")));
+    empty.hidden = false;
+    layout.hidden = true;
+    sidebar.replaceChildren();
+    ClearCapabilityConfigView();
+    selectedCapabilityName = "";
+    selectedCapabilityType = "";
+    return;
+  }
+
+  empty.hidden = true;
+  layout.hidden = false;
+
+  // Keep the selection across a refresh if the capability is still there, else select the first.
+  const stillPresent = capabilities.some((capability) =>
+    capability.name === selectedCapabilityName && String(capability.type_key || "") === selectedCapabilityType);
+  if (!stillPresent) {
+    selectedCapabilityName = String(capabilities[0].name || "");
+    selectedCapabilityType = String(capabilities[0].type_key || "");
+    ClearCapabilityConfigView();
+    RequestCapabilityConfig();
+  }
+
+  sidebar.replaceChildren();
+  for (const capability of capabilities) {
+    const name = String(capability.name || "");
+    const typeKey = String(capability.type_key || "");
+    const item = document.createElement("button");
+    item.type = "button";
+    item.className = "config-cap";
+    item.dataset.capabilityName = name;
+    item.dataset.capabilityType = typeKey;
+    item.setAttribute("role", "option");
+
+    const isSelected = name === selectedCapabilityName && typeKey === selectedCapabilityType;
+    item.classList.toggle("selected", isSelected);
+    item.setAttribute("aria-selected", isSelected ? "true" : "false");
+
+    const label = document.createElement("span");
+    label.className = "config-cap-name";
+    label.textContent = name;
+    item.appendChild(label);
+
+    const type = document.createElement("span");
+    type.className = "config-cap-type";
+    type.textContent = String(capability.type || "");
+    item.appendChild(type);
+
+    sidebar.appendChild(item);
+  }
+}
+
+function OnConfigSidebarClick(event) {
+  const item = event.target.closest(".config-cap");
+  if (!item)
+    return;
+
+  const name = String(item.dataset.capabilityName || "");
+  const typeKey = String(item.dataset.capabilityType || "");
+  if (!name || (name === selectedCapabilityName && typeKey === selectedCapabilityType))
+    return;
+
+  selectedCapabilityName = name;
+  selectedCapabilityType = typeKey;
+
+  // The native reply is async: clear now so the old config cannot appear under the new selection.
+  ClearCapabilityConfigView();
+  RequestCapabilityConfig();
+  RenderConfig(pluginsById.get(selectedPluginId));
+}
+
+function RequestCapabilityConfig() {
+  if (!selectedPluginId || !selectedCapabilityName)
+    return;
+
+  SendMessage("get_capability_config", {
+    plugin_key: selectedPluginId,
+    capability_name: selectedCapabilityName,
+    capability_type: selectedCapabilityType
+  });
+}
+
+// Empties both editors and the footer, so nothing from the previous capability lingers while the
+// next one is in flight.
+function ClearCapabilityConfigView() {
+  const editor = document.getElementById("configEditor");
+  const custom = document.getElementById("configCustom");
+  const text = document.getElementById("configText");
+  const error = document.getElementById("configError");
+  const footer = document.getElementById("configFooter");
+
+  if (editor)
+    editor.hidden = true;
+  if (custom) {
+    custom.hidden = true;
+    custom.removeAttribute("srcdoc");
+  }
+  if (text)
+    text.value = "";
+  if (error) {
+    error.hidden = true;
+    error.textContent = "";
+  }
+  if (footer)
+    footer.hidden = true;
+  SetConfigValidation("");
+}
+
+// Replies are async: one for a capability the user has navigated away from is dropped, never
+// rendered into the current view.
+function IsCurrentCapability(payload) {
+  return String(payload?.plugin_key || "") === selectedPluginId &&
+    String(payload?.capability_name || "") === selectedCapabilityName;
+}
+
+function ApplyCapabilityConfig(payload) {
+  if (!IsCurrentCapability(payload))
+    return;
+
+  const editor = document.getElementById("configEditor");
+  const custom = document.getElementById("configCustom");
+  const text = document.getElementById("configText");
+  const error = document.getElementById("configError");
+
+  const message = String(payload?.error || "");
+  if (error) {
+    error.textContent = message;
+    error.hidden = message === "";
+  }
+
+  const config = (payload && typeof payload.config === "object" && payload.config !== null) ? payload.config : {};
+  const html = String(payload?.custom_html || "");
+
+  // The footer belongs to the JSON editor. A custom UI owns its whole surface, including whatever
+  // save/restore controls it wants, and reaches the host through the window.orca bridge.
+  const footer = document.getElementById("configFooter");
+  if (footer)
+    footer.hidden = html !== "";
+
+  if (html) {
+    if (custom) {
+      custom.hidden = false;
+      custom.srcdoc = BuildCustomConfigDocument(html, config, OrcaConfigContext(payload, "global"));
+    }
+    if (editor)
+      editor.hidden = true;
+    return;
+  }
+
+  // Default editor: any reason a custom UI is unavailable already arrived in payload.error.
+  if (custom) {
+    custom.hidden = true;
+    custom.removeAttribute("srcdoc");
+  }
+  if (editor)
+    editor.hidden = false;
+  if (text)
+    text.value = JSON.stringify(config, null, 2);
+  SetConfigValidation("");
+}
+
+function SetConfigValidation(message) {
+  const node = document.getElementById("configValidation");
+  const save = document.getElementById("configSaveBtn");
+  if (node) {
+    node.textContent = message;
+    node.classList.toggle("invalid", message !== "");
+  }
+  // Invalid JSON is never saved: Save is the only way to persist. The native side re-validates.
+  if (save)
+    save.disabled = message !== "";
+}
+
+function ValidateConfigText() {
+  const text = document.getElementById("configText");
+  if (!text)
+    return false;
+
+  try {
+    JSON.parse(text.value);
+    SetConfigValidation("");
+    return true;
+  } catch (err) {
+    SetConfigValidation(String(err?.message || T("invalid_json", "Invalid JSON")));
+    return false;
+  }
+}
+
+function SaveCapabilityConfig() {
+  const text = document.getElementById("configText");
+  if (!text || !selectedPluginId || !selectedCapabilityName)
+    return;
+  if (!ValidateConfigText())
+    return;
+
+  // Sent as text on purpose: the native side is the authority on validity and parses it itself.
+  SendMessage("save_capability_config", {
+    plugin_key: selectedPluginId,
+    capability_name: selectedCapabilityName,
+    capability_type: selectedCapabilityType,
+    config: text.value
+  });
+}
+
+// Writes the capability's own get_default_config() over whatever is stored — the host does not know
+// what a plugin considers default. The native side confirms first, then replies as if it were a save.
+function RestoreCapabilityConfig() {
+  if (!selectedPluginId || !selectedCapabilityName)
+    return;
+
+  SendMessage("restore_capability_config", {
+    plugin_key: selectedPluginId,
+    capability_name: selectedCapabilityName,
+    capability_type: selectedCapabilityType
+  });
+}
+
+function ApplyCapabilityConfigSaved(payload) {
+  if (!IsCurrentCapability(payload))
+    return;
+
+  const error = document.getElementById("configError");
+  const message = String(payload?.error || "");
+  if (error) {
+    error.textContent = message;
+    error.hidden = message === "";
+  }
+  if (payload?.ok !== true)
+    return;
+
+  // Reload from what was persisted, not from what was typed.
+  const config = (payload && typeof payload.config === "object" && payload.config !== null) ? payload.config : {};
+  const custom = document.getElementById("configCustom");
+  const text = document.getElementById("configText");
+
+  if (custom && !custom.hidden && custom.contentWindow)
+    custom.contentWindow.postMessage({ __orca: "config", config: config }, "*");
+  else if (text)
+    text.value = JSON.stringify(config, null, 2);
+
+  SetConfigValidation("");
+}
+
+function OnCustomConfigMessage(event) {
+  const custom = document.getElementById("configCustom");
+  // Only the frame we created, and only while it is actually showing.
+  if (!custom || custom.hidden || !custom.contentWindow || event.source !== custom.contentWindow)
+    return;
+
+  const data = event.data;
+  if (!data || !selectedPluginId || !selectedCapabilityName)
+    return;
+
+  if (data.__orca === "save") {
+    SendMessage("save_capability_config", {
+      plugin_key: selectedPluginId,
+      capability_name: selectedCapabilityName,
+      capability_type: selectedCapabilityType,
+      config: data.config === undefined ? {} : data.config
+    });
+    return;
+  }
+
+  if (data.__orca === "restore")
+    RestoreCapabilityConfig();
+}
+
+function RenderThumbnail(plugin) {
+  const thumbnail = document.getElementById("detailThumbnail");
+  if (!thumbnail)
+    return;
+
+  const url = String(plugin?.thumbnail_url || plugin?.thumbnail || plugin?.icon_url || plugin?.icon || "").trim();
+  thumbnail.hidden = true;
+  thumbnail.removeAttribute("src");
+  if (!url)
+    return;
+
+  thumbnail.src = url;
+  thumbnail.hidden = false;
+}
+
+function RenderDescription(plugin) {
+  const node = document.getElementById("detailDescription");
+  if (!node)
+    return;
+
+  node.replaceChildren();
+
+  // Descriptions come from the plugin's Python header; a cloud plugin that is not installed yet has
+  // no header, so link to OrcaCloud instead.
+  const description = String(plugin?.description || "").trim();
+  if (description && description !== "No description.") {
+    node.textContent = description;
+    return;
+  }
+
+  const isCloud = plugin && (plugin.source === "mine" || plugin.source === "subscribed" || plugin.source === "orphaned");
+  if (isCloud && String(plugin?.sharing_token || "")) {
+    const link = document.createElement("a");
+    link.href = "#";
+    link.className = "plugin-cloud-link";
+    link.title = T("open_in_browser", "Open this plugin in your browser");
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      sendOpenPluginOnCloud(String(plugin.plugin_key || ""));
+    });
+    AppendTemplate(node, T("view_on_cloud", "View on OrcaCloud <a>here</a>"), link);
+    return;
+  }
+
+  node.textContent = T("no_description", "No description available");
+}
+
+function RenderChangelog(plugin) {
+  const table = document.getElementById("changelogTable");
+  const body = document.getElementById("changelogBody");
+  const empty = document.getElementById("changelogEmpty");
+  if (!table || !body || !empty)
+    return;
+
+  const changelog = Array.isArray(plugin?.changelog) ? plugin.changelog : [];
+  body.replaceChildren();
+  table.hidden = changelog.length === 0;
+  empty.hidden = changelog.length !== 0;
+
+  changelog.forEach((entry) => {
+    const row = document.createElement("tr");
+    row.appendChild(TableTextCell(entry?.version || "-"));
+    row.appendChild(TableTextCell(FormatCreatedTime(entry?.created_time)));
+    const changesCell = TableTextCell(entry?.changes || entry?.changelog || "-");
+    changesCell.className = "changelog-changes";
+    row.appendChild(changesCell);
+    body.appendChild(row);
+  });
+}
+
+function FormatCreatedTime(createdTime) {
+  const numericTime = Number(createdTime);
+  if (!Number.isFinite(numericTime) || numericTime <= 0)
+    return "-";
+
+  const milliseconds = numericTime < 1e12 ? numericTime * 1000 : numericTime;
+  const date = new Date(milliseconds);
+  if (!Number.isFinite(date.getTime()))
+    return "-";
+
+  return date.toISOString().slice(0, 10);
+}
+
+function SetText(id, text) {
+  const node = document.getElementById(id);
+  if (node)
+    node.textContent = String(text || "");
+}
+
+function ApplyDetailUpdateBadge(node, plugin) {
+  node.className = "version-update-badge";
+
+  // "update_available" is already the actionable Update button, so the badge only warns about
+  // unauthorized.
+  const updateStatus = plugin ? GetUpdateStatus(plugin) : "normal";
+  if (updateStatus === "unauthorized") {
+    node.hidden = false;
+    node.classList.add("is-warning");
+    node.title = T("unauthorized", "Unauthorized for updates");
+    node.setAttribute("aria-label", node.title);
+    return;
+  }
+
+  node.hidden = true;
+  node.title = "";
+  node.removeAttribute("aria-label");
+}
+
+function ApplyDetailUpdateButton(button, plugin) {
+  const updateStatus = plugin ? GetUpdateStatus(plugin) : "normal";
+  button.hidden = updateStatus !== "update_available";
+  // Re-enable after each render; the click handler disables it until the catalog refreshes.
+  button.disabled = false;
+}
+
+function UpdateSelectedPlugin() {
+  if (!selectedPluginId)
+    return;
+
+  const plugin = pluginsById.get(selectedPluginId);
+  if (!plugin || GetUpdateStatus(plugin) !== "update_available")
+    return;
+
+  const button = document.getElementById("detailUpdateBtn");
+  if (button)
+    button.disabled = true;
+
+  SendMessage("update_plugin", {
+    plugin_key: selectedPluginId
+  });
+}
+
+// The status arrives as an identifier, which also names the status-* CSS classes.
+function StatusLabel(plugin) {
+  switch (GetStatus(plugin)) {
+    case "Activated":
+      return T("status_activated", "Activated");
+    case "Loading":
+      return T("status_loading", "Loading");
+    case "Error":
+      return T("status_error", "Error");
+    case "RuntimeError":
+      return T("status_runtime_error", "Runtime error");
+    case "Inactive":
+      return T("status_inactive", "Inactive");
+    default:
+      return GetStatus(plugin);
+  }
+}
+
+function StatusDescription(plugin) {
+  switch (GetStatus(plugin)) {
+    case "Activated":
+      return T("status_activated_desc", "This plugin is active and ready to be used.");
+    case "Loading":
+      return T("status_loading_desc", "This plugin is still loading.");
+    case "Error":
+      return T("status_error_desc", "This plugin is blocked until its error is fixed.");
+    case "RuntimeError":
+      return T("status_runtime_error_desc", "This plugin is loaded but a capability reported an error.");
+    case "Inactive":
+    default:
+      return T("status_inactive_desc", "This plugin is inactive. Activate it to install or load it.");
+  }
+}
+
+function RenderDetailSummary(container, plugin) {
+  container.replaceChildren();
+
+  if (!plugin) {
+    container.textContent = T("select_plugin", "Select a plugin to view its status and details.");
+    return;
+  }
+
+  const statusChip = document.createElement("span");
+  statusChip.className = `detail-status-chip status-${GetStatus(plugin).toLowerCase()}`;
+  statusChip.textContent = StatusLabel(plugin);
+  container.appendChild(statusChip);
+
+  const message = document.createElement("div");
+  const errorText = GetErrorText(plugin);
+  message.className = errorText ? "detail-description detail-error-text" : "detail-description";
+  message.textContent = errorText || StatusDescription(plugin);
+  container.appendChild(message);
+
+  if (plugin.orphaned === true) {
+    const warning = document.createElement("div");
+    warning.className = "detail-description detail-warning-text";
+    warning.textContent = T("orphaned_note", "Orphaned: This plugin is no longer subscribed or available in OrcaCloud. The local copy remains installed and can still be used.");
+    container.appendChild(warning);
+  }
+
+  const updateStatus = GetUpdateStatus(plugin);
+  if (updateStatus === "update_available") {
+    const note = document.createElement("div");
+    note.className = "detail-description detail-note-text";
+    note.textContent = T("newer_version_note", "A newer plugin version is available.");
+    container.appendChild(note);
+  }
+
+  if (updateStatus === "unauthorized") {
+    const note = document.createElement("div");
+    note.className = "detail-description detail-note-text is-warning";
+    note.textContent = T("unauthorized_note", "Cloud updates are unavailable because this plugin is unauthorized for updates.");
+    container.appendChild(note);
+  }
+}
+
+function OnPluginListClick(event) {
+  const expandButton = event.target.closest(".plugin-expand-btn");
+  if (expandButton) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const block = expandButton.closest(".plugin-block");
+    if (!block)
+      return;
+
+    const pluginKey = String(block.dataset.pluginKey || "");
+    selectedPluginId = pluginKey;
+    // why: during a search the triangle writes to the transient override (read from the on-screen
+    //      open state), so an auto-expanded row collapses without touching the saved layout.
+    if (typeof PluginSearchActive === "function" && PluginSearchActive())
+      searchExpandOverride.set(pluginKey, !block.classList.contains("expanded"));
+    else if (expandedPluginIds.has(pluginKey))
+      expandedPluginIds.delete(pluginKey);
+    else
+      expandedPluginIds.add(pluginKey);
+
+    RenderPlugins();
+    RenderDetails();
+    return;
+  }
+
+  const cloudLink = event.target.closest(".plugin-cloud-link");
+  if (cloudLink) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const block = cloudLink.closest(".plugin-block");
+    if (!block)
+      return;
+
+    const pluginKey = String(block.dataset.pluginKey || "");
+    selectedPluginId = pluginKey;
+    RenderPlugins();
+    RenderDetails();
+    sendOpenPluginOnCloud(pluginKey);
+    return;
+  }
+
+  const checkbox = event.target.closest("input[type='checkbox']");
+  if (checkbox || event.target.closest(".plugin-checkbox"))
+    return;
+
+  if (event.target.closest(".capability-run-btn"))
+    return;
+
+  const block = event.target.closest(".plugin-block");
+  if (!block)
+    return;
+
+  const pluginKey = String(block.dataset.pluginKey || "");
+  selectedPluginId = pluginKey;
+  RenderPlugins();
+  RenderDetails();
+}
+
+function OnPluginListChange(event) {
+  const checkbox = event.target.closest("input[type='checkbox']");
+  if (!checkbox)
+    return;
+
+  const pluginKey = String(checkbox.dataset.pluginKey || "");
+  if (checkbox.dataset.capabilityToggle === "true") {
+    const capabilityName = String(checkbox.dataset.capabilityName || "");
+    selectedPluginId = pluginKey;
+    checkbox.disabled = true;
+
+    SendMessage("toggle_plugin_capability", {
+      plugin_key: pluginKey,
+      capability_type: String(checkbox.dataset.capabilityType || ""),
+      capability_name: capabilityName,
+      enabled: !!checkbox.checked
+    });
+    return;
+  }
+
+  selectedPluginId = pluginKey;
+  checkbox.disabled = true;
+
+  SendMessage("toggle_plugin", {
+    plugin_key: pluginKey,
+    enabled: !!checkbox.checked
+  });
+}
+
+function RunScriptPlugin(pluginId, capabilityName = "") {
+  if (!pluginId)
+    return;
+
+  const plugin = pluginsById.get(pluginId);
+  const capability = capabilityName
+    ? GetCapabilities(plugin).find((cap) =>
+      String(cap?.name || "") === capabilityName && CapabilityCanRun(plugin, cap)
+    )
+    : GetCapabilities(plugin).find((cap) => CapabilityCanRun(plugin, cap));
+  if (!plugin || !capability)
+    return;
+
+  SendMessage("run_script_plugin_capability", {
+    plugin_key: pluginId,
+    capability_name: String(capability.name || "")
+  });
+}
+
+function sendOpenPluginOnCloud(pluginId) {
+  const plugin = pluginsById.get(String(pluginId || ""));
+  if (!plugin) return;
+
+  const tSend = {
+    sequence_id: Math.round(Date.now() / 1000),
+    command: "open_plugin_on_cloud",
+    sharing_token: String(plugin.sharing_token || "")
+  };
+  SendWXMessage(JSON.stringify(tSend));
+}
+
+function OnPluginContextMenu(event) {
+  const block = event.target.closest(".plugin-block");
+  if (!block)
+    return;
+
+  event.preventDefault();
+  selectedPluginId = String(block.dataset.pluginKey || "");
+  contextPluginId = selectedPluginId;
+  RenderPlugins();
+  RenderDetails();
+  ShowContextMenu(event.clientX, event.clientY);
+}
+
+function ShowContextMenu(x, y) {
+  const plugin = pluginsById.get(contextPluginId);
+  if (!ctxMenu || !plugin)
+    return;
+
+  const actions = Array.isArray(plugin.context_actions) ? plugin.context_actions : [];
+  ctxMenu.innerHTML = "";
+
+  if (actions.length === 0)
+    return;
+
+  actions.forEach((action) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = action.danger ? "ctx-item danger" : "ctx-item";
+    button.dataset.action = String(action.id || "");
+    button.textContent = String(action.label || action.id || "");
+    button.disabled = action.enabled === false;
+    if (action.enabled === false)
+      button.setAttribute("aria-disabled", "true");
+    ctxMenu.appendChild(button);
+  });
+
+  ctxMenu.hidden = false;
+  ctxMenu.style.left = `${Math.max(4, x)}px`;
+  ctxMenu.style.top = `${Math.max(4, y)}px`;
+}
+
+function HideContextMenu() {
+  if (ctxMenu)
+    ctxMenu.hidden = true;
+}
+
+function OnContextMenuClick(event) {
+  const button = event.target.closest("[data-action]");
+  if (!button || button.hidden || button.disabled || !contextPluginId)
+    return;
+
+  const plugin = pluginsById.get(contextPluginId);
+  const action = String(button.dataset.action || "");
+  if (!plugin || !HasContextAction(plugin, action))
+    return;
+
+  SendMessage("plugin_menu_action", {
+    plugin_key: contextPluginId,
+    action: action
+  });
+  HideContextMenu();
+}
+
+function HasContextAction(plugin, actionId) {
+  const actions = Array.isArray(plugin?.context_actions) ? plugin.context_actions : [];
+  return actions.some((action) => String(action?.id || "") === actionId && action?.enabled !== false);
+}

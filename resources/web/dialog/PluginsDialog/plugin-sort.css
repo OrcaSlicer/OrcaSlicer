@@ -1,0 +1,42 @@
+/* why: sort affordance lives on the list column headers, not a toolbar dropdown. */
+
+.hdr .sort-th {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.hdr .sort-th .sort-tri {
+  width: 0;
+  height: 0;
+  flex: none;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  display: none;
+}
+
+/* faint up-triangle hint on hover, only while the column is not the active sort */
+.hdr .sort-th:hover .sort-tri {
+  display: block;
+  border-bottom: 5px solid var(--muted);
+}
+
+/* active column wins over the hover hint (same specificity, declared later) */
+.hdr .sort-th[data-sort="asc"] .sort-tri {
+  display: block;
+  border-bottom: 5px solid var(--text);
+  border-top: 0;
+}
+
+.hdr .sort-th[data-sort="desc"] .sort-tri {
+  display: block;
+  border-top: 5px solid var(--text);
+  border-bottom: 0;
+}
+
+.hdr .sort-th[data-sort="asc"],
+.hdr .sort-th[data-sort="desc"] {
+  color: var(--text);
+}

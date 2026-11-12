@@ -3,7 +3,7 @@
 	"name": "0.10mm Standard 0.25 nozzle @Anker",
 	"inherits": "fdm_process_anker_common_0_25",
 	"from": "system",
-	"setting_id": "GP014",
+	"setting_id": "tVkN8yO3KNU7RBil",
 	"instantiation": "true",
 	"layer_height": "0.10",
 	"initial_layer_print_height": "0.15",

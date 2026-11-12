@@ -3,8 +3,8 @@
 	"name": "Generic PLA @E3NG v1.2S",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "",
-	"filament_id": "Generic PLA @E3NG v1.2S",
+	"setting_id": "b1tuMVA0Hh27wYQH",
+	"filament_id": "OFDSrzZ8",
 	"instantiation": "true",
 	"compatible_printers": [
 		"E3NG v1.2S - 0.2 nozzle",

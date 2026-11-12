@@ -3,8 +3,8 @@
 	"name": "Bambu ABS",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "aZylcH8GeCJOqtTy",
+	"filament_id": "OFhuaUQB",
 	"instantiation": "true",
 	"filament_type": [
 		"ABS"

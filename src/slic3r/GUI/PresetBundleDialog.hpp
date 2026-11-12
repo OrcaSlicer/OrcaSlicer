@@ -3,19 +3,24 @@
 
 #include "GUI.hpp"
 #include "GUI_Utils.hpp"
+#include "Widgets/WebViewHostDialog.hpp"
 #include "libslic3r/AppConfig.hpp"
+#include <atomic>
 #include <boost/thread/detail/thread.hpp>
 #include <libslic3r/PresetBundle.hpp>
+#include <nlohmann/json_fwd.hpp>
 #include <memory>
 #include <slic3r/GUI/GUI.hpp>
 #include <string>
 #include <unordered_map>
+#include <wx/chartype.h>
 #include <wx/dataview.h>
 #include <wx/event.h>
+#include <wx/gdicmn.h>
 #include <wx/language.h>
 #include <wx/string.h>
 #include <wx/fswatcher.h>
-#include <wx/webview.h>
+#include <wx/toplevel.h>
 namespace Slic3r { namespace GUI {
 
 #define DESIGN_GRAY900_COLOR wxColour("#363636") // Label color
@@ -28,7 +33,7 @@ namespace Slic3r { namespace GUI {
 #define DESIGN_INPUT_SIZE wxSize(FromDIP(120), -1)
 #define DESIGN_LEFT_MARGIN 25
 #define VERTICAL_GAP_SIZE FromDIP(4)
-class PresetBundleDialog : public Slic3r::GUI::DPIDialog
+class PresetBundleDialog : public Slic3r::GUI::WebViewHostDialog
 {
 public:
     PresetBundleDialog(wxWindow* parent,
@@ -47,10 +52,8 @@ public:
 
     bool seq_top_layer_only_changed() const { return m_seq_top_layer_only_changed; }
     bool recreate_GUI() const { return m_recreate_GUI; }
-    void on_dpi_changed(const wxRect& suggested_rect) override;
 
     // webview utilities
-    void load_url(wxString& url);
     void ListBundles();
     void OpenFolder(const std::string& id);
     void DeleteBundle(const std::string& id);
@@ -59,11 +62,9 @@ public:
 
     void OnPresetBundlePage();
 
-    // sends command to webview
-    void RunScript(const wxString& s);
-
     // webview events
-    void OnScriptMessage(wxWebViewEvent& e);
+    void on_script_message(const nlohmann::json& payload) override;
+    nlohmann::json localized_strings() const override;
 
     void StartDialogWorker();
     void StopDialogWorker();
@@ -86,7 +87,6 @@ protected:
     bool m_recreate_GUI{false};
 
     // Webview
-    wxWebView* m_browser{nullptr};
     std::unordered_map<std::string, BundleMetadata> bundle_copy;
 
     boost::thread m_dialog_worker_thread;

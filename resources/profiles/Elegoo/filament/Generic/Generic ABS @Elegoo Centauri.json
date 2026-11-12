@@ -3,7 +3,7 @@
 	"name": "Generic ABS @Elegoo Centauri",
 	"inherits": "Generic ABS @base",
 	"from": "system",
-	"setting_id": "GABS00",
+	"setting_id": "xrKluVQuISBlBUu1",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Elegoo Centauri 0.4 nozzle",

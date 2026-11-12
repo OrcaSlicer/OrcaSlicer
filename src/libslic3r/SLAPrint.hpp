@@ -1,15 +1,35 @@
 #ifndef slic3r_SLAPrint_hpp_
 #define slic3r_SLAPrint_hpp_
 
+#include <cstddef>
+#include <cmath>
+#include <algorithm>
 #include <cstdint>
+#include <limits>
+#include <memory>
+#include <functional>
 #include <mutex>
+#include "ObjectID.hpp"
+#include <vector>
+#include "ExPolygon.hpp"
+#include <type_traits>
+#include "Config.hpp"
+#include <string>
+#include "Polygon.hpp"
+#include <utility>
 #include "PrintBase.hpp"
+#include "PrintConfig.hpp"
+#include "SLA/Hollowing.hpp"
+#include "SLA/JobController.hpp"
+#include "SLA/Pad.hpp"
 #include "SLA/RasterBase.hpp"
+#include "SLA/SupportPoint.hpp"
 #include "SLA/SupportTree.hpp"
 #include "Execution/ExecutionTBB.hpp"
 #include "Point.hpp"
 #include "MTUtils.hpp"
 #include "Zipper.hpp"
+#include "libslic3r.h"
 
 namespace Slic3r {
 
@@ -488,7 +508,7 @@ public:
 
     const SLAPrintStatistics&   print_statistics() const { return m_print_statistics; }
 
-    StringObjectException validate(StringObjectException *                 warning           = nullptr,
+    StringObjectException validate(std::vector<StringObjectException> *    warnings          = nullptr,
                                    Polygons *                              collison_polygons = nullptr,
                                    std::vector<std::pair<Polygon, float>> *height_polygons   = nullptr) const override;
 

@@ -3,7 +3,7 @@
 	"name": "Fiberon ASA-CF08 @Snapmaker U1 base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "GFL71",
+	"filament_id": "OF0omtEb",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"0"
@@ -15,13 +15,13 @@
 		"1"
 	],
 	"cool_plate_temp": [
-		"105"
+		"100"
 	],
 	"cool_plate_temp_initial_layer": [
-		"105"
+		"100"
 	],
 	"eng_plate_temp": [
-		"105"
+		"100"
 	],
 	"eng_plate_temp_initial_layer": [
 		"100"
@@ -48,7 +48,7 @@
 		"Polymaker"
 	],
 	"hot_plate_temp": [
-		"105"
+		"100"
 	],
 	"hot_plate_temp_initial_layer": [
 		"100"
@@ -72,7 +72,7 @@
 		"110.8"
 	],
 	"textured_plate_temp": [
-		"105"
+		"100"
 	],
 	"textured_plate_temp_initial_layer": [
 		"100"

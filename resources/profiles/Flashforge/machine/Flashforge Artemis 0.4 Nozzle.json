@@ -3,7 +3,7 @@
 	"name": "Flashforge Artemis 0.4 Nozzle",
 	"inherits": "fdm_artemis_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "3iGSjKwQd74bDuGc",
 	"instantiation": "true",
 	"printer_variant": "0.4",
 	"printer_model": "Flashforge Artemis",

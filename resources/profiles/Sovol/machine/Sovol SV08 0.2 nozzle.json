@@ -3,7 +3,7 @@
 	"name": "Sovol SV08 0.2 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "h3WmQz2a0dOCXHbH",
 	"instantiation": "true",
 	"printer_model": "Sovol SV08",
 	"default_print_profile": "0.10mm Standard @Sovol SV08 0.2 nozzle",
@@ -32,48 +32,63 @@
 		"0.5"
 	],
 	"machine_max_speed_e": [
+		"50",
 		"50"
 	],
 	"machine_max_speed_x": [
+		"700",
 		"700"
 	],
 	"machine_max_speed_y": [
+		"700",
 		"700"
 	],
 	"machine_max_speed_z": [
+		"20",
 		"20"
 	],
 	"machine_max_acceleration_e": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_extruding": [
+		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_retracting": [
+		"5000",
 		"5000"
 	],
 	"machine_max_acceleration_travel": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_x": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_y": [
+		"40000",
 		"40000"
 	],
 	"machine_max_acceleration_z": [
+		"500",
 		"500"
 	],
 	"machine_max_jerk_e": [
+		"5",
 		"5"
 	],
 	"machine_max_jerk_x": [
+		"20",
 		"20"
 	],
 	"machine_max_jerk_y": [
+		"20",
 		"20"
 	],
 	"machine_max_jerk_z": [
+		"0.5",
 		"0.5"
 	],
 	"z_hop": [
@@ -108,6 +123,6 @@
 	"machine_end_gcode": "END_PRINT\n",
 	"machine_pause_gcode": "PAUSE",
 	"default_filament_profile": [
-		"Sovol SV08 PLA @SV08 0.2 nozzle"
+		"Generic PLA @Sovol SV08 0.2 nozzle"
 	]
 }

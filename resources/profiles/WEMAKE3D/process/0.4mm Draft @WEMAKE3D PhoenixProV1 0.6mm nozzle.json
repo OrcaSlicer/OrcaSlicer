@@ -2,6 +2,7 @@
 	"type": "process",
 	"name": "0.4mm Draft @WEMAKE3D PhoenixProV1 0.6mm nozzle",
 	"inherits": "fdm_process_phoenixProV1_common",
+	"setting_id": "5JXwah0qXXmMA89e",
 	"instantiation": "true",
 	"print_settings_id": "0.4mm Draft @WEMAKE3D PhoenixProV1 0.6mm nozzle",
 	"layer_height": "0.4",

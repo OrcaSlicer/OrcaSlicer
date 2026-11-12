@@ -2,8 +2,22 @@
 #include "Label.hpp"
 #include "PopupWindow.hpp"
 #include "../I18N.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <utility>
+#include <string>
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
 #include <wx/dcgraph.h>
-#include "../GUI.hpp"
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/valtext.h>
+#include <wx/textctrl.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
 #include "../GUI_App.hpp"
 
 wxDEFINE_EVENT(wxCUSTOMEVT_SET_TEMP_FINISH, wxCommandEvent);
@@ -24,7 +38,7 @@ TempInput::TempInput()
     , text_color(std::make_pair(wxColour(0xAC,0xAC,0xAC), (int) StateColor::Disabled), std::make_pair(0x6B6B6B, (int) StateColor::Normal))
 {
     hover  = false;
-    radius = 0;
+    input_corner_radius = true;
     border_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(0x009688, (int) StateColor::Focused), std::make_pair(0x009688, (int) StateColor::Hovered),
                  std::make_pair(*wxWHITE, (int) StateColor::Normal));
     background_color = StateColor(std::make_pair(*wxWHITE, (int) StateColor::Disabled), std::make_pair(*wxWHITE, (int) StateColor::Normal));
@@ -82,6 +96,7 @@ bool TempInput::CheckIsValidVal(bool show_warning)
 void TempInput::Create(wxWindow *parent, wxString text, wxString label, wxString normal_icon, wxString actice_icon, const wxPoint &pos, const wxSize &size, long style)
 {
     StaticBox::Create(parent, wxID_ANY, pos, size, style);
+    apply_input_corner_radius();
     wxWindow::SetLabel(label);
     style &= ~wxALIGN_CENTER_HORIZONTAL;
     state_handler.attach({&label_color, &text_color});
@@ -134,7 +149,7 @@ void TempInput::Create(wxWindow *parent, wxString text, wxString label, wxString
             }
         }
     });
-    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable context menu
+    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable context menu
     text_ctrl->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {
         if (m_read_only) {
             return;
@@ -275,9 +290,9 @@ void TempInput::Warning(bool warn, WarningType type)
 
         wxString warning_string;
         if (type == WarningType::WARNING_TOO_HIGH)
-             warning_string = _L("The maximum temperature cannot exceed ") + wxString::Format("%d", max_temp);
+             warning_string = wxString::Format(_L("The maximum temperature cannot exceed %d"), max_temp);
         else if (type == WarningType::WARNING_TOO_LOW)
-             warning_string = _L("The minmum temperature should not be less than ") + wxString::Format("%d", min_temp);
+             warning_string = wxString::Format(_L("The minimum temperature should not be less than %d"), min_temp);
         warning_text->SetLabel(warning_string);
         warning_text->Wrap(-1);
         warning_text->Fit();
@@ -332,6 +347,7 @@ void TempInput::Rescale()
     if (this->actice_icon.bmp().IsOk()) this->actice_icon.msw_rescale();
     if (this->degree_icon.bmp().IsOk()) this->degree_icon.msw_rescale();
     if (this->round_scale_hint_icon.bmp().IsOk()) this->round_scale_hint_icon.msw_rescale();
+    apply_input_corner_radius();
     messureSize();
 }
 

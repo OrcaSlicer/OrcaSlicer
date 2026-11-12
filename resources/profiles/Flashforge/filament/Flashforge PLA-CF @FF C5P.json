@@ -3,7 +3,15 @@
 	"name": "Flashforge PLA-CF @FF C5P",
 	"inherits": "Generic PLA-CF @System",
 	"from": "system",
+	"setting_id": "xReo12oteZ4ECNJN",
+	"filament_id": "OF9cAwMK",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_air_filtration": [
 		"1"
 	],

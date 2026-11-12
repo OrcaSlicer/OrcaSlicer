@@ -2,18 +2,33 @@
 #include "ImGuiWrapper.hpp"
 #include "format.hpp"
 #include "I18N.hpp"
-#include "GUI_ObjectList.hpp"
 #include "GLCanvas3D.hpp"
 #include "MainFrame.hpp"
+#include "Preferences.hpp"
 #include "Tab.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
+#include <cstdint>
+#include "libslic3r/Exception.hpp"
+#include <cereal/cereal.hpp>
+#include <imgui.h>
+#include <boost/filesystem/path.hpp>
+#include <ios>
+#include <exception>
+#include <boost/filesystem/operations.hpp>
+#include <algorithm>
+#include <cstddef>
+#include <cstdlib>
+#include <ctime>
+#include <boost/algorithm/string/predicate.hpp>
+#include <functional>
+#include <boost/nowide/convert.hpp>
+#include <cassert>
 #include <map>
 
 #include <boost/algorithm/string/replace.hpp>
@@ -25,6 +40,12 @@
 #include <cereal/archives/binary.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
+#include <vector>
+#include <string>
+#include "slic3r/GUI/GUI_App.hpp"
+#include <utility>
+#include "slic3r/GUI/NotificationManager.hpp"
+#include "slic3r/GUI/GUI.hpp"
 
 #define HINTS_CEREAL_VERSION 1
 // structure for writing used hints into binary file with version
@@ -444,9 +465,8 @@ void HintDatabase::load_hints_from_file(const boost::filesystem::path& path)
 					// open preferences
 				}
 				else if (dict["hypertext_type"] == "preferences") {
-					std::string	page = dict["hypertext_preferences_page"];
 					std::string	item = dict["hypertext_preferences_item"];
-					HintData	hint_data{ id_string, text1, weight, was_displayed, hypertext_text, follow_text, disabled_tags, enabled_tags, false, documentation_link, img_url, [page, item]() { wxGetApp().open_preferences(1, page); } };// 1 is to modify
+					HintData	hint_data{ id_string, text1, weight, was_displayed, hypertext_text, follow_text, disabled_tags, enabled_tags, false, documentation_link, img_url, [item]() { wxGetApp().open_preferences(PreferencesTab::Control, item); } };
 					m_loaded_hints.emplace_back(hint_data);
 				}
 				else if (dict["hypertext_type"] == "plater") {
@@ -830,6 +850,9 @@ void NotificationManager::HintNotification::init()
 	// Do not init closing notification
 	if (is_finished())
 		return;
+	// No font before the first ImGui frame, see PopNotification::init().
+	if (ImGui::GetFont() == nullptr)
+		return;
 
 	count_spaces();
 	count_lines();
@@ -1014,7 +1037,7 @@ void NotificationManager::HintNotification::render_preferences_button(ImGuiWrapp
 		ImGui::PushStyleColor(ImGuiCol_Border, { 0,0,0,0 });
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 8 * scale, 1 * scale });
 		ImGui::BeginTooltip();
-		imgui.text(_u8L("Open Preferences."));
+		imgui.text(_u8L("Open Preferences"));
 		ImGui::EndTooltip();
 		ImGui::PopStyleColor(2);
 		ImGui::PopStyleVar();
@@ -1060,7 +1083,7 @@ void NotificationManager::HintNotification::render_right_arrow_button(ImGuiWrapp
 		ImGui::PushStyleColor(ImGuiCol_Border, { 0,0,0,0 });
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 8 * scale, 1 * scale });
 		ImGui::BeginTooltip();
-		imgui.text(_u8L("Open next tip."));
+		imgui.text(_u8L("Open next tip"));
 		ImGui::EndTooltip();
 		ImGui::PopStyleColor(2);
 		ImGui::PopStyleVar();
@@ -1113,7 +1136,7 @@ void NotificationManager::HintNotification::render_documentation_button(ImGuiWra
 		ImGui::PushStyleColor(ImGuiCol_Border, { 0,0,0,0 });
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 8 * scale, 1 * scale });
 		ImGui::BeginTooltip();
-		imgui.text(_u8L("Open Documentation in web browser."));
+		imgui.text(_u8L("Open documentation in web browser"));
 		ImGui::EndTooltip();
 		ImGui::PopStyleColor(2);
 		ImGui::PopStyleVar();

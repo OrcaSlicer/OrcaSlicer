@@ -1,17 +1,18 @@
 #pragma once
+#include <functional>
+#include <cstdint>
 #include <nlohmann/json.hpp>
-#include "slic3r/Utils/json_diff.hpp"
 
 #include <map>
+#include <vector>
+#include <string>
 
 namespace Slic3r {
 
 class MachineObject;
 
 enum AirDuctType { AIR_FAN_TYPE, AIR_DOOR_TYPE };
-typedef std::function<void(const json &)> CommandCallBack;
-
-
+typedef std::function<void(const nlohmann::json &)> CommandCallBack;
 
 enum AIR_FUN : int {
     FAN_HEAT_BREAK_0_IDX      = 0,
@@ -91,6 +92,13 @@ public:
 
     bool IsSupportCoolingFilter() const { return m_support_cooling_filter; }
     bool IsCoolingFilerOn() const { return m_sub_mode == 1; }
+    bool IsExaustFanExit() const
+    {
+        for (auto &p : parts) {
+            if (p.id == int(AIR_FUN::FAN_CHAMBER_0_IDX)) return true;
+        }
+        return false;
+    }
 };
 
 class DevFan
@@ -114,14 +122,14 @@ public:
      AirDuctData GetAirDuctData() { return m_air_duct_data; };
 
      void converse_to_duct(bool is_suppt_part_fun, bool is_suppt_aux_fun, bool is_suppt_cham_fun); // Convert the data to duct type to make the newand old protocols consistent
-     int  command_handle_response(const json &response);
+     int  command_handle_response(const nlohmann::json &response);
      int  command_control_fan(int fan_type, int val);                              // Old protocol
      int  command_control_fan_new(int fan_id, int val); // New protocol
      int  command_control_air_duct(int mode_id, int submode, const CommandCallBack& cb);
 
-     void ParseV1_0(const json &print_json);
-     void ParseV2_0(const json &print_json);
-     void ParseV3_0(const json &print_json);
+     void ParseV1_0(const nlohmann::json &print_json);
+     void ParseV2_0(const nlohmann::json &print_json);
+     void ParseV3_0(const nlohmann::json &print_json);
 
  public:
      bool     GetSupportAirduct() { return is_support_airduct; };

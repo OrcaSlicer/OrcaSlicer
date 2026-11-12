@@ -1,4 +1,5 @@
 #include "ObjectID.hpp"
+#include <cstddef>
 
 namespace Slic3r {
 

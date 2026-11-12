@@ -3,7 +3,7 @@
 	"name": "Elegoo ABS @ECC",
 	"inherits": "Elegoo ABS @base",
 	"from": "system",
-	"setting_id": "EABSECC",
+	"setting_id": "mf4NcnjjiIjNuMA3",
 	"instantiation": "true",
 	"fan_max_speed": [
 		"40"

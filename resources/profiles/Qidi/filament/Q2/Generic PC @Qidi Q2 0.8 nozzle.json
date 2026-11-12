@@ -3,7 +3,7 @@
 	"name": "Generic PC @Qidi Q2 0.8 nozzle",
 	"inherits": "Generic PC@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "z4Ut7w6XMiJqi0Ji",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.95"

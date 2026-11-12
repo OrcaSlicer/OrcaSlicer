@@ -8,7 +8,6 @@
 #include "libslic3r/Preset.hpp"
 #include "ParamsPanel.hpp"
 #include "Tab.hpp"
-#include "format.hpp"
 #include "MainFrame.hpp"
 #include "GUI_App.hpp"
 #include "Plater.hpp"
@@ -17,6 +16,28 @@
 #include "Widgets/SwitchButton.hpp"
 #include "Widgets/Button.hpp"
 #include "GUI_Factories.hpp"
+#include "I18N.hpp"
+#include "libslic3r/Config.hpp"
+#include <string>
+#include <map>
+#include <wx/string.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/tglbtn.h>
+#include <wx/event.h>
+#include <utility>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "UnsavedChangesDialog.hpp"
+#include <wx/anybutton.h>
+#include <wx/timer.h>
+#include <cstddef>
+#include <boost/log/trivial.hpp>
+#include <wx/wupdlock.h>
+#include <vector>
 
 
 namespace Slic3r {
@@ -128,7 +149,7 @@ wxBoxSizer *TipsDialog::create_item_checkbox(wxString title, wxWindow *parent, w
     m_show_again = wxGetApp().app_config->has(param);
     checkbox->SetValue(m_show_again);
 
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox, param](wxCommandEvent &e) {
+    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, param](wxCommandEvent &e) {
         m_show_again = m_show_again ? false : true;
         e.Skip();
     });
@@ -279,12 +300,9 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
         });
         m_mode_icon->SetToolTip(_L("Cycle settings visibility"));
         m_mode_view = new ModeSwitchButton(m_top_panel);
-        if (wxGetApp().get_mode() == comDevelop) {
-            m_mode_view->SetSelection(mode_to_selection(comExpert));
-            m_mode_view->Enable(false);
-        } else {
-            m_mode_view->SetSelection(mode_to_selection(wxGetApp().get_saved_mode()));
-        }
+        bool isDevMode = wxGetApp().get_mode() == comDevelop;
+        m_mode_view->SetSelection(mode_to_selection(isDevMode ? comExpert : wxGetApp().get_saved_mode()));
+        m_mode_view->SetDevMode(isDevMode);
 
         // BBS: new layout
         //m_search_btn = new ScalableButton(m_top_panel, wxID_ANY, "search", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
@@ -293,11 +311,11 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
 
         m_compare_btn = new ScalableButton(m_top_panel, wxID_ANY, "compare", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
         m_compare_btn->SetToolTip(_L("Compare presets"));
-        m_compare_btn->Bind(wxEVT_BUTTON, ([this](wxCommandEvent e) { wxGetApp().mainframe->diff_dialog.show(); }));
+        m_compare_btn->Bind(wxEVT_BUTTON, ([](wxCommandEvent e) { DiffPresetDialog::ensure()->show(); }));
 
         m_setting_btn = new ScalableButton(m_top_panel, wxID_ANY, "table", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
         m_setting_btn->SetToolTip(_L("View all object's settings"));
-        m_setting_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { wxGetApp().plater()->PopupObjectTable(-1, -1, {0, 0}); });
+        m_setting_btn->Bind(wxEVT_BUTTON, [](wxCommandEvent &) { wxGetApp().plater()->PopupObjectTable(-1, -1, {0, 0}); });
 
         m_highlighter.set_timer_owner(this, 0);
         this->Bind(wxEVT_TIMER, [this](wxTimerEvent &)
@@ -327,7 +345,9 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
                                wxID_ANY,
                                wxDefaultPosition,
                                wxDefaultSize,
-                               wxVSCROLL) // hide hori-bar will cause hidden field mis-position
+                               wxVSCROLL            // hide hori-bar will cause hidden field mis-position
+                               | wxTAB_TRAVERSAL    // Allows for traversal via tab key
+                            ) 
         {
             // ShowScrollBar(GetHandle(), SB_BOTH, FALSE);
             Bind(wxEVT_SCROLL_CHANGED, [this](auto &e) {
@@ -392,7 +412,7 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
     m_page_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_page_view->SetSizer(m_page_sizer);
-    m_page_view->SetScrollbars(1, 20, 1, 2);
+    m_page_view->SetScrollbars(1, FromDIP(20), 1, 2);
     //m_page_view->SetScrollRate( 5, 5 );
 
     if (m_mode_region)
@@ -551,16 +571,34 @@ void ParamsPanel::clear_page()
 void ParamsPanel::OnActivate()
 {
     if (m_current_tab == NULL)
-    {
-        //the first time
-        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": first time opened, set current tab to print");
-        // BBS: open/close tab
-        //m_current_tab = m_tab_print;
-        set_active_tab(m_tab_print ? m_tab_print : m_tab_filament);
-    }
+        select_default_tab();
     Tab* cur_tab = dynamic_cast<Tab *> (m_current_tab);
     if (cur_tab)
         cur_tab->OnActivate();
+}
+
+void ParamsPanel::select_default_tab()
+{
+    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": first time opened, set current tab to print");
+    // BBS: open/close tab
+    //m_current_tab = m_tab_print;
+    set_active_tab(m_tab_print ? m_tab_print : m_tab_filament);
+}
+
+bool ParamsPanel::SettingsPagePrebuild::built() const
+{
+    Tab* tab = dynamic_cast<Tab*>(m_panel.m_current_tab);
+    return tab != nullptr && !tab->page_build_pending();
+}
+
+bool ParamsPanel::SettingsPagePrebuild::build_step()
+{
+    if (m_panel.m_current_tab == nullptr) {
+        m_panel.select_default_tab();
+        return !built();
+    }
+    Tab* tab = dynamic_cast<Tab*>(m_panel.m_current_tab);
+    return tab != nullptr && tab->page_build_step();
 }
 
 void ParamsPanel::OnToggled(wxCommandEvent& event)
@@ -626,13 +664,14 @@ void ParamsPanel::set_active_tab(wxPanel* tab)
         dialog->SetTitle(title);
     }
 
+    const wxString process_flow_ratio_reason = _L("The process flow ratio cannot be edited in this panel.");
     auto tab_print = dynamic_cast<Tab *>(m_tab_print);
     if (cur_tab == m_tab_print) {
         if (tab_print)
-            tab_print->toggle_line("print_flow_ratio", false);
+            tab_print->toggle_line("print_flow_ratio", false, -1, process_flow_ratio_reason);
     } else {
         if (tab_print)
-            tab_print->toggle_line("print_flow_ratio", false);
+            tab_print->toggle_line("print_flow_ratio", false, -1, process_flow_ratio_reason);
     }
 }
 
@@ -653,13 +692,13 @@ void ParamsPanel::update_mode()
 
         if (app_mode == comDevelop) {
             mode_view->SetSelection(mode_to_selection(comExpert));
-            mode_view->Enable(false);
+            mode_view->SetDevMode(true);
             return;
         }
 
         mode_view->SetSelection(mode_to_selection(Slic3r::GUI::wxGetApp().get_saved_mode()));
-        if (!mode_view->IsEnabled())
-            mode_view->Enable();
+        if (mode_view->GetDevMode())
+            mode_view->SetDevMode(false);
     };
 
     sync_mode_view(m_mode_view);
@@ -770,93 +809,11 @@ void ParamsPanel::free_sizers()
     m_button_sizer = nullptr;
 }
 
-void ParamsPanel::delete_subwindows()
-{
-    if (m_title_label)
-    {
-        delete m_title_label;
-        m_title_label = nullptr;
-    }
-
-    if (m_mode_region)
-    {
-        delete m_mode_region;
-        m_mode_region = nullptr;
-    }
-
-    if (m_mode_view)
-    {
-        m_mode_view = nullptr;
-    }
-
-    if (m_mode_icon) // ORCA m_title_view replacement
-    {
-        delete m_mode_icon;
-        m_mode_icon = nullptr;
-    }
-
-    if (m_search_btn)
-    {
-        delete m_search_btn;
-        m_search_btn = nullptr;
-    }
-
-    if (m_staticline_print)
-    {
-        delete m_staticline_print;
-        m_staticline_print = nullptr;
-    }
-
-    if (m_staticline_print_part)
-    {
-        delete m_staticline_print_part;
-        m_staticline_print_part = nullptr;
-    }
-
-    if (m_staticline_print_object)
-    {
-        delete m_staticline_print_object;
-        m_staticline_print_object = nullptr;
-    }
-
-    if (m_staticline_filament)
-    {
-        delete m_staticline_filament;
-        m_staticline_filament = nullptr;
-    }
-
-    if (m_staticline_printer)
-    {
-        delete m_staticline_printer;
-        m_staticline_printer = nullptr;
-    }
-
-    if (m_export_to_file)
-    {
-        delete m_export_to_file;
-        m_export_to_file = nullptr;
-    }
-
-    if (m_import_from_file)
-    {
-        delete m_import_from_file;
-        m_import_from_file = nullptr;
-    }
-
-    if (m_page_view)
-    {
-        delete m_page_view;
-        m_page_view = nullptr;
-    }
-}
-
 ParamsPanel::~ParamsPanel()
 {
 #if 0
     free_sizers();
     delete m_top_sizer;
-
-    delete_subwindows();
 #endif
     // BBS: fix double destruct of OG_CustomCtrl
     Tab* cur_tab = dynamic_cast<Tab*> (m_current_tab);

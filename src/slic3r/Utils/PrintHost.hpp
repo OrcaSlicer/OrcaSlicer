@@ -1,12 +1,14 @@
 #ifndef slic3r_PrintHost_hpp_
 #define slic3r_PrintHost_hpp_
 
+#include <cstddef>
 #include <memory>
 #include <set>
 #include <string>
 #include <functional>
 #include <boost/filesystem/path.hpp>
 
+#include <utility>
 #include <wx/string.h>
 
 #include <libslic3r/enum_bitmask.hpp>
@@ -29,10 +31,10 @@ ENABLE_ENUM_BITMASK_OPERATORS(PrintHostPostUploadAction);
 
 struct PrintHostUpload
 {
-    bool use_3mf;
+    bool use_3mf { false };
     boost::filesystem::path source_path;
     boost::filesystem::path upload_path;
-    
+
     std::string group;
     std::string storage;
 
@@ -40,6 +42,13 @@ struct PrintHostUpload
 
     // Some extended parameters for different upload methods.
     std::map<std::string, std::string> extended_info;
+
+    // Safe accessor for an extended_info entry; returns `def` when the key is absent.
+    std::string extended(const std::string &key, const std::string &def = {}) const
+    {
+        auto it = extended_info.find(key);
+        return it != extended_info.end() ? it->second : def;
+    }
 };
 
 class PrintHost
@@ -80,6 +89,8 @@ public:
 
     static PrintHost* get_print_host(DynamicPrintConfig *config);
     static std::string get_print_host_webui(DynamicPrintConfig *config);
+    // Reads the "err" field of a JSON reply, 0 when absent. Returns -1 when the body is not valid JSON.
+    static int get_err_code_from_body(const std::string &body);
 
     //Support for cloud webui login
     virtual bool is_cloud() const { return false; }
@@ -89,6 +100,7 @@ public:
 
 protected:
     virtual wxString format_error(const std::string &body, const std::string &error, unsigned status) const;
+    static wxString timed_out_message();
 };
 
 
@@ -142,6 +154,10 @@ public:
 
     void enqueue(PrintHostJob job);
     void cancel(size_t id);
+
+    // Uploads the job, firing UploadStarted and a matching UploadFinished. An exception thrown by
+    // the upload is reported through error_fn and makes the upload fail.
+    static bool upload_job(PrintHostJob &job, PrintHost::ProgressFn progress_fn, PrintHost::ErrorFn error_fn, PrintHost::InfoFn info_fn);
 
 private:
     struct priv;

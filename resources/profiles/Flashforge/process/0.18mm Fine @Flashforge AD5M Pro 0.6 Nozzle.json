@@ -3,6 +3,7 @@
 	"name": "0.18mm Fine @Flashforge AD5M Pro 0.6 Nozzle",
 	"inherits": "0.30mm Standard @Flashforge AD5M Pro 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "MoyaqsclwNQsoedL",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Adventurer 5M Pro 0.6 Nozzle"

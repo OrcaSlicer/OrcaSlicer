@@ -3,8 +3,8 @@
 	"name": "Bambu PETG @Qidi Q1 Pro 0.8 nozzle",
 	"inherits": "Bambu PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "2ezevTOIexxkTBJ2",
+	"filament_id": "OFLYDngx",
 	"instantiation": "true",
 	"fan_max_speed": [
 		"40"

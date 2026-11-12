@@ -1,20 +1,41 @@
 #include "HMS.hpp"
 
 #include "GUI.hpp"
+#include "GUI_App.hpp"
 #include "DeviceManager.hpp"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
+#include "Http.hpp"
+#include <nlohmann/json.hpp>
 #include "libslic3r/AppConfig.hpp"
 
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/log/trivial.hpp>
+#include <unordered_set>
+#include <string>
+#include "libslic3r/Utils.hpp"
+#include <fstream>
+#include <ostream>
+#include <wx/string.h>
+#include <vector>
+#include <cstdio>
+#include <wx/image.h>
+#include <mutex>
+#include <ctime>
+
+namespace fs = boost::filesystem;
+using json = nlohmann::json;
 
 static const char* HMS_PATH = "hms";
 static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";
 
 // the local HMS info
-static unordered_set<string> package_dev_id_types {"094", "239", "093", "22E"};
+// Orca: dev-id-type set trimmed to the devices Orca ships local HMS images for
+static std::unordered_set<std::string> package_dev_id_types {"094", "239", "093", "22E", "20P", "26A", "31B"};
 
-// HMS should be disabled when stealth mode is on or networking is not installed
+// Orca: HMS should be disabled when stealth mode is on or networking is not installed
 static bool should_disable_hms()
 {
     Slic3r::AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
@@ -44,7 +65,7 @@ int get_hms_info_version(std::string& version)
     std::string url = (boost::format("https://%1%/GetVersion.php?%2%") % hms_host % query_params).str();
     Slic3r::Http http = Slic3r::Http::get(url);
     http.timeout_max(10)
-        .on_complete([&result, &version](std::string body, unsigned status){
+        .on_complete([&version](std::string body, unsigned status){
             try {
                 json j = json::parse(body);
                 if (j.contains("ver")) {
@@ -93,7 +114,7 @@ int HMSQuery::download_hms_related(const std::string& hms_type, const std::strin
 
     BOOST_LOG_TRIVIAL(info) << "hms: download url = " << url;
     Slic3r::Http http = Slic3r::Http::get(url);
-    http.on_complete([this, receive_json, hms_type, &to_save_local, &j, & local_version](std::string body, unsigned status) {
+    http.on_complete([receive_json, hms_type, &to_save_local, &j, & local_version](std::string body, unsigned status) {
         try {
             j = json::parse(body);
             if (j.contains("result")) {
@@ -251,7 +272,7 @@ int HMSQuery::save_to_local(std::string lang, std::string hms_type, std::string 
     std::string dir_str = (hms_folder / filename).make_preferred().string();
     std::ofstream json_file(encode_path(dir_str.c_str()));
     if (json_file.is_open()) {
-        json_file << save_json.dump(1, '\t') << std::endl;
+        json_file << save_json.dump(1, '\t') << std::endl; // Orca: tab-indented dump
         json_file.close();
         return 0;
     }
@@ -266,9 +287,15 @@ std::string HMSQuery::hms_language_code()
         // set language code to en by default
         return "en";
     std::string lang_code = wxGetApp().app_config->get_language_code();
+    // Orca: the HMS host ships no catalog for these locales, so fall back to english to avoid empty texts + retries
     if (lang_code.compare("uk") == 0
         || lang_code.compare("cs") == 0
-        || lang_code.compare("ru") == 0) {
+        || lang_code.compare("ru") == 0
+        || lang_code.compare("tr") == 0
+        || lang_code.compare("pt") == 0
+        || lang_code.compare("ko") == 0
+        )
+    {
         BOOST_LOG_TRIVIAL(info) << "HMS: using english for lang_code = " << lang_code;
         return "en";
     }
@@ -318,17 +345,17 @@ wxString HMSQuery::query_hms_msg(const std::string& dev_id, const std::string& l
     return _query_hms_msg(dev_id.substr(0, 3), long_error_code, lang_code);
 }
 
-string HMSQuery::get_dev_id_type(const MachineObject* obj) const
+std::string HMSQuery::get_dev_id_type(const MachineObject* obj) const
 {
     if (obj)
     {
         return obj->get_dev_id().substr(0, 3);
     }
 
-    return string();
+    return std::string();
 }
 
-wxString HMSQuery::_query_hms_msg(const string& dev_id_type, const string& long_error_code, const string& lang_code)
+wxString HMSQuery::_query_hms_msg(const std::string& dev_id_type, const std::string& long_error_code, const std::string& lang_code)
 {
     if (long_error_code.empty())
     {
@@ -399,9 +426,9 @@ wxString HMSQuery::_query_hms_msg(const string& dev_id_type, const string& long_
     return wxEmptyString;
 }
 
-bool HMSQuery::_is_internal_error(const string &dev_id_type,
-                                  const string &error_code,
-                                  const string &lang_code)
+bool HMSQuery::_is_internal_error(const std::string &dev_id_type,
+                                  const std::string &error_code,
+                                  const std::string &lang_code)
 {
     init_hms_info(dev_id_type);
     auto iter = m_hms_info_jsons.find(dev_id_type);
@@ -577,6 +604,7 @@ wxImage HMSQuery::query_image_from_local(const wxString& image_name)
             {
                 const fs::path& image_path = entry.path();
                 const fs::path& image_name = fs::relative(image_path, local_img_dir);
+                // Orca: from_path() for correct UTF-8 path encoding
                 m_hms_local_images[from_path(image_name)] = wxImage(from_path(image_path));
             }
         }

@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @MK4",
 	"inherits": "process_common_mk4",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "zRE35Z5rfEnie6Io",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa MK4 0.4 nozzle",

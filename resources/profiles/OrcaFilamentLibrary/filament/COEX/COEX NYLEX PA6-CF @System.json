@@ -3,7 +3,7 @@
 	"name": "COEX NYLEX PA6-CF @System",
 	"inherits": "COEX NYLEX PA6-CF @base",
 	"from": "system",
-	"setting_id": "CXPACF23",
+	"setting_id": "sAQi35NOKJrl1Sre",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"11"

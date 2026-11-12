@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSL99",
 	"name": "QIDI PLA Basic @Qidi X-Max 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Basic@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "umI102qmWo3VoYi2",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.038"
 	],

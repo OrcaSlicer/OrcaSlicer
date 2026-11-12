@@ -1,4 +1,8 @@
 #include "StateHandler.hpp"
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <vector>
+#include <algorithm>
 #include <wx/window.h>
 
 wxDEFINE_EVENT(EVT_ENABLE_CHANGED, wxCommandEvent);

@@ -1,17 +1,36 @@
 #include "OG_CustomCtrl.hpp"
 #include "OptionsGroup.hpp"
+#include "OptionStateRegistry.hpp"
 #include "MarkdownTip.hpp"
 #include "Plater.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
-#include "libslic3r/AppConfig.hpp"
 
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/stattext.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <cmath>
+#include <wx/event.h>
+#include <vector>
+#include <wx/types.h>
+#include <cassert>
+#include "slic3r/GUI/Field.hpp"
+#include <wx/dcclient.h>
+#include <wx/dc.h>
+#include <wx/colour.h>
+#include <cstddef>
+#include <string>
+#include <wx/settings.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/Config.hpp"
+#include <algorithm>
 #include <wx/utils.h>
 #include <boost/algorithm/string/split.hpp>
-#include "libslic3r/Utils.hpp"
 #include "I18N.hpp"
-#include "format.hpp"
 #include <slic3r/GUI/Widgets/Label.hpp>
+#include <wx/validate.h>
 
 namespace Slic3r { namespace GUI {
 
@@ -121,7 +140,7 @@ int OG_CustomCtrl::get_height(const Line& line)
     for (auto ctrl_line : ctrl_lines)
         if (&ctrl_line.og_line == &line)
             return ctrl_line.height;
-        
+
     return 0;
 }
 
@@ -158,7 +177,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             ctrl_line.height = size.y;
     };
 
-    auto add_buttons_width = [&h_pos, this] (int blinking_button_width) {
+    auto add_buttons_width = [&h_pos] (int blinking_button_width) {
 #ifndef DISABLE_BLINKING
 #  ifndef DISABLE_UNDO_SYS
         h_pos += 3 * blinking_button_width;
@@ -183,10 +202,11 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
                 wxSize near_label_widget_sz = line.near_label_widget_win->GetSize();
                 if (field_in)
                     h_pos += near_label_widget_sz.GetWidth() + m_h_gap;
-                else
+                else {
+                    h_pos += m_h_gap; // ORCA fixes alignment of checkboxes on Setting Overrides page
                     break;
+                }
             }
-
             wxString label = line.label;
             if (opt_group->label_width != 0)
                 add_label_width(ctrl_line, label, opt_group->label_width * m_em_unit);
@@ -196,6 +216,11 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
             if (line.widget) {
 #ifndef DISABLE_BLINKING
                 h_pos += (line.has_undo_ui() ? 3 : 1) * blinking_button_width;
+#else
+                // When blinking is disabled, widget lines still need to honour
+                // option_label_at_right the same way regular lines do below.
+                if (opt_group->option_label_at_right)
+                    add_buttons_width(blinking_button_width);
 #endif
 
                 for (auto child : line.widget_sizer->GetChildren())
@@ -230,7 +255,7 @@ wxPoint OG_CustomCtrl::get_pos(const Line& line, Field* field_in/* = nullptr*/)
                     // add label if any
                     if (is_multioption_line && !option.label.empty()) {
                         //!            To correct translation by context have to use wxGETTEXT_IN_CONTEXT macro from wxWidget 3.1.1
-                        auto label = (option.label == L_CONTEXT("Top", "Layers") || option.label == L_CONTEXT("Bottom", "Layers")) ? _CTX(option.label, "Layers") :
+                        auto label = (option.label == L_CONTEXT("Top", "Layers") || option.label == L_CONTEXT("Bottom", "Layers")) ? _L_CONTEXT(option.label, "Layers") :
                                                                                                                                      _(option.label);
                         // BBS
                         // label += ":";
@@ -349,6 +374,7 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
 {
     const wxPoint pos = event.GetLogicalPosition(wxClientDC(this));
     wxString tooltip;
+    wxString availability;
     std::string markdowntip;
 
     // BBS: markdown tip
@@ -364,9 +390,22 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
             if (!suppress_hyperlinks && !line.og_line.label_path.empty())
                 tooltip = OptionsGroup::get_url(line.og_line.label_path) + "\n\n";
             tooltip += line.og_line.label_tooltip;
+            if (m_option_state_registry) {
+                std::vector<wxString> reasons;
+                for (const Option& option : line.og_line.get_options()) {
+                    const std::string& key = option.opt.opt_key.empty() ? option.opt_id : option.opt.opt_key;
+                    wxString reason = m_option_state_registry->description(key);
+                    if (!reason.empty() && std::find(reasons.begin(), reasons.end(), reason) == reasons.end()) {
+                        reasons.push_back(reason);
+                        if (!availability.empty())
+                            availability += "\n\n";
+                        availability += reason;
+                    }
+                }
+            }
             // BBS: markdown tip
             focusedLine = &line;
-            markdowntip = line.og_line.label.empty() 
+            markdowntip = line.og_line.label.empty()
                 ? line.og_line.get_options().front().opt_id : into_u8(line.og_line.label);
             markdowntip.erase(0, markdowntip.find_last_of('#') + 1);
             // BBS
@@ -409,13 +448,16 @@ void OG_CustomCtrl::OnMotion(wxMouseEvent& event)
         assert(focusedLine);
         wxPoint pos2 = { 250, focusedLine->rect_label.y };
         pos2 = ClientToScreen(pos2);
-        if (MarkdownTip::ShowTip(markdowntip, into_u8(tooltip), pos2)) {
+        if (MarkdownTip::ShowTip(markdowntip, into_u8(tooltip), pos2, into_u8(availability))) {
             tooltip.clear();
+            availability.clear();
         }
     }
     else {
         MarkdownTip::ShowTip(markdowntip, "", {tooltip.empty() ? 0 : 1, 0});
     }
+    if (!availability.empty())
+        tooltip = availability + "\n\n" + tooltip;
     if (GetToolTipText() != tooltip)
         this->SetToolTip(tooltip);
     // BBS
@@ -602,6 +644,8 @@ void OG_CustomCtrl::msw_rescale()
 
     //m_bmp_mode_sz = create_scaled_bitmap("mode_simple", this, wxOSX ? 10 : 12).GetSize();
     m_bmp_blinking_sz = create_scaled_bitmap("blank_16", this).GetSize();
+    if (m_bmp_multi_extruder.bmp().IsOk())
+        m_bmp_multi_extruder.msw_rescale();
 
     m_max_win_width = 0;
 
@@ -631,6 +675,8 @@ void OG_CustomCtrl::msw_rescale()
 
 void OG_CustomCtrl::sys_color_changed()
 {
+    if (m_bmp_multi_extruder.bmp().IsOk())
+        m_bmp_multi_extruder.msw_rescale();
 }
 
 OG_CustomCtrl::CtrlLine::CtrlLine(  wxCoord         height,
@@ -718,6 +764,19 @@ void OG_CustomCtrl::CtrlLine::update_visibility(ConfigOptionMode mode)
         return;
     const std::vector<Option>& option_set = og_line.get_options();
 
+    // Widget-only lines (no options appended) are always visible unless explicitly hidden.
+    if (option_set.empty()) {
+        is_visible = og_line.toggle_visible;
+        if (og_line.near_label_widget_win)
+            og_line.near_label_widget_win->Show(is_visible);
+        if (og_line.widget_sizer)
+            og_line.widget_sizer->ShowItems(is_visible);
+        if (og_line.extra_widget_sizer)
+            og_line.extra_widget_sizer->ShowItems(is_visible);
+        correct_items_positions();
+        return;
+    }
+
     const ConfigOptionMode& line_mode = option_set.front().opt.mode;
     is_visible = og_line.toggle_visible && line_mode <= mode;
 
@@ -768,7 +827,8 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         return;
     }
 
-    Field* field = ctrl->opt_group->get_field(og_line.get_options().front().opt_id);
+    Field* field = og_line.get_options().empty() ? nullptr :
+                   ctrl->opt_group->get_field(og_line.get_options().front().opt_id);
 
     bool suppress_hyperlinks = false;
     if (draw_just_act_buttons) {
@@ -784,10 +844,25 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         return;
     }
 
+    const std::vector<Option>& option_set = og_line.get_options();
+
+    // ORCA draw multi_extruder icon to spacing before field lines so labels keep aligned
+    bool is_multi_extruder = false;
+    if (ctrl->opt_group->draw_multi_extruder)
+        for (const Option& opt : option_set)
+            is_multi_extruder |= opt.opt_id.find_last_of('#') != std::string::npos;
+    if (is_multi_extruder) {
+        if (!ctrl->m_bmp_multi_extruder.bmp().IsOk())
+            ctrl->m_bmp_multi_extruder = ScalableBitmap(ctrl, "multi_extruder");
+        const wxBitmap& bmp    = ctrl->m_bmp_multi_extruder.bmp();
+        const wxSize    bmp_sz = get_bitmap_size(bmp); // Logical size. GetWidth() returns physical pixels on macOS retina which pushes icon outside of control
+        const wxCoord   icon_x = std::max(0, h_pos - bmp_sz.GetWidth() - ctrl->m_h_gap);
+        const wxCoord   icon_y = v_pos + lround((height - bmp_sz.GetHeight()) / 2);
+        dc.DrawBitmap(bmp, icon_x, icon_y, true);
+    }
+
     if (og_line.near_label_widget_win)
         h_pos += og_line.near_label_widget_win->GetSize().x + ctrl->m_h_gap;
-
-    const std::vector<Option>& option_set = og_line.get_options();
 
     wxString label = og_line.label;
     wxColour blink_color = StateColor::darkModeColorFor("#009688");
@@ -803,7 +878,7 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         }
         is_url_string = !suppress_hyperlinks && !og_line.label_path.empty();
         // BBS
-        h_pos = draw_text(dc, wxPoint(h_pos, v_pos), label /* + ":" */, text_clr, ctrl->opt_group->label_width * ctrl->m_em_unit, is_url_string, true);
+        h_pos = draw_text(dc, wxPoint(h_pos, v_pos), label /* + ":" */, text_clr, h_pos + ctrl->opt_group->label_width * ctrl->m_em_unit - h_pos, is_url_string, true);
     }
 
     // If there's a widget, build it and set result to the correct position.
@@ -837,7 +912,7 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
             h_pos = draw_act_bmps(dc, wxPoint(h_pos, v_pos), field->undo_to_sys_bitmap()->bmp(), field->undo_bitmap()->bmp(), field->blink(), bmp_rect_id).x;
         }
 #ifndef DISABLE_BLINKING
-        else if (field && !field->undo_to_sys_bitmap() && field->blink()) 
+        else if (field && !field->undo_to_sys_bitmap() && field->blink())
             draw_blinking_bmp(dc, wxPoint(h_pos, v_pos), field->blink());
 #endif
     };
@@ -873,7 +948,7 @@ void OG_CustomCtrl::CtrlLine::render(wxDC& dc, wxCoord h_pos, wxCoord v_pos)
         if (is_multioption_line && !option.label.empty()) {
             //!            To correct translation by context have to use wxGETTEXT_IN_CONTEXT macro from wxWidget 3.1.1
             label = (option.label == L_CONTEXT("Top", "Layers") || option.label == L_CONTEXT("Bottom", "Layers")) ?
-                    _CTX(option.label, "Layers") : _(option.label);
+                    _L_CONTEXT(option.label, "Layers") : _(option.label);
             //if (!ctrl->opt_group->option_label_at_right) // BBS
                 //label += ":";
 
@@ -943,7 +1018,7 @@ wxCoord OG_CustomCtrl::CtrlLine::draw_text(wxDC &dc, wxPoint pos, const wxString
             dc.SetFont(old_font.Underlined());
 #else
             dc.SetFont(old_font.Bold().Underlined());
-#endif            
+#endif
             color = &clr_url;
         }
         dc.SetTextForeground(color ? *color :
@@ -977,12 +1052,12 @@ wxPoint OG_CustomCtrl::CtrlLine::draw_blinking_bmp(wxDC& dc, wxPoint pos, bool i
     return wxPoint(h_pos, v_pos);
 }
 
-wxPoint OG_CustomCtrl::CtrlLine::draw_act_bmps(wxDC& dc, wxPoint pos, const wxBitmap& bmp_undo_to_sys, const wxBitmap& bmp_undo, bool is_blinking, size_t rect_id)
+wxPoint OG_CustomCtrl::CtrlLine::draw_act_bmps(wxDC& dc, wxPoint pos, const wxBitmap& bmp_undo_to_sys, const wxBitmap& bmp_undo, bool is_blinking, size_t rect_id, bool is_main)
 {
 #ifndef DISABLE_BLINKING
     pos = draw_blinking_bmp(dc, pos, is_blinking);
 #else
-    if (ctrl->opt_group->split_multi_line) { // BBS
+    if (ctrl->opt_group->split_multi_line && !is_main) { // BBS
         const std::vector<Option> &option_set = og_line.get_options();
         if (option_set.size() > 1)
             pos.y += lround(((height - ctrl->m_v_gap + ctrl->m_v_gap2) / option_set.size() - get_bitmap_size(bmp_undo).GetHeight()) / 2);

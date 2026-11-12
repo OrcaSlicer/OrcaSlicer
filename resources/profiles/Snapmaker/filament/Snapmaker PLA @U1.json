@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA @U1",
 	"inherits": "Snapmaker PLA @U1 base",
 	"from": "system",
-	"setting_id": "11953139350",
+	"setting_id": "upBaAiQ4fqmefjo6",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"
@@ -13,5 +13,21 @@
 	],
 	"hot_plate_temp_initial_layer": [
 		"55"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"fan_min_speed": [
+		"100",
+		"100"
+	],
+	"fan_max_speed": [
+		"100",
+		"100"
+	],
+	"additional_cooling_fan_speed": [
+		"70",
+		"70"
 	]
 }

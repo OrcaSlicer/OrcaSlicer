@@ -3,7 +3,7 @@
 	"name": "Arena PLA Silk @Arena X1C",
 	"inherits": "Arena PLA Silk @base",
 	"from": "system",
-	"setting_id": "GFSA05_01",
+	"setting_id": "MtrNeG05EHC47Wn1",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"12"

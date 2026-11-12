@@ -3,6 +3,7 @@
 	"name": "0.15mm Draft @WEMAKE3D TinyBotV1 0.2mm nozzle",
 	"inherits": "fdm_process_tinyBotV1_common",
 	"from": "system",
+	"setting_id": "VF0y0eQfT0BZ7iPk",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"counterbore_hole_bridging": "partiallybridge",

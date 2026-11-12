@@ -3,11 +3,21 @@
 	"name": "Snapmaker PA-CF @U1",
 	"inherits": "Snapmaker PA-CF @U1 base",
 	"from": "system",
-	"setting_id": "27996657890",
+	"setting_id": "8aP6ye4aeOS7qKpG",
 	"instantiation": "true",
 	"compatible_printers": [
-		"Snapmaker U1 (0.4 nozzle)",
-		"Snapmaker U1 (0.4 nozzle)",
 		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"fan_min_speed": [
+		"15",
+		"15"
+	],
+	"fan_max_speed": [
+		"50",
+		"50"
 	]
 }

@@ -10,16 +10,26 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <math.h>
+#include <list>
+#include <memory>
 #include <utility>
 #include <cassert>
 #include <cstdlib>
+#include <vector>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Arachne/BeadingStrategy/BeadingStrategy.hpp"
 #include "libslic3r/Geometry/VoronoiUtils.hpp"
 #include "ankerl/unordered_dense.h"
 #include "libslic3r/Arachne/SkeletalTrapezoidationEdge.hpp"
 #include "libslic3r/Arachne/SkeletalTrapezoidationJoint.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionJunction.hpp"
 #include "libslic3r/Arachne/utils/ExtrusionLine.hpp"
+#include "libslic3r/Arachne/SkeletalTrapezoidationGraph.hpp"
+#include "libslic3r/Arachne/utils/PolygonsSegmentIndex.hpp"
 
 #ifndef NDEBUG
     #include "libslic3r/EdgeGrid.hpp"
@@ -455,8 +465,6 @@ void SkeletalTrapezoidation::constructFromPolygons(const Polygons& polys)
         if (!edge.prev)
             edge.from->incident_edge = &edge;
 }
-
-using NodeSet = SkeletalTrapezoidation::NodeSet;
 
 void SkeletalTrapezoidation::separatePointyQuadEndNodes()
 {
@@ -1660,7 +1668,7 @@ void SkeletalTrapezoidation::propagateBeadingsDownward(edge_t* edge_to_peak, ptr
 }
 
 
-SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, double ratio_left_to_whole, const Beading& right, coord_t switching_radius) const
+SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, double ratio_left_to_whole, const Beading& right, coord_t switching_radius)
 {
     assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
     Beading ret = interpolate(left, ratio_left_to_whole, right);
@@ -1684,6 +1692,12 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
     { // We cant adjust to fit the next edge because there is no previous one?!
         return ret;
     }
+    // ret follows the thicker of left/right, which can hold fewer insets than left when bead
+    // count and thickness disagree; skip the adjustment rather than index ret past its end.
+    if (next_inset_idx >= coord_t(ret.toolpath_locations.size()))
+    {
+        return ret;
+    }
     assert(next_inset_idx < coord_t(left.toolpath_locations.size()));
     assert(left.toolpath_locations[next_inset_idx] <= switching_radius);
     assert(left.toolpath_locations[next_inset_idx + 1] >= switching_radius);
@@ -1703,7 +1717,7 @@ SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beadin
 }
 
 
-SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, double ratio_left_to_whole, const Beading& right) const
+SkeletalTrapezoidation::Beading SkeletalTrapezoidation::interpolate(const Beading& left, double ratio_left_to_whole, const Beading& right)
 {
     assert(ratio_left_to_whole >= 0.0 && ratio_left_to_whole <= 1.0);
     float ratio_right_to_whole = 1.0 - ratio_left_to_whole;

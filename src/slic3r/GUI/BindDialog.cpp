@@ -1,10 +1,44 @@
 #include "BindDialog.hpp"
 #include "GUI_App.hpp"
 
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/intl.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include <wx/simplebook.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/HyperLink.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include <wx/string.h>
+#include <wx/textctrl.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <cstddef>
+#include <wx/utils.h>
+#include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/wrapsizer.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include <wx/tglbtn.h>
+#include <memory>
+#include "slic3r/GUI/BBLStatusBarBind.hpp"
+#include "slic3r/GUI/Jobs/BindJob.hpp"
+#include <nlohmann/json.hpp>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <utility>
+#include "slic3r/GUI/GUI.hpp"
+#include <wx/image.h>
+#include <wx/stattext.h>
 #include <wx/wx.h>
 #include <wx/mstream.h>
 #include <wx/sizer.h>
 #include <wx/statbox.h>
+#include "bambu_networking.hpp"
+#include "Http.hpp"
 #include "wx/evtloop.h"
 #include <wx/tokenzr.h>
 #include <wx/richmsgdlg.h>
@@ -12,13 +46,16 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "MainFrame.hpp"
-#include "GUI_App.hpp"
 #include "Plater.hpp"
 #include "Jobs/BoostThreadWorker.hpp"
 #include "Jobs/PlaterWorker.hpp"
 #include "Widgets/WebView.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "HMS.hpp"
+#include "slic3r/Utils/NetworkAgent.hpp"
+
+using json = nlohmann::json;
 
 namespace Slic3r {
 namespace GUI {
@@ -35,10 +72,10 @@ wxString get_fail_reason(int code)
         return _L("Failed to publish login request");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_GET_PRINTER_TICKET_TIMEOUT)
-        return _L("Get ticket from device timeout");
+        return _L("Timeout getting ticket from device");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_GET_CLOUD_TICKET_TIMEOUT)
-        return _L("Get ticket from server timeout");
+        return _L("Timeout getting ticket from server");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_POST_TICKET_TO_CLOUD_FAILED)
         return _L("Failed to post ticket to server");
@@ -91,7 +128,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
     request_bind_panel->SetBackgroundColour(*wxWHITE);
     binding_panel->SetBackgroundColour(*wxWHITE);
 
-    m_status_text = new Label(request_bind_panel, _L("Please Find the Pin Code in Account page on printer screen,\n and type in the Pin Code below."));
+    m_status_text = new Label(request_bind_panel, _L("Please Find the Pin Code in Account page on printer screen, and type in the Pin Code below."));
     m_status_text->SetBackgroundColour(*wxWHITE);
     m_status_text->SetFont(Label::Body_14);
     m_status_text->SetMaxSize(wxSize(FromDIP(440), -1));
@@ -192,7 +229,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
 
 
 
-    SetSizer(sizer_main);
+    SetSizerAndFit(sizer_main);
     Layout();
     Fit();
 
@@ -468,7 +505,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      m_link_privacy_title->SetFont(Label::Head_13);
      m_link_privacy_title->SetMaxSize(wxSize(FromDIP(450), -1));
      m_link_privacy_title->Wrap(FromDIP(450));
-     m_link_privacy_title->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {
+     m_link_privacy_title->Bind(wxEVT_LEFT_DOWN, [](auto& e) {
          std::string url;
          std::string country_code = Slic3r::GUI::wxGetApp().app_config->get_country_code();
 
@@ -558,7 +595,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      //show bind failed info
      m_sw_bind_failed_info = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(450), FromDIP(300)), wxVSCROLL);
      m_sw_bind_failed_info->SetBackgroundColour(*wxWHITE);
-     m_sw_bind_failed_info->SetScrollRate(5, 5);
+     m_sw_bind_failed_info->SetScrollRate(5, FromDIP(20));
      m_sw_bind_failed_info->SetMinSize(wxSize(FromDIP(450), FromDIP(90)));
      m_sw_bind_failed_info->SetMaxSize(wxSize(FromDIP(450), FromDIP(90)));
 
@@ -590,7 +627,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      sizer_error_code->Add(m_st_txt_error_code, 0, wxALL, 0);
 
 
-     auto st_title_error_desc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, wxT("Error desc"));
+     auto st_title_error_desc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, _L("Error desc"));
      auto st_title_error_desc_doc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, ": ");
      m_st_txt_error_desc = new Label(m_sw_bind_failed_info, wxEmptyString);
      st_title_error_desc->SetForegroundColour(0x909090);
@@ -607,7 +644,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      sizer_error_desc->Add(st_title_error_desc_doc, 0, wxALL, 0);
      sizer_error_desc->Add(m_st_txt_error_desc, 0, wxALL, 0);
 
-     auto st_title_extra_info = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, wxT("Extra info"));
+     auto st_title_extra_info = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, _L("Extra info"));
      auto st_title_extra_info_doc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, ": ");
      m_st_txt_extra_info = new Label(m_sw_bind_failed_info, wxEmptyString);
      st_title_extra_info->SetForegroundColour(0x909090);
@@ -670,7 +707,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      m_sizer_main->Add(m_sw_bind_failed_info, 0, wxALIGN_CENTER, 0);
      m_sizer_main->Add(m_simplebook, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, ButtonProps::ChoiceButtonGap());
 
-     SetSizer(m_sizer_main);
+     SetSizerAndFit(m_sizer_main);
      Layout();
      Fit();
      Centre(wxBOTH);
@@ -813,7 +850,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
 
      m_simplebook->SetSelection(0);
      auto m_bind_job = std::make_unique<BindJob>(
-        m_machine_info->get_dev_id(), m_machine_info->get_dev_ip(), m_machine_info->bind_sec_link, m_machine_info->bind_ssdp_version);
+        m_machine_info->get_dev_id(), m_machine_info->get_dev_ip(), m_machine_info->get_show_printer_type(), m_machine_info->bind_sec_link, m_machine_info->bind_ssdp_version);
 
      if (m_machine_info && (m_machine_info->get_printer_series() == PrinterSeries::SERIES_X1)) {
          m_bind_job->set_improved(false);
@@ -893,7 +930,7 @@ void BindMachineDialog::on_show(wxShowEvent &event)
                     }
                 }
                     })
-                .on_error([this](std::string body, std::string error, unsigned status) {
+                .on_error([](std::string body, std::string error, unsigned status) {
                         //BOOST_LOG_TRIVIAL(info) << "load oss picture failed, oss path: " << oss_path << " status:" << status << " error:" << error;
             }).perform();
         }
@@ -992,7 +1029,7 @@ UnBindMachineDialog::UnBindMachineDialog(Plater *plater /*= nullptr*/)
      m_sizer_main->Add(m_sizer_button, 0, wxALIGN_RIGHT | wxRIGHT, ButtonProps::ChoiceButtonGap());
      m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(20));
 
-     SetSizer(m_sizer_main);
+     SetSizerAndFit(m_sizer_main);
      Layout();
      Fit();
      Centre(wxBOTH);
@@ -1099,7 +1136,7 @@ void UnBindMachineDialog::on_show(wxShowEvent &event)
                     }
                 }
                     })
-                .on_error([this](std::string body, std::string error, unsigned status) {
+                .on_error([](std::string body, std::string error, unsigned status) {
                         //BOOST_LOG_TRIVIAL(info) << "load oss picture failed, oss path: " << oss_path << " status:" << status << " error:" << error;
                 }).perform();
 

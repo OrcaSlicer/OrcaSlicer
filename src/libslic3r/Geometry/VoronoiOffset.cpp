@@ -8,7 +8,11 @@
 #include <utility>
 #include <cassert>
 #include <cstdlib>
+#include <vector>
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polygon.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "VoronoiOffset.hpp"
 #include "libslic3r/libslic3r.h"
@@ -1236,7 +1240,7 @@ std::vector<Vec2d> edge_offset_contour_intersections(
                             // 2) offset_distance == dmin_new -> one duplicate point is found.
                             // If 2) is ignored, then two tangentially touching offset curves are created.
                             // If not ignored, then the two offset curves merge at this double point.
-                            // We should merge the contours while pushing the the two copies of the tangent point away a bit.
+                            // We should merge the contours while pushing the two copies of the tangent point away a bit.
                             dmin = dmin_new;
                             num_intersections = (offset_distance > dmin) + 1;
                         }

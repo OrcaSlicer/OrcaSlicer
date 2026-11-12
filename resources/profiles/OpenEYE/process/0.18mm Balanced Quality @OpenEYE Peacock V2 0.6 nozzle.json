@@ -3,7 +3,7 @@
 	"name": "0.18mm Balanced Quality @OpenEYE Peacock V2 0.6 nozzle",
 	"inherits": "fdm_process_openeye_0.18_nozzle_0.6",
 	"from": "system",
-	"setting_id": "GP137",
+	"setting_id": "EITxuIXk5oMAUbWS",
 	"instantiation": "true",
 	"description": "High quality profile for 0.6mm nozzle, prioritizing print quality and strength.",
 	"bridge_speed": "50",

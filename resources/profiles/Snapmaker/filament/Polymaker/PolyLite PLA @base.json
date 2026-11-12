@@ -1,10 +1,13 @@
 {
 	"type": "filament",
-	"from": "system",
-	"instantiation": "false",
 	"name": "PolyLite PLA @base",
-	"filament_id": "1393866034",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OF5CgdDq",
+	"instantiation": "false",
+	"filament_vendor": [
+		"Polymaker"
+	],
 	"filament_flow_ratio": [
 		"0.95"
 	],

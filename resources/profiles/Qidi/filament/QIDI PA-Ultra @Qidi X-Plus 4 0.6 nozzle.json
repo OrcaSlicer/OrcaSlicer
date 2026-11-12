@@ -3,8 +3,8 @@
 	"name": "QIDI PA-Ultra @Qidi X-Plus 4 0.6 nozzle",
 	"inherits": "QIDI PA-Ultra",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "QD_0_1_24",
+	"setting_id": "oAp4leYdCEJY771O",
+	"filament_id": "OFlN6DL1",
 	"instantiation": "true",
 	"fan_max_speed": [
 		"40"

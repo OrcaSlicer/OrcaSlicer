@@ -3,7 +3,7 @@
 	"name": "Troodon 2.0 Klipper 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "pYurHO2KNiqIhjHR",
 	"instantiation": "true",
 	"printer_model": "Troodon 2.0 - Klipper",
 	"nozzle_diameter": [

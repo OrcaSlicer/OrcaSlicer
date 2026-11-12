@@ -3,8 +3,8 @@
 	"name": "Polymaker PLA Pro Metallic @Anycubic Kobra S1",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSL80_AC",
-	"filament_id": "GFL80",
+	"setting_id": "iFJbVP8Ui0h5sv5X",
+	"filament_id": "OFHknN4v",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anycubic Kobra S1 0.4 nozzle"

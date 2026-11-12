@@ -3,7 +3,7 @@
 	"name": "FDplast TPU @System",
 	"inherits": "FDplast TPU @base",
 	"from": "system",
-	"setting_id": "TPU01_00",
+	"setting_id": "xHtQLOzDScRSbr1f",
 	"instantiation": "true",
 	"compatible_printers": []
 }

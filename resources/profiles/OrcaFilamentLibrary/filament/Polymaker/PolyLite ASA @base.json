@@ -3,7 +3,7 @@
 	"name": "PolyLite ASA @base",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"filament_id": "OGFB61",
+	"filament_id": "OFvrXuV7",
 	"instantiation": "false",
 	"eng_plate_temp": [
 		"100"

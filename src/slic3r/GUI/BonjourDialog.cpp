@@ -2,23 +2,35 @@
 
 #include "BonjourDialog.hpp"
 
+#include "libslic3r/Config.hpp"
+#include <memory>
+#include <boost/asio/ip/address.hpp>
+#include <cstddef>
 #include <set>
 #include <mutex>
 
 #include <boost/nowide/convert.hpp>
 
+#include <wx/event.h>
+#include <utility>
+#include <wx/gdicmn.h>
+#include <wx/dialog.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/listbase.h>
+#include <vector>
 #include <wx/sizer.h>
-#include <wx/button.h>
 #include <wx/listctrl.h>
 #include <wx/stattext.h>
 #include <wx/timer.h>
+#include <wx/toplevel.h>
 #include <wx/wupdlock.h>
 
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"
-#include "slic3r/Utils/Bonjour.hpp"
+
+#include "slic3r/GUI/Widgets/DialogButtons.hpp"
 
 namespace Slic3r {
 
@@ -63,30 +75,30 @@ BonjourDialog::BonjourDialog(wxWindow *parent, Slic3r::PrinterTechnology tech)
 	, timer_state(0)
 	, tech(tech)
 {
+    SetBackgroundColour(*wxWHITE);
+
 	const int em = GUI::wxGetApp().em_unit();
 	list->SetMinSize(wxSize(80 * em, 30 * em));
 
 	wxBoxSizer *vsizer = new wxBoxSizer(wxVERTICAL);
 
+    label->SetFont(Label::Body_14);
 	vsizer->Add(label, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, em);
 
 	list->SetSingleStyle(wxLC_SINGLE_SEL);
 	list->SetSingleStyle(wxLC_SORT_DESCENDING);
-	list->AppendColumn(_(L("Address")), wxLIST_FORMAT_LEFT, 5 * em);
+	list->AppendColumn(_(L("Address")), wxLIST_FORMAT_LEFT, 20 * em);
 	list->AppendColumn(_(L("Hostname")), wxLIST_FORMAT_LEFT, 10 * em);
 	list->AppendColumn(_(L("Service name")), wxLIST_FORMAT_LEFT, 20 * em);
 	if (tech == ptFFF) {
-		list->AppendColumn(_(L("OctoPrint version")), wxLIST_FORMAT_LEFT, 5 * em);
+		list->AppendColumn(_(L("OctoPrint version")), wxLIST_FORMAT_LEFT, 15 * em);
 	}
 
 	vsizer->Add(list, 1, wxEXPAND | wxALL, em);
 
-	wxBoxSizer *button_sizer = new wxBoxSizer(wxHORIZONTAL);
-	button_sizer->Add(new wxButton(this, wxID_OK, _L("OK")), 0, wxALL, em);
-	button_sizer->Add(new wxButton(this, wxID_CANCEL, _L("Cancel")), 0, wxALL, em);
-	// ^ Note: The Ok/Cancel labels are translated by wxWidgets
+    auto dlg_btns = new GUI::DialogButtons(this, {"OK", "Cancel"});
 
-	vsizer->Add(button_sizer, 0, wxALIGN_CENTER);
+	vsizer->Add(dlg_btns, 0, wxEXPAND);
 	SetSizerAndFit(vsizer);
 
 	Bind(EVT_BONJOUR_REPLY, &BonjourDialog::on_reply, this);
@@ -241,12 +253,15 @@ IPListDialog::IPListDialog(wxWindow* parent, const wxString& hostname, const std
 	, m_list(new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxSIMPLE_BORDER))
 	, m_selected_index (selected_index)
 {
+    SetBackgroundColour(*wxWHITE);
+
 	const int em = GUI::wxGetApp().em_unit();
 	m_list->SetMinSize(wxSize(40 * em, 30 * em));
 
 	wxBoxSizer* vsizer = new wxBoxSizer(wxVERTICAL);
 
 	auto* label = new wxStaticText(this, wxID_ANY, GUI::format_wxstr(_L("There are several IP addresses resolving to hostname %1%.\nPlease select one that should be used."), hostname));
+    label->SetFont(Label::Body_14);
 	vsizer->Add(label, 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, em);
 
 	m_list->SetSingleStyle(wxLC_SINGLE_SEL);
@@ -259,11 +274,9 @@ IPListDialog::IPListDialog(wxWindow* parent, const wxString& hostname, const std
 
 	vsizer->Add(m_list, 1, wxEXPAND | wxALL, em);
 
-	wxBoxSizer* button_sizer = new wxBoxSizer(wxHORIZONTAL);
-	button_sizer->Add(new wxButton(this, wxID_OK, _L("OK")), 0, wxALL, em);
-	button_sizer->Add(new wxButton(this, wxID_CANCEL, _L("Cancel")), 0, wxALL, em);
+    auto dlg_btns = new GUI::DialogButtons(this, {"OK", "Cancel"});
 
-	vsizer->Add(button_sizer, 0, wxALIGN_CENTER);
+	vsizer->Add(dlg_btns, 0, wxEXPAND);
 	SetSizerAndFit(vsizer);
 
 	GUI::wxGetApp().UpdateDlgDarkUI(this);

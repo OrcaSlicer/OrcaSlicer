@@ -1,9 +1,10 @@
 {
 	"type": "filament",
 	"name": "Eryone PP-CF @0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Eryone PP-CF",
+	"from": "system",
+	"setting_id": "os5ZrNT1utAczy2F",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Thinker X400 0.2 nozzle"
 	],

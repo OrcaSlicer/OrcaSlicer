@@ -3,7 +3,7 @@
 	"name": "0.24 Draft @Snapmaker J1 (0.4 nozzle)",
 	"inherits": "fdm_process_idex",
 	"from": "system",
-	"setting_id": "2742890459",
+	"setting_id": "oarYhYk2ITkRzZwf",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)"
@@ -12,7 +12,9 @@
 	"elefant_foot_compensation": "0.15",
 	"top_surface_line_width": "0.45",
 	"top_shell_layers": "3",
+	"top_color_penetration_layers": "3",
 	"top_shell_thickness": "0.6",
 	"support_threshold_angle": "35",
-	"initial_layer_infill_speed": "65"
+	"initial_layer_infill_speed": "65",
+	"bottom_color_penetration_layers": "3"
 }

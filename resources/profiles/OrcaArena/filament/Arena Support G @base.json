@@ -3,7 +3,7 @@
 	"name": "Arena Support G @base",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"filament_id": "GFS01",
+	"filament_id": "OFIPjqHt",
 	"instantiation": "false",
 	"required_nozzle_HRC": [
 		"3"

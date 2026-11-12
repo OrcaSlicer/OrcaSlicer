@@ -1,0 +1,71 @@
+{
+	"type": "machine",
+	"name": "fdm_common_VIRTU E3",
+	"inherits": "fdm_machine_common",
+	"from": "system",
+	"instantiation": "false",
+	"extruder_clearance_height_to_lid": "140",
+	"extruder_clearance_height_to_rod": "36",
+	"extruder_clearance_radius": "65",
+	"default_filament_profile": "Generic PLA @VIRTU E3",
+	"machine_max_acceleration_e": [
+		"7500",
+		"7500"
+	],
+	"machine_max_acceleration_extruding": [
+		"35000",
+		"35000"
+	],
+	"machine_max_acceleration_retracting": [
+		"35000",
+		"35000"
+	],
+	"machine_max_acceleration_travel": [
+		"10000",
+		"10000"
+	],
+	"machine_max_acceleration_x": [
+		"35000",
+		"35000"
+	],
+	"machine_max_acceleration_y": [
+		"35000",
+		"35000"
+	],
+	"machine_max_acceleration_z": [
+		"2000",
+		"2000"
+	],
+	"machine_max_speed_e": [
+		"25",
+		"25"
+	],
+	"machine_max_speed_x": [
+		"900",
+		"900"
+	],
+	"machine_max_speed_y": [
+		"900",
+		"900"
+	],
+	"machine_max_speed_z": [
+		"400",
+		"400"
+	],
+	"printable_area": [
+		"0x0",
+		"230x0",
+		"230x232",
+		"0x232"
+	],
+	"printable_height": "232",
+	"printer_model": "VIRTU E3",
+	"printer_notes": [
+		"Design by RH3D"
+	],
+	"retract_before_wipe": "80%",
+	"retract_length_toolchange": "0",
+	"retract_lift_below": "230",
+	"retraction_minimum_travel": "1.5",
+	"travel_slope": "1"
+}

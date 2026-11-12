@@ -1,14 +1,52 @@
 #include "IMSlider.hpp"
-#include "libslic3r/GCode.hpp"
 #include "GUI_App.hpp"
+#include "GUI.hpp"
 #include "NotificationManager.hpp"
 #include "Widgets/StateColor.hpp"
+#include "libslic3r/libslic3r.h"
+#include <imgui.h>
+#include <cmath>
+#include <cstddef>
+#include <functional>
+#include "libslic3r/ExPolygon.hpp"
+#include <string>
+#include "libslic3r/CustomGCode.hpp"
+#include <cstdio>
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "libslic3r/Utils.hpp"
+#include <algorithm>
+#include <vector>
+#include "slic3r/GUI/TickCode.hpp"
+#include <boost/log/trivial.hpp>
+#include <wx/colour.h>
+#include "libslic3r/Color.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <set>
+#include <wx/string.h>
+#include <cstring>
+#include <cctype>
+#include <cstdlib>
+#include <wx/event.h>
+#include <wx/utils.h>
+#include <wx/slider.h>
+#include <array>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
+
+using namespace CustomGCode;
 
 namespace GUI {
 
@@ -482,6 +520,11 @@ void IMSlider::draw_background_and_groove(const ImRect& bg_rect, const ImRect& g
     ImGui::RenderFrame(groove.Min, groove.Max, groove_col, false, 0.5 * groove.GetWidth());
 }
 
+bool IMSlider::is_dragging() const
+{
+    return GImGui != nullptr && m_imgui_id != 0 && GImGui->ActiveId == m_imgui_id && GImGui->IO.MouseDown[0];
+}
+
 bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int v_max, const ImVec2& size, float scale)
 {
     ImGuiWindow* window = ImGui::GetCurrentWindow();
@@ -490,6 +533,7 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
 
     ImGuiContext& context = *GImGui;
     const ImGuiID id = window->GetID(str_id);
+    m_imgui_id = id;
 
     const ImVec2 pos = window->DC.CursorPos;
     const ImRect draw_region(pos, pos + size);
@@ -790,7 +834,7 @@ void IMSlider::draw_ticks(const ImRect& slideable_region) {
 
 void IMSlider::show_tooltip(const std::string tooltip) {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 6 * m_scale, 3 * m_scale });
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, { 3 * m_scale });
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 3 * m_scale);
     ImGui::PushStyleColor(ImGuiCol_PopupBg, ImGuiWrapper::COL_WINDOW_BACKGROUND);
     ImGui::PushStyleColor(ImGuiCol_Border, { 0,0,0,0 });
     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
@@ -882,6 +926,7 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
 
     ImGuiContext& context = *GImGui;
     const ImGuiID id = window->GetID(str_id);
+    m_imgui_id = id;
 
     const ImVec2 pos = window->DC.CursorPos;
     const ImRect draw_region(pos, pos + size);
@@ -1369,14 +1414,14 @@ void IMSlider::render_input_custom_gcode(std::string custom_gcode)
 }
 
 void IMSlider::do_go_to_layer(size_t layer_number) {
-    layer_number = clamp((int)layer_number, m_min_value, m_max_value);
+    layer_number = std::clamp((int)layer_number, m_min_value, m_max_value);
     GetSelection() == ssLower ? SetLowerValue(layer_number) : SetHigherValue(layer_number);
 }
 
 void IMSlider::render_go_to_layer_dialog()
 {
     if (m_show_go_to_layer_dialog)
-        ImGui::OpenPopup((_u8L("Jump to Layer")).c_str());
+        ImGui::OpenPopup((_u8L("Jump to layer")).c_str());
 
     ImGuiWrapper& imgui = *wxGetApp().imgui();
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -1396,9 +1441,9 @@ void IMSlider::render_go_to_layer_dialog()
         | ImGuiWindowFlags_NoResize
         | ImGuiWindowFlags_NoScrollbar
         | ImGuiWindowFlags_NoScrollWithMouse;
-    if (ImGui::BeginPopupModal((_u8L("Jump to Layer")).c_str(), NULL, windows_flag))
+    if (ImGui::BeginPopupModal((_u8L("Jump to layer")).c_str(), NULL, windows_flag))
     {
-        imgui.text(_u8L("Please enter the layer number") + " (" + std::to_string(m_min_value + 1) + " - " + std::to_string(m_max_value + 1) + "):");
+        imgui.text(_u8L("Please enter the layer number.") + " (" + std::to_string(m_min_value + 1) + " - " + std::to_string(m_max_value + 1) + "):");
         if (ImGui::IsMouseClicked(0)) {
             set_focus = false;
         }
@@ -1488,7 +1533,7 @@ void IMSlider::render_add_menu()
         ImGui::OpenPopup("slider_add_menu_popup");
         m_show_menu = false;
     }
-    if (ImGui::BeginPopup("slider_add_menu_popup")) {
+    if (ImGui::BeginPopup("slider_add_menu_popup", ImGuiWindowFlags_NoMove)) {
         bool menu_item_enable = m_draw_mode != dmSequentialFffPrint;
         bool hovered = false;
         {
@@ -1510,7 +1555,7 @@ void IMSlider::render_add_menu()
                 if (hovered) { show_tooltip(_u8L("Insert template custom G-code at the beginning of this layer.")); }
             }
 
-            if (menu_item_with_icon(_u8L("Jump to Layer").c_str(), "")) {
+            if (menu_item_with_icon(_u8L("Jump to layer").c_str(), "")) {
                 m_show_go_to_layer_dialog = true;
             }
         }
@@ -1526,7 +1571,7 @@ void IMSlider::render_add_menu()
                     ImU32                icon_clr = ImGuiWrapper::to_ImU32(rgba);
                     if (rgba.a() == 0)
                         icon_clr = 0;
-                    if (menu_item_with_icon((_u8L("Filament ") + std::to_string(i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr, false, true, &hovered)) add_code_as_tick(ToolChange, i + 1);
+                    if (menu_item_with_icon(into_u8(wxString::Format(_L("Filament %d"), i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr, false, true, &hovered)) add_code_as_tick(ToolChange, i + 1);
                     if (hovered) { show_tooltip(_u8L("Change filament at the beginning of this layer.")); }
                 }
                 end_menu();
@@ -1543,7 +1588,7 @@ void IMSlider::render_edit_menu(const TickCode& tick)
         ImGui::OpenPopup("slider_edit_menu_popup");
         m_show_menu = false;
     }
-    if (ImGui::BeginPopup("slider_edit_menu_popup")) {
+    if (ImGui::BeginPopup("slider_edit_menu_popup", ImGuiWindowFlags_NoMove)) {
         switch (tick.type)
         {
         case CustomGCode::PausePrint:
@@ -1576,7 +1621,7 @@ void IMSlider::render_edit_menu(const TickCode& tick)
                     for (int i = 0; i < extruder_num; i++) {
                         ColorRGBA rgba = decode_color_to_float_array(m_extruder_colors[i]);
                         ImU32     icon_clr = ImGuiWrapper::to_ImU32(rgba);
-                        if (menu_item_with_icon((_u8L("Filament ") + std::to_string(i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr)) add_code_as_tick(ToolChange, i + 1);
+                        if (menu_item_with_icon(into_u8(wxString::Format(_L("Filament %d"), i + 1)).c_str(), "", ImVec2(14, 14) * m_scale, icon_clr)) add_code_as_tick(ToolChange, i + 1);
                     }
                     end_menu();
                 }
@@ -1733,7 +1778,7 @@ std::string IMSlider::get_label(int tick, LabelType label_type)
         ::sprintf(layer_height, "%.2f", m_values.empty() ? m_label_koef * value : m_values[value]);
         if (label_type == ltHeight) return std::string(layer_height);
         if (label_type == ltHeightWithLayer) {
-            char   buffer[64];
+            char   buffer[90];
             size_t layer_number;
             layer_number = m_draw_mode == dmSequentialFffPrint ? (m_values.empty() ? value : value + 1) : m_is_wipe_tower ? get_layer_number(value, label_type) + 1 : (m_values.empty() ? value : value + 1);
             ::sprintf(buffer, "%5s\n%5s", std::to_string(layer_number).c_str(), layer_height);

@@ -3,7 +3,7 @@
 	"name": "QIDI PLA-CF @Qidi Q2 0.8 nozzle",
 	"inherits": "QIDI PLA-CF@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSL98",
+	"setting_id": "b4zVmMvS88E6elwe",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"18"

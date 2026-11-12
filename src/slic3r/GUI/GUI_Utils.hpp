@@ -1,30 +1,47 @@
 #ifndef slic3r_GUI_Utils_hpp_
 #define slic3r_GUI_Utils_hpp_
 
+#include <deque>
+#include <cstddef>
+#include <cmath>
+#include <boost/optional/optional.hpp>
 #include <memory>
+#include <optional>
 #include <string>
 #include <ostream>
 #include <functional>
+#include <vector>
 
 #include <boost/optional.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <type_traits>
+#include <utility>
 #include <wx/frame.h>
 #include <wx/dialog.h>
 #include <wx/event.h>
 #include <wx/filedlg.h>
 #include <wx/gdicmn.h>
+#include <wx/image.h>
 #include <wx/panel.h>
 #include <wx/dcclient.h>
 #include <wx/debug.h>
 #include <wx/settings.h>
 #include <wx/dataview.h>
 #include <wx/statbox.h>
+#include <wx/inspector/inspector.h>
 
 #include <chrono>
+#include <wx/version.h>
+#include <wx/toplevel.h>
+#include <wx/string.h>
 #include "Event.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
+
+#ifdef __WXGTK__
+#include "wx/gauge.h"
+#endif 
 
 
 class wxCheckBox;
@@ -35,6 +52,7 @@ class wxRect;
 #define ICON_SINGLE_SIZE FromDIP(16)//don't change,if need new value,self create in cpp
 #define ICON_SIZE wxSize(FromDIP(16), FromDIP(16))//don't change,if need new value,self create in cpp
 namespace Slic3r {
+class ConfigBase;
 namespace GUI {
 
 inline int hex_to_int(const char c)
@@ -72,6 +90,35 @@ bool is_running_in_msix();
 // Opens the Microsoft Store product page for the current package. No-op when not packaged.
 void open_ms_store_product_page();
 
+// What a save entry point is about to write, for the unresolved-plugin warning below.
+enum class SaveSubject { Preset, Project };
+
+// Shows a warning when `config` holds plugin-backed values that the capability resolver cannot map:
+// the save will omit their "name;uuid;capability" references, so another computer cannot be told
+// which plugin to install. Returns false only when the user chose Cancel; the caller must then not
+// write. Returns true when nothing is unresolved or the user chose "Save anyway". Cancel is the
+// focused button and the result of ESC and the close box.
+bool confirm_save_with_unresolved_plugins(wxWindow* parent, const ConfigBase& config, SaveSubject subject);
+
+// True when `config` holds at least one value worth warning about (same built-in printer-agent
+// filtering as the warning), without showing a dialog. Used to decide whether a remembered
+// "Save" choice must fall back to the dialog instead of skipping the warning.
+bool has_unresolved_plugin_capabilities(const ConfigBase& config);
+
+// One preset's exact partial save config (edited config with unselected options reverted) to check
+// before a batch save. `name` is shown in the warning so the user knows which preset is affected.
+struct SaveConfigToCheck
+{
+    wxString          name;
+    const ConfigBase* config;
+
+    SaveConfigToCheck(const wxString& name_, const ConfigBase* config_) : name(name_), config(config_) {}
+};
+
+// Batch variant used when one Save action writes several presets: shows a single warning listing
+// every affected preset. Returns false only when the user chose Cancel.
+bool confirm_save_presets_with_unresolved_plugins(wxWindow* parent, const std::vector<SaveConfigToCheck>& configs);
+
 void on_window_geometry(wxTopLevelWindow *tlw, std::function<void()> callback);
 
 enum { DPI_DEFAULT = 96 };
@@ -88,7 +135,7 @@ void update_dark_ui(wxWindow* window);
 
 extern std::deque<wxDialog*> dialogStack;
 
-template<class P> class DPIAware : public P
+template<class P> class DPIAware : public P, public wxInspector::wxInspectable
 {
 public:
     DPIAware(wxWindow *parent, wxWindowID id, const wxString &title, const wxPoint &pos=wxDefaultPosition,
@@ -107,18 +154,12 @@ public:
         this->SetFont(m_normal_font);
 #endif
         this->CenterOnParent();
+        SetupInspectorAccelerator(this);
 #ifdef _WIN32
         update_dark_ui(this);
 #endif
 
-        // Linux specific issue : get_dpi_for_window(this) still doesn't responce to the Display's scale in new wxWidgets(3.1.3).
-        // So, calculate the m_em_unit value from the font size, as before
-#if !defined(__WXGTK__)
-        m_em_unit = std::max<size_t>(10, 10.0f * m_scale_factor);
-#else
-        // initialize default width_unit according to the width of the one symbol ("m") of the currently active font of this window.
-        m_em_unit = std::max<size_t>(10, this->GetTextExtent("m").x - 1);
-#endif // __WXGTK__
+        update_em_unit();
 
 //        recalc_font();
 
@@ -160,6 +201,9 @@ public:
                 update_dark_config();
                 on_sys_color_changed();
                 event.Skip();
+#else
+                // Not calling Skip() is what stops the event propagating on Windows.
+                (void) this;
 #endif // __WINDOWS__
 
         });
@@ -182,6 +226,11 @@ public:
 
     float   scale_factor() const        { return m_scale_factor; }
     float   prev_scale_factor() const   { return m_prev_scale_factor; }
+    // Only meant to be used by inspector, not public API
+    void    set_scale_factor(float v)      { m_scale_factor = v; }
+    void    set_prev_scale_factor(float v) { m_prev_scale_factor = v; }
+    void    set_em_unit(int v)             { m_em_unit = v; }
+    bool    force_rescale() const          { return m_force_rescale; }
 
     int     em_unit() const             { return m_em_unit; }
 //    int     font_size() const           { return m_font_size; }
@@ -228,6 +277,19 @@ private:
 //         m_em_unit = metrics.averageWidth;
 //    }
 
+    // update em_unit value for new window font
+    void update_em_unit()
+    {
+        // Linux specific issue : get_dpi_for_window(this) still doesn't responce to the Display's scale in new wxWidgets(3.1.3).
+        // So, calculate the m_em_unit value from the font size, as before
+#if !defined(__WXGTK__)
+        m_em_unit = std::max<size_t>(10, 10.0f * m_scale_factor);
+#else
+        // initialize default width_unit according to the width of the one symbol ("m") of the currently active font of this window.
+        m_em_unit = std::max<size_t>(10, this->GetTextExtent("m").x - 1);
+#endif // __WXGTK__
+    }
+
     // check if new scale is differ from previous
     bool    is_new_scale_factor() const { return fabs(m_scale_factor - m_prev_scale_factor) > 0.001; }
 
@@ -240,8 +302,7 @@ private:
         // set normal application font as a current window font
         m_normal_font = this->GetFont();
 
-        // update em_unit value for new window font
-        m_em_unit = std::max<int>(10, 10.0f * m_scale_factor);
+        update_em_unit();
 
         // rescale missed controls sizes and images
         on_dpi_changed(suggested_rect);
@@ -463,10 +524,16 @@ int get_dpi_for_window(const wxWindow *window);
 #ifdef __WXOSX__
 void dataview_remove_insets(wxDataViewCtrl* dv);
 void staticbox_remove_margin(wxStaticBox* sb);
+// Clip a top-level window (and its webview) to a rounded rect with a native layer.
+void set_window_corner_radius(wxWindow* win, int radius);
+// Returns an opaque sRGB color, or std::nullopt on cancel, on the GUI thread.
+void sample_screen_color(std::function<void(std::optional<ColorRGBA>)> done);
 #endif
 
-#ifdef __WXGTK3__
-void RemoveButtonBorder(wxWindow* win);
+#ifdef __WXGTK__
+void RemoveButtonBorder(wxWindow* win);   // for wxButton/wxBitmapToggleButton based controls (SwitchButton, CheckBox)
+void RemoveInputBorder(wxWindow* win);    // for TextCtrl based controls (TextInput, ComboBox, SpinInput..)
+void SetGaugeColor(wxGauge* gauge, const wxString& barColor, const wxString& troughColor);
 #endif
 
 #if defined(__WXOSX__) || defined(__linux__)

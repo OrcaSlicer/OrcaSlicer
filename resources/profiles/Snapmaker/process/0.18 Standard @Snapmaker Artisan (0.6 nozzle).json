@@ -3,7 +3,7 @@
 	"name": "0.18 Standard @Snapmaker Artisan (0.6 nozzle)",
 	"inherits": "fdm_process_a400",
 	"from": "system",
-	"setting_id": "3721468026",
+	"setting_id": "WRCJjHoFE6ONTjtd",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker Artisan (0.6 nozzle)"
@@ -18,5 +18,7 @@
 	"inner_wall_line_width": "0.62",
 	"internal_solid_infill_line_width": "0.62",
 	"support_line_width": "0.62",
-	"top_surface_line_width": "0.62"
+	"top_surface_line_width": "0.62",
+	"top_color_penetration_layers": "4",
+	"bottom_color_penetration_layers": "3"
 }

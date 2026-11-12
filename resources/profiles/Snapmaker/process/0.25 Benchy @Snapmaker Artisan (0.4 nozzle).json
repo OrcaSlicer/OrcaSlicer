@@ -3,13 +3,14 @@
 	"name": "0.25 Benchy @Snapmaker Artisan (0.4 nozzle)",
 	"inherits": "fdm_process_a400",
 	"from": "system",
-	"setting_id": "2853588009",
+	"setting_id": "u2Me8HPHOGuwYh4H",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker Artisan (0.4 nozzle)"
 	],
 	"elefant_foot_compensation": "0.15",
 	"top_shell_layers": "3",
+	"top_color_penetration_layers": "3",
 	"top_shell_thickness": "0.5",
 	"initial_layer_speed": "100",
 	"initial_layer_infill_speed": "180",
@@ -46,6 +47,7 @@
 	"sparse_infill_line_width": "0.5",
 	"top_surface_line_width": "0.5",
 	"bottom_shell_layers": "2",
+	"bottom_color_penetration_layers": "2",
 	"initial_layer_travel_speed": "100%",
 	"bridge_acceleration": "3000",
 	"bridge_speed": "100",

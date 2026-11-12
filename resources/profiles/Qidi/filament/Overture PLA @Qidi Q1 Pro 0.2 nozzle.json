@@ -3,8 +3,8 @@
 	"name": "Overture PLA @Qidi Q1 Pro 0.2 nozzle",
 	"inherits": "Overture PLA @Qidi",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "3jqdiWNWro7yFptW",
+	"filament_id": "OFc3xdm9",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

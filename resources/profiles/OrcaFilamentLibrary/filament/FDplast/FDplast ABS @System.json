@@ -3,7 +3,7 @@
 	"name": "FDplast ABS @System",
 	"inherits": "FDplast ABS @base",
 	"from": "system",
-	"setting_id": "ABS01_00",
+	"setting_id": "jRvfHo7ROCdAndIE",
 	"instantiation": "true",
 	"compatible_printers": []
 }

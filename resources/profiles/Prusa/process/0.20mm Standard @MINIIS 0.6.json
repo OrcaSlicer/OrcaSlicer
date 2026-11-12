@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @MINIIS 0.6",
 	"inherits": "process_common_miniis",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "P1Z1TjcycB4aOjUT",
 	"instantiation": "true",
 	"layer_height": "0.20",
 	"initial_layer_print_height": "0.25",

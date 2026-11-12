@@ -1,5 +1,8 @@
 #pragma once
+#include <memory>
 #include <optional>
+#include <string>
+#include <map>
 #include <nlohmann/json.hpp>
 #include "DevCtrl.h"
 
@@ -27,7 +30,7 @@ public:
     void SetAutoRefillEnabled(bool enable) { m_enable_auto_refill = enable; }
 
 private:
-    DevFilaSystem* m_owner = nullptr;
+    [[maybe_unused]] DevFilaSystem* m_owner = nullptr;
 
     std::optional<bool> m_enable_detect_on_insert = false;
     bool m_enable_detect_on_powerup = false;
@@ -75,7 +78,8 @@ public:
 
     DevAmsSystemIdx GetCurrentFirmwareIdxSel() const { return m_current_firmware_sel.m_firmare_idx; };
     DevAmsSystemIdx GetCurrentFirmwareIdxRun() const { return m_current_firmware_run.m_firmare_idx; };
-    std::unordered_map<int, DevAmsSystemFirmware> GetSuppotedFirmwares() const { return m_firmwares;};
+    // Ordered by firmware id: the AMS type combo lists these in order and uses the id as its row index.
+    std::map<int, DevAmsSystemFirmware> GetSuppotedFirmwares() const { return m_firmwares;};
 
     bool IsSwitching() const { return m_status == "SWITCHING";};
     bool IsIdle() const { return m_status == "IDLE";};
@@ -94,7 +98,7 @@ private:
 
     DevAmsSystemFirmware m_current_firmware_run;
     DevAmsSystemFirmware m_current_firmware_sel;
-    std::unordered_map<int, DevAmsSystemFirmware> m_firmwares;
+    std::map<int, DevAmsSystemFirmware> m_firmwares;
 
     DevCtrlInfo m_ctrl_switching;
 };

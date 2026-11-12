@@ -1,0 +1,50 @@
+{
+    "type": "filament",
+    "name": "Bambu PLA Tough+ @BBL A2L 0.6 nozzle",
+    "inherits": "Bambu PLA Tough+ @base",
+    "from": "system",
+    "setting_id": "GFSA10_47",
+    "instantiation": "true",
+    "additional_cooling_fan_speed": [
+        "70"
+    ],
+    "eng_plate_temp": [
+        "55"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "55"
+    ],
+    "fan_cooling_layer_time": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "90"
+    ],
+    "filament_flush_temp": [
+        "0"
+    ],
+    "filament_flush_temp_fast": [
+        "245"
+    ],
+    "filament_long_retractions_when_cut": [
+        "1"
+    ],
+    "filament_max_volumetric_speed": [
+        "18"
+    ],
+    "filament_retraction_distances_when_cut": [
+        "18"
+    ],
+    "overhang_fan_threshold": [
+        "25%"
+    ],
+    "pre_start_fan_time": [
+        "2"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A2L 0.6 nozzle"
+    ],
+    "filament_start_gcode": [
+        ""
+    ]
+}

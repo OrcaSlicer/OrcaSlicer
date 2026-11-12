@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFSEP016",
-	"setting_id": "GFSEP016_00",
 	"name": "Eolas Prints TPU Transition @System",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"setting_id": "CM24KGoHLt0yLH93",
+	"filament_id": "OFTOPcx0",
+	"instantiation": "true",
 	"filament_color": [
 		"#4d9398"
 	],

@@ -3,21 +3,28 @@
  *
  */
 
+#include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <cstddef>
+#include <iterator>
 #include <numeric>
 #include <libslic3r/SLA/SupportTree.hpp>
-#include <libslic3r/SLA/SpatIndex.hpp>
 #include <libslic3r/SLA/SupportTreeBuilder.hpp>
 #include <libslic3r/SLA/SupportTreeBuildsteps.hpp>
 
-#include <libslic3r/MTUtils.hpp>
-#include <libslic3r/ClipperUtils.hpp>
-#include <libslic3r/Model.hpp>
 #include <libslic3r/TriangleMeshSlicer.hpp>
 
 #include <libnest2d/optimizers/nlopt/genetic.hpp>
 #include <libnest2d/optimizers/nlopt/subplex.hpp>
 #include <boost/log/trivial.hpp>
-#include <libslic3r/I18N.hpp>
+#include <vector>
+#include <utility>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/SLA/IndexedMesh.hpp"
+#include "libslic3r/SLA/JobController.hpp"
 
 //! macro used to mark string used at localization,
 //! return same string

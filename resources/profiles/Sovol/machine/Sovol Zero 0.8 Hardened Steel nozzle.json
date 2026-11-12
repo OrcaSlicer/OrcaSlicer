@@ -1,0 +1,19 @@
+{
+	"type": "machine",
+	"name": "Sovol Zero 0.8 Hardened Steel nozzle",
+	"inherits": "Sovol Zero 0.8 nozzle",
+	"from": "system",
+	"setting_id": "houacf8sQ3bLozqD",
+	"instantiation": "true",
+	"printer_model": "Sovol Zero",
+	"printer_variant": "0.8HS",
+	"nozzle_diameter": [
+		"0.8"
+	],
+	"default_filament_profile": [
+		"Generic PLA @Sovol Zero Hardened Steel nozzle"
+	],
+	"nozzle_type": [
+		"hardened_steel"
+	]
+}

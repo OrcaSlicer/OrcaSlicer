@@ -3,8 +3,8 @@
 	"name": "Bambu PETG @0.2 nozzle",
 	"inherits": "Bambu PETG",
 	"from": "system",
-	"setting_id": "GFSG99",
-	"filament_id": "GFG99",
+	"setting_id": "cZhyWv8zbkM3fgAS",
+	"filament_id": "OFLYDngx",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
 		"1"
@@ -46,12 +46,8 @@
 		"1"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.2 nozzle",
-		"Qidi X-Max 0.2 nozzle",
-		"Qidi X-CF Pro 0.2 nozzle",
 		"Qidi X-Smart 3 0.2 nozzle",
 		"Qidi X-Plus 3 0.2 nozzle",
-		"Qidi X-Max 3 0.2 nozzle",
-		"Qidi Q1 Pro 0.2 nozzle"
+		"Qidi X-Max 3 0.2 nozzle"
 	]
 }

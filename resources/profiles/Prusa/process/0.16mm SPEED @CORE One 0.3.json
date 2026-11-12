@@ -3,6 +3,7 @@
 	"name": "0.16mm SPEED @CORE One 0.3",
 	"inherits": "0.16mm SPEED @MK4S 0.3",
 	"from": "system",
+	"setting_id": "YGK4pmtGyq62UmYk",
 	"instantiation": "true",
 	"sparse_infill_acceleration": "6000",
 	"inner_wall_acceleration": "3000",

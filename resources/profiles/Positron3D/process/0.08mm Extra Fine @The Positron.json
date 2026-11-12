@@ -3,7 +3,7 @@
 	"name": "0.08mm Extra Fine @The Positron",
 	"inherits": "fdm_process_the_positron_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "1DDW81XdJwsN54OH",
 	"instantiation": "true",
 	"layer_height": "0.08",
 	"bottom_shell_layers": "7",

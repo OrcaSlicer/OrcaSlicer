@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Translucent @base",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OGFPM006",
+	"filament_id": "OFCIUsWh",
 	"instantiation": "false",
 	"filament_cost": [
 		"24.99"

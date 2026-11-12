@@ -2,6 +2,30 @@
 #include "GUI_App.hpp"
 #include "OptionsGroup.hpp"
 
+#include "libslic3r/Point.hpp"
+#include <string>
+#include <cassert>
+#include "libslic3r/Config.hpp"
+#include <utility>
+#include <wx/string.h>
+#include "libslic3r/BuildVolume.hpp"
+#include "slic3r/GUI/Field.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <wx/panel.h>
+#include <wx/bookctrl.h>
+#include "slic3r/GUI/2DBed.hpp"
+#include <memory>
+#include <boost/filesystem/operations.hpp>
+#include <boost/any.hpp>
+#include <exception>
+#include "libslic3r/libslic3r.h"
+#include <vector>
+#include <cmath>
+#include <wx/filedlg.h>
+#include "slic3r/GUI/GUI.hpp"
+#include <wx/busycursor.h>
 #include <wx/wx.h>
 #include <wx/numformatter.h>
 #include <wx/sizer.h>
@@ -566,7 +590,7 @@ void BedShapePanel::load_stl()
         model = Model::read_from_file(file_name);
 	}
 	catch (std::exception &) {
-        show_error(this, _L("Error! Invalid model"));
+        show_error(this, _L("Error: invalid model"));
         return;
     }
 
@@ -578,7 +602,7 @@ void BedShapePanel::load_stl()
 		return;
 	}
 	if (expolygons.size() > 1) {
-		show_error(this, _L("The selected file contains several disjoint areas. This is not supported."));
+		show_error(this, _L("The selected file contains several disjointed areas. This is not supported."));
 		return;
 	}
 

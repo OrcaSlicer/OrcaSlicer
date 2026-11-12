@@ -3,8 +3,8 @@
 	"name": "Anycubic PLA Silk @Anycubic Kobra S1 Max 0.4 nozzle",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "Anycubic PLA Silk @Anycubic Kobra S1 Max 0.4 nozzle",
-	"filament_id": "GFPLA Silk",
+	"setting_id": "AzEerDakdHs9Rj3I",
+	"filament_id": "OFFwJWea",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic PLA Silk @Anycubic Kobra S1 Max 0.4 nozzle"

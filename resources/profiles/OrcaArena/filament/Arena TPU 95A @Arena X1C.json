@@ -3,7 +3,7 @@
 	"name": "Arena TPU 95A @Arena X1C",
 	"inherits": "Arena TPU 95A @base",
 	"from": "system",
-	"setting_id": "GFSU00",
+	"setting_id": "pjdiz15hZ4VHQCSe",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.6"

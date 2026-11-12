@@ -3,6 +3,7 @@
 	"name": "0.15mm SPEED @MK4S HF0.4",
 	"inherits": "0.15mm SPEED @MK4S 0.4",
 	"from": "system",
+	"setting_id": "Q3tvcNm32wcuelzj",
 	"instantiation": "true",
 	"compatible_printers_condition": "printer_notes=~/.*MK4S.*/ and nozzle_diameter[0]==0.4 and printer_notes=~/.*HF_NOZZLE.*/",
 	"inner_wall_speed": "250",

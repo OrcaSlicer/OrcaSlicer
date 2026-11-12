@@ -5,6 +5,8 @@
 #include <wx/webview.h>
 #include <wx/string.h>
 
+class wxWebViewEvent;
+
 class wxWebView;
 
 namespace Slic3r {

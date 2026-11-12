@@ -3,6 +3,7 @@
 	"name": "0.15mm STRUCTURAL @MK4S 0.4",
 	"inherits": "0.20mm STRUCTURAL @MK4S 0.4",
 	"from": "system",
+	"setting_id": "ShJ9CnEQUymPOhMD",
 	"instantiation": "true",
 	"bottom_shell_layers": "5",
 	"bridge_speed": "45",

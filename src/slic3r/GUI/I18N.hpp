@@ -1,3 +1,7 @@
+#include <wx/string.h>
+#include <wx/translation.h>
+#include <wx/strconv.h>
+#include <string>
 #ifndef _
 #define _(s)    	Slic3r::GUI::I18N::translate((s))
 #define _L(s)    	Slic3r::GUI::I18N::translate((s))
@@ -7,9 +11,9 @@
 #define _u8L(s)     Slic3r::GUI::I18N::translate_utf8((s))
 #endif /* _ */
 
-#ifndef _CTX
-#define _CTX(s, ctx) 	  Slic3r::GUI::I18N::translate((s), (ctx))
-#define _CTX_utf8(s, ctx) Slic3r::GUI::I18N::translate_utf8((s), (ctx))
+#ifndef _L_CONTEXT
+#define _L_CONTEXT(s, ctx) 	 Slic3r::GUI::I18N::translate((s), (ctx))
+#define _u8L_CONTEXT(s, ctx) Slic3r::GUI::I18N::translate_utf8((s), (ctx))
 #endif /* _ */
 
 #ifndef L

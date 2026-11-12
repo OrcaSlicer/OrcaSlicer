@@ -1,9 +1,10 @@
 {
 	"type": "filament",
 	"name": "Eryone Silk PLA @0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Eryone Silk PLA",
+	"from": "system",
+	"setting_id": "RS6yfcZ6PbJzGrUc",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Thinker X400 0.2 nozzle"
 	],

@@ -1,10 +1,26 @@
 #include "TextInput.hpp"
-#include "Label.hpp"
 #include "TextCtrl.h"
 #include "slic3r/GUI/Widgets/Label.hpp"
 
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <utility>
+#include <cassert>
+#include "slic3r/GUI/Widgets/StateHandler.hpp"
+#include <wx/containr.h>
+#include <wx/dc.h>
+#include <algorithm>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/textctrl.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+
+#ifdef __WXGTK__
+#include "../GUI_Utils.hpp"
+#endif
 
 BEGIN_EVENT_TABLE(TextInput, StaticBox)
 
@@ -24,7 +40,7 @@ TextInput::TextInput()
     , text_color(std::make_pair(0x6B6B6B, (int) StateColor::Disabled),
                  std::make_pair(0x262E30, (int) StateColor::Normal))
 {
-    radius = 0;
+    input_corner_radius = true;
     border_width = 1;
     border_color = StateColor(std::make_pair(0xDBDBDB, (int) StateColor::Disabled), std::make_pair(0x009688, (int) StateColor::Hovered),
                               std::make_pair(0xDBDBDB, (int) StateColor::Normal));
@@ -54,12 +70,18 @@ void TextInput::Create(wxWindow *     parent,
 {
         text_ctrl = nullptr;
     StaticBox::Create(parent, wxID_ANY, pos, size, style);
+    apply_input_corner_radius();
     wxWindow::SetLabel(label);
     assert((style & wxRIGHT) == 0);
     style &= ~wxALIGN_MASK;
     state_handler.attach({&label_color, & text_color});
     state_handler.update_binds();
     text_ctrl = new TextCtrl(this, wxID_ANY, text, {4, 4}, wxDefaultSize, style | wxBORDER_NONE | wxTE_PROCESS_ENTER);
+
+#ifdef __WXGTK__
+    Slic3r::GUI::RemoveInputBorder(text_ctrl);
+#endif
+
     text_ctrl->SetFont(Label::Body_14);
     text_ctrl->SetInitialSize(text_ctrl->GetBestSize());
     text_ctrl->SetBackgroundColour(background_color.colorForStates(state_handler.states()));
@@ -76,17 +98,11 @@ void TextInput::Create(wxWindow *     parent,
         e.SetId(GetId());
         ProcessEventLocally(e);
     });
-    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [this](auto &e) {}); // disable context menu
+    text_ctrl->Bind(wxEVT_RIGHT_DOWN, [](auto &e) {}); // disable context menu
     if (!icon.IsEmpty()) {
         this->icon = ScalableBitmap(this, icon.ToStdString(), 16);
     }
     messureSize();
-}
-
-void TextInput::SetCornerRadius(double radius)
-{
-    this->radius = radius;
-    Refresh();
 }
 
 void TextInput::SetLabel(const wxString& label)
@@ -130,6 +146,15 @@ void TextInput::SetIcon_1(const wxString &icon) {
     Rescale();
 }
 
+// Set icon_1 from a raw bitmap. Note: won't auto-rescale on DPI change
+// since ScalableBitmap::name() will be empty. Caller should re-set after DPI change.
+void TextInput::SetIcon_1(const wxBitmap &icon) {
+    this->icon_1 = ScalableBitmap();
+    if (icon.IsOk())
+        this->icon_1.bmp() = icon;
+    Rescale();
+}
+
 void TextInput::SetLabelColor(StateColor const &color)
 {
     label_color = color;
@@ -148,6 +173,7 @@ void TextInput::Rescale()
         this->icon.msw_rescale();
     if (!this->icon_1.name().empty())
         this->icon_1.msw_rescale();
+    apply_input_corner_radius();
     messureSize();
     Refresh();
 }

@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Anycubic 4MaxPro",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "Kx84xWCL5ioNtf3l",
 	"instantiation": "true",
 	"initial_layer_speed": "40",
 	"initial_layer_infill_speed": "50",

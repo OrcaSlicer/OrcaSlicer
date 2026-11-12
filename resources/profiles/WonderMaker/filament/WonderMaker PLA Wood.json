@@ -3,7 +3,8 @@
 	"name": "WonderMaker PLA Wood",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "GFA16",
+	"setting_id": "KxnOjANQuyO10zzH",
+	"filament_id": "OFBBgw7B",
 	"instantiation": "true",
 	"filament_cost": [
 		"24.99"

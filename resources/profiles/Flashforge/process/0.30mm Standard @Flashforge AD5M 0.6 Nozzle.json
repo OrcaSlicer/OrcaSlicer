@@ -3,11 +3,12 @@
 	"name": "0.30mm Standard @Flashforge AD5M 0.6 Nozzle",
 	"inherits": "fdm_process_flashforge_0.30",
 	"from": "system",
-	"setting_id": "GP003",
+	"setting_id": "FoJXtPRI5C4JHZTD",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Adventurer 5M 0.6 Nozzle"
 	],
+	"exclude_object_tolerance": "0.2",
 	"filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
 	"post_process": "",
 	"only_one_wall_top": "0",

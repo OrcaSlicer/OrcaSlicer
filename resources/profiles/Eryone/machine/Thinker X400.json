@@ -8,5 +8,5 @@
 	"bed_model": "X400_bed.stl",
 	"bed_texture": "Thinker_texture.svg",
 	"hotend_model": "",
-	"default_materials": "Eryone PLA;Eryone ABS;Eryone ASA;Eryone PETG;Eryone Silk PLA;Eryone TPU;Eryone ABS-CF;Eryone ASA-CF;Eryone PA;Eryone PA-CF;Eryone PA-GF;Eryone PETG-CF;Eryone PLA-CF;Eryone PP;Eryone PP-CF"
+	"default_materials": "Eryone PLA;Eryone ABS;Eryone ASA;Eryone PETG;Eryone Silk PLA;Eryone TPU;Eryone ABS-CF;Eryone ASA-CF;Eryone PA;Eryone PA-CF;Eryone PA-GF;Eryone PETG-CF;Eryone PLA-CF;Eryone PP;Eryone PP-CF;Eryone PLA @0.2 nozzle"
 }

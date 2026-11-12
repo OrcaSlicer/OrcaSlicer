@@ -1,18 +1,64 @@
 #include "UnsavedChangesDialog.hpp"
 
+#include <climits>
+#include <cmath>
+#include <cstdlib>
+#include <cwchar>
+#include <boost/algorithm/string/replace.hpp>
+#include <cassert>
+#include <algorithm>
+#include <array>
 #include <cstddef>
+#include <initializer_list>
+#include "slic3r/GUI/Event.hpp"
+#include <map>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <memory>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/SettingsIndex.hpp"
+#include <set>
+#include <iterator>
 #include <string>
+#include <utility>
 #include <vector>
 #include <boost/algorithm/string.hpp>
-#include <boost/optional.hpp>
 
+#include <wx/colour.h>
+#include <wx/dataview.h>
+#include <wx/log.h>
+#include <wx/gdicmn.h>
+#include <wx/dvrenderers.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/stattext.h>
+#include <wx/dialog.h>
+#include <wx/sizer.h>
+#include <wx/textctrl.h>
+#include <wx/settings.h>
 #include <wx/tokenzr.h>
+#include <wx/utils.h>
+#include <wx/variant.h>
+#include <wx/window.h>
+#include <wx/toplevel.h>
+#include <wx/statline.h>
+#include <wx/tglbtn.h>
+#include <wx/types.h>
 
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Color.hpp"
 #include "format.hpp"
+#include "ConfigValueFormatter.hpp"
 #include "GUI_App.hpp"
+#include "OptionsGroup.hpp"
 #include "Plater.hpp"
 #include "Tab.hpp"
 #include "ExtraRenderers.hpp"
@@ -22,12 +68,8 @@
 #include "MsgDialog.hpp"
 
 #include "PresetComboBoxes.hpp"
-#include "Widgets/RoundedRectangle.hpp"
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/DialogButtons.hpp"
-#include "Widgets/HyperLink.hpp"
-
-using boost::optional;
 
 #ifdef __linux__
 #define wxLinux true
@@ -40,6 +82,8 @@ namespace Slic3r {
 namespace GUI {
 
 wxDEFINE_EVENT(EVT_DIFF_DIALOG_TRANSFER, SimpleEvent);
+
+static PresetCollection* get_preset_collection(Preset::Type type, PresetBundle* preset_bundle = nullptr);
 
 
 // ----------------------------------------------------------------------------
@@ -152,7 +196,7 @@ ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& ol
     // check if old/new_value is color
     if (m_old_color.IsEmpty()) {
         if (!m_new_color.IsEmpty())
-            m_old_value = _L("Undef");
+            m_old_value = _L("Undefined");
     }
     else {
         m_old_color_bmp = get_bitmap(m_old_color);
@@ -161,7 +205,7 @@ ModelNode::ModelNode(ModelNode* parent, const wxString& text, const wxString& ol
 
     if (m_new_color.IsEmpty()) {
         if (!m_old_color.IsEmpty())
-            m_new_value = _L("Undef");
+            m_new_value = _L("Undefined");
     }
     else {
         m_new_color_bmp = get_bitmap(m_new_color);
@@ -571,13 +615,40 @@ void DiffModel::Clear()
 }
 
 
-static std::string get_pure_opt_key(std::string opt_key)
+// Top-down order of the sidebar's preset sections.
+static const Preset::Type PRESET_TYPE_ORDER[] = {
+    Preset::TYPE_PRINTER, Preset::TYPE_FILAMENT, Preset::TYPE_SLA_MATERIAL, Preset::TYPE_PRINT, Preset::TYPE_SLA_PRINT };
+
+static int preset_type_rank(Preset::Type type)
 {
-    const int pos = opt_key.find("#");
-    if (pos > 0)
-        boost::erase_tail(opt_key, opt_key.size() - pos);
-    return opt_key;
+    return int(std::find(std::begin(PRESET_TYPE_ORDER), std::end(PRESET_TYPE_ORDER), type) - std::begin(PRESET_TYPE_ORDER));
 }
+
+// opt_key -> its position on the settings pages, with the tabs taken in PRESET_TYPE_ORDER.
+static std::map<std::string, int> build_tab_order_map()
+{
+    std::vector<Tab *> tabs = wxGetApp().tabs_list;
+    std::stable_sort(tabs.begin(), tabs.end(), [](Tab *a, Tab *b) { return preset_type_rank(a->type()) < preset_type_rank(b->type()); });
+
+    std::map<std::string, int> order;
+    for (Tab *tab : tabs)
+        for (const PageShp &page : tab->pages())
+            for (const auto &optgroup : page->m_optgroups)
+                for (const Line &line : optgroup->get_lines())
+                    for (const Option &opt : line.get_options())
+                        order.emplace(get_pure_opt_key(opt.opt_id), int(order.size()));
+    return order;
+}
+
+static int order_of(const std::map<std::string, int> &tab_order, const std::string &opt_key)
+{
+    auto it = tab_order.find(get_pure_opt_key(opt_key));
+    return it != tab_order.end() ? it->second : INT_MAX;
+}
+
+// Same-named categories on different tabs must stay separate, so the keys carry the preset type.
+static wxString preset_item_cat_key(const PresetItem &pi) { return wxString::Format("%d:", int(pi.type)) + pi.category_name; }
+static wxString preset_item_grp_key(const PresetItem &pi) { return preset_item_cat_key(pi) + ":" + pi.group_name; }
 
 // ----------------------------------------------------------------------------
 //                  DiffViewCtrl
@@ -591,6 +662,7 @@ DiffViewCtrl::DiffViewCtrl(wxWindow* parent, wxSize size)
     ),
     m_em_unit(em_unit(parent))
 {
+    SetBackgroundColour(wxColour("#FFFFFF"));
     wxGetApp().UpdateDVCDarkUI(this);
 
     model = new DiffModel(parent);
@@ -773,10 +845,19 @@ std::vector<std::string> DiffViewCtrl::selected_options()
 
 static std::string none{"none"};
 #define UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE wxSize(FromDIP(490), FromDIP(374))
-#define UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE wxSize(FromDIP(490), FromDIP(60))
+#define UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE wxSize(FromDIP(490), -1)
 #define UNSAVE_CHANGE_DIALOG_FIRST_VALUE_WIDTH FromDIP(190)
 #define UNSAVE_CHANGE_DIALOG_VALUE_WIDTH FromDIP(150)
+#define UNSAVE_CHANGE_DIALOG_VALUE_TEXT_WIDTH (UNSAVE_CHANGE_DIALOG_VALUE_WIDTH - FromDIP(10))
+#define UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT FromDIP(23)
+#define UNSAVE_CHANGE_DIALOG_GROUP_INDENT FromDIP(37)
+#define UNSAVE_CHANGE_DIALOG_OPTION_INDENT FromDIP(51)
+#define UNSAVE_CHANGE_DIALOG_ICON_WIDTH FromDIP(24)
 #define UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT FromDIP(24)
+#define UNSAVE_CHANGE_DIALOG_SYNC_CELL_PADDING FromDIP(8)
+#define UNSAVE_CHANGE_DIALOG_TYPE_INDENT FromDIP(8)
+// A row's checkbox and the gap after it
+#define UNSAVE_CHANGE_DIALOG_CHECK_WIDTH FromDIP(22)
 #define UNSAVE_CHANGE_DIALOG_BUTTON_SIZE wxSize(FromDIP(70), FromDIP(24))
 
 #define THUMB_COLOR wxColor(196, 196, 196)
@@ -790,7 +871,7 @@ static std::string none{"none"};
 UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxString &header, const std::string &app_config_key, int act_buttons)
     : DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
-                caption + ": " + _L("Unsaved Changes"),
+                caption + ": " + _L("unsaved changes"),
                 wxDefaultPosition,
                 wxDefaultSize,
                 wxCAPTION | wxCLOSE_BOX)
@@ -802,8 +883,23 @@ UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxStri
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
+UnsavedChangesDialog::UnsavedChangesDialog(const wxString &caption, const wxString &header, Preset::Type type, SyncExtruderParams params)
+    : DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe),
+                wxID_ANY,
+                caption,
+                wxDefaultPosition,
+                wxDefaultSize,
+                wxCAPTION | wxCLOSE_BOX)
+    , m_buttons(ActionButtons::SAVE | ActionButtons::DONT_SAVE)
+{
+    build(type, reinterpret_cast<PresetCollection*>(&params), "SyncExtruderParams", header);
+    this->CenterOnScreen();
+    wxGetApp().UpdateDlgDarkUI(this);
+}
+
 UnsavedChangesDialog::UnsavedChangesDialog(Preset::Type type, PresetCollection *dependent_presets, const std::string &new_selected_preset, bool no_transfer)
-    : m_new_selected_preset_name(new_selected_preset)
+    : m_dependent_presets(dependent_presets)
+    , m_new_selected_preset_name(new_selected_preset)
     , DPIDialog(static_cast<wxWindow *>(wxGetApp().mainframe),
                 wxID_ANY,
                 _L("Transfer or discard changes"),
@@ -825,8 +921,13 @@ inline int UnsavedChangesDialog::ShowModal()
     auto choise     = wxGetApp().app_config->get(choise_key);
     long result = 0;
     if ((m_buttons & REMEMBER_CHOISE) && !choise.empty() && wxString(choise).ToLong(&result) && (1 << result) & (m_buttons | DONT_SAVE)) {
-        m_exit_action = Action(result);
-        return 0;
+        const Action remembered = Action(result);
+        // A remembered Save would otherwise skip the unresolved-plugin warning in save(). Show the
+        // dialog when the presets being saved need it; remembered Transfer/Discard keep the shortcut.
+        if (remembered != Action::Save || !selected_save_needs_plugin_warning()) {
+            m_exit_action = remembered;
+            return 0;
+        }
     }
     int r = DPIDialog::ShowModal();
     if (r != wxID_CANCEL && dynamic_cast<::CheckBox*>(FindWindowById(wxID_APPLY))->GetValue()) {
@@ -839,6 +940,61 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
 {
     SetBackgroundColour(*wxWHITE);
 
+    SyncExtruderParams *params = nullptr;
+    if (new_selected_preset == "SyncExtruderParams") {
+        params = reinterpret_cast<SyncExtruderParams *>(dependent_presets);
+        dependent_presets = nullptr;
+    }
+
+    // The rows size the columns, so collect them before building the header.
+    if (params)
+        update_tree(type, params->config);
+    else
+        update_tree(type, dependent_presets);
+
+    // The sync dialog has a value column per extruder, each fitted to its content once the table is built.
+    const int value_columns = params ? int(params->titles.size()) : 2;
+    m_value_width           = params ? wxDefaultCoord : UNSAVE_CHANGE_DIALOG_VALUE_WIDTH;
+    if (params) {
+        m_sync_columns.assign(value_columns + 1, {});
+        m_first_value_width = m_content_width = wxDefaultCoord;
+    } else {
+        auto row_width = [this](const wxString &text, const wxFont &font, int indent) {
+            int w = 0, h = 0;
+            GetTextExtent(text, &w, &h, nullptr, nullptr, &font);
+            return indent + w + FromDIP(16);
+        };
+        // Category headers span the row, so they widen the dialog rather than the label column.
+        m_first_value_width = UNSAVE_CHANGE_DIALOG_FIRST_VALUE_WIDTH;
+        int category_width  = 0;
+        for (const PresetItem &pi : m_presetitems) {
+            const int option_w = row_width(pi.option_name, ::Label::Body_13, UNSAVE_CHANGE_DIALOG_OPTION_INDENT) + (pi.has_icon ? UNSAVE_CHANGE_DIALOG_ICON_WIDTH : 0);
+            m_first_value_width = std::max({m_first_value_width, option_w, row_width(pi.group_name, ::Label::Head_13, UNSAVE_CHANGE_DIALOG_GROUP_INDENT)});
+            category_width      = std::max(category_width, row_width(pi.category_name, ::Label::Head_13, UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT));
+        }
+        // Every row has its box before the label.
+        m_first_value_width = std::min(m_first_value_width + UNSAVE_CHANGE_DIALOG_CHECK_WIDTH, FromDIP(420));
+        category_width += UNSAVE_CHANGE_DIALOG_CHECK_WIDTH;
+        m_content_width     = std::min(std::max(m_first_value_width + 2 * UNSAVE_CHANGE_DIALOG_VALUE_WIDTH, category_width), FromDIP(760));
+    }
+
+    // update_list() gives every category, group and option one ITEM_HEIGHT row, and every type one outside the sync
+    // dialog, so this is the exact list height.
+    std::set<int>      row_types;
+    std::set<wxString> row_cats, row_grps;
+    for (const PresetItem &pi : m_presetitems) {
+        row_types.insert(int(pi.type));
+        row_cats.insert(preset_item_cat_key(pi));
+        row_grps.insert(preset_item_grp_key(pi));
+    }
+    const int  row_count       = int((params ? 0 : row_types.size()) + row_cats.size() + row_grps.size() + m_presetitems.size());
+    const bool needs_scrollbar = row_count * UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT > UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE.GetHeight();
+
+    // Overlay scrollbars report a width of 0 and take no space.
+    const int scrollbar_w = needs_scrollbar ? std::max(0, wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, this)) : 0;
+    if (!params)
+        m_content_width += scrollbar_w;
+
     wxBoxSizer *m_sizer_main = new wxBoxSizer(wxVERTICAL);
 
     m_top_line = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1), wxTAB_TRAVERSAL);
@@ -848,87 +1004,99 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
 
     m_sizer_main->Add(0, 0, 0, wxTOP, 20);
 
-    m_action_line = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE, 0);
+    m_action_line = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(m_content_width, UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE.y), 0);
     m_action_line->SetFont(::Label::Body_13);
-    m_action_line->SetForegroundColour(GREY900);
+    m_action_line->SetForegroundColour(wxColour("#363636"));
     m_action_line->Wrap(-1);
     m_sizer_main->Add(m_action_line, 0, wxLEFT | wxRIGHT, 20);
 
     m_sizer_main->Add(0, 0, 0, wxTOP, 12);
 
-    m_panel_tab = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE.x, -1), wxTAB_TRAVERSAL);
-    m_panel_tab->SetBackgroundColour(GREY200);
+    m_panel_tab = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(m_content_width, -1), wxTAB_TRAVERSAL);
+    m_panel_tab->SetBackgroundColour(wxColour("#D9D9D9"));
     wxBoxSizer *m_sizer_tab = new wxBoxSizer(wxVERTICAL);
 
     m_table_top = new wxPanel(m_panel_tab, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    m_table_top->SetBackgroundColour(wxColour(107, 107, 107));
+    m_table_top->SetBackgroundColour(wxColour("#D9D9D9"));
 
     wxBoxSizer *m_sizer_top = new wxBoxSizer(wxHORIZONTAL);
 
-    //m_sizer_top->Add(0, 0, 0, wxLEFT, UNSAVE_CHANGE_DIALOG_FIRST_VALUE_WIDTH);
-    auto        m_panel_temp   = new wxPanel(m_table_top, wxID_ANY, wxDefaultPosition, wxSize(UNSAVE_CHANGE_DIALOG_FIRST_VALUE_WIDTH, -1), wxTAB_TRAVERSAL);
+    // m_sizer_top->Add(0, 0, 0, wxLEFT, UNSAVE_CHANGE_DIALOG_FIRST_VALUE_WIDTH);
+    auto        m_panel_temp   = new wxPanel(m_table_top, wxID_ANY, wxDefaultPosition, wxSize(m_first_value_width, -1), wxTAB_TRAVERSAL);
     wxBoxSizer *top_title_temp_v = new wxBoxSizer(wxVERTICAL);
-    top_title_temp_v->SetMinSize(wxSize(UNSAVE_CHANGE_DIALOG_VALUE_WIDTH, -1));
+    if (!params)
+        top_title_temp_v->SetMinSize(wxSize(UNSAVE_CHANGE_DIALOG_VALUE_WIDTH, -1));
     wxBoxSizer *top_title_temp_h = new wxBoxSizer(wxHORIZONTAL);
+
+    // Tick-all boxes of the header: every change or copy (column -1), or in the sync dialog every copy to one column.
+    std::vector<std::pair<size_t, int>> header_checks;
+    auto add_header_check = [this, &header_checks](wxPanel *panel, wxBoxSizer *sizer, int column) {
+        panel->SetBackgroundColour(wxColour("#D9D9D9"));
+        const size_t k = add_all_check(panel);
+        header_checks.emplace_back(k, column);
+        sizer->Add(m_all_checks[k].first, 0, wxALIGN_CENTER | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, FromDIP(4));
+    };
+    add_header_check(m_panel_temp, top_title_temp_h, -1);
     static_temp_title            = new wxStaticText(m_panel_temp, wxID_ANY, _L("Settings"), wxDefaultPosition, wxDefaultSize, 0);
     static_temp_title->SetFont(::Label::Body_13);
     static_temp_title->Wrap(-1);
-    static_temp_title->SetForegroundColour(*wxWHITE);
+    static_temp_title->SetForegroundColour(wxColour("#363636"));
     top_title_temp_h->Add(static_temp_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
-    top_title_temp_v->Add(top_title_temp_h, 1, wxALIGN_CENTER, 0);
+    // The corner box sits above the boxes of the outermost rows: the categories in the sync dialog, else the preset types.
+    top_title_temp_v->Add(top_title_temp_h, 1, wxLEFT, params ? UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT : UNSAVE_CHANGE_DIALOG_TYPE_INDENT);
     m_panel_temp->SetSizer(top_title_temp_v);
     m_panel_temp->Layout();
     m_sizer_top->Add(m_panel_temp, 1, wxALIGN_CENTER, 0);
+    if (params)
+        m_sync_columns[0].push_back(m_panel_temp);
 
+    auto add_title = [this, m_sizer_top, params, &add_header_check](const wxString &label, bool highlight, int column) {
+        // The first separator keeps its default width, except in the sync dialog, which aligns its header with the rows.
+        auto separator = new wxPanel(m_table_top, wxID_ANY, wxDefaultPosition, !params && m_sizer_top->GetItemCount() == 1 ? wxDefaultSize : wxSize(1, -1), wxTAB_TRAVERSAL);
+        separator->SetBackgroundColour(wxColour(172, 172, 172));
+        m_sizer_top->Add(separator, 0, wxBOTTOM | wxEXPAND | wxTOP, 2);
 
-    title_block_middle = new wxPanel(m_table_top, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-    title_block_middle->SetBackgroundColour(wxColour(172, 172, 172));
+        auto panel   = new wxPanel(m_table_top, wxID_ANY, wxDefaultPosition, wxSize(m_value_width, -1), wxTAB_TRAVERSAL);
+        auto sizer_v = new wxBoxSizer(wxVERTICAL);
+        auto sizer_h = new wxBoxSizer(wxHORIZONTAL);
+        if (column >= 0)
+            add_header_check(panel, sizer_h, column);
+        auto title   = new wxStaticText(panel, wxID_ANY, label, wxDefaultPosition, wxDefaultSize, 0);
+        title->SetFont(::Label::Body_13);
+        title->Wrap(-1);
+        title->SetForegroundColour(highlight ? wxGetApp().get_label_clr_modified() : wxColour("#363636"));
+        sizer_h->Add(title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
+        sizer_v->Add(sizer_h, 1, params ? wxLEFT : wxALIGN_CENTER, params ? UNSAVE_CHANGE_DIALOG_SYNC_CELL_PADDING : 0);
+        panel->SetSizer(sizer_v);
+        panel->Layout();
+        m_sizer_top->Add(panel, 0, wxALIGN_CENTER, 0);
+        return title;
+    };
+    if (params) {
+        // With a single target its column box would repeat the one ticking every copy.
+        for (int i = 0; i < value_columns; ++i)
+            m_sync_columns[i + 1].push_back(
+                add_title(params->titles[i], i == params->source, value_columns > 2 && i != params->source ? i : -1)->GetParent());
+    } else {
+        static_oldv_title = add_title(_L("Old Value"), false, -1);
+        static_newv_title = add_title(_L("New Value"), false, -1);
+    }
 
-    m_sizer_top->Add(title_block_middle, 0, wxBOTTOM | wxEXPAND | wxTOP, 2);
-    auto m_panel_oldv = new wxPanel( m_table_top, wxID_ANY, wxDefaultPosition, wxSize(UNSAVE_CHANGE_DIALOG_VALUE_WIDTH,-1), wxTAB_TRAVERSAL );
-    wxBoxSizer *top_title_oldv = new wxBoxSizer(wxVERTICAL);
-    wxBoxSizer *top_title_oldv_h = new wxBoxSizer(wxHORIZONTAL);
-
-    static_oldv_title = new wxStaticText(m_panel_oldv, wxID_ANY, _L("Old Value"), wxDefaultPosition, wxDefaultSize, 0);
-    static_oldv_title->SetFont(::Label::Body_13);
-    static_oldv_title->Wrap(-1);
-    static_oldv_title->SetForegroundColour(*wxWHITE);
-    top_title_oldv_h->Add(static_oldv_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
-    top_title_oldv->Add(top_title_oldv_h, 1, wxALIGN_CENTER, 0);
-    m_panel_oldv->SetSizer(top_title_oldv);
-    m_panel_oldv->Layout();
-    m_sizer_top->Add(m_panel_oldv, 0, wxALIGN_CENTER, 0);
-
-    title_block_right = new wxPanel(m_table_top, wxID_ANY, wxDefaultPosition, wxSize(1, -1), wxTAB_TRAVERSAL);
-    title_block_right->SetBackgroundColour(wxColour(172, 172, 172));
-
-    m_sizer_top->Add(title_block_right, 0, wxBOTTOM | wxEXPAND | wxTOP, 2);
-
-    auto m_panel_newv = new wxPanel( m_table_top, wxID_ANY, wxDefaultPosition, wxSize( UNSAVE_CHANGE_DIALOG_VALUE_WIDTH,-1 ), wxTAB_TRAVERSAL );
-    wxBoxSizer *top_title_newv = new wxBoxSizer(wxVERTICAL);
-    wxBoxSizer *top_title_newv_h = new wxBoxSizer(wxHORIZONTAL);
-
-    static_newv_title = new wxStaticText(m_panel_newv, wxID_ANY, _L("New Value"), wxDefaultPosition, wxDefaultSize, 0);
-    static_newv_title->SetFont(::Label::Body_13);
-    static_newv_title->Wrap(-1);
-    static_newv_title->SetForegroundColour(*wxWHITE);
-
-    top_title_newv_h->Add(static_newv_title, 0, wxALIGN_CENTER | wxBOTTOM | wxTOP, 5);
-
-    top_title_newv->Add(top_title_newv_h, 1, wxALIGN_CENTER, 0);
-
-    m_panel_newv->SetSizer(top_title_newv);
-    m_panel_newv->Layout();
-    m_sizer_top->Add(m_panel_newv, 0, wxALIGN_CENTER, 0);
-    //m_sizer_top->Add(top_title_newv, 1, wxALIGN_CENTER, 0);
+    if (scrollbar_w > 0) {
+        // Extend the header over the scrollbar so New Value lines up with its rows.
+        auto title_block_gutter = new wxPanel(m_table_top, wxID_ANY, wxDefaultPosition, wxSize(1, -1), wxTAB_TRAVERSAL);
+        title_block_gutter->SetBackgroundColour(wxColour(172, 172, 172));
+        m_sizer_top->Add(title_block_gutter, 0, wxBOTTOM | wxEXPAND | wxTOP, 2);
+        m_sizer_top->AddSpacer(scrollbar_w - 1);
+    }
 
     m_table_top->SetSizer(m_sizer_top);
     m_table_top->Layout();
     m_sizer_top->Fit(m_table_top);
     m_sizer_tab->Add(m_table_top, 1, 0, 0);
 
-    m_scrolledWindow = new wxScrolledWindow(m_panel_tab, wxID_ANY, wxDefaultPosition, UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE,  wxNO_BORDER|wxVSCROLL);
-    m_scrolledWindow->SetScrollRate(0, 5);
+    m_scrolledWindow = new wxScrolledWindow(m_panel_tab, wxID_ANY, wxDefaultPosition, wxSize(m_content_width, UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE.y),  wxNO_BORDER|wxVSCROLL);
+    m_scrolledWindow->SetScrollRate(0, FromDIP(20));
     m_scrolledWindow->SetBackgroundColour(GREY200);
     m_sizer_bottom = new wxBoxSizer(wxVERTICAL);
     m_sizer_bottom->Add(m_scrolledWindow, 1, wxEXPAND, 0);
@@ -961,8 +1129,14 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     checkbox_sizer->Show(bool(m_buttons & REMEMBER_CHOISE));
 
     if (dependent_presets != nullptr) {
-        auto wiki = new HyperLink(this, _L("Help"), "https://www.orcaslicer.com/wiki/transfer_discard_changes");
-        m_sizer_button->Add(wiki, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
+        auto wiki_btn = new Button(this, "", "toolbar_wiki", 0, 15);
+        auto wiki_url = "https://www.orcaslicer.com/wiki/transfer_discard_changes";
+        wiki_btn->SetToolTip(_L("Wiki Guide") + "\n" + wiki_url);
+        wiki_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Circle);
+        wiki_btn->SetCanFocus(false);
+        wiki_btn->Bind(wxEVT_LEFT_DOWN, ([wiki_url](auto& e) {wxLaunchDefaultBrowser(wiki_url);}));
+
+        m_sizer_button->Add(wiki_btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(22));
     }
 
     m_sizer_button->Add(0, 0, 1, 0, 0);
@@ -992,22 +1166,31 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     // "Transfer" / "Keep" button
     if (ActionButtons::TRANSFER & m_buttons) {
         const PresetCollection* switched_presets = type == Preset::TYPE_INVALID ? nullptr : wxGetApp().get_tab(type)->get_presets();
-        if (dependent_presets && switched_presets && (type == dependent_presets->type() ?
-            dependent_presets->get_edited_preset().printer_technology() == dependent_presets->find_preset(new_selected_preset)->printer_technology() :
-            switched_presets->get_edited_preset().printer_technology() == switched_presets->find_preset(new_selected_preset)->printer_technology()))
+        const PresetCollection* technology_source = (dependent_presets && type == dependent_presets->type()) ? dependent_presets : switched_presets;
+        // find_preset() can return nullptr (e.g. an unresolved alias); guard against a null deref.
+        const Preset* target_preset = technology_source ? technology_source->find_preset(new_selected_preset) : nullptr;
+        if (dependent_presets && switched_presets && technology_source && target_preset &&
+            technology_source->get_edited_preset().printer_technology() == target_preset->printer_technology())
             add_btn(&m_transfer_btn, m_move_btn_id, "menu_paste", Action::Transfer, switched_presets->get_edited_preset().name == new_selected_preset ? _L("Transfer") : _L("Transfer"), true);
     }
     if (!m_transfer_btn && (ActionButtons::KEEP & m_buttons))
         add_btn(&m_transfer_btn, m_move_btn_id, "menu_paste", Action::Transfer, _L("Transfer"), true);
 
+    bool is_copy = new_selected_preset == "SyncExtruderParams";
+    // "Save" button; the sync dialog's Yes confirms its question, so it comes first.
+    auto add_save_btn = [&]() {
+        if (ActionButtons::SAVE & m_buttons)
+            add_btn(&m_save_btn, m_save_btn_id, "save", is_copy ? Action::Transfer : Action::Save, is_copy ? _L("Yes") : _L("Save"), is_copy);
+    };
+    if (is_copy)
+        add_save_btn();
     { // "Don't save" / "Discard" button
         std::string btn_icon    = (ActionButtons::DONT_SAVE & m_buttons) ? "" : (dependent_presets || (ActionButtons::KEEP & m_buttons)) ? "blank_16" : "exit";
-        wxString    btn_label   = (ActionButtons::DONT_SAVE & m_buttons) ? _L("Don't save") : _L("Discard");
+        wxString    btn_label   = (ActionButtons::DONT_SAVE & m_buttons) ? (is_copy ? _L("No") : _L("Don't save")) : _L("Discard");
         add_btn(&m_discard_btn, m_continue_btn_id, btn_icon, Action::Discard, btn_label, false);
     }
-
-    // "Save" button
-    if (ActionButtons::SAVE & m_buttons) add_btn(&m_save_btn, m_save_btn_id, "save", Action::Save, _L("Save"), false);
+    if (!is_copy)
+        add_save_btn();
 
     if (dependent_presets != nullptr) {
         const wxString previous_profile = from_u8(dependent_presets->get_edited_preset().name);
@@ -1052,18 +1235,49 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     m_sizer_main->Add(m_sizer_button, 0, wxEXPAND | wxTOP, 6);
     m_sizer_main->Add(0, 0, 1, wxTOP, 18);
 
-    SetSizer(m_sizer_main);
-    Layout();
-    Fit();
-    Centre(wxBOTH);
-
-
-    update(type, dependent_presets, new_selected_preset, header);
-
+    if (params) {
+        m_action_line->SetLabel(header);
+        update_list(params);
+        // Each column is as wide as its widest cell or title, every extruder's column alike. The header
+        // windows come first; each sits next to a 1 px separator.
+        int widths[2] = {0, 0}; // labels, values
+        for (size_t c = 0; c < m_sync_columns.size(); ++c)
+            for (size_t r = 0; r < m_sync_columns[c].size(); ++r)
+                widths[c > 0] = std::max(widths[c > 0], m_sync_columns[c][r]->GetBestSize().x + UNSAVE_CHANGE_DIALOG_SYNC_CELL_PADDING + (r == 0 ? 1 : 0));
+        for (size_t c = 0; c < m_sync_columns.size(); ++c)
+            for (size_t r = 0; r < m_sync_columns[c].size(); ++r) {
+                m_sync_columns[c][r]->SetMinSize(wxSize(widths[c > 0] - (r == 0 ? 1 : 0), -1));
+                m_sync_columns[c][r]->GetParent()->Layout();
+            }
+        m_scrolledWindow->FitInside();
+        const int fitted_width = widths[0] + value_columns * widths[1];
+        m_scrolledWindow->SetMinSize(wxSize(fitted_width + scrollbar_w, UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE.y));
+        m_action_line->SetMinSize(wxSize(fitted_width, -1));
+        m_action_line->Wrap(fitted_width);
+    } else {
+        update(type, dependent_presets, new_selected_preset, header);
+    }
+    for (const auto &[k, column] : header_checks) {
+        for (const auto &[check, opt_key, index, check_column] : m_sync_checks)
+            if (column < 0 || column == check_column)
+                m_all_checks[k].second.push_back(check);
+        if (column < 0)
+            for (const auto &option : m_option_checks)
+                m_all_checks[k].second.push_back(std::get<0>(option));
+    }
+    // A box over a single one would only repeat it.
+    for (const auto &[all, cells] : m_all_checks)
+        all->Show(cells.size() > 1);
+    update_all_checks();
     //SetSizer(topSizer);
     //topSizer->SetSizeHints(this);
 
     show_info_line(Action::Undef);
+
+    SetSizerAndFit(m_sizer_main);
+    Layout();
+    Fit();
+    // Centre(wxBOTH);
 }
 
 void UnsavedChangesDialog::show_info_line(Action action, std::string preset_name)
@@ -1076,7 +1290,7 @@ void UnsavedChangesDialog::show_info_line(Action action, std::string preset_name
         if (action == Action::Undef)
             text = _L("Click the right mouse button to display the full text.");
         else if (action == Action::Discard)
-            text = ActionButtons::DONT_SAVE & m_buttons ? _L("All changes will not be saved") :_L("All changes will be discarded.");
+            text = ActionButtons::DONT_SAVE & m_buttons ? _L("No changes will be saved.") :_L("All changes will be discarded.");
         else {
             if (preset_name.empty())
                 text = action == Action::Save           ? _L("Save the selected options.") :
@@ -1085,8 +1299,8 @@ void UnsavedChangesDialog::show_info_line(Action action, std::string preset_name
             else
                 text = format_wxstr(
                     action == Action::Save ?
-                        _L("Save the selected options to preset \n\"%1%\".") :
-                        _L("Transfer the selected options to the newly selected preset \n\"%1%\"."),
+                        _L("Save the selected options to preset\n\"%1%\".") :
+                        _L("Transfer the selected options to the newly selected preset\n\"%1%\"."),
                     preset_name);
             //text += "\n" + _L("Unselected options will be reverted.");
         }
@@ -1107,6 +1321,30 @@ void UnsavedChangesDialog::close(Action action)
     this->EndModal(wxID_CLOSE);
 }
 
+DynamicPrintConfig UnsavedChangesDialog::make_save_config(PresetCollection& presets)
+{
+    DynamicPrintConfig             config = presets.get_edited_preset().config;
+    const std::vector<std::string> unselected_options = get_unselected_options(presets.type());
+    if (!unselected_options.empty())
+        config.apply_only(presets.get_selected_preset().config, unselected_options);
+    return config;
+}
+
+bool UnsavedChangesDialog::selected_save_needs_plugin_warning()
+{
+    if (m_dependent_presets != nullptr)
+        return has_unresolved_plugin_capabilities(make_save_config(*m_dependent_presets));
+
+    const PrinterTechnology printer_technology = wxGetApp().preset_bundle->printers.get_edited_preset().printer_technology();
+    for (Tab* tab : wxGetApp().tabs_list)
+        if (tab->supports_printer_technology(printer_technology) && tab->current_preset_is_dirty()) {
+            PresetCollection* presets = tab->get_presets();
+            if (presets != nullptr && has_unresolved_plugin_capabilities(make_save_config(*presets)))
+                return true;
+        }
+    return false;
+}
+
 bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_save_preset_dialog/* = true*/)
 {
     names_and_types.clear();
@@ -1119,6 +1357,14 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
         // for system/default/external presets we should take an edited name
         //BBS: add project embedded preset logic and refine is_external
         bool save_to_project = false;
+
+        // Warn before the save-name dialog: accepting that dialog can delete an overwritten preset,
+        // so a Cancel must be decided before it. Transfer reaches save() with
+        // show_save_preset_dialog == false and must not warn.
+        if (show_save_preset_dialog &&
+            !confirm_save_with_unresolved_plugins(this, make_save_config(*dependent_presets), SaveSubject::Preset))
+            return false;
+
         if (!preset.can_overwrite()) {
         //if (preset.is_system || preset.is_default || preset.is_external) {
             SavePresetDialog save_dlg(this, preset.type);
@@ -1157,6 +1403,30 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
             }
 
 
+        // One Save can write several presets. Build each exact partial config the same way
+        // PresetBundle::save_changes_for_preset will, and warn once before any SavePresetDialog can
+        // delete an overwritten preset. Transfer/Discard must not warn.
+        if (show_save_preset_dialog && !names_and_types.empty()) {
+            std::vector<std::unique_ptr<DynamicPrintConfig>> configs;
+            std::vector<SaveConfigToCheck>                    checks;
+            checks.reserve(names_and_types.size());
+            for (const PresetData& nt : names_and_types) {
+                PresetCollection* presets = get_preset_collection(nt.type, wxGetApp().preset_bundle);
+                if (!presets)
+                    continue;
+                auto config = std::make_unique<DynamicPrintConfig>(make_save_config(*presets));
+                checks.push_back({from_u8(nt.name), config.get()});
+                configs.emplace_back(std::move(config));
+            }
+            if (!checks.empty()) {
+                const bool confirmed = checks.size() == 1
+                    ? confirm_save_with_unresolved_plugins(this, *checks.front().config, SaveSubject::Preset)
+                    : confirm_save_presets_with_unresolved_plugins(this, checks);
+                if (!confirmed)
+                    return false;
+            }
+        }
+
         if (show_save_preset_dialog && !types_for_save.empty()) {
             SavePresetDialog save_dlg(this, types_for_save);
             if (save_dlg.ShowModal() != wxID_OK) {
@@ -1181,32 +1451,6 @@ bool UnsavedChangesDialog::save(PresetCollection* dependent_presets, bool show_s
     return true;
 }
 
-wxString get_string_from_enum(const std::string& opt_key, const DynamicPrintConfig& config, bool is_infill = false, int idx = -1)
-{
-    const ConfigOptionDef& def = config.def()->options.at(opt_key);
-    const std::vector<std::string>& names = def.enum_labels;//ConfigOptionEnum<T>::get_enum_names();
-    int val = 0;
-
-    if (idx >= 0)
-        val = dynamic_cast<const ConfigOptionInts*>(config.option(opt_key))->get_at(idx);
-    else
-        val = config.option(opt_key)->getInt();
-
-    // Each infill doesn't use all list of infill declared in PrintConfig.hpp.
-    // So we should "convert" val to the correct one
-    if (is_infill) {
-        for (auto key_val : *def.enum_keys_map)
-            if (int(key_val.second) == val) {
-                auto it = std::find(def.enum_values.begin(), def.enum_values.end(), key_val.first);
-                if (it == def.enum_values.end())
-                    return "";
-                return from_u8(_utf8(names[it - def.enum_values.begin()]));
-            }
-        return _L("Undef");
-    }
-    return from_u8(_utf8(names[val]));
-}
-
 // BBS
 #if 0
 static size_t get_id_from_opt_key(std::string opt_key)
@@ -1219,193 +1463,6 @@ static size_t get_id_from_opt_key(std::string opt_key)
     return 0;
 }
 #endif
-
-static wxString get_full_label(std::string opt_key, const DynamicPrintConfig& config)
-{
-    opt_key = get_pure_opt_key(opt_key);
-    auto option = config.option(opt_key);
-
-    if (!option || option->is_nil())
-        return _L("N/A");
-
-    const ConfigOptionDef* opt = config.def()->get(opt_key);
-    return opt->full_label.empty() ? opt->label : opt->full_label;
-}
-
-static wxString get_string_value(std::string opt_key, const DynamicPrintConfig& config)
-{
-    int orig_opt_idx = -1;
-    int opt_idx = -1;
-    int pos = opt_key.find("#");
-    std::string temp_str = opt_key;
-    if (pos > 0) {
-        boost::erase_head(temp_str, pos + 1);
-        orig_opt_idx = static_cast<size_t>(atoi(temp_str.c_str()));
-    }
-    opt_idx = orig_opt_idx >= 0 ? orig_opt_idx : 0;
-    opt_key = get_pure_opt_key(opt_key);
-    auto option = config.option(opt_key);
-    if (!option) {
-        return _L("N/A");
-    }
-
-    if (option->is_scalar() && config.option(opt_key)->is_nil() ||
-        option->is_vector() && dynamic_cast<const ConfigOptionVectorBase *>(config.option(opt_key))->is_nil(opt_idx))
-        return _L("N/A");
-
-    wxString out;
-
-    const ConfigOptionDef* opt = config.def()->get(opt_key);
-    bool is_nullable = opt->nullable;
-
-    switch (opt->type) {
-    case coInt:
-        return from_u8((boost::format("%1%") % config.opt_int(opt_key)).str());
-    case coInts: {
-        if (is_nullable) {
-            auto values = config.opt<ConfigOptionIntsNullable>(opt_key);
-            if (opt_idx < values->size())
-                return from_u8((boost::format("%1%") % values->get_at(opt_idx)).str());
-        }
-        else {
-            auto values = config.opt<ConfigOptionInts>(opt_key);
-            if (orig_opt_idx >= 0 && orig_opt_idx < values->size()) {
-                return from_u8((boost::format("%1%") % values->get_at(opt_idx)).str());
-            }
-            else {
-                std::string value_str;
-                for (int i = 0; i < values->size(); i++) {
-                    value_str += std::to_string(values->get_at(i));
-                    if (i != values->size() - 1) {
-                        value_str += ",";
-                    }
-                }
-                return from_u8(value_str);
-            }
-        }
-        return _L("Undef");
-    }
-    case coBool:
-        return config.opt_bool(opt_key) ? "true" : "false";
-    case coBools: {
-        if (is_nullable) {
-            auto values = config.opt<ConfigOptionBoolsNullable>(opt_key);
-            if (opt_idx < values->size())
-                return values->get_at(opt_idx) ? "true" : "false";
-        }
-        else {
-            auto values = config.opt<ConfigOptionBools>(opt_key);
-            if (opt_idx < values->size())
-                return values->get_at(opt_idx) ? "true" : "false";
-        }
-        return _L("Undef");
-    }
-    case coPercent:
-        return from_u8((boost::format("%1%%%") % int(config.optptr(opt_key)->getFloat())).str());
-    case coPercents: {
-        if (is_nullable) {
-            auto values = config.opt<ConfigOptionPercentsNullable>(opt_key);
-            if (opt_idx < values->size())
-                return from_u8((boost::format("%1%%%") % values->get_at(opt_idx)).str());
-        }
-        else {
-            auto values = config.opt<ConfigOptionPercents>(opt_key);
-            if (opt_idx < values->size())
-                return from_u8((boost::format("%1%%%") % values->get_at(opt_idx)).str());
-        }
-        return _L("Undef");
-    }
-    case coFloat:
-        return double_to_string(config.opt_float(opt_key));
-    case coFloats: {
-        if (is_nullable) {
-            auto values = config.opt<ConfigOptionFloatsNullable>(opt_key);
-            if (opt_idx < values->size())
-                return double_to_string(values->get_at(opt_idx));
-        }
-        else {
-            auto values = config.opt<ConfigOptionFloats>(opt_key);
-            if (values && opt_idx < values->size())
-                return double_to_string(values->get_at(opt_idx));
-        }
-        return _L("Undef");
-    }
-    case coString:
-        return from_u8(config.opt_string(opt_key));
-    case coStrings: {
-        const ConfigOptionStrings* strings = config.opt<ConfigOptionStrings>(opt_key);
-        if (strings) {
-            if (opt_key == "compatible_printers" || opt_key == "compatible_prints") {
-                if (strings->empty())
-                    return _L("All");
-                for (size_t id = 0; id < strings->size(); id++)
-                    out += from_u8(strings->get_at(id)) + "\n";
-                out.RemoveLast(1);
-                return out;
-            }
-            if (!strings->empty() && opt_idx < strings->values.size())
-                return from_u8(strings->get_at(opt_idx));
-        }
-        break;
-        }
-    case coFloatOrPercent: {
-        const ConfigOptionFloatOrPercent* opt = config.opt<ConfigOptionFloatOrPercent>(opt_key);
-        if (opt)
-            out = double_to_string(opt->value) + (opt->percent ? "%" : "");
-        return out;
-    }
-    case coEnum: {
-        return get_string_from_enum(opt_key, config,
-            opt_key == "top_surface_pattern" ||
-            opt_key == "bottom_surface_pattern" ||
-            opt_key == "internal_solid_infill_pattern" ||
-            opt_key == "sparse_infill_pattern" ||
-            opt_key == "ironing_pattern" ||
-            opt_key == "support_ironing_pattern" ||
-            opt_key == "support_pattern" ||
-            opt_key == "support_interface_pattern")
-            ;
-    }
-    case coEnums: {
-        return get_string_from_enum(opt_key, config,
-            opt_key == "top_surface_pattern" ||
-            opt_key == "bottom_surface_pattern" ||
-            opt_key == "internal_solid_infill_pattern" ||
-            opt_key == "sparse_infill_pattern" ||
-            opt_key == "ironing_pattern" ||
-            opt_key == "support_ironing_pattern" ||
-            opt_key == "support_pattern" ||
-            opt_key == "support_interface_pattern"
-            , opt_idx);
-    }
-    case coPoint: {
-        Vec2d val = config.opt<ConfigOptionPoint>(opt_key)->value;
-        return from_u8((boost::format("[%1%]") % ConfigOptionPoint(val).serialize()).str());
-    }
-    case coPoints: {
-        //BBS: add bed_exclude_area
-        if (opt_key == "printable_area" || opt_key == "thumbnails") {
-            ConfigOptionPoints points = *config.option<ConfigOptionPoints>(opt_key);
-            //BuildVolume build_volume = {points.values, 0.};
-            return get_thumbnails_string(points.values);
-        }
-        else if (opt_key == "bed_exclude_area") {
-            return get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
-        }
-        else if (opt_key == "head_wrap_detect_zone") {
-            return get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
-        }
-        else if (opt_key == "wrapping_exclude_area") {
-            return get_thumbnails_string(config.option<ConfigOptionPoints>(opt_key)->values);
-        }
-        Vec2d val = config.opt<ConfigOptionPoints>(opt_key)->get_at(opt_idx);
-        return from_u8((boost::format("[%1%]") % ConfigOptionPoint(val).serialize()).str());
-    }
-    default:
-        break;
-    }
-    return out;
-}
 
 void UnsavedChangesDialog::update(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, const wxString& header)
 {
@@ -1467,205 +1524,373 @@ void UnsavedChangesDialog::update(Preset::Type type, PresetCollection* dependent
     }
 
     m_action_line->SetLabel(action_msg);
+    m_action_line->Wrap(m_content_width);
 
-    update_tree(type, presets);
     update_list();
 }
 
-void UnsavedChangesDialog::update_list()
+bool UnsavedChangesDialog::value_clips(const wxString &value) const
 {
-    std::map<wxString, std::vector<PresetItem>> class_g_list;
-    std::map<wxString, std::vector<wxString>>   class_c_list;
-
-    // group
-    for (auto i = 0; i < m_presetitems.size(); i++) {
-        if (class_g_list.count(m_presetitems[i].group_name) <= 0) {
-            std::vector<PresetItem> vp;
-            vp.push_back(m_presetitems[i]);
-            class_g_list.emplace(m_presetitems[i].group_name, vp);
-        } else {
-            //for (auto iter = class_g_list.begin(); iter != class_g_list.end(); iter++) iter->second.push_back(m_presetitems[i]);
-            class_g_list[m_presetitems[i].group_name].push_back(m_presetitems[i]);
-        }
-    }
-
-    // category
-    for (auto i = 0; i < m_presetitems.size(); i++) {
-        if (class_c_list.count(m_presetitems[i].category_name) <= 0) {
-            std::vector<wxString> vp;
-            vp.push_back(m_presetitems[i].group_name);
-            class_c_list.emplace(m_presetitems[i].category_name, vp);
-        } else {
-            /*for (auto iter = class_c_list.begin(); iter != class_c_list.end(); iter++)
-                iter->second.push_back(m_presetitems[i].group_name);*/
-            //class_c_list[m_presetitems[i].category_name].push_back(m_presetitems[i].group_name);
-            std::vector<wxString>::iterator it;
-            it = find(class_c_list[m_presetitems[i].category_name].begin(), class_c_list[m_presetitems[i].category_name].end(), m_presetitems[i].group_name);
-            if (it == class_c_list[m_presetitems[i].category_name].end()) {
-                class_c_list[m_presetitems[i].category_name].push_back(m_presetitems[i].group_name);
-            }
-        }
-    }
-
-
-
-    auto m_listsizer = new wxBoxSizer(wxVERTICAL);
-    for (auto iter = class_c_list.begin(); iter != class_c_list.end(); iter++) {
-
-        //category
-        auto panel_category = new wxPanel(m_scrolledWindow, wxID_ANY, wxDefaultPosition, wxSize(-1, UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT), wxTAB_TRAVERSAL);
-        panel_category->SetBackgroundColour(GREY300);
-
-        wxBoxSizer *sizer_category   = new wxBoxSizer(wxHORIZONTAL);
-        wxBoxSizer *sizer_category_v = new wxBoxSizer(wxHORIZONTAL);
-
-        auto text_category = new wxStaticText(panel_category, wxID_ANY, iter->first, wxDefaultPosition, wxSize(-1, -1), 0);
-        text_category->SetFont(::Label::Head_13);
-        text_category->SetForegroundColour(GREY900);
-        text_category->Wrap(-1);
-
-        sizer_category_v->Add(text_category, 0, wxALIGN_CENTER | wxLEFT, 23);
-
-        sizer_category->Add(sizer_category_v, 1, wxEXPAND, 0);
-
-        panel_category->SetSizer(sizer_category);
-        panel_category->Layout();
-        m_listsizer->Add(panel_category, 0, wxEXPAND, 0);
-
-        /*auto item_line = new wxStaticLine(list, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL);
-        item_line->SetForegroundColour(wxColour(206, 206, 206));
-        item_line->SetBackgroundColour(wxColour(206, 206, 206));
-        sizer_list->Add(item_line, 0, wxALL, 0); */
-
-        // isset group
-        for (auto i = 0; i < iter->second.size(); i++) {
-            auto gname = iter->second[i];
-            for (auto g = 0; g < class_g_list[gname].size(); g++) {
-
-                 //first group
-                if (g == 0) {
-                     auto panel_item = new wxWindow(m_scrolledWindow, -1, wxDefaultPosition, wxSize(-1, UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT));
-                     panel_item->SetBackgroundColour(GREY200);
-
-                     wxBoxSizer *sizer_item = new wxBoxSizer(wxHORIZONTAL);
-
-                     auto panel_left = new wxPanel(panel_item, wxID_ANY, wxDefaultPosition, wxSize(UNSAVE_CHANGE_DIALOG_FIRST_VALUE_WIDTH, -1), wxTAB_TRAVERSAL);
-                     panel_left->SetBackgroundColour(GREY200);
-
-                     wxBoxSizer *sizer_left_v = new wxBoxSizer(wxVERTICAL);
-
-                     auto text_left = new wxStaticText(panel_left, wxID_ANY, gname, wxDefaultPosition, wxSize(-1, -1), 0);
-                     text_left->SetFont(::Label::Head_13);
-                     text_left->Wrap(-1);
-                     text_left->SetForegroundColour(GREY700);
-
-                     sizer_left_v->Add(text_left, 0, wxLEFT, 37);
-
-                     panel_left->SetSizer(sizer_left_v);
-                     panel_left->Layout();
-                     sizer_item->Add(panel_left, 0, wxALIGN_CENTER, 0);
-
-                     panel_item->SetSizer(sizer_item);
-                     panel_item->Layout();
-                     m_listsizer->Add(panel_item, 0, wxEXPAND, 0);
-                }
-
-                auto data = class_g_list[gname][g];
-
-                auto panel_item = new wxWindow(m_scrolledWindow, -1, wxDefaultPosition, wxSize(-1, UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT));
-                panel_item->SetBackgroundColour(GREY200);
-
-                wxBoxSizer *sizer_item = new wxBoxSizer(wxHORIZONTAL);
-
-                auto panel_left = new wxPanel(panel_item, wxID_ANY, wxDefaultPosition, wxSize(UNSAVE_CHANGE_DIALOG_FIRST_VALUE_WIDTH , -1), wxTAB_TRAVERSAL);
-                panel_left->SetBackgroundColour(GREY200);
-
-                wxBoxSizer *sizer_left_v = new wxBoxSizer(wxVERTICAL);
-
-                auto text_left = new wxStaticText(panel_left, wxID_ANY, data.option_name, wxDefaultPosition, wxSize(-1, -1), 0);
-                text_left->SetFont(::Label::Body_13);
-                text_left->Wrap(-1);
-                text_left->SetForegroundColour(GREY700);
-
-                sizer_left_v->Add(text_left, 0, wxLEFT, 51 );
-
-                panel_left->SetSizer(sizer_left_v);
-                panel_left->Layout();
-                sizer_item->Add(panel_left, 0, wxALIGN_CENTER, 0);
-
-                auto        panel_oldv  = new wxPanel(panel_item, wxID_ANY, wxDefaultPosition, wxSize(UNSAVE_CHANGE_DIALOG_VALUE_WIDTH, -1), wxTAB_TRAVERSAL);
-                wxBoxSizer *sizer_old_v = new wxBoxSizer(wxVERTICAL);
-
-
-                data.old_value = subreplace(data.old_value.ToStdString(), "\n", " ");
-                auto text_oldv = new wxStaticText(panel_oldv, wxID_ANY, data.old_value, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-                text_oldv->SetFont(::Label::Body_13);
-                text_oldv->Wrap(-1);
-                text_oldv->SetForegroundColour(GREY700);
-                sizer_old_v->Add(text_oldv, 0, wxALIGN_CENTER|wxLEFT|wxRIGHT, 5);
-
-                panel_oldv->SetSizer(sizer_old_v);
-                panel_oldv->Layout();
-                sizer_item->Add(panel_oldv, 0, wxALIGN_CENTER, 0);
-
-                auto        panel_newv  = new wxPanel(panel_item, wxID_ANY, wxDefaultPosition, wxSize(UNSAVE_CHANGE_DIALOG_VALUE_WIDTH, -1), wxTAB_TRAVERSAL);
-                wxBoxSizer *sizer_new_v = new wxBoxSizer(wxVERTICAL);
-
-                data.new_value = subreplace(data.new_value.ToStdString(), "\n", " ");
-                auto text_newv = new wxStaticText(panel_newv, wxID_ANY, data.new_value, wxDefaultPosition, wxDefaultSize, wxST_ELLIPSIZE_END);
-                text_newv->SetFont(::Label::Body_13);
-                text_newv->Wrap(-1);
-                text_newv->SetForegroundColour(GREY700);
-
-                sizer_new_v->Add(text_newv, 0, wxALIGN_CENTER|wxLEFT|wxRIGHT, 5);
-
-                panel_newv->SetSizer(sizer_new_v);
-                panel_newv->Layout();
-                sizer_item->Add(panel_newv, 0, wxALIGN_CENTER, 0);
-
-                panel_item->SetSizer(sizer_item);
-                panel_item->Layout();
-                m_listsizer->Add(panel_item, 0, wxEXPAND, 0);
-
-
-
-                ////if (g == class_g_list[gname].size() - 1) {
-                //    auto item_line = new wxStaticLine(list, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL);
-                //    item_line->SetForegroundColour(wxColour(206, 206, 206));
-                //    item_line->SetBackgroundColour(wxColour(206, 206, 206));
-                //    sizer_list->Add(item_line, 0, wxALL, 0);
-                ////}
-            }
-        }
-    }
-
-       m_scrolledWindow->SetSizer(m_listsizer);
-    // m_scrolledWindow->Layout();
-       wxSize text_size = m_action_line->GetTextExtent(m_action_line->GetLabel());
-       int    width     = UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE.GetWidth();
-       // +2: Ensure that there is at least one line and that the content contains '\n'
-       int    rows      = int(text_size.GetWidth() / width) + 2; 
-       int    height    = rows * text_size.GetHeight();
-       m_action_line->SetMinSize(wxSize(width, height));
-       Layout();
-       Fit();
+    if (value.find('\n') != wxString::npos)
+        return true;
+    int w = 0, h = 0;
+    GetTextExtent(value, &w, &h, nullptr, nullptr, &::Label::Body_13);
+    return w > UNSAVE_CHANGE_DIALOG_VALUE_TEXT_WIDTH;
 }
 
-std::string UnsavedChangesDialog::subreplace(std::string resource_str, std::string sub_str, std::string new_str)
+void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
 {
-    std::string            dst_str = resource_str;
-    std::string::size_type pos     = 0;
-    while ((pos = dst_str.find(sub_str)) != std::string::npos)
-    {
-        dst_str.replace(pos, sub_str.length(), new_str);
+    if (!m_scrolledWindow) {
+        Layout();
+        Fit();
+        return;
     }
-    return dst_str;
+
+    const std::map<std::string, int> tab_order = build_tab_order_map();
+    for (PresetItem &pi : m_presetitems)
+        pi.order = order_of(tab_order, pi.opt_key);
+
+    // Each option's per-extruder rows share one tab-order slot, so ordering by slot alone would interleave the
+    // extruders. Anchor each type's extruder block at its first slot, per type so no type moves above its own rows.
+    std::map<Preset::Type, int> ext_anchor;
+    for (const PresetItem &pi : m_presetitems)
+        if (pi.extruder_id > 0) {
+            auto it = ext_anchor.find(pi.type);
+            if (it == ext_anchor.end())
+                ext_anchor.emplace(pi.type, pi.order);
+            else
+                it->second = std::min(it->second, pi.order);
+        }
+
+    std::stable_sort(m_presetitems.begin(), m_presetitems.end(),
+                     [&ext_anchor](const PresetItem &a, const PresetItem &b) {
+                         const int ra = preset_type_rank(a.type), rb = preset_type_rank(b.type);
+                         if (ra != rb) return ra < rb;
+                         const int sa = a.extruder_id > 0 ? ext_anchor.at(a.type) : a.order;
+                         const int sb = b.extruder_id > 0 ? ext_anchor.at(b.type) : b.order;
+                         if (sa != sb) return sa < sb;
+                         if (a.extruder_id != b.extruder_id) return a.extruder_id < b.extruder_id;
+                         return a.order < b.order;
+                     });
+
+    auto value_tooltip = [](const wxString &full) {
+        const size_t cap = 500;  // a whole g-code block is unreadable in a tooltip
+        return full.length() <= cap ? full : full.Left(cap) + "...\n\n" + _L("Click the compare button to see the full value.");
+    };
+
+    // A width of wxDefaultCoord keeps the label's natural width, which the sync dialog's fitted columns use.
+    auto make_label = [](wxWindow *parent, const wxString &text, const wxFont &font, int width, const wxColour &colour,
+                         const wxString &tooltip = wxString(), long style = wxST_ELLIPSIZE_END) {
+        const bool natural = width == wxDefaultCoord;
+        auto t = new wxStaticText(parent, wxID_ANY, text, wxDefaultPosition, natural ? wxDefaultSize : wxSize(std::max(0, width), -1), style);
+        t->SetFont(font);
+        t->SetForegroundColour(colour);
+        t->SetToolTip(tooltip.IsEmpty() && !natural && t->GetTextExtent(text).GetWidth() > width ? text : tooltip);
+        return t;
+    };
+
+    // A box before a line's label: one change's own, or one ticking every change (or, in the sync dialog, copy) under it.
+    auto add_check_and_label = [this](wxSizer *sizer, ::CheckBox *check, wxStaticText *text, int indent) {
+        sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, indent);
+        sizer->Add(text, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+    };
+    auto add_label = [this, &add_check_and_label](wxWindow *parent, wxSizer *sizer, wxStaticText *text, int indent) -> size_t {
+        const size_t k = add_all_check(parent);
+        add_check_and_label(sizer, m_all_checks[k].first, text, indent);
+        return k;
+    };
+    // The label width of a line, or the natural one in the sync dialog.
+    auto label_width = [params](int width) { return params ? wxDefaultCoord : width; };
+
+    auto make_value_col = [&](wxWindow *parent, wxString value, bool modified, bool may_clip) {
+        auto panel = new wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(UNSAVE_CHANGE_DIALOG_VALUE_WIDTH, -1), wxTAB_TRAVERSAL);
+        auto sizer = new wxBoxSizer(wxVERTICAL);
+        // Before flattening, so g-code newlines survive in the tooltip.
+        const wxString tooltip = (may_clip && value_clips(value)) ? value_tooltip(value) : wxString();
+        value.Replace("\n", " ");
+        value.Replace("\r", " ");
+        value.Trim(false);
+        auto text = make_label(panel, value, ::Label::Body_13, UNSAVE_CHANGE_DIALOG_VALUE_TEXT_WIDTH,
+                               modified ? wxGetApp().get_label_clr_modified() : GREY700, tooltip,
+                               wxST_ELLIPSIZE_END | wxALIGN_CENTRE_HORIZONTAL);
+        sizer->Add(text, 0, wxALIGN_CENTER | wxLEFT | wxRIGHT, 5);
+        panel->SetSizer(sizer);
+        panel->Layout();
+        return panel;
+    };
+
+    auto m_listsizer = new wxBoxSizer(wxVERTICAL);
+
+    auto finish_row = [&](wxWindow *panel, wxSizer *sizer) {
+        panel->SetSizer(sizer);
+        panel->Layout();
+        m_listsizer->Add(panel, 0, wxEXPAND, 0);
+    };
+
+    // Other preset types get no header, and so no box.
+    static constexpr size_t no_box = size_t(-1);
+    auto emit_type_header = [&](Preset::Type type) -> size_t {
+        wxString label;
+        switch (type) {
+        case Preset::TYPE_PRINT:    label = _L("Process settings"); break;
+        case Preset::TYPE_FILAMENT: label = _L("Material settings"); break;
+        case Preset::TYPE_PRINTER:  label = _L("Printer settings"); break;
+        default: return no_box;
+        }
+        auto panel = new wxPanel(m_scrolledWindow, wxID_ANY, wxDefaultPosition, wxSize(-1, UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT), wxTAB_TRAVERSAL);
+        panel->SetBackgroundColour(GREY400);
+        auto sizer = new wxBoxSizer(wxHORIZONTAL);
+        const size_t all = add_label(panel, sizer, make_label(panel, label, ::Label::Head_16,
+                                     m_content_width - UNSAVE_CHANGE_DIALOG_TYPE_INDENT - FromDIP(8) - UNSAVE_CHANGE_DIALOG_CHECK_WIDTH, GREY900),
+                                     UNSAVE_CHANGE_DIALOG_TYPE_INDENT);
+        finish_row(panel, sizer);
+        return all;
+    };
+
+    auto emit_category = [&](const wxString &category_name) {
+        auto panel = new wxPanel(m_scrolledWindow, wxID_ANY, wxDefaultPosition, wxSize(-1, UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT), wxTAB_TRAVERSAL);
+        panel->SetBackgroundColour(GREY300);
+        auto sizer = new wxBoxSizer(wxHORIZONTAL);
+        const size_t all = add_label(panel, sizer, make_label(panel, category_name, ::Label::Head_13,
+                                     label_width(m_content_width - UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT - FromDIP(8) - UNSAVE_CHANGE_DIALOG_CHECK_WIDTH), GREY900),
+                                     UNSAVE_CHANGE_DIALOG_CATEGORY_INDENT);
+        finish_row(panel, sizer);
+        return all;
+    };
+
+    auto emit_group = [&](const wxString &group_name) {
+        auto panel = new wxWindow(m_scrolledWindow, -1, wxDefaultPosition, wxSize(-1, UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT));
+        panel->SetBackgroundColour(GREY200);
+        auto sizer = new wxBoxSizer(wxHORIZONTAL);
+        auto panel_left = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(m_first_value_width, -1), wxTAB_TRAVERSAL);
+        panel_left->SetBackgroundColour(GREY200);
+        auto left_sizer = new wxBoxSizer(wxHORIZONTAL);
+        const size_t all = add_label(panel_left, left_sizer, make_label(panel_left, group_name, ::Label::Head_13,
+                                     label_width(m_first_value_width - UNSAVE_CHANGE_DIALOG_GROUP_INDENT - FromDIP(8) - UNSAVE_CHANGE_DIALOG_CHECK_WIDTH), GREY700),
+                                     UNSAVE_CHANGE_DIALOG_GROUP_INDENT);
+        panel_left->SetSizer(left_sizer);
+        panel_left->Layout();
+        sizer->Add(panel_left, 0, wxALIGN_CENTER, 0);
+        if (params)
+            m_sync_columns[0].push_back(panel_left);
+        finish_row(panel, sizer);
+        return all;
+    };
+
+    auto emit_option = [&](const PresetItem &data, size_t type_all, size_t category_all, size_t group_all) {
+        auto panel = new wxWindow(m_scrolledWindow, -1, wxDefaultPosition, wxSize(-1, UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT));
+        panel->SetBackgroundColour(GREY200);
+        auto sizer = new wxBoxSizer(wxHORIZONTAL);
+
+        auto panel_left = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(m_first_value_width, -1), wxTAB_TRAVERSAL);
+        panel_left->SetBackgroundColour(GREY200);
+        auto left_sizer = new wxBoxSizer(wxHORIZONTAL);
+        const int text_w = m_first_value_width - UNSAVE_CHANGE_DIALOG_OPTION_INDENT - FromDIP(8) - UNSAVE_CHANGE_DIALOG_CHECK_WIDTH -
+                           (data.has_icon ? UNSAVE_CHANGE_DIALOG_ICON_WIDTH : 0);
+        auto label = make_label(panel_left, data.option_name, ::Label::Body_13, label_width(text_w), GREY700);
+        size_t row_all = 0;
+        if (params)
+            row_all = add_label(panel_left, left_sizer, label, UNSAVE_CHANGE_DIALOG_OPTION_INDENT);
+        else {
+            // The change's own box. Extruder count has none: the per-extruder values follow it.
+            auto check = new ::CheckBox(panel_left);
+            add_check_and_label(left_sizer, check, label, UNSAVE_CHANGE_DIALOG_OPTION_INDENT);
+            if (data.opt_key == "extruders_count")
+                check->Hide();
+            else {
+                check->SetValue(true);
+                check->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) { update_all_checks(); e.Skip(); });
+                m_option_checks.emplace_back(check, data.type, data.opt_key);
+                for (size_t k : {type_all, category_all, group_all})
+                    if (k != no_box)
+                        m_all_checks[k].second.push_back(check);
+            }
+        }
+        if (data.has_icon) {
+            auto compare_btn = new Button(panel_left, "", "compare", 0, 16);
+            compare_btn->SetStyle(ButtonStyle::Regular, ButtonType::Icon);
+            compare_btn->SetPaddingSize(FromDIP(wxSize(1, 1)));
+            compare_btn->SetMinSize(FromDIP(wxSize(20, 20)));
+            compare_btn->SetSize(FromDIP(wxSize(20, 20)));
+            compare_btn->SetCanFocus(false);
+            compare_btn->SetToolTip(_L("Compare the full values"));
+            compare_btn->Bind(wxEVT_BUTTON, [this, data](wxCommandEvent &) {
+                FullCompareDialog(data.option_name, data.old_value, data.new_value,
+                                  static_oldv_title->GetLabel(), static_newv_title->GetLabel()).ShowModal();
+            });
+            left_sizer->Add(compare_btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(4));
+        }
+        panel_left->SetSizer(left_sizer);
+        panel_left->Layout();
+        sizer->Add(panel_left, 0, wxALIGN_CENTER, 0);
+
+        if (params) {
+            m_sync_columns[0].push_back(panel_left);
+            // A target whose value differs from the source gets a checkbox for copying it.
+            DynamicPrintConfig value_config;
+            value_config.set_key_value(data.opt_key, params->config->option(data.opt_key)->clone());
+            const auto  values    = dynamic_cast<const ConfigOptionVectorBase *>(params->config->option(data.opt_key))->vserialize();
+            const auto &positions = params->positions.at(data.opt_key);
+            const int   from      = positions.index[params->source];
+            for (int i = 0; i < int(params->titles.size()); ++i) {
+                // A column without a value of this option, e.g. an extruder without its nozzle variant, stays empty.
+                const int index   = positions.index[i];
+                bool      differs = false;
+                for (int s = 0; index >= 0 && s < positions.stride; ++s)
+                    differs |= values[from + s] != values[index + s];
+
+                auto cell = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+                cell->SetBackgroundColour(GREY200);
+                m_sync_columns[i + 1].push_back(cell);
+                auto cell_sizer = new wxBoxSizer(wxHORIZONTAL);
+                cell_sizer->AddSpacer(UNSAVE_CHANGE_DIALOG_SYNC_CELL_PADDING);
+                if (i != params->source) {
+                    // A target that already has the value keeps the box's space, so its column stays aligned.
+                    auto check = new ::CheckBox(cell);
+                    cell_sizer->Add(check, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT | wxRESERVE_SPACE_EVEN_IF_HIDDEN, FromDIP(4));
+                    if (differs) {
+                        check->SetValue(true);
+                        check->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) { update_all_checks(); e.Skip(); });
+                        m_sync_checks.emplace_back(check, data.opt_key, index, i);
+                        for (size_t k : {category_all, group_all, row_all})
+                            m_all_checks[k].second.push_back(check);
+                    } else
+                        check->Hide();
+                }
+                if (index >= 0)
+                    cell_sizer->Add(make_label(cell, get_string_value(data.opt_key + "#" + std::to_string(index), value_config), ::Label::Body_13,
+                                               wxDefaultCoord, i == params->source ? wxGetApp().get_label_clr_modified() : GREY700),
+                                    0, wxALIGN_CENTER_VERTICAL);
+                cell->SetSizer(cell_sizer);
+                cell->Layout();
+                sizer->Add(cell, 0, wxALIGN_CENTER, 0);
+            }
+        } else {
+            sizer->Add(make_value_col(panel, data.old_value, false, data.has_icon), 0, wxALIGN_CENTER, 0);
+            sizer->Add(make_value_col(panel, data.new_value, false, data.has_icon), 0, wxALIGN_CENTER, 0);
+        }
+
+        finish_row(panel, sizer);
+    };
+
+    // Group by key, not adjacency: per-variant tags make one category recur at non-adjacent tab slots, so a walk that
+    // starts a section whenever the name changes would duplicate it.
+    struct Section { Preset::Type type; wxString name; std::vector<wxString> group_keys; };
+    std::map<wxString, Section>                 sections;       // cat_key -> section
+    std::vector<wxString>                       section_order;  // cat_keys in first-encounter order
+    std::map<wxString, std::vector<PresetItem>> rows_by_group;  // grp_key -> its rows, in tab order
+    for (const PresetItem &pi : m_presetitems) {
+        const wxString ckey = preset_item_cat_key(pi);
+        const wxString gkey = preset_item_grp_key(pi);
+        auto section = sections.try_emplace(ckey);
+        if (section.second) {
+            section.first->second = {pi.type, pi.category_name, {}};
+            section_order.push_back(ckey);
+        }
+        auto group = rows_by_group.try_emplace(gkey);
+        if (group.second)
+            section.first->second.group_keys.push_back(gkey);
+        group.first->second.push_back(pi);
+    }
+
+    Preset::Type shown_type = Preset::TYPE_INVALID;
+    size_t       type_all   = 0;
+    for (const wxString &ckey : section_order) {
+        const Section &section = sections.at(ckey);
+        // The sync dialog copies within one tab, so it needs no type header.
+        if (section.type != shown_type && !params) {
+            shown_type = section.type;
+            type_all   = emit_type_header(section.type);
+        }
+        const size_t category_all = emit_category(section.name);
+        for (const wxString &gkey : section.group_keys) {
+            const std::vector<PresetItem> &rows = rows_by_group.at(gkey);
+            const size_t group_all = emit_group(rows.front().group_name);
+            for (const PresetItem &pi : rows)
+                emit_option(pi, type_all, category_all, group_all);
+        }
+    }
+
+    m_scrolledWindow->SetSizer(m_listsizer);
+    m_scrolledWindow->Layout();
+    Layout();
+    Fit();
+}
+
+void UnsavedChangesDialog::update_tree(Preset::Type type, DynamicConfig *config)
+{
+    Search::SettingsIndex &index = wxGetApp().sidebar().settings_index();
+    index.sort_options_by_key();
+
+    for (const std::string &opt_key : config->keys()) {
+        int                   variant_index = -2;
+        Search::Option        option        = index.get_option(opt_key, type, variant_index);
+        if (variant_index == -2) {
+            // Orca: Every transferred setting must remain visible even when it is absent from the search index.
+            const ConfigOptionDef* def = print_config_def.get(opt_key);
+            const std::string label = def ? (def->full_label.empty() ? def->label : def->full_label) : std::string();
+            option.label_local = (label.empty() ? from_u8(opt_key) : _L(label)).ToStdWstring();
+            option.category_local = (def && !def->category.empty() ?
+                Tab::translate_category(from_u8(def->category), type) : _L("Others")).ToStdWstring();
+        }
+        // update_list() reads the values of every extruder from the config.
+        m_presetitems.push_back({type, opt_key, option.category_local, option.group_local, option.label_local, {}, {}});
+    }
+
+    index.sort_options_by_label();
+}
+
+std::vector<std::pair<std::string, int>> UnsavedChangesDialog::get_sync_selection() const
+{
+    std::vector<std::pair<std::string, int>> selection;
+    for (const auto &[check, opt_key, index, column] : m_sync_checks)
+        if (check->GetValue())
+            selection.emplace_back(opt_key, index);
+    return selection;
+}
+
+size_t UnsavedChangesDialog::add_all_check(wxWindow *parent)
+{
+    const size_t k = m_all_checks.size();
+    m_all_checks.push_back({new ::CheckBox(parent), {}});
+    m_all_checks[k].first->Bind(wxEVT_TOGGLEBUTTON, [this, k](wxCommandEvent &e) {
+        for (::CheckBox *cell : m_all_checks[k].second)
+            cell->SetValue(m_all_checks[k].first->GetValue());
+        update_all_checks();
+        e.Skip();
+    });
+    return k;
+}
+
+std::vector<std::string> UnsavedChangesDialog::options_by_selection(const Preset::Type *type, bool selected) const
+{
+    std::vector<std::string> options;
+    for (const PresetItem &item : m_presetitems) {
+        if (type != nullptr && item.type != *type)
+            continue;
+        auto check = std::find_if(m_option_checks.begin(), m_option_checks.end(), [&item](const auto &option) {
+            return std::get<1>(option) == item.type && std::get<2>(option) == item.opt_key;
+        });
+        if ((check == m_option_checks.end() || std::get<0>(*check)->GetValue()) == selected)
+            options.push_back(item.opt_key);
+    }
+    return options;
+}
+
+void UnsavedChangesDialog::update_all_checks()
+{
+    for (const auto &[all, cells] : m_all_checks) {
+        const auto checked = size_t(std::count_if(cells.begin(), cells.end(), [](const ::CheckBox *cell) { return cell->GetValue(); }));
+        // A partly ticked box holds false, so clicking it ticks everything under it.
+        all->SetValue(!cells.empty() && checked == cells.size());
+        all->SetHalfChecked(checked > 0 && checked < cells.size());
+    }
 }
 
 void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* presets_)
 {
-    Search::OptionsSearcher& searcher = wxGetApp().sidebar().get_searcher();
-    searcher.sort_options_by_key();
+    Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
+    index.sort_options_by_key();
 
     // list of the presets with unsaved changes
     std::vector<PresetCollection*> presets_list;
@@ -1680,6 +1905,8 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
     else
         presets_list.emplace_back(presets_);
 
+    const bool multiple_extruders = wxGetApp().preset_bundle->get_printer_extruder_count() > 1;
+
     // Display a dialog showing the dirty options in a human readable form.
     for (PresetCollection* presets : presets_list)
     {
@@ -1693,8 +1920,7 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
         //m_tree->model->AddPreset(type, from_u8(presets->get_edited_preset().name), old_pt);
 
         // Collect dirty options.
-        const bool deep_compare = (type == Preset::TYPE_PRINTER ||
-                                   type == Preset::TYPE_FILAMENT || type == Preset::TYPE_SLA_MATERIAL);
+        const bool deep_compare = (type == Preset::TYPE_PRINTER || type == Preset::TYPE_PRINT || type == Preset::TYPE_FILAMENT || type == Preset::TYPE_SLA_MATERIAL);
         auto dirty_options = presets->current_dirty_options(deep_compare);
 
         // process changes of extruders count
@@ -1714,17 +1940,63 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
             }
         }
 
+        auto variant_key      = Preset::get_iot_type_string(type) + "_extruder_variant";
+        auto id_key           = Preset::get_iot_type_string(type) + "_extruder_id";
+        // Orca: Dirty indices belong to the edited config, which may contain newly added variants.
+        auto extruder_variant = dynamic_cast<ConfigOptionStrings const *>(new_config.option(variant_key));
+        auto extruder_id      = dynamic_cast<ConfigOptionInts const *>(new_config.option(id_key));
+
+        auto extruder_variant_of = [type](const std::string& pure_key, int index) {
+            return type == Preset::TYPE_PRINTER && printer_options_with_variant_2.count(pure_key) > 0 ? index / 2 : index;
+        };
+
+        std::map<std::string, int> dirty_variants_per_option;
+        std::map<std::pair<std::string, int>, int> dirty_variants_per_extruder;
         for (const std::string& opt_key : dirty_options) {
-            const std::string lookup_key = get_pure_opt_key(opt_key);
-            Search::Option option = searcher.get_option(lookup_key, type);
-            if (get_pure_opt_key(option.opt_key()) != lookup_key)
-                option = searcher.get_option(opt_key, get_full_label(opt_key, new_config), type);
-            if (get_pure_opt_key(option.opt_key()) != lookup_key) {
-                // When the found option is not the requested one.
-                // This can happen for dirty_options such as:
-                // "default_print_profile", "printer_model", "printer_settings_id",
-                // because they do not exist in the searcher.
+            const std::string pure_key = get_pure_opt_key(opt_key);
+            ++dirty_variants_per_option[pure_key];
+            const size_t hash_pos = opt_key.find('#');
+            const int variant = hash_pos == std::string::npos ? -1 : extruder_variant_of(pure_key, std::atoi(opt_key.c_str() + hash_pos + 1));
+            if (extruder_id && variant >= 0 && variant < extruder_id->size())
+                ++dirty_variants_per_extruder[{pure_key, extruder_id->values[variant]}];
+        }
+
+        for (const std::string& opt_key : dirty_options) {
+            int variant_index = -2;
+            const Search::Option &option = index.get_option(opt_key, type, variant_index);
+            if (variant_index == -2) {
+                // When founded option isn't the correct one.
+                // It can be for dirty_options: "default_print_profile", "printer_model", "printer_settings_id",
+                // because of they don't exist in the index
                 continue;
+            }
+            wxString category = option.category_local;
+            wxString label = option.label_local;
+            // A multi-extruder printer registers its per-extruder options under "Extruder N".
+            const bool on_extruder_page = option.category.compare(0, 9, L"Extruder ") == 0;
+            int row_extruder_id = on_extruder_page ? int(std::wcstol(option.category.c_str() + 9, nullptr, 10)) : 0;
+            if (variant_index >= 0)
+                variant_index = extruder_variant_of(get_pure_opt_key(opt_key), variant_index);
+            if (variant_index >= 0 && extruder_variant && variant_index < extruder_variant->size()) {
+                // Orca: Match the untranslated category and use the same extruder names as the printer tabs.
+                if (on_extruder_page)
+                    category = _L("Extruder");
+                const bool ambiguous = dirty_variants_per_option[get_pure_opt_key(opt_key)] > 1;
+                wxString variant_label = from_u8(extruder_variant->values[variant_index]);
+                // Orca: An extruder name only disambiguates variants on printers with multiple extruders.
+                const bool named_extruder = multiple_extruders && extruder_id && variant_index < extruder_id->size() && extruder_id->values[variant_index] > 0;
+                if (named_extruder) {
+                    const int id = extruder_id->values[variant_index];
+                    const wxString extruder_name = Tab::translate_category(wxString::Format("Extruder %d", id), Preset::TYPE_PRINTER);
+                    const bool several_dirty_on_extruder = dirty_variants_per_extruder[{get_pure_opt_key(opt_key), id}] > 1;
+                    variant_label = several_dirty_on_extruder ? extruder_name + " (" + variant_label + ")" : extruder_name;
+                    if (on_extruder_page)
+                        row_extruder_id = id;
+                }
+                if (on_extruder_page && named_extruder)
+                    category = variant_label;
+                else if (ambiguous)
+                    category = variant_label + ": " + category;
             }
 
             /*m_tree->Append(opt_key, type, option.category_local, option.group_local, option.label_local,
@@ -1733,14 +2005,16 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
 
             //PresetItem pi = {opt_key, type, 1983};
             //m_presetitems.push_back()
-            PresetItem pi = {type, opt_key, option.category_local, option.group_local, option.label_local, get_string_value(opt_key, old_config), get_string_value(opt_key, new_config)};
+            PresetItem pi = {type, opt_key, category, option.group_local, label, get_string_value(opt_key, old_config), get_string_value(opt_key, new_config)};
+            pi.has_icon = value_clips(pi.old_value) || value_clips(pi.new_value);
+            pi.extruder_id = row_extruder_id;
             m_presetitems.push_back(pi);
 
         }
     }
 
-    // Revert sort of searcher back
-    searcher.sort_options_by_label();
+    // Revert sort of index back
+    index.sort_options_by_label();
 }
 
 void UnsavedChangesDialog::on_dpi_changed(const wxRect& suggested_rect)
@@ -1826,22 +2100,22 @@ FullCompareDialog::FullCompareDialog(const wxString& option_name, const wxString
     std::set_difference(old_set.begin(), old_set.end(), new_set.begin(), new_set.end(), std::inserter(old_new_diff_set, old_new_diff_set.begin()));
     std::set_difference(new_set.begin(), new_set.end(), old_set.begin(), old_set.end(), std::inserter(new_old_diff_set, new_old_diff_set.begin()));
 
-    auto add_value = [grid_sizer, border, this](wxString label, const std::set<wxString>& diff_set, bool is_colored = false) {
+    auto add_value = [grid_sizer, border, this](wxString label, const std::set<wxString>& diff_set) {
         wxTextCtrl* text = new wxTextCtrl(this, wxID_ANY, label, wxDefaultPosition, wxSize(400, 400), wxTE_MULTILINE | wxTE_READONLY | wxBORDER_DEFAULT | wxTE_RICH);
         wxGetApp().UpdateDarkUI(text);
-        text->SetStyle(0, label.Len(), wxTextAttr(is_colored ? wxColour(orange) : wxNullColour, wxNullColour, this->GetFont()));
+        text->SetStyle(0, label.Len(), wxTextAttr(wxNullColour, wxNullColour, this->GetFont()));
 
         for (const wxString& str : diff_set) {
             int pos = label.First(str);
             if (pos == wxNOT_FOUND)
                 continue;
-            text->SetStyle(pos, pos + (int)str.Len(), wxTextAttr(is_colored ? wxColour(orange) : wxNullColour, wxNullColour, this->GetFont().Bold()));
+            text->SetStyle(pos, pos + (int)str.Len(), wxTextAttr(wxGetApp().get_label_clr_modified(), wxNullColour, this->GetFont().Bold()));
         }
 
         grid_sizer->Add(text, 1, wxALL | wxEXPAND, border);
     };
     add_value(old_value, old_new_diff_set);
-    add_value(new_value, new_old_diff_set, true);
+    add_value(new_value, new_old_diff_set);
 
     sizer->Add(grid_sizer, 1, wxEXPAND);
 
@@ -1859,7 +2133,7 @@ FullCompareDialog::FullCompareDialog(const wxString& option_name, const wxString
 }
 
 
-static PresetCollection* get_preset_collection(Preset::Type type, PresetBundle* preset_bundle = nullptr) {
+static PresetCollection* get_preset_collection(Preset::Type type, PresetBundle* preset_bundle) {
     if (!preset_bundle)
         preset_bundle = wxGetApp().preset_bundle;
     return  type == Preset::Type::TYPE_PRINTER      ? &preset_bundle->printers :
@@ -1882,7 +2156,7 @@ void DiffPresetDialog::create_presets_sizer()
 {
     m_presets_sizer = new wxBoxSizer(wxVERTICAL);
 
-    for (auto new_type : { Preset::TYPE_PRINTER, Preset::TYPE_FILAMENT, Preset::TYPE_SLA_MATERIAL, Preset::TYPE_PRINT, Preset::TYPE_SLA_PRINT })
+    for (auto new_type : PRESET_TYPE_ORDER)
     {
         const PresetCollection* collection = get_preset_collection(new_type);
         wxBoxSizer* sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -2089,8 +2363,9 @@ DiffPresetDialog::DiffPresetDialog(MainFrame* mainframe)
 
     assert(wxGetApp().preset_bundle);
 
-    m_preset_bundle_left  = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
-    m_preset_bundle_right = std::make_unique<PresetBundle>(*wxGetApp().preset_bundle);
+    // show() copies the app's bundle into both before anything is displayed.
+    m_preset_bundle_left  = std::make_unique<PresetBundle>();
+    m_preset_bundle_right = std::make_unique<PresetBundle>();
 
     // Create UI items
 
@@ -2192,12 +2467,13 @@ void DiffPresetDialog::update_bottom_info(wxString bottom_info)
 
 void DiffPresetDialog::update_tree()
 {
-    Search::OptionsSearcher& searcher = wxGetApp().sidebar().get_searcher();
-    searcher.sort_options_by_key();
+    Search::SettingsIndex& index = wxGetApp().sidebar().settings_index();
+    index.sort_options_by_key();
 
     m_tree->Clear();
     wxString bottom_info = "";
     bool show_tree = false;
+    const std::map<std::string, int> tab_order = build_tab_order_map();
 
     for (auto preset_combos : m_preset_combos)
     {
@@ -2209,7 +2485,7 @@ void DiffPresetDialog::update_tree()
         const Preset* left_preset  = presets->find_preset(get_selection(preset_combos.presets_left));
         const Preset* right_preset = presets->find_preset(get_selection(preset_combos.presets_right));
         if (!left_preset || !right_preset) {
-            bottom_info = "One of the presets does not exist";
+            bottom_info = _L("One of the presets does not exist");
             preset_combos.equal_bmp->SetBitmap_(ScalableBitmap(this, "question"));
             preset_combos.equal_bmp->SetToolTip(bottom_info);
             continue;
@@ -2220,7 +2496,7 @@ void DiffPresetDialog::update_tree()
         const DynamicPrintConfig& right_congig  = right_preset->config;
 
         if (left_pt != right_preset->printer_technology()) {
-            bottom_info = "Compared presets has different printer technology";
+            bottom_info = _L("Compared presets has different printer technology");
             preset_combos.equal_bmp->SetBitmap_(ScalableBitmap(this, "question"));
             preset_combos.equal_bmp->SetToolTip(bottom_info);
             continue;
@@ -2249,7 +2525,8 @@ void DiffPresetDialog::update_tree()
 
         preset_combos.equal_bmp->SetToolTip(wxEmptyString);
 
-        m_tree->model->AddPreset(type, "\"" + from_u8(left_preset->name) + "\" vs \"" + from_u8(right_preset->name) + "\"", left_pt);
+        // TRN Header of a preset comparison: the two preset names.
+        m_tree->model->AddPreset(type, format_wxstr(_L("\"%1%\" vs \"%2%\""), left_preset->name, right_preset->name), left_pt);
 
         const std::map<wxString, std::string>& category_icon_map = wxGetApp().get_tab(type)->get_category_icon_map();
         auto get_category_icon = [&category_icon_map](const wxString& key) {
@@ -2264,23 +2541,27 @@ void DiffPresetDialog::update_tree()
             wxString left_val = from_u8((boost::format("%1%") % left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
             wxString right_val = from_u8((boost::format("%1%") % right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
 
-            m_tree->Append("extruders_count", type, "General", "Capabilities", local_label, left_val, right_val,
+            m_tree->Append("extruders_count", type, _L("General"), _L("Capabilities"), local_label, left_val, right_val,
                 get_category_icon("Basic information"));
         }
+
+        std::stable_sort(dirty_options.begin(), dirty_options.end(), [&tab_order](const std::string& a, const std::string& b) {
+            return order_of(tab_order, a) < order_of(tab_order, b);
+        });
 
         for (const std::string& opt_key : dirty_options) {
             wxString left_val = get_string_value(opt_key, left_config);
             wxString right_val = get_string_value(opt_key, right_congig);
 
             const std::string lookup_key = get_pure_opt_key(opt_key);
-            Search::Option option = searcher.get_option(lookup_key, type);
+            Search::Option option = index.get_option(lookup_key, get_full_label(lookup_key, left_config), type);
             if (get_pure_opt_key(option.opt_key()) != lookup_key)
-                option = searcher.get_option(opt_key, get_full_label(opt_key, left_config), type);
+                option = index.get_option(opt_key, get_full_label(opt_key, left_config), type);
             if (get_pure_opt_key(option.opt_key()) != lookup_key) {
                 // When the found option is not the requested one.
                 // This can happen for dirty_options such as:
                 // "default_print_profile", "printer_model", "printer_settings_id",
-                // because they do not exist in the searcher.
+                // because they do not exist in the index.
                 continue;
             }
             m_tree->Append(opt_key, type, option.category_local, option.group_local, option.label_local,
@@ -2304,8 +2585,8 @@ void DiffPresetDialog::update_tree()
         Refresh();
     }
 
-    // Revert sort of searcher back
-    searcher.sort_options_by_label();
+    // Revert sort of index back
+    index.sort_options_by_label();
 }
 
 void DiffPresetDialog::on_dpi_changed(const wxRect&)

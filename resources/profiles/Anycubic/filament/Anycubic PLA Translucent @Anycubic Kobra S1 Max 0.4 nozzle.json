@@ -3,8 +3,8 @@
 	"name": "Anycubic PLA Translucent @Anycubic Kobra S1 Max 0.4 nozzle",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "Anycubic PLA Translucent @Anycubic Kobra S1 Max 0.4 nozzle",
-	"filament_id": "GFPLA Translucent",
+	"setting_id": "DkuffHU9VM48p50f",
+	"filament_id": "OF7c9fln",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic PLA Translucent @Anycubic Kobra S1 Max 0.4 nozzle"

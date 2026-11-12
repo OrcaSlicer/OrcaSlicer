@@ -2,8 +2,12 @@
 
 #include <cmath>
 #include <cassert>
-#include "Geometry.hpp"
-#include "Polygon.hpp"
+#include <cstddef>
+#include <utility>
+#include <math.h>
+#include "Point.hpp"
+#include "Line.hpp"
+#include "libslic3r.h"
 
 
 //BBS: Refer to ArcWelderLib for the arc fitting functions

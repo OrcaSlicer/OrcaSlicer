@@ -3,8 +3,8 @@
 	"name": "QIDI PLA Rapido Silk @Qidi Q1 Pro 0.4 nozzle",
 	"inherits": "QIDI PLA Rapido Silk",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFB99",
+	"setting_id": "hnWx5ZM2ecclYvKA",
+	"filament_id": "OFW5FqkL",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

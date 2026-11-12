@@ -5,12 +5,15 @@
 #define UTILS_LINEAR_ALG_2D_H
 
 #include "../../Point.hpp"
+#include <cstdint>
+#include <math.h>
+#include <cmath>
 
 namespace Slic3r::Arachne::LinearAlg2D
 {
 
 /*!
-     * Returns the determinant of the 2D matrix defined by the the vectors ab and ap as rows.
+     * Returns the determinant of the 2D matrix defined by the vectors ab and ap as rows.
      * 
      * The returned value is zero for \p p lying (approximately) on the line going through \p a and \p b
      * The value is positive for values lying to the left and negative for values lying to the right when looking from \p a to \p b.

@@ -3,7 +3,7 @@
 	"name": "Qidi Q2C 0.8 nozzle",
 	"inherits": "Qidi Q2C 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM008",
+	"setting_id": "U9m6kWHky7qHk9JL",
 	"instantiation": "true",
 	"default_filament_profile": [
 		"QIDI PLA Rapido"

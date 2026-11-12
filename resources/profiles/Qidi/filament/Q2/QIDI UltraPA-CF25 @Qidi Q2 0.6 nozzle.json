@@ -3,7 +3,7 @@
 	"name": "QIDI UltraPA-CF25 @Qidi Q2 0.6 nozzle",
 	"inherits": "QIDI UltraPA-CF25@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSN99",
+	"setting_id": "GobHpUPsRZBrfGwF",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.022"

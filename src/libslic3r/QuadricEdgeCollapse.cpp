@@ -1,8 +1,22 @@
 #include "QuadricEdgeCollapse.hpp"
+#include <cstddef>
+#include <algorithm>
+#include <functional>
+#include <cstdint>
+#include <array>
+#include <limits>
+#include <cmath>
+#include <cassert>
+#include <cstdlib>
+#include <iterator>
 #include <tuple>
 #include <optional>
 #include "MutablePriorityQueue.hpp"
+#include "libslic3r.h"
+#include "Point.hpp"
 #include <tbb/parallel_for.h>
+#include <vector>
+#include <utility>
 
 using namespace Slic3r;
 

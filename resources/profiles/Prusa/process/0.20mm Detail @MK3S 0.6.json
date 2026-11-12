@@ -3,6 +3,7 @@
 	"name": "0.20mm Detail @MK3S 0.6",
 	"inherits": "process_common_mk3",
 	"from": "system",
+	"setting_id": "dTfnuXbwKxIxw9Ed",
 	"instantiation": "true",
 	"print_settings_id": "0.20mm Detail @MK3S 0.6",
 	"bottom_shell_layers": "4",

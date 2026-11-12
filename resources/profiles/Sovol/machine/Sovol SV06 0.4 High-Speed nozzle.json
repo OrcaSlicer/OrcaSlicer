@@ -3,7 +3,7 @@
 	"name": "Sovol SV06 0.4 High-Speed nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "ShWzWhKWa9JASGUz",
 	"instantiation": "true",
 	"printer_model": "Sovol SV06",
 	"default_print_profile": "0.20mm High-Speed @Sovol SV06",
@@ -69,7 +69,6 @@
 		"10"
 	],
 	"z_hop": [
-		"0.4",
 		"0.4"
 	],
 	"max_layer_height": [
@@ -77,35 +76,34 @@
 		"0.32"
 	],
 	"retract_lift_below": [
-		"248",
 		"248"
 	],
 	"retraction_speed": [
-		"35",
 		"35"
 	],
 	"deretraction_speed": [
-		"35",
 		"35"
 	],
 	"wipe_distance": [
-		"2",
 		"2"
 	],
 	"retract_length_toolchange": [
-		"1",
 		"1"
 	],
 	"machine_max_jerk_e": [
+		"2.5",
 		"2.5"
 	],
 	"machine_max_jerk_x": [
+		"5",
 		"5"
 	],
 	"machine_max_jerk_y": [
+		"5",
 		"5"
 	],
 	"machine_max_jerk_z": [
+		"0.4",
 		"0.4"
 	],
 	"before_layer_change_gcode": "TIMELAPSE_TAKE_FRAME\nG92 E0",

@@ -8,17 +8,30 @@ using namespace nlohmann;
 namespace Slic3r
 {
 
+bool DevConfig::SupportChamberTempDisplay() const
+{
+    if (!m_support_chamber_temp_display.has_value()) {
+        return m_has_chamber;
+    }
+
+    return m_support_chamber_temp_display.value();
+}
+
 void DevConfig::ParseConfig(const json& print_json)
 {
     ParseChamberConfig(print_json);
     ParsePrintOptionsConfig(print_json);
     ParseCalibrationConfig(print_json);
-
 }
 
 void DevConfig::ParseChamberConfig(const json& print_json)
 {
     DevJsonValParser::ParseVal(print_json, "support_chamber", m_has_chamber);
+
+    if (print_json.contains("support_chamber_temp_display")) {
+        m_support_chamber_temp_display = DevJsonValParser::GetVal<bool>(print_json, "support_chamber_temp_display");
+    }
+
     DevJsonValParser::ParseVal(print_json, "support_chamber_temp_edit", m_support_chamber_edit);
     if (m_support_chamber_edit)
     {

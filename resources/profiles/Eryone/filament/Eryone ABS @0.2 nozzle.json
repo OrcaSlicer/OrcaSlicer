@@ -1,9 +1,10 @@
 {
 	"type": "filament",
 	"name": "Eryone ABS @0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Eryone ABS",
+	"from": "system",
+	"setting_id": "sNet9szMIhVY4WoS",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Thinker X400 0.2 nozzle"
 	],

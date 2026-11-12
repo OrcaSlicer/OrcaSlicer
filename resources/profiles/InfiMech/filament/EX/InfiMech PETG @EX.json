@@ -3,8 +3,8 @@
 	"name": "InfiMech PETG @EX",
 	"inherits": "fdm_filament_pet @EX",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFG99",
+	"setting_id": "5vqLJrKLKv40sT7y",
+	"filament_id": "OFrLiqiM",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
 		"1"

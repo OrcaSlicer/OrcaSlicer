@@ -1,0 +1,23 @@
+{
+	"type": "process",
+	"name": "0.20mm SOLUBLE INTERFACE @COREONE0.4 + MMU3",
+	"inherits": "0.20mm SOLUBLE INTERFACE @CORE One 0.4",
+	"from": "system",
+	"setting_id": "hrh6ZS8cMrp6Fput",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Prusa CORE One MMU3 0.4 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"filename_format": "{input_filename_base}_{layer_height}mm_{filament_type[0]}-{filament_type[1]}-{filament_type[2]}-{filament_type[3]}-{filament_type[4]}_COREONE_MMU3_{print_time}.gcode",
+	"prime_tower_brim_width": "2",
+	"print_extruder_id": [
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"wipe_tower_cone_angle": "25",
+	"wipe_tower_extra_flow": "250%",
+	"wipe_tower_extra_spacing": "110%"
+}

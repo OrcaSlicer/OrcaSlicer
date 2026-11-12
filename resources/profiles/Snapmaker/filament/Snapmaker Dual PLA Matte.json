@@ -3,7 +3,7 @@
 	"name": "Snapmaker Dual PLA Matte",
 	"inherits": "Snapmaker Dual PLA Matte @base",
 	"from": "system",
-	"setting_id": "3959402964",
+	"setting_id": "9PvQCorbNAdcMOkL",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 Dual (0.4 nozzle)",

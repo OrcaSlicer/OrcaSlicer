@@ -3,10 +3,12 @@
 	"name": "fdm_filament_eva",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"filament_id": "OGFR99",
 	"instantiation": "false",
 	"filament_type": [
 		"EVA"
+	],
+	"filament_multitool_ramming_flow": [
+		"12"
 	],
 	"supertack_plate_temp": [
 		"0"

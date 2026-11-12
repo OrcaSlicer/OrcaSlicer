@@ -3,7 +3,7 @@
 	"name": "Overture ABS Basic @System",
 	"inherits": "Overture ABS Basic @base",
 	"from": "system",
-	"setting_id": "OVABS08",
+	"setting_id": "7ne4ExJvVczKYHOi",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"16"

@@ -3,6 +3,7 @@
 	"name": "1.80mm Vasemode",
 	"inherits": "fdm_process_common",
 	"from": "User",
+	"setting_id": "J6eZDCuu5egRTMlY",
 	"instantiation": "true",
 	"accel_to_decel_enable": "0",
 	"bottom_solid_infill_flow_ratio": "1",

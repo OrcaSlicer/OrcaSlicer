@@ -3,7 +3,7 @@
 	"name": "Arena PLA Sparkle @Arena X1C",
 	"inherits": "Arena PLA Sparkle @base",
 	"from": "system",
-	"setting_id": "GFSA08_00",
+	"setting_id": "mAZuRQdAzLNFTf0w",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.4 nozzle",

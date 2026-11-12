@@ -3,8 +3,8 @@
 	"name": "QIDI PAHT-GF",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSN99",
-	"filament_id": "GFN98",
+	"setting_id": "A6BaDz936RbO2EW1",
+	"filament_id": "OFo15hcT",
 	"instantiation": "true",
 	"filament_type": [
 		"PAHT-GF"

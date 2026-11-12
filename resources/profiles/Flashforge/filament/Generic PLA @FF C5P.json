@@ -3,6 +3,7 @@
 	"name": "Generic PLA @FF C5P",
 	"inherits": "Generic PLA @System",
 	"from": "system",
+	"setting_id": "ALRfG5zUa6ytbtho",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
@@ -41,6 +42,9 @@
 	],
 	"fan_min_speed": [
 		"70"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
 	],
 	"filament_max_volumetric_speed": [
 		"18"

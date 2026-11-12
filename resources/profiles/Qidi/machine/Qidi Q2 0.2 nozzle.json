@@ -3,7 +3,7 @@
 	"name": "Qidi Q2 0.2 nozzle",
 	"inherits": "Qidi Q2 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM008",
+	"setting_id": "xtu7540jmpjIWUjN",
 	"instantiation": "true",
 	"printer_model": "Qidi Q2",
 	"printer_variant": "0.2",

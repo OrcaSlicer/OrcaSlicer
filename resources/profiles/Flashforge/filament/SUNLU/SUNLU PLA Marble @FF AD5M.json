@@ -3,7 +3,7 @@
 	"name": "SUNLU PLA Marble @FF AD5M",
 	"inherits": "SUNLU PLA Marble @base",
 	"from": "system",
-	"setting_id": "GFSNLS06",
+	"setting_id": "M0wMWwyqvlmLuHeV",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Adventurer 5M Pro 0.4 Nozzle",

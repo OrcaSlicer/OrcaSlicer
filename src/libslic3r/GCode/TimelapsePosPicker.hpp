@@ -1,11 +1,17 @@
 #ifndef TIMELAPSE_POS_PICKER_HPP
 #define TIMELAPSE_POS_PICKER_HPP
 
+#include <optional>
+#include <unordered_map>
 #include <vector>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Print.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/MultiMaterialSegmentation.hpp"
+
+namespace Slic3r { enum class PrintSequence; }
 
 namespace Slic3r {
 
@@ -22,6 +28,9 @@ namespace Slic3r {
         int picture_extruder_id; // the extruder id to take picture
         int curr_extruder_id;
         std::optional<std::vector<const PrintObject*>> printed_objects; // printed objects, only have value in by object mode
+        // Farthest-point timelapse: plate-relative scaled point; when set, pick_pos_internal
+        // biases the picked snapshot position toward this point (nullopt → legacy camera-occlusion loss).
+        std::optional<Point> farthest_point;
     };
 
     // data are stored without plate offset
@@ -32,6 +41,9 @@ namespace Slic3r {
         ~TimelapsePosPicker() = default;
 
         Point pick_pos(const PosPickCtx& ctx);
+        // Is the path to X0 clear of other (taller) instances? Drives the
+        // `clear_to_x0` timelapse-gcode variable (g39 clamping detection).
+        bool  get_is_clear_to_x0(const PosPickCtx& ctx);
         void init(const Print* print, const Point& plate_offset);
         void reset();
     private:

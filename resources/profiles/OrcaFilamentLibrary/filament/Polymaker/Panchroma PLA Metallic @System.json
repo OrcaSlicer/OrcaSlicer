@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Metallic @System",
 	"inherits": "Panchroma PLA Metallic @base",
 	"from": "system",
-	"setting_id": "OGFSPM012",
+	"setting_id": "lXSb7YuhA2jYvk44",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"

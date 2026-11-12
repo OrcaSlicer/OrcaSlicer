@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 PVA",
 	"inherits": "Snapmaker J1 PVA @base",
 	"from": "system",
-	"setting_id": "602634987",
+	"setting_id": "6ak8VhN88lh6Ob1p",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)",

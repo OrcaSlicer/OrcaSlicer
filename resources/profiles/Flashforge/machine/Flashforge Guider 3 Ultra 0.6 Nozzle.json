@@ -3,7 +3,7 @@
 	"name": "Flashforge Guider 3 Ultra 0.6 Nozzle",
 	"inherits": "fdm_guider3_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "VKlxYdoMbSJ54J6s",
 	"instantiation": "true",
 	"printer_variant": "0.6",
 	"printer_model": "Flashforge Guider 3 Ultra",
@@ -12,7 +12,7 @@
 	"cooling_tube_length": "0",
 	"cooling_tube_retraction": "0",
 	"default_filament_profile": [
-		"Flashforge Generic PLA @G3U 0.6 Nozzle"
+		"Generic PLA @Flashforge G3U 0.6 Nozzle"
 	],
 	"default_print_profile": "0.30mm Standard @Flashforge G3U 0.6 Nozzle",
 	"deretraction_speed": [

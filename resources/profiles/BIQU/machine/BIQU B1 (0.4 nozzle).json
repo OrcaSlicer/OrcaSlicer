@@ -3,7 +3,7 @@
 	"name": "BIQU B1 (0.4 nozzle)",
 	"inherits": "fdm_biqu_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "YmXhSXftWo9gFxGH",
 	"instantiation": "true",
 	"printer_model": "BIQU B1",
 	"default_print_profile": "0.20mm Standard @BIQU B1 (0.4 nozzle)",
@@ -24,45 +24,59 @@
 	],
 	"gcode_flavor": "marlin",
 	"machine_max_acceleration_e": [
+		"10000",
 		"10000"
 	],
 	"machine_max_acceleration_extruding": [
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_retracting": [
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_x": [
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_y": [
+		"1000",
 		"1000"
 	],
 	"machine_max_acceleration_z": [
+		"100",
 		"100"
 	],
 	"machine_max_speed_e": [
+		"60",
 		"60"
 	],
 	"machine_max_speed_x": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_y": [
+		"500",
 		"500"
 	],
 	"machine_max_speed_z": [
+		"10",
 		"10"
 	],
 	"machine_max_jerk_e": [
+		"5",
 		"5"
 	],
 	"machine_max_jerk_x": [
+		"10",
 		"10"
 	],
 	"machine_max_jerk_y": [
+		"10",
 		"10"
 	],
 	"machine_max_jerk_z": [
+		"0.3",
 		"0.3"
 	],
 	"machine_max_junction_deviation": [

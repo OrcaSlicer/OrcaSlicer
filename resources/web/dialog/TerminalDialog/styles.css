@@ -1,0 +1,74 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px;
+}
+
+#terminal-container {
+  flex: 1;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+#terminal-container,
+#terminal-container .xterm,
+#terminal-container .xterm * {
+  font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", monospace;
+  letter-spacing: 0;
+  word-spacing: 0;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+#cmd-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+#cmd-input:focus {
+  border-color: var(--orca-accent);
+}
+
+#run-btn {
+  padding: 6px 20px;
+  border: none;
+  border-radius: 4px;
+  background: var(--orca-accent);
+  color: var(--orca-accent-fg);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+#run-btn:hover {
+  filter: brightness(1.1);
+}
+
+#run-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}

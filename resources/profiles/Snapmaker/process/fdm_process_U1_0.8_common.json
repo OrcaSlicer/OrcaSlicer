@@ -1,0 +1,16 @@
+{
+	"type": "process",
+	"name": "fdm_process_U1_0.8_common",
+	"inherits": "fdm_process_U1_common",
+	"from": "system",
+	"instantiation": "false",
+	"line_width": "0.82",
+	"outer_wall_line_width": "0.82",
+	"inner_wall_line_width": "0.82",
+	"initial_layer_line_width": "0.82",
+	"sparse_infill_line_width": "0.82",
+	"internal_solid_infill_line_width": "0.82",
+	"support_line_width": "0.82",
+	"top_surface_line_width": "0.82",
+	"compatible_printers": []
+}

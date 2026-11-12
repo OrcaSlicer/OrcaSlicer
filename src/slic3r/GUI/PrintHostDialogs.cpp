@@ -1,20 +1,65 @@
 #include "PrintHostDialogs.hpp"
 
 #include <algorithm>
+#include <atomic>
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <cctype>
+#include <functional>
+#include <cstddef>
+#include <cstdlib>
+#include <exception>
 #include <iomanip>
+#include "libslic3r/ProjectTask.hpp"
+#include <ios>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/Config.hpp"
 #include <limits>
 
+#include <wx/app.h>
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <wx/dcclient.h>
+#include <memory>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <vector>
+#include <utility>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <map>
+#include <mutex>
+#include <system_error>
+#include <string>
+#include <wx/busycursor.h>
+#include <wx/dialog.h>
+#include <wx/display.h>
+#include <wx/dvrenderers.h>
+#include <sstream>
+#include <thread>
+#include "slic3r/GUI/Widgets/RadioBox.hpp"
 #include <wx/frame.h>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
 #include <wx/progdlg.h>
+#include <wx/settings.h>
 #include <wx/sizer.h>
+#include <wx/statbox.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/textctrl.h>
 #include <wx/checkbox.h>
 #include <wx/button.h>
 #include <wx/dataview.h>
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
+#include <wx/toplevel.h>
+#include <wx/tglbtn.h>
+#include <wx/vector.h>
+#include <wx/variant.h>
+#include <wx/types.h>
 #include <wx/wrapsizer.h>
 #include <wx/wupdlock.h>
 #include <wx/debug.h>
@@ -26,20 +71,28 @@
 #include <boost/algorithm/string.hpp>
 #include <nlohmann/json.hpp>
 
+#include "Flashforge.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "MainFrame.hpp"
+#include "PrintHost.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "NotificationManager.hpp"
 #include "ExtraRenderers.hpp"
 #include "format.hpp"
 #include "../Utils/CrealityPrint.hpp"
+#include "../Utils/Http.hpp"
 #include "BitmapComboBox.hpp"
+#include "libslic3r_version.h"
 #include "wxExtensions.hpp"
 
-#include <nlohmann/json.hpp>
+#include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include <wx/defs.h>
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
@@ -651,11 +704,13 @@ FlashforgePrintHostSendDialog::FlashforgePrintHostSendDialog(const fs::path&    
                                                              const Slic3r::Flashforge*   host,
                                                              bool                        supports_material_station,
                                                              std::vector<Slic3r::FlashforgeMaterialSlot> slots,
-                                                             const std::vector<FilamentInfo>& project_filaments)
+                                                             const std::vector<FilamentInfo>& project_filaments,
+                                                             bool                        manual_filament_change)
     : PrintHostSendDialog(path, post_actions, groups, storage_paths, storage_names, switch_to_device_tab)
     , m_host(host)
     , m_slots(std::move(slots))
     , m_project_filaments(project_filaments)
+    , m_manual_filament_change(manual_filament_change)
 {
     m_supports_material_station = supports_material_station;
     m_slots_loaded = !m_slots.empty();
@@ -674,10 +729,10 @@ void FlashforgePrintHostSendDialog::init()
     if (!timelapse.empty())
         m_time_lapse_video = timelapse == "1";
 
-    // Flashforge local printing should default to IFS enabled when supported.
+    // Flashforge local printing should default to IFS enabled when supported and manual filament change is not active.
     // We don't revive an old stale "0" here.
-    m_use_material_station = m_supports_material_station;
-    if (m_supports_material_station && !app_config->has("recent", CONFIG_KEY_IFS))
+    m_use_material_station = m_supports_material_station && !m_manual_filament_change;
+    if (m_use_material_station && !app_config->has("recent", CONFIG_KEY_IFS))
         const_cast<AppConfig*>(app_config)->set("recent", CONFIG_KEY_IFS, "1");
 
     this->SetMinSize(wxSize(560, 420));
@@ -773,7 +828,8 @@ void FlashforgePrintHostSendDialog::init()
     content_sizer->Add(m_flashforge_options_sizer, 0, wxEXPAND);
 
     if (m_supports_material_station)
-        m_status_text->SetLabel(wxString::Format(_L("Detected %d IFS slots on printer."), static_cast<int>(m_slots.size())));
+        m_status_text->SetLabel(wxString::Format(_L_PLURAL("Detected %d IFS slot on printer.", "Detected %d IFS slots on printer.", m_slots.size()),
+                                                 static_cast<int>(m_slots.size())));
     else
         m_status_text->SetLabel(_L("This printer does not report a material station."));
 
@@ -905,7 +961,8 @@ void FlashforgePrintHostSendDialog::load_slots()
     m_use_material_station = m_supports_material_station;
 
     if (m_supports_material_station)
-        m_status_text->SetLabel(wxString::Format(_L("Detected %d IFS slots on printer."), static_cast<int>(m_slots.size())));
+        m_status_text->SetLabel(wxString::Format(_L_PLURAL("Detected %d IFS slot on printer.", "Detected %d IFS slots on printer.", m_slots.size()),
+                                                 static_cast<int>(m_slots.size())));
     else
         m_status_text->SetLabel(_L("This printer does not report a material station."));
 }
@@ -1056,7 +1113,7 @@ bool FlashforgePrintHostSendDialog::slot_matches_filament(const Slic3r::Flashfor
 
 bool FlashforgePrintHostSendDialog::validate_before_close()
 {
-    if (!m_use_material_station && m_project_filaments.size() > 1) {
+    if (!m_use_material_station && m_project_filaments.size() > 1 && !m_manual_filament_change) {
         show_error(this, _L("This plate uses multiple materials. Enable IFS and assign each tool to a printer slot."));
         return false;
     }
@@ -1234,7 +1291,7 @@ PrintHostQueueDialog::PrintHostQueueDialog(wxWindow *parent)
     job_list->AppendProgressColumn(_L("Progress"),      wxDATAVIEW_CELL_INERT, widths[1], wxALIGN_LEFT, wxDATAVIEW_COL_RESIZABLE | wxDATAVIEW_COL_SORTABLE);
     append_text_column(_L("Status"),widths[2]);
     append_text_column(_L("Host"),  widths[3]);
-    append_text_column(_CTX(L_CONTEXT("Size", "OfFile"), "OfFile"), widths[4]);
+    append_text_column(_L_CONTEXT(L_CONTEXT("Size", "OfFile"), "OfFile"), widths[4]);
     append_text_column(_L("Filename"),      widths[5]);
     append_text_column(_L("Message"), widths[6]);
     //append_text_column(_L("Error Message"), -1, wxALIGN_CENTER, wxDATAVIEW_COL_HIDDEN);
@@ -1707,8 +1764,8 @@ void ElegooPrintHostSendDialog::init() {
     }
 
     {
-        auto radioBoxA = new ::RadioBox(this);
-        auto radioBoxB = new ::RadioBox(this);
+        auto radioBoxA = new RadioBox(this);
+        auto radioBoxB = new RadioBox(this);
         if (m_BedType == BedType::btPC)
             radioBoxB->SetValue(true);
         else
@@ -1871,25 +1928,133 @@ CrealityPrintHostSendDialog::CrealityPrintHostSendDialog(const fs::path&        
     , m_printhost(printhost)
 {}
 
+CrealityPrintHostSendDialog::~CrealityPrintHostSendDialog()
+{
+    m_alive->store(false, std::memory_order_release);
+}
+
+// Serializes reads per printer, so a reopened dialog waits for an earlier read of the same printer.
+// Never freed, since a detached read may still hold a lock while static destructors run at exit.
+static std::mutex& creality_read_mutex(const std::string& print_host)
+{
+    static auto* guard   = new std::mutex;
+    static auto* mutexes = new std::map<std::string, std::mutex>;
+    std::lock_guard<std::mutex> lock(*guard);
+    std::string port;
+    const std::string host = Http::get_host_from_url(print_host, &port);
+    return (*mutexes)[host + ":" + port];
+}
+
 void CrealityPrintHostSendDialog::init()
 {
     PrintHostSendDialog::init();
 
-    auto* creality_host = static_cast<CrealityPrint*>(m_printhost);
-    bool multi_color;
-    std::string printer_name;
-    {
-        wxBusyCursor wait;
-        multi_color = creality_host->supports_multi_color_print();
-        if (multi_color)
-            printer_name = creality_host->model_name();
-    }
-    if (!multi_color)
-        return;
+    // Upload and Print stays off until the read ends, since a CFS printer given no mapping prints from the spool holder.
+    if (Button* btn_print = get_button(wxID_YES))
+        btn_print->Enable(false);
+    m_status_label = new wxStaticText(this, wxID_ANY, _L("Reading the printer's filament slots..."));
+    m_status_label->SetFont(::Label::Body_13);
+    m_status_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+    content_sizer->Add(m_status_label);
 
-    auto* group_box = new wxStaticBox(this, wxID_ANY,
-        wxString::Format(_L("Printer: %s"), printer_name));
-    auto* group_sizer = new wxStaticBoxSizer(group_box, wxVERTICAL);
+    // Reads off the UI thread, since a printer without a CFS may never answer the slot query.
+    // The read gets its own host, since the upload job uses m_printhost once the dialog closes.
+    try {
+        std::thread([this, alive = m_alive, host = *static_cast<CrealityPrint*>(m_printhost)]() {
+            CrealityPrinterInfo info;
+            try {
+                std::lock_guard<std::mutex> lock(creality_read_mutex(host.get_host()));
+                if (!alive->load(std::memory_order_acquire))
+                    return;
+                info = host.read_printer_info();
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "CrealityPrint dialog: Failed to read the printer: " << e.what();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "CrealityPrint dialog: Failed to read the printer";
+            }
+            if (wxTheApp == nullptr || wxGetApp().is_closing())
+                return;
+            wxGetApp().CallAfter([this, alive, info = std::move(info)]() {
+                if (!wxGetApp().is_closing() && alive->load(std::memory_order_acquire))
+                    show_printer(info);
+            });
+        }).detach();
+    } catch (const std::system_error& e) {
+        BOOST_LOG_TRIVIAL(error) << "CrealityPrint dialog: Failed to start reading the printer: " << e.what();
+        show_read_failure(_L("Could not read the printer. Close this dialog and try again."));
+    }
+    GetSizer()->SetSizeHints(this);
+    Layout();
+}
+
+void CrealityPrintHostSendDialog::show_printer(const CrealityPrinterInfo& info)
+{
+    if (!info.reachable) {
+        show_read_failure(_L("Could not connect to the printer. Check that it is on, then reopen this dialog."));
+        return;
+    }
+    m_status_label->Destroy();
+    m_status_label = nullptr;
+    if (info.multi_color)
+        add_printer_box(info);
+    end_read();
+}
+
+void CrealityPrintHostSendDialog::show_read_failure(const wxString& message)
+{
+    m_status_label->SetLabel(message);
+    end_read();
+}
+
+void CrealityPrintHostSendDialog::end_read()
+{
+    if (Button* btn_print = get_button(wxID_YES))
+        btn_print->Enable(true);
+    fit_content();
+}
+
+void CrealityPrintHostSendDialog::on_dpi_changed(const wxRect& suggested_rect)
+{
+    PrintHostSendDialog::on_dpi_changed(suggested_rect);
+    fit_content();
+}
+
+// Wraps the status and notice text to the width of the rest of the content, so the text does not widen the dialog.
+void CrealityPrintHostSendDialog::fit_content()
+{
+    for (wxStaticText* text : {m_status_label, m_notice})
+        if (text)
+            text->Hide();
+    GetSizer()->SetSizeHints(this);
+    const int width = content_sizer->GetSize().GetWidth();
+    if (m_status_label) {
+        m_status_label->Show();
+        m_status_label->Wrap(-1);
+        m_status_label->Wrap(width);
+    }
+    if (m_notice) {
+        int border_top, border_side;
+        m_printer_box->GetBordersForSizer(&border_top, &border_side);
+        m_notice->Show();
+        m_notice->Wrap(-1);
+        m_notice->Wrap(width - 2 * border_side);
+    }
+    GetSizer()->SetSizeHints(this);
+    Layout();
+    Refresh();
+
+    // Keeps the buttons on the display, since the dialog grows after MsgDialog::finalize centers it.
+    const wxRect area = wxDisplay(this).GetClientArea();
+    const wxRect rect = GetScreenRect();
+    if (rect.GetBottom() > area.GetBottom())
+        Move(rect.x, std::max(area.y, area.GetBottom() - rect.height));
+}
+
+void CrealityPrintHostSendDialog::add_printer_box(const CrealityPrinterInfo& info)
+{
+    m_printer_box = new wxStaticBox(this, wxID_ANY,
+        wxString::Format(_L("Printer: %s"), info.model_name));
+    auto* group_sizer = new wxStaticBoxSizer(m_printer_box, wxVERTICAL);
     content_sizer->Add(group_sizer, 0, wxEXPAND);
 
     const AppConfig* app_config = wxGetApp().app_config;
@@ -1926,13 +2091,11 @@ void CrealityPrintHostSendDialog::init()
     auto* filament_types   = full_config.option<ConfigOptionStrings>("filament_type");
     int   gcode_filament_count = filament_colors ? (int)filament_colors->values.size() : 0;
 
-    // Query printer for loaded materials
+    // Loaded materials
     {
-        wxBusyCursor wait;
-        std::string boxes_json = creality_host->query_boxes_info();
-        if (!boxes_json.empty()) {
+        if (!info.boxes_json.empty()) {
             try {
-                auto resp = nlohmann::json::parse(boxes_json);
+                auto resp = nlohmann::json::parse(info.boxes_json);
                 if (resp.contains("boxsInfo") && resp["boxsInfo"].contains("materialBoxs")) {
                     for (auto& box : resp["boxsInfo"]["materialBoxs"]) {
                         int box_id = box["id"].get<int>();
@@ -2005,7 +2168,8 @@ void CrealityPrintHostSendDialog::init()
                 wxBitmap* bmp = get_extruder_color_icon(slot.color, "", icon_sz, icon_sz);
                 wxString label_str;
                 if (slot.box_id == 0)
-                    label_str = wxString::Format("Ext - %s", slot.type.c_str());
+                    // TRN External spool slot, followed by its filament type
+                    label_str = wxString::Format(_L("Ext - %s"), slot.type.c_str());
                 else
                     label_str = wxString::Format("%s - %s", slot.tool_id.substr(1).c_str(), slot.type.c_str());
                 combo->Append(label_str, bmp ? *bmp : wxNullBitmap);
@@ -2062,7 +2226,7 @@ void CrealityPrintHostSendDialog::init()
             }
 
             for (auto* c : m_slot_combos) {
-                c->Bind(wxEVT_COMBOBOX, [this, ext_slot_idx](wxCommandEvent& e) {
+                c->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
                     int sel = e.GetSelection();
                     if (sel >= 0 && sel < (int)m_printer_slots.size() &&
                         m_printer_slots[sel].box_id == 0) {
@@ -2078,10 +2242,19 @@ void CrealityPrintHostSendDialog::init()
                 });
             }
         }
+    } else if (m_printer_slots.empty()) {
+        wxString text;
+        if (info.no_cfs)
+            // TRN Creality send dialog. CFS is Creality's multi-filament unit.
+            text = _L("The printer reports no CFS connected, so the print will use the external spool.");
+        else
+            // TRN Creality send dialog, when the printer lists no CFS slots or does not answer
+            text = _L("The printer did not report any filament slots, so the print will use the external spool.");
+        m_notice = new wxStaticText(this, wxID_ANY, text);
+        m_notice->SetFont(::Label::Body_13);
+        m_notice->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+        group_sizer->Add(m_notice);
     }
-
-    this->Layout();
-    this->Fit();
 }
 
 std::map<std::string, std::string> CrealityPrintHostSendDialog::extendedInfo() const

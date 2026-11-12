@@ -3,7 +3,7 @@
 	"name": "Panchroma PLA Silk @System",
 	"inherits": "Panchroma PLA Silk @base",
 	"from": "system",
-	"setting_id": "OGFSPM004",
+	"setting_id": "FGZUBbTVxiIFjpmZ",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"

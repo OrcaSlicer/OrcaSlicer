@@ -3,8 +3,8 @@
 	"name": "Anycubic ASA @Anycubic Kobra 3 Max 0.6 nozzle",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
-	"filament_id": "GFA99",
+	"setting_id": "06j8OTuYw3Sh9BxL",
+	"filament_id": "OF0yFLkY",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Anycubic ASA @Anycubic Kobra 3 Max 0.6 nozzle"
@@ -120,9 +120,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"42"
-	],
 	"filament_loading_speed": [
 		"0"
 	],
@@ -203,9 +200,6 @@
 	],
 	"filament_type": [
 		"ASA"
-	],
-	"filament_unload_time": [
-		"0"
 	],
 	"filament_unloading_speed": [
 		"0"

@@ -3,7 +3,7 @@
 	"name": "RatRig V-Core 3 200 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "dRoCwCRQlESZEBHP",
 	"instantiation": "true",
 	"printer_model": "RatRig V-Core 3 200",
 	"nozzle_diameter": [

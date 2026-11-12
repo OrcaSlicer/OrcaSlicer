@@ -3,7 +3,7 @@
 	"name": "0.15mm Standard @MINIIS 0.6",
 	"inherits": "process_common_miniis",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "R91IhShMyoBTglCE",
 	"instantiation": "true",
 	"line_width": "0.68",
 	"inner_wall_line_width": "0.6",

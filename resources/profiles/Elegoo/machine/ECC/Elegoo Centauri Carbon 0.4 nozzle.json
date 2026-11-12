@@ -3,7 +3,7 @@
 	"name": "Elegoo Centauri Carbon 0.4 nozzle",
 	"inherits": "fdm_elegoo_3dp_001_common",
 	"from": "system",
-	"setting_id": "ECC04",
+	"setting_id": "LyL8izVzYFaXHlPb",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.4"

@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
 	"name": "High performance VS30 - 0.20mm",
-	"from": "system",
 	"inherits": "fdm_process_volumic_common",
+	"from": "system",
+	"setting_id": "qWEOT65KoPG51AJW",
 	"instantiation": "true",
 	"layer_height": "0.2",
 	"initial_layer_print_height": "0.2",

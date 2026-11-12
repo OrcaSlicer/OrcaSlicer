@@ -260,6 +260,9 @@ if [[ ! -f "./scripts/flatpak/com.orcaslicer.OrcaSlicer.yml" ]]; then
     exit 1
 fi
 
+echo -e "${YELLOW}Packing deps/ for the manifest...${NC}"
+./scripts/flatpak/make_deps_tar.sh
+
 # Build the Flatpak
 echo -e "${YELLOW}Building Flatpak package...${NC}"
 echo -e "This may take a while (30+ minutes depending on your system)..."

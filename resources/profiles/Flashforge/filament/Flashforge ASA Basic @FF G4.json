@@ -1,9 +1,14 @@
 {
 	"type": "filament",
 	"name": "Flashforge ASA Basic @FF G4",
-	"inherits": "Flashforge Generic ABS",
+	"inherits": "Generic ABS @Flashforge",
 	"from": "system",
+	"setting_id": "r0B8KfZ1mNWMvGqE",
+	"filament_id": "OFFFg2Pf",
 	"instantiation": "true",
+	"filament_vendor": [
+		"Flashforge"
+	],
 	"activate_chamber_temp_control": [
 		"1"
 	],

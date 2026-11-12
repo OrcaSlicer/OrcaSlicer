@@ -1,20 +1,22 @@
 #pragma once
+#include "DevFirmware.h"
+
 #include <nlohmann/json.hpp>
+#include <string>
 #include <wx/string.h>
-#include "slic3r/Utils/json_diff.hpp"
 
 namespace Slic3r {
 
 //Previous definitions
 class MachineObject;
 
+// Orca: firmware-type enum consumed by DeviceManager/UpgradePanel; no reference-side equivalent yet
 enum PrinterFirmwareType
 {
     FIRMWARE_TYPE_ENGINEER = 0,
     FIRMWARE_TYPE_PRODUCTION,
     FIRMEARE_TYPE_UKNOWN,
 };
-
 
 class FirmwareInfo
 {
@@ -40,10 +42,18 @@ public:
 
 public:
     bool isValid() const { return !sn.empty(); }
+
+    /*type check*/
     bool isAirPump() const { return product_name.Contains("Air Pump"); }
     bool isLaszer() const { return product_name.Contains("Laser"); }
     bool isCuttingModule() const { return product_name.Contains("Cutting Module"); }
-    bool isExtinguishSystem() const { return product_name.Contains("Extinguishing System"); }
+    bool isRotary() const { return product_name.Contains("Rotary"); }// Rotary Attachment
+    bool isExtinguishSystem() const { return product_name.Contains("Extinguishing System"); }// Auto Fire Extinguishing System
+    bool isWTM() const { return name.find("wtm") != std::string::npos; } // nozzle
+    bool isExhaustFan() const { return product_name.Contains("Exhaust Fan"); }
+    bool isHmshub() const { return product_name.find("Filament Buffer") != std::string::npos; }
+    bool isFilaTrackSwitch() const { return product_name.find("Filament Track") != std::string::npos; }
+
 };
 
 
@@ -53,7 +63,7 @@ public:
     DevFirmware(MachineObject* obj) : m_owner(obj) {}
 
 private:
-    MachineObject* m_owner = nullptr;
+    [[maybe_unused]] MachineObject* m_owner = nullptr;
 };
 
 } // namespace Slic3r

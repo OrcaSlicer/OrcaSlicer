@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo PLA-CF @System",
+	"inherits": "Goofoo PLA-CF @base",
+	"from": "system",
+	"setting_id": "R0UMDUPY9ryat8gQ",
+	"instantiation": "true",
+	"compatible_printers": []
+}

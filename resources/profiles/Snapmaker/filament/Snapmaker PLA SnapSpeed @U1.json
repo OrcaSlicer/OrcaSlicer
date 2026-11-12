@@ -3,43 +3,50 @@
 	"name": "Snapmaker PLA SnapSpeed @U1",
 	"inherits": "Snapmaker PLA SnapSpeed @U1 base",
 	"from": "system",
-	"setting_id": "119531393501",
+	"setting_id": "en6Pvvbc1P9TKm8I",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"activate_air_filtration": [
+		"0",
 		"0"
 	],
 	"activate_chamber_temp_control": [
 		"0"
 	],
 	"adaptive_pressure_advance": [
+		"0",
 		"0"
 	],
 	"adaptive_pressure_advance_bridges": [
+		"0",
 		"0"
 	],
 	"adaptive_pressure_advance_model": [
+		"0,0,0\n0,0,0",
 		"0,0,0\n0,0,0"
 	],
 	"adaptive_pressure_advance_overhangs": [
+		"0",
 		"0"
 	],
 	"additional_cooling_fan_speed": [
+		"70",
 		"70"
 	],
 	"chamber_temperature": [
 		"0"
 	],
 	"close_fan_the_first_x_layers": [
-		"3"
+		"1"
 	],
 	"compatible_printers_condition": "",
 	"compatible_prints": [],
 	"compatible_prints_condition": "",
 	"complete_print_exhaust_fan_speed": [
-		"80"
+		"70",
+		"70"
 	],
 	"cool_plate_temp": [
 		"60"
@@ -47,19 +54,18 @@
 	"cool_plate_temp_initial_layer": [
 		"60"
 	],
-	"default_filament_colour": [
-		""
-	],
 	"dont_slow_down_outer_wall": [
 		"0"
 	],
 	"during_print_exhaust_fan_speed": [
-		"60"
+		"70",
+		"70"
 	],
 	"enable_overhang_bridge_fan": [
 		"1"
 	],
 	"enable_pressure_advance": [
+		"0",
 		"1"
 	],
 	"eng_plate_temp": [
@@ -72,9 +78,11 @@
 		"100"
 	],
 	"fan_max_speed": [
+		"100",
 		"100"
 	],
 	"fan_min_speed": [
+		"100",
 		"100"
 	],
 	"filament_cooling_final_speed": [
@@ -93,6 +101,7 @@
 		"1.24"
 	],
 	"filament_deretraction_speed": [
+		"nil",
 		"nil"
 	],
 	"filament_diameter": [
@@ -102,7 +111,8 @@
 		"; filament end gcode \n"
 	],
 	"filament_flow_ratio": [
-		"0.99"
+		"0.966",
+		"0.966"
 	],
 	"filament_is_support": [
 		"0"
@@ -114,21 +124,27 @@
 		"50"
 	],
 	"filament_long_retractions_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
-		"18"
+		"20",
+		"40"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"15",
 		"15"
 	],
 	"filament_multitool_ramming": [
+		"1",
 		"1"
 	],
 	"filament_multitool_ramming_flow": [
+		"30",
 		"40"
 	],
 	"filament_multitool_ramming_volume": [
+		"5",
 		"5"
 	],
 	"filament_notes": [
@@ -138,34 +154,48 @@
 		"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6"
 	],
 	"filament_retract_before_wipe": [
+		"nil",
 		"nil"
 	],
+	"filament_retract_length_toolchange": [
+		"5",
+		"5"
+	],
 	"filament_retract_lift_above": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_lift_below": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_lift_enforce": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_restart_extra": [
+		"nil",
 		"nil"
 	],
 	"filament_retract_when_changing_layer": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_length": [
-		"0.8"
+		"1.2",
+		"1.2"
 	],
 	"filament_retraction_minimum_travel": [
+		"nil",
 		"nil"
 	],
 	"filament_retraction_speed": [
-		"30"
+		"nil",
+		"nil"
 	],
 	"filament_shrink": [
 		"100%"
@@ -201,39 +231,47 @@
 		"Snapmaker"
 	],
 	"filament_wipe": [
+		"nil",
 		"nil"
 	],
 	"filament_wipe_distance": [
+		"nil",
 		"nil"
 	],
 	"filament_z_hop": [
-		"nil"
+		"0.4",
+		"0.4"
 	],
 	"filament_z_hop_types": [
-		"nil"
+		"Slope Lift",
+		"Slope Lift"
 	],
 	"full_fan_speed_layer": [
 		"0"
 	],
 	"hot_plate_temp": [
-		"55"
+		"65"
 	],
 	"hot_plate_temp_initial_layer": [
-		"55"
+		"65"
 	],
 	"idle_temperature": [
 		"0"
 	],
 	"nozzle_temperature": [
+		"220",
 		"220"
 	],
 	"nozzle_temperature_initial_layer": [
+		"220",
 		"220"
 	],
 	"nozzle_temperature_range_high": [
-		"230"
+		"240",
+		"240"
 	],
 	"nozzle_temperature_range_low": [
+		"190",
 		"190"
 	],
 	"overhang_fan_speed": [
@@ -246,7 +284,8 @@
 		"0.4157"
 	],
 	"pressure_advance": [
-		"0.026"
+		"0.02",
+		"0.024"
 	],
 	"reduce_fan_stop_start_freq": [
 		"1"
@@ -267,7 +306,7 @@
 		"-1"
 	],
 	"temperature_vitrification": [
-		"60"
+		"45"
 	],
 	"textured_cool_plate_temp": [
 		"40"
@@ -276,9 +315,13 @@
 		"40"
 	],
 	"textured_plate_temp": [
-		"60"
+		"65"
 	],
 	"textured_plate_temp_initial_layer": [
-		"60"
+		"65"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
 	]
 }

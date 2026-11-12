@@ -1,14 +1,26 @@
 #ifndef slic3r_VoronoiVisualUtils_hpp_
 #define slic3r_VoronoiVisualUtils_hpp_
 
+#include <cassert>
+#include <cstddef>
+#include <cstdio>
+#include <algorithm>
+#include <cmath>
 #include <stack>
 
 #include <libslic3r/Geometry.hpp>
 #include <libslic3r/Line.hpp>
 #include <libslic3r/Polygon.hpp>
 #include <libslic3r/SVG.hpp>
+#include <vector>
+#include <utility>
+#include <string>
 
+#include "libslic3r/Geometry/Voronoi.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "VoronoiOffset.hpp"
+#include "libslic3r/libslic3r.h"
 
 namespace boost { namespace polygon {
 

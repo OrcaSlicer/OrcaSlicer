@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Translucent @Qidi X-Plus 5 0.4 nozzle",
+	"inherits": "QIDI PETG Translucent@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "S2DQ7jy5KqbiVNnV",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi X-Plus 5 0.4 nozzle"
+	]
+}

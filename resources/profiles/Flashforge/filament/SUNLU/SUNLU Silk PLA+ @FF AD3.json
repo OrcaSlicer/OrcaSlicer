@@ -3,7 +3,7 @@
 	"name": "SUNLU Silk PLA+ @FF AD3",
 	"inherits": "SUNLU Silk PLA+ @base",
 	"from": "system",
-	"setting_id": "GFSNLS05_03",
+	"setting_id": "Gbd8WKfUXl1kdTJL",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"215"

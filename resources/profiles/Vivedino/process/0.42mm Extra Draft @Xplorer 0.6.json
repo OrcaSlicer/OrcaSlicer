@@ -1,0 +1,26 @@
+{
+	"type": "process",
+	"name": "0.42mm Extra Draft @Xplorer 0.6",
+	"inherits": "fdm_process_xplorer_common_0_6",
+	"from": "system",
+	"setting_id": "JMbldCAibS7WnG1D",
+	"instantiation": "true",
+	"initial_layer_print_height": "0.32",
+	"inner_wall_speed": "190",
+	"internal_solid_infill_acceleration": "100%",
+	"min_skirt_length": "0",
+	"outer_wall_speed": "130",
+	"skirt_loops": "1",
+	"slowdown_for_curled_perimeters": "0",
+	"small_perimeter_speed": "50%",
+	"sparse_infill_acceleration": "100%",
+	"top_shell_layers": "4",
+	"top_solid_infill_flow_ratio": "0.87",
+	"layer_height": "0.42",
+	"compatible_printers": [
+		"Xplorer Single 0.6 nozzle",
+		"Xplorer IDEX 0.6 nozzle",
+		"Xplorer Dual Gantry 0.6 nozzle",
+		"Xplorer IQEX 0.6 nozzle"
+	]
+}

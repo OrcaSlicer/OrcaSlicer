@@ -3,7 +3,7 @@
 	"name": "Snapmaker A250 BKit (0.6 nozzle)",
 	"inherits": "fdm_a250_bk",
 	"from": "system",
-	"setting_id": "2117251500",
+	"setting_id": "FQmRTrZByRpoLVQV",
 	"instantiation": "true",
 	"printer_model": "Snapmaker A250 BKit",
 	"default_print_profile": "0.18 Standard @Snapmaker (0.6 nozzle)",

@@ -4,8 +4,11 @@
 #include "WideningBeadingStrategy.hpp"
 
 #include <algorithm>
+#include <string>
 #include <utility>
+#include <vector>
 
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Arachne/BeadingStrategy/BeadingStrategy.hpp"
 
 namespace Slic3r::Arachne
@@ -32,7 +35,13 @@ WideningBeadingStrategy::Beading WideningBeadingStrategy::compute(coord_t thickn
     // Previously used optimal_width which could differ from the outer wall width used in
     // bead count calculations, causing inconsistency where bead_count=2 was requested but
     // only 1 bead was produced.
-    if (thickness < getTransitionThickness(1)) {
+    //
+    // Orca #14376: only collapse to a single bead when at most one bead is requested. This
+    // branch emits one bead at the full wall thickness, so honoring it when bead_count >= 2
+    // (which happens inside 1<->2 transition bands) produces an over-wide extrusion that shows
+    // up as a surface bulge. Deferring to the parent keeps the requested two beads and also
+    // keeps compute() consistent with the bead count the skeletal graph asked for.
+    if (bead_count <= 1 && thickness < getTransitionThickness(1)) {
         Beading ret;
         ret.total_thickness = thickness;
         if (thickness >= min_input_width) {

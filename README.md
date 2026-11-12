@@ -6,11 +6,10 @@
 
 <a href="https://trendshift.io/repositories/15552" target="_blank"><img src="https://trendshift.io/api/badge/repositories/15552" alt="OrcaSlicer%2FOrcaSlicer | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-[![GitHub Repo stars](https://img.shields.io/github/stars/OrcaSlicer/OrcaSlicer)](https://github.com/OrcaSlicer/OrcaSlicer/stargazers) [![Build all](https://github.com/OrcaSlicer/OrcaSlicer/actions/workflows/build_all.yml/badge.svg?branch=main)](https://github.com/OrcaSlicer/OrcaSlicer/actions/workflows/build_all.yml)
+[![GitHub Repo stars](https://img.shields.io/github/stars/OrcaSlicer/OrcaSlicer)](https://github.com/OrcaSlicer/OrcaSlicer/stargazers) [![Build all](https://img.shields.io/github/actions/workflow/status/OrcaSlicer/OrcaSlicer/main_build_status.yml?label=Build%20all)](https://github.com/OrcaSlicer/OrcaSlicer/actions/workflows/build_all.yml)
 
 OrcaSlicer: an open source Next-Gen Slicing Software for Precision 3D Prints.  
 Optimize your prints with ultra-fast slicing, intelligent support generation, and seamless printer compatibility—engineered for perfection.
-<h3>
 
 # Official links and community
 
@@ -69,6 +68,10 @@ If you come across any of these in search results, please <b>report them</b> as 
   Regular updates fueled by continuous community contributions.
 - **Wide Printer Compatibility**  
   Supports a broad range of printers: Bambu Lab, Prusa, Creality, Voron, and more.
+- **[Belt Printer Support](https://www.orcaslicer.com/wiki/belt_printing)**  
+  Slice for belt / conveyor (infinite-Z) printers, with belt-aware supports and a tilted-bed preview. Contributed by [Joseph Robertson (@HarrierPigeon)](https://github.com/HarrierPigeon).
+- **[IDEX/IQEX Parallel Printing Support](https://www.orcaslicer.com/wiki/idex_iqex_parallel_printing)**  
+  Print copies or mirror images of a part on every carriage of an IDEX or IQEX printer at once, with the mode chosen per plate and nozzle clearance zones shown on the bed. Contributed by [Clifford (@cgarwood82)](https://github.com/cgarwood82).
 - Additional features can be found in the [change notes](https://github.com/OrcaSlicer/OrcaSlicer/releases/).
 
 # Wiki
@@ -83,7 +86,8 @@ The [wiki](https://www.orcaslicer.com/wiki) aims to provide a detailed explanati
 ## Stable Release
 
 📥 **[Download the Latest Stable Release](https://github.com/OrcaSlicer/OrcaSlicer/releases/latest)**  
-Visit our GitHub Releases page for the latest stable version of OrcaSlicer, recommended for most users.
+Visit our GitHub Releases page for the latest stable version of OrcaSlicer, recommended for most users.  
+Windows and macOS release and nightly builds are code signed.
 
 ## Nightly Builds
 
@@ -94,7 +98,7 @@ Explore the latest developments in OrcaSlicer with our nightly builds. Feedback 
 
 ## Windows
 
-Download the **Windows Installer exe**  for your preferred version from the [releases page](https://github.com/OrcaSlicer/OrcaSlicer/releases).
+Download the **Windows Installer exe** for your preferred version from the [releases page](https://github.com/OrcaSlicer/OrcaSlicer/releases). Both `x64` and `arm64` installers are published — pick the one matching your CPU.
 
 - *For convenience there is also a portable build available.*
     <details>
@@ -109,7 +113,11 @@ Download the **Windows Installer exe**  for your preferred version from the [rel
     - This file may already be available on your computer if you've installed visual studio.  Check the following location: `%VCINSTALLDIR%Redist\MSVC\v142`
     </details>
 
-Windows Package Manager
+### Microsoft Store
+
+Install from the [Microsoft Store](https://apps.microsoft.com/detail/9mv6gl23xm59) when you prefer a Store-signed package (helps on Windows 11 Smart App Control).
+
+### Windows Package Manager
 
 ```shell
 winget install --id=SoftFever.OrcaSlicer -e
@@ -117,7 +125,7 @@ winget install --id=SoftFever.OrcaSlicer -e
 
 ## Mac
 
-1. Download the DMG for your computer: `arm64` version for Apple Silicon and `x86_64` for Intel CPU.
+1. Download the universal DMG, which runs on both Apple Silicon and Intel Macs.
 2. Drag OrcaSlicer.app to Application folder.
 3. *If you want to run a build from a PR, you also need to follow the instructions below:*
 
@@ -142,6 +150,14 @@ winget install --id=SoftFever.OrcaSlicer -e
             ![mac_security_setting](./SoftFever_doc/mac_security_setting.png)
     </details>
 
+### Homebrew Cask
+
+```shell
+brew install --cask orcaslicer
+```
+
+The [Homebrew cask](https://formulae.brew.sh/cask/orcaslicer) installs the official macOS DMG from [GitHub Releases](https://github.com/OrcaSlicer/OrcaSlicer/releases).
+
 ## Linux
 
 ### Flathub (Recommended)
@@ -160,6 +176,8 @@ flatpak run com.orcaslicer.OrcaSlicer
 It can also be installed through graphical software managers (KDE Discover, GNOME Software, etc.) when Flathub is enabled. Search for **OrcaSlicer** in your software center.
 
 ### AppImage
+
+AppImages are published for both **x86_64** and **aarch64** (ARM64). Pick the file matching your CPU — the ARM64 build has `aarch64` in its name (e.g. `OrcaSlicer_Linux_AppImage_Ubuntu2404_aarch64_*.AppImage`).
 
  1. Download App image from the [releases page](https://github.com/OrcaSlicer/OrcaSlicer/releases).
  2. Double click the downloaded file to run it.
@@ -188,8 +206,8 @@ resolution: 0.1
 
 # Supports
 
-**OrcaSlicer** is an open-source project and I'm deeply grateful to all my sponsors and backers.  
-Their generous support enables me to purchase filaments and other essential 3D printing materials for the project.  
+**OrcaSlicer** is an open-source project, and we're deeply grateful to all our sponsors and backers.  
+Their generous support helps fund filaments and other essential 3D printing materials for the project.  
 Thank you! :)
 
 ## Sponsors
@@ -213,7 +231,7 @@ Thank you! :)
 
 **Ko-fi supporters** ☕: [Backers list](https://github.com/user-attachments/files/16147016/Supporters_638561417699952499.csv)
 
-## Support me
+## Support the project
 
 <a href="https://github.com/sponsors/SoftFever"><img src="https://img.shields.io/badge/GitHub%20Sponsors-30363D?style=flat&logo=GitHub-Sponsors&logoColor=EA4AAA" height="50"></a>  
 <a href="https://ko-fi.com/G2G5IP3CP"><img src="https://img.shields.io/badge/Support_me_on_Ko--fi-FF5E5B?style=flat&logo=ko-fi&logoColor=white" height="50"></a>  

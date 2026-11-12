@@ -3,7 +3,7 @@
 	"name": "Anker M5C 0.2 nozzle",
 	"inherits": "fdm_marlin_common",
 	"from": "system",
-	"setting_id": "GM006",
+	"setting_id": "gydejA4b2J8t11NZ",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.2"
@@ -16,7 +16,7 @@
 	"auxiliary_fan": "0",
 	"bed_exclude_area": [],
 	"default_filament_profile": [
-		"Anker Generic PLA+"
+		"Generic PLA+ @Anker"
 	],
 	"default_print_profile": "0.10mm Standard 0.2mm nozzle @Anker",
 	"extruder_clearance_height_to_lid": "250",

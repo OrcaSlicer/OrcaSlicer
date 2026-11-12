@@ -5,7 +5,6 @@
 #include <wx/string.h>
 
 #include "PrintHost.hpp"
-#include "TCPConsole.hpp"
 
 namespace Slic3r {
 class DynamicPrintConfig;
@@ -33,7 +32,6 @@ private:
     std::string m_console_port;
 
     bool        start_print(wxString& msg, const std::string& filename) const;
-    int         get_err_code_from_body(const std::string& body) const;
     std::string get_short_name(const std::string& filename) const;
     std::string format_command(const std::string& path, const std::string& arg, const std::string& val) const;
 };

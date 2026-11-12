@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @Wanhao D12-300",
 	"inherits": "fdm_process_wanhao_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "wJ1rmnyK4uPv168Y",
 	"instantiation": "true",
 	"layer_height": "0.24",
 	"top_surface_line_width": "0.45",
