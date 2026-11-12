@@ -42,7 +42,7 @@ static struct sockaddr_in6 service_address_ipv6;
 static int has_ipv4;
 static int has_ipv6;
 
-volatile sig_atomic_t running = 1;
+static volatile sig_atomic_t running = 1;
 
 // Data for our service including the mDNS records
 typedef struct {
@@ -1153,7 +1153,7 @@ BOOL console_handler(DWORD signal) {
 	return TRUE;
 }
 #else
-void signal_handler(int signal) {
+static void signal_handler(int signal) {
 	running = 0;
 }
 #endif

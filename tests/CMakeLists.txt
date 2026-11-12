@@ -95,6 +95,12 @@ add_subdirectory(fff_print)
 add_subdirectory(sla_print)
 add_subdirectory(filament_group)
 
+# slice_core tests require liborca_slice_core, which is only built when the GUI
+# is enabled (liborca_slice_core links libslic3r_gui transitively).
+if (SLIC3R_GUI)
+    add_subdirectory(slice_core)
+endif ()
+
 # End-to-end checks of the orca-slicer binary. Linux only: they read result.json, which the CLI
 # writes on Linux only. src/ is added before tests/, so the target is known here.
 if (UNIX AND NOT APPLE AND TARGET OrcaSlicer)

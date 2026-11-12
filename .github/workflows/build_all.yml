@@ -53,6 +53,7 @@ on:
      - 'scripts/prune_cached_presets.ps1'
      - 'scripts/test_prune_cached_presets.ps1'
      - 'scripts/flatpak/**'
+     - 'scripts/run_unit_tests.sh'
      - 'scripts/msix/**'
      - 'scripts/sign_windows.ps1'
      - 'tests/**'
