@@ -4709,9 +4709,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                 }
             }
             if (is_placeholder) {
-                // Orca: an empty AMS slot is a placeholder, not a filament - never synthesize a
-                // preset for it. Kept here only to keep index alignment with ams_infos; the sync
-                // drops it so no filament slot is created or retained for an empty tray.
+                // Keep placeholder entries aligned with ams_infos for the overwrite merge.
                 ams_filament_presets.push_back("");
                 ams_filament_colors.push_back("");
                 ams_filament_color_types.push_back("");
@@ -5117,10 +5115,6 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
                     result_multi_colors.push_back(
                         i < ams_multi_color_filment.size() ? ams_multi_color_filment[i]
                                                            : std::vector<std::string>{ams_filament_colors[i]});
-                } else if (i < ams_infos.size() && ams_infos[i].is_placeholder) {
-                    // Orca: an empty AMS slot is a placeholder, not a filament, so drop it instead of
-                    // keeping or filling a slot for it. The device AMS panel still shows the empty tray.
-                    continue;
                 } else if (i < exist_presets.size()) {
                     // Empty tray or beyond tray count: keep existing filament
                     result_colors.push_back(exist_colors[i]);
