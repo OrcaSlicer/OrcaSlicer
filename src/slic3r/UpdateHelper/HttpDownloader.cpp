@@ -237,6 +237,7 @@ DownloadResult HttpDownloader::download(const std::string&       url,
     curl_easy_setopt(curl, CURLOPT_PROTOCOLS, static_cast<long>(CURLPROTO_HTTPS));
     curl_easy_setopt(curl, CURLOPT_REDIR_PROTOCOLS, static_cast<long>(CURLPROTO_HTTPS));
 #endif
+    curl_easy_setopt(curl, CURLOPT_PATH_AS_IS, 1L);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_MAXREDIRS, kMaxRedirects);
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);

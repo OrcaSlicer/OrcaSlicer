@@ -6,10 +6,13 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include <cstring>
 #include <exception>
 #include <ios>
 #include <iterator>
+#include <map>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -26,15 +29,11 @@
 #include "Utils.hpp"
 
 #ifdef _WIN32
-#include <fcntl.h>
-#include <io.h>
-#include <process.h>
-#include <sys/stat.h>
 #include <windows.h>
 #else
-#include <cerrno>
 #include <fcntl.h>
-#include <signal.h>
+#include <sys/file.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #endif
@@ -133,65 +132,93 @@ void remove_file(const std::string& path)
     fs::remove(path, ec);
 }
 
-bool read_pid(const std::string& path, int64_t& pid)
+bool is_plain_path_segment(const std::string& segment)
 {
-    std::string text;
-    if (!read_file(path, text))
+    if (segment.empty() || segment == "." || segment == "..")
         return false;
-    char*      end = nullptr;
-    const long long value = std::strtoll(text.c_str(), &end, 10);
-    if (end == text.c_str() || value <= 0)
-        return false;
-    pid = static_cast<int64_t>(value);
-    return true;
+    return std::all_of(segment.begin(), segment.end(), [](char c) {
+        return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '.' || c == '_' ||
+               c == '+' || c == '-';
+    });
 }
 
-bool process_is_alive(int64_t pid)
-{
-    if (pid <= 0)
-        return false;
 #ifdef _WIN32
-    HANDLE handle = ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, static_cast<DWORD>(pid));
-    if (handle == nullptr)
-        return false;
-    DWORD exit_code = 0;
-    const bool alive = ::GetExitCodeProcess(handle, &exit_code) != 0 && exit_code == STILL_ACTIVE;
+using LockHandle = HANDLE;
+#else
+using LockHandle = int;
+#endif
+
+// The install locks this process holds, by path. A lock lives as long as its open
+// handle, so the OS drops it when the holder exits, even if it crashed.
+std::map<std::string, LockHandle>& held_install_locks()
+{
+    static std::map<std::string, LockHandle> locks;
+    return locks;
+}
+
+std::mutex& held_install_locks_mutex()
+{
+    static std::mutex mutex;
+    return mutex;
+}
+
+void close_lock_file(LockHandle handle)
+{
+#ifdef _WIN32
     ::CloseHandle(handle);
-    return alive;
 #else
-    if (::kill(static_cast<pid_t>(pid), 0) == 0)
-        return true;
-    return errno == EPERM;
+    ::close(handle);
 #endif
 }
 
-int64_t current_process_id()
-{
-#ifdef _WIN32
-    return static_cast<int64_t>(::_getpid());
-#else
-    return static_cast<int64_t>(::getpid());
-#endif
-}
-
-bool create_lock_file(const std::string& path, int64_t owner_pid)
+// Takes the exclusive lock without waiting and writes owner_pid into the file. False when
+// another handle holds the lock.
+bool open_lock_file(const std::string& path, int64_t owner_pid, LockHandle& out)
 {
     const std::string text = std::to_string(owner_pid);
 #ifdef _WIN32
-    const int fd = ::_wopen(boost::nowide::widen(path).c_str(), _O_CREAT | _O_EXCL | _O_WRONLY | _O_BINARY, _S_IREAD | _S_IWRITE);
+    const HANDLE handle = ::CreateFileW(boost::nowide::widen(path).c_str(), GENERIC_READ | GENERIC_WRITE,
+                                        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_ALWAYS,
+                                        FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (handle == INVALID_HANDLE_VALUE)
+        return false;
+    OVERLAPPED overlapped = {};
+    if (!::LockFileEx(handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, 1, 0, &overlapped)) {
+        ::CloseHandle(handle);
+        return false;
+    }
+    DWORD written = 0;
+    ::SetFilePointer(handle, 0, nullptr, FILE_BEGIN);
+    ::SetEndOfFile(handle);
+    if (!::WriteFile(handle, text.data(), static_cast<DWORD>(text.size()), &written, nullptr) || written != text.size()) {
+        ::CloseHandle(handle);
+        return false;
+    }
+    out = handle;
+    return true;
 #else
-    const int fd = ::open(path.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0644);
-#endif
+    const int fd = ::open(path.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0644);
     if (fd < 0)
         return false;
-#ifdef _WIN32
-    const int written = ::_write(fd, text.data(), static_cast<unsigned int>(text.size()));
-    ::_close(fd);
-#else
-    const ssize_t written = ::write(fd, text.data(), text.size());
-    ::close(fd);
+    if (::flock(fd, LOCK_EX | LOCK_NB) != 0) {
+        ::close(fd);
+        return false;
+    }
+    // The file may have been removed between open and flock. A lock on that file excludes nobody.
+    struct stat opened  = {};
+    struct stat current = {};
+    if (::fstat(fd, &opened) != 0 || ::stat(path.c_str(), &current) != 0 || opened.st_dev != current.st_dev ||
+        opened.st_ino != current.st_ino) {
+        ::close(fd);
+        return false;
+    }
+    if (::ftruncate(fd, 0) != 0 || ::write(fd, text.data(), text.size()) != static_cast<ssize_t>(text.size())) {
+        ::close(fd);
+        return false;
+    }
+    out = fd;
+    return true;
 #endif
-    return written == static_cast<int>(text.size());
 }
 
 bool read_install_record_file(InstallRecord& out)
@@ -309,10 +336,21 @@ DownloadPrep prepare_download_dir(const std::string& dir,
     return prep;
 }
 
-bool is_release_download_url(const std::string& url)
+bool is_release_download_url(const std::string& url, const std::string& asset_name)
 {
     static const std::string prefix = "https://github.com/OrcaSlicer/OrcaSlicer/releases/download/";
-    return url.compare(0, prefix.size(), prefix) == 0;
+    if (asset_name.empty() || url.compare(0, prefix.size(), prefix) != 0)
+        return false;
+
+    // Exactly <tag>/<asset_name>: no other path segment, query, fragment or escape can
+    // reach a different repository path once curl normalizes the URL.
+    const std::string rest  = url.substr(prefix.size());
+    const std::string::size_type slash = rest.find('/');
+    if (slash == std::string::npos || rest.find('/', slash + 1) != std::string::npos)
+        return false;
+    const std::string tag  = rest.substr(0, slash);
+    const std::string name = rest.substr(slash + 1);
+    return name == asset_name && is_plain_path_segment(tag) && is_plain_path_segment(name);
 }
 
 std::string handoff_to_json(const UpdateHandoff& handoff)
@@ -387,6 +425,7 @@ std::string install_record_to_json(const InstallRecord& record)
     j["digest"]  = record.digest;
     j["channel"] = record.channel;
     j["version"] = record.version;
+    j["target"]  = record.target;
     return j.dump();
 }
 
@@ -404,6 +443,7 @@ bool install_record_from_json(const std::string& text, InstallRecord& out)
     out.digest  = text_field(j, "digest");
     out.channel = text_field(j, "channel");
     out.version = text_field(j, "version");
+    out.target  = text_field(j, "target");
     return true;
 }
 
@@ -412,14 +452,14 @@ bool write_install_record(const InstallRecord& record)
     return write_file_atomic(updater_install_record_path(), install_record_to_json(record));
 }
 
-bool take_install_record(InstallRecord& out)
+bool read_install_record(InstallRecord& out)
 {
-    InstallRecord record;
-    if (!read_install_record_file(record))
-        return false;
-    out = record;
+    return read_install_record_file(out);
+}
+
+void remove_install_record()
+{
     remove_file(updater_install_record_path());
-    return true;
 }
 
 std::string pending_install_to_json(const PendingInstall& pending)
@@ -472,26 +512,27 @@ void remove_pending_install()
 
 bool acquire_install_lock(const std::string& path, int64_t owner_pid)
 {
-    ensure_parent_dir(path);
-    if (create_lock_file(path, owner_pid))
-        return true;
-
-    int64_t existing_pid = 0;
-    if (read_pid(path, existing_pid) && process_is_alive(existing_pid))
+    std::lock_guard<std::mutex> guard(held_install_locks_mutex());
+    if (held_install_locks().count(path) != 0)
         return false;
-
-    remove_file(path);
-    return create_lock_file(path, owner_pid);
+    ensure_parent_dir(path);
+    LockHandle handle{};
+    if (!open_lock_file(path, owner_pid, handle))
+        return false;
+    held_install_locks().emplace(path, handle);
+    return true;
 }
 
 void release_install_lock(const std::string& path)
 {
-    int64_t held_pid = 0;
-    if (!read_pid(path, held_pid))
+    std::lock_guard<std::mutex> guard(held_install_locks_mutex());
+    const auto it = held_install_locks().find(path);
+    if (it == held_install_locks().end())
         return;
-    if (held_pid != current_process_id())
-        return;
+    // Removed while still locked, so a waiter that gets the lock next finds the path gone.
     remove_file(path);
+    close_lock_file(it->second);
+    held_install_locks().erase(it);
 }
 
 } // namespace Slic3r

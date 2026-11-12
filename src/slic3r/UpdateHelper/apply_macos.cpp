@@ -135,10 +135,7 @@ bool path_exists(const std::string& path)
     return boost::filesystem::exists(boost::filesystem::path(path), ec);
 }
 
-// Move pairs of paths as the administrator, through one Finder-style prompt.
-// Returns true only when the script exits 0; callers read the filesystem for how
-// far a failed run got.
-bool elevated_moves(const std::vector<std::pair<std::string, std::string>>& moves, std::string& error)
+std::string move_script(const std::vector<std::pair<std::string, std::string>>& moves)
 {
     std::string script;
     for (const auto& move : moves) {
@@ -146,7 +143,14 @@ bool elevated_moves(const std::vector<std::pair<std::string, std::string>>& move
             script += " && ";
         script += "/bin/mv -f " + shell_quoted(move.first) + " " + shell_quoted(move.second);
     }
+    return script;
+}
 
+// Runs `script` as the administrator, through one Finder-style prompt.
+// Returns true only when the script exits 0; callers read the filesystem for how
+// far a failed run got.
+bool elevated_script(const std::string& script, std::string& error)
+{
     const std::vector<std::string> argv = {
         "/usr/bin/osascript",
         "-e",
@@ -160,6 +164,12 @@ bool elevated_moves(const std::vector<std::pair<std::string, std::string>>& move
         return false;
     }
     return true;
+}
+
+// Move pairs of paths as the administrator, through one Finder-style prompt.
+bool elevated_moves(const std::vector<std::pair<std::string, std::string>>& moves, std::string& error)
+{
+    return elevated_script(move_script(moves), error);
 }
 
 std::string find_mounted_app(const std::string& mount)
@@ -201,6 +211,18 @@ struct MountGuard
     ~MountGuard() { release(); }
 };
 
+// The new build staged outside the target's parent, needed only until the install ends.
+struct ScratchGuard
+{
+    std::string path;
+
+    ~ScratchGuard()
+    {
+        if (!path.empty())
+            remove_path_quietly(path);
+    }
+};
+
 } // namespace
 
 bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifact_path, ProgressSink& sink, std::string& error)
@@ -225,6 +247,13 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
     const std::string staged = bundle + ".staged-" + pid;
     const std::string backup = bundle + ".backup-" + pid;
     const std::string download_folder = boost::filesystem::path(artifact_path).parent_path().string();
+    const std::string parent          = boost::filesystem::path(bundle).parent_path().string();
+    const bool        parent_writable = ::access(parent.c_str(), W_OK) == 0;
+    // Where the new build is staged before the swap. A parent the user cannot write
+    // (a system-wide install) gets it from the cache, copied in by the administrator step.
+    const std::string scratch = parent_writable
+                                    ? staged
+                                    : (boost::filesystem::path(handoff.cache_dir) / boost::filesystem::path(staged).filename()).string();
 
     boost::system::error_code ec;
     if (!boost::filesystem::is_directory(boost::filesystem::path(bundle), ec)) {
@@ -240,6 +269,7 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
 
     MountGuard guard;
     guard.mount = "/tmp/orca-updater-" + pid;
+    ScratchGuard scratch_guard{parent_writable ? std::string() : scratch};
     boost::system::error_code mkdir_ec;
     boost::filesystem::create_directories(boost::filesystem::path(guard.mount), mkdir_ec);
     if (!boost::filesystem::is_directory(boost::filesystem::path(guard.mount), mkdir_ec)) {
@@ -279,12 +309,12 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
     }
 
     sink.say(Stage::Installing, 40, "Preparing " + label);
-    if (!spawn_and_wait({"/usr/bin/ditto", mounted_app, staged}, 900, status, error)) {
-        remove_path_quietly(staged);
+    if (!spawn_and_wait({"/usr/bin/ditto", mounted_app, scratch}, 900, status, error)) {
+        remove_path_quietly(scratch);
         return false;
     }
-    if (status != 0 || !path_exists(staged)) {
-        remove_path_quietly(staged);
+    if (status != 0 || !path_exists(scratch)) {
+        remove_path_quietly(scratch);
         error = "The new version could not be copied out of the disk image.";
         return false;
     }
@@ -298,7 +328,7 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
     pending.channel = handoff.channel;
     pending.version = handoff.version;
     if (!write_pending_install(pending)) {
-        remove_path_quietly(staged);
+        remove_path_quietly(scratch);
         error = "The update could not be recorded, so nothing was changed.";
         return false;
     }
@@ -355,41 +385,58 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
 
     sink.say(Stage::Installing, 70, "Replacing the application");
 
-    ec.clear();
-    boost::filesystem::rename(boost::filesystem::path(bundle), boost::filesystem::path(backup), ec);
-    if (ec) {
-        if (ec.value() != EACCES && ec.value() != EPERM) {
-            error = rollback_failure("The current application could not be moved aside: " + ec.message() + ".");
-            return false;
-        }
-        // A system-wide install: one administrator prompt does both moves. After a
-        // failed run, what happened is read from which paths still exist.
-        elevated = true;
-        if (!elevated_moves({{bundle, backup}, {staged, bundle}}, error)) {
+    if (!parent_writable) {
+        // One administrator prompt copies the new build in beside the old one and swaps
+        // both; the swap itself is a rename inside the target's parent.
+        const std::string copy = "/usr/bin/ditto " + shell_quoted(scratch) + " " + shell_quoted(staged);
+        if (!elevated_script(copy + " && " + move_script({{bundle, backup}, {staged, bundle}}), error)) {
+            // Nothing moved aside means nothing for the administrator to put back, so no second prompt.
             moved_old  = path_exists(backup);
-            placed_new = !path_exists(staged);
+            placed_new = moved_old && path_exists(bundle);
+            elevated   = moved_old;
             error = rollback_failure(error + " The downloaded disk image is still in " + download_folder + ".");
             return false;
         }
+        elevated   = true;
         moved_old  = true;
         placed_new = true;
     } else {
-        moved_old = true;
         ec.clear();
-        boost::filesystem::rename(boost::filesystem::path(staged), boost::filesystem::path(bundle), ec);
-        if (!ec) {
-            placed_new = true;
-        } else if (ec.value() == EACCES || ec.value() == EPERM) {
+        boost::filesystem::rename(boost::filesystem::path(bundle), boost::filesystem::path(backup), ec);
+        if (ec) {
+            if (ec.value() != EACCES && ec.value() != EPERM) {
+                error = rollback_failure("The current application could not be moved aside: " + ec.message() + ".");
+                return false;
+            }
+            // A system-wide install: one administrator prompt does both moves. After a
+            // failed run, what happened is read from which paths still exist.
             elevated = true;
-            if (!elevated_moves({{staged, bundle}}, error)) {
+            if (!elevated_moves({{bundle, backup}, {staged, bundle}}, error)) {
+                moved_old  = path_exists(backup);
                 placed_new = !path_exists(staged);
                 error = rollback_failure(error + " The downloaded disk image is still in " + download_folder + ".");
                 return false;
             }
+            moved_old  = true;
             placed_new = true;
         } else {
-            error = rollback_failure("The new version could not be put in place: " + ec.message() + ".");
-            return false;
+            moved_old = true;
+            ec.clear();
+            boost::filesystem::rename(boost::filesystem::path(staged), boost::filesystem::path(bundle), ec);
+            if (!ec) {
+                placed_new = true;
+            } else if (ec.value() == EACCES || ec.value() == EPERM) {
+                elevated = true;
+                if (!elevated_moves({{staged, bundle}}, error)) {
+                    placed_new = !path_exists(staged);
+                    error = rollback_failure(error + " The downloaded disk image is still in " + download_folder + ".");
+                    return false;
+                }
+                placed_new = true;
+            } else {
+                error = rollback_failure("The new version could not be put in place: " + ec.message() + ".");
+                return false;
+            }
         }
     }
 
@@ -403,6 +450,7 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
     record.digest  = handoff.digest;
     record.channel = handoff.channel;
     record.version = handoff.version;
+    record.target  = bundle;
     if (!write_install_record(record)) {
         error = rollback_failure("The update could not be recorded.");
         return false;

@@ -181,6 +181,43 @@ bool is_newer_version(const std::string& candidate_version, const std::string& r
     return *candidate > *running;
 }
 
+// CI uploads nightly assets up to about an hour after the build starts, and the release's
+// updated_at follows the last upload, so a release only counts as newer past this margin.
+constexpr int64_t kNightlyBuildMargin = 6 * 60 * 60;
+
+// Seconds since the Unix epoch for a UTC "YYYY-MM-DDTHH:MM:SSZ" stamp.
+bool parse_utc_timestamp(const std::string& text, int64_t& seconds)
+{
+    int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
+    char zone = 0;
+    if (std::sscanf(text.c_str(), "%d-%d-%dT%d:%d:%d%c", &year, &month, &day, &hour, &minute, &second, &zone) != 7 ||
+        zone != 'Z')
+        return false;
+    if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59 || second > 60)
+        return false;
+
+    // Days since the epoch from the civil date (proleptic Gregorian calendar).
+    const int64_t y   = year - (month <= 2 ? 1 : 0);
+    const int64_t era = (y >= 0 ? y : y - 399) / 400;
+    const int64_t yoe = y - era * 400;
+    const int64_t doy = (153 * (month > 2 ? month - 3 : month + 9) + 2) / 5 + day - 1;
+    const int64_t doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    const int64_t days = era * 146097 + doe - 719468;
+
+    seconds = ((days * 24 + hour) * 60 + minute) * 60 + second;
+    return true;
+}
+
+// False when either stamp does not parse, so an unknown build is never offered a nightly.
+bool nightly_is_newer_than_build(const std::string& release_time, const std::string& build_timestamp)
+{
+    int64_t release_seconds = 0;
+    int64_t build_seconds   = 0;
+    if (!parse_utc_timestamp(release_time, release_seconds) || !parse_utc_timestamp(build_timestamp, build_seconds))
+        return false;
+    return release_seconds > build_seconds + kNightlyBuildMargin;
+}
+
 } // namespace
 
 std::string update_channel_key(UpdateChannel channel)
@@ -341,7 +378,7 @@ UpdateCandidate resolve_update(const std::string& releases_json,
         release_is_newer = is_newer_version(candidate.version, running_version);
     } else if (!installed_artifact.empty()) {
         release_is_newer = true;
-    } else if (!build_timestamp.empty() && candidate.version > build_timestamp) {
+    } else if (nightly_is_newer_than_build(candidate.version, build_timestamp)) {
         release_is_newer = true;
     }
 
@@ -372,7 +409,7 @@ UpdateCandidate resolve_update(const std::string& releases_json,
             candidate.reason = "source_build";
             return candidate;
         }
-        if (candidate.version <= build_timestamp) {
+        if (!nightly_is_newer_than_build(candidate.version, build_timestamp)) {
             candidate.reason = "up_to_date";
             return candidate;
         }

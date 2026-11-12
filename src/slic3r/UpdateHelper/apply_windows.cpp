@@ -12,13 +12,17 @@
     #include <softpub.h>
     #include <wincrypt.h>
     #include <wintrust.h>
+    #include <tlhelp32.h>
 
     #if defined(_MSC_VER)
         #pragma comment(lib, "wintrust.lib")
     #endif
 
+    #include <chrono>
     #include <cstdio>
+    #include <cwchar>
     #include <string>
+    #include <thread>
 
     #include <boost/filesystem.hpp>
     #include <boost/log/trivial.hpp>
@@ -154,6 +158,47 @@ bool run_installer(const std::string& artifact_path, const std::string& install_
     return true;
 }
 
+// True when a process other than this one runs an image under install_root.
+// Such a process keeps files locked, and the silent NSIS installer would
+// uninstall first and then fail halfway.
+bool other_instance_running(const std::string& install_root)
+{
+    std::wstring prefix = widen_utf8(install_root);
+    for (wchar_t& ch : prefix)
+        if (ch == L'/')
+            ch = L'\\';
+    while (!prefix.empty() && prefix.back() == L'\\')
+        prefix.pop_back();
+    if (prefix.empty())
+        return false;
+    prefix += L'\\';
+
+    const HANDLE snapshot = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snapshot == INVALID_HANDLE_VALUE)
+        return false;
+
+    const DWORD self = ::GetCurrentProcessId();
+    bool        found = false;
+    PROCESSENTRY32W entry;
+    entry.dwSize = sizeof(entry);
+    for (BOOL more = ::Process32FirstW(snapshot, &entry); more && !found; more = ::Process32NextW(snapshot, &entry)) {
+        if (entry.th32ProcessID == self)
+            continue;
+        const HANDLE process = ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ProcessID);
+        if (process == nullptr)
+            continue;
+        std::wstring image(32768, L'\0');
+        DWORD        size = static_cast<DWORD>(image.size());
+        if (::QueryFullProcessImageNameW(process, 0, image.data(), &size)) {
+            image.resize(size);
+            found = image.size() >= prefix.size() && _wcsnicmp(image.c_str(), prefix.c_str(), prefix.size()) == 0;
+        }
+        ::CloseHandle(process);
+    }
+    ::CloseHandle(snapshot);
+    return found;
+}
+
 } // namespace
 
 bool apply_windows_install(const UpdateHandoff& handoff, const std::string& artifact_path, ProgressSink& sink, std::string& error)
@@ -180,6 +225,22 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
     if (!fs::is_regular_file(to_path(artifact_path), ec)) {
         error = "The downloaded file is missing, so the update cannot be installed.";
         return false;
+    }
+
+    if (other_instance_running(install_root)) {
+        sink.say(Stage::Installing, 0, "Waiting for other OrcaSlicer windows to close");
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+        while (other_instance_running(install_root)) {
+            if (sink.cancelled && sink.cancelled()) {
+                error = "cancelled";
+                return false;
+            }
+            if (std::chrono::steady_clock::now() >= deadline) {
+                error = "Another OrcaSlicer window is still open. Close all OrcaSlicer windows, then try the update again.";
+                return false;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
     }
 
     // No backup folder here on purpose: the installer removes and rewrites
@@ -209,6 +270,7 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
     record.digest  = handoff.digest;
     record.channel = handoff.channel;
     record.version = handoff.version;
+    record.target  = install_root;
     if (!write_install_record(record))
         BOOST_LOG_TRIVIAL(warning) << "Could not record the installed build " << handoff.version;
 

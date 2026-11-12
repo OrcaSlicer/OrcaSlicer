@@ -670,6 +670,49 @@ TEST_CASE("A source build has no nightly identity to compare against", "[UpdateC
     CHECK(candidate.reason == "source_build");
 }
 
+TEST_CASE("A nightly built shortly before its release's last asset upload is not offered to itself", "[UpdateChannel]")
+{
+    // The release is updated_at 2026-11-10T08:31:54Z; the build started an hour earlier.
+    const UpdateCandidate candidate = resolve_update(nightly_releases_json(), UpdateChannel::Nightly, "", "",
+                                                     "2.6.0-dev", "2026-11-10T07:31:54Z",
+                                                     InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK_FALSE(candidate.available);
+    CHECK(candidate.reason == "up_to_date");
+}
+
+TEST_CASE("A nightly released well after the build is offered to a manually installed build", "[UpdateChannel]")
+{
+    // Twelve hours before the release, which is past the upload margin.
+    const UpdateCandidate candidate = resolve_update(nightly_releases_json(), UpdateChannel::Nightly, "", "",
+                                                     "2.6.0-dev", "2026-11-09T20:31:54Z",
+                                                     InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.reason.empty());
+    CHECK(candidate.asset.digest == "sha256:nightly2");
+}
+
+TEST_CASE("A nightly built after its release is not offered to a manually installed build", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(nightly_releases_json(), UpdateChannel::Nightly, "", "",
+                                                     "2.6.0-dev", "2026-11-10T09:00:00Z",
+                                                     InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK_FALSE(candidate.available);
+    CHECK(candidate.reason == "up_to_date");
+}
+
+TEST_CASE("A nightly with an unparsable build timestamp is not offered to a manually installed build", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(nightly_releases_json(), UpdateChannel::Nightly, "", "",
+                                                     "2.6.0-dev", "not-a-timestamp",
+                                                     InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK_FALSE(candidate.available);
+    CHECK(candidate.reason == "up_to_date");
+}
+
 TEST_CASE("A skipped stable version stays skipped until a newer one appears", "[UpdateChannel]")
 {
     const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::Stable, "", "",

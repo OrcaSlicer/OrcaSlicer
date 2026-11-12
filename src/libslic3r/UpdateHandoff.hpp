@@ -7,7 +7,7 @@
 //   handoff.json    app writes, helper reads once and deletes
 //   installed.json  helper writes, app reads on its next start
 //   pending.json    helper writes before swapping, app deletes after it starts
-//   install.lock    app creates to claim the install, helper releases
+//   install.lock    app locks it to claim the install, helper takes it over once the app exits
 //   downloads/      partial and verified artifacts
 //   helper/         the helper, extracted so it can outlive the app
 //   updater.log     helper log
@@ -49,6 +49,7 @@ struct InstallRecord
     std::string digest;   // the installed artifact's digest
     std::string channel;  // channel it came from
     std::string version;
+    std::string target;   // install dir or .app bundle the install wrote to
 };
 
 // Written before the swap, so that a crash between "old moved aside" and "new
@@ -94,8 +95,9 @@ DownloadPrep prepare_download_dir(const std::string& dir,
                                   const std::string& digest,
                                   int64_t            expected_size);
 
-// Only https downloads from the OrcaSlicer release page are fetched and installed.
-bool is_release_download_url(const std::string& url);
+// Only https downloads of `asset_name` from the OrcaSlicer release page, at
+// releases/download/<tag>/<asset_name>, are fetched and installed.
+bool is_release_download_url(const std::string& url, const std::string& asset_name);
 
 std::string handoff_to_json(const UpdateHandoff& handoff);
 bool        handoff_from_json(const std::string& json, UpdateHandoff& out);
@@ -106,8 +108,9 @@ void        remove_handoff();
 std::string install_record_to_json(const InstallRecord& record);
 bool        install_record_from_json(const std::string& json, InstallRecord& out);
 bool        write_install_record(const InstallRecord& record);
-// Reads and deletes the record. Returns false when there is none.
-bool        take_install_record(InstallRecord& out);
+// Returns false when there is none. The record is left in place.
+bool        read_install_record(InstallRecord& out);
+void        remove_install_record();
 
 std::string pending_install_to_json(const PendingInstall& pending);
 bool        pending_install_from_json(const std::string& json, PendingInstall& out);
@@ -115,9 +118,10 @@ bool        write_pending_install(const PendingInstall& pending);
 bool        read_pending_install(PendingInstall& out);
 void        remove_pending_install();
 
-// Creates the install lock holding this process id. False when another install
-// already holds it and its owner is still alive (a stale lock is taken over).
+// Takes an OS file lock on the install lock, which the holder keeps until it exits, and
+// writes owner_pid into the file. False when another handle holds the lock.
 bool acquire_install_lock(const std::string& path, int64_t owner_pid);
+// Unlocks and deletes the file this process acquired. A no-op for any other path.
 void release_install_lock(const std::string& path);
 
 } // namespace Slic3r

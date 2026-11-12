@@ -112,8 +112,8 @@ bool UpdateHelperApp::OnInit()
     Slic3r::set_updater_cache_dir(handoff.cache_dir);
 
     // Handed to the frame, which takes it only once the parent has exited: the
-    // application still owns it while it is closing down. The single release
-    // stays in the app, so every exit path frees it.
+    // application still owns it while it is closing down. The helper releases it
+    // on every exit path; a lock it never took is a no-op to release.
     m_lock_path = handoff.lock_path.empty() ? Slic3r::updater_lock_path() : handoff.lock_path;
     handoff.lock_path = m_lock_path;
 
@@ -125,7 +125,7 @@ bool UpdateHelperApp::OnInit()
         fs::remove(path, ec);
     }
 
-    if (!Slic3r::is_release_download_url(handoff.url)) {
+    if (!Slic3r::is_release_download_url(handoff.url, handoff.asset_name)) {
         release_lock();
         Slic3r::Updater::relaunch_app(handoff);
         wxMessageBox("The update information is incomplete or does not point to an OrcaSlicer release.", kDialogTitle,

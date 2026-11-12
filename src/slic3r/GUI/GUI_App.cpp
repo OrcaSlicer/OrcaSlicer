@@ -3499,19 +3499,25 @@ bool GUI_App::on_init_inner()
                 update_is_skipped(m_update_candidate, app_config->get("skip_version"), app_config->skip_artifact()))
                 return;
 
-            UpdateVersionDialog dialog(this->mainframe);
-            wxString channel_label;
-            switch (m_update_candidate.channel) {
-            case UpdateChannel::PreRelease: channel_label = _L("Pre-Release channel"); break;
-            case UpdateChannel::Nightly:    channel_label = _L("Nightly channel"); break;
-            case UpdateChannel::Stable:     channel_label = _L("Stable channel"); break;
+            // Destroyed before the action runs: the in-app update closes the main frame, which
+            // would otherwise delete the dialog as a child and then again at scope exit.
+            int answer = wxID_CANCEL;
+            {
+                UpdateVersionDialog dialog(this->mainframe);
+                wxString channel_label;
+                switch (m_update_candidate.channel) {
+                case UpdateChannel::PreRelease: channel_label = _L("Pre-Release channel"); break;
+                case UpdateChannel::Nightly:    channel_label = _L("Nightly channel"); break;
+                case UpdateChannel::Stable:     channel_label = _L("Stable channel"); break;
+                }
+                dialog.set_channel_label(channel_label);
+                dialog.set_release_url(wxString::FromUTF8(m_update_candidate.release_url));
+                dialog.set_install_in_app(can_install_in_app(m_update_candidate, current_install_flavour()));
+                dialog.update_version_info(wxString::FromUTF8(m_update_candidate.release_notes),
+                                           wxString::FromUTF8(m_update_candidate.version_label));
+                answer = dialog.ShowModal();
             }
-            dialog.set_channel_label(channel_label);
-            dialog.set_release_url(wxString::FromUTF8(m_update_candidate.release_url));
-            dialog.set_install_in_app(can_install_in_app(m_update_candidate, current_install_flavour()));
-            dialog.update_version_info(wxString::FromUTF8(m_update_candidate.release_notes),
-                                       wxString::FromUTF8(m_update_candidate.version_label));
-            switch (dialog.ShowModal()) {
+            switch (answer) {
             case wxID_YES: {
                 // Store builds get updates from the Microsoft Store and Flatpak builds from Flathub.
                 // Download-only installs open the asset itself. An install without a verifiable
@@ -3523,7 +3529,8 @@ bool GUI_App::on_init_inner()
                     open_ms_store_product_page();
                 else if (flavour == InstallFlavour::Flatpak)
                     wxLaunchDefaultBrowser(from_u8(flathub_app_url));
-                else if (is_download_only(flavour) && is_release_download_url(m_update_candidate.asset.url))
+                else if (is_download_only(flavour) &&
+                         is_release_download_url(m_update_candidate.asset.url, m_update_candidate.asset.name))
                     wxLaunchDefaultBrowser(from_u8(m_update_candidate.asset.url));
                 else
                     wxLaunchDefaultBrowser(from_u8(m_update_candidate.release_url));
@@ -6980,10 +6987,10 @@ void GUI_App::finish_pending_update()
 {
     set_updater_cache_dir(update_cache_dir());
 
-    // The helper writes this only before the new build starts, so it is safe to take even
-    // while the helper still holds the install lock.
+    // The record is shared by every copy of the app in this cache. Only the copy it names
+    // acts on it; the others leave it in place.
     InstallRecord record;
-    const bool    has_record = take_install_record(record);
+    const bool    has_record = read_install_record(record) && !record.target.empty() && running_from(record.target);
     if (has_record)
         app_config->set_installed_build(record.channel, record.digest);
 
@@ -7039,8 +7046,10 @@ void GUI_App::finish_pending_update()
             remove_pending_install();
     }
 
-    if (has_record)
+    if (has_record) {
+        remove_install_record();
         clear_install_leftovers();
+    }
     release_install_lock(lock_path);
 }
 

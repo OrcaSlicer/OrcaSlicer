@@ -216,13 +216,71 @@ TEST_CASE("A leftover partial download that cannot be removed is not recorded fo
     CHECK_FALSE(fs::exists(marker_path(dir.path())));
 }
 
-TEST_CASE("Only https release downloads from the OrcaSlicer repository are accepted", "[UpdateHandoff]")
+TEST_CASE("A release download of the named asset from the OrcaSlicer repository is accepted", "[UpdateHandoff]")
 {
-    CHECK(is_release_download_url("https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/app.AppImage"));
-    CHECK_FALSE(is_release_download_url(""));
-    CHECK_FALSE(is_release_download_url("http://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/app.AppImage"));
-    CHECK_FALSE(is_release_download_url("https://github.com/someone/OrcaSlicer/releases/download/v2.5.0/app.AppImage"));
-    CHECK_FALSE(is_release_download_url("https://example.com/https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/app"));
+    const std::string release = "https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/";
+    CHECK(is_release_download_url(release + kAsset, kAsset));
+    CHECK_FALSE(is_release_download_url(release + "other.AppImage", kAsset));
+    CHECK_FALSE(is_release_download_url(release + kAsset, ""));
+}
+
+TEST_CASE("Release URLs that leave the release path or name another file are rejected", "[UpdateHandoff]")
+{
+    const std::string release = "https://github.com/OrcaSlicer/OrcaSlicer/releases/download/";
+    const std::string asset   = kAsset;
+    const std::string url     = GENERATE(as<std::string>{},
+                                         "",
+                                         "http://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/" + asset,
+                                         "https://github.com/someone/OrcaSlicer/releases/download/v2.5.0/" + asset,
+                                         "https://example.com/https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/" + asset,
+                                         release + "../../../evil/x/releases/download/v1/" + asset,
+                                         release + "../" + asset,
+                                         release + "%2e%2e/" + asset,
+                                         release + "v2.5.0\\evil/" + asset,
+                                         release + "v2.5.0@evil.example/" + asset,
+                                         release + "v2.5.0/" + asset + "?query=1",
+                                         release + "v2.5.0/" + asset + "#frag",
+                                         release + "v2.5.0/" + asset + "/extra",
+                                         release + "/" + asset,
+                                         release + "v2.5.0/",
+                                         release + "v2.5.0/other.AppImage");
+    CHECK_FALSE(is_release_download_url(url, asset));
+}
+
+TEST_CASE("A second install lock on the same path is refused while the first is held", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    const std::string  lock = (dir.path() / "install.lock").string();
+
+    CHECK(acquire_install_lock(lock, 1234));
+    CHECK_FALSE(acquire_install_lock(lock, 5678));
+    CHECK(read_text(lock) == "1234");
+
+    release_install_lock(lock);
+    CHECK_FALSE(fs::exists(lock));
+    CHECK(acquire_install_lock(lock, 5678));
+    release_install_lock(lock);
+}
+
+TEST_CASE("A leftover install lock file that nobody holds is taken over", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    const std::string  lock = (dir.path() / "install.lock").string();
+    write_text(lock, "99999");
+
+    CHECK(acquire_install_lock(lock, 1234));
+    CHECK(read_text(lock) == "1234");
+    release_install_lock(lock);
+}
+
+TEST_CASE("Releasing an install lock this process does not hold leaves the file in place", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    const std::string  lock = (dir.path() / "install.lock").string();
+    write_text(lock, "1234");
+
+    release_install_lock(lock);
+    CHECK(fs::exists(lock));
 }
 
 TEST_CASE("The handoff round-trips through a cache directory with non-ASCII characters", "[UpdateHandoff]")
@@ -241,6 +299,57 @@ TEST_CASE("The handoff round-trips through a cache directory with non-ASCII char
     CHECK(read_handoff(read));
     CHECK(read.version == "2.5.0");
     CHECK(read.url == written.url);
+
+    clear_updater_cache_dir();
+}
+
+TEST_CASE("An install record round-trips with the install it describes", "[UpdateHandoff]")
+{
+    InstallRecord written;
+    written.digest  = kDigest;
+    written.channel = "stable";
+    written.version = "2.5.0";
+    written.target  = "/opt/OrcaSlicer";
+
+    InstallRecord read;
+    CHECK(install_record_from_json(install_record_to_json(written), read));
+    CHECK(read.digest == written.digest);
+    CHECK(read.channel == written.channel);
+    CHECK(read.version == written.version);
+    CHECK(read.target == written.target);
+}
+
+TEST_CASE("An install record without a target parses with an empty target", "[UpdateHandoff]")
+{
+    InstallRecord read;
+    CHECK(install_record_from_json(R"({"digest":"sha256:1111","channel":"stable","version":"2.5.0"})", read));
+    CHECK(read.digest == kDigest);
+    CHECK(read.target.empty());
+}
+
+TEST_CASE("Reading the install record leaves it in place and removing it deletes it", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    set_updater_cache_dir(dir.string());
+
+    InstallRecord written;
+    written.digest = kDigest;
+    written.target = "/opt/OrcaSlicer";
+    CHECK(write_install_record(written));
+
+    InstallRecord first;
+    CHECK(read_install_record(first));
+    CHECK(first.target == written.target);
+    CHECK(fs::exists(updater_install_record_path()));
+
+    InstallRecord second;
+    CHECK(read_install_record(second));
+    CHECK(second.digest == kDigest);
+
+    remove_install_record();
+    CHECK_FALSE(fs::exists(updater_install_record_path()));
+    InstallRecord gone;
+    CHECK_FALSE(read_install_record(gone));
 
     clear_updater_cache_dir();
 }
