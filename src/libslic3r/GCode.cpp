@@ -8708,10 +8708,8 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
     
     // Orca: the G-code labels the overhanging part of any wall "Overhang wall", so the preview cannot
     // tell an outer wall that starts on an overhang from an inner one. Only outer walls need the tag.
-    const bool is_outer_wall = loop_ref.inset_idx == 0 ||
-        std::any_of(loop_ref.paths.begin(), loop_ref.paths.end(), [](const ExtrusionPath &path) { return path.role() == erExternalPerimeter; });
-    m_outer_overhang_tag_pending = description == "perimeter" && !m_config.spiral_mode && is_outer_wall &&
-                                   paths.front().role() == erOverhangPerimeter;
+    m_outer_overhang_tag_pending = description == "perimeter" && !m_config.spiral_mode &&
+                                   paths.front().role() == erOverhangPerimeter && is_outer_wall(loop_ref);
 
     if (!enable_seam_slope) {
         for (const ExtrusionPath& path : paths) {

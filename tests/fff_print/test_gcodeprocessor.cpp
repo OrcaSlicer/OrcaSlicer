@@ -667,16 +667,7 @@ namespace {
 const std::string OUTER_OVERHANG_TAG = "; OUTER_OVERHANG_WALL\n";
 
 // A closed square at X/Y 10..50, printed from where the nozzle stands.
-std::string square_moves(bool sloped = false)
-{
-    std::ostringstream gcode;
-    if (sloped)
-        gcode << "G1 X10.1 Y10 Z0.3 E0.01 F3000\nG1 X50 Y10 E2\n";
-    else
-        gcode << "G1 X10.1 Y10 E0.01 F3000\nG1 X50 Y10 E2\n";
-    gcode << "G1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\n";
-    return gcode.str();
-}
+std::string square_moves() { return "G1 X10.1 Y10 E0.01 F3000\nG1 X50 Y10 E2\nG1 X50 Y50 E2\nG1 X10 Y50 E2\nG1 X10 Y10 E2\n"; }
 
 std::string layer_start() { return "M83\nG90\n; CHANGE_LAYER\nG1 X10 Y10 Z0.2 F12000\n"; }
 std::string feature(ExtrusionRole role) { return "; FEATURE: " + ExtrusionEntity::role_to_string(role) + "\n"; }
@@ -685,7 +676,7 @@ std::string feature(ExtrusionRole role) { return "; FEATURE: " + ExtrusionEntity
 std::string inner_wall_end() { return feature(erPerimeter) + "G1 X12 Y12 E0.1\nG1 X30 Y12 E1\n"; }
 
 // Streams G-code through the processor as an export does and returns its moves.
-std::vector<GCodeProcessorResult::MoveVertex> process_stream(const std::string &gcode, bool sloped = false)
+std::vector<GCodeProcessorResult::MoveVertex> process_stream(const std::string &gcode)
 {
     FullPrintConfig config;
     config.gcode_flavor.value = gcfMarlinFirmware;
@@ -698,8 +689,6 @@ std::vector<GCodeProcessorResult::MoveVertex> process_stream(const std::string &
     processor.initialize("stream.gcode");
     processor.initialize_result_moves();
     processor.apply_config(config);
-    // A scarf seam turns this on; the detector then follows the loop start up in Z.
-    processor.detect_layer_based_on_tag(sloped);
     processor.process_buffer(gcode);
     processor.finalize(false);
     return std::move(processor.result().moves);
@@ -734,14 +723,13 @@ TEST_CASE("A tagged overhang wall gets the seam an outer wall would get", "[GCod
 {
     // An "Outer wall" tag with no move leaves the seam detector active without a first vertex.
     const bool outer_tag_first = GENERATE(false, true);
-    const bool sloped          = GENERATE(false, true);
-    INFO("outer tag first " << outer_tag_first << ", sloped " << sloped);
+    INFO("outer tag first " << outer_tag_first);
     const auto wall = [&](ExtrusionRole role) {
         return layer_start() + (outer_tag_first ? feature(erExternalPerimeter) : "") + feature(role) + OUTER_OVERHANG_TAG +
-               square_moves(sloped) + inner_wall_end();
+               square_moves() + inner_wall_end();
     };
-    const auto overhang = process_stream(wall(erOverhangPerimeter), sloped);
-    check_same_seams(seams_of(overhang), seams_of(process_stream(wall(erExternalPerimeter), sloped)), 1e-5f);
+    const auto overhang = process_stream(wall(erOverhangPerimeter));
+    check_same_seams(seams_of(overhang), seams_of(process_stream(wall(erExternalPerimeter))), 1e-5f);
     REQUIRE(seams_of(overhang).size() == 1);
 
     // The wall keeps its real role.

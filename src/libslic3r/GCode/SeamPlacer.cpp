@@ -485,16 +485,8 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
         const size_t collection_begin = polygons.size(); // The fallback below applies per collection, not per layer.
         for (const ExtrusionEntity *perimeter : static_cast<const ExtrusionEntityCollection*>(ex_entity)->entities) {
           ExtrusionRole role = perimeter->role();
-          if (perimeter->is_loop()) {
-            for (const ExtrusionPath &path : static_cast<const ExtrusionLoop*>(perimeter)->paths) {
-              if (path.role() == ExtrusionRole::erExternalPerimeter) {
-                role = ExtrusionRole::erExternalPerimeter;
-              }
-            }
-            // A fully overhanging outer loop has no external paths but keeps inset_idx 0.
-            if (perimeter->inset_idx == 0)
-              role = ExtrusionRole::erExternalPerimeter;
-          }
+          if (perimeter->is_loop() && is_outer_wall(*static_cast<const ExtrusionLoop*>(perimeter)))
+            role = ExtrusionRole::erExternalPerimeter;
 
           if (role == ExtrusionRole::erExternalPerimeter) {
             Points p;

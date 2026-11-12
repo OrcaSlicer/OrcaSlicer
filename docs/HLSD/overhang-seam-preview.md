@@ -44,6 +44,6 @@ BBL post-processing reload get the same markers as a fresh slice.
 ## Tests
 
 `tests/fff_print/test_gcodeprocessor.cpp`, tag `[OverhangSeam]`: markers against
-the same stream labelled "Outer wall" in each detector state and with a sloped
-start; a following wall stays unmarked; and an exported sphere against a replay
-of its G-code relabelled "Outer wall".
+the same stream labelled "Outer wall" in each detector state; a following wall
+stays unmarked; and an exported sphere against a replay of its G-code relabelled
+"Outer wall".
