@@ -9,6 +9,7 @@
 
 #include "clipper2/clipper.engine.h"
 #include "clipper2/clipper.h"
+#include <limits>
 #include <stdexcept>
 #include <new>
 #include <oneapi/tbb/scalable_allocator.h>
@@ -2136,10 +2137,12 @@ namespace Clipper2Lib {
   }
 
 
-  inline void ClipperBase::AdjustCurrXAndCopyToSEL(const int64_t top_y)
+  inline bool ClipperBase::AdjustCurrXAndCopyToSEL(const int64_t top_y)
   {
     Active* e = actives_;
     sel_ = e;
+    bool sorted = true;
+    int64_t prev_x = std::numeric_limits<int64_t>::min();
     while (e)
     {
       e->prev_in_sel = e->prev_in_ael;
@@ -2148,8 +2151,11 @@ namespace Clipper2Lib {
       // it is safe to ignore 'joined' edges here because
       // if necessary they will be split in IntersectEdges()
       e->curr_x = TopX(*e, top_y);
+      sorted = sorted && e->curr_x >= prev_x;
+      prev_x = e->curr_x;
       e = e->next_in_ael;
     }
+    return sorted;
   }
 
   bool ClipperBase::ExecuteInternal(ClipType ct, FillRule fillrule, bool use_polytrees)
@@ -2419,7 +2425,9 @@ namespace Clipper2Lib {
 
     //Calculate edge positions at the top of the current scanbeam, and from this
     //we will determine the intersections required to reach these new positions.
-    AdjustCurrXAndCopyToSEL(top_y);
+    // Orca: edges still in order have not crossed, which holds for most scanbeams, and the
+    // merge sort below would only confirm that in log2(n) passes over every edge.
+    if (AdjustCurrXAndCopyToSEL(top_y)) return false;
     //Find all edge intersections in the current scanbeam using a stable merge
     //sort that ensures only adjacent edges are intersecting. Intersect info is
     //stored in FIntersectList ready to be processed in ProcessIntersectList.

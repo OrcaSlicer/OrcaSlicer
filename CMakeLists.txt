@@ -120,6 +120,7 @@ option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
 option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
 option(SLIC3R_RELATIVE_DEBUG_PATHS "Record a relative compilation directory in debug info (clang-cl)" 0)
 option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
+option(SLIC3R_GLIBCXX_ASSERTIONS "Enable libstdc++'s lightweight checks (_GLIBCXX_ASSERTIONS)" 0)
 
 # Python stubgen module
 option(ORCA_BUILD_PYTHON_STUBGEN_MODULE "Build importable Python module for pybind11-stubgen" ON)
@@ -659,6 +660,14 @@ if ((NOT MSVC OR IS_CLANG_CL) AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR 
     endif()
 
 endif()
+
+if (SLIC3R_GLIBCXX_ASSERTIONS)
+    # libstdc++'s lightweight checks: operator[] past the end, front() or
+    # back() on an empty container and the like abort with a message instead
+    # of reading out of range. No class changes layout, so prebuilt deps link
+    # as they are. A no-op with libc++ and the MSVC STL.
+    add_compile_definitions(_GLIBCXX_ASSERTIONS)
+endif ()
 
 if (SLIC3R_ASAN)
     # ASAN should be available on MSVC starting with Visual Studio 2019 16.9
