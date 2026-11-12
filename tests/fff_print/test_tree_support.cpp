@@ -17,6 +17,7 @@
 #include <catch2/catch_message.hpp>
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Line.hpp"
+#include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "test_helpers.hpp"
@@ -1648,10 +1649,12 @@ TEST_CASE("Organic bodies widen going up by the branch angle where the model nar
     Polygon room({ Point::new_scale(47., 96.), Point::new_scale(50., 96.), Point::new_scale(50., 104.), Point::new_scale(47., 104.) });
     room.translate(- object.center_offset());
     const auto layers = object.support_layers();
+    size_t     checked = 0;
     for (size_t i = 1; i < layers.size(); ++ i) {
         if (layers[i]->print_z < 3.1 || layers[i]->print_z > 4.5 ||
             std::abs(layers[i]->print_z - layers[i - 1]->print_z - organic_tdd::layer_height) > EPSILON)
             continue;
+        ++ checked;
         // Beyond the move and the simplification of the outlines, which may give a rounded corner back its point. A sliver
         // thinner than a fifth of a line prints nothing.
         const Polygons over = diff(intersection(to_polygons(layers[i]->support_islands), Polygons{ room }),
@@ -1659,6 +1662,7 @@ TEST_CASE("Organic bodies widen going up by the branch angle where the model nar
         CAPTURE(layers[i]->print_z);
         CHECK(opening(over, scaled<float>(0.1 * organic_tdd::line_width)).empty());
     }
+    CHECK(checked > 0);
 }
 
 // The slow branch angle is at most the branch angle, so a zero branch angle stops the slow movement too.
@@ -2119,10 +2123,12 @@ TEST_CASE("Organic roofs do not lie under a branch that continues above them", "
     std::map<long long, Polygons> bases;
     for (const Slice &slice : slices(base_beads))
         bases[std::llround(slice.z / geometry_tolerance)] = slice.material;
+    size_t checked = 0;
     for (const Slice &roof : slices(interface_beads)) {
         const auto above = bases.find(std::llround((roof.z + layer_height) / geometry_tolerance));
         if (above == bases.end())
             continue;
+        ++ checked;
         CAPTURE(roof.z);
         // Close the gaps between base lines. A roof reaching outside that body must remain,
         // including a thin edge that can still carry a printable interface line.
@@ -2131,6 +2137,7 @@ TEST_CASE("Organic roofs do not lie under a branch that continues above them", "
         for (const ExPolygon &part : union_ex(roof.material))
             CHECK_FALSE(diff(to_polygons(part), body).empty());
     }
+    CHECK(checked > 0);
 }
 
 TEST_CASE("Organic narrow contacts survive a distant continuing branch", "[TreeSupport][Organic][Interface][Regression]")
@@ -3961,9 +3968,10 @@ TEST_CASE("Organic warnings detect beads hanging beside a rooted body", "[TreeSu
 {
     // Returning wall, straight bridge, small overhang, interface, closed wall, wide return, gentle bridge,
     // returning wall inside a hollow body, straight bridge across that body's cavity, small returning wall, a wall
-    // ending in the air, and straight bridges whose hanging run is 0.5 mm and 0.8 mm long. The support may span a line
-    // between two lines of its base, 0.65 mm with the 0.25 mm base spacing and 0.4 mm lines, and no more; on the model
-    // as well, which lies far from these beads.
+    // ending in the air, and straight bridges whose hanging run is 0.5 mm and 0.8 mm long. A straight run may hang
+    // as far as a line between two lines of its base spans, 0.65 mm with the 0.25 mm base spacing and 0.4 mm lines,
+    // and no farther: measured beyond half a bead and 0.01 mm from what holds it, so across a gap in the material up
+    // to 1.07 mm wide. On the model as well, which lies far from these beads.
     const int shape = GENERATE(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
     const bool model_roots = GENERATE(false, true);
     // Snug and Grid with a tree support type generate Organic support too.
@@ -4034,10 +4042,11 @@ TEST_CASE("Organic warnings detect beads hanging beside a rooted body", "[TreeSu
 TEST_CASE("Organic warnings judge a bead printed in several paths as a whole", "[TreeSupport][Organic][Material][Regression]")
 {
     // 0: a long end hanging in the air, each of its paths shorter than the bead is wide. 1 and 2: a bridge of 0.5 mm, within
-    // the 0.65 mm the support may span, with a path ending in the middle of it, of an open bead and of a loop. 3 and 4: a
-    // narrow end hanging 0.24 mm past what its own width reaches, whether the far end of the bead is wide or as narrow.
-    // 5, 6 and 7: a bridge of 0.76 mm across the seam of a bead closed on itself, past the 0.65 mm the support may span, with
-    // paths of two widths and ends 0.1 mm apart, of one width, and with ends that meet. 8 and 9: a wide path that barely
+    // the hanging run of 0.65 mm the support may span, with a path ending in the middle of it, of an open bead and of
+    // a loop. 3 and 4: a narrow end hanging 0.24 mm past what its own width reaches, whether the far end of the bead is
+    // wide or as narrow. 5, 6 and 7: a bridge of 0.76 mm across the seam of a bead closed on itself, past the hanging
+    // run of 0.65 mm the support may span, with paths of two widths and ends 0.1 mm apart, of one width, and with ends
+    // that meet. 8 and 9: a wide path that barely
     // leaves what it reaches goes on in a free narrow end, shorter than the wide path is wide and far longer than it is
     // itself wide. 10: the same across a bridge of 0.78 mm, too long for the narrow path. 11: a wide path hanging 0.66 mm,
     // less than it is wide, with a narrow end of 0.01 mm, too short to change that. 12 and 13: a free end 0.6 mm wide
@@ -4207,7 +4216,10 @@ TEST_CASE("Organic warnings over a bead do not depend on support out of its reac
     };
     for (const bool reversed : {false, true}) {
         CAPTURE(reversed);
-        CHECK(warnings(true, reversed) == warnings(false, reversed));
+        const size_t near = warnings(false, reversed);
+        CHECK(warnings(true, reversed) == near);
+        // The path along the edge of the reach leaves the layer with a run hanging.
+        CHECK(near == 1);
     }
 }
 
@@ -4246,18 +4258,24 @@ TEST_CASE("Organic warnings over a run of a bead as long as it is wide do not de
         upper.support_fills.entities.push_back(multi);
         return floating_support_islands(object, 0.).size();
     };
-    CHECK(warnings(true) == warnings(false));
+    // No longer than a width, the run does not hang.
+    CHECK(warnings(false) == 0);
+    CHECK(warnings(true) == 0);
 }
 
 TEST_CASE("Organic warnings over a bead of several paths do not depend on its direction", "[TreeSupport][Organic][Material][Regression]")
 {
     // A bead closed on itself across a seam 0.35 mm long between a path 0.8 mm wide and one 0.2 mm wide, whose round caps
-    // touch. The bead 0.4 mm wide below leaves a gap under the seam, its far end at far_end.
-    const double far_end = GENERATE(2.12, 2.2602, 2.5);
+    // touch. The bead 0.4 mm wide below leaves a gap under the seam, its far end at far_end: the free stretches on both
+    // sides of the seam, joined, span no farther than the support may with the far end at 2.12 mm, and farther at
+    // 2.2602 and 2.5 mm.
+    const auto [far_end, expected] = GENERATE(table<double, size_t>({ { 2.12, 0 }, { 2.2602, 1 }, { 2.5, 1 } }));
     CAPTURE(far_end);
     const OrganicTestBead below{{{{.6898, 0.}, {0., 0.}, {0., 3.}, {4., 3.}, {4., 0.}, {far_end, 0.}}, .4f}};
     const OrganicTestBead above{{{{1.75, 0.}, {4., 0.}, {4., 3.}, {0., 3.}, {0., 0.}}, .2f}, {{{0., 0.}, {1.4, 0.}}, .8f}};
-    CHECK(organic_multi_path_warnings(.25, below, above, false) == organic_multi_path_warnings(.25, below, above, true));
+    const size_t forward = organic_multi_path_warnings(.25, below, above, false);
+    CHECK(organic_multi_path_warnings(.25, below, above, true) == forward);
+    CHECK(forward == expected);
 }
 
 TEST_CASE("Organic warnings count only the part of a seam out of reach of the bead below", "[TreeSupport][Organic][Material][Regression]")
@@ -4274,7 +4292,10 @@ TEST_CASE("Organic warnings count only the part of a seam out of reach of the be
             {{{0., 0.}, {1.4 + shift, 0.}}, .8f}};
         return organic_multi_path_warnings(.25, below, above, false);
     };
-    CHECK(warnings(far_end) == warnings(far_end + .01));
+    const size_t count = warnings(far_end);
+    CHECK(warnings(far_end + .01) == count);
+    // The bead hangs either way.
+    CHECK(count == 1);
 }
 
 TEST_CASE("Organic warnings hold the seam of a bead only where the caps of its ends touch the bead below", "[TreeSupport][Organic][Material][Regression]")
@@ -4298,7 +4319,7 @@ TEST_CASE("Organic warnings join the free stretches on both sides of a seam howe
 {
     // A bead closed on itself, a path 0.4 mm wide and one 0.3 mm wide whose ends lie gap apart, from nothing to well beyond
     // the geometric tolerance. The bead below leaves 0.38 mm of it free on each side of the seam, a bridge of 0.76 mm
-    // together, past the 0.65 mm the support may span.
+    // together, past the hanging run of 0.65 mm the support may span.
     const double gap = GENERATE(0., 1e-6, 5e-5, 1e-4, 1.01e-4, 2e-4, .1);
     CAPTURE(gap);
     const OrganicTestBead below{{{{2.7902, 0.}, {4., 0.}, {4., 1.}, {0., 1.}, {0., 0.}, {1.2598, 0.}}, .4f}};
@@ -4573,8 +4594,16 @@ TEST_CASE("Organic Scarf footing diagnostics count the gap fill the trees stand 
     REQUIRE(gap_fill == (gap_fill_flow > 0.));
     // Whether the layer over the ribs, at their 1 mm plus the 0.1 mm gap and the 0.1 mm layer, stands on them. Beads of the
     // trees higher up may hang by themselves.
+    const auto lists_over_ribs = [](const std::string &text) {
+        const size_t from = text.find("Z (mm): ");
+        if (from == std::string::npos)
+            return false;
+        const std::string list = text.substr(from + 8, text.find(". ", from + 8) - from - 8);
+        return (", " + list + ", ").find(", " + float_to_string_decimal_point(1.2, 2) + ", ") != std::string::npos;
+    };
     const auto warnings = organic_support_warning_statuses(print);
-    const bool floats_over_ribs = ! warnings.empty() && warnings.front().text.find("1.2") != std::string::npos;
+    const bool floats_over_ribs = std::any_of(warnings.begin(), warnings.end(),
+        [&lists_over_ribs](const PrintBase::SlicingStatus &warning) { return lists_over_ribs(warning.text); });
     CHECK(floats_over_ribs != gap_fill);
 }
 

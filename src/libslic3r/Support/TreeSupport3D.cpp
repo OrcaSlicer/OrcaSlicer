@@ -2240,8 +2240,8 @@ static void increase_areas_one_layer(
                 config.recommendedMinRadius(layer_idx - 1, elem.distance_to_top) < config.getRadius(elem.effective_radius_height + 1, elem.elephant_foot_increases)) {
                 // Near the bed a tree leans faster, as in CuraEngine, but by no more than foot_move_increase(), the room the
                 // step of the bodies leaves beyond the move of a branch. The slow move, though the move of a branch bounds it
-                // already, gets no more: with the whole growth of a foot in it, more floating support islands were counted in
-                // some of the configurations measured and fewer in none.
+                // already, gets no more than that: with the whole growth of a foot in it, more floating support islands
+                // were counted in some of the configurations measured and fewer in none.
                 if (ceiled_parent_radius == volumes.ceilRadius(config.getRadius(parent.state.effective_radius_height + 1, parent.state.elephant_foot_increases + 1), parent.state.use_min_xy_dist))
                     extra_speed += config.foot_move_increase();
                 else

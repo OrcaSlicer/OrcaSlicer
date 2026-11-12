@@ -2224,6 +2224,8 @@ TEST_CASE("The medial axis of an outline whose Voronoi diagram stays invalid lie
         { 12958961, 14653340 }, { 12963815, 14676191 }, { 12999458, 14555956 }, { 13022241, 14530346 } }));
     outline.holes.emplace_back(Polygon({ { 13289198, 14221665 }, { 13276680, 14226728 }, { 13264709, 14259630 },
         { 13239461, 14307119 }, { 13317171, 14205524 } }));
+    // No axis is drawn along such a diagram. Before, the axis ran far outside the outline and splitting it into paths
+    // never ended, so that a regression shows as a timeout rather than as a failed check.
     ThickPolylines axes;
     Geometry::MedialAxis(scaled<double>(.2), scaled<double>(.8), outline).build(&axes);
     const BoundingBox box  = get_extents(outline);

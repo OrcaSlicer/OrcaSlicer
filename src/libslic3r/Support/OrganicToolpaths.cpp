@@ -138,6 +138,7 @@ std::vector<SupportGeneratorLayer> organic_bottom_interface_layers(const Support
     return result;
 }
 
+// Whether a part of the axis starts or ends at an end of the axis.
 static bool at_axis_end(const Polyline &part, const Polyline &axis)
 {
     auto is_axis_end = [&axis](const Point &point) { return point == axis.first_point() || point == axis.last_point(); };
@@ -591,7 +592,6 @@ Polygons organic_bead(const Polyline &axis, double width)
     return offset(axis, float(0.5 * width), jtRound, SCALED_EPSILON, etOpenRound);
 }
 
-// Whether a part of the axis starts or ends at an end of the axis.
 Polylines organic_uncovered_wall_parts(const Polyline &axis, const Polygons &covered_axes, coord_t width)
 {
     // Where the wall runs along the edge of the fill, its axis enters and leaves the covered area
@@ -1275,7 +1275,8 @@ static bool hollow_organic(const PrintObjectConfig &config)
 
 // The longest bridge between two bearings the support allows: a line between two lines of the base, the gap a roof spans
 // between the bodies it lies on, see generate_support_areas(), or between two lines of a bottom interface, which the
-// bodies standing on it span.
+// bodies standing on it span. It is the length of the run of a bead out of reach of its bearings, see bead_reach(), so
+// the gap in the material the bead crosses may be a width wider.
 static double free_span(const PrintObjectConfig &config, const double width)
 {
     const int bottom_layers = config.support_interface_bottom_layers.value < 0 ? config.support_interface_top_layers.value :

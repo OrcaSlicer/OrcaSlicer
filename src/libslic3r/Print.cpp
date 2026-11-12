@@ -3783,10 +3783,11 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                 throw Slic3r::SlicingError(L("The print is empty. The model is not printable with current print settings."));
 
         }
-        // The Organic diagnostic below depends on the resolved plan, even if geometry stayed cached.
+        this->set_done(psWipeTower);
+        // The Organic diagnostic below depends on the resolved plan, even if geometry stayed cached. Invalidated after
+        // set_done(), which expects the step it ends to be the active one.
         if (std::any_of(m_objects.begin(), m_objects.end(), [](const PrintObject *object) { return organic_support_needs_final_check(*object); }))
             this->invalidate_step_from_worker(psSkirtBrim);
-        this->set_done(psWipeTower);
         if (m_pipeline_plugin_active) run_pipeline_hook(SlicingPipelineStepPlugin::psWipeTower, nullptr);
     }
 

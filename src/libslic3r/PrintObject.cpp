@@ -17,7 +17,6 @@
 #include "I18N.hpp"
 #include "Layer.hpp"
 #include "MutablePolygon.hpp"
-#include "LocalesUtils.hpp"
 #include "PerimeterGenerator.hpp"
 #include "PrintBase.hpp"
 #include "PrintConfig.hpp"
