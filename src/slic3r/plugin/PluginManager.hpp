@@ -267,8 +267,9 @@ public:
 
     bool download_and_install_cloud_plugin(const std::string& plugin_key, const std::string& version, std::string& error);
     bool subscribe_and_install_cloud_plugin(const std::string& plugin_key, std::string& error);
-    // If the version is empty, take the latest version. A loaded package is reloaded afterwards;
-    // a deactivated one keeps enabled=false in its sidecar across the restart.
+    // If the version is empty, take the latest version. On success the previous per-capability
+    // choices are retained while every permission is reset, and a loaded package is reloaded
+    // afterwards; a deactivated one keeps enabled=false in its sidecar across the restart.
     bool update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version = "");
 
     bool delete_plugin(const std::string& plugin_key, std::string& error);
@@ -346,10 +347,17 @@ private:
     // Writes the sidecar for a loaded plugin (enabled=true plus the current per-capability flags).
     void write_loaded_plugin_install_state(const std::string& plugin_key);
     // Persists enabled=false and mirrors it into the in-memory descriptor. Returns whether the
-    // sidecar was written; the unload path ignores the result, a package replacement reports it.
+    // sidecar was written; the unload path ignores the result.
     bool mark_plugin_install_state_disabled(const std::string& plugin_key);
     // Revoke permissions after a package replacement so the new package must request them again.
     void revoke_plugin_permissions(const std::string& plugin_key);
+
+    // Rewrites the freshly installed sidecar after a successful update: retains the previous
+    // per-capability choices, clears every permission, and records the pre-update auto-load intent.
+    bool write_plugin_state_after_update(const PluginDescriptor& installed,
+                                         const std::vector<std::pair<std::string, bool>>& capabilities,
+                                         bool enabled,
+                                         std::string& error);
 
     bool finalize_cloud_plugin_removal(const PluginDescriptor& plugin, bool keep_local, std::string& error);
     bool delete_installed_plugin_package(const PluginDescriptor& plugin, std::string& error);
