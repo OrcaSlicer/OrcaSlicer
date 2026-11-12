@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "catch2/catch_test_macros.hpp"
+#include "catch2/generators/catch_generators.hpp"
 #include "libslic3r/UpdateHandoff.hpp"
 #include "libslic3r/Utils.hpp"
 #include "test_utils.hpp"
@@ -228,22 +229,22 @@ TEST_CASE("Release URLs that leave the release path or name another file are rej
 {
     const std::string release = "https://github.com/OrcaSlicer/OrcaSlicer/releases/download/";
     const std::string asset   = kAsset;
-    const std::string url     = GENERATE(as<std::string>{},
-                                         "",
-                                         "http://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/" + asset,
-                                         "https://github.com/someone/OrcaSlicer/releases/download/v2.5.0/" + asset,
-                                         "https://example.com/https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/" + asset,
-                                         release + "../../../evil/x/releases/download/v1/" + asset,
-                                         release + "../" + asset,
-                                         release + "%2e%2e/" + asset,
-                                         release + "v2.5.0\\evil/" + asset,
-                                         release + "v2.5.0@evil.example/" + asset,
-                                         release + "v2.5.0/" + asset + "?query=1",
-                                         release + "v2.5.0/" + asset + "#frag",
-                                         release + "v2.5.0/" + asset + "/extra",
-                                         release + "/" + asset,
-                                         release + "v2.5.0/",
-                                         release + "v2.5.0/other.AppImage");
+    const std::string url     = GENERATE_COPY(as<std::string>{},
+                                              "",
+                                              "http://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/" + asset,
+                                              "https://github.com/someone/OrcaSlicer/releases/download/v2.5.0/" + asset,
+                                              "https://example.com/https://github.com/OrcaSlicer/OrcaSlicer/releases/download/v2.5.0/" + asset,
+                                              release + "../../../evil/x/releases/download/v1/" + asset,
+                                              release + "../" + asset,
+                                              release + "%2e%2e/" + asset,
+                                              release + "v2.5.0\\evil/" + asset,
+                                              release + "v2.5.0@evil.example/" + asset,
+                                              release + "v2.5.0/" + asset + "?query=1",
+                                              release + "v2.5.0/" + asset + "#frag",
+                                              release + "v2.5.0/" + asset + "/extra",
+                                              release + "/" + asset,
+                                              release + "v2.5.0/",
+                                              release + "v2.5.0/other.AppImage");
     CHECK_FALSE(is_release_download_url(url, asset));
 }
 
