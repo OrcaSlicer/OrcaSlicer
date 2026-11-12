@@ -67,8 +67,7 @@ target_link_libraries(my_app
 2. **Proper Include Paths**: Automatically sets up include directories
 3. **Namespace Aliases**: Provides namespaced aliases (e.g., `spline::spline`) for clarity
 4. **Position Independent Code**: Static libraries are built with `-fPIC` for compatibility
-5. **Install Support**: Libraries can be installed and used by external projects
-6. **Build/Install Interface**: Separates build-time and install-time include paths
+5. **Build/Install Interface**: Separates build-time and install-time include paths
 
 ## Example Integration
 
