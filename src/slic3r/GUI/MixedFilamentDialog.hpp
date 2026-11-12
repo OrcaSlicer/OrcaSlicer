@@ -20,7 +20,7 @@
 #include "libslic3r/FilamentMixer.hpp"
 
 class Button;
-class CheckBox;
+class LabeledCheckBox;
 class ComboBox;
 class wxMouseEvent;
 class wxScrolledWindow;
@@ -142,14 +142,12 @@ private:
     RatioLabelPanel*            m_label_ratio_b{nullptr};
     wxPanel*                    m_ratio_editor_panel{nullptr};
     wxTextCtrl*                 m_ratio_editor{nullptr};
-    CheckBox*                   m_chk_gradient{nullptr};
-    wxStaticText*               m_label_gradient{nullptr};
+    LabeledCheckBox*            m_chk_gradient{nullptr};
     ComboBox*                   m_combo_gradient_dir{nullptr};
     wxBoxSizer*                 m_gradient_sizer{nullptr};
     GradientCurveEditor*        m_curve_editor{nullptr};
     wxBoxSizer*                 m_curve_sizer{nullptr};
-    CheckBox*                   m_chk_per_part_gradient{nullptr};
-    wxStaticText*               m_label_per_part_gradient{nullptr};
+    LabeledCheckBox*            m_chk_per_part_gradient{nullptr};
     wxBoxSizer*                 m_per_part_gradient_sizer{nullptr};
     Button*                     m_btn_add_material{nullptr};
     Button*                     m_btn_remove_material{nullptr};

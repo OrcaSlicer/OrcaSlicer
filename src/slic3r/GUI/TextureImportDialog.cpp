@@ -2195,10 +2195,8 @@ void TextureImportDialog::build_mapping_panel(wxWindow* parent, wxSizer* sizer)
     sizer->Add(header_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
 
     wxBoxSizer* merge_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_auto_merge_cb = new wxCheckBox(parent, wxID_ANY, _L("Auto-merge same filament"));
-    m_auto_merge_cb->SetFont(Label::Body_14);
+    m_auto_merge_cb = new LabeledCheckBox(parent, _L("Auto-merge same filament"));
     m_auto_merge_cb->SetToolTip(_L("Automatically merge identical filaments into existing filaments in the project"));
-    m_auto_merge_cb->SetForegroundColour(secondary_fg);
     m_auto_merge_cb->SetValue(true);
     m_auto_merge_cb->Bind(wxEVT_CHECKBOX, &TextureImportDialog::on_auto_merge_toggled, this);
     merge_sizer->Add(m_auto_merge_cb, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, FromDIP(5));
