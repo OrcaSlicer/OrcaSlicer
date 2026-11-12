@@ -4,6 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
 #include "libslic3r/libslic3r.h"
@@ -34,6 +35,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include "libslic3r/ExPolygon.hpp"
@@ -159,6 +161,24 @@ TEST_CASE("Initial layer height is honored", "[PrintObject]")
     REQUIRE(layer_zs.size() > 1);
     REQUIRE_THAT(*layer_zs.begin(),            Catch::Matchers::WithinAbs(0.3, 1e-4));
     REQUIRE_THAT(*std::next(layer_zs.begin()), Catch::Matchers::WithinAbs(0.5, 1e-4));
+}
+
+TEST_CASE("An object too thin for any layer fails with a slicing error", "[PrintObject][Regression]")
+{
+    const int  raft_layers      = GENERATE(0, 2);
+    const bool precise_z_height = GENERATE(false, true);
+    DYNAMIC_SECTION("raft_layers " << raft_layers << ", precise_z_height " << precise_z_height) {
+        Slic3r::Print print;
+        Slic3r::Model model;
+        Slic3r::Test::init_print({make_cube(20, 20, 0.002)}, print, model, {
+            { "layer_height",               0.2 },
+            { "initial_layer_print_height", 0.2 },
+            { "min_layer_height",           0.07 },
+            { "raft_layers",                raft_layers },
+            { "precise_z_height",           precise_z_height }
+        });
+        REQUIRE_THROWS_WITH(print.process(), Catch::Matchers::ContainsSubstring("No layers were detected"));
+    }
 }
 
 static TriangleMesh internal_bridge_step()
@@ -443,11 +463,20 @@ TEST_CASE("Surface centering survives changes to separated infill settings", "[P
     print.process();
     const auto resliced = surface_fills(print);
 
-    Print fresh_print;
-    Model fresh_model;
-    init_print({mesh}, fresh_print, fresh_model, config, nullptr, false);
-    fresh_print.process();
-    const auto fresh = surface_fills(fresh_print);
+    // The fresh slice depends only on the final settings, which several combinations share,
+    // so slice each set once. The resliced paths must match it exactly, so slicing is deterministic.
+    using FreshKey = std::tuple<std::string, std::string, bool, std::string, std::string>;
+    static std::map<FreshKey, decltype(surface_fills(print))> fresh_slices;
+    const FreshKey fresh_key{pattern, final_center, separated, top_order, density};
+    auto fresh_it = fresh_slices.find(fresh_key);
+    if (fresh_it == fresh_slices.end()) {
+        Print fresh_print;
+        Model fresh_model;
+        init_print({mesh}, fresh_print, fresh_model, config, nullptr, false);
+        fresh_print.process();
+        fresh_it = fresh_slices.emplace(fresh_key, surface_fills(fresh_print)).first;
+    }
+    const auto &fresh = fresh_it->second;
     REQUIRE_FALSE(fresh.empty());
     REQUIRE(resliced.size() == fresh.size());
     std::set<ExtrusionRole> roles;

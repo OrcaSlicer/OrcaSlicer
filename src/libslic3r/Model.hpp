@@ -403,6 +403,9 @@ public:
     // Whether this object is snapped to the build plate after transformations.
     // Instance Z offsets are shared by all instances of an object.
     bool                    auto_drop { true };
+    // Single-object import keeps named bodies internally until the user reveals its parts.
+    // A stored choice: part settings or painting still show the parts, see hides_imported_parts().
+    bool                    imported_parts_hidden { false };
 
     // This vector holds position of selected support points for SLA. The data are
     // saved in mesh coordinates to allow using them for several instances.
@@ -458,6 +461,11 @@ public:
     bool                    is_mm_painted() const;
     // Checks if any of object volume is painted using the fuzzy skin painting gizmo.
     bool                    is_fuzzy_skin_painted() const;
+    // Whether a part has settings or painting of its own; a part that only repeats the object's filament has none.
+    bool                    has_individual_part_settings() const;
+    // Whether the object list shows a single-object import without its parts. Never true while
+    // a part has its own settings or painting, so effective per-part controls stay visible.
+    bool                    hides_imported_parts() const;
     // This object may have a varying layer height by painting or by a table.
     // Even if true is returned, the layer height profile may be "flat" with no difference to default layering.
     bool                    has_custom_layering() const
@@ -500,6 +508,9 @@ public:
     // A snug bounding box around the transformed non-modifier object volumes.
     BoundingBoxf3 instance_bounding_box(size_t instance_idx, bool dont_translate = false) const;
     BoundingBoxf3 instance_bounding_box(const ModelInstance& instance, bool dont_translate = false) const;
+    // A bounding box around the non-modifier object volumes of all instances, as placed in the assembly view.
+    // It encloses the corners of the raw mesh box, so it is loose for rotated instances.
+    BoundingBoxf3 bounding_box_in_assembly_view() const;
 
 	// A snug bounding box of non-transformed (non-rotated, non-scaled, non-translated) sum of non-modifier object volumes.
 	const BoundingBoxf3& raw_mesh_bounding_box() const;
@@ -709,7 +720,7 @@ private:
         Internal::StaticSerializationWrapper<ModelConfigObject const> config_wrapper(config);
         Internal::StaticSerializationWrapper<LayerHeightProfile const> layer_heigth_profile_wrapper(layer_height_profile);
         ar(name, module_name, input_file, instances, volumes, config_wrapper, layer_config_ranges, layer_heigth_profile_wrapper,
-            sla_support_points, sla_points_status, sla_drain_holes, printable, auto_drop, origin_translation, brim_points,
+            sla_support_points, sla_points_status, sla_drain_holes, printable, auto_drop, imported_parts_hidden, origin_translation, brim_points,
             m_bounding_box_approx, m_bounding_box_approx_valid, 
             m_bounding_box_exact, m_bounding_box_exact_valid, m_min_max_z_valid,
             m_raw_bounding_box, m_raw_bounding_box_valid, m_raw_mesh_bounding_box, m_raw_mesh_bounding_box_valid,
@@ -722,7 +733,7 @@ private:
         // BBS: add backup, check modify
         SaveObjectGaurd gaurd(*this);
         ar(name, module_name, input_file, instances, volumes, config_wrapper, layer_config_ranges, layer_heigth_profile_wrapper,
-            sla_support_points, sla_points_status, sla_drain_holes, printable, auto_drop, origin_translation, brim_points,
+            sla_support_points, sla_points_status, sla_drain_holes, printable, auto_drop, imported_parts_hidden, origin_translation, brim_points,
             m_bounding_box_approx, m_bounding_box_approx_valid, 
             m_bounding_box_exact, m_bounding_box_exact_valid, m_min_max_z_valid,
             m_raw_bounding_box, m_raw_bounding_box_valid, m_raw_mesh_bounding_box, m_raw_mesh_bounding_box_valid,
@@ -832,6 +843,8 @@ class ModelVolume final : public ObjectBase
 {
 public:
     std::string         name;
+    // Session-only tree position; snapshots preserve it without changing project file order.
+    int                 import_display_order { -1 };
     // struct used by reload from disk command to recover data from disk
     struct Source
     {
@@ -1043,7 +1056,6 @@ public:
     void                set_material_id(t_model_material_id material_id);
     void                reset_extra_facets();
     ModelMaterial*      material() const;
-    void                set_material(t_model_material_id material_id, const ModelMaterial &material);
     // Extract the current extruder ID based on this ModelVolume's config and the parent ModelObject's config.
     // Extruder ID is only valid for FFF. Returns -1 for SLA or if the extruder ID is not applicable (support volumes).
     int                 extruder_id() const;
@@ -1253,7 +1265,7 @@ private:
     // Copying an existing volume, therefore this volume will get a copy of the ID assigned.
     ModelVolume(ModelObject *object, const ModelVolume &other) :
         ObjectBase(other),
-        name(other.name), source(other.source), m_mesh(other.m_mesh), m_convex_hull(other.m_convex_hull),
+        name(other.name), import_display_order(other.import_display_order), source(other.source), m_mesh(other.m_mesh), m_convex_hull(other.m_convex_hull),
         config(other.config), m_type(other.m_type), object(object), m_transformation(other.m_transformation),
         supported_facets(other.supported_facets), seam_facets(other.seam_facets), mmu_segmentation_facets(other.mmu_segmentation_facets),
         fuzzy_skin_facets(other.fuzzy_skin_facets),
@@ -1286,7 +1298,7 @@ private:
     }
     // Providing a new mesh, therefore this volume will get a new unique ID assigned.
     ModelVolume(ModelObject *object, const ModelVolume &other, TriangleMesh &&mesh) :
-        name(other.name), source(other.source), config(other.config), object(object), m_mesh(new TriangleMesh(std::move(mesh))), m_type(other.m_type), m_transformation(other.m_transformation),
+        name(other.name), import_display_order(other.import_display_order), source(other.source), config(other.config), object(object), m_mesh(new TriangleMesh(std::move(mesh))), m_type(other.m_type), m_transformation(other.m_transformation),
         cut_info(other.cut_info), text_configuration(other.text_configuration), emboss_shape(other.emboss_shape)
     {
 		assert(this->id().valid()); 
@@ -1343,7 +1355,7 @@ private:
         // BBS: add backup, check modify
         bool mesh_changed = false;
         auto tr = m_transformation;
-        ar(name, source, m_mesh, m_type, m_material_id, m_transformation, m_is_splittable, has_convex_hull, cut_info);
+        ar(name, import_display_order, source, m_mesh, m_type, m_material_id, m_transformation, m_is_splittable, has_convex_hull, cut_info);
         mesh_changed |= !(tr == m_transformation);
         auto t = supported_facets.timestamp();
         cereal::load_by_value(ar, supported_facets);
@@ -1379,7 +1391,7 @@ private:
 	}
 	template<class Archive> void save(Archive &ar) const {
 		bool has_convex_hull = m_convex_hull.get() != nullptr;
-        ar(name, source, m_mesh, m_type, m_material_id, m_transformation, m_is_splittable, has_convex_hull, cut_info);
+        ar(name, import_display_order, source, m_mesh, m_type, m_material_id, m_transformation, m_is_splittable, has_convex_hull, cut_info);
         cereal::save_by_value(ar, supported_facets);
         cereal::save_by_value(ar, seam_facets);
         cereal::save_by_value(ar, mmu_segmentation_facets);
@@ -1519,6 +1531,8 @@ public:
     double get_auto_brim_width() const;
     // BBS
     Polygon convex_hull_2d();
+    bool intersects_bed_exclude_region(const BedExcludeRegion &region, indexed_triangle_set *intersection_mesh = nullptr) const;
+    bool intersects_bed_exclude_regions(const std::vector<BedExcludeRegion> &regions, indexed_triangle_set *intersection_mesh = nullptr) const;
     void invalidate_convex_hull_2d();
 
     // Getting the input polygon for arrange
@@ -1825,6 +1839,11 @@ public:
     void          clear_materials();
     // Make sure all objects have at least one instance
     bool          add_default_instances();
+    // Moves model_object in the assembly view 10 mm to the right of the other objects (except those in ignore),
+    // centred on them in Y, or onto the origin when there are none, so that an object added on its own does not
+    // overlap the others there. Keeps its height and the layout of its instances. Instances that have no
+    // assembly pose yet start from their pose on the plate.
+    void          set_assembly_pos(ModelObject *model_object, const std::vector<const ModelObject*> &ignore = {});
     // Returns approximate axis aligned bounding box of this model.
     BoundingBoxf3 bounding_box_approx() const;
     // Returns exact axis aligned bounding box of this model.
@@ -1842,8 +1861,11 @@ public:
     // Croaks if the duplicated objects do not fit the print bed.
     void duplicate_objects_grid(size_t x, size_t y, coordf_t dist);
 
+    // Turns the content of a freshly read file around Z as one piece. Placed objects are centered around their own
+    // origin without moving; unplaced ones are centered in XY only, the shift recorded in origin_translation.
+    void          rotate_and_center_objects(double angle_z);
     bool 		  looks_like_multipart_object() const;
-    void 		  convert_multipart_object(unsigned int max_extruders);
+    void 		  convert_multipart_object(unsigned int max_extruders, bool preserve_volume_names = false);
     bool          looks_like_imperial_units() const;
     void          convert_from_imperial_units(bool only_small_volumes);
     bool          looks_like_saved_in_meters() const;

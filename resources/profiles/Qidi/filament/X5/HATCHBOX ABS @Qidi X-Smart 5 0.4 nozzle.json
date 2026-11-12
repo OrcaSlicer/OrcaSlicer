@@ -1,0 +1,29 @@
+{
+	"type": "filament",
+	"name": "HATCHBOX ABS @Qidi X-Smart 5 0.4 nozzle",
+	"inherits": "HATCHBOX ABS@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "Lg8m6ICD6vBvgPwW",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"chamber_temperatures": [
+		"0"
+	],
+	"during_print_exhaust_fan_speed": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"pressure_advance": [
+		"0.024"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.4 nozzle"
+	]
+}

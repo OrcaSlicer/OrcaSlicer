@@ -13,6 +13,7 @@
 #include <iterator>
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -1058,6 +1059,56 @@ TEST_CASE("Spiral inset fill closes the gaps with variable width walls", "[Fill]
     CHECK(2 * spirals < walls_across);
 }
 
+TEST_CASE("Spiral inset fill prints the open walls at the centre end of the spiral", "[Fill][Regression]")
+{
+    // Arachne leaves the middle of this ellipse as an open wall. Printed after an outward spiral, which
+    // ends at the edge, it sent the nozzle back across the surface to the centre.
+    const double    spacing = 0.45;
+    Slic3r::Polygon ellipse;
+    for (int i = 0; i < 90; ++i) {
+        const double angle = 2.0 * PI * i / 90.0;
+        ellipse.points.emplace_back(Slic3r::Point::new_scale(10 * std::cos(angle), 5 * std::sin(angle)));
+    }
+    const Slic3r::SurfaceFillOrder order = GENERATE(Slic3r::SurfaceFillOrder::Default, Slic3r::SurfaceFillOrder::Inward);
+    CAPTURE(int(order));
+
+    Slic3r::PrintConfig       print_config;
+    Slic3r::PrintObjectConfig object_config;
+    const Slic3r::Surface     surface(Slic3r::stTop, Slic3r::ExPolygon(ellipse));
+    auto fill = [&](Slic3r::ExtrusionRole role) {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("spiralinset"));
+        filler->spacing             = spacing;
+        filler->overlap             = 0.5 * spacing;
+        filler->print_config        = &print_config;
+        filler->print_object_config = &object_config;
+
+        Slic3r::FillParams params;
+        params.density        = 1.f;
+        params.dont_adjust    = false;
+        params.layer_height   = 0.2;
+        params.use_arachne    = true;
+        params.extrusion_role = role;
+        params.fill_order     = order;
+        return filler->fill_surface_arachne(&surface, params);
+    };
+
+    const Slic3r::ThickPolylines paths = fill(Slic3r::erTopSolidInfill);
+    REQUIRE(paths.size() > 1);
+    // The spiral goes last when it runs outwards and first when it runs inwards.
+    const auto spiral = std::max_element(paths.begin(), paths.end(), [](const Slic3r::ThickPolyline &a, const Slic3r::ThickPolyline &b) {
+        return a.length() < b.length();
+    });
+    CHECK(spiral == (order == Slic3r::SurfaceFillOrder::Inward ? paths.begin() : paths.end() - 1));
+
+    // Internal solid infill gets the same walls rather than fixed width loops, which leave gaps.
+    const Slic3r::ThickPolylines solid = fill(Slic3r::erSolidInfill);
+    REQUIRE(solid.size() == paths.size());
+    for (size_t i = 0; i < paths.size(); ++i) {
+        CHECK(solid[i].points == paths[i].points);
+        CHECK(solid[i].width == paths[i].width);
+    }
+}
+
 TEST_CASE("Honeycomb infill rounds its cell corners with the smooth factor", "[Fill]")
 {
     // A cell whose sides are several times the line width, so that the corners have room to be rounded.
@@ -1250,12 +1301,14 @@ TEST_CASE("Cross hatch infill rounds its transition layers with the smooth facto
     REQUIRE(smooth.length < sharp.length);
 }
 
-TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one line", "[Fill]")
+TEST_CASE("Trapezoidal infill rounds its corners only with more than one line", "[Fill]")
 {
-    auto shape_for = [](int multiline, const std::string &smooth_factor) {
+    const std::string pattern = GENERATE("grid", "quartercubic");
+    CAPTURE(pattern);
+    auto shape_for = [&pattern](int multiline, const std::string &smooth_factor) {
         Print print;
         Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
-                                            {{"sparse_infill_pattern", "grid"},
+                                            {{"sparse_infill_pattern", pattern},
                                              {"sparse_infill_density", "20%"},
                                              {"fill_multiline", multiline},
                                              {"sparse_infill_smooth_factor", smooth_factor},
@@ -1271,7 +1324,7 @@ TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one li
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
     REQUIRE(smooth.length < sharp.length);
 
-    // A single line per infill wall is the plain crossing line grid, which has no corner of its own.
+    // A single line per infill wall is the plain crossing lines, which have no corner of their own.
     const SparseInfillShape single_sharp  = shape_for(1, "0%");
     const SparseInfillShape single_smooth = shape_for(1, "100%");
     REQUIRE(single_sharp.point_count > 0);
@@ -1281,7 +1334,7 @@ TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one li
 
 TEST_CASE("Multiline infill of an object matches the infill of a larger object with the same center", "[Fill]")
 {
-    const InfillPattern pattern   = GENERATE(ipGrid, ipTriangles, ipStars, ipCubic);
+    const InfillPattern pattern   = GENERATE(ipGrid, ipTriangles, ipStars, ipCubic, ipQuarterCubic);
     const int           multiline = GENERATE(2, 3);
     // A square with cells as large as itself, whose corners are as far out as the object bounding box
     // reaches, and a strip with small cells, whose extents change with every layer orientation.
@@ -1392,18 +1445,40 @@ TEST_CASE("Gyroid infill of an object matches the infill of a larger object with
     }
 }
 
+TEST_CASE("Multiline infill keeps its lines parallel around a corner", "[Fill]")
+{
+    // A left turn by 135 degrees, drawn as two lines half of the 0.4 mm spacing to each side of it.
+    const double turn = 0.75 * PI;
+    Polylines paths{ Polyline{ Point::new_scale(0., 0.), Point::new_scale(10., 0.),
+                               Point::new_scale(10. + 10. * std::cos(turn), 10. * std::sin(turn)) } };
+    FillParams params;
+    params.multiline = 2;
+    multiline_fill(paths, params, 0.4f);
+    REQUIRE(paths.size() == 1);
+
+    // The outer line turns at the miter point, where the lines 0.2 mm out from both legs meet.
+    const Point miter = Point::new_scale(10. + 0.2 * std::tan(0.5 * turn), -0.2);
+    double nearest = std::numeric_limits<double>::max();
+    for (const Point &point : paths.front().points)
+        nearest = std::min(nearest, (point - miter).cast<double>().norm());
+    REQUIRE(nearest < scaled<double>(0.001));
+    // The round ends are flattened to a fraction of the offset rather than to the integer grid.
+    REQUIRE(paths.front().size() < 100);
+}
+
 TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itself", "[Fill]")
 {
+    const std::string pattern = GENERATE("cubic", "quartercubic");
     const int    multiline = GENERATE(2, 3);
     const double spacing   = 0.45;
-    const double density   = 0.3;
+    const double density   = GENERATE(0.1, 0.3, 0.6);
     const double wall      = multiline * spacing;
-    CAPTURE(multiline);
+    CAPTURE(pattern, multiline, density);
 
     const ExPolygon region{ Slic3r::Points{ Point::new_scale(0., 0.), Point::new_scale(40., 0.),
                                             Point::new_scale(40., 40.), Point::new_scale(0., 40.) } };
-    auto fill = [&region, spacing](int lines, double density, size_t layer_id, double z) {
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("cubic"));
+    auto fill = [&region, &pattern, spacing](int lines, double density, size_t layer_id, double z) {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(pattern));
         filler->spacing  = spacing;
         filler->angle    = float(M_PI / 7.);
         filler->layer_id = layer_id;
@@ -1428,8 +1503,29 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
         return unscale<double>(distance);
     };
 
-    // One z period of the pattern: sqrt(2) / 3 of the 3 * wall / density line spacing.
-    const double z_period = std::sqrt(2.) * wall / density;
+    // The closest two different paths come, up to a line spacing.
+    auto closest_paths = [&inner, spacing](const Polylines &paths) {
+        Lines               lines;
+        std::vector<size_t> owner;
+        for (size_t i = 0; i < paths.size(); ++i)
+            for (const Line &line : paths[i].lines()) {
+                lines.emplace_back(line);
+                owner.emplace_back(i);
+            }
+        const AABBTreeLines::LinesDistancer<Line> tree(lines);
+        double closest = spacing;
+        for (size_t i = 0; i < paths.size(); ++i)
+            for (const Polyline &piece : intersection_pl(paths[i], inner))
+                for (const Point &point : piece.equally_spaced_points(scale_(0.1)))
+                    for (size_t k : tree.all_lines_in_radius(point, scale_(spacing)))
+                        if (owner[k] != i)
+                            closest = std::min(closest, unscale<double>(lines[k].distance_to(point)));
+        return closest;
+    };
+
+    // One z period of the pattern: sqrt(2) / 3 of the 3 * wall / density line spacing of Cubic, sqrt(2) of the
+    // 4 * wall / density line spacing of Quarter Cubic.
+    const double z_period = std::sqrt(2.) * wall / density * (pattern == "cubic" ? 1. : 4.);
     const size_t layers   = 30;
     for (size_t layer_id = 0; layer_id < layers; ++layer_id) {
         const double z = z_period * (layer_id + 0.5) / layers;
@@ -1439,6 +1535,8 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
         CHECK(get_intersections(to_lines(walls)).empty());
         // Long paths running out to the boundary, not loops around the cells.
         CHECK(std::none_of(walls.begin(), walls.end(), [](const Polyline &path) { return path.first_point() == path.last_point(); }));
+        // Neighbouring lines stay a line spacing apart, also where two walls touch. Cubic comes a little closer when dense.
+        CHECK(closest_paths(walls) > (pattern == "cubic" ? 0.9 : 0.99) * spacing);
 
         // Single lines at the same spacing: the walls are drawn along them.
         const Polylines lines = fill(1, density / multiline, layer_id, z);
@@ -1446,6 +1544,56 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
         CHECK(farthest(lines, walls) < 0.5 * wall);
         CHECK(farthest(walls, lines) < 1.5 * wall);
     }
+}
+
+TEST_CASE("Multiline quarter cubic infill keeps parallel lines together like the single line pattern", "[Fill]")
+{
+    const int    multiline = GENERATE(2, 3);
+    const size_t layer_id  = GENERATE(0, 1);
+    const double spacing   = 0.45;
+    const double density   = 0.2;
+    const double wall      = multiline * spacing;
+    const double period    = 4. * wall / density;
+    // The z where a pair of parallel lines is at its closest, with the middle of the pair and of the lines running along it.
+    // The second pair of lines is 0.7071 of a period behind the first in z / sqrt(2).
+    const auto [phase, along_x, across, along] = GENERATE_COPY(table<double, bool, double, double>({ { 0., true, 0., 0.5 * period },
+                                                                                                     { 0.5, true, 0.5 * period, 0.5 * period },
+                                                                                                     { 1. - std::sqrt(0.5), false, 0., 0.5 * period },
+                                                                                                     { 1.5 - std::sqrt(0.5), false, 0.5 * period, 0.5 * period } }));
+    CAPTURE(multiline, layer_id, phase);
+
+    const ExPolygon region{ Slic3r::Points{ Point::new_scale(-60., -60.), Point::new_scale(60., -60.),
+                                            Point::new_scale(60., 60.), Point::new_scale(-60., 60.) } };
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipQuarterCubic));
+    filler->spacing  = spacing;
+    filler->angle    = float(-M_PI / 2.); // The lines run along x and y.
+    filler->layer_id = layer_id;
+    filler->z        = std::sqrt(2.) * (phase + 0.001) * period;
+
+    FillParams params;
+    params.pattern           = ipQuarterCubic;
+    params.density           = float(density);
+    params.multiline         = multiline;
+    params.dont_adjust       = true;
+    params.anchor_length_max = 0.f; // The bare pattern, without connections along the boundary.
+    Slic3r::Surface surface(stInternal, region);
+    const Polylines paths = filler->fill_surface(&surface, params);
+    REQUIRE_FALSE(paths.empty());
+
+    // Across the pair, away from any crossing: the lines of both walls, a line spacing apart with no gap in the middle.
+    auto probe_point = [along_x = along_x, along = along](double position) {
+        return along_x ? Point::new_scale(position, along) : Point::new_scale(along, position);
+    };
+    const Line probe(probe_point(across - 2. * wall), probe_point(across + 2. * wall));
+    std::vector<double> positions;
+    for (const Polyline &path : paths)
+        for (const Line &line : path.lines())
+            if (Point hit; probe.intersection(line, &hit))
+                positions.emplace_back(unscale<double>(along_x ? hit.x() : hit.y()));
+    std::sort(positions.begin(), positions.end());
+    REQUIRE(positions.size() == size_t(2 * multiline));
+    for (size_t i = 1; i < positions.size(); ++i)
+        CHECK_THAT(positions[i] - positions[i - 1], Catch::Matchers::WithinAbs(spacing, 0.01));
 }
 
 TEST_CASE("Multiline adaptive cubic infill keeps its lines apart without closing them around the cells", "[Fill]")
@@ -2321,6 +2469,101 @@ TEST_CASE("Adaptive TPMS infill of a region matches the infill of a larger regio
     }
 }
 
+TEST_CASE("Infill lines do not end where the rings of the pattern start", "[Fill][Regression]")
+{
+    // Marching squares patterns and multiline outlines are closed rings, starting anywhere along their lines.
+    const auto [pattern, mode, optimized, first_multiline] = GENERATE(table<InfillPattern, AdaptiveInfillMode, bool, int>(
+        {{ipGyroid, AdaptiveInfillMode::DistanceWarp, false, 1},
+         {ipTpmsD, AdaptiveInfillMode::DistanceWarp, false, 1},
+         {ipTpmsFK, AdaptiveInfillMode::DistanceWarp, false, 1},
+         {ipTpmsFK, AdaptiveInfillMode::Disabled, false, 1},
+         {ipGyroid, AdaptiveInfillMode::Disabled, true, 1},
+         {ipGyroid, AdaptiveInfillMode::Disabled, false, 2},
+         {ipTpmsD, AdaptiveInfillMode::Disabled, false, 2},
+         {ipHoneycomb, AdaptiveInfillMode::Disabled, false, 2},
+         {ipQuarterCubic, AdaptiveInfillMode::Disabled, false, 2},
+         {ipLateralLattice, AdaptiveInfillMode::Disabled, false, 2},
+         {ipLateralHoneycomb, AdaptiveInfillMode::Disabled, false, 2},
+         {ipRectilinear, AdaptiveInfillMode::Disabled, false, 2},
+         {ipAlignedRectilinear, AdaptiveInfillMode::Disabled, false, 2},
+         {ipGrid, AdaptiveInfillMode::Disabled, false, 2},
+         {ipTriangles, AdaptiveInfillMode::Disabled, false, 2},
+         {ipStars, AdaptiveInfillMode::Disabled, false, 2},
+         {ipCubic, AdaptiveInfillMode::Disabled, false, 2},
+         {ipCrossHatch, AdaptiveInfillMode::Disabled, false, 2},
+         {ipHilbertCurve, AdaptiveInfillMode::Disabled, false, 2}}));
+    const int   multiline = GENERATE(1, 2, 3);
+    const float density   = GENERATE(0.1f, 0.3f);
+    const bool  with_hole = GENERATE(false, true);
+    // A single line of the other patterns is not a ring, and the center line of these two may stop short of the boundary.
+    if (multiline < first_multiline || (multiline == 3 && (pattern == ipCrossHatch || pattern == ipHilbertCurve)))
+        return;
+    CAPTURE(pattern, mode, optimized, multiline, density, with_hole);
+
+    // A 60 mm cube, filled with lines connected along the boundary of its 0.45 mm narrower section.
+    const double     spacing = 0.45;
+    const ExPolygons box{ExPolygon(Points{Point::new_scale(0., 0.), Point::new_scale(60., 0.), Point::new_scale(60., 60.), Point::new_scale(0., 60.)})};
+    ExPolygon        region = box.front();
+    if (with_hole) {
+        Polygon hole = make_circle_num_segments(scale_(10.), 60);
+        hole.translate(Point::new_scale(30., 30.));
+        hole.reverse();
+        region.holes.emplace_back(std::move(hole));
+    }
+    std::unique_ptr<AdaptiveInfillField> field;
+    if (mode != AdaptiveInfillMode::Disabled) {
+        std::vector<AdaptiveInfillField::Slice> slices;
+        for (int i = 0; i < 300; ++i)
+            slices.push_back({0.2 * i, 0.2 * (i + 1), &box});
+        field = std::make_unique<AdaptiveInfillField>(slices, get_extents(box), AdaptiveInfillMode::DistanceWarp, [] {});
+    }
+    const AABBTreeLines::LinesDistancer<Line> walls(to_lines(offset_ex(region, -float(scale_(0.5 * spacing)))));
+    auto on_wall = [&walls](const Point &point) { return walls.distance_from_lines<false>(point) < scale_(0.01); };
+    auto runs_between_walls = [&on_wall](const Polyline &path) {
+        for (size_t i = 1; i < path.size(); ++i)
+            if (path.points[i - 1].distance_to(path.points[i]) > scale_(0.1) && on_wall(path.points[i - 1]) && on_wall(path.points[i]))
+                return true;
+        return false;
+    };
+
+    for (const double z : {5.1, 12.3, 20.1, 25.3, 28.7, 34.7, 40.1, 47.9, 54.9}) {
+        CAPTURE(z);
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        filler->spacing  = spacing;
+        filler->angle    = float(M_PI / 4.);
+        filler->z        = z;
+        filler->layer_id = size_t(std::lround(z / 0.2));
+        filler->adaptive_infill_field = field.get();
+
+        FillParams params;
+        params.pattern                          = pattern;
+        params.density                          = density;
+        params.multiline                        = multiline;
+        params.gyroid_optimized                 = optimized;
+        params.adaptive_infill_mode             = mode;
+        params.adaptive_infill_interior_density = 0.05f;
+        params.adaptive_infill_gradient         = AdaptiveInfillGradient::Linear;
+        params.layer_height                     = 0.2;
+        params.dont_adjust                      = true;
+        Surface surface(stInternal, region);
+        const Polylines paths = filler->fill_surface(&surface, params);
+        REQUIRE_FALSE(paths.empty());
+
+        for (const Polyline &path : paths)
+            if (path.first_point() == path.last_point()) {
+                // Not a line joined with its duplicate.
+                CHECK(path.size() > 3);
+                // The anchors of a line may meet on the boundary. Away from it this is an island of the pattern, unless
+                // it runs along the boundary, which means a ring cut at its start.
+                if (!on_wall(path.first_point()))
+                    CHECK_FALSE(runs_between_walls(path));
+            } else {
+                CHECK(on_wall(path.first_point()));
+                CHECK(on_wall(path.last_point()));
+            }
+    }
+}
+
 TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBridge]")
 {
     const std::string pattern = GENERATE("tpmsd", "tpmsfk", "gyroid");
@@ -2416,4 +2659,121 @@ TEST_CASE("Infill lines that cannot reverse join only end to start", "[Fill]")
         CHECK(position(a) < position(b));
         CHECK(position(c) < position(d));
     }
+}
+
+// Orca: the top surface fills of the topmost layer, which keep their order, each as its extrusions in print order.
+static std::vector<std::vector<const ExtrusionEntity *>> top_surface_fills(const Print &print)
+{
+    std::vector<std::vector<const ExtrusionEntity *>> fills;
+    for (const LayerRegion *region : print.objects().front()->layers().back()->regions())
+        for (const ExtrusionEntity *entity : region->fills.entities)
+            if (auto *fill = dynamic_cast<const ExtrusionEntityCollection *>(entity); fill && fill->no_sort)
+                if (std::any_of(fill->entities.begin(), fill->entities.end(), [](const ExtrusionEntity *ee) { return ee->role() == erTopSolidInfill; }))
+                    fills.emplace_back(fill->entities.begin(), fill->entities.end());
+    return fills;
+}
+
+static double travel_between(const std::vector<const ExtrusionEntity *> &extrusions)
+{
+    double travel = 0.;
+    for (size_t i = 1; i < extrusions.size(); ++ i)
+        travel += unscale<double>((extrusions[i]->first_point() - extrusions[i - 1]->last_point()).cast<double>().norm());
+    return travel;
+}
+
+TEST_CASE("Monotonic line top surfaces print their gap fill next to their lines and keep the lines in order", "[Fill]")
+{
+    // The slanted legs of the letter A leave gap fill along the walls where the lines end.
+    auto slice_letter = [](Print &print, Model &model, const char *gap_fill_target) {
+        auto config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"top_surface_pattern", "monotonicline"},
+                                       {"gap_fill_target", gap_fill_target},
+                                       {"filter_out_gap_fill", 0},
+                                       {"top_shell_layers", 3},
+                                       {"layer_height", 0.2},
+                                       {"initial_layer_print_height", 0.2}});
+        Slic3r::Test::init_print({Slic3r::Test::TestMesh::A}, print, model, config);
+        print.process();
+    };
+    Print print_without, print_with;
+    Model model_without, model_with;
+    slice_letter(print_without, model_without, "nowhere");
+    slice_letter(print_with, model_with, "topbottom");
+    const auto without = top_surface_fills(print_without);
+    const auto with    = top_surface_fills(print_with);
+    REQUIRE(with.size() == without.size());
+
+    auto   is_gap_fill = [](const ExtrusionEntity *ee) { return ee->role() == erGapFill; };
+    size_t gap_fills = 0, gap_fills_before_a_line = 0;
+    for (size_t i = 0; i < with.size(); ++ i) {
+        std::vector<const ExtrusionEntity *> lines, gaps;
+        std::partition_copy(with[i].begin(), with[i].end(), std::back_inserter(gaps), std::back_inserter(lines), is_gap_fill);
+        const auto last_line = std::find_if_not(with[i].rbegin(), with[i].rend(), is_gap_fill);
+        gap_fills += gaps.size();
+        gap_fills_before_a_line += std::count_if(last_line, with[i].rend(), is_gap_fill);
+        // The lines are those of the surface without gap fill, in the same order and direction.
+        REQUIRE(lines.size() == without[i].size());
+        for (size_t j = 0; j < lines.size(); ++ j) {
+            CHECK(lines[j]->first_point() == without[i][j]->first_point());
+            CHECK(lines[j]->last_point() == without[i][j]->last_point());
+        }
+        // Printed where they are, the gap fills travel less than printed after the last line.
+        if (! gaps.empty()) {
+            std::vector<const ExtrusionEntity *> appended = lines;
+            appended.insert(appended.end(), gaps.begin(), gaps.end());
+            CHECK(travel_between(with[i]) < travel_between(appended));
+        }
+    }
+    REQUIRE(gap_fills > 0);
+    CHECK(gap_fills_before_a_line > 0);
+}
+
+// Orca: counts the gap fills of the fills that keep their order, and those printed before an extrusion of the fill they touch.
+static std::pair<size_t, size_t> gap_fills_and_those_before_an_extrusion_they_touch(const Print &print)
+{
+    size_t gap_fills = 0, before = 0;
+    for (const Layer *layer : print.objects().front()->layers())
+        for (const LayerRegion *region : layer->regions())
+            for (const ExtrusionEntity *entity : region->fills.entities) {
+                auto *fill = dynamic_cast<const ExtrusionEntityCollection *>(entity);
+                if (fill == nullptr || ! fill->no_sort)
+                    continue;
+                for (size_t i = 0; i < fill->entities.size(); ++ i) {
+                    if (fill->entities[i]->role() != erGapFill)
+                        continue;
+                    ++ gap_fills;
+                    const Polygons gap = fill->entities[i]->polygons_covered_by_width(float(scale_(0.05)));
+                    before += std::any_of(fill->entities.begin() + i + 1, fill->entities.end(), [&gap](const ExtrusionEntity *ee) {
+                        return ee->role() != erGapFill && ! intersection(gap, ee->polygons_covered_by_width()).empty();
+                    });
+                }
+            }
+    return { gap_fills, before };
+}
+
+TEST_CASE("Gap fill of a fill that keeps its order prints after the extrusions it touches", "[Fill]")
+{
+    using Slic3r::Test::TestMesh;
+    const auto [pattern_key, pattern, target] = GENERATE(table<const char *, const char *, const char *>({
+        { "internal_solid_infill_pattern", "spiralinset", "everywhere" },
+        { "top_surface_pattern", "concentric", "topbottom" },
+        { "top_surface_pattern", "monotonic", "topbottom" },
+        { "top_surface_pattern", "monotonicline", "topbottom" },
+    }));
+    // The slanted legs of the V and the hole of the cube leave gap fill next to the lines of each pattern.
+    const TestMesh mesh = GENERATE(TestMesh::V, TestMesh::cube_with_hole);
+    auto config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({{pattern_key, pattern},
+                                   {"gap_fill_target", target},
+                                   {"filter_out_gap_fill", 0},
+                                   {"layer_height", 0.2},
+                                   {"initial_layer_print_height", 0.2}});
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({mesh}, print, model, config);
+    print.process();
+    const auto [gap_fills, before] = gap_fills_and_those_before_an_extrusion_they_touch(print);
+    INFO(pattern << " on " << Slic3r::Test::mesh_names.at(mesh));
+    REQUIRE(gap_fills > 0);
+    CHECK(before == 0);
 }

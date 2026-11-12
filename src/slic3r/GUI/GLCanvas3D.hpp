@@ -17,6 +17,7 @@
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Technologies.hpp"
 #include "libslic3r/Model.hpp"
+#include "libslic3r/ObjectID.hpp"
 #include "libvgcode/include/Types.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Line.hpp"
@@ -39,6 +40,7 @@
 #include "Camera.hpp"
 #include "SceneRaycaster.hpp"
 #include "SceneCache.hpp"
+#include "SelectionOutline.hpp"
 #include "FrameProfiler.hpp"
 #include "IMToolbar.hpp"
 #include "slic3r/GUI/3DBed.hpp"
@@ -267,6 +269,11 @@ class GLCanvas3D
         const DynamicPrintConfig* m_config{ nullptr };
         // ModelObject for the currently selected object (Model::objects[last_object_id]).
         const ModelObject* m_model_object{ nullptr };
+        // Orca: the other selected objects, edited along with the one shown. Indices into m_model->objects.
+        const Model*                m_model{ nullptr };
+        std::vector<int>            m_other_object_ids;
+        // Orca: whether several selected objects each get a profile of their own, or share one.
+        bool                        m_each_separately{ false };
         // Maximum z of the currently selected object (Model::objects[last_object_id]).
         float                       m_object_max_z{ 0.0f };
         // Owned by LayersEditing.
@@ -295,8 +302,58 @@ class GLCanvas3D
             size_t              cells{ 0 };
             // Does it need to be refreshed?
             bool                valid{ false };
+            // Orca: whether the GPU has the data as it is now.
+            bool                uploaded{ false };
         };
         LayersTexture   m_layers_texture;
+        // Orca: counts the times m_layers_texture was generated, so that the other objects can tell
+        // whether they still are on the layers it shows.
+        size_t          m_layers_texture_version{ 0 };
+        // Orca: counts the calls to set_config(), after which the other objects check their slicing
+        // parameters and their profiles again.
+        size_t          m_config_version{ 0 };
+        // Orca: the layer heights of the other selected objects, keyed by ModelObject ID. The texture is
+        // generated and sent to the GPU only when the object is drawn with it, and only again when the
+        // profile or the slicing parameters it shows change.
+        struct ObjectTexture
+        {
+            LayersTexture       texture;
+            unsigned int        texture_id{ 0 };
+            // What the profile was read from: the object's own profile, its height and the configuration.
+            ObjectWithTimestamp::Timestamp model_profile_timestamp{ 0 };
+            double              max_z{ 0. };
+            size_t              config_version{ size_t(-1) };
+            SlicingParameters   slicing_parameters;
+            // The profile the object is sliced with: its own, or the one of its height ranges.
+            std::vector<double> profile;
+            // Whether it is on the layers of m_layers_texture, as of shares_version.
+            bool                shares{ false };
+            size_t              shares_version{ size_t(-1) };
+        };
+        std::map<size_t, ObjectTexture> m_other_textures;
+        // Orca: the bars and the lines over them are rebuilt only when what they show changes.
+        struct BarModels
+        {
+            GLModel             background;
+            std::vector<float>  background_layout;
+            GLModel             profile;
+            std::vector<float>  profile_layout;
+            std::vector<double> profile_source;
+        };
+        std::vector<BarModels> m_bar_models;
+        GLModel             m_bar_lines;
+        GLModel             m_bar_frame;
+        std::vector<float>  m_bar_lines_layout;
+        // Orca: the objects that have a bar of their own, the rightmost bar first. With one profile
+        // shared between the selected objects that is the tallest object alone; with a profile each,
+        // the tallest ones, up to MAX_BARS. The object shown (last_object_id) is one of them.
+        static constexpr size_t MAX_BARS = 3;
+        std::vector<int> m_bar_object_ids;
+        // Height of each bar as a fraction of the canvas height: the bars share one scale, set by the
+        // tallest object, so a lower object has a lower bar.
+        std::vector<float> m_bar_fractions;
+        // Whether the notice that some selected objects have no bar is up.
+        bool m_bars_notice_shown{ false };
 
     public:
         EState state{ Unknown };
@@ -305,15 +362,6 @@ class GLCanvas3D
         int last_object_id{ -1 };
         float last_z{ 0.0f };
         LayerHeightEditActionType last_action{ LAYER_HEIGHT_EDIT_ACTION_INCREASE };
-        struct Profile
-        {
-            GLModel baseline;
-            GLModel profile;
-            GLModel background;
-            float old_canvas_width{ 0.0f };
-            std::vector<double> old_layer_height_profile;
-        };
-        Profile m_profile;
 
         LayersEditing() = default;
         ~LayersEditing();
@@ -322,6 +370,14 @@ class GLCanvas3D
 
         void set_config(const DynamicPrintConfig* config);
         void select_object(const Model& model, int object_id);
+        void set_other_objects(std::vector<int> object_ids) { m_other_object_ids = std::move(object_ids); }
+        // Orca: lays out the bars for the selected objects (tallest first) and returns the object to
+        // show and edit: the one whose bar the mouse is on, or else the one shown so far.
+        int choose_shown_object(const GLCanvas3D& canvas, const Model& model, const std::vector<int>& object_ids);
+        // Orca: frees the textures of the objects that are no longer selected. Needs the GL context.
+        void release_unselected_textures(const Model& model, const std::vector<int>& object_ids);
+        // Orca: whether the tool paints this object with its layer heights.
+        bool is_edited_object(int object_id) const;
 
         bool is_allowed() const;
 
@@ -342,6 +398,8 @@ class GLCanvas3D
         static bool bar_rect_contains(const GLCanvas3D& canvas, float x, float y);
         static Rect get_bar_rect_screen(const GLCanvas3D& canvas);
         static float get_overlay_window_width() { return LayersEditing::s_overlay_window_width; }
+        // Orca: the width taken by the bars beyond the first one, which notifications have to clear too.
+        float extra_bars_width() const { return m_enabled && m_bar_object_ids.size() > 1 ? float(m_bar_object_ids.size() - 1) * THICKNESS_BAR_WIDTH : 0.0f; }
 
         float object_max_z() const { return m_object_max_z; }
 
@@ -350,9 +408,36 @@ class GLCanvas3D
     private:
         bool is_initialized() const;
         void generate_layer_height_texture();
+        // Orca: the layer heights of another selected object, read again when they may have changed.
+        ObjectTexture& other_object(int object_id);
+        // Orca: its texture, generated and sent to the GPU if needed, and bound.
+        const LayersTexture& bind_object_texture(ObjectTexture& object);
+        // Orca: the texture of the object shown, sent to the GPU if needed, and bound.
+        void bind_shown_texture();
+        // Orca: whether the object is drawn with the texture of the object shown.
+        bool shares_shown_layers(ObjectTexture& object) const;
+        // Orca: whether an object with these slicing parameters takes the profile of the object shown when
+        // they share one. It has to start its layers where that profile does.
+        bool follows_shown_object(const SlicingParameters& slicing_parameters) const;
+        static unsigned int create_texture();
+        static void load_texture(const LayersTexture& texture, unsigned int texture_id);
+        void release_object_texture(ObjectTexture& object);
+        void reset_bar_models(size_t bars);
+        // Index into m_bar_object_ids of the bar of the object shown.
+        size_t active_bar() const;
+        bool bar_in_focus(const GLCanvas3D& canvas) const;
+        float bar_fraction(size_t bar) const { return bar < m_bar_fractions.size() ? m_bar_fractions[bar] : 1.0f; }
+        // Index of the bar under the given point, or -1.
+        static int bar_at(const GLCanvas3D& canvas, float x, float y);
+        // Draws the object with the texture that is bound.
+        void render_object_volumes(const GLVolumeCollection& volumes, GLShaderProgram& shader, int object_id, const LayersTexture& texture, double object_max_z, float z_cursor, float dimming);
         void render_active_object_annotations(const GLCanvas3D& canvas);
         void render_profile(const GLCanvas3D& canvas);
         void update_slicing_parameters();
+        // Orca: the object shown, followed by the other selected ones.
+        std::vector<int> edited_object_ids() const;
+        SlicingParameters slicing_parameters_of(const ModelObject& model_object) const;
+        void set_profiles(GLCanvas3D& canvas, const std::vector<int>& object_ids, const std::vector<std::vector<double>>& profiles);
 
         static float thickness_bar_width(const GLCanvas3D& canvas);
     };
@@ -379,6 +464,8 @@ class GLCanvas3D
         bool ignore_left_up{ false };
         Drag drag;
         bool ignore_right_up;
+        // ORCA a button was pressed on toolbar empty areas, swallow events until it is released
+        bool down_on_toolbar{ false };
 
         // Orca: The screen-space start and world-space anchor describe the same pan session.
         // Invalidating one must invalidate the other so a new drag cannot reuse stale depth.
@@ -542,6 +629,14 @@ class GLCanvas3D
         // Shows the details of the marker under the mouse, else hides them; whether it hit one.
         bool on_left_down(GLCanvas3D& canvas, const Vec2d& mouse);
         void render_details(GLCanvas3D& canvas);
+        // Whether the mouse is over the details.
+        bool details_hovered() const;
+        // Whether the details cover a point, also when ImGui has not seen the mouse move there.
+        bool details_contain(const Vec2d& point) const;
+        // Whether a button held down was pressed on the details, off their close button.
+        bool details_pressed() const;
+        // Whether there were details to hide.
+        bool hide_details(GLCanvas3D& canvas);
     };
 
     class Tooltip
@@ -713,6 +808,7 @@ private:
         double ratio{ 0. }; // 0 = off
         double last_ratio{ 0. }; // before it was switched off
         Vec3d  normal{ Vec3d::Zero() }; // zero until first aimed
+        bool   follow_camera{ false };
         bool   panel_open{ false };
         const GLCanvas3D* owner; // whose objects place the plane
     };
@@ -778,6 +874,12 @@ private:
     ECursorType m_cursor_type;
     GLSelectionRectangle m_rectangle_selection;
     bool m_navigator_dragging{ false };
+    // whether a click on the navigator is still turning the camera, over the frames that follow it
+    bool m_navigator_animating{ false };
+    // until when a wheel step keeps the preview's reduced set drawn
+    std::chrono::time_point<std::chrono::steady_clock> m_preview_interaction_until{};
+    // whether the frame that restores the toolpaths once that time is up is still owed
+    bool m_preview_settle_pending{ false };
 
     //BBS:add plate related logic
     mutable std::vector<int> m_hover_volume_idxs;
@@ -926,6 +1028,9 @@ public:
     std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
     // The last scene pass, for frames that only rebuild the overlay.
     SceneCache m_scene_cache;
+    SelectionOutline m_selection_outline;
+    // Volumes the object passes of this frame drew and collected for outlining after them.
+    std::vector<GLVolume*> m_outlined_volumes;
     // Signature of the overlay on screen; empty after render(), a paint request or a frame drawn but
     // not shown, so the next frame is presented regardless.
     std::optional<size_t> m_presented_signature;
@@ -1075,6 +1180,8 @@ public:
 
     bool is_layers_editing_enabled() const { return m_layers_editing.is_enabled(); }
     bool is_layers_editing_allowed() const { return m_layers_editing.is_allowed(); }
+    // Orca: the selected objects the variable layer height tool edits, tallest first. The tallest is the one it shows.
+    std::vector<int> get_layers_editing_object_idxs() const;
 
     void reset_layer_height_profile();
     void adaptive_layer_height_profile(float quality_factor);
@@ -1134,6 +1241,9 @@ public:
     void select_plate();
     //BBS: GUI refactor: GLToolbar&&gizmo
     int get_main_toolbar_offset() const;
+    // ORCA the top toolbar row: main toolbar, separator, gizmo bar and assemble view toolbar (not the collapse toolbar)
+    float get_top_toolbar_width() const;
+    float get_top_toolbar_height() const;
     int get_main_toolbar_height() const { return m_main_toolbar.get_height(); }
     int get_main_toolbar_width() const { return m_main_toolbar.get_width(); }
     float get_assemble_view_toolbar_width() const { return m_assemble_view_toolbar.get_width(); }
@@ -1275,6 +1385,8 @@ public:
     void on_idle(wxIdleEvent& evt);
     void on_char(wxKeyEvent& evt);
     void on_key(wxKeyEvent& evt);
+    // Sends a key-up for each modifier still held, whose own key-up is sent to the window that takes the focus.
+    void release_held_modifiers();
     // Runs the Plater/Preview shortcut bound to chord, swallowing auto-repeats of one-shot
     // shortcuts; false when nothing is bound.
     bool handle_shortcut(const KeyChord& chord);
@@ -1381,6 +1493,8 @@ public:
     void msw_rescale() { m_gcode_viewer.invalidate_legend(); }
 
     void request_extra_frame() { m_extra_frame_requested = true; }
+    // whether the user is holding the camera, the navigator, a gizmo, the rectangle selection or a preview slider
+    bool is_user_interacting() const;
 
     void schedule_extra_frame(int milliseconds);
 
@@ -1456,6 +1570,9 @@ public:
     void apply_retina_scale(Vec2d &screen_coordinate) const;
 
     void _perform_layer_editing_action(wxMouseEvent* evt = nullptr);
+    // Orca: hands the variable layer height tool the selected objects and the one to show. While
+    // rendering, it also frees the textures of the objects no longer selected.
+    void _update_layers_editing_objects(bool rendering);
 
     // Convert the screen space coordinate to an object space coordinate.
     // If the Z screen space coordinate is not provided, a depth buffer value is substituted.
@@ -1551,12 +1668,22 @@ private:
     // IMEX ghost hover tooltip: filament swatch + label drawn as an ImGui overlay.
     void _render_imex_ghost_tooltip();
     void _render_section_view_caps();
+    void _render_selection_outline();
     void _render_wireframe_overlay();
+    bool _is_below_plate_view_active() const;
+    void _render_below_plate_volumes();
     bool _is_xray_view_active() const;
     void _render_xray_volumes();
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height);
+    // The translucent toolpaths, after the occlusion pass, which would shade them as the surface behind them.
+    void _render_gcode_translucent(int canvas_width, int canvas_height);
+    // Realistic view: binds, or unbinds, the shadow map the toolpaths read on texture unit 4. False without a map.
+    bool _bind_gcode_shadow_map(bool bind) const;
     void _render_gcode_overlay(int canvas_width, int canvas_height);
+    // decides whether the preview draws its reduced set this frame and returns whether what the scene
+    // pass draws changed; runs before the cached scene is consulted
+    bool _update_preview_interaction();
     //BBS: render a plane for assemble
     void _render_plane() const;
     void _render_selection();
@@ -1582,6 +1709,7 @@ private:
     void _render_section_view_panel(const ImVec2& bottom_left);
     void _render_separator_toolbar_right() const;
     void _render_separator_toolbar_left() const;
+    bool _is_mouse_over_top_toolbar(const Vec2d& mouse_pos) const;
     void _render_collapse_toolbar() const;
     // BBS
     //void _render_view_toolbar() const;
@@ -1651,7 +1779,7 @@ private:
     bool _deactivate_layersediting_menu();
 
     // BBS FIXME
-    float get_overlay_window_width() { return 0; /*LayersEditing::get_overlay_window_width();*/ }
+    float get_overlay_window_width() { return m_layers_editing.extra_bars_width(); /*LayersEditing::get_overlay_window_width();*/ }
 };
 
 const ModelVolume *get_model_volume(const GLVolume &v, const Model &model);

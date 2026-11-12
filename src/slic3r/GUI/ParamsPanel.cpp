@@ -31,6 +31,7 @@
 #include <wx/event.h>
 #include <utility>
 #include "slic3r/GUI/wxExtensions.hpp"
+#include "UnsavedChangesDialog.hpp"
 #include <wx/anybutton.h>
 #include <wx/timer.h>
 #include <cstddef>
@@ -663,13 +664,14 @@ void ParamsPanel::set_active_tab(wxPanel* tab)
         dialog->SetTitle(title);
     }
 
+    const wxString process_flow_ratio_reason = _L("The process flow ratio cannot be edited in this panel.");
     auto tab_print = dynamic_cast<Tab *>(m_tab_print);
     if (cur_tab == m_tab_print) {
         if (tab_print)
-            tab_print->toggle_line("print_flow_ratio", false);
+            tab_print->toggle_line("print_flow_ratio", false, -1, process_flow_ratio_reason);
     } else {
         if (tab_print)
-            tab_print->toggle_line("print_flow_ratio", false);
+            tab_print->toggle_line("print_flow_ratio", false, -1, process_flow_ratio_reason);
     }
 }
 
@@ -807,93 +809,11 @@ void ParamsPanel::free_sizers()
     m_button_sizer = nullptr;
 }
 
-void ParamsPanel::delete_subwindows()
-{
-    if (m_title_label)
-    {
-        delete m_title_label;
-        m_title_label = nullptr;
-    }
-
-    if (m_mode_region)
-    {
-        delete m_mode_region;
-        m_mode_region = nullptr;
-    }
-
-    if (m_mode_view)
-    {
-        m_mode_view = nullptr;
-    }
-
-    if (m_mode_icon) // ORCA m_title_view replacement
-    {
-        delete m_mode_icon;
-        m_mode_icon = nullptr;
-    }
-
-    if (m_search_btn)
-    {
-        delete m_search_btn;
-        m_search_btn = nullptr;
-    }
-
-    if (m_staticline_print)
-    {
-        delete m_staticline_print;
-        m_staticline_print = nullptr;
-    }
-
-    if (m_staticline_print_part)
-    {
-        delete m_staticline_print_part;
-        m_staticline_print_part = nullptr;
-    }
-
-    if (m_staticline_print_object)
-    {
-        delete m_staticline_print_object;
-        m_staticline_print_object = nullptr;
-    }
-
-    if (m_staticline_filament)
-    {
-        delete m_staticline_filament;
-        m_staticline_filament = nullptr;
-    }
-
-    if (m_staticline_printer)
-    {
-        delete m_staticline_printer;
-        m_staticline_printer = nullptr;
-    }
-
-    if (m_export_to_file)
-    {
-        delete m_export_to_file;
-        m_export_to_file = nullptr;
-    }
-
-    if (m_import_from_file)
-    {
-        delete m_import_from_file;
-        m_import_from_file = nullptr;
-    }
-
-    if (m_page_view)
-    {
-        delete m_page_view;
-        m_page_view = nullptr;
-    }
-}
-
 ParamsPanel::~ParamsPanel()
 {
 #if 0
     free_sizers();
     delete m_top_sizer;
-
-    delete_subwindows();
 #endif
     // BBS: fix double destruct of OG_CustomCtrl
     Tab* cur_tab = dynamic_cast<Tab*> (m_current_tab);
