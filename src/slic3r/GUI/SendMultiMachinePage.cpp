@@ -75,6 +75,7 @@
 #include "slic3r/GUI/wxExtensions.hpp"
 #include <boost/filesystem.hpp>
 #include <wx/dcgraph.h>
+#include "slic3r/GUI/IllustratedTipPopup.hpp"
 
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
