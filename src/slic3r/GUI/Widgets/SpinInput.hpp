@@ -64,8 +64,6 @@ public:
               int            initial = 0,
               int            step    = 1);
 
-    void SetCornerRadius(double radius);
-
     void SetLabel(const wxString &label) wxOVERRIDE;
 
     void SetLabelColor(StateColor const &color);
