@@ -215,6 +215,98 @@ TEST_CASE("Organic solid parts too small for the spiral are printed all the same
     CHECK(opening(diff(Polygons{ part }, covered), scaled<float>(0.25 * width)).empty());
 }
 
+TEST_CASE("Organic footing near a box keeps the edges crossing the box as they are", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    // A thin sloped outline, and one bent around its far end with a corner a fraction of a nanometre off its long edge. Cut
+    // short out of the box, the bent outline crosses that edge out of the box, and the crossing rounds to the corner.
+    const Polygon sloped{{-20000000, -2740000}, {20000000, 2740000}, {20000000, 3160000}, {-20000000, -2320000}};
+    Polygon bent{{-800000, -1800000}, {2200001, 301400}, {22000000, 2540000}, {24000000, 2540000}, {24000000, 4000000},
+        {22000000, 4000000}, {2300000, 735100}, {-3000000, 100000}, {-3000000, 300000}, {22000000, 4600000},
+        {25000000, 4600000}, {25000000, 1950000}, {22000000, 1950000}, {-800000, -2200000}};
+    bent.reverse();
+    REQUIRE(sloped.is_counter_clockwise());
+    REQUIRE(bent.is_counter_clockwise());
+    // The box and the reach of a path of a bead 0.4 mm wide.
+    BoundingBox box(Point(-1001, -202207), Point(998999, -65207));
+    box.offset(500000.);
+    const Polygons near = organic_footing_near_box({ sloped, bent }, box, 200200.f);
+    // The long edge of the sloped outline crosses the box.
+    const Point a = sloped.points[0], b = sloped.points[1];
+    CHECK(std::any_of(near.begin(), near.end(), [&a, &b](const Polygon &polygon) {
+        for (size_t i = 0; i < polygon.size(); ++ i) {
+            const Point &p = polygon.points[i], &q = polygon.points[(i + 1) % polygon.size()];
+            if ((p == a && q == b) || (p == b && q == a))
+                return true;
+        }
+        return false;
+    }));
+}
+
+TEST_CASE("Organic footing near a box grows near the box as the whole of it does", "[TreeSupport][Regression]")
+{
+    using namespace Slic3r;
+    // offset() drops each vertex closer than a fraction of the offset to the last one it kept, going around a polygon from
+    // its first vertex. Each footing has two vertices about 1 um apart out of the box, one of them where a long edge
+    // along a path starts and so sets its slope: the path runs within a nanometre of the edge of the reach.
+    struct Case { Polygons footing; coord_t y; double width; };
+    const Polygon sloped{ {-3000000, 300000}, {-600000, 400000}, {-599500, 400700}, {3000000, 400800}, {3000000, 3000000},
+        {-3000000, 3000000} };
+    std::vector<Case> cases{ { { Polygon{ {-2000000, 500}, {-1999600, 0}, {3000000, 0}, {3000000, 420000}, {-3000000, 420000} } },
+        -200050, .4 } };
+    for (size_t start = 0; start < sloped.size(); ++ start) {
+        Polygon rotated = sloped;
+        std::rotate(rotated.points.begin(), rotated.points.begin() + start, rotated.points.end());
+        cases.push_back({ { rotated }, 190400, .42 });
+    }
+    // The footing of a bead 0.2 mm wide, its start bent by nanometres.
+    cases.push_back({ offset(organic_bead(Polyline(Points{ {-4000000, 30}, {-2000000, 2}, {-1999500, 0}, {3000000, 0} }),
+        scaled<double>(.2)), 10000.f), -310199, .4 });
+    for (size_t i = 0; i < cases.size(); ++ i) {
+        const Case &c = cases[i];
+        CAPTURE(i);
+        const Polyline path(Point(0, c.y), Point(1000000, c.y));
+        BoundingBox box = get_extents(path);
+        box.offset(scaled<double>(c.width + .1));
+        const float delta = float(scaled<double>(.5 * c.width) + 2. * SCALED_EPSILON);
+        const auto free_length = [&path, delta](const Polygons &footing) {
+            double length = 0.;
+            for (const Polyline &free : diff_pl(Polylines{ path }, offset(footing, delta, jtRound, SCALED_EPSILON)))
+                length += free.length();
+            return unscale<double>(length);
+        };
+        CHECK_THAT(free_length(organic_footing_near_box(c.footing, box, delta)), Catch::Matchers::WithinAbs(free_length(c.footing), 1e-6));
+    }
+}
+
+TEST_CASE("Organic trees near the bed move no farther a layer than their walls print over the walls below", "[TreeSupport][Radius]")
+{
+    using namespace Slic3r;
+    using namespace Slic3r::TreeSupport3D;
+    // The settings at a layer height, a line width and a branch angle, the foot growing by up to 40 degrees a layer.
+    const auto settings = [](const double layer, const double line, const double angle) {
+        TreeSupportSettings result{};
+        result.support_line_width           = scaled<coord_t>(line);
+        result.maximum_move_distance        = angle < 90. ? coord_t(std::tan(angle * M_PI / 180.) * scaled<double>(layer)) :
+                                                            std::numeric_limits<coord_t>::max();
+        result.bp_radius_increase_per_layer = std::min(std::tan(0.7) * scaled<double>(layer), 0.5 * scaled<double>(line));
+        return result;
+    };
+    // Layers 0.2 mm and lines 0.42 mm, the defaults: the branch angle moves a tree by 0.168 mm a layer, and near the bed it
+    // moves by half a line at most.
+    const TreeSupportSettings coarse = settings(0.2, 0.42, 40.);
+    CHECK(coarse.maximum_move_distance + coarse.foot_move_increase() <= coarse.support_line_width / 2);
+    CHECK(coarse.foot_move_increase() > 0);
+    // At fine layers the whole growth of the foot fits within half a line.
+    for (const TreeSupportSettings &fine : { settings(0.02, 0.22, 35.), settings(0.04, 0.22, 40.) }) {
+        CAPTURE(fine.maximum_move_distance);
+        CHECK(fine.foot_move_increase() == coord_t(fine.bp_radius_increase_per_layer));
+    }
+    // A branch angle moving a tree by half a line or more leaves nothing to add.
+    CHECK(settings(0.2, 0.42, 70.).foot_move_increase() == 0);
+    CHECK(settings(0.2, 0.42, 90.).foot_move_increase() == 0);
+}
+
 // A tree is not given a base wider than it is tall, as in PrusaSlicer.
 TEST_CASE("Organic base cone of a short tree is limited by its height", "[TreeSupport][Radius]")
 {
