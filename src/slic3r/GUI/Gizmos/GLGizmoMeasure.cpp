@@ -65,6 +65,7 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/SceneRaycaster.hpp"
 #include "slic3r/GUI/Selection.hpp"
+#include <wx/string.h>
 
 namespace Slic3r {
 namespace GUI {
