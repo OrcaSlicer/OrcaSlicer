@@ -186,6 +186,11 @@ where there is room, the way the texture-displacement panel's tooltips sit besid
   The column is found by walking up from the control: the outermost window below the top-level one that
   is at least as tall as it is wide and at most three fifths of the top-level window's width.
 - In a dialog, beside the dialog. Not on Wayland, where a tooltip is kept inside its window.
+- On a page that spans its window - a settings page in its own window, on Wayland or when the window
+  fills the screen - to the right of the page's column of controls, level with the control. The page is
+  the first window above the control that is at least three fifths of the top-level window's width; the
+  column ends at the right edge of the narrower windows in it, so a G-code editor that spans the page
+  does not push the tooltip off the window. Never to the left of the column, which is over its labels.
 - Otherwise - a toolbar, a page as wide as the window - or when there is no room on either side: below
   the control, level with its left edge, and above it when there is no room below.
 

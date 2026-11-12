@@ -31,6 +31,7 @@
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/Widgets/StateHandler.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
+#include <functional>
 
 wxDEFINE_EVENT(EVT_DISMISS, wxCommandEvent);
 wxDEFINE_EVENT(EVT_DROPDOWN_ITEM_ACTION, wxCommandEvent);
