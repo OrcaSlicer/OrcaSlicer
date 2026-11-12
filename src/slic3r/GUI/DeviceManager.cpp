@@ -6156,6 +6156,11 @@ void MachineObject::add_command_error_code_dlg(int command_err, json action_json
     };
 }
 
+bool MachineObject::uses_bambu_agent() const
+{
+    return printer_agent_id.empty() || printer_agent_id == BBL_PRINTER_AGENT_ID;
+}
+
 bool MachineObject::is_multi_extruders() const
 {
     return m_extder_system->GetTotalExtderCount() > 1;

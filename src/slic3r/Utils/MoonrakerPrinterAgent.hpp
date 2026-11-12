@@ -35,16 +35,20 @@ public:
     static constexpr int SWITCH_RUNNING = 2;
     static constexpr int SWITCH_FAILED  = 3;
 
-    void start(int target);
-    void finish(bool success);
+    // Starts tracking a request and returns its id. A newer request replaces an older one, so
+    // finish() takes the id and ignores the outcome of a request that is no longer tracked: the UI
+    // can ask for another toolhead while an earlier script (a long follow-up macro) still runs.
+    unsigned start(int target);
+    void     finish(unsigned request, bool success);
     // The device.extruder.state value for one status push. Reports "switching" at least once
     // per request, then the outcome in exactly one push, then nothing pending.
     int  next_state(int extruder_count, int current_extruder);
 
 private:
-    int  m_target   = -1;
-    int  m_switch   = SWITCH_IDLE;
-    bool m_reported = false;
+    int      m_target   = -1;
+    int      m_switch   = SWITCH_IDLE;
+    bool     m_reported = false;
+    unsigned m_request  = 0;
 };
 
 class MoonrakerPrinterAgent : public IPrinterAgent
@@ -114,34 +118,6 @@ public:
     // Pull-mode agent (on-demand filament sync)
     FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
-
-    // Cameras: Moonraker's webcam list (/server/webcams/list), read when the printer connects.
-    CameraStreamMode         get_camera_stream_mode() const override;
-    std::string              get_camera_url() const override;
-    std::vector<std::string> get_camera_names() const override;
-    int                      get_selected_camera() const override;
-    void                     select_camera(int index) override;
-    CameraTransform          get_camera_transform() const override;
-
-    struct MoonrakerWebcam
-    {
-        std::string     name;
-        bool            enabled = true;
-        std::string     service;      // e.g. "mjpegstreamer", "webrtc-camerastreamer"
-        std::string     stream_url;   // as configured: absolute, or a path on the printer's web host
-        std::string     snapshot_url;
-        CameraTransform transform;
-    };
-    // The webcams in a /server/webcams/list response, in its order.
-    static std::vector<MoonrakerWebcam> parse_webcams(const nlohmann::json& response);
-    // The camera shown when none was picked: the first enabled one, else the first; -1 if none.
-    static int default_webcam(const std::vector<MoonrakerWebcam>& webcams);
-    // How Orca can show a webcam: MJPEG streams play directly; other services fall back to
-    // their snapshot URL; none when neither is usable.
-    static CameraStreamMode webcam_stream_mode(const MoonrakerWebcam& webcam);
-    // A webcam URL made absolute. A path is served by the printer's web host (the one that
-    // serves Mainsail/Fluidd), so Moonraker's own API port 7125 is dropped for it.
-    static std::string resolve_webcam_url(const std::string& base_url, const std::string& url);
 
 protected:
     struct MoonrakerDeviceInfo
@@ -301,12 +277,6 @@ private:
     OnServerErrFn        on_server_err_fn;
 
     mutable std::recursive_mutex payload_mutex;
-
-    // Read on connect; guarded by camera_mutex, as the UI reads them while a connect may refresh them.
-    mutable std::mutex           camera_mutex;
-    std::vector<MoonrakerWebcam> webcams;
-    int                          selected_webcam = -1;
-    void                         fetch_webcams();
     nlohmann::json     status_cache;
     // The running toolhead change, shared with its G-code callback: Moonraker may answer minutes
     // later, after this agent is gone. Building a status push consumes the reported outcome.

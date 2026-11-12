@@ -5,6 +5,7 @@
 // which includes DeviceErrorDialog.hpp (uses wxTimerEvent) before its own wx/timer.h include.
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/catch_message.hpp"
+#include "catch2/generators/catch_generators.hpp"
 #include <slic3r/GUI/DeviceCore/DevDefs.h>
 #include <string>
 #include <utility>
@@ -217,8 +218,7 @@ TEST_CASE("A Moonraker toolhead change that ends without changing the toolhead f
 
     push();
     obj.targ_nozzle_id_from_pc = requested; // what DevCtrl::command_select_extruder sets
-    tracker.start(requested);
-    tracker.finish(success); // the command answers before the next status push
+    tracker.finish(tracker.start(requested), success); // the command answers before the next status push
     push();
     CHECK(obj.targ_nozzle_id_from_pc == requested);
     push();
