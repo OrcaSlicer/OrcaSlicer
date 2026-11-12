@@ -177,6 +177,20 @@ std::string download_response(const std::string& uuid, const std::string& downlo
 }
 
 // The JSON body the cloud sends when the requested version does not exist.
+std::string missing_version_response(const std::string& uuid)
+{
+    json row;
+    row["id"]     = uuid;
+    row["reason"] = "requested version not found";
+
+    json rows = json::array();
+    rows.push_back(std::move(row));
+
+    json root;
+    root["not_found"] = std::move(rows);
+    return root.dump();
+}
+
 // Installs a cloud package the way a previous update would have left it: one entry file plus the
 // sidecar that records the cloud identity, activation flag, capability choices and grants.
 fs::path write_cloud_package(const std::string& user_id,
@@ -226,6 +240,22 @@ void check_updated_state(const fs::path& plugin_dir, bool enabled)
     CHECK(state.permissions.fs_read.empty());
     CHECK(state.permissions.network_http.empty());
     CHECK_FALSE(state.permissions.full_access);
+}
+
+// The state of the old package after a failed update: nothing about it may have changed.
+void check_untouched_state(const fs::path& plugin_dir, const fs::path& entry_path, bool expected_enabled)
+{
+    REQUIRE(fs::exists(entry_path));
+    CHECK(read_text_file(entry_path).find("version = \"1.0\"") != std::string::npos);
+
+    PluginInstallState state;
+    REQUIRE(read_install_state(plugin_dir, state));
+    CHECK(state.installed_version == "1.0");
+    CHECK(state.enabled == expected_enabled);
+    REQUIRE(state.capabilities.size() == 1);
+    CHECK(state.capabilities.front().first == "Echo");
+    CHECK_FALSE(state.capabilities.front().second);
+    CHECK(state.permissions.fs_read == std::vector<std::string>{"/old/grant"});
 }
 
 } // namespace
@@ -313,5 +343,77 @@ TEST_CASE("Updating a deactivated cloud plugin keeps it deactivated, keeps capab
     // A package the user deliberately deactivated must not come back activated.
     CHECK_FALSE(manager.is_plugin_loaded(uuid));
     check_updated_state(plugin_dir, /*enabled=*/false);
+}
+
+TEST_CASE("A failed download leaves the installed package and activation intent untouched",
+          "[PluginUpdate][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string user_id = "update-user";
+    const std::string uuid    = "55555555-6666-7777-8888-999999999999";
+    const fs::path plugin_dir = write_cloud_package(user_id, uuid, "1.0", false, {{"Echo", false}}, {"/old/grant"});
+    const fs::path entry_path = plugin_dir / "Cloud_Update_Plugin.py";
+
+    OneShotHttpServer api_server(missing_version_response(uuid), "application/json");
+
+    auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
+    agent->set_api_base_url(api_server.url());
+    REQUIRE(agent->set_user_session(json{{"access_token", FAR_FUTURE_JWT}, {"user_id", user_id}}, false));
+
+    PluginManager& manager = PluginManager::instance();
+    manager.set_cloud_agent(agent);
+    manager.set_cloud_user(user_id);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    ScopedEnvVar no_proxy{"no_proxy", "127.0.0.1"};
+
+    std::string error;
+    CHECK_FALSE(manager.update_cloud_plugin(uuid, error, "2.0"));
+    CHECK_FALSE(error.empty());
+
+    // The download happens before the unload and replacement, so the old package is still there.
+    check_untouched_state(plugin_dir, entry_path, /*expected_enabled=*/false);
+}
+
+TEST_CASE("A failed install leaves the installed package and activation intent untouched",
+          "[PluginUpdate][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string user_id = "update-user";
+    const std::string uuid    = "66666666-7777-8888-9999-aaaaaaaaaaaa";
+    const fs::path plugin_dir = write_cloud_package(user_id, uuid, "1.0", false, {{"Echo", false}}, {"/old/grant"});
+    const fs::path entry_path = plugin_dir / "Cloud_Update_Plugin.py";
+
+    // A .py package whose PEP 723 block does not parse (an unclosed dependencies array) is
+    // downloaded successfully and then rejected by the installer before it moves the old package
+    // aside.
+    OneShotHttpServer package_server("# /// script\n"
+                                     "# dependencies = [\n"
+                                     "# ///\n",
+                                     "application/octet-stream");
+    OneShotHttpServer api_server(download_response(uuid, package_server.url() + "/broken.py"), "application/json");
+
+    auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
+    agent->set_api_base_url(api_server.url());
+    REQUIRE(agent->set_user_session(json{{"access_token", FAR_FUTURE_JWT}, {"user_id", user_id}}, false));
+
+    PluginManager& manager = PluginManager::instance();
+    manager.set_cloud_agent(agent);
+    manager.set_cloud_user(user_id);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    ScopedEnvVar no_proxy{"no_proxy", "127.0.0.1"};
+
+    std::string error;
+    CHECK_FALSE(manager.update_cloud_plugin(uuid, error, "2.0"));
+    CHECK_FALSE(error.empty());
+
+    check_untouched_state(plugin_dir, entry_path, /*expected_enabled=*/false);
 }
 

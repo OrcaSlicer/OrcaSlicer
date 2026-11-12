@@ -267,9 +267,11 @@ public:
 
     bool download_and_install_cloud_plugin(const std::string& plugin_key, const std::string& version, std::string& error);
     bool subscribe_and_install_cloud_plugin(const std::string& plugin_key, std::string& error);
-    // If the version is empty, take the latest version. On success the previous per-capability
-    // choices are retained while every permission is reset, and a loaded package is reloaded
-    // afterwards; a deactivated one keeps enabled=false in its sidecar across the restart.
+    // If the version is empty, take the latest version. The new package is downloaded before the
+    // old one is replaced, so a download failure leaves the installed package and its state intact.
+    // On success the previous per-capability choices are retained while every permission is reset,
+    // and a loaded package is reloaded afterwards; a deactivated one keeps enabled=false in its
+    // sidecar across the restart.
     bool update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version = "");
 
     bool delete_plugin(const std::string& plugin_key, std::string& error);
@@ -352,12 +354,25 @@ private:
     // Revoke permissions after a package replacement so the new package must request them again.
     void revoke_plugin_permissions(const std::string& plugin_key);
 
+    // Installs an already downloaded cloud package and updates the in-memory descriptor. The
+    // caller owns the package file: it is removed here on both success and failure.
+    bool install_cloud_plugin_package(const std::string& plugin_key,
+                                      const std::string& requested_version,
+                                      const boost::filesystem::path& package_path,
+                                      const PluginDescriptor& descriptor,
+                                      std::string& error);
     // Rewrites the freshly installed sidecar after a successful update: retains the previous
     // per-capability choices, clears every permission, and records the pre-update auto-load intent.
     bool write_plugin_state_after_update(const PluginDescriptor& installed,
                                          const std::vector<std::pair<std::string, bool>>& capabilities,
                                          bool enabled,
                                          std::string& error);
+    // Puts back the sidecar (permissions, capability choices and enabled flag) that the unload
+    // step overwrote when a replacement failed and the installer restored the previous package.
+    void restore_plugin_state_after_failed_update(const PluginDescriptor& previous,
+                                                  const PluginInstallState& previous_state,
+                                                  bool had_previous_state,
+                                                  bool was_enabled);
 
     bool finalize_cloud_plugin_removal(const PluginDescriptor& plugin, bool keep_local, std::string& error);
     bool delete_installed_plugin_package(const PluginDescriptor& plugin, std::string& error);

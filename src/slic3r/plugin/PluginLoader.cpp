@@ -736,9 +736,28 @@ bool install_plugin(const boost::filesystem::path& filepath,
     else
         assign_local_plugin_key(plugin_descriptor, source_path);
 
-    // Backup existing installation if present.
+    // Remove whatever the failed attempt left at final_dir, then move the backup back. On a failed
+    // sidecar write final_dir holds the new package and must go; on a create-directory failure it
+    // may hold a partially created directory, which would make the rename fail if left in place.
+    auto restore_backup = [&]() {
+        // A fresh install has no backup, but its partial destination must still be removed.
+        boost::system::error_code restore_ec;
+        fs::remove_all(final_dir, restore_ec);
+        if (!backup_created)
+            return;
+
+        restore_ec.clear();
+        fs::rename(backup_dir, final_dir, restore_ec);
+        if (restore_ec)
+            BOOST_LOG_TRIVIAL(error) << "Failed to restore plugin backup " << backup_dir.string() << " to "
+                                     << final_dir.string() << ": " << restore_ec.message();
+    };
+
+    // Backup existing installation if present. The "__" prefix keeps an abandoned backup out of
+    // discovery if the process dies or the final cleanup below cannot remove it.
     if (fs::exists(final_dir, ec)) {
-        backup_dir = plugin_root / (final_dir.filename().string() + ".backup-" + fs::unique_path("%%%%-%%%%-%%%%").string());
+        backup_dir = plugin_root /
+            ("__" + final_dir.filename().string() + ".backup-" + fs::unique_path("%%%%-%%%%-%%%%").string());
         fs::rename(final_dir, backup_dir, ec);
         if (ec)
             // TRN %1% is a folder path, %2% the system error message.
@@ -749,20 +768,13 @@ bool install_plugin(const boost::filesystem::path& filepath,
     // Create the plugin directory and copy the file.
     fs::create_directories(final_dir, ec);
     if (ec) {
-        if (backup_created) {
-            boost::system::error_code restore_ec;
-            fs::rename(backup_dir, final_dir, restore_ec);
-        }
+        restore_backup();
         return fail(GUI::format(_u8L("Failed to create plugin directory %1%: %2%"), final_dir.string(), ec.message()));
     }
 
     fs::copy_file(source_path, dest_file, ec);
     if (ec) {
-        if (backup_created) {
-            boost::system::error_code restore_ec;
-            fs::remove_all(final_dir, restore_ec);
-            fs::rename(backup_dir, final_dir, restore_ec);
-        }
+        restore_backup();
         // TRN %1% is a file path, %2% the system error message.
         return fail(GUI::format(_u8L("Failed to copy plugin file to %1%: %2%"), dest_file.string(), ec.message()));
     }
@@ -782,10 +794,7 @@ bool install_plugin(const boost::filesystem::path& filepath,
             installed_entry.cloud = CloudPluginState{cloud_uuid, true, false, false, plugin_descriptor.cloud->is_mine};
         if (!write_install_state(final_dir, installed_entry)) {
             // Roll back: remove new files and restore backup.
-            boost::system::error_code rollback_ec;
-            fs::remove_all(final_dir, rollback_ec);
-            if (backup_created)
-                fs::rename(backup_dir, final_dir, rollback_ec);
+            restore_backup();
             return fail(GUI::format(_u8L("Failed to write plugin install state: %1%"), (final_dir / INSTALL_STATE_FILE).string()));
         }
     }
