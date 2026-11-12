@@ -8706,6 +8706,11 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         m_multi_flow_segment_path_average_mm3_per_mm = weighted_sum_mm3_per_mm / total_multipath_length;
     // Orca: end of multipath average mm3_per_mm value calculation
     
+    // Orca: the G-code labels the overhanging part of any wall "Overhang wall", so the preview cannot
+    // tell an outer wall that starts on an overhang from an inner one. Only outer walls need the tag.
+    m_outer_overhang_tag_pending = description == "perimeter" && !m_config.spiral_mode &&
+                                   paths.front().role() == erOverhangPerimeter && is_outer_wall(loop_ref);
+
     if (!enable_seam_slope) {
         for (const ExtrusionPath& path : paths) {
             gcode += this->_extrude(path, description, speed_for_path(path));
@@ -9873,6 +9878,12 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         gcode += buf;
     }
 
+    // Orca: must stay before the PA_CHANGE tag: Adaptive PA reads the line right after that tag.
+    if (m_outer_overhang_tag_pending) {
+        m_outer_overhang_tag_pending = false;
+        gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Outer_Overhang_Wall) + "\n";
+    }
+
     if (last_was_wipe_tower || m_last_width != path.width) {
         m_last_width = path.width;
         sprintf(buf, ";%s%g\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Width).c_str(), m_last_width);
@@ -11023,6 +11034,27 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         }
 
         std::string gcode;
+
+        // Same suppression as the long multi-extruder path: at print-start in IMEX
+        // parallel modes the user's mode_gcode + machine_start_gcode is responsible
+        // for tool selection, so the slicer's bare T<n> would be a duplicate. Mid-
+        // print toolchanges (count > 1) emit normally — Print::validate() blocks
+        // multi-color in configurations where mid-print T<n> wouldn't make sense
+        // (see imex_multicolor_block_reason).
+        const std::string toolchange_command = m_writer.toolchange(new_filament_id, new_extruder_id);
+        const bool emit_toolchange = !toolchange_command.empty() && !imex_suppresses_bare_toolchange(m_imex_parallel_mode, m_toolchange_count);
+        if (emit_toolchange)
+            gcode += toolchange_command;
+        if (Extruder *fil = m_writer.filament())
+            fil->set_config_index((int)get_filament_config_index((int)fil->id()));
+        // Firmware can change the temperature on a T command, so set it again here, as the multi-extruder path below does.
+        if (emit_toolchange && m_config.single_extruder_multi_material && !m_config.enable_prime_tower) {
+            size_t new_fi = get_filament_config_index(new_filament_id);
+            int temp = (m_layer_index <= 0 ? m_config.nozzle_temperature_initial_layer.get_at(new_fi) :
+                                             m_config.nozzle_temperature.get_at(new_fi));
+            gcode += m_writer.set_temperature(temp, false);
+        }
+
         // Append the filament start G-code.
         const std::string &filament_start_gcode = m_config.filament_start_gcode.get_at(new_filament_id);
         if (! filament_start_gcode.empty()) {
@@ -11048,17 +11080,6 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         gcode += set_filament_pressure_advance(new_filament_id,
             imex_pem_tool_for((int) new_filament_id, m_imex_parallel_mode, m_config.physical_extruder_map));
 
-        // Same suppression as the long multi-extruder path: at print-start in IMEX
-        // parallel modes the user's mode_gcode + machine_start_gcode is responsible
-        // for tool selection, so the slicer's bare T<n> would be a duplicate. Mid-
-        // print toolchanges (count > 1) emit normally — Print::validate() blocks
-        // multi-color in configurations where mid-print T<n> wouldn't make sense
-        // (see imex_multicolor_block_reason).
-        const std::string toolchange_command = m_writer.toolchange(new_filament_id, new_extruder_id);
-        if (!imex_suppresses_bare_toolchange(m_imex_parallel_mode, m_toolchange_count))
-            gcode += toolchange_command;
-        if (Extruder *fil = m_writer.filament())
-            fil->set_config_index((int)get_filament_config_index((int)fil->id()));
         if (position_before_toolchange)
             this->synchronize_toolchange_position(*position_before_toolchange, gcode);
         return gcode;
