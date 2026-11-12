@@ -815,6 +815,26 @@ bool Model::add_default_instances()
     return true;
 }
 
+void Model::set_assembly_pos(ModelObject *model_object, const std::vector<const ModelObject*> &ignore)
+{
+    for (ModelInstance *instance : model_object->instances)
+        if (!instance->is_assemble_initialized())
+            instance->set_assemble_transformation(instance->get_transformation());
+
+    const BoundingBoxf3 box = model_object->bounding_box_in_assembly_view();
+    if (!box.defined)
+        return;
+    BoundingBoxf3 others;
+    for (const ModelObject *o : this->objects)
+        if (o != model_object && std::find(ignore.begin(), ignore.end(), o) == ignore.end())
+            others.merge(o->bounding_box_in_assembly_view());
+
+    const Vec2d target = others.defined ? Vec2d(others.max.x() + 10. + 0.5 * box.size().x(), others.center().y()) : Vec2d::Zero();
+    const Vec3d shift(target.x() - box.center().x(), target.y() - box.center().y(), 0.);
+    for (ModelInstance *instance : model_object->instances)
+        instance->set_assemble_offset(instance->get_assemble_offset() + shift);
+}
+
 // this returns the bounding box of the *transformed* instances
 BoundingBoxf3 Model::bounding_box_approx() const
 {
@@ -1871,6 +1891,17 @@ BoundingBoxf3 ModelObject::instance_bounding_box(const ModelInstance &instance, 
         if (v->is_model_part())
             bb.merge(v->mesh().transformed_bounding_box(inst_matrix * v->get_matrix()));
     }
+    return bb;
+}
+
+BoundingBoxf3 ModelObject::bounding_box_in_assembly_view() const
+{
+    // The cached raw box keeps this cheap: placing an object measures every other object in the model.
+    BoundingBoxf3 bb;
+    const BoundingBoxf3 &raw_bbox = this->raw_mesh_bounding_box();
+    if (raw_bbox.defined)
+        for (const ModelInstance *instance : this->instances)
+            bb.merge(raw_bbox.transformed(instance->get_assemble_transformation().get_matrix()));
     return bb;
 }
 

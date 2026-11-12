@@ -10122,6 +10122,8 @@ std::set<std::string> print_options_with_variant = {
     "inner_wall_speed",
     "small_perimeter_speed",  //coFloatsOrPercents
     "small_perimeter_threshold",
+    "small_support_perimeter_speed",  //coFloatsOrPercents
+    "small_support_perimeter_threshold",
     "sparse_infill_speed",
     "internal_solid_infill_speed",
     "top_surface_speed",
