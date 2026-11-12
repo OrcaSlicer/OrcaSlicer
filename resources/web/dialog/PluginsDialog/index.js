@@ -362,19 +362,23 @@ function HandleStudio(value) {
     const request = pendingPermissionSave;
     pendingPermissionSave = null;
     const draft = permissionDrafts.get(request.pluginKey);
-    if (payload.success === true && draft && request.operation === "add" &&
+    if (payload.success === true && draft && request.operation === "add" && request.draftOriginal !== undefined)
+      delete draft.edits[request.category]?.[request.draftOriginal];
+    if (payload.success === true && draft && request.operation === "add" && request.draftOriginal === undefined &&
         draft.additions[request.category] === request.value)
       delete draft.additions[request.category];
-    if (payload.success === true && draft && request.operation === "replace")
+    if (payload.success === true && draft && (request.operation === "replace" || request.operation === "remove"))
       delete draft.edits[request.category]?.[request.old_value];
+    // The host sends the updated list before this result. Re-read it instead of dropping the
+    // draft: edits the user made while this request was in flight must survive the reply.
     if (draft)
-      draft.sourceSignature = null;
+      ApplyLatestPermissionSource(request.pluginKey);
     renderedPermissionsSignature = null;
     RenderDetails();
     if (request.focusId && selectedPluginId === request.pluginKey && activeDetailTab === "permissions" &&
         (document.activeElement === document.body || !document.activeElement)) {
       let focusId = request.focusId;
-      if (payload.success === true && request.operation === "replace") {
+      if (payload.success === true && (request.operation === "replace" || request.draftOriginal !== undefined)) {
         const values = pluginsById.get(request.pluginKey)?.permissions?.[request.category];
         const index = Array.isArray(values) ? values.indexOf(request.value) : -1;
         focusId = `permission-input-${request.category}-${index < 0 ? "add" : index}`;
@@ -392,7 +396,7 @@ function HandleStudio(value) {
 }
 
 // Each request changes one permission against the current stored state in the host.
-function CommitPermission(pluginKey, mutation) {
+function CommitPermission(pluginKey, mutation, draftOriginal) {
   if (pendingPermissionSave)
     return;
   const requestId = `${fullAccessRequestPrefix}-${++fullAccessRequestNumber}`;
@@ -400,7 +404,7 @@ function CommitPermission(pluginKey, mutation) {
   const input = active?.closest(".permission-form")?.querySelector("input[type='text']") ||
     (active?.id ? active : null);
   const selection = input?.type === "text" ? [input.selectionStart, input.selectionEnd] : null;
-  pendingPermissionSave = { pluginKey, requestId, ...mutation, focusId: input?.id, selection };
+  pendingPermissionSave = { pluginKey, requestId, ...mutation, draftOriginal, focusId: input?.id, selection };
   SendMessage("mutate_plugin_permission", { plugin_key: pluginKey, request_id: requestId, ...mutation });
   renderedPermissionsSignature = null;
   RenderDetails();
@@ -964,6 +968,78 @@ function RenderDetails() {
   RenderConfig(plugin);
 }
 
+// Drop bookkeeping that cannot be rendered. A successful remove, or a category leaving the
+// stored state, can leave an edit keyed by a value with no row.
+function PrunePermissionDraftBookkeeping(draft) {
+  for (const [category, edits] of Object.entries(draft.edits || {})) {
+    const values = Array.isArray(draft.values[category]) ? draft.values[category] : [];
+    for (const [original, value] of Object.entries(edits))
+      if (!values.includes(original))
+        delete edits[original];
+    if (Object.keys(edits).length === 0)
+      delete draft.edits[category];
+  }
+
+  for (const [category, value] of Object.entries(draft.additions || {}))
+    if (String(value ?? "").length === 0)
+      delete draft.additions[category];
+}
+
+// A permission grant can arrive while the tab is open. Merge the latest stored list into the
+// rows on screen, but keep every unsaved value the user typed and let the draft win a conflict.
+// Edits are keyed by the original source value, so a grant that adds or reorders rows does not
+// move the text to another row.
+function MergePermissionSource(draft, sourcePermissions) {
+  const previousValues = draft.values || {};
+  const nextValues = {};
+  const nextPending = {};
+
+  for (const [category, entries] of Object.entries(sourcePermissions || {})) {
+    if (category === "threading" && typeof entries === "boolean") {
+      nextValues[category] = entries;
+      continue;
+    }
+    if (!Array.isArray(entries))
+      continue;
+
+    const merged = entries.map(String);
+    const previous = Array.isArray(previousValues[category]) ? previousValues[category] : [];
+    // Keep the row of an unsaved edit even if the latest stored list dropped its original
+    // value. The user can add the edited value as a new grant or discard the edit.
+    for (const original of previous) {
+      const edited = draft.edits[category]?.[original];
+      if (edited !== undefined && !merged.includes(original))
+        merged.push(original);
+    }
+
+    nextValues[category] = merged;
+    nextPending[category] = merged.map((value) => draft.edits[category]?.[value] ?? value);
+  }
+
+  // Keep drafts visible but disabled while a category is unavailable.
+  for (const [category, previous] of Object.entries(previousValues)) {
+    if (category in nextValues || !Array.isArray(previous))
+      continue;
+    const retained = previous.filter((value) => draft.edits[category]?.[value] !== undefined);
+    if (retained.length) {
+      nextValues[category] = retained;
+      nextPending[category] = retained.map((value) => draft.edits[category][value]);
+    }
+  }
+
+  draft.values = nextValues;
+  draft.pending = nextPending;
+  PrunePermissionDraftBookkeeping(draft);
+  draft.sourceSignature = JSON.stringify(sourcePermissions);
+}
+
+function ApplyLatestPermissionSource(pluginKey) {
+  const draft = permissionDrafts.get(pluginKey);
+  if (!draft)
+    return;
+  MergePermissionSource(draft, pluginsById.get(pluginKey)?.permissions ?? null);
+}
+
 function RenderPermissions(plugin) {
   const content = document.getElementById("permissionsContent");
   if (!content)
@@ -978,27 +1054,17 @@ function RenderPermissions(plugin) {
 
   const pluginKey = String(plugin.plugin_key || "");
   const sourcePermissions = plugin.permissions && typeof plugin.permissions === "object" ? plugin.permissions : null;
-  const sourceSignature = JSON.stringify(sourcePermissions);
   let draft = permissionDrafts.get(pluginKey);
   if (!draft) {
     draft = { values: {}, pending: {}, additions: {}, edits: {} };
     permissionDrafts.set(pluginKey, draft);
   }
-  if (draft.sourceSignature !== sourceSignature) {
-    draft.values = {};
-    draft.pending = {};
-    for (const [key, entries] of Object.entries(sourcePermissions || {})) {
-      if (key === "threading" && typeof entries === "boolean")
-        draft.values[key] = entries;
-      else if (key !== "threading" && Array.isArray(entries)) {
-        draft.values[key] = entries.map(String);
-        draft.pending[key] = draft.values[key].map((value) => draft.edits[key]?.[value] ?? value);
-      }
-    }
-    draft.sourceSignature = sourceSignature;
-  }
+  // While a save is in flight the rows are disabled and the request predates any source change
+  // that arrives now. Merge on the result instead, so the pending row cannot flip underneath it.
+  if (pendingPermissionSave?.pluginKey !== pluginKey || sourcePermissions === null)
+    MergePermissionSource(draft, sourcePermissions);
   const signature = JSON.stringify([pluginKey, plugin.label, plugin.name, plugin.plugin_id, plugin.installed,
-    sourceSignature, pendingPermissionSave?.requestId]);
+    draft.sourceSignature, pendingPermissionSave?.requestId]);
   if (signature === renderedPermissionsSignature)
     return;
   const active = document.activeElement;
@@ -1328,6 +1394,8 @@ function RenderFilesystemSection(plugin, pluginKey, draft, editable, guidanceTex
 function PermissionForm(pluginKey, category, categoryName, index, enabled, placeholder, guidanceId, draft) {
   const isAdd = index === null;
   const oldValue = isAdd ? null : draft.values[category][index];
+  const sourceValues = pluginsById.get(pluginKey)?.permissions?.[category];
+  const noLongerGranted = !isAdd && Array.isArray(sourceValues) && !sourceValues.includes(oldValue);
   const form = document.createElement("form");
   form.className = "permission-form";
   form.noValidate = true;
@@ -1348,49 +1416,78 @@ function PermissionForm(pluginKey, category, categoryName, index, enabled, place
   if (!isAdd) {
     const valueDescription = document.createElement("span");
     valueDescription.id = `${input.id}-original`;
-    valueDescription.className = "permission-sr-only";
-    valueDescription.textContent = oldValue;
+    valueDescription.className = "permission-edit-status";
+    valueDescription.textContent = noLongerGranted
+      ? T("permissions_edit_no_longer_granted", "The original value is no longer granted: %s. Add the edited value or discard it.", oldValue)
+      : T("permissions_edit_original", "Unsaved edit of: %s", oldValue);
+    valueDescription.hidden = !noLongerGranted && input.value === oldValue;
     form.appendChild(valueDescription);
-    input.setAttribute("aria-describedby", `${guidanceId} ${valueDescription.id}`);
+    if (!valueDescription.hidden)
+      input.setAttribute("aria-describedby", `${guidanceId} ${valueDescription.id}`);
   }
   input.placeholder = isAdd ? placeholder : "";
   // common.js handles document keydown globally; keep text editing native.
   input.addEventListener("keydown", (event) => event.stopPropagation());
   input.addEventListener("input", () => {
-    if (isAdd)
-      draft.additions[category] = input.value;
-    else {
+    if (isAdd) {
+      if (input.value)
+        draft.additions[category] = input.value;
+      else
+        delete draft.additions[category];
+    } else {
       draft.pending[category][index] = input.value;
-      (draft.edits[category] ||= {})[oldValue] = input.value;
+      if (input.value === oldValue && !noLongerGranted) {
+        delete draft.edits[category]?.[oldValue];
+        if (draft.edits[category] && Object.keys(draft.edits[category]).length === 0)
+          delete draft.edits[category];
+      } else {
+        (draft.edits[category] ||= {})[oldValue] = input.value;
+      }
+      const valueDescription = form.querySelector(".permission-edit-status");
+      valueDescription.hidden = !noLongerGranted && input.value === oldValue;
+      input.setAttribute("aria-describedby", valueDescription.hidden ? guidanceId : `${guidanceId} ${valueDescription.id}`);
     }
     submit.disabled = !enabled || !input.value.trim();
-    submit.hidden = !isAdd && input.value === oldValue;
+    submit.hidden = !isAdd && !noLongerGranted && input.value === oldValue;
   });
   const submit = document.createElement("button");
   submit.type = "submit";
   submit.disabled = !enabled || !input.value.trim();
-  submit.hidden = !isAdd && input.value === oldValue;
-  submit.textContent = isAdd ? T("permissions_add", "Add") : T("permissions_apply", "Apply");
-  submit.setAttribute("aria-label", isAdd
+  submit.hidden = !isAdd && !noLongerGranted && input.value === oldValue;
+  submit.textContent = isAdd || noLongerGranted ? T("permissions_add", "Add") : T("permissions_apply", "Apply");
+  submit.setAttribute("aria-label", isAdd || noLongerGranted
     ? T("permissions_add_label", "Add value to %s", categoryName)
     : T("permissions_apply_value_label", "Apply value for %s", categoryName));
   form.appendChild(input);
   form.appendChild(submit);
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!input.value.trim() || (!isAdd && input.value === oldValue))
+    if (!input.value.trim() || (!isAdd && !noLongerGranted && input.value === oldValue))
       return;
-    CommitPermission(pluginKey, { operation: isAdd ? "add" : "replace", category,
-      ...(isAdd ? {} : { old_value: oldValue }), value: input.value });
+    CommitPermission(pluginKey, { operation: isAdd || noLongerGranted ? "add" : "replace", category,
+      ...(isAdd || noLongerGranted ? {} : { old_value: oldValue }), value: input.value },
+      noLongerGranted ? oldValue : undefined);
   });
   if (!isAdd) {
     const remove = document.createElement("button");
     remove.type = "button";
     remove.disabled = !enabled;
-    remove.textContent = T("permissions_remove", "Remove");
-    remove.setAttribute("aria-label", T("permissions_remove_label", "Remove %s", oldValue));
+    remove.textContent = noLongerGranted ? T("permissions_discard", "Discard") : T("permissions_remove", "Remove");
+    remove.setAttribute("aria-label", noLongerGranted
+      ? T("permissions_discard_edit_label", "Discard edit of %s", oldValue)
+      : T("permissions_remove_label", "Remove %s", oldValue));
     remove.addEventListener("click", () => {
-      CommitPermission(pluginKey, { operation: "remove", category, old_value: oldValue });
+      if (noLongerGranted) {
+        delete draft.edits[category]?.[oldValue];
+        ApplyLatestPermissionSource(pluginKey);
+        renderedPermissionsSignature = null;
+        RenderDetails();
+        const next = document.getElementById(`permission-input-${category}-add`);
+        if (next && !next.matches(":disabled"))
+          next.focus({ preventScroll: true });
+      } else {
+        CommitPermission(pluginKey, { operation: "remove", category, old_value: oldValue });
+      }
     });
     form.appendChild(remove);
   }

@@ -1443,6 +1443,12 @@ body.pane-resizing {
   display: none;
 }
 
+.permission-edit-status {
+  flex-basis: 100%;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 .permission-filesystem {
   min-width: 0;
 }
