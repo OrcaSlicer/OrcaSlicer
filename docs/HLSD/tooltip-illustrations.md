@@ -158,7 +158,8 @@ by it crawls while the canvas is idle and races while a moving mouse is renderin
 
 `scripts/gen_gizmo_tips.py` draws the toolbar's set (`scripts/gizmo_tips/toolbar.py`, the main toolbar's
 tools included) and the gizmo
-panels' sets (one module each in `scripts/gizmo_tips/`). Each picture is a scene - a model on the
+panels' sets (one module each in `scripts/gizmo_tips/`, except that `gizmos_anim.py` draws the loops of
+several panels and names each by its panel's folder). Each picture is a scene - a model on the
 print bed with the tool's handles, the pointer and the brush drawn over it - rendered by a small ray
 marcher from signed distance functions, which makes a cut, a boolean operation or an embossed letter a
 line of arithmetic each. The view is the plater's default, from the front right and above, so the
