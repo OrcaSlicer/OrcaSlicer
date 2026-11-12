@@ -372,6 +372,11 @@ if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL Clang)
 
     # clang-cl can interpret SYSTEM header paths if -imsvc is used
     set(CMAKE_INCLUDE_SYSTEM_FLAG_CXX "-imsvc")
+
+    # Thin archives reference the objects instead of copying them; only lld-link reads them.
+    if (NOT CMAKE_GENERATOR MATCHES "Visual Studio" AND CMAKE_AR MATCHES "llvm-lib" AND CMAKE_LINKER MATCHES "lld-link")
+        string(APPEND CMAKE_STATIC_LINKER_FLAGS " /llvmlibthin")
+    endif ()
 else ()
     set(IS_CLANG_CL FALSE)
 endif ()
