@@ -2759,6 +2759,120 @@ TEST_CASE("set_num_filaments keeps mixed-color arrays in step with the filament 
     }
 }
 
+namespace {
+
+// One system "Generic PLA" the sync can resolve a reported "PLA" tray to.
+void add_generic_pla(PresetBundle &bundle)
+{
+    Preset &pla       = add_inmemory_preset(bundle.filaments, "Generic PLA");
+    pla.is_system     = true;
+    pla.is_compatible = true;
+    pla.filament_id   = "GFL99";
+}
+
+// A device tray as build_filament_ams_list builds it, with the placeholder flag pull-mode agents
+// set on empty slots.
+DynamicPrintConfig ams_tray(const std::string &filament_id, const std::string &colour, const std::string &slot_id, bool placeholder)
+{
+    DynamicPrintConfig tray;
+    tray.set_key_value("filament_id", new ConfigOptionStrings{filament_id});
+    tray.set_key_value("filament_type", new ConfigOptionStrings{filament_id.empty() ? "" : "PLA"});
+    tray.set_key_value("filament_colour", new ConfigOptionStrings{colour});
+    tray.set_key_value("filament_colour_type", new ConfigOptionStrings{"1"});
+    tray.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
+    tray.set_key_value("filament_slot_placeholder", new ConfigOptionBools{placeholder});
+    tray.set_key_value("ams_id", new ConfigOptionStrings{"0"});
+    tray.set_key_value("slot_id", new ConfigOptionStrings{slot_id});
+    return tray;
+}
+
+// A non-Bambu printer with `toolheads` nozzles; `semm` says whether they share one multi-material path.
+void set_toolheads(PresetBundle &bundle, size_t toolheads, bool semm)
+{
+    DynamicPrintConfig &printer = bundle.printers.get_edited_preset().config;
+    printer.set_key_value("nozzle_diameter", new ConfigOptionFloats(std::vector<double>(toolheads, 0.4)));
+    printer.set_key_value("single_extruder_multi_material", new ConfigOptionBool(semm));
+}
+
+// Three loaded trays with distinct colours, none mapped to an existing slot.
+void fill_three_trays(PresetBundle &bundle)
+{
+    const std::vector<std::string> colours{"#111111", "#222222", "#333333"};
+    for (size_t i = 0; i < colours.size(); ++i)
+        bundle.filament_ams_list[int(i)] = ams_tray("GFL99", colours[i], std::to_string(i), /*placeholder=*/false);
+}
+
+// Run the sync over every tray in the bundle's device list and return the filament count it reports,
+// which is what the sidebar uses to rebuild its filament list.
+unsigned int sync_trays(PresetBundle &bundle, bool use_map)
+{
+    std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+    std::map<int, AMSMapInfo>                                  maps;
+    MergeFilamentInfo                                          merge;
+    return bundle.sync_ams_list(unknowns, use_map, maps, /*enable_append=*/true, merge, /*color_only=*/false);
+}
+
+} // namespace
+
+// A toolchanger prints filament N with toolhead N, so a sync that appends unmapped trays must not
+// leave more filaments than toolheads.
+TEST_CASE("A mapped sync on a toolchanger leaves no more filaments than toolheads", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    const size_t toolheads = 2;
+    set_toolheads(bundle, toolheads, /*semm=*/false);
+    bundle.set_num_filaments(3, std::string("#00FF00")); // one surplus slot already present
+    fill_three_trays(bundle);
+
+    REQUIRE(bundle.fixed_toolhead_filament_count() == int(toolheads));
+    const auto count = sync_trays(bundle, /*use_map=*/true);
+
+    CHECK(count == toolheads);
+    CHECK(bundle.filament_presets.size() == toolheads);
+    CHECK(bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values.size() == toolheads);
+    CHECK(bundle.project_config.option<ConfigOptionInts>("filament_map")->values.size() == toolheads);
+}
+
+// The overwrite sync of a printer with empty slots keeps every slot it holds and adds one for each
+// record beyond them, so a device reporting one record more than it has toolheads grew the list.
+TEST_CASE("An overwrite sync on a toolchanger ignores a record beyond the last toolhead", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    const size_t toolheads = 2;
+    set_toolheads(bundle, toolheads, /*semm=*/false);
+    bundle.set_num_filaments(toolheads, std::string("#00FF00"));
+    bundle.filament_ams_list[0] = ams_tray("GFL99", "#111111", "0", /*placeholder=*/false);
+    bundle.filament_ams_list[1] = ams_tray(/*filament_id=*/{}, /*colour=*/{}, "1", /*placeholder=*/true);
+    bundle.filament_ams_list[2] = ams_tray("GFL99", "#333333", "2", /*placeholder=*/false);
+
+    const auto count = sync_trays(bundle, /*use_map=*/false);
+
+    CHECK(count == toolheads);
+    const auto &colours = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+    REQUIRE(colours.size() == toolheads);
+    CHECK(colours[0] == "#111111");
+    CHECK(colours[1] == "#00FF00");
+}
+
+// A shared multi-material path takes any number of filaments, so its sync is not capped.
+TEST_CASE("A sync on a single-extruder multi-material printer keeps every filament", "[Preset][Bundle]")
+{
+    PresetBundle bundle;
+    add_generic_pla(bundle);
+    set_toolheads(bundle, 2, /*semm=*/true);
+    bundle.set_num_filaments(3, std::string("#00FF00"));
+    fill_three_trays(bundle);
+
+    REQUIRE(bundle.fixed_toolhead_filament_count() == 0);
+    const size_t before = bundle.filament_presets.size();
+    const auto   count  = sync_trays(bundle, /*use_map=*/true);
+
+    // The three trays are appended after the existing slots.
+    CHECK(count == before + 3);
+}
+
 // A mix is described by 1-based indices into the project's filament list, which Orca rebuilds
 // from the selected printer's snapshot (filament_%02u / filament_colors) at startup and on every
 // printer selection. Held anywhere but that same per-printer snapshot, the mixed arrays end up
