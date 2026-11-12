@@ -425,7 +425,9 @@ private:
 
     wxRect                m_wayland_side;
     int                   m_wayland_gap     = 0;
+#ifdef __WXGTK__
     bool                  m_wayland_by_rect = false; // the last showing was placed by the compositor
+#endif
     wxFont                m_font;
     wxFont                m_caption_font;
     std::vector<wxString> m_lines;
