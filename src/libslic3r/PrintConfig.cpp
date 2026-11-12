@@ -1602,10 +1602,20 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts { 100 });
 
+    def = this->add("overhang_fan_speed_max", coInts);
+    def->label = L("Maximum fan speed for overhang");
+    def->tooltip = L("Force part cooling fan to be this speed when printing overhang wall zero overlap. "
+                     "Forcing cooling for overhang or external wall can get better quality for these parts");
+    def->sidetext = L("%");
+    def->min = -1;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInts { -1 });
+
     def = this->add("overhang_fan_threshold", coEnums);
     def->label = L("Overhang cooling activation threshold");
     // xgettext:no-c-format, no-boost-format
-    def->tooltip = L("When the overhang exceeds this specified threshold, force the cooling fan to run at the 'Overhang Fan Speed' set below. "
+    def->tooltip = L("When the overhang exceeds this specified threshold, force the cooling fan speed to be interpolated between fan speed for overhang and maximum fan speed for overhang. "
                      "This threshold is expressed as a percentage, indicating the portion of each line's width that is unsupported by the layer "
                      "beneath it. Setting this value to 0% forces the cooling fan to run for all outer walls, regardless of the overhang degree.");
     //def->sidetext = "";

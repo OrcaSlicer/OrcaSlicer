@@ -9949,14 +9949,14 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
     }
 
     // Change fan speed based on current extrusion role
-    auto append_role_based_fan_marker = [this, &gcode](const ExtrusionRole role, const std::string_view& marker_prefix, const bool fan_on) {
+    auto append_role_based_fan_marker = [this, &gcode](const ExtrusionRole role, int overhang_degree,  const std::string_view& marker_prefix, const bool fan_on) {
         assert(m_enable_cooling_markers);
 
         if (fan_on) {
             if (!m_is_role_based_fan_on[role]) {
                 gcode += ";";
                 gcode += marker_prefix;
-                gcode += "_FAN_START\n";
+                gcode += "_FAN_START@"+ std::to_string(overhang_degree)+"\n";
                 m_is_role_based_fan_on[role] = true;
             }
         } else {
@@ -9973,9 +9973,9 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         supp_interface_fan_speed = FILAMENT_CONFIG(support_material_interface_fan_speed),
         ironing_fan_speed        = FILAMENT_CONFIG(ironing_fan_speed)
     ] {
-        append_role_based_fan_marker(erSupportMaterialInterface, "_SUPP_INTERFACE"sv,
+        append_role_based_fan_marker(erSupportMaterialInterface, -1, "_SUPP_INTERFACE"sv,
                                      supp_interface_fan_speed >= 0 && path.role() == erSupportMaterialInterface);
-        append_role_based_fan_marker(erIroning, "_IRONING"sv,
+        append_role_based_fan_marker(erIroning, -1, "_IRONING"sv,
                                      ironing_fan_speed >= 0 && path.role() == erIroning);
     };
 
@@ -10057,12 +10057,12 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         {
             if (m_enable_cooling_markers) {
                 if (enable_overhang_bridge_fan) {
-                    append_role_based_fan_marker(erOverhangPerimeter, "_OVERHANG"sv, path_overhang_fan_active);
+                    append_role_based_fan_marker(erOverhangPerimeter, 100, "_OVERHANG"sv, path_overhang_fan_active);
 
                     // ORCA: Add support for separate internal bridge fan speed control
-                    append_role_based_fan_marker(erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
+                    append_role_based_fan_marker(erInternalBridgeInfill, -1, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
                     // ORCA: Add support for separate external bridge fan speed control
-                    append_role_based_fan_marker(erBridgeInfill, "_EXTERNAL_BRIDGE"sv, path.role() == erBridgeInfill);
+                    append_role_based_fan_marker(erBridgeInfill, -1,"_EXTERNAL_BRIDGE"sv, path.role() == erBridgeInfill);
                 }
 
                 apply_role_based_fan_speed();
@@ -10221,12 +10221,14 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
             if (m_enable_cooling_markers) {
                 if (enable_overhang_bridge_fan) {
                     const bool cur_fan_enabled = overhang_fan_active(processed_point.overlap, overhang_fan_threshold, path.role());
-                    append_role_based_fan_marker(erOverhangPerimeter, "_OVERHANG"sv, cur_fan_enabled);
+                    float overlap = std::clamp(processed_point.overlap, 0.0f, 1.0f);
+                    int overhang_degree = 100 - overlap * 100;
+                    append_role_based_fan_marker(erOverhangPerimeter, overhang_degree, "_OVERHANG"sv, cur_fan_enabled);
 
                     // ORCA: Add support for separate internal bridge fan speed control
-                    append_role_based_fan_marker(erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
+                    append_role_based_fan_marker(erInternalBridgeInfill, -1, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
                     // ORCA: Add support for separate external bridge fan speed control
-                    append_role_based_fan_marker(erBridgeInfill, "_EXTERNAL_BRIDGE"sv, path.role() == erBridgeInfill);
+                    append_role_based_fan_marker(erBridgeInfill, -1, "_EXTERNAL_BRIDGE"sv, path.role() == erBridgeInfill);
                 }
 
                 apply_role_based_fan_speed();
