@@ -246,6 +246,29 @@ TEST_CASE("Internal bridge angles follow the lower infill layer and model rotati
     REQUIRE(bridges > 0);
 }
 
+TEST_CASE("Internal bridge angles follow a ranged rotation template of the infill below", "[PrintObject][InternalBridge][RotateTemplate]")
+{
+    auto config = internal_bridge_config("hilbertcurve", 1);
+    // A range uses the template parser, which a plain list skips, and the infill direction of 30 must not apply.
+    config.set_deserialize_strict({{"sparse_infill_rotate_template", "+90/10"}, {"infill_direction", 30}});
+    Print print;
+    init_and_process_print({internal_bridge_step()}, print, config);
+    const PrintObject &object = *print.objects().front();
+    size_t bridges = 0;
+    for (size_t i = 1; i < object.layer_count(); ++i) {
+        // "+90/10" puts layer i - 1 at 9 * i degrees, and the bridge crosses it.
+        const double expected = 9. * double(i) + 90.;
+        for (const LayerRegion *region : object.get_layer(i)->regions())
+            for (const Surface *surface : region->fill_surfaces.filter_by_type(stInternalBridge)) {
+                const double bridge_angle = Geometry::rad2deg(surface->bridge_angle);
+                CAPTURE(i, bridge_angle, expected);
+                CHECK_THAT(std::remainder(bridge_angle - expected, 180.), Catch::Matchers::WithinAbs(0., 0.001));
+                ++bridges;
+            }
+    }
+    REQUIRE(bridges > 0);
+}
+
 TEST_CASE("Turning infill does not replace the anchors of another region", "[PrintObject][InternalBridge][Regression]")
 {
     // Orca: Keep the right-hand region fixed while changing the left-hand pattern in the
