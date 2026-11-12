@@ -1019,6 +1019,28 @@ TEST_CASE("The estimated first layer time comment reports the first layer", "[Pr
     CHECK(gcode.find(std::string("; estimated first layer printing time (normal mode) = ") + get_time_dhms(first_layer_time)) != std::string::npos);
 }
 
+// {first_layer_print_time} gives the start G-code the first layer's time in seconds, without the
+// start G-code's own time. The 50 mm move at F60 makes the start block about 50 s.
+TEST_CASE("The first layer print time placeholder excludes the start G-code", "[Print]")
+{
+    Print print;
+    Model model;
+    init_print({ cube(20) }, print, model,
+               { { "machine_start_gcode", "G1 X50 Y50 Z0.2 F60\n; first layer seconds {first_layer_print_time}" } });
+
+    GCodeProcessorResult result;
+    const std::string gcode = Test::gcode(print, &result);
+
+    const float start_gcode_time = result.print_statistics.modes[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)].prepare_time;
+    REQUIRE(start_gcode_time > 40.f);
+
+    const std::string tag = "; first layer seconds ";
+    const size_t pos = gcode.find(tag);
+    REQUIRE(pos != std::string::npos);
+    const double placeholder = std::stod(gcode.substr(pos + tag.size()));
+    CHECK_THAT(placeholder, Catch::Matchers::WithinAbs(result.initial_layer_time - start_gcode_time, 0.01));
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {

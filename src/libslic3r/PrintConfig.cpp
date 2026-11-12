@@ -13451,6 +13451,11 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
     def = this->add("used_filament_length", coString);
     def->label = L("Filament length (meters)");
     def->tooltip = L("Total filament length used in meters. Replaced with actual value during post-processing.");
+
+    def = this->add("first_layer_print_time", coString);
+    def->label = L("First layer print time (seconds)");
+    def->tooltip = L("Estimated print time of the first layer in seconds (normal mode), without the start G-code. "
+                     "Replaced with actual value during post-processing.");
 }
 
 ObjectsInfoConfigDef::ObjectsInfoConfigDef()

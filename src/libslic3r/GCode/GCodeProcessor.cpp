@@ -130,7 +130,8 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags = {
     "@TOTAL_WEIGHT@",
     "@TOTAL_COST@",
     "@TOTAL_WIPE_TOWER_COST@",
-    "@TOTAL_WIPE_TOWER_FILAMENT@"
+    "@TOTAL_WIPE_TOWER_FILAMENT@",
+    "@FIRST_LAYER_PRINT_TIME@"
 };
 
 const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
@@ -163,7 +164,8 @@ const std::vector<std::string> GCodeProcessor::Reserved_Tags_compatible = {
     "@TOTAL_WEIGHT@",
     "@TOTAL_COST@",
     "@TOTAL_WIPE_TOWER_COST@",
-    "@TOTAL_WIPE_TOWER_FILAMENT@"
+    "@TOTAL_WIPE_TOWER_FILAMENT@",
+    "@FIRST_LAYER_PRINT_TIME@"
 };
 
 
@@ -1424,6 +1426,11 @@ void GCodeProcessor::run_post_process()
                     Slic3r::float_to_string_decimal_point(m_print->print_statistics().total_wipe_tower_cost, 2));
         replace_tag(ETags::Total_Wipe_Tower_Filament_Placeholder,
                     Slic3r::float_to_string_decimal_point(m_print->print_statistics().total_wipe_tower_filament, 2));
+        // Orca: first layer time in seconds (normal mode) without the start G-code. The start G-code runs
+        // before the first layer change, so its blocks (prepare_time) count towards first_layer_time.
+        const TimeMachine& normal = m_time_processor.machines[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)];
+        replace_tag(ETags::First_Layer_Print_Time_Placeholder,
+                    Slic3r::float_to_string_decimal_point(std::max(0.0f, normal.first_layer_time - normal.prepare_time), 2));
 
         return processed;
     };
