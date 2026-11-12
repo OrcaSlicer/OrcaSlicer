@@ -268,7 +268,6 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     const float sliders_left_width = std::max(gap_area_txt_width, std::max(smart_fill_angle_txt_width, std::max(cursor_slider_left, std::max(highlight_slider_left, gap_fill_slider_left))));
     const float slider_icon_width  = m_imgui->get_slider_icon_size().x;
-    const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
 
     const float sliders_width = m_imgui->scaled(7.0f);
     const float drag_left_width = ImGui::GetStyle().WindowPadding.x + sliders_width - space_size;
@@ -284,7 +283,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
     else
         icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon };
 
-    std::array<wxString, 4> tool_tips = { _L("Circle"), _L("Sphere"), _L("Fill"), _L("Gap Fill") };
+    const std::array<PainterTip, 4> tool_tips = { PainterTip::Circle, PainterTip::Sphere, PainterTip::SmartFill, PainterTip::GapFill };
     for (int i = 0; i < tool_ids.size(); i++) {
         //std::string  str_label = std::string("##");
         //std::wstring btn_name = icons[i] + boost::nowide::widen(str_label);
@@ -313,9 +312,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
             }
         }
 
-        if (ImGui::IsItemHovered()) {
-            m_imgui->tooltip(tool_tips[i], max_tooltip_width);
-        }
+        painter_tooltip(tool_tips[i]);
     }
 
     if (m_current_tool != old_tool)
@@ -332,20 +329,24 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);
         m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        painter_tooltip(PainterTip::BrushSize);
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+        painter_tooltip(PainterTip::BrushSize);
 
         if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
             if (m_vertical_only) {
                 m_horizontal_only = false;
             }
         }
+        painter_tooltip(PainterTip::Vertical);
         if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
             if (m_horizontal_only) {
                 m_vertical_only = false;
             }
         }
+        painter_tooltip(PainterTip::Horizontal);
     } else if (m_current_tool == ImGui::SphereButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::SPHERE;
         m_tool_type = ToolType::BRUSH;
@@ -355,20 +356,24 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::SameLine(sliders_left_width);
         ImGui::PushItemWidth(sliders_width);
         m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        painter_tooltip(PainterTip::BrushSize);
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+        painter_tooltip(PainterTip::BrushSize);
 
         if (m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only)) {
             if (m_vertical_only) {
                 m_horizontal_only = false;
             }
         }
+        painter_tooltip(PainterTip::Vertical);
         if (m_imgui->bbl_checkbox(_L("Horizontal"), m_horizontal_only)) {
             if (m_horizontal_only) {
                 m_vertical_only = false;
             }
         }
+        painter_tooltip(PainterTip::Horizontal);
     } else if (m_current_tool == ImGui::FillButtonIcon) {
         m_cursor_type = TriangleSelector::CursorType::POINTER;
         m_tool_type = ToolType::SMART_FILL;
@@ -386,9 +391,11 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
                 triangle_selector->seed_fill_unselect_all_triangles();
                 triangle_selector->request_update_render_data();
             }
+        painter_tooltip(PainterTip::SmartFillAngle);
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##smart_fill_angle_input", &m_smart_fill_angle, 0.05f, 0.0f, 0.0f, "%.2f");
+        painter_tooltip(PainterTip::SmartFillAngle);
     } else if (m_current_tool == ImGui::GapFillIcon) {
         m_tool_type = ToolType::GAP_FILL;
         m_cursor_type = TriangleSelector::CursorType::POINTER;
@@ -399,9 +406,11 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::PushItemWidth(sliders_width);
         std::string format_str = std::string("%.2f") + I18N::translate_utf8("", "Triangle patch area threshold,""triangle patch will be merged to neighbor if its area is less than threshold");
         m_imgui->bbl_slider_float_style("##gap_area", &TriangleSelectorPatch::gap_area, TriangleSelectorPatch::GapAreaMin, TriangleSelectorPatch::GapAreaMax, format_str.data(), 1.0f, true);
+        painter_tooltip(PainterTip::GapArea);
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##gap_area_input", &TriangleSelectorPatch::gap_area, 0.05f, 0.0f, 0.0f, "%.2f");
+        painter_tooltip(PainterTip::GapArea);
 
         // Apply gap fill button
         if (m_imgui->button(m_desc.at("perform"))) {
@@ -415,13 +424,14 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
             update_model_object();
             m_parent.set_as_dirty();
         }
+        painter_tooltip(PainterTip::ApplyGapFill);
     }
 
     if (m_current_tool != ImGui::GapFillIcon) {
         m_imgui->bbl_checkbox(m_desc["on_overhangs_only"], m_paint_on_overhangs_only);
-        if (ImGui::IsItemHovered())
-            m_imgui->tooltip(format_wxstr(_L("Allows painting only on facets selected by: \"%1%\""), m_desc["highlight_by_angle"]),
-                             max_tooltip_width);
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+            panel_tooltip(format_wxstr(_L("Allows painting only on facets selected by: \"%1%\""), m_desc["highlight_by_angle"]),
+                          {{"painting/overhangs_only_off.png", _L("Off")}, {"painting/overhangs_only_on.png", _L("On")}});
     }
 
 
@@ -440,28 +450,29 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     std::string format_str = std::string("%.f");
     ImGui::PushItemWidth(sliders_width);
-    wxString tooltip = _L("Highlight faces according to overhang angle.");
-    if (m_imgui->bbl_slider_float_style("##angle_threshold_deg", &m_highlight_by_angle_threshold_deg, 0.f, 90.f, format_str.data(), 1.0f, true, tooltip)) {
+    if (m_imgui->bbl_slider_float_style("##angle_threshold_deg", &m_highlight_by_angle_threshold_deg, 0.f, 90.f, format_str.data(), 1.0f, true)) {
         m_parent.set_slope_normal_angle(90.f - m_highlight_by_angle_threshold_deg);
         if (!m_parent.is_using_slope()) {
             m_parent.use_slope(true);
             m_parent.set_as_dirty();
         }
     }
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip();
-        if (m_support_threshold_angle != 0) {
-            wxString str_tooltip = (_L("Auto support threshold angle: ") + std::to_string(m_support_threshold_angle));
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, str_tooltip);
-        } else {
-            wxString s_tooltip = (_L("No auto support"));
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, s_tooltip);
-        }
-        ImGui::EndTooltip();
-    }
+    // The slider and the box next to it set the same angle, and share a tooltip.
+    const auto highlight_tooltip = [this]() {
+        if (!ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+            return;
+        const std::string threshold = m_support_threshold_angle != 0 ?
+                                          _u8L("Auto support threshold angle: ") + std::to_string(m_support_threshold_angle) :
+                                          _u8L("No auto support");
+        panel_tooltip(_u8L("Highlights the overhangs: the downward-facing surfaces that are flatter than this angle, "
+                           "measured from the bed. A higher angle highlights more of the model.") + "\n\n" + threshold,
+                      {{"painting/overhang_highlight_low.png", _L("Low")}, {"painting/overhang_highlight_high.png", _L("High")}});
+    };
+    highlight_tooltip();
     ImGui::SameLine(drag_left_width + sliders_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##angle_threshold_deg_input", &m_highlight_by_angle_threshold_deg, 0.05f, 0.0f, 0.0f, "%.2f");
+    highlight_tooltip();
 
     ImGui::Separator();
 
@@ -483,6 +494,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         update_model_object();
         m_parent.set_as_dirty();
     }
+    painter_tooltip(PainterTip::EraseAll);
     m_imgui->disabled_end();
 
     ImGui::SameLine();
@@ -490,6 +502,7 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
     if (m_imgui->button(_L("Done"))) {
         m_parent.reset_all_gizmos();
     }
+    painter_tooltip(PainterTip::Done);
 
     GizmoImguiEnd();
 

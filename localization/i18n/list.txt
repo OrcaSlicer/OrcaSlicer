@@ -187,6 +187,14 @@ src/slic3r/GUI/SceneBenchmark.cpp
 src/slic3r/GUI/Search.cpp
 src/slic3r/GUI/SettingsIndex.cpp
 src/slic3r/GUI/SpeedDialDialog.cpp
+src/slic3r/GUI/SettingTipsFilament.cpp
+src/slic3r/GUI/SettingTipsPrinter.cpp
+src/slic3r/GUI/SettingTipsProcess.cpp
+src/slic3r/GUI/SettingTipsProcessQuality.cpp
+src/slic3r/GUI/SettingTipsProcessStrength.cpp
+src/slic3r/GUI/SettingTipsProcessSpeed.cpp
+src/slic3r/GUI/SettingTipsProcessSupport.cpp
+src/slic3r/GUI/SettingTipsProcessOthers.cpp
 src/slic3r/GUI/Selection.cpp
 src/slic3r/GUI/SelectMachine.cpp
 src/slic3r/GUI/PrePrintChecker.cpp

@@ -13,6 +13,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 
 #include "slic3r/GUI/GUI_ObjectSettings.hpp"
 #include <wx/sizer.h>
@@ -101,6 +102,10 @@ wxSizer* ObjectLayers::create_layer(const t_layer_height_range& range, PlusMinus
     head_text->SetBackgroundStyle(wxBG_STYLE_PAINT);
     head_text->SetFont(wxGetApp().normal_font());
     auto icon = new wxStaticBitmap(m_og->ctrl_parent(), wxID_ANY, m_bmp_layer.bmp());
+    const wxString range_tip = _L("Between these two heights the object is printed with the settings of this range "
+                                  "instead of its own.");
+    set_illustrated_tooltip(head_text, range_tip);
+    set_illustrated_tooltip(icon, range_tip);
     title_sizer->Add(icon, 0, wxALIGN_CENTER_VERTICAL);
     title_sizer->Add(head_text, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, m_og->ctrl_parent()->FromDIP(5));
     m_grid_sizer->Add(title_sizer, 0, wxALIGN_CENTER_VERTICAL);
@@ -128,6 +133,9 @@ wxSizer* ObjectLayers::create_layer(const t_layer_height_range& range, PlusMinus
     });
 
     select_editor(editor, is_last_edited_range);
+    const wxString min_z_tip = _L("Height above the bed where this range starts.");
+    set_illustrated_tooltip(editor, min_z_tip);
+    set_illustrated_tooltip(editor->GetTextCtrl(), min_z_tip);
 
     m_grid_sizer->Add(editor, 1, wxEXPAND);
 
@@ -158,6 +166,10 @@ wxSizer* ObjectLayers::create_layer(const t_layer_height_range& range, PlusMinus
     });
 
     //select_editor(editor, is_last_edited_range);
+    const wxString max_z_tip = _L("Height above the bed where this range ends. Above it, the next range or the "
+                                  "object's own settings apply.");
+    set_illustrated_tooltip(editor, max_z_tip);
+    set_illustrated_tooltip(editor->GetTextCtrl(), max_z_tip);
     m_grid_sizer->Add(editor, 1, wxEXPAND);
 
     auto sizer2 = new wxBoxSizer(wxHORIZONTAL);
@@ -194,13 +206,13 @@ void ObjectLayers::create_layers_list()
         auto del_btn = new PlusMinusButton(m_og->ctrl_parent(), m_bmp_delete, range); 
         del_btn->DisableFocusFromKeyboard();
         del_btn->SetBackgroundColour(m_parent->GetBackgroundColour());
-        del_btn->SetToolTip(_L("Remove height range"));
+        set_illustrated_tooltip(del_btn, _L("Remove height range"));
 
         auto add_btn = new PlusMinusButton(m_og->ctrl_parent(), m_bmp_add, range); 
         add_btn->DisableFocusFromKeyboard();
         add_btn->SetBackgroundColour(m_parent->GetBackgroundColour());
         wxString tooltip = wxGetApp().obj_list()->can_add_new_range_after_current(range);
-        add_btn->SetToolTip(tooltip.IsEmpty() ? _L("Add height range") : tooltip);
+        set_illustrated_tooltip(add_btn, tooltip.IsEmpty() ? _L("Add height range") : tooltip);
         add_btn->Enable(tooltip.IsEmpty());
 
         auto sizer = create_layer(range, del_btn, add_btn);

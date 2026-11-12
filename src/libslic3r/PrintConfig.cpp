@@ -1102,7 +1102,7 @@ void PrintConfigDef::init_common_params()
     def = this->add("elefant_foot_compensation", coFloat);
     def->label = L("Elephant foot compensation");
     def->category = L("Quality");
-    def->tooltip = L("This shrinks the first layer on the build plate to compensate for elephant foot effect.");
+    def->tooltip = L("Shrinks the outline of the first layer by this amount. The first layer is squeezed onto the build plate and spreads outward (elephant foot); shrinking it keeps the bottom edge of the part in line with its sides.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -1122,9 +1122,10 @@ void PrintConfigDef::init_common_params()
     def           = this->add("elefant_foot_layers_density", coPercent);
     def->label    = L("Elephant foot layers density");
     def->category = L("Quality");
-    def->tooltip  = L("Density of internal solid infill for Elephant foot layers compensation.\n"
-                      "The initial value for the second layer is set.\n"
-                      "Subsequent layers become linearly denser by the height specified in elefant_foot_compensation_layers.");
+    def->tooltip  = L("Prints the solid infill of the layers just above the first one sparser, so the weight of the layers "
+                      "above squeezes less material out into an elephant foot. This is the density of the second layer; "
+                      "each layer above it is denser than the last, over as many layers as Elephant foot compensation "
+                      "layers sets.");
     def->sidetext = "%";
     def->min      = 50;
     def->max      = 100;
@@ -1766,7 +1767,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("set_other_flow_ratios", coBool);
     def->label = L("Set other flow ratios");
     def->category = L("Advanced");
-    def->tooltip = L("Change flow ratios for other extrusion path types.");
+    def->tooltip = L("Uses the flow ratios below, one for each kind of line (first layer, walls, overhangs, infill, gap fill and support), so that each can be tuned on its own. When off, they are ignored.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -1992,8 +1993,8 @@ void PrintConfigDef::init_fff_params()
     def->label = "10%";
     def->category = L("Speed");
     def->full_label = "10%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 10% and 25% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Speed of walls that hang out over the layer below by 10% to 25% of their line width. The speed changes gradually from one step to the next. 0 means no slowing down at this step. A percentage is of the wall's own speed.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2005,8 +2006,8 @@ void PrintConfigDef::init_fff_params()
     def->label = "25%";
     def->category = L("Speed");
     def->full_label = "25%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 25% and 50% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Speed of walls that hang out over the layer below by 25% to 50% of their line width. The speed changes gradually from one step to the next. 0 means no slowing down at this step. A percentage is of the wall's own speed.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2018,8 +2019,8 @@ void PrintConfigDef::init_fff_params()
     def->label = "50%";
     def->category = L("Speed");
     def->full_label = "50%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 50% and 75% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Speed of walls that hang out over the layer below by 50% to 75% of their line width. The speed changes gradually from one step to the next. 0 means no slowing down at this step. A percentage is of the wall's own speed.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2031,8 +2032,8 @@ void PrintConfigDef::init_fff_params()
     def->label = "75%";
     def->category = L("Speed");
     def->full_label = "75%";
-    //def->tooltip = L("Speed for line of wall which has degree of overhang between 75% and 100% line width. "
-    //                 "0 means using original wall speed.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Speed of walls that hang out over the layer below by 75% to 100% of their line width. The speed changes gradually from one step to the next. 0 means no slowing down at this step. A percentage is of the wall's own speed.");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "outer_wall_speed";
     def->min = 0;
@@ -2195,9 +2196,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("brim_ears_detection_length", coFloat);
     def->label = L("Brim ear detection radius");
     def->category = L("Support");
-    def->tooltip = L("The geometry will be decimated before detecting sharp angles. "
-                     "This parameter indicates the minimum length of the deviation for the decimation.\n"
-                     "0 to deactivate.");
+    def->tooltip = L("Before the outline is searched for sharp corners, it is simplified: details that stray from it by less "
+                     "than this, such as a corner rounded off by short facets, are smoothed away, so the corner they round "
+                     "off still gets an ear. 0 searches the outline as it is.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -2263,7 +2264,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("print_sequence", coEnum);
     def->label = L("Print sequence");
-    def->tooltip = L("This determines the print sequence, allowing you to print layer-by-layer or object-by-object.");
+    def->tooltip = L("By layer prints one layer of every part before moving up. By object prints each part from bottom to "
+                     "top before starting the next, which needs room around each part for the toolhead.");
     def->enum_keys_map = &ConfigOptionEnum<PrintSequence>::get_enum_values();
     def->enum_values.push_back("by layer");
     def->enum_values.push_back("by object");
@@ -2319,7 +2321,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("travel_acceleration", coFloats);
     def->label = L("Travel");
     def->category = L("Speed");
-    def->tooltip = L("Acceleration of travel moves.");
+    def->tooltip = L("Acceleration of travel moves. A higher value reaches the next line sooner, at the cost of shaking the printer more.");
     def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -2549,7 +2551,9 @@ void PrintConfigDef::init_fff_params()
     auto def_top_fill_pattern = def = this->add("top_surface_pattern", coEnum);
     def->label = L("Top surface pattern");
     def->category = L("Strength");
-    def->tooltip = L("This is the line pattern for top surface infill.");
+    def->tooltip = L("Line pattern of the top surfaces, the layers left visible on top of the print. It decides how the top looks: "
+                     "the monotonic patterns lay every line in the same order for an even finish, the concentric and spiral ones "
+                     "follow the outline.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("monotonic");
     def->enum_values.push_back("monotonicline");
@@ -2627,7 +2631,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bottom_surface_pattern", coEnum);
     def->label = L("Bottom surface pattern");
     def->category = L("Strength");
-    def->tooltip = L("This is the line pattern of bottom surface infill, not including bridge infill.");
+    def->tooltip = L("Line pattern of the bottom surfaces, the layers that rest on the build plate or face down, not including "
+                     "bridges. On the first layer it is the texture the underside of the print shows.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values = def_top_fill_pattern->enum_values;
     def->enum_labels = def_top_fill_pattern->enum_labels;
@@ -2681,7 +2686,9 @@ void PrintConfigDef::init_fff_params()
 	def                = this->add("internal_solid_infill_pattern", coEnum);
     def->label         = L("Internal solid infill pattern");
     def->category      = L("Strength");
-    def->tooltip       = L("Line pattern of internal solid infill. if the detect narrow internal solid infill be enabled, the concentric pattern will be used for the small area.");
+    def->tooltip       = L("Line pattern of the internal solid infill: the solid layers under the top surfaces and over the bottom "
+                           "ones, and the small areas filled solid. Narrow areas are filled concentric instead when Detect narrow "
+                           "internal solid infills is enabled.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values   = def_top_fill_pattern->enum_values;
     def->enum_labels   = def_top_fill_pattern->enum_labels;
@@ -2690,7 +2697,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("outer_wall_line_width", coFloatOrPercent);
     def->label = L("Outer wall");
     def->category = L("Quality");
-    def->tooltip = L("Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the outer wall's lines, which form the visible surface of the part. Narrower lines show finer detail, wider ones print faster. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -2725,7 +2733,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("small_perimeter_threshold", coFloats);
     def->label = L("Small perimeters threshold");
     def->category = L("Speed");
-    def->tooltip = L("This sets the threshold for small perimeter length. Default threshold is 0mm.");
+    def->tooltip = L("Loops no longer than a circle of this radius, such as small holes, count as small perimeters and are printed at the small perimeter speed. At 0, no loop counts as small.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -2747,7 +2755,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("small_support_perimeter_threshold", coFloats);
     def->label = L("Small support perimeters threshold");
     def->category = L("Speed");
-    def->tooltip = L("This sets the threshold for small support perimeter length. The default threshold is 0mm.");
+    def->tooltip = L("Support lines and loops no longer than a circle of this radius, such as the thin branches of tree support, are printed at the small support perimeter speed. At 0, none are.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3651,7 +3659,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("infill_direction", coFloat);
     def->label = L("Sparse infill direction");
     def->category = L("Strength");
-    def->tooltip = L("This is the angle for sparse infill pattern, which controls the start or main direction of lines.");
+    def->tooltip = L("Turns the sparse infill pattern by this angle, measured from the X axis. Patterns whose lines change "
+                     "direction from layer to layer start from it. Ignored when a sparse infill rotation template is set.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->max = 360;
@@ -3661,7 +3670,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("solid_infill_direction", coFloat);
     def->label = L("Solid infill direction");
     def->category = L("Strength");
-    def->tooltip = L("Angle for solid infill pattern, which controls the start or main direction of line.");
+    def->tooltip = L("Turns the solid infill pattern by this angle, measured from the X axis: the internal solid infill, and the "
+                     "top and bottom surfaces unless their own direction is set. Ignored when a solid infill rotation template "
+                     "is set.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = 0;
     def->max = 360;
@@ -3719,7 +3730,9 @@ void PrintConfigDef::init_fff_params()
     def             = this->add("fill_multiline", coInt);
     def->label      = L("Fill Multiline");
     def->category   = L("Strength");
-    def->tooltip    = L("Using multiple lines for the infill pattern, if supported by infill pattern.");
+    def->tooltip    = L("Prints each line of the sparse infill pattern as this many lines side by side. The pattern is spread "
+                        "further apart to keep the same density, so the infill has fewer, thicker walls. Not every pattern "
+                        "supports it.");
     def->min = 1;
     def->max = 10; // Maximum number of lines for infill pattern
     def->set_default_value(new ConfigOptionInt(1));
@@ -3808,7 +3821,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("sparse_infill_pattern", coEnum);
     def->label = L("Sparse infill pattern");
     def->category = L("Strength");
-    def->tooltip = L("This is the line pattern for internal sparse infill.");
+    def->tooltip = L("Pattern of the sparse infill inside the part. It decides how strong the part is and in which directions, "
+                     "and how long the infill takes to print. Gyroid and the 3D patterns are about equally strong in every "
+                     "direction; Lightning only holds up the top surfaces and is the fastest.");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("rectilinear");
     def->enum_values.push_back("alignedrectilinear");
@@ -3898,7 +3913,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("inner_wall_acceleration", coFloats);
     def->label = L("Inner wall");
     def->category = L("Speed");
-    def->tooltip = L("Acceleration of inner walls.");
+    def->tooltip = L("Acceleration of the inner walls. They are hidden, so they can usually take a higher acceleration than the outer wall.");
     def->sidetext = L(u8"mm/s²");	// millimeters per second per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3940,7 +3955,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("accel_to_decel_enable", coBool);
     def->label = L("Enable accel_to_decel");
     def->category = L("Speed");
-    def->tooltip = L("Klipper's max_accel_to_decel will be adjusted automatically.");
+    def->tooltip = L("Sets Klipper's max_accel_to_decel along with each change of acceleration, as the share of it given below. A lower share keeps short back-and-forth moves from reaching full speed, which makes them smoother.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
     
@@ -3958,7 +3973,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("default_jerk", coFloats);
     def->label = L("Default");
     def->category = L("Speed");
-    def->tooltip = L("Default jerk.");
+    def->tooltip = L("Jerk for print moves that have no jerk of their own. At 0, OrcaSlicer does not set jerk at all and the other "
+                     "jerk settings are ignored.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3968,7 +3984,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("default_junction_deviation", coFloats);
     def->label = L("Junction Deviation");
     def->category = L("Speed");
-    def->tooltip = L("Marlin Firmware Junction Deviation (replaces the traditional XY Jerk setting).");
+    def->tooltip = L("How far Marlin firmware lets the nozzle cut a corner, which sets how much it slows down there; it takes the place of the XY jerk. A larger value takes corners faster. At 0, the printer keeps its own value.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0.f;
     def->max = 0.3f;
@@ -3979,7 +3995,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("outer_wall_jerk", coFloats);
     def->label = L("Outer wall");
     def->category = L("Speed");
-    def->tooltip = L("Jerk of outer walls.");
+    def->tooltip = L("Jerk of the outer wall: how much its speed may change at once, at a corner. Lower values give cleaner corners on the face of the part that is seen.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -3989,7 +4005,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("inner_wall_jerk", coFloats);
     def->label = L("Inner wall");
     def->category = L("Speed");
-    def->tooltip = L("Jerk of inner walls.");
+    def->tooltip = L("Jerk of the inner walls: how much their speed may change at once, at a corner. They are hidden, so a higher value costs little.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4000,7 +4016,7 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top surface");
     def->category = L("Speed");
     def->nullable = true;
-    def->tooltip = L("Jerk for top surface.");
+    def->tooltip = L("Jerk of the top surface: how much its speed may change at once, where its lines turn. Lower values can give a more even top surface.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4009,7 +4025,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("infill_jerk", coFloats);
     def->label = L("Infill");
     def->category = L("Speed");
-    def->tooltip = L("Jerk for infill.");
+    def->tooltip = L("Jerk of the infill (sparse and solid, the bridges and the bottom surface): how much its speed may change at once, at a corner. The top surface has a jerk of its own.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4019,7 +4035,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("initial_layer_jerk", coFloats);
     def->label = L("First layer");
     def->category = L("Speed");
-    def->tooltip = L("Jerk for the first layer.");
+    def->tooltip = L("Jerk of the first layer: how much the speed may change at once, at a corner. Lower values are gentler on the lines that are still sticking to the plate.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4029,7 +4045,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("travel_jerk", coFloats);
     def->label = L("Travel");
     def->category = L("Speed");
-    def->tooltip = L("Jerk for travel.");
+    def->tooltip = L("Jerk of travel moves: how much the speed may change at once, where a travel turns. Higher values make travel quicker.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -4049,7 +4065,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("initial_layer_line_width", coFloatOrPercent);
     def->label = L("First layer");
     def->category = L("Quality");
-    def->tooltip = L("Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the first layer's lines. Wider lines press more plastic onto the build plate, which helps the part stick. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -4094,7 +4111,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("initial_layer_travel_speed", coFloatsOrPercents);
     def->label = L("First layer travel speed");
-    def->tooltip = L("Travel speed of the first layer.");
+    def->tooltip = L("Speed of the travel moves on the first layer. Slower travel is gentler on the lines that have only just stuck to the plate.");
     def->category = L("Speed");
     def->sidetext = L("mm/s or %");
     def->ratio_over = "travel_speed";
@@ -4278,7 +4295,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("fuzzy_skin_first_layer", coBool);
     def->label = L("Apply fuzzy skin to first layer");
     def->category = L("Others");
-    def->tooltip = L("Whether to apply fuzzy skin on the first layer.");
+    def->tooltip = L("Roughens the first layer's outer wall too. Left off, the first layer keeps a smooth edge on the bed.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(0));
 
@@ -4286,16 +4303,15 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Fuzzy skin generator mode");
     def->category = L("Others");
     // xgettext:no-c-format, no-boost-format
-    def->tooltip = L("Fuzzy skin generation mode. Works only with Arachne!\n"
-                     "Displacement: Сlassic mode when the pattern is formed by shifting the nozzle sideways from the original path.\n"
-                     "Extrusion: The mode when the pattern formed by the amount of extruded plastic. "
-                     "This is the fast and straight algorithm without unnecessary nozzle shake that gives a smooth pattern. "
-                     "But it is more useful for forming loose walls in the entire they array.\n"
-                     "Combined: Joint mode [Displacement] + [Extrusion]. The appearance of the walls is similar to [Displacement] Mode, but it leaves no pores between the perimeters.\n\n"
-                     "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. "
-                     "At the same time, the width of the extrusion for a particular layer should also not be below a certain level. "
-                     "It is usually equal 15-25% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! "
-                     "If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated." );
+    def->tooltip = L("How the rough surface is made.\n"
+                     "Displacement: the nozzle wanders sideways off the wall's path.\n"
+                     "Extrusion: the nozzle keeps to the path and the amount of plastic varies, so the wall swells and "
+                     "thins. It is quick and gives a smoother texture, with looser walls.\n"
+                     "Combined: both, so the surface looks like Displacement, but the wall stays joined to the one "
+                     "inside it.\n\n"
+                     "Extrusion and Combined need the Arachne wall generator, and a skin thickness the line can take: "
+                     "the line may not get thinner than about a quarter of the layer height. With a 0.4 mm line and "
+                     "0.2 mm layers the thickness can be up to about 0.35 mm; above that, slicing fails.");
     def->enum_keys_map = &ConfigOptionEnum<FuzzySkinMode>::get_enum_values();
     def->enum_values.push_back("displacement");
     def->enum_values.push_back("extrusion");
@@ -4700,7 +4716,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("exclude_object", coBool);
     def->label = L("Exclude objects");
-    def->tooltip = L("Enable this option to add EXCLUDE OBJECT command in G-code.");
+    def->tooltip = L("Writes EXCLUDE_OBJECT commands that outline each part, so firmware that supports them, such as "
+                     "Klipper, can skip a failed part while the rest of the plate prints on.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -4809,7 +4826,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("skin_infill_depth", coFloat);
     def->label    = L("Skin infill depth");
     def->category = L("Strength");
-    def->tooltip  = L("The parameter sets the depth of skin.");
+    def->tooltip  = L("How far the skin reaches into the sparse infill from the walls. The skin has its own density and line "
+                      "width; the infill inside it is the skeleton.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 100;
@@ -4819,7 +4837,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("infill_lock_depth", coFloat);
     def->label    = L("Infill lock depth");
     def->category = L("Strength");
-    def->tooltip  = L("The parameter sets the overlapping depth between the interior and skin.");
+    def->tooltip  = L("For Locked Zag infill: how far the skin and the skeleton reach into each other where they meet, which "
+                      "locks the two together. Deeper locks them more firmly and uses more filament.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 100;
@@ -4829,7 +4848,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("skin_infill_line_width", coFloatOrPercent);
     def->label    = L("Skin line width");
     def->category = L("Strength");
-    def->tooltip  = L("Adjust the line width of the selected skin paths.");
+    def->tooltip  = L("Line width of the skin of Locked Zag infill, the band along the walls. A percentage is of the nozzle "
+                      "diameter.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->ratio_over = "nozzle_diameter";
     def->min      = 0;
@@ -4839,7 +4859,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("skeleton_infill_line_width", coFloatOrPercent);
     def->label    = L("Skeleton line width");
     def->category = L("Strength");
-    def->tooltip  = L("Adjust the line width of the selected skeleton paths.");
+    def->tooltip  = L("Line width of the skeleton of Locked Zag infill, the infill inside the skin. A percentage is of the nozzle "
+                      "diameter.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->ratio_over = "nozzle_diameter";
     def->min      = 0;
@@ -4849,15 +4870,17 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("symmetric_infill_y_axis", coBool);
     def->label    = L("Symmetric infill Y axis");
     def->category = L("Strength");
-    def->tooltip  = L("If the model has two parts that are symmetric about the Y axis,"
-                      " and you want these parts to have symmetric textures, please click this option on one of the parts.");
+    def->tooltip  = L("Mirrors the infill of this object across its center line along the Y axis. Turn it on for one of two "
+                      "parts that mirror each other, so their infill mirrors too. Only Zig Zag, Cross Zag and Locked Zag "
+                      "infill are affected.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     def           = this->add("infill_complete_top", coBool);
     def->label    = L("Fill pattern tops");
     def->category = L("Strength");
-    def->tooltip  = L("Choose this option if you want to completely fill in the tops of the infill pattern");
+    def->tooltip  = L("For 3D Honeycomb infill: closes the top of each cell with lines across it where the pattern turns, so the "
+                      "layers above have more to rest on. Uses a little more material.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
     
@@ -4878,7 +4901,8 @@ void PrintConfigDef::init_fff_params()
     // BBS
     def          = this->add("enable_wrapping_detection", coBool);
     def->label   = L("Enable clumping detection");
-    def->tooltip = L("Enable clumping detection");
+    def->tooltip = L("Lets the printer check the nozzle for clumped filament during the first layers of the print. Needs a "
+                     "printer that supports it and a prime tower; keep objects clear of the detection area on the bed.");
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5020,7 +5044,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("sparse_infill_line_width", coFloatOrPercent);
     def->label = L("Sparse infill");
     def->category = L("Quality");
-    def->tooltip = L("Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the sparse infill's lines. At the same density, wider lines are spaced further apart, so the infill is printed in fewer, thicker lines. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -5055,7 +5080,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("sparse_infill_speed", coFloats);
     def->label = L("Sparse infill");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for internal sparse infill.");
+    def->tooltip = L("Speed of the sparse infill inside the part. It is hidden, so it is usually the fastest feature; the filament's maximum volumetric speed can still cap it.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -5087,7 +5112,9 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("mmu_segmented_region_max_width", coFloat);
     def->label    = L("Maximum width of a segmented region");
-    def->tooltip  = L("Maximum width of a segmented region. A value of 0 disables this feature.");
+    def->tooltip  = L("How deep a painted color reaches into the part, measured from its surface. Deeper inside, the part "
+                      "is printed in its own filament, which saves filament changes. 0 lets the color fill the painted "
+                      "region to any depth.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->category = L("Advanced");
@@ -5096,9 +5123,9 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("mmu_segmented_region_interlocking_depth", coFloat);
     def->label    = L("Interlocking depth of a segmented region");
-    def->tooltip  = L("Interlocking depth of a segmented region. On every other layer, the segmented region "
-                    "is limited to this depth. It will be ignored if \"interlocking_beam\" is enabled. "
-                    "Zero disables this feature.");
+    def->tooltip  = L("On every other layer, a painted color reaches only this deep into the part, so the colors of "
+                      "neighboring layers interlock like a comb and hold together better. Ignored when beam interlocking "
+                      "is on. 0 turns it off.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation 
     def->min      = 0;
     def->category = L("Advanced");
@@ -5114,7 +5141,8 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("interlocking_beam_width", coFloat);
     def->label    = L("Interlocking beam width");
-    def->tooltip  = L("The width of the interlocking structure beams.");
+    def->tooltip  = L("Width of the beams each filament pushes into the other where they meet. Thicker beams are sturdier; "
+                      "thinner ones make more, smaller interlocks.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0.01;
     def->category = L("Advanced");
@@ -5123,7 +5151,8 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("interlocking_orientation", coFloat);
     def->label    = L("Interlocking direction");
-    def->tooltip  = L("Orientation of interlock beams.");
+    def->tooltip  = L("The direction the interlocking beams run in, as an angle about the vertical axis. Turn it so the "
+                      "beams cross the boundary between the filaments rather than run along it.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min      = 0;
     def->max      = 360;
@@ -5178,7 +5207,8 @@ void PrintConfigDef::init_fff_params()
 
     def                = this->add("ironing_pattern", coEnum);
     def->label         = L("Ironing Pattern");
-    def->tooltip       = L("The pattern that will be used when ironing.");
+    def->tooltip       = L("The path the nozzle follows while ironing: parallel lines back and forth, or rings that follow the outline "
+                           "of the surface.");
     def->category      = L("Quality");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("rectilinear");
@@ -5202,7 +5232,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("ironing_spacing", coFloat);
     def->label = L("Ironing line spacing");
     def->category = L("Quality");
-    def->tooltip = L("This is the distance between the lines used for ironing.");
+    def->tooltip = L("Distance between the ironing lines. Closer lines smooth the surface more evenly, but ironing takes longer.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->max = 1;
@@ -5222,7 +5252,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("ironing_speed", coFloat);
     def->label = L("Ironing speed");
     def->category = L("Quality");
-    def->tooltip = L("This is the print speed for ironing lines.");
+    def->tooltip = L("Speed of the nozzle while ironing, when it passes over the top surface again with very little flow to smooth it. Slower ironing smooths better but takes longer.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -5231,7 +5261,7 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("ironing_angle", coFloat);
     def->label    = L("Ironing angle offset");
     def->category = L("Quality");
-    def->tooltip  = L("The angle of ironing lines offset from the top surface.");
+    def->tooltip  = L("Turns the ironing lines by this angle from the lines of the top surface under them: at 0 they run along those lines, at 90 across them. With Fixed ironing angle, the angle is an absolute direction instead.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min      = 0;
     def->max      = 359;
@@ -5241,7 +5271,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("ironing_angle_fixed", coBool);
     def->label    = L("Fixed ironing angle");
     def->category = L("Quality");
-    def->tooltip  = L("Use a fixed absolute angle for ironing.");
+    def->tooltip  = L("When enabled, the ironing angle is an absolute direction, the same on every layer, instead of an offset "
+                      "from the direction of the top surface lines.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5258,7 +5289,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("zaa_enabled", coBool);
     def->label    = L("Z contouring enabled");
     def->category = L("Quality");
-    def->tooltip  = L("Enable Z-layer contouring (aka Z-layer anti-aliasing).");
+    def->tooltip  = L("Moves the nozzle up and down within each layer, so that top surfaces and the walls at their edges follow the model's real surface instead of stepping from one layer to the next. Gentle slopes and domes come out smoother.\n\n"
+                      "Also known as Z-layer anti-aliasing.");
     def->mode     = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5277,15 +5309,14 @@ void PrintConfigDef::init_fff_params()
     def = this->add("zaa_dont_alternate_fill_direction", coBool);
     def->label    = L("Don't alternate fill direction");
     def->category = L("Quality");
-    def->tooltip  = L("Disable alternating fill direction when using Z contouring.");
+    def->tooltip  = L("With Z contouring, keeps the infill and ironing lines of every layer running in the same direction, instead of turning them from one layer to the next.");
     def->mode     = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("zaa_min_z", coFloat);
     def->label    = L("Minimum Z height");
     def->category = L("Quality");
-    def->tooltip  = L("Minimum Z-layer height.\n"
-                      "Also controls the slicing plane.");
+    def->tooltip  = L("The thinnest Z contouring may make a line: lines are lowered no closer than this to the layer beneath. Each layer is also sliced at this height above its bottom, instead of at its middle.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 0;
     def->max      = 100;
@@ -5346,7 +5377,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("small_area_infill_flow_compensation", coBool);
     def->label = L("Small area flow compensation (beta)");
     def->category = L("Quality");
-    def->tooltip = L("Enable flow compensation for small infill areas.");
+    def->tooltip = L("Lowers the flow of short solid infill lines, following the Flow Compensation Model below: the shorter the line, the less material. Small solid areas otherwise tend to come out overfilled.\n\n"
+                     "Applies to the Rectilinear, Aligned Rectilinear, Monotonic and Monotonic line patterns.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -5872,7 +5904,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("filename_format", coString);
     def->label = L("Filename format");
-    def->tooltip = L("Users can decide project file names when exporting.");
+    def->tooltip = L("Template for the name of the exported file. Placeholders in braces, such as {input_filename_base} or "
+                     "{print_time}, are replaced with their values.");
     def->full_width = true;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString("{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode"));
@@ -5899,8 +5932,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("make_overhang_printable_hole_size", coFloat);
     def->label = L("Make overhangs printable - Hole area");
     def->category = L("Quality");
-    def->tooltip = L("Maximum area of a hole in the base of the model before it's filled by conical material. "
-                     "A value of 0 will fill all the holes in the model base.");
+    def->tooltip = L("Make overhangs printable fills a recess in the underside of the model, such as a blind hole open to "
+                     "the bed, with a cone from its roof down. A recess smaller in area than this is kept open instead. "
+                     "0 fills every recess.");
     def->sidetext = L(u8"mm²");	// square millimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->min = 0.;
@@ -5945,7 +5979,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("inner_wall_line_width", coFloatOrPercent);
     def->label = L("Inner wall");
     def->category = L("Quality");
-    def->tooltip = L("Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the inner walls' lines, hidden behind the outer wall. Wider lines make the walls thicker and stronger with the same number of loops. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -5957,7 +5992,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("inner_wall_speed", coFloats);
     def->label = L("Inner wall");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for inner walls.");
+    def->tooltip = L("Speed of the inner walls, the loops between the outer wall and the infill. They are not seen, so they are usually printed faster than the outer wall.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->aliases = { "perimeter_feed_rate" };
     def->min = 1;
@@ -5968,7 +6003,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("wall_loops", coInt);
     def->label = L("Wall loops");
     def->category = L("Strength");
-    def->tooltip = L("This is the number of walls per layer.");
+    def->tooltip = L("Number of walls printed around the outline of each layer. More walls make the part stronger and stiffer, "
+                     "at the cost of material and print time.");
     def->min = 0;
     def->max = 1000;
     def->set_default_value(new ConfigOptionInt(2));
@@ -6063,7 +6099,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("raft_expansion", coFloat);
     def->label = L("Raft expansion");
     def->category = L("Support");
-    def->tooltip = L("This expands all raft layers in XY plane.");
+    def->tooltip = L("Makes the raft wider than the part's footprint by this much on every side. A wider raft holds "
+                     "the part down better but uses more material.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -6072,7 +6109,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("raft_first_layer_density", coPercent);
     def->label = L("First layer density");
     def->category = L("Support");
-    def->tooltip = L("This is the density of the first raft or support layer.");
+    def->tooltip = L("How densely the first layer of the raft or support is filled. A denser first layer sticks to "
+                     "the bed better, a sparser one uses less material and comes off more easily.");
     def->sidetext = "%";
     def->min = 10;
     def->max = 100;
@@ -6545,7 +6583,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("seam_slope_type", coEnum);
     def->label = L("Scarf joint seam (beta)");
     def->category = L("Quality");
-    def->tooltip = L("Use scarf joint to minimize seam visibility and increase seam strength.");
+    def->tooltip = L("A scarf joint starts the wall's loop on a ramp that rises to the full layer height, and ends it by printing over that ramp, so the joint is spread along the wall instead of forming a line. This makes the seam less visible and stronger.\n\n"
+                     "Contour uses it on the outside of the part, Contour and hole also in holes.");
     def->enum_keys_map = &ConfigOptionEnum<SeamScarfType>::get_enum_values();
     def->enum_values.push_back("none");
     def->enum_values.push_back("external");
@@ -6604,7 +6643,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("scarf_joint_flow_ratio", coFloat);
     def->label = L("Scarf joint flow ratio");
     def->category = L("Quality");
-    def->tooltip = L("This factor affects the amount of material for scarf joints.");
+    def->tooltip = L("Multiplies the flow of the scarf joint: its ramp and the end of the loop that passes over it. Raise it a little if the joint shows a groove, lower it if it bulges.");
     def->mode = comExpert;
     def->min = 0;
     def->max = 2;
@@ -6624,7 +6663,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("seam_slope_entire_loop", coBool);
     def->label = L("Scarf around entire wall");
     def->category = L("Quality");
-    def->tooltip = L("The scarf extends to the entire length of the wall.");
+    def->tooltip = L("The scarf's ramp runs around the whole loop instead of along the Scarf length, so the wall rises evenly from the start of the loop to its end.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6640,7 +6679,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("seam_slope_steps", coInt);
     def->label = L("Scarf steps");
     def->category = L("Quality");
-    def->tooltip = L("Minimum number of segments of each scarf.");
+    def->tooltip = L("The scarf ramp is split into at least this many segments, each a little higher than the one before. "
+                     "More steps give a smoother ramp.");
     def->min = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(10));
@@ -6743,7 +6783,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("skirt_height", coInt);
     def->label = L("Skirt height");
-    def->tooltip = L("Number of skirt layers: usually only one");
+    def->tooltip = L("Number of layers the skirt is printed for. One is enough to prime the nozzle; more build a low wall "
+                     "around the parts.");
     def->sidetext = L("layers");
     def->mode = comSimple;
     def->max = 10000;
@@ -6783,7 +6824,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("skirt_loops", coInt);
     def->label = L("Skirt loops");
     def->full_label = L("Skirt loops");
-    def->tooltip = L("This is the number of loops for the skirt. 0 means the skirt is disabled.");
+    def->tooltip = L("Number of loops of the skirt, the outline printed around the parts first to prime the nozzle and show "
+                     "whether the first layer sticks. 0 prints no skirt.");
     def->min = 0;
     def->max = 10;
     def->mode = comSimple;
@@ -6858,7 +6900,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("internal_solid_infill_line_width", coFloatOrPercent);
     def->label = L("Internal solid infill");
     def->category = L("Quality");
-    def->tooltip = L("Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the lines of the solid layers inside the part, between the sparse infill and the top and bottom surfaces. Wider lines fill them faster. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -7317,7 +7360,8 @@ void PrintConfigDef::init_fff_params()
     //BBS: remove material behind support
     def->label = L("Enable support");
     def->category = L("Support");
-    def->tooltip = L("This enables support generation.");
+    def->tooltip = L("Generates support structures under overhangs that would otherwise be printed in mid-air. "
+                     "Supports use extra material and time, and leave marks where they touch the part.");
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("support_type", coEnum);
@@ -7340,7 +7384,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_object_xy_distance", coFloat);
     def->label = L("Support/object XY distance");
     def->category = L("Support");
-    def->tooltip = L("This controls the XY separation between an object and its support.");
+    def->tooltip = L("Horizontal gap between the support and the walls of the part beside it. A larger gap keeps the "
+                     "support from sticking to those walls and leaves fewer marks on them, a smaller one supports "
+                     "overhangs closer to the walls.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->max = 10;
@@ -7351,7 +7397,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_object_first_layer_gap", coFloat);
     def->label = L("Support/object first layer gap");
     def->category = L("Support");
-    def->tooltip = L("XY separation between an object and its support at the first layer.");
+    def->tooltip = L("Horizontal gap between the part and its support on the first layer only, where both are "
+                     "pressed onto the bed and spread wider. A larger gap keeps them from fusing there.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->max = 10;
@@ -7372,7 +7419,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_on_build_plate_only", coBool);
     def->label = L("On build plate only");
     def->category = L("Support");
-    def->tooltip = L("This setting only generates supports that begin on the build plate.");
+    def->tooltip = L("Only generates supports that stand on the build plate. Overhangs whose support would have to "
+                     "stand on the part itself are left unsupported, so the part's surfaces get no support marks.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -7380,14 +7428,17 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("support_critical_regions_only", coBool);
     def->label    = L("Support critical regions only");
     def->category = L("Support");
-    def->tooltip  = L("Only create support for critical regions including sharp tail, cantilever, etc.");
+    def->tooltip  = L("Supports only the regions that cannot print without it: sharp tails (the lowest point of a part "
+                      "that starts in mid-air) and cantilevers (parts sticking out sideways). Ordinary overhangs are left "
+                      "unsupported.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("support_remove_small_overhang", coBool);
     def->label = L("Ignore small overhangs");
     def->category = L("Support");
-    def->tooltip = L("Ignore small overhangs that possibly don't require support.");
+    def->tooltip = L("Leaves out the support under small overhangs, about two line widths across or narrower, which "
+                     "usually print fine without it. Sharp tails and cantilevers are still supported.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -7398,7 +7449,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top Z distance");
     def->min = 0;
     def->category = L("Support");
-    def->tooltip = L("Z gap between the support\'s top and object.");
+    def->tooltip = L("Vertical gap between the top of the support and the part above it. A larger gap makes the support easier "
+                     "to remove, a smaller one leaves a cleaner underside.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
 //    def->min = 0;
 #if 0
@@ -7447,14 +7499,17 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_interface_not_for_body",coBool);
     def->label    = L("Avoid interface filament for base");
     def->category = L("Support");
-    def->tooltip = L("Avoid using support interface filament to print support base if possible.");
+    def->tooltip = L("Prints the support's base with the base filament wherever possible, rather than with the "
+                     "interface filament. Saves the interface filament, often a costly soluble or breakaway material, "
+                     "for the layers that touch the part.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("support_line_width", coFloatOrPercent);
     def->label = L("Support");
     def->category = L("Quality");
-    def->tooltip = L("Line width of support. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the support's lines. Wider lines make the support sturdier and use more material. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -7484,7 +7539,8 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Top interface layers");
     def->category = L("Support");
-    def->tooltip = L("This is the number of top interface layers.");
+    def->tooltip = L("Number of dense layers at the top of the support, right under the part. More layers give the underside "
+                     "of the part a smoother surface to rest on.");
     def->sidetext = L("layers");
     def->min = 0;
     def->enum_values.push_back("0");
@@ -7502,7 +7558,8 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label = L("Bottom interface layers");
     def->category = L("Support");
-    def->tooltip = L("Number of bottom interface layers.");
+    def->tooltip = L("Number of dense layers at the bottom of the support, where it stands on the part. "
+                     "Same as top uses the number of top interface layers.");
     def->sidetext = L("layers");
     def->min = -1;
     def->enum_values.push_back("-1");
@@ -7535,7 +7592,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_interface_speed", coFloats);
     def->label = L("Support interface");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for support interfaces.");
+    def->tooltip = L("Speed of the support interface, the dense layers between the support and the part. Printing them slower gives a flatter surface under the part's overhangs.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -7590,7 +7647,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_base_pattern_spacing", coFloat);
     def->label = L("Base pattern spacing");
     def->category = L("Support");
-    def->tooltip = L("This determines the spacing between support lines.");
+    def->tooltip = L("Distance between the lines of the support's base. Wider spacing uses less material and breaks "
+                     "away more easily, closer lines hold the overhang more firmly.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;
@@ -7607,7 +7665,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_speed", coFloats);
     def->label = L("Support");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for support.");
+    def->tooltip = L("Speed of the body of the support. Support is removed after printing, so it can usually be printed fast; the interface it ends in has a speed of its own.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -7646,8 +7704,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("independent_support_layer_height", coBool);
     def->label = L("Independent support layer height");
     def->category = L("Support");
-    def->tooltip = L("Support layer uses layer height independent with object layer. This is to support customizing Z-gap and save print time. "
-                     "This option will be invalid when the prime tower is enabled.");
+    def->tooltip = L("Lets the support use layer heights of its own instead of the part's, so the Z distances between "
+                     "the support and the part are kept as set rather than rounded to whole layers. A prime tower turns "
+                     "it off.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -7869,7 +7928,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("tree_support_branch_distance", coFloat);
     def->label    = L("Tree support branch distance");
     def->category = L("Support");
-    def->tooltip  = L("This setting determines the distance between neighboring tree support nodes.");
+    def->tooltip  = L("Distance between the points where the branches of a tree support touch the part. Closer "
+                      "points hold the overhang more evenly, wider ones use less material and leave fewer marks.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
@@ -7879,7 +7939,9 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("tree_support_branch_distance_organic", coFloat);
     def->label    = L("Tree support branch distance");
     def->category = L("Support");
-    def->tooltip  = L("This setting determines the distance between neighboring tree support nodes.");
+    def->tooltip  = L("Distance between the tips of the branches where they touch the part. Closer tips hold the "
+                      "overhang more evenly, wider ones use less material and leave fewer marks. With top interface "
+                      "layers, the tips follow the interface's lines instead.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
@@ -7903,7 +7965,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("tree_support_auto_brim", coBool);
     def->label = L("Auto brim width");
     def->category = L("Quality");
-    def->tooltip = L("Enabling this option means the width of the brim for tree support will be automatically calculated.");
+    def->tooltip = L("Works out the width of the brim around the foot of each branch from how tall the branch is. "
+                     "Turn it off to set the width yourself.");
     def->set_default_value(new ConfigOptionBool(1));
     
     def = this->add("tree_support_brim_width", coFloat);
@@ -7917,7 +7980,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Tip Diameter");
     def->category = L("Support");
     // TRN PrintSettings: "Organic supports" > "Tip Diameter"
-    def->tooltip = L("Branch tip diameter for organic supports.");
+    def->tooltip = L("Diameter of the branch tips of organic supports, where they hold the part. Thinner tips are easier to "
+                     "remove and leave smaller marks, thicker tips hold the part more firmly.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0.1f;
     def->max = 100.f;
@@ -7927,7 +7991,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("tree_support_branch_diameter", coFloat);
     def->label    = L("Tree support branch diameter");
     def->category = L("Support");
-    def->tooltip  = L("This setting determines the initial diameter of support nodes.");
+    def->tooltip  = L("Diameter of the branches of a tree support where they start, under the tips. Thicker branches "
+                      "are sturdier, thinner ones use less material.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
@@ -7951,7 +8016,8 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("tree_support_branch_diameter_organic", coFloat);
     def->label    = L("Tree support branch diameter");
     def->category = L("Support");
-    def->tooltip  = L("This setting determines the initial diameter of support nodes.");
+    def->tooltip  = L("Diameter of the branches of a tree support where they start, under the tips. Thicker branches "
+                      "are sturdier, thinner ones use less material.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min      = 1.0;
     def->max      = 10;
@@ -7961,7 +8027,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("tree_support_wall_count", coInt);
     def->label = L("Support wall loops");
     def->category = L("Support");
-    def->tooltip = L("This setting specifies the count of support walls in the range of [0,2]. 0 means auto.");
+    def->tooltip = L("Number of walls around the support, up to 2. More walls make it sturdier. "
+                     "0 lets the slicer choose.");
     def->min = 0;
     def->max = 2;
     def->mode = comAdvanced;
@@ -7977,14 +8044,16 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_ironing", coBool);
     def->label = L("Ironing Support Interface");
     def->category = L("Support");
-    def->tooltip = L("Ironing is using small flow to print on same height of support interface again to make it more smooth. "
-                     "This setting controls whether support interface being ironed. When enabled, support interface will be extruded as solid too.");
+    def->tooltip = L("Irons the top of the support interface: the nozzle passes over it again with a small flow, "
+                     "which smooths the surface the part rests on, and so the part's underside. The interface is then "
+                     "printed solid.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
     def                = this->add("support_ironing_pattern", coEnum);
     def->label         = L("Support Ironing Pattern");
-    def->tooltip       = L("The pattern that will be used when ironing.");
+    def->tooltip       = L("The path the nozzle follows while ironing: parallel lines back and forth, or rings that follow the outline "
+                           "of the surface.");
     def->category      = L("Support");
     def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
     def->enum_values.push_back("rectilinear");
@@ -8009,7 +8078,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("support_ironing_spacing", coFloat);
     def->label = L("Support Ironing line spacing");
     def->category = L("Support");
-    def->tooltip = L("This is the distance between the lines used for ironing.");
+    def->tooltip = L("Distance between the lines of ironing on the support interface. Closer lines smooth it more "
+                     "evenly but take longer.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->max = 1;
@@ -8128,7 +8198,8 @@ void PrintConfigDef::init_fff_params()
     def = this->add("top_surface_line_width", coFloatOrPercent);
     def->label = L("Top surface");
     def->category = L("Quality");
-    def->tooltip = L("Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter.");
+    // xgettext:no-c-format, no-boost-format
+    def->tooltip = L("Width of the top surfaces' lines. Narrower lines leave finer ridges and a smoother top, but take longer to print. If expressed as a %, it will be computed over the nozzle diameter.");
     def->sidetext = L("mm or %");
     def->ratio_over = "nozzle_diameter";
     def->min = 0;
@@ -8140,7 +8211,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("top_surface_speed", coFloats);
     def->label = L("Top surface");
     def->category = L("Speed");
-    def->tooltip = L("This is the speed for solid top surface infill.");
+    def->tooltip = L("Speed of the top surface, the layer that closes the top of the part and stays in sight. Printing it slower gives a smoother, more even surface.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -8209,7 +8280,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("travel_speed", coFloats);
     def->label = L("Travel");
-    def->tooltip = L("This is the speed at which traveling is done.");
+    def->tooltip = L("Speed of travel moves, when the nozzle moves without extruding. Faster travel saves time and gives the nozzle less time to ooze on the way.");
     def->sidetext = L("mm/s");	// millimeters per second, CIS languages need translation
     def->min = 1;
     def->mode = comAdvanced;
@@ -8246,15 +8317,17 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("enable_mixed_color_sublayer", coBool);
     def->label = L("Mixed color sublayer");
-    def->tooltip = L("Enable mixed color sublayer splitting. When enabled, layers containing mixed color "
-                     "filaments will be split into sub-layers to achieve color mixing effects.");
+    def->tooltip = L("Splits each layer printed in a mixed filament into thinner sub-layers, one for each filament it "
+                     "mixes, so the colors blend more finely. When off, whole layers alternate between the filaments, and a "
+                     "gradient mixed filament is printed without its gradient.");
     def->category = L("Quality");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("enable_prime_tower", coBool);
     def->label = L("Enable");
-    def->tooltip = L("The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects.");
+    def->tooltip = L("Prints a tower beside the parts. After each filament change the nozzle purges the old filament into it "
+                     "and settles its flow there, so the parts show neither mixed colors nor blobs.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -8341,7 +8414,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("prime_tower_width", coFloat);
     def->label = L("Width");
-    def->tooltip = L("This is the width of prime towers.");
+    def->tooltip = L("Width of the prime tower. Its depth follows from the amount of material to purge, so a wider tower "
+                     "is shallower.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 2.0;
     def->mode = comSimple;
@@ -8349,7 +8423,8 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("wipe_tower_rotation_angle", coFloat);
     def->label = L("Wipe tower rotation angle");
-    def->tooltip = L("Wipe tower rotation angle with respect to X axis.");
+    def->tooltip = L("Turns the prime tower on the bed by this angle, measured from the X axis. Use it to fit the tower "
+                     "into the space beside the parts.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.));
@@ -8415,7 +8490,8 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("wipe_tower_rib_width", coFloat);
     def->label    = L("Rib width");
-    def->tooltip  = L("Rib width is always less than half the prime tower side length.");
+    def->tooltip  = L("Width of the ribs of the Rib wall. Wider ribs brace the tower better. The width is capped at half the "
+                      "tower's side.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode     = comAdvanced;
     def->min      = 0;
@@ -8424,7 +8500,7 @@ void PrintConfigDef::init_fff_params()
 
     def          = this->add("wipe_tower_fillet_wall", coBool);
     def->label   = L("Fillet wall");
-    def->tooltip = L("The wall of prime tower will fillet.");
+    def->tooltip = L("Rounds the corners of the prime tower's rib wall.");
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -8448,7 +8524,8 @@ void PrintConfigDef::init_fff_params()
 
     def          = this->add("prime_tower_skip_points", coBool);
     def->label   = L("Skip points");
-    def->tooltip = L("The wall of prime tower will skip the start points of wipe path.");
+    def->tooltip = L("Leaves gaps in the prime tower's wall where the nozzle enters the tower to purge, so the moves into the "
+                     "tower do not cross the wall.");
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
@@ -8458,7 +8535,9 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("enable_tower_interface_features", coBool);
     def->label = L("Enable tower interface features");
-    def->tooltip = L("Enable optimized prime tower interface behavior when different materials meet.");
+    def->tooltip = L("On layers with a filament change, heats the new filament to its tower interface print temperature (a "
+                     "filament setting) while it is purged on the prime tower, and adds its interface pre-extrusion there. "
+                     "A hotter start helps two different materials bond where they meet.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -8470,7 +8549,8 @@ void PrintConfigDef::init_fff_params()
 
     def           = this->add("prime_tower_infill_gap", coPercent);
     def->label    = L("Infill gap");
-    def->tooltip  = L("Infill gap.");
+    def->tooltip  = L("Spacing of the purge lines inside the prime tower, as a percentage of the line width. A larger spacing "
+                      "spreads the same purge over a deeper, sparser tower.");
     def->sidetext = "%";
     def->mode     = comAdvanced;
     def->min      = 100;
@@ -8508,14 +8588,16 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("wipe_tower_bridging", coFloat);
     def->label = L("Maximal bridging distance");
-    def->tooltip = L("Maximal distance between supports on sparse infill sections.");
+    def->tooltip = L("On the tower's sparse layers, those with no filament change, the tower is printed as a frame with lines "
+                     "across it. This is the largest gap left between those lines, which the next layer has to bridge.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(10.));
 
     def = this->add("wipe_tower_extra_spacing", coPercent);
     def->label = L("Wipe tower purge lines spacing");
-    def->tooltip = L("Spacing of purge lines on the wipe tower.");
+    def->tooltip = L("Spacing of the purge lines inside the prime tower, as a percentage of the line width. A larger spacing "
+                     "spreads the same purge over a deeper, sparser tower.");
     def->sidetext = "%";
     def->mode = comAdvanced;
     def->min = 100.;
@@ -8582,15 +8664,15 @@ void PrintConfigDef::init_fff_params()
     def = this->add("hole_to_polyhole_twisted", coBool);
     def->label = L("Polyhole twist");
     def->category = L("Quality");
-    def->tooltip = L("Rotate the polyhole every layer.");
+    def->tooltip = L("Rotates the polyhole a little on every layer, so its flat sides do not stack up and the hole comes out "
+                     "closer to round.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("hole_to_polyhole_max_edges", coInt);
     def->label = L("Maximum Polyhole edge count");
     def->category = L("Quality");
-    def->tooltip = L("Maximum number of polyhole edges"
-            "\nThis setting limits the amount of edges a polyhole can have");
+    def->tooltip = L("The most sides a polyhole may have. A polyhole gets more sides the larger it is; this caps them.");
     def->mode = comExpert;
     def->min = 3;
     def->set_default_value(new ConfigOptionInt(50));

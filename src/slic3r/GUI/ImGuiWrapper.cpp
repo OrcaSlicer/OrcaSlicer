@@ -208,6 +208,10 @@ const ImVec4 ImGuiWrapper::COL_SEPARATOR_DARK    = { 0.24f, 0.24f, 0.27f, 1.0f }
 const ImVec4 ImGuiWrapper::COL_TITLE_BG          = { 0.745f, 0.745f, 0.745f, 1.0f };
 const ImVec4 ImGuiWrapper::COL_WINDOW_BG         = { 1.000f, 1.000f, 1.000f, 1.0f };
 const ImVec4 ImGuiWrapper::COL_WINDOW_BG_DARK    = { 45 / 255.f, 45 / 255.f, 49 / 255.f, 1.f };
+// The dark mode palette of the input boxes (StateColor's #DBDBDB, #262E30, #6B6B6A), which tooltips use.
+const ImVec4 ImGuiWrapper::COL_TOOLTIP_BORDER    = { 74 / 255.f, 74 / 255.f, 81 / 255.f, 1.f };
+const ImVec4 ImGuiWrapper::COL_TOOLTIP_TEXT      = { 239 / 255.f, 239 / 255.f, 240 / 255.f, 1.f };
+const ImVec4 ImGuiWrapper::COL_TOOLTIP_CAPTION   = { 179 / 255.f, 179 / 255.f, 181 / 255.f, 1.f };
 const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG        = { 250 / 255.f, 250 / 255.f, 250 / 255.f, 1.f }; // ORCA color matches with toolbar_background.png
 const ImVec4 ImGuiWrapper::COL_TOOLBAR_BG_DARK   = { 57  / 255.f, 60  / 255.f, 66  / 255.f, 1.f }; // ORCA color matches with toolbar_background_dark.png
 const ImVec4 ImGuiWrapper::COL_ORCA              = to_ImVec4(ColorRGBA::ORCA());
@@ -1188,15 +1192,25 @@ void ImGuiWrapper::text_wrapped(const wxString &label, float wrap_width)
     this->text_wrapped(label_utf8.c_str(), wrap_width);
 }
 
+void ImGuiWrapper::push_tooltip_style()
+{
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, COL_WINDOW_BG_DARK);
+    ImGui::PushStyleColor(ImGuiCol_Border, COL_TOOLTIP_BORDER);
+    ImGui::PushStyleColor(ImGuiCol_Text, COL_TOOLTIP_TEXT);
+    ImGui::PushStyleColor(ImGuiCol_TextDisabled, COL_TOOLTIP_CAPTION);
+}
+
+void ImGuiWrapper::pop_tooltip_style() { ImGui::PopStyleColor(4); }
+
 void ImGuiWrapper::tooltip(const char *label, float wrap_width)
 {
+    push_tooltip_style();
     ImGui::BeginTooltip();
     ImGui::PushTextWrapPos(wrap_width);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
     ImGui::TextUnformatted(label);
-    ImGui::PopStyleColor(1);
     ImGui::PopTextWrapPos();
     ImGui::EndTooltip();
+    pop_tooltip_style();
 }
 
 void ImGuiWrapper::tooltip(const std::string &label, float wrap_width) {
@@ -1205,13 +1219,7 @@ void ImGuiWrapper::tooltip(const std::string &label, float wrap_width) {
 
 void ImGuiWrapper::tooltip(const wxString &label, float wrap_width)
 {
-    ImGui::BeginTooltip();
-    ImGui::PushTextWrapPos(wrap_width);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.00f, 1.00f, 1.00f, 1.00f));
-    ImGui::TextUnformatted(label.ToUTF8().data());
-    ImGui::PopStyleColor(1);
-    ImGui::PopTextWrapPos();
-    ImGui::EndTooltip();
+    tooltip(label.ToUTF8().data(), wrap_width);
 }
 
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT

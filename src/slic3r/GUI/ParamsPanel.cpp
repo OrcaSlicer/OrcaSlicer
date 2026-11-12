@@ -17,6 +17,7 @@
 #include "Widgets/Button.hpp"
 #include "GUI_Factories.hpp"
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "libslic3r/Config.hpp"
 #include <string>
 #include <map>
@@ -280,15 +281,26 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
         m_process_icon = new ScalableButton(m_top_panel, wxID_ANY, "process");
 
         m_title_label = new Label(m_top_panel, _L("Process"));
+        const wxString process_tip = _L("Print settings: layer height, walls, infill, supports, speeds and the rest of how "
+                                        "the plate is sliced.");
+        set_illustrated_tooltip(m_process_icon, process_tip);
+        set_illustrated_tooltip(m_title_label, process_tip);
 
         //int width, height;
         // BBS: new layout
         m_mode_region = new SwitchButton(m_top_panel);
         m_mode_region->SetMaxSize({em_unit(this) * 12, -1});
         m_mode_region->SetLabels(_L("Global"), _L("Objects"));
+        set_illustrated_tooltip(m_mode_region,
+                                _L("Global edits the process preset, used for every object on every plate. "
+                                   "Objects edits the settings of the object, part, layer range or plate selected in the "
+                                   "list, which override the preset for that item only. "
+                                   "The Objects label is highlighted while any object has settings of its own."));
         //m_mode_region->GetSize(&width, &height);
         m_tips_arrow = new ScalableButton(m_top_panel, wxID_ANY, "tips_arrow");
         m_tips_arrow->Hide();
+        set_illustrated_tooltip(m_tips_arrow, _L("The settings of the selected object are shown now. Switch back to Global "
+                                                 "to edit the process preset."));
 
         m_mode_icon = new ScalableButton(m_top_panel, wxID_ANY, "advanced"); // ORCA
         m_mode_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) {
@@ -298,7 +310,7 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
             const int selection = m_mode_view->GetSelection();
             m_mode_view->SelectAndNotify((selection + 1) % 3);
         });
-        m_mode_icon->SetToolTip(_L("Cycle settings visibility"));
+        set_illustrated_tooltip(m_mode_icon, _L("Cycle settings visibility"));
         m_mode_view = new ModeSwitchButton(m_top_panel);
         bool isDevMode = wxGetApp().get_mode() == comDevelop;
         m_mode_view->SetSelection(mode_to_selection(isDevMode ? comExpert : wxGetApp().get_saved_mode()));
@@ -310,11 +322,11 @@ ParamsPanel::ParamsPanel( wxWindow* parent, wxWindowID id, const wxPoint& pos, c
         //m_search_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { wxGetApp().plater()->search(false); });
 
         m_compare_btn = new ScalableButton(m_top_panel, wxID_ANY, "compare", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
-        m_compare_btn->SetToolTip(_L("Compare presets"));
+        set_illustrated_tooltip(m_compare_btn, _L("Compare presets"));
         m_compare_btn->Bind(wxEVT_BUTTON, ([](wxCommandEvent e) { DiffPresetDialog::ensure()->show(); }));
 
         m_setting_btn = new ScalableButton(m_top_panel, wxID_ANY, "table", wxEmptyString, wxDefaultSize, wxDefaultPosition, wxBU_EXACTFIT | wxNO_BORDER, true);
-        m_setting_btn->SetToolTip(_L("View all object's settings"));
+        set_illustrated_tooltip(m_setting_btn, _L("View all object's settings"));
         m_setting_btn->Bind(wxEVT_BUTTON, [](wxCommandEvent &) { wxGetApp().plater()->PopupObjectTable(-1, -1, {0, 0}); });
 
         m_highlighter.set_timer_owner(this, 0);

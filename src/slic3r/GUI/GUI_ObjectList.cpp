@@ -8,6 +8,7 @@
 #include "GUI_App.hpp"
 #include "Shortcuts.hpp"
 #include "I18N.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "Plater.hpp"
 #include "BitmapComboBox.hpp"
 #include "MainFrame.hpp"
@@ -321,14 +322,13 @@ ObjectList::ObjectList(wxWindow* parent) :
     Bind(wxEVT_CHAR, [this](wxKeyEvent& event) { key_event(event); }); // doesn't work on OSX
 #endif
 
-#ifdef __WXMSW__
+    // On every platform: the tooltips are illustrated ones (IllustratedTipPopup), which follow the
+    // cell under the pointer cheaply. The position comes from the event, converted to the control's
+    // coordinates, rather than from wxGetMousePosition(), which Wayland does not report.
     GetMainWindow()->Bind(wxEVT_MOTION, [this](wxMouseEvent& event) {
-        // BBS
-        // this->SetFocus();
-        set_tooltip_for_item(this->get_mouse_position_in_control());
+        set_tooltip_for_item(ScreenToClient(GetMainWindow()->ClientToScreen(event.GetPosition())));
         event.Skip();
     });
-#endif //__WXMSW__
 
     Bind(wxEVT_DATAVIEW_ITEM_CONTEXT_MENU,  &ObjectList::OnContextMenu,     this);
 
@@ -682,9 +682,9 @@ void ObjectList::set_tooltip_for_item(const wxPoint& pt)
      * Just this->SetToolTip(tooltip) => has no effect.
      */
 
-    if (!item || GetSelectedItemsCount() > 1)
+    if (!item || !col || GetSelectedItemsCount() > 1)
     {
-        GetMainWindow()->SetToolTip(""); // hide tooltip
+        hover_illustrated_tooltip(GetMainWindow(), wxRect(), wxEmptyString); // hide tooltip
         return;
     }
 
@@ -721,17 +721,43 @@ void ObjectList::set_tooltip_for_item(const wxPoint& pt)
         if (node->HasSinking())
             tooltip = _(L("Click the icon to shift this object to the bed"));
     }
-    else if (col->GetModelColumn() == (unsigned int)colName && (pt.x >= 2 * wxGetApp().em_unit() && pt.x <= 4 * wxGetApp().em_unit()))
+    else if (col->GetModelColumn() == (unsigned int)colHeight) {
+        if ((node->GetType() & itObject) && node->IsVaribaleHeight() != hiUnVariable)
+            tooltip = _L("This object has a variable layer height. Click the icon to edit it with the variable layer height tool.");
+    }
+    else if (col->GetModelColumn() == (unsigned int)colFilament) {
+        if ((node->GetType() & (itObject | itVolume | itLayer)) && !m_objects_model->GetExtruder(item).IsEmpty())
+            tooltip = (node->GetType() & itLayer) || m_objects_model->GetVolumeType(item) == ModelVolumeType::PARAMETER_MODIFIER ?
+                _L("The filament this modifier or height range prints with. Click to choose another one; default keeps the filament of the object.") :
+                _L("The filament this object or part prints with. Click to choose another one.");
+    }
+    else if (col->GetModelColumn() == (unsigned int)colName)
     {
-        if (const ItemType type = m_objects_model->GetItemType(item);
-            type & (itObject | itVolume)) {
-            int obj_idx = m_objects_model->GetObjectIdByItem(item);
-            int vol_idx = type & itVolume ? m_objects_model->GetVolumeIdByItem(item) : -1;
-            tooltip = get_mesh_errors_info(obj_idx, vol_idx).tooltip;
+        const ItemType type = m_objects_model->GetItemType(item);
+        if (pt.x >= 2 * wxGetApp().em_unit() && pt.x <= 4 * wxGetApp().em_unit()) {
+            if (type & (itObject | itVolume)) {
+                int obj_idx = m_objects_model->GetObjectIdByItem(item);
+                int vol_idx = type & itVolume ? m_objects_model->GetVolumeIdByItem(item) : -1;
+                tooltip = get_mesh_errors_info(obj_idx, vol_idx).tooltip;
+            }
+        }
+        if (tooltip.IsEmpty()) {
+            if (type & itLayerRoot)
+                tooltip = _L("The height ranges of this object that use settings of their own. Select it to add, remove or edit the ranges.");
+            else if (type & itLayer)
+                tooltip = _L("A height range of this object with settings of its own, such as another layer height. "
+                             "Select it to change the range or its settings.");
+            else if (type & itPlate)
+                tooltip = _L("Click to make this plate the current one.");
         }
     }
 
-    GetMainWindow()->SetToolTip(tooltip);
+    // GetItemRect() is in the control's client coordinates; the tooltip belongs to the window that
+    // draws the items, which is the control itself only in the native GTK and macOS implementations.
+    wxRect rect = GetItemRect(item, col);
+    if (GetMainWindow() != this)
+        rect.Offset(-GetMainWindow()->GetPosition());
+    hover_illustrated_tooltip(GetMainWindow(), rect, tooltip);
 }
 
 int ObjectList::get_selected_obj_idx() const
@@ -1661,7 +1687,7 @@ void ObjectList::list_manipulation(const wxPoint& mouse_pos, bool evt_context_me
 	}
 
 #ifndef __WXMSW__
-    GetMainWindow()->SetToolTip(""); // hide tooltip
+    hover_illustrated_tooltip(GetMainWindow(), wxRect(), wxEmptyString); // hide tooltip
 #endif //__WXMSW__
 }
 

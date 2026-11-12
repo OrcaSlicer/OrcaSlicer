@@ -12,6 +12,7 @@
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 
 #include "Search.hpp"
+#include "IllustratedTipPopup.hpp"
 #include "OG_CustomCtrl.hpp"
 
 #include "libslic3r/Config.hpp"
@@ -343,8 +344,8 @@ void Tab::create_preset_tab()
 
     //m_btn_compare_preset->SetToolTip(_L("Compare presets"));
     // TRN "Save current Settings"
-    m_btn_save_preset->SetToolTip(wxString::Format(_L("Save current %s"), m_title));
-    m_btn_delete_preset->SetToolTip(_(L("Delete this preset")));
+    set_illustrated_tooltip(m_btn_save_preset, wxString::Format(_L("Save current %s"), m_title));
+    set_illustrated_tooltip(m_btn_delete_preset, _L("Delete this preset"));
     m_btn_delete_preset->Hide();
 
     /*add_scaled_button(panel, &m_question_btn, "question");
@@ -369,7 +370,7 @@ void Tab::create_preset_tab()
     add_scaled_button(m_top_panel, &m_undo_btn,        m_bmp_white_bullet.name());
     //add_scaled_button(m_top_panel, &m_undo_to_sys_btn, m_bmp_white_bullet.name());
     add_scaled_button(m_top_panel, &m_btn_search,      "search");
-    m_btn_search->SetToolTip(_L("Search in preset"));
+    set_illustrated_tooltip(m_btn_search, _L("Search in preset"));
 
     //search input
     m_search_item = new StaticBox(m_top_panel);
@@ -389,6 +390,9 @@ void Tab::create_preset_tab()
     m_search_input->SetFont(wxGetApp().bold_font());
     m_search_input->SetIcon(*BitmapCache().load_svg("search", FromDIP(16), FromDIP(16)));
     m_search_input->GetTextCtrl()->SetHint(_L("Search in preset") + dots);
+    set_illustrated_tooltip(m_search_input->GetTextCtrl(),
+                            _L("Type part of a setting's name to list the matching settings of this preset. "
+                               "Pick one to go to it."));
     search_sizer->Add(new wxWindow(m_search_item, wxID_ANY, wxDefaultPosition, wxSize(0, 0)), 0, wxEXPAND|wxLEFT|wxRIGHT, FromDIP(2));
     search_sizer->Add(m_search_input, 1, wxEXPAND | wxALL, FromDIP(2));
     //bbl for linux
@@ -482,7 +486,7 @@ void Tab::create_preset_tab()
 
     if (dynamic_cast<TabPrint*>(this) == nullptr) {
         m_mode_icon = new ScalableButton(m_top_panel, wxID_ANY, "advanced"); // ORCA
-        m_mode_icon->SetToolTip(_L("Cycle settings visibility"));
+        set_illustrated_tooltip(m_mode_icon, _L("Cycle settings visibility"));
         m_mode_icon->Bind(wxEVT_BUTTON, [this](wxCommandEvent e) {
             if (wxGetApp().get_mode() == comDevelop || m_mode_view == nullptr)
                 return; // prevent change on dev mode
@@ -561,10 +565,10 @@ void Tab::create_preset_tab()
     auto create_extruder_sync = [this, panel]() {
         m_extruder_sync_box = new wxPanel(panel, wxID_ANY);
         m_extruder_sync_box->SetBackgroundColour(panel->GetBackgroundColour());
-        m_extruder_sync_box->SetToolTip(_L("Synchronization of different extruder drives or nozzle volume types is not supported."));
+        set_illustrated_tooltip(m_extruder_sync_box, _L("Synchronization of different extruder drives or nozzle volume types is not supported."));
         m_extruder_sync = nullptr;
         add_scaled_button(m_extruder_sync_box, &m_extruder_sync, "extruder_sync");
-        m_extruder_sync->SetToolTip(_L("Synchronize the modification of parameters to the corresponding parameters of another extruder."));
+        set_illustrated_tooltip(m_extruder_sync, _L("Synchronize the modification of parameters to the corresponding parameters of another extruder."));
         m_extruder_sync->Bind(wxEVT_BUTTON, [this](auto &evt) {
             evt.Skip();
             sync_excluder();
@@ -596,7 +600,7 @@ void Tab::create_preset_tab()
 
         ScalableButton* icon = nullptr;
         add_scaled_button(panel, &icon, "multi_extruder");
-        icon->SetToolTip(_L("Parameters with this icon can be configured per nozzle."));
+        set_illustrated_tooltip(icon, _L("Parameters with this icon can be configured per nozzle."));
 
         m_variant_sizer  = new wxBoxSizer(wxHORIZONTAL);
         auto right_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -1519,7 +1523,7 @@ void Tab::update_undo_buttons()
     m_undo_btn->        SetBitmap_(m_presets->get_edited_preset().is_dirty ? m_bmp_value_revert: m_bmp_white_bullet);
     //m_undo_to_sys_btn-> SetBitmap_(m_is_nonsys_values   ? *m_bmp_non_system : m_bmp_value_lock);
 
-    m_undo_btn->SetToolTip(m_presets->get_edited_preset().is_dirty ? _L("Click to reset all settings to the last saved preset.") : m_ttg_white_bullet);
+    set_illustrated_tooltip(m_undo_btn, m_presets->get_edited_preset().is_dirty ? _L("Click to reset all settings to the last saved preset.") : m_ttg_white_bullet);
     //m_undo_to_sys_btn->SetToolTip(m_is_nonsys_values ? *m_ttg_non_system : m_ttg_value_lock);
 }
 
@@ -7423,6 +7427,27 @@ void Tab::load_current_preset()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<<boost::format(": exit");
 }
 
+// What a page of the Process settings holds, for the tooltip of its tab. Keyed by the untranslated title.
+static wxString print_page_tooltip(const wxString &title)
+{
+    if (title == "Quality")
+        return _L("Layer height, line widths, seams, ironing, walls and surfaces, bridges and overhangs: "
+                  "the settings that decide how the surface of the print looks.");
+    if (title == "Strength")
+        return _L("Walls, top and bottom shells and infill: how much material goes into the part and how strong it is.");
+    if (title == "Speed")
+        return _L("Print speed for each kind of line, overhang slowdown, travel speed, acceleration and jerk.");
+    if (title == "Support")
+        return _L("Supports and raft: where supports are placed, their style, the filament they use and how they separate "
+                  "from the part.");
+    if (title == "Multimaterial")
+        return _L("Prime tower, the filament used for each feature, ooze prevention and flushing, for prints with more than "
+                  "one filament.");
+    if (title == "Others")
+        return _L("Skirt, brim, special modes such as spiral vase, fuzzy skin, and G-code output and post-processing.");
+    return {};
+}
+
 //Regerenerate content of the page tree.
 void Tab::rebuild_page_tree()
 {
@@ -7450,6 +7475,8 @@ void Tab::rebuild_page_tree()
         } else {
             m_tabctrl->SetItemText(curr_item, translate_category(p->title(), m_type));
         }
+        if (m_type == Preset::TYPE_PRINT || m_type == Preset::TYPE_MODEL)
+            set_illustrated_tooltip(m_tabctrl->GetItemButton(curr_item), print_page_tooltip(p->title()));
         m_tabctrl->SetItemTextColour(curr_item, p->get_item_colour() == m_modified_label_clr ? p->get_item_colour() : StateColor(
                         std::make_pair(0x6B6B6C, (int) StateColor::NotChecked),
                         std::make_pair(p->get_item_colour(), (int) StateColor::Normal)));
@@ -9560,6 +9587,8 @@ void Tab::compatible_widget_reload(PresetDependencies &deps)
 
 void Tab::set_tooltips_text()
 {
+    // The strings left commented out stay empty on purpose: the icons they describe ("dot" and
+    // "unlock_normal") are blank, so a tooltip would pop up over empty space next to a field.
     // --- Tooltip text for reset buttons (for whole options group)
     // Text to be shown on the "Revert to system" aka "Lock to system" button next to each input field.
     //m_ttg_value_lock =		_(L("LOCKED LOCK icon indicates that the settings are the same as the system (or default) values "
