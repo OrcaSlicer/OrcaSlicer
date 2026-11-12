@@ -1,0 +1,212 @@
+# The builds a pull request gets only when asked for. build_all.yml leaves them
+# out of pull requests and builds them on every push to main: the Flatpak is
+# the slowest Linux leg, a macOS x86_64 build holds one of the few hosted macOS
+# runners for an hour, and Windows arm64 doubles the Windows legs.
+#
+# A label asks for one, from the moment it is added and on every later push to
+# the pull request: build-flatpak, build-macos-x86_64, build-windows-arm64,
+# build-windows-msvc. build-all asks for the first three, the builds every pull
+# request once got; the MSVC build is another compiler's, never a build a pull
+# request got, and the first one builds the deps too, so it stays label-only.
+# Removing and adding a label again rebuilds the same commit.
+#
+# A pull request that changes anything but sources, tests, profiles,
+# translations and docs builds the Flatpak and Windows arm64 without a label:
+# what breaks only those legs lives in deps/, cmake/, the build scripts and the
+# workflows, and a list of those places would go stale, so the safe places are
+# listed instead. The macOS and the cl.exe builds never start on their own:
+# what breaks only cl comes from source changes, which no path rule can see.
+#
+# Each label added starts a run of its own, and the pull request's checks show
+# the newest run only, so every run builds everything the labels and the
+# changed files ask for. Each build keeps its own concurrency group: the newest
+# run's build cancels the one an earlier run of the commit started, and a push
+# cancels the builds of the commit it replaces. cancel_closed_pr_builds.yml
+# joins the groups by name, so update that file with any change here.
+name: Optional builds
+
+on:
+  pull_request:
+    branches:
+     - main
+     - release/*
+    # Build all's pull_request paths, plus the Flatpak packaging: a pull request
+    # that Build all skips has nothing for these builds to check either, and
+    # the filter applies to labeled too. Keep the two lists in step.
+    paths:
+     - 'deps/**'
+     - 'deps_src/**'
+     - 'cmake/**'
+     - 'src/**'
+     - '**/CMakeLists.txt'
+     - 'version.inc'
+     - ".github/workflows/build_*.yml"
+     - ".github/workflows/unit_tests*.yml"
+     - 'build_linux.sh'
+     - 'build_win.bat'
+     - 'scripts/test_build_win.ps1'
+     - 'scripts/check_exception_throw_info.ps1'
+     - 'scripts/test_check_exception_throw_info.ps1'
+     - 'build_release_macos.sh'
+     - 'scripts/build_preset_cache.*'
+     - 'scripts/prune_cached_presets.ps1'
+     - 'scripts/test_prune_cached_presets.ps1'
+     - 'scripts/flatpak/**'
+     - 'scripts/msix/**'
+     - 'tests/**'
+    # labeled, so adding a label starts the build it asks for.
+    types: [opened, reopened, synchronize, labeled]
+
+jobs:
+  select:
+    name: Select builds
+    runs-on: ubuntu-24.04
+    outputs:
+      flatpak: ${{ steps.select.outputs.flatpak }}
+      macos-x86_64: ${{ steps.select.outputs.macos-x86_64 }}
+      windows-arm64: ${{ steps.select.outputs.windows-arm64 }}
+      windows-msvc: ${{ steps.select.outputs.windows-msvc }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          lfs: 'false'
+          # The merge commit plus its first parent, the base it is diffed against.
+          fetch-depth: 2
+          sparse-checkout: .github/workflows
+      - name: Select the builds the labels and the changed files ask for
+        id: select
+        env:
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+        run: |
+          has_label() { [[ " $LABELS " == *" $1 "* ]]; }
+          infra=false
+          changed=$(git diff --name-only HEAD^1 HEAD \
+            | grep -vE '^(src|tests|resources|localization|docs)/' | grep -vE '\.md$' || true)
+          if [ -n "$changed" ]; then
+            echo "This pull request changes files outside the sources, tests, profiles, translations and docs:"
+            echo "$changed" | head -20
+            infra=true
+          fi
+          # pick <output> <label> <on an infra change> [<part of build-all>]
+          pick() {
+            local build=$1 label=$2 auto=$3 all=${4:-true} on=false
+            if has_label "$label" || { [ "$all" = true ] && has_label build-all; } \
+               || { [ "$auto" = true ] && [ "$infra" = true ]; }; then
+              on=true
+            fi
+            echo "$build=$on" >> "$GITHUB_OUTPUT"
+            echo "$build: $on"
+          }
+          pick flatpak build-flatpak true
+          pick macos-x86_64 build-macos-x86_64 false
+          pick windows-arm64 build-windows-arm64 true
+          pick windows-msvc build-windows-msvc false false
+
+  flatpak:
+    name: Flatpak
+    needs: select
+    # Skipped on self-hosted runners, as in build_all.yml.
+    if: ${{ needs.select.outputs.flatpak == 'true' && !vars.SELF_HOSTED }}
+    concurrency:
+      group: build-optional-flatpak-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    uses: ./.github/workflows/build_flatpak.yml
+    secrets: inherit
+
+  # Named like build_all.yml's job, so scripts/ci_macos_admission.py and
+  # scripts/ci_deps_cache.sh find its jobs, and the pull request waits in the
+  # macOS line like any other.
+  build_macos_arch:
+    needs: select
+    if: ${{ needs.select.outputs.macos-x86_64 == 'true' }}
+    strategy:
+      matrix:
+        arch:
+          - x86_64
+    concurrency:
+      group: build-optional-macos-${{ matrix.arch }}-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
+      arch: ${{ matrix.arch }}
+    secrets: inherit
+
+  # build_all.yml has already run the build script's test suite for this
+  # commit, before its Windows x64 build. Skipped on self-hosted runners, as
+  # there (the self-hosted Windows server is x64-only).
+  build_windows_arm64:
+    name: Build Windows arm64
+    needs: select
+    if: ${{ needs.select.outputs.windows-arm64 == 'true' && !vars.SELF_HOSTED }}
+    concurrency:
+      group: build-optional-windows-arm64-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: windows-11-vs2026-arm
+      arch: arm64
+      compiler: clang
+    secrets: inherit
+  unit_tests_windows_arm64:
+    name: Windows arm64
+    needs: build_windows_arm64
+    if: ${{ !cancelled() && success() }}
+    # The build's group, free once the build finished, so a newer build of this
+    # pull request cancels these tests too.
+    concurrency:
+      group: build-optional-windows-arm64-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: windows-11-vs2026-arm
+      artifact: ${{ github.sha }}-tests-windows-arm64
+      test-dir: build-arm64/tests
+
+  # A cl.exe build of x64, for what clang-cl, the compiler that ships, does
+  # not catch. Its portable build, installer and PDB upload under _msvc names;
+  # nothing deploys. No push build saves a cl deps cache, so the first build
+  # on a pull request builds the deps too; later builds on the same pull
+  # request restore them.
+  build_windows_msvc:
+    name: Build Windows x64 MSVC
+    needs: select
+    if: ${{ needs.select.outputs.windows-msvc == 'true' && !vars.SELF_HOSTED }}
+    concurrency:
+      group: build-optional-windows-msvc-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    uses: ./.github/workflows/build_check_cache.yml
+    with:
+      os: windows-latest
+      arch: x64
+      compiler: msvc
+    secrets: inherit
+
+  publish_test_results:
+    name: Publish Test Results
+    needs: [flatpak, unit_tests_windows_arm64]
+    if: ${{ !cancelled() && (needs.flatpak.result != 'skipped' || needs.unit_tests_windows_arm64.result != 'skipped') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Test Results
+        uses: actions/download-artifact@v8
+        with:
+          pattern: test-results-*
+          path: test-results
+      # Best-effort, as in build_all.yml: a read-only token (e.g. fork PRs)
+      # can't write the check. The test jobs gate correctness.
+      - name: Publish Test Results
+        continue-on-error: true
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          # Its own check, next to the one build_all.yml publishes for the
+          # same commit.
+          check_name: Optional Test Results
+          files: "test-results/**/*.xml"
+      - name: Delete Test Results
+        if: success()
+        uses: geekyeggo/delete-artifact@v6
+        with:
+          name: test-results-*
+          failOnError: false

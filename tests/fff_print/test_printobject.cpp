@@ -35,6 +35,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include "libslic3r/ExPolygon.hpp"
@@ -462,11 +463,20 @@ TEST_CASE("Surface centering survives changes to separated infill settings", "[P
     print.process();
     const auto resliced = surface_fills(print);
 
-    Print fresh_print;
-    Model fresh_model;
-    init_print({mesh}, fresh_print, fresh_model, config, nullptr, false);
-    fresh_print.process();
-    const auto fresh = surface_fills(fresh_print);
+    // The fresh slice depends only on the final settings, which several combinations share,
+    // so slice each set once. The resliced paths must match it exactly, so slicing is deterministic.
+    using FreshKey = std::tuple<std::string, std::string, bool, std::string, std::string>;
+    static std::map<FreshKey, decltype(surface_fills(print))> fresh_slices;
+    const FreshKey fresh_key{pattern, final_center, separated, top_order, density};
+    auto fresh_it = fresh_slices.find(fresh_key);
+    if (fresh_it == fresh_slices.end()) {
+        Print fresh_print;
+        Model fresh_model;
+        init_print({mesh}, fresh_print, fresh_model, config, nullptr, false);
+        fresh_print.process();
+        fresh_it = fresh_slices.emplace(fresh_key, surface_fills(fresh_print)).first;
+    }
+    const auto &fresh = fresh_it->second;
     REQUIRE_FALSE(fresh.empty());
     REQUIRE(resliced.size() == fresh.size());
     std::set<ExtrusionRole> roles;

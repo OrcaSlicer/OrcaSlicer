@@ -100,6 +100,7 @@
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "slic3r/GUI/Widgets/DialogButtons.hpp"
 #include "slic3r/GUI/MsgDialog.hpp"
+#include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/Widgets/StaticBox.hpp"         // Prepare's rounded white card frame around each tool dialog
 #include "libslic3r/CAD/SketchImport.hpp"    // text_to_regions / svg_to_regions
 #include "libslic3r/CAD/ThreadStandards.hpp" // ISO metric / Unified imperial thread tables
@@ -110,6 +111,7 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/format.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -1090,7 +1092,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // nothing) while the line stayed — the reported "I click a line and cannot remove it".
         m_verb_actions["btn:sk_delete"] = [this] {
             if (m_viewport && m_viewport->is_sketching())
-                m_viewport->delete_selected_sketch_entities();
+                delete_sketch_selection();
             else
                 on_delete_feature();
         };
@@ -1526,7 +1528,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         add_sep(m_tb_sketch);
         auto* b_del = icon_btn("design_delete", _L("Delete selected"));
         b_del->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-            if (m_viewport) m_viewport->delete_selected_sketch_entities(); });
+            delete_sketch_selection(); });
         sadd_bar(b_del);   // keep-list: Delete selected stays on the bar
         // Finish sketch = the unified ✓ Confirm in the action bar (tool_confirm).
     }
@@ -3095,16 +3097,43 @@ DesignPanel::DesignPanel(wxWindow* parent)
     }
     cards->Add(m_box_sketch_session, 0, wxEXPAND);
 
-    // --- Constraint-manager card (C3.4): list of the constrained sketch's
-    //     entity-constraints; each row selects (highlights) + deletes. Shown only
-    //     in Constrain mode; rebuilt by rebuild_constraint_list().
+    // --- Constraint-manager card (C3.4): the open sketch's constraints, one row each, laid out
+    //     as the Feature tree's rows are: the constraint's icon and name, then Zoom to selection
+    //     and Delete. A row and the constraint's badge on the canvas are one selection. Shown
+    //     while a sketch is open and in Constrain mode; rebuilt by rebuild_constraint_list().
     m_box_constraints = new wxBoxSizer(wxVERTICAL);
     m_box_constraints->Add(card_header(m_cards, "design_constrain", _L("Constraints"), m_hdr_constraints),
                            0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_constraints->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
-    m_constraint_rows = new wxBoxSizer(wxVERTICAL);
-    m_box_constraints->Add(m_constraint_rows, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 12);
+    m_constraints_none = new wxStaticText(m_cards, wxID_ANY, _L("No constraints yet"));
+    m_constraints_none->SetForegroundColour(dp_sec_text());
+    m_box_constraints->Add(m_constraints_none, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
+    m_constraint_list = new DesignRowList(m_cards, 8);   // scrolls past 8
+    m_constraint_list->SetBackgroundColour(dp_panel_bg());
+    m_box_constraints->Add(m_constraint_list, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 12);
     cards->Add(m_box_constraints, 0, wxEXPAND);
+    // A row picked here selects its constraint on the canvas, whose report of the change
+    // (on_constraint_selected) finds the list already on that row.
+    m_constraint_list->on_select = [this] {
+        if (m_viewport) m_viewport->select_sketch_constraint(m_constraint_list->selection());
+    };
+    m_constraint_list->on_action = [this](int row, int id) {
+        switch (id) {
+        case RowZoom:   zoom_to_constraint(row); break;
+        case RowDelete: delete_constraint(row);  break;
+        }
+    };
+    m_constraint_list->on_menu = [this](int row, const wxPoint& screen) {
+        wxMenu    menu;
+        const int id_zoom = wxWindow::NewControlId();
+        const int id_del  = wxWindow::NewControlId();
+        menu.Append(id_zoom, _L("Zoom to selection"));
+        menu.AppendSeparator();
+        menu.Append(id_del, _L("Delete constraint"));
+        menu.Bind(wxEVT_MENU, [this, row](wxCommandEvent&) { zoom_to_constraint(row); }, id_zoom);
+        menu.Bind(wxEVT_MENU, [this, row](wxCommandEvent&) { delete_constraint(row); }, id_del);
+        m_constraint_list->PopupMenu(&menu, m_constraint_list->ScreenToClient(screen));
+    };
 
     // Wrap every card label now that the whole stack exists. wxStaticText never wraps on its
     // own, so a one-sentence help line under a card sets that card's sizer min width to the
@@ -3592,6 +3621,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_viewport->set_on_sketch_constraints_changed([this]() {
         CallAfter([this]() { rebuild_constraint_list(); });
     });
+    // A badge clicked on the canvas, or a selection dropped there, moves the list with it.
+    m_viewport->set_on_sketch_constraint_selected([this](int con) { on_constraint_selected(con); });
 
     // DoF feedback (P3): after each live solve, report constraint state on its own
     // line. Green = fully constrained, red = conflicting, neutral = N remaining DoF.
@@ -4287,9 +4318,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Focus-independent, same reason as undo above.
         // WXK_BACK too: on a keyboard whose Del is a chord (every laptop this runs on), Del is
         // the one destructive key nobody can reach, and Backspace is what users press. oql1.
-        if (!in_text && (key == WXK_DELETE || (key == WXK_BACK && sketching))) {
-            if (sketching) {
-                if (!m_viewport->delete_selected_sketch_entities())
+        // In Constrain mode the selection is the constraint picked in the list or on the canvas.
+        const bool constraining = m_ui_mode == UiMode::Constrain && m_viewport && m_viewport->is_sketching();
+        if (!in_text && (key == WXK_DELETE || (key == WXK_BACK && (sketching || constraining)))) {
+            if (sketching || constraining) {
+                if (!delete_sketch_selection())
                     set_status(_L("Select something to delete"));
                 return;
             }
@@ -4536,11 +4569,21 @@ void DesignPanel::set_ui_mode(UiMode m)
     m_toolbar->Layout();
     m_toolbar->FitInside();   // refresh the horizontal scroll range for the new group widths
     set_active_tool_btn(nullptr);   // no tool selected right after a mode switch
+    // The sketch the session works on: one reopened for editing goes by its own name, a new one by
+    // the number its commit will give it (feature_name()).
+    const bool     reopened    = m == UiMode::Sketch && m_edit_index >= 0 && m_edit_index < int(m_doc.features.size()) &&
+                                 m_doc.features[m_edit_index].type == CadFeatureType::Sketch;
+    const wxString sketch_name = reopened ? wxString::FromUTF8(m_doc.features[m_edit_index].name)
+                                          : wxString::Format(_L("Sketch %d"), m_feature_counter + 1);
     // Phase 3: the docked Sketch card (plane/orientation) shows for the whole Sketch
     // session and hides on Finish/Constrain.
     if (m_box_sketch_session != nullptr && m_form != nullptr && m_cards->GetSizer() != nullptr) {
         if (m == UiMode::Sketch && m_hdr_sketch_session != nullptr)
-            m_hdr_sketch_session->SetLabel(wxString::Format(_L("Sketch %d"), m_feature_counter + 1));
+            m_hdr_sketch_session->SetLabelText(sketch_name);   // a name may hold an &, which SetLabel takes for a mnemonic
+        // The hint names a new sketch's plane (start_sketch_on_target, after this); a reopened
+        // sketch would otherwise show the plane of whichever new sketch came last.
+        if (m == UiMode::Sketch && m_sketch_hint != nullptr)
+            m_sketch_hint->SetLabel(_L("Pick a tool, or press Menu for the list."));
         m_cards->GetSizer()->Show(m_box_sketch_session, m == UiMode::Sketch, true);
         update_cards_frame(); m_form->Layout();
         m_form->FitInside();
@@ -4571,10 +4614,14 @@ void DesignPanel::set_ui_mode(UiMode m)
     if (m_sketch_banner != nullptr) {
         const bool sketching = (m == UiMode::Sketch);
         if (sketching && m_sketch_banner_txt != nullptr)
-            m_sketch_banner_txt->SetLabel(
-                wxString::Format(_L("Editing: Sketch %d   ·   N = look normal to the plane   ·   "
-                                    "Confirm or Cancel in the toolbar"),
-                                 m_feature_counter + 1));
+            m_sketch_banner_txt->SetLabelText(reopened
+                // TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+                ? format_wxstr(_L("Editing: %1%   ·   N = look normal to the plane   ·   "
+                                  "Confirm or Cancel in the toolbar"),
+                               sketch_name)
+                : wxString::Format(_L("Editing: Sketch %d   ·   N = look normal to the plane   ·   "
+                                      "Confirm or Cancel in the toolbar"),
+                                   m_feature_counter + 1));
         m_sketch_banner->Show(sketching);
         m_sketch_banner->GetParent()->Layout();
     }
@@ -6602,7 +6649,7 @@ void DesignPanel::on_sketch_step(int mode, int step, int picks)
     // only once a constraint exists, so it never advertises a badge that is not on screen.
     if (DesignSketchTool::Mode(mode) == DesignSketchTool::Mode::Select && m_viewport != nullptr &&
         m_viewport->sketch_constraint_count() > 0 && !text.IsEmpty())
-        text += _L("  ·  click a constraint badge to remove it");
+        text += _L("  ·  click a constraint badge to select it");
     m_sketch_step = text;
     if (text.IsEmpty() || m_status == nullptr) return;
     set_status(StatusKind::Info, text);
@@ -7405,6 +7452,7 @@ void DesignPanel::on_sys_color_changed()
     refresh_icons();
     refresh_tree();   // the rows carry their own text colours
     refresh_pinned();
+    rebuild_constraint_list();
     Refresh();
 }
 
@@ -8671,83 +8719,123 @@ bool DesignPanel::live_constraint_scope() const
            !m_viewport->is_constraining() && !m_viewport->is_constraining_entities();
 }
 
-// Rebuild the constraint-row list. Source depends on scope: a LIVE sketch session owns its
+// The icon the Constrain toolbar shows for a constraint of type `t`.
+static const char* constraint_icon(SketchConstraintType t)
+{
+    using T = SketchConstraintType;
+    switch (t) {
+    case T::Fix:             return "design_c_fix";
+    case T::Coincident:
+    case T::PointOnLine:
+    case T::PointOnObject:   return "design_c_coincident";
+    case T::Horizontal:      return "design_c_horizontal";
+    case T::Vertical:        return "design_c_vertical";
+    case T::Distance:        return "design_dimension";
+    case T::LockX:
+    case T::DistanceX:       return "design_c_dist_x";
+    case T::LockY:
+    case T::DistanceY:       return "design_c_dist_y";
+    case T::EqualLength:     return "design_c_equal";
+    case T::EqualRadius:     return "design_c_equal_radius";
+    case T::Parallel:        return "design_c_parallel";
+    case T::Perpendicular:   return "design_c_perpendicular";
+    case T::Collinear:       return "design_c_collinear";
+    case T::Concentric:      return "design_c_concentric";
+    case T::Tangent:         return "design_c_tangent";
+    case T::Midpoint:        return "design_c_midpoint";
+    case T::Symmetric:       return "design_c_symmetric";
+    case T::SymmetricAboutY: return "design_c_sym_v";
+    case T::SymmetricAboutX: return "design_c_sym_h";
+    case T::Angle:           return "design_c_angle";
+    case T::Radius:          return "design_c_radius";
+    case T::Diameter:        return "design_c_diameter";
+    }
+    return "design_constrain";
+}
+
+const std::vector<SketchEntityConstraintDef>& DesignPanel::shown_constraints() const
+{
+    static const std::vector<SketchEntityConstraintDef> none;
+    if (live_constraint_scope())
+        return m_viewport->sketch_constraints();
+    if (m_constrain_feat >= 0 && m_constrain_feat < int(m_doc.features.size()))
+        return m_doc.features[m_constrain_feat].entity_constraints;
+    return none;
+}
+
+// Refill the constraint rows. Source depends on scope: a LIVE sketch session owns its
 // constraints inside the sketch tool and has no committed feature yet, so the list read only
 // the feature's and stayed empty for the whole session — constraints applied while drawing had
 // no row, no ✗, and no name anywhere in the UI.
 void DesignPanel::rebuild_constraint_list()
 {
-    if (m_constraint_rows == nullptr || m_form == nullptr)
+    if (m_constraint_list == nullptr || m_form == nullptr)
         return;
-    m_constraint_rows->Clear(true /* delete windows */);
-    m_constraint_sel = -1;
-
-    const bool live   = live_constraint_scope();
-    const bool active = (m_constrain_feat >= 0 && m_constrain_feat < int(m_doc.features.size()));
-    const std::vector<SketchEntityConstraintDef> empty;
-    const std::vector<SketchEntityConstraintDef>& cons =
-        live   ? m_viewport->sketch_constraints()
-      : active ? m_doc.features[m_constrain_feat].entity_constraints : empty;
+    const bool live = live_constraint_scope();
+    const std::vector<SketchEntityConstraintDef>& cons = shown_constraints();
 
     if (m_hdr_constraints)
         m_hdr_constraints->SetLabel(wxString::Format(_L("Constraints (%d)"), int(cons.size())));
-
-    if (cons.empty()) {
-        auto* none = new wxStaticText(m_cards, wxID_ANY, _L("No constraints yet"));
-        none->SetForegroundColour(dp_sec_text());
-        m_constraint_rows->Add(none, 0, wxTOP, 4);
+    std::vector<DesignRowList::Row> rows;
+    rows.reserve(cons.size());
+    for (const SketchEntityConstraintDef& d : cons) {
+        DesignRowList::Row row;
+        row.icon    = constraint_icon(d.type);
+        row.label   = constraint_label(d);
+        row.colour  = dp_item_text();
+        row.actions = { { RowZoom, "design_zoom", _L("Zoom to selection") },
+                        { RowDelete, "design_delete", _L("Delete constraint") } };
+        rows.push_back(std::move(row));
     }
-    for (int i = 0; i < int(cons.size()); ++i) {
-        auto* row = new wxBoxSizer(wxHORIZONTAL);
-        // Delete button first (fixed left position, always visible — long labels can
-        // horizontally scroll but ✗ stays put and clickable).
-        auto* del = sidebar_icon_btn(m_cards, "design_delete", _L("Delete constraint"), 16);
-        // After the click: deleting rebuilds these rows, and with them this button, which must
-        // not be destroyed while its own click is still being dispatched.
-        del->Bind(wxEVT_BUTTON, [this, i](wxCommandEvent&) { CallAfter([this, i] { delete_constraint(i); }); });
-        // Clickable label: selecting it highlights the referenced entities.
-        auto* lbl = new wxStaticText(m_cards, wxID_ANY, constraint_label(cons[i]));
-        lbl->SetCursor(wxCursor(wxCURSOR_HAND));
-        lbl->Bind(wxEVT_LEFT_UP, [this, i](wxMouseEvent&) { highlight_constraint_entities(i); });
-        row->Add(del, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-        row->Add(lbl, 1, wxALIGN_CENTER_VERTICAL);
-        m_constraint_rows->Add(row, 0, wxEXPAND | wxTOP, 2);
-    }
+    m_constraint_list->set_rows(std::move(rows));
 
-    // Feed the same list to the viewport for the on-sketch glyph badges (C3.4b).
-    if (m_viewport)
+    // Feed the same list to the viewport for the on-sketch glyph badges (C3.4b), then put the
+    // list back on the constraint the canvas still has selected.
+    if (m_viewport) {
         m_viewport->set_constraint_glyphs(cons);
+        m_constraint_list->select(m_viewport->selected_sketch_constraint());
+    }
 
-    m_cards->GetSizer()->Show(m_box_constraints,
-                              m_ui_mode == UiMode::Constrain || live, true);
+    m_cards->GetSizer()->Show(m_box_constraints, m_ui_mode == UiMode::Constrain || live, true);
+    m_constraints_none->Show(cons.empty());
+    m_constraint_list->Show(!cons.empty());
     update_cards_frame(); m_form->Layout();
     m_form->FitInside();
 }
 
-// Push the entities referenced by constraint `idx` to the viewport as a yellow
-// highlight (toggle off if the same row is clicked again).
-void DesignPanel::highlight_constraint_entities(int idx)
+// The canvas's selected constraint changed, from a badge click, the list, or the selection
+// dropped: move the list's selection with it and name the constraint on the status line.
+void DesignPanel::on_constraint_selected(int con)
 {
-    if (!m_viewport)
+    if (m_constraint_list == nullptr)
         return;
-    const bool live = live_constraint_scope();
-    if (!live && (m_constrain_feat < 0 || m_constrain_feat >= int(m_doc.features.size())))
+    m_constraint_list->select(con);
+    const std::vector<SketchEntityConstraintDef>& cons = shown_constraints();
+    if (con >= 0 && con < int(cons.size()))
+        // TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+        set_status(StatusKind::Info, format_wxstr(_L("%1% selected — Delete removes it"), constraint_label(cons[con])));
+}
+
+void DesignPanel::zoom_to_constraint(int con)
+{
+    const std::vector<SketchEntityConstraintDef>& cons = shown_constraints();
+    if (m_viewport == nullptr || con < 0 || con >= int(cons.size()))
         return;
-    const auto& cons = live ? m_viewport->sketch_constraints()
-                            : m_doc.features[m_constrain_feat].entity_constraints;
-    if (idx < 0 || idx >= int(cons.size()))
-        return;
-    if (m_constraint_sel == idx) {     // second click clears
-        m_constraint_sel = -1;
-        m_viewport->set_constraint_highlight({});
-        return;
+    if (!m_viewport->zoom_to_box(m_viewport->sketch_constraint_box(con)))
+        set_status(StatusKind::Info, wxString::Format(_L("%s has nothing on show to zoom to"), constraint_label(cons[con])));
+}
+
+// Delete what the open sketch has selected: the picked geometry, or the selected constraint.
+bool DesignPanel::delete_sketch_selection()
+{
+    if (m_viewport == nullptr)
+        return false;
+    const int con = m_viewport->selected_sketch_constraint();
+    if (con >= 0) {
+        delete_constraint(con);
+        return true;
     }
-    m_constraint_sel = idx;
-    const SketchEntityConstraintDef& d = cons[idx];
-    std::vector<int> ents;
-    for (int e : { d.ea, d.eb, d.ec })
-        if (e >= 0) ents.push_back(e);
-    m_viewport->set_constraint_highlight(std::move(ents));
+    return m_viewport->delete_selected_sketch_entities();
 }
 
 // Drop constraint `idx`, re-solve the feature, and refresh viewport + list + DoF.
@@ -8776,7 +8864,6 @@ void DesignPanel::delete_constraint(int idx)
     m_doc.recompute();
     sync_recipe_to_model();       // the removal is part of the recipe
     update_undo_redo_buttons();
-    m_viewport->set_constraint_highlight({});
     m_viewport->update_constrain_entities(m_doc.features[m_constrain_feat].entities);
     if (!m_doc.display_mesh.its.indices.empty())
         feed_bodies();
@@ -9491,7 +9578,7 @@ void DesignPanel::after_edit_op()
     if (m_constrain_feat < 0 || m_constrain_feat >= int(m_doc.features.size()) || !m_viewport)
         return;
     m_doc.recompute();
-    m_viewport->set_constraint_highlight({});   // entity indices may have shifted
+    m_viewport->select_sketch_constraint(-1);   // entity indices may have shifted
     m_viewport->update_constrain_entities(m_doc.features[m_constrain_feat].entities);
     // Refresh the committed-sketch overlay too: it caches the entity list at
     // constrain-entry, so a relocating edit (Move/Trim/Extend) would otherwise
@@ -9994,11 +10081,13 @@ void DesignPanel::on_edit_feature()
             // toolbar + session card), NOT the legacy parametric card. The commit handler
             // replaces this feature in place (see m_edit_index). Hide its display overlay
             // so the live tool is the only copy drawn.
-            set_ui_mode(UiMode::Sketch);
             if (m_viewport) {
                 m_viewport->set_display_sketches({});
                 m_viewport->edit_sketch(f.entities, f.entity_constraints, f.plane);
             }
+            // After the session opens, as a new sketch does (start_sketch_on_target): the mode
+            // change fills the sidebar's Constraints card from the live session.
+            set_ui_mode(UiMode::Sketch);
             set_status(StatusKind::Info, _L("Editing sketch — drag a handle or double-click a dimension to edit it"));
         } else {
             load_feature_into_dialog(f);

@@ -40,6 +40,10 @@
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/AnimatedTexture.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
+#include <functional>
+#include <wx/defs.h>
+#include <wx/gdicmn.h>
+#include <wx/mousestate.h>
 
 namespace Slic3r::GUI {
 
@@ -889,6 +893,41 @@ wxWindow *side_column(wxWindow *owner)
     return column;
 }
 
+// The controls of a page that spans its window (a settings page in its own window, a dialog's page)
+// stand in a column at its left, with free space to their right: the screen rectangle of that column,
+// from the first ancestor of the control that spans most of the window to the right edge of the
+// narrow windows in it, or an empty one when there is no such ancestor. Wide windows in the page (a
+// G-code editor, a separator line) do not count, so the column ends where the fields do.
+wxRect content_column(wxWindow *owner)
+{
+    wxWindow *top = wxGetTopLevelParent(owner);
+    if (top == nullptr)
+        return {};
+    const int top_width = top->GetClientSize().x;
+    wxWindow *page      = nullptr;
+    for (wxWindow *w = owner->GetParent(); w != nullptr && w != top; w = w->GetParent())
+        if (w->GetSize().x * 5 >= top_width * 3) {
+            page = w;
+            break;
+        }
+    if (page == nullptr)
+        return {};
+    const wxRect page_rect = page->GetScreenRect();
+    int          right     = page_rect.x;
+    std::function<void(wxWindow *)> walk = [&](wxWindow *w) {
+        for (wxWindow *child : w->GetChildren()) {
+            if (!child->IsShown() || child->IsTopLevel())
+                continue;
+            const wxRect r = child->GetScreenRect();
+            if (r.width * 5 < page_rect.width * 3 && page_rect.Contains(r.GetTopLeft()))
+                right = std::max(right, r.x + r.width);
+            walk(child);
+        }
+    };
+    walk(page);
+    return wxRect(page_rect.x, page_rect.y, right - page_rect.x, page_rect.height);
+}
+
 // Beside `side`, level with the control: after it when that fits in `bounds`, before it when that does,
 // or false when neither does.
 bool place_beside(const wxRect &side, const wxRect &anchor, const wxSize &size, const wxRect &bounds, int gap, wxPoint &pos)
@@ -905,6 +944,20 @@ bool place_beside(const wxRect &side, const wxRect &anchor, const wxSize &size, 
     return true;
 }
 
+// To the right of a page's column of controls (see content_column()), level with the control, or false
+// when there is no column or no room for the tooltip after it. Never to its left, which is outside the
+// page or over its labels.
+bool place_after_content(const wxRect &content, const wxRect &anchor, const wxSize &size, const wxRect &bounds, int gap,
+                         wxPoint &pos)
+{
+    const int after = content.x + content.width + gap;
+    if (content.width <= 0 || anchor.x >= after || after + size.x > bounds.x + bounds.width)
+        return false;
+    pos.x = after;
+    pos.y = clamp_to(anchor.y, bounds.y, bounds.y + bounds.height - size.y);
+    return true;
+}
+
 // Beside the control rather than under the mouse, never on the control itself, and off the controls
 // around it where there is room:
 // - In a popup (a drop-down list), beside the popup and level with the item: below the item would cover
@@ -912,6 +965,9 @@ bool place_beside(const wxRect &side, const wxRect &anchor, const wxSize &size, 
 // - In a column of controls (the sidebar's settings pages), beside the column and level with the control,
 //   over the 3D view rather than over the next rows of the page.
 // - In a dialog, beside the dialog. Not on Wayland, where a tooltip is kept inside its window.
+// - On a page that spans its window (a settings page in its own window), to the right of the page's
+//   column of controls, level with the control, when the window leaves room there: on the free side of
+//   the page rather than over the next rows.
 // - Otherwise (a toolbar, a full-width page), or when there is no room beside: below the control and
 //   level with its left edge, or above it when there is no room below.
 void place(TipWindow &popup, const State &st)
@@ -931,7 +987,8 @@ void place(TipWindow &popup, const State &st)
         const bool beside =
             (column != nullptr && place_beside(column->GetScreenRect(), anchor, size, bounds, gap, pos)) ||
             (top != nullptr && dynamic_cast<wxDialog *>(top) != nullptr && !on_wayland() &&
-             place_beside(top->GetScreenRect(), anchor, size, bounds, gap, pos));
+             place_beside(top->GetScreenRect(), anchor, size, bounds, gap, pos)) ||
+            place_after_content(content_column(st.owner), anchor, size, bounds, gap, pos);
         if (!beside) {
             pos.x = clamp_to(anchor.x, bounds.x, bounds.x + bounds.width - size.x);
             pos.y = place_axis(anchor.y, anchor.y + anchor.height, size.y, bounds.y, bounds.y + bounds.height, gap);
