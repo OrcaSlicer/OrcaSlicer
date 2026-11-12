@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GUI_Utils.hpp"
+#include "Tab.hpp"
 #include "wxExtensions.hpp"
 
 #include "libslic3r/PublishSelection.hpp"
@@ -399,6 +400,11 @@ private:
     void on_publish_edit(size_t category_index, const std::string& opt_id, const boost::any& value,
                          const std::vector<std::string>& dependent_keys,
                          const Slic3r::DynamicPrintConfig& before_handling);
+    // The values the extruder sync button copied. Each one is written to the real preset its row
+    // names, exactly as a field edit is, and the row that received it is ticked for publishing: the
+    // copy is a value the author asked to carry, so it travels in the file and the sidebar tab
+    // follows it.
+    void on_publish_copy(size_t category_index, const std::vector<PublishCopiedValue>& copies);
     // A real preset changed behind a tab: update() only rewrites each Line's toggle_visible, so run
     // the page pass the sidebar's own change path runs.
     static void reload_tab_after_preset_write(Tab& tab);
@@ -406,6 +412,10 @@ private:
     // currently shows, or size_t(-1) when the field is not a published row. `out_option` receives
     // the row's option for `opt_id`.
     size_t row_for_edit(size_t category_index, const std::string& opt_id, const RowOption** out_option = nullptr) const;
+    // The row of `category_index` that publishes `base_key` at `index`: the element position the
+    // extruder sync button copied to. A material row is keyed by its file column, which the local
+    // variant index maps to; a printer or process row carries the element index itself.
+    size_t row_for_copy(size_t category_index, const std::string& base_key, int index) const;
     // Re-reads the project after a write that no sidebar Tab refreshed.
     void refresh_published_plater();
     // The non-structural filament keys of a slot's preset, for a "Full Publish" entry.

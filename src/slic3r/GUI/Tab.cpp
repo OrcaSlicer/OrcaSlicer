@@ -408,12 +408,6 @@ void Tab::create_variant_switch()
         m_variant_sizer->Add(right_sizer, 0, wxALIGN_CENTER);
         left_sizer->Add(icon               , 0, wxALIGN_CENTER | wxLEFT , m_em_unit);
         right_sizer->Add(m_extruder_sync_box, 0, wxALIGN_CENTER | wxRIGHT, m_em_unit);
-        // The copy button writes the tab's own config directly, which bypasses the publish dialog's
-        // live write path: hide it there rather than offer a copy that would not reach the project.
-        if (m_publish_host) {
-            right_sizer->Show(m_extruder_sync_box, false);
-            m_extruder_sync_box->Hide();
-        }
 
         m_main_sizer->Add(m_variant_sizer, 0, wxEXPAND | wxTOP, m_em_unit);
     } else if (dynamic_cast<TabFilament *>(this)) {
@@ -443,10 +437,6 @@ void Tab::create_variant_switch()
         top_sizer->Add(m_variant_combo, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
         top_sizer->AddStretchSpacer(1);
         top_sizer->Add(m_extruder_sync_box, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, m_em_unit);
-        if (m_publish_host) {
-            top_sizer->Show(m_extruder_sync_box, false);
-            m_extruder_sync_box->Hide();
-        }
 
         m_variant_sizer = new wxBoxSizer(wxVERTICAL);
         m_variant_sizer->Add(top_sizer, 0, wxEXPAND | wxLEFT, m_em_unit);
@@ -9697,8 +9687,8 @@ void Tab::update_variant_sizer_visibility()
     const bool show = variant_switch_active() && m_active_page && !m_active_page->m_opt_id_map.empty();
     m_main_sizer->Show(m_variant_sizer, show);
     if (m_extruder_sync) {
-        m_extruder_sync->Show(show && !m_publish_host);
-        m_extruder_sync->Enable(!m_publish_host && extruder_sync_enabled());
+        m_extruder_sync->Show(show);
+        m_extruder_sync->Enable(extruder_sync_enabled());
     }
     GetParent()->Layout();
 }
@@ -9922,6 +9912,9 @@ void Tab::sync_excluder()
     UnsavedChangesDialog dlg(title, header, base_type, params);
     dlg.ShowModal();
     DynamicConfig config_to_apply;
+    // The ticked copies, as a publish host receives them: the element the source column holds and
+    // the element each target column takes.
+    std::vector<PublishCopiedValue> copied;
     if (dlg.transfer_changes())
         for (const auto &[key, index] : dlg.get_sync_selection()) {
             const auto &positions = params.positions.at(key);
@@ -9930,6 +9923,7 @@ void Tab::sync_excluder()
                 config_to_apply.set_key_value(key, m_config->option(key)->clone());
             for (int s = 0; s < positions.stride; ++s)
                 dynamic_cast<ConfigOptionVectorBase *>(config_to_apply.option(key))->set_at(m_config->option(key), index + s, from + s);
+            copied.push_back({key, index, positions.stride});
         }
     if (!config_to_apply.empty()) {
         m_config->apply(config_to_apply);
@@ -9944,6 +9938,14 @@ void Tab::sync_excluder()
         if (m_active_page)
             m_active_page->update_visibility(m_mode, true);
         m_page_view->GetParent()->Layout();
+        if (m_publish_host) {
+            // The host's filter, gating and marks follow the copy, which is an edit to every row it
+            // lands in, and then the copies go to the real presets: only the host knows which of
+            // them a row publishes and where the preset behind it lives.
+            notify_rules_applied();
+            if (m_on_publish_copy)
+                m_on_publish_copy(copied);
+        }
     }
 }
 

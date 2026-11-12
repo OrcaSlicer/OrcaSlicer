@@ -1135,6 +1135,7 @@ PublishSettingsDialog::~PublishSettingsDialog()
         category.publish_tab->m_on_variant_changed = nullptr;
         category.publish_tab->m_on_rules_applied   = nullptr;
         category.publish_tab->m_on_publish_edit    = nullptr;
+        category.publish_tab->m_on_publish_copy    = nullptr;
     }
     // The hosted lines' toggles capture this dialog too; every row of one line shares it.
     for (Row& row : m_rows)
@@ -2019,6 +2020,7 @@ void PublishSettingsDialog::on_filament_picked(size_t slot, const std::string& p
         old_tab->m_on_variant_changed = nullptr;
         old_tab->m_on_rules_applied   = nullptr;
         old_tab->m_on_publish_edit    = nullptr;
+        old_tab->m_on_publish_copy    = nullptr;
         category->publish_host->set_publish_tab(nullptr);
         old_tab->Destroy();
         category->publish_tab = nullptr;
@@ -2959,6 +2961,10 @@ void PublishSettingsDialog::bind_publish_tab(size_t category_index)
                                                     const DynamicPrintConfig& before_handling) {
         on_publish_edit(category_index, opt_id, value, dependent_keys, before_handling);
     };
+    // The extruder sync button copies whole values the same way a field edit writes one.
+    tab->m_on_publish_copy = [this, category_index](const std::vector<PublishCopiedValue>& copies) {
+        on_publish_copy(category_index, copies);
+    };
 }
 
 void PublishSettingsDialog::refresh_published_plater()
@@ -2998,6 +3004,35 @@ size_t PublishSettingsDialog::row_for_edit(size_t category_index, const std::str
                     *out_option = &option;
                 return r;
             }
+    }
+    return size_t(-1);
+}
+
+// A copy names the element it took in the tab's config vector. A printer or process row carries that
+// element as the index of the option it publishes; a material row is keyed by a file column, and the
+// preset's local variant index has to be translated to it. The row a copy lands in is the row that
+// publishes that option at that element, whatever column the tab currently shows.
+size_t PublishSettingsDialog::row_for_copy(size_t category_index, const std::string& base_key, int index) const
+{
+    if (category_index >= m_categories.size() || index < 0)
+        return size_t(-1);
+    const Category& category = m_categories[category_index];
+    const bool      material = category.section == Section::Material;
+    int             material_column = -1;
+    if (material) {
+        const std::optional<size_t> column =
+            Slic3r::publish_filament_local_to_file(m_snapshot, category.filament_slot, size_t(index));
+        if (!column.has_value())
+            return size_t(-1);
+        material_column = int(*column);
+    }
+    for (const size_t r : category.rows) {
+        const Row& row = m_rows[r];
+        if (row.id.kind != Slic3r::PublishRowKind::Key)
+            continue;
+        for (const RowOption& option : row.options)
+            if (option.key == base_key && (material ? row.id.column == material_column : option.index == index))
+                return r;
     }
     return size_t(-1);
 }
@@ -3189,6 +3224,107 @@ void PublishSettingsDialog::on_publish_edit(size_t category_index, const std::st
 
     if (plater_refresh)
         refresh_published_plater();
+}
+
+// The extruder sync button already wrote its copies into the hosted tab's private preset. Each copy
+// is a value the author asked for, so it reaches the real preset its row names, exactly as a field
+// edit does, and the row that received it is ticked: the file then carries it, and the sidebar tab
+// that paints the preset follows it.
+void PublishSettingsDialog::on_publish_copy(size_t category_index, const std::vector<PublishCopiedValue>& copies)
+{
+    PresetBundle* bundle = wxGetApp().preset_bundle;
+    if (bundle == nullptr || category_index >= m_categories.size())
+        return;
+    Category& category = m_categories[category_index];
+    Tab*      tab      = category.publish_tab;
+    if (tab == nullptr || tab->m_config == nullptr)
+        return;
+
+    Tab*                written_tab   = nullptr; // the real tab whose preset took a copy
+    std::string         edited_preset;           // the filament preset the copies landed in
+    std::vector<size_t> copied_rows;
+    for (const PublishCopiedValue& copy : copies) {
+        if (copy.stride < 1)
+            continue;
+        const size_t row_index = row_for_copy(category_index, copy.option, copy.index);
+        if (row_index == size_t(-1) || !row_writable(row_index))
+            continue;
+        const Slic3r::PublishWriteLocation location = write_location_for(row_index);
+        Slic3r::DynamicPrintConfig*        target   = nullptr;
+        switch (location.target) {
+        case Slic3r::PublishWriteTarget::FilamentPreset: {
+            if (location.owner < 0 || size_t(location.owner) >= bundle->filament_presets.size())
+                break;
+            Tab* filament_tab = wxGetApp().get_tab(Preset::TYPE_FILAMENT);
+            if (filament_tab == nullptr)
+                break;
+            edited_preset = bundle->filament_presets[size_t(location.owner)];
+            target        = &bundle->filaments.get_edited_preset().config;
+            written_tab   = filament_tab;
+            break;
+        }
+        case Slic3r::PublishWriteTarget::PrinterPreset:
+            target      = &bundle->printers.get_edited_preset().config;
+            written_tab = wxGetApp().get_tab(Preset::TYPE_PRINTER);
+            break;
+        case Slic3r::PublishWriteTarget::ProcessPreset:
+            target      = &bundle->prints.get_edited_preset().config;
+            written_tab = wxGetApp().get_tab(Preset::TYPE_PRINT);
+            break;
+        case Slic3r::PublishWriteTarget::Project:
+            // No sync column addresses a project array: a mixed definition is one per slot, not one
+            // per nozzle variant.
+        case Slic3r::PublishWriteTarget::None:
+            break;
+        }
+        if (target == nullptr)
+            continue;
+        bool wrote = false;
+        // Motion ability keeps a pair of values per column, so one copy carries `stride` elements.
+        for (int s = 0; s < copy.stride; ++s)
+            wrote = copy_option_element_at(*target, copy.option, *tab->m_config, size_t(copy.index + s)) || wrote;
+        if (!wrote)
+            continue;
+        m_selection.set_checked(m_rows[row_index].id, true);
+        copied_rows.push_back(row_index);
+    }
+
+    // Several slots can share one filament preset, and each has its own hosted tab over a private
+    // copy of it: a copied value has to reach the others' pages too, or they would show the old
+    // value while the file, which reads the shared preset, carries the new one.
+    if (!edited_preset.empty())
+        for (size_t c = 0; c < m_categories.size(); ++c) {
+            Category& sibling = m_categories[c];
+            if (c == category_index || sibling.section != Section::Material || sibling.publish_tab == nullptr ||
+                sibling.publish_tab->m_config == nullptr || sibling.filament_slot >= bundle->filament_presets.size())
+                continue;
+            if (bundle->filament_presets[sibling.filament_slot] != edited_preset)
+                continue;
+            DynamicPrintConfig& sibling_config = *sibling.publish_tab->m_config;
+            bool                changed        = false;
+            for (const PublishCopiedValue& copy : copies)
+                for (int s = 0; s < copy.stride; ++s)
+                    changed = copy_option_element_at(sibling_config, copy.option, *tab->m_config,
+                                                     size_t(copy.index + s)) || changed;
+            if (changed)
+                reload_tab_after_preset_write(*sibling.publish_tab);
+        }
+
+    if (written_tab != nullptr)
+        // The real preset changed behind the tab: repaint it, as its own change path does.
+        reload_tab_after_preset_write(*written_tab);
+
+    if (copied_rows.empty())
+        return;
+    // A ticked row is editable, so its fields follow; the labels and the tab and page dots follow the
+    // selection the copy made.
+    sync_all_row_widgets();
+    apply_row_field_gating(category_index);
+    apply_visibility();
+    apply_row_label_colours();
+    // The pseudo filters read the checked state the copy just changed.
+    if (m_filter_mode != FilterMode::Text)
+        apply_pseudo_filter(m_filter_mode == FilterMode::SelectedOnly);
 }
 
 void PublishSettingsDialog::on_full_toggle(size_t category_index)

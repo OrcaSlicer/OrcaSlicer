@@ -150,6 +150,16 @@ protected:
 
 
 using PageShp = std::shared_ptr<Page>;
+
+// One value the extruder sync button copied: the option, the element a target column takes, and how
+// many elements one column holds (Motion ability keeps a pair).
+struct PublishCopiedValue
+{
+    std::string option;
+    int         index{-1};
+    int         stride{1};
+};
+
 class Tab: public wxPanel
 {
 	//BBS: GUI refactor
@@ -380,6 +390,10 @@ public:
     std::function<void(const std::string &opt_id, const boost::any &value,
                        const std::vector<std::string> &dependent_keys,
                        const DynamicPrintConfig &before_handling)> m_on_publish_edit;
+    // Called with the values the extruder sync button just copied into the publish tab's private
+    // preset, so the host can write each one to the real preset and mark the row it landed in. The
+    // copies are already in that config when this runs; null by default.
+    std::function<void(const std::vector<PublishCopiedValue> &copies)> m_on_publish_copy;
 
 public:
 	// BBS
