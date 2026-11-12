@@ -3156,8 +3156,8 @@ TEST_CASE("Organic bottom interfaces anchor the run of a load hanging on from wh
     // strip 0.5 mm wide, and 0.2 mm apart under a strip a little wider, where a grid of short lines touching the path
     // takes the place of an anchor along it.
     struct Case { double angle, width, spacing; };
-    const Case c = GENERATE(Case{ 0., .5, 2.5 }, Case{ M_PI / 4., .5, 2.5 }, Case{ M_PI / 12., .504822, .2 },
-        Case{ M_PI / 10., .525152, .2 });
+    const Case c = GENERATE(Case{ 0., .5, 2.5 }, Case{ PI / 4., .5, 2.5 }, Case{ PI / 12., .504822, .2 },
+        Case{ PI / 10., .525152, .2 });
     CAPTURE(c.angle, c.width, c.spacing);
     const double angle = c.angle;
     DynamicPrintConfig settings = DynamicPrintConfig::full_print_config();
