@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <atomic>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -9,7 +11,6 @@
 #include <mutex>
 #include <stdio.h>
 #include <string>
-#include <system_error>
 
 #include <boost/filesystem.hpp>
 #include <boost/nowide/cstdio.hpp>

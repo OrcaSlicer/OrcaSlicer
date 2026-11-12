@@ -3,6 +3,8 @@
 #include "slic3r/UpdateHelper/HttpDownloader.hpp"
 
 #include <algorithm>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -14,7 +16,6 @@
 #include <ios>
 #include <libslic3r/UpdateHandoff.hpp>
 #include <slic3r/UpdateHelper/InstallApply.hpp>
-#include <system_error>
 
 #include <boost/filesystem.hpp>
 #include <boost/nowide/cstdio.hpp>
@@ -22,6 +23,7 @@
 
 #include <openssl/evp.h>
 
+#include <time.h>
 #include <utility>
 #include <thread>
 #include <wx/app.h>

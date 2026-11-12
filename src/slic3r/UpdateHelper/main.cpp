@@ -1,4 +1,4 @@
-#include <cstdio>
+#include <boost/filesystem/operations.hpp>
 #include <ios>
 #include <iterator>
 #include <string>
@@ -6,7 +6,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/nowide/filesystem.hpp>
 #include <boost/nowide/fstream.hpp>
-#include <system_error>
 #include <wx/app.h>
 #include <wx/chartype.h>
 #include <wx/event.h>

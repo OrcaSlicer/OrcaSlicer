@@ -87,6 +87,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <wx/buffer.h>
 #include <wx/dcclient.h>
 #include <wx/chartype.h>
 #include <utility>
