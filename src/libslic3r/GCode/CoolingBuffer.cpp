@@ -5,7 +5,9 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Circle.hpp"
 #include "CoolingBuffer.hpp"
+#include "GCodeProcessor.hpp"
 #include <algorithm>
+#include <array>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/log/trivial.hpp>
@@ -37,8 +39,12 @@
 
 namespace Slic3r {
 
-CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_gcodegen(gcodegen), m_toolchange_prefix(gcodegen.writer().toolchange_prefix()), m_current_extruder(0), m_current_nozzle(0)
+CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_gcodegen(gcodegen), m_toolchange_prefix(gcodegen.writer().toolchange_prefix()), m_current_extruder(0), m_current_nozzle(0),
+    m_layer_timer_config(gcodegen.config())
 {
+    m_layer_timer_config.machine_load_filament_time.value   = 0.;
+    m_layer_timer_config.machine_unload_filament_time.value = 0.;
+    m_layer_timer_config.machine_tool_change_time.value     = 0.;
     this->reset(gcodegen.writer().get_position());
 
     const std::vector<Extruder> &extruders = gcodegen.writer().extruders();
@@ -350,16 +356,44 @@ std::string CoolingBuffer::process_layer(std::string &&gcode, size_t layer_id, b
         // This is either an object layer or the very last print layer. Calculate cool down over the collected support layers
         // and one object layer.
         std::vector<PerExtruderAdjustments> per_extruder_adjustments = this->parse_layer_gcode(m_gcode, m_current_pos);
-        float layer_time_stretched = this->calculate_layer_slowdown(per_extruder_adjustments);
+        float layer_time_stretched = this->slow_down_layer(m_gcode, per_extruder_adjustments);
         out = this->apply_layer_cooldown(m_gcode, layer_id, layer_time_stretched, per_extruder_adjustments);
         m_gcode.clear();
     }
     return out;
 }
 
+// The kind of a line that sets a limit the time estimate follows, such as "M204 P T" or "SET_VELOCITY_LIMIT ACCEL",
+// from its command and parameter names; empty for any other line.
+static std::string motion_setting_kind(const std::string &line)
+{
+    if (line.empty() || (line.front() != 'M' && line.front() != 'S'))
+        return {};
+    static constexpr std::array<std::string_view, 7> commands{ "M201", "M203", "M204", "M205", "M221", "M566", "SET_VELOCITY_LIMIT" };
+    const size_t           end     = std::min(line.find(';'), line.size());
+    const std::string_view command = std::string_view(line).substr(0, std::min(line.find_first_of(" \t"), end));
+    if (std::find(commands.begin(), commands.end(), command) == commands.end())
+        return {};
+    std::vector<std::string_view> names;
+    for (size_t word = command.size(); word < end;) {
+        word = line.find_first_not_of(" \t", word);
+        if (word >= end)
+            break;
+        const size_t word_end = std::min(line.find_first_of(" \t", word), end);
+        const size_t equals   = line.find('=', word);
+        names.emplace_back(std::string_view(line).substr(word, equals < word_end ? equals - word : 1));
+        word = word_end;
+    }
+    std::sort(names.begin(), names.end());
+    std::string kind(command);
+    for (const std::string_view name : names)
+        (kind += ' ') += name;
+    return kind;
+}
+
 // Parse the layer G-code for the moves, which could be adjusted.
 // Return the list of parsed lines, bucketed by an extruder.
-std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos) const
+std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos)
 {
     std::vector<PerExtruderAdjustments> per_extruder_adjustments(m_extruder_ids.size());
     std::vector<size_t>                 map_extruder_to_per_extruder_adjustment(m_num_extruders, 0);
@@ -386,6 +420,7 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
     // Orca: Whether we had our first extrusion in this layer.
     // Time of any other movements before the first extrusion will be excluded from the layer time.
     bool layer_had_extrusion = false;
+    m_timed_from = std::string::npos;
 
     for (; *line_start != 0; line_start = line_end)
     {
@@ -397,6 +432,8 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
         if (*line_end == '\n')
             ++ line_end;
         CoolingLine line(0, line_start - gcode.c_str(), line_end - gcode.c_str());
+        if (std::string kind = motion_setting_kind(sline); ! kind.empty())
+            m_motion_settings[std::move(kind)] = { m_motion_settings_count ++, sline };
         if (boost::starts_with(sline, "G0 "))
             line.type = CoolingLine::TYPE_G0;
         else if (boost::starts_with(sline, "G1 "))
@@ -450,8 +487,22 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
                 line.type |= CoolingLine::TYPE_WIPE;
 
             // Orca: only slow down movements since the first extrusion
-            if (boost::contains(sline, ";_EXTRUDE_SET_SPEED"))
+            if (! layer_had_extrusion && boost::contains(sline, ";_EXTRUDE_SET_SPEED")) {
                 layer_had_extrusion = true;
+                // ORCA: The layer is timed from here, so the timer starts with the tool, the motion limits and the position here.
+                m_timed_from  = line.line_start;
+                m_timer_setup = "T" + std::to_string(current_extruder) + '\n';
+                m_timer_setup += m_config.use_relative_e_distances.value ? "M83\n" : "M82\n";
+                std::vector<const std::pair<size_t, std::string> *> settings;
+                for (const auto &[kind, setting] : m_motion_settings)
+                    settings.emplace_back(&setting);
+                std::sort(settings.begin(), settings.end(), [](const auto *a, const auto *b) { return a->first < b->first; });
+                for (const auto *setting : settings)
+                    (m_timer_setup += setting->second) += '\n';
+                m_timer_setup += "G92 X" + float_to_string_decimal_point(current_pos[0]) + " Y" + float_to_string_decimal_point(current_pos[1]) +
+                                 " Z" + float_to_string_decimal_point(current_pos[2]) + " E" +
+                                 float_to_string_decimal_point(m_config.use_relative_e_distances.value ? 0. : current_pos[3]) + '\n';
+            }
             
             // ORCA: Dont slowdown external perimeters for layer time feature
             // use the adjustment pointer to ensure the value for the current extruder (filament) is used.
@@ -663,7 +714,7 @@ static inline void extruder_range_slow_down_non_proportional(
 }
 
 // Calculate slow down for all the extruders.
-float CoolingBuffer::calculate_layer_slowdown(std::vector<PerExtruderAdjustments> &per_extruder_adjustments)
+float CoolingBuffer::calculate_layer_slowdown(std::vector<PerExtruderAdjustments> &per_extruder_adjustments, float time_scale)
 {
     // Sort the extruders by an increasing slow_down_layer_time.
     // The layers with a lower slow_down_layer_time are slowed down
@@ -696,7 +747,7 @@ float CoolingBuffer::calculate_layer_slowdown(std::vector<PerExtruderAdjustments
         float total = elapsed_time_total0;
         for (auto it = cur_begin; it != by_slowdown_time.end(); ++ it)
             total += (*it)->time_total;
-        float slow_down_layer_time = adj.slow_down_layer_time * 1.001f;
+        float slow_down_layer_time = adj.slow_down_layer_time * time_scale * 1.001f;
         if (total > slow_down_layer_time) {
             // The current total time is above the minimum threshold of the rest of the extruders, don't adjust anything.
         } else {
@@ -717,6 +768,98 @@ float CoolingBuffer::calculate_layer_slowdown(std::vector<PerExtruderAdjustments
     }
 
     return elapsed_time_total0;
+}
+
+float CoolingBuffer::estimate_layer_time(const std::string &gcode, const std::vector<PerExtruderAdjustments> &per_extruder_adjustments)
+{
+    if (m_timed_from == std::string::npos)
+        return 0.f;
+    std::vector<const CoolingLine *> slowed;
+    for (const PerExtruderAdjustments &adj : per_extruder_adjustments)
+        for (const CoolingLine &line : adj.lines)
+            if (line.slowdown && line.line_start >= m_timed_from)
+                slowed.emplace_back(&line);
+    std::sort(slowed.begin(), slowed.end(), [](const CoolingLine *l1, const CoolingLine *l2) { return l1->line_start < l2->line_start; });
+
+    std::string timed = m_timer_setup;
+    size_t      from  = m_timed_from;
+    for (const CoolingLine *line : slowed) {
+        // A slowed line only sets the feed rate.
+        timed.append(gcode, from, line->line_start - from);
+        timed += "G1 F" + std::to_string(int(std::floor(60. * line->feedrate + 0.5))) + '\n';
+        from = line->line_end;
+    }
+    timed.append(gcode, from, std::string::npos);
+    // Plans the last moves to a stop.
+    timed += "\nG4 P0\n";
+
+    m_layer_timer.reset();
+    m_layer_timer.initialize_result_moves();
+    m_layer_timer.apply_config(m_layer_timer_config);
+    m_layer_timer.process_buffer(timed);
+    return float(m_layer_timer.get_time(PrintEstimatedStatistics::ETimeMode::Normal));
+}
+
+float CoolingBuffer::slow_down_layer(const std::string &gcode, std::vector<PerExtruderAdjustments> &per_extruder_adjustments)
+{
+    const float time = this->estimate_layer_time(gcode, per_extruder_adjustments);
+    float       time_at_feed_rates = 0.f;
+    float       longest_minimum    = 0.f;
+    for (const PerExtruderAdjustments &adj : per_extruder_adjustments) {
+        time_at_feed_rates += adj.elapsed_time_total();
+        if (adj.cooling_slow_down_enabled && ! adj.lines.empty())
+            longest_minimum = std::max(longest_minimum, adj.slow_down_layer_time);
+    }
+    if (time <= 0.f || time_at_feed_rates <= 0.f)
+        return this->calculate_layer_slowdown(per_extruder_adjustments, 1.f);
+    const float target = longest_minimum * 1.001f;
+    if (time >= target)
+        return time;
+
+    // The slowdown works in the time at the feed rates, which is shorter than the estimate, so its targets are scaled.
+    // The scale is searched for until a slowed layer reaches the target, then by false position between the two.
+    const std::vector<PerExtruderAdjustments> unslowed = per_extruder_adjustments;
+    const auto slow_down = [&](float scale) {
+        per_extruder_adjustments = unslowed;
+        return this->calculate_layer_slowdown(per_extruder_adjustments, scale);
+    };
+    float lo_scale = time_at_feed_rates / target, lo_time = time, hi_scale = 0.f, hi_time = 0.f;
+    float scale = time_at_feed_rates / time, slowed_time = time, at_feed_rates = time_at_feed_rates;
+    for (int i = 0; i < 6; ++ i) {
+        const float prev_at_feed_rates = at_feed_rates;
+        at_feed_rates = slow_down(scale);
+        slowed_time   = this->estimate_layer_time(gcode, per_extruder_adjustments);
+        // A little longer than the target only cools the layer more.
+        if (slowed_time >= 0.998f * target && slowed_time <= 1.01f * target)
+            return slowed_time;
+        if (slowed_time >= target) {
+            hi_scale = scale;
+            hi_time  = slowed_time;
+        } else {
+            // The moves are at the minimum print speed already.
+            if (hi_scale == 0.f && at_feed_rates <= prev_at_feed_rates * 1.0001f)
+                return slowed_time;
+            lo_scale = scale;
+            lo_time  = slowed_time;
+        }
+        if (hi_scale > 0.f) {
+            scale = std::clamp(lo_scale + (target - lo_time) * (hi_scale - lo_scale) / (hi_time - lo_time),
+                               lo_scale + 0.1f * (hi_scale - lo_scale), hi_scale - 0.1f * (hi_scale - lo_scale));
+        } else {
+            // Slowed to one speed, the moves spend about k / t accelerating in a layer taking t at its feed rates.
+            // Where they never reach their speed, slowing barely lengthens the layer, and the time is taken as proportional.
+            const float k            = (slowed_time - at_feed_rates) * at_feed_rates;
+            const float discriminant = target * target - 4.f * k;
+            const float proportional = scale * target / slowed_time;
+            scale = std::min(std::max(discriminant > 0.f ? 0.5f * (target + std::sqrt(discriminant)) / target : proportional, proportional), 1.2f);
+        }
+    }
+    // Rather the layer slowed down past the target than short of it.
+    if (slowed_time < target && hi_scale > 0.f) {
+        slow_down(hi_scale);
+        return hi_time;
+    }
+    return slowed_time;
 }
 
 // Apply slow down over G-code lines stored in per_extruder_adjustments, enable fan if needed.

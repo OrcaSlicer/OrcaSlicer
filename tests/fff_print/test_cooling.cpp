@@ -10,7 +10,10 @@
 #include <cstddef>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/GCode/GCodeProcessor.hpp"
 #include "libslic3r/GCodeReader.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Print.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/libslic3r.h"
 #include <sstream>
@@ -201,4 +204,107 @@ TEST_CASE("Layer cooling slowdown does not depend on relative extrusion distance
         largest_difference = std::max(largest_difference, std::abs(relative[i] - absolute[i]));
     // Feed rates are written in whole mm/min.
     CHECK_THAT(largest_difference, Catch::Matchers::WithinAbs(0., 1. / MM_PER_MIN));
+}
+
+// Per layer: the time of its moves from its first extrusion, as the G-code preview estimates it with acceleration,
+// and the part cooling fan speed of that extrusion, in percent.
+struct EstimatedLayer
+{
+    double time = 0.;
+    float  fan  = -1.f;
+};
+
+static std::vector<EstimatedLayer> estimated_layers(const TriangleMesh &mesh, const DynamicPrintConfig &config)
+{
+    Print print;
+    Model model;
+    init_print({ mesh }, print, model, config);
+    GCodeProcessorResult result;
+    gcode(print, &result);
+    std::vector<EstimatedLayer> layers;
+    for (const GCodeProcessorResult::MoveVertex &move : result.moves) {
+        if (move.layer_id >= layers.size())
+            layers.resize(move.layer_id + 1);
+        EstimatedLayer &layer = layers[move.layer_id];
+        if (layer.fan < 0.f) {
+            if (move.type != EMoveType::Extrude)
+                continue;
+            layer.fan = move.fan_speed;
+        }
+        layer.time += move.time[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)];
+    }
+    return layers;
+}
+
+// Print speeds that a low acceleration never reaches on a small part, so its layers take several times their time at the feed rates.
+static DynamicPrintConfig slowly_accelerating_config()
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "filament_max_volumetric_speed",      100 },
+        { "initial_layer_print_height",         0.3 },
+        { "inner_wall_speed",                   200 },
+        { "internal_solid_infill_speed",        200 },
+        { "layer_height",                       0.3 },
+        { "machine_max_acceleration_extruding", "300,300" },
+        { "outer_wall_speed",                   200 },
+        { "sparse_infill_speed",                200 },
+        { "top_surface_speed",                  200 },
+    });
+    return config;
+}
+
+TEST_CASE("Layer cooling slowdown reaches the minimum layer time with acceleration", "[Cooling]")
+{
+    // A little longer than most layers of the cube take, so they slow down just a little and still accelerate a lot.
+    constexpr double minimum_layer_time = 8.;
+    DynamicPrintConfig config = slowly_accelerating_config();
+    config.set_deserialize_strict({
+        { "slow_down_for_layer_cooling", false },
+        { "slow_down_layer_time",        minimum_layer_time },
+        { "slow_down_min_speed",         1 },
+    });
+    const std::vector<EstimatedLayer> unslowed = estimated_layers(cube(10), config);
+    config.set_deserialize_strict({ { "slow_down_for_layer_cooling", true } });
+    const std::vector<EstimatedLayer> slowed = estimated_layers(cube(10), config);
+    REQUIRE(slowed.size() == unslowed.size());
+
+    // Layer 0 holds the start G-code, and the last layer the end G-code.
+    const size_t quick = std::count_if(unslowed.begin() + 1, unslowed.end() - 1,
+                                       [](const EstimatedLayer &layer) { return layer.time < minimum_layer_time; });
+    REQUIRE(quick > 10);
+    for (size_t i = 1; i + 1 < slowed.size(); ++i) {
+        if (unslowed[i].time < minimum_layer_time) {
+            CHECK(slowed[i].time > 0.99 * minimum_layer_time);
+            CHECK(slowed[i].time < 1.03 * minimum_layer_time);
+        } else
+            CHECK_THAT(slowed[i].time, Catch::Matchers::WithinRel(unslowed[i].time, 0.001));
+    }
+}
+
+TEST_CASE("Fan speed follows the layer time with acceleration", "[Cooling]")
+{
+    constexpr double full_fan_time    = 2.;
+    constexpr double minimum_fan_time = 100.;
+    constexpr double full_fan         = 100.;
+    constexpr double minimum_fan      = 20.;
+    DynamicPrintConfig config = slowly_accelerating_config();
+    config.set_deserialize_strict({
+        { "close_fan_the_first_x_layers", 0 },
+        { "fan_cooling_layer_time",       minimum_fan_time },
+        { "fan_max_speed",                full_fan },
+        { "fan_min_speed",                minimum_fan },
+        { "full_fan_speed_layer",         0 },
+        { "slow_down_for_layer_cooling",  false },
+        { "slow_down_layer_time",         full_fan_time },
+    });
+    const std::vector<EstimatedLayer> layers = estimated_layers(cube(20), config);
+    REQUIRE(layers.size() > 4);
+    for (size_t i = 1; i + 1 < layers.size(); ++i) {
+        REQUIRE(layers[i].time > full_fan_time);
+        REQUIRE(layers[i].time < minimum_fan_time);
+        const double t = (layers[i].time - full_fan_time) / (minimum_fan_time - full_fan_time);
+        // The cooling rounds the speed down to a whole percent, and M106 takes it in 1/255 steps.
+        CHECK_THAT(layers[i].fan, Catch::Matchers::WithinAbs(t * minimum_fan + (1. - t) * full_fan, 1.5));
+    }
 }

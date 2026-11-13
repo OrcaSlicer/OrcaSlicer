@@ -2,17 +2,19 @@
 #define slic3r_CoolingBuffer_hpp_
 
 #include "../Point.hpp"
+#include "../PrintConfig.hpp"
+#include "GCodeProcessor.hpp"
 #include <cstddef>
 #include <map>
 #include <string>
 #include <cfloat>
+#include <utility>
 #include <vector>
 
 namespace Slic3r {
 
 class GCode;
 class Layer;
-class PrintConfig;
 struct PerExtruderAdjustments;
 
 // A standalone G-code filter, to control cooling of the print.
@@ -33,8 +35,13 @@ public:
 
 private:
 	CoolingBuffer& operator=(const CoolingBuffer&) = delete;
-    std::vector<PerExtruderAdjustments> parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos) const;
-    float       calculate_layer_slowdown(std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
+    std::vector<PerExtruderAdjustments> parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos);
+    // The slowdown aims at time_scale times each minimum layer time, in the time at the feed rates.
+    float       calculate_layer_slowdown(std::vector<PerExtruderAdjustments> &per_extruder_adjustments, float time_scale);
+    // ORCA: Slows the layer down to the minimum layer time as the time estimate gives it, and returns that time.
+    float       slow_down_layer(const std::string &gcode, std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
+    // ORCA: The time of the layer from its first extrusion, with acceleration, as the preview estimates it.
+    float       estimate_layer_time(const std::string &gcode, const std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
     // Apply slow down over G-code lines stored in per_extruder_adjustments, enable fan if needed.
     // Returns the adjusted G-code.
     std::string apply_layer_cooldown(const std::string &gcode, size_t layer_id, float layer_time, std::vector<PerExtruderAdjustments> &per_extruder_adjustments);
@@ -66,6 +73,16 @@ private:
     // Belt printers: the extrusion being processed lies in the first-layer band above the
     // belt (between a ";_BELT_BAND_START" and a ";_BELT_BAND_END"). Kept across layers.
     bool                        m_belt_band_active = false;
+
+    // ORCA: Times the layers. Its config leaves out filament changes, which the layer time does not count.
+    GCodeProcessor              m_layer_timer;
+    PrintConfig                 m_layer_timer_config;
+    // The last line of each kind that sets an acceleration or another motion limit, and its order.
+    std::map<std::string, std::pair<size_t, std::string>> m_motion_settings;
+    size_t                      m_motion_settings_count { 0 };
+    // Where the layer's timed part starts in its G-code, and the G-code that sets the timer up for it.
+    size_t                      m_timed_from { std::string::npos };
+    std::string                 m_timer_setup;
 };
 
 }
