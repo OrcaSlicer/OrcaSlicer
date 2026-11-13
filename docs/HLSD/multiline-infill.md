@@ -18,7 +18,11 @@ Triangles, Tri-hexagon, Cubic and Quarter Cubic therefore build centerlines that
 never cross (`FillRectilinear::fill_surface_trapezoidal()`), and so do Adaptive Cubic and
 Support Cubic (`FillAdaptive`). 3D Honeycomb skips `multiline_fill()` and draws
 its N lines itself as parallel copies of each wave, which never cross
-(`Fill3DHoneycomb`). The other patterns outline their usual centerlines.
+(`Fill3DHoneycomb`). Rectilinear, Aligned Rectilinear, Lateral Lattice and
+Lateral Honeycomb have only parallel lines, so they skip `multiline_fill()` too:
+`FillRectilinear::fill_surface_by_multilines()` slices the region with N copies
+of each line, `spacing` apart, and the clipping leaves no outline to join. The
+other patterns outline their usual centerlines.
 
 ## Non-crossing centerlines
 
