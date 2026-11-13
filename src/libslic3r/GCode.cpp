@@ -8706,6 +8706,11 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         m_multi_flow_segment_path_average_mm3_per_mm = weighted_sum_mm3_per_mm / total_multipath_length;
     // Orca: end of multipath average mm3_per_mm value calculation
     
+    // Orca: the G-code labels the overhanging part of any wall "Overhang wall", so the preview cannot
+    // tell an outer wall that starts on an overhang from an inner one. Only outer walls need the tag.
+    m_outer_overhang_tag_pending = description == "perimeter" && !m_config.spiral_mode &&
+                                   paths.front().role() == erOverhangPerimeter && is_outer_wall(loop_ref);
+
     if (!enable_seam_slope) {
         for (const ExtrusionPath& path : paths) {
             gcode += this->_extrude(path, description, speed_for_path(path));
@@ -9871,6 +9876,12 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         m_last_processor_extrusion_role = path.role();
         sprintf(buf, ";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(m_last_processor_extrusion_role).c_str());
         gcode += buf;
+    }
+
+    // Orca: must stay before the PA_CHANGE tag: Adaptive PA reads the line right after that tag.
+    if (m_outer_overhang_tag_pending) {
+        m_outer_overhang_tag_pending = false;
+        gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Outer_Overhang_Wall) + "\n";
     }
 
     if (last_was_wipe_tower || m_last_width != path.width) {
