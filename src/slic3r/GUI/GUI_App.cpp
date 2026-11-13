@@ -3162,8 +3162,12 @@ void GUI_App::init_plugin_gui_wiring()
         if (!packs_changed || wxTheApp == nullptr || wxGetApp().is_closing())
             return;
         wxGetApp().CallAfter([]() {
-            if (!wxGetApp().is_closing() && wxGetApp().plater() != nullptr)
-                wxGetApp().plater()->set_bed_shape();
+            if (wxGetApp().is_closing() || wxGetApp().plater() == nullptr)
+                return;
+            wxGetApp().plater()->set_bed_shape();
+            // A texture-only change does not mark the canvas dirty, so ask for a frame.
+            if (GLCanvas3D* canvas = wxGetApp().plater()->get_current_canvas3D())
+                canvas->request_extra_frame();
         });
     };
     plugin_mgr.subscribe_on_load_callback([refresh_bed_for_asset_packs](const std::string& plugin_key) {
