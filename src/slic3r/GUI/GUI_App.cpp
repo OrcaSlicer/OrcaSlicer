@@ -1866,8 +1866,21 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
 
     if (pro_fn)
         pro_fn(InstallStatusInstallCompleted, 100, cancel);
-    if (name == "plugins")
+    if (name == "plugins") {
+        // The one-shot cloud_providers migration in AppConfig::load runs before the
+        // plugin exists, so a fresh install seeds "orca" only. Enable Bambu Cloud on
+        // the false->true transition; after that the Preferences checkbox owns it.
+        const bool first_install = !app_config->get_bool("installed_networking");
         app_config->set_bool("installed_networking", true);
+        if (first_install) {
+            app_config->add_cloud_provider(BBL_CLOUD_PROVIDER);
+            // install_plugin can run from a background job; webview calls stay on main.
+            GUI::wxGetApp().CallAfter([] {
+                if (WebViewPanel* home = WebViewPanel::if_built())
+                    home->SendCloudProvidersInfo();
+            });
+        }
+    }
     BOOST_LOG_TRIVIAL(info) << "[install_plugin] success";
     return 0;
 }
@@ -4072,7 +4085,15 @@ void GUI_App::ensure_oss_network_plugin()
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": failed to write obn.conf: " << e.what();
     }
 
-    app_config->set_bool("installed_networking", true);
+    // Same fresh-install gap as install_plugin(): the cloud_providers migration
+    // already ran with installed_networking=false, so seed "bbl" on first provision
+    // and leave later toggles to the Preferences checkbox.
+    {
+        const bool first_install = !app_config->get_bool("installed_networking");
+        app_config->set_bool("installed_networking", true);
+        if (first_install)
+            app_config->add_cloud_provider(BBL_CLOUD_PROVIDER);
+    }
     app_config->set_network_plugin_version(ver);
     app_config->set_network_update_prompt_disabled(true);
     app_config->set("update_network_plugin", "false");
