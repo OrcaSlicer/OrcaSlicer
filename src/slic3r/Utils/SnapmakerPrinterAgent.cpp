@@ -314,10 +314,12 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
     auto filament_sub_type = ptc.value("filament_sub_type", std::vector<std::string>{});
     auto filament_color    = ptc.value("filament_color_rgba", std::vector<std::string>{});
     auto filament_vendor   = ptc.value("filament_vendor", std::vector<std::string>{});
-    // Per slot, e.g. {"nums": 2, "alpha": 255, "mode": 0, "colors": ["FF0000", "0000FF"]}
-    const nlohmann::json color_multi = ptc.contains("filament_color_multi") && ptc["filament_color_multi"].is_array() ?
-                                           ptc["filament_color_multi"] :
-                                           nlohmann::json::array();
+
+    // Every color of a multi-color spool (optional), per slot, e.g.
+    // {"nums": 2, "alpha": 255, "mode": 0, "colors": ["FF0000", "0000FF"]}
+    nlohmann::json color_multi;
+    if (ptc.contains("filament_color_multi"))
+        color_multi = ptc["filament_color_multi"];
 
     const int slot_count = static_cast<int>(filament_exist.size());
     if (slot_count == 0) {
@@ -350,12 +352,14 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSync
             if (tray.tray_color.empty())
                 tray.tray_color = default_color;
 
-            if (i < static_cast<int>(color_multi.size()) && color_multi[i].is_object()) {
-                const nlohmann::json& multi = color_multi[i];
+            if (color_multi.is_array() && i < static_cast<int>(color_multi.size()) && color_multi[i].is_object()) {
+                auto& multi = color_multi[i];
                 if (multi.contains("colors") && multi["colors"].is_array() && multi["colors"].size() > 1) {
                     // RRGGBB colors with one alpha for the spool
-                    const int  alpha = multi.contains("alpha") && multi["alpha"].is_number() ? std::clamp(multi["alpha"].get<int>(), 0, 255) : 255;
-                    char       alpha_hex[3];
+                    const int alpha = multi.contains("alpha") && multi["alpha"].is_number() ?
+                                          std::clamp(multi["alpha"].get<int>(), 0, 255) :
+                                          255;
+                    char alpha_hex[3];
                     std::snprintf(alpha_hex, sizeof(alpha_hex), "%02X", static_cast<unsigned>(alpha));
                     for (const auto& color : multi["colors"]) {
                         if (!color.is_string())
