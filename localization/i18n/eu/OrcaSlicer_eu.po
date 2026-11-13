@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:31-0600\n"
+"POT-Creation-Date: 2026-11-14 00:49+0800\n"
 "PO-Revision-Date: 2026-10-19 18:56+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -6284,6 +6284,10 @@ msgstr "Patroi baliogabea. Erabili N, N#K edo komaz bereizitako zerrenda bat, sa
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Formatuak ez du balio. Espero den formatu bektoriala: \"%1%\""
 
+# AI Translated
+msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+msgstr "Oheko baztertutako eremua baliogabea da. Poligono sinplea izan behar du, bere burua mozten ez duena."
+
 msgid "System agents"
 msgstr "Sistema-agenteak"
 
@@ -9845,6 +9849,10 @@ msgstr "Proiektu honek Diseinua fitxan sortutako modelo bat dauka, eta ez du bes
 
 msgid "The file does not contain any geometry data."
 msgstr "Fitxategiak ez du geometria-daturik."
+
+# AI Translated
+msgid "The invalid area has been removed, so please define it again using a valid polygon."
+msgstr "Eremu baliogabea kendu da; mesedez, definitu berriro baliozko poligono bat erabiliz."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Zure objektua handiegia dela dirudi; automatikoki txikitu nahi duzu inprimatze-ohean kabitzeko?"
@@ -13737,6 +13745,12 @@ msgctxt "Nozzle flow type"
 msgid "XHF"
 msgstr "XHF"
 
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2", and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
 msgid "No modifications need to be copied."
 msgstr "Ez dago kopiatu beharreko aldaketarik."
 
@@ -13750,6 +13764,12 @@ msgstr "Aldatu %s-(r)en parametroak"
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
 msgstr "%s-(r)en ondorengo parametroak %s-(r)enekin ordezkatu nahi dituzu?"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2% the list of those they are copied to, as the switch names them, e.g. "T2 HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "%1%-(r)en ondorengo parametroak %2%-(r)ra kopiatu nahi dituzu?"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Egin klik uneko balioa berrezartzeko eta balio globalari lotzeko."
@@ -13899,6 +13919,18 @@ msgid ""
 msgstr ""
 "\n"
 "Aldatutako aurrezarpen-balioak bazter ditzakezu, edo aldatu dituzun balioak proiektu berrira transferitzea aukeratu"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Egin klik konparatu botoian balio osoa ikusteko."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Prozesuaren ezarpenak"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Konparatu balio osoak"
 
 msgid "Extruder count"
 msgstr "Estrusore kopurua"
@@ -14649,10 +14681,6 @@ msgstr "Ireki CA ziurtagiri-fitxategia"
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr "HTTPS CA fitxategia aukerakoa da. HTTPS ziurtagiri autosinatuekin erabiltzen baduzu bakarrik behar da."
 
-# AI Translated
-msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr "Sistema honek sistemaren Ziurtagiri-biltegiko edo Giltzatako HTTPS ziurtagiriak erabiltzen ditu. CA fitxategi pertsonalizatu bat erabiltzeko, inportatu bertara."
-
 msgid "Printer model"
 msgstr "Inprimagailuaren modeloa"
 
@@ -14670,6 +14698,10 @@ msgstr "Konektatu"
 
 msgid "Manual Setup"
 msgstr "Eskuzko konfigurazioa"
+
+# AI Translated
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr "Sistema honek sistemaren Ziurtagiri-biltegiko edo Giltzatako HTTPS ziurtagiriak erabiltzen ditu. CA fitxategi pertsonalizatu bat erabiltzeko, inportatu bertara."
 
 msgid "IP and Access Code Verified! You may close the window"
 msgstr "IPa eta sarbide-kodea egiaztatu dira! Leihoa itxi dezakezu"
@@ -15227,6 +15259,10 @@ msgid "Prime tower is too close to the clumping detection area. There may be col
 msgstr "Purgatze-dorrea material-metaketa detektatzeko eremutik gertuegi dago. Inprimatzean talkak gerta daitezke."
 
 # AI Translated
+msgid "The extruder printable areas share no common area, so the prime tower cannot be printed.\n"
+msgstr "Estrusoreen inprimatze-eremuek ez dute eremu komunik, beraz purgatze-dorrea ezin da inprimatu.\n"
+
+# AI Translated
 msgid "Prime tower is partially outside the printable area, and it cannot be printed.\n"
 msgstr "Purgatze-dorrea partzialki inprimagarria den eremutik kanpo dago, eta ezin da inprimatu.\n"
 
@@ -15238,6 +15274,21 @@ msgstr "Gomendatutako pitaren tenperatura-tartea baliogabea da. Beheko mugak goi
 
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
 msgstr "Hala ere inprimatu nahi baduzu, aukera hau gaitu dezakezu: Hobespenak / Kontrola / Xerratzea / Kendu tenperatura mistoen murrizketa."
+
+msgid "A prime tower requires that all objects have the same layer height."
+msgstr "Purgatze-dorreak objektu guztiek geruza-altuera bera izatea eskatzen du."
+
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
+msgstr "Purgatze-dorreak objektu guztiak baltsa-geruza kopuru beraren gainean inprimatzea eskatzen du."
+
+msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
+msgstr "Purgatze-dorrea hainbat objektutarako soilik onartzen da support_top_z_distance bera erabiliz inprimatzen badira."
+
+msgid "A prime tower requires that all objects are sliced with the same layer height."
+msgstr "Purgatze-dorreak objektu guztiak geruza-altuera berarekin xerratzea eskatzen du."
+
+msgid "The prime tower is only supported if all objects have the same variable layer height."
+msgstr "Purgatze-dorrea objektu guztiek geruza-altuera aldakor bera badute soilik onartzen da."
 
 msgid "No extrusions under current settings."
 msgstr "Uneko ezarpenekin ez dago estrusiorik."
@@ -15376,21 +15427,6 @@ msgstr "Purgatze-dorrea ez da onartzen geruza-altuera egokigarria aktibatuta dag
 
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "Purgatze-dorreak \"euskarri-tarte\" oro geruza-altueraren multiploa izatea eskatzen du."
-
-msgid "A prime tower requires that all objects have the same layer height."
-msgstr "Purgatze-dorreak objektu guztiek geruza-altuera bera izatea eskatzen du."
-
-msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr "Purgatze-dorreak objektu guztiak baltsa-geruza kopuru beraren gainean inprimatzea eskatzen du."
-
-msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr "Purgatze-dorrea hainbat objektutarako soilik onartzen da support_top_z_distance bera erabiliz inprimatzen badira."
-
-msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr "Purgatze-dorreak objektu guztiak geruza-altuera berarekin xerratzea eskatzen du."
-
-msgid "The prime tower is only supported if all objects have the same variable layer height."
-msgstr "Purgatze-dorrea objektu guztiek geruza-altuera aldakor bera badute soilik onartzen da."
 
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Objektu bati edo gehiagori inprimagailuak ez duen estrusore bat esleitu zaio."
@@ -28149,6 +28185,18 @@ msgid "Constraints"
 msgstr "Murrizketak"
 
 # AI Translated
+msgid "No constraints yet"
+msgstr "Oraindik ez dago murrizketarik"
+
+# AI Translated
+msgid "Zoom to selection"
+msgstr "Zooma hautapenera"
+
+# AI Translated
+msgid "Delete constraint"
+msgstr "Ezabatu murrizketa"
+
+# AI Translated
 msgid "Feature tree"
 msgstr "Eragiketa-zuhaitza"
 
@@ -28181,10 +28229,6 @@ msgstr "Mugitu behera"
 # AI Translated
 msgid "Show / hide"
 msgstr "Erakutsi / ezkutatu"
-
-# AI Translated
-msgid "Zoom to selection"
-msgstr "Zooma hautapenera"
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -28365,6 +28409,12 @@ msgstr[1] "%d askatasun-gradu"
 #, c-format, boost-format
 msgid "Sketch %d"
 msgstr "Krokisa %d"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+#, boost-format
+msgid "Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "Editatzen: %1%   ·   N = begiratu planoarekiko normalean   ·   Berretsi edo Utzi tresna-barran"
 
 # AI Translated
 #, c-format, boost-format
@@ -29067,8 +29117,8 @@ msgid "  ·  Esc goes back to Select"
 msgstr "  ·  Esc teklak Hautatu tresnara itzultzen du"
 
 # AI Translated
-msgid "  ·  click a constraint badge to remove it"
-msgstr "  ·  egin klik murrizketa-ikur batean hura kentzeko"
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  egin klik murrizketa-ikur batean hura hautatzeko"
 
 # AI Translated
 #, c-format, boost-format
@@ -29534,12 +29584,10 @@ msgid "Constraints (%d)"
 msgstr "Murrizketak (%d)"
 
 # AI Translated
-msgid "No constraints yet"
-msgstr "Oraindik ez dago murrizketarik"
-
-# AI Translated
-msgid "Delete constraint"
-msgstr "Ezabatu murrizketa"
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% hautatuta — Ezabatu teklak kentzen du"
 
 # AI Translated
 msgid "Constraint deleted"
@@ -38267,354 +38315,3 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
-
-# AI Translated
-#~ msgid "Subdivision mesh"
-#~ msgstr "Sare-azpizatiketa"
-
-# AI Translated
-#~ msgid "Updates are available for your OrcaCloud plugins."
-#~ msgstr "Eguneraketak daude erabilgarri zure OrcaCloud pluginetarako."
-
-# AI Translated
-#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-#~ msgstr "Inportatutako objektu batzuek aldatzaileak edo ezarpen indibidualak dituzten piezak dituzte. Multzo gisa erakusten dira, ezarpen horiek ikusgai egon daitezen."
-
-# AI Translated
-#~ msgid "Geometry import"
-#~ msgstr "Geometria inportatzea"
-
-# AI Translated
-#~ msgid "Files"
-#~ msgstr "Fitxategiak"
-
-# AI Translated
-#~ msgid "Folder paths"
-#~ msgstr "Karpeten bideak"
-
-# AI Translated
-#~ msgid "File import"
-#~ msgstr "Fitxategiak inportatzea"
-
-# AI Translated
-#~ msgid "Ask how to handle unsupported characters in imported names"
-#~ msgstr "Galdetu nola kudeatu inportatutako izenetako onartzen ez diren karaktereak"
-
-# AI Translated
-#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
-#~ msgstr "Erakutsi kentzeko edo ordezteko aukerak jatorrizko izenek onartzen ez diren karaktereak dituztenean."
-
-# AI Translated
-#~ msgid "3MF import"
-#~ msgstr "3MF inportatzea"
-
-# AI Translated
-#~ msgid "Show options when importing"
-#~ msgstr "Erakutsi aukerak inportatzean"
-
-# AI Translated
-#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-#~ msgstr "Erakutsi jatorrizko izenen eta ordenatzearen aukerak proiektu-ezarpenik gabeko 3MF bat uneko proiektuan inportatzean."
-
-# AI Translated
-#~ msgid "Keep original names"
-#~ msgstr "Mantendu jatorrizko izenak"
-
-# AI Translated
-#~ msgid "Use the body names stored in the imported file when it contains them."
-#~ msgstr "Erabili inportatutako fitxategian gordetako gorputz-izenak, baldin badauzka."
-
-# AI Translated
-#~ msgid "STEP import"
-#~ msgstr "STEP inportatzea"
-
-# AI Translated
-#~ msgid "Linear deflection"
-#~ msgstr "Desbideratze lineala"
-
-# AI Translated
-#~ msgid "Angle deflection"
-#~ msgstr "Angelu-desbideratzea"
-
-# AI Translated
-#~ msgid "Split into multiple objects"
-#~ msgstr "Banatu hainbat objektutan"
-
-# AI Translated
-#~ msgid ""
-#~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
-#~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: enabled."
-#~ msgstr ""
-#~ "Gaituta badago, inportatutako STEP fitxategietako forma konposatuak eta compsolid formak hainbat objektutan banatzen dira.\n"
-#~ "Inportazio-elkarrizketa-koadroko balio lehenetsi gisa erabiltzen da, edo zuzenean elkarrizketa-koadroa desgaituta dagoenean.\n"
-#~ "Lehenetsia: gaituta."
-
-# AI Translated
-#~ msgid "AMF import"
-#~ msgstr "AMF inportatzea"
-
-# AI Translated
-#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-#~ msgstr "Erakutsi gorputzak taldekatzeko, jatorrizko izenen eta ordenatzearen aukerak geometria uneko proiektuan inportatzean."
-
-# AI Translated
-#~ msgid "DRC export"
-#~ msgstr "DRC esportatzea"
-
-# AI Translated
-#~ msgid "Behaviour"
-#~ msgstr "Portaera"
-
-# AI Translated
-#~ msgid "Speed dial"
-#~ msgstr "Abiarazle azkarra"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
-#~ msgstr "%1% objektu-zerrendan duen lekua baino beranduago inprimatzen da, talka bat saihesteko."
-
-# AI Translated
-#, boost-format
-#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-#~ msgstr "Espiral formako loreontzi moduak hormako begizta bakarra behar du, dentsitate baxuko betegarririk eta goiko oskolaren geruzarik gabe, baina %1% objektuak beste balio batzuk erabiltzen ditu; beraz, ez da espiral jarrai gisa inprimatuko."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-#~ "%2%"
-#~ msgstr ""
-#~ "%1% filamentuaren Pressure Advance egokigarriaren modeloak balio baliogabeak ditu.\n"
-#~ "%2%"
-
-# AI Translated
-#~ msgid "Used filament types"
-#~ msgstr "Erabilitako filamentu motak"
-
-# AI Translated
-#~ msgid "Underscore-separated list of all filament types used during the print."
-#~ msgstr "Inprimaketan erabilitako filamentu mota guztien zerrenda, azpimarraz bereizita."
-
-# AI Translated
-#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-#~ msgstr "Hainbat gorputz dituen pieza baten gorputz bakoitza bereizita kargatzen du. Beharrezkoa da gorputzen jatorrizko izenak mantentzeko."
-
-# AI Translated
-#~ msgid "Load as an assembly"
-#~ msgstr "Kargatu multzo gisa"
-
-# AI Translated
-#~ msgid "Load as a single object (can be split later)"
-#~ msgstr "Kargatu objektu bakar gisa (geroago bana daiteke)"
-
-# AI Translated
-#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-#~ msgstr "Jatorrizko gorputzak eta izenak objektuaren barruan mantentzen dira. Erabili \"Piezetan zatitu\" pieza bereizi gisa erakusteko."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-#~ msgstr "Erabili fitxategian gordetako gorputz-izenak, baldin badaude. Hainbat gorputz dituzten piezetarako \"Banatu compound\" behar da."
-
-# AI Translated
-#~ msgid "Sort parts by name"
-#~ msgstr "Ordenatu piezak izenaren arabera"
-
-# AI Translated
-#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-#~ msgstr "Ordenatu inportatutako multzo bakoitzeko piezak objektuen zerrendan. Honek ez du xerratzeko erabiltzen den ordena aldatzen. Erabilgarri \"Mantendu jatorrizko izenak\" gaituta dagoenean."
-
-# AI Translated
-#~ msgid "Don't ask again"
-#~ msgstr "Ez galdetu berriro"
-
-# AI Translated
-#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "Gorde aukera hauek eta aplikatu galdetu gabe hurrengoan. Elkarrizketa-koadro hau berriro erakuts dezakezu Hobespenetan."
-
-# AI Translated
-#~ msgid "3MF geometry import options"
-#~ msgstr "3MF geometria inportatzeko aukerak"
-
-# AI Translated
-#~ msgid "AMF geometry import options"
-#~ msgstr "AMF geometria inportatzeko aukerak"
-
-# AI Translated
-#~ msgid "Choose how to name and order the parts of this file."
-#~ msgstr "Aukeratu nola izendatu eta ordenatu fitxategi honetako piezak."
-
-# AI Translated
-#~ msgid "Choose how to load the bodies in this file."
-#~ msgstr "Aukeratu nola kargatu fitxategi honetako gorputzak."
-
-# AI Translated
-#~ msgid "Load as separate objects"
-#~ msgstr "Kargatu objektu bereizi gisa"
-
-# AI Translated
-#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-#~ msgstr "Fitxategiko objektu bakoitza bere aldetik kargatzen da, OrcaSlicer-ek AMF fitxategiak beti kargatu izan dituen bezala."
-
-# AI Translated
-#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-#~ msgstr "Fitxategiko talde bakoitzeko gorputzak objektu bakar baten pieza bihurtzen dira, beren posizio erlatiboetan."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-#~ msgstr "Erabili fitxategian gordetako gorputz-izenak, baldin badaude. Desgaituta dagoenean, OrcaSlicer-en ohiko izenak erabiltzen dira; dauden proiektu-izenak mantendu egiten dira."
-
-# AI Translated
-#~ msgid "Use these choices as defaults next time. The dialog still opens."
-#~ msgstr "Erabili aukera hauek lehenetsi gisa hurrengoan. Hala ere, elkarrizketa-koadroa irekiko da."
-
-# AI Translated
-#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
-#~ msgstr "Fitxategiko izen bat ez da baliozko Unicode. Geometria ez da inportatu."
-
-# AI Translated
-#~ msgid "Invalid name"
-#~ msgstr "Izen baliogabea"
-
-# AI Translated
-#~ msgid "Unsupported characters in names"
-#~ msgstr "Onartzen ez diren karaktereak izenetan"
-
-# AI Translated
-#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-#~ msgstr "Jatorrizko izen batzuek OrcaSlicer-ek erabili ezin dituen karaktereak dituzte. Aukeratu nola aldatu inportatu aurretik."
-
-# AI Translated
-#~ msgid "Remove unsupported characters"
-#~ msgstr "Kendu onartzen ez diren karaktereak"
-
-# AI Translated
-#~ msgid "Replace with:"
-#~ msgstr "Ordeztu honekin:"
-
-# AI Translated
-#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-#~ msgstr "Onartzen ez den karaktere bakoitza testu honekin ordezten da. Karaktere bat baino luzeagoa izan daiteke."
-
-# AI Translated
-#~ msgid "Use this rule as the default next time. The dialog still opens."
-#~ msgstr "Erabili arau hau lehenetsi gisa hurrengoan. Hala ere, elkarrizketa-koadroa irekiko da."
-
-# AI Translated
-#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "Gorde arau hau eta aplikatu galdetu gabe hurrengoan. Elkarrizketa-koadro hau berriro erakuts dezakezu Hobespenetan."
-
-# AI Translated
-#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-#~ msgstr "Sartu hutsik ez dagoen ordezko testu bat, onartutako karaktereekin soilik, edo aukeratu kentzea."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% → %2%"
-#~ msgstr "%1% → %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1%: %2%"
-#~ msgstr "• %1%: %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1% — %2%: %3%"
-#~ msgstr "• %1% — %2%: %3%"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Ondorengo ezarpenek Orca Slicer-ek ordenagailu honetan identifikatu ezin dituen pluginak aipatzen dituzte:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Hala ere gordetzen baduzu, aurrezarpenak ez ditu ezarpen hauen plugin-erreferentziak gordeko. Beste ordenagailu batean, Orca Slicer-ek ez du jakingo zein plugin eskaini, eta baliteke ezarpenek han ez funtzionatzea."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Ondorengo ezarpenek Orca Slicer-ek ordenagailu honetan identifikatu ezin dituen pluginak aipatzen dituzte:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Hala ere gordetzen baduzu, proiektuak ez ditu ezarpen hauen plugin-erreferentziak gordeko. Beste ordenagailu batean, Orca Slicer-ek ez du jakingo zein plugin eskaini, eta baliteke ezarpenek han ez funtzionatzea."
-
-# AI Translated
-#~ msgid "Plugin Not Identified"
-#~ msgstr "Plugina ez da identifikatu"
-
-# AI Translated
-#~ msgid "Save anyway"
-#~ msgstr "Gorde hala ere"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Gordetzen ari diren aurrezarpenek Orca Slicer-ek ordenagailu honetan identifikatu ezin dituen pluginak aipatzen dituzte:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Hala ere gordetzen baduzu, aurrezarpenek ez dituzte ezarpen hauen plugin-erreferentziak gordeko. Beste ordenagailu batean, Orca Slicer-ek ez du jakingo zein plugin eskaini, eta baliteke ezarpenek han ez funtzionatzea."
-
-# AI Translated
-#~ msgid "Remove from favorites"
-#~ msgstr "Kendu gogokoetatik"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to create the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to create the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "\"%s\" pluginak fitxategi hau sortzeko baimena eskatzen du:\n"
-#~ "%s"
-#~ msgstr[1] ""
-#~ "\"%s\" pluginak fitxategi hauek sortzeko baimena eskatzen du:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to delete the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to delete the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "\"%s\" pluginak fitxategi hau ezabatzeko baimena eskatzen du:\n"
-#~ "%s"
-#~ msgstr[1] ""
-#~ "\"%s\" pluginak fitxategi hauek ezabatzeko baimena eskatzen du:\n"
-#~ "%s"
-
-# AI Translated
-#~ msgid "import SVG failed: could not open svg."
-#~ msgstr "SVG inportatzeak huts egin du: ezin izan da SVGa ireki."
-
-# AI Translated
-#~ msgid "import SVG failed: could not parse imported svg data."
-#~ msgstr "SVG inportatzeak huts egin du: ezin izan dira inportatutako SVG datuak analizatu."

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:31-0600\n"
+"POT-Creation-Date: 2026-11-14 00:49+0800\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -6508,6 +6508,10 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "无效格式，应该是\"%1%\"这种数组格式"
 
 # AI Translated
+msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+msgstr "不可打印区域无效，必须是不自交的简单多边形。"
+
+# AI Translated
 msgid "System agents"
 msgstr "系统代理"
 
@@ -10212,6 +10216,10 @@ msgstr "此项目包含一个在“设计”标签页中创建的模型，且不
 
 msgid "The file does not contain any geometry data."
 msgstr "此文件不包含任何几何数据。"
+
+# AI Translated
+msgid "The invalid area has been removed, so please define it again using a valid polygon."
+msgstr "无效区域已被移除，请使用有效的多边形重新定义。"
 
 # AI Translated
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
@@ -14291,6 +14299,12 @@ msgid "XHF"
 msgstr "超高流"
 
 # AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2", and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
 msgid "No modifications need to be copied."
 msgstr "没有需要复制的修改。"
 
@@ -14307,6 +14321,12 @@ msgstr "修改 %s 的参数"
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
 msgstr "是否将 %s 的以下参数修改为 %s 的参数？"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2% the list of those they are copied to, as the switch names them, e.g. "T2 HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "是否将 %1% 的以下参数复制到 %2%？"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "点击该图标，恢复到全局的配置数值，并与全局配置同步变化。"
@@ -14461,6 +14481,18 @@ msgid ""
 msgstr ""
 "\n"
 "您可以放弃已修改的预设值，或者将修改后的值迁移到新项目"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "单击比较按钮可查看完整值。"
+
+# AI Translated
+msgid "Process settings"
+msgstr "工艺设置"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "比较完整值"
 
 msgid "Extruder count"
 msgstr "挤出机数量"
@@ -15237,10 +15269,6 @@ msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self
 msgstr "HTTPS CA文件是可选的。只有在使用自签名证书进行HTTPS连接时才需要。"
 
 # AI Translated
-msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr "此系统使用系统证书存储或钥匙串中的 HTTPS 证书。如需使用自定义 CA 文件，请将它导入系统证书存储或钥匙串。"
-
-# AI Translated
 msgid "Printer model"
 msgstr "打印机型号"
 
@@ -15260,6 +15288,10 @@ msgstr "连接"
 
 msgid "Manual Setup"
 msgstr "手动设置"
+
+# AI Translated
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr "此系统使用系统证书存储或钥匙串中的 HTTPS 证书。如需使用自定义 CA 文件，请将它导入系统证书存储或钥匙串。"
 
 # AI Translated
 msgid "IP and Access Code Verified! You may close the window"
@@ -15833,6 +15865,10 @@ msgid "Prime tower is too close to the clumping detection area. There may be col
 msgstr "擦拭塔距离结块检测区域太近，打印时可能会发生碰撞。"
 
 # AI Translated
+msgid "The extruder printable areas share no common area, so the prime tower cannot be printed.\n"
+msgstr "各挤出机的可打印区域没有公共部分，无法打印擦拭塔。\n"
+
+# AI Translated
 msgid "Prime tower is partially outside the printable area, and it cannot be printed.\n"
 msgstr "擦拭塔有部分超出可打印区域，无法打印。\n"
 
@@ -15846,6 +15882,23 @@ msgstr "推荐喷嘴温度范围无效。下限必须低于上限。"
 # AI Translated
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
 msgstr "如果您仍要打印，可以在 偏好设置 / 控制 / 切片 / 解除混合温度限制 中启用该选项。"
+
+msgid "A prime tower requires that all objects have the same layer height."
+msgstr "擦拭塔要求各个对象拥有同样的层高。"
+
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
+msgstr "擦拭塔要求各个对象使用同样的筏层数量。"
+
+# AI Translated
+msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
+msgstr "仅当多个对象使用相同的 support_top_z_distance 打印时，才支持擦拭塔。"
+
+msgid "A prime tower requires that all objects are sliced with the same layer height."
+msgstr "擦拭塔要求各个对象拥有同样的层高。"
+
+# AI Translated
+msgid "The prime tower is only supported if all objects have the same variable layer height."
+msgstr "仅当所有对象的可变层高相同时，才支持擦拭塔。"
 
 msgid "No extrusions under current settings."
 msgstr "根据当前设置，不会生成任何打印。"
@@ -15994,23 +16047,6 @@ msgstr "不支持在可变层高开启时使用擦拭塔。它要求所有对象
 # AI Translated
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "擦拭塔要求“支撑间隙”为层高的整数倍。"
-
-msgid "A prime tower requires that all objects have the same layer height."
-msgstr "擦拭塔要求各个对象拥有同样的层高。"
-
-msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr "擦拭塔要求各个对象使用同样的筏层数量。"
-
-# AI Translated
-msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr "仅当多个对象使用相同的 support_top_z_distance 打印时，才支持擦拭塔。"
-
-msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr "擦拭塔要求各个对象拥有同样的层高。"
-
-# AI Translated
-msgid "The prime tower is only supported if all objects have the same variable layer height."
-msgstr "仅当所有对象的可变层高相同时，才支持擦拭塔。"
 
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "为一个或多个对象分配了打印机没有的挤出机。"
@@ -29519,6 +29555,18 @@ msgid "Constraints"
 msgstr "约束"
 
 # AI Translated
+msgid "No constraints yet"
+msgstr "尚无约束"
+
+# AI Translated
+msgid "Zoom to selection"
+msgstr "缩放到所选内容"
+
+# AI Translated
+msgid "Delete constraint"
+msgstr "删除约束"
+
+# AI Translated
 msgid "Feature tree"
 msgstr "特征树"
 
@@ -29551,10 +29599,6 @@ msgstr "下移"
 # AI Translated
 msgid "Show / hide"
 msgstr "显示 / 隐藏"
-
-# AI Translated
-msgid "Zoom to selection"
-msgstr "缩放到所选内容"
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -29731,6 +29775,12 @@ msgstr[0] "%d 个自由度"
 #, c-format, boost-format
 msgid "Sketch %d"
 msgstr "草图 %d"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+#, boost-format
+msgid "Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "正在编辑：%1%   ·   N = 正视于平面   ·   在工具栏中确定或取消"
 
 # AI Translated
 #, c-format, boost-format
@@ -30422,8 +30472,8 @@ msgid "  ·  Esc goes back to Select"
 msgstr "  ·  按 Esc 返回选择工具"
 
 # AI Translated
-msgid "  ·  click a constraint badge to remove it"
-msgstr "  ·  单击约束标记可将其移除"
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  单击约束标记可将其选中"
 
 # AI Translated
 #, c-format, boost-format
@@ -30886,12 +30936,10 @@ msgid "Constraints (%d)"
 msgstr "约束 (%d)"
 
 # AI Translated
-msgid "No constraints yet"
-msgstr "尚无约束"
-
-# AI Translated
-msgid "Delete constraint"
-msgstr "删除约束"
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "已选中 %1% — 按 Delete 可将其移除"
 
 # AI Translated
 msgid "Constraint deleted"
@@ -39578,311 +39626,3 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
-
-# AI Translated
-#~ msgid "Subdivision mesh"
-#~ msgstr "细分网格"
-
-# AI Translated
-#~ msgid "Updates are available for your OrcaCloud plugins."
-#~ msgstr "您的 OrcaCloud 插件有可用更新。"
-
-# AI Translated
-#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-#~ msgstr "部分导入的对象包含带有单独设置的修改器或零件。为使这些设置保持可见，这些对象将以装配体形式显示。"
-
-# AI Translated
-#~ msgid "Geometry import"
-#~ msgstr "几何体导入"
-
-# AI Translated
-#~ msgid "Files"
-#~ msgstr "文件"
-
-# AI Translated
-#~ msgid "Folder paths"
-#~ msgstr "文件夹路径"
-
-# AI Translated
-#~ msgid "File import"
-#~ msgstr "文件导入"
-
-# AI Translated
-#~ msgid "Ask how to handle unsupported characters in imported names"
-#~ msgstr "导入的名称含有不支持的字符时询问处理方式"
-
-# AI Translated
-#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
-#~ msgstr "原始名称含有不支持的字符时，显示删除或替换选项。"
-
-# AI Translated
-#~ msgid "3MF import"
-#~ msgstr "3MF 导入"
-
-# AI Translated
-#~ msgid "Show options when importing"
-#~ msgstr "导入时显示选项"
-
-# AI Translated
-#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-#~ msgstr "将不含项目设置的 3MF 导入当前项目时，显示原始名称和排序选项。"
-
-# AI Translated
-#~ msgid "Keep original names"
-#~ msgstr "保留原始名称"
-
-# AI Translated
-#~ msgid "Use the body names stored in the imported file when it contains them."
-#~ msgstr "导入的文件中存有实体名称时，使用这些名称。"
-
-# AI Translated
-#~ msgid "STEP import"
-#~ msgstr "STEP 导入"
-
-# AI Translated
-#~ msgid "Linear deflection"
-#~ msgstr "线性偏差"
-
-# AI Translated
-#~ msgid "Angle deflection"
-#~ msgstr "角度偏差"
-
-# AI Translated
-#~ msgid "Split into multiple objects"
-#~ msgstr "拆分为多个对象"
-
-# AI Translated
-#~ msgid ""
-#~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
-#~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: enabled."
-#~ msgstr ""
-#~ "如果启用，导入的 STEP 文件中的复合体（compound）和复合实体（compsolid）形状将拆分为多个对象。\n"
-#~ "用作导入对话框中的默认值，禁用导入对话框时则直接使用。\n"
-#~ "默认值：启用。"
-
-# AI Translated
-#~ msgid "AMF import"
-#~ msgstr "AMF 导入"
-
-# AI Translated
-#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-#~ msgstr "将几何体导入当前项目时，显示实体分组、原始名称和排序选项。"
-
-# AI Translated
-#~ msgid "DRC export"
-#~ msgstr "DRC 导出"
-
-#~ msgid "Behaviour"
-#~ msgstr "行为"
-
-# AI Translated
-#~ msgid "Speed dial"
-#~ msgstr "快捷面板"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
-#~ msgstr "为避免碰撞，%1% 的打印顺序晚于其在对象列表中的位置。"
-
-# AI Translated
-#, boost-format
-#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-#~ msgstr "旋转花瓶模式要求稀疏填充密度为 0、墙层数为 1、顶部外壳层数为 0，但对象 %1% 使用了其他值，因此不会以连续螺旋方式打印。"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-#~ "%2%"
-#~ msgstr ""
-#~ "耗材丝 %1% 的自适应 Pressure Advance 模型包含无效值。\n"
-#~ "%2%"
-
-# AI Translated
-#~ msgid "Used filament types"
-#~ msgstr "已用耗材丝类型"
-
-# AI Translated
-#~ msgid "Underscore-separated list of all filament types used during the print."
-#~ msgstr "打印期间使用的所有耗材丝类型的列表，以下划线分隔。"
-
-# AI Translated
-#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-#~ msgstr "分别加载多实体零件中的每个实体。要保留实体的原始名称，需要启用此项。"
-
-# AI Translated
-#~ msgid "Load as an assembly"
-#~ msgstr "作为装配体加载"
-
-# AI Translated
-#~ msgid "Load as a single object (can be split later)"
-#~ msgstr "作为单个对象加载（之后可拆分）"
-
-# AI Translated
-#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-#~ msgstr "原始实体及其名称保留在对象内部。使用“拆分为零件”可将它们显示为单独的零件。"
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-#~ msgstr "使用文件中存储的实体名称（如有）。对于包含多个实体的零件，需要启用“将复合体和复合实体拆分为多个对象”。"
-
-# AI Translated
-#~ msgid "Sort parts by name"
-#~ msgstr "按名称排序零件"
-
-# AI Translated
-#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-#~ msgstr "在对象列表中对每个导入的装配体内的零件进行排序。这不会改变切片时使用的顺序。启用“保留原始名称”时可用。"
-
-# AI Translated
-#~ msgid "Don't ask again"
-#~ msgstr "不再询问"
-
-# AI Translated
-#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "保存这些选择，下次直接应用而不再询问。您可以在偏好设置中重新显示此对话框。"
-
-# AI Translated
-#~ msgid "3MF geometry import options"
-#~ msgstr "3MF 几何体导入选项"
-
-# AI Translated
-#~ msgid "AMF geometry import options"
-#~ msgstr "AMF 几何体导入选项"
-
-# AI Translated
-#~ msgid "Choose how to name and order the parts of this file."
-#~ msgstr "选择此文件中零件的命名和排序方式。"
-
-# AI Translated
-#~ msgid "Choose how to load the bodies in this file."
-#~ msgstr "选择此文件中实体的加载方式。"
-
-# AI Translated
-#~ msgid "Load as separate objects"
-#~ msgstr "作为独立对象加载"
-
-# AI Translated
-#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-#~ msgstr "文件中的每个对象单独加载，与 OrcaSlicer 以往加载 AMF 文件的方式相同。"
-
-# AI Translated
-#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-#~ msgstr "文件中每个分组的实体按其相对位置成为同一对象的零件。"
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-#~ msgstr "使用文件中存储的实体名称（如有）。禁用时使用 OrcaSlicer 的常规名称；项目中已有的名称保持不变。"
-
-# AI Translated
-#~ msgid "Use these choices as defaults next time. The dialog still opens."
-#~ msgstr "下次将这些选择用作默认值。对话框仍会打开。"
-
-# AI Translated
-#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
-#~ msgstr "文件中有名称不是有效的 Unicode。未导入几何体。"
-
-# AI Translated
-#~ msgid "Invalid name"
-#~ msgstr "无效的名称"
-
-# AI Translated
-#~ msgid "Unsupported characters in names"
-#~ msgstr "名称中含有不支持的字符"
-
-# AI Translated
-#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-#~ msgstr "部分原始名称包含 OrcaSlicer 无法使用的字符。请在导入前选择修改方式。"
-
-# AI Translated
-#~ msgid "Remove unsupported characters"
-#~ msgstr "删除不支持的字符"
-
-# AI Translated
-#~ msgid "Replace with:"
-#~ msgstr "替换为："
-
-# AI Translated
-#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-#~ msgstr "每个不支持的字符都将替换为此文本。文本可以多于一个字符。"
-
-# AI Translated
-#~ msgid "Use this rule as the default next time. The dialog still opens."
-#~ msgstr "下次将此规则用作默认值。对话框仍会打开。"
-
-# AI Translated
-#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "保存此规则，下次直接应用而不再询问。您可以在偏好设置中重新显示此对话框。"
-
-# AI Translated
-#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-#~ msgstr "请输入仅包含支持字符的非空替换文本，或选择删除。"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% → %2%"
-#~ msgstr "%1% → %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1%: %2%"
-#~ msgstr "• %1%：%2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1% — %2%: %3%"
-#~ msgstr "• %1% — %2%：%3%"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "以下设置引用了 Orca Slicer 在此计算机上无法识别的插件：\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "如果仍要保存，预设将不会保留这些设置的插件引用。在其他计算机上，Orca Slicer 将无法确定要提供哪些插件，这些设置也可能无法正常工作。"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "以下设置引用了 Orca Slicer 在此计算机上无法识别的插件：\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "如果仍要保存，项目将不会保留这些设置的插件引用。在其他计算机上，Orca Slicer 将无法确定要提供哪些插件，这些设置也可能无法正常工作。"
-
-# AI Translated
-#~ msgid "Plugin Not Identified"
-#~ msgstr "无法识别插件"
-
-# AI Translated
-#~ msgid "Save anyway"
-#~ msgstr "仍要保存"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "要保存的预设引用了 Orca Slicer 在此计算机上无法识别的插件：\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "如果仍要保存，这些预设将不会保留这些设置的插件引用。在其他计算机上，Orca Slicer 将无法确定要提供哪些插件，这些设置也可能无法正常工作。"

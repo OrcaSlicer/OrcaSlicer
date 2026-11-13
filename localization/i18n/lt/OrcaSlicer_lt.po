@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:31-0600\n"
+"POT-Creation-Date: 2026-11-14 00:49+0800\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -6445,6 +6445,10 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Netinkamas formatas. Tinkamas vektorinis formatas: \"%1%\""
 
 # AI Translated
+msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+msgstr "Nespausdinama pagrindo sritis neteisinga. Ji turi būti paprastas daugiakampis be save kertančių kraštinių."
+
+# AI Translated
 msgid "System agents"
 msgstr "Sisteminiai agentai"
 
@@ -10059,6 +10063,10 @@ msgstr "Šiame projekte yra skirtuke „Projektavimas“ sukurtas modelis ir jok
 
 msgid "The file does not contain any geometry data."
 msgstr "Faile nėra jokių geometrinių duomenų."
+
+# AI Translated
+msgid "The invalid area has been removed, so please define it again using a valid polygon."
+msgstr "Netinkama sritis pašalinta, apibrėžkite ją iš naujo naudodami tinkamą daugiakampį."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Jūsų objektas per didelis. Ar norite jį automatiškai sumažinti, kad tilptų ant spausdinimo pagrindo?"
@@ -14025,6 +14033,12 @@ msgctxt "Nozzle flow type"
 msgid "XHF"
 msgstr "XHF"
 
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2", and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
 msgid "No modifications need to be copied."
 msgstr "Nereikia kopijuoti jokių modifikacijų"
 
@@ -14038,6 +14052,12 @@ msgstr "Modifikuoti %s parametrus"
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
 msgstr "Ar norite pakeisti šiuos %s parametrus į %s parametrus?"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2% the list of those they are copied to, as the switch names them, e.g. "T2 HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "Ar norite nukopijuoti šiuos %1% parametrus į %2%?"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Spustelėkite , jei norite iš naujo nustatyti dabartinę reikšmę ir prijungti ją prie bendros reikšmės."
@@ -14183,6 +14203,19 @@ msgid ""
 msgstr ""
 "\n"
 "Galite atmesti pakeistas profilio reikšmes arba pasirinkti perkelti jas į naują projektą"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Spustelėkite palyginimo mygtuką, kad pamatytumėte visą reikšmę."
+
+# AI Translated
+# Needs human review: Kept the existing human 'Apdorojimo nustatymai' for Process Settings; another entry uses 'proceso nustatymus'.
+msgid "Process settings"
+msgstr "Apdorojimo nustatymai"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Palyginti visas reikšmes"
 
 msgid "Extruder count"
 msgstr "Ekstruderių skaičius"
@@ -14919,10 +14952,6 @@ msgstr "Atidaryti CA sertifikato failą"
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr "HTTPS CA failas yra neprivalomas. Jis reikalingas tik tuo atveju, jei naudojate HTTPS su savarankiškai pasirašytu sertifikatu."
 
-# AI Translated
-msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr "Ši sistema naudoja HTTPS sertifikatus iš sisteminės sertifikatų saugyklos (Certificate Store) arba raktinės (Keychain). Norėdami naudoti pasirinktinį CA failą, importuokite jį ten."
-
 msgid "Printer model"
 msgstr "Spausdintuvo modelis"
 
@@ -14941,6 +14970,10 @@ msgstr "Jungtis"
 
 msgid "Manual Setup"
 msgstr "Rankinė sąranka"
+
+# AI Translated
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr "Ši sistema naudoja HTTPS sertifikatus iš sisteminės sertifikatų saugyklos (Certificate Store) arba raktinės (Keychain). Norėdami naudoti pasirinktinį CA failą, importuokite jį ten."
 
 msgid "IP and Access Code Verified! You may close the window"
 msgstr "Patikrintas IP ir prieigos kodas! Galite uždaryti langą"
@@ -15509,6 +15542,10 @@ msgid "Prime tower is too close to the clumping detection area. There may be col
 msgstr "Valymo bokštas yra per arti sulipimo aptikimo (clumping detection) srities, spausdinant gali įvykti susidūrimų."
 
 # AI Translated
+msgid "The extruder printable areas share no common area, so the prime tower cannot be printed.\n"
+msgstr "Ekstruderių spausdinimo sritys neturi bendros dalies, todėl valymo bokšto atspausdinti neįmanoma.\n"
+
+# AI Translated
 msgid "Prime tower is partially outside the printable area, and it cannot be printed.\n"
 msgstr "Valymo bokštas yra iš dalies už spausdinimo srities ribų ir negali būti atspausdintas.\n"
 
@@ -15520,6 +15557,21 @@ msgstr "Neteisingas rekomenduojamas purkštuko temperatūros diapazonas. Žemuti
 
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
 msgstr "Jei vis tiek norite spausdinti, galite įjungti šią parinktį skiltyje Nuostatos (Preferences) / Valdymas / Pjaustymas / Pašalinti mišrios temperatūros ribojimą."
+
+msgid "A prime tower requires that all objects have the same layer height."
+msgstr "Valymo bokštui reikia, kad visų objektų sluoksnio aukštis būtų vienodas"
+
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
+msgstr "Valymo bokštui reikia, kad visi objektai būtų spausdinami ant vienodo skaičiaus platformos sluoksnių."
+
+msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
+msgstr "Valymo bokštas keliems objektams palaikomas tik tada, jei jie spausdinami su vienodu „support_top_z_distance“ parametru."
+
+msgid "A prime tower requires that all objects are sliced with the same layer height."
+msgstr "Valymo bokštui reikia, kad visi objektai būtų supjaustyti vienodu sluoksnių aukščiu."
+
+msgid "The prime tower is only supported if all objects have the same variable layer height."
+msgstr "Valymo bokštas palaikomas tik tada, kai visi objektai turi vienodą kintamą sluoksnio aukštį."
 
 msgid "No extrusions under current settings."
 msgstr "Pagal dabartinius nustatymus nėra išspaudimų."
@@ -15659,21 +15711,6 @@ msgstr "Valymo bokštas nepalaikomas, kai įjungtas adaptyvusis sluoksnio aukšt
 
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "Valymo bokštui reikia, kad „atramos tarpas“ (support gap) būtų sluoksnio aukščio kartotinis."
-
-msgid "A prime tower requires that all objects have the same layer height."
-msgstr "Valymo bokštui reikia, kad visų objektų sluoksnio aukštis būtų vienodas"
-
-msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr "Valymo bokštui reikia, kad visi objektai būtų spausdinami ant vienodo skaičiaus platformos sluoksnių."
-
-msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr "Valymo bokštas keliems objektams palaikomas tik tada, jei jie spausdinami su vienodu „support_top_z_distance“ parametru."
-
-msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr "Valymo bokštui reikia, kad visi objektai būtų supjaustyti vienodu sluoksnių aukščiu."
-
-msgid "The prime tower is only supported if all objects have the same variable layer height."
-msgstr "Valymo bokštas palaikomas tik tada, kai visi objektai turi vienodą kintamą sluoksnio aukštį."
 
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Vienas ar daugiau objektų buvo priskirti ekstruderiui, kurio spausdintuvas neturi."
@@ -28585,6 +28622,18 @@ msgid "Constraints"
 msgstr "Apribojimai"
 
 # AI Translated
+msgid "No constraints yet"
+msgstr "Apribojimų dar nėra"
+
+# AI Translated
+msgid "Zoom to selection"
+msgstr "Priartinti prie pasirinkimo"
+
+# AI Translated
+msgid "Delete constraint"
+msgstr "Ištrinti apribojimą"
+
+# AI Translated
 msgid "Feature tree"
 msgstr "Elementų medis"
 
@@ -28617,10 +28666,6 @@ msgstr "Perkelti žemyn"
 # AI Translated
 msgid "Show / hide"
 msgstr "Rodyti / slėpti"
-
-# AI Translated
-msgid "Zoom to selection"
-msgstr "Priartinti prie pasirinkimo"
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -28805,6 +28850,12 @@ msgstr[2] "%d laisvės laipsnių"
 #, c-format, boost-format
 msgid "Sketch %d"
 msgstr "Eskizas %d"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+#, boost-format
+msgid "Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "Redaguojama: %1%   ·   N = žiūrėti statmenai plokštumai   ·   „Patvirtinti“ arba „Atšaukti“ įrankių juostoje"
 
 # AI Translated
 #, c-format, boost-format
@@ -29518,8 +29569,8 @@ msgid "  ·  Esc goes back to Select"
 msgstr "  ·  Esc – grįžti į įrankį „Pasirinkti“"
 
 # AI Translated
-msgid "  ·  click a constraint badge to remove it"
-msgstr "  ·  spustelėkite apribojimo ženklelį, kad jį pašalintumėte"
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  spustelėkite apribojimo ženklelį, kad jį pasirinktumėte"
 
 # AI Translated
 #, c-format, boost-format
@@ -29988,12 +30039,10 @@ msgid "Constraints (%d)"
 msgstr "Apribojimai (%d)"
 
 # AI Translated
-msgid "No constraints yet"
-msgstr "Apribojimų dar nėra"
-
-# AI Translated
-msgid "Delete constraint"
-msgstr "Ištrinti apribojimą"
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "Pasirinkta: %1% – Delete jį pašalina"
 
 # AI Translated
 msgid "Constraint deleted"
@@ -38764,361 +38813,3 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
-
-# AI Translated
-#~ msgid "Subdivision mesh"
-#~ msgstr "Tinklo padalijimas"
-
-# AI Translated
-#~ msgid "Updates are available for your OrcaCloud plugins."
-#~ msgstr "Yra jūsų „OrcaCloud“ papildinių atnaujinimų."
-
-# AI Translated
-#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-#~ msgstr "Kai kuriuose importuotuose objektuose yra modifikatorių arba dalių su atskirais nustatymais. Jie rodomi kaip surinkiniai, kad šie nustatymai liktų matomi."
-
-# AI Translated
-#~ msgid "Geometry import"
-#~ msgstr "Geometrijos importavimas"
-
-# AI Translated
-#~ msgid "Files"
-#~ msgstr "Failai"
-
-# AI Translated
-#~ msgid "Folder paths"
-#~ msgstr "Aplankų keliai"
-
-# AI Translated
-#~ msgid "File import"
-#~ msgstr "Failų importavimas"
-
-# AI Translated
-#~ msgid "Ask how to handle unsupported characters in imported names"
-#~ msgstr "Klausti, ką daryti su nepalaikomais simboliais importuojamuose pavadinimuose"
-
-# AI Translated
-#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
-#~ msgstr "Rodyti šalinimo arba pakeitimo pasirinkimus, kai originaliuose pavadinimuose yra nepalaikomų simbolių."
-
-# AI Translated
-#~ msgid "3MF import"
-#~ msgstr "3MF importavimas"
-
-# AI Translated
-#~ msgid "Show options when importing"
-#~ msgstr "Rodyti parinktis importuojant"
-
-# AI Translated
-#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-#~ msgstr "Rodyti originalių pavadinimų ir rikiavimo parinktis, kai į dabartinį projektą importuojamas 3MF be projekto nustatymų."
-
-# AI Translated
-#~ msgid "Keep original names"
-#~ msgstr "Išlaikyti originalius pavadinimus"
-
-# AI Translated
-#~ msgid "Use the body names stored in the imported file when it contains them."
-#~ msgstr "Naudoti importuojamame faile išsaugotus kūnų pavadinimus, jei jų yra."
-
-# AI Translated
-#~ msgid "STEP import"
-#~ msgstr "STEP importavimas"
-
-# AI Translated
-#~ msgid "Linear deflection"
-#~ msgstr "Linijinis nuokrypis"
-
-# AI Translated
-#~ msgid "Angle deflection"
-#~ msgstr "Kampinis nuokrypis"
-
-# AI Translated
-#~ msgid "Split into multiple objects"
-#~ msgstr "Išskaidyti į kelis objektus"
-
-# AI Translated
-#~ msgid ""
-#~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
-#~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: enabled."
-#~ msgstr ""
-#~ "Jei įjungta, sudėtinės („compound“) ir „compsolid“ formos importuotuose STEP failuose yra išskaidomos į kelis objektus.\n"
-#~ "Naudojama kaip numatytoji nuostata importavimo lange arba tiesiogiai, kai importavimo langas išjungtas.\n"
-#~ "Numatytoji būsena: įjungta."
-
-# AI Translated
-#~ msgid "AMF import"
-#~ msgstr "AMF importavimas"
-
-# AI Translated
-#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-#~ msgstr "Rodyti kūnų grupavimo, originalių pavadinimų ir rikiavimo parinktis, kai į dabartinį projektą importuojama geometrija."
-
-# AI Translated
-#~ msgid "DRC export"
-#~ msgstr "DRC eksportavimas"
-
-#~ msgid "Behaviour"
-#~ msgstr "Elgsena"
-
-# AI Translated
-#~ msgid "Speed dial"
-#~ msgstr "Greitieji veiksmai"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
-#~ msgstr "Objektas „%1%“ spausdinamas vėliau, nei numatyta pagal jo vietą objektų sąraše, kad būtų išvengta susidūrimo."
-
-# AI Translated
-#, boost-format
-#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-#~ msgstr "Spiralinės vazos režimui reikia, kad nebūtų reto užpildo, būtų vienas sienelės kontūras ir nebūtų viršutinio apvalkalo sluoksnių, tačiau objektas %1% naudoja kitas reikšmes, todėl jis nebus spausdinamas kaip ištisinė spiralė."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-#~ "%2%"
-#~ msgstr ""
-#~ "Gijos %1% adaptyviojo Pressure Advance modelyje yra netinkamų reikšmių.\n"
-#~ "%2%"
-
-# AI Translated
-#~ msgid "Used filament types"
-#~ msgstr "Naudotų gijų tipai"
-
-# AI Translated
-#~ msgid "Underscore-separated list of all filament types used during the print."
-#~ msgstr "Pabraukimo brūkšniais atskirtas visų spausdinimo metu naudotų gijų tipų sąrašas."
-
-# AI Translated
-#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-#~ msgstr "Kiekvieną kelių kūnų dalies kūną įkelia atskirai. Reikia, kad būtų išlaikyti originalūs kūnų pavadinimai."
-
-# AI Translated
-#~ msgid "Load as an assembly"
-#~ msgstr "Įkelti kaip surinkinį"
-
-# AI Translated
-#~ msgid "Load as a single object (can be split later)"
-#~ msgstr "Įkelti kaip vieną objektą (vėliau galima išskaidyti)"
-
-# AI Translated
-#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-#~ msgstr "Originalūs kūnai ir pavadinimai išlaikomi objekto viduje. Naudokite „Padalinti į dalis“, kad jie būtų rodomi kaip atskiros dalys."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-#~ msgstr "Naudoti faile išsaugotus kūnų pavadinimus, jei jų yra. Dalims su keliais kūnais reikia įjungti parinktį Skaidyti „compound“."
-
-# AI Translated
-#~ msgid "Sort parts by name"
-#~ msgstr "Rikiuoti dalis pagal pavadinimą"
-
-# AI Translated
-#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-#~ msgstr "Rikiuoti dalis kiekviename importuotame surinkinyje objektų sąraše. Tai nekeičia sluoksniavimo tvarkos. Galima, kai įjungta „Išlaikyti originalius pavadinimus“."
-
-# AI Translated
-#~ msgid "Don't ask again"
-#~ msgstr "Daugiau neklausti"
-
-# AI Translated
-# Needs human review: The glossary cell for Preferences is marked unsettled. This uses „Parinktys“, the catalog's label for the dialog; check it once the term is settled.
-#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "Išsaugoti šiuos pasirinkimus ir kitą kartą juos taikyti neklausiant. Šį dialogo langą vėl galite parodyti skiltyje „Parinktys“."
-
-# AI Translated
-#~ msgid "3MF geometry import options"
-#~ msgstr "3MF geometrijos importavimo parinktys"
-
-# AI Translated
-#~ msgid "AMF geometry import options"
-#~ msgstr "AMF geometrijos importavimo parinktys"
-
-# AI Translated
-#~ msgid "Choose how to name and order the parts of this file."
-#~ msgstr "Pasirinkite, kaip pavadinti ir rikiuoti šio failo dalis."
-
-# AI Translated
-#~ msgid "Choose how to load the bodies in this file."
-#~ msgstr "Pasirinkite, kaip įkelti šio failo kūnus."
-
-# AI Translated
-#~ msgid "Load as separate objects"
-#~ msgstr "Įkelti kaip atskirus objektus"
-
-# AI Translated
-#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-#~ msgstr "Kiekvienas failo objektas įkeliamas atskirai, kaip „OrcaSlicer“ visada įkeldavo AMF failus."
-
-# AI Translated
-#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-#~ msgstr "Kiekvienos failo grupės kūnai tampa vieno objekto dalimis, išlaikant jų tarpusavio padėtį."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-#~ msgstr "Naudoti faile išsaugotus kūnų pavadinimus, jei jų yra. Kai išjungta, naudojami įprasti „OrcaSlicer“ pavadinimai; esami projekto pavadinimai išlaikomi."
-
-# AI Translated
-#~ msgid "Use these choices as defaults next time. The dialog still opens."
-#~ msgstr "Kitą kartą naudoti šiuos pasirinkimus kaip numatytuosius. Dialogo langas vis tiek bus atidarytas."
-
-# AI Translated
-#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
-#~ msgstr "Faile esantis pavadinimas nėra tinkamas Unicode tekstas. Geometrija neimportuota."
-
-# AI Translated
-#~ msgid "Invalid name"
-#~ msgstr "Netinkamas pavadinimas"
-
-# AI Translated
-#~ msgid "Unsupported characters in names"
-#~ msgstr "Nepalaikomi simboliai pavadinimuose"
-
-# AI Translated
-#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-#~ msgstr "Kai kuriuose originaliuose pavadinimuose yra simbolių, kurių „OrcaSlicer“ negali naudoti. Prieš importuodami pasirinkite, kaip juos pakeisti."
-
-# AI Translated
-#~ msgid "Remove unsupported characters"
-#~ msgstr "Pašalinti nepalaikomus simbolius"
-
-# AI Translated
-#~ msgid "Replace with:"
-#~ msgstr "Pakeisti į:"
-
-# AI Translated
-#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-#~ msgstr "Kiekvienas nepalaikomas simbolis pakeičiamas šiuo tekstu. Jis gali būti ilgesnis nei vienas simbolis."
-
-# AI Translated
-#~ msgid "Use this rule as the default next time. The dialog still opens."
-#~ msgstr "Kitą kartą naudoti šią taisyklę kaip numatytąją. Dialogo langas vis tiek bus atidarytas."
-
-# AI Translated
-# Needs human review: The glossary cell for Preferences is marked unsettled. This uses „Parinktys“, the catalog's label for the dialog; check it once the term is settled.
-#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "Išsaugoti šią taisyklę ir kitą kartą ją taikyti neklausiant. Šį dialogo langą vėl galite parodyti skiltyje „Parinktys“."
-
-# AI Translated
-#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-#~ msgstr "Įveskite netuščią pakaitalą tik iš palaikomų simbolių arba pasirinkite pašalinimą."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% → %2%"
-#~ msgstr "%1% → %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1%: %2%"
-#~ msgstr "• %1%: %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1% — %2%: %3%"
-#~ msgstr "• %1% – %2%: %3%"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Šie nustatymai nurodo papildinius, kurių „Orca Slicer“ šiame kompiuteryje negali atpažinti:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Jei vis tiek išsaugosite, profilis neišsaugos šių nustatymų nuorodų į papildinius. Kitame kompiuteryje „Orca Slicer“ nežinos, kuriuos papildinius pasiūlyti, ir nustatymai ten gali neveikti."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Šie nustatymai nurodo papildinius, kurių „Orca Slicer“ šiame kompiuteryje negali atpažinti:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Jei vis tiek išsaugosite, projektas neišsaugos šių nustatymų nuorodų į papildinius. Kitame kompiuteryje „Orca Slicer“ nežinos, kuriuos papildinius pasiūlyti, ir nustatymai ten gali neveikti."
-
-# AI Translated
-#~ msgid "Plugin Not Identified"
-#~ msgstr "Papildinys neatpažintas"
-
-# AI Translated
-#~ msgid "Save anyway"
-#~ msgstr "Vis tiek išsaugoti"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Išsaugomi profiliai nurodo papildinius, kurių „Orca Slicer“ šiame kompiuteryje negali atpažinti:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Jei vis tiek išsaugosite, profiliai neišsaugos šių nustatymų nuorodų į papildinius. Kitame kompiuteryje „Orca Slicer“ nežinos, kuriuos papildinius pasiūlyti, ir nustatymai ten gali neveikti."
-
-# AI Translated
-#~ msgid "Remove from favorites"
-#~ msgstr "Pašalinti iš mėgstamiausių"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to create the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to create the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "Papildinys „%s“ prašo leidimo sukurti šį failą:\n"
-#~ "%s"
-#~ msgstr[1] ""
-#~ "Papildinys „%s“ prašo leidimo sukurti šiuos failus:\n"
-#~ "%s"
-#~ msgstr[2] ""
-#~ "Papildinys „%s“ prašo leidimo sukurti šiuos failus:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to delete the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to delete the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "Papildinys „%s“ prašo leidimo ištrinti šį failą:\n"
-#~ "%s"
-#~ msgstr[1] ""
-#~ "Papildinys „%s“ prašo leidimo ištrinti šiuos failus:\n"
-#~ "%s"
-#~ msgstr[2] ""
-#~ "Papildinys „%s“ prašo leidimo ištrinti šiuos failus:\n"
-#~ "%s"
-
-# AI Translated
-#~ msgid "import SVG failed: could not open svg."
-#~ msgstr "SVG importas nepavyko: nepavyko atidaryti SVG."
-
-# AI Translated
-#~ msgid "import SVG failed: could not parse imported svg data."
-#~ msgstr "SVG importas nepavyko: nepavyko išanalizuoti importuotų SVG duomenų."

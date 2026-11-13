@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:31-0600\n"
+"POT-Creation-Date: 2026-11-14 00:49+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -6657,6 +6657,10 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "形式が無効です。次のベクトル形式で入力してください: \"%1%\""
 
 # AI Translated
+msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+msgstr "除外領域が無効です。自己交差のない単純な多角形にする必要があります。"
+
+# AI Translated
 msgid "System agents"
 msgstr "システムエージェント"
 
@@ -10337,6 +10341,10 @@ msgstr "このプロジェクトには、デザインタブで作成されたモ
 
 msgid "The file does not contain any geometry data."
 msgstr "このファイルにはジオメトリデータが含まれていません。"
+
+# AI Translated
+msgid "The invalid area has been removed, so please define it again using a valid polygon."
+msgstr "無効な領域は削除されました。有効な多角形で改めて指定してください。"
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "オブジェクトが大きすぎのようです、ベッドに合わせてスケールしますか？"
@@ -14443,6 +14451,12 @@ msgid "XHF"
 msgstr "XHF"
 
 # AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2", and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
 msgid "No modifications need to be copied."
 msgstr "コピーが必要な変更はありません。"
 
@@ -14459,6 +14473,12 @@ msgstr "%sのパラメータを変更"
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
 msgstr "%sの以下のパラメータを%sの値に変更しますか？"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2% the list of those they are copied to, as the switch names them, e.g. "T2 HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "%1%の以下のパラメータを%2%にコピーしますか？"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "現在値をデフォルト値に戻します。"
@@ -14615,6 +14635,18 @@ msgid ""
 msgstr ""
 "\n"
 "変更したプリセットの値を破棄することも、変更した値を新しいプロジェクトに引き継ぐこともできます"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "比較ボタンをクリックすると全文を確認できます。"
+
+# AI Translated
+msgid "Process settings"
+msgstr "プロセス設定"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "全文を比較"
 
 # AI Translated
 # Needs human review: Rewrote a person's translation: Extruder rendered エクストルーダー instead of the glossary 押出機
@@ -15403,10 +15435,6 @@ msgstr "CA 証明書ファイルを開く"
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr "HTTPS CAファイルはオプションです。自己署名証明書を使用する場合のみ必要です。"
 
-# AI Translated
-msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr "このシステムでは、システムの証明書ストアまたはキーチェーンのHTTPS証明書を使用します。カスタムCAファイルを使用するには、そこにインポートしてください。"
-
 msgid "Printer model"
 msgstr "プリンターモデル"
 
@@ -15425,6 +15453,10 @@ msgstr "接続"
 
 msgid "Manual Setup"
 msgstr "手動セットアップ"
+
+# AI Translated
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr "このシステムでは、システムの証明書ストアまたはキーチェーンのHTTPS証明書を使用します。カスタムCAファイルを使用するには、そこにインポートしてください。"
 
 msgid "IP and Access Code Verified! You may close the window"
 msgstr "IPとアクセスコードが確認されました！ウィンドウを閉じてください"
@@ -16010,6 +16042,10 @@ msgid "Prime tower is too close to the clumping detection area. There may be col
 msgstr "プライムタワーがクランピング検出エリアに近すぎます。印刷中に衝突が発生する可能性があります。"
 
 # AI Translated
+msgid "The extruder printable areas share no common area, so the prime tower cannot be printed.\n"
+msgstr "押出機の造形可能領域に共通部分がないため、プライムタワーを印刷できません。\n"
+
+# AI Translated
 # Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
 msgid "Prime tower is partially outside the printable area, and it cannot be printed.\n"
 msgstr "プライムタワーが造形可能領域から一部はみ出しているため、印刷できません。\n"
@@ -16026,6 +16062,23 @@ msgstr "推奨ノズル温度範囲が無効です。下限は上限より低く
 # Needs human review: The section title "Slicing" shares its msgid with the status "Slicing" (スライス中); this quotes it as スライス.
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
 msgstr "それでも印刷する場合は、「設定 / コントロール / スライス / 混合温度制限を解除」のオプションを有効にできます。"
+
+msgid "A prime tower requires that all objects have the same layer height."
+msgstr "プライムタワーを使用するには、全てのオブジェクトが同じ積層ピッチを使う必要があります。"
+
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
+msgstr "プライムタワーを使用するには、全てのオブジェクトが同じラフト層数を使う必要があります。"
+
+# AI Translated
+# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
+msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
+msgstr "プライムタワーは、複数のオブジェクトが同じsupport_top_z_distanceで印刷される場合にのみ対応しています。"
+
+msgid "A prime tower requires that all objects are sliced with the same layer height."
+msgstr "プライムタワーを使用するには、全てのオブジェクトが同じ積層ピッチを使う必要があります。"
+
+msgid "The prime tower is only supported if all objects have the same variable layer height."
+msgstr "プライムタワーを使用するには、全てのオブジェクトが同じ可変積層ピッチを持つ必要があります。"
 
 msgid "No extrusions under current settings."
 msgstr "現在の設定では造形しません。"
@@ -16181,23 +16234,6 @@ msgstr "[アダプティブ積層ピッチ]を使用する時に、プライム�
 
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "プライムタワーを使用するにはサポートとのギャップが積層ピッチの整数倍である必要があります。"
-
-msgid "A prime tower requires that all objects have the same layer height."
-msgstr "プライムタワーを使用するには、全てのオブジェクトが同じ積層ピッチを使う必要があります。"
-
-msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr "プライムタワーを使用するには、全てのオブジェクトが同じラフト層数を使う必要があります。"
-
-# AI Translated
-# Needs human review: Unsettled glossary term (⚠) "Prime tower / Wipe tower": this entry uses "プライムタワー"; align it once the term is settled.
-msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr "プライムタワーは、複数のオブジェクトが同じsupport_top_z_distanceで印刷される場合にのみ対応しています。"
-
-msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr "プライムタワーを使用するには、全てのオブジェクトが同じ積層ピッチを使う必要があります。"
-
-msgid "The prime tower is only supported if all objects have the same variable layer height."
-msgstr "プライムタワーを使用するには、全てのオブジェクトが同じ可変積層ピッチを持つ必要があります。"
 
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "1つ以上のオブジェクトに、プリンターにない押出機が割り当てられました。"
@@ -30079,6 +30115,18 @@ msgid "Constraints"
 msgstr "拘束"
 
 # AI Translated
+msgid "No constraints yet"
+msgstr "まだ拘束がありません"
+
+# AI Translated
+msgid "Zoom to selection"
+msgstr "選択項目にズーム"
+
+# AI Translated
+msgid "Delete constraint"
+msgstr "拘束を削除"
+
+# AI Translated
 msgid "Feature tree"
 msgstr "フィーチャーツリー"
 
@@ -30111,10 +30159,6 @@ msgstr "下へ移動"
 # AI Translated
 msgid "Show / hide"
 msgstr "表示 / 非表示"
-
-# AI Translated
-msgid "Zoom to selection"
-msgstr "選択項目にズーム"
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -30291,6 +30335,12 @@ msgstr[0] "自由度 %d"
 #, c-format, boost-format
 msgid "Sketch %d"
 msgstr "スケッチ%d"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+#, boost-format
+msgid "Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "編集中: %1%   ·   N = 平面に垂直に表示   ·   ツールバーで確定または取消し"
 
 # AI Translated
 #, c-format, boost-format
@@ -30982,8 +31032,8 @@ msgid "  ·  Esc goes back to Select"
 msgstr "  ·  Escで選択ツールに戻る"
 
 # AI Translated
-msgid "  ·  click a constraint badge to remove it"
-msgstr "  ·  拘束バッジをクリックして削除"
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  拘束バッジをクリックして選択"
 
 # AI Translated
 #, c-format, boost-format
@@ -31446,12 +31496,10 @@ msgid "Constraints (%d)"
 msgstr "拘束 (%d)"
 
 # AI Translated
-msgid "No constraints yet"
-msgstr "まだ拘束がありません"
-
-# AI Translated
-msgid "Delete constraint"
-msgstr "拘束を削除"
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1%を選択中 — Deleteで削除"
 
 # AI Translated
 msgid "Constraint deleted"
@@ -40142,347 +40190,3 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
-
-# AI Translated
-#~ msgid "Subdivision mesh"
-#~ msgstr "メッシュを細分化"
-
-# AI Translated
-#~ msgid "Updates are available for your OrcaCloud plugins."
-#~ msgstr "OrcaCloudプラグインの更新があります。"
-
-# AI Translated
-#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-#~ msgstr "インポートした一部のオブジェクトには、個別の設定を持つモディファイアまたはパーツが含まれています。これらの設定を確認できるよう、アセンブリとして表示されます。"
-
-# AI Translated
-#~ msgid "Geometry import"
-#~ msgstr "ジオメトリのインポート"
-
-# AI Translated
-#~ msgid "Files"
-#~ msgstr "ファイル"
-
-# AI Translated
-#~ msgid "Folder paths"
-#~ msgstr "フォルダパス"
-
-# AI Translated
-#~ msgid "File import"
-#~ msgstr "ファイルのインポート"
-
-# AI Translated
-#~ msgid "Ask how to handle unsupported characters in imported names"
-#~ msgstr "インポートした名前に含まれる非対応の文字の処理方法を確認する"
-
-# AI Translated
-#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
-#~ msgstr "元の名前に非対応の文字が含まれている場合に、削除または置換の選択肢を表示します。"
-
-# AI Translated
-#~ msgid "3MF import"
-#~ msgstr "3MFのインポート"
-
-# AI Translated
-#~ msgid "Show options when importing"
-#~ msgstr "インポート時にオプションを表示"
-
-# AI Translated
-#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-#~ msgstr "プロジェクト設定のない3MFを現在のプロジェクトにインポートするときに、元の名前と並べ替えのオプションを表示します。"
-
-# AI Translated
-#~ msgid "Keep original names"
-#~ msgstr "元の名前を保持"
-
-# AI Translated
-#~ msgid "Use the body names stored in the imported file when it contains them."
-#~ msgstr "インポートしたファイルにボディ名が保存されている場合は、その名前を使用します。"
-
-# AI Translated
-#~ msgid "STEP import"
-#~ msgstr "STEPのインポート"
-
-# AI Translated
-#~ msgid "Linear deflection"
-#~ msgstr "線形偏差"
-
-# AI Translated
-#~ msgid "Angle deflection"
-#~ msgstr "角度偏差"
-
-# AI Translated
-#~ msgid "Split into multiple objects"
-#~ msgstr "複数のオブジェクトに分割"
-
-# AI Translated
-#~ msgid ""
-#~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
-#~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: enabled."
-#~ msgstr ""
-#~ "有効にすると、インポートしたSTEPファイル内のコンパウンドおよびコンプソリッド形状が複数のオブジェクトに分割されます。\n"
-#~ "インポートダイアログの初期値として、またはインポートダイアログが無効な場合は直接使用されます。\n"
-#~ "デフォルト: 有効。"
-
-# AI Translated
-#~ msgid "AMF import"
-#~ msgstr "AMFのインポート"
-
-# AI Translated
-#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-#~ msgstr "現在のプロジェクトにジオメトリをインポートするときに、ボディのグループ化、元の名前、並べ替えのオプションを表示します。"
-
-# AI Translated
-#~ msgid "DRC export"
-#~ msgstr "DRCのエクスポート"
-
-#~ msgid "Behaviour"
-#~ msgstr "動作"
-
-# AI Translated
-#~ msgid "Speed dial"
-#~ msgstr "スピードダイヤル"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
-#~ msgstr "衝突を避けるため、%1%はオブジェクトリスト上の順番より後に印刷されます。"
-
-# AI Translated
-#, boost-format
-#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-#~ msgstr "スパイラルモードにはスパース インフィルなし、壁面層数1、上面層数0が必要ですが、オブジェクト %1% の設定値はこれと異なるため、連続したスパイラルとして造形されません。"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-#~ "%2%"
-#~ msgstr ""
-#~ "フィラメント%1%のアダプティブPressure Advanceモデルに無効な値が含まれています。\n"
-#~ "%2%"
-
-# AI Translated
-#~ msgid "Used filament types"
-#~ msgstr "使用フィラメントタイプ"
-
-# AI Translated
-#~ msgid "Underscore-separated list of all filament types used during the print."
-#~ msgstr "プリントで使用されるすべてのフィラメントタイプをアンダースコアで区切ったリスト。"
-
-# AI Translated
-#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-#~ msgstr "複数のボディを持つパーツの各ボディを個別に読み込みます。ボディの元の名前を保持するために必要です。"
-
-# AI Translated
-#~ msgid "Load as an assembly"
-#~ msgstr "アセンブリとして読み込む"
-
-# AI Translated
-#~ msgid "Load as a single object (can be split later)"
-#~ msgstr "単一のオブジェクトとして読み込む（後で分割可能）"
-
-# AI Translated
-#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-#~ msgstr "元のボディと名前はオブジェクト内に保持されます。個別のパーツとして表示するには「パーツに分割」を使用してください。"
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-#~ msgstr "ファイルにボディ名が保存されている場合は、その名前を使用します。複数のボディを持つパーツには「コンパウンドを分割」が必要です。"
-
-# AI Translated
-#~ msgid "Sort parts by name"
-#~ msgstr "パーツを名前で並べ替え"
-
-# AI Translated
-#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-#~ msgstr "オブジェクトリスト内で、インポートした各アセンブリのパーツを並べ替えます。スライスに使用される順序は変わりません。「元の名前を保持」が有効な場合に使用できます。"
-
-# AI Translated
-#~ msgid "Don't ask again"
-#~ msgstr "今後は確認しない"
-
-# AI Translated
-#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "これらの選択を保存し、次回から確認せずに適用します。このダイアログは「設定」から再度表示できます。"
-
-# AI Translated
-#~ msgid "3MF geometry import options"
-#~ msgstr "3MFジオメトリのインポートオプション"
-
-# AI Translated
-#~ msgid "AMF geometry import options"
-#~ msgstr "AMFジオメトリのインポートオプション"
-
-# AI Translated
-#~ msgid "Choose how to name and order the parts of this file."
-#~ msgstr "このファイルのパーツの名前の付け方と並び順を選択してください。"
-
-# AI Translated
-#~ msgid "Choose how to load the bodies in this file."
-#~ msgstr "このファイル内のボディの読み込み方法を選択してください。"
-
-# AI Translated
-#~ msgid "Load as separate objects"
-#~ msgstr "個別のオブジェクトとして読み込む"
-
-# AI Translated
-#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-#~ msgstr "ファイル内の各オブジェクトを個別に読み込みます。OrcaSlicerが従来AMFファイルを読み込んできた方法です。"
-
-# AI Translated
-#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-#~ msgstr "ファイル内の各グループのボディが、相対位置を保ったまま1つのオブジェクトのパーツになります。"
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-#~ msgstr "ファイルにボディ名が保存されている場合は、その名前を使用します。無効にすると、OrcaSlicerの通常の名前が使用されます。プロジェクトの既存の名前は保持されます。"
-
-# AI Translated
-#~ msgid "Use these choices as defaults next time. The dialog still opens."
-#~ msgstr "次回からこれらの選択をデフォルトとして使用します。ダイアログは引き続き表示されます。"
-
-# AI Translated
-#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
-#~ msgstr "ファイル内の名前が有効なUnicodeではありません。ジオメトリはインポートされませんでした。"
-
-# AI Translated
-#~ msgid "Invalid name"
-#~ msgstr "無効な名前"
-
-# AI Translated
-#~ msgid "Unsupported characters in names"
-#~ msgstr "名前に含まれる非対応の文字"
-
-# AI Translated
-#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-#~ msgstr "元の名前の一部に、OrcaSlicerで使用できない文字が含まれています。インポートする前に変更方法を選択してください。"
-
-# AI Translated
-#~ msgid "Remove unsupported characters"
-#~ msgstr "非対応の文字を削除"
-
-# AI Translated
-#~ msgid "Replace with:"
-#~ msgstr "次の文字列に置換:"
-
-# AI Translated
-#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-#~ msgstr "非対応の文字はそれぞれこのテキストに置換されます。2文字以上でもかまいません。"
-
-# AI Translated
-#~ msgid "Use this rule as the default next time. The dialog still opens."
-#~ msgstr "次回からこのルールをデフォルトとして使用します。ダイアログは引き続き表示されます。"
-
-# AI Translated
-#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "このルールを保存し、次回から確認せずに適用します。このダイアログは「設定」から再度表示できます。"
-
-# AI Translated
-#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-#~ msgstr "対応している文字のみを含む、空でない置換テキストを入力するか、削除を選択してください。"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% → %2%"
-#~ msgstr "%1% → %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1%: %2%"
-#~ msgstr "• %1%: %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1% — %2%: %3%"
-#~ msgstr "• %1% — %2%: %3%"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "以下の設定は、このコンピューター上でOrca Slicerが識別できないプラグインを参照しています:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "それでも保存すると、プリセットにはこれらの設定のプラグイン参照が保持されません。別のコンピューターではOrca Slicerがどのプラグインを提案すべきか判断できず、設定が機能しない可能性があります。"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "以下の設定は、このコンピューター上でOrca Slicerが識別できないプラグインを参照しています:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "それでも保存すると、プロジェクトにはこれらの設定のプラグイン参照が保持されません。別のコンピューターではOrca Slicerがどのプラグインを提案すべきか判断できず、設定が機能しない可能性があります。"
-
-# AI Translated
-#~ msgid "Plugin Not Identified"
-#~ msgstr "プラグインを識別できません"
-
-# AI Translated
-#~ msgid "Save anyway"
-#~ msgstr "それでも保存"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "保存するプリセットは、このコンピューター上でOrca Slicerが識別できないプラグインを参照しています:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "それでも保存すると、プリセットにはこれらの設定のプラグイン参照が保持されません。別のコンピューターではOrca Slicerがどのプラグインを提案すべきか判断できず、設定が機能しない可能性があります。"
-
-# AI Translated
-#~ msgid "Remove from favorites"
-#~ msgstr "お気に入りから削除"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to create the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to create the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "プラグイン「%s」が以下のファイルの作成を要求しています:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to delete the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to delete the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "プラグイン「%s」が以下のファイルの削除を要求しています:\n"
-#~ "%s"
-
-# AI Translated
-#~ msgid "import SVG failed: could not open svg."
-#~ msgstr "SVGのインポートに失敗しました: SVGを開けませんでした。"
-
-# AI Translated
-#~ msgid "import SVG failed: could not parse imported svg data."
-#~ msgstr "SVGのインポートに失敗しました: インポートしたSVGデータを解析できませんでした。"

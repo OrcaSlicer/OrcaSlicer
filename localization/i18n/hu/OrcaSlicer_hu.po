@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:31-0600\n"
+"POT-Creation-Date: 2026-11-14 00:49+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -6437,6 +6437,10 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Érvénytelen formátum. Elvárt vektor formátum: \"%1%\""
 
 # AI Translated
+msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+msgstr "A kizárt asztalterület érvénytelen. Egyszerű, önmagát nem metsző sokszögnek kell lennie."
+
+# AI Translated
 msgid "System agents"
 msgstr "Rendszerügynökök"
 
@@ -10046,6 +10050,10 @@ msgstr "Ez a projekt a Tervezés fülön készült modellt tartalmaz, más geome
 
 msgid "The file does not contain any geometry data."
 msgstr "A fájl nem tartalmaz geometriai adatokat."
+
+# AI Translated
+msgid "The invalid area has been removed, so please define it again using a valid polygon."
+msgstr "Az érvénytelen területet eltávolítottuk, ezért add meg újra egy érvényes sokszöggel."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Úgy tűnik, hogy az objektum túl nagy. Szeretnéd átméretezni, hogy illeszkedjen a nyomtatótér méretéhez?"
@@ -14048,6 +14056,12 @@ msgid "XHF"
 msgstr "XHF"
 
 # AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2", and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
 msgid "No modifications need to be copied."
 msgstr "Nincs másolandó módosítás."
 
@@ -14064,6 +14078,12 @@ msgstr "A(z) %s paramétereinek módosítása"
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
 msgstr "Módosítani szeretnéd a(z) %s alábbi paramétereit a(z) %s paramétereire?"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2% the list of those they are copied to, as the switch names them, e.g. "T2 HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "Szeretnéd másolni a(z) %1% alábbi paramétereit a(z) %2% paramétereibe?"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Kattints ide az érték visszaállításához és a globális érték használatához."
@@ -14209,6 +14229,18 @@ msgid ""
 msgstr ""
 "\n"
 "Elvetheted a módosított előbeállítási értékeket, vagy átviheted a módosított értékeket az új projektbe"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Kattints az összehasonlítás gombra a teljes érték megtekintéséhez."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Folyamatbeállítások"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "A teljes értékek összehasonlítása"
 
 msgid "Extruder count"
 msgstr "Extruderek száma"
@@ -14967,10 +14999,6 @@ msgstr "CA tanúsítványfájl megnyitása"
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr "A HTTPS CA-fájl nem kötelező. Csak akkor szükséges, ha a HTTPS-t saját aláírású tanúsítvánnyal használod."
 
-# AI Translated
-msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr "Ezen a rendszeren a program a rendszer tanúsítványtárolójából vagy kulcstárolójából származó HTTPS-tanúsítványokat használja. Egyéni CA-fájl használatához importáld oda."
-
 msgid "Printer model"
 msgstr "Nyomtatómodell"
 
@@ -14989,6 +15017,10 @@ msgstr "Csatlakozás"
 
 msgid "Manual Setup"
 msgstr "Kézi beállítás"
+
+# AI Translated
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr "Ezen a rendszeren a program a rendszer tanúsítványtárolójából vagy kulcstárolójából származó HTTPS-tanúsítványokat használja. Egyéni CA-fájl használatához importáld oda."
 
 msgid "IP and Access Code Verified! You may close the window"
 msgstr "IP és hozzáférési kód leellenőrizve! Bezárhatod az ablakot"
@@ -15556,6 +15588,10 @@ msgid "Prime tower is too close to the clumping detection area. There may be col
 msgstr "A törlőtorony túl közel van a csomósodásészlelési területhez, a nyomtatás során előfordulhatnak ütközések."
 
 # AI Translated
+msgid "The extruder printable areas share no common area, so the prime tower cannot be printed.\n"
+msgstr "Az extruderek nyomtatható területeinek nincs közös része, ezért a törlőtorony nem nyomtatható ki.\n"
+
+# AI Translated
 msgid "Prime tower is partially outside the printable area, and it cannot be printed.\n"
 msgstr "A törlőtorony részben a nyomtatható területen kívül esik, ezért nem nyomtatható ki.\n"
 
@@ -15567,6 +15603,21 @@ msgstr "Érvénytelen ajánlott fúvóka hőmérséklet-tartomány. Az alsó hat
 
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
 msgstr "Ha továbbra is szeretnél nyomtatni, engedélyezheted az opciót itt: Beállítások / Vezérlés / Szeletelés / Vegyes hőmérséklet korlátozás feloldása."
+
+msgid "A prime tower requires that all objects have the same layer height."
+msgstr "A törlőtorony használatához minden objektumnak azonos rétegmagassággal kell rendelkeznie."
+
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
+msgstr "A törlőtorony használatához minden objektumot azonos számú tutajréteggel kell nyomtatni."
+
+msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
+msgstr "A törlőtorony több objektum esetén csak akkor támogatott, ha azok azonos support_top_z_distance értékkel készülnek."
+
+msgid "A prime tower requires that all objects are sliced with the same layer height."
+msgstr "A törlőtorony használatához minden objektumot azonos rétegmagasságokkal kell szeletelni."
+
+msgid "The prime tower is only supported if all objects have the same variable layer height."
+msgstr "A törlőtorony használatához minden objektumnak azonos változó rétegmagassággal kell rendelkeznie."
 
 msgid "No extrusions under current settings."
 msgstr "A jelenlegi beállításokkal nincsenek extrudálások."
@@ -15706,21 +15757,6 @@ msgstr "A törlőtorony nem támogatott, ha az adaptív rétegmagasság be van k
 
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "A törlőtorony használatához a \"támaszköznek\" a rétegmagasság többszörösének kell lennie."
-
-msgid "A prime tower requires that all objects have the same layer height."
-msgstr "A törlőtorony használatához minden objektumnak azonos rétegmagassággal kell rendelkeznie."
-
-msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr "A törlőtorony használatához minden objektumot azonos számú tutajréteggel kell nyomtatni."
-
-msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr "A törlőtorony több objektum esetén csak akkor támogatott, ha azok azonos support_top_z_distance értékkel készülnek."
-
-msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr "A törlőtorony használatához minden objektumot azonos rétegmagasságokkal kell szeletelni."
-
-msgid "The prime tower is only supported if all objects have the same variable layer height."
-msgstr "A törlőtorony használatához minden objektumnak azonos változó rétegmagassággal kell rendelkeznie."
 
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Egy vagy több objektum olyan extruderhez lett rendelve, amellyel a nyomtató nem rendelkezik."
@@ -28811,6 +28847,18 @@ msgid "Constraints"
 msgstr "Kényszerek"
 
 # AI Translated
+msgid "No constraints yet"
+msgstr "Még nincsenek kényszerek"
+
+# AI Translated
+msgid "Zoom to selection"
+msgstr "Nagyítás a kijelölésre"
+
+# AI Translated
+msgid "Delete constraint"
+msgstr "Kényszer törlése"
+
+# AI Translated
 msgid "Feature tree"
 msgstr "Jellemzőfa"
 
@@ -28843,10 +28891,6 @@ msgstr "Mozgatás lefelé"
 # AI Translated
 msgid "Show / hide"
 msgstr "Megjelenítés / elrejtés"
-
-# AI Translated
-msgid "Zoom to selection"
-msgstr "Nagyítás a kijelölésre"
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -29027,6 +29071,12 @@ msgstr[1] "%d szabadságfok"
 #, c-format, boost-format
 msgid "Sketch %d"
 msgstr "Vázlat %d"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+#, boost-format
+msgid "Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "Szerkesztés: %1%   ·   N = merőleges nézet a síkra   ·   Megerősítés vagy Mégse az eszköztáron"
 
 # AI Translated
 #, c-format, boost-format
@@ -29729,8 +29779,8 @@ msgid "  ·  Esc goes back to Select"
 msgstr "  ·  Esc: vissza a Kijelöléshez"
 
 # AI Translated
-msgid "  ·  click a constraint badge to remove it"
-msgstr "  ·  kattints egy kényszerjelvényre az eltávolításához"
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  kattints egy kényszerjelvényre a kijelöléséhez"
 
 # AI Translated
 #, c-format, boost-format
@@ -30196,12 +30246,10 @@ msgid "Constraints (%d)"
 msgstr "Kényszerek (%d)"
 
 # AI Translated
-msgid "No constraints yet"
-msgstr "Még nincsenek kényszerek"
-
-# AI Translated
-msgid "Delete constraint"
-msgstr "Kényszer törlése"
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% kijelölve — a Delete eltávolítja"
 
 # AI Translated
 msgid "Constraint deleted"
@@ -38928,355 +38976,3 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor az asztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
-
-# AI Translated
-#~ msgid "Subdivision mesh"
-#~ msgstr "Háló felosztása"
-
-# AI Translated
-#~ msgid "Updates are available for your OrcaCloud plugins."
-#~ msgstr "Frissítések érhetők el az OrcaCloud-bővítményeidhez."
-
-# AI Translated
-#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-#~ msgstr "Egyes importált objektumok módosítókat vagy egyéni beállításokkal rendelkező tárgyakat tartalmaznak. Összeállításként jelennek meg, hogy ezek a beállítások láthatók maradjanak."
-
-# AI Translated
-#~ msgid "Geometry import"
-#~ msgstr "Geometria importálása"
-
-# AI Translated
-#~ msgid "Files"
-#~ msgstr "Fájlok"
-
-# AI Translated
-#~ msgid "Folder paths"
-#~ msgstr "Mappaútvonalak"
-
-# AI Translated
-#~ msgid "File import"
-#~ msgstr "Fájlok importálása"
-
-# AI Translated
-#~ msgid "Ask how to handle unsupported characters in imported names"
-#~ msgstr "Kérdezzen rá, hogyan kezelje az importált nevekben lévő nem támogatott karaktereket"
-
-# AI Translated
-#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
-#~ msgstr "Megjeleníti az eltávolítás vagy a csere lehetőségét, ha az eredeti nevek nem támogatott karaktereket tartalmaznak."
-
-# AI Translated
-#~ msgid "3MF import"
-#~ msgstr "3MF importálása"
-
-# AI Translated
-#~ msgid "Show options when importing"
-#~ msgstr "Beállítások megjelenítése importáláskor"
-
-# AI Translated
-#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-#~ msgstr "Megjeleníti az eredeti nevekre és a rendezésre vonatkozó beállításokat, ha projektbeállítások nélküli 3MF fájlt importálsz az aktuális projektbe."
-
-# AI Translated
-#~ msgid "Keep original names"
-#~ msgstr "Eredeti nevek megtartása"
-
-# AI Translated
-#~ msgid "Use the body names stored in the imported file when it contains them."
-#~ msgstr "Az importált fájlban tárolt testneveket használja, ha a fájl tartalmaz ilyeneket."
-
-# AI Translated
-#~ msgid "STEP import"
-#~ msgstr "STEP importálása"
-
-# AI Translated
-#~ msgid "Linear deflection"
-#~ msgstr "Lineáris eltérés"
-
-# AI Translated
-#~ msgid "Angle deflection"
-#~ msgstr "Szögeltérés"
-
-# AI Translated
-#~ msgid "Split into multiple objects"
-#~ msgstr "Felosztás több objektumra"
-
-# AI Translated
-#~ msgid ""
-#~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
-#~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: enabled."
-#~ msgstr ""
-#~ "Ha be van kapcsolva, az importált STEP fájlokban lévő compound és compsolid alakzatok több objektumra lesznek felosztva.\n"
-#~ "Az importálási párbeszédablak alapértelmezett értékeként, illetve közvetlenül akkor használatos, ha az importálási párbeszédablak ki van kapcsolva.\n"
-#~ "Alapértelmezett: bekapcsolva."
-
-# AI Translated
-#~ msgid "AMF import"
-#~ msgstr "AMF importálása"
-
-# AI Translated
-#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-#~ msgstr "Megjeleníti a testek csoportosítására, az eredeti nevekre és a rendezésre vonatkozó beállításokat, ha geometriát importálsz az aktuális projektbe."
-
-# AI Translated
-#~ msgid "DRC export"
-#~ msgstr "DRC exportálása"
-
-#~ msgid "Behaviour"
-#~ msgstr "Viselkedés"
-
-# AI Translated
-#~ msgid "Speed dial"
-#~ msgstr "Gyorsindító"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
-#~ msgstr "A(z) %1% az ütközés elkerülése érdekében az objektumlistában elfoglalt helyénél később kerül nyomtatásra."
-
-# AI Translated
-#, boost-format
-#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-#~ msgstr "A „Spirál (váza)” mód kitöltés nélkül, egyetlen falhurokkal és felső héjrétegek nélkül működik, de a(z) %1% objektum más értékeket használ, ezért nem folytonos spirálként lesz kinyomtatva."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-#~ "%2%"
-#~ msgstr ""
-#~ "A(z) %1% filament adaptív Pressure Advance modellje érvénytelen értékeket tartalmaz.\n"
-#~ "%2%"
-
-# AI Translated
-#~ msgid "Used filament types"
-#~ msgstr "Használt filamenttípusok"
-
-# AI Translated
-#~ msgid "Underscore-separated list of all filament types used during the print."
-#~ msgstr "A nyomtatás során használt összes filamenttípus aláhúzásjellel elválasztott listája."
-
-# AI Translated
-#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-#~ msgstr "A több testből álló tárgyak minden testét külön tölti be. Szükséges a testek eredeti nevének megtartásához."
-
-# AI Translated
-#~ msgid "Load as an assembly"
-#~ msgstr "Betöltés összeállításként"
-
-# AI Translated
-#~ msgid "Load as a single object (can be split later)"
-#~ msgstr "Betöltés egyetlen objektumként (később felosztható)"
-
-# AI Translated
-#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-#~ msgstr "Az eredeti testek és nevek az objektumon belül maradnak. A „Felosztás tárgyakra” funkcióval külön tárgyakként jeleníthetők meg."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-#~ msgstr "A fájlban tárolt testneveket használja, ha vannak ilyenek. A több testből álló tárgyakhoz az „Összetett testek felosztása” szükséges."
-
-# AI Translated
-#~ msgid "Sort parts by name"
-#~ msgstr "Tárgyak rendezése név szerint"
-
-# AI Translated
-#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-#~ msgstr "Rendezi a tárgyakat az egyes importált összeállításokon belül az objektumlistában. Ez nem változtatja meg a szeleteléshez használt sorrendet. Akkor érhető el, ha az „Eredeti nevek megtartása” be van kapcsolva."
-
-# AI Translated
-#~ msgid "Don't ask again"
-#~ msgstr "Ne kérdezz újra"
-
-# AI Translated
-#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "Elmenti ezeket a választásokat, és legközelebb kérdés nélkül alkalmazza őket. Ez a párbeszédablak a Beállításokban újra megjeleníthető."
-
-# AI Translated
-#~ msgid "3MF geometry import options"
-#~ msgstr "3MF geometria importálási beállításai"
-
-# AI Translated
-#~ msgid "AMF geometry import options"
-#~ msgstr "AMF geometria importálási beállításai"
-
-# AI Translated
-#~ msgid "Choose how to name and order the parts of this file."
-#~ msgstr "Válaszd ki, hogyan legyenek elnevezve és sorba rendezve a fájl tárgyai."
-
-# AI Translated
-#~ msgid "Choose how to load the bodies in this file."
-#~ msgstr "Válaszd ki, hogyan töltődjenek be a fájlban lévő testek."
-
-# AI Translated
-#~ msgid "Load as separate objects"
-#~ msgstr "Betöltés külön objektumokként"
-
-# AI Translated
-#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-#~ msgstr "A fájl minden objektuma külön töltődik be, ahogy az OrcaSlicer mindig is betöltötte az AMF fájlokat."
-
-# AI Translated
-#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-#~ msgstr "A fájl egyes csoportjainak testei egy objektum tárgyaivá válnak, megtartva egymáshoz viszonyított helyzetüket."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-#~ msgstr "A fájlban tárolt testneveket használja, ha vannak ilyenek. Kikapcsolva a szokásos OrcaSlicer-nevek lesznek használva; a projekt meglévő nevei megmaradnak."
-
-# AI Translated
-#~ msgid "Use these choices as defaults next time. The dialog still opens."
-#~ msgstr "Legközelebb ezeket a választásokat használja alapértelmezettként. A párbeszédablak ettől még megnyílik."
-
-# AI Translated
-#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
-#~ msgstr "A fájlban lévő egyik név nem érvényes Unicode. A geometria nem lett importálva."
-
-# AI Translated
-#~ msgid "Invalid name"
-#~ msgstr "Érvénytelen név"
-
-# AI Translated
-#~ msgid "Unsupported characters in names"
-#~ msgstr "Nem támogatott karakterek a nevekben"
-
-# AI Translated
-#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-#~ msgstr "Egyes eredeti nevek olyan karaktereket tartalmaznak, amelyeket az OrcaSlicer nem tud használni. Importálás előtt válaszd ki, hogyan módosuljanak."
-
-# AI Translated
-#~ msgid "Remove unsupported characters"
-#~ msgstr "Nem támogatott karakterek eltávolítása"
-
-# AI Translated
-#~ msgid "Replace with:"
-#~ msgstr "Csere erre:"
-
-# AI Translated
-#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-#~ msgstr "Minden nem támogatott karakter erre a szövegre lesz cserélve. A szöveg egy karakternél hosszabb is lehet."
-
-# AI Translated
-#~ msgid "Use this rule as the default next time. The dialog still opens."
-#~ msgstr "Legközelebb ezt a szabályt használja alapértelmezettként. A párbeszédablak ettől még megnyílik."
-
-# AI Translated
-#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "Elmenti ezt a szabályt, és legközelebb kérdés nélkül alkalmazza. Ez a párbeszédablak a Beállításokban újra megjeleníthető."
-
-# AI Translated
-#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-#~ msgstr "Adj meg egy nem üres helyettesítő szöveget, amely csak támogatott karaktereket tartalmaz, vagy válaszd az eltávolítást."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% → %2%"
-#~ msgstr "%1% → %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1%: %2%"
-#~ msgstr "• %1%: %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1% — %2%: %3%"
-#~ msgstr "• %1% – %2%: %3%"
-
-# AI Translated
-# Needs human review: 'Beállítás' renders both the preset (glossary) and the settings it holds; check the sentence reads unambiguously.
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Az alábbi beállítások olyan bővítményekre hivatkoznak, amelyeket az Orca Slicer nem tud azonosítani ezen a számítógépen:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Ha mégis mented, a mentett beállítás nem őrzi meg ezeknek a beállításoknak a bővítményhivatkozásait. Egy másik számítógépen az Orca Slicer nem fogja tudni, mely bővítményeket ajánlja fel, és előfordulhat, hogy a beállítások ott nem működnek."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Az alábbi beállítások olyan bővítményekre hivatkoznak, amelyeket az Orca Slicer nem tud azonosítani ezen a számítógépen:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Ha mégis mented, a projekt nem őrzi meg ezeknek a beállításoknak a bővítményhivatkozásait. Egy másik számítógépen az Orca Slicer nem fogja tudni, mely bővítményeket ajánlja fel, és előfordulhat, hogy a beállítások ott nem működnek."
-
-# AI Translated
-#~ msgid "Plugin Not Identified"
-#~ msgstr "Azonosítatlan bővítmény"
-
-# AI Translated
-#~ msgid "Save anyway"
-#~ msgstr "Mentés mindenképp"
-
-# AI Translated
-# Needs human review: 'Beállítás' renders both the presets (glossary) and the settings they hold; check the sentence reads unambiguously.
-#, boost-format
-#~ msgid ""
-#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "A mentendő beállítások olyan bővítményekre hivatkoznak, amelyeket az Orca Slicer nem tud azonosítani ezen a számítógépen:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Ha mégis mented őket, nem őrzik meg a felsorolt beállítások bővítményhivatkozásait. Egy másik számítógépen az Orca Slicer nem fogja tudni, mely bővítményeket ajánlja fel, és előfordulhat, hogy a beállítások ott nem működnek."
-
-# AI Translated
-#~ msgid "Remove from favorites"
-#~ msgstr "Eltávolítás a kedvencek közül"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to create the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to create the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "A(z) \"%s\" bővítmény a következő fájl létrehozását kéri:\n"
-#~ "%s"
-#~ msgstr[1] ""
-#~ "A(z) \"%s\" bővítmény a következő fájlok létrehozását kéri:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to delete the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to delete the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "A(z) \"%s\" bővítmény a következő fájl törlését kéri:\n"
-#~ "%s"
-#~ msgstr[1] ""
-#~ "A(z) \"%s\" bővítmény a következő fájlok törlését kéri:\n"
-#~ "%s"
-
-# AI Translated
-#~ msgid "import SVG failed: could not open svg."
-#~ msgstr "Az svg importálása sikertelen: az svg nem nyitható meg."
-
-# AI Translated
-#~ msgid "import SVG failed: could not parse imported svg data."
-#~ msgstr "Az svg importálása sikertelen: az importált svg-adatok nem dolgozhatók fel."

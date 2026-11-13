@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:31-0600\n"
+"POT-Creation-Date: 2026-11-14 00:49+0800\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -6987,6 +6987,10 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Ogiltligt format. Förväntat vector format: \"%1%\""
 
 # AI Translated
+msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+msgstr "Utesluten yta av byggplattan är ogiltig. Den måste vara en enkel polygon utan självskärningar."
+
+# AI Translated
 msgid "System agents"
 msgstr "Systemagenter"
 
@@ -10832,6 +10836,10 @@ msgstr "Det här projektet innehåller en modell som skapats i fliken Design och
 
 msgid "The file does not contain any geometry data."
 msgstr "Filen innehåller ingen geometrisk data."
+
+# AI Translated
+msgid "The invalid area has been removed, so please define it again using a valid polygon."
+msgstr "Det ogiltiga området har tagits bort. Definiera det igen med en giltig polygon."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Objektet verkar vara för stort, vill du skala ner det så att det passar byggplattan automatiskt?"
@@ -15146,6 +15154,12 @@ msgid "XHF"
 msgstr "XHF"
 
 # AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2", and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
 msgid "No modifications need to be copied."
 msgstr "Inga ändringar behöver kopieras."
 
@@ -15162,6 +15176,12 @@ msgstr "Ändra parametrar för %s"
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
 msgstr "Vill du ändra följande parametrar för %s till dem som gäller för %s?"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2% the list of those they are copied to, as the switch names them, e.g. "T2 HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "Vill du kopiera följande parametrar för %1% till %2%?"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Klicka för att återställa aktuellt värde och koppla till det övergripande värdet."
@@ -15316,6 +15336,18 @@ msgid ""
 msgstr ""
 "\n"
 "Du kan förkasta de förinställningsvärden du har ändrat, eller välja att överföra de ändrade värdena till det nya projektet"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Klicka på jämförelseknappen för att se hela värdet."
+
+# AI Translated
+msgid "Process settings"
+msgstr "Processinställningar"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Jämför hela värdena"
 
 msgid "Extruder count"
 msgstr "Antal extruders"
@@ -16130,10 +16162,6 @@ msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self
 msgstr "HTTPS CA-filen är valfri. Den behövs bara om du använder HTTPS med ett självsignerat certifikat."
 
 # AI Translated
-msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr "Det här systemet använder HTTPS-certifikat från systemets certifikatarkiv eller nyckelring. Importera en anpassad CA-fil dit för att använda den."
-
-# AI Translated
 msgid "Printer model"
 msgstr "Skrivarmodell"
 
@@ -16154,6 +16182,10 @@ msgstr "Anslut"
 # AI Translated
 msgid "Manual Setup"
 msgstr "Manuell konfiguration"
+
+# AI Translated
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr "Det här systemet använder HTTPS-certifikat från systemets certifikatarkiv eller nyckelring. Importera en anpassad CA-fil dit för att använda den."
 
 msgid "IP and Access Code Verified! You may close the window"
 msgstr "IP- och åtkomstkoder verifierade! Du kan stänga fönstret"
@@ -16741,6 +16773,10 @@ msgid "Prime tower is too close to the clumping detection area. There may be col
 msgstr "Prime tornet ligger för nära området för klumpdetektering. Det kan uppstå kollisioner vid utskrift."
 
 # AI Translated
+msgid "The extruder printable areas share no common area, so the prime tower cannot be printed.\n"
+msgstr "Extrudrarnas utskrivbara områden har ingen gemensam yta, så prime tornet kan inte skrivas ut.\n"
+
+# AI Translated
 msgid "Prime tower is partially outside the printable area, and it cannot be printed.\n"
 msgstr "Prime tornet är delvis utanför det utskrivbara området och kan inte skrivas ut.\n"
 
@@ -16755,6 +16791,22 @@ msgstr "Ogiltigt rekommenderat nozzeltemperaturintervall. Den undre gränsen må
 # AI Translated
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
 msgstr "Om du ändå vill skriva ut kan du aktivera alternativet i Inställningar / Kontroll / Beredning / Ta bort begränsningen för blandade temperaturer."
+
+msgid "A prime tower requires that all objects have the same layer height."
+msgstr "Ett Prime Torn kräver att alla objekt har samma lagerhöjd"
+
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
+msgstr "Ett Prime Torn kräver att alla objekt skrivs ut med samma antal Raft lager"
+
+# AI Translated
+msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
+msgstr "Prime tornet stöds endast för flera objekt om de skrivs ut med samma support_top_z_distance."
+
+msgid "A prime tower requires that all objects are sliced with the same layer height."
+msgstr "Ett Prime Torn kräver att alla object är beredda med samma lagerhöjd."
+
+msgid "The prime tower is only supported if all objects have the same variable layer height."
+msgstr "Prime Tower stöds endast om alla objekt har samma variabla lagerhöjd."
 
 msgid "No extrusions under current settings."
 msgstr "Nuvarande inställning har ingen extrudering."
@@ -16903,22 +16955,6 @@ msgstr "Ett Prime Torn stöds inte med adaptiv lagerhöjd är aktiverad. Det kr�
 # AI Translated
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "Ett Prime Torn kräver att \"supportmellanrum\" är en multipel av lagerhöjden."
-
-msgid "A prime tower requires that all objects have the same layer height."
-msgstr "Ett Prime Torn kräver att alla objekt har samma lagerhöjd"
-
-msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr "Ett Prime Torn kräver att alla objekt skrivs ut med samma antal Raft lager"
-
-# AI Translated
-msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr "Prime tornet stöds endast för flera objekt om de skrivs ut med samma support_top_z_distance."
-
-msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr "Ett Prime Torn kräver att alla object är beredda med samma lagerhöjd."
-
-msgid "The prime tower is only supported if all objects have the same variable layer height."
-msgstr "Prime Tower stöds endast om alla objekt har samma variabla lagerhöjd."
 
 # AI Translated
 msgid "One or more object were assigned an extruder that the printer does not have."
@@ -31040,6 +31076,18 @@ msgid "Constraints"
 msgstr "Villkor"
 
 # AI Translated
+msgid "No constraints yet"
+msgstr "Inga villkor än"
+
+# AI Translated
+msgid "Zoom to selection"
+msgstr "Zooma till markering"
+
+# AI Translated
+msgid "Delete constraint"
+msgstr "Ta bort villkor"
+
+# AI Translated
 msgid "Feature tree"
 msgstr "Operationsträd"
 
@@ -31072,10 +31120,6 @@ msgstr "Flytta ner"
 # AI Translated
 msgid "Show / hide"
 msgstr "Visa / dölj"
-
-# AI Translated
-msgid "Zoom to selection"
-msgstr "Zooma till markering"
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -31256,6 +31300,12 @@ msgstr[1] "%d frihetsgrader"
 #, c-format, boost-format
 msgid "Sketch %d"
 msgstr "Skiss %d"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+#, boost-format
+msgid "Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "Redigerar: %1%   ·   N = titta vinkelrätt mot planet   ·   Bekräfta eller Avbryt i verktygsfältet"
 
 # AI Translated
 #, c-format, boost-format
@@ -31958,8 +32008,8 @@ msgid "  ·  Esc goes back to Select"
 msgstr "  ·  Esc går tillbaka till Välj"
 
 # AI Translated
-msgid "  ·  click a constraint badge to remove it"
-msgstr "  ·  klicka på en villkorsmarkör för att ta bort den"
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  klicka på en villkorsmarkör för att markera den"
 
 # AI Translated
 #, c-format, boost-format
@@ -32425,12 +32475,10 @@ msgid "Constraints (%d)"
 msgstr "Villkor (%d)"
 
 # AI Translated
-msgid "No constraints yet"
-msgstr "Inga villkor än"
-
-# AI Translated
-msgid "Delete constraint"
-msgstr "Ta bort villkor"
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% markerad — Delete tar bort den"
 
 # AI Translated
 msgid "Constraint deleted"
@@ -41171,354 +41219,3 @@ msgid ""
 msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
-
-# AI Translated
-#~ msgid "Subdivision mesh"
-#~ msgstr "Underindela mesh"
-
-# AI Translated
-#~ msgid "Updates are available for your OrcaCloud plugins."
-#~ msgstr "Det finns uppdateringar för dina OrcaCloud-insticksmoduler."
-
-# AI Translated
-#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-#~ msgstr "Vissa importerade objekt innehåller modifierare eller delar med egna inställningar. De visas som monteringar så att inställningarna förblir synliga."
-
-# AI Translated
-#~ msgid "Geometry import"
-#~ msgstr "Geometriimport"
-
-# AI Translated
-#~ msgid "Files"
-#~ msgstr "Filer"
-
-# AI Translated
-#~ msgid "Folder paths"
-#~ msgstr "Mappsökvägar"
-
-# AI Translated
-#~ msgid "File import"
-#~ msgstr "Filimport"
-
-# AI Translated
-#~ msgid "Ask how to handle unsupported characters in imported names"
-#~ msgstr "Fråga hur tecken som inte stöds i importerade namn ska hanteras"
-
-# AI Translated
-#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
-#~ msgstr "Visa valen för att ta bort eller ersätta när originalnamn innehåller tecken som inte stöds."
-
-# AI Translated
-#~ msgid "3MF import"
-#~ msgstr "3MF-import"
-
-# AI Translated
-#~ msgid "Show options when importing"
-#~ msgstr "Visa alternativ vid import"
-
-# AI Translated
-#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-#~ msgstr "Visa alternativ för originalnamn och sortering vid import av en 3MF utan projektinställningar till det aktuella projektet."
-
-# AI Translated
-#~ msgid "Keep original names"
-#~ msgstr "Behåll originalnamn"
-
-# AI Translated
-#~ msgid "Use the body names stored in the imported file when it contains them."
-#~ msgstr "Använd de kroppsnamn som finns lagrade i den importerade filen när den innehåller sådana."
-
-# AI Translated
-#~ msgid "STEP import"
-#~ msgstr "STEP-import"
-
-# AI Translated
-#~ msgid "Linear deflection"
-#~ msgstr "Linjär avvikelse"
-
-# AI Translated
-#~ msgid "Angle deflection"
-#~ msgstr "Vinkelavvikelse"
-
-# AI Translated
-#~ msgid "Split into multiple objects"
-#~ msgstr "Dela upp i flera objekt"
-
-# AI Translated
-#~ msgid ""
-#~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
-#~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: enabled."
-#~ msgstr ""
-#~ "Om detta är aktiverat delas sammansatta former (compound och compsolid) i importerade STEP-filer upp i flera objekt.\n"
-#~ "Används som standard i importdialogrutan, eller direkt när importdialogrutan är avstängd.\n"
-#~ "Standard: aktiverad."
-
-# AI Translated
-#~ msgid "AMF import"
-#~ msgstr "AMF-import"
-
-# AI Translated
-#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-#~ msgstr "Visa alternativ för kroppsgruppering, originalnamn och sortering vid import av geometri till det aktuella projektet."
-
-# AI Translated
-#~ msgid "DRC export"
-#~ msgstr "DRC-export"
-
-# AI Translated
-#~ msgid "Behaviour"
-#~ msgstr "Beteende"
-
-# AI Translated
-#~ msgid "Speed dial"
-#~ msgstr "Snabbval"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
-#~ msgstr "%1% skrivs ut senare än sin plats i objektlistan för att undvika en kollision."
-
-# AI Translated
-#, boost-format
-#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-#~ msgstr "Spiralvasläget kräver en vägg, ingen sparsam ifyllnad och inga övre skallager, men objektet %1% använder andra värden och skrivs därför inte ut som en sammanhängande spiral."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-#~ "%2%"
-#~ msgstr ""
-#~ "Modellen för adaptiv Pressure Advance för filament %1% innehåller ogiltiga värden.\n"
-#~ "%2%"
-
-# AI Translated
-#~ msgid "Used filament types"
-#~ msgstr "Använda filamenttyper"
-
-# AI Translated
-#~ msgid "Underscore-separated list of all filament types used during the print."
-#~ msgstr "Lista över alla filamenttyper som används under utskriften, åtskilda med understreck."
-
-# AI Translated
-#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-#~ msgstr "Läser in varje kropp i en del med flera kroppar separat. Krävs för att behålla kropparnas originalnamn."
-
-# AI Translated
-#~ msgid "Load as an assembly"
-#~ msgstr "Läs in som montering"
-
-# AI Translated
-#~ msgid "Load as a single object (can be split later)"
-#~ msgstr "Läs in som ett enda objekt (kan delas upp senare)"
-
-# AI Translated
-#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-#~ msgstr "De ursprungliga kropparna och namnen behålls inuti objektet. Använd \"Dela upp i delar\" för att visa dem som separata delar."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-#~ msgstr "Använd de kroppsnamn som finns lagrade i filen, om det finns några. Kräver \"Dela upp compound\" för delar med flera kroppar."
-
-# AI Translated
-#~ msgid "Sort parts by name"
-#~ msgstr "Sortera delar efter namn"
-
-# AI Translated
-#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-#~ msgstr "Sorterar delarna i varje importerad montering i objektlistan. Det ändrar inte ordningen som används vid beredning. Tillgängligt när \"Behåll originalnamn\" är på."
-
-# AI Translated
-#~ msgid "Don't ask again"
-#~ msgstr "Fråga inte igen"
-
-# AI Translated
-#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "Spara de här valen och tillämpa dem utan att fråga nästa gång. Du kan visa den här dialogrutan igen i Inställningar."
-
-# AI Translated
-#~ msgid "3MF geometry import options"
-#~ msgstr "Importalternativ för 3MF-geometri"
-
-# AI Translated
-#~ msgid "AMF geometry import options"
-#~ msgstr "Importalternativ för AMF-geometri"
-
-# AI Translated
-#~ msgid "Choose how to name and order the parts of this file."
-#~ msgstr "Välj hur delarna i den här filen ska namnges och ordnas."
-
-# AI Translated
-#~ msgid "Choose how to load the bodies in this file."
-#~ msgstr "Välj hur kropparna i den här filen ska läsas in."
-
-# AI Translated
-#~ msgid "Load as separate objects"
-#~ msgstr "Läs in som separata objekt"
-
-# AI Translated
-#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-#~ msgstr "Varje objekt i filen läses in för sig, så som OrcaSlicer alltid har läst in AMF-filer."
-
-# AI Translated
-#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-#~ msgstr "Kropparna i varje grupp i filen blir delar av ett objekt, med bibehållna inbördes positioner."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-#~ msgstr "Använd de kroppsnamn som finns lagrade i filen, om det finns några. När detta är avstängt används de vanliga OrcaSlicer-namnen; befintliga projektnamn behålls."
-
-# AI Translated
-#~ msgid "Use these choices as defaults next time. The dialog still opens."
-#~ msgstr "Använd de här valen som standard nästa gång. Dialogrutan öppnas ändå."
-
-# AI Translated
-#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
-#~ msgstr "Ett namn i filen är inte giltig Unicode. Geometrin importerades inte."
-
-# AI Translated
-#~ msgid "Invalid name"
-#~ msgstr "Ogiltigt namn"
-
-# AI Translated
-#~ msgid "Unsupported characters in names"
-#~ msgstr "Tecken som inte stöds i namn"
-
-# AI Translated
-#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-#~ msgstr "Vissa originalnamn innehåller tecken som OrcaSlicer inte kan använda. Välj hur de ska ändras före importen."
-
-# AI Translated
-#~ msgid "Remove unsupported characters"
-#~ msgstr "Ta bort tecken som inte stöds"
-
-# AI Translated
-#~ msgid "Replace with:"
-#~ msgstr "Ersätt med:"
-
-# AI Translated
-#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-#~ msgstr "Varje tecken som inte stöds ersätts med den här texten. Den får vara längre än ett tecken."
-
-# AI Translated
-#~ msgid "Use this rule as the default next time. The dialog still opens."
-#~ msgstr "Använd den här regeln som standard nästa gång. Dialogrutan öppnas ändå."
-
-# AI Translated
-#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "Spara den här regeln och tillämpa den utan att fråga nästa gång. Du kan visa den här dialogrutan igen i Inställningar."
-
-# AI Translated
-#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-#~ msgstr "Ange en ersättning som inte är tom och bara innehåller tecken som stöds, eller välj borttagning."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% → %2%"
-#~ msgstr "%1% → %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1%: %2%"
-#~ msgstr "• %1%: %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1% — %2%: %3%"
-#~ msgstr "• %1% – %2%: %3%"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Följande inställningar hänvisar till insticksmoduler som Orca Slicer inte kan identifiera på den här datorn:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Om du sparar ändå behåller förinställningen inte referenserna till insticksmodulerna för de här inställningarna. På en annan dator vet Orca Slicer inte vilka insticksmoduler som ska erbjudas, och inställningarna kanske inte fungerar där."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Följande inställningar hänvisar till insticksmoduler som Orca Slicer inte kan identifiera på den här datorn:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Om du sparar ändå behåller projektet inte referenserna till insticksmodulerna för de här inställningarna. På en annan dator vet Orca Slicer inte vilka insticksmoduler som ska erbjudas, och inställningarna kanske inte fungerar där."
-
-# AI Translated
-#~ msgid "Plugin Not Identified"
-#~ msgstr "Insticksmodulen kunde inte identifieras"
-
-# AI Translated
-#~ msgid "Save anyway"
-#~ msgstr "Spara ändå"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Förinställningarna som sparas hänvisar till insticksmoduler som Orca Slicer inte kan identifiera på den här datorn:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Om du sparar ändå behåller förinställningarna inte referenserna till insticksmodulerna för de här inställningarna. På en annan dator vet Orca Slicer inte vilka insticksmoduler som ska erbjudas, och inställningarna kanske inte fungerar där."
-
-# AI Translated
-#~ msgid "Remove from favorites"
-#~ msgstr "Ta bort från favoriter"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to create the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to create the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "Insticksmodulen \"%s\" begär att få skapa följande fil:\n"
-#~ "%s"
-#~ msgstr[1] ""
-#~ "Insticksmodulen \"%s\" begär att få skapa följande filer:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to delete the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to delete the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "Insticksmodulen \"%s\" begär att få radera följande fil:\n"
-#~ "%s"
-#~ msgstr[1] ""
-#~ "Insticksmodulen \"%s\" begär att få radera följande filer:\n"
-#~ "%s"
-
-# AI Translated
-#~ msgid "import SVG failed: could not open svg."
-#~ msgstr "import av svg misslyckades: kunde inte öppna svg."
-
-# AI Translated
-#~ msgid "import SVG failed: could not parse imported svg data."
-#~ msgstr "import av svg misslyckades: kunde inte tolka den importerade svg-datan."

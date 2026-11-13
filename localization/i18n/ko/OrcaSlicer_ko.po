@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:31-0600\n"
+"POT-Creation-Date: 2026-11-14 00:49+0800\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -6458,6 +6458,10 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "잘못된 형식입니다. 필요한 벡터 형식: \"%1%\""
 
 # AI Translated
+msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+msgstr "베드 제외 구역이 올바르지 않습니다. 자기 교차가 없는 단순 다각형이어야 합니다."
+
+# AI Translated
 msgid "System agents"
 msgstr "시스템 에이전트"
 
@@ -10075,6 +10079,10 @@ msgstr "이 프로젝트에는 디자인 탭에서 만든 모델만 있고 다�
 
 msgid "The file does not contain any geometry data."
 msgstr "파일에 형상 데이터가 포함되어 있지 않습니다."
+
+# AI Translated
+msgid "The invalid area has been removed, so please define it again using a valid polygon."
+msgstr "올바르지 않은 구역을 제거했습니다. 올바른 다각형으로 다시 지정하세요."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "객체가 너무 큽니다. 자동으로 고온 베드에 맞게 크기를 줄이시겠습니까?"
@@ -14191,6 +14199,12 @@ msgid "XHF"
 msgstr "XHF"
 
 # AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2", and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
 msgid "No modifications need to be copied."
 msgstr "복사할 변경 사항이 없습니다."
 
@@ -14207,6 +14221,12 @@ msgstr "%s의 매개변수 수정"
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
 msgstr "%s의 다음 매개변수를 %s의 값으로 수정하시겠습니까?"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2% the list of those they are copied to, as the switch names them, e.g. "T2 HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "%1%의 다음 매개변수를 %2%에 복사하시겠습니까?"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "현재 값을 재설정하고 전역 값에 연결하려면 클릭합니다."
@@ -14356,6 +14376,18 @@ msgid ""
 msgstr ""
 "\n"
 "수정한 사전 설정 값을 삭제하거나 수정된 ​​값을 새 프로젝트로 전송하도록 선택할 수 있습니다"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "전체 값을 보려면 비교 버튼을 클릭하세요."
+
+# AI Translated
+msgid "Process settings"
+msgstr "프로세스 설정"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "전체 값 비교"
 
 msgid "Extruder count"
 msgstr "익스트루더 수"
@@ -15121,10 +15153,6 @@ msgstr "CA 인증서 파일 열기"
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr "HTTPS CA 파일은 선택 사항입니다. 자체 서명된 인증서와 함께 HTTPS를 사용하는 경우에만 필요합니다."
 
-# AI Translated
-msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr "이 시스템은 시스템 인증서 저장소나 키체인의 HTTPS 인증서를 사용합니다. 사용자 지정 CA 파일을 사용하려면 그곳으로 가져오십시오."
-
 msgid "Printer model"
 msgstr "프린터 모델"
 
@@ -15143,6 +15171,10 @@ msgstr "연결"
 
 msgid "Manual Setup"
 msgstr "수동 설정"
+
+# AI Translated
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr "이 시스템은 시스템 인증서 저장소나 키체인의 HTTPS 인증서를 사용합니다. 사용자 지정 CA 파일을 사용하려면 그곳으로 가져오십시오."
 
 msgid "IP and Access Code Verified! You may close the window"
 msgstr "IP 및 액세스 코드가 확인되었습니다. 창을 닫아도 됩니다"
@@ -15711,6 +15743,10 @@ msgid "Prime tower is too close to the clumping detection area. There may be col
 msgstr "프라임 타워가 뭉침 감지 영역에 너무 가깝습니다. 출력 시 충돌이 발생할 수 있습니다."
 
 # AI Translated
+msgid "The extruder printable areas share no common area, so the prime tower cannot be printed.\n"
+msgstr "압출기들의 출력 가능 영역이 겹치지 않아 프라임 타워를 출력할 수 없습니다.\n"
+
+# AI Translated
 msgid "Prime tower is partially outside the printable area, and it cannot be printed.\n"
 msgstr "프라임 타워가 출력 가능 영역을 일부 벗어나 출력할 수 없습니다.\n"
 
@@ -15725,6 +15761,21 @@ msgstr "권장 노즐 온도 범위가 잘못되었습니다. 하한값은 상�
 # AI Translated
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
 msgstr "그래도 출력하려면 기본 설정 / 제어 / 슬라이싱 / 혼합 온도 제한 해제 옵션을 활성화하십시오."
+
+msgid "A prime tower requires that all objects have the same layer height."
+msgstr "프라임 타워는 모든 객체의 레이어 높이가 동일해야 합니다"
+
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
+msgstr "프라임 타워는 모든 객체가 동일한 수의 라프트 레이어 위에 출력되어야 합니다"
+
+msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
+msgstr "프라임 타워는 여러 오브젝트가 동일한 support_top_z_distance로 출력된 경우에만 지원됩니다"
+
+msgid "A prime tower requires that all objects are sliced with the same layer height."
+msgstr "프라임 타워는 모든 객체가 동일한 레이어 높이로 슬라이스되어야 합니다."
+
+msgid "The prime tower is only supported if all objects have the same variable layer height."
+msgstr "프라임 타워는 모든 객체의 가변 레이어 높이가 동일한 경우에만 지원됩니다"
 
 msgid "No extrusions under current settings."
 msgstr "현재 설정에 압출기가 없습니다."
@@ -15867,21 +15918,6 @@ msgstr "적응형 레이어 높이가 켜져 있으면 프라임 타워가 지�
 
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "프라임 타워는 \"서포트 간격\"이 레이어 높이의 배수여야 합니다"
-
-msgid "A prime tower requires that all objects have the same layer height."
-msgstr "프라임 타워는 모든 객체의 레이어 높이가 동일해야 합니다"
-
-msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr "프라임 타워는 모든 객체가 동일한 수의 라프트 레이어 위에 출력되어야 합니다"
-
-msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr "프라임 타워는 여러 오브젝트가 동일한 support_top_z_distance로 출력된 경우에만 지원됩니다"
-
-msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr "프라임 타워는 모든 객체가 동일한 레이어 높이로 슬라이스되어야 합니다."
-
-msgid "The prime tower is only supported if all objects have the same variable layer height."
-msgstr "프라임 타워는 모든 객체의 가변 레이어 높이가 동일한 경우에만 지원됩니다"
 
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "하나 이상의 객체에 프린터에 없는 압출기가 할당되었습니다."
@@ -29213,6 +29249,18 @@ msgid "Constraints"
 msgstr "구속조건"
 
 # AI Translated
+msgid "No constraints yet"
+msgstr "아직 구속조건이 없습니다"
+
+# AI Translated
+msgid "Zoom to selection"
+msgstr "선택 항목으로 확대"
+
+# AI Translated
+msgid "Delete constraint"
+msgstr "구속조건 삭제"
+
+# AI Translated
 msgid "Feature tree"
 msgstr "피처 트리"
 
@@ -29245,10 +29293,6 @@ msgstr "아래로 이동"
 # AI Translated
 msgid "Show / hide"
 msgstr "표시 / 숨기기"
-
-# AI Translated
-msgid "Zoom to selection"
-msgstr "선택 항목으로 확대"
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -29425,6 +29469,12 @@ msgstr[0] "자유도 %d"
 #, c-format, boost-format
 msgid "Sketch %d"
 msgstr "스케치 %d"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+#, boost-format
+msgid "Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "편집 중: %1%   ·   N = 평면에 수직으로 보기   ·   도구 모음에서 확인 또는 취소"
 
 # AI Translated
 #, c-format, boost-format
@@ -30116,8 +30166,8 @@ msgid "  ·  Esc goes back to Select"
 msgstr "  ·  Esc로 선택 도구로 돌아가기"
 
 # AI Translated
-msgid "  ·  click a constraint badge to remove it"
-msgstr "  ·  구속조건 배지를 클릭하여 제거"
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  구속조건 배지를 클릭하여 선택"
 
 # AI Translated
 #, c-format, boost-format
@@ -30580,12 +30630,10 @@ msgid "Constraints (%d)"
 msgstr "구속조건 (%d)"
 
 # AI Translated
-msgid "No constraints yet"
-msgstr "아직 구속조건이 없습니다"
-
-# AI Translated
-msgid "Delete constraint"
-msgstr "구속조건 삭제"
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% 선택됨 — Delete로 제거"
 
 # AI Translated
 msgid "Constraint deleted"
@@ -39253,348 +39301,3 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
-
-# AI Translated
-#~ msgid "Subdivision mesh"
-#~ msgstr "메시 세분화"
-
-# AI Translated
-#~ msgid "Updates are available for your OrcaCloud plugins."
-#~ msgstr "OrcaCloud 플러그인 업데이트가 있습니다."
-
-# AI Translated
-#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-#~ msgstr "가져온 일부 객체에 개별 설정이 있는 수정자 또는 부품이 포함되어 있습니다. 이러한 설정을 계속 볼 수 있도록 조립체로 표시됩니다."
-
-# AI Translated
-#~ msgid "Geometry import"
-#~ msgstr "형상 가져오기"
-
-# AI Translated
-#~ msgid "Files"
-#~ msgstr "파일"
-
-# AI Translated
-#~ msgid "Folder paths"
-#~ msgstr "폴더 경로"
-
-# AI Translated
-#~ msgid "File import"
-#~ msgstr "파일 가져오기"
-
-# AI Translated
-#~ msgid "Ask how to handle unsupported characters in imported names"
-#~ msgstr "가져온 이름의 지원되지 않는 문자를 처리할 방법 묻기"
-
-# AI Translated
-#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
-#~ msgstr "원본 이름에 지원되지 않는 문자가 있으면 제거 또는 대체 옵션을 표시합니다."
-
-# AI Translated
-#~ msgid "3MF import"
-#~ msgstr "3MF 가져오기"
-
-# AI Translated
-#~ msgid "Show options when importing"
-#~ msgstr "가져오기 시 옵션 표시"
-
-# AI Translated
-#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-#~ msgstr "프로젝트 설정이 없는 3MF를 현재 프로젝트로 가져올 때 원본 이름 및 정렬 옵션을 표시합니다."
-
-# AI Translated
-#~ msgid "Keep original names"
-#~ msgstr "원본 이름 유지"
-
-# AI Translated
-#~ msgid "Use the body names stored in the imported file when it contains them."
-#~ msgstr "가져온 파일에 바디 이름이 저장되어 있으면 해당 이름을 사용합니다."
-
-# AI Translated
-#~ msgid "STEP import"
-#~ msgstr "STEP 가져오기"
-
-# AI Translated
-#~ msgid "Linear deflection"
-#~ msgstr "선형 편향"
-
-# AI Translated
-#~ msgid "Angle deflection"
-#~ msgstr "각도 편향"
-
-# AI Translated
-#~ msgid "Split into multiple objects"
-#~ msgstr "여러 객체로 분할"
-
-# AI Translated
-#~ msgid ""
-#~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
-#~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: enabled."
-#~ msgstr ""
-#~ "활성화하면 가져온 STEP 파일의 복합(compound) 및 복합 솔리드(compsolid) 형상이 여러 객체로 분할됩니다.\n"
-#~ "가져오기 대화 상자의 기본값으로 사용되며, 가져오기 대화 상자를 사용하지 않는 경우 직접 적용됩니다.\n"
-#~ "기본값: 활성화."
-
-# AI Translated
-#~ msgid "AMF import"
-#~ msgstr "AMF 가져오기"
-
-# AI Translated
-#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-#~ msgstr "현재 프로젝트로 형상을 가져올 때 바디 그룹화, 원본 이름 및 정렬 옵션을 표시합니다."
-
-# AI Translated
-#~ msgid "DRC export"
-#~ msgstr "DRC 내보내기"
-
-# AI Translated
-#~ msgid "Behaviour"
-#~ msgstr "동작"
-
-# AI Translated
-#~ msgid "Speed dial"
-#~ msgstr "스피드 다이얼"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
-#~ msgstr "충돌을 피하기 위해 %1%은(는) 객체 목록의 순서보다 나중에 출력됩니다."
-
-# AI Translated
-#, boost-format
-#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-#~ msgstr "나선형 꽃병 모드에는 드문 채우기 없음, 벽 루프 1개, 상단 쉘 레이어 없음이 필요하지만 객체 %1%은(는) 다른 값을 사용하므로 연속된 나선형으로 출력되지 않습니다."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-#~ "%2%"
-#~ msgstr ""
-#~ "필라멘트 %1%의 적응형 Pressure Advance 모델에 잘못된 값이 포함되어 있습니다.\n"
-#~ "%2%"
-
-# AI Translated
-#~ msgid "Used filament types"
-#~ msgstr "사용된 필라멘트 유형"
-
-# AI Translated
-#~ msgid "Underscore-separated list of all filament types used during the print."
-#~ msgstr "출력 중 사용된 모든 필라멘트 유형을 밑줄로 구분한 목록입니다."
-
-# AI Translated
-#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-#~ msgstr "다중 바디 부품의 각 바디를 개별적으로 불러옵니다. 바디의 원본 이름을 유지하는 데 필요합니다."
-
-# AI Translated
-#~ msgid "Load as an assembly"
-#~ msgstr "조립체로 불러오기"
-
-# AI Translated
-#~ msgid "Load as a single object (can be split later)"
-#~ msgstr "단일 객체로 불러오기(나중에 분할 가능)"
-
-# AI Translated
-#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-#~ msgstr "원본 바디와 이름은 객체 안에 유지됩니다. 별도의 부품으로 표시하려면 '부품으로 분할'을 사용하세요."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-#~ msgstr "파일에 저장된 바디 이름이 있으면 해당 이름을 사용합니다. 바디가 여러 개인 부품에는 '컴파운드 분할'이 필요합니다."
-
-# AI Translated
-#~ msgid "Sort parts by name"
-#~ msgstr "부품을 이름순으로 정렬"
-
-# AI Translated
-#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-#~ msgstr "객체 목록에서 가져온 각 조립체 내부의 부품을 정렬합니다. 슬라이싱에 사용되는 순서는 변경되지 않습니다. '원본 이름 유지'가 켜져 있을 때 사용할 수 있습니다."
-
-# AI Translated
-#~ msgid "Don't ask again"
-#~ msgstr "다시 묻지 않기"
-
-# AI Translated
-#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "이 선택 사항을 저장하고 다음부터 묻지 않고 적용합니다. 기본 설정에서 이 대화 상자를 다시 표시할 수 있습니다."
-
-# AI Translated
-#~ msgid "3MF geometry import options"
-#~ msgstr "3MF 형상 가져오기 옵션"
-
-# AI Translated
-#~ msgid "AMF geometry import options"
-#~ msgstr "AMF 형상 가져오기 옵션"
-
-# AI Translated
-#~ msgid "Choose how to name and order the parts of this file."
-#~ msgstr "이 파일의 부품 이름과 순서를 지정할 방법을 선택하세요."
-
-# AI Translated
-#~ msgid "Choose how to load the bodies in this file."
-#~ msgstr "이 파일의 바디를 불러올 방법을 선택하세요."
-
-# AI Translated
-#~ msgid "Load as separate objects"
-#~ msgstr "개별 객체로 불러오기"
-
-# AI Translated
-#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-#~ msgstr "파일의 각 객체를 개별적으로 불러옵니다. OrcaSlicer가 AMF 파일을 항상 불러오던 방식입니다."
-
-# AI Translated
-#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-#~ msgstr "파일의 각 그룹에 있는 바디가 상대 위치를 유지한 채 하나의 객체의 부품이 됩니다."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-#~ msgstr "파일에 저장된 바디 이름이 있으면 해당 이름을 사용합니다. 비활성화하면 일반적인 OrcaSlicer 이름이 사용되며, 프로젝트의 기존 이름은 유지됩니다."
-
-# AI Translated
-#~ msgid "Use these choices as defaults next time. The dialog still opens."
-#~ msgstr "다음부터 이 선택 사항을 기본값으로 사용합니다. 대화 상자는 계속 열립니다."
-
-# AI Translated
-#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
-#~ msgstr "파일의 이름이 유효한 Unicode가 아닙니다. 형상을 가져오지 못했습니다."
-
-# AI Translated
-#~ msgid "Invalid name"
-#~ msgstr "잘못된 이름"
-
-# AI Translated
-#~ msgid "Unsupported characters in names"
-#~ msgstr "이름에 포함된 지원되지 않는 문자"
-
-# AI Translated
-#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-#~ msgstr "일부 원본 이름에 OrcaSlicer에서 사용할 수 없는 문자가 포함되어 있습니다. 가져오기 전에 변경 방법을 선택하세요."
-
-# AI Translated
-#~ msgid "Remove unsupported characters"
-#~ msgstr "지원되지 않는 문자 제거"
-
-# AI Translated
-#~ msgid "Replace with:"
-#~ msgstr "다음으로 대체:"
-
-# AI Translated
-#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-#~ msgstr "지원되지 않는 문자는 각각 이 텍스트로 대체됩니다. 두 글자 이상이어도 됩니다."
-
-# AI Translated
-#~ msgid "Use this rule as the default next time. The dialog still opens."
-#~ msgstr "다음부터 이 규칙을 기본값으로 사용합니다. 대화 상자는 계속 열립니다."
-
-# AI Translated
-#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "이 규칙을 저장하고 다음부터 묻지 않고 적용합니다. 기본 설정에서 이 대화 상자를 다시 표시할 수 있습니다."
-
-# AI Translated
-#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-#~ msgstr "지원되는 문자로만 이루어진 비어 있지 않은 대체 텍스트를 입력하거나 제거를 선택하세요."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% → %2%"
-#~ msgstr "%1% → %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1%: %2%"
-#~ msgstr "• %1%: %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1% — %2%: %3%"
-#~ msgstr "• %1% - %2%: %3%"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "다음 설정은 이 컴퓨터에서 Orca Slicer가 식별할 수 없는 플러그인을 참조합니다:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "그래도 저장하면 사전 설정에 이 설정들의 플러그인 참조가 유지되지 않습니다. 다른 컴퓨터에서는 Orca Slicer가 어떤 플러그인을 제안해야 할지 알 수 없어 해당 설정이 작동하지 않을 수 있습니다."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "다음 설정은 이 컴퓨터에서 Orca Slicer가 식별할 수 없는 플러그인을 참조합니다:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "그래도 저장하면 프로젝트에 이 설정들의 플러그인 참조가 유지되지 않습니다. 다른 컴퓨터에서는 Orca Slicer가 어떤 플러그인을 제안해야 할지 알 수 없어 해당 설정이 작동하지 않을 수 있습니다."
-
-# AI Translated
-#~ msgid "Plugin Not Identified"
-#~ msgstr "플러그인을 식별할 수 없음"
-
-# AI Translated
-#~ msgid "Save anyway"
-#~ msgstr "그래도 저장"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "저장하려는 사전 설정이 이 컴퓨터에서 Orca Slicer가 식별할 수 없는 플러그인을 참조합니다:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "그래도 저장하면 사전 설정에 이 설정들의 플러그인 참조가 유지되지 않습니다. 다른 컴퓨터에서는 Orca Slicer가 어떤 플러그인을 제안해야 할지 알 수 없어 해당 설정이 작동하지 않을 수 있습니다."
-
-# AI Translated
-#~ msgid "Remove from favorites"
-#~ msgstr "즐겨찾기에서 제거"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to create the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to create the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "플러그인 \"%s\"이(가) 다음 파일 생성을 요청하고 있습니다:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to delete the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to delete the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "플러그인 \"%s\"이(가) 다음 파일 삭제를 요청하고 있습니다:\n"
-#~ "%s"
-
-# AI Translated
-#~ msgid "import SVG failed: could not open svg."
-#~ msgstr "SVG 가져오기 실패: SVG를 열 수 없습니다."
-
-# AI Translated
-#~ msgid "import SVG failed: could not parse imported svg data."
-#~ msgstr "SVG 가져오기 실패: 가져온 SVG 데이터를 구문 분석할 수 없습니다."

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:31-0600\n"
+"POT-Creation-Date: 2026-11-14 00:49+0800\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -6278,6 +6278,10 @@ msgstr "Недопустимый шаблон. Используйте N, N#K и�
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "Недопустимый формат. Ожидаемый векторный формат: \"%1%\""
 
+# AI Translated
+msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+msgstr "Область исключения недействительна. Это должен быть простой многоугольник без самопересечений."
+
 msgid "System agents"
 msgstr "Системные агенты"
 
@@ -9730,6 +9734,10 @@ msgstr "Этот проект не содержит ничего кроме мо
 
 msgid "The file does not contain any geometry data."
 msgstr "Файл не содержит никаких геометрических данных."
+
+# AI Translated
+msgid "The invalid area has been removed, so please define it again using a valid polygon."
+msgstr "Недопустимая область удалена, задайте её заново с помощью допустимого многоугольника."
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Размер модели слишком велик. Вписать её в область печати?"
@@ -13593,6 +13601,12 @@ msgctxt "Nozzle flow type"
 msgid "XHF"
 msgstr "XHF"
 
+# AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2", and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
 msgid "No modifications need to be copied."
 msgstr "Перенос изменений не требуется."
 
@@ -13606,6 +13620,12 @@ msgstr "Изменить настройки %s"
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
 msgstr "Вы действительно хотите заменить следующие настройки %s настройками %s?"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2% the list of those they are copied to, as the switch names them, e.g. "T2 HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "Скопировать следующие настройки %1% в %2%?"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Сбросить значение до сохранённого"
@@ -13752,6 +13772,19 @@ msgid ""
 msgstr ""
 "\n"
 "Перенести изменения в новый проект?"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "Нажмите кнопку сравнения, чтобы увидеть значение целиком."
+
+# AI Translated
+# Needs human review: Sibling of Material/Printer settings; catalog's human entry for 'Process Settings' is just 'Настройки'.
+msgid "Process settings"
+msgstr "Настройки процесса"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "Сравнить значения целиком"
 
 msgid "Extruder count"
 msgstr "Количество экструдеров"
@@ -14457,10 +14490,6 @@ msgstr "Выбрать файл корневого сертификата"
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr "Файл корневого сертификата HTTPS необходим только при использовании HTTPS с самоподписанным сертификатом."
 
-# AI Translated
-msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr "В этой системе используются HTTPS-сертификаты из системного хранилища сертификатов/Keychain. Чтобы использовать собственный файл CA, импортируйте его туда."
-
 msgid "Printer model"
 msgstr "Модель принтера"
 
@@ -14478,6 +14507,10 @@ msgstr "Подключить"
 
 msgid "Manual Setup"
 msgstr "Ручная настройка"
+
+# AI Translated
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr "В этой системе используются HTTPS-сертификаты из системного хранилища сертификатов/Keychain. Чтобы использовать собственный файл CA, импортируйте его туда."
 
 msgid "IP and Access Code Verified! You may close the window"
 msgstr "IP-адрес и код доступа подтверждены. Это окно можно закрыть."
@@ -15024,6 +15057,10 @@ msgid "Prime tower is too close to the clumping detection area. There may be col
 msgstr "Черновая башня находится слишком близко к зоне обнаружения налипаний, возможны столкновения при печати."
 
 # AI Translated
+msgid "The extruder printable areas share no common area, so the prime tower cannot be printed.\n"
+msgstr "У экструдеров нет общей области печати, поэтому черновую башню невозможно напечатать.\n"
+
+# AI Translated
 msgid "Prime tower is partially outside the printable area, and it cannot be printed.\n"
 msgstr "Черновая башня частично находится за пределами области печати и не может быть напечатана.\n"
 
@@ -15036,6 +15073,21 @@ msgstr "Диапазон допустимых температур сопла з
 # В подсказках стрелочки "→" не работают
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
 msgstr "Если вас это не пугает, эту проверку можно отключить настройкой слайсера «Игнорировать перепад температур» (Настройки > Управление > Нарезка)."
+
+msgid "A prime tower requires that all objects have the same layer height."
+msgstr "Для использования черновой башни требуется, чтобы у всех моделей была одинаковая высота слоя."
+
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
+msgstr "Для черновой башни требуется, чтобы все модели были напечатаны на одинаковом количестве слоёв подложки."
+
+msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
+msgstr "Режим черновой башни применим для нескольких моделей только в том случае, если они печатаются с одинаковым зазором поддержки сверху."
+
+msgid "A prime tower requires that all objects are sliced with the same layer height."
+msgstr "Для использования черновой башни требуется, чтобы все модели были нарезаны с одинаковой высотой слоя."
+
+msgid "The prime tower is only supported if all objects have the same variable layer height."
+msgstr "Для черновой башни требуется, чтобы все модели имели одинаковую переменную высоту слоя."
 
 msgid "No extrusions under current settings."
 msgstr "При текущих настройках экструзия отсутствует."
@@ -15170,21 +15222,6 @@ msgstr "Печать черновой башни не поддерживаетс
 
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "Для черновой башни требуется, чтобы «зазор поддержки...» был кратен высоте слоя."
-
-msgid "A prime tower requires that all objects have the same layer height."
-msgstr "Для использования черновой башни требуется, чтобы у всех моделей была одинаковая высота слоя."
-
-msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr "Для черновой башни требуется, чтобы все модели были напечатаны на одинаковом количестве слоёв подложки."
-
-msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr "Режим черновой башни применим для нескольких моделей только в том случае, если они печатаются с одинаковым зазором поддержки сверху."
-
-msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr "Для использования черновой башни требуется, чтобы все модели были нарезаны с одинаковой высотой слоя."
-
-msgid "The prime tower is only supported if all objects have the same variable layer height."
-msgstr "Для черновой башни требуется, чтобы все модели имели одинаковую переменную высоту слоя."
 
 # Для одного или нескольких моделей назначен несуществующий экструдер – может так будет лучше? Надо по контексту употребления смотреть.
 msgid "One or more object were assigned an extruder that the printer does not have."
@@ -28187,6 +28224,18 @@ msgid "Constraints"
 msgstr "Ограничения"
 
 # AI Translated
+msgid "No constraints yet"
+msgstr "Ограничений пока нет"
+
+# AI Translated
+msgid "Zoom to selection"
+msgstr "Приблизить к выбранному"
+
+# AI Translated
+msgid "Delete constraint"
+msgstr "Удалить ограничение"
+
+# AI Translated
 msgid "Feature tree"
 msgstr "Дерево элементов"
 
@@ -28219,10 +28268,6 @@ msgstr "Переместить вниз"
 # AI Translated
 msgid "Show / hide"
 msgstr "Показать / скрыть"
-
-# AI Translated
-msgid "Zoom to selection"
-msgstr "Приблизить к выбранному"
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -28407,6 +28452,12 @@ msgstr[2] "%d степеней свободы"
 #, c-format, boost-format
 msgid "Sketch %d"
 msgstr "Эскиз %d"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+#, boost-format
+msgid "Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "Изменение: %1%   ·   N — вид по нормали к плоскости   ·   подтвердите или отмените на панели инструментов"
 
 # AI Translated
 #, c-format, boost-format
@@ -29120,8 +29171,8 @@ msgid "  ·  Esc goes back to Select"
 msgstr "  ·  Esc — вернуться к выбору"
 
 # AI Translated
-msgid "  ·  click a constraint badge to remove it"
-msgstr "  ·  щёлкните значок ограничения, чтобы удалить его"
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  щёлкните значок ограничения, чтобы выбрать его"
 
 # AI Translated
 #, c-format, boost-format
@@ -29587,12 +29638,10 @@ msgid "Constraints (%d)"
 msgstr "Ограничения (%d)"
 
 # AI Translated
-msgid "No constraints yet"
-msgstr "Ограничений пока нет"
-
-# AI Translated
-msgid "Delete constraint"
-msgstr "Удалить ограничение"
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "%1% выбрано — Delete удаляет"
 
 # AI Translated
 msgid "Constraint deleted"
@@ -38304,358 +38353,3 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
-
-#~ msgid "Subdivision mesh"
-#~ msgstr "Сгладить"
-
-# AI Translated
-#~ msgid "Updates are available for your OrcaCloud plugins."
-#~ msgstr "Доступны обновления ваших плагинов OrcaCloud."
-
-# AI Translated
-#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-#~ msgstr "Некоторые импортированные модели содержат модификаторы или части с индивидуальными настройками. Они показаны как сборки, чтобы эти настройки оставались видимыми."
-
-# AI Translated
-#~ msgid "Geometry import"
-#~ msgstr "Импорт геометрии"
-
-# AI Translated
-#~ msgid "Files"
-#~ msgstr "Файлы"
-
-# AI Translated
-#~ msgid "Folder paths"
-#~ msgstr "Пути к папкам"
-
-# AI Translated
-#~ msgid "File import"
-#~ msgstr "Импорт файлов"
-
-# AI Translated
-#~ msgid "Ask how to handle unsupported characters in imported names"
-#~ msgstr "Спрашивать, что делать с неподдерживаемыми символами в импортируемых именах"
-
-# AI Translated
-#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
-#~ msgstr "Предлагать удаление или замену, если исходные имена содержат неподдерживаемые символы."
-
-# AI Translated
-#~ msgid "3MF import"
-#~ msgstr "Импорт 3MF"
-
-# AI Translated
-#~ msgid "Show options when importing"
-#~ msgstr "Показывать настройки импорта"
-
-# AI Translated
-#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-#~ msgstr "Показывать настройки исходных имён и сортировки при импорте 3MF без настроек проекта в текущий проект."
-
-# AI Translated
-#~ msgid "Keep original names"
-#~ msgstr "Сохранять исходные имена"
-
-# AI Translated
-#~ msgid "Use the body names stored in the imported file when it contains them."
-#~ msgstr "Использовать имена тел, сохранённые в импортируемом файле, если они там есть."
-
-# AI Translated
-#~ msgid "STEP import"
-#~ msgstr "Импорт STEP"
-
-# AI Translated
-#~ msgid "Linear deflection"
-#~ msgstr "Линейное отклонение"
-
-# AI Translated
-#~ msgid "Angle deflection"
-#~ msgstr "Угловое отклонение"
-
-# AI Translated
-#~ msgid "Split into multiple objects"
-#~ msgstr "Разделять отдельные тела на части"
-
-# AI Translated
-#~ msgid ""
-#~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
-#~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: enabled."
-#~ msgstr ""
-#~ "При импорте STEP автоматически разделять на части модели, состоящие из нескольких отдельных тел.\n"
-#~ "Используется в качестве стандартного значения для диалога импорта (или для тихого импорта без отображения настроек).\n"
-#~ "По умолчанию: включено."
-
-# AI Translated
-#~ msgid "AMF import"
-#~ msgstr "Импорт AMF"
-
-# AI Translated
-#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-#~ msgstr "Показывать настройки группировки тел, исходных имён и сортировки при импорте геометрии в текущий проект."
-
-# AI Translated
-#~ msgid "DRC export"
-#~ msgstr "Экспорт DRC"
-
-# AI Translated
-#~ msgid "Behaviour"
-#~ msgstr "Поведение"
-
-# AI Translated
-#~ msgid "Speed dial"
-#~ msgstr "Быстрые действия"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
-#~ msgstr "%1% печатается позже своего места в списке моделей, чтобы избежать столкновения."
-
-# AI Translated
-#, boost-format
-#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-#~ msgstr "Для режима вазы нужны нулевое заполнение, один периметр и отсутствие сплошных слоёв сверху, но у модели %1% другие значения, поэтому она не будет напечатана непрерывной спиралью."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-#~ "%2%"
-#~ msgstr ""
-#~ "«Диапазон значений Pressure Advance» материала %1% содержит недопустимые значения.\n"
-#~ "%2%"
-
-# AI Translated
-#~ msgid "Used filament types"
-#~ msgstr "Типы используемых материалов"
-
-# AI Translated
-#~ msgid "Underscore-separated list of all filament types used during the print."
-#~ msgstr "Список всех типов материалов, используемых при печати, разделённых знаком подчёркивания."
-
-# AI Translated
-#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-#~ msgstr "Каждое тело многотельной части загружается отдельно. Это необходимо для сохранения исходных имён тел."
-
-# AI Translated
-#~ msgid "Load as an assembly"
-#~ msgstr "Загрузить как сборку"
-
-# AI Translated
-#~ msgid "Load as a single object (can be split later)"
-#~ msgstr "Загрузить как одну модель (можно разделить позже)"
-
-# AI Translated
-#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-#~ msgstr "Исходные тела и имена сохраняются внутри модели. Используйте «Разделить на части», чтобы показать их как отдельные части."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-#~ msgstr "Использовать имена тел, сохранённые в файле, если они есть. Для частей с несколькими телами нужно включить «Разделять модель из нескольких тел»."
-
-# AI Translated
-#~ msgid "Sort parts by name"
-#~ msgstr "Сортировать части по имени"
-
-# AI Translated
-#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-#~ msgstr "Сортировать части внутри каждой импортированной сборки в списке моделей. Порядок нарезки при этом не меняется. Доступно, когда включено «Сохранять исходные имена»."
-
-# AI Translated
-#~ msgid "Don't ask again"
-#~ msgstr "Не напоминать"
-
-# AI Translated
-#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "Сохранить этот выбор и применять его без запроса в следующий раз. Снова показать это диалоговое окно можно в настройках."
-
-# AI Translated
-#~ msgid "3MF geometry import options"
-#~ msgstr "Настройки импорта геометрии 3MF"
-
-# AI Translated
-#~ msgid "AMF geometry import options"
-#~ msgstr "Настройки импорта геометрии AMF"
-
-# AI Translated
-#~ msgid "Choose how to name and order the parts of this file."
-#~ msgstr "Выберите, как называть и упорядочивать части этого файла."
-
-# AI Translated
-#~ msgid "Choose how to load the bodies in this file."
-#~ msgstr "Выберите, как загружать тела из этого файла."
-
-# AI Translated
-#~ msgid "Load as separate objects"
-#~ msgstr "Загрузить как отдельные модели"
-
-# AI Translated
-#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-#~ msgstr "Каждая модель из файла загружается отдельно, как OrcaSlicer всегда загружал файлы AMF."
-
-# AI Translated
-#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-#~ msgstr "Тела каждой группы в файле становятся частями одной модели с сохранением взаимного расположения."
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-#~ msgstr "Использовать имена тел, сохранённые в файле, если они есть. Если отключено, используются обычные имена OrcaSlicer; существующие имена проекта сохраняются."
-
-# AI Translated
-#~ msgid "Use these choices as defaults next time. The dialog still opens."
-#~ msgstr "Использовать этот выбор по умолчанию в следующий раз. Диалоговое окно всё равно откроется."
-
-# AI Translated
-#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
-#~ msgstr "Имя в файле не является допустимой строкой Unicode. Геометрия не импортирована."
-
-# AI Translated
-#~ msgid "Invalid name"
-#~ msgstr "Недопустимое имя"
-
-# AI Translated
-#~ msgid "Unsupported characters in names"
-#~ msgstr "Неподдерживаемые символы в именах"
-
-# AI Translated
-#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-#~ msgstr "Некоторые исходные имена содержат символы, которые OrcaSlicer не может использовать. Выберите, как изменить их перед импортом."
-
-# AI Translated
-#~ msgid "Remove unsupported characters"
-#~ msgstr "Удалить неподдерживаемые символы"
-
-# AI Translated
-#~ msgid "Replace with:"
-#~ msgstr "Заменить на:"
-
-# AI Translated
-#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-#~ msgstr "Каждый неподдерживаемый символ заменяется этим текстом. Он может быть длиннее одного символа."
-
-# AI Translated
-#~ msgid "Use this rule as the default next time. The dialog still opens."
-#~ msgstr "Использовать это правило по умолчанию в следующий раз. Диалоговое окно всё равно откроется."
-
-# AI Translated
-#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "Сохранить это правило и применять его без запроса в следующий раз. Снова показать это диалоговое окно можно в настройках."
-
-# AI Translated
-#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-#~ msgstr "Введите непустую замену только из поддерживаемых символов или выберите удаление."
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% → %2%"
-#~ msgstr "%1% → %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1%: %2%"
-#~ msgstr "• %1%: %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1% — %2%: %3%"
-#~ msgstr "• %1% — %2%: %3%"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Следующие настройки ссылаются на плагины, которые Orca Slicer не может распознать на этом компьютере:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Если всё равно сохранить, профиль не сохранит ссылки на плагины для этих настроек. На другом компьютере Orca Slicer не будет знать, какие плагины предложить, и эти настройки могут там не работать."
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Следующие настройки ссылаются на плагины, которые Orca Slicer не может распознать на этом компьютере:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Если всё равно сохранить, проект не сохранит ссылки на плагины для этих настроек. На другом компьютере Orca Slicer не будет знать, какие плагины предложить, и эти настройки могут там не работать."
-
-# AI Translated
-#~ msgid "Plugin Not Identified"
-#~ msgstr "Плагин не распознан"
-
-# AI Translated
-#~ msgid "Save anyway"
-#~ msgstr "Всё равно сохранить"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "Сохраняемые профили ссылаются на плагины, которые Orca Slicer не может распознать на этом компьютере:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "Если всё равно сохранить, профили не сохранят ссылки на плагины для этих настроек. На другом компьютере Orca Slicer не будет знать, какие плагины предложить, и эти настройки могут там не работать."
-
-#~ msgid "Remove from favorites"
-#~ msgstr "Убрать из избранного"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to create the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to create the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "Плагин «%s» запрашивает создание следующего файла:\n"
-#~ "%s"
-#~ msgstr[1] ""
-#~ "Плагин «%s» запрашивает создание следующих файлов:\n"
-#~ "%s"
-#~ msgstr[2] ""
-#~ "Плагин «%s» запрашивает создание следующих файлов:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to delete the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to delete the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "Плагин «%s» запрашивает удаление следующего файла:\n"
-#~ "%s"
-#~ msgstr[1] ""
-#~ "Плагин «%s» запрашивает удаление следующих файлов:\n"
-#~ "%s"
-#~ msgstr[2] ""
-#~ "Плагин «%s» запрашивает удаление следующих файлов:\n"
-#~ "%s"
-
-# AI Translated
-#~ msgid "import SVG failed: could not open svg."
-#~ msgstr "ошибка импорта SVG: не удалось открыть SVG."
-
-# AI Translated
-#~ msgid "import SVG failed: could not parse imported svg data."
-#~ msgstr "ошибка импорта SVG: не удалось разобрать импортированные данные SVG."

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:31-0600\n"
+"POT-Creation-Date: 2026-11-14 00:49+0800\n"
 "PO-Revision-Date: 2026-06-17 15:44-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: \n"
@@ -5772,6 +5772,9 @@ msgstr ""
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr ""
 
+msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+msgstr ""
+
 msgid "System agents"
 msgstr ""
 
@@ -9046,6 +9049,9 @@ msgid "This project contains a model made in the Design tab and no other geometr
 msgstr ""
 
 msgid "The file does not contain any geometry data."
+msgstr ""
+
+msgid "The invalid area has been removed, so please define it again using a valid polygon."
 msgstr ""
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
@@ -12482,6 +12488,11 @@ msgctxt "Nozzle flow type"
 msgid "XHF"
 msgstr ""
 
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2", and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr ""
+
 msgid "No modifications need to be copied."
 msgstr ""
 
@@ -12494,6 +12505,11 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
+
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2% the list of those they are copied to, as the switch names them, e.g. "T2 HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
 msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
@@ -12617,6 +12633,15 @@ msgstr ""
 msgid ""
 "\n"
 "You can discard the preset values you have modified, or choose to transfer the modified values to the new project"
+msgstr ""
+
+msgid "Click the compare button to see the full value."
+msgstr ""
+
+msgid "Process settings"
+msgstr ""
+
+msgid "Compare the full values"
 msgstr ""
 
 msgid "Extruder count"
@@ -13284,9 +13309,6 @@ msgstr ""
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr ""
 
-msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr ""
-
 msgid "Printer model"
 msgstr ""
 
@@ -13303,6 +13325,9 @@ msgid "Connect"
 msgstr ""
 
 msgid "Manual Setup"
+msgstr ""
+
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
 msgstr ""
 
 msgid "IP and Access Code Verified! You may close the window"
@@ -13792,6 +13817,9 @@ msgstr ""
 msgid "Prime tower is too close to the clumping detection area. There may be collisions when printing."
 msgstr ""
 
+msgid "The extruder printable areas share no common area, so the prime tower cannot be printed.\n"
+msgstr ""
+
 msgid "Prime tower is partially outside the printable area, and it cannot be printed.\n"
 msgstr ""
 
@@ -13802,6 +13830,21 @@ msgid "Invalid recommended nozzle temperature range. The lower bound must be low
 msgstr ""
 
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
+msgstr ""
+
+msgid "A prime tower requires that all objects have the same layer height."
+msgstr ""
+
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
+msgstr ""
+
+msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
+msgstr ""
+
+msgid "A prime tower requires that all objects are sliced with the same layer height."
+msgstr ""
+
+msgid "The prime tower is only supported if all objects have the same variable layer height."
 msgstr ""
 
 msgid "No extrusions under current settings."
@@ -13922,21 +13965,6 @@ msgid "A prime tower is not supported when adaptive layer height is on. It requi
 msgstr ""
 
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
-msgstr ""
-
-msgid "A prime tower requires that all objects have the same layer height."
-msgstr ""
-
-msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr ""
-
-msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr ""
-
-msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr ""
-
-msgid "The prime tower is only supported if all objects have the same variable layer height."
 msgstr ""
 
 msgid "One or more object were assigned an extruder that the printer does not have."
@@ -24809,6 +24837,15 @@ msgstr ""
 msgid "Constraints"
 msgstr ""
 
+msgid "No constraints yet"
+msgstr ""
+
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Delete constraint"
+msgstr ""
+
 msgid "Feature tree"
 msgstr ""
 
@@ -24833,9 +24870,6 @@ msgid "Move down"
 msgstr ""
 
 msgid "Show / hide"
-msgstr ""
-
-msgid "Zoom to selection"
 msgstr ""
 
 msgid "Check interference — find overlapping bodies"
@@ -24977,6 +25011,11 @@ msgstr[1] ""
 
 #, c-format, boost-format
 msgid "Sketch %d"
+msgstr ""
+
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+#, boost-format
+msgid "Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
 msgstr ""
 
 #, c-format, boost-format
@@ -25512,7 +25551,7 @@ msgstr ""
 msgid "  ·  Esc goes back to Select"
 msgstr ""
 
-msgid "  ·  click a constraint badge to remove it"
+msgid "  ·  click a constraint badge to select it"
 msgstr ""
 
 #, c-format, boost-format
@@ -25871,10 +25910,9 @@ msgstr ""
 msgid "Constraints (%d)"
 msgstr ""
 
-msgid "No constraints yet"
-msgstr ""
-
-msgid "Delete constraint"
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
 msgstr ""
 
 msgid "Constraint deleted"

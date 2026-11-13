@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:31-0600\n"
+"POT-Creation-Date: 2026-11-14 00:49+0800\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -6409,6 +6409,10 @@ msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr "รูปแบบไม่ถูกต้อง รูปแบบเวกเตอร์ที่ต้องการ: \"%1%\""
 
 # AI Translated
+msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+msgstr "พื้นที่ฐานพิมพ์ที่ยกเว้นไม่ถูกต้อง ต้องเป็นรูปหลายเหลี่ยมอย่างง่ายที่ไม่ตัดกันเอง"
+
+# AI Translated
 msgid "System agents"
 msgstr "เอเจนต์ระบบ"
 
@@ -9980,6 +9984,10 @@ msgstr "โปรเจกต์นี้มีโมเดลที่สร้
 
 msgid "The file does not contain any geometry data."
 msgstr "ไฟล์นี้ไม่มีข้อมูลเรขาคณิตใดๆ"
+
+# AI Translated
+msgid "The invalid area has been removed, so please define it again using a valid polygon."
+msgstr "พื้นที่ที่ไม่ถูกต้องถูกลบแล้ว โปรดกำหนดใหม่โดยใช้รูปหลายเหลี่ยมที่ถูกต้อง"
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "วัตถุของคุณดูใหญ่เกินไป คุณต้องการย่อขนาดให้พอดีกับฐานพิมพ์โดยอัตโนมัติหรือไม่"
@@ -13943,6 +13951,12 @@ msgid "XHF"
 msgstr "XHF"
 
 # AI Translated
+#. TRN Printer settings extruder tab: the extruder's name, e.g. "Extruder 2", and its nozzle flow tag, e.g. "HF".
+#, c-format, boost-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+# AI Translated
 msgid "No modifications need to be copied."
 msgstr "ไม่มีการแก้ไขที่ต้องคัดลอก"
 
@@ -13959,6 +13973,12 @@ msgstr "แก้ไขพารามิเตอร์ของ %s"
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
 msgstr "คุณต้องการแก้ไขพารามิเตอร์ต่อไปนี้ของ %s ให้เป็นของ %s หรือไม่?"
+
+# AI Translated
+#. TRN %1% is the extruder (or nozzle variant) the values are copied from, %2% the list of those they are copied to, as the switch names them, e.g. "T2 HF, T3 HF".
+#, boost-format
+msgid "Do you want to copy the following parameters of %1% to %2%?"
+msgstr "คุณต้องการคัดลอกพารามิเตอร์ต่อไปนี้ของ %1% ไปยัง %2% หรือไม่?"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "คลิกเพื่อรีเซ็ตค่าปัจจุบันและแนบไปกับค่าส่วนกลาง"
@@ -14104,6 +14124,18 @@ msgid ""
 msgstr ""
 "\n"
 "คุณสามารถละทิ้งค่าที่ตั้งไว้ล่วงหน้าที่คุณได้แก้ไข หรือเลือกที่จะถ่ายโอนค่าที่แก้ไขไปยังโปรเจ็กต์ใหม่"
+
+# AI Translated
+msgid "Click the compare button to see the full value."
+msgstr "คลิกปุ่มเปรียบเทียบเพื่อดูค่าทั้งหมด"
+
+# AI Translated
+msgid "Process settings"
+msgstr "การตั้งค่ากระบวนการ"
+
+# AI Translated
+msgid "Compare the full values"
+msgstr "เปรียบเทียบค่าทั้งหมด"
 
 msgid "Extruder count"
 msgstr "จำนวนชุดดันเส้น"
@@ -14859,10 +14891,6 @@ msgstr "เปิดไฟล์ใบรับรอง CA"
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr "ไฟล์ HTTPS CA เป็นทางเลือก จำเป็นเฉพาะเมื่อคุณใช้ HTTPS กับใบรับรองที่ลงนามด้วยตนเอง"
 
-# AI Translated
-msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr "ระบบนี้ใช้ใบรับรอง HTTPS จากที่จัดเก็บใบรับรองของระบบหรือพวงกุญแจ หากต้องการใช้ไฟล์ CA แบบกำหนดเอง ให้นำเข้าไฟล์ไปที่นั่น"
-
 msgid "Printer model"
 msgstr "รุ่นเครื่องพิมพ์"
 
@@ -14881,6 +14909,10 @@ msgstr "เชื่อมต่อ"
 
 msgid "Manual Setup"
 msgstr "การตั้งค่าด้วยตนเอง"
+
+# AI Translated
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
+msgstr "ระบบนี้ใช้ใบรับรอง HTTPS จากที่จัดเก็บใบรับรองของระบบหรือพวงกุญแจ หากต้องการใช้ไฟล์ CA แบบกำหนดเอง ให้นำเข้าไฟล์ไปที่นั่น"
 
 msgid "IP and Access Code Verified! You may close the window"
 msgstr "ตรวจสอบ IP และรหัสการเข้าถึงแล้ว! คุณสามารถปิดหน้าต่างได้"
@@ -15443,6 +15475,10 @@ msgid "Prime tower is too close to the clumping detection area. There may be col
 msgstr "Prime Tower อยู่ใกล้พื้นที่การตรวจจับการจับตัวกันมากเกินไป อาจเกิดการชนกันเมื่อพิมพ์"
 
 # AI Translated
+msgid "The extruder printable areas share no common area, so the prime tower cannot be printed.\n"
+msgstr "พื้นที่พิมพ์ของชุดดันเส้นไม่มีส่วนที่ทับซ้อนกัน จึงไม่สามารถพิมพ์ Prime Tower ได้\n"
+
+# AI Translated
 msgid "Prime tower is partially outside the printable area, and it cannot be printed.\n"
 msgstr "Prime Tower อยู่นอกพื้นที่การพิมพ์บางส่วน จึงไม่สามารถพิมพ์ได้\n"
 
@@ -15454,6 +15490,24 @@ msgstr "ช่วงอุณหภูมิหัวฉีดที่แนะ
 
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
 msgstr "หากคุณยังต้องการพิมพ์ คุณสามารถเปิดใช้งานตัวเลือกในการตั้งค่า / การควบคุม / การตัด / ลบข้อจำกัดอุณหภูมิแบบผสมได้"
+
+# AI Translated
+msgid "A prime tower requires that all objects have the same layer height."
+msgstr "Prime Tower ต้องการให้วัตถุทั้งหมดมีความสูงเลเยอร์เท่ากัน"
+
+# AI Translated
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
+msgstr "Prime Tower ต้องการให้วัตถุทั้งหมดพิมพ์บนจำนวนเลเยอร์ฐานรองชิ้นงานเท่ากัน"
+
+msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
+msgstr "Prime Tower รองรับวัตถุหลายชิ้นเท่านั้นหากพิมพ์ด้วย support_top_z_distance เท่ากัน"
+
+# AI Translated
+msgid "A prime tower requires that all objects are sliced with the same layer height."
+msgstr "Prime Tower ต้องการให้วัตถุทั้งหมดถูกสไลซ์ด้วยความสูงเลเยอร์เท่ากัน"
+
+msgid "The prime tower is only supported if all objects have the same variable layer height."
+msgstr "Prime Tower ได้รับส่วนรองรับก็ต่อเมื่อวัตถุทั้งหมดมีความสูงของเลเยอร์ที่แปรผันเท่ากัน"
 
 msgid "No extrusions under current settings."
 msgstr "ไม่มีการอัดขึ้นรูปภายใต้การตั้งค่าปัจจุบัน"
@@ -15594,24 +15648,6 @@ msgstr "ไม่รองรับ Prime Tower เมื่อเปิดค�
 # AI Translated
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "Prime Tower ต้องการให้ “support gap” เป็นจำนวนเท่าของความสูงเลเยอร์"
-
-# AI Translated
-msgid "A prime tower requires that all objects have the same layer height."
-msgstr "Prime Tower ต้องการให้วัตถุทั้งหมดมีความสูงเลเยอร์เท่ากัน"
-
-# AI Translated
-msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr "Prime Tower ต้องการให้วัตถุทั้งหมดพิมพ์บนจำนวนเลเยอร์ฐานรองชิ้นงานเท่ากัน"
-
-msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr "Prime Tower รองรับวัตถุหลายชิ้นเท่านั้นหากพิมพ์ด้วย support_top_z_distance เท่ากัน"
-
-# AI Translated
-msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr "Prime Tower ต้องการให้วัตถุทั้งหมดถูกสไลซ์ด้วยความสูงเลเยอร์เท่ากัน"
-
-msgid "The prime tower is only supported if all objects have the same variable layer height."
-msgstr "Prime Tower ได้รับส่วนรองรับก็ต่อเมื่อวัตถุทั้งหมดมีความสูงของเลเยอร์ที่แปรผันเท่ากัน"
 
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "วัตถุอย่างน้อยหนึ่งชิ้นถูกกำหนดให้เป็นชุดดันเส้นที่เครื่องพิมพ์ไม่มี"
@@ -28689,6 +28725,18 @@ msgid "Constraints"
 msgstr "เงื่อนไขบังคับ"
 
 # AI Translated
+msgid "No constraints yet"
+msgstr "ยังไม่มีเงื่อนไขบังคับ"
+
+# AI Translated
+msgid "Zoom to selection"
+msgstr "ซูมไปที่ส่วนที่เลือก"
+
+# AI Translated
+msgid "Delete constraint"
+msgstr "ลบเงื่อนไขบังคับ"
+
+# AI Translated
 msgid "Feature tree"
 msgstr "แผนผังฟีเจอร์"
 
@@ -28721,10 +28769,6 @@ msgstr "ย้ายลง"
 # AI Translated
 msgid "Show / hide"
 msgstr "แสดง / ซ่อน"
-
-# AI Translated
-msgid "Zoom to selection"
-msgstr "ซูมไปที่ส่วนที่เลือก"
 
 # AI Translated
 msgid "Check interference — find overlapping bodies"
@@ -28901,6 +28945,12 @@ msgstr[0] "%d องศาอิสระ"
 #, c-format, boost-format
 msgid "Sketch %d"
 msgstr "สเก็ตช์ %d"
+
+# AI Translated
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+#, boost-format
+msgid "Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr "กำลังแก้ไข: %1%   ·   N = มองตั้งฉากกับระนาบ   ·   ยืนยันหรือยกเลิกในแถบเครื่องมือ"
 
 # AI Translated
 #, c-format, boost-format
@@ -29592,8 +29642,8 @@ msgid "  ·  Esc goes back to Select"
 msgstr "  ·  Esc เพื่อกลับไปที่เครื่องมือเลือก"
 
 # AI Translated
-msgid "  ·  click a constraint badge to remove it"
-msgstr "  ·  คลิกป้ายเงื่อนไขบังคับเพื่อนำออก"
+msgid "  ·  click a constraint badge to select it"
+msgstr "  ·  คลิกป้ายเงื่อนไขบังคับเพื่อเลือก"
 
 # AI Translated
 #, c-format, boost-format
@@ -30056,12 +30106,10 @@ msgid "Constraints (%d)"
 msgstr "เงื่อนไขบังคับ (%d)"
 
 # AI Translated
-msgid "No constraints yet"
-msgstr "ยังไม่มีเงื่อนไขบังคับ"
-
-# AI Translated
-msgid "Delete constraint"
-msgstr "ลบเงื่อนไขบังคับ"
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+#, boost-format
+msgid "%1% selected — Delete removes it"
+msgstr "เลือก %1% แล้ว — กด Delete เพื่อนำออก"
 
 # AI Translated
 msgid "Constraint deleted"
@@ -38725,347 +38773,3 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
-
-# AI Translated
-#~ msgid "Subdivision mesh"
-#~ msgstr "แบ่งย่อยเมช"
-
-# AI Translated
-#~ msgid "Updates are available for your OrcaCloud plugins."
-#~ msgstr "มีอัปเดตสำหรับปลั๊กอิน OrcaCloud ของคุณ"
-
-# AI Translated
-#~ msgid "Some imported objects contain modifiers or parts with individual settings. They are shown as assemblies so that these settings remain visible."
-#~ msgstr "วัตถุที่นำเข้าบางรายการมีตัวปรับแต่งหรือชิ้นส่วนที่มีการตั้งค่าเฉพาะ จึงแสดงเป็นชุดประกอบเพื่อให้ยังมองเห็นการตั้งค่าเหล่านี้ได้"
-
-# AI Translated
-#~ msgid "Geometry import"
-#~ msgstr "การนำเข้าข้อมูลเรขาคณิต"
-
-# AI Translated
-#~ msgid "Files"
-#~ msgstr "ไฟล์"
-
-# AI Translated
-#~ msgid "Folder paths"
-#~ msgstr "พาธโฟลเดอร์"
-
-# AI Translated
-#~ msgid "File import"
-#~ msgstr "การนำเข้าไฟล์"
-
-# AI Translated
-#~ msgid "Ask how to handle unsupported characters in imported names"
-#~ msgstr "ถามวิธีจัดการอักขระที่ไม่รองรับในชื่อที่นำเข้า"
-
-# AI Translated
-#~ msgid "Show the removal or replacement choices when original names contain unsupported characters."
-#~ msgstr "แสดงตัวเลือกการลบหรือแทนที่เมื่อชื่อต้นฉบับมีอักขระที่ไม่รองรับ"
-
-# AI Translated
-#~ msgid "3MF import"
-#~ msgstr "การนำเข้า 3MF"
-
-# AI Translated
-#~ msgid "Show options when importing"
-#~ msgstr "แสดงตัวเลือกเมื่อนำเข้า"
-
-# AI Translated
-#~ msgid "Show original-name and sorting options when importing a 3MF without project settings into the current project."
-#~ msgstr "แสดงตัวเลือกชื่อต้นฉบับและการเรียงลำดับเมื่อนำเข้า 3MF ที่ไม่มีการตั้งค่าโปรเจกต์เข้าสู่โปรเจกต์ปัจจุบัน"
-
-# AI Translated
-#~ msgid "Keep original names"
-#~ msgstr "เก็บชื่อต้นฉบับไว้"
-
-# AI Translated
-#~ msgid "Use the body names stored in the imported file when it contains them."
-#~ msgstr "ใช้ชื่อบอดี้ที่เก็บไว้ในไฟล์ที่นำเข้า หากไฟล์มีชื่อเหล่านั้น"
-
-# AI Translated
-#~ msgid "STEP import"
-#~ msgstr "การนำเข้า STEP"
-
-# AI Translated
-#~ msgid "Linear deflection"
-#~ msgstr "การโก่งตัวเชิงเส้น"
-
-# AI Translated
-#~ msgid "Angle deflection"
-#~ msgstr "การโก่งตัวของมุม"
-
-# AI Translated
-#~ msgid "Split into multiple objects"
-#~ msgstr "แยกเป็นหลายวัตถุ"
-
-# AI Translated
-#~ msgid ""
-#~ "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
-#~ "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
-#~ "Default: enabled."
-#~ msgstr ""
-#~ "หากเปิดใช้งาน รูปทรง compound และ compsolid ในไฟล์ STEP ที่นำเข้าจะถูกแยกเป็นหลายวัตถุ\n"
-#~ "ใช้เป็นค่าเริ่มต้นในกล่องโต้ตอบการนำเข้า หรือใช้โดยตรงเมื่อปิดกล่องโต้ตอบการนำเข้า\n"
-#~ "ค่าเริ่มต้น: เปิดใช้งาน"
-
-# AI Translated
-#~ msgid "AMF import"
-#~ msgstr "การนำเข้า AMF"
-
-# AI Translated
-#~ msgid "Show body grouping, original-name and sorting options when importing geometry into the current project."
-#~ msgstr "แสดงตัวเลือกการจัดกลุ่มบอดี้ ชื่อต้นฉบับ และการเรียงลำดับ เมื่อนำเข้าข้อมูลเรขาคณิตเข้าสู่โปรเจกต์ปัจจุบัน"
-
-# AI Translated
-#~ msgid "DRC export"
-#~ msgstr "การส่งออก DRC"
-
-#~ msgid "Behaviour"
-#~ msgstr "พฤติกรรม"
-
-# AI Translated
-#~ msgid "Speed dial"
-#~ msgstr "Speed Dial"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% is printed later than its place in the object list, to avoid a collision."
-#~ msgstr "%1% จะถูกพิมพ์ช้ากว่าตำแหน่งในรายการวัตถุ เพื่อหลีกเลี่ยงการชน"
-
-# AI Translated
-#, boost-format
-#~ msgid "Spiral vase mode needs no sparse infill, one wall loop and no top shell layers, but the object %1% uses other values, so it will not print as a continuous spiral."
-#~ msgstr "โหมดแจกันเกลียวต้องไม่มีไส้ในแบบโปร่ง มีผนัง 1 รอบ และไม่มีเลเยอร์ผนังด้านบน แต่วัตถุ %1% ใช้ค่าอื่น จึงจะไม่พิมพ์เป็นเกลียวต่อเนื่อง"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The Adaptive Pressure Advance model of filament %1% contains invalid values.\n"
-#~ "%2%"
-#~ msgstr ""
-#~ "แบบจำลอง Adaptive Pressure Advance ของเส้นพลาสติก %1% มีค่าที่ไม่ถูกต้อง\n"
-#~ "%2%"
-
-# AI Translated
-#~ msgid "Used filament types"
-#~ msgstr "ประเภทเส้นพลาสติกที่ใช้แล้ว"
-
-# AI Translated
-#~ msgid "Underscore-separated list of all filament types used during the print."
-#~ msgstr "รายการประเภทเส้นพลาสติกทั้งหมดที่ใช้ระหว่างการพิมพ์ คั่นด้วยขีดล่าง"
-
-# AI Translated
-#~ msgid "Loads each body of a multi-body part separately. Needed to keep the bodies' original names."
-#~ msgstr "โหลดแต่ละบอดี้ของชิ้นส่วนแบบหลายบอดี้แยกกัน จำเป็นสำหรับการเก็บชื่อต้นฉบับของบอดี้"
-
-# AI Translated
-#~ msgid "Load as an assembly"
-#~ msgstr "โหลดเป็นชุดประกอบ"
-
-# AI Translated
-#~ msgid "Load as a single object (can be split later)"
-#~ msgstr "โหลดเป็นวัตถุเดียว (แยกภายหลังได้)"
-
-# AI Translated
-#~ msgid "The original bodies and names are kept inside the object. Use Split to parts to show them as separate parts."
-#~ msgstr "บอดี้และชื่อต้นฉบับจะถูกเก็บไว้ภายในวัตถุ ใช้ \"แยกเป็นส่วนๆ\" เพื่อแสดงเป็นชิ้นส่วนแยกกัน"
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. Needs Split compound for parts with several bodies."
-#~ msgstr "ใช้ชื่อบอดี้ที่เก็บไว้ในไฟล์ หากมี ชิ้นส่วนที่มีหลายบอดี้ต้องเปิด \"แยกสารประกอบ\""
-
-# AI Translated
-#~ msgid "Sort parts by name"
-#~ msgstr "เรียงชิ้นส่วนตามชื่อ"
-
-# AI Translated
-#~ msgid "Sort the parts inside each imported assembly in the object list. This does not change the order used for slicing. Available when Keep original names is on."
-#~ msgstr "เรียงชิ้นส่วนภายในชุดประกอบที่นำเข้าแต่ละชุดในรายการวัตถุ การดำเนินการนี้ไม่เปลี่ยนลำดับที่ใช้ในการสไลซ์ ใช้ได้เมื่อเปิด \"เก็บชื่อต้นฉบับไว้\""
-
-# AI Translated
-#~ msgid "Don't ask again"
-#~ msgstr "อย่าถามอีก"
-
-# AI Translated
-#~ msgid "Save these choices and apply them without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "บันทึกตัวเลือกเหล่านี้และใช้โดยไม่ถามในครั้งถัดไป คุณสามารถแสดงกล่องโต้ตอบนี้อีกครั้งได้ในการตั้งค่า"
-
-# AI Translated
-#~ msgid "3MF geometry import options"
-#~ msgstr "ตัวเลือกการนำเข้าข้อมูลเรขาคณิต 3MF"
-
-# AI Translated
-#~ msgid "AMF geometry import options"
-#~ msgstr "ตัวเลือกการนำเข้าข้อมูลเรขาคณิต AMF"
-
-# AI Translated
-#~ msgid "Choose how to name and order the parts of this file."
-#~ msgstr "เลือกวิธีตั้งชื่อและจัดลำดับชิ้นส่วนของไฟล์นี้"
-
-# AI Translated
-#~ msgid "Choose how to load the bodies in this file."
-#~ msgstr "เลือกวิธีโหลดบอดี้ในไฟล์นี้"
-
-# AI Translated
-#~ msgid "Load as separate objects"
-#~ msgstr "โหลดเป็นวัตถุแยกกัน"
-
-# AI Translated
-#~ msgid "Each object in the file is loaded on its own, as OrcaSlicer always loaded AMF files."
-#~ msgstr "วัตถุแต่ละชิ้นในไฟล์จะถูกโหลดแยกกัน เหมือนที่ OrcaSlicer โหลดไฟล์ AMF มาโดยตลอด"
-
-# AI Translated
-#~ msgid "The bodies of each group in the file become parts of one object, in their relative positions."
-#~ msgstr "บอดี้ของแต่ละกลุ่มในไฟล์จะกลายเป็นชิ้นส่วนของวัตถุเดียว โดยคงตำแหน่งสัมพัทธ์ไว้"
-
-# AI Translated
-#~ msgid "Use the body names stored in the file, when there are any. When disabled, the usual OrcaSlicer names are used; existing project names are kept."
-#~ msgstr "ใช้ชื่อบอดี้ที่เก็บไว้ในไฟล์ หากมี เมื่อปิดใช้งานจะใช้ชื่อปกติของ OrcaSlicer และคงชื่อที่มีอยู่ในโปรเจกต์ไว้"
-
-# AI Translated
-#~ msgid "Use these choices as defaults next time. The dialog still opens."
-#~ msgstr "ใช้ตัวเลือกเหล่านี้เป็นค่าเริ่มต้นในครั้งถัดไป กล่องโต้ตอบจะยังเปิดขึ้น"
-
-# AI Translated
-#~ msgid "A name in the file is not valid Unicode. The geometry was not imported."
-#~ msgstr "ชื่อในไฟล์ไม่ใช่ Unicode ที่ถูกต้อง ไม่ได้นำเข้าข้อมูลเรขาคณิต"
-
-# AI Translated
-#~ msgid "Invalid name"
-#~ msgstr "ชื่อไม่ถูกต้อง"
-
-# AI Translated
-#~ msgid "Unsupported characters in names"
-#~ msgstr "อักขระที่ไม่รองรับในชื่อ"
-
-# AI Translated
-#~ msgid "Some original names contain characters that OrcaSlicer cannot use. Choose how to change them before importing."
-#~ msgstr "ชื่อต้นฉบับบางชื่อมีอักขระที่ OrcaSlicer ใช้ไม่ได้ เลือกวิธีเปลี่ยนชื่อก่อนนำเข้า"
-
-# AI Translated
-#~ msgid "Remove unsupported characters"
-#~ msgstr "ลบอักขระที่ไม่รองรับ"
-
-# AI Translated
-#~ msgid "Replace with:"
-#~ msgstr "แทนที่ด้วย:"
-
-# AI Translated
-#~ msgid "Each unsupported character is replaced with this text. It may be longer than one character."
-#~ msgstr "อักขระที่ไม่รองรับแต่ละตัวจะถูกแทนที่ด้วยข้อความนี้ ข้อความอาจยาวกว่าหนึ่งอักขระได้"
-
-# AI Translated
-#~ msgid "Use this rule as the default next time. The dialog still opens."
-#~ msgstr "ใช้กฎนี้เป็นค่าเริ่มต้นในครั้งถัดไป กล่องโต้ตอบจะยังเปิดขึ้น"
-
-# AI Translated
-#~ msgid "Save this rule and apply it without asking next time. You can show this dialog again in Preferences."
-#~ msgstr "บันทึกกฎนี้และใช้โดยไม่ถามในครั้งถัดไป คุณสามารถแสดงกล่องโต้ตอบนี้อีกครั้งได้ในการตั้งค่า"
-
-# AI Translated
-#~ msgid "Enter a non-empty replacement containing only supported characters, or choose removal."
-#~ msgstr "ป้อนข้อความแทนที่ที่ไม่ว่างและมีเฉพาะอักขระที่รองรับ หรือเลือกการลบ"
-
-# AI Translated
-#, boost-format
-#~ msgid "%1% → %2%"
-#~ msgstr "%1% → %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1%: %2%"
-#~ msgstr "• %1%: %2%"
-
-# AI Translated
-#, boost-format
-#~ msgid "• %1% — %2%: %3%"
-#~ msgstr "• %1% - %2%: %3%"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the preset won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "การตั้งค่าต่อไปนี้อ้างอิงถึงปลั๊กอินที่ Orca Slicer ไม่สามารถระบุได้บนคอมพิวเตอร์เครื่องนี้:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "หากบันทึกต่อ พรีเซ็ตจะไม่เก็บการอ้างอิงปลั๊กอินของการตั้งค่าเหล่านี้ไว้ บนคอมพิวเตอร์เครื่องอื่น Orca Slicer จะไม่ทราบว่าควรเสนอปลั๊กอินใด และการตั้งค่าอาจใช้งานไม่ได้ที่นั่น"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The following settings refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the project won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "การตั้งค่าต่อไปนี้อ้างอิงถึงปลั๊กอินที่ Orca Slicer ไม่สามารถระบุได้บนคอมพิวเตอร์เครื่องนี้:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "หากบันทึกต่อ โปรเจกต์จะไม่เก็บการอ้างอิงปลั๊กอินของการตั้งค่าเหล่านี้ไว้ บนคอมพิวเตอร์เครื่องอื่น Orca Slicer จะไม่ทราบว่าควรเสนอปลั๊กอินใด และการตั้งค่าอาจใช้งานไม่ได้ที่นั่น"
-
-# AI Translated
-#~ msgid "Plugin Not Identified"
-#~ msgstr "ไม่สามารถระบุปลั๊กอินได้"
-
-# AI Translated
-#~ msgid "Save anyway"
-#~ msgstr "บันทึกต่อไป"
-
-# AI Translated
-#, boost-format
-#~ msgid ""
-#~ "The presets being saved refer to plugins Orca Slicer can't identify on this computer:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "If you save anyway, the presets won't keep the plugin references for these settings. On another computer, Orca Slicer won't know which plugins to offer, and the settings may not work there."
-#~ msgstr ""
-#~ "พรีเซ็ตที่กำลังบันทึกอ้างอิงถึงปลั๊กอินที่ Orca Slicer ไม่สามารถระบุได้บนคอมพิวเตอร์เครื่องนี้:\n"
-#~ "\n"
-#~ "%1%\n"
-#~ "\n"
-#~ "หากบันทึกต่อ พรีเซ็ตเหล่านี้จะไม่เก็บการอ้างอิงปลั๊กอินของการตั้งค่าเหล่านี้ไว้ บนคอมพิวเตอร์เครื่องอื่น Orca Slicer จะไม่ทราบว่าควรเสนอปลั๊กอินใด และการตั้งค่าอาจใช้งานไม่ได้ที่นั่น"
-
-# AI Translated
-#~ msgid "Remove from favorites"
-#~ msgstr "นำออกจากรายการโปรด"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to create the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to create the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "ปลั๊กอิน \"%s\" กำลังขอสร้างไฟล์ต่อไปนี้:\n"
-#~ "%s"
-
-# AI Translated
-#, c-format, boost-format
-#~ msgid ""
-#~ "Plugin \"%s\" is requesting to delete the following file:\n"
-#~ "%s"
-#~ msgid_plural ""
-#~ "Plugin \"%s\" is requesting to delete the following files:\n"
-#~ "%s"
-#~ msgstr[0] ""
-#~ "ปลั๊กอิน \"%s\" กำลังขอลบไฟล์ต่อไปนี้:\n"
-#~ "%s"
-
-# AI Translated
-#~ msgid "import SVG failed: could not open svg."
-#~ msgstr "นำเข้า SVG ล้มเหลว: ไม่สามารถเปิด SVG ได้"
-
-# AI Translated
-#~ msgid "import SVG failed: could not parse imported svg data."
-#~ msgstr "นำเข้า SVG ล้มเหลว: ไม่สามารถแยกวิเคราะห์ข้อมูล SVG ที่นำเข้าได้"
