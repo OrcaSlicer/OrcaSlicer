@@ -158,3 +158,20 @@ TEST_CASE("Overhang fan transitions do not depend on overhang speed", "[Cooling]
     REQUIRE(with_speed_feedrates != without_speed_feedrates);
     CHECK(with_speed_fan == without_speed_fan);
 }
+
+TEST_CASE("External bridge fan control", "[Cooling]")
+{
+    std::string gcode = slice({TestMesh::bridge}, {
+                                                    {"enable_overhang_speed",   true},
+                                                    {"overhang_fan_speed",        60},
+                                                    {"external_bridge_fan_speed", 80},
+                                                  });
+    REQUIRE(gcode.find("M106 S204") != std::string::npos);
+
+    gcode = slice({TestMesh::bridge},             {
+                                                    {"enable_overhang_speed", true},
+                                                    {"overhang_fan_speed", 60},
+                                                    {"external_bridge_fan_speed", -1},
+                                                  });
+    REQUIRE(gcode.find("M106 S153") != std::string::npos);
+}

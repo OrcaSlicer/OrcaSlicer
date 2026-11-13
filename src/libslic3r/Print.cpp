@@ -290,6 +290,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "pressure_advance",
         "enable_overhang_bridge_fan",
         "overhang_fan_speed",
+        "overhang_fan_speed_max",
         "overhang_fan_threshold",
         "slow_down_for_layer_cooling",
         "default_acceleration",
@@ -407,6 +408,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "exclude_object_tolerance",
         "support_material_interface_fan_speed",
         "internal_bridge_fan_speed", // ORCA: Add support for separate internal bridge fan speed control
+        "external_bridge_fan_speed", // ORCA: Add support for separate external bridge fan speed control
         "ironing_fan_speed",
         "single_extruder_multi_material_priming",
         "activate_air_filtration",
