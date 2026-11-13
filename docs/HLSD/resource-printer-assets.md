@@ -37,8 +37,9 @@ the plugin load.
 
 `PluginPrinterAssets` tracks every loaded and enabled `resource-printer-asset` capability. An
 entry stores strings only (never a Python object, which would outlive the interpreter): ids,
-paths and the validated file list. Its lifecycle functions return whether the set of packs
-changed, so the bed is redrawn only then.
+paths and the validated file list. The folder is listed once, when the pack loads, and a file
+added later appears after the plugin reloads. Its lifecycle functions return whether the set of
+packs changed, so the bed is redrawn only then.
 
 The Bed Shape dialog lists `.stl` files for the model and `.png`/`.svg` files for the texture,
 chosen by extension.
@@ -63,9 +64,17 @@ plugin-backed with type `resource-printer-asset`, so the printer preset manifest
 hook re-derives the option on every printer preset save. A pack that is not installed here keeps
 the name already in the saved preset's manifest. The notice never blocks slicing.
 
+A preset saved as a diff against its parent writes a manifest derived from its whole resolved
+config, not from the diff, so references inherited from the parent stay listed.
+
 A printer preset written before `printer_plugins` existed holds its references under the process
-preset's `plugins` key. `Preset::remove_invalid_keys` renames them on load, before the
-unknown-key check, so an upgrade keeps the notice for a plugin this machine lacks.
+preset's `plugins` key. Loading moves them into `printer_plugins` before the unknown-key check,
+for a parentless preset and for one that inherits a parent (merged with the parent's manifest),
+so an upgrade keeps the notice for a plugin this machine lacks.
+
+The G-code config block writes `printer_asset_plugins` and `printer_plugins` only when they are
+not empty, so a printer without packs keeps an unchanged block and a printer created from the
+G-code keeps its manifest.
 
 ## Constraints
 
@@ -76,3 +85,11 @@ unknown-key check, so an upgrade keeps the notice for a plugin this machine lack
 - Orca Cloud validates uploaded content (STL structure, PNG size, SVG active content). The
   slicer re-checks only the folder layout and extensions.
 - A file's use follows its extension. A pack cannot give one extension two uses.
+- A plugin provides one `resource-printer-asset` capability. A reference names the plugin, not the
+  capability, and the manifest name is looked up from the plugin, so with several capabilities
+  the name may be the wrong one.
+- A cloud plugin id is compared without regard to case; the reference stores it in lower case.
+- A reference to a hand-installed pack uses the plugin key. It resolves only on a machine that has
+  that key, and its manifest entry has no uuid, so no other machine is offered the install.
+- Keeping a cloud plugin as a local one replaces its uuid with the plugin key, so references that
+  name the uuid stop resolving.
