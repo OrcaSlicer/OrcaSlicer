@@ -6919,7 +6919,7 @@ void GUI_App::start_in_app_update()
 
     const std::string lock_path = updater_lock_path();
     const int64_t     parent_pid = current_process_id();
-    if (!acquire_install_lock(lock_path, parent_pid)) {
+    if (!acquire_install_lock(lock_path)) {
         MessageDialog dlg(this->mainframe, _L("An update is already in progress."), _L("Update in progress"),
                           wxOK | wxICON_INFORMATION);
         dlg.ShowModal();
@@ -6997,7 +6997,7 @@ void GUI_App::finish_pending_update()
     // A live helper owns the install lock and may still roll back onto the backup.
     // Holding the lock here also stops a new install from starting while this runs.
     const std::string lock_path = updater_lock_path();
-    if (!acquire_install_lock(lock_path, current_process_id())) {
+    if (!acquire_install_lock(lock_path)) {
         BOOST_LOG_TRIVIAL(info) << "Update recovery deferred: an install is in progress";
         return;
     }

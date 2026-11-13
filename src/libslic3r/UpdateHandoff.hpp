@@ -118,9 +118,9 @@ bool        write_pending_install(const PendingInstall& pending);
 bool        read_pending_install(PendingInstall& out);
 void        remove_pending_install();
 
-// Takes an OS file lock on the install lock, which the holder keeps until it exits, and
-// writes owner_pid into the file. False when another handle holds the lock.
-bool acquire_install_lock(const std::string& path, int64_t owner_pid);
+// Takes an OS file lock on the install lock, which the holder keeps until it exits.
+// False when another handle holds the lock.
+bool acquire_install_lock(const std::string& path);
 // Unlocks and deletes the file this process acquired. A no-op for any other path.
 void release_install_lock(const std::string& path);
 

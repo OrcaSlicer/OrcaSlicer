@@ -253,13 +253,12 @@ TEST_CASE("A second install lock on the same path is refused while the first is 
     ScopedTemporaryDir dir;
     const std::string  lock = (dir.path() / "install.lock").string();
 
-    CHECK(acquire_install_lock(lock, 1234));
-    CHECK_FALSE(acquire_install_lock(lock, 5678));
-    CHECK(read_text(lock) == "1234");
+    CHECK(acquire_install_lock(lock));
+    CHECK_FALSE(acquire_install_lock(lock));
 
     release_install_lock(lock);
     CHECK_FALSE(fs::exists(lock));
-    CHECK(acquire_install_lock(lock, 5678));
+    CHECK(acquire_install_lock(lock));
     release_install_lock(lock);
 }
 
@@ -269,9 +268,10 @@ TEST_CASE("A leftover install lock file that nobody holds is taken over", "[Upda
     const std::string  lock = (dir.path() / "install.lock").string();
     write_text(lock, "99999");
 
-    CHECK(acquire_install_lock(lock, 1234));
-    CHECK(read_text(lock) == "1234");
+    CHECK(acquire_install_lock(lock));
+    CHECK_FALSE(acquire_install_lock(lock));
     release_install_lock(lock);
+    CHECK_FALSE(fs::exists(lock));
 }
 
 TEST_CASE("Releasing an install lock this process does not hold leaves the file in place", "[UpdateHandoff]")

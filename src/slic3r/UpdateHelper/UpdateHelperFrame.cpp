@@ -37,7 +37,6 @@
 #include <wx/utils.h>
 
 #if defined(_WIN32)
-#include <process.h>
 #include <windows.h>
 #else
 #include <cerrno>
@@ -65,15 +64,6 @@ constexpr int      kParentTimeoutSeconds = 300;
 constexpr int      kLockRetryMs = 250;
 constexpr int      kLockTimeoutMs = 10000;
 constexpr int64_t  kShaBufferSize = 64 * 1024;
-
-int64_t current_process_id()
-{
-#if defined(_WIN32)
-    return static_cast<int64_t>(::_getpid());
-#else
-    return static_cast<int64_t>(::getpid());
-#endif
-}
 
 std::string timestamp()
 {
@@ -433,7 +423,7 @@ UpdateHelperFrame::LockResult UpdateHelperFrame::take_install_lock(std::string& 
 
     const int rounds = kLockTimeoutMs / kLockRetryMs;
     for (int i = 0; i <= rounds; ++i) {
-        if (Slic3r::acquire_install_lock(m_handoff.lock_path, current_process_id())) {
+        if (Slic3r::acquire_install_lock(m_handoff.lock_path)) {
             m_log.write("install lock acquired");
             return LockResult::Acquired;
         }

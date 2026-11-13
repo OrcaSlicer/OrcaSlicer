@@ -144,9 +144,6 @@ bool is_plain_path_segment(const std::string& segment)
 
 #ifdef _WIN32
 using LockHandle = HANDLE;
-// Byte the Windows range lock is taken at: past the owner pid, so reading the pid
-// through another handle is not denied by the lock.
-constexpr int64_t k_lock_byte_offset = 64;
 #else
 using LockHandle = int;
 #endif
@@ -174,33 +171,26 @@ void close_lock_file(LockHandle handle)
 #endif
 }
 
-// Takes the exclusive lock without waiting and writes owner_pid into the file. False when
-// another handle holds the lock.
-bool open_lock_file(const std::string& path, int64_t owner_pid, LockHandle& out)
+// Takes the exclusive lock without waiting. False when another handle holds the lock.
+// The file stays empty: a held range lock denies reads through any other handle on
+// Windows, so a pid written there could not be read while the lock is held anyway.
+bool open_lock_file(const std::string& path, LockHandle& out)
 {
-    const std::string text = std::to_string(owner_pid);
 #ifdef _WIN32
     const HANDLE handle = ::CreateFileW(boost::nowide::widen(path).c_str(), GENERIC_READ | GENERIC_WRITE,
                                         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_ALWAYS,
                                         FILE_ATTRIBUTE_NORMAL, nullptr);
     if (handle == INVALID_HANDLE_VALUE)
         return false;
-    // An exclusive range lock also denies reads through any other handle, so it sits past
-    // the owner pid instead of over it, and the pid stays readable while the lock is held.
     // A range beyond the end of the file is a valid lock.
     OVERLAPPED overlapped = {};
-    overlapped.Offset     = k_lock_byte_offset;
     if (!::LockFileEx(handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, 1, 0, &overlapped)) {
         ::CloseHandle(handle);
         return false;
     }
-    DWORD written = 0;
+    // A file left behind by an older build still holds its owner pid; empty it.
     ::SetFilePointer(handle, 0, nullptr, FILE_BEGIN);
     ::SetEndOfFile(handle);
-    if (!::WriteFile(handle, text.data(), static_cast<DWORD>(text.size()), &written, nullptr) || written != text.size()) {
-        ::CloseHandle(handle);
-        return false;
-    }
     out = handle;
     return true;
 #else
@@ -219,7 +209,7 @@ bool open_lock_file(const std::string& path, int64_t owner_pid, LockHandle& out)
         ::close(fd);
         return false;
     }
-    if (::ftruncate(fd, 0) != 0 || ::write(fd, text.data(), text.size()) != static_cast<ssize_t>(text.size())) {
+    if (::ftruncate(fd, 0) != 0) {
         ::close(fd);
         return false;
     }
@@ -517,14 +507,14 @@ void remove_pending_install()
     remove_file(updater_pending_path());
 }
 
-bool acquire_install_lock(const std::string& path, int64_t owner_pid)
+bool acquire_install_lock(const std::string& path)
 {
     std::lock_guard<std::mutex> guard(held_install_locks_mutex());
     if (held_install_locks().count(path) != 0)
         return false;
     ensure_parent_dir(path);
     LockHandle handle{};
-    if (!open_lock_file(path, owner_pid, handle))
+    if (!open_lock_file(path, handle))
         return false;
     held_install_locks().emplace(path, handle);
     return true;
