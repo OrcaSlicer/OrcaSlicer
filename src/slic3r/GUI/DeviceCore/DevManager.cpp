@@ -777,12 +777,12 @@ namespace Slic3r
             }
         }
 
-        if (selected_machine != dev_id) {
-            OnSelectedMachineChanged(selected_machine, dev_id);
-        }
-
+        const std::string previous_selected_machine = selected_machine;
         selected_machine = dev_id;
         record_user_last_machine(selected_machine);
+        if (previous_selected_machine != dev_id) {
+            OnSelectedMachineChanged(previous_selected_machine, dev_id);
+        }
         BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: DeviceManager selection complete selected_machine="
                                 << selected_machine;
         return true;
@@ -1207,11 +1207,11 @@ namespace Slic3r
         }
         if (MachineObject* obj_ = get_selected_machine()) {
             GUI::wxGetApp().sidebar().update_sync_status(obj_);
-            if(m_agent->get_filament_sync_mode() == FilamentSyncMode::subscription)
-            {
-                GUI::wxGetApp().sidebar().load_ams_list(obj_);
-            }
-        };
+            const auto sync_mode = m_agent ? m_agent->get_filament_sync_mode() : FilamentSyncMode::none;
+            GUI::wxGetApp().sidebar().load_ams_list(sync_mode == FilamentSyncMode::none ? nullptr : obj_);
+        } else {
+            OnSelectedMachineLost();
+        }
     }
 
     void DeviceManager::reload_printer_settings()

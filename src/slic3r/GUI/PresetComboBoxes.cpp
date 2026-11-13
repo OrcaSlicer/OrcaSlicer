@@ -74,6 +74,7 @@
 #include "wxExtensions.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 
@@ -561,14 +562,20 @@ int PresetComboBox::selected_connected_printer() const
 
 bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
 {
+    m_first_ams_filament = m_last_ams_filament = 0;
     bool selected_in_ams      = false;
     bool is_bbl_vendor_preset = m_preset_bundle->is_bbl_vendor();
-    if (is_bbl_vendor_preset && !m_preset_bundle->filament_ams_list.empty()) {
+    auto *device_manager = wxGetApp().getDeviceManager();
+    auto *agent = device_manager ? device_manager->get_agent() : nullptr;
+    bool has_pull_filaments = agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull;
+    if ((is_bbl_vendor_preset || has_pull_filaments) && !m_preset_bundle->filament_ams_list.empty()) {
         // When a filament track switch is installed and calibrated, every AMS filament is reachable
         // from both extruders, so present one deduplicated group instead of the Left/Right split.
-        bool fila_switch_ready = wxGetApp().sidebar().is_fila_switch_ready();
-        bool dual_extruder   = (m_preset_bundle->filament_ams_list.begin()->first & 0x10000) == 0;
-        if (fila_switch_ready)
+        bool fila_switch_ready = is_bbl_vendor_preset && wxGetApp().sidebar().is_fila_switch_ready();
+        bool dual_extruder = is_bbl_vendor_preset && (m_preset_bundle->filament_ams_list.begin()->first & 0x10000) == 0;
+        if (!is_bbl_vendor_preset)
+            set_label_marker(Append(_L("Printer filaments"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
+        else if (fila_switch_ready)
             set_label_marker(Append(_L("AMS filaments"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
         else
             set_label_marker(Append(dual_extruder ? _L("Left filaments") : _L("AMS filament"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
@@ -1823,7 +1830,7 @@ void TabPresetComboBox::update()
         //    set_label_marker(Append(separator(L("System presets")), wxNullBitmap));
     }
 
-    if (m_type == Preset::TYPE_FILAMENT && m_preset_bundle->is_bbl_vendor())
+    if (m_type == Preset::TYPE_FILAMENT)
         add_ams_filaments(into_u8(selected));
 
     //BBS: add project embedded preset logic

@@ -982,6 +982,7 @@ struct Sidebar::priv
     ScalableButton* m_printer_icon = nullptr;
     ScalableButton* m_printer_connect = nullptr;
     ScalableButton* m_printer_bbl_sync = nullptr;
+    ScalableButton* m_printer_filament_refresh = nullptr;
     ScalableButton* m_printer_setting = nullptr;
     wxStaticText *  m_text_printer_settings = nullptr;
     wxPanel* m_panel_printer_content = nullptr;
@@ -1110,6 +1111,9 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
     m_printer_connect->Show(!isBBL);
     //btn_sync_printer->Show(isBBL);
     m_printer_bbl_sync->Show(isBBL);
+    auto *device_manager = wxGetApp().getDeviceManager();
+    auto *agent = device_manager ? device_manager->get_agent() : nullptr;
+    m_printer_filament_refresh->Show(agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull);
 
     // ORCA show plate type combo box only when its supported
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
@@ -2859,6 +2863,17 @@ Sidebar::Sidebar(Plater *parent)
             deal_btn_sync();
         });
 
+        p->m_printer_filament_refresh = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "refresh");
+        p->m_printer_filament_refresh->SetToolTip(_L("Refresh filament information from printer"));
+        p->m_printer_filament_refresh->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
+            auto *device_manager = wxGetApp().getDeviceManager();
+            auto *agent = device_manager ? device_manager->get_agent() : nullptr;
+            if (agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull) {
+                wxBusyCursor busy;
+                load_ams_list(device_manager->get_selected_machine());
+            }
+        });
+
         p->m_printer_setting = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "settings");
         p->m_printer_setting->Bind(wxEVT_BUTTON, [](wxCommandEvent &e) {
             // p->editing_filament = -1;
@@ -2874,6 +2889,7 @@ Sidebar::Sidebar(Plater *parent)
         //h_sizer_title->AddStretchSpacer();
         h_sizer_title->Add(p->m_printer_connect , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
         h_sizer_title->Add(p->m_printer_bbl_sync, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
+        h_sizer_title->Add(p->m_printer_filament_refresh, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
         h_sizer_title->Add(p->m_printer_setting, 0, wxALIGN_CENTER);
         h_sizer_title->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
         h_sizer_title->SetMinSize(-1, 3 * em);
@@ -4175,6 +4191,14 @@ void Sidebar::update_presets(Preset::Type preset_type)
 
         if (GUI::wxGetApp().plater())
             GUI::wxGetApp().plater()->update_machine_sync_status();
+
+        auto *device_manager = wxGetApp().getDeviceManager();
+        auto *agent = device_manager ? device_manager->get_agent() : nullptr;
+        const auto sync_mode = agent ? agent->get_filament_sync_mode() : FilamentSyncMode::none;
+        if (sync_mode == FilamentSyncMode::pull)
+            load_ams_list(device_manager->get_selected_machine());
+        else if (sync_mode == FilamentSyncMode::none)
+            load_ams_list(nullptr);
 
         Layout();
 
@@ -5516,6 +5540,7 @@ void Sidebar::msw_rescale()
     p->m_printer_icon->msw_rescale();
     p->m_printer_connect->msw_rescale();
     p->m_printer_bbl_sync->msw_rescale();
+    p->m_printer_filament_refresh->msw_rescale();
     p->m_printer_icon->msw_rescale();
     p->m_printer_setting->msw_rescale();
 
@@ -5626,6 +5651,7 @@ void Sidebar::sys_color_changed()
 #endif
     //p->btn_sync_printer->SetIcon("printer_sync");
     p->m_printer_bbl_sync->msw_rescale();
+    p->m_printer_filament_refresh->msw_rescale();
     p->m_printer_connect->msw_rescale();
     // for (wxWindow* btn : std::vector<wxWindow*>{ p->btn_reslice, p->btn_export_gcode })
     //    wxGetApp().UpdateDarkUI(btn, true);
