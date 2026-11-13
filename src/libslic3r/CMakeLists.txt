@@ -706,7 +706,6 @@ find_package(Draco REQUIRED)
 
 # deps/OCCT/OCCT.cmake builds exactly these toolkits; keep its _occt_toolkits list in step.
 set(OCCT_LIBS
-    TKDEIGES
     TKDESTEP
     TKDE
     TKXCAF
@@ -732,7 +731,7 @@ set(OCCT_LIBS
     TKernel
 )
 # The CAD kernel is the only consumer of TKFillet (BRepFilletAPI), TKOffset (BRepOffsetAPI)
-# and TKBool, which the other two need.
+# and TKBool, which the other two need, and of TKDEIGES (IGES export).
 #
 # PREPEND, never append: this list is single-pass static link order, dependents before
 # dependencies — note TKernel, which everything needs, is deliberately last. TKOffset
@@ -743,7 +742,7 @@ set(OCCT_LIBS
 # while the ordinary Linux, macOS and Windows links resolved it anyway. Use set() rather
 # than list(PREPEND), which needs CMake 3.15 and this project supports 3.13.
 if (SLIC3R_CAD)
-    set(OCCT_LIBS TKFillet TKOffset TKBool ${OCCT_LIBS})
+    set(OCCT_LIBS TKDEIGES TKFillet TKOffset TKBool ${OCCT_LIBS})
     # deps is configured separately, so its SLIC3R_CAD can differ from ours. deps/OCCT/OCCT.cmake
     # builds the three CAD toolkits together under SLIC3R_CAD, so one absent toolkit proves it
     # was OFF there; fail here rather than at link time.

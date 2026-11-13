@@ -29,14 +29,14 @@ endif()
 # build time.
 #
 # SLIC3R_CAD (declared in deps/CMakeLists.txt) adds TKFillet (BRepFilletAPI), TKOffset
-# (BRepOffsetAPI) and TKBool, which they need. Their only consumer is the parametric
-# Design/CAD tab. On Windows OCCT builds shared and only the linked toolkits ship, so the
-# tab adds those three DLLs. See docs/HLSD/design-tab.md.
+# (BRepOffsetAPI) and TKBool, which they need, plus TKDEIGES (the tab's IGES export). Their only
+# consumer is the parametric Design/CAD tab. On Windows OCCT builds shared and only the linked
+# toolkits ship, so the tab adds those DLLs. See docs/HLSD/design-tab.md.
 set(_occt_toolkits
     TKDESTEP TKDE TKXCAF TKXSBase TKVCAF TKCAF TKLCAF TKCDF TKV3d TKService TKMesh TKBO
     TKPrim TKHLR TKShHealing TKTopAlgo TKGeomAlgo TKBRep TKGeomBase TKG3d TKG2d TKMath TKernel)
 if (SLIC3R_CAD)
-    list(APPEND _occt_toolkits TKFillet TKOffset TKBool)
+    list(APPEND _occt_toolkits TKDEIGES TKFillet TKOffset TKBool)
 endif ()
 # OCCT reads BUILD_ADDITIONAL_TOOLKITS as a space-separated string.
 string(REPLACE ";" " " _occt_toolkits "${_occt_toolkits}")
