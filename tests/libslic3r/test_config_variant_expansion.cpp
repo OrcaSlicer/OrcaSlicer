@@ -759,6 +759,21 @@ TEST_CASE("get_index_for_extruder returns -1 when no variant column matches the 
     }
 }
 
+// A Bowden printer whose process names no Bowden variant: the exact lookup stays -1 for the callers that
+// rely on it, and the settings tabs fall back to the extruder's first variant through find_variant_index.
+TEST_CASE("A process without the extruder's variant resolves to -1 exactly and to the first variant by fallback", "[Config]")
+{
+    const std::string variant = GENERATE(std::string("Direct Drive Standard"), std::string("Bowden"));
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("print_extruder_id", true)->values         = {1};
+    config.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {variant};
+
+    REQUIRE(config.get_index_for_extruder(1, "print_extruder_id", etBowden, nvtStandard, "print_extruder_variant") == -1);
+    REQUIRE(find_variant_index(get_extruder_variant_string(etBowden, nvtStandard), 1,
+                               config.option<ConfigOptionStrings>("print_extruder_variant")->values,
+                               config.option<ConfigOptionInts>("print_extruder_id")->values) == 0);
+}
+
 // stride scales the returned slot so callers can address stride-2 options (machine_max_*, a
 // Normal/Silent pair per column) by their pair's base slot. The printer Tab's extruder sync
 // relies on this to copy the right slots on the Motion ability page.
