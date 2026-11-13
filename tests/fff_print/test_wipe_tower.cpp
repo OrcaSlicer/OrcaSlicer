@@ -1194,11 +1194,12 @@ TEST_CASE("A tower printed without a tool change is still kept on the bed", "[Wi
     Print print;
     Model model;
     DynamicPrintConfig config = tower_estimate_config("rectangle", 1);
-    // Relative E without a per-layer G92 is rejected before the tower is ever looked at, and
+    // The tower needs relative E, which validate() accepts only with a per-layer G92, and
     // has_wipe_tower() wants a real exclusion polygon before it honours wrapping detection.
     config.set_deserialize_strict({ { "enable_wrapping_detection", "1" },
                                     { "wrapping_exclude_area", "180x180,190x180,190x190,180x190" },
-                                    { "wipe_tower_x", "500" }, { "wipe_tower_y", "500" },                                    { "use_relative_e_distances", "0" } });
+                                    { "wipe_tower_x", "500" }, { "wipe_tower_y", "500" },
+                                    { "layer_change_gcode", "G92 E0\n" } });
 
     init_print({ cube(20) }, print, model, config);
     REQUIRE(print.extruders(true).size() == 1);
