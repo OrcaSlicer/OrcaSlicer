@@ -846,9 +846,11 @@ public:
     PartPlateList& get_partplate_list();
     void validate_current_plate(bool& model_fits, bool& validate_error);
     // Rebuild the missing-plugin sets from the active presets and (re)show/close their notifications.
-    // Returns true when slicing must be blocked (a referenced plugin is still missing); sets
-    // *block_toggled when the blocked state changed since the previous call (so the caller can refresh
-    // the Slice button). Helper for validate_current_plate and the reslice() gate.
+    // Returns true when slicing must be blocked: a plugin referenced by the process or filament
+    // preset is missing, inactive or broken. A printer preset's plugins (printer agent, printer
+    // assets) only notify. Sets *block_toggled when the blocked state changed since the previous call
+    // (so the caller can refresh the Slice button). Helper for validate_current_plate and the reslice()
+    // gate.
     bool refresh_missing_plugin_block(bool* block_toggled = nullptr);
     // Re-run plate validation when a plugin finishes loading, but only while a missing-plugin
     // notification is active, so it clears automatically once the required plugin is available.
@@ -864,8 +866,10 @@ public:
     // dialog; the loads run on a background worker that re-validates the plate once they settle, so
     // the notification clears (or flips to broken if the plugin lacks the capability).
     void enable_inactive_plugins(const std::vector<std::string>& refs);
-    // True when the active preset references plugins that are missing and not yet acknowledged, as
-    // of the last validate_current_plate. Other slice-ready writers consult this to stay consistent.
+    // True when a plugin referenced by the active process or filament preset is missing, inactive or
+    // broken, as of the last refresh of the missing-plugin sets. A printer preset's plugins are
+    // reported but never block. Other slice-ready writers consult this to stay consistent with
+    // validate_current_plate's gate.
     bool plugins_block_slicing() const;
     //BBS: select the plate by index
     int select_plate(int plate_index, bool need_slice = false);

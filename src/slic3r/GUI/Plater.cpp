@@ -7262,8 +7262,9 @@ struct Plater::priv
     bool m_is_slicing {false};
     // Missing-plugin set signatures (sorted full refs joined by '\n'), one per notification. They
     // gate plugin-load re-validation and avoid needlessly recreating the notification when the set
-    // is unchanged. Whether missing plugins block slicing is derived directly from PluginResolver
-    // (has_missing_plugins()), not cached here.
+    // is unchanged. Whether missing plugins block slicing is a different question, derived directly
+    // from PluginResolver (has_blocking_plugins()): only the process and filament presets block, a
+    // printer preset's plugins notify. Neither is cached here.
     std::string m_local_missing_shown_sig;
     std::string m_cloud_missing_shown_sig;
     std::string m_inactive_shown_sig;
