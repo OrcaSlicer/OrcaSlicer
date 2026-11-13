@@ -1,3 +1,5 @@
+#include "slic3r/GUI/I18N.hpp"
+#include "libslic3r/format.hpp"
 #include <boost/filesystem/path.hpp>
 #include <cctype>
 #include <exception>
@@ -293,7 +295,7 @@ std::string llm_api_run(const LlmApiRequest& rq, const std::function<void(const 
         std::string final_text;
         std::string err;
         for (int step = 0; step < kMaxSteps; ++step) {
-            if (cancelled()) return "stopped";
+            if (cancelled()) return _u8L("stopped");
             json body;
             std::vector<std::pair<std::string, std::string>> hdr;
             std::string url;
@@ -309,7 +311,7 @@ std::string llm_api_run(const LlmApiRequest& rq, const std::function<void(const 
                 url = base + "/chat/completions";
             }
             const std::string reply = http_post(url, hdr, body.dump(), set_canceller, err);
-            if (!err.empty()) return cancelled() ? "stopped" : err;
+            if (!err.empty()) return cancelled() ? _u8L("stopped") : err;
             const json r = json::parse(reply, nullptr, false);
             if (r.is_discarded()) return "the provider sent an unreadable reply";
 
@@ -342,7 +344,7 @@ std::string llm_api_run(const LlmApiRequest& rq, const std::function<void(const 
 
             json results = json::array();
             for (const auto& c : calls) {
-                if (cancelled()) return "stopped";
+                if (cancelled()) return _u8L("stopped");
                 const std::string name = c.second["name"];
                 emit_tool(emit, name, c.second["args"]);
                 const auto out = run_tool(rq.sock, name, c.second["args"]);
@@ -350,7 +352,7 @@ std::string llm_api_run(const LlmApiRequest& rq, const std::function<void(const 
                 else msgs.push_back({{"role", "tool"}, {"tool_call_id", c.first}, {"content", out.first}});
             }
             if (anthropic) msgs.push_back({{"role", "user"}, {"content", results}});
-            if (step == kMaxSteps - 1) final_text += "\n(stopped after " + std::to_string(kMaxSteps) + " tool rounds)";
+            if (step == kMaxSteps - 1) final_text += "\n" + format(_u8L("(stopped after %1% tool rounds)"), kMaxSteps);
         }
 
         // Keep the conversation bounded: the oldest turns go first.

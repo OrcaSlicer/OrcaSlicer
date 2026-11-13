@@ -7,13 +7,16 @@ when launched with ORCA_CAD_MCP set). The tool list is built *live* from the app
 `describe_tools` reply — introspection drives the schema, so new kernel methods surface
 without touching this file.
 
-Usage:  orca_cad_mcp_bridge.py [SOCKET_PATH]   (default /tmp/orca-cad-mcp.sock)
+Usage:  orca_cad_mcp_bridge.py [SOCKET_PATH]   (default: the app's per-user socket, see below)
 The app must be running with ORCA_CAD_MCP set; if the socket is down, tools/list serves the last
 cached describe_tools reply and tool calls report the connection error (never crash).
 """
 import sys, os, json, socket, itertools
 
-SOCK_PATH = sys.argv[1] if len(sys.argv) > 1 else "/tmp/orca-cad-mcp.sock"
+def _default_sock():   # the app's default: $XDG_RUNTIME_DIR/orca-cad-mcp.sock, else $TMPDIR (or /tmp)/orca-cad-mcp-<uid>.sock
+    rt = os.environ.get("XDG_RUNTIME_DIR")
+    return rt + "/orca-cad-mcp.sock" if rt else "%s/orca-cad-mcp-%d.sock" % (os.environ.get("TMPDIR") or "/tmp", os.getuid())
+SOCK_PATH = sys.argv[1] if len(sys.argv) > 1 else _default_sock()
 SERVER_INFO = {"name": "orca-cad", "version": "0.1"}
 _app_id = itertools.count(1)
 

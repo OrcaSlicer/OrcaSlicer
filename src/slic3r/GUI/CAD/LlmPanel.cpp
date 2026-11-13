@@ -256,7 +256,7 @@ void LlmPanel::build_settings()
     text(_L("Model"), "llm_model", _L("Claude Code: passed as --model, empty for its default. opencode: required, written provider/model (see `opencode models`). API agents: the model name (e.g. claude-sonnet-5-5, qwen3.8:27b)."));
     text(_L("API URL"), "llm_api_url", _L("API agents only. Empty = the provider's own (Anthropic, OpenAI) or http://localhost:11434/v1 for Ollama. Any OpenAI-compatible server works: set its /v1 address."));
     text(_L("Extra arguments"), "llm_cli_args", _L("Appended to the agent's command line, split on spaces."));
-    text(_L("Loopback TCP port"), "llm_mcp_port", _L("0 or empty: off. Otherwise the app's control socket also listens on 127.0.0.1:<port>, for MCP clients that cannot open a Unix socket. Any program on this PC can reach it. Needs a restart. The assistant itself does not use it."));
+    text(_L("Loopback TCP port"), "llm_mcp_port", _L("0 or empty: off. Otherwise the app's control socket also listens on 127.0.0.1:<port>, for MCP clients that cannot open a Unix socket. Every request must carry the token in <config folder>/mcp_tcp_token (or ORCA_CAD_MCP_TOKEN). Needs a restart. The assistant itself does not use it."));
     auto* sugg = new wxCheckBox(m_settings, wxID_ANY, _L("Show suggestions"));
     sugg->SetValue(!(cfg && cfg->get("llm_hide_suggestions") == "1"));
     sugg->SetToolTip(_L("The example prompts shown in an empty chat. Switch them off once you know what to ask."));
@@ -559,7 +559,7 @@ void LlmPanel::send()
             const std::string d = boost::filesystem::path(f).parent_path().string();
             if (std::find(dirs.begin(), dirs.end(), d) == dirs.end()) dirs.push_back(d);
         }
-        append("  [" + wxString::Format(_L("%d attached"), int(m_files.size())) + "]\n", wxColour(110, 110, 110));
+        append("  [" + wxString::Format(_L_PLURAL("%d attached", "%d attached", unsigned(m_files.size())), int(m_files.size())) + "]\n", wxColour(110, 110, 110));
     }
     if (m_view->GetValue()) prompt += "\n\nFirst look at the current viewport with the orca-cad screenshot tool.";
     m_files.clear();
@@ -588,7 +588,7 @@ void LlmPanel::send()
             set_busy(false);
             save_chat();
             if (m_undo_depth() > m_undo_at_start) {   // agy streams no tool events, so the undo stack is the source of truth
-                m_result_lbl->SetLabel(m_turn_edits > 0 ? wxString::Format(_L("%d edits in this turn"), m_turn_edits) : _L("This turn changed the design"));
+                m_result_lbl->SetLabel(m_turn_edits > 0 ? wxString::Format(_L_PLURAL("%d edit in this turn", "%d edits in this turn", unsigned(m_turn_edits)), m_turn_edits) : _L("This turn changed the design"));
                 m_result->Show();
                 Layout();
             }

@@ -1,4 +1,6 @@
 #include "slic3r/GUI/CAD/DesignQuotes.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "libslic3r/format.hpp"
 #include <libslic3r/CAD/Quotes.hpp>
 #include <Eigen/Core>
 #include <libslic3r/Point.hpp>
@@ -147,7 +149,7 @@ void DesignQuoteOverlay::render(ImGuiWrapper& imgui, const Camera& camera, float
                 ImGui::InvisibleButton("##hit", size);
                 hot_now = ImGui::IsItemHovered();
                 if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) edit(q.feature);
-                if (hot_now) ImGui::SetTooltip("%s", "Click to edit");
+                if (hot_now) ImGui::SetTooltip("%s", _u8L("Click to edit").c_str());
             }
             ImGui::End();
             ImGui::PopStyleVar(2);

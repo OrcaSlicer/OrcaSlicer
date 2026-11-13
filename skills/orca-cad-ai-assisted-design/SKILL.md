@@ -11,7 +11,7 @@ Verbs and parameters: `skills/orca-cad-modeling/SKILL.md` and the app's own `des
 A part is parametric or it is not finished: every dimension is a variable (`set_variable`), and every sketch dimension and feature field is bound to it with `set_feature_expr` (the fx of the card fields). No fixed numbers in geometry.
 
 ## Reaching the app
-- The socket is on by default when the Design tab is enabled: `/tmp/orca-cad-mcp.sock`, mode 0600, never taken from a process that still answers on it. `ORCA_CAD_MCP=<path>` moves it, `ORCA_CAD_MCP=0` (or `off`) disables it. `ORCA_CAD_MCP_TOKEN`: every request carries `token`. `ORCA_CAD_MCP_ALLOW`: roots for `save`/`export`/`open` (default `$HOME`, `/tmp`).
+- The socket is on by default when the Design tab is enabled: `$XDG_RUNTIME_DIR/orca-cad-mcp.sock` (else `$TMPDIR` or `/tmp`, `/orca-cad-mcp-<uid>.sock`), mode 0600, never taken from a process that still answers on it. `ORCA_CAD_MCP=<path>` moves it, `ORCA_CAD_MCP=0` (or `off`) disables it. `ORCA_CAD_MCP_TOKEN`: every request carries `token`. `ORCA_CAD_MCP_ALLOW`: roots for `save`/`export`/`open` (default `$HOME`, `/tmp`).
 - JSON-RPC 2.0, one request per line; `tools/orca_cad_mcp_bridge.py` serves the same tools to an MCP client. Do not restart the user's running app unasked.
 
 ## Loop

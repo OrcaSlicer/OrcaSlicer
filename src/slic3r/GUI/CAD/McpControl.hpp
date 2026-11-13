@@ -25,7 +25,8 @@ namespace Slic3r { namespace GUI {
 // the Design panel is built on the first request. No-op when opted out or on Windows.
 void start_mcp_control_if_enabled();
 
-// Path of the control socket the app listens on (same rule as above); empty when ORCA_CAD_MCP=0|off or on Windows.
+// Path of the control socket the app listens on (same rule as above); empty when ORCA_CAD_MCP=0|off, on Windows, or when this process could not listen on it.
+// The default is $XDG_RUNTIME_DIR/orca-cad-mcp.sock, else $TMPDIR (or /tmp)/orca-cad-mcp-<uid>.sock.
 std::string mcp_socket_path();
 
 }} // namespace Slic3r::GUI

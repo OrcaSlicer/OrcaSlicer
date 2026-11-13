@@ -6,7 +6,7 @@ name), set_parameter (rebuild counts) and export in every format. Runs against a
 """
 import json, os, socket, sys
 
-SOCK = sys.argv[1] if len(sys.argv) > 1 else "/tmp/orca-cad-mcp.sock"
+SOCK = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("ORCA_CAD_MCP") or "/tmp/orca-cad-mcp.sock"
 _n = 0
 
 

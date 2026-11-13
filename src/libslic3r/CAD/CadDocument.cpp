@@ -2617,8 +2617,7 @@ bool CadDocument::remove_feature(int index)
     // reason, rather than letting the dependent derive nothing (or keep stale geometry) in silence.
     for (int j = 0; j < int(features.size()); ++j)
         if (features[j].project_from_sketch && features[j].project_source_sketch == index) {
-            error = _u8L("This sketch is the source of ") + features[j].name
-                  + _u8L(" (Use). Delete that first.");
+            error = format(_u8L("This sketch is the source of %1% (Use). Delete that first."), features[j].name);
             return false;
         }
 

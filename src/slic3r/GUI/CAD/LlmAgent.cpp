@@ -1,4 +1,6 @@
 #include "slic3r/GUI/CAD/LlmAgent.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "libslic3r/format.hpp"
 #include "slic3r/GUI/CAD/LlmApi.hpp"
 #include "slic3r/GUI/CAD/McpControl.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -123,7 +125,7 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
     std::string problem;
     if (!api && exe.empty())             problem = std::string(oc ? "opencode" : ag ? "Antigravity (agy)" : "Claude Code") + " was not found: install it so that `" + (oc ? "opencode" : ag ? "agy" : "claude") + "` is on PATH, or set its path in the Assistant pane (Settings)";
     else if (oc && model.empty())        problem = "opencode needs a model in the Assistant pane (Settings), written provider/model (see `opencode models`)";
-    else if (sock.empty())               problem = "the MCP socket is off (ORCA_CAD_MCP=0)";
+    else if (sock.empty())               problem = "the MCP socket is not listening (ORCA_CAD_MCP=0, or its path is taken by another process)";
     else if (!api && !fs::exists(bridge)) problem = "the MCP bridge script is missing: " + bridge;
     else if (!api && bp::search_path("python3").empty()) problem = "python3 is needed to run the MCP bridge and was not found on PATH";
     if (!problem.empty()) { g_busy = false; done(false, problem); return nullptr; }
@@ -286,7 +288,7 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
                 post([on_event, t, e]() { on_event(t); on_event(e); });
             }
             ok = got_result && c.exit_code() == 0;
-            if (run->cancelled()) err = "stopped";
+            if (run->cancelled()) err = _u8L("stopped");
             else if (!ok) {
                 std::ifstream in(errf.string());
                 std::stringstream ss; ss << in.rdbuf();
@@ -294,10 +296,10 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
                 // agy ends the whole turn when the model reaches for a tool that is not allowed; say so in plain words.
                 if (const size_t p = err.find("required the \""); ag && p != std::string::npos) {
                     const size_t q = err.find('"', p + 14);
-                    err = "The agent tried to use a tool that is not allowed here (" + err.substr(p + 14, q == std::string::npos ? 0 : q - p - 14) +
-                          "), so the request was stopped. Rephrase it as a design request.";
+                    err = format(_u8L("The agent tried to use a tool that is not allowed here (%1%), so the request was stopped. Rephrase it as a design request."),
+                                 err.substr(p + 14, q == std::string::npos ? 0 : q - p - 14));
                 }
-                if (err.empty()) err = "the agent exited with code " + std::to_string(c.exit_code());
+                if (err.empty()) err = format(_u8L("the agent exited with code %1%"), c.exit_code());
             }
         } catch (const std::exception& e) {
             err = e.what();

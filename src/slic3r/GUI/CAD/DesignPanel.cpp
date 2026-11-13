@@ -5099,7 +5099,7 @@ void DesignPanel::import_mesh_parts(const std::vector<TriangleMesh>& parts, cons
     refresh_tree();
     set_tree_selection(m_doc.last_added);
     set_status_ok();
-    set_status(StatusKind::Info, wxString::Format(_L("Imported %d bodies, centred on the bed"), int(shapes.size())));
+    set_status(StatusKind::Info, wxString::Format(_L_PLURAL("Imported %d body, centred on the bed", "Imported %d bodies, centred on the bed", unsigned(shapes.size())), int(shapes.size())));
 }
 
 void DesignPanel::on_import_mesh()
@@ -5713,7 +5713,7 @@ void DesignPanel::fill_loft_rows(CheckListField* list, std::vector<int>& idx, st
     if (row_face) row_face->clear();
     const auto face_row = [&](int k) {
         if (picks == nullptr || picks[k].face < 0) return;
-        const int row = list->Append(wxString::Format(_L("Face %d of body %d — %s"), picks[k].face, picks[k].body + 1, k == 0 ? _L("start") : _L("end")));
+        const int row = list->Append(wxString::Format(k == 0 ? _L("Face %d of body %d — start") : _L("Face %d of body %d — end"), picks[k].face, picks[k].body + 1));
         idx.push_back(-1);
         row_loop.push_back({});
         if (row_face) row_face->push_back(picks[k].face);
@@ -6121,7 +6121,7 @@ void DesignPanel::sheet_sync_edges()
     if (m_sheet_edges_label == nullptr) return;
     const size_t n = dressup_edges().size();
     m_sheet_edges_label->SetLabel(n == 0 ? _L("(click the sheet's end edge)")
-                                         : wxString::Format(n == 1 ? _L("%zu edge picked") : _L("%zu edges picked"), n));
+                                         : wxString::Format(_L_PLURAL("%zu edge picked", "%zu edges picked", unsigned(n)), n));
 }
 
 void DesignPanel::sheet_sync_mode()
@@ -10471,8 +10471,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_extrude_sketch_ref = f.sketch_ref;
         m_sel_solid_body = f.target_body;    // preserve which body on re-edit
         if (m_extrude_sketch_ref >= 0 && m_extrude_sketch_ref < int(m_doc.features.size()))
-            m_extrude_sketch_label->SetLabel(_L("Sketch: ") +
-                wxString::FromUTF8(m_doc.features[m_extrude_sketch_ref].name));
+            m_extrude_sketch_label->SetLabel(wxString::Format(_L("Sketch: %s"), wxString::FromUTF8(m_doc.features[m_extrude_sketch_ref].name)));
         break;
     case CadFeatureType::Fillet:
     case CadFeatureType::Chamfer:
@@ -10678,8 +10677,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_surf_extrude_distance->SetValue(f.distance);
         m_surf_extrude_sketch_ref = f.sketch_ref;
         if (m_surf_extrude_sketch_ref >= 0 && m_surf_extrude_sketch_ref < int(m_doc.features.size()))
-            m_surf_extrude_sketch_label->SetLabel(_L("Sketch: ") +
-                wxString::FromUTF8(m_doc.features[m_surf_extrude_sketch_ref].name));
+            m_surf_extrude_sketch_label->SetLabel(wxString::Format(_L("Sketch: %s"), wxString::FromUTF8(m_doc.features[m_surf_extrude_sketch_ref].name)));
         break;
     case CadFeatureType::SurfaceRevolve:
         m_surf_revolve_angle->SetValue(f.revolve_angle);
@@ -10695,8 +10693,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
     case CadFeatureType::SurfaceFill:
         m_surf_fill_sketch_ref = f.sketch_ref;
         if (m_surf_fill_sketch_ref >= 0 && m_surf_fill_sketch_ref < int(m_doc.features.size()))
-            m_surf_fill_sketch_label->SetLabel(_L("Sketch: ") +
-                wxString::FromUTF8(m_doc.features[m_surf_fill_sketch_ref].name));
+            m_surf_fill_sketch_label->SetLabel(wxString::Format(_L("Sketch: %s"), wxString::FromUTF8(m_doc.features[m_surf_fill_sketch_ref].name)));
         break;
     case CadFeatureType::SurfaceOffset:
         populate_sheet_body_choices(m_surf_offset_body);
@@ -12036,7 +12033,7 @@ void DesignPanel::sync_slots()
     const auto sketch_name = [this](int ref) {
         return ref >= 0 && ref < int(m_doc.features.size()) ? wxString::FromUTF8(m_doc.features[ref].name) : wxString();
     };
-    const auto sketch_label = [&](int ref) { const wxString n = sketch_name(ref); return n.IsEmpty() ? _L("Sketch: —") : _L("Sketch: ") + n; };
+    const auto sketch_label = [&](int ref) { const wxString n = sketch_name(ref); return n.IsEmpty() ? _L("Sketch: —") : wxString::Format(_L("Sketch: %s"), n); };
     if (m_active == Tool::Extrude && m_extrude_sketch_label != nullptr)
         m_extrude_sketch_label->SetLabel(m_extrude_face_src >= 0 ? wxString::Format(_L("Face %d (push/pull)"), m_extrude_face_src)
                                                                  : sketch_label(m_extrude_sketch_ref));
@@ -12754,8 +12751,11 @@ void DesignPanel::start_sketch3d()
         [this](int axis, int n, bool smooth) {
             static const char* kAx[3] = { "X", "Y", "Z" };
             set_status(StatusKind::Info, wxString::Format(
-                _L("3D sketch: %d point(s) · plane normal to %s (Tab) · S: %s · Enter or right-click: finish · Backspace: undo point · Esc: cancel"),
-                n, kAx[axis], smooth ? _L("smooth ON") : _L("smooth off")));
+                smooth ? _L_PLURAL("3D sketch: %d point · plane normal to %s (Tab) · S: smooth ON · Enter or right-click: finish · Backspace: undo point · Esc: cancel",
+                                   "3D sketch: %d points · plane normal to %s (Tab) · S: smooth ON · Enter or right-click: finish · Backspace: undo point · Esc: cancel", unsigned(n))
+                       : _L_PLURAL("3D sketch: %d point · plane normal to %s (Tab) · S: smooth off · Enter or right-click: finish · Backspace: undo point · Esc: cancel",
+                                   "3D sketch: %d points · plane normal to %s (Tab) · S: smooth off · Enter or right-click: finish · Backspace: undo point · Esc: cancel", unsigned(n)),
+                n, kAx[axis]));
         });
     m_viewport->begin_sketch3d(m_doc.modeling_origin, std::move(targets));
 }
@@ -12773,7 +12773,7 @@ void DesignPanel::copy_selected_features()
     m_feature_clip.clear();
     for (int r : tree_selected_rows())
         if (r >= 0 && r < int(m_doc.features.size())) m_feature_clip.emplace_back(r, m_doc.features[size_t(r)]);
-    set_status(StatusKind::Info, wxString::Format(m_feature_clip.size() == 1 ? _L("%zu feature copied") : _L("%zu features copied"), m_feature_clip.size()));
+    set_status(StatusKind::Info, wxString::Format(_L_PLURAL("%zu feature copied", "%zu features copied", unsigned(m_feature_clip.size())), m_feature_clip.size()));
 }
 
 void DesignPanel::paste_features()
@@ -13532,8 +13532,7 @@ void DesignPanel::open_tool(Tool t)
 
     if (t == Tool::SurfaceExtrude) {
         if (m_surf_extrude_sketch_ref >= 0 && m_surf_extrude_sketch_ref < int(m_doc.features.size()))
-            m_surf_extrude_sketch_label->SetLabel(_L("Sketch: ") +
-                wxString::FromUTF8(m_doc.features[m_surf_extrude_sketch_ref].name));
+            m_surf_extrude_sketch_label->SetLabel(wxString::Format(_L("Sketch: %s"), wxString::FromUTF8(m_doc.features[m_surf_extrude_sketch_ref].name)));
     }
 
 
@@ -13543,8 +13542,7 @@ void DesignPanel::open_tool(Tool t)
 
     if (t == Tool::SurfaceFill) {
         if (m_surf_fill_sketch_ref >= 0 && m_surf_fill_sketch_ref < int(m_doc.features.size()))
-            m_surf_fill_sketch_label->SetLabel(_L("Sketch: ") +
-                wxString::FromUTF8(m_doc.features[m_surf_fill_sketch_ref].name));
+            m_surf_fill_sketch_label->SetLabel(wxString::Format(_L("Sketch: %s"), wxString::FromUTF8(m_doc.features[m_surf_fill_sketch_ref].name)));
     }
 
     // Shell and Draft both take their face from the live pick at Confirm time, but until now
@@ -13573,8 +13571,7 @@ void DesignPanel::open_tool(Tool t)
             m_extrude_sketch_label->SetLabel(
                 wxString::Format(_L("Face %d (push/pull)"), m_extrude_face_src));
         else if (m_extrude_sketch_ref >= 0 && m_extrude_sketch_ref < int(m_doc.features.size()))
-            m_extrude_sketch_label->SetLabel(_L("Sketch: ") +
-                wxString::FromUTF8(m_doc.features[m_extrude_sketch_ref].name));
+            m_extrude_sketch_label->SetLabel(wxString::Format(_L("Sketch: %s"), wxString::FromUTF8(m_doc.features[m_extrude_sketch_ref].name)));
         // The default is inferred from where the profile is (charter L6: most extrudes join).
         // A profile drawn on or touching a solid joins THAT body; a pushed/pulled face joins
         // its own body; a profile in free space is a New body, so overlapping extrudes are

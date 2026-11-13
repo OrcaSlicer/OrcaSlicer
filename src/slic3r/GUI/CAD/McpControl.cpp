@@ -42,6 +42,8 @@
 #ifdef __linux__
 #include <execinfo.h>   // backtrace: the UI thread's stack when it stops answering
 #include <fcntl.h>
+#include <random>
+#include "libslic3r/Utils.hpp"   // data_dir()
 #include <pthread.h>
 #include <signal.h>
 #include <sys/syscall.h>
@@ -613,10 +615,11 @@ json describe_tools_core()
                      json{{"name", "atomic"}, {"type", "boolean"}, {"default", true}, {"description", "true: all constraints are solved as one system, all or nothing; false: each on its own, conflicting ones rejected alone"}},
                      json{{"name", "constraints"}, {"type", "array"}, {"description", "[{type, a, b, c, value, orientation}]. types: coincident, horizontal|vertical (one line), horizontal_points|vertical_points, distance (value mm, orientation aligned|horizontal|vertical), fix, lock_x, lock_y, equal, parallel, perpendicular, collinear, tangent, concentric, midpoint (point a, line b), symmetric (points a,b about line c), symmetric_x (a,b mirror images across the sketch X axis) | symmetric_y (across the Y axis), point_on_line, point_on_object, radius, diameter (value mm), angle (two lines, value deg)"}},
                  })}},
-            json{{"name", "export"}, {"summary", "Write the design's bodies to a STEP, IGES, STL (binary) or OBJ file (absolute path under $HOME or /tmp; ORCA_CAD_MCP_ALLOW overrides the roots). The project itself is `save`."},
+            json{{"name", "export"}, {"summary", "Write the design's bodies to a STEP, IGES, STL (binary) or OBJ file (absolute path under $HOME or /tmp; ORCA_CAD_MCP_ALLOW overrides the roots). An existing file is refused unless overwrite:true. The project itself is `save`."},
                  {"params", json::array({
                      json{{"name", "path"},   {"type", "string"}},
                      json{{"name", "format"}, {"type", "string"}, {"enum", json::array({"step", "iges", "stl", "obj"})}, {"description", "default: from the path's extension; a mismatch is refused"}},
+                     json{{"name", "overwrite"}, {"type", "boolean"}, {"description", "replace an existing file (default: refused)"}},
                      json{{"name", "bodies"}, {"type", "array"}, {"description", "[body ids] to export; default all"}},
                      json{{"name", "weld"}, {"type", "boolean"}, {"description", "fuse the chosen bodies into one solid before writing"}},
                      json{{"name", "rotate"}, {"type", "array"}, {"description", "[rx, ry, rz] degrees about each body's centre (print orientation)"}},
@@ -810,7 +813,7 @@ json describe_tools()
         compact_tool("ui.text", "Type text into the focused window, one character event each.", {{"text", "string", "up to 4096 characters"}}),
         compact_tool("ui.screenshot", "Same as screenshot.", {{"path", "string", "absolute .png"}, {"view", "string", ""}, {"fit", "boolean", ""}}),
         compact_tool("rename_variable", "Rename a variable; every expression that uses it follows (token-wise).", {{"from", "string", ""}, {"to", "string", ""}}),
-        compact_tool("variables_export", "The variables as CSV (name,expression); also written to `path` when given.", {{"path", "string", "optional absolute .csv"}}),
+        compact_tool("variables_export", "The variables as CSV (name,expression); also written to `path` when given.", {{"path", "string", "optional absolute .csv"}, {"overwrite", "boolean", "replace an existing file"}}),
         compact_tool("variables_import", "Add or replace variables from CSV text or a file; all rows are checked first.", {{"csv", "string", ""}, {"path", "string", ""}}),
         compact_tool("sketch_dimensions", "The dimensions of a committed sketch, in creation order (the index is stable until the sketch is edited), with their kind, value and bound expression. Bind one with set_feature_expr {feature: sketch, field: \"dim:<index>\", expr}.", {{"sketch", "integer", "Sketch feature index"}}),
         compact_tool("rename_feature", "Rename a feature in the history.", {{"feature", "integer", "feature index"}, {"name", "string", "new name"}}),
@@ -819,7 +822,7 @@ json describe_tools()
         compact_tool("rollback", "Roll the history back to just after a feature (later ones are kept but not built); -1 restores the full history.", {{"index", "integer", "feature index or -1"}}),
         compact_tool("save", "Save the project to an absolute .3mf path under $HOME or /tmp. The 3MF holds the design recipe (reopens editable) and the bodies as printable objects; the bodies are sent to the plate first when it is empty (mesh:false never, mesh:true always).", {{"path", "string", ""}, {"mesh", "boolean", "commit the bodies as objects (default: when the plate has none)"}}),
         compact_tool("open", "Open a .3mf project, replacing the current one. Refused while it has unsaved changes unless discard:true. Applied on the next UI turn.", {{"path", "string", ""}, {"discard", "boolean", ""}}),
-        compact_tool("screenshot", "PNG of the design viewport (X11 screen read-back; the window must be visible).", {{"path", "string", "absolute .png under $HOME or /tmp"}, {"view", "string", "iso|top|front|... applied first"}, {"fit", "boolean", "fit the view first"}}),
+        compact_tool("screenshot", "PNG of the design viewport (X11 screen read-back; the window must be visible).", {{"path", "string", "absolute .png under $HOME or /tmp"}, {"overwrite", "boolean", "replace an existing file"}, {"view", "string", "iso|top|front|... applied first"}, {"fit", "boolean", "fit the view first"}}),
     }) {
         bool dup = false;
         for (const json& e : tools) dup = dup || e["name"] == t["name"];
@@ -4087,7 +4090,9 @@ bool path_in_scope(const std::string& dir)
     return false;
 }
 
-std::string checked_out_path(const json& params, const char* what)
+// `guard_existing`: refuse to replace a file that is already there unless the caller passes overwrite:true (an agent must not be
+// able to clobber ~/.bashrc by naming it). `ext` (lower case, with the dot; "" = any): the path must end in it.
+std::string checked_out_path(const json& params, const char* what, const char* ext = "", bool guard_existing = false)
 {
     const std::string raw = params.value("path", std::string());
     if (raw.empty()) throw std::runtime_error(std::string(what) + " needs 'path'");
@@ -4099,7 +4104,12 @@ std::string checked_out_path(const json& params, const char* what)
     const fs::path dir = fs::canonical(p.parent_path(), ec);
     if (ec) throw std::runtime_error("directory does not exist: " + p.parent_path().string());
     if (!path_in_scope(dir.string())) throw std::runtime_error("path is outside the allowed roots (default $HOME and /tmp; ORCA_CAD_MCP_ALLOW overrides)");
-    return (dir / p.filename()).string();
+    if (*ext && boost::algorithm::to_lower_copy(p.extension().string()) != ext)
+        throw std::runtime_error(std::string(what) + " writes a " + ext + " file: the path must end in " + ext);
+    const fs::path out = dir / p.filename();
+    if (guard_existing && fs::exists(out, ec) && !params.value("overwrite", false))
+        throw std::runtime_error(out.string() + " already exists; pass overwrite:true to replace it");
+    return out.string();
 }
 
 // {path, format?, bodies?:[ids], rotate?:[rx,ry,rz deg], drop_to_bed?, plate?:{gap}}
@@ -4110,7 +4120,7 @@ std::string checked_out_path(const json& params, const char* what)
 json action_export(DesignPanel* panel, const json& params)
 {
     bool xf_note_welded = false;
-    const std::string path = checked_out_path(params, "export");
+    const std::string path = checked_out_path(params, "export", "", true);
     const std::string ext  = boost::algorithm::to_lower_copy(boost::filesystem::path(path).extension().string());
     std::string by_ext;
     if (ext == ".step" || ext == ".stp") by_ext = "step";
@@ -4119,7 +4129,7 @@ json action_export(DesignPanel* panel, const json& params)
     else if (ext == ".obj") by_ext = "obj";
     const std::string fmt = params.contains("format") ? params["format"].get<std::string>() : by_ext;
     if (fmt != "step" && fmt != "iges" && fmt != "stl" && fmt != "obj") throw std::runtime_error("format must be step, iges, stl or obj (the project itself is `save`); give it, or end the path in .step/.iges/.stl/.obj");
-    if (!by_ext.empty() && by_ext != fmt) throw std::runtime_error("format '" + fmt + "' does not match the extension '" + ext + "'");
+    if (by_ext != fmt) throw std::runtime_error("format '" + fmt + "' does not match the extension '" + ext + "' (the path must end in .step/.stp, .iges/.igs, .stl or .obj to match)");
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("nothing to export - the design has no bodies");
 
@@ -4427,7 +4437,7 @@ json action_cut(DesignPanel* panel, const json& params)
 // (mesh:false skips it, mesh:true commits even then).
 json action_save(DesignPanel* panel, const json& params)
 {
-    const std::string path = checked_out_path(params, "save");
+    const std::string path = checked_out_path(params, "save", ".3mf");
     if (boost::algorithm::to_lower_copy(boost::filesystem::path(path).extension().string()) != ".3mf") throw std::runtime_error("path must end in .3mf");
     Plater* pl = wxGetApp().plater();
     bool committed = false;
@@ -4601,7 +4611,7 @@ json action_screenshot(DesignPanel* panel, const json& params)
         if (px[4 * i] || px[4 * i + 1] || px[4 * i + 2]) ++lit;
     }
     img.SetData(rgb);
-    const std::string path = checked_out_path(params, "screenshot");
+    const std::string path = checked_out_path(params, "screenshot", ".png", true);
     const bool ok = img.SaveFile(wxString::FromUTF8(path), wxBITMAP_TYPE_PNG);
     json r{{"ok", ok}, {"path", path}, {"width", fw}, {"height", fh}, {"non_black_pct", 100.0 * double(lit) / double(size_t(fw) * size_t(fh))},
            {"error", ok ? std::string() : "could not write the PNG"}};
@@ -4920,7 +4930,7 @@ json action_variables_export(DesignPanel* panel, const json& params)
     const std::string csv = panel->mcp_doc().variables_csv();
     json out{{"ok", true}, {"csv", csv}, {"count", int(panel->mcp_doc().variables.size())}};
     if (params.contains("path")) {
-        const std::string path = checked_out_path(params, "variables_export");
+        const std::string path = checked_out_path(params, "variables_export", ".csv", true);
         std::ofstream f(path, std::ios::binary);
         if (!f) throw std::runtime_error("cannot write " + path);
         f << csv;
@@ -5872,7 +5882,9 @@ bool takes_topology_ids(const json& params)
     return false;
 }
 
-std::string dispatch_request(const std::string& line)
+// `tcp_token`: set on the loopback TCP listener, which demands it of every request (a web page open in a browser can reach
+// 127.0.0.1, a Unix socket it cannot). Empty on the Unix socket, where ORCA_CAD_MCP_TOKEN is optional.
+std::string dispatch_request(const std::string& line, const std::string& tcp_token = std::string())
 {
     // Nesting is bounded BEFORE parsing: copying or destroying a document a few hundred thousand levels deep recurses
     // off the end of the thread's stack, and the app dies. No real request nests past a handful of levels.
@@ -5900,8 +5912,13 @@ std::string dispatch_request(const std::string& line)
     if (method.empty()) return rpc_error(id, -32600, "missing method");
     // Optional per-launch secret: when ORCA_CAD_MCP_TOKEN is set every request must carry it as "token". The socket's
     // 0600 mode already keeps other users out; this also keeps out other processes of the same user that were not told.
-    if (const char* tok = std::getenv("ORCA_CAD_MCP_TOKEN"); tok && *tok && (req.contains("token") && req["token"].is_string() ? req["token"].get<std::string>() : std::string()) != tok)
-        return rpc_error(id, -32003, "unauthorized: this app was launched with ORCA_CAD_MCP_TOKEN; send it as \"token\"");
+    {
+        const char* env = std::getenv("ORCA_CAD_MCP_TOKEN");
+        const std::string want = !tcp_token.empty() ? tcp_token : (env ? std::string(env) : std::string());
+        if (!want.empty() && (req.contains("token") && req["token"].is_string() ? req["token"].get<std::string>() : std::string()) != want)
+            return rpc_error(id, -32003, !tcp_token.empty() ? "unauthorized: the TCP port needs the token in <config dir>/mcp_tcp_token, sent as \"token\""
+                                                            : "unauthorized: this app was launched with ORCA_CAD_MCP_TOKEN; send it as \"token\"");
+    }
     // A transient refusal (a rebuild in progress) is waited out here, on the client's own thread, never on the UI thread.
     if (method.rfind("ui.", 0) == 0 && method != "ui.screenshot") {
         if (const char* on = std::getenv("ORCA_CAD_MCP_UI"); on == nullptr || std::string(on) != "1")   // synthetic input is for test rigs, not for every agent on the socket
@@ -6002,7 +6019,7 @@ std::string dispatch_once(const std::string& method, const json& params, const j
 // Read newline-delimited requests off one client connection until EOF. A line may not grow
 // past kMaxLine: a client that never sends a newline would otherwise grow this buffer until the
 // process runs out of memory.
-void serve_client(int cfd)
+void serve_client(int cfd, const std::string& tcp_token = std::string())
 {
     constexpr size_t kMaxLine = 16u << 20;   // 16 MB — far above any real request
     std::string buf;
@@ -6020,8 +6037,12 @@ void serve_client(int cfd)
             std::string line = buf.substr(0, nl);
             buf.erase(0, nl + 1);
             if (line.empty()) continue;
+            // Every line is one JSON object. Anything else (the request line of an HTTP POST a web page sent to the loopback
+            // port, then its headers) is not a client of ours: hang up rather than answer and keep reading, so a body that
+            // follows is never run.
+            if (const size_t first = line.find_first_not_of(" \t\r"); first == std::string::npos || line[first] != '{') return;
             std::string reply;
-            try { reply = dispatch_request(line); }
+            try { reply = dispatch_request(line, tcp_token); }
             catch (...) { reply = rpc_error(nullptr, -32603, "internal error"); }   // a client thread must never throw
             reply.push_back('\n');
             // Never a bare write(): a client that hangs up between its request and our
@@ -6038,6 +6059,8 @@ void serve_client(int cfd)
 
 // Where the socket lives, for the exit handler.
 std::string g_sock_path;
+// 0 = not decided yet, 1 = this process listens on its socket, 2 = it could not (the path is taken, or not ours to use).
+std::atomic<int> g_mcp_state{0};
 
 void remove_socket_at_exit()
 {
@@ -6048,6 +6071,7 @@ void remove_socket_at_exit()
 
 void server_thread(std::string sock_path)
 {
+    struct Guard { bool ok = false; ~Guard() { if (!ok) g_mcp_state = 2; } } guard;
     // Clear a stale socket from an earlier run — and ONLY a socket. ORCA_CAD_MCP names a path,
     // and unlinking it unconditionally deleted whatever file that path happened to be.
     {
@@ -6098,6 +6122,8 @@ void server_thread(std::string sock_path)
     }
     if (::listen(sfd, 8) < 0) { BOOST_LOG_TRIVIAL(error) << "MCP: listen() failed"; ::close(sfd); return; }
     g_sock_path = sock_path;
+    guard.ok = true;
+    g_mcp_state = 1;
     std::atexit(remove_socket_at_exit);   // do not leave the socket file behind
     BOOST_LOG_TRIVIAL(info) << "MCP control listening on " << sock_path;
 
@@ -6124,6 +6150,19 @@ void server_thread(std::string sock_path)
 // process can reach it, which is the trade a single-user PC accepts; it is never bound to another interface.
 void tcp_server_thread(int port)
 {
+    // Per-launch secret, required of every request on this port: ORCA_CAD_MCP_TOKEN when set, else a random one written to
+    // <config dir>/mcp_tcp_token (mode 0600) for the client to read.
+    std::string token;
+    if (const char* e = std::getenv("ORCA_CAD_MCP_TOKEN"); e && *e) token = e;
+    else {
+        std::random_device rd;
+        char hex[3];
+        for (int i = 0; i < 16; ++i) { std::snprintf(hex, sizeof hex, "%02x", unsigned(rd() & 0xff)); token += hex; }
+        const std::string tf = (boost::filesystem::path(data_dir()) / "mcp_tcp_token").string();
+        const int fd = ::open(tf.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600);
+        if (fd < 0 || ::write(fd, token.data(), token.size()) < 0) { BOOST_LOG_TRIVIAL(error) << "MCP: cannot write " << tf << "; the TCP port stays off"; if (fd >= 0) ::close(fd); return; }
+        ::close(fd);
+    }
     const int sfd = ::socket(AF_INET, SOCK_STREAM, 0);
     if (sfd < 0) { BOOST_LOG_TRIVIAL(error) << "MCP: tcp socket() failed"; return; }
     const int one = 1;
@@ -6149,7 +6188,7 @@ void tcp_server_thread(int port)
         static std::atomic<int> clients{0};
         if (clients.load() >= 8) { ::close(cfd); continue; }
         ++clients;
-        std::thread([cfd]() { serve_client(cfd); ::close(cfd); --clients; }).detach();
+        std::thread([cfd, token]() { serve_client(cfd, token); ::close(cfd); --clients; }).detach();
     }
 }
 
@@ -6159,7 +6198,12 @@ std::string mcp_socket_path()
 {
     const char* env = std::getenv("ORCA_CAD_MCP");
     if (env && (std::strcmp(env, "0") == 0 || std::strcmp(env, "off") == 0)) return {};
-    return (!env || !*env || std::strcmp(env, "1") == 0) ? "/tmp/orca-cad-mcp.sock" : env;
+    if (g_mcp_state == 2) return {};   // this process is not listening (the path is taken): a client must not be pointed at it
+    if (env && *env && std::strcmp(env, "1") != 0) return env;
+    // The default is per user: a fixed name in a shared /tmp is one another user can create before Orca starts.
+    if (const char* rt = std::getenv("XDG_RUNTIME_DIR"); rt && *rt) return std::string(rt) + "/orca-cad-mcp.sock";
+    const char* tmp = std::getenv("TMPDIR");   // macOS: a private per-user directory
+    return std::string(tmp && *tmp ? tmp : "/tmp") + "/orca-cad-mcp-" + std::to_string(::getuid()) + ".sock";
 }
 
 void start_mcp_control_if_enabled()
