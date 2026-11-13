@@ -1,9 +1,13 @@
 #include <algorithm>
 #include <catch2/catch_all.hpp>
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "test_utils.hpp"
 
+#include "libslic3r/Geometry/MedialAxis.hpp"
 #include "libslic3r/Geometry/Voronoi.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Line.hpp"
 #include <cmath>
@@ -2167,4 +2171,71 @@ TEST_CASE("Intersecting Voronoi edges", "[Voronoi]")
     };
 
 //    REQUIRE(!has_intersecting_edges(poly, vd));
+}
+
+// An outline that touches itself, its second vertex on its last edge, as clipping leaves at times: the diagram built on it is
+// repaired by rotating the input.
+static const Polygon voronoi_repaired_outline = { { 12422041, 13038614 }, { 12490981, 12976999 }, { 12448278, 12956176 },
+    { 12447084, 12955371 }, { 12635126, 12828508 }, { 12683495, 12804941 } };
+
+TEST_CASE("A Voronoi diagram built again describes only the new input", "[Voronoi][Regression]")
+{
+    // Built first on an outline it is repaired for, then on segments, a point, or a point with no segments.
+    const int input = GENERATE(0, 1, 2);
+    CAPTURE(input);
+    VD    vd;
+    Lines repaired = to_lines(voronoi_repaired_outline);
+    vd.construct_voronoi(repaired.begin(), repaired.end());
+    Lines                             square = to_lines(Polygon({ { 0, 0 }, { 1000000, 0 }, { 1000000, 1000000 }, { 0, 1000000 } }));
+    const std::vector<VD::point_type> point{ { 0., 0. } };
+    const Lines                       none;
+    if (input == 0) {
+        vd.construct_voronoi(square.begin(), square.end());
+        for (const VD::cell_type &cell : vd.cells())
+            CHECK(cell.source_index() < square.size());
+    } else {
+        if (input == 1)
+            vd.construct_voronoi(point.begin(), point.end());
+        else
+            vd.construct_voronoi(point.begin(), point.end(), none.begin(), none.end());
+        CHECK(vd.num_cells() == 1);
+    }
+}
+
+TEST_CASE("The medial axis of an outline with vertices nanometres apart or on another edge is built", "[Voronoi][Regression]")
+{
+    const Polygon outline = GENERATE(Polygon({ { 11767989, 9972921 }, { 11778117, 9966979 }, { 11778119, 9966978 } }),
+        voronoi_repaired_outline);
+    ThickPolylines axis;
+    CHECK_NOTHROW(Geometry::MedialAxis(0., scaled<double>(1.), ExPolygon(outline)).build(&axis));
+}
+
+TEST_CASE("The medial axis of an outline whose Voronoi diagram stays invalid lies within it", "[Voronoi][Regression]")
+{
+    // A part of an Organic support body, one of its holes touching the outline at a vertex: its diagram is invalid even
+    // after the rotation of the input and the morphological closing of MedialAxis.
+    ExPolygon outline(Polygon({ { 13336850, 14179797 }, { 13171743, 14395651 }, { 13115913, 14425058 }, { 12999458, 14555956 },
+        { 12949082, 14725896 }, { 12957624, 14816419 }, { 12986109, 14875488 }, { 12967017, 14835898 }, { 12958961, 14873820 },
+        { 12939881, 14926260 }, { 12921181, 14961431 }, { 12913681, 14975540 }, { 12904351, 14988374 }, { 12880881, 15020660 },
+        { 12847549, 15055195 }, { 12830447, 15078720 }, { 12826759, 15083795 }, { 12787999, 15123955 }, { 12743999, 15158315 },
+        { 12699901, 15183758 }, { 12695679, 15186195 }, { 12643959, 15207115 }, { 12608303, 15216015 }, { 12865961, 14507886 },
+        { 12972815, 14397966 }, { 12935497, 14132121 }, { 13076172, 14063576 }, { 13105021, 13998754 } }));
+    outline.holes.emplace_back(Polygon({ { 12979339, 14555101 }, { 12926816, 14576327 }, { 12939881, 14600900 },
+        { 12958961, 14653340 }, { 12963815, 14676191 }, { 12999458, 14555956 }, { 13022241, 14530346 } }));
+    outline.holes.emplace_back(Polygon({ { 13289198, 14221665 }, { 13276680, 14226728 }, { 13264709, 14259630 },
+        { 13239461, 14307119 }, { 13317171, 14205524 } }));
+    // No axis is drawn along such a diagram. Before, the axis ran far outside the outline and splitting it into paths
+    // never ended, so that a regression shows as a timeout rather than as a failed check.
+    ThickPolylines axes;
+    Geometry::MedialAxis(scaled<double>(.2), scaled<double>(.8), outline).build(&axes);
+    const BoundingBox box  = get_extents(outline);
+    const double      span = box.size().cast<double>().norm();
+    size_t            outside = 0, too_wide = 0;
+    for (const ThickPolyline &axis : axes) {
+        outside += std::count_if(axis.points.begin(), axis.points.end(), [&box](const Point &point) { return ! box.contains(point); });
+        // Not width > span, which a NaN width passes.
+        too_wide += std::count_if(axis.width.begin(), axis.width.end(), [span](const double width) { return ! (width <= span); });
+    }
+    CHECK(outside == 0);
+    CHECK(too_wide == 0);
 }

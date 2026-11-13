@@ -32,6 +32,9 @@ typename boost::polygon::enable_if<
         typename boost::polygon::geometry_concept<typename std::iterator_traits<SegmentIterator>::value_type>::type>::type>::type,
     void>::type
 VoronoiDiagram::construct_voronoi(const SegmentIterator segment_begin, const SegmentIterator segment_end, const bool try_to_repair_if_needed) {
+    // Boost adds the new cells to those already built, and a diagram repaired by rotation is a local copy read in place of
+    // the one built here.
+    this->clear();
     boost::polygon::construct_voronoi(segment_begin, segment_end, &m_voronoi_diagram);
     if (try_to_repair_if_needed) {
         if (m_issue_type = detect_known_issues(*this, segment_begin, segment_end); m_issue_type != IssueType::NO_ISSUE_DETECTED) {
@@ -323,6 +326,8 @@ VoronoiDiagram::try_to_repair_degenerated_voronoi_diagram_by_rotation(const Segm
             continue;
 
         if (cell.contains_segment()) {
+            // A cell without the range of its edges, as where a Voronoi vertex is missing even after the rotation, maps none of
+            // its vertices, and detect_known_issues() reports the diagram for it.
             if (const SegmentCellRange cell_range = VoronoiUtils::compute_segment_cell_range(cell, segments_rotated.begin(), segments_rotated.end()); cell_range.is_valid()) {
                 if (cell_range.edge_end->vertex1()->color() == 0) {
                     // Vertex 1 of edge_end points to the starting endpoint of the input segment (from() or line.a).
@@ -335,9 +340,6 @@ VoronoiDiagram::try_to_repair_degenerated_voronoi_diagram_by_rotation(const Segm
                     VD::vertex_type::color_type color = encode_input_segment_endpoint(cell.source_index(), boost::polygon::HIGH);
                     cell_range.edge_begin->vertex0()->color(color);
                 }
-            } else {
-                // This could happen when there is a missing Voronoi vertex even after rotation.
-                assert(cell_range.is_valid());
             }
         }
 

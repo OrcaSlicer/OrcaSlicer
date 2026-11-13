@@ -470,8 +470,12 @@ void MedialAxis::build(ThickPolylines* polylines)
         m_lines = to_lines(closing_ex({m_expolygon}, float(2. * SCALED_EPSILON)));
         m_vd.construct_voronoi(m_lines.begin(), m_lines.end());
 
-        if (!m_vd.is_valid())
-            BOOST_LOG_TRIVIAL(error) << "MedialAxis - Invalid Voronoi diagram even after morphological closing.";
+        // An axis drawn along such a diagram may run far outside the ExPolygon with widths as large, over which the
+        // splitting of a thick line into paths of steady width never ends: none is drawn.
+        if (!m_vd.is_valid()) {
+            BOOST_LOG_TRIVIAL(error) << "MedialAxis - Invalid Voronoi diagram even after morphological closing, no medial axis drawn.";
+            return;
+        }
     }
 
     Slic3r::Voronoi::annotate_inside_outside(m_vd, m_lines);

@@ -69,6 +69,7 @@
 #include "I18N.hpp"
 #include "LifecycleEvents.hpp"
 #include "ShortestPath.hpp"
+#include "Support/OrganicToolpaths.hpp"
 #include "Thread.hpp"
 #include "Time.hpp"
 #include "GCode.hpp"
@@ -3720,8 +3721,11 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
                     obj->set_done(posIroning);
                 if (obj->set_started(posContouring))
                     obj->set_done(posContouring);
-                if (obj->set_started(posSupportMaterial))
+                if (obj->set_started(posSupportMaterial)) {
+                    // Found while the step is started, as when generated: cancelled, the step runs again.
+                    organic_update_loaded_support_warning(*obj);
                     obj->set_done(posSupportMaterial);
+                }
                 if (obj->set_started(posDetectOverhangsForLift))
                     obj->set_done(posDetectOverhangsForLift);
             }
@@ -3780,6 +3784,10 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         }
         this->set_done(psWipeTower);
+        // The Organic diagnostic below depends on the resolved plan, even if geometry stayed cached. Invalidated after
+        // set_done(), which expects the step it ends to be the active one.
+        if (std::any_of(m_objects.begin(), m_objects.end(), [](const PrintObject *object) { return organic_support_needs_final_check(*object); }))
+            this->invalidate_step_from_worker(psSkirtBrim);
         if (m_pipeline_plugin_active) run_pipeline_hook(SlicingPipelineStepPlugin::psWipeTower, nullptr);
     }
 
@@ -3959,7 +3967,6 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         else {
             tool_ordering = this->tool_ordering();
             tool_ordering.assign_custom_gcodes(*this);
-
             std::vector<unsigned int> first_layer_used_filaments;
             if (!tool_ordering.layer_tools().empty())
                 first_layer_used_filaments = tool_ordering.layer_tools().front().extruders;
@@ -4058,6 +4065,58 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             }
         }
 
+        // A sequential export rebuilds static plans after brims exist: even a mixed brim can change
+        // which component DRR selects. Reproduce that ordering only for the Organic diagnostic;
+        // changing paths here would in turn invalidate the layer indices used by the plan.
+        std::map<const PrintObject*, std::vector<coordf_t>> organic_support_heights;
+        if (std::any_of(m_objects.begin(), m_objects.end(), [](const PrintObject *object) { return organic_support_needs_final_check(*object); })) {
+            if (m_config.print_sequence == PrintSequence::ByObject) {
+                ToolOrdering diagnostic_ordering;
+                const PrintObject *previous = nullptr;
+                unsigned int last = static_cast<unsigned int>(-1);
+                for (const PrintInstance *instance : print_object_instances_ordering) {
+                    const PrintObject &object = *instance->print_object;
+                    if (&object != previous || diagnostic_ordering.first_extruder() != last) {
+                        const auto cached = m_sequential_dynamic_orderings.find(&object);
+                        if (cached != m_sequential_dynamic_orderings.end())
+                            diagnostic_ordering = cached->second;
+                        else {
+                            diagnostic_ordering = ToolOrdering(object, last);
+                            diagnostic_ordering.sort_and_build_data(object, last);
+                        }
+                        if (diagnostic_ordering.first_extruder() == static_cast<unsigned int>(-1))
+                            continue;
+                        last = diagnostic_ordering.last_extruder();
+                    }
+                    if (organic_support_needs_final_check(object))
+                        append(organic_support_heights[&object], floating_support_islands(object, organic_sliver_area(object), diagnostic_ordering));
+                    previous = &object;
+                }
+            } else {
+                std::map<const Layer*, int> nozzle_layers;
+                for (const auto &merged : layers_to_print) {
+                    const Layer *config_layer = nullptr;
+                    for (const auto &entry : merged.second)
+                        if (entry.object_layer != nullptr) {
+                            config_layer = entry.object_layer;
+                            break;
+                        }
+                    if (config_layer != nullptr)
+                        for (const auto &entry : merged.second)
+                            if (entry.object_layer != nullptr)
+                                nozzle_layers.emplace(entry.object_layer, int(config_layer->id()));
+                }
+                for (const PrintObject *object : m_objects)
+                    if (organic_support_needs_final_check(*object))
+                        organic_support_heights[object] = floating_support_islands(*object, organic_sliver_area(*object), tool_ordering, nozzle_layers);
+            }
+        }
+        for (PrintObject *object : m_objects) {
+            this->throw_if_canceled();
+            const auto it = organic_support_heights.find(object);
+            if (it != organic_support_heights.end())
+                organic_update_support_warning(*object, std::move(it->second));
+        }
         this->finalize_first_layer_convex_hull();
         this->set_done(psSkirtBrim);
         if (m_pipeline_plugin_active) run_pipeline_hook(SlicingPipelineStepPlugin::psSkirtBrim, nullptr);

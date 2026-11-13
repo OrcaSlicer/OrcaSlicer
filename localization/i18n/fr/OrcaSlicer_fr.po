@@ -38225,6 +38225,30 @@ msgstr ""
 "Éviter la déformation\n"
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se déformer, tels que l’ABS, une augmentation appropriée de la température du plateau chauffant peut réduire la probabilité de déformation?"
 
+# AI Translated
+#. TRN %1% is the object name; %2% lists the heights of the first unsupported islands in millimetres.
+#, boost-format
+msgid "It seems the organic supports of object %1% have parts printed with nothing under them, starting on the layers at Z (mm): %2%. Consider a filled base pattern, such as Rectilinear, instead of a hollow one."
+msgstr "Il semble que les supports organiques de l’objet %1% comportent des parties imprimées sans rien en dessous, à partir des couches situées aux hauteurs Z (mm) suivantes : %2%. Envisagez un motif de base avec remplissage, tel que Rectiligne, plutôt qu’un motif creux."
+
+# AI Translated
+msgid "Initial Layer Diameter"
+msgstr "Diamètre de couche initiale"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+msgid "The diameter every branch of organic supports tries to reach on the build plate. Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. A tree widens towards it only until its base is as wide as the tree is tall. A value not larger than the branch diameter turns this widening off. For small models, 2 to 3 mm is recommended."
+msgstr "Le diamètre que chaque branche des supports organiques cherche à atteindre sur le plateau. Près du plateau, les branches s’élargissent pour se rapprocher de ce diamètre, ce qui améliore l’adhérence au plateau, mais y occupe davantage d’espace. L’élargissement vers ce diamètre est limité de sorte que la base d’un arbre ne soit pas plus large que l’arbre n’est haut. Une valeur inférieure ou égale au diamètre des branches désactive cet élargissement. Pour les petits modèles, une valeur de 2 à 3 mm est recommandée."
+
+# AI Translated
+msgid "Trunk Diameter"
+msgstr "Diamètre du tronc"
+
+# AI Translated
+#. TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+msgid "The diameter of the widest branches of organic supports, their bases on the build plate included. A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. A value smaller than the branch diameter keeps every branch at the branch diameter. 0 means no limit."
+msgstr "Le diamètre des branches les plus épaisses des supports organiques, y compris leurs bases sur le plateau. Un tronc plus épais est plus robuste ; un tronc plus fin occupe moins de place sur le plateau. Une valeur inférieure au diamètre des branches maintient ce diamètre pour toutes les branches. 0 signifie sans limite."
+
 #~ msgid "Show options when importing STEP file"
 #~ msgstr "Afficher les options lors de l'importation d'un fichier STEP"
 

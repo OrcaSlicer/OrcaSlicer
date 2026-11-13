@@ -7896,7 +7896,8 @@ void PrintConfigDef::init_fff_params()
                      "if dense interfaces are needed.");
     def->sidetext = "%";
     def->min = 5;
-    def->max_literal = 35;
+    // Above 100 % the tips would stand closer than their diameter.
+    def->max = 100;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionPercent(30));
     
@@ -7957,6 +7958,34 @@ void PrintConfigDef::init_fff_params()
     def->max      = 10;
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(2.));
+
+    def = this->add("tree_support_initial_layer_diameter", coFloat);
+    def->label = L("Initial Layer Diameter");
+    def->category = L("Support");
+    // TRN PrintSettings: "Organic supports" > "Initial Layer Diameter"
+    def->tooltip = L("The diameter every branch of organic supports tries to reach on the build plate. "
+                     "Branches widen towards it near the bed, which improves bed adhesion but takes more space on the bed. "
+                     "A tree widens towards it only until its base is as wide as the tree is tall. "
+                     "A value not larger than the branch diameter turns this widening off. "
+                     "For small models, 2 to 3 mm is recommended.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->max = 20;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(7.5));
+
+    def = this->add("tree_support_trunk_diameter", coFloat);
+    def->label = L("Trunk Diameter");
+    def->category = L("Support");
+    // TRN PrintSettings: "Organic supports" > "Trunk Diameter"
+    def->tooltip = L("The diameter of the widest branches of organic supports, their bases on the build plate included. "
+                     "A thicker trunk is sturdier, a thinner trunk takes up less space on the bed. "
+                     "A value smaller than the branch diameter keeps every branch at the branch diameter. "
+                     "0 means no limit.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
 
     def = this->add("tree_support_wall_count", coInt);
     def->label = L("Support wall loops");
@@ -9841,6 +9870,10 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         value = "hollow";
     } else if (opt_key == "tree_support_wall_count" && value == "-1") {
         value = "0";
+    } else if (opt_key == "tree_support_top_rate") {
+        // Older projects and presets may hold a Branch Density above the limit of 100 %, in any form the option reads.
+        if (ConfigOptionPercent rate; rate.deserialize(value) && rate.value > 100.)
+            value = "100%";
     } else if (opt_key == "different_settings_to_system") {
         std::string copy_value = value;
         copy_value.erase(std::remove(copy_value.begin(), copy_value.end(), '\"'), copy_value.end()); // remove '"' in string

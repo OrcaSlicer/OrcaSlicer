@@ -71,6 +71,8 @@ public:
 	void merge(SupportGeneratorLayer &&rhs) {
         // The union_() does not support move semantic yet, but maybe one day it will.
         this->polygons = union_(this->polygons, std::move(rhs.polygons));
+        if (! rhs.bottom_interface_polygons.empty())
+            this->bottom_interface_polygons = union_(this->bottom_interface_polygons, rhs.bottom_interface_polygons);
         auto merge = [](std::unique_ptr<Polygons> &dst, std::unique_ptr<Polygons> &src) {
         	if (! dst || dst->empty())
         		dst = std::move(src);
@@ -114,6 +116,18 @@ public:
 	std::unique_ptr<Polygons> overhang_polygons;
 	// Enforcers need to be propagated independently in case the "support on build plate only" option is enabled.
 	std::unique_ptr<Polygons> enforcer_polygons;
+	// Organic: the parts of the polygons that are printed solid even over a hollow base, the tops of the bodies
+	// widened under a roof.
+	Polygons solid_polygons;
+	// Organic: the trees grown inside a hollow body, which carry what is printed above it over its inside, a roof or a
+	// part printed solid, printed as walls of their own beside the walls of the body; on the first layer, their feet,
+	// printed separately from the sparse flange.
+	Polygons inner_trees;
+	// Organic, with the number of walls chosen by the area of a body: the bodies that get a second wall, standing on the
+	// bed, the first layer or a second wall below, see organic_mark_double_walls().
+	Polygons double_walls;
+	// Organic: the part originating from a bottom interface, retained when top and bottom regions share one layer.
+	Polygons bottom_interface_polygons;
 };
 
 // Layers are allocated and owned by a deque. Once a layer is allocated, it is maintained
@@ -129,10 +143,12 @@ public:
 
 	SupportGeneratorLayer& allocate(SupporLayerType layer_type)
 	{ 
-		m_mutex.lock();
-		m_storage.emplace_back();
-	    SupportGeneratorLayer *layer_new = &m_storage.back();
-		m_mutex.unlock();
+		SupportGeneratorLayer *layer_new;
+		{
+			tbb::spin_mutex::scoped_lock lock(m_mutex);
+			m_storage.emplace_back();
+			layer_new = &m_storage.back();
+		}
 	    layer_new->layer_type = layer_type;
 	    return *layer_new;
 	}

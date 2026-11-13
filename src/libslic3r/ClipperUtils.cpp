@@ -602,6 +602,13 @@ Slic3r::Polygons offset(const Slic3r::Polygons &polygons, const float delta, Joi
     c2_offset_closed(ClipperUtils::PolygonsProvider(polygons), delta, joinType, miterLimit, out);
     return c2_to_polygons(out);
 }
+Slic3r::Polygons offset_input(const Slic3r::Polygons &polygons, const float delta)
+{
+    C2::Paths64 paths;
+    for (const Polygon &polygon : polygons)
+        append_offset_path(paths, polygon.points, std::abs(delta * ClipperOffsetShortestEdgeFactor), C2::EndType::Polygon);
+    return c2_to_polygons(paths);
+}
 Slic3r::ExPolygons offset_ex(const Slic3r::Polygons &polygons, const float delta, JoinType joinType, double miterLimit)
 {
     C2::PolyTree64 out;
