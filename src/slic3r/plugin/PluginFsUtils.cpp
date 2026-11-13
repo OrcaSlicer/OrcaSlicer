@@ -1,5 +1,6 @@
 #include "PluginFsUtils.hpp"
 
+#include "libslic3r/PrinterAssetRef.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/miniz_extension.hpp"
 
@@ -37,6 +38,7 @@
 #include <filesystem>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <utility>
@@ -1444,11 +1446,13 @@ struct ResourceDirMessages
 };
 
 // Validated non-recursive regular files with one of `extensions` (lowercase, with the dot) directly
-// inside `dir`, every one contained in `plugin_root`, at most `max_files`.
+// inside `dir`, every one contained in `plugin_root`, at most `max_files`. A file whose name
+// `accepts_name` (when set) rejects is left out before the cap, so it cannot take a slot.
 std::vector<std::string> collect_contained_resource_files(const std::string&              dir,
                                                           const std::string&              plugin_root,
                                                           const std::vector<std::string>& extensions,
                                                           size_t                          max_files,
+                                                          bool                          (*accepts_name)(std::string_view),
                                                           const ResourceDirMessages&      messages,
                                                           std::string&                    error)
 {
@@ -1516,6 +1520,8 @@ std::vector<std::string> collect_contained_resource_files(const std::string&    
     // files the cap keeps are the same everywhere.
     std::sort(candidates.begin(), candidates.end());
     for (const fs::path& path : candidates) {
+        if (accepts_name != nullptr && !accepts_name(path.filename().string()))
+            continue;
         // Re-check per file: a symlink inside the pack must not resolve outside it.
         if (!is_inside_allowed_root(path, resolved_root))
             continue;
@@ -1541,7 +1547,7 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
                                        _u8L("Resource texture directory is outside the plugin folder"),
                                        _u8L("Resource texture directory could not be read")};
     return collect_contained_resource_files(dir, plugin_root, {".png", ".jpg", ".jpeg", ".bmp"}, kMaxResourceTextureFiles,
-                                            messages, error);
+                                            nullptr, messages, error);
 }
 
 std::vector<std::string> collect_printer_asset_files(const std::string& dir, const std::string& plugin_root, std::string& error)
@@ -1554,7 +1560,9 @@ std::vector<std::string> collect_printer_asset_files(const std::string& dir, con
                                        _u8L("Printer asset path is not a directory"),
                                        _u8L("Printer asset directory is outside the plugin folder"),
                                        _u8L("Printer asset directory could not be read")};
-    return collect_contained_resource_files(dir, plugin_root, {".stl", ".png", ".svg"}, kMaxPrinterAssetFiles, messages, error);
+    // A name a reference cannot hold is not offered by the Bed Shape dialog, so it must not take a slot.
+    return collect_contained_resource_files(dir, plugin_root, {".stl", ".png", ".svg"}, kMaxPrinterAssetFiles,
+                                            &is_printer_asset_file_name, messages, error);
 }
 
 } // namespace Slic3r

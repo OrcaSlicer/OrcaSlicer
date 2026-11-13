@@ -96,6 +96,12 @@ inline std::string make_printer_asset_ref(std::string_view plugin_id, std::strin
     return std::string(PRINTER_ASSET_REF_PREFIX) + std::string(plugin_id) + "/" + std::string(filename);
 }
 
+// True when a pack file of this name can be stored in a reference.
+inline bool is_printer_asset_file_name(std::string_view filename)
+{
+    return printer_asset_ref_detail::is_file_segment(filename);
+}
+
 // The Bed Shape dialog's file kinds: an STL bed model, a PNG or SVG bed texture.
 inline bool is_printer_bed_model_file(std::string_view filename)
 {

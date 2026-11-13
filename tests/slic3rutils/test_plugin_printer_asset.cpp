@@ -82,8 +82,7 @@ void install_printer_asset_wiring()
     });
 }
 
-// A minimal printer asset pack shaped like the wheel Orca Cloud builds (pa/__init__.py + pa/a/<file>).
-std::string make_printer_asset_source(const std::string& display_name, const std::string& get_asset_dir_body)
+std::string printer_asset_script_header(const std::string& display_name)
 {
     return std::string{}
         + "# /// script\n"
@@ -96,7 +95,13 @@ std::string make_printer_asset_source(const std::string& display_name, const std
         + "# author = \"tests\"\n"
         + "# version = \"1.0.0\"\n"
         + "# type = \"resource-printer-asset\"\n"
-        + "# ///\n"
+        + "# ///\n";
+}
+
+// A minimal printer asset pack shaped like the wheel Orca Cloud builds (pa/__init__.py + pa/a/<file>).
+std::string make_printer_asset_source(const std::string& display_name, const std::string& get_asset_dir_body)
+{
+    return printer_asset_script_header(display_name)
         + "import os\n"
         + "import orca\n"
         + "\n\n"
@@ -111,6 +116,35 @@ std::string make_printer_asset_source(const std::string& display_name, const std
         + "class PrinterAssetPack(orca.base):\n"
         + "    def register_capabilities(self):\n"
         + "        orca.register_capability(PrinterAssets)\n";
+}
+
+// One plugin with two capabilities, "Voron Bed" over folder a and "Voron Plate" over folder b.
+std::string make_two_capability_source()
+{
+    const std::string base = "orca.resource_printer_asset.ResourcePrinterAssetPluginCapabilityBase";
+    return printer_asset_script_header("Voron Packs")
+        + "import os\n"
+        + "import orca\n"
+        + "\n\n"
+        + "class BedPack(" + base + "):\n"
+        + "    def get_name(self):\n"
+        + "        return \"Voron Bed\"\n"
+        + "\n"
+        + "    def get_asset_dir(self):\n"
+        + "        return os.path.join(os.path.dirname(__file__), \"a\")\n"
+        + "\n\n"
+        + "class PlatePack(" + base + "):\n"
+        + "    def get_name(self):\n"
+        + "        return \"Voron Plate\"\n"
+        + "\n"
+        + "    def get_asset_dir(self):\n"
+        + "        return os.path.join(os.path.dirname(__file__), \"b\")\n"
+        + "\n\n"
+        + "@orca.plugin\n"
+        + "class PrinterAssetPack(orca.base):\n"
+        + "    def register_capabilities(self):\n"
+        + "        orca.register_capability(BedPack)\n"
+        + "        orca.register_capability(PlatePack)\n";
 }
 
 std::string default_asset_dir_body() { return "return os.path.join(os.path.dirname(__file__), \"a\")"; }
@@ -216,6 +250,23 @@ TEST_CASE("The asset listing stops at 16 files", "[PluginPrinterAsset]")
     CHECK(fs::path(files.back()).filename() == "plate_5.stl");
 }
 
+TEST_CASE("Names a reference cannot hold do not take a slot in the 16-file cap", "[PluginPrinterAsset]")
+{
+    ScopedTemporaryDir root("asset-names");
+    // Spaces and device names sort before the valid files, so they would fill the cap first.
+    for (int i = 0; i < 16; ++i)
+        write_text_file(root.path() / ("a plate " + std::to_string(i) + ".stl"));
+    write_text_file(root.path() / "con.stl");
+    write_text_file(root.path() / "plate_a.stl");
+    write_text_file(root.path() / "plate_b.png");
+
+    std::string                    error;
+    const std::vector<std::string> files = collect_printer_asset_files(root.string(), root.string(), error);
+
+    CHECK(error.empty());
+    CHECK(filenames(files) == std::vector<std::string>{"plate_a.stl", "plate_b.png"});
+}
+
 TEST_CASE("Plain bed paths resolve to themselves and packs that are not loaded to nothing", "[PluginPrinterAsset]")
 {
     const std::string missing_ref = "orcacloud-asset/3f2a6c1e-8d4b-4c2a-9e7f-1a2b3c4d5e6f/bed.stl";
@@ -265,6 +316,34 @@ TEST_CASE("A printer's asset pack names follow its bed files, falling back to it
     std::unique_ptr<DynamicPrintConfig> print(DynamicPrintConfig::new_from_defaults_keys({"bed_custom_model"}));
     update_printer_asset_plugins(*print);
     CHECK(print->option("printer_asset_plugins") == nullptr);
+}
+
+TEST_CASE("A pack that is not loaded keeps its own manifest entry when another plugin has a capability of the same name",
+          "[PluginPrinterAsset]")
+{
+    struct ScopedResolver
+    {
+        ScopedResolver()
+        {
+            ConfigBase::set_resolve_capability_fn([](const std::string& name, const std::string&) {
+                return name == "PEI Plate" ? std::string("Other Pack;aaaaaaaa-0000-4000-8000-000000000000;PEI Plate") : std::string();
+            });
+        }
+        ~ScopedResolver() { ConfigBase::set_resolve_capability_fn(nullptr); }
+    } resolver;
+
+    // The bed file belongs to a pack that is not installed here. A loaded plugin has a capability with the
+    // same name, and the resolver finds capabilities by name alone.
+    std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(Preset::printer_options()));
+    config->set_key_value("bed_custom_model", new ConfigOptionString("orcacloud-asset/3f2a6c1e-8d4b-4c2a-9e7f-1a2b3c4d5e6f/bed.stl"));
+    config->option<ConfigOptionStrings>("printer_asset_plugins")->values = {"PEI Plate"};
+    config->option<ConfigOptionStrings>("printer_plugins")->values = {"Voron Bed;3f2a6c1e-8d4b-4c2a-9e7f-1a2b3c4d5e6f;PEI Plate"};
+
+    update_printer_asset_plugins(*config);
+
+    CHECK(config->option<ConfigOptionStrings>("printer_asset_plugins")->values == std::vector<std::string>{"PEI Plate"});
+    CHECK(config->option<ConfigOptionStrings>("printer_plugins")->values ==
+          std::vector<std::string>{"Voron Bed;3f2a6c1e-8d4b-4c2a-9e7f-1a2b3c4d5e6f;PEI Plate"});
 }
 
 // ── Lifecycle (Python) ──────────────────────────────────────────────────────────────────────────
@@ -394,4 +473,33 @@ TEST_CASE("A pack whose get_asset_dir raises or leaves the plugin folder provide
     CHECK(load_and_wait(manager, "Outside_Bed", error));
     CHECK(PluginPrinterAssets::instance().entries().empty());
     CHECK(resolve_printer_asset_value(make_printer_asset_ref("Outside_Bed", "bed.stl")).empty());
+}
+
+TEST_CASE("The capability name of a pack follows the file a reference names", "[PluginPrinterAsset][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir     data_dir_guard("asset-two-capabilities");
+    const std::string plugin_key = "Voron_Packs";
+    const fs::path    plugin_dir = write_plugin(data_dir_guard, plugin_key, make_two_capability_source());
+    write_text_file(plugin_dir / "a" / "bed.stl");
+    write_text_file(plugin_dir / "b" / "plate.svg");
+
+    PluginManager& manager = PluginManager::instance();
+    install_printer_asset_wiring();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    const bool  loaded = load_and_wait(manager, plugin_key, error);
+    INFO("load error: " << error);
+    REQUIRE(loaded);
+    REQUIRE(PluginPrinterAssets::instance().entries().size() == 2);
+
+    // Both capabilities belong to one plugin, so the plugin id alone cannot tell them apart.
+    const PluginPrinterAssets& packs = PluginPrinterAssets::instance();
+    CHECK(packs.capability_name(PrinterAssetRef{plugin_key, "bed.stl"}) == "Voron Bed");
+    CHECK(packs.capability_name(PrinterAssetRef{plugin_key, "plate.svg"}) == "Voron Plate");
+    CHECK(packs.capability_name(PrinterAssetRef{plugin_key, "missing.stl"}).empty());
 }

@@ -136,19 +136,27 @@ std::vector<PrinterAssetPackEntry> PluginPrinterAssets::entries() const
     return result;
 }
 
+// The file of `entry` that `ref` names, or empty when `entry` is another pack or lacks the file. `pack_id` is
+// the reference's plugin id in lower case. Matched against the validated listing by name, so a reference can
+// never leave the pack.
+static std::string pack_file(const PrinterAssetPackEntry &entry, const std::string &pack_id, const PrinterAssetRef &ref)
+{
+    if (entry.pack_id != pack_id && entry.plugin_key != ref.plugin_id)
+        return {};
+    for (const std::string &file : entry.files)
+        if (boost::filesystem::path(file).filename().string() == ref.filename)
+            return file;
+    return {};
+}
+
 std::string PluginPrinterAssets::resolve(const PrinterAssetRef &ref) const
 {
     const std::string pack_id = boost::algorithm::to_lower_copy(ref.plugin_id);
 
     std::lock_guard<std::mutex> lock(m_mutex);
-    for (const auto &[id, entry] : m_entries) {
-        if (entry.pack_id != pack_id && entry.plugin_key != ref.plugin_id)
-            continue;
-        // Matched against the validated listing by name, so a reference can never leave the pack.
-        for (const std::string &file : entry.files)
-            if (boost::filesystem::path(file).filename().string() == ref.filename)
-                return file;
-    }
+    for (const auto &[id, entry] : m_entries)
+        if (std::string file = pack_file(entry, pack_id, ref); !file.empty())
+            return file;
     return {};
 }
 
@@ -158,7 +166,7 @@ std::string PluginPrinterAssets::capability_name(const PrinterAssetRef &ref) con
 
     std::lock_guard<std::mutex> lock(m_mutex);
     for (const auto &[id, entry] : m_entries)
-        if (entry.pack_id == pack_id || entry.plugin_key == ref.plugin_id)
+        if (!pack_file(entry, pack_id, ref).empty())
             return entry.display_name;
     return {};
 }
@@ -182,6 +190,12 @@ static std::string installed_capability_name(const PrinterAssetRef &ref)
     return capabilities.size() == 1 ? capabilities.front()->name() : std::string();
 }
 
+// The plugin a manifest entry names: its uuid for a cloud plugin, else its key (the first field).
+static const std::string &manifest_plugin_id(const PluginCapabilityRef &entry)
+{
+    return entry.uuid.empty() ? entry.name : entry.uuid;
+}
+
 // The capability name a manifest entry holds for the pack `ref` names, matched by uuid for a cloud
 // pack and by plugin key (the first field) for a local one. Entries carry no type, so a name the
 // config already lists as an asset pack wins over another capability of the same plugin.
@@ -194,7 +208,7 @@ static std::string manifest_capability_name(const std::vector<const ConfigOption
             continue;
         for (const std::string &entry : manifest->values) {
             const std::optional<PluginCapabilityRef> parsed = parse_capability_ref(entry);
-            if (!parsed || !boost::algorithm::iequals(parsed->uuid.empty() ? parsed->name : parsed->uuid, ref.plugin_id))
+            if (!parsed || !boost::algorithm::iequals(manifest_plugin_id(*parsed), ref.plugin_id))
                 continue;
             if (std::find(known_names.begin(), known_names.end(), parsed->capability_name) != known_names.end())
                 return parsed->capability_name;
@@ -229,21 +243,44 @@ void update_printer_asset_plugins(DynamicPrintConfig &config, const ConfigOption
             names.push_back(std::move(name));
     }
 
+    const auto is_for_these_packs = [&pack_ids](const std::optional<PluginCapabilityRef> &parsed) {
+        return parsed && std::any_of(pack_ids.begin(), pack_ids.end(), [&parsed](const std::string &id) {
+            return boost::algorithm::iequals(manifest_plugin_id(*parsed), id);
+        });
+    };
+
     // Take over the fallback's entries for these bed files' packs only, so the rebuild below can reuse
     // them for packs that are not installed here (and nothing else leaks in without a resolver).
     auto *manifest = config.option<ConfigOptionStrings>("printer_plugins", true);
     if (fallback_manifest != nullptr)
         for (const std::string &entry : fallback_manifest->values) {
             const std::optional<PluginCapabilityRef> parsed = parse_capability_ref(entry);
-            const bool for_these_packs = parsed && std::any_of(pack_ids.begin(), pack_ids.end(), [&parsed](const std::string &id) {
-                return boost::algorithm::iequals(parsed->uuid.empty() ? parsed->name : parsed->uuid, id);
-            });
-            if (for_these_packs && std::find(manifest->values.begin(), manifest->values.end(), entry) == manifest->values.end())
+            if (is_for_these_packs(parsed) && std::find(manifest->values.begin(), manifest->values.end(), entry) == manifest->values.end())
                 manifest->values.push_back(entry);
         }
 
+    // The entries these packs already have. The resolver finds a capability by name alone, so a loaded pack
+    // of another plugin with the same capability name would answer for a pack that is not loaded here.
+    std::vector<std::pair<std::string, PluginCapabilityRef>> own_entries;
+    for (const std::string &entry : manifest->values)
+        if (std::optional<PluginCapabilityRef> parsed = parse_capability_ref(entry); is_for_these_packs(parsed))
+            own_entries.emplace_back(entry, std::move(*parsed));
+
     names_option->values = std::move(names);
     config.update_plugin_manifest();
+
+    for (const auto &[entry, own] : own_entries)
+        for (std::string &value : manifest->values) {
+            const std::optional<PluginCapabilityRef> other = parse_capability_ref(value);
+            if (other && other->capability_name == own.capability_name &&
+                !boost::algorithm::iequals(manifest_plugin_id(*other), manifest_plugin_id(own)))
+                value = entry;
+        }
+    std::vector<std::string> unique;
+    for (std::string &value : manifest->values)
+        if (std::find(unique.begin(), unique.end(), value) == unique.end())
+            unique.push_back(std::move(value));
+    manifest->values = std::move(unique);
 }
 
 } // namespace Slic3r

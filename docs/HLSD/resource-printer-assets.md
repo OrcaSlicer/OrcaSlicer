@@ -28,6 +28,8 @@ calls `get_asset_dir()` once per capability under the GIL and caches the result.
 - it must be set, exist, and be inside the plugin folder;
 - only regular files directly in it (no recursion), with extension `.stl`, `.png` or `.svg`
   (any case), each inside the plugin folder after symlink resolution;
+- the file name must be one a reference can hold (see References), so a file the Bed Shape
+  dialog cannot offer never takes a slot;
 - the list is sorted, then capped at 16, so every file system keeps the same files.
 
 A Python error or a rejected folder leaves the capability loaded with no files. It never fails
@@ -62,7 +64,8 @@ The hidden option `printer_asset_plugins` names the packs the bed files come fro
 plugin-backed with type `resource-printer-asset`, so the printer preset manifest
 (`printer_plugins`) lists them and the missing-plugin notice offers the install. A before-save
 hook re-derives the option on every printer preset save. A pack that is not installed here keeps
-the name already in the saved preset's manifest. The notice never blocks slicing.
+the name and the manifest entry already in the saved preset, even when a loaded plugin has a
+capability of the same name. The notice never blocks slicing.
 
 A preset saved as a diff against its parent writes a manifest derived from its whole resolved
 config, not from the diff, so references inherited from the parent stay listed.
@@ -85,9 +88,9 @@ G-code keeps its manifest.
 - Orca Cloud validates uploaded content (STL structure, PNG size, SVG active content). The
   slicer re-checks only the folder layout and extensions.
 - A file's use follows its extension. A pack cannot give one extension two uses.
-- A plugin provides one `resource-printer-asset` capability. A reference names the plugin, not the
-  capability, and the manifest name is looked up from the plugin, so with several capabilities
-  the name may be the wrong one.
+- A plugin is expected to provide one `resource-printer-asset` capability, because a reference names
+  the plugin, not the capability. With several, the name recorded for a loaded pack is the capability
+  whose folder holds the file; for a pack that is not loaded it comes from the saved manifest.
 - A cloud plugin id is compared without regard to case; the reference stores it in lower case.
 - A reference to a hand-installed pack uses the plugin key. It resolves only on a machine that has
   that key, and its manifest entry has no uuid, so no other machine is offered the install.

@@ -46,7 +46,8 @@ public:
 
     // The installed file `ref` names, or empty when its pack is not loaded or lacks the file.
     std::string resolve(const PrinterAssetRef &ref) const;
-    // The capability name of the loaded pack `ref` names, or empty when it is not loaded.
+    // The capability name of the loaded pack whose listing holds the file `ref` names, or empty when the
+    // pack is not loaded or lacks the file.
     std::string capability_name(const PrinterAssetRef &ref) const;
 
 private:
