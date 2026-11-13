@@ -4401,11 +4401,14 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
 
     // Write IMEX mode G-code first (processed above), then machine_start_gcode.
-    if (!imex_processed_gcode.empty())
+    if (!imex_processed_gcode.empty()) {
         file.writeln(imex_processed_gcode);
+        m_cooling_buffer->remember_motion_settings(imex_processed_gcode);
+    }
 
     // Write the custom start G-code
     file.writeln(machine_start_gcode);
+    m_cooling_buffer->remember_motion_settings(machine_start_gcode);
     // Mark the end of the machine start g-code so the GCodeProcessor usage-block builder knows where user
     // g-code ends and can start attributing filament/extruder usage. Gated on enable_pre_heating: only the
     // injector fleet (H2D/X2D/H2D-Pro/H2C) emits it; the byte-frozen fleet (X1/P1/A1/H2S, flag false) never
@@ -4434,6 +4437,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
             std::string filament_start_gcode = this->placeholder_parser_process("filament_start_gcode", print.config().filament_start_gcode.get_at(initial_non_support_extruder_id), initial_non_support_extruder_id,&config);
             file.writeln(filament_start_gcode);
+            m_cooling_buffer->remember_motion_settings(filament_start_gcode);
             // Mark the first filament used in print. Multi-nozzle printers (H2C) get ";VT%d H%d" where
             // H = dynamic ? nozzle_id : -1; existing single-nozzle printers keep the bare ";VT%d" so their
             // g-code stays byte-identical.
@@ -4572,6 +4576,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     // so that first travel can be planned from the position the G-code actually
     // left the machine at rather than the default last_pos value.
     GCodeProcessor::PositionState startup_position = m_processor.get_current_position();
+    // ORCA: The layer cooling times the first layer from there too.
+    if (startup_position.has_known_xy())
+        m_cooling_buffer->reset(startup_position.position);
     const Vec2f plate_offset = m_writer.get_xy_offset();
     startup_position.position.x() += plate_offset.x();
     startup_position.position.y() += plate_offset.y();

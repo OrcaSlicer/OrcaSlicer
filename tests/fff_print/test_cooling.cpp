@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "test_helpers.hpp"
@@ -206,8 +207,8 @@ TEST_CASE("Layer cooling slowdown does not depend on relative extrusion distance
     CHECK_THAT(largest_difference, Catch::Matchers::WithinAbs(0., 1. / MM_PER_MIN));
 }
 
-// Per layer: the time of its moves from its first extrusion, as the G-code preview estimates it with acceleration,
-// and the part cooling fan speed of that extrusion, in percent.
+// Per layer: its time as the G-code preview estimates it, with acceleration, and the part cooling fan speed of its first
+// extrusion, in percent.
 struct EstimatedLayer
 {
     double time = 0.;
@@ -226,12 +227,9 @@ static std::vector<EstimatedLayer> estimated_layers(const TriangleMesh &mesh, co
         if (move.layer_id >= layers.size())
             layers.resize(move.layer_id + 1);
         EstimatedLayer &layer = layers[move.layer_id];
-        if (layer.fan < 0.f) {
-            if (move.type != EMoveType::Extrude)
-                continue;
-            layer.fan = move.fan_speed;
-        }
         layer.time += move.time[static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Normal)];
+        if (layer.fan < 0.f && move.type == EMoveType::Extrude)
+            layer.fan = move.fan_speed;
     }
     return layers;
 }
@@ -295,9 +293,18 @@ TEST_CASE("Fan speed follows the layer time with acceleration", "[Cooling]")
         { "fan_max_speed",                full_fan },
         { "fan_min_speed",                minimum_fan },
         { "full_fan_speed_layer",         0 },
+        // A pause before the first extrusion of each layer, which counts as in the Preview.
+        { "layer_change_gcode",           "G4 S3" },
         { "slow_down_for_layer_cooling",  false },
         { "slow_down_layer_time",         full_fan_time },
     });
+    // The low acceleration is the machine limit, or the one the start G-code sets when the layers set none of their own.
+    if (GENERATE(false, true))
+        config.set_deserialize_strict({
+            { "default_acceleration",               0 },
+            { "machine_max_acceleration_extruding", "20000,20000" },
+            { "machine_start_gcode",                "M204 S300" },
+        });
     const std::vector<EstimatedLayer> layers = estimated_layers(cube(20), config);
     REQUIRE(layers.size() > 4);
     for (size_t i = 1; i + 1 < layers.size(); ++i) {
