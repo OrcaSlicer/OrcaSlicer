@@ -41,8 +41,7 @@
 
 #include "Widgets/LabeledStaticBox.hpp"
 #include "libslic3r/PrinterAssetRef.hpp"
-#include "slic3r/plugin/ResourcePackKinds.hpp"
-#include "slic3r/plugin/host/PluginResourcePacks.hpp"
+#include "slic3r/plugin/host/PluginPrinterAssets.hpp"
 #include <wx/menu.h>
 #include "Widgets/DialogButtons.hpp"
 
@@ -382,7 +381,7 @@ wxPanel* BedShapePanel::init_texture_panel()
                 wxStaticText* lbl = dynamic_cast<wxStaticText*>(e.GetEventObject());
                 if (lbl != nullptr) {
                     // A printer asset reference counts as found once its pack is installed.
-                    const std::string texture_file = resolve_printer_asset_value(m_custom_texture, RESOURCE_KIND_BED_TEXTURE);
+                    const std::string texture_file = resolve_printer_asset_value(m_custom_texture);
                     bool exists = (m_custom_texture == NONE) || (!texture_file.empty() && boost::filesystem::exists(texture_file));
                     lbl->SetForegroundColour(exists ? wxGetApp().get_label_clr_default() : wxColour("#E14747")); // ORCA
 
@@ -469,7 +468,7 @@ wxPanel* BedShapePanel::init_model_panel()
                 e.SetText(_(boost::filesystem::path(m_custom_model).filename().string()));
                 wxStaticText* lbl = dynamic_cast<wxStaticText*>(e.GetEventObject());
                 if (lbl != nullptr) {
-                    const std::string model_file = resolve_printer_asset_value(m_custom_model, RESOURCE_KIND_BED_MODEL);
+                    const std::string model_file = resolve_printer_asset_value(m_custom_model);
                     bool exists = (m_custom_model == NONE) || (!model_file.empty() && boost::filesystem::exists(model_file));
                     lbl->SetForegroundColour(exists ? wxGetApp().get_label_clr_default() : wxColour("#E14747")); // ORCA
 
@@ -692,15 +691,13 @@ void BedShapePanel::load_model()
 // stored as "orcacloud-asset/<plugin id>/<file>", so the preset works on any machine with the pack.
 void BedShapePanel::pick_from_asset_pack(bool model, wxWindow* anchor)
 {
-    const std::string_view kind = model ? RESOURCE_KIND_BED_MODEL : RESOURCE_KIND_BED_TEXTURE;
     std::vector<std::string> refs;
     wxMenu                   menu;
-    for (const ResourcePackEntry& pack : PluginResourcePacks::instance().entries()) {
-        const auto kind_files = pack.files.find(std::string(kind));
-        if (kind_files == pack.files.end())
-            continue;
-        for (const std::string& file : kind_files->second) {
+    for (const PrinterAssetPackEntry& pack : PluginPrinterAssets::instance().entries()) {
+        for (const std::string& file : pack.files) {
             const std::string name = boost::filesystem::path(file).filename().string();
+            if (model ? !is_printer_bed_model_file(name) : !is_printer_bed_texture_file(name))
+                continue;
             const std::string ref = make_printer_asset_ref(pack.pack_id, name);
             if (ref.empty())
                 continue;

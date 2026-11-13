@@ -60,7 +60,7 @@
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp"
 #include "slic3r/plugin/PythonPluginInterface.hpp"
-#include "slic3r/plugin/host/PluginResourcePacks.hpp"
+#include "slic3r/plugin/host/PluginResourceTextures.hpp"
 
 #include "plugin_test_utils.hpp"
 
@@ -94,23 +94,23 @@ void install_resource_texture_wiring()
 
     PluginManager& manager = PluginManager::instance();
     manager.subscribe_on_load_callback([](const std::string& plugin_key) {
-        PluginResourcePacks::instance().on_plugin_register(plugin_key);
+        PluginResourceTextures::instance().on_plugin_register(plugin_key);
         GUI::bump_texture_library_generation();
     });
     manager.subscribe_on_unload_callback([](const std::string& plugin_key) {
-        PluginResourcePacks::instance().on_plugin_deregister(plugin_key);
+        PluginResourceTextures::instance().on_plugin_deregister(plugin_key);
         GUI::bump_texture_library_generation();
     });
     manager.subscribe_on_capability_load_callback([](const PluginCapabilityId& capability) {
         if (capability.type != PluginCapabilityType::ResourceTexture)
             return;
-        PluginResourcePacks::instance().on_cap_register(capability);
+        PluginResourceTextures::instance().on_cap_register(capability);
         GUI::bump_texture_library_generation();
     });
     manager.subscribe_on_capability_unload_callback([](const PluginCapabilityId& capability) {
         if (capability.type != PluginCapabilityType::ResourceTexture)
             return;
-        PluginResourcePacks::instance().on_cap_deregister(capability);
+        PluginResourceTextures::instance().on_cap_deregister(capability);
         GUI::bump_texture_library_generation();
     });
 }
@@ -484,7 +484,7 @@ TEST_CASE("A resource-texture pack's images appear in the listing and clear on d
     INFO("load error: " << error);
     CHECK(error.empty());
 
-    CHECK(PluginResourcePacks::instance().entries().size() == 1);
+    CHECK(PluginResourceTextures::instance().entries().size() == 1);
 
     const uint64_t loaded_generation = GUI::texture_library_generation();
     const auto     loaded             = plugin_textures(true);
@@ -502,7 +502,6 @@ TEST_CASE("A resource-texture pack's images appear in the listing and clear on d
         if (entry.source == GUI::TextureSource::Plugin) {
             CHECK_FALSE(entry.pack_name.empty());
             CHECK(entry.pack_name == "Texture Pack");
-            CHECK(entry.pack_key == "texture:Texture Pack");
         } else {
             CHECK(entry.pack_name.empty());
         }
@@ -513,14 +512,14 @@ TEST_CASE("A resource-texture pack's images appear in the listing and clear on d
 
     manager.set_capability_enabled({ PluginCapabilityType::ResourceTexture, "Texture Pack", plugin_key }, false);
     CHECK(GUI::texture_library_generation() > loaded_generation);
-    CHECK(PluginResourcePacks::instance().entries().empty());
+    CHECK(PluginResourceTextures::instance().entries().empty());
     CHECK(plugin_textures(false).empty());
 
     manager.set_capability_enabled({ PluginCapabilityType::ResourceTexture, "Texture Pack", plugin_key }, true);
     CHECK(plugin_textures(false).size() == 3);
 
     REQUIRE(manager.unload_plugin(plugin_key));
-    CHECK(PluginResourcePacks::instance().entries().empty());
+    CHECK(PluginResourceTextures::instance().entries().empty());
     CHECK(plugin_textures(false).empty());
 }
 
@@ -692,7 +691,7 @@ TEST_CASE("A texture directory outside the plugin root contributes no textures",
     // The packs load; their out-of-root directories are simply refused.
     CHECK(manager.is_plugin_loaded(data_pack));
     CHECK(manager.is_plugin_loaded(resources_pack));
-    CHECK(PluginResourcePacks::instance().entries().empty());
+    CHECK(PluginResourceTextures::instance().entries().empty());
     CHECK(plugin_textures(true).empty());
 
     manager.unload_plugin(data_pack);
@@ -719,7 +718,7 @@ TEST_CASE("A raising get_texture_dir leaves the pack loaded with no textures", "
     REQUIRE(load_and_wait(manager, plugin_key, error));
     CHECK(error.empty());
     CHECK(manager.is_plugin_loaded(plugin_key));
-    CHECK(PluginResourcePacks::instance().entries().empty());
+    CHECK(PluginResourceTextures::instance().entries().empty());
     CHECK(plugin_textures(true).empty());
 
     manager.unload_plugin(plugin_key);

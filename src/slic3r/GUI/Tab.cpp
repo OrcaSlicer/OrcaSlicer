@@ -90,7 +90,7 @@
 #include "slic3r/Utils/PresetUpdater.hpp"
 #include "slic3r/plugin/PluginConfig.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
-#include "slic3r/plugin/host/PluginResourcePacks.hpp"
+#include "slic3r/plugin/host/PluginPrinterAssets.hpp"
 #include "Plater.hpp"
 #include "PartPlate.hpp"
 #include "ParamsDialog.hpp"

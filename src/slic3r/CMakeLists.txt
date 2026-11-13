@@ -701,8 +701,10 @@ set(SLIC3R_GUI_SOURCES
     plugin/host/PluginHostUi.hpp
     plugin/host/PluginPages.cpp
     plugin/host/PluginPages.hpp
-    plugin/host/PluginResourcePacks.cpp
-    plugin/host/PluginResourcePacks.hpp
+    plugin/host/PluginPrinterAssets.cpp
+    plugin/host/PluginPrinterAssets.hpp
+    plugin/host/PluginResourceTextures.cpp
+    plugin/host/PluginResourceTextures.hpp
     plugin/CloudPluginService.cpp
     plugin/CloudPluginService.hpp
     plugin/PluginFsUtils.cpp
@@ -713,7 +715,6 @@ set(SLIC3R_GUI_SOURCES
     plugin/PluginLoader.cpp
     plugin/PluginLoader.hpp
     plugin/PluginDescriptor.hpp
-    plugin/ResourcePackKinds.hpp
     plugin/PluginHooks.cpp
     plugin/PluginHooks.hpp
     plugin/PluginManager.cpp

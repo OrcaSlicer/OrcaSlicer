@@ -4,7 +4,7 @@
 #include "PluginResolver.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginInterface.hpp"
-#include "host/PluginResourcePacks.hpp"
+#include "host/PluginPrinterAssets.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
 
 #include "libslic3r/Config.hpp"

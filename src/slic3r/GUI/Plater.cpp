@@ -88,9 +88,8 @@
 #include "slic3r/GUI/Monitor.hpp"
 #include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
-#include <slic3r/plugin/host/PluginResourcePacks.hpp>
+#include <slic3r/plugin/host/PluginPrinterAssets.hpp>
 #include <slic3r/plugin/PluginResolver.hpp>
-#include <slic3r/plugin/ResourcePackKinds.hpp>
 #include <utility>
 #include <sstream>
 #include <unordered_map>
@@ -22221,10 +22220,8 @@ void Plater::set_bed_shape() const
     // A printer asset reference resolves to the installed pack's file; a missing pack leaves the value
     // empty, so the vendor texture and model are drawn instead. PluginResolver offers to install the
     // pack through the printer preset's manifest.
-    const std::string custom_texture =
-        resolve_printer_asset_value(p->config->option<ConfigOptionString>("bed_custom_texture")->value, RESOURCE_KIND_BED_TEXTURE);
-    const std::string custom_model =
-        resolve_printer_asset_value(p->config->option<ConfigOptionString>("bed_custom_model")->value, RESOURCE_KIND_BED_MODEL);
+    const std::string custom_texture = resolve_printer_asset_value(p->config->option<ConfigOptionString>("bed_custom_texture")->value);
+    const std::string custom_model   = resolve_printer_asset_value(p->config->option<ConfigOptionString>("bed_custom_model")->value);
 
     const ConfigOptionPoints *bed_exclude_area = p->config->option<ConfigOptionPoints>("bed_exclude_area");
     set_bed_shape(p->config->option<ConfigOptionPoints>("printable_area")->values,
@@ -22243,8 +22240,7 @@ void Plater::set_bed_shape(const Pointfs& shape, const Pointfs& exclude_area, co
 {
     // Callers such as the G-code viewer pass raw preset values, which may be printer asset references.
     p->set_bed_shape(make_counter_clockwise(shape), exclude_area, wrapping_exclude_area, printable_height, extruder_areas,
-                     extruder_heights, resolve_printer_asset_value(custom_texture, RESOURCE_KIND_BED_TEXTURE),
-                     resolve_printer_asset_value(custom_model, RESOURCE_KIND_BED_MODEL),
+                     extruder_heights, resolve_printer_asset_value(custom_texture), resolve_printer_asset_value(custom_model),
                      force_as_custom);
 }
 
