@@ -587,9 +587,15 @@ sets the DMABUF workarounds and then branches on `GDK_BACKEND`:
   default-path case that really runs through XWayland; `DISPLAY` and `WAYLAND_DISPLAY` alone do not
   identify it, because a native Wayland app inherits both. `XInitThreads()` runs only when `DISPLAY` is
   set.
-- **`GDK_BACKEND=x11…` opt-in path**: sets `DRI_PRIME=1` (and the NVIDIA PRIME variables when
-  `/proc/driver/nvidia/version` exists), calls `XInitThreads()`, and deliberately does **not** disable
+- **`GDK_BACKEND=x11…` opt-in path**: calls `XInitThreads()` and deliberately does **not** disable
   compositing, which keeps hardware acceleration for Device / Setup Wizard / login pages.
+- **GPU selection** is independent of the backend. The Linux preference `prefer_discrete_gpu` ("Render on
+  the discrete GPU", default off) makes `apply_discrete_gpu_preference()` export `DRI_PRIME=1` and, when
+  `/proc/driver/nvidia/version` exists, the NVIDIA render-offload variables before GTK opens the display;
+  it reads the saved configuration through `AppConfig::peek_bool` because no `AppConfig` exists yet. The
+  desktop entries carry no `PrefersNonDefaultGPU` hint, so a menu launch renders on the display GPU like
+  a terminal launch; the hint made hybrid laptops on Wayland render through zink on the other GPU with
+  an empty 3D view.
 
 Runtime backend detection elsewhere uses Orca's `is_running_on_wayland()` / `is_running_on_x11()`
 (see `references/platforms.md`), not these environment variables.

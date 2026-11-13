@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "QIDI WOOD Rapido @Qidi X-Smart 5 0.6 nozzle",
+	"inherits": "QIDI WOOD Rapido@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "MLPUlUQH0tHhlUxi",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"pressure_advance": [
+		"0.02"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.6 nozzle"
+	]
+}

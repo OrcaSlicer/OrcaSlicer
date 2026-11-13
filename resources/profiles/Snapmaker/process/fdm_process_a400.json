@@ -32,5 +32,7 @@
 	"support_interface_top_layers": "3",
 	"support_interface_pattern": "rectilinear",
 	"small_perimeter_threshold": "0",
-	"support_material_synchronize_layers": "1"
+	"support_material_synchronize_layers": "1",
+	"top_color_penetration_layers": "4",
+	"bottom_color_penetration_layers": "3"
 }

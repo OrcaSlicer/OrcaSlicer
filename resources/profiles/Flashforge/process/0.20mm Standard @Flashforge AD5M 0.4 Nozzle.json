@@ -8,6 +8,7 @@
 	"compatible_printers": [
 		"Flashforge Adventurer 5M 0.4 Nozzle"
 	],
+	"exclude_object_tolerance": "0.2",
 	"filename_format": "{input_filename_base}_{filament_type[initial_tool]}_{print_time}.gcode",
 	"post_process": "",
 	"only_one_wall_top": "0",

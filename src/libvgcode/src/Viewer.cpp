@@ -49,6 +49,16 @@ void Viewer::render(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
     m_impl->render(view_matrix, projection_matrix);
 }
 
+void Viewer::render_translucent(const Mat4x4& view_matrix, const Mat4x4& projection_matrix)
+{
+    m_impl->render_translucent(view_matrix, projection_matrix);
+}
+
+bool Viewer::has_translucent_toolpaths() const
+{
+    return m_impl->has_translucent_toolpaths();
+}
+
 void Viewer::render_shadow_casters(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& light_position)
 {
     m_impl->render_shadow_casters(view_matrix, projection_matrix, light_position);
@@ -62,6 +72,11 @@ void Viewer::set_shadow_map(int texture_unit, const Mat4x4& light_view_projectio
 void Viewer::set_light_top_dir(const Vec3& direction)
 {
     m_impl->set_light_top_dir(direction);
+}
+
+void Viewer::set_gloss(bool gloss)
+{
+    m_impl->set_gloss(gloss);
 }
 
 void Viewer::set_tone(float exposure, float saturation)
@@ -124,6 +139,41 @@ void Viewer::set_dim_previous_layers_brightness(float value)
     m_impl->set_dim_previous_layers_brightness(value);
 }
 
+bool Viewer::is_translucent_filaments() const
+{
+    return m_impl->is_translucent_filaments();
+}
+
+void Viewer::set_translucent_filaments(bool value)
+{
+    m_impl->set_translucent_filaments(value);
+}
+
+void Viewer::set_reduced_detail_mode(EReducedDetailMode mode)
+{
+    m_impl->set_reduced_detail_mode(mode);
+}
+
+void Viewer::set_reduced_detail_hide_infill(bool value)
+{
+    m_impl->set_reduced_detail_hide_infill(value);
+}
+
+void Viewer::set_reduced_detail(bool value)
+{
+    m_impl->set_reduced_detail(value);
+}
+
+bool Viewer::is_reduced_detail() const
+{
+    return m_impl->is_reduced_detail();
+}
+
+Interval Viewer::get_reduced_detail_whole_layers() const
+{
+    return m_impl->get_reduced_detail_whole_layers();
+}
+
 bool Viewer::is_option_visible(EOptionType type) const
 {
     return m_impl->is_option_visible(type);
@@ -179,12 +229,12 @@ size_t Viewer::get_tool_colors_count() const
     return m_impl->get_tool_colors_count();
 }
 
-const Palette& Viewer::get_tool_colors() const
+const PaletteWithAlpha& Viewer::get_tool_colors() const
 {
     return m_impl->get_tool_colors();
 }
 
-void Viewer::set_tool_colors(const Palette& colors)
+void Viewer::set_tool_colors(const PaletteWithAlpha& colors)
 {
     m_impl->set_tool_colors(colors);
 }
@@ -194,12 +244,12 @@ size_t Viewer::get_color_print_colors_count() const
     return m_impl->get_color_print_colors_count();
 }
 
-const Palette& Viewer::get_color_print_colors() const
+const PaletteWithAlpha& Viewer::get_color_print_colors() const
 {
     return m_impl->get_color_print_colors();
 }
 
-void Viewer::set_color_print_colors(const Palette& colors)
+void Viewer::set_color_print_colors(const PaletteWithAlpha& colors)
 {
     m_impl->set_color_print_colors(colors);
 }
@@ -342,6 +392,11 @@ float Viewer::get_estimated_time_at(size_t id) const
 Color Viewer::get_vertex_color(const PathVertex& vertex) const
 {
     return m_impl->get_vertex_color(vertex);
+}
+
+size_t Viewer::find_extrusion_vertex(const Interval& layers, EGCodeExtrusionRole role, const XYBox& box) const
+{
+    return m_impl->find_extrusion_vertex(layers, role, box);
 }
 
 size_t Viewer::get_extrusion_roles_count() const

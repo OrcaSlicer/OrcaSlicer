@@ -233,6 +233,10 @@ public:
 
     void set_open_terminal_dlg_fn();
     void update_plugin_dialog_ui();
+    // Main thread only. Refresh visible permissions after an external grant; hidden dialogs
+    // are refreshed by the normal open path instead. The web page merges the new state into
+    // the Permissions rows, with unsaved text taking precedence until it is saved or reverted.
+    void refresh_permissions_if_visible();
 
 private:
     void open_plugin_on_cloud(const std::string& sharing_token);
@@ -257,6 +261,9 @@ private:
     void prompt_for_missing_plugins();
     void refresh_plugins();
     void toggle_plugin(const std::string& plugin_key, bool enabled);
+    // Shared native warning for enabling full access. Returns true only on an explicit Yes.
+    bool prompt_enable_full_access(const std::string& plugin_key);
+    void mutate_plugin_permission(const nlohmann::json& payload);
     void toggle_plugin_capability(const std::string& plugin_key, PluginCapabilityType type, const std::string& capability_name, bool enabled);
     void handle_plugin_menu_action(const std::string& plugin_key, const std::string& action);
 

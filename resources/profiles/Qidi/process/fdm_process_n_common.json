@@ -4,6 +4,7 @@
 	"inherits": "fdm_process_common",
 	"from": "system",
 	"instantiation": "false",
+	"accel_to_decel_enable":"0",
 	"apply_top_surface_compensation": "0",
 	"avoid_crossing_wall_includes_support": "0",
 	"bottom_color_penetration_layers": "3",
@@ -142,7 +143,7 @@
 		"50%"
 	],
 	"small_perimeter_threshold": [
-		"4"
+		"0"
 	],
 	"smooth_speed_discontinuity_area": "1",
 	"sparse_infill_density": "15%",
