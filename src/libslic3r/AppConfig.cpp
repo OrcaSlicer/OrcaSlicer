@@ -368,6 +368,12 @@ void AppConfig::set_defaults()
     if (get("zoom_to_mouse").empty())
         set_bool("zoom_to_mouse", false);
 
+    if (get("keyboard_layout_corrector").empty())
+        set_bool("keyboard_layout_corrector", false);
+
+    if (get("decimal_separator_corrector").empty())
+        set_bool("decimal_separator_corrector", false);
+
 #ifdef SLIC3R_CAD
     // Experimental parametric Design tab. Off by default: the tab is not created at all
     // until this is turned on, so nothing it builds reaches an unsuspecting user.

@@ -679,48 +679,41 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
             std::string ustr(str.utf8_string());
             if (!ConfigOptionFloats::validate_string(ustr)) {
                 
-                // Orca: Glyphs and keyboard layout corrector
-                // A set of meta commands in an incorrect keyboard layout or with similar glyphs breaks the command structure.
+                // Orca: Keyboard layout corrector
+                // A set of meta commands in an incorrect keyboard layout breaks the command structure.
                 // There is an attempt to automatically correct this before the string is critically distorted.
-                // Cyrillic and Greek glyphs and the Russian layout have been added initially. Other national variants may be added.
-                // The glyph table contains similar letter shapes.
+                // Russian layout have been added initially. Other national variants may be added.
                 // The layout table contains the correspondence of the pressed national letter in the English layout.
-                for (char& ch : ustr) { 
-                    if (static_cast<unsigned char>(ch) > 127) { // has any unicode symbol
-                        std::wstring wstr(str.ToStdWstring());
-                        std::wstring const in_glyph[]{L"АΑ", L"а",    L"Β",  L"",     L"СҪ",  L"сҫ", L"",  L"",        L"ЕЁΕ",     L"е",      L"",     L"",   L"",
-                                                      L"",   L"ҢҤΗ",  L"һ",  L"ΙІЇӀ", L"іїι", L"Ј",  L"ј", L"КЌҚҜҞҠΚ", L"кќқҝҟҡκ", L"",       L"",     L"МΜ", L"м",
-                                                      L"Ν",  L"пπ",   L"ОΟ", L"оο",   L"РΡ",  L"рρ", L"",  L"",        L"",        L"",       L"Ѕ",    L"ѕ",  L"TҬΤ",
-                                                      L"ҭτ", L"",     L"υ",  L"",     L"ν",   L"",   L"",  L"ХҲΧ",     L"хҳχ",     L"УўЎҮҰΥ", L"ўүұу", L"Ζ",  L""};
-                        std::wstring const in_keyboard_layout[]{L"Ф", L"ф", L"И", L"и", L"С", L"с", L"В", L"в", L"У", L"у", L"А", L"а", L"П",
-                                                                L"п", L"Р", L"р", L"Ш", L"ш", L"О", L"о", L"Л", L"л", L"Д", L"д", L"Ь", L"ь",
-                                                                L"Т", L"т", L"Щ", L"щ", L"З", L"з", L"Й", L"й", L"К", L"к", L"Ы", L"ы", L"Е",
-                                                                L"е", L"Г", L"г", L"М", L"м", L"Ц", L"ц", L"Ч", L"ч", L"Н", L"н", L"Я", L"я"};
-                        std::string const out_symbol{"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"};
-                        for (int i = 0; i < out_symbol.size(); i++) {
-                            std::wstring gl = in_glyph[i];
-                            std::wstring kb = in_keyboard_layout[i];
-                            std::string out_string(out_symbol.substr(i, 1));
-                            std::wstring out_char(out_string.begin(), out_string.end());
-                            if (!gl.empty()) {
-                                std::wregex glstr(L"([" + gl + L"])");
-                                wstr = std::regex_replace(wstr, glstr, out_char);
-                            } 
-                            if (!kb.empty()) {
-                                std::wregex kbstr(L"([" + kb + L"])");
-                                wstr = std::regex_replace(wstr, kbstr, out_char);
+                if (wxGetApp().app_config->get("keyboard_layout_corrector") == "true") {
+                    for (char& ch : ustr) { 
+                        if (static_cast<unsigned char>(ch) > 127) { // has any unicode symbol
+                            std::wstring wstr(str.ToStdWstring());
+                            std::wstring const in_keyboard_layout[]{L"Ф", L"ф", L"И", L"и", L"С", L"с", L"В", L"в", L"У", L"у", L"А", L"а", L"П",
+                                                                    L"п", L"Р", L"р", L"Ш", L"ш", L"О", L"о", L"Л", L"л", L"Д", L"д", L"Ь", L"ь",
+                                                                    L"Т", L"т", L"Щ", L"щ", L"З", L"з", L"Й", L"й", L"К", L"к", L"Ы", L"ы", L"Е",
+                                                                    L"е", L"Г", L"г", L"М", L"м", L"Ц", L"ц", L"Ч", L"ч", L"Н", L"н", L"Я", L"я"};
+                            std::string const out_symbol{"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"};
+                            for (int i = 0; i < out_symbol.size(); i++) {
+                                std::wstring kb = in_keyboard_layout[i];
+                                std::string out_string(out_symbol.substr(i, 1));
+                                std::wstring out_char(out_string.begin(), out_string.end());
+                                if (!kb.empty()) {
+                                    std::wregex kbstr(L"([" + kb + L"])");
+                                    wstr = std::regex_replace(wstr, kbstr, out_char);
+                                }
                             }
+                            ustr = wxString(wstr).utf8_string();
+                            break;
                         }
-                        ustr = wxString(wstr).utf8_string();
-                        break;
-                    }
-                }                
+                    }                
+                }
                 
                 // adjustment of the unnecessary separators
                 ustr = std::regex_replace(ustr, std::regex("\\s*;+\\s*;?\\s*"), ";");
 
                 // adjustment of the decimal separator
-                ustr = std::regex_replace(ustr, std::regex("(\\d)(,)(\\d+[^,.\\d\\s+\\-])"), "$1.$3");
+                if (wxGetApp().app_config->get("decimal_separator_corrector") == "true")
+                    ustr = std::regex_replace(ustr, std::regex("(\\d)(,)(\\d+[^,.\\d\\s+\\-])"), "$1.$3");
 
                 // validate density percents
                 std::string v;

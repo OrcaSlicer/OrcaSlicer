@@ -425,7 +425,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                                         limit_fill_z = height_value * (object->height() - print_z_offset) * 1e-8;
                                         cs++;
                                     } else if (cs[0] == '#') { // value in the feet
-                                        limit_fill_z = height_value * object->get_layer(i)->height;
+                                        limit_fill_z = height_value * object->config().layer_height;
                                         cs++;
                                     } else if (cs[0] == '\'') { // value in the feet
                                         limit_fill_z = height_value * 12 * 25.4;
@@ -542,7 +542,6 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
         }
         // Make sure that the resulting density is within the range of EPSILON to 100%.
         // Values outside this range will be produced within these limits.
-        // params.multiline = std::min(params.multiline, 10); // limit multiline
         params.density   = std::min(std::max(params.density * params.multiline * 100., EPSILON), 100.);
     } else {
         ConfigOptionFloats rotate_angles;
@@ -1368,6 +1367,8 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     align_offset = atan2((float) m(1, 0), (float) m(0, 0));
                 }
 
+                params.pattern_mode = 0;
+                params.shift        = Point(0, 0);
                 if (params.extrusion_role == erInternalInfill) {
                     params.fixed_angle = !region_config.sparse_infill_rotate_template.value.empty();
                     if (params.fixed_angle && params.pattern == ipHilbertCurve)
@@ -1382,7 +1383,6 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.shift       = complex.shift.cast<coord_t>();
                     params.density     = complex.density;
                     params.multiline   = complex.multiline;
-                    //params.fixed_angle = false; // restore for interlacing of sparse infill
 
                     // Orca: the smoothing factor only applies to the sparse infill patterns that
                     // implement it. The fills clamp and validate the value themselves.

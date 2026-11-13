@@ -2223,6 +2223,12 @@ void PreferencesDialog::create_items()
     });
     g_sizer->Add(item_shortcuts);
 
+    auto item_decimal_separator_corrector = create_item_checkbox(_L("Decimal separator corrector"), _L("Enable decimal separator corrector. Replaces the comma with a mandatory period in number separators. It is used in the infill rotation template to ensure correct input before making a destructive change. To reduce input errors, it is recommended to use a comma + space as a number separator in the list. "), "decimal_separator_corrector");
+    g_sizer->Add(item_decimal_separator_corrector);
+
+    auto item_keyboard_layout_corrector = create_item_checkbox(_L("Keyboard layout corrector"), _L("Enable the keyboard layout corrector. It is used in the infill rotation template to ensure correct input before making a destructive change. This is not required for users who use a keyboard with a Latin layout."), "keyboard_layout_corrector");
+    g_sizer->Add(item_keyboard_layout_corrector);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 

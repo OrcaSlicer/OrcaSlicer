@@ -18,8 +18,6 @@
 #include <type_traits>
 #include "FillPlanePath.hpp"
 #include "libslic3r/Config.hpp"
-#include <filesystem>
-#include <format>
 
 //#define DEBUG_PATH
 
@@ -107,31 +105,31 @@ void FillPlanePath::_fill_surface_single(
     case ExtrusionRole::erBottomSurface: infill_type = "_bottom"; break;
     }
     std::string filename = format("infill_path_L%d%s_", layer_id + 1, infill_type);
-    const char* nullchar;
+    const char* nullchar = "";
     std::string path = debug_out_path(nullchar);
 
+    namespace fs = boost::filesystem;
     int index_ = 0;
-    static time_t time_;
-    time_t now = time(NULL);
-    static std::mutex debug_infill_path_mtx;
-    debug_infill_path_mtx.lock();
-    if (time_ + 30 < now) {
-        namespace fs            = std::filesystem;
-        fs::path directory_path = path;
+    //static time_t time_;
+    //time_t now = time(NULL);
+    //static std::mutex debug_infill_path_mtx;
+    //debug_infill_path_mtx.lock();
+    //if (time_ + 30 < now) {
+    //    fs::path directory_path = path;
 
-        auto matches_template = [](const fs::path& path) {
-            return path.extension() == ".svg" && path.string().find("infill_path_") != std::string::npos;
-        };
-        for (const auto& entry : fs::directory_iterator(directory_path)) {
-            if (entry.is_regular_file() && matches_template(entry.path())) {
-                fs::remove(entry.path());
-            }
-        }
-        //std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-    debug_infill_path_mtx.unlock();
-    time_ = now;
-    while (std::filesystem::exists(path + filename + std::to_string(index_) + ".svg")) {
+    //    auto matches_template = [](const fs::path& path) {
+    //        return path.extension() == ".svg" && path.string().find("infill_path_") != std::string::npos;
+    //    };
+    //    for (const auto& entry : fs::directory_iterator(directory_path)) {
+    //        if (entry.is_regular_file() && matches_template(entry.path())) {
+    //            fs::remove(entry.path());
+    //        }
+    //    }
+    //    std::this_thread::sleep_for(std::chrono::seconds(1));
+    //}
+    //debug_infill_path_mtx.unlock();
+    //time_ = now;
+    while (fs::exists(path + filename + std::to_string(index_) + ".svg")) {
         index_++;
     }
 
@@ -146,7 +144,7 @@ void FillPlanePath::_fill_surface_single(
     bool is_internal = params.extrusion_role == ExtrusionRole::erInternalInfill;
     bool is_solid    = params.extrusion_role == ExtrusionRole::erSolidInfill;
 
-    double angle = direction.first; // fixed_angle ? this->angle : direction.first;
+    double angle = direction.first;
 
     BoundingBox bounding_box;
     Point shift;
@@ -181,12 +179,12 @@ void FillPlanePath::_fill_surface_single(
         auto max_x = coord_t(ceil(coordf_t(bounding_box.max.x()) / distance_between_lines));
         auto max_y = coord_t(ceil(coordf_t(bounding_box.max.y()) / distance_between_lines));
         auto resolution = scaled<double>(params.resolution) / distance_between_lines;
-        // InfillPolylineOutput output(distance_between_lines); // slow method without clipping
         InfillPolylineClipper output(bounding_box, distance_between_lines);
         this->generate(min_x, min_y, max_x, max_y, resolution, params, output);
         polyline.points = std::move(output.result());
 
 #ifdef DEBUG_PATH
+        svg.draw(BoundingBox(Point(min_x, min_y), Point(max_x, max_y)).polygon().lines(), "magenta", w / 2); // calculating bounds
         svg.draw(expolygon, "cyan", 0.5); // exactly filling polygon
         Polyline polyline2;
         InfillPolylineOutput output2(distance_between_lines); // slow method without clipping
@@ -381,23 +379,21 @@ static void generate_hilbert_curve_centered(coord_t min_x, coord_t min_y, coord_
     const double disp = -0.5 + (side_n >> 1); 
     
     // Minimum power of two square to fit the domain.
-    size_t sz = 2;
-    const size_t sz0 = std::max(std::max(abs(max_x), abs(min_x)), std::max(abs(max_y), abs(min_y))) * 2 + side_n;
-        while (sz < sz0)
-            sz = sz << 1;
+    const int sz0               = std::max(std::max(abs(max_x), abs(min_x)), std::max(abs(max_y), abs(min_y))) + side_m / 2;
+    const int side_order        = sz0 / side_n;
+    const int side_wide         = side_order * 2 + 1;
+    const int side_elements     = side_wide * side_wide;
 
-    size_t sz2 = sz * sz;
-    output.reserve(sz2);
+    output.reserve(sq_n * side_elements);
 
     const Vec2d dir[4]{{0., side_n}, {side_n, 0.}, {0., -side_n}, {-side_n, 0.}};
     Vec2d q(-disp, -disp); // quadrant coordinates   
     int cnt = 0;
-    size_t num = 0;
-    size_t po = 0;
-    size_t cyc = pow(sz0 / side_n + 1, 2);
+    int num   = 0;
+    int po  = 0;
 
-    for (size_t i = 0; i < cyc; i++) {
-        for (size_t j = 0; j < sq_n; ++j) {
+    for (int i = 0; i < side_elements; i++) {
+        for (int j = 0; j < sq_n; ++j) {
             Vec2d p = hilbert_n_to_xy(j).cast<double>();
             switch (po ^ (n & 1)) {
                 case 0:
