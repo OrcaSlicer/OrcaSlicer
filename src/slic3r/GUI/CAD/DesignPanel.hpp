@@ -114,6 +114,22 @@ public:
     // Load the project's recipe into an empty document, as showing the tab does. The control
     // socket may be the first thing to touch the Design tab after a project was opened.
     void hydrate_from_model();
+    // Control-socket funnels: the dialog-free cores of on_commit()/on_export_step(), plus STL
+    // export and project save. Called only on the wx main thread, like every mcp_ hook. They
+    // switch no tabs, pop no dialogs and take no undo checkpoints: commit/export/save never
+    // mutate the feature recipe, so there is nothing to checkpoint. false + err on failure;
+    // nothing is shipped or written then.
+    // Ship the committed meshes to the plate exactly as on_commit() does (visible bodies at
+    // their Move-gizmo positions, recipe synced); objects = plate objects created.
+    enum class CommitOutcome { Shipped, EmptyDocument, AllHidden, NoPlate };
+    CommitOutcome mcp_commit_to_plate(int& objects);
+    // Write all bodies to a STEP file as native B-rep at their displayed positions.
+    bool mcp_export_step(const std::string& path, std::string& err);
+    // Write the visible bodies to one STL file — the same meshes commit ships.
+    bool mcp_export_stl(const std::string& path, bool ascii, std::string& err);
+    // Save a 3MF project copy to path (recipe synced first). The open project — its file
+    // name, dirty state and model — is untouched.
+    bool mcp_save_project(const std::string& path, std::string& err);
 
 private:
     enum class Tool { None, Sketch, Extrude, Dressup, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Boolean, Cut, Insert, Axis, CoordSys, SurfaceExtrude, SurfaceRevolve, SurfaceLoft, SurfaceFill, SurfaceOffset, ThickenSurface, Transform, Mirror, Thicken, Rib, Project, DeleteFace, Helix, Mate };
