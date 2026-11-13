@@ -535,18 +535,22 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
         imgui.text(_L("Each object separately"));
         if (m_bar_object_ids.size() > 1)
             // TRN Variable layer height tool: each selected object has a layer height bar at the right edge of the 3D view.
-            imgui.text(_L("Point at a bar to edit its object."));
+            // Painting over an object in the 3D view, or over its bar, edits the layer heights of that object.
+            imgui.text(_L("Paint over an object or its bar to edit its layers."));
     }
 
     ImGui::Separator();
 
     const wxString shift = GUI::shortkey_shift_prefix();
+    const wxString ctrl  = GUI::shortkey_ctrl_prefix();
     std::vector<std::pair<wxString, wxString>> shortcuts = {
         {_L("Left mouse button"),          _L("Add detail")},
         {_L("Right mouse button"),         _L("Remove detail")},
         {shift + _L("Left mouse button"),  _L("Reset to base")},
         {shift + _L("Right mouse button"), _L("Smoothing")},
-        {_L("Mouse wheel"),                _L("Increase/decrease edit area")}
+        {ctrl + _L("Mouse wheel"),         _L("Increase/decrease edit area")},
+        // TRN Variable layer height tool: the plain wheel resizes the edit area only with the cursor on a layer height bar.
+        {_L("Mouse wheel"),                _L("Increase/decrease edit area on the bar")}
     };
 
     float y = canvas.m_main_toolbar.get_height();
@@ -626,6 +630,11 @@ void GLCanvas3D::LayersEditing::render_overlay(GLCanvas3D& canvas)
 
 float GLCanvas3D::LayersEditing::get_cursor_z_relative(const GLCanvas3D& canvas)
 {
+    // Orca: Painting on the object.
+    const LayersEditing& editing = canvas.m_layers_editing;
+    if (editing.state == Editing && editing.editing_on_object)
+        return editing.last_z / editing.m_object_max_z;
+
     const Vec2d mouse_pos = canvas.get_local_mouse_position();
     const Rect& rect = get_bar_rect_screen(canvas);
     float x = (float)mouse_pos.x();
@@ -636,8 +645,8 @@ float GLCanvas3D::LayersEditing::get_cursor_z_relative(const GLCanvas3D& canvas)
     return (rect.get_left() <= x && x <= rect.get_right() && t <= y && y <= b) ?
         // Inside the bar.
         (b - y - 1.0f) / (b - t - 1.0f) :
-        // Outside the bar.
-        -1000.0f;
+        // Outside the bar. Orca: on an object a press would paint, the height under the cursor.
+        (editing.state != Editing && editing.hover_z != -1000.0f) ? editing.hover_z / editing.m_object_max_z : -1000.0f;
 }
 
 // Whether the point is on any of the bars.
@@ -660,11 +669,11 @@ int GLCanvas3D::LayersEditing::bar_at(const GLCanvas3D& canvas, float x, float y
     return y < h * (1.0f - canvas.m_layers_editing.bar_fraction(size_t(bar))) ? -1 : bar;
 }
 
-// Whether a bar is being pointed at or painted.
+// Whether a bar is being pointed at or painted, or the object it edits is pointed at in the scene.
 bool GLCanvas3D::LayersEditing::bar_in_focus(const GLCanvas3D& canvas) const
 {
     const Vec2d mouse_pos = canvas.get_local_mouse_position();
-    return state == Editing || bar_at(canvas, float(mouse_pos.x()), float(mouse_pos.y())) >= 0;
+    return state == Editing || hover_z != -1000.0f || bar_at(canvas, float(mouse_pos.x()), float(mouse_pos.y())) >= 0;
 }
 
 size_t GLCanvas3D::LayersEditing::active_bar() const
@@ -686,7 +695,7 @@ Rect GLCanvas3D::LayersEditing::get_bar_rect_screen(const GLCanvas3D& canvas)
     return { right - bar_w, h * (1.0f - canvas.m_layers_editing.bar_fraction(active)), right, h };
 }
 
-int GLCanvas3D::LayersEditing::choose_shown_object(const GLCanvas3D& canvas, const Model& model, const std::vector<int>& object_ids)
+int GLCanvas3D::LayersEditing::choose_shown_object(const GLCanvas3D& canvas, const Model& model, const std::vector<int>& object_ids, int hover_object_id)
 {
     // Objects past MAX_BARS still get Adaptive, Smooth and Reset, but have no bar to show or paint.
     const bool bars_notice = m_each_separately && object_ids.size() > MAX_BARS;
@@ -717,6 +726,9 @@ int GLCanvas3D::LayersEditing::choose_shown_object(const GLCanvas3D& canvas, con
         const Vec2d mouse_pos = canvas.get_local_mouse_position();
         if (const int bar = bar_at(canvas, float(mouse_pos.x()), float(mouse_pos.y())); bar >= 0)
             shown = m_bar_object_ids[bar];
+        // Orca: so does pointing at an object that has a bar, where a press starts painting it.
+        else if (std::find(m_bar_object_ids.begin(), m_bar_object_ids.end(), hover_object_id) != m_bar_object_ids.end())
+            shown = hover_object_id;
     }
     return shown;
 }
@@ -1107,6 +1119,19 @@ void GLCanvas3D::LayersEditing::reset_bar_models(size_t bars)
 bool GLCanvas3D::LayersEditing::is_edited_object(int object_id) const
 {
     return object_id == last_object_id || std::find(m_other_object_ids.begin(), m_other_object_ids.end(), object_id) != m_other_object_ids.end();
+}
+
+// Orca: The object shown, or, while the selected objects share one profile, another of them that takes the
+// profile when the stroke ends (accept_changes()). These are the objects render_volumes() draws the band on.
+bool GLCanvas3D::LayersEditing::is_painted_object(int object_id)
+{
+    if (last_object_id < 0 || !this->is_edited_object(object_id))
+        return false;
+    if (object_id == last_object_id)
+        return true;
+    // With a profile each, follows_shown_object() is false for every other object.
+    this->update_slicing_parameters();
+    return this->follows_shown_object(this->other_object(object_id).slicing_parameters);
 }
 
 // Orca: whether two objects, whatever their heights, are sliced at the same layers by the same profile,
@@ -3164,6 +3189,8 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     if (_update_inactive_plates_visibility())
         scene_dirty = true;
 
+    // Orca: found again by the regular picking pass, which is not run while dragging.
+    m_layers_editing.hover_z = -1000.0f;
     if (m_picking_enabled && !m_benchmarking) {
         if (m_rectangle_selection.is_dragging())
             // picking pass using rectangle selection
@@ -5172,18 +5199,18 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
 #endif /* __WXMSW__ */
 
     // Performs layers editing updates, if enabled
-    if (is_layers_editing_enabled()) {
-        int object_idx_selected = m_selection.get_object_idx();
-        if (object_idx_selected != -1) {
-            // A volume is selected. Test, whether hovering over a layer thickness bar.
-            if (m_layers_editing.bar_rect_contains(*this, (float)evt.GetX(), (float)evt.GetY())) {
-                // Adjust the width of the selection.
-                m_layers_editing.band_width = std::max(std::min(m_layers_editing.band_width * (1.0f + 0.1f * (float)evt.GetWheelRotation() / (float)evt.GetWheelDelta()), 10.0f), 1.5f);
-                if (m_canvas != nullptr)
-                    m_canvas->Refresh();
+    // Orca: with several objects selected, the tool shows the tallest one.
+    if (is_layers_editing_enabled() && m_layers_editing.last_object_id != -1) {
+        // Orca: Ctrl + wheel sets the width of the band wherever the cursor is, as it sets the brush size of the
+        // painting gizmos: over an object the plain wheel zooms. On a layer thickness bar the plain wheel still does.
+        // On macOS both Cmd, which the tooltip names, and Control, which the painting gizmos take.
+        if (evt.CmdDown() || evt.RawControlDown() || m_layers_editing.bar_rect_contains(*this, (float)evt.GetX(), (float)evt.GetY())) {
+            // Adjust the width of the selection.
+            m_layers_editing.band_width = std::max(std::min(m_layers_editing.band_width * (1.0f + 0.1f * (float)evt.GetWheelRotation() / (float)evt.GetWheelDelta()), 10.0f), 1.5f);
+            if (m_canvas != nullptr)
+                m_canvas->Refresh();
 
-                return;
-            }
+            return;
         }
     }
 
@@ -5744,10 +5771,24 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
 
         // If user pressed left or right button we first check whether this happened on a volume or not.
         m_layers_editing.state = LayersEditing::Unknown;
-        if (mouse_in_layer_editing) {
-            // A volume is selected and the mouse is inside the layer thickness bar.
-            // Orca: edit the object of the bar under the mouse, though no frame was drawn since it got there.
-            _update_layers_editing_objects(false);
+        // Orca: A left/right press on an object the tool edits paints the layer height there instead of dragging the object.
+        // Ctrl and Alt stay with the selection, and a modifier is not painted: the band is not drawn on it.
+        int pressed_object_idx = -1;
+        if (!mouse_in_layer_editing && layer_editing_object_idx != -1 && (evt.LeftDown() || evt.RightDown()) &&
+            !evt.CmdDown() && !evt.AltDown() && !m_hover_volume_idxs.empty()) {
+            const GLVolume& hover_volume = *m_volumes.volumes[get_first_hover_volume_idx()];
+            if (!hover_volume.is_modifier)
+                pressed_object_idx = hover_volume.object_idx();
+        }
+        if (mouse_in_layer_editing || pressed_object_idx != -1)
+            // Orca: edit the object of the bar under the mouse, though no frame was drawn since it got there,
+            // or the object under the mouse, if it has a bar of its own.
+            _update_layers_editing_objects(false, pressed_object_idx);
+        m_layers_editing.editing_on_object = pressed_object_idx != -1 && m_layers_editing.is_painted_object(pressed_object_idx);
+        if (mouse_in_layer_editing || m_layers_editing.editing_on_object) {
+            // A volume is selected and the mouse is inside the layer thickness bar or over an object it edits.
+            // No edit before the cursor is found on the object. On the bar, the height is set right away.
+            m_layers_editing.last_z = -1000.0f;
             // Start editing the layer height.
             m_layers_editing.state = LayersEditing::Editing;
             _perform_layer_editing_action(&evt);
@@ -8755,6 +8796,22 @@ void GLCanvas3D::_picking_pass()
 
     _update_volumes_hover_state();
 
+    // Orca: the variable layer height tool shows where a press would paint: the band is drawn on the object
+    // under the cursor, as it is for the cursor on a bar. Not where the press does not reach the scene.
+    if (is_layers_editing_enabled() && m_layers_editing.state != LayersEditing::Editing &&
+        hit.type == SceneRaycaster::EType::Volume && !m_hover_volume_idxs.empty() &&
+        !wxGetApp().imgui()->want_mouse() && !_is_mouse_over_top_toolbar(m_mouse.position) &&
+        !m_layers_editing.bar_rect_contains(*this, (float)m_mouse.position.x(), (float)m_mouse.position.y())) {
+        const GLVolume& hover_volume = *m_volumes.volumes[get_first_hover_volume_idx()];
+        if (!hover_volume.is_modifier) {
+            // As a press does, show the object under the cursor, if it has a bar of its own. This also takes in
+            // a selection changed since the last frame drawn.
+            _update_layers_editing_objects(false, hover_volume.object_idx());
+            if (m_layers_editing.is_painted_object(hover_volume.object_idx()))
+                m_layers_editing.hover_z = std::min(hit.position.z(), m_layers_editing.object_max_z());
+        }
+    }
+
     // IMEX ghost picking runs unconditionally after the normal pass: ghosts visually
     // occlude the main volumes, so their tooltip/click handling must fire even when a
     // regular volume hit also occurred underneath.
@@ -9332,10 +9389,11 @@ bool GLCanvas3D::_is_scene_cacheable() const
 #endif
 
     // The scene follows the cursor while the user drags, under a gizmo that draws at the cursor, and
-    // while the cursor is on the layer height bar, where the object shader draws a band at its height.
+    // while the cursor is on the layer height bar, where the object shader draws a band at its height,
+    // or on an object the layer height tool paints, where the band is drawn under the cursor.
     const GLGizmoBase* gizmo = m_gizmos.get_current();
-    const bool cursor_on_layers_bar = is_layers_editing_enabled() &&
-        m_layers_editing.bar_rect_contains(*this, (float)m_mouse.position.x(), (float)m_mouse.position.y());
+    const bool cursor_on_layers_bar = is_layers_editing_enabled() && (m_layers_editing.hover_z != -1000.0f ||
+        m_layers_editing.bar_rect_contains(*this, (float)m_mouse.position.x(), (float)m_mouse.position.y()));
     return !is_user_interacting() && (gizmo == nullptr || !gizmo->render_follows_cursor()) && !cursor_on_layers_bar;
 }
 
@@ -12831,12 +12889,12 @@ void GLCanvas3D::_update_volumes_hover_state()
     }
 }
 
-void GLCanvas3D::_update_layers_editing_objects(bool rendering)
+void GLCanvas3D::_update_layers_editing_objects(bool rendering, int hover_object_idx)
 {
     std::vector<int> object_idxs = this->is_layers_editing_enabled() ? this->get_layers_editing_object_idxs() : std::vector<int>();
     if (rendering)
         m_layers_editing.release_unselected_textures(*m_model, object_idxs);
-    const int shown = m_layers_editing.choose_shown_object(*this, *m_model, object_idxs);
+    const int shown = m_layers_editing.choose_shown_object(*this, *m_model, object_idxs, hover_object_idx);
     m_layers_editing.select_object(*m_model, shown);
     object_idxs.erase(std::remove(object_idxs.begin(), object_idxs.end(), shown), object_idxs.end());
     m_layers_editing.set_other_objects(std::move(object_idxs));
@@ -12850,9 +12908,23 @@ void GLCanvas3D::_perform_layer_editing_action(wxMouseEvent* evt)
 
     // A volume is selected. Test, whether hovering over a layer thickness bar.
     if (evt != nullptr) {
-        const Rect& rect = LayersEditing::get_bar_rect_screen(*this);
-        float b = rect.get_bottom();
-        m_layers_editing.last_z = m_layers_editing.object_max_z() * (b - evt->GetY() - 1.0f) / (b - rect.get_top());
+        if (m_layers_editing.editing_on_object) {
+            // Orca: Z under the cursor. Keep the last one when the cursor leaves the objects the stroke edits,
+            // or is over one of their modifiers, which the band is not drawn on.
+            const ClippingPlane clipping_plane = get_raycaster_clipping_plane();
+            const SceneRaycaster::HitResult hit = m_scene_raycaster.hit(Vec2d((double)evt->GetX(), (double)evt->GetY()),
+                wxGetApp().plater()->get_camera(), &clipping_plane);
+            if (hit.type == SceneRaycaster::EType::Volume && 0 <= hit.raycaster_id && hit.raycaster_id < (int)m_volumes.volumes.size()) {
+                const GLVolume& hit_volume = *m_volumes.volumes[hit.raycaster_id];
+                if (!hit_volume.is_modifier && m_layers_editing.is_painted_object(hit_volume.object_idx()))
+                    m_layers_editing.last_z = std::min(hit.position.z(), m_layers_editing.object_max_z());
+            }
+        }
+        else {
+            const Rect& rect = LayersEditing::get_bar_rect_screen(*this);
+            float b = rect.get_bottom();
+            m_layers_editing.last_z = m_layers_editing.object_max_z() * (b - evt->GetY() - 1.0f) / (b - rect.get_top());
+        }
         m_layers_editing.last_action =
             evt->ShiftDown() ? (evt->RightIsDown() ? LAYER_HEIGHT_EDIT_ACTION_SMOOTH : LAYER_HEIGHT_EDIT_ACTION_REDUCE) :
             (evt->RightIsDown() ? LAYER_HEIGHT_EDIT_ACTION_INCREASE : LAYER_HEIGHT_EDIT_ACTION_DECREASE);
