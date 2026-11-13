@@ -1,0 +1,20 @@
+{
+	"type": "filament",
+	"name": "QIDI PLA Rapido Matte @Qidi X-Smart 5 0.8 nozzle",
+	"inherits": "QIDI PLA Rapido Matte@X-Smart 5-Series",
+	"from": "system",
+	"setting_id": "Lk6kThAU8asJVgDt",
+	"instantiation": "true",
+	"additional_cooling_fan_speed_unseal": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"pressure_advance": [
+		"0.008"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 5 0.8 nozzle"
+	]
+}

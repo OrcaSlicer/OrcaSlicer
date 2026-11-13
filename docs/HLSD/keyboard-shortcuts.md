@@ -124,7 +124,9 @@ canvas loses focus, so a held key is one undo step.
 Menu labels, toolbar tooltips, gizmo names, the context menu and the shortcuts dialog
 read the registry, so a rebinding shows up in all of them. Each tracked menu item keeps
 its base label; `MainFrame::update_shortcut_labels()` appends the current binding
-again after an edit, which also installs the new wx accelerator.
+again after an edit, which also installs the new wx accelerator. The context menu's Clone
+and Reload from disk items sit in menus that are built once, so they refresh their binding
+on `wxEVT_UPDATE_UI` each time the menu opens instead.
 
 A chord that is unsafe as a menu accelerator, meaning a bare printable key, is appended
 to the label as plain text so the menu cannot take it away from text fields. The macOS
@@ -156,7 +158,8 @@ Control on the Global page, and from the `?` key on the page of the view that re
    the dialog should list it; the row's section heading is the `section_table` entry
    above it, so a new section needs an entry there too. Pick a default that does not
    collide inside its contexts; the `[Shortcuts]` tests check every default against the
-   others.
+   others. An empty chord `{}` leaves a shortcut unbound until the user picks a key,
+   as the jump-to-tab shortcuts are.
 2. Handle it in the dispatcher of its context: `MainFrame::handle_global_shortcut`,
    `GLCanvas3D::handle_shortcut`, `ObjectList::dispatch_shortcut`, or a gizmo's
    `on_tool_shortcut`. A gizmo that opens on a key sets `m_shortcut` in its constructor.

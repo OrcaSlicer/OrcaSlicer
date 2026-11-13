@@ -6,6 +6,9 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include "catch2/catch_approx.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PrintConfigConstants.hpp"
 #include "libslic3r/LocalesUtils.hpp"
@@ -301,6 +304,15 @@ TEST_CASE("Flush-volume warning predicate respects used filament transitions", "
 
         REQUIRE(has_zero_flush_volume_for_used_filaments(matrix, zero_multiplier, used_filaments));
     }
+}
+
+TEST_CASE("Enum list options copied from the print config defaults read and write their names", "[Config]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    // z_hop_types defaults to Slope Lift.
+    CHECK(config.opt_serialize("z_hop_types") == "Slope Lift");
+    config.set_deserialize_strict("z_hop_types", "Normal Lift");
+    CHECK(config.opt_serialize("z_hop_types") == "Normal Lift");
 }
 
 // TODO: https://github.com/SoftFever/OrcaSlicer/issues/11269 - Is this test still relevant? Delete if not.
@@ -879,6 +891,41 @@ TEST_CASE_METHOD(PluginResolverFixture,
     const std::vector<std::string> manifest = config.option<ConfigOptionStrings>("plugins")->values;
 
     CHECK(manifest == std::vector<std::string>{"x;;slicing-pipeline"});
+}
+
+TEST_CASE("unresolved_plugin_capabilities reports exactly the values the manifest drops", "[Config][plugins]") {
+    // GUI save entry points use this query to warn before a preset loses a plugin reference, so it
+    // must match the serializer's notion of "unresolved" -- same options, same resolver calls.
+    ConfigBase::set_resolve_capability_fn([](const std::string& name, const std::string& type) {
+        return name == "offline" ? std::string() : name + ";;" + type;
+    });
+    std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "printer_agent", "plugins"}));
+    config->option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = {"offline", "here"};
+    config->option<ConfigOptionString>("printer_agent", true)->value              = "agent";
+
+    const std::vector<UnresolvedPluginCapability> unresolved = config->unresolved_plugin_capabilities();
+    config->update_plugin_manifest();
+    const std::vector<std::string> manifest = config->option<ConfigOptionStrings>("plugins")->values;
+    ConfigBase::set_resolve_capability_fn(nullptr);
+
+    // Only the value no plugin can provide is reported; the resolved ones are not.
+    REQUIRE(unresolved.size() == 1);
+    CHECK(unresolved.front().opt_key == "slicing_pipeline_plugin");
+    CHECK(unresolved.front().capability_name == "offline");
+    // ... and the manifest holds the complementary set of references (keys() is in sorted order,
+    // so printer_agent comes first).
+    CHECK(manifest == std::vector<std::string>{"agent;;printer-connection", "here;;slicing-pipeline"});
+}
+
+TEST_CASE("unresolved_plugin_capabilities is empty without a resolver", "[Config][plugins]") {
+    // CLI/headless leaves the loaded manifest untouched when it serializes, so nothing is lost and
+    // there is nothing to prompt about.
+    ConfigBase::set_resolve_capability_fn(nullptr);
+    std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "plugins"}));
+    config->option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = {"offline"};
+    CHECK(config->unresolved_plugin_capabilities().empty());
 }
 
 TEST_CASE("H2C/A2L-era multi-nozzle and pre-heat config keys exist", "[config]") {
@@ -1535,6 +1582,16 @@ TEST_CASE("handle_legacy migrates the adaptive TPMS keys", "[Config]") {
     CHECK(ctxt.substitutions.empty());
 }
 
+TEST_CASE("normalize_fdm leaves feature filaments on Default", "[Config]") {
+    DynamicPrintConfig config;
+    config.set_key_value("sparse_infill_filament_id", new ConfigOptionInt(2));
+    config.set_key_value("internal_solid_filament_id", new ConfigOptionInt(0));
+    config.set_key_value("top_surface_filament_id", new ConfigOptionInt(3));
+    config.normalize_fdm();
+    CHECK(config.opt_int("internal_solid_filament_id") == 0);
+    CHECK_FALSE(config.has("bottom_surface_filament_id"));
+}
+
 TEST_CASE("silent_mode is no longer saved and is dropped on load", "[Config]") {
     DynamicPrintConfig full;
     full.apply(FullPrintConfig::defaults());
@@ -1850,4 +1907,123 @@ TEST_CASE("Every listed filament override is nullable", "[Config]")
         if (overrides.count(key) == 1)
             CHECK(def.nullable);
     }
+}
+
+TEST_CASE("Entries of a list applied by index onto an empty list are copied", "[Config][Regression]")
+{
+    const std::vector<std::string> ids = GENERATE(std::vector<std::string>{"GFA00"}, std::vector<std::string>{"GFA00", "GFA01"});
+    DynamicPrintConfig edited;
+    edited.set_key_value("filament_ids", new ConfigOptionStrings(ids));
+    std::vector<std::string> keys;
+    for (size_t i = 0; i < ids.size(); ++i)
+        keys.push_back("filament_ids#" + std::to_string(i));
+
+    DynamicPrintConfig saved;
+    saved.set_key_value("filament_ids", new ConfigOptionStrings());
+    saved.apply_only(edited, keys);
+    CHECK(saved.option<ConfigOptionStrings>("filament_ids")->values == ids);
+}
+
+TEST_CASE("An empty list applied by index replaces the target list", "[Config][Regression]")
+{
+    DynamicPrintConfig saved;
+    saved.set_key_value("filament_ids", new ConfigOptionStrings());
+    DynamicPrintConfig edited;
+    SECTION("target has entries") { edited.set_key_value("filament_ids", new ConfigOptionStrings({"GFA00"})); }
+    SECTION("target lacks the option") {}
+
+    edited.apply_only(saved, {"filament_ids#0"});
+    CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());
+}
+
+namespace {
+
+const Pointfs shared_area_bed = { { 0., 0. }, { 350., 0. }, { 350., 350. }, { 0., 350. } };
+
+// A full-depth strip of the 350 mm bed from x = `left` to x = `right`.
+Pointfs bed_strip(double left, double right) { return { { left, 0. }, { right, 0. }, { right, 350. }, { left, 350. } }; }
+
+DynamicPrintConfig shared_area_config(const std::vector<Pointfs> &extruder_areas)
+{
+    DynamicPrintConfig config;
+    config.set_key_value("printable_area", new ConfigOptionPoints(shared_area_bed));
+    config.set_key_value("extruder_printable_area", new ConfigOptionPointsGroups(extruder_areas));
+    return config;
+}
+
+} // namespace
+
+TEST_CASE("Overlapping extruder printable areas share their intersection", "[Config][BedShape]")
+{
+    const std::vector<Pointfs> areas  = { bed_strip(0., 200.), bed_strip(150., 350.) };
+    const DynamicPrintConfig   config = shared_area_config(areas);
+
+    const BoundingBox shared(get_shared_poly(areas, shared_area_bed).points);
+    CHECK(shared.min == Point(scaled(150.), 0));
+    CHECK(shared.max == Point(scaled(200.), scaled(350.)));
+    // Objects are placed on that area.
+    CHECK(get_bed_shape(config, true) == get_shared_poly(areas, shared_area_bed).points);
+}
+
+TEST_CASE("Extruder printable areas that do not overlap share no area", "[Config][BedShape]")
+{
+    const std::vector<Pointfs> areas = GENERATE(
+        std::vector<Pointfs>{ bed_strip(0., 175.), bed_strip(175., 350.) },                       // touching
+        std::vector<Pointfs>{ bed_strip(0., 100.), bed_strip(250., 350.) },                       // apart
+        std::vector<Pointfs>{ bed_strip(0., 200.), bed_strip(150., 350.), bed_strip(300., 350.) } // only the third is apart
+    );
+    CHECK(get_shared_poly(areas, shared_area_bed).points.empty());
+}
+
+TEST_CASE("An extruder printable area that is not a shape does not limit the shared area", "[Config][BedShape]")
+{
+    const Points whole_bed = get_bed_shape(shared_area_config({}), false);
+    REQUIRE(whole_bed.size() == shared_area_bed.size());
+
+    SECTION("no areas at all")
+    {
+        CHECK(get_shared_poly({}, shared_area_bed).points == whole_bed);
+    }
+    SECTION("a lone area with too few points")
+    {
+        const size_t points = GENERATE(size_t(0), size_t(1), size_t(2));
+        const Pointfs area(points, Vec2d(10., 10.));
+        CHECK(get_shared_poly({ area }, shared_area_bed).points == whole_bed);
+    }
+    SECTION("such an area next to a real one leaves the real one")
+    {
+        const bool    malformed_first = GENERATE(false, true);
+        const Pointfs left            = bed_strip(0., 200.);
+        const std::vector<Pointfs> areas = malformed_first ? std::vector<Pointfs>{ Pointfs{}, left } : std::vector<Pointfs>{ left, Pointfs{} };
+        const BoundingBox shared(get_shared_poly(areas, shared_area_bed).points);
+        CHECK(shared.min == Point(0, 0));
+        CHECK(shared.max == Point(scaled(200.), scaled(350.)));
+    }
+}
+
+TEST_CASE("Objects are placed on the whole bed when the extruders share no area", "[Config][BedShape]")
+{
+    const DynamicPrintConfig config = shared_area_config({ bed_strip(0., 175.), bed_strip(175., 350.) });
+    const Points whole_bed = get_bed_shape(config, false);
+    REQUIRE(whole_bed.size() == shared_area_bed.size());
+
+    CHECK(get_bed_shape(config, true) == whole_bed);
+
+    PrintConfig print_config;
+    print_config.apply(config, true);
+    CHECK(get_bed_shape(print_config, true) == whole_bed);
+}
+
+TEST_CASE("The print speed table keeps a bed outline when the extruders share no area", "[Config][BedShape]")
+{
+    // The outline is the placement bed less the exclusion areas, and its first piece is read.
+    DynamicPrintConfig config = shared_area_config({ bed_strip(0., 175.), bed_strip(175., 350.) });
+    config.set_key_value("bed_exclude_area", new ConfigOptionPoints({ { 0., 0. }, { 20., 0. }, { 20., 20. }, { 0., 20. } }));
+    PrintConfig print_config;
+    print_config.apply(config, true);
+
+    Model::setPrintSpeedTable(config, print_config);
+    const BoundingBox outline(Model::getBedPolygon().points);
+    CHECK(outline.min == Point(0, 0));
+    CHECK(outline.max == Point(scaled(350.), scaled(350.)));
 }

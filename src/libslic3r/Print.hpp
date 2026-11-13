@@ -405,6 +405,10 @@ public:
     // The height is snug.
     coord_t 				     height() const         { return m_size.z(); }
     double                      max_z() const         { return m_max_z; }
+    // Top of the printed object above the bed, scaled: object_print_z_max of the slicing parameters, so the
+    // raft and the Z shrinkage compensation count, as in the printable-height check of Print::validate().
+    // On a belt printer that is the height in the tilted slicing frame, so the model's own top is used there.
+    double                      print_z_max() const;
     // Centering offset of the sliced mesh from the scaled and rotated mesh of the model.
     const Point& 			     center_offset() const  { return m_center_offset; }
     const AdaptiveInfillField*       adaptive_infill_field(AdaptiveInfillMode mode) const { return m_adaptive_infill_fields[size_t(mode)].get(); }
@@ -494,6 +498,8 @@ public:
     // The slicing parameters are dependent on various configuration values
     // (layer height, first layer height, raft settings, print nozzle diameter etc).
     const SlicingParameters&    slicing_parameters() const { return m_slicing_params; }
+    // Orca: whether precise Z height shapes the layers of this object; see Print::precise_z_height_overridden().
+    bool                        precise_z_height() const;
     // Orca: XYZ shrinkage compensation has introduced the const Vec3d &object_shrinkage_compensation parameter to the function below
     static SlicingParameters    slicing_parameters(const DynamicPrintConfig &full_config, const ModelObject &model_object, float object_max_z, const Vec3d &object_shrinkage_compensation, std::vector<int> variant_index = std::vector<int>());
 
@@ -965,6 +971,8 @@ struct PrintStatistics
     double                          total_wipe_tower_filament;
     unsigned int                    initial_tool;
     unsigned int                    initial_no_support_tool;
+    // Orca: underscore-separated list of the filament types really extruded on the plate.
+    std::string                     printing_filament_types;
     std::map<size_t, double>        filament_stats;
 
     // Config with the filled in print statistics.
@@ -984,6 +992,7 @@ struct PrintStatistics
         total_wipe_tower_filament = 0.;
         initial_tool           = 0;
         initial_no_support_tool = 0;
+        printing_filament_types.clear();
         filament_stats.clear();
     }
     static const std::string FilamentUsedG;
@@ -1185,8 +1194,26 @@ public:
 
     // Wipe tower support.
     bool                        has_wipe_tower() const;
+    // Orca: has_wipe_tower() only says the prime tower is enabled for a plate that may change filaments.
+    // This says the plate prints a tower whatever slicing finds; when false, whether it does depends on
+    // the support that slicing generates.
+    bool                        wipe_tower_certain_before_slicing() const;
+    // Orca: the layering a prime tower needs, all objects sharing their layers. Empty if they do.
+    StringObjectException       validate_wipe_tower_layering() const;
     // Belt purge prism (belt-mode replacement for the wipe tower).
     bool                        has_belt_purge_tower() const;
+    // Orca: precise Z height fits the last layers of each object to its own height. With a prime tower
+    // and variable layer height on objects of different heights, that puts the last layers of a lower
+    // object between the layers of the others. The tower can still print them, each joined to the tower
+    // layer below (ToolOrdering::fill_wipe_tower_partitions()), but a joined layer holds the purges of
+    // both, which makes the tower deeper. So precise Z height is left out of the whole print instead:
+    // the objects stay on the same layers, and the last layer of a lower object ends where the shared
+    // layers do, a fraction of a layer off its own top.
+    // It keys on has_wipe_tower(), which reads the config, so it also applies when the tower turns out
+    // not to be needed after slicing, such as support in another filament that no object needs. Keying
+    // it on wipe_tower_certain_before_slicing() would keep precise Z there, but a plate whose support
+    // does need the tower would then be refused after slicing.
+    bool                        precise_z_height_overridden() const { return m_precise_z_height_overridden; }
     const WipeTowerData&        wipe_tower_data(size_t filaments_cnt = 0) const;
     const ToolOrdering& 		tool_ordering() const { return m_tool_ordering; }
 
@@ -1235,7 +1262,13 @@ public:
     const std::map<const PrintObject*, ToolOrdering>& sequential_dynamic_orderings() const { return m_sequential_dynamic_orderings; }
 
     const std::vector<std::vector<DynamicPrintConfig>>& get_extruder_filament_info() const { return m_extruder_filament_info; }
-    void set_extruder_filament_info(const std::vector<std::vector<DynamicPrintConfig>>& filament_info) { m_extruder_filament_info = filament_info; }
+    // Two-phase: the setter only stashes the payload, so Print::apply() can invalidate the grouping
+    // steps once the inventory actually changed.
+    void set_extruder_filament_info(const std::vector<std::vector<DynamicPrintConfig>>& filament_info)
+    {
+        m_pending_extruder_filament_info = filament_info;
+        m_extruder_filament_info_pending = true;
+    }
 
     void set_geometric_unprintable_filaments(const std::vector<std::set<int>> &unprintables_filament_ids) { m_geometric_unprintable_filaments = unprintables_filament_ids; }
     std::vector<std::set<int>> get_geometric_unprintable_filaments() const { return m_geometric_unprintable_filaments;}
@@ -1308,6 +1341,10 @@ public:
     //BBS: export gcode from previous gcode file from 3mf
     void set_gcode_file_ready();
     void set_gcode_file_invalidated();
+    // For the background thread that exported the G-code, when a step that then edits the file in place
+    // (post-processing scripts or plugins) failed and may have left it half edited: the next run exports
+    // the G-code again instead of reusing it.
+    void invalidate_gcode_export_from_worker() { this->invalidate_step_from_worker(psGCodeExport); }
     void export_gcode_from_previous_file(const std::string& file, GCodeProcessorResult* result, ThumbnailsGeneratorCallback thumbnail_cb = nullptr);
     // Re-reads the moves and line offsets of `result` from its G-code file after the file was rewritten in
     // place (post-processing scripts or plugins), so the preview and its G-code window follow the file on
@@ -1329,7 +1366,9 @@ public:
     }
 
     //BBS
-    static StringObjectException sequential_print_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr);
+    // warning, if given, names the instances printed later than their place in the object list to avoid a collision.
+    static StringObjectException sequential_print_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr,
+                                                                  StringObjectException *warning = nullptr);
     // Orca: pre-slice clearance check for a prime tower compacted by "No sparse layers".
     static StringObjectException compacted_wipe_tower_clearance_valid(const Print &print, Polygons *polygons = nullptr, std::vector<std::pair<Polygon, float>>* height_polygons = nullptr);
     ConflictResultOpt            get_conflict_result() const { return m_conflict_result; }
@@ -1377,7 +1416,7 @@ public:
     static int get_compatible_filament_type(const std::set<int>& types);
 
     bool is_all_objects_are_short() const {
-        return std::all_of(this->objects().begin(), this->objects().end(), [&](PrintObject* obj) { return obj->height() < scale_(this->config().nozzle_height.value); });
+        return std::all_of(this->objects().begin(), this->objects().end(), [&](PrintObject* obj) { return obj->print_z_max() < scale_(this->config().nozzle_height.value); });
     }
 
     // Post-slicing config-slot resolvers: map a (filament, layer) pair to the index of its
@@ -1529,6 +1568,9 @@ private:
     Points                                  m_skirt_convex_hull;
 
     std::vector<std::vector<DynamicPrintConfig>> m_extruder_filament_info;
+    // Payload handed to set_extruder_filament_info(), installed by Print::apply(). See the setter.
+    std::vector<std::vector<DynamicPrintConfig>> m_pending_extruder_filament_info;
+    bool                                       m_extruder_filament_info_pending { false };
 
     // Logical (extruder, nozzle) grouping result, set by ToolOrdering during reorder.
     std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> m_nozzle_group_result;
@@ -1559,6 +1601,7 @@ private:
     // Estimated print time, filament consumed.
     PrintStatistics                         m_print_statistics;
     bool                                    m_support_used {false};
+    bool                                    m_precise_z_height_overridden {false};
     StatisticsByExtruderCount               m_statistics_by_extruder_count;
 
     std::vector<unsigned int> m_slice_used_filaments;
@@ -1650,6 +1693,8 @@ struct CompactedTowerClearance
     double far_clearance;
     // The object sits within the toolhead radius, so the head body limits it rather than the rod.
     bool   near_body;
+    // The object sits within the nozzle cone, so it may not rise above the tower at all.
+    bool   near_nozzle;
     // Horizontal clearance this particular object has to keep from the tower: the full toolhead
     // radius once it rises past the nozzle cone, the bare cone while it stays below. It is what the
     // error message quotes and what the plater grows the object outline by.

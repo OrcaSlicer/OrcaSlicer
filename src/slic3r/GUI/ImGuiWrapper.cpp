@@ -13,6 +13,7 @@
 #include <utility>
 #include <string_view>
 #include <cstring>
+#include <chrono>
 #include "libslic3r/Point.hpp"
 #include <functional>
 #include <optional>
@@ -57,7 +58,6 @@
 #include <libslic3r/ClipperUtils.hpp>
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Color.hpp"
-#include "libslic3r/Shape/TextShape.hpp"
 
 #include "3DScene.hpp"
 #include "GUI.hpp"
@@ -587,6 +587,16 @@ void ImGuiWrapper::new_frame()
     }
 
     ImGuiIO& io = ImGui::GetIO();
+
+    // ORCA ImGui times button and key repeat with io.DeltaTime. At its default of 1/60 s per frame the clock
+    // counts frames, so a held +/- button repeats as fast as the canvas renders. Feed it the real frame time,
+    // capped at 1/60 s so the idle gaps of the event-driven canvas don't count as time held.
+    const auto now = std::chrono::steady_clock::now();
+    if (m_last_frame_time != std::chrono::steady_clock::time_point{}) {
+        const float dt = std::chrono::duration<float>(now - m_last_frame_time).count();
+        io.DeltaTime   = std::clamp(dt, 1e-4f, 1.f / 60.f); // ImGui asserts a positive DeltaTime
+    }
+    m_last_frame_time = now;
 
     ImGui::NewFrame();
     m_new_frame_open = true;
@@ -3147,7 +3157,6 @@ void ImGuiWrapper::load_fonts_texture()
     //    io.Fonts->Flags |= ImFontAtlasFlags_NoPowerOfTwoHeight;
     //    ImFontConfig cfg = ImFontConfig();
     //    cfg.OversampleH = cfg.OversampleV = 1;
-    //    std::map<std::string, std::string> sys_fonts_map = get_occt_fonts_maps(); // map<font name, font path>
     //    im_fonts_map.clear();                                                     // map<font name, ImFont*>
     //    BOOST_LOG_TRIVIAL(info) << "init_im_font start";
     //    for (auto sys_font : sys_fonts_map) {

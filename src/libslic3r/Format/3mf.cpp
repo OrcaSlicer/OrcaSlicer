@@ -157,6 +157,8 @@ static constexpr const char* VOLUME_TYPE_KEY = "volume_type";
 static constexpr const char* PRECISE_SEAM_TYPE_KEY = "precise_seam_type";
 // Preserve dormant settings without turning an older reader's modifier into an active override.
 static constexpr char PRECISE_SEAM_CONFIG_PREFIX[] = "precise_seam_config:";
+// This format does not store paint for painted modifiers, so they are written as modifiers whose settings readers drop.
+static constexpr char PAINTED_MODIFIER_CONFIG_PREFIX[] = "painted_modifier_config:";
 static constexpr const char* MATRIX_KEY = "matrix";
 static constexpr const char* SOURCE_FILE_KEY = "source_file";
 static constexpr const char* SOURCE_OBJECT_ID_KEY = "source_object_id";
@@ -3196,12 +3198,12 @@ ModelVolumeType type_from_string(const std::string &s)
 
                             // stores volume's modifier field (legacy, to support old slicers)
                             // Readers with only the legacy flag still see helper geometry as a modifier.
-                            if (volume->is_modifier() || volume->is_precise_seam())
+                            if (volume->is_modifier() || volume->is_precise_seam() || volume->is_painted_modifier())
                                 stream << "   <" << METADATA_TAG << " " << TYPE_ATTR << "=\"" << VOLUME_TYPE << "\" " << KEY_ATTR << "=\"" << MODIFIER_KEY << "\" " << VALUE_ATTR << "=\"1\"/>\n";
                             // This Prusa-format reader uses ParameterModifier, not Bambu's modifier_part.
                             // The base type overrides the legacy flag, so it must also be backward-compatible.
                             // Use the same spelling for ordinary modifiers, including a downgraded seam helper.
-                            const bool store_as_modifier = volume->is_modifier() || volume->is_precise_seam();
+                            const bool store_as_modifier = volume->is_modifier() || volume->is_precise_seam() || volume->is_painted_modifier();
                             stream << "   <" << METADATA_TAG << " " << TYPE_ATTR << "=\"" << VOLUME_TYPE << "\" " << KEY_ATTR << "=\"" << VOLUME_TYPE_KEY << "\" " <<
                                 VALUE_ATTR << "=\"" << (store_as_modifier ? "ParameterModifier" : ModelVolume::type_to_string(volume->type())) << "\"/>\n";
                             if (volume->is_precise_seam())
@@ -3242,8 +3244,8 @@ ModelVolumeType type_from_string(const std::string &s)
                             // stores volume's config data
                             for (const std::string& key : volume->config.keys()) {
                                 // Seam settings are inactive but must survive changing the helper back into a part/modifier.
-                                const bool dormant = volume->is_precise_seam();
-                                const std::string stored_key = dormant ? PRECISE_SEAM_CONFIG_PREFIX + key : key;
+                                const std::string stored_key = volume->is_precise_seam()     ? PRECISE_SEAM_CONFIG_PREFIX + key :
+                                                               volume->is_painted_modifier() ? PAINTED_MODIFIER_CONFIG_PREFIX + key : key;
                                 const std::string value = volume->config.opt_serialize(key);
                                 // Config serialization is C-style, not XML: escape active settings too, including tabs.
                                 stream << "   <" << METADATA_TAG << " " << TYPE_ATTR << "=\"" << VOLUME_TYPE << "\" " << KEY_ATTR << "=\"" << stored_key << "\" " << VALUE_ATTR << "=\"" << xml_escape_double_quotes_attribute_value(value) << "\"/>\n";

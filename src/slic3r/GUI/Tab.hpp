@@ -44,6 +44,7 @@
 #include "wxExtensions.hpp"
 #include "ConfigManipulation.hpp"
 #include "OptionsGroup.hpp"
+#include "OptionStateRegistry.hpp"
 #include "libslic3r/Preset.hpp"
 //BBS: GUI refactor
 #include "Notebook.hpp"
@@ -378,7 +379,11 @@ public:
 	void		compare_preset();
 	void		transfer_options(const std::string&name_from, const std::string&name_to, std::vector<std::string> options);
 	//BBS: add project embedded preset relate logic
-	void        save_preset(std::string name = std::string(), bool detach = false, bool save_to_project = false, bool from_input = false, std::string input_name = "");
+	// Returns false when the save was cancelled (the unresolved-plugin warning, the temperature
+	// safety check or the save-name dialog), so callers that were about to discard the edited
+	// preset can abort instead. `plugin_warning_confirmed` is set only by a caller that already ran
+	// the warning (UnsavedChangesDialog::save) and must not repeat it.
+	bool        save_preset(std::string name = std::string(), bool detach = false, bool save_to_project = false, bool from_input = false, std::string input_name = "", bool plugin_warning_confirmed = false);
 	//void		save_preset(std::string name = std::string(), bool detach = false);
 
 	void		delete_preset();
@@ -468,8 +473,9 @@ public:
 	std::pair<OG_CustomCtrl*, bool*> get_custom_ctrl_with_blinking_ptr(const t_config_option_key& opt_key, int opt_index = -1);
 
     Field*          get_field(const t_config_option_key &opt_key, Page** selected_page, int opt_index = -1);
-    void            toggle_option(const std::string &opt_key, bool toggle, int opt_index = -1);
-    void            toggle_line(const std::string &opt_key, bool toggle, int opt_index = -1); // BBS: hide some line
+    void            toggle_option(const std::string &opt_key, bool toggle, int opt_index = -1, const wxString& reason = {});
+    void            toggle_line(const std::string &opt_key, bool toggle, int opt_index = -1, const wxString& reason = {});
+    const OptionStateRegistry& option_state_registry() const { return m_option_state_registry; }
     // Renames the row that owns the option. `label` is the untranslated English msgid (an L("...")
     // string); it is translated for display and kept as the row's English search alias.
     void            set_option_label(const std::string &opt_key, const wxString &label, int opt_index = -1);
@@ -492,6 +498,7 @@ public:
 
 	DynamicPrintConfig*	get_config() { return m_config; }
     PresetCollection *  get_presets() { return m_presets; }
+    const std::vector<PageShp>& pages() const { return m_pages; }
     TabPresetComboBox *  get_combo_box() { return m_presets_choice; }
 
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value);
@@ -530,7 +537,8 @@ public:
     void        sync_excluder();
 	void        parse_extruder_selection(int selection, int &extruder_id, NozzleVolumeType &nozzle_type);
     int         calculate_selection_index_for_extruder(int extruder_id, NozzleVolumeType nozzle_type);
-	bool        get_extruder_sync_enable_state(int extruder_id);
+	std::vector<int> get_extruder_sync_targets(int extruder_id);
+	bool        extruder_sync_enabled();
 	int         get_current_active_extruder();
 
 	std::vector<wxString>  generate_extruder_options();
@@ -560,11 +568,15 @@ protected:
     void			filter_diff_option(std::vector<std::string> &options);
 
     ConfigManipulation m_config_manipulation;
+    OptionStateRegistry m_option_state_registry;
     std::string m_last_sparse_infill_rotate_template_value;
     ConfigManipulation get_config_manipulation();
     friend class EditGCodeDialog;
     friend class PublishSettingsDialog;
 };
+
+// Resolves the same object/global settings owner for navigation and availability descriptions.
+Tab* get_tab_for_option(const std::string& opt_key, Preset::Type type);
 
 class TabPrint : public Tab
 {
@@ -581,6 +593,9 @@ public:
 	void		update() override;
 	void		clear_pages() override;
 	bool 		supports_printer_technology(const PrinterTechnology tech) const override { return tech == ptFFF; }
+	// Column of the extruder's variant in the per-variant process vectors, as the extruder switch
+	// selects it; -1 when the printer has no such extruder variant.
+	int			extruder_variant_index(int extruder_id, NozzleVolumeType nozzle_type);
 
 private:
 	ogStaticText*	m_recommended_thin_wall_thickness_description_line = nullptr;

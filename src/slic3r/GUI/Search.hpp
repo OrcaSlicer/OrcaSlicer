@@ -128,12 +128,14 @@ class SearchItem : public wxWindow
 {
 public:
     wxString      m_text;
+    wxString      m_availability;
     int           m_index;
     SearchDialog* m_sdialog{ nullptr };
     SearchObjectDialog* m_search_object_dialog{ nullptr };
     GUI::ObjectDataViewModelNode* m_item{ nullptr };
 
-    SearchItem(wxWindow *parent, wxString text, int index, SearchDialog *sdialog = nullptr, SearchObjectDialog* search_dialog = nullptr, wxString tooltip = "");
+    SearchItem(wxWindow *parent, wxString text, int index, SearchDialog *sdialog = nullptr, SearchObjectDialog* search_dialog = nullptr,
+               wxString tooltip = "", wxString availability = {});
     ~SearchItem(){};
 
     wxSize DrawTextString(wxDC &dc, const wxString &text, const wxPoint &pt, bool bold);

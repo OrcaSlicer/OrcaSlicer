@@ -9,6 +9,7 @@
 #include "Notebook.hpp"
 #include "NotificationManager.hpp"
 #include "OptionsGroup.hpp"
+#include "OptionStateRegistry.hpp"
 #include "Plater.hpp"
 #include "SettingsIndex.hpp"
 #include "Tab.hpp"
@@ -40,6 +41,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <nlohmann/json.hpp>
 
 namespace Slic3r { namespace GUI {
 
@@ -781,13 +783,15 @@ void ActionRegistry::materialize_setting_actions()
 
     std::unordered_set<std::string> seen;
     for (const Search::Option& opt : options) {
-        // The row's live state drives both the hidden filter and the title (labels can change at
-        // runtime, e.g. brim_width -> "Brim ear radius"). Hidden rows are skipped, not marked seen.
-        Tab* tab = wxGetApp().get_tab(opt.type);
+        // Keep recorded hidden settings searchable so the detail strip can explain their state.
+        // Unrecorded row restrictions retain their existing visibility behavior.
+        Tab* tab = get_tab_for_option(opt.opt_key(), opt.type);
+        const std::string key = opt.opt_key().substr(0, opt.opt_key().find('#'));
+        const OptionStateRegistry* registry = tab ? &tab->option_state_registry() : nullptr;
         Tab::SettingRowState row;
         if (tab)
             row = tab->setting_row_state(opt.opt_key());
-        if (!row.visible)
+        if (!row.visible && (!registry || !registry->hidden_reason(key)))
             continue;
 
         const std::string id = SettingAction::id_for(opt.opt_key(), opt.type);
@@ -823,6 +827,11 @@ void ActionRegistry::materialize_setting_actions()
 
         // Footer description + wiki affordance; only settings whose row declared a wiki path have one.
         action->tooltip = opt.tooltip;
+        if (registry) {
+            const std::string availability = into_u8(registry->description(key));
+            if (!availability.empty())
+                action->tooltip = availability + (action->tooltip.empty() ? "" : "\n\n" + action->tooltip);
+        }
         if (!opt.wiki_path.empty())
             action->help_url = into_u8(OptionsGroup::get_url(opt.wiki_path));
 
