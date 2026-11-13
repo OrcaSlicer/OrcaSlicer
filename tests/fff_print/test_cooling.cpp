@@ -19,6 +19,7 @@
 #include "libslic3r/libslic3r.h"
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -215,13 +216,16 @@ struct EstimatedLayer
     float  fan  = -1.f;
 };
 
-static std::vector<EstimatedLayer> estimated_layers(const TriangleMesh &mesh, const DynamicPrintConfig &config)
+static std::vector<EstimatedLayer> estimated_layers(const TriangleMesh &mesh, const DynamicPrintConfig &config,
+                                                    std::string *gcode_text = nullptr)
 {
     Print print;
     Model model;
     init_print({ mesh }, print, model, config);
     GCodeProcessorResult result;
-    gcode(print, &result);
+    std::string text = gcode(print, &result);
+    if (gcode_text)
+        *gcode_text = std::move(text);
     std::vector<EstimatedLayer> layers;
     for (const GCodeProcessorResult::MoveVertex &move : result.moves) {
         if (move.layer_id >= layers.size())
@@ -314,4 +318,82 @@ TEST_CASE("Fan speed follows the layer time with acceleration", "[Cooling]")
         // The cooling rounds the speed down to a whole percent, and M106 takes it in 1/255 steps.
         CHECK_THAT(layers[i].fan, Catch::Matchers::WithinAbs(t * minimum_fan + (1. - t) * full_fan, 1.5));
     }
+}
+
+// The speeds of the outer wall extrusions, in mm/s.
+static std::vector<double> outer_wall_speeds(const std::string &gcode, const DynamicPrintConfig &config)
+{
+    std::vector<double> speeds;
+    bool outer_wall = false;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(gcode, [&speeds, &outer_wall](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view comment = line.comment();
+        if (comment.rfind("TYPE:", 0) == 0)
+            outer_wall = comment == "TYPE:Outer wall";
+        if (outer_wall && line.extruding(self) && line.dist_XY(self) > 0.)
+            speeds.push_back(line.new_F(self) / MM_PER_MIN);
+    });
+    return speeds;
+}
+
+TEST_CASE("Layer cooling slowdown keeps outer walls out of the resonance avoidance range", "[Cooling]")
+{
+    constexpr double min_speed = 40.;
+    constexpr double max_speed = 90.;
+    // With inner walls and infill to slow down instead, the outer walls stay at the top of the range. A lone outer
+    // wall cannot pass its time on, so it drops to the bottom; its layers are quick, hence the shorter layer time.
+    const bool   lone_wall          = GENERATE(false, true);
+    const double held_speed         = lone_wall ? min_speed : max_speed;
+    const double minimum_layer_time = lone_wall ? 2. : 10.;
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "bottom_shell_layers",           lone_wall ? 0 : 3 },
+        { "dont_slow_down_outer_wall",     false },
+        { "enable_arc_fitting",            "disabled" },
+        { "enable_overhang_speed",         false },
+        { "filament_max_volumetric_speed", 100 },
+        { "initial_layer_print_height",    0.3 },
+        // Below the range, so resonance avoidance leaves it alone.
+        { "initial_layer_speed",           30 },
+        { "layer_height",                  0.3 },
+        { "max_resonance_avoidance_speed", max_speed },
+        { "min_resonance_avoidance_speed", min_speed },
+        { "outer_wall_speed",              200 },
+        { "slow_down_for_layer_cooling",   true },
+        { "slow_down_layer_time",          minimum_layer_time },
+        { "slow_down_layers",              0 },
+        { "slow_down_min_speed",           10 },
+        { "sparse_infill_density",         lone_wall ? "0%" : "15%" },
+        { "top_shell_layers",              lone_wall ? 0 : 3 },
+        { "wall_loops",                    lone_wall ? 1 : 3 },
+    });
+
+    // A cone's layers shrink upwards, so the slowdown deepens through the range.
+    std::string without_gcode;
+    std::string with_gcode;
+    config.set_deserialize_strict({ { "resonance_avoidance", false } });
+    const std::vector<EstimatedLayer> without = estimated_layers(make_cone(15., 15.), config, &without_gcode);
+    config.set_deserialize_strict({ { "resonance_avoidance", true } });
+    const std::vector<EstimatedLayer> with = estimated_layers(make_cone(15., 15.), config, &with_gcode);
+
+    std::vector<double> without_in_range;
+    std::vector<double> with_in_range;
+    bool                held = false;
+    for (double speed : outer_wall_speeds(without_gcode, config))
+        if (speed > min_speed + 0.5 && speed < max_speed - 0.5)
+            without_in_range.push_back(speed);
+    for (double speed : outer_wall_speeds(with_gcode, config)) {
+        if (speed > min_speed + 0.5 && speed < max_speed - 0.5)
+            with_in_range.push_back(speed);
+        held |= std::abs(speed - held_speed) < 0.1;
+    }
+    REQUIRE_FALSE(without_in_range.empty());
+    CHECK(with_in_range.empty());
+    CHECK(held);
+
+    // No layer gets shorter than the slowdown made it without resonance avoidance, within the slowdown's tolerance.
+    REQUIRE(with.size() == without.size());
+    for (size_t i = 0; i < with.size(); ++i)
+        CHECK(with[i].time > 0.99 * std::min(without[i].time, minimum_layer_time));
 }
