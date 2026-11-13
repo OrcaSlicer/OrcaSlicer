@@ -490,12 +490,16 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
             }
 
             double negvalue = std::min(std::max(((is_negative && fill_form) ? (limit_fill_z - fill_z) : (fill_z - start_fill_z)) / (limit_fill_z - start_fill_z), 0.), 1.);
-
+            
             switch (fill_form) {
             case 0:  break;                                                                        // \-joint, linear like /, but rounding up for some parameters
             case 1:  break;                                                                        // /-joint, linear
-            case 2:  negvalue += (double) rand() / RAND_MAX - .5; break;                           // ^-joint, pseudorandom, disperse at middle line
-            case 3:  negvalue  = (double) rand() / RAND_MAX; break;                                // ~-joint, random, fill the whole range
+            case 2:  {                                                                             // ^-joint, pseudorandom, disperse at middle line
+                std::mt19937_64 rng(layer_id);
+                negvalue += double(rng()) / double(std::mt19937_64::max()) - .5; break;}
+            case 3:  {                                                                             // ~-joint, random, fill the whole range
+                std::mt19937_64 rng(layer_id);
+                negvalue  = double(rng()) / double(std::mt19937_64::max()); break;}
             case 4:  negvalue -= sin(negvalue * PI * 2.) / (PI * 2.); break;                       // N-joint, sinus, vertical start
             case 5:  negvalue -= sin(negvalue * PI * 2.) / (PI * 4.); break;                       // n-joint, sinus, vertical start, lazy
             case 6:  negvalue += sin(negvalue * PI * 2.) / (PI * 2.); break;                       // Z-joint, sinus, horizontal start
