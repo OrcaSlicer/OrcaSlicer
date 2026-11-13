@@ -14,6 +14,7 @@
 #include <queue>
 #include <unordered_set>
 #include <utility>
+#include <random>
 
 #include "../ClipperUtils.hpp"
 #include "../Geometry.hpp"
@@ -101,16 +102,23 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
     // Convert the id to an index. Layer::id() counts the raft layers, object->layers() does not.
     const size_t first_object_layer_id = object->get_layer(0)->id();
     layer_id                           = layer_id > first_object_layer_id ? layer_id - first_object_layer_id : 0;
-    const std::string search_string    = "\\/^~NnZz$LlUuQq#JjCOo|";
-    const std::string coord_string     = "XxYy";
-    const std::string density_string   = "Dd";
-    const std::string angle_string     = "A+-_0123456789.";
-    std::string template_string2       = std::regex_replace(template_string, std::regex(";"), ""); // remove the easy-reading separators
-    if (regex_search(template_string2, std::regex("[+\\-%AXYxyDd_*@&\'\"cm\\" + search_string + "]"))) { // template metalanguage of rotating infill
-        // Check for the "0X" character combination, which may be interpreted incorrectly by the strtod() function. 
+    static const std::string search_string   = "\\/^~NnZz$LlUuQq#JjCOo|";
+    static const std::string coord_string    = "XxYy";
+    static const std::string density_string  = "Dd";
+    static const std::string angle_string    = "A+-_0123456789.";
+    static const std::string replace12       = "$1$2"; 
+    static const std::regex  del("[\\s,]+");
+    static const std::regex  hex("(^|\\D)0+([xX])");
+    static const std::regex  metalang_sign("[+\\-%AXYxyDd_*@&\'\"cm\\" + search_string + "]");
+    static const std::regex  semicolon(";");
+
+    std::string template_string2 = std::regex_replace(template_string, semicolon, std::string()); // remove the easy-reading separators
+    // Built once: layers and objects are filled in parallel, and building a std::regex writes to a cache of the
+    // shared locale, which is a data race.
+    if (regex_search(template_string2, metalang_sign)) { // template metalanguage of rotating infill
+        // Check for the "0X" character combination, which may be interpreted incorrectly by the strtod() function.
         // Replace it with "X". The cases like "10X" not replaced.
-        template_string2 = std::regex_replace(template_string2, std::regex("(^|\\D)0+([xX])"), "$1$2");
-        std::regex del("[\\s,]+");
+        template_string2 = std::regex_replace(template_string2, hex, replace12);
         std::sregex_token_iterator it(template_string2.begin(), template_string2.end(), del, -1);
         std::vector<std::string> tk;                    // metacommands array
         std::sregex_token_iterator end;
@@ -139,12 +147,12 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
         double multiline_start = fixed_multiline;       // the initial position of the miltiline for the current range
         double multiline_add   = 0.;                    // additive for the miltiline step
         
-        double start_fill_z    = object->get_layer(0)->print_z;
-        double limit_fill_z    = start_fill_z;
         // The raft height, or 0 without a raft.
         const double print_z_offset = object->slicing_parameters().object_print_z_min;
-        size_t fill_form       = std::string::npos;
-        bool is_negative       = false;
+        double start_fill_z = object->get_layer(0)->bottom_z();
+        double limit_fill_z = start_fill_z;
+        size_t fill_form    = std::string::npos;
+        bool is_negative    = false;
         // Vector of stop marks. "1" is the one-time running command, "2" is the dumb command
         // If the all values entire vector is unequal to 0, then stop the parsing from repeating.
         std::vector<int> stop(tk_size, 0);
@@ -154,8 +162,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
         for (int i = 0; i <= layer_id; i++) {
             double fill_z = object->get_layer(i)->print_z;
             
-            if (limit_fill_z <= object->get_layer(i)->print_z + EPSILON) {
-
+            if (limit_fill_z <= fill_z + EPSILON) {
                 if (repeats-- > 0) { // if repeats >0 then restore parameters for new iteration
                     double next_fill_z = limit_fill_z - start_fill_z;
                     start_fill_z       = limit_fill_z;
@@ -1407,7 +1414,7 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         InfillParams complex(calculate_infill_position_rad(layer.object(), layer.id(),
                                                                             align_offset + (params.fixed_angle ?
                                                                                 0. : Geometry::deg2rad(region_config.solid_infill_direction.value)),
-                                                                            region_config.solid_infill_rotate_template.value, 1,
+                                                                            region_config.solid_infill_rotate_template.value, 100., 1,
                                                                             region_config.internal_solid_infill_line_width.value));
                         params.angle = complex.angle;
                         params.shift = complex.shift.cast<coord_t>();
