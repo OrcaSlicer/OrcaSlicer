@@ -1317,7 +1317,7 @@ bool GLVolumeCollection::check_outside_state(const BuildVolume &build_volume, Mo
     GUI::PartPlate* curr_plate = GUI::wxGetApp().plater()->get_partplate_list().get_selected_plate();
     const Pointfs& pp_bed_shape = curr_plate->get_shape();
     BuildVolume plate_build_volume(pp_bed_shape, build_volume.printable_height(), build_volume.extruder_areas(), build_volume.extruder_heights());
-    plate_build_volume.set_open_y(curr_plate->belt_open_y());
+    plate_build_volume.set_open_edge(curr_plate->belt_open_edge());
     const std::vector<BoundingBoxf3>& exclude_areas = curr_plate->get_exclude_areas();
 
     const DynamicPrintConfig *plater_config = GUI::wxGetApp().plater()->config();

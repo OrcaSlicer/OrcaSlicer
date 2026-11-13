@@ -11511,7 +11511,7 @@ void Plater::priv::update_print_volume_state()
     //BBS: use the plate's bounding box instead of the bed's
     PartPlate* pp = partplate_list.get_curr_plate();
     BuildVolume build_volume(pp->get_shape(), this->bed.build_volume().printable_height(), this->bed.build_volume().extruder_areas(), this->bed.build_volume().extruder_heights());
-    build_volume.set_open_y(pp->belt_open_y());
+    build_volume.set_open_edge(pp->belt_open_edge());
     this->model.update_print_volume_state(build_volume);
 }
 

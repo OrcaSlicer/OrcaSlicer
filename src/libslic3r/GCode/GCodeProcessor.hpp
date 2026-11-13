@@ -4,6 +4,7 @@
 #include "libslic3r/CommonDefs.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ArcFitter.hpp"
@@ -1327,8 +1328,9 @@ inline constexpr float DEFAULT_FILAMENT_DENSITY = 1.245f;
         // pre-machine-frame (build-volume) frame.
         MachineFrameTransform m_machine_frame_transform;
         bool                  m_belt_printer{ false };
-        // A belt printer with an infinite Y axis: the bed-area check ignores the far Y edge.
-        bool                  m_belt_infinite_y{ false };
+        // A belt printer with an infinite axis: the edge of the G-code bed-area check that the belt carries
+        // the part past, in G-code axes.
+        std::optional<BedOpenEdge> m_belt_open_edge;
         // Of a belt print, the linear part of its G-code back-transform, for the boxes of the masses.
         std::optional<Matrix3d> m_belt_linear;
 

@@ -5,6 +5,7 @@
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/CommonDefs.hpp"
 #include "ExtrusionEntity.hpp"
 #include "libslic3r/GCodeReader.hpp"
@@ -3010,8 +3011,7 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
     BoundingBox plate_printable_bbox = plate_printable_poly.bounding_box();
     if (plate_printable_poly.is_valid()) {
         plate_printable_bbox.offset(scale_(2.0)); // Expand the range to provide a tolerance
-        if (m_belt_infinite_y)
-            plate_printable_bbox.max.y() = std::numeric_limits<coord_t>::max();
+        BuildVolume::open_edge(plate_printable_bbox, m_belt_open_edge);
     } else
         plate_printable_bbox.defined = false; //when this is used, the printable area config was missing, something wrong
 
@@ -3264,7 +3264,16 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_machine_frame_transform.init_from_config(config);
     m_result.machine_frame_transform_active = m_machine_frame_transform.is_active();
     m_belt_printer = config.belt_printer.value;
-    m_belt_infinite_y = m_belt_printer && config.belt_printer_infinite_y.value;
+    // The bed-area check compares G-code X and Y, so the open edge follows the axis remap. A belt axis
+    // remapped to G-code Z is never checked there and needs no opening.
+    m_belt_open_edge.reset();
+    if (const std::optional<BedOpenEdge> edge = BeltTransformPipeline::infinite_axis_edge(config))
+        for (const int gcode_axis : { 0, 1 }) {
+            const int remap = static_cast<int>((gcode_axis == 0 ? config.gcode_remap_x : config.gcode_remap_y).value);
+            // Values 0-2 are pos_x/y/z; neg_* and rev_* (3-8) flip the sign of the source axis remap % 3.
+            if (remap % 3 == edge->axis)
+                m_belt_open_edge = BedOpenEdge{ gcode_axis, edge->at_max != (remap >= 3) };
+        }
     m_belt_linear  = m_belt_printer ? std::optional<Matrix3d>(BeltTransformPipeline::build_gcode_back_transform(config).linear()) :
                                       std::nullopt;
 
