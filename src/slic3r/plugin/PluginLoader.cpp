@@ -10,7 +10,8 @@
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
 #include "pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
-#include "pluginTypes/resourcePrinterAsset/ResourcePrinterAssetPluginCapability.hpp"
+#include "ResourcePackKinds.hpp"
+#include "pluginTypes/resourcePack/ResourcePackPluginCapability.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"
@@ -444,29 +445,34 @@ bool load(const PluginDescriptor&                          descriptor,
                         }
                     }
 
-                    // ResourcePrinterAsset capabilities resolve their asset folder the same way: validated once
+                    // ResourcePack capabilities resolve their directory and kinds the same way: validated once
                     // here, and a fault only costs the pack its files.
-                    if (auto* printer_bed = dynamic_cast<ResourcePrinterAssetPluginCapability*>(instance.get())) {
+                    if (auto* resource_pack = dynamic_cast<ResourcePackPluginCapability*>(instance.get())) {
                         try {
-                            const std::string bed_dir = printer_bed->get_asset_dir();
-                            std::string       bed_error;
-                            if (!bed_dir.empty())
-                                collect_printer_asset_files(bed_dir, descriptor.plugin_root, bed_error);
-                            if (bed_dir.empty() || !bed_error.empty()) {
-                                if (!bed_error.empty())
+                            const std::string     pack_dir   = resource_pack->get_resource_dir();
+                            const ResourceKindMap pack_kinds = resource_pack->get_resource_kinds();
+                            std::string           pack_error;
+                            if (!pack_dir.empty())
+                                collect_resource_pack_files(pack_dir, descriptor.plugin_root, pack_kinds, pack_error);
+                            if (pack_dir.empty() || !pack_error.empty()) {
+                                if (!pack_error.empty())
                                     BOOST_LOG_TRIVIAL(warning)
                                         << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
-                                        << "': asset directory rejected (" << bed_error
-                                        << "); the capability will provide no printer assets";
-                                printer_bed->set_asset_dir({});
+                                        << "': resource pack rejected (" << pack_error
+                                        << "); the capability will provide no resource files";
+                                resource_pack->set_resource_dir({});
+                                resource_pack->set_resource_kinds({});
                             } else {
-                                printer_bed->set_asset_dir(bed_dir);
+                                resource_pack->set_resource_dir(pack_dir);
+                                resource_pack->set_resource_kinds(pack_kinds);
                             }
                         } catch (const std::exception& ex) {
                             BOOST_LOG_TRIVIAL(warning)
                                 << "Plugin capability '" << found.name << "' of plugin '" << descriptor.plugin_key
-                                << "': get_asset_dir() failed (" << ex.what() << "); the capability will provide no printer assets";
-                            printer_bed->set_asset_dir({});
+                                << "': get_resource_dir()/get_resource_kinds() failed (" << ex.what()
+                                << "); the capability will provide no resource files";
+                            resource_pack->set_resource_dir({});
+                            resource_pack->set_resource_kinds({});
                         }
                     }
 

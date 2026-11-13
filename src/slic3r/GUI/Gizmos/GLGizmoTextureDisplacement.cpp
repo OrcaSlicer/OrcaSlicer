@@ -4615,8 +4615,8 @@ void GLGizmoTextureDisplacement::render_texture_library_popup(const ImVec2 &pane
         return n;
     };
 
-    // Every section collapses; the state is remembered for the app run. Pack keys use pack_name, a
-    // capability name unique per type across loaded packages and stable across reinstalls. This function-local
+    // Every section collapses; the state is remembered for the app run. Pack keys use pack_key, the
+    // capability type and name, unique across loaded packages and stable across reinstalls. This function-local
     // static survives popup closes, never touches app_config, and resets on restart.
     static std::map<std::string, bool> s_section_collapsed; // true = collapsed; absent = expanded
 
@@ -4703,7 +4703,7 @@ void GLGizmoTextureDisplacement::render_texture_library_popup(const ImVec2 &pane
         std::vector<const TextureLibraryEntry *> entries;
     };
     std::vector<Section>          sections;
-    std::map<std::string, size_t> pack_section; // pack_name -> index in `sections`
+    std::map<std::string, size_t> pack_section; // pack_key -> index in `sections`
     sections.push_back({ "builtin:", _u8L("Built-in"), {} });
     for (const TextureLibraryEntry &entry : library) {
         if (entry.source == TextureSource::Shipped) {
@@ -4714,9 +4714,9 @@ void GLGizmoTextureDisplacement::render_texture_library_popup(const ImVec2 &pane
             continue; // added below, so My textures stays last
         if (entry.source != TextureSource::Plugin)
             continue;
-        const auto [it, inserted] = pack_section.emplace(entry.pack_name, sections.size());
+        const auto [it, inserted] = pack_section.emplace(entry.pack_key, sections.size());
         if (inserted)
-            sections.push_back({ "pack:" + entry.pack_name, entry.pack_name, {} });
+            sections.push_back({ entry.pack_key, entry.pack_name, {} });
         sections[it->second].entries.push_back(&entry);
     }
     sections.push_back({ "user:", _u8L("My textures"), {} });

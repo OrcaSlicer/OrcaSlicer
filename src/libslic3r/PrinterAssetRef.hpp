@@ -10,7 +10,7 @@
 namespace Slic3r {
 
 // A printer preset's bed_custom_model / bed_custom_texture can name a file in an installed
-// resource-printer-asset plugin (a "printer asset pack") instead of a local path:
+// resource-pack plugin (a "printer asset pack") instead of a local path:
 //
 //     orcacloud-asset/<plugin id>/<file>
 //
@@ -56,17 +56,6 @@ inline bool is_windows_device_name(std::string_view filename)
 
 inline bool is_file_segment(std::string_view segment) { return is_segment(segment) && !is_windows_device_name(segment); }
 
-inline bool iends_with(std::string_view value, std::string_view suffix)
-{
-    if (value.size() < suffix.size())
-        return false;
-    const std::string_view tail = value.substr(value.size() - suffix.size());
-    for (size_t i = 0; i < suffix.size(); ++i)
-        if (std::tolower(static_cast<unsigned char>(tail[i])) != std::tolower(static_cast<unsigned char>(suffix[i])))
-            return false;
-    return true;
-}
-
 } // namespace printer_asset_ref_detail
 
 // The reference in `value`, or nullopt when it is a plain path (or malformed).
@@ -94,17 +83,6 @@ inline std::string make_printer_asset_ref(std::string_view plugin_id, std::strin
     if (!is_segment(plugin_id) || !is_file_segment(filename))
         return {};
     return std::string(PRINTER_ASSET_REF_PREFIX) + std::string(plugin_id) + "/" + std::string(filename);
-}
-
-// The Bed Shape dialog's file kinds: an STL bed model, a PNG or SVG bed texture.
-inline bool is_printer_bed_model_file(std::string_view filename)
-{
-    return printer_asset_ref_detail::iends_with(filename, ".stl");
-}
-
-inline bool is_printer_bed_texture_file(std::string_view filename)
-{
-    return printer_asset_ref_detail::iends_with(filename, ".png") || printer_asset_ref_detail::iends_with(filename, ".svg");
 }
 
 } // namespace Slic3r

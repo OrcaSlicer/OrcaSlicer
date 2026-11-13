@@ -1,4 +1,4 @@
-#include "PluginPrinterAssets.hpp"
+#include "PluginResourcePacks.hpp"
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
@@ -7,9 +7,12 @@
 #include "slic3r/plugin/PluginFsUtils.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/PythonPluginInterface.hpp"
-#include "slic3r/plugin/pluginTypes/resourcePrinterAsset/ResourcePrinterAssetPluginCapability.hpp"
+#include "slic3r/plugin/ResourcePackKinds.hpp"
+#include "slic3r/plugin/pluginTypes/resourcePack/ResourcePackPluginCapability.hpp"
+#include "slic3r/plugin/pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/log/trivial.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
 
@@ -24,61 +27,83 @@
 
 namespace Slic3r {
 
-PluginPrinterAssets &PluginPrinterAssets::instance()
+PluginResourcePacks &PluginResourcePacks::instance()
 {
-    static PluginPrinterAssets registry;
+    static PluginResourcePacks registry;
     return registry;
 }
 
-std::optional<PrinterAssetPackEntry> PluginPrinterAssets::build_entry(const PluginCapabilityId &id) const
+std::optional<ResourcePackEntry> PluginResourcePacks::build_entry(const PluginCapabilityId &id) const
 {
     // Query by id and re-check state; the manager copies the shared_ptr and releases its lock.
     auto capability = PluginManager::instance().get_plugin_capability(id, /*only_enabled=*/false);
-    if (!capability || !capability->is_enabled() || capability->type() != PluginCapabilityType::ResourcePrinterAsset)
+    if (!capability || !capability->is_enabled())
         return std::nullopt;
+    const PluginCapabilityType type = capability->type();
 
-    auto asset_capability = std::dynamic_pointer_cast<ResourcePrinterAssetPluginCapability>(capability);
-    if (!asset_capability)
+    // An empty directory or kind map means resolution failed at load, so the pack contributes nothing.
+    std::string     resource_dir;
+    ResourceKindMap resource_kinds;
+    if (type == PluginCapabilityType::ResourcePack) {
+        auto pack_capability = std::dynamic_pointer_cast<ResourcePackPluginCapability>(capability);
+        if (!pack_capability)
+            return std::nullopt;
+        resource_dir   = pack_capability->resource_dir();
+        resource_kinds = pack_capability->resource_kinds();
+        if (resource_dir.empty() || resource_kinds.empty())
+            return std::nullopt;
+    } else if (type == PluginCapabilityType::ResourceTexture) {
+        // Kept as its own type so existing texture plugins and their resource-texture manifests keep working.
+        auto texture_capability = std::dynamic_pointer_cast<ResourceTexturePluginCapability>(capability);
+        if (!texture_capability)
+            return std::nullopt;
+        resource_dir = texture_capability->texture_dir();
+        if (resource_dir.empty())
+            return std::nullopt;
+    } else {
         return std::nullopt;
-
-    // An empty directory means resolution failed at load, so the pack contributes nothing.
-    const std::string &asset_dir = asset_capability->asset_dir();
-    if (asset_dir.empty())
-        return std::nullopt;
+    }
 
     PluginDescriptor descriptor;
-    if (!PluginManager::instance().try_get_plugin_descriptor_for_capability(capability->name(), PluginCapabilityType::ResourcePrinterAsset,
-                                                                            descriptor))
+    if (!PluginManager::instance().try_get_plugin_descriptor_for_capability(capability->name(), type, descriptor))
         return std::nullopt;
 
-    PrinterAssetPackEntry entry;
+    ResourcePackEntry entry;
     entry.id           = capability->identity();
     entry.plugin_key   = entry.id.plugin_key;
     entry.display_name = capability->name();
-    entry.asset_dir    = asset_dir;
+    entry.resource_dir = resource_dir;
     entry.plugin_root  = descriptor.plugin_root;
     // References name cloud packs by their uuid, the same on every machine. Packs installed by hand
     // fall back to their plugin key, which only this machine knows.
     entry.pack_id = descriptor.cloud_uuid().empty() ? descriptor.plugin_key : boost::algorithm::to_lower_copy(descriptor.cloud_uuid());
 
     std::string error;
-    entry.files = collect_printer_asset_files(asset_dir, entry.plugin_root, error);
-    if (!error.empty())
+    if (type == PluginCapabilityType::ResourceTexture) {
+        entry.files[std::string(RESOURCE_KIND_DISPLACEMENT_TEXTURE)] = collect_resource_texture_files(resource_dir, entry.plugin_root, error);
+    } else {
+        entry.files = collect_resource_pack_files(resource_dir, entry.plugin_root, resource_kinds, error);
+    }
+    if (!error.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "Resource pack '" << entry.display_name << "' was skipped: " << error;
         return std::nullopt;
+    }
     return entry;
 }
 
-bool PluginPrinterAssets::on_plugin_register(const std::string &plugin_key)
+bool PluginResourcePacks::on_plugin_register(const std::string &plugin_key)
 {
     bool changed = false;
-    for (const auto &capability : PluginManager::instance().get_plugin_capabilities(plugin_key, PluginCapabilityType::ResourcePrinterAsset)) {
-        if (capability && on_cap_register(capability->identity()))
-            changed = true;
+    for (const PluginCapabilityType type : {PluginCapabilityType::ResourcePack, PluginCapabilityType::ResourceTexture}) {
+        for (const auto &capability : PluginManager::instance().get_plugin_capabilities(plugin_key, type)) {
+            if (capability && on_cap_register(capability->identity()))
+                changed = true;
+        }
     }
     return changed;
 }
 
-bool PluginPrinterAssets::on_plugin_deregister(const std::string &plugin_key)
+bool PluginResourcePacks::on_plugin_deregister(const std::string &plugin_key)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     bool changed = false;
@@ -93,9 +118,9 @@ bool PluginPrinterAssets::on_plugin_deregister(const std::string &plugin_key)
     return changed;
 }
 
-bool PluginPrinterAssets::on_cap_register(const PluginCapabilityId &id)
+bool PluginResourcePacks::on_cap_register(const PluginCapabilityId &id)
 {
-    std::optional<PrinterAssetPackEntry> entry = build_entry(id);
+    std::optional<ResourcePackEntry> entry = build_entry(id);
 
     std::lock_guard<std::mutex> lock(m_mutex);
     if (!entry)
@@ -104,72 +129,77 @@ bool PluginPrinterAssets::on_cap_register(const PluginCapabilityId &id)
     return true;
 }
 
-bool PluginPrinterAssets::on_cap_deregister(const PluginCapabilityId &id)
+bool PluginResourcePacks::on_cap_deregister(const PluginCapabilityId &id)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_entries.erase(id) > 0;
 }
 
-void PluginPrinterAssets::initial_sweep()
+void PluginResourcePacks::initial_sweep()
 {
-    std::map<PluginCapabilityId, PrinterAssetPackEntry> entries;
-    for (const auto &capability : PluginManager::instance().get_plugin_capabilities("", PluginCapabilityType::ResourcePrinterAsset)) {
-        if (!capability)
-            continue;
-        std::optional<PrinterAssetPackEntry> entry = build_entry(capability->identity());
-        if (entry)
-            entries[entry->id] = std::move(*entry);
+    std::map<PluginCapabilityId, ResourcePackEntry> entries;
+    for (const PluginCapabilityType type : {PluginCapabilityType::ResourcePack, PluginCapabilityType::ResourceTexture}) {
+        for (const auto &capability : PluginManager::instance().get_plugin_capabilities("", type)) {
+            if (!capability)
+                continue;
+            std::optional<ResourcePackEntry> entry = build_entry(capability->identity());
+            if (entry)
+                entries[entry->id] = std::move(*entry);
+        }
     }
 
     std::lock_guard<std::mutex> lock(m_mutex);
     m_entries = std::move(entries);
 }
 
-std::vector<PrinterAssetPackEntry> PluginPrinterAssets::entries() const
+std::vector<ResourcePackEntry> PluginResourcePacks::entries() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
 
-    std::vector<PrinterAssetPackEntry> result;
+    std::vector<ResourcePackEntry> result;
     result.reserve(m_entries.size());
     for (const auto &entry : m_entries)
         result.push_back(entry.second);
     return result;
 }
 
-std::string PluginPrinterAssets::resolve(const PrinterAssetRef &ref) const
+std::string PluginResourcePacks::resolve(const PrinterAssetRef &ref, std::string_view kind) const
 {
     const std::string pack_id = boost::algorithm::to_lower_copy(ref.plugin_id);
 
     std::lock_guard<std::mutex> lock(m_mutex);
     for (const auto &[id, entry] : m_entries) {
-        if (entry.pack_id != pack_id && entry.plugin_key != ref.plugin_id)
+        if (id.type != PluginCapabilityType::ResourcePack || (entry.pack_id != pack_id && entry.plugin_key != ref.plugin_id))
+            continue;
+        const auto kind_files = entry.files.find(std::string(kind));
+        if (kind_files == entry.files.end())
             continue;
         // Matched against the validated listing by name, so a reference can never leave the pack.
-        for (const std::string &file : entry.files)
+        for (const std::string &file : kind_files->second)
             if (boost::filesystem::path(file).filename().string() == ref.filename)
                 return file;
     }
     return {};
 }
 
-std::string PluginPrinterAssets::capability_name(const PrinterAssetRef &ref) const
+std::string PluginResourcePacks::capability_name(const PrinterAssetRef &ref) const
 {
     const std::string pack_id = boost::algorithm::to_lower_copy(ref.plugin_id);
 
     std::lock_guard<std::mutex> lock(m_mutex);
     for (const auto &[id, entry] : m_entries)
-        if (entry.pack_id == pack_id || entry.plugin_key == ref.plugin_id)
+        if (id.type == PluginCapabilityType::ResourcePack && (entry.pack_id == pack_id || entry.plugin_key == ref.plugin_id))
             return entry.display_name;
     return {};
 }
 
-std::string resolve_printer_asset_value(const std::string &value)
+std::string resolve_printer_asset_value(const std::string &value, std::string_view kind)
 {
     const std::optional<PrinterAssetRef> ref = parse_printer_asset_ref(value);
-    return ref ? PluginPrinterAssets::instance().resolve(*ref) : value;
+    return ref ? PluginResourcePacks::instance().resolve(*ref, kind) : value;
 }
 
-// The name of the ResourcePrinterAsset capability an installed plugin provides for `ref`, enabled or
+// The name of the ResourcePack capability an installed plugin provides for `ref`, enabled or
 // not, or empty when the plugin is not installed here or provides none (or several).
 static std::string installed_capability_name(const PrinterAssetRef &ref)
 {
@@ -177,7 +207,7 @@ static std::string installed_capability_name(const PrinterAssetRef &ref)
     PluginDescriptor descriptor;
     if (!manager.try_get_plugin_descriptor(ref.plugin_id, descriptor))
         return {};
-    const auto capabilities = manager.get_plugin_capabilities(descriptor.plugin_key, PluginCapabilityType::ResourcePrinterAsset,
+    const auto capabilities = manager.get_plugin_capabilities(descriptor.plugin_key, PluginCapabilityType::ResourcePack,
                                                               /*only_enabled=*/false);
     return capabilities.size() == 1 ? capabilities.front()->name() : std::string();
 }
@@ -220,7 +250,7 @@ void update_printer_asset_plugins(DynamicPrintConfig &config, const ConfigOption
         if (!ref)
             continue;
         pack_ids.push_back(ref->plugin_id);
-        std::string name = PluginPrinterAssets::instance().capability_name(*ref);
+        std::string name = PluginResourcePacks::instance().capability_name(*ref);
         if (name.empty())
             name = installed_capability_name(*ref);
         if (name.empty())

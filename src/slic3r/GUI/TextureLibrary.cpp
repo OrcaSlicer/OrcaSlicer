@@ -38,8 +38,8 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
-#include "slic3r/plugin/PluginFsUtils.hpp"
-#include "slic3r/plugin/host/PluginResourceTextures.hpp"
+#include "slic3r/plugin/ResourcePackKinds.hpp"
+#include "slic3r/plugin/host/PluginResourcePacks.hpp"
 
 namespace Slic3r::GUI {
 
@@ -71,31 +71,27 @@ void scan_dir(const boost::filesystem::path &dir, TextureSource source, std::vec
               [](const TextureLibraryEntry &a, const TextureLibraryEntry &b) { return a.name < b.name; });
 }
 
-// Appends every loaded pack's textures, ordered by the pack's display name and then by file name. Each
-// entry carries the contributing pack's display name, which the picker uses to group a pack's textures
-// into one section; a pack name is unique among loaded packs of this capability type, so the name both
-// groups the section and keeps its entries contiguous. A pack whose directory fails validation is
-// skipped, so one bad pack never hides the others.
+// Appends every loaded pack's displacement_texture files, ordered by the pack's display name, then its key, then
+// file name. Each entry carries the contributing pack's display name and key, which the picker uses to group
+// a pack's textures into one section; names are unique only per capability type, so the key tells two
+// same-named packs apart. ResourceTexture packs and ResourcePack packs both come from the registry.
 void scan_plugin_textures(std::vector<TextureLibraryEntry> &out)
 {
     std::vector<TextureLibraryEntry> found;
-    for (const ResourceTextureEntry &pack : PluginResourceTextures::instance().entries()) {
-        std::string                    error;
-        const std::vector<std::string> files =
-            collect_resource_texture_files(pack.texture_dir, pack.plugin_root, error);
-        if (!error.empty()) {
-            BOOST_LOG_TRIVIAL(warning) << "Texture pack '" << pack.display_name << "' was skipped: " << error;
+    for (const ResourcePackEntry &pack : PluginResourcePacks::instance().entries()) {
+        const auto displacement_files = pack.files.find(std::string(RESOURCE_KIND_DISPLACEMENT_TEXTURE));
+        if (displacement_files == pack.files.end())
             continue;
-        }
-        for (const std::string &file : files) {
-            const boost::filesystem::path path(file);
-            found.push_back({ path.stem().string(), file, TextureSource::Plugin, pack.display_name });
-        }
+        const std::string pack_key = (pack.id.type == PluginCapabilityType::ResourceTexture ? "texture:" : "pack:") + pack.display_name;
+        for (const std::string &file : displacement_files->second)
+            found.push_back({ boost::filesystem::path(file).stem().string(), file, TextureSource::Plugin, pack.display_name, pack_key });
     }
 
     std::stable_sort(found.begin(), found.end(), [](const TextureLibraryEntry &a, const TextureLibraryEntry &b) {
         if (a.pack_name != b.pack_name)
             return a.pack_name < b.pack_name;
+        if (a.pack_key != b.pack_key)
+            return a.pack_key < b.pack_key;
         return a.name < b.name;
     });
     for (TextureLibraryEntry &entry : found)

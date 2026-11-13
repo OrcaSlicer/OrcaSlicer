@@ -14,6 +14,7 @@
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <ios>
+#include <slic3r/plugin/ResourcePackKinds.hpp>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -44,6 +45,7 @@
 #include <cctype>
 #include <cstdint>
 #include <cstdlib>
+#include <set>
 #include <sstream>
 #include <unordered_set>
 #include <vector>
@@ -1443,59 +1445,66 @@ struct ResourceDirMessages
     std::string unreadable;
 };
 
-// Validated non-recursive regular files with one of `extensions` (lowercase, with the dot) directly
-// inside `dir`, every one contained in `plugin_root`, at most `max_files`.
-std::vector<std::string> collect_contained_resource_files(const std::string&              dir,
-                                                          const std::string&              plugin_root,
-                                                          const std::vector<std::string>& extensions,
-                                                          size_t                          max_files,
-                                                          const ResourceDirMessages&      messages,
-                                                          std::string&                    error)
+// `dir` resolved and checked to be a directory inside `plugin_root`. False with `error` set otherwise.
+bool resolve_resource_dir(const std::string&         dir,
+                          const std::string&         plugin_root,
+                          const ResourceDirMessages& messages,
+                          boost::filesystem::path&   resolved_dir,
+                          boost::filesystem::path&   resolved_root,
+                          std::string&               error)
 {
     namespace fs = boost::filesystem;
 
-    std::vector<std::string> files;
     error.clear();
-
     if (dir.empty()) {
         error = messages.not_set;
-        return files;
+        return false;
     }
     if (plugin_root.empty()) {
         error = _u8L("Plugin folder could not be determined.");
-        return files;
+        return false;
     }
 
     boost::system::error_code ec;
-    const fs::path resolved_dir = fs::weakly_canonical(fs::path(dir), ec);
+    resolved_dir = fs::weakly_canonical(fs::path(dir), ec);
     if (ec) {
         error = messages.not_resolved;
-        return files;
+        return false;
     }
 
     if (!fs::is_directory(resolved_dir, ec) || ec) {
         error = messages.not_directory;
-        return files;
+        return false;
     }
 
-    const fs::path resolved_root = fs::weakly_canonical(fs::path(plugin_root), ec);
+    resolved_root = fs::weakly_canonical(fs::path(plugin_root), ec);
     if (ec) {
         error = _u8L("Plugin folder could not be resolved");
-        return files;
+        return false;
     }
 
     if (!is_inside_allowed_root(resolved_dir, resolved_root)) {
         error = messages.outside_root;
-        return files;
+        return false;
     }
+    return true;
+}
 
+// Regular files directly inside `resolved_dir` that `accept` keeps, sorted, each contained in `resolved_root`.
+template<typename Accept>
+std::vector<boost::filesystem::path> list_contained_resource_files(const boost::filesystem::path& resolved_dir,
+                                                                   const boost::filesystem::path& resolved_root,
+                                                                   Accept                         accept,
+                                                                   const ResourceDirMessages&     messages,
+                                                                   std::string&                   error)
+{
+    namespace fs = boost::filesystem;
+
+    boost::system::error_code ec;
     std::vector<fs::path> candidates;
     for (fs::directory_iterator it(resolved_dir, ec), end; it != end && !ec; it.increment(ec)) {
         const fs::path& path = it->path();
-
-        std::string ext = path.extension().string();
-        boost::algorithm::to_lower(ext);
-        if (std::find(extensions.begin(), extensions.end(), ext) == extensions.end())
+        if (!accept(path))
             continue;
 
         if (!fs::is_regular_file(path, ec) || ec) {
@@ -1515,13 +1524,44 @@ std::vector<std::string> collect_contained_resource_files(const std::string&    
     // Directory order differs between file systems (ext4 hashes it): sort, so the list and which
     // files the cap keeps are the same everywhere.
     std::sort(candidates.begin(), candidates.end());
+    std::vector<fs::path> files;
     for (const fs::path& path : candidates) {
         // Re-check per file: a symlink inside the pack must not resolve outside it.
-        if (!is_inside_allowed_root(path, resolved_root))
-            continue;
-        files.push_back(path.string());
+        if (is_inside_allowed_root(path, resolved_root))
+            files.push_back(path);
+    }
+    return files;
+}
+
+// Validated non-recursive regular files with one of `extensions` (lowercase, with the dot) directly
+// inside `dir`, every one contained in `plugin_root`, at most `max_files`.
+std::vector<std::string> collect_contained_resource_files(const std::string&              dir,
+                                                          const std::string&              plugin_root,
+                                                          const std::vector<std::string>& extensions,
+                                                          size_t                          max_files,
+                                                          const ResourceDirMessages&      messages,
+                                                          std::string&                    error)
+{
+    namespace fs = boost::filesystem;
+
+    std::vector<std::string> files;
+    fs::path resolved_dir;
+    fs::path resolved_root;
+    if (!resolve_resource_dir(dir, plugin_root, messages, resolved_dir, resolved_root, error))
+        return files;
+
+    const std::vector<fs::path> candidates = list_contained_resource_files(
+        resolved_dir, resolved_root,
+        [&extensions](const fs::path& path) {
+            std::string ext = path.extension().string();
+            boost::algorithm::to_lower(ext);
+            return std::find(extensions.begin(), extensions.end(), ext) != extensions.end();
+        },
+        messages, error);
+    for (const fs::path& path : candidates) {
         if (files.size() >= max_files)
             break;
+        files.push_back(path.string());
     }
     return files;
 }
@@ -1544,17 +1584,67 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
                                             messages, error);
 }
 
-std::vector<std::string> collect_printer_asset_files(const std::string& dir, const std::string& plugin_root, std::string& error)
+ResourceFilesByKind collect_resource_pack_files(const std::string&     dir,
+                                               const std::string&     plugin_root,
+                                               const ResourceKindMap& kinds,
+                                               std::string&           error)
 {
-    // Menu sanity bound: the Bed Shape dialog lists every file of every pack.
-    constexpr size_t kMaxPrinterAssetFiles = 16;
+    namespace fs = boost::filesystem;
 
-    const ResourceDirMessages messages{_u8L("Printer asset directory is not set"),
-                                       _u8L("Printer asset directory could not be resolved"),
-                                       _u8L("Printer asset path is not a directory"),
-                                       _u8L("Printer asset directory is outside the plugin folder"),
-                                       _u8L("Printer asset directory could not be read")};
-    return collect_contained_resource_files(dir, plugin_root, {".stl", ".png", ".svg"}, kMaxPrinterAssetFiles, messages, error);
+    const ResourceDirMessages messages{_u8L("Resource pack directory is not set"),
+                                       _u8L("Resource pack directory could not be resolved"),
+                                       _u8L("Resource pack path is not a directory"),
+                                       _u8L("Resource pack directory is outside the plugin folder"),
+                                       _u8L("Resource pack directory could not be read")};
+    ResourceFilesByKind files_by_kind;
+    fs::path resolved_dir;
+    fs::path resolved_root;
+    if (!resolve_resource_dir(dir, plugin_root, messages, resolved_dir, resolved_root, error))
+        return files_by_kind;
+
+    const std::vector<fs::path> files = list_contained_resource_files(
+        resolved_dir, resolved_root,
+        [&kinds](const fs::path& path) { return kinds.count(path.filename().string()) > 0; },
+        messages, error);
+    if (!error.empty())
+        return {};
+
+    std::set<std::string> listed;
+    for (const fs::path& path : files) {
+        const std::string name = path.filename().string();
+        listed.insert(name);
+        for (const std::string& kind : kinds.at(name)) {
+            const ResourceKindSpec* spec = find_resource_kind(kind);
+            if (!spec) {
+                BOOST_LOG_TRIVIAL(warning) << "Resource pack file " << name << " declares unknown kind '" << kind << "'; skipping it";
+                continue;
+            }
+
+            std::string ext = path.extension().string();
+            boost::algorithm::to_lower(ext);
+            if (std::find(spec->extensions.begin(), spec->extensions.end(), ext) == spec->extensions.end()) {
+                BOOST_LOG_TRIVIAL(warning) << "Resource pack file " << name << " has an extension not allowed for kind '" << kind
+                                           << "'; skipping it";
+                continue;
+            }
+
+            std::vector<std::string>& kind_files = files_by_kind[kind];
+            if (std::find(kind_files.begin(), kind_files.end(), path.string()) == kind_files.end())
+                kind_files.push_back(path.string());
+        }
+    }
+
+    for (auto& [kind, kind_files] : files_by_kind) {
+        const ResourceKindSpec* spec = find_resource_kind(kind);
+        if (kind_files.size() > spec->max_files)
+            kind_files.resize(spec->max_files);
+    }
+
+    for (const auto& entry : kinds) {
+        if (!listed.count(entry.first))
+            BOOST_LOG_TRIVIAL(debug) << "Resource pack declares " << entry.first << " but " << dir << " has no such file";
+    }
+    return files_by_kind;
 }
 
 } // namespace Slic3r

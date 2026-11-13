@@ -23,21 +23,23 @@ struct TextureLibraryEntry
     TextureSource source; // which of the three sources it came from
 
     std::string pack_name; // contributing pack's display name; empty for Shipped and User
+    std::string pack_key;  // identifies the contributing pack across capability types; empty for Shipped and User
 };
 
 // Every available height-map texture, in the order the picker lists them: the ones shipped in
 // resources/textures/displacement first, by name; then the user's own from <data_dir>/textures/displacement,
 // most recently used first (see touch_user_texture()) and the rest by name; then the loaded texture
-// packs, ordered by pack display name and then by file name.
+// packs, ordered by pack display name, then pack key, then file name.
 //
 // The shipped and user textures live in separate directories deliberately: an app update replaces the
 // resources tree wholesale, so anything the user imported has to sit somewhere that update can never
 // overwrite or delete. Pack textures are read-only like the shipped ones. Every texture carries its
-// `source`; a pack texture also carries `pack_name`, and the picker groups pack textures into one
-// collapsible section per pack name. A pack's name is unique among loaded packs of this capability type -
-// the loader refuses a collision with "Capability collision for type ... and name ...", see
-// PluginManager::check_registry_locked (PluginManager.cpp:211-225) - so the name on its own identifies a
-// section and keeps that pack's entries contiguous.
+// `source`; a pack texture also carries `pack_name` and `pack_key`, and the picker groups pack textures
+// into one collapsible section per pack_key. A capability name is unique only within one capability type
+// (the loader refuses a collision with "Capability collision for type ... and name ...", see
+// PluginManager::check_registry_locked), and textures come from two types, ResourceTexture and
+// ResourcePack, so pack_key (type plus name) identifies the section and keeps that pack's entries
+// contiguous.
 //
 // Scanned once and cached. Pass force_rescan after an import, or to pick up a file the user dropped
 // into either folder by hand while the app was running. A rescan also happens on its own when the pack

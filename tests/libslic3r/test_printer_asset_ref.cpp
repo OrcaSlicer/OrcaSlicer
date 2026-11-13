@@ -74,13 +74,3 @@ TEST_CASE("Windows device names are not printer asset file names", "[PrinterAsse
         CHECK(parse_printer_asset_ref(std::string("orcacloud-asset/pack/") + filename).has_value());
     }
 }
-
-TEST_CASE("Bed files are sorted into models and textures by extension", "[PrinterAssetRef]")
-{
-    CHECK(is_printer_bed_model_file("bed.STL"));
-    CHECK_FALSE(is_printer_bed_model_file("bed.png"));
-    CHECK(is_printer_bed_texture_file("plate.png"));
-    CHECK(is_printer_bed_texture_file("plate.Svg"));
-    CHECK_FALSE(is_printer_bed_texture_file("plate.jpg"));
-    CHECK_FALSE(is_printer_bed_texture_file("png"));
-}
