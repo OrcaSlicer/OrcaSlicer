@@ -7,6 +7,7 @@
 #include <cerrno>
 #include <chrono>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 #include <utility>
@@ -20,6 +21,7 @@
 #include <unistd.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/log/trivial.hpp>
 
 #include "libslic3r/UpdateHandoff.hpp"
 
@@ -267,15 +269,23 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
 
     remove_path_quietly(staged);
 
+    // A private mount point: a name built from the pid alone in a world-writable
+    // /tmp could be pre-created by another local user before the update runs.
+    const std::string mount_parent   = handoff.cache_dir.empty() ? std::string("/tmp") : handoff.cache_dir;
+    std::string       mount_template = "/tmp/orca-updater-XXXXXX";
+    if (!handoff.cache_dir.empty()) {
+        boost::system::error_code mkdir_ec;
+        boost::filesystem::create_directories(boost::filesystem::path(mount_parent), mkdir_ec);
+        mount_template = (boost::filesystem::path(mount_parent) / "mount.XXXXXX").string();
+    }
+
     MountGuard guard;
-    guard.mount = "/tmp/orca-updater-" + pid;
     ScratchGuard scratch_guard{parent_writable ? std::string() : scratch};
-    boost::system::error_code mkdir_ec;
-    boost::filesystem::create_directories(boost::filesystem::path(guard.mount), mkdir_ec);
-    if (!boost::filesystem::is_directory(boost::filesystem::path(guard.mount), mkdir_ec)) {
-        error = "The update could not be prepared: " + guard.mount + " could not be created.";
+    if (::mkdtemp(mount_template.data()) == nullptr) {
+        error = "The update could not be prepared: a mount point in " + mount_parent + " could not be created.";
         return false;
     }
+    guard.mount = mount_template;
 
     int status = 0;
     if (!spawn_and_wait({"/usr/bin/hdiutil", "attach", "-nobrowse", "-readonly", "-mountpoint", guard.mount, artifact_path},
@@ -300,6 +310,23 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
     if (status != 0) {
         error = "The new version's signature could not be verified, so nothing was changed.";
         return false;
+    }
+    // A valid signature alone proves nothing about who signed it: pin the team.
+#if defined(ORCA_UPDATER_TEAM_ID)
+    const std::string team_id = ORCA_UPDATER_TEAM_ID;
+#else
+    const std::string team_id;
+#endif
+    if (team_id.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "The updater was built without a signing team, so the new version's developer is not checked.";
+    } else {
+        const std::string requirement = "=anchor apple generic and certificate leaf[subject.OU] = \"" + team_id + "\"";
+        if (!spawn_and_wait({"/usr/bin/codesign", "--verify", "--strict", "--deep", "-R", requirement, mounted_app}, 300, status, error))
+            return false;
+        if (status != 0) {
+            error = "The new version is signed by a different developer, so nothing was changed.";
+            return false;
+        }
     }
     if (!spawn_and_wait({"/usr/sbin/spctl", "-a", "-t", "exec", mounted_app}, 300, status, error))
         return false;

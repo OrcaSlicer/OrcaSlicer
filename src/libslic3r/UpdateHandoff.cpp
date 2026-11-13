@@ -278,6 +278,28 @@ std::string updater_log_path()
     return (fs::path(cache_root()) / "updater.log").string();
 }
 
+std::string install_identity_key(const std::string& install_root)
+{
+    std::string normalised = install_root;
+    while (normalised.size() > 1 && (normalised.back() == '/' || normalised.back() == '\\'))
+        normalised.pop_back();
+#ifdef _WIN32
+    for (char& c : normalised)
+        if (c >= 'A' && c <= 'Z')
+            c = static_cast<char>(c - 'A' + 'a');
+#endif
+    uint64_t hash = 14695981039346656037ull;
+    for (const char c : normalised) {
+        hash ^= static_cast<uint64_t>(static_cast<unsigned char>(c));
+        hash *= 1099511628211ull;
+    }
+    static const char* const hex = "0123456789abcdef";
+    std::string              key = "installed_artifact:";
+    for (int shift = 60; shift >= 0; shift -= 4)
+        key.push_back(hex[(hash >> shift) & 0xfu]);
+    return key;
+}
+
 DownloadPrep prepare_download_dir(const std::string& dir,
                                   const std::string& asset_name,
                                   const std::string& digest,

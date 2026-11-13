@@ -15,6 +15,7 @@
     #include <tlhelp32.h>
 
     #if defined(_MSC_VER)
+        #pragma comment(lib, "crypt32.lib")
         #pragma comment(lib, "wintrust.lib")
     #endif
 
@@ -23,6 +24,7 @@
     #include <cwchar>
     #include <string>
     #include <thread>
+    #include <vector>
 
     #include <boost/filesystem.hpp>
     #include <boost/log/trivial.hpp>
@@ -53,15 +55,63 @@ std::wstring widen_utf8(const std::string& text)
     return out;
 }
 
+std::string narrow_utf8(const std::wstring& text)
+{
+    if (text.empty())
+        return std::string();
+    const int needed = ::WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, nullptr, 0, nullptr, nullptr);
+    if (needed <= 0)
+        return std::string();
+    std::string out(static_cast<size_t>(needed), '\0');
+    ::WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, out.data(), needed, nullptr, nullptr);
+    out.resize(static_cast<size_t>(needed) - 1);
+    return out;
+}
+
 // Handoff paths travel as UTF-8; boost::filesystem on Windows takes UTF-16.
 fs::path to_path(const std::string& utf8)
 {
     return fs::path(widen_utf8(utf8));
 }
 
-// Checks that the downloaded installer carries a valid Authenticode signature.
-// Publisher pinning needs the expected certificate subject from CI and is a
-// follow-up; this only proves the file is intact and signed by someone trusted.
+// The display name of the certificate that signed the embedded PKCS#7 message.
+// Empty when the message or the certificate cannot be read.
+std::wstring signer_display_name(HCERTSTORE store, HCRYPTMSG message)
+{
+    DWORD signer_size = 0;
+    if (!::CryptMsgGetParam(message, CMSG_SIGNER_INFO_PARAM, 0, nullptr, &signer_size) || signer_size == 0)
+        return std::wstring();
+
+    std::vector<BYTE> buffer(signer_size);
+    if (!::CryptMsgGetParam(message, CMSG_SIGNER_INFO_PARAM, 0, buffer.data(), &signer_size))
+        return std::wstring();
+    const auto* signer = reinterpret_cast<const CMSG_SIGNER_INFO*>(buffer.data());
+
+    // CERT_FIND_SUBJECT_CERT keys on the issuer and serial number of the signer.
+    CERT_INFO cert_info;
+    ::ZeroMemory(&cert_info, sizeof(cert_info));
+    cert_info.Issuer       = signer->Issuer;
+    cert_info.SerialNumber = signer->SerialNumber;
+
+    PCCERT_CONTEXT cert = ::CertFindCertificateInStore(store, X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, 0,
+                                                       CERT_FIND_SUBJECT_CERT, &cert_info, nullptr);
+    if (cert == nullptr)
+        return std::wstring();
+
+    const DWORD size = ::CertGetNameStringW(cert, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, nullptr, nullptr, 0);
+    std::wstring name;
+    if (size > 1) {
+        name.resize(static_cast<size_t>(size) - 1);
+        if (::CertGetNameStringW(cert, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, nullptr, name.data(), size) == 0)
+            name.clear();
+    }
+    ::CertFreeCertificateContext(cert);
+    return name;
+}
+
+// Checks that the downloaded installer carries a valid Authenticode signature
+// by the pinned publisher. An empty ORCA_UPDATER_PUBLISHER accepts any trusted
+// signer with a warning, which is what a local build wants.
 bool verify_signature(const std::string& artifact_path, std::string& error)
 {
     const std::wstring file = widen_utf8(artifact_path);
@@ -98,6 +148,38 @@ bool verify_signature(const std::string& artifact_path, std::string& error)
         std::snprintf(buffer, sizeof(buffer), "0x%08lX", static_cast<unsigned long>(status));
         error = std::string("The installer's digital signature could not be verified (status ") + buffer +
                 "), so it was not run.";
+        return false;
+    }
+
+    // WinVerifyTrust accepts any trusted signer, so the signer identity is read
+    // from the embedded PKCS#7 message and compared with the pinned publisher.
+    const std::wstring expected = widen_utf8(ORCA_UPDATER_PUBLISHER);
+    if (expected.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "The update publisher is not pinned in this build; any trusted signer is accepted.";
+        return true;
+    }
+
+    HCERTSTORE   store    = nullptr;
+    HCRYPTMSG    message  = nullptr;
+    DWORD        encoding = 0;
+    DWORD        content  = 0;
+    DWORD        format   = 0;
+    std::wstring actual;
+    if (::CryptQueryObject(CERT_QUERY_OBJECT_FILE, file.c_str(), CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
+                           CERT_QUERY_FORMAT_FLAG_BINARY, 0, &encoding, &content, &format, &store, &message, nullptr))
+        actual = signer_display_name(store, message);
+    if (message != nullptr)
+        ::CryptMsgClose(message);
+    if (store != nullptr)
+        ::CertCloseStore(store, 0);
+
+    if (actual.empty()) {
+        error = "The installer's signature could not be read, so it was not run.";
+        return false;
+    }
+    if (_wcsicmp(actual.c_str(), expected.c_str()) != 0) {
+        error = "The update is signed by \"" + narrow_utf8(actual) + "\", not by " + ORCA_UPDATER_PUBLISHER +
+                ", so it was not run.";
         return false;
     }
     return true;

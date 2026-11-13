@@ -23,3 +23,20 @@ endif()
 if (NOT DEFINED ORCA_BUILD_TIMESTAMP)
     set(ORCA_BUILD_TIMESTAMP "" CACHE STRING "Build timestamp (UTC ISO-8601) baked into the binary as a build id")
 endif()
+
+# The publisher a downloaded update must be signed by. The helper refuses an artifact
+# signed by anyone else, so a release build has to set these. Empty disables the check
+# with a warning in the log, which is what a local or CI artifact build wants.
+if (NOT DEFINED ORCA_UPDATER_PUBLISHER)
+    set(ORCA_UPDATER_PUBLISHER "" CACHE STRING "Expected Authenticode signer display name of update artifacts")
+endif()
+if (NOT ORCA_UPDATER_PUBLISHER AND DEFINED ENV{ORCA_UPDATER_PUBLISHER})
+    set(ORCA_UPDATER_PUBLISHER "$ENV{ORCA_UPDATER_PUBLISHER}")
+endif()
+
+if (NOT DEFINED ORCA_UPDATER_TEAM_ID)
+    set(ORCA_UPDATER_TEAM_ID "" CACHE STRING "Expected Apple Developer Team ID of macOS update artifacts")
+endif()
+if (NOT ORCA_UPDATER_TEAM_ID AND DEFINED ENV{ORCA_UPDATER_TEAM_ID})
+    set(ORCA_UPDATER_TEAM_ID "$ENV{ORCA_UPDATER_TEAM_ID}")
+endif()

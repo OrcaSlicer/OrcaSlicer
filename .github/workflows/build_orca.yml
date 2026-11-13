@@ -34,6 +34,8 @@ jobs:
       ubuntu-ver: '2404'
       ubuntu-ver-str: '_Ubuntu2404'
       ORCA_UPDATER_SIG_KEY: ${{ secrets.ORCA_UPDATER_SIG_KEY }}
+      # The team the updater requires of a downloaded build; the same one that signs it.
+      ORCA_UPDATER_TEAM_ID: ${{ secrets.TEAM_ID }}
       NSIS_VERSION: '3.13'
       NSIS_SHA256: BA63DFFC4410EE89193E1CB5A41989991BD77C61068DA17E3156D136B7B0B3D8
       JSIGN_VERSION: '7.6'
@@ -505,6 +507,12 @@ jobs:
           "ORCA_SIGN_JSIGN=$jar"           | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           "ORCA_SIGN_CERTFILE=$cert"       | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
           "ORCA_SIGN_KMS_KEY=$env:KMS_KEY" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+          # The publisher the updater pins is the leaf certificate's simple name, which is
+          # what CertGetNameStringW(CERT_NAME_SIMPLE_DISPLAY_TYPE) reports to the helper.
+          $leaf = [System.Security.Cryptography.X509Certificates.X509Certificate2]::CreateFromPemFile($cert)
+          $publisher = $leaf.GetNameInfo([System.Security.Cryptography.X509Certificates.X509NameType]::SimpleName, $false)
+          if (-not $publisher) { throw "The signing certificate has no simple name to pin." }
+          "ORCA_UPDATER_PUBLISHER=$publisher" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
 
       - name: Set up Java for code signing
         if: steps.codesign.outcome == 'success'

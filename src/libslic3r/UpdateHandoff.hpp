@@ -76,6 +76,10 @@ std::string updater_pending_path();
 std::string updater_lock_path();
 std::string updater_log_path();
 
+// Key of the app config entry recording one install's installed digest. The path is
+// hashed because AppConfig keys cannot hold one: they reject whitespace.
+std::string install_identity_key(const std::string& install_root);
+
 // The state of a partial download in `dir` for `asset_name`, after the directory has been
 // reduced to it. The artifact's digest is recorded beside the .part, so a later run only
 // resumes a download started for that same build: a nightly reuses one asset name and an

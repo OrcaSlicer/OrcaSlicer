@@ -12,6 +12,7 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Semver.hpp"
+#include "libslic3r/UpdateHandoff.hpp"
 #include "calib.hpp"
 
 #define ENV_DEV_HOST		"0"
@@ -380,12 +381,26 @@ public:
 	std::string 		update_channel() const { return this->get("update_channel"); }
 	void 				set_update_channel(const std::string& channel) { this->set("update_channel", channel); }
 
-	// Identity of the build that is installed: the artifact digest it came from
-	// and the channel it came from. Empty until the first in-app update.
-	std::string 		installed_artifact() const { return this->get("installed_artifact"); }
+	// Identity of the build that is installed: the artifact digest it came from and
+	// the channel it came from. Empty until the first in-app update.
+	std::string 		installed_artifact(const std::string& install_root) const
+							{ return this->get(install_identity_key(install_root)); }
 	std::string 		installed_channel() const { return this->get("installed_channel"); }
-	void 				set_installed_build(const std::string& channel, const std::string& artifact)
-							{ this->set("installed_channel", channel); this->set("installed_artifact", artifact); }
+	void 				set_installed_build(const std::string& install_root, const std::string& channel, const std::string& artifact)
+							{ this->set("installed_channel", channel); this->set(install_identity_key(install_root), artifact); }
+	// Moves a build recorded before the identity was keyed by install root into this root's slot.
+	void 				migrate_installed_artifact(const std::string& install_root)
+							{
+								const std::string legacy = this->get("installed_artifact");
+								if (legacy.empty())
+									return;
+								const std::string key = install_identity_key(install_root);
+								if (this->get(key).empty())
+									this->set(key, legacy);
+								// The keyed slot is authoritative from here on, or the unkeyed value
+								// would be claimed by whichever copy of the application starts next.
+								this->erase("app", "installed_artifact");
+							}
 
 	// Artifact digest the user asked not to be offered again (nightly channel).
 	std::string 		skip_artifact() const { return this->get("skip_artifact"); }

@@ -272,6 +272,13 @@ if (SLIC3R_GUI AND (WIN32 OR APPLE))
         target_compile_definitions(OrcaSlicerUpdater PRIVATE -DwxDEBUG_LEVEL=0)
     endif ()
 
+    # The publisher the downloaded artifact must be signed by: the Authenticode signer's
+    # display name on Windows, the Apple Developer Team ID on macOS. Both empty disable
+    # the check with a warning, which is what a local build wants.
+    target_compile_definitions(OrcaSlicerUpdater PRIVATE
+        "ORCA_UPDATER_PUBLISHER=\"${ORCA_UPDATER_PUBLISHER}\""
+        "ORCA_UPDATER_TEAM_ID=\"${ORCA_UPDATER_TEAM_ID}\"")
+
     target_link_libraries(OrcaSlicerUpdater libslic3r cereal::cereal ${wxWidgets_LIBRARIES} libcurl OpenSSL::SSL OpenSSL::Crypto)
     if (WIN32)
         # libcurl's peer.c calls if_nametoindex, which lives in iphlpapi.

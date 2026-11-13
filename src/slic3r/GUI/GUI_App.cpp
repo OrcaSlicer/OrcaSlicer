@@ -1129,6 +1129,10 @@ void GUI_App::post_init()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: false";
     }
 
+    // Restore a backup and consume installed.json before anything else: the G-code viewer
+    // never runs the block below, so it would otherwise never finish an interrupted install.
+    CallAfter([this] { this->finish_pending_update(); });
+
     // The extra CallAfter() is needed because of Mac, where this is the only way
     // to popup a modal dialog on start without screwing combo boxes.
     // This is ugly but I honestly found no better way to do it.
@@ -1145,7 +1149,6 @@ void GUI_App::post_init()
                 this->preset_updater->sync(http_url, language, network_ver, sys_preset ? preset_bundle : nullptr);
             }
 
-            this->finish_pending_update();
             this->check_new_version_sf();
             if (!cw_showed)
                 this->check_legacy_user_filament_presets(false);
@@ -6548,7 +6551,8 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
 
     // Read on the UI thread: the response is resolved on the Http worker thread.
     const UpdateChannel  channel            = update_channel_from_key(app_config->update_channel());
-    const std::string    installed_artifact = app_config->installed_artifact();
+    const std::string    install_root       = app_install_root();
+    const std::string    installed_artifact = app_config->installed_artifact(install_root);
     const std::string    installed_channel  = app_config->installed_channel();
     const std::string    skip_version       = app_config->get("skip_version");
     const std::string    skip_artifact      = app_config->skip_artifact();
@@ -6986,13 +6990,16 @@ void GUI_App::start_in_app_update()
 void GUI_App::finish_pending_update()
 {
     set_updater_cache_dir(update_cache_dir());
+    app_config->migrate_installed_artifact(app_install_root());
 
     // The record is shared by every copy of the app in this cache. Only the copy it names
     // acts on it; the others leave it in place.
     InstallRecord record;
     const bool    has_record = read_install_record(record) && !record.target.empty() && running_from(record.target);
     if (has_record)
-        app_config->set_installed_build(record.channel, record.digest);
+        // Under the running root, not the recorded spelling: the two name the same install
+        // on disk but build different keys.
+        app_config->set_installed_build(app_install_root(), record.channel, record.digest);
 
     // A live helper owns the install lock and may still roll back onto the backup.
     // Holding the lock here also stops a new install from starting while this runs.

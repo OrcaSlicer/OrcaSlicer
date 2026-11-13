@@ -354,3 +354,34 @@ TEST_CASE("Reading the install record leaves it in place and removing it deletes
 
     clear_updater_cache_dir();
 }
+
+TEST_CASE("The same install root always gives the same identity key", "[UpdateHandoff]")
+{
+    const std::string key = install_identity_key("/opt/OrcaSlicer");
+    CHECK(install_identity_key("/opt/OrcaSlicer") == key);
+}
+
+TEST_CASE("A trailing separator does not change the identity key", "[UpdateHandoff]")
+{
+    const std::string key = install_identity_key("/opt/OrcaSlicer");
+    CHECK(install_identity_key("/opt/OrcaSlicer/") == key);
+    CHECK(install_identity_key("/opt/OrcaSlicer//") == key);
+}
+
+TEST_CASE("Copies installed in different roots get different identity keys", "[UpdateHandoff]")
+{
+    const std::string parent = "/opt/OrcaSlicer";
+    const std::string client = "/opt/OrcaSlicer/client";
+    CHECK(install_identity_key(parent) != install_identity_key(client));
+}
+
+TEST_CASE("The identity key is prefixed and free of whitespace", "[UpdateHandoff]")
+{
+    // AppConfig asserts that a key has no whitespace, so a path such as Program Files
+    // cannot be the key itself.
+    const std::string key = install_identity_key("C:\\Program Files\\OrcaSlicer");
+    CHECK(key.rfind("installed_artifact:", 0) == 0);
+    CHECK(key.find_first_of(" \t\r\n\v\f") == std::string::npos);
+    CHECK(key.size() == std::string("installed_artifact:").size() + 16);
+    CHECK(key.find_first_not_of("0123456789abcdef", std::string("installed_artifact:").size()) == std::string::npos);
+}
