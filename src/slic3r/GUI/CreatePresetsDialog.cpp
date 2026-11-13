@@ -307,9 +307,25 @@ static wxArrayString get_exist_vendor_choices(VendorMap& vendors, bool include_u
     vendors = temp_preset_bundle.vendors;
 
     if (include_user_models) {
+        // User models are keyed under the custom vendor, which the system "Custom" profile also uses:
+        // add them to its generic printers rather than replacing them.
         VendorProfile users_models = wxGetApp().preset_bundle->get_custom_vendor_models();
         if (!users_models.models.empty()) {
-            vendors[users_models.name] = users_models;
+            auto [custom, inserted] = vendors.try_emplace(users_models.name, users_models);
+            if (!inserted) {
+                auto &models = custom->second.models;
+                for (const VendorProfile::PrinterModel &user_model : users_models.models) {
+                    auto model = std::find_if(models.begin(), models.end(),
+                                              [&user_model](const VendorProfile::PrinterModel &m) { return m.name == user_model.name; });
+                    if (model == models.end()) {
+                        models.push_back(user_model);
+                        continue;
+                    }
+                    // A nozzle the user added to a generic printer shares that printer's model.
+                    for (const VendorProfile::PrinterVariant &variant : user_model.variants)
+                        if (!model->variant(variant.name)) model->variants.push_back(variant);
+                }
+            }
         }
     }
 
@@ -1703,8 +1719,8 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_item(wxWindow *parent)
     m_select_vendor->SetValue(_L("Select Vendor"));
     m_select_vendor->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
     // List the installed vendor profiles, the same source page 2 uses. The user's own printer models are
-    // left out: they would replace the system "Custom" vendor's generic printers (both are keyed
-    // PRESET_CUSTOM_VENDOR), and picking one would name the new printer "Custom <existing user model>".
+    // left out: they sit under the "Custom" vendor (PRESET_CUSTOM_VENDOR), so picking one would name the
+    // new printer "Custom <existing user model>".
     // Extending an existing printer is what "Create Nozzle" is for, and a custom vendor/model can be typed in.
     wxArrayString printer_vendor = get_exist_vendor_choices(m_page1_vendors, false);
     m_select_vendor->Set(printer_vendor);
