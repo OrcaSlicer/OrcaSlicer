@@ -1,6 +1,12 @@
+#Content {
+	padding: 10px 15px 0; /* Extra vertical spacing after title (tabs) required */
+}
+
 /* TABS SYSTEM / CUSTOM */
 #Title {
-	margin: 0px 40px;
+	height: calc(10% - 10px); /* match content height with content */
+	margin: 0px 15px; /* align bottom like with content */
+	box-sizing: border-box;
 	border-bottom: 1px solid var(--border-color);
 	display: flex;
 	flex-direction: row;
@@ -14,10 +20,10 @@
 }
 
 #Title div.TitleSelected {
-	height: calc(100% - 6px);
+	height: calc(100% - 4px);
 	display: flex;
 	align-items: center;
-	border-bottom: 6px solid var(--main-color);
+	border-bottom: 4px solid var(--main-color);
 }
 
 #Title div.TitleUnselected {
@@ -28,10 +34,6 @@
 }
 
 /* SYSTEM FILAMENTS PAGE */
-body:has(#SystemFilamentBtn.TitleSelected) #Content { /* :has selector browser support 2023+ */
-	padding: 15px 15px 5px;
-}
-
 #SystemFilamentsArea {
 	display: none;
 	flex-direction: column;
@@ -40,6 +42,7 @@ body:has(#SystemFilamentBtn.TitleSelected) #Content { /* :has selector browser s
 
 /* CUSTOM FILAMENTS PAGE */
 #CustomFilamentsArea {
+	padding: 10px 20px;
 	display: flex;
 	flex-direction: column;
 	height: 100%;
