@@ -3,8 +3,8 @@
     "name": "SeeMeCNC PCTG",
     "inherits": "SeeMeCNC filament base",
     "from": "System",
-    "setting_id": "kPCTG8mN2qR4sT6v",
-    "filament_id": "SMCFP001",
+    "setting_id": "4TfOU0guQQIn8uR9",
+    "filament_id": "OFOlc9DD",
     "instantiation": "true",
     "filament_settings_id": [
         "SeeMeCNC PCTG"
