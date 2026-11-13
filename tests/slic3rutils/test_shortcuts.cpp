@@ -237,12 +237,12 @@ TEST_CASE("Every shortcut is listed under the section of its table row", "[Short
     CHECK(std::string(section_name(ShortcutSection::SlicingAndPrinting)) == "Slicing and printing");
 }
 
-TEST_CASE("Run Script toggles from anywhere with Ctrl+Shift+R", "[Shortcuts]")
+TEST_CASE("Run Script toggles from anywhere with Ctrl+Shift+T", "[Shortcuts]")
 {
     const ShortcutInfo& info = shortcut_info(Shortcut::ToggleRunScript);
     CHECK(std::string(info.key) == "toggle_run_script");
     CHECK(info.contexts == context_bit(ShortcutContext::Global));
-    CHECK(info.default_chord == KeyChord{'R', wxMOD_CONTROL | wxMOD_SHIFT});
+    CHECK(info.default_chord == KeyChord{'T', wxMOD_CONTROL | wxMOD_SHIFT});
     CHECK(shortcut_section(Shortcut::ToggleRunScript) == ShortcutSection::Application);
 }
 

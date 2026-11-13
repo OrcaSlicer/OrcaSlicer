@@ -580,7 +580,7 @@ set(lisbslic3r_sources
     FlushVolPredictor.cpp
 )
 
-# Parametric Design/CAD kernel. Needs OCCT's ModelingAlgorithms module and the
+# Parametric Design/CAD kernel. Needs the OCCT toolkits TKFillet, TKOffset and TKBool and the
 # vendored SolveSpace solver; both are pulled in only when SLIC3R_CAD is ON.
 if (SLIC3R_CAD)
     list(APPEND lisbslic3r_sources
@@ -697,6 +697,7 @@ target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 find_package(JPEG REQUIRED)
 find_package(Draco REQUIRED)
 
+# deps/OCCT/OCCT.cmake builds exactly these toolkits; keep its _occt_toolkits list in step.
 set(OCCT_LIBS
     TKDESTEP
     TKDE
@@ -722,8 +723,8 @@ set(OCCT_LIBS
     TKMath
     TKernel
 )
-# The CAD kernel is the only consumer of OCCT's ModelingAlgorithms module: TKFillet
-# (BRepFilletAPI), TKOffset (BRepOffsetAPI) and TKBool, which the other two need.
+# The CAD kernel is the only consumer of TKFillet (BRepFilletAPI), TKOffset (BRepOffsetAPI)
+# and TKBool, which the other two need.
 #
 # PREPEND, never append: this list is single-pass static link order, dependents before
 # dependencies — note TKernel, which everything needs, is deliberately last. TKOffset
@@ -735,17 +736,28 @@ set(OCCT_LIBS
 # than list(PREPEND), which needs CMake 3.15 and this project supports 3.13.
 if (SLIC3R_CAD)
     set(OCCT_LIBS TKFillet TKOffset TKBool ${OCCT_LIBS})
-    # deps is configured separately, so its SLIC3R_CAD can differ from ours. The module is
-    # all-or-nothing, so one absent toolkit proves it; fail here rather than at link time.
+    # deps is configured separately, so its SLIC3R_CAD can differ from ours. deps/OCCT/OCCT.cmake
+    # builds the three CAD toolkits together under SLIC3R_CAD, so one absent toolkit proves it
+    # was OFF there; fail here rather than at link time.
     if (NOT TARGET TKFillet)
         message(FATAL_ERROR
-            "SLIC3R_CAD is ON, but the OpenCASCADE in ${CMAKE_PREFIX_PATH} was built without "
-            "BUILD_MODULE_ModelingAlgorithms. Rebuild the dependencies with -DSLIC3R_CAD=ON, "
+            "SLIC3R_CAD is ON, but the dependencies in ${CMAKE_PREFIX_PATH} were built with "
+            "SLIC3R_CAD=OFF (OpenCASCADE has no TKFillet). Rebuild the dependencies with -DSLIC3R_CAD=ON, "
             "or configure this project with -DSLIC3R_CAD=OFF.")
     endif ()
 endif ()
 # Published for the Windows packaging step in the top-level CMakeLists.txt.
 set(OCCT_LIBS "${OCCT_LIBS}" CACHE INTERNAL "OCCT toolkits linked by libslic3r")
+# OCCT built with BUILD_USE_PCH exports the precompiled headers of TKernel, TKMath, TKBRep
+# and TKBool to consumers, so CMake would merge them into libslic3r's own precompiled header
+# (pulling <windows.h> into every libslic3r source on Windows). They only speed up OCCT's
+# own build; keep them out of ours. OpenCASCADE_LIBRARIES lists every installed toolkit, so
+# this also covers toolkits reached only through another toolkit's link interface.
+foreach (_occt_lib IN LISTS OpenCASCADE_LIBRARIES OCCT_LIBS)
+    if (TARGET ${_occt_lib})
+        set_property(TARGET ${_occt_lib} PROPERTY INTERFACE_PRECOMPILE_HEADERS "")
+    endif ()
+endforeach ()
 if (WIN32)
     # OCCT installs RelWithDebInfo and Debug builds to bin/occti and bin/occtd, so each build
     # type's DLL directory is read from the imported target, falling back to the first installed
@@ -803,6 +815,8 @@ endif ()
 
 if (TARGET OpenVDB::openvdb)
     target_link_libraries(libslic3r PRIVATE OpenVDB::openvdb)
+    # PUBLIC so code linking libslic3r (e.g. the SLA tests) can tell whether hollowing works.
+    target_compile_definitions(libslic3r PUBLIC SLIC3R_HAS_OPENVDB)
 endif()
 
 if (SLIC3R_CAD)

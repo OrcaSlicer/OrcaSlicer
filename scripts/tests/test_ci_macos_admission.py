@@ -37,6 +37,7 @@ def build(arch, status="in_progress"):
 CHECK_CACHE = job("build_macos_arch (arm64) / Check Cache", labels=("ubuntu-24.04",))
 UNIVERSAL_DONE = job("Build macOS Universal / Build OrcaSlicer")
 TESTS_DONE = job("macOS arm64 / Unit Tests")
+WORKFLOWS = ["build_all.yml", "build_optional.yml"]
 PUSH = {"id": 1, "event": "push", "head_branch": "main", "status": "in_progress"}
 PR = {"id": 2, "event": "pull_request", "head_branch": "topic", "status": "in_progress"}
 
@@ -145,15 +146,15 @@ class PriorityTest(unittest.TestCase):
 
     def test_measure_from_each_line(self):
         api = FakeApi({("runs", "pending"): [dict(PR, status="pending")], jobs_path(2): self.WAITING})
-        total, lines = admission.measure(api, "o/r", "build_all.yml", 99, NOON)
+        total, lines = admission.measure(api, "o/r", ["build_all.yml"], 99, NOON)
         self.assertEqual(total, admission.RESERVE)
         self.assertIn("priority, waiting", lines[0])
-        total, _ = admission.measure(api, "o/r", "build_all.yml", 99, NOON, priority=True)
+        total, _ = admission.measure(api, "o/r", ["build_all.yml"], 99, NOON, priority=True)
         self.assertEqual(total, 0)
 
     def test_own_waiting_run_is_not_counted(self):
         api = FakeApi({("runs", "pending"): [dict(PR, status="pending")], jobs_path(2): self.WAITING})
-        total, _ = admission.measure(api, "o/r", "build_all.yml", 2, NOON)
+        total, _ = admission.measure(api, "o/r", ["build_all.yml"], 2, NOON)
         self.assertEqual(total, 0)
 
 
@@ -167,7 +168,12 @@ class FakeApi:
     def get(self, path, **params):
         self.calls.append((path, params))
         if path.endswith("/runs") and ("status" in params or "created" in params):
-            runs = self.responses.get(("runs", params.get("status", "recent")), [])
+            # Runs keyed by status alone are build_all.yml's.
+            workflow = path.split("/workflows/")[1].split("/")[0]
+            key = ("runs", params.get("status", "recent"))
+            if workflow != "build_all.yml":
+                key = ("runs", workflow, params.get("status", "recent"))
+            runs = self.responses.get(key, [])
             start = (params["page"] - 1) * params["per_page"]
             return {"total_count": len(runs), "workflow_runs": runs[start:start + params["per_page"]]}
         if path.endswith("/runs"):
@@ -192,7 +198,7 @@ class MeasureTest(unittest.TestCase):
             jobs_path(2): [gate("arm64"), build("arm64")],
             jobs_path(3): [gate("arm64"), gate("x86_64"), build("arm64", "queued")],
         })
-        total, lines = admission.measure(api, "o/r", "build_all.yml", 99, NOON)
+        total, lines = admission.measure(api, "o/r", ["build_all.yml"], 99, NOON)
         self.assertEqual(total, admission.RESERVE + 1 + admission.RESERVE)
         self.assertEqual(len(lines), 3)
 
@@ -200,26 +206,26 @@ class MeasureTest(unittest.TestCase):
         # One of its jobs waits in a concurrency group while its macOS builds run.
         pending_pr = dict(PR, status="pending")
         api = FakeApi({("runs", "pending"): [pending_pr], jobs_path(2): [gate("arm64"), build("arm64")]})
-        total, _ = admission.measure(api, "o/r", "build_all.yml", 99, NOON)
+        total, _ = admission.measure(api, "o/r", ["build_all.yml"], 99, NOON)
         self.assertEqual(total, 1)
 
     def test_a_push_waiting_behind_another_holds_nothing(self):
         api = FakeApi({("runs", "pending"): [dict(PUSH, status="pending")], jobs_path(1): []})
-        total, _ = admission.measure(api, "o/r", "build_all.yml", 99, NOON)
+        total, _ = admission.measure(api, "o/r", ["build_all.yml"], 99, NOON)
         self.assertEqual(total, 0)
 
     def test_reads_every_page_of_runs(self):
         runs = [dict(PR, id=i) for i in range(150)]
         responses = {("runs", "in_progress"): runs}
         responses.update({jobs_path(i): [gate("arm64")] for i in range(150)})
-        total, _ = admission.measure(FakeApi(responses), "o/r", "build_all.yml", 999, NOON)
+        total, _ = admission.measure(FakeApi(responses), "o/r", ["build_all.yml"], 999, NOON)
         self.assertEqual(total, 150)
 
     def test_reserves_for_the_nightly_until_its_run_appears(self):
         due = datetime.datetime(2026, 10, 10, 2, 10, tzinfo=UTC)
         yesterday = {"created_at": "2026-10-09T02:20:00Z"}
         total, lines = admission.measure(
-            FakeApi({("runs", "schedule"): [yesterday]}), "OrcaSlicer/OrcaSlicer", "build_all.yml", 99, due)
+            FakeApi({("runs", "schedule"): [yesterday]}), "OrcaSlicer/OrcaSlicer", ["build_all.yml"], 99, due)
         self.assertEqual(total, admission.RESERVE)
         self.assertIn("nightly", lines[0])
 
@@ -227,12 +233,30 @@ class MeasureTest(unittest.TestCase):
         due = datetime.datetime(2026, 10, 10, 2, 30, tzinfo=UTC)
         today = {"created_at": "2026-10-10T02:21:00Z"}
         total, _ = admission.measure(
-            FakeApi({("runs", "schedule"): [today]}), "OrcaSlicer/OrcaSlicer", "build_all.yml", 99, due)
+            FakeApi({("runs", "schedule"): [today]}), "OrcaSlicer/OrcaSlicer", ["build_all.yml"], 99, due)
         self.assertEqual(total, 0)
+
+    def test_counts_the_runs_of_every_workflow(self):
+        # build_optional.yml builds a pull request's x86_64 app in its own run.
+        optional = dict(PR, id=3)
+        api = FakeApi({("runs", "in_progress"): [PR],
+                       ("runs", "build_optional.yml", "in_progress"): [optional],
+                       jobs_path(2): [gate("arm64"), build("arm64")],
+                       jobs_path(3): [gate("x86_64"), build("x86_64")]})
+        total, lines = admission.measure(api, "o/r", WORKFLOWS, 99, NOON)
+        self.assertEqual(total, 2)
+        self.assertEqual(len(lines), 2)
+
+    def test_the_nightly_is_looked_up_in_the_first_workflow(self):
+        due = datetime.datetime(2026, 10, 10, 2, 10, tzinfo=UTC)
+        api = FakeApi({})
+        admission.measure(api, "OrcaSlicer/OrcaSlicer", WORKFLOWS, 99, due)
+        schedule = [path for path, params in api.calls if params.get("event") == "schedule"]
+        self.assertEqual(schedule, ["repos/OrcaSlicer/OrcaSlicer/actions/workflows/build_all.yml/runs"])
 
     def test_no_nightly_reserve_in_a_fork(self):
         due = datetime.datetime(2026, 10, 10, 2, 10, tzinfo=UTC)
-        total, _ = admission.measure(FakeApi({}), "fork/OrcaSlicer", "build_all.yml", 99, due)
+        total, _ = admission.measure(FakeApi({}), "fork/OrcaSlicer", ["build_all.yml"], 99, due)
         self.assertEqual(total, 0)
 
     def test_counts_a_run_in_both_lists_once(self):
@@ -241,13 +265,13 @@ class MeasureTest(unittest.TestCase):
             ("runs", "queued"): [dict(PUSH, status="queued")],
             jobs_path(1): [],
         })
-        total, _ = admission.measure(api, "o/r", "build_all.yml", 99, NOON)
+        total, _ = admission.measure(api, "o/r", ["build_all.yml"], 99, NOON)
         self.assertEqual(total, admission.RESERVE)
 
     def test_counts_its_own_run(self):
         jobs = [gate("arm64"), build("arm64"), gate("x86_64", "in_progress", None)]
         api = FakeApi({("runs", "in_progress"): [PR], jobs_path(2): jobs})
-        self.assertEqual(admission.measure(api, "o/r", "build_all.yml", 2, NOON)[0], 1)
+        self.assertEqual(admission.measure(api, "o/r", ["build_all.yml"], 2, NOON)[0], 1)
 
     def test_a_run_whose_other_arch_waits_behind_this_one_does_not_block_it(self):
         # The line is A-arm64, B-arm64, A-x86_64. A's arm64 is built and its
@@ -258,7 +282,7 @@ class MeasureTest(unittest.TestCase):
             jobs_path(1): [gate("arm64"), build("arm64", "completed"), gate("x86_64", "pending", None)],
             jobs_path(2): [gate("arm64", "in_progress", None)],
         })
-        total, _ = admission.measure(api, "o/r", "build_all.yml", 2, NOON)
+        total, _ = admission.measure(api, "o/r", ["build_all.yml"], 2, NOON)
         self.assertEqual(total, 0)
 
     def test_counts_its_own_run_when_no_status_list_has_it(self):
@@ -266,27 +290,27 @@ class MeasureTest(unittest.TestCase):
         # line, and is in neither list while that gate checks.
         jobs = [gate("x86_64"), build("x86_64", "queued"), gate("arm64", "in_progress", None)]
         api = FakeApi({jobs_path(2): jobs})
-        self.assertEqual(admission.measure(api, "o/r", "build_all.yml", 2, NOON)[0], 1)
+        self.assertEqual(admission.measure(api, "o/r", ["build_all.yml"], 2, NOON)[0], 1)
 
     def test_counts_a_recent_run_that_no_status_list_has(self):
         api = FakeApi({("runs", "recent"): [PR], jobs_path(2): [gate("arm64"), build("arm64")]})
-        self.assertEqual(admission.measure(api, "o/r", "build_all.yml", 99, NOON)[0], 1)
+        self.assertEqual(admission.measure(api, "o/r", ["build_all.yml"], 99, NOON)[0], 1)
 
     def test_lists_recent_runs_from_a_day_before(self):
         api = FakeApi({})
-        admission.measure(api, "o/r", "build_all.yml", 99, NOON)
+        admission.measure(api, "o/r", ["build_all.yml"], 99, NOON)
         self.assertIn(">=2026-10-09T12:00:00Z", [params.get("created") for _, params in api.calls])
 
     def test_finished_recent_runs_are_not_read(self):
         done = dict(PUSH, status="completed")
         api = FakeApi({("runs", "recent"): [done]})
-        total, _ = admission.measure(api, "o/r", "build_all.yml", 99, NOON)
+        total, _ = admission.measure(api, "o/r", ["build_all.yml"], 99, NOON)
         self.assertEqual(total, 0)
         self.assertNotIn(jobs_path(1), [path for path, _ in api.calls])
 
     def test_no_nightly_lookup_outside_its_window(self):
         api = FakeApi({})
-        admission.measure(api, "o/r", "build_all.yml", 99, NOON)
+        admission.measure(api, "o/r", ["build_all.yml"], 99, NOON)
         self.assertFalse(any("event" in params for _, params in api.calls))
 
 

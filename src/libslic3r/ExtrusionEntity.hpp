@@ -6,6 +6,7 @@
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 
+#include <algorithm>
 #include <assert.h>
 #include <cstdint>
 #include <string>
@@ -554,6 +555,14 @@ public:
 private:
     ExtrusionLoopRole m_loop_role;
 };
+
+// Orca: A fully overhanging outer loop has no outer wall paths but keeps inset index 0. Not the negation of
+// is_inner_wall(), which goes by the first path while the inset index is unset.
+inline bool is_outer_wall(const ExtrusionLoop &loop)
+{
+    return loop.inset_idx == 0 ||
+           std::any_of(loop.paths.begin(), loop.paths.end(), [](const ExtrusionPath &path) { return path.role() == erExternalPerimeter; });
+}
 
 class ExtrusionLoopSloped : public ExtrusionLoop
 {

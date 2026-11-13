@@ -56,7 +56,10 @@ void host_bindings::register_model(py::module_& host)
         .value("PreciseSeamBlocked", ModelVolumeType::PRECISE_SEAM_BLOCKED,
                "Weak precise seam helper: keeps the seam off the outer wall it crosses.")
         .value("PreciseSeamNeutral", ModelVolumeType::PRECISE_SEAM_NEUTRAL,
-               "Weak precise seam helper: resets the outer wall it crosses to neutral.");
+               "Weak precise seam helper: resets the outer wall it crosses to neutral.")
+        .value("PaintedModifier", ModelVolumeType::PAINTED_MODIFIER,
+               "Not printed; overrides settings behind the area painted on one model part, to a set depth. It shares "
+               "that part's mesh and placement, so its mesh is the whole part, not the painted area.");
 
     py::class_<ModelVolume, std::unique_ptr<ModelVolume, py::nodelete>>(host, "ModelVolume",
         "One volume of a ModelObject: a model part, a negative volume, a modifier, a support enforcer or blocker, or "

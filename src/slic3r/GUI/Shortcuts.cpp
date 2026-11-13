@@ -90,6 +90,8 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     REPEATING(RemoveInstance,   "remove_instance",    L("Remove instance"),                                      PLATER | OBJECT_LIST, { '-' }),
     SHORTCUT(TogglePrintable,   "toggle_printable",   L("Toggle printable for object/part"),                     PLATER | OBJECT_LIST, { 'V' }),
     SHORTCUT(ToggleAutoDrop,    "toggle_auto_drop",   L("Auto Drop"),                                            OBJECT_LIST,          { 'D' }),
+    // Not F5, which ReloadDevicePage holds in the Plater context.
+    SHORTCUT(ReloadFromDisk,    "reload_from_disk",   L("Reload from disk"),                                     PLATER | OBJECT_LIST, { 'R', CTRL_SHIFT }),
 
     // Placement
     SHORTCUT(Arrange,           "arrange",            L("Arrange all objects"),                                  PLATER, { 'A' }),
@@ -178,8 +180,9 @@ constexpr std::array<ShortcutInfo, size_t(Shortcut::Count)> shortcut_table = {{
     SHORTCUT(TabPrevious,       "tab_previous",       L("Switch to the previous tab"),                           GLOBAL, TAB_PREVIOUS_CHORD),
     SHORTCUT(ReloadDevicePage,  "reload_device_page", L("Reload the device page"),                               CANVAS, { WXK_F5 }),
     SHORTCUT(KeyboardShortcuts, "keyboard_shortcuts", L("Show keyboard shortcuts list"),                         CANVAS, { '?' }),
-    // Ctrl+Alt would be AltGr on the Windows layouts that type with it.
-    SHORTCUT(ToggleRunScript,   "toggle_run_script",  L("Show or hide the Run Script panel"),                    GLOBAL, { 'R', CTRL_SHIFT }),
+    // Not Ctrl+Shift+R, which ReloadFromDisk holds in the Plater context. Ctrl+Alt would be AltGr on the
+    // Windows layouts that type with it.
+    SHORTCUT(ToggleRunScript,   "toggle_run_script",  L("Show or hide the Run Script panel"),                    GLOBAL, { 'T', CTRL_SHIFT }),
     SHORTCUT(Quit,              "quit",               L("Quit"),                                                 GLOBAL, { 'Q', CTRL }),
 
     // Speed Dial

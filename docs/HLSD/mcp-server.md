@@ -3577,7 +3577,7 @@ matrix arrays need and which the bundled Python lacks unless a file run's PEP 72
 
 ### Run Script panel
 
-File › Run Script (the Global shortcut Ctrl+Shift+R, ⌘⇧R on macOS) and the Speed Dial command
+File › Run Script (the Global shortcut Ctrl+Shift+T, ⌘⇧T on macOS) and the Speed Dial command
 `toggle_run_script` show or hide the Run Script panel (`RunScriptPanel`, page `resources/web/dialog/RunScript/`),
 a dock pane of the Plater under the 3D view and the sidebar, where a person edits a `.py` file in `# %%` cells and
 runs a cell, the whole file or a console line in a live session. Showing it selects Prepare when the current tab is
