@@ -215,7 +215,7 @@ button:focus-visible, textarea:focus-visible { outline: 2px solid var(--sr-accen
 }
 .step-title { font-weight: 600; }
 .step.is-wait .step-title, .step.is-skip .step-title { font-weight: 400; color: var(--sr-muted); }
-.step-what, .step-param { display: block; color: var(--sr-muted); font-size: 12px; overflow-wrap: anywhere; }
+.step-what, .step-args { display: block; color: var(--sr-muted); font-size: 12px; overflow-wrap: anywhere; }
 .step-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
 .tag {
   font-size: 11px;

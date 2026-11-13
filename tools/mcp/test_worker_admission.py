@@ -53,9 +53,9 @@ def main():
     c.call("wait", **{"for": "ready", "timeout_s": 50})
     c.call("new_project", discard_changes=True)
     c.call("set_view", tab="prepare")
-    for size in ["6 6 6", "4 9 5", "7 3 5"]:
+    for size in [[6, 6, 6], [4, 9, 5], [7, 3, 5]]:
         c.call("select_objects", none=True)
-        c.call("run_action", id="orca_command:add_primitive_cube:orca", param=size)
+        c.call("run_action", id="orca_command:add_primitive_cube:orca", args={"size": size})
     for o in range(3):
         c.call("arrange", fill=o, spacing=0, rotate=False)
 

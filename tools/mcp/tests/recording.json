@@ -11,7 +11,7 @@
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "unsaved changes", "button": "no"},
                                                       {"match": "restore", "button": "no"}]}},
-    {"tool": "new_project"},
+    {"tool": "new_project", "args": {"silent": true}},
     {"tool": "set_window", "args": {"size": [1600, 1000]}},
     {"tool": "set_view", "args": {"tab": "prepare"}},
     {"tool": "start_recording", "args": {"save_path": "${out_dir}/session.mkv", "overwrite": true, "captions": true,
@@ -34,7 +34,7 @@
 
     {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},
     {"tool": "wait", "args": {"for": "idle"}},
-    {"tool": "stop_recording",
+    {"tool": "stop_recording", "args": {"silent": true},
      "expect": {"/ended": {"eq": "stopped"}, "/frames": {"ge": 5}, "/written": {"ge": 5}, "/seconds": {"gt": 1}, "/size_bytes": {"gt": 0},
                 "/capture_ms": {"gt": 0}}},
     {"tool": "get_app_state", "expect": {"/recording": {"exists": false}}},
@@ -47,28 +47,32 @@
        {"tool": "set_view", "args": {"camera": "iso"}},
        {"tool": "mouse_gesture", "args": {"action": "drag", "x": 400, "y": 300, "to": [500, 340]}}]}},
      "expect": {"/passed": {"eq": true}, "/unfinished_recording": {"exists": false}}},
-    {"tool": "stop_recording", "expect": {"/ended": {"eq": "run_ended"}, "/path": {"regex": "inner\\.mkv$"}}},
+    {"tool": "stop_recording", "args": {"silent": true}, "expect": {"/ended": {"eq": "run_ended"}, "/path": {"regex": "inner\\.mkv$"}}},
     {"tool": "encode_recording", "args": {"overwrite": true, "codec": "h264"}, "optional": true,
      "expect": {"/path": {"regex": "inner\\.mp4$"}, "/encoder": {"eq": "libx264"}}},
     // The replay's end released the file: recording to it again starts at once, with no overlays by default.
     {"tool": "start_recording", "args": {"save_path": "${out_dir}/inner.mkv", "overwrite": true},
      "expect": {"/captions": {"eq": false}, "/pointer": {"eq": false}}},
-    {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}},
+    {"tool": "stop_recording", "args": {"silent": true}, "expect": {"/ended": {"eq": "stopped"}}},
 
     // captions and pointer each turn on one.
     {"tool": "start_recording", "args": {"save_path": "${out_dir}/plain.mkv", "overwrite": true, "pointer": true},
      "expect": {"/captions": {"eq": false}, "/pointer": {"eq": true}}},
-    {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}},
+    {"tool": "stop_recording", "args": {"silent": true}, "expect": {"/ended": {"eq": "stopped"}}},
     {"tool": "start_recording", "args": {"save_path": "${out_dir}/plain.mkv", "overwrite": true, "captions": true},
      "expect": {"/captions": {"eq": true}, "/pointer": {"eq": false}}},
-    {"tool": "stop_recording", "expect": {"/ended": {"eq": "stopped"}}},
+    {"tool": "stop_recording", "args": {"silent": true}, "expect": {"/ended": {"eq": "stopped"}}},
+    // Left out, the limit is an hour, and the reply says so.
+    {"tool": "start_recording", "args": {"save_path": "${out_dir}/limit.mkv", "overwrite": true},
+     "expect": {"/max_seconds": {"eq": 3600}}},
+    {"tool": "stop_recording", "args": {"silent": true}, "expect": {"/ended": {"eq": "stopped"}}},
 
     // Encoding asked for up front (an ffmpeg with libx264): the stop that reports the recording starts the encode
     // as a job of its own, which wait idle waits for.
     {"tool": "start_recording", "args": {"save_path": "${out_dir}/encoded.mkv", "overwrite": true, "encode": true,
                                          "encode_preset": "compatible", "crf": 30}, "optional": true,
      "expect": {"/encode/codec": {"eq": "h264"}, "/encode/crf": {"eq": 30}, "/encode/profile": {"eq": "high"}}},
-    {"tool": "stop_recording", "optional": true,
+    {"tool": "stop_recording", "args": {"silent": true}, "optional": true,
      "expect": {"/path": {"regex": "encoded\\.mkv$"}, "/encode/status": {"eq": "running"}, "/encode/job": {"exists": true}}},
     {"tool": "wait", "args": {"for": "idle", "timeout_s": 50}, "optional": true, "expect": {"/satisfied": {"eq": true}}},
     {"tool": "get_app_state", "optional": true,

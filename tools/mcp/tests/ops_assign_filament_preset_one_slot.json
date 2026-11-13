@@ -35,7 +35,7 @@
     {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu Support for ABS", "filament_slot": 1}},
     {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1}},
     {"tool": "get_app_state", "expect": {"/presets/filaments/0": {"exists": true}, "/presets/filaments/1": {"exists": false}}},
-    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "behaviour:auto_calculate_flush"}, "await": false, "save_as": "prefs1"},
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "args": {"tab": "behaviour", "key": "auto_calculate_flush"}}, "await": false, "save_as": "prefs1"},
     // The choice is saved by the drop-down's own handler, so it is picked from its list.
     {"tool": "click", "args": {"target": {"name": "auto_calculate_flush", "within": "Preferences"}}},
     {"tool": "click", "args": {"target": {"row": "All"}}},

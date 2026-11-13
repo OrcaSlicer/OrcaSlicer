@@ -1,9 +1,9 @@
-// Records how a plate is selected: the plate_goto command run with run_action and a param in range, past the
-// last plate and negative (refused), not a number and empty (plate 0), and each tool that takes a plate index
-// given one the project lacks (slice, export, arrange, set_settings and get_settings plate scope, list_objects,
-// transform) and given one it has. After each it reads the current plate (get_app_state, list_plates) and the
-// undo snapshots taken since the last read (fixtures/ops_undo.py). The project has three plates with a cube on
-// the first. Every call it records is optional. Run it with
+// Records how a plate is selected: the plate_goto command run with run_action and a plate in range, past the
+// last plate and negative (refused), not a number and not a whole number (refused), and none (plate 0), and
+// each tool that takes a plate index given one the project lacks (slice, export, arrange, set_settings and
+// get_settings plate scope, list_objects, transform) and given one it has. After each it reads the current
+// plate (get_app_state, list_plates) and the undo snapshots taken since the last read (fixtures/ops_undo.py).
+// The project has three plates with a cube on the first. Every call it records is optional. Run it with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_select_plate.json --out <dir>
 {
   "orca_replay": 1,
@@ -13,7 +13,7 @@
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
     {"tool": "set_view", "args": {"tab": "prepare"}},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "run_action", "args": {"id": "orca_command:plate_add:orca"}},
     {"tool": "run_action", "args": {"id": "orca_command:plate_add:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
@@ -21,34 +21,34 @@
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
-    // ---- plate_goto: in range, past the last, negative, not a number, empty ----
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}, "optional": true},
+    // ---- plate_goto: in range, past the last, negative, not a number, not a whole number, none ----
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 1}}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "2"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 2}}, "optional": true},
     {"tool": "get_app_state"},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 0}}, "optional": true},
     {"tool": "get_app_state"},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "3"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 3}}, "optional": true},
     {"tool": "get_app_state"},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "7"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 7}}, "optional": true},
     {"tool": "get_app_state"},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "-3"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": -3}}, "optional": true},
     {"tool": "get_app_state"},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "2"}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "abc"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 2}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": "abc"}}, "optional": true},
     {"tool": "get_app_state"},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "2"}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1.7"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 2}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 1.7}}, "optional": true},
     {"tool": "get_app_state"},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "2"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 2}}, "optional": true},
     {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca"}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "list_plates"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
     // ---- Tools given a plate the project lacks, from plate 1 ----
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 1}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
     {"tool": "slice", "args": {"plates": 5}, "optional": true},

@@ -50,9 +50,14 @@ private:
     // cleared, so ask the window itself instead.
     bool is_active();
     void resize_to_content(int height);
-    void run_action(const std::string& id, const std::string& title, const std::string& param = "");
+    // Runs action `id` as the person picked it, with the command arguments the page passes: none for a plain
+    // pick, the value of the second phase for Go to layer and Go to tab.
+    void run_action(const std::string& id, const std::string& title, const nlohmann::json& args);
     void open_wiki(const std::string& id);
     void send_actions();
+    // Sends the page the bar as the registry now shows it (ActionRegistry::favourites_bar()), after a pin, an unpin
+    // or a reorder: an unpin can bring a pin past the tenth onto the bar, and the page's own copy would not know.
+    void send_favourites();
     void search_tabs();
     void apply_rounded_shape();
     // Forces the webview to repaint after it is mapped / re-rendered. The popup is transparent and

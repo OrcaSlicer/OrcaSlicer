@@ -647,7 +647,7 @@ void RunScriptPanel::send_service_state()
         m_ready_timer.Start(500);
     send({{"command", "service"}, {"ready", ready}});
     if (ready)
-        send({{"command", "catalog"}, {"tools", Mcp::editor_tool_catalog(s->registry())}});
+        send({{"command", "catalog"}, {"tools", Mcp::editor_tool_catalog(s->catalog())}});
 }
 
 // The orca.host API's entries, read once per app run on a thread of the panel's, which it joins.

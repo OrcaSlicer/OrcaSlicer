@@ -27,8 +27,8 @@ import sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASELINE = "scripts/operation_calls_baseline.txt"
 
-# The callers: the command runners, the tools (the CAD tools are one entry point of their own behind
-# call_cad_tool) and the plugin API.
+# The callers: the command runners, the tools (the Design commands, whose functions are the Design tab's own
+# entry points, are not among them) and the plugin API.
 CALLERS = ["src/slic3r/GUI/NativeCommands.cpp", "src/slic3r/GUI/Mcp/McpTools*.cpp", "src/slic3r/plugin/host/*.cpp"]
 NOT_CALLERS = {"src/slic3r/GUI/Mcp/McpToolsCad.cpp"}
 

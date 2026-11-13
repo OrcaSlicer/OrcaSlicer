@@ -8,7 +8,9 @@
 #include "McpTypes.hpp"
 #include "RecordingSettings.hpp"
 #include "VideoEncode.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
@@ -45,17 +47,14 @@ namespace {
 
 // The recording tools only read the app, so they run behind dialogs and during operations, but each
 // is a job: ownership is read from the job's ancestry, and an encode outlives the reply budget.
-ToolDef record_tool(std::string name, std::string title, std::string description, json schema, ToolHandler handler)
+NativeCommand record_tool(std::string group, std::string name, std::string title, std::string description, json schema, CommandFn handler)
 {
-    ToolDef d;
-    d.name         = std::move(name);
-    d.title        = std::move(title);
-    d.description  = std::move(description);
-    d.input_schema = std::move(schema);
-    d.guard        = GuardClass::Inspect;
-    d.inline_call  = false;
-    d.journal      = true;
-    d.handler      = std::move(handler);
+    NativeCommand d = NativeCommands::long_command(std::move(name), std::move(title), std::move(group), std::move(schema),
+                                                   std::move(handler));
+    d.description   = std::move(description);
+    d.listed        = true;
+    d.guard         = GuardClass::Inspect;
+    d.journal       = true;
     return d;
 }
 
@@ -97,24 +96,27 @@ std::vector<std::string> encode_preset_keys()
 
 } // namespace
 
-void register_record_tools(McpService& service)
+void register_record_tools(CommandCatalog& catalog)
 {
-    ToolRegistry& reg = service.registry();
-
-    reg.add(record_tool(
-        "start_recording", L("Start a recording"),
+    // The Speed Dial's Start Recording too: with no arguments it opens the tile's dialog.
+    catalog.add(NativeCommands::with_person_form(record_tool(
+        {}, "start_recording", {},
         "Record a video of OrcaSlicer until stop_recording: the main window with any modal dialog on it (target main), or "
         "the 3D view shown (canvas). Frames are MJPEG in a Matroska (.mkv) file with their real timestamps. With captions, "
         "the tool call acting on the app shows as a caption at the bottom (secret setting values never show); with pointer, "
         "the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so "
         "the frame rate drops where capturing is slow. One recording at a time: one a replay or script starts ends with it, a "
         "client's when the server is turned off. With encode, the stop_recording that reports it also encodes it to an MP4 "
-        "beside it, as the Start Recording command does; encode_recording makes an MP4 of any recording later.",
+        "beside it, as the Start Recording command does; encode_recording makes an MP4 of any recording later. Called with no "
+        "arguments, it opens the Start Recording dialog instead, as the Start Recording command does (blocked_by_dialog): "
+        "its controls are named after their settings for set_widget_value, answer_dialog \"Start recording\" starts the "
+        "person's recording, which neither the end of a replay or script nor the server turning off ends, and the dialog "
+        "remembers the settings; silent: true starts one here at once with the defaults.",
         object_schema({{"target", enum_prop({"main", "canvas"}, "main (default): the main window and its dialogs; canvas: the 3D view shown.")},
                        {"fps", int_prop(1, 30, "Frames per second at most (default 10).")},
                        {"max_dim", int_prop(320, 3840, "Long edge of the video in pixels (default 1920).")},
                        {"quality", int_prop(30, 95, "JPEG quality of the frames (default 80).")},
-                       {"max_seconds", int_prop(1, 3600, "The recording ends on its own after this long (default 600).")},
+                       {"max_seconds", int_prop(1, 3600, "The recording ends on its own after this long (default 3600).")},
                        {"captions", prop("boolean", "Caption the tool call acting on the app (default false).")},
                        {"pointer", prop("boolean", "Highlight the pointer and show its clicks (default false).")},
                        {"encode", prop("boolean", "Encode it to an MP4 once stopped; needs an ffmpeg (default false).")},
@@ -128,23 +130,19 @@ void register_record_tools(McpService& service)
                                              "the codec's first).")},
                        {"save_path", prop("string", "Absolute .mkv path; default the session's output folder.")},
                        {"overwrite", prop("boolean", "Replace an existing save_path, and with encode its MP4.")}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             RecordingOptions o;
             o.target      = arg_string(args, "target", "main");
             o.fps         = arg_int(args, "fps", 10);
             o.max_dim     = arg_int(args, "max_dim", 1920);
             o.quality     = arg_int(args, "quality", 80);
-            o.max_seconds = arg_int(args, "max_seconds", 600);
+            o.max_seconds = arg_int(args, "max_seconds", 3600);
             o.captions    = arg_bool(args, "captions", false);
             o.pointer     = arg_bool(args, "pointer", false);
-            // The encode as the Start Recording command takes it: its keys, defaults and checks.
-            json encode_args = json::object();
-            for (const char* key : {"encode", "encode_preset", "codec", "crf", "speed", "profile"})
-                if (args.contains(key))
-                    encode_args[key] = args[key];
+            // The encode with the Start Recording dialog's defaults, the Balanced preset.
             RecordingSettings settings;
-            bool              silent = false;
-            if (const std::string err = apply_recording_overrides(settings, encode_args, silent); !err.empty())
+            if (const std::string err = apply_recording_overrides(settings, args); !err.empty())
                 throw ToolFailure(err);
             if (std::string err; settings.encode && !find_ffmpeg(err))
                 throw ToolFailure("Cannot encode: " + err);
@@ -203,23 +201,31 @@ void register_record_tools(McpService& service)
                                  {"crf", settings.crf},
                                  {"speed", settings.speed},
                                  {"profile", settings.profile}};
+            // The limit it runs under, which a call that leaves it out did not choose.
+            out["max_seconds"] = o.max_seconds;
             // The path used, so a replay records into its own output folder under the same name and its
             // encode finds it there.
             json recorded         = args;
             recorded["save_path"] = out["path"];
             ctx.set_journal_args(std::move(recorded));
             return ToolResult::ok(out);
-        }));
+        }),
+        L("Start Recording"), L("Commands"), "recording_start", NativeCommands::start_person_recording));
 
-    reg.add(record_tool("stop_recording", L("Stop the recording"),
+    // The Speed Dial's Stop Recording too: with no arguments it stops as the tile does.
+    catalog.add(NativeCommands::with_person_form(record_tool({}, "stop_recording", {},
                         "Stop the running recording and return its file once it is written: seconds, frames captured and "
                         "written, frames dropped when encoding fell behind, failed when they could not be encoded, or "
                         "skipped when the window could not be captured, "
                         "the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, the replay or script that started it ended, a "
                         "write error) is reported once by the next stop_recording. For a recording started with encode, it then "
                         "starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns "
-                        "encode_recording's result.",
-                        object_schema({}), [&service](const json&, ToolContext& ctx) {
+                        "encode_recording's result. This is the call with silent: true. Called with no arguments, it stops "
+                        "the recording as the Stop Recording command does, whoever started it: without waiting for its "
+                        "file, it shows the person a notification naming it and replies with its path; the next "
+                        "stop_recording with silent: true reports it as ended stopped_in_app.",
+                        object_schema({}), [](const json&, ToolContext& ctx) {
+                            McpService& service = ctx.service();
                             // The last state too, even if the timer has not ticked since the last call. Without the
                             // UI thread (a native dialog holds it), the recording ends with its last frame.
                             try {
@@ -238,10 +244,12 @@ void register_record_tools(McpService& service)
                                 report["encode"]   = r.is_error ? json{{"error", r.message}} : r.data;
                             }
                             return ToolResult::ok(report);
-                        }));
+                        }),
+        // The person's stop opens nothing: like the silent one, it stops a recording behind a dialog.
+        L("Stop Recording"), L("Commands"), "recording_stop", NativeCommands::stop_recording_in_app, /*person_form_behind_dialogs=*/true));
 
-    ToolDef encode = record_tool(
-        "encode_recording", L("Encode a recording"),
+    NativeCommand encode = record_tool(
+        "ui", "encode_recording", L("Encode a recording"),
         "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, else ffmpeg on PATH; it "
         "needs libx265 or libx264), keeping its timing. Takes this session's last finished recording unless path names "
         "one, and writes beside it unless save_path says where. A long encode returns a job: wait for it, or cancel_job {job} "
@@ -256,7 +264,8 @@ void register_record_tools(McpService& service)
                                              "h264: high, main or baseline; h265: main, or main10 for 10 bits per sample. Default the "
                                              "encoder's (high, main).")},
                        {"delete_source", prop("boolean", "Delete the .mkv once encoded (a recording this session made).")}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             const std::shared_ptr<RecordingFiles>& files = service.recorder().files();
             std::string                            err;
             fs::path                               source;
@@ -404,7 +413,7 @@ void register_record_tools(McpService& service)
             return ToolResult::ok(out);
         });
     encode.cancellable = true;
-    reg.add(encode);
+    catalog.add(encode);
 }
 
 }}} // namespace Slic3r::GUI::Mcp

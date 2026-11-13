@@ -466,8 +466,8 @@ ArrangeStart start_arrange(Plater& plater, const json& args)
     }
     const std::string plate_name = "Plate " + std::to_string(plate);
     if (plate >= 0 && plates.get_plate(plate)->is_locked())
-        throw ToolFailure(plate_name + " is locked; unlock it first (run_action plate_goto with param " + std::to_string(plate) +
-                          ", then plate_toggle_lock)");
+        throw ToolFailure(plate_name + " is locked; unlock it first (run_action plate_goto with args {\"plate\": " + std::to_string(plate) +
+                          "}, then plate_toggle_lock)");
     if (plate >= 0 && plates.get_plate(plate)->empty())
         throw ToolFailure(plate_name + " has no objects to arrange");
 
@@ -967,12 +967,10 @@ json plate_summary(const json& statistics, const GCodeProcessorResult& result)
     return out;
 }
 
-void register_scene_tools(McpService& service)
+void register_scene_tools(CommandCatalog& catalog)
 {
-    ToolRegistry& reg = service.registry();
-
-    reg.add(inspect_tool(
-        "list_objects", L("List objects"),
+    catalog.add(inspect_tool(
+        "api", "list_objects", L("List objects"),
         "The project as the Objects panel lists it. plates: each {index, name, objects}, with the objects that have an "
         "instance on it; outside: the objects with an instance on no plate. An object with instances on two plates is "
         "listed under both, each time with that plate's instances. An object has its filament, auto_drop, bounding box "
@@ -997,8 +995,8 @@ void register_scene_tools(McpService& service)
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_objects(args); })); }));
 
-    reg.add(mutate_tool(
-        "select_objects", L("Select objects"),
+    catalog.add(with_expected_ids(mutate_tool(
+        "ui", "select_objects", L("Select objects"),
         "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, "
         "instances ([[object, instance], ...]) or parts ([[object, part], ...]); add keeps the current selection; all / "
         "none select everything or nothing. The reply is the selection as get_app_state.selection gives it.",
@@ -1105,10 +1103,10 @@ void register_scene_tools(McpService& service)
             });
             settle(ctx);
             return ToolResult::ok(out);
-        }));
+        })));
 
-    reg.add(mutate_tool(
-        "transform", L("Move, rotate or scale an instance or a part"),
+    catalog.add(with_expected_ids(mutate_tool(
+        "api", "transform", L("Move, rotate or scale an instance or a part"),
         "Change one instance's placement, or one part's with part. translate is in mm, position where it goes (mm, as "
         "the Move panel shows it, whatever mode says), rotate in degrees about X/Y/Z, "
         "scale a factor (one number or [x, y, z]), size [x, y, z] mm along the object's or part's own axes, plate moves "
@@ -1148,10 +1146,10 @@ void register_scene_tools(McpService& service)
             });
             settle(ctx);
             return ToolResult::ok(out);
-        }));
+        })));
 
-    reg.add(mutate_tool(
-        "add_part", L("Add a part or modifier to an object"),
+    catalog.add(with_expected_ids(mutate_tool(
+        "api", "add_part", L("Add a part or modifier to an object"),
         "Add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object, as its context "
         "menu's Add items do: a primitive shape at a size, or a model file as Load... adds it. The part lands where the "
         "menu puts it (a shape beside the object, a file at its coordinates relative to the object's first part) unless "
@@ -1176,10 +1174,10 @@ void register_scene_tools(McpService& service)
             json out = ctx.run_ui([&] { return add_part(ui_plater(), args); });
             settle(ctx);
             return ToolResult::ok(out);
-        }));
+        })));
 
-    reg.add(reaching({"start_arrange"}, mutate_tool(
-        "arrange", L("Arrange objects or fill the bed"),
+    catalog.add(reaching({"start_arrange"}, mutate_tool(
+        "api", "arrange", L("Arrange objects or fill the bed"),
         "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or "
         "\"current\") as its Arrange icon does. With fill, fill that object's plate with more of it instead, as Fill bed "
         "with instances (or copies, by fill_with) does. spacing, rotate, align_y and multi_material are the Arrange options "
@@ -1195,7 +1193,8 @@ void register_scene_tools(McpService& service)
                        {"fill", {{"type", "integer"}, {"minimum", 0}, {"description", "Instead of arranging, fill this object's plate with more of it."}}},
                        {"fill_with", enum_prop({"instances", "copies"}, "Default instances.")},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 1800}, {"description", "Cancel it after this long (default 300)."}}}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             ArrangeStart start;
             ctx.run_ui([&] {
                 start = start_arrange(ui_plater(), args);
@@ -1225,8 +1224,8 @@ void register_scene_tools(McpService& service)
             }
         })));
 
-    ToolDef slice = reaching({"start_slice"}, mutate_tool(
-        "slice", L("Slice"),
+    NativeCommand slice = reaching({"start_slice"}, mutate_tool(
+        "api", "slice", L("Slice"),
         "Slice the current plate, all plates, or one plate by index, the way the toolbar's Slice button does, and wait for "
         "the result (or reply with a job id when it takes longer than the reply budget). Each requested plate reports ok, "
         "error, cancelled, empty or skipped; the whole operation is superseded when someone else started a slice or "
@@ -1348,16 +1347,17 @@ void register_scene_tools(McpService& service)
             return ToolResult::ok(result);
         }));
     slice.budget_ms = 45000;
-    reg.add(slice);
+    catalog.add(slice);
 
-    ToolDef cancel = mutate_tool(
-        "cancel_job", L("Cancel a job"),
+    NativeCommand cancel = mutate_tool(
+        "core", "cancel_job", L("Cancel a job"),
         "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button does, or a "
         "background job an MCP call started (an arrange, orient or fill bed). Its job then reports cancelled; a background "
         "job keeps other changes out until it has really stopped. With job, only that job is stopped: the running "
         "operation, a run_script run or an encode_recording. Allowed while an operation holds the project.",
         object_schema({{"job", prop("string", "The operation's job to cancel, e.g. \"j12\".")}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             const auto ops = service.jobs().running_operations();
             // A plugin stops only what its own calls started, so it names the job.
             if (!ctx.caller_plugin().empty() && !args.contains("job"))
@@ -1368,7 +1368,7 @@ void register_scene_tools(McpService& service)
                 const std::string job = arg_string(args, "job");
                 if (std::find(ops.begin(), ops.end(), job) == ops.end()) {
                     // A call that is no operation but can be stopped: its handler watches for the stop.
-                    const ToolDef* def = service.registry().find(service.jobs().running_tool(job));
+                    const NativeCommand* def = service.catalog().find(service.jobs().running_tool(job));
                     if (def == nullptr || !def->cancellable)
                         throw ToolFailure("Job " + job + " is not a running operation", {{"running", ops}});
                     service.request_stop(job);
@@ -1391,7 +1391,7 @@ void register_scene_tools(McpService& service)
     cancel.allowed_during_operation = true;
     // Recovery: it must get through a dialog the operation opened and another call's nested loop.
     cancel.guard = GuardClass::Recover;
-    reg.add(cancel);
+    catalog.add(cancel);
 }
 
 }}} // namespace Slic3r::GUI::Mcp

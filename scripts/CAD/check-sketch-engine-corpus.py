@@ -60,7 +60,7 @@ def try_call(method, **params):
 
 
 def call(method, **params):
-    return APP.call_cad_tool(method, **params)
+    return APP.call_command(method, **params)["result"]
 
 
 # ── SVG → line segments ──────────────────────────────────────────────────────
@@ -338,7 +338,7 @@ def grade(pdf, name, report):
 def grade_scale(pdf, name, report, budget):
     """Same exactness, on a profile of several hundred entities, and timed.
 
-    "Interactive" is measurable from here even though nothing is clicked: every CAD tool runs on
+    "Interactive" is measurable from here even though nothing is clicked: every Design command runs on
     the UI THREAD, so the window was not repainting for at most the time its reply takes. A round
     trip that stays inside the budget is a window that stayed responsive.
     """

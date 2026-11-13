@@ -1,11 +1,12 @@
 """Checks a plugin's calls into the MCP tools and the operations it offers, in the running app.
 
-Launches OrcaSlicer on a fresh data folder with tests/plugins/mcp_tools_fixture side-loaded, and
-tests/plugins/mcp_tools_broken, whose load fails after declaring an operation: over MCP, then once without
-MCP, running a replay with --mcp-run, so the plugin's calls go to the catalog-only service. The first launch
-also checks that the plugin is sent the NewProject event when the new_project tool or command starts a
-project, and ends by unticking the fixture in the Plugins dialog, as a person unloads it. Run it as
-python tools/mcp/test_plugin_tools.py [--bin PATH].
+Launches OrcaSlicer on a fresh data folder with the Design tab on (in a build with CAD) and
+tests/plugins/mcp_tools_fixture side-loaded, and tests/plugins/mcp_tools_broken, whose load fails after declaring an
+operation: over MCP, then once without MCP, running a replay with --mcp-run, so the plugin's calls go to the
+service started without its endpoint. The first launch also checks that the plugin is sent the NewProject event when
+the new_project tool or command starts a project, and ends by unticking the fixture in the Plugins dialog, as a person
+unloads it.
+Run it as python tools/mcp/test_plugin_tools.py [--bin PATH].
 """
 import json
 import os
@@ -122,10 +123,14 @@ def main():
         # --- Over MCP: the plugin's operation and its tool calls, beside a plugin whose load fails. ---
         plugin_dir = install(datadir)
         install_broken(datadir)
-        orca = launch(env, datadir, extra)
+        # The Design tab on, so that its commands are among search_tools' commands; a build without CAD has none.
+        orca = launch(env, datadir, ["--cad", *extra])
         described = orca.call_raw("search_tools", {"tool": f"plugin.{PLUGIN}.measure"})
         check("search_tools describes the plugin's operation", not described.get("isError") and
               "\"a\"" in described["content"][0]["text"], described)
+        operation = {} if described.get("isError") else json.loads(described["content"][0]["text"])
+        check("the operation is in the api group, its description saying a plugin offers it",
+              operation.get("group") == "api" and operation.get("description", "").startswith("Offered by a plugin."), operation)
         called = orca.call_raw("call_tool", {"tool": f"plugin.{PLUGIN}.measure", "args": {"a": 2}})
         check("call_tool runs the plugin's operation", not called.get("isError") and
               json.loads(called["content"][0]["text"]) == {"twice": 4}, called)
@@ -140,25 +145,51 @@ def main():
         exported = run_plugin_script(orca, plugin_dir, "export", CAPABILITIES[3])
         check("a plugin is refused export_replay", exported.get("ok") is False and "agent's session" in exported.get("error", ""),
               exported)
-        # search_tools's one search: an operation with its schema, a tool with its summary (its schema is in
-        # tools/list), and beside them the other catalogs' best matches.
+        # search_tools's one search: a command the tool list does not show (an operation, a Speed Dial command) with
+        # its schema, a listed tool with its summary (its schema is in tools/list), and beside them the other
+        # catalogs' best matches.
         found = orca.call("search_tools", query="fixture measure")
         operation = next((i for i in found["items"] if i["name"] == f"plugin.{PLUGIN}.measure"), {})
-        check("search_tools's search finds the plugin's operation with its schema", "input_schema" in operation, found)
+        check("search_tools's search finds the plugin's operation with its schema",
+              operation.get("listed") is False and "input_schema" in operation, found)
         found = orca.call("search_tools", query="slice plate")
         tool = next((i for i in found["items"] if i["name"] == "slice"), {})
-        check("search_tools's search names a tool with its summary", tool.get("summary") and "input_schema" not in tool, found)
+        check("search_tools's search names a listed tool with its summary",
+              tool.get("listed") is True and tool.get("summary") and "input_schema" not in tool, found)
         found = orca.call("search_tools", query="brim width")
         check("search_tools's search finds settings", any(s["key"] == "brim_width" for s in found.get("settings", {}).get("items", [])),
               found)
         found = orca.call("search_tools", query="arrange")
-        check("search_tools's search finds Speed Dial actions", any("arrange" in a["id"] for a in found.get("actions", {}).get("items", [])),
-              found)
+        command = next((i for i in found["items"] if i["name"] == "obj_arrange"), {})
+        check("search_tools's search finds a Speed Dial command among the commands, with its schema",
+              command.get("listed") is False and "input_schema" in command, found)
+        check("and not a second time among the actions",
+              not any("obj_arrange" in a["id"] for a in found.get("actions", {}).get("items", [])), found)
+        found = orca.call("search_tools", query="fixture")
+        check("search_tools's search finds the Speed Dial's other actions",
+              any("fixture" in a.get("title", "").lower() for a in found.get("actions", {}).get("items", [])), found)
+        described = orca.call_raw("search_tools", {"tool": "view_front"})
+        view = {} if described.get("isError") else json.loads(described["content"][0]["text"])
+        check("search_tools describes a Speed Dial command", view.get("listed") is False and "input_schema" in view, described)
+        names = orca.call("search_tools", group="object").get("names", [])
+        check("search_tools's group is any case, a Speed Dial section among the groups", "obj_arrange" in names, names)
+        unknown = orca.call_raw("search_tools", {"group": "commandz"})
+        check("a group no command has is refused, naming the groups there are",
+              unknown.get("isError") and "Object" in unknown["content"][0]["text"], unknown)
+        ran = orca.call_raw("call_tool", {"tool": "view_front"})
+        check("call_tool runs a Speed Dial command", not ran.get("isError"), ran)
         found = orca.call("search_tools", query="mesh normals")
         check("search_tools's search finds the Python API", found.get("python", {}).get("items", [{}])[0].get("name") ==
               "orca.host.TriangleMesh.face_normals", found)
         found = orca.call("search_tools", query="extrude")
-        check("search_tools's search finds the Design tab's CAD tools", found.get("cad", {}).get("items"), found)
+        if orca.call("get_app_state").get("design_tab"):
+            extrude = next((i for i in found["items"] if i["name"] == "extrude"), {})
+            check("search_tools's search finds a Design command among the commands, with its schema",
+                  extrude.get("group") == "Design" and extrude.get("listed") is False and "input_schema" in extrude, found)
+        else:
+            check("without the Design tab, search_tools's search finds no Design command",
+                  not any(i.get("group") == "Design" for i in found["items"]), found)
+        check("and in no section of its own", "cad" not in found, found)
         found = orca.call("search_tools", query="?")
         check("a query with no words to search for matches nothing", found.get("total") == 0 and "names" not in found, found)
         journal = orca.call("export_replay")["replay"]["steps"]
@@ -191,7 +222,7 @@ def main():
         harness(env, "stop")
         time.sleep(3)
 
-        # --- Without MCP: a launch replay runs the plugin's script, whose calls reach the catalog-only service. ---
+        # --- Without MCP: a launch replay runs the plugin's script, whose calls reach the service without its endpoint. ---
         install(datadir)  # enabled again: unticking it saved it disabled
         steps = os.path.join(datadir, "plugin_rule.json")
         with open(steps, "w", encoding="utf-8") as f:

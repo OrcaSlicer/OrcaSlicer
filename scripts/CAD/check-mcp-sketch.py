@@ -4,7 +4,7 @@ assert the things that decide whether a profile is buildable.
 
 WHY THIS EXISTS. Every question about the 2D layer ("is this loop closed?", "did the offset
 survive?", "is the circle a void or a second body?"), asked by clicking, costs a GUI session and a
-human. The CAD tools make each one a call, and this script is the loop: build a known profile, ask
+human. The Design commands make each one a call, and this script is the loop: build a known profile, ask
 the app what it thinks it has, compare against arithmetic.
 
 RUN IT AGAINST A RUNNING APP started with --mcp and the CAD feature on, for example:
@@ -29,7 +29,7 @@ APP = orca_mcp.OrcaMcp.from_datadir(DATADIR)
 
 
 def call(method, **params):
-    return APP.call_cad_tool(method, **params)
+    return APP.call_command(method, **params)["result"]
 
 
 def near(a, b, tol=1e-6):

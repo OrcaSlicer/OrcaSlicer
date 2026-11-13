@@ -3,8 +3,11 @@
 #include "JobRegistry.hpp"
 #include "McpJournal.hpp"
 #include "McpProtocol.hpp"
+#include "McpService.hpp"
 #include "McpTypes.hpp"
 #include "UiInvoker.hpp"
+
+#include "slic3r/GUI/CommandCatalog.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -36,6 +39,18 @@ template<class Fn> void notify(CallObserver* observer, Fn&& fn)
     }
 }
 
+// Gives a submitted call's result to the caller's `done`; what it throws stays here, out of the job's thread.
+void deliver(const std::function<void(const ToolResult&)>& done, const ToolResult& result)
+{
+    if (!done)
+        return;
+    try {
+        done(result);
+    } catch (...) {
+        // The caller's own failure: the job ends all the same.
+    }
+}
+
 // What a mutating call is told while another job's operation holds the project.
 std::string busy_message(const std::string& op)
 {
@@ -46,7 +61,7 @@ std::string busy_message(const std::string& op)
 class CallContext final : public ToolContext
 {
 public:
-    CallContext(McpCore& core, const ToolDef& def, std::string job, std::string parent, std::string plugin, Journal* journal,
+    CallContext(McpCore& core, const NativeCommand& def, std::string job, std::string parent, std::string plugin, Journal* journal,
                 uint64_t journal_seq, CallObserver* observer, uint64_t call)
         : m_core(core)
         , m_def(def)
@@ -62,9 +77,9 @@ public:
     nlohmann::json run_ui(const std::function<nlohmann::json()>& fn) override
     {
         if (m_def.guard == GuardClass::Inspect)
-            return m_core.ui().run(m_def.guard, m_def.name, fn);
+            return m_core.ui().run(m_def.guard, m_def.key, fn);
         const bool admit = m_def.guard == GuardClass::Mutate && !m_def.allowed_during_operation;
-        return m_core.ui().run(m_def.guard, m_def.name, [&]() -> nlohmann::json {
+        return m_core.ui().run(m_def.guard, m_def.key, [&]() -> nlohmann::json {
             // Admission again on the UI thread, where operations and worker jobs start: a call admitted
             // before one began must not change the project under it.
             if (admit)
@@ -86,13 +101,20 @@ public:
     {
         // A job the call's change queued for later (a toolbar event, a render) starts between its
         // closures; the next one the call makes claims it.
-        return m_core.ui().run(GuardClass::Inspect, m_def.name, [&]() -> nlohmann::json {
+        return m_core.ui().run(GuardClass::Inspect, m_def.key, [&]() -> nlohmann::json {
             nlohmann::json out = fn();
             claim_worker();
             return out;
         });
     }
     const std::string& job_id() const override { return m_job; }
+    // The service that owns the core; a core built on its own has none, and the base refuses.
+    McpService& service() override
+    {
+        if (McpService* service = m_core.service())
+            return *service;
+        return ToolContext::service();
+    }
     // A plugin's call reads as cancelled the moment the plugin unloads, before the unload's stop request comes;
     // a handler that waits or polls then ends, one that does neither runs to its end.
     bool cancelled() const override
@@ -118,7 +140,7 @@ public:
     {
         notify(m_observer, [&](CallObserver& o) { o.call_args(m_call, args); });
         if (m_journal != nullptr && m_seq != 0)
-            m_journal->set_args(m_seq, std::move(args));
+            m_journal->set_args(m_seq, without_expected_ids(m_core.catalog(), m_def.key, std::move(args)));
     }
 
     void begin_operation() override
@@ -144,8 +166,8 @@ private:
             m_core.claim_worker(m_job);
     }
 
-    McpCore&       m_core;
-    const ToolDef& m_def;
+    McpCore&             m_core;
+    const NativeCommand& m_def;
     std::string    m_job;
     std::string    m_parent;
     std::string    m_plugin;
@@ -156,10 +178,10 @@ private:
     bool           m_saw_idle = false; // UI thread
 };
 
-ToolResult invoke(const ToolDef& def, const nlohmann::json& args, ToolContext& ctx)
+ToolResult invoke(const NativeCommand& def, const nlohmann::json& args, ToolContext& ctx)
 {
     try {
-        return def.handler(args, ctx);
+        return def.run(args, ctx);
     } catch (const ToolFailure& f) {
         return ToolResult::error(f.what(), f.details);
     } catch (const std::exception& e) {
@@ -171,9 +193,9 @@ ToolResult invoke(const ToolDef& def, const nlohmann::json& args, ToolContext& c
 
 } // namespace
 
-McpCore::McpCore(const ToolRegistry& registry, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing, WorkerHooks worker,
+McpCore::McpCore(const CommandCatalog& catalog, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing, WorkerHooks worker,
                  CallObserver* observer)
-    : m_registry(registry), m_ui(ui), m_jobs(jobs), m_journal(journal), m_timing(timing), m_worker(std::move(worker)), m_observer(observer)
+    : m_catalog(catalog), m_ui(ui), m_jobs(jobs), m_journal(journal), m_timing(timing), m_worker(std::move(worker)), m_observer(observer)
 {}
 
 McpCore::~McpCore()
@@ -201,33 +223,119 @@ void McpCore::leave()
     m_threads_cv.notify_all();
 }
 
-ToolResult McpCore::call(const ToolDef& def, const nlohmann::json& args) { return run(def, args, {}, {}); }
-
-ToolResult McpCore::call_child(const ToolDef& def, const nlohmann::json& args, const std::string& parent_job, const std::string& plugin)
+bool McpCore::shutting_down()
 {
-    return run(def, args, parent_job, plugin);
+    std::lock_guard<std::mutex> lock(m_threads_mutex);
+    return m_stopping || m_ui.is_shutdown();
+}
+
+ToolResult McpCore::call(const NativeCommand& command, const nlohmann::json& args) { return run(command, args, {}, {}); }
+
+ToolResult McpCore::call_child(const NativeCommand& command, const nlohmann::json& args, const std::string& parent_job,
+                               const std::string& plugin)
+{
+    return run(command, args, parent_job, plugin);
 }
 
 ToolResult McpCore::call_child_named(const std::string& tool, const nlohmann::json& raw_args, const std::string& parent_job,
                                      const std::string& plugin)
 {
-    std::shared_ptr<const ToolDef> def = m_registry.lookup(tool);
+    std::shared_ptr<const NativeCommand> def = m_catalog.lookup(tool);
     if (def == nullptr)
-        return ToolResult::error(m_registry.unknown_tool(tool));
+        return ToolResult::error(m_catalog.unknown_command(tool));
     nlohmann::json args = raw_args;
     if (std::string err = argument_error(*def, args); !err.empty())
         return ToolResult::error("Invalid arguments: " + err);
-    if (std::string err = resolve_api_call(m_registry, def, args); !err.empty())
+    if (std::string err = resolve_call(m_catalog, def, args); !err.empty())
         return ToolResult::error(err);
     return call_child(*def, args, parent_job, plugin);
 }
 
-ToolResult McpCore::call_plugin(const ToolDef& def, const nlohmann::json& args, const std::string& plugin_key)
+ToolResult McpCore::call_plugin(const NativeCommand& command, const nlohmann::json& args, const std::string& plugin_key)
 {
-    return run(def, args, {}, plugin_key);
+    return run(command, args, {}, plugin_key);
 }
 
-ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin)
+std::string McpCore::submit(const NativeCommand& command, const nlohmann::json& args, std::function<void(const ToolResult&)> done)
+{
+    if (m_ui.is_shutdown() || !enter())
+        return {};
+    struct Leave { McpCore* core; ~Leave() { core->leave(); } } leave_on_return{this};
+    ToolResult refused;
+    // A person's pick: its job, and a script it runs, are the person's, as a run the person starts is.
+    const std::string job = start_job(m_service != nullptr ? m_service->as_person(command) : command, args, {}, {}, 0, m_next_call++,
+                                      done, refused);
+    // A refusal at shutdown is no answer to give: the caller is told nothing, as a call it never made.
+    if (job.empty() && !shutting_down())
+        deliver(done, refused);
+    return job;
+}
+
+std::string McpCore::start_job(const NativeCommand& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
+                               uint64_t seq, uint64_t call, const std::function<void(const ToolResult&)>& done, ToolResult& refused)
+{
+    // Operation admission: an MCP operation holds the project until it finishes; only recovery
+    // input and the commands that may run during an operation (cancel_job) get through.
+    if (def.guard == GuardClass::Mutate && !def.allowed_during_operation)
+        if (const auto busy = m_jobs.running_operations(); !busy.empty()) {
+            refused = ToolResult::error(busy_message(busy.front()) + " before changing the project", {{"job", busy.front()}});
+            return {};
+        }
+
+    std::string job;
+    try {
+        job = m_jobs.create(def.key, parent, plugin);
+    } catch (const ToolFailure& f) {
+        refused = ToolResult::error(f.what());
+        return {};
+    }
+    if (seq != 0)
+        m_journal->job_started(seq, job);
+
+    // A job that never runs, refused here at shutdown or because its thread can't start, ends in the
+    // journal too: an entry still running would keep its place, and its arguments' bytes, until the
+    // journal is cleared.
+    if (!enter()) {
+        refused = ToolResult::error("OrcaSlicer is shutting down");
+        if (seq != 0)
+            m_journal->job_ended(seq, refused);
+        m_jobs.finish(job, refused);
+        return {};
+    }
+    // The job thread owns copies of what it needs; the core outlives it, as the owner destroys the
+    // core only once drain() has seen every job thread leave.
+    try {
+        std::thread([this, def, args, job, parent, plugin, seq, call, done]() {
+            CallContext ctx(*this, def, job, parent, plugin, m_journal, seq, m_observer, call);
+            ToolResult  result;
+            // The plugin may have unloaded since the job was registered; its handler then never starts.
+            if (m_jobs.unloaded(job, {})) {
+                result = ToolResult::error(kPluginUnloaded);
+            } else {
+                notify(m_observer, [&](CallObserver& o) { o.call_started(call, def, args, parent); });
+                result = await_worker(job, def.key, invoke(def, args, ctx));
+                notify(m_observer, [&](CallObserver& o) { o.call_ended(call, result); });
+            }
+            // Before finish(): an export_replay right after the wait that sees the result must know it.
+            if (seq != 0)
+                m_journal->job_ended(seq, result);
+            deliver(done, result);
+            m_jobs.finish(job, std::move(result));
+            set_dialog_of(job, 0);
+            leave();
+        }).detach();
+    } catch (const std::system_error& e) {
+        refused = ToolResult::error(std::string("Cannot start the call: ") + e.what());
+        if (seq != 0)
+            m_journal->job_ended(seq, refused);
+        m_jobs.finish(job, refused);
+        leave();
+        return {};
+    }
+    return job;
+}
+
+ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin)
 {
     if (m_ui.is_shutdown() || !enter())
         return ToolResult::error("OrcaSlicer is shutting down");
@@ -236,7 +344,9 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
     // Only client calls are journaled; a replay's own steps run again through the replay, and a plugin's calls
     // are not the agent's.
     const bool     journal = m_journal != nullptr && parent.empty() && plugin.empty() && def.journal;
-    const uint64_t seq     = journal ? m_journal->begin(def.name, args, def.guard == GuardClass::Recover && !m_ui.open_dialogs().empty()) : 0;
+    const uint64_t seq     = journal ? m_journal->begin(def.key, without_expected_ids(m_catalog, def.key, args),
+                                                        def.guard == GuardClass::Recover && !m_ui.open_dialogs().empty()) :
+                                       0;
     auto           finish  = [&](ToolResult r) {
         if (journal)
             m_journal->end(seq, r);
@@ -262,63 +372,13 @@ ToolResult McpCore::run(const ToolDef& def, const nlohmann::json& args, const st
         return finish(std::move(r));
     }
 
-    // Operation admission: an MCP operation holds the project until it finishes; only recovery
-    // input and the tools that may run during an operation (cancel_job) get through.
-    if (def.guard == GuardClass::Mutate && !def.allowed_during_operation)
-        if (const auto busy = m_jobs.running_operations(); !busy.empty())
-            return finish(ToolResult::error(busy_message(busy.front()) + " before changing the project", {{"job", busy.front()}}));
-
-    std::string job;
-    try {
-        job = m_jobs.create(def.name, parent, plugin);
-    } catch (const ToolFailure& f) {
-        return finish(ToolResult::error(f.what()));
-    }
-    if (journal)
-        m_journal->job_started(seq, job);
-
-    // A job that never runs, refused here at shutdown or because its thread can't start, ends in the
-    // journal too: an entry still running would keep its place, and its arguments' bytes, until the
-    // journal is cleared.
-    if (!enter()) {
-        const ToolResult refused = ToolResult::error("OrcaSlicer is shutting down");
-        if (journal)
-            m_journal->job_ended(seq, refused);
-        m_jobs.finish(job, refused);
-        return finish(refused);
-    }
-    // The job thread owns copies of what it needs; the core outlives it, as the owner destroys the
-    // core only once drain() has seen every job thread leave.
-    try {
-        std::thread([this, def, args, job, parent, plugin, seq, call]() {
-            CallContext ctx(*this, def, job, parent, plugin, m_journal, seq, m_observer, call);
-            ToolResult  result;
-            // The plugin may have unloaded since the job was registered; its handler then never starts.
-            if (m_jobs.unloaded(job, {})) {
-                result = ToolResult::error(kPluginUnloaded);
-            } else {
-                notify(m_observer, [&](CallObserver& o) { o.call_started(call, def, args, parent); });
-                result = await_worker(job, def.name, invoke(def, args, ctx));
-                notify(m_observer, [&](CallObserver& o) { o.call_ended(call, result); });
-            }
-            // Before finish(): an export_replay right after the wait that sees the result must know it.
-            if (seq != 0)
-                m_journal->job_ended(seq, result);
-            m_jobs.finish(job, std::move(result));
-            set_dialog_of(job, 0);
-            leave();
-        }).detach();
-    } catch (const std::system_error& e) {
-        const ToolResult failed = ToolResult::error(std::string("Cannot start the call: ") + e.what());
-        if (journal)
-            m_journal->job_ended(seq, failed);
-        m_jobs.finish(job, failed);
-        leave();
-        return finish(failed);
-    }
+    ToolResult        refused;
+    const std::string job = start_job(def, args, parent, plugin, seq, call, {}, refused);
+    if (job.empty())
+        return finish(std::move(refused));
 
     auto envelope = [&](const char* status, nlohmann::json extra) {
-        nlohmann::json out{{"status", status}, {"job", job}, {"tool", def.name}};
+        nlohmann::json out{{"status", status}, {"job", job}, {"tool", def.key}};
         out.update(extra);
         return ToolResult::ok(std::move(out));
     };

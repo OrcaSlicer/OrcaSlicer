@@ -12,7 +12,7 @@ that the field opened by itself, that the typed digits landed in it, that the ty
 one the field opened with, that Return committed it (the field closed or the next one opened), and
 that the geometry sketch_describe reads back has the typed value. A field that is shown but does not
 get the keyboard commits its prefill on Return, and only those last checks tell it from one that
-works. Every action goes through the MCP UI tools, and call_cad_tool only reads. Exits 0 when every
+works. Every action goes through the MCP UI tools, and the Design commands only read. Exits 0 when every
 check holds.
 
 The rungs: line, rect, circle, slot, polygon, ellipse and arc draw with their tool's key and type
@@ -200,11 +200,11 @@ def tool_rung(rung):
 # ---------------------------------------------------------------- from the offer
 
 def offer_path(offer, verb):
-    """The label path at which `offer` lists `verb` as an item that can be run, from list_verbs: the
+    """The label path at which `offer` lists `verb` as an item that can be run, from the Design table: the
     verb's row, then its family, then its name, or its name alone for a row that offers only it."""
     v = next((v for v in gui.verbs() if v["id"] == verb), None)
     if v is None:
-        raise AssertionError(f"list_verbs has no {verb}")
+        raise AssertionError(f"the Design table has no {verb}")
     full = ">".join([v["row_name"]] + ([v["family"]] if v["family"] else []) + [v["name"]])
     for path in (full, v["name"]):
         if path in offer.items and path not in offer.disabled:

@@ -42,7 +42,7 @@
     {"tool": "get_app_state", "expect": {"/presets/filaments/2": {"exists": true}, "/presets/filaments/3": {"exists": false}}},
 
     // ==== Automatic flush calculation "All" (all) ====
-    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "behaviour:auto_calculate_flush"}, "await": false, "save_as": "prefs1"},
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "args": {"tab": "behaviour", "key": "auto_calculate_flush"}}, "await": false, "save_as": "prefs1"},
     // The choice is saved by the drop-down's own handler, so it is picked from its list.
     {"tool": "click", "args": {"target": {"name": "auto_calculate_flush", "within": "Preferences"}}},
     {"tool": "click", "args": {"target": {"row": "All"}}},
@@ -105,7 +105,7 @@
     {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
 
     // ==== Automatic flush calculation "Color" (color change) ====
-    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "behaviour:auto_calculate_flush"}, "await": false, "save_as": "prefs2"},
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "args": {"tab": "behaviour", "key": "auto_calculate_flush"}}, "await": false, "save_as": "prefs2"},
     // The choice is saved by the drop-down's own handler, so it is picked from its list.
     {"tool": "click", "args": {"target": {"name": "auto_calculate_flush", "within": "Preferences"}}},
     {"tool": "click", "args": {"target": {"row": "Color"}}},
@@ -168,7 +168,7 @@
     {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
 
     // ==== Automatic flush calculation "None" (disabled) ====
-    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "behaviour:auto_calculate_flush"}, "await": false, "save_as": "prefs3"},
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "args": {"tab": "behaviour", "key": "auto_calculate_flush"}}, "await": false, "save_as": "prefs3"},
     // The choice is saved by the drop-down's own handler, so it is picked from its list.
     {"tool": "click", "args": {"target": {"name": "auto_calculate_flush", "within": "Preferences"}}},
     {"tool": "click", "args": {"target": {"row": "None"}}},
@@ -231,7 +231,7 @@
     {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
 
     // ==== Back to "All": the other forms, unsaved changes, refusals ====
-    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "param": "behaviour:auto_calculate_flush"}, "await": false, "save_as": "prefs4"},
+    {"tool": "run_action", "args": {"id": "orca_command:open_preferences:orca", "args": {"tab": "behaviour", "key": "auto_calculate_flush"}}, "await": false, "save_as": "prefs4"},
     // The choice is saved by the drop-down's own handler, so it is picked from its list.
     {"tool": "click", "args": {"target": {"name": "auto_calculate_flush", "within": "Preferences"}}},
     {"tool": "click", "args": {"target": {"row": "All"}}},

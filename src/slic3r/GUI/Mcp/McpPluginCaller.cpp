@@ -4,6 +4,7 @@
 #include "McpService.hpp"
 #include "McpTypes.hpp"
 
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/host/PluginHostTools.hpp"
@@ -37,8 +38,8 @@ struct Admission
 };
 
 // Admits a plugin's call on the UI thread, which owns the service and runs the plugin's unload: the plugin
-// must still be loaded and its scope not ended, and the service is started in its catalog-only mode (no
-// endpoint) when MCP is off, as Action Replay starts it. Returns the service with a lease taken,
+// must still be loaded and its scope not ended, and the service is started without its endpoint when MCP is
+// off, as Action Replay starts it. Returns the service with a lease taken,
 // or throws. A caller that stops waiting because the app closes marks the admission abandoned, under the
 // lock the UI thread answers it under, so no lease is taken that nobody releases.
 McpService* admit_plugin_call(const std::string& plugin)
@@ -113,13 +114,14 @@ void install_plugin_tool_caller()
             McpService* service;
             ~Lease() { service->release_lease(); }
         } lease{service};
-        std::shared_ptr<const ToolDef> def = service->registry().lookup(tool);
+        const CommandCatalog&                catalog = service->catalog();
+        std::shared_ptr<const NativeCommand> def     = catalog.lookup(tool);
         if (def == nullptr)
-            throw ToolCallError(service->registry().unknown_tool(tool), {{"did_you_mean", service->registry().similar(tool)}});
+            throw ToolCallError(catalog.unknown_command(tool), {{"did_you_mean", catalog.similar(tool)}});
         json arguments = args;
         if (std::string err = argument_error(*def, arguments); !err.empty())
             throw ToolCallError("Invalid arguments: " + err, json());
-        if (std::string err = resolve_api_call(service->registry(), def, arguments); !err.empty())
+        if (std::string err = resolve_call(catalog, def, arguments); !err.empty())
             throw ToolCallError(err, json());
 
         const ToolResult r = service->core().call_plugin(*def, arguments, plugin);

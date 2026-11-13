@@ -7,10 +7,10 @@
 With no rung named, every rung runs. Each one opens a sketch on the XY plane (Shift+S, then a click
 on the plane), draws with clicks on the canvas, types the exact values into the canvas's value field
 with no click into it, and grades the geometry and loops sketch_describe reads back. It covers what
-the CAD tools that build sketches skip: the gesture state, the queue of value fields, snapping,
+the Design commands that build sketches skip: the gesture state, the queue of value fields, snapping,
 inference at gesture tolerance and the keyboard reaching the field. The click only has to be roughly
 right; the typed number is what must come back exactly. Every action goes through the MCP UI tools,
-and call_cad_tool only reads, save the scale rung's one bulk add. Exits 0 when every check holds.
+and the Design commands only read, save the scale rung's one bulk add. Exits 0 when every check holds.
 
 The rungs: each 2D tool draws its primitive and takes its exact values from the keyboard (rect,
 circle, line, arc, slot, polygon, ellipse, point, spline), and voids draws one closed outer profile
@@ -25,7 +25,7 @@ selects it and deletes nothing, as does a double-click, then deletes it with Del
 feature_undo undo inside a sketch and across its commit, from the keyboard. roundtrip saves the project and opens it again through
 the File menu, its file pickers answered by auto_answer_dialogs rules with the path (skipped on
 Linux, where a GTK picker can't take one). scale draws on top of a sketch holding 1204 entities,
-which it loads with one call_cad_tool sketch_add while a tool is armed; the call says why.
+which it loads with one sketch_add command while a tool is armed; the call says why.
 selfcheck-recovery runs only when named: it raises with the mouse button held, the offer menu
 asked for and a tool armed, to show that the rungs after it start clean.
 """

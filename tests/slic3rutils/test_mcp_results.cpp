@@ -15,6 +15,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -33,6 +34,7 @@
 #include "slic3r/GUI/Mcp/McpCore.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
 #include "slic3r/GUI/Mcp/McpPaths.hpp"
+#include "slic3r/GUI/Mcp/McpProtocol.hpp"
 #include "slic3r/GUI/Mcp/McpReplay.hpp"
 #include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/GUI/Mcp/McpServicePtr.hpp"
@@ -1210,12 +1212,12 @@ TEST_CASE("a menu opened while a call acts on the UI is listed, run by its path 
         inspector.ui_activity("click", false);
 
         // A menu from a call that armed nothing is closed unseen, until the first idle after the call.
-        inspector.ui_activity("call_cad_tool", true);
-        inspector.ui_activity("call_cad_tool", false);
+        inspector.ui_activity("extrude", true);
+        inspector.ui_activity("extrude", false);
         CHECK(popup_menu(frame, menu));
         const nlohmann::json closed = inspector.closed_menus();
         REQUIRE(closed.size() == 2);
-        CHECK(closed[1]["tool"] == "call_cad_tool");
+        CHECK(closed[1]["tool"] == "extrude");
         CHECK(closed[1]["items"].size() == 7);
         wxTheApp->ProcessPendingEvents();
         wxIdleEvent idle;
@@ -1223,8 +1225,8 @@ TEST_CASE("a menu opened while a call acts on the UI is listed, run by its path 
         CHECK_FALSE(inspector.on_menu(menu, frame));
 
         // Past a second a person's menu shows even when no idle came, as while events keep queuing.
-        inspector.ui_activity("call_cad_tool", true);
-        inspector.ui_activity("call_cad_tool", false);
+        inspector.ui_activity("extrude", true);
+        inspector.ui_activity("extrude", false);
         wxMilliSleep(1100);
         CHECK_FALSE(inspector.on_menu(menu, frame));
 
@@ -2424,7 +2426,7 @@ struct JobJournal
     UiInvoker                   invoker{ui, [] { return GuardState{}; }};
     JobRegistry                 jobs;
     Journal                     journal;
-    ToolRegistry                registry;
+    CommandCatalog              registry;
     std::atomic<bool>           release{false};
     ToolResult                  build_result;
     std::atomic<int>            builds{0};
@@ -2433,28 +2435,28 @@ struct JobJournal
 
     JobJournal()
     {
-        ToolDef build;
-        build.name      = "build";
+        NativeCommand build;
+        build.key       = "build";
         build.budget_ms = 100;
-        build.handler   = [this](const nlohmann::json&, ToolContext&) {
+        build.run       = [this](const nlohmann::json&, ToolContext&) {
             ++builds;
             while (!release)
                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
             return build_result;
         };
         registry.add(build);
-        ToolDef edit;
-        edit.name    = "edit";
-        edit.handler = [this](const nlohmann::json&, ToolContext&) {
+        NativeCommand edit;
+        edit.key     = "edit";
+        edit.run     = [this](const nlohmann::json&, ToolContext&) {
             ++edits;
             return ToolResult::ok({{"edited", true}});
         };
         registry.add(edit);
-        ToolDef wait;
-        wait.name        = "wait";
+        NativeCommand wait;
+        wait.key         = "wait";
         wait.guard       = GuardClass::Inspect;
         wait.inline_call = true;
-        wait.handler     = [this](const nlohmann::json& args, ToolContext&) {
+        wait.run         = [this](const nlohmann::json& args, ToolContext&) {
             const std::string job = args["job"].get<std::string>();
             if (auto r = jobs.wait(job, std::chrono::milliseconds(args.value("timeout_ms", 5000))))
                 return *r;
@@ -2704,13 +2706,23 @@ TEST_CASE("an upload's row reaches 100 percent only once the host has answered",
     CHECK(percent(4096, 4096) == 99);
 }
 
-TEST_CASE("the send command is a Slice & Export command that takes no param", "[Mcp][SpeedDial]")
+TEST_CASE("the send command is a Slice & Export command that takes no arguments", "[Mcp][SpeedDial]")
 {
     const NativeCommand* send = NativeCommands::find("send_gcode");
     REQUIRE(send != nullptr);
     CHECK(send->title == "Send G-code to printer host");
     CHECK(send->group == "Slice & Export");
-    CHECK(send->param.type == CommandParamType::None);
+    CHECK(send->input_schema.at("properties").empty());
     CHECK(send->completion == CommandCompletion::None);
     CHECK(send->description.find("get_app_state.uploads") != std::string::npos);
+}
+
+TEST_CASE("run_action with a param is refused by name", "[Mcp][SpeedDial]")
+{
+    const NativeCommand* run_action = NativeCommands::find("run_action");
+    REQUIRE(run_action != nullptr);
+    nlohmann::json args{{"id", "x"}, {"param", "1"}};
+    CHECK_THAT(argument_error(*run_action, args), Catch::Matchers::ContainsSubstring("param"));
+    nlohmann::json given{{"id", "x"}, {"args", {{"percent", 50}}}};
+    CHECK(argument_error(*run_action, given).empty());
 }

@@ -8,7 +8,7 @@ other suite.
 
 ## Checks against a running app
 
-Three checks drive the Design tab through the app's MCP server, with the same CAD tools an
+Three checks drive the Design tab through the app's MCP server, with the same Design commands an
 agent calls, and compare what the app reports with arithmetic. Each needs a running
 OrcaSlicer with the MCP server on (`--mcp`, or "MCP server" under AI features in
 Preferences) and the CAD feature on (Preferences > Features, which takes effect after a restart).
@@ -46,8 +46,24 @@ compiled against it cannot drift apart:
 
 | Generator | Source | Output |
 |---|---|---|
-| `gen_offer_table.py` | `tool_atlas.json` — every offer verb with its row, key, icon, accepted selections and refusal string | `src/slic3r/GUI/CAD/DesignOffer.hpp` |
+| `gen_offer_table.py` | `tool_atlas.json` — the Design tab's table: every offer verb with its row, key, icon, accepted selections and refusal string, and every Design command's silent form (a `tool` block) | `src/slic3r/GUI/CAD/DesignOffer.hpp` |
 | `mate-glyph/emit_glyph_table.py` | `mate-glyph/bear_outline.json`, measured off `mate-glyph/bear.step` by `extract_outline.py` | the `kBear…` tables in `DesignSketchTool.cpp` |
+
+The atlas's `verbs` are one table for three things: the right-click menu (a verb with a `slot` has a
+row there), the Speed Dial's Design tiles and the Design commands. Every verb but `align` is a command
+whose key is its `id`. A verb with an `action` does what its menu row does when called with no
+arguments, in the mode the row belongs to, and has a tile; one with a `tool` block also runs silently
+with arguments, and the block holds what that form takes and does: its `access` (`read`, `change` or
+`sketch`, which decides what a busy Design tab lets through), `ok_false` (it reports a rejected rebuild
+in its reply), a `summary` of one sentence,
+`details`, its `params` (each with `name`, `type`, `unit`, `default`, limits `min`, `exclusive_min` and
+`max`, `enum` and `description`; one with no default is required, and one whose default is null also takes
+null, unless `nullable` is false, which marks a param whose function reads a null as given), one to three
+`examples` and `ids`
+(it takes or gives face and edge ids). Entries with no `slot` and no `action` are commands only, and
+`modal` marks a verb whose action opens a dialog. `src/slic3r/GUI/Mcp/McpToolsCad.cpp` binds each block
+to the function that runs it (`kSilentForms`), and a unit test fails when a block has no function or a
+function no block. The generator refuses an entry with neither an action nor a block, but `align`.
 
 `python3 scripts/CAD/gen_offer_table.py` rewrites the header and `--check` proves the
 checked-in one matches the atlas. The "Check CAD offer table" workflow

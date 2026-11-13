@@ -35,7 +35,7 @@
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
     // ---- One plate ----
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "set_view", "args": {"tab": "prepare"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
@@ -56,10 +56,10 @@
 
     // ---- Two plates, a cube on each ----
     {"tool": "run_action", "args": {"id": "orca_command:plate_add:orca"}},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 1}}},
     {"tool": "select_objects", "args": {"none": true}},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 0}}},
     {"tool": "set_view", "args": {"tab": "prepare"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "list_plates", "expect": {"/total": {"eq": 2}, "/items/1/objects": {"eq": 1}}},
@@ -86,7 +86,7 @@
     {"tool": "list_plates"},
     {"tool": "transform", "args": {"object": 1, "translate": [5, 0, 0]}},
     {"tool": "set_view", "args": {"tab": "prepare"}},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 0}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "slice", "args": {"plates": 1}, "optional": true},
     {"tool": "get_app_state"},
@@ -95,9 +95,9 @@
 
     // ---- Objects that fail validation: spiral vase on a plate with two objects ----
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "select_objects", "args": {"none": true}},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "arrange", "args": {}},
     {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"spiral_mode": true}}},
     {"tool": "set_view", "args": {"tab": "prepare"}},

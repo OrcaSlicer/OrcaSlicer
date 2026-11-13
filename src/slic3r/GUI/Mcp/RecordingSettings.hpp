@@ -56,12 +56,11 @@ std::string matching_encode_preset(const RecordingSettings& settings);
 RecordingSettings load_recording_settings(const AppConfig& config);
 void              save_recording_settings(AppConfig& config, const RecordingSettings& settings);
 
-// Applies Start Recording's parameter, an object with any of quality, captions, pointer, encode, encode_preset,
-// codec, crf, speed, profile, folder (an existing directory, absolute) and silent: encode_preset's fields first, then the
-// fields it names. A codec named without a profile takes the codec's default profile when the one it had does
-// not fit. Returns what is wrong, "" when nothing; `settings` is then unchanged. `silent` is true when the
-// parameter says so.
-std::string apply_recording_overrides(RecordingSettings& settings, const nlohmann::json& overrides, bool& silent);
+// Applies start_recording's encode arguments, an object with any of encode, encode_preset, codec, crf, speed and
+// profile, other keys left alone: encode_preset's fields first, then the fields it names. A codec named without a
+// profile takes the codec's default profile when the one it had does not fit. Returns what is wrong, "" when
+// nothing; `settings` is then unchanged.
+std::string apply_recording_overrides(RecordingSettings& settings, const nlohmann::json& overrides);
 
 // encode_recording's arguments for the recording at `path` (UTF-8).
 nlohmann::json encode_arguments(const RecordingSettings& settings, const std::string& path);

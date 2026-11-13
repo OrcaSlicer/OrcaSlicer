@@ -60,11 +60,8 @@ def main():
             return "blocked_by_dialog", json.dumps(reply.get("dialogs"))
         return None, client.await_job(reply)
 
-    def command(name, param=None):
-        args = {"id": "orca_command:%s:orca" % name}
-        if param is not None:
-            args["param"] = param
-        return answer("run_action", **args)
+    def command(name, **command_args):
+        return answer("run_action", id="orca_command:%s:orca" % name, args=command_args)
 
     def plugin_api(**args):
         code = "import ops_presets\nresult = ops_presets.preset_api(args)"
@@ -77,7 +74,7 @@ def main():
     client.call("set_view", tab="prepare")
 
     # ---- A project with no objects ----
-    code_c, text_c = command("save_project_as", path("cmd.gcode.3mf"))
+    code_c, text_c = command("save_project_as", path=path("cmd.gcode.3mf"))
     code_t, text_t = answer("save_project", path=path("tool.gcode.3mf"))
     check("the command refuses a .gcode.3mf name", code_c == "sliced_file_name", (code_c, text_c))
     check("the tool refuses a .gcode.3mf name", code_t == "sliced_file_name", (code_t, text_t))
@@ -85,19 +82,19 @@ def main():
           code_c == code_t == "sliced_file_name" and text_t.startswith(text_c) and "sliced_3mf" in text_t, (text_c, text_t))
     check("neither wrote a file", not os.path.exists(path("cmd.gcode.3mf")) and not os.path.exists(path("tool.gcode.3mf")))
 
-    code_c, text_c = command("export_3mf", path("cmd.3mf"))
+    code_c, text_c = command("export_3mf", path=path("cmd.3mf"))
     code_t, text_t = answer("export", format="3mf", path=path("tool.3mf"))
     check("the command writes a .3mf of a project with no objects", code_c is None and os.path.exists(path("cmd.3mf")), text_c)
     check("the tool writes a .3mf of a project with no objects", code_t is None and os.path.exists(path("tool.3mf")), text_t)
     for fmt, name, ext in (("stl", "export_stl", ".stl"), ("sliced_3mf", "export_sliced_file", "_sliced.gcode.3mf")):
-        code_c, text_c = command(name, path("cmd" + ext))
+        code_c, text_c = command(name, path=path("cmd" + ext))
         code_t, text_t = answer("export", format=fmt, path=path("tool" + ext))
         check("the command refuses %s of a project with no objects" % fmt, code_c == "no_objects", (code_c, text_c))
         check("the tool refuses %s of a project with no objects" % fmt, code_t == "no_objects", (code_t, text_t))
         check("in the same words (%s)" % fmt, text_c == text_t, (text_c, text_t))
         check("neither wrote a file (%s)" % fmt, not os.path.exists(path("cmd" + ext)) and not os.path.exists(path("tool" + ext)))
 
-    code_c, text_c = command("go_to_layer", "50")
+    code_c, text_c = command("go_to_layer", percent=50)
     code_t, text_t = answer("set_view", layer=1)
     check("the command refuses a layer of a Preview with none", code_c == "no_layers", (code_c, text_c))
     check("the tool refuses a layer of a Preview with none", code_t == "no_layers", (code_t, text_t))
@@ -107,7 +104,7 @@ def main():
     # ---- Two cubes on one spot ----
     for _ in range(2):
         client.call("select_objects", none=True)
-        client.call("run_action", id="orca_command:add_primitive_cube:orca", param="20 20 20")
+        client.call("run_action", id="orca_command:add_primitive_cube:orca", args={"size": [20, 20, 20]})
     client.call("wait", **{"for": "idle"})
     before = offsets()
     client.call("set_view", canvas="assemble")

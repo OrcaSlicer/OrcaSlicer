@@ -14,7 +14,7 @@
     // unsaved changes. The rules end with the replay, so they never answer a prompt after the run.
     {"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "unsaved changes", "button": "no"},
                                                       {"match": "restore", "button": "no"}]}},
-    {"tool": "new_project"},
+    {"tool": "new_project", "args": {"silent": true}},
     {"tool": "open_files", "args": {"paths": ["${vars.model}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "set_settings", "args": {"scope": "process", "values": {"wall_loops": 3}}},
     {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},

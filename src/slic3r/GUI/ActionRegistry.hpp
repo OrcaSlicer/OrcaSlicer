@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nlohmann/json_fwd.hpp>
+#include <nlohmann/json.hpp>
 
 #include <libslic3r/Config.hpp>
 
@@ -9,6 +9,7 @@
 
 #include <cassert>
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -40,8 +41,8 @@ struct AppActionRunResult
     // at its level all the same, and automation reports the run as failed.
     bool done = true;
     // For automation only: a JSON object saying what the command did that its message does not
-    // (the new object order, the object an Assemble made). run_action adds its fields to the reply;
-    // the palette never shows it.
+    // (the new object order, the object an Assemble made). An automated call's reply has its fields
+    // (NativeCommands::from_run_result()); the palette never shows it.
     std::string reply;
     // The operation's refusal that `message` words in the UI's language, when the command ran an
     // operation that refused: automation replies with its English text and its code.
@@ -112,18 +113,20 @@ struct AppAction
     std::string full_label_en;
     // Full wiki URL, when the action has one (SettingActions whose row declared a label_path).
     std::string help_url;
-    // For automation (MCP, scripts): what the action does in English, what `param` means
-    // ("none", "percent", "tab", "path", "index", "text") and whether its effect finishes after
-    // run() returns (an export that runs in the background). Not shown in the palette.
-    std::string automation_description;
-    std::string param_type = "none";
-    std::string param_help;
-    bool        completes_in_background = false;
+    // For automation (MCP, scripts): what the action does in English, the arguments it takes (a JSON
+    // Schema; none for most actions) and whether its effect finishes after run() returns (an export that
+    // runs in the background). Not shown in the palette.
+    std::string    automation_description;
+    nlohmann::json input_schema;
+    bool           completes_in_background = false;
+    // The catalog key of a command's tile (NativeCommands), whose own function run_action runs; empty for
+    // every other action.
+    std::string command;
 
     virtual ~AppAction() = default;
-    // Re-resolves + runs (UI thread). `param` carries an optional per-run argument for
-    // commands (e.g. a layer percentage); plugins ignore it.
-    virtual AppActionRunResult run(const std::string& param = {}) const = 0;
+    // Re-resolves + runs (UI thread). `args` are a command's arguments (the layer percentage of Go to
+    // layer); the other actions take none.
+    virtual AppActionRunResult run(const nlohmann::json& args = nlohmann::json::object()) const = 0;
 
 protected:
     // The definition is constructor-set and immutable. Refreshes replace an action
@@ -155,6 +158,8 @@ private:
 // action re-keys together.
 inline constexpr const char* kOrcaSourceKey  = "orca";
 inline constexpr const char* kOrcaSourceName = "OrcaSlicer";
+// The prefix of a catalog command's tile id, "orca_command:<key>:orca" (NativeCommands::make_action()).
+inline constexpr const char* kCommandPrefix = "orca_command";
 
 // True when a setting at `setting_mode` cannot be edited in `current_mode` and the UI must switch
 // first. Developer settings are handled as a separate prompt by the Speed Dial.
@@ -164,8 +169,32 @@ inline bool requires_mode_switch(ConfigOptionMode setting_mode, ConfigOptionMode
 }
 
 // Cap + dedupe a persisted favourite-id list, preserving first-occurrence order. A stale or
-// hand-edited config must never grow the quick-launch bar past `limit`, and a duplicated id must collapse to its first pin.
+// hand-edited config must never grow the stored list past `limit`, and a duplicated id must collapse to its first pin.
 std::vector<std::string> cap_favourites(const std::vector<std::string>& ids, size_t limit);
+
+// Whether `id` is the id of a Design tab tile, the tile of a Design command whose entry has an action. Such a
+// tile is live only while that tab is shown, in its entry's mode. The Design table tells it apart, so it does
+// even when the catalog holds no Design command (the CAD feature off at startup). A build without CAD has no
+// table, and there it is never one.
+bool is_design_tile_id(const std::string& id);
+
+// The pins snapshot() keeps, in their order: `stored` gets those with a live action (`live`) and the Design
+// tab's whose tile is not live now (is_design_tile_id()), which the person pinned in that tab and keeps when
+// the Speed Dial opens elsewhere; `shown`, the bar, gets the first ActionRegistry::kFavLimit live ones. A live
+// pin past them stays stored and comes onto the bar once a pin before it is unpinned. Any other pin with no live
+// action is dropped.
+void prune_favourites(const std::vector<std::string>& favs, const std::function<bool(const std::string&)>& live,
+                      std::vector<std::string>& stored, std::vector<std::string>& shown);
+
+// Pins `id` at the end of `favs`, the stored pins, unless the bar is full: it shows kFavLimit pins, counted as
+// prune_favourites() shows them, so a pin that is not live takes no place on it. False, leaving `favs` as it is,
+// when it is full or `favs` holds ActionRegistry::kFavStoredLimit pins; a pin already on the bar stays where it is.
+bool add_favourite(std::vector<std::string>& favs, const std::string& id, const std::function<bool(const std::string&)>& live);
+
+// `stored` in the order the Speed Dial page asks for, which sends the pins its bar shows: the places those pins
+// hold in `stored` take them in the order of `ids`, and every other pin (one the bar does not show) keeps its
+// place. An id that is not stored is ignored, and one given twice counts once. `stored` holds no id twice.
+std::vector<std::string> reordered_favourites(std::vector<std::string> stored, const std::vector<std::string>& ids);
 
 // One action as the Speed Dial page receives it. Each English alias (title_en, group_en, source_en,
 // full_label_en) is sent only when it is non-empty and differs from its localized counterpart, so an
@@ -180,9 +209,11 @@ nlohmann::json action_json(const AppAction& a);
 // 2. Loader load/unload callbacks route through refresh_source()/refresh_capability(),
 //    which upsert()/remove() actions. The registry keeps the only action list and
 //    restores persisted user state as actions arrive.
-// 3. Dynamic built-in families (settings, plates, recent projects) are re-materialised at the top of
-//    snapshot(), because their membership follows live state (the current configs, plate list, recents).
-// 4. Consumers use by_id(), snapshot(), and run() without knowing the source.
+// 3. Dynamic built-in families (settings, plates, recent projects, the Design tab's tiles) are
+//    re-materialised at the top of snapshot(), because their membership follows live state (the current
+//    configs, plate list, recents, the tab shown and its mode); all but settings also at the top of
+//    describe() and of find_live(), an automated lookup by id.
+// 4. Consumers use by_id(), find_live(), snapshot(), and run() without knowing the source.
 //
 // note: the static catalog lives in NativeCommands; the registry owns the pool, persistence and
 // dispatch, and materialises the dynamic families inline rather than behind a source interface.
@@ -211,13 +242,24 @@ public:
 
     // Always-clean read surface. UI thread only.
     const AppAction* by_id(const std::string& id) const;
+    // The action `id` as the app is now: by_id() after the families whose membership follows live state
+    // (plates, recent projects, the Design tab's tiles) are re-materialised, for a caller that may have
+    // changed that state since the last snapshot() or describe(), such as an automated run_action after a
+    // sketch was opened or the tab switched. Settings are not, being thousands: snapshot() and describe()
+    // with include_settings materialise them. UI thread only.
+    const AppAction* find_live(const std::string& id);
 
     // Hard cap on the favourites bar: the numbered quick-launch slots (Alt/Option+1..9, 0).
     static constexpr size_t kFavLimit = 10;
+    // The stored pins at most. A pin is added only while the bar shows fewer than kFavLimit, so ordinary use
+    // stores at most kFavLimit for each set of live actions the bar is shown with (the Design tab's model, a
+    // sketch, and every other tab), thirty; reading the stored list cuts it to this, so a corrupt or
+    // hand-edited configuration cannot grow it.
+    static constexpr size_t kFavStoredLimit = 100;
 
     // Dispatch + write-through (registry is the only thing that touches AppConfig). Automation passes
     // record_stats = false so agent runs don't reorder the user's palette.
-    AppActionRunResult run(const std::string& id, const std::string& param = {}, bool record_stats = true);
+    AppActionRunResult run(const std::string& id, const nlohmann::json& args = nlohmann::json::object(), bool record_stats = true);
 
     // The catalog for agents: actions whose id, title, group, source or description contains `text`
     // (case-insensitive, English aliases included), sorted by group then title, one page of them as
@@ -232,14 +274,17 @@ public:
         std::size_t limit            = 50;
     };
     nlohmann::json describe(const Query& query);
-    // Pin/unpin. Returns false when `on` would exceed kFavLimit (the bar is full) so the
+    // Pin/unpin. Returns false when `on` finds the bar full (add_favourite()) so the
     // caller can surface a "favourites are full" hint instead of silently dropping the pin.
     bool set_favourite(const std::string& id, bool on);
-    void reorder_favourites(const std::vector<std::string>& ids); // persist a new bar order
+    void reorder_favourites(const std::vector<std::string>& ids); // persist a new bar order (reordered_favourites())
 
-    // Ordered pinned list (the source of truth), capped at kFavLimit and deduped, matching the
-    // visible bar the palette renders.
+    // Ordered pinned list (the source of truth), capped at kFavStoredLimit and deduped: the bar's pins and
+    // those it does not show (prune_favourites()).
     std::vector<std::string> favourite_ids() const;
+    // The bar as it is now: the first kFavLimit live pins in stored order (prune_favourites()), the live actions
+    // being the ones the open Speed Dial shows, as snapshot() materialised them. UI thread.
+    std::vector<std::string> favourites_bar() const;
 
     // Run-confirm gate, keyed by action id (per-action "don't ask again").
     bool should_ask(const std::string& id) const;
@@ -271,18 +316,29 @@ private:
 
     // (Re)materialise the current visible config settings as SettingActions from the live
     // searcher (respecting printer-tech + user-mode + visibility filtering), removing stale ones.
-    // Called at the top of snapshot() so the palette always reflects the current configs.
+    // Called at the top of snapshot(), so the palette always reflects the current configs, and by
+    // describe() when it is asked for settings.
     void materialize_setting_actions();
 
     // (Re)materialise one "Go to Plate N" action per live plate, so the palette lists every plate
     // directly on each spawn (no second-phase picker). FFF-editor only; SLA/gcode modes have no
-    // plate UI, so nothing is materialised and stale ids are dropped. Called at the top of snapshot().
+    // plate UI, so nothing is materialised and stale ids are dropped. Run by materialize_live().
     void materialize_plate_actions();
 
     // (Re)materialise one "Open recent project <name>" action per recent project file, so the
     // palette lists every recent project and can load it by clicking. Keyed by file path (stable);
-    // files that no longer exist are skipped and their stale ids dropped. Called at the top of snapshot().
+    // files that no longer exist are skipped and their stale ids dropped. Run by materialize_live().
     void materialize_recent_project_actions();
+
+    // (Re)materialise the Design tab's tiles: while the tab is shown with the CAD feature on, one per catalog
+    // command of group kDesignGroup with in_palette whose entry is offered in the tab's mode
+    // (Mcp::design_tiles()), titled as the right-click menu names its entry (the "Design" context) with the
+    // entry's icon; otherwise none. A build without CAD has none.
+    void materialize_design_actions();
+
+    // The three families above whose membership follows live state and is cheap to rebuild: plates, recent
+    // projects and the Design tab's tiles. snapshot(), describe() and find_live() run it first.
+    void materialize_live();
 
     // Loader callbacks (marshalled to the UI thread) land here. refresh_source rebuilds
     // one plugin's whole action set; refresh_capability touches a single capability.

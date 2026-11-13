@@ -40,7 +40,7 @@ _fail = 0
 
 
 def call(method, **params):
-    return APP.call_cad_tool(method, **params)
+    return APP.call_command(method, **params)["result"]
 
 
 def check(kind, cond, what):

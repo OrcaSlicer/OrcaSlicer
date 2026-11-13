@@ -18,8 +18,9 @@ Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the 
 `launch` creates a fresh temporary datadir unless you pass `--datadir`. It seeds the datadir with
 an `OrcaSlicer.conf` that has a finished setup wizard and one printer and filament (Bambu Lab X1
 Carbon 0.4 by default), with update checks and daily tips turned off. `--cad` turns the Design
-(CAD) tab on, which `call_cad_tool` needs: it sets `enable_cad_feature` in a fresh datadir's
-`OrcaSlicer.conf`, and in a reused one too, since the app creates the Design tab only at startup, when that setting is on.
+(CAD) tab on, and with it its commands: it sets `enable_cad_feature` in a fresh datadir's
+`OrcaSlicer.conf`, and in a reused one too, since the app creates the Design tab and its commands only at
+startup, when that setting is on.
 `--unrestricted-scripts` lets Python scripts (`run_script`) run unrestricted the same way, by setting
 `mcp_python_unrestricted`, since no tool can turn that on. The token comes from
 `ORCA_MCP_TOKEN` or is generated, and it reaches the app through the environment, not the command
@@ -84,8 +85,8 @@ under AI features in Preferences), attach to it through its datadir instead of a
 ```python
 orca = OrcaMcp.from_datadir()                        # the datadir the app uses without --datadir
 orca = OrcaMcp.from_datadir("/abs/datadir")          # an app started with --datadir /abs/datadir
-scene = orca.call_cad_tool("describe_scene")         # one CAD tool of the Design tab
-orca.call_cad_tool("helix", radius=10, pitch=3, height=30)
+scene = orca.call_command("describe_scene")["result"]   # a Design command (the Design tab on)
+orca.call_command("helix", radius=10, pitch=3, height=30)
 ```
 
 `from_datadir()` reads the port and token from `<datadir>/mcp/server.json`, which the server writes
@@ -100,13 +101,25 @@ unverified, which matters only for a symlinked binary. When the file is missing,
 port it names fails (nothing listens there, or another server answers), `from_datadir()` raises
 `McpError` saying so, with the failure as its cause.
 
-`call_cad_tool(tool, **args)` calls `call_cad_tool {tool, args}`, follows a running job to its end
-and returns the CAD tool's `result`. A call whose first reply says a dialog blocks it fails at
-once, naming the dialog, rather than waiting on it. A call that first replied `running` and opens a
-dialog later is waited on up to the timeout (600 s), since `wait` reports only that its job is still
-running. Every `McpError` it raises starts with the CAD tool's name (`"extrude: ..."`) and has the
-original error as its cause. `list_cad_tools` and `describe_cad_tool` name the CAD tools and their
-arguments.
+`call_command(tool, **args)` calls `call_tool {tool, args}`, follows a running job to its end and
+returns the command's whole reply, which for a Design command is `{"result": ...}`. A call whose first
+reply says a dialog blocks it fails at once, naming the dialog, rather than waiting on it. A call that
+first replied `running` and opens a dialog later is waited on up to the timeout (600 s), since `wait`
+reports only that its job is still running. Every `McpError` it raises starts with the command's name
+(`"extrude: ..."`) and has the original error as its cause. `search_tools {group: "Design"}` names the
+Design commands, and `search_tools {tool}` gives one's arguments and examples.
+
+## The skill's list of commands
+
+`gen_skill_reference.py <skills-checkout> [--check]` writes
+`skills/orcaslicer-mcp-skills/references/actions.md` in a checkout of the orcaslicer-mcp-skills repository:
+the Speed Dial's commands section by section, each with its key, title, arguments and description, from
+the command reference `tests/data/command_catalog.json` (`docs/HLSD/mcp-server.md`, "Making a feature
+reachable"), and before them what the reference says of particular commands: those with one form, which
+needs its value, and the typed tools that are tiles too. It needs no running app. With `--check` it writes
+nothing, prints the difference and exits 1 when the file is not what it would write. When a command
+changed, regenerate the reference first: run `slic3rutils_tests "[Reference]"` with
+`ORCA_UPDATE_COMMAND_REFERENCE=1` in the environment.
 
 ## Smoke test
 
@@ -132,8 +145,10 @@ screenshots in the output directory. `tests/replay_basic.json` is the smallest s
 change a setting, slice and capture.
 
 `test_plugin_tools.py` checks a plugin's calls into the tools in the running app: it side-loads
-`tests/plugins/mcp_tools_fixture` into a fresh data folder and launches twice: over MCP (its operation is
-reached through `search_tools` and `call_tool`, and stays out of `tools/list`, calls from its Script worker
+`tests/plugins/mcp_tools_fixture` into a fresh data folder and launches twice: over MCP, with the Design tab
+on (its operation is reached through `search_tools` and `call_tool` and stays out of `tools/list`, a Speed
+Dial command is found among `search_tools`' commands with its schema and not again among its actions, a
+Design command is found there too, in no section of its own, calls from its Script worker
 and a thread it starts reach the tools, an auto-answer rule it sets is the plugin's, `export_replay` is
 refused, nothing it calls is journaled, a script that finds its progress dialog handle can use it,
 `tests/plugins/mcp_tools_broken`, whose load fails, offers none of its operations, and unticking the
@@ -199,14 +214,14 @@ tools/mcp/orca_mcp.py call run_replay '{"path": "/abs/tools/mcp/tests/gizmos.jso
 `tests/scene.json` checks object structure and placement: `transform` on an instance (the drop after a
 scale, `size`, a move to another plate), on a part, what `list_objects` reports of them (bounding boxes
 on the bed, filament, the scaled volume, a mirrored part and instance), the selection as `select_objects` and
-`get_app_state` report it (parts, whole instances, one instance of two), the shape commands with a size
-param, `arrange` on one plate and every plate, Fill bed, the Speed Dial no-op that `run_action`
-reports as an error, `add_part` (shapes at a size and a position, a model file, one undo step,
-and what it refuses), and the object structure commands (Change Type, Rename, number of instances,
-individual objects, Assemble, Order By and its reversal, and what each refuses). It ends with all of
-them on one scene: a block with a magnet pocket and a boss, sized, moved to a second plate, copied six
-times and arranged there, split into objects, one mirrored, two assembled, ordered, the plate filled
-and sliced.
+`get_app_state` report it (parts, whole instances, one instance of two), the shape commands given a size
+(`run_action` with `args` `{"size": [...]}`), `arrange` on one plate and every plate, Fill bed, the Speed
+Dial no-op that `run_action` reports as an error, `add_part` (shapes at a size and a position, a model
+file, one undo step, and what it refuses), and the object structure commands (Change Type, Rename,
+number of instances, individual objects, Assemble, Order By and its reversal, and what each refuses). It
+ends with all of them on one scene: a block with a magnet pocket and a boss, sized, moved to a second
+plate, copied six times and arranged there, split into objects, one mirrored, two assembled, ordered,
+the plate filled and sliced.
 
 `tests/layers.json` checks height range modifiers: `set_height_ranges` with ranges given out of order,
 their read-back in `list_objects`, one undo step (and none for the same ranges again), the layer count
@@ -226,8 +241,10 @@ filament change, a 3MF round trip, and `clear`.
 Preferences dialog opened and closed, a slice. It stops the recording (frames, length, size) and encodes
 it to H.265, then has a nested replay start a recording of the 3D view that it never stops, checks the
 replay's end closed it, and encodes that to H.264. Short recordings check that a recording has no overlays
-unless `captions` or `pointer` turns one on, and that one started with `encode` is encoded as a job once
-`stop_recording` reports it. The encodes need an ffmpeg with libx265 and libx264
+unless `captions` or `pointer` turns one on, that one started with a path and no `max_seconds` runs under an
+hour's limit, and that one started with `encode` is encoded as a job once `stop_recording` reports it. Its
+`new_project` and `stop_recording` calls pass `silent: true`: with no arguments they would do what a
+person's pick does, asking and stopping without a report. The encodes need an ffmpeg with libx265 and libx264
 (`ORCA_FFMPEG`, or `ffmpeg` on `PATH`) and are optional without one. Look at the videos, or at frames
 `ffmpeg -i session.mkv -vf fps=1 frame%02d.png` extracts, for the caption, the pointer and the dialog.
 
@@ -291,10 +308,9 @@ between two builds.
 The preset replays share `tests/fixtures/ops_presets.py`, which sets the slots, colours and flushing
 volumes to known values before each case, and each needs a freshly launched app, since a hidden
 preset that `select_preset` shows stays shown until a restart. The replays whose commands write files
-need a fresh `--out`: a command's JSON path param can't hold a Windows `${out_dir}`, so those commands
-write without `overwrite`. Launch the app from a folder that holds no `.py` files, since the app's
-working directory is on Python's module path and a file there can shadow a standard module that
-`run_script` needs.
+need a fresh `--out`, since those commands write without `overwrite`. Launch the app from a folder that
+holds no `.py` files, since the app's working directory is on Python's module path and a file there can
+shadow a standard module that `run_script` needs.
 
 `test_operation_routes.py` asserts what those replays only record: that a command, the tool that does
 the same thing and the plugin API's binding refuse the same states with the same code and words, and
@@ -304,8 +320,9 @@ a gizmo open, a mixed-colour filament slot, and a hidden printer selected throug
 it on a freshly launched app, for the reasons above and because the Preview keeps the last slice's
 layers.
 
-The Design-tab replays drive `call_cad_tool` and need an instance launched with `--cad`. Each starts
-from a new project and checks what it builds by volume and by what `call_cad_tool` reads back; steps
+The Design-tab replays drive the Design commands through `call_tool` and need an instance launched with
+`--cad`. Each starts from a new project and checks what it builds by volume and by what the reading
+commands give back, under each reply's `result`; steps
 marked `optional` are calls that must be refused and change nothing.
 
 - `tests/cad_sketch_to_solid.json` takes sketches to solids: an L-bracket profile on XZ through the
@@ -318,7 +335,7 @@ marked `optional` are calls that must be refused and change nothing.
   rounded corner, two slots (one an array copy turned upright), an elliptic hole and four holes
   arrayed about a point, constrained from picks and from named points, with a refused constraint
   rolled back and one deleted.
-- `tests/cad_topology_targets.json` builds the bench's J wall hook from what `call_cad_tool` reads back:
+- `tests/cad_topology_targets.json` builds the bench's J wall hook from what the reading commands give back:
   its inside corners found by convexity, M4 countersinks seated on the front face on the axes of
   pilot holes, the cones' kind, apex side and radii from `query_topology`, the hole heights and the
   plate's thickness from `measure`, a datum plane midway through the plate and one 70 mm up with a
@@ -350,36 +367,38 @@ commit and a missed hole, which must fail and be left out, a legacy `fillet` ans
 which stays in, and face and edge ids passed with their `generation`, which the journal drops.
 `test_cad_slow_build.py` runs a long thread build (an M8 thread tapped 60 mm deep, about 8 s) and
 checks that while it builds `get_app_state` answers, a window screenshot succeeds, `list_widgets` lists
-the progress dialog and a screenshot of that dialog captures it, and another `call_cad_tool` is refused.
+the progress dialog and a screenshot of that dialog captures it, and another Design command is refused.
 `test_cad_failed_job.py` sweeps a coil whose every rebuild takes about 30 s (its turns sized from a
 short calibration build), then a hole that misses it replies with a running job and fails after
 the reply budget: an export while it runs leaves it out and names it in `left_out_running`, the
 export after it has the rename made next and not the hole, and that replay runs to the same coil.
-It takes three to four minutes.
+It takes three to four minutes. `test_cad_examples.py` runs the examples `search_tools {tool}` gives for
+every Design command, and for `undo` and `redo`, each on a fresh design, and fails one whose call fails or
+whose result has `ok` false, an error, or is the person's form; `--tool NAME` runs one command's.
 
-Three more harness tests on a `--cad` instance drive the Design tab the way a person does. Every
-action goes through the UI tools (`set_view`, `click`, `mouse_gesture`, `press_keys`,
-`set_widget_value`, `answer_dialog` and `auto_answer_dialogs`), and `call_cad_tool` only reads the
-result back (`sketch_describe`, `describe_scene`, `describe_feature`, `list_verbs`), save for one
-call in the scale rung. Buttons and rows are found by label, and canvas positions come from a
-calibration that maps the open sketch's plane to canvas pixels, so nothing in them is tuned to a
-window size, screen scaling or theme. The sketch tool's pick budgets and badge layout are in the
-canvas's GL pixels, which `cad_gui.py` turns into click pixels by the canvas scale that `set_view`'s
-`camera_state` gives (`zoom` over `click_px_per_mm`). What they share is in `cad_gui.py` beside them.
-`test_cad_sketching.py` draws each sketch tool's primitive with clicks on the canvas and types its
-exact values into the canvas's value field, drives the edit operations and each constraint button on
-drawn geometry, undoes inside a sketch and across its commit, saves the project and opens it again
-through the File menu, and draws on top of a sketch holding 1204 entities. That last rung, `scale`,
-loads them with one `call_cad_tool sketch_add` while the rectangle tool is armed: the one call in
-these tests that changes the sketch outside the UI, on purpose, since a bulk add made while a
+Three more harness tests on a `--cad` instance drive the Design tab the way a person does. Every action goes
+through the UI tools (`set_view`, `click`, `mouse_gesture`, `press_keys`, `set_widget_value`, `answer_dialog`
+and `auto_answer_dialogs`), and the Design commands only read the result back (`sketch_describe`,
+`describe_scene`, `describe_feature`), save for one call in the scale rung; the right-click menu's layout they
+grade against is read from `scripts/CAD/tool_atlas.json`, the Design table the app's own is generated from,
+for the selection `describe_scene` names. Buttons and rows are found by label, and canvas positions come from
+a calibration that maps the open sketch's plane to canvas pixels, so nothing in them is tuned to a window
+size, screen scaling or theme. The sketch tool's pick budgets and badge layout are in the canvas's GL pixels,
+which `cad_gui.py` turns into click pixels by the canvas scale that `set_view`'s `camera_state` gives (`zoom`
+over `click_px_per_mm`). What they share is in `cad_gui.py` beside them. `test_cad_sketching.py` draws each
+sketch tool's primitive with clicks on the canvas and types its exact values into the canvas's value field,
+drives the edit operations and each constraint button on drawn geometry, undoes inside a sketch and across its
+commit, saves the project and opens it again through the File menu, and draws on top of a sketch holding 1204
+entities. That last rung, `scale`, loads them with one `sketch_add` command while the rectangle tool is armed:
+the one call in these tests that changes the sketch outside the UI, on purpose, since a bulk add made while a
 creation tool is armed must not be read as a drawn gesture that swallows the next key and click.
-`test_cad_context_menu.py` checks that the right-click offer names what was clicked and lists exactly
-the verbs `list_verbs` says apply to it, and drives from the menu every sketch verb that has no key,
-a Text typed into the Text dialog and an SVG import (`tests/fixtures/rect_40x20.svg`) among them.
-`test_cad_click_edit.py` checks that each value field a drawing tool opens takes digits typed with no
-click into it and that Return commits them, for the line, rectangle, circle, slot, polygon, ellipse
-and arc tools armed by their keys, the rounded rectangle armed from the offer, and a rectangle's
-width label clicked in Select.
+`test_cad_context_menu.py` checks that the right-click offer names what was clicked and lists exactly the
+verbs the Design table says apply to it, and drives from the menu every sketch verb that has no key, a Text
+typed into the Text dialog and an SVG import (`tests/fixtures/rect_40x20.svg`) among them.
+`test_cad_click_edit.py` checks that each value field a drawing tool opens takes digits typed with no click
+into it and that Return commits them, for the line, rectangle, circle, slot, polygon, ellipse and arc tools
+armed by their keys, the rounded rectangle armed from the offer, and a rectangle's width label clicked in
+Select.
 
 ```bash
 tools/mcp/orca_mcp.py launch --cad

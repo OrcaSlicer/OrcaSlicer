@@ -2,10 +2,13 @@
 
 #include "PluginHostBindings.hpp"
 
+#include <slic3r/GUI/CommandCatalog.hpp>
+#include <slic3r/GUI/NativeCommands.hpp>
 #include <slic3r/plugin/PluginAuditManager.hpp>
 #include <slic3r/plugin/PluginJsonPy.hpp>
 #include <slic3r/plugin/PythonRunScope.hpp>
 
+#include <nlohmann/json.hpp>
 #include <pybind11/eval.h>
 #include <pybind11/gil.h>
 #include <pybind11/pybind11.h>
@@ -19,6 +22,7 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace Slic3r {
 
@@ -47,6 +51,35 @@ class ToolError(Exception):
         super().__init__(message)
         self.details = details
 )PY";
+
+// Raises orca.host.tools.ToolError with `message` and `details`.
+[[noreturn]] void raise_tool_error(py::module_& tools, const std::string& message, const json& details)
+{
+    py::object error = tools.attr("ToolError")(message, json_to_py(details));
+    PyErr_SetObject(reinterpret_cast<PyObject*>(Py_TYPE(error.ptr())), error.ptr());
+    throw py::error_already_set();
+}
+
+// What orca.host.tools.list() gives: the process catalog's commands in the order they were added, then those its
+// sources hold now.
+json list_commands()
+{
+    const GUI::CommandCatalog& catalog = GUI::NativeCommands::instance();
+    json                       out     = json::array();
+    const auto add = [&out](const GUI::NativeCommand& c) {
+        out.push_back({{"name", c.key},
+                       {"title", c.title},
+                       {"group", c.group},
+                       {"description", c.description},
+                       {"read_only", c.read_only},
+                       {"listed", c.listed}});
+    };
+    for (const GUI::NativeCommand& c : catalog.commands())
+        add(c);
+    for (const std::shared_ptr<const GUI::NativeCommand>& c : catalog.source_commands())
+        add(*c);
+    return out;
+}
 
 json call_tool(py::module_& tools, const std::string& name, const py::object& args)
 {
@@ -86,9 +119,7 @@ json call_tool(py::module_& tools, const std::string& name, const py::object& ar
         py::gil_scoped_release release;
         return caller(identity, name, arguments);
     } catch (const ToolCallError& e) {
-        py::object error = tools.attr("ToolError")(e.what(), json_to_py(e.details));
-        PyErr_SetObject(reinterpret_cast<PyObject*>(Py_TYPE(error.ptr())), error.ptr());
-        throw py::error_already_set();
+        raise_tool_error(tools, e.what(), e.details);
     }
 }
 
@@ -117,7 +148,8 @@ namespace host_bindings {
 void register_tools(py::module_& host)
 {
     py::module_ tools = host.def_submodule("tools", "Calls the MCP tools from Python: the same tools, arguments and results "
-                                                    "an agent gets, with each tool's guards, admission and undo.");
+                                                    "an agent gets, with each tool's guards, admission and undo; list() and "
+                                                    "describe() say what there is to call.");
     py::exec(kToolErrorSource, tools.attr("__dict__"));
 
     tools.def(
@@ -143,6 +175,48 @@ void register_tools(py::module_& host)
         "Run a replay ({orca_replay: 1, steps: [...]}) as the run_replay tool does, and return its result. "
         "`replay` is the replay as a dict or as its JSON text, which may hold comments as a replay file does; "
         "`vars` override the replay's vars. For a replay file, call(\"run_replay\", {\"path\": ...}).");
+    // Both only read the catalog, which is sealed and read on any thread, so neither needs a run or a plugin. They read
+    // it without the GIL, as call() waits without it; no thread holds the plugin operations' lock while it waits for the GIL.
+    tools.def(
+        "list",
+        [] {
+            json commands;
+            {
+                py::gil_scoped_release release;
+                commands = list_commands();
+            }
+            return json_to_py(commands);
+        },
+        "Every command call() reaches, as a list of {name, title, group, description, read_only, listed}: the tools, the "
+        "Speed Dial's commands and the Design tab's (with the CAD feature on), in the order the app adds them, then the "
+        "operations the loaded plugins offer (plugin.<plugin>.<name>). title and description are in English; listed says "
+        "whether an agent's tool list shows it, read_only that it changes nothing. Any thread.");
+    tools.def(
+        "describe",
+        [tools](const std::string& name) mutable {
+            json        entry;
+            std::string unknown; // the error for a name the catalog does not hold
+            json        close;
+            {
+                py::gil_scoped_release     release;
+                const GUI::CommandCatalog& catalog = GUI::NativeCommands::instance();
+                if (const std::shared_ptr<const GUI::NativeCommand> command = catalog.lookup(name)) {
+                    entry = GUI::command_reference(*command);
+                } else {
+                    unknown = catalog.unknown_command(name);
+                    close   = catalog.similar(name);
+                }
+            }
+            if (!unknown.empty())
+                raise_tool_error(tools, unknown, {{"did_you_mean", close}});
+            return json_to_py(entry);
+        },
+        py::arg("name"),
+        "The command `name` as a dict: key, title, group, description, input_schema (the JSON Schema of its "
+        "arguments), examples when it has some ([{title, calls: [{tool, args}]}]), listed, in_palette (a person can "
+        "pick it in the Speed Dial), the access labels read_only, destructive, idempotent and open_world, guard "
+        "(inspect, recover or mutate: what it may do behind a dialog), completion and operations. An unknown name "
+        "raises ToolError, whose details hold did_you_mean, the closest names. Any thread.");
 }
 
 } // namespace host_bindings

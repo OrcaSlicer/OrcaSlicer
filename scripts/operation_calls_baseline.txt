@@ -10,9 +10,7 @@
 # calls the owner's method, which asks the person what an operation would be told.
 plater->load_project();
 plater->load_project(from_path(*path));
-plater->save_project(false);
 plater->save_project(true);
-plater->new_project();
 plater->export_stl();
 plater->export_core_3mf();
 plater->export_gcode_3mf(all);
@@ -42,6 +40,12 @@ tab->select_preset(selected);
 [src/slic3r/GUI/Mcp/McpToolsLayers.cpp]
 # The undo step of a tool whose function has one automation entry point (set_height_ranges).
 plater.take_snapshot("Edit height ranges");
+
+[src/slic3r/GUI/Mcp/McpToolsProject.cpp]
+# The asking path of a command, its person's form: new_project and save_project called with no arguments
+# call the owner's method, which asks the person what an operation would be told.
+plater->new_project();
+plater->save_project(false);
 
 [src/slic3r/GUI/Mcp/McpToolsScene.cpp]
 # The undo step of a tool whose function has one automation entry point (transform).

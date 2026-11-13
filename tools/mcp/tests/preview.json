@@ -106,7 +106,7 @@
     // the selected plate's ----
     {"tool": "set_view", "args": {"tab": "prepare"}},
     {"tool": "run_action", "args": {"id": "orca_command:plate_add:orca"}},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 1}}},
     {"tool": "select_objects", "args": {"none": true}},
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
@@ -114,12 +114,12 @@
     {"tool": "slice", "args": {"plates": "all"}, "expect": {"/plates/0/outcome": {"eq": "ok"}, "/plates/1/outcome": {"eq": "ok"}}},
     // Slicing every plate leaves the Preview on its all-plates statistics; plate 0 is shown from Prepare.
     {"tool": "set_view", "args": {"tab": "prepare"}},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 0}}},
     {"tool": "set_view", "args": {"tab": "preview"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "get_app_state", "expect": {"/plates/current": {"eq": 0}, "/preview/plate": {"eq": 0}}},
     {"tool": "set_view", "args": {"tab": "prepare"}},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 1}}},
     {"tool": "get_app_state", "expect": {"/plates/current": {"eq": 1}, "/preview": {"eq": null}}},
     {"tool": "get_slice_stats", "expect": {"/plate": {"eq": 1}, "/summary/layers": {"eq": 128}, "/view": {"eq": null},
                                        "/note": {"contains": "has not loaded this plate's toolpaths"}}},

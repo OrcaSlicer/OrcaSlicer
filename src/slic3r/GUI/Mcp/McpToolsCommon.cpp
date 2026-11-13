@@ -4,6 +4,8 @@
 
 #include "McpTypes.hpp"
 #include "UiInspector.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PlateOps.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -11,18 +13,17 @@
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Plater.hpp"
 
+#include <nlohmann/json.hpp>
 #include <wx/app.h>
 #include <wx/glcanvas.h>
 #include <wx/window.h>
 
 #include <algorithm>
-#include <cctype>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
-#include <iterator>
 #include <string>
 #include <thread>
 #include <utility>
@@ -56,85 +57,38 @@ json enum_prop(std::vector<std::string> values, const std::string& description)
 
 json array_prop(json items, const std::string& description) { return {{"type", "array"}, {"items", std::move(items)}, {"description", description}}; }
 
-ToolDef inspect_tool(std::string name, std::string title, std::string description, json schema, ToolHandler handler)
+NativeCommand inspect_tool(std::string group, std::string name, std::string title, std::string description, json schema, CommandFn handler)
 {
-    ToolDef d;
-    d.name         = std::move(name);
-    d.title        = std::move(title);
-    d.description  = std::move(description);
-    d.input_schema = std::move(schema);
-    d.read_only    = true;
-    d.idempotent   = true;
-    d.guard        = GuardClass::Inspect;
-    d.inline_call  = true;
-    d.journal      = false;
-    d.handler      = std::move(handler);
+    NativeCommand d = NativeCommands::long_command(std::move(name), std::move(title), std::move(group), std::move(schema),
+                                                   std::move(handler), /*inline_call=*/true);
+    d.description   = std::move(description);
+    d.listed        = true;
+    d.read_only     = true;
+    d.idempotent    = true;
+    d.guard         = GuardClass::Inspect;
+    d.journal       = false;
     return d;
 }
 
-ToolDef reaching(std::vector<std::string> operations, ToolDef def)
+NativeCommand reaching(std::vector<std::string> operations, NativeCommand command)
 {
-    def.operations = std::move(operations);
-    return def;
+    command.operations = std::move(operations);
+    return command;
 }
 
-ToolDef mutate_tool(std::string name, std::string title, std::string description, json schema, ToolHandler handler, bool destructive)
+NativeCommand mutate_tool(std::string group, std::string name, std::string title, std::string description, json schema, CommandFn handler,
+                          bool destructive)
 {
-    ToolDef d;
-    d.name         = std::move(name);
-    d.title        = std::move(title);
-    d.description  = std::move(description);
-    d.input_schema = std::move(schema);
-    d.destructive  = destructive;
-    d.guard        = GuardClass::Mutate;
-    d.handler      = std::move(handler);
+    NativeCommand d = NativeCommands::long_command(std::move(name), std::move(title), std::move(group), std::move(schema),
+                                                   std::move(handler));
+    d.description   = std::move(description);
+    d.listed        = true;
+    d.destructive   = destructive;
+    d.guard         = GuardClass::Mutate;
     return d;
 }
 
 namespace {
-
-// The words of `text` in lower case, split at anything but a letter or a digit. With `camel`, a word
-// with a capital after a lower-case letter also counts as its parts: TriangleMesh as triangle and mesh.
-std::vector<std::string> text_words(const std::string& text, bool camel)
-{
-    std::vector<std::string> words;
-    std::string              word;
-    std::vector<std::size_t> parts; // where each CamelCase part after the first starts in `word`
-    const auto               flush = [&] {
-        if (word.empty())
-            return;
-        std::size_t from = 0;
-        for (const std::size_t at : parts) {
-            words.push_back(word.substr(from, at - from));
-            from = at;
-        }
-        if (!parts.empty())
-            words.push_back(word.substr(from));
-        words.push_back(std::exchange(word, {}));
-        parts.clear();
-    };
-    unsigned char previous = 0;
-    for (const char c : text) {
-        const auto u = static_cast<unsigned char>(c);
-        if (!std::isalnum(u)) {
-            flush();
-            previous = 0;
-            continue;
-        }
-        if (camel && std::isupper(u) && std::islower(previous))
-            parts.push_back(word.size());
-        word += char(std::tolower(u));
-        previous = u;
-    }
-    flush();
-    return words;
-}
-
-// Whether a word of `words` starts with `w`.
-bool has_word(const std::vector<std::string>& words, const std::string& w)
-{
-    return std::any_of(words.begin(), words.end(), [&w](const std::string& word) { return word.compare(0, w.size(), w) == 0; });
-}
 
 // Whether a 3D view is shown but can't draw yet. On Wayland a canvas gets its GL surface from the
 // map event GTK handles once the main loop runs again, after the closures queued with the change
@@ -277,40 +231,6 @@ json page(const json& items, const json& args, std::size_t default_limit)
     return result;
 }
 
-std::vector<std::string> query_words(const std::string& query)
-{
-    std::vector<std::string> words = text_words(query, false);
-    std::vector<std::string> longer;
-    std::copy_if(words.begin(), words.end(), std::back_inserter(longer), [](const std::string& w) { return w.size() >= 3; });
-    return longer.empty() ? words : longer;
-}
-
-std::pair<int, int> match_score(const std::vector<std::string>& words, const std::string& name, const std::string& text)
-{
-    const std::vector<std::string> in_name = text_words(name, true);
-    const std::vector<std::string> in_text = text_words(text, true);
-    std::pair<int, int>            score;
-    for (const std::string& w : words)
-        if (has_word(in_name, w)) {
-            ++score.first;
-            ++score.second;
-        } else if (has_word(in_text, w))
-            ++score.first;
-    return score;
-}
-
-std::string first_sentence(const std::string& text)
-{
-    std::string line = text;
-    std::replace(line.begin(), line.end(), '\n', ' ');
-    for (std::size_t dot = line.find('.'); dot != std::string::npos; dot = line.find('.', dot + 1)) {
-        const bool abbreviation = dot >= 3 && (line.compare(dot - 3, 3, "e.g") == 0 || line.compare(dot - 3, 3, "i.e") == 0);
-        if (!abbreviation && (dot + 1 == line.size() || line[dot + 1] == ' '))
-            return line.substr(0, dot + 1);
-    }
-    return line;
-}
-
 json poll_ui(ToolContext& ctx, const std::function<json()>& poll, std::chrono::milliseconds timeout, const std::string& what)
 {
     json v = poll_until(ctx, poll, timeout, std::chrono::milliseconds(200));
@@ -328,6 +248,15 @@ json expected_id_prop(const char* of)
             {"minimum", 0},
             {"description", std::string("The id list_objects reports for this ") + of +
                                 ": the call is refused when the index names another one now."}};
+}
+
+NativeCommand with_expected_ids(NativeCommand command)
+{
+    const json properties = command.input_schema.value("properties", json::object());
+    for (const char* name : {"object_id", "part_id", "object_ids", "part_ids", "instance_object_ids"})
+        if (properties.contains(name))
+            command.id_args.emplace_back(name);
+    return command;
 }
 
 void check_expected_ids(const ModelObject& object, const ModelVolume* volume, const json& args)

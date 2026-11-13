@@ -116,7 +116,7 @@ public:
     void set_body_color(int b, const ColorRGBA& color);
     void show_body(int b, bool shown);
 
-    // MCP hooks: let the MCP server's call_cad_tool (Mcp/McpToolsCad.cpp) drive and
+    // MCP hooks: let the MCP server's Design commands (Mcp/McpToolsCad.cpp) drive and
     // perceive the SAME kernel the GUI uses. Called only on the wx main thread.
     CadDocument& mcp_doc()        { return m_doc; }            // live document (read + mutate)
     // Refresh tree + viewport + status after a change; `ok` false says "Edit rejected: <m_doc.error>".
@@ -148,23 +148,28 @@ public:
     // The axis a fresh Revolve card offers for a sketch's entities: its only centerline (construction
     // line), which is what a profile is drawn around, or -1 for the plane axis.
     static int default_revolve_axis_entity(const std::vector<SketchEntity>& ents);
-    // The offer-table vocabulary without a right-click: the external controller asks which verbs
-    // exist (and which apply to the current selection) and fires one by id, so a deck key names a
-    // verb instead of spending a letter and every verb is reachable — including the rows with no
-    // keyboard shortcut, which are otherwise invisible to anything that parses key tables.
+    // The offer table's verbs without a right-click: a Design command with no arguments, a Speed Dial
+    // tile or an agent's call, fires one by id, so every verb is reachable — including the rows with
+    // no keyboard shortcut, which are otherwise invisible to anything that parses key tables.
     int  mcp_offer_selection_kind() const { return offer_selection_kind(); }  // OfferSel as int
+    // Whether the right-click menu offers the sketch's verbs now, not the model's (sketch_map_applies()).
+    bool mcp_sketch_map_applies() const { return sketch_map_applies(); }
     void mcp_run_action(const char* action) { run_offer_action(action); }     // dispatch an action string
-    // Defined out of line in DesignPanel.cpp: it needs kOfferVerbs, which this header deliberately
+    // Defined out of line in DesignPanel.cpp: it needs kDesignTools, which this header deliberately
     // does not include (the table is generated and belongs to the offer-menu code).
     bool mcp_run_verb(const char* verb_id);
-    // Would a call from the MCP server's call_cad_tool collide with what the GUI is doing — a
+    // The text the status line shows, as the person reads it, in the UI's language.
+    wxString mcp_status() const;
+    // Whether the Text dialog is open: the tab's one modeless dialog, which leaves a call that opened it free.
+    bool mcp_text_dialog_open() const { return m_text_dlg != nullptr; }
+    // Would a call of the MCP server's Design commands collide with what the GUI is doing — a
     // rebuild in progress, an open feature card, a sketch session? A rebuild refuses every call,
     // since its worker owns the document; the rest refuse only one that changes something
     // (`read_only` false). `sketch_method` = it drives the live sketch rather than the feature
     // list. Fills `why` when it would.
     bool mcp_busy(bool read_only, bool sketch_method, std::string& why) const;
     // Load the project's recipe into an empty document, as showing the tab does. The MCP server's
-    // call_cad_tool may be the first thing to touch the Design tab after a project was opened.
+    // Design commands may be the first thing to touch the Design tab after a project was opened.
     void hydrate_from_model();
 
 private:
@@ -890,7 +895,7 @@ private:
     const std::string* mate_conflict_reason(int feature) const;
 
     wxMenuItem* append_offer_item(wxMenu* menu, int id, const wxString& text,
-                                  const struct OfferVerb& v);
+                                  const struct DesignTool& v);
     void show_offer_menu(const wxPoint& screen_pos);
     // Where the offer opens when no mouse press anchors it: the keyboard route, and the automatic
     // open on entering Sketch. The pointer if it is over the viewport, else the viewport's centre.

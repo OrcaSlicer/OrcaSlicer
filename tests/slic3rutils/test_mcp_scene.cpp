@@ -1,7 +1,7 @@
-// Scene tools: transform's size argument, the primitive size param, the notifications MCP
-// operations raise before the 3D view has drawn, arrange's options, the admission that holds a
-// UI worker job a call starts, how list_objects describes objects, instances and parts,
-// add_part's type names and shape sizes, the params of the object structure commands, the height
+// Scene tools: transform's size argument, the arguments of the commands that replace a dialog, the
+// notifications MCP operations raise before the 3D view has drawn, arrange's options, the admission that
+// holds a UI worker job a call starts, how list_objects describes objects, instances and parts,
+// add_part's type names and shape sizes, the object structure commands, the height
 // ranges set_height_ranges takes and list_objects reports, and set_custom_gcode_at_layer's edits of the layer slider.
 // GLCanvas3D.hpp reaches wx's MSW headers after OCCT has hidden the USER and GDI declarations they need;
 // the Windows headers first keep them, as in test_plugin_host_api.cpp.
@@ -61,6 +61,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <set>
 #include <string>
 #include <thread>
 #include <utility>
@@ -122,19 +123,48 @@ TEST_CASE("the arrange options keep Align to Y axis off while auto rotation is o
     CHECK(settings.enable_rotation);
 }
 
-TEST_CASE("primitive size params parse numbers separated by spaces or commas", "[Mcp][Scene]")
+// A command that replaces a dialog takes, as JSON arguments, what the dialog asks; Go to layer and Go to tab
+// take the value of the Speed Dial's second phase, which they need.
+TEST_CASE("the commands that replace a dialog take the arguments the table gives", "[Mcp][Scene]")
 {
-    CHECK(NativeCommands::parse_sizes("90 4") == std::vector<double>{90., 4.});
-    CHECK(NativeCommands::parse_sizes("90,4") == std::vector<double>{90., 4.});
-    CHECK(NativeCommands::parse_sizes(" 40, 40  10.5 ") == std::vector<double>{40., 40., 10.5});
-    CHECK(NativeCommands::parse_sizes("25.6") == std::vector<double>{25.6});
+    using Names       = std::set<std::string>;
+    const auto names  = [](const char* key) {
+        Names out;
+        if (const NativeCommand* c = NativeCommands::find(key))
+            for (const auto& [name, schema] : c->input_schema.at("properties").items())
+                out.insert(name);
+        return out;
+    };
+    const Names path{"path"}, output{"path", "overwrite"}, all{"all"}, size{"size"};
+    const Names recording{"target", "fps",   "max_dim", "quality", "max_seconds", "captions",  "pointer", "encode",
+                          "encode_preset", "codec", "crf", "speed", "profile", "save_path", "overwrite", "silent"};
+    REQUIRE(names("go_to_layer") == Names{"percent"});
+    REQUIRE(names("go_to_tab") == Names{"tab"});
+    for (const char* key : {"load_project", "import_file", "add_primitive_svg", "install_local_plugin"})
+        REQUIRE(names(key) == path);
+    for (const char* key : {"save_project_as", "export_gcode", "export_stl", "export_3mf", "export_sliced_file", "export_all_sliced_file"})
+        REQUIRE(names(key) == output);
+    for (const char* key : {"export_stl_multi", "export_config"})
+        REQUIRE(names(key) == path);
+    REQUIRE(names("import_configs") == Names{"path", "on_conflict"});
+    REQUIRE(names("open_preferences") == Names{"tab", "key"});
+    REQUIRE(names("obj_rename") == Names{"name"});
+    REQUIRE(names("obj_set_instances") == Names{"count"});
+    for (const char* key : {"obj_order_by_name", "obj_order_by_filament", "obj_order_by_height", "obj_order_by_size"})
+        REQUIRE(names(key) == all);
+    for (const char* key : {"add_primitive_cube", "add_primitive_cylinder", "add_primitive_sphere", "add_primitive_cone",
+                            "add_primitive_disc", "add_primitive_torus"})
+        REQUIRE(names(key) == size);
+    REQUIRE(names("plate_goto") == Names{"plate"});
+    REQUIRE(names("filament_delete") == Names{"slot"});
+    REQUIRE(names("start_recording") == recording);
 
-    CHECK_FALSE(NativeCommands::parse_sizes("").has_value());
-    CHECK_FALSE(NativeCommands::parse_sizes(" , ").has_value());
-    CHECK_FALSE(NativeCommands::parse_sizes("90 x").has_value());
-    CHECK_FALSE(NativeCommands::parse_sizes("90mm 4").has_value());
-    CHECK_FALSE(NativeCommands::parse_sizes("90 0").has_value());
-    CHECK_FALSE(NativeCommands::parse_sizes("90 -4").has_value());
+    // Of the tiles, only the two values of the second phase are required; every other tile does its person's
+    // form when it is given no arguments.
+    for (const NativeCommand* c : NativeCommands::palette_commands(NativeCommands::instance())) {
+        INFO(c->key);
+        CHECK(c->input_schema.contains("required") == (c->key == "go_to_layer" || c->key == "go_to_tab"));
+    }
 }
 
 // The app opens on Home, so a slice or arrange an agent starts at once updates its progress
@@ -264,7 +294,7 @@ struct Harness
     Mcp::UiInvoker                invoker{ui, [] { return Mcp::GuardState{}; }};
     Mcp::JobRegistry              jobs;
     Mcp::Journal                  journal;
-    Mcp::ToolRegistry             registry;
+    CommandCatalog                registry;
     Mcp::CoreTiming               timing;
     std::chrono::milliseconds     job_length{800};
     std::unique_ptr<Mcp::McpCore> core;
@@ -326,15 +356,15 @@ struct Harness
             core->shutdown();
     }
 
-    void add(const std::string& name, Mcp::GuardClass guard, Mcp::ToolHandler handler)
+    void add(const std::string& name, Mcp::GuardClass guard, CommandFn handler)
     {
-        Mcp::ToolDef d;
-        d.name                     = name;
+        NativeCommand d;
+        d.key                      = name;
         d.guard                    = guard;
         d.inline_call              = guard == Mcp::GuardClass::Inspect;
         d.allowed_during_operation = name == "cancel_job";
         d.budget_ms                = 200;
-        d.handler                  = std::move(handler);
+        d.run                      = std::move(handler);
         registry.add(std::move(d));
     }
     void start()
@@ -775,49 +805,20 @@ TEST_CASE("a shape's size needs one positive number per field of the size dialog
     }
 }
 
-TEST_CASE("an instance count param is a whole number", "[Mcp][Scene]")
-{
-    CHECK(NativeCommands::parse_count("6") == 6);
-    CHECK(NativeCommands::parse_count(" 12 ") == 12);
-    CHECK(NativeCommands::parse_count("0") == 0);
-    CHECK(NativeCommands::parse_count("1000") == 1000);
-
-    CHECK_FALSE(NativeCommands::parse_count("").has_value());
-    CHECK_FALSE(NativeCommands::parse_count("-1").has_value());
-    CHECK_FALSE(NativeCommands::parse_count("6.5").has_value());
-    CHECK_FALSE(NativeCommands::parse_count("6 7").has_value());
-    CHECK_FALSE(NativeCommands::parse_count("1e3").has_value());
-    CHECK_FALSE(NativeCommands::parse_count("six").has_value());
-    CHECK_FALSE(NativeCommands::parse_count("99999999999").has_value());
-}
-
-// The object list's context-menu commands are Speed Dial commands beside the other object commands,
-// and a param stands in for each one's dialog.
-TEST_CASE("the object structure commands take the params that replace their dialogs", "[Mcp][Scene]")
+// The object list's context-menu commands are Speed Dial commands beside the other object commands.
+TEST_CASE("the object structure commands sit beside the other object commands", "[Mcp][Scene]")
 {
     const NativeCommand* peer = NativeCommands::find("obj_delete");
     REQUIRE(peer != nullptr);
-    struct Expected
-    {
-        const char*      key;
-        CommandParamType param;
-    };
-    for (const Expected& e : {Expected{"obj_type_part", CommandParamType::None}, Expected{"obj_type_negative", CommandParamType::None},
-                              Expected{"obj_type_modifier", CommandParamType::None},
-                              Expected{"obj_type_support_blocker", CommandParamType::None},
-                              Expected{"obj_type_support_enforcer", CommandParamType::None},
-                              Expected{"obj_type_precise_seam", CommandParamType::None}, Expected{"obj_rename", CommandParamType::Text},
-                              Expected{"obj_set_instances", CommandParamType::Index}, Expected{"obj_assemble", CommandParamType::None},
-                              Expected{"obj_instances_to_objects", CommandParamType::None},
-                              Expected{"obj_order_by_name", CommandParamType::Text}, Expected{"obj_order_by_filament", CommandParamType::Text},
-                              Expected{"obj_order_by_height", CommandParamType::Text}, Expected{"obj_order_by_size", CommandParamType::Text}}) {
-        INFO(e.key);
-        const NativeCommand* c = NativeCommands::find(e.key);
+    for (const char* key : {"obj_type_part", "obj_type_negative", "obj_type_modifier", "obj_type_support_blocker",
+                            "obj_type_support_enforcer", "obj_type_precise_seam", "obj_rename", "obj_set_instances", "obj_assemble",
+                            "obj_instances_to_objects", "obj_order_by_name", "obj_order_by_filament", "obj_order_by_height",
+                            "obj_order_by_size"}) {
+        INFO(key);
+        const NativeCommand* c = NativeCommands::find(key);
         REQUIRE(c != nullptr);
         CHECK(c->group == peer->group);
-        CHECK(c->param.type == e.param);
         CHECK_FALSE(c->description.empty());
-        CHECK(c->param.help.empty() == (e.param == CommandParamType::None));
     }
 }
 

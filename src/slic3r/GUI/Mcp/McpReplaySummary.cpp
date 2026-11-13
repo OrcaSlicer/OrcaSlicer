@@ -1,6 +1,11 @@
 #include "McpReplaySummary.hpp"
 #include "McpPaths.hpp"
 #include "McpReplay.hpp"
+#include "McpTypes.hpp"
+
+#include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
@@ -8,7 +13,6 @@
 
 #include <array>
 #include <cstddef>
-#include <exception>
 #include <initializer_list>
 #include <ios>
 #include <optional>
@@ -113,19 +117,6 @@ std::pair<std::string, std::string> split_action_id(const std::string& id)
     return {id.substr(0, first), id.substr(first + 1, last - first - 1)};
 }
 
-// A Speed Dial param that names a file, in either of the forms path params take.
-std::optional<std::string> param_file(const std::string& param)
-{
-    std::string err;
-    try {
-        if (const auto p = parse_path_param(param, err); p && path_from_utf8(p->path).is_absolute())
-            return p->path;
-    } catch (const std::exception&) {
-        // A malformed {"overwrite": ...}; the param is then not read as a file.
-    }
-    return std::nullopt;
-}
-
 bool starts_with(const std::string& s, const char* prefix) { return s.rfind(prefix, 0) == 0; }
 
 bool one_of(const std::string& s, std::initializer_list<const char*> names)
@@ -136,12 +127,19 @@ bool one_of(const std::string& s, std::initializer_list<const char*> names)
     return false;
 }
 
-void describe_command(Builder& b, const std::string& key, const std::string& param)
+void describe_command(Builder& b, const std::string& key, const json& args)
 {
-    const std::optional<std::string> file = param.empty() ? std::nullopt : param_file(param);
-    json                             what{{"kind", "command"}, {"key", key}};
-    if (!param.empty())
-        what["param"] = file ? file_name(*file) : param;
+    json what{{"kind", "command"}, {"key", key}};
+    // Each argument as "name: value", the file of a path by its name.
+    if (args.is_object() && !args.empty()) {
+        json texts = json::array();
+        for (const auto& [name, value] : args.items()) {
+            const bool file = name == "path" && value.is_string();
+            texts.push_back(name + ": " +
+                            (file ? file_name(value.get<std::string>()) : value.is_string() ? value.get<std::string>() : value.dump()));
+        }
+        what["args"] = std::move(texts);
+    }
     b.d.what = std::move(what);
 
     if (starts_with(key, "calib_")) {
@@ -163,11 +161,10 @@ void describe_command(Builder& b, const std::string& key, const std::string& par
 
 void describe_action(Builder& b, const json& args)
 {
-    const std::string id                = args.contains("id") && args["id"].is_string() ? args["id"].get<std::string>() : std::string();
-    const std::string param             = args.contains("param") && args["param"].is_string() ? args["param"].get<std::string>() : std::string();
-    const auto [prefix, middle]         = split_action_id(id);
-    if (prefix == "orca_command") {
-        describe_command(b, middle, param);
+    const std::string id        = args.contains("id") && args["id"].is_string() ? args["id"].get<std::string>() : std::string();
+    const auto [prefix, middle] = split_action_id(id);
+    if (prefix == kCommandPrefix) {
+        describe_command(b, middle, args.contains("args") ? args["args"] : json());
     } else if (prefix == "orca_recent_project") {
         b.d.what = {{"kind", "recent_project"}, {"name", file_name(middle)}};
         b.flag(StepFlag::ReplacesProject);
@@ -181,6 +178,14 @@ void describe_action(Builder& b, const json& args)
         b.d.what = {{"kind", "value"}, {"text", id}};
         b.every_flag("app_asked");
     }
+}
+
+// A command that has a tile and no typed tool's place in the tool list (load_project, export_stl): called by
+// its key, it does what run_action of its tile does.
+bool tile_command(const std::string& tool)
+{
+    const NativeCommand* command = NativeCommands::find(tool);
+    return command != nullptr && command->in_palette && !command->listed;
 }
 
 std::optional<std::string> read_text(const fs::path& path)
@@ -289,6 +294,11 @@ json describe_call(const std::string& tool, const json& args)
         describe_action(b, args);
         return b.d.what;
     }
+    if (tile_command(tool)) {
+        Builder b;
+        describe_command(b, tool, args);
+        return b.d.what;
+    }
     if (tool == "run_replay")
         return args.contains("path") && args["path"].is_string() ? json{{"kind", "files"}, {"names", {file_name(args["path"].get<std::string>())}}} :
                                                                     json();
@@ -319,6 +329,10 @@ StepDescription describe_step(const ReplayStep& step, const Replay& replay, cons
     }
     if (tool == "run_replay") {
         describe_nested(b, args, ctx, depth);
+        return b.done();
+    }
+    if (tile_command(tool)) {
+        describe_command(b, tool, args);
         return b.done();
     }
     b.d.what = describe_what(tool, args);
@@ -353,7 +367,8 @@ StepDescription describe_step(const ReplayStep& step, const Replay& replay, cons
         b.flag(StepFlag::ChangesPresets);
     if (one_of(tool, {"new_project", "generate_calibration_test"})) {
         b.flag(StepFlag::ReplacesProject);
-        b.replace("checked");
+        // new_project with no arguments is New Project's: the app asks about the unsaved changes.
+        b.replace(tool == "new_project" && person_form(args) ? "app_asked" : "checked");
     }
     if (tool == "open_files" && args.contains("paths") && args["paths"].is_array() && args["paths"].size() == 1 &&
         args["paths"][0].is_string()) {

@@ -3,7 +3,6 @@
 // Adaptive, Smooth and Reset on an object. And how list_objects reports both. set_custom_gcode_at_layer: the
 // pauses, custom G-codes and filament changes of a plate's layers, through the Preview's layer slider.
 
-#include "McpService.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
@@ -573,10 +572,9 @@ bool edit_layer_gcode(IMSlider& slider, const json& args, int filaments, bool ha
     return changed;
 }
 
-void register_layer_tools(McpService& service)
+void register_layer_tools(CommandCatalog& catalog)
 {
-    ToolRegistry& reg   = service.registry();
-    const json    range = object_schema(
+    const json range = object_schema(
         {{"min_z", {{"type", "number"}, {"minimum", 0}, {"description", "Bottom, mm above the bed."}}},
          {"max_z", {{"type", "number"}, {"minimum", 0}, {"description", "Top, mm above the bed."}}},
          {"values", {{"type", "object"},
@@ -584,8 +582,8 @@ void register_layer_tools(McpService& service)
                                      "filament) and per-region process settings such as sparse_infill_density or wall_loops."}}}},
         {"min_z", "max_z"});
 
-    reg.add(mutate_tool(
-        "set_height_ranges", L("Set height range modifiers"),
+    catalog.add(with_expected_ids(mutate_tool(
+        "api", "set_height_ranges", L("Set height range modifiers"),
         "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in mm, each printed "
         "with its own layer_height, filament and process settings, starting from the object's layer height and filament. "
         "Ranges may touch but not overlap; [] removes them all. One undo step; the object is selected. Reply: the "
@@ -599,10 +597,10 @@ void register_layer_tools(McpService& service)
             json out = ctx.run_ui([&] { return set_height_ranges(ui_plater(), args); });
             settle(ctx);
             return ToolResult::ok(out);
-        }));
+        })));
 
-    reg.add(mutate_tool(
-        "set_variable_layer_height", L("Set a variable layer height profile"),
+    catalog.add(with_expected_ids(mutate_tool(
+        "api", "set_variable_layer_height", L("Set a variable layer height profile"),
         "Run the Variable layer height panel's Adaptive, Smooth or Reset on an object, without opening the panel: adaptive "
         "computes layer heights from the object's shape (inside a height range, the range's layer_height), smooth smooths "
         "its profile (or the one its height ranges give), reset goes back to its layer height and ranges. One undo step; "
@@ -635,12 +633,12 @@ void register_layer_tools(McpService& service)
             json out = ctx.run_ui([&] { return set_variable_layer_height(ui_plater(), args); });
             settle(ctx);
             return ToolResult::ok(out);
-        }));
+        })));
 
     const json layer = {{"type", "integer"}, {"minimum", 1}, {"description", "1-based, as the Preview's layer slider numbers layers."}};
     const json z     = {{"type", "number"}, {"minimum", 0}, {"description", "mm: the layer whose top is at or above it."}};
-    reg.add(mutate_tool(
-        "set_custom_gcode_at_layer", L("Set custom G-code at a layer"),
+    catalog.add(mutate_tool(
+        "api", "set_custom_gcode_at_layer", L("Set custom G-code at a layer"),
         "Add or remove pauses, custom G-code, custom templates and filament changes at the start of a layer, as the Preview "
         "layer slider's menu does; they are saved per plate in the project. They go on the plate's sliced layers, so the "
         "plate needs an up-to-date slice, or must be the one the Preview still shows after an earlier edit; the call selects "

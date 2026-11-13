@@ -327,6 +327,7 @@ void SpeedDialWebDialog::handle_web_command(const nlohmann::json& payload)
         const bool ok            = wxGetApp().action_registry().set_favourite(fav_id, payload.value("fav", false));
         if (!ok)
             call_web_handler({{"command", "favourite_full"}, {"limit", (int) ActionRegistry::kFavLimit}, {"id", fav_id}});
+        send_favourites();
     } else if (command == "reorder_favourites") {
         std::vector<std::string> ids;
         if (payload.contains("ids") && payload["ids"].is_array())
@@ -334,10 +335,11 @@ void SpeedDialWebDialog::handle_web_command(const nlohmann::json& payload)
                 if (id.is_string())
                     ids.push_back(id.get<std::string>());
         wxGetApp().action_registry().reorder_favourites(ids);
+        send_favourites();
     } else if (command == "set_tooltip_expanded")
         wxGetApp().action_registry().set_tooltip_expanded(payload.value("expanded", true));
     else if (command == "run_action")
-        run_action(payload.value("id", ""), payload.value("title", ""), payload.value("param", ""));
+        run_action(payload.value("id", ""), payload.value("title", ""), payload.value("args", nlohmann::json::object()));
     else if (command == "open_wiki")
         open_wiki(payload.value("id", ""));
     else if (command == "search_tabs")
@@ -456,7 +458,7 @@ void SpeedDialWebDialog::on_dpi_changed(const wxRect&)
     Refresh();
 }
 
-void SpeedDialWebDialog::run_action(const std::string& id, const std::string& title, const std::string& param)
+void SpeedDialWebDialog::run_action(const std::string& id, const std::string& title, const nlohmann::json& args)
 {
     ActionRegistry& reg = wxGetApp().action_registry();
     const AppAction* a  = reg.by_id(id);
@@ -505,9 +507,9 @@ void SpeedDialWebDialog::run_action(const std::string& id, const std::string& ti
             wxGetApp().action_registry().suppress_ask(id);
     }
 
-    wxGetApp().CallAfter([id, param] {
+    wxGetApp().CallAfter([id, args] {
         if (!wxGetApp().is_closing())
-            NativeCommands::notify_result(wxGetApp().action_registry().run(id, param));
+            NativeCommands::notify_result(wxGetApp().action_registry().run(id, args));
     });
 }
 
@@ -529,6 +531,11 @@ void SpeedDialWebDialog::send_actions()
                       {"recent", std::move(snap["recent"])},
                       {"user_mode", std::move(snap["user_mode"])},
                       {"tooltip_expanded", std::move(snap["tooltip_expanded"])}});
+}
+
+void SpeedDialWebDialog::send_favourites()
+{
+    call_web_handler({{"command", "favourites"}, {"favourites", wxGetApp().action_registry().favourites_bar()}});
 }
 
 }} // namespace Slic3r::GUI

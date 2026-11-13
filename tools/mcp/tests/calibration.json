@@ -129,7 +129,7 @@
     {"tool": "get_settings", "args": {"scope": "filament", "keys": ["slow_down_layer_time"]}, "expect": {"/items/0/value": {"eq": "4"}}},
 
     // ---- Back to one slot and no MCP presets ----
-    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "param": "2"}, "expect": {"/level": {"eq": "success"}}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "args": {"slot": 2}}, "expect": {"/level": {"eq": "success"}}},
     {"tool": "delete_preset", "args": {"type": "filament", "name": "MCP Calib PLA"}, "expect": {"/deleted": {"eq": "MCP Calib PLA"}}},
     {"tool": "list_presets", "args": {"type": "filament"}, "expect": {"/total": {"eq": 1}, "/items/0/modified": {"exists": false}}}
   ]

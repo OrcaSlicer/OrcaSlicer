@@ -992,6 +992,20 @@ TEST_CASE("an image with alpha is blended over what it is composited onto", "[Mc
 
 // ---- captions ------------------------------------------------------------------------------------------------------
 
+TEST_CASE("a caption keeps the context its title is translated in", "[Mcp][Recording]")
+{
+    // A Design command's title is its entry's name, translated as the Design tab's menu translates it.
+    CaptionBoard board;
+    const auto   t0 = CaptionBoard::Clock::now();
+    board.call_started(1, "Slice", "", t0);
+    REQUIRE(board.current(t0).has_value());
+    CHECK(board.current(t0)->context.empty());
+    board.call_started(2, "Shell", "", t0, "Design");
+    REQUIRE(board.current(t0).has_value());
+    CHECK(board.current(t0)->title == "Shell");
+    CHECK(board.current(t0)->context == "Design");
+}
+
 TEST_CASE("the caption is the newest call that runs or lingers", "[Mcp][Recording]")
 {
     CaptionBoard board;
@@ -1104,6 +1118,8 @@ TEST_CASE("captions name what a call acts on and never show secrets", "[Mcp][Rec
     CHECK(settings.find("nozzle_diameter = 0.4") != std::string::npos);
     CHECK(caption_detail("open_files", {{"paths", {"C:/models/part.stl", "/tmp/b.3mf"}}}) == "part.stl, b.3mf");
     CHECK(caption_detail("run_action", {{"id", "orca_command:obj_arrange:orca"}}) == "obj_arrange");
+    CHECK(caption_detail("run_action", {{"id", "orca_command:import_file:orca"}, {"args", {{"path", "C:/models/part.stl"}}}}) ==
+          "import_file path: part.stl");
     CHECK(caption_detail("run_javascript", {{"code", "login('s3cret')"}}).empty());
     CHECK(is_sensitive_key("printhost_apikey"));
     CHECK(is_sensitive_key("cloud_Token"));
@@ -1236,43 +1252,32 @@ TEST_CASE("remembered recording settings come back, and a bad value keeps its de
     CHECK(loaded.profile == "main");
 }
 
-TEST_CASE("Start Recording's parameter overrides the settings, a preset before the fields", "[Mcp][Recording]")
+TEST_CASE("start_recording's encode arguments override the settings, a preset before the fields", "[Mcp][Recording]")
 {
     RecordingSettings s;
-    bool              silent = false;
-    const json overrides{{"encode_preset", "compatible"}, {"crf", 18}, {"quality", 60}, {"pointer", true}, {"silent", true}};
-    CHECK(apply_recording_overrides(s, overrides, silent).empty());
+    // The tool's other arguments are left to it.
+    const json args_given{{"encode_preset", "compatible"}, {"crf", 18}, {"encode", true}, {"quality", 60}, {"silent", true}};
+    CHECK(apply_recording_overrides(s, args_given).empty());
     CHECK(s.codec == "h264");
     CHECK(s.profile == "high");
     CHECK(s.crf == 18);
-    CHECK(s.quality == 60);
-    CHECK(s.pointer);
-    CHECK_FALSE(s.captions);
-    CHECK(silent);
+    CHECK(s.encode);
+    CHECK(s.quality == RecordingSettings().quality);
 
     // A codec without a profile takes the codec's default when the one it had doesn't fit.
-    CHECK(apply_recording_overrides(s, json{{"codec", "h265"}}, silent).empty());
+    CHECK(apply_recording_overrides(s, json{{"codec", "h265"}}).empty());
     CHECK(s.profile == "main");
-    CHECK_FALSE(silent);
-    CHECK(apply_recording_overrides(s, json{{"profile", "main10"}}, silent).empty());
+    CHECK(apply_recording_overrides(s, json{{"profile", "main10"}}).empty());
     CHECK(s.profile == "main10");
 
     // Anything wrong leaves the settings as they were.
     const RecordingSettings before = s;
-    CHECK_FALSE(apply_recording_overrides(s, json{{"codec", "h264"}, {"profile", "main10"}}, silent).empty());
-    CHECK_FALSE(apply_recording_overrides(s, json{{"crf", 52}}, silent).empty());
-    CHECK_FALSE(apply_recording_overrides(s, json{{"quality", "high"}}, silent).empty());
-    CHECK_FALSE(apply_recording_overrides(s, json{{"captions", "yes"}}, silent).empty());
-    CHECK_FALSE(apply_recording_overrides(s, json{{"overlays", true}}, silent).empty());
-    CHECK_FALSE(apply_recording_overrides(s, json{{"encode_preset", "tiny"}}, silent).empty());
-    CHECK_FALSE(apply_recording_overrides(s, json{{"fps", 30}}, silent).empty());
-    CHECK_FALSE(apply_recording_overrides(s, json::array(), silent).empty());
-    CHECK_FALSE(apply_recording_overrides(s, json{{"folder", "relative/videos"}}, silent).empty());
-    CHECK_FALSE(apply_recording_overrides(s, json{{"folder", path_to_utf8(fs::temp_directory_path() / "no-such-folder-here")}}, silent).empty());
+    CHECK_FALSE(apply_recording_overrides(s, json{{"codec", "h264"}, {"profile", "main10"}}).empty());
+    CHECK_FALSE(apply_recording_overrides(s, json{{"crf", 52}}).empty());
+    CHECK_FALSE(apply_recording_overrides(s, json{{"encode", "yes"}}).empty());
+    CHECK_FALSE(apply_recording_overrides(s, json{{"speed", "warp"}}).empty());
+    CHECK_FALSE(apply_recording_overrides(s, json{{"encode_preset", "tiny"}}).empty());
     CHECK(s == before);
-
-    CHECK(apply_recording_overrides(s, json{{"folder", path_to_utf8(fs::temp_directory_path())}}, silent).empty());
-    CHECK(RecordingFiles::same_file(path_from_utf8(s.folder), fs::temp_directory_path()));
 
     const json args = encode_arguments(s, "C:/videos/a.mkv");
     CHECK(args["path"] == "C:/videos/a.mkv");
@@ -1470,4 +1475,30 @@ TEST_CASE("an exported replay encodes the recording it makes and leaves other so
     CHECK(steps[2]["args"]["path"] == "${out_dir}/rec.mkv");
     CHECK(steps[2]["args"]["save_path"] == "${out_dir}/rec.mp4");
     CHECK(steps[3]["args"]["path"] == "D:/videos/old.mkv");
+}
+
+TEST_CASE("an exported replay records a tile's recording into its own folder and encodes it there", "[Mcp][Recording]")
+{
+    Journal j;
+    auto    ok = [&](const std::string& tool, const json& args) { j.end(j.begin(tool, args), ToolResult::ok()); };
+    // run_action of the Start Recording tile, journaled as the tile's {id, args}, by its full id with the path the
+    // call gave. A call that gives none is journaled with the path its silent form chose in the session's output
+    // folder, as start_recording's own call is; the tile by its key here.
+    ok("run_action", {{"id", "orca_command:start_recording:orca"}, {"args", {{"silent", true}, {"save_path", "C:/Users/me/out/tile.mkv"}}}});
+    ok("run_action", {{"id", "orca_command:stop_recording:orca"}});
+    ok("encode_recording", {{"path", "C:/Users/me/out/tile.mkv"}});
+    ok("run_action", {{"id", "start_recording"}, {"args", {{"silent", true}, {"save_path", "C:/Users/me/mcp/recording-20261113.mkv"}}}});
+    ok("run_action", {{"id", "stop_recording"}});
+    ok("encode_recording", {{"path", "C:/Users/me/mcp/recording-20261113.mkv"}, {"save_path", "C:/Users/me/mcp/take.mp4"}});
+    // The person's form, which opens the Start Recording dialog, names no file.
+    ok("run_action", {{"id", "start_recording"}});
+    const json steps = j.to_replay("s")["steps"];
+    REQUIRE(steps.size() == 7);
+    CHECK(steps[0]["tool"] == "run_action");
+    CHECK(steps[0]["args"] == json{{"id", "orca_command:start_recording:orca"}, {"args", {{"silent", true}, {"save_path", "${out_dir}/tile.mkv"}}}});
+    CHECK(steps[2]["args"]["path"] == "${out_dir}/tile.mkv");
+    CHECK(steps[3]["args"] == json{{"id", "start_recording"}, {"args", {{"silent", true}, {"save_path", "${out_dir}/recording-20261113.mkv"}}}});
+    CHECK(steps[5]["args"]["path"] == "${out_dir}/recording-20261113.mkv");
+    CHECK(steps[5]["args"]["save_path"] == "${out_dir}/take.mp4");
+    CHECK(steps[6]["args"] == json{{"id", "start_recording"}});
 }

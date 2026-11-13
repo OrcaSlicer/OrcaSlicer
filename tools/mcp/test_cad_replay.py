@@ -4,9 +4,9 @@
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_replay.py
 
-Records a session of call_cad_tool client calls (replay steps are not journaled) on the paths a replay
-breaks on: a sketch on a base plane, which passes through modeling_origin as every plane does; an
-empty sketch commit, which fails and must keep the sketch open for the next call; a CAD tool
+Records a session of Design command calls made through call_tool (replay steps are not journaled) on the
+paths a replay breaks on: a sketch on a base plane, which passes through modeling_origin as every plane does; an
+empty sketch commit, which fails and must keep the sketch open for the next call; a command
 failing as an error (a hole that misses), which export_replay must leave out; one that reports a
 rejected rebuild in its reply (ok false), which stays in and replays the same rejection; and face
 and edge ids passed with the generation they were read at, which the journal drops, since the
@@ -26,7 +26,7 @@ import orca_mcp  # noqa: E402
 
 
 def cad(client, tool, **args):
-    return client.call("call_cad_tool", _timeout=300, tool=tool, args=args)["result"]
+    return client.call("call_tool", _timeout=300, tool=tool, args=args)["result"]
 
 
 def refused(client, tool, **args):
@@ -57,9 +57,9 @@ def record(client):
     refused_fillet = cad(client, "fillet", edge=corners["edges"][0]["id"], radius=50, body=0)
     bores = cad(client, "query_topology", body=0, kinds=["cylindrical"])
     bore = next(f["id"] for f in bores["faces"] if f.get("internal"))
-    thread = client.await_job(client.call("call_cad_tool", _timeout=300, tool="thread",
+    thread = client.await_job(client.call("call_tool", _timeout=300, tool="thread",
                                           args={"body": 0, "face": bore, "generation": bores["generation"]}))
-    return {"mass": cad(client, "mass_properties", body=0), "scene": cad(client, "describe_scene"),
+    return {"mass": cad(client, "mass_props", body=0), "scene": cad(client, "describe_scene"),
             "frame": frame, "empty_commit": empty_commit, "missed_hole": missed_hole, "refused_fillet": refused_fillet,
             "thread": thread.get("result", {})}
 
@@ -77,12 +77,13 @@ def main():
     with open(path) as f:
         text = f.read()
     steps = json.loads("\n".join(l for l in text.splitlines() if not l.lstrip().startswith("//")))["steps"]
-    calls = [s["args"] for s in steps if s["tool"] == "call_cad_tool"]
-    tools = [c["tool"] for c in calls]
+    # A Design command's call is journaled as its own; the session starts with new_project.
+    calls = [s for s in steps if s["tool"] != "new_project"]
+    tools = [s["tool"] for s in calls]
 
     client.call("new_project", discard_changes=True)
     replay = client.await_job(client.call("run_replay", path=path, out_dir=out_dir), timeout=900)
-    mass = cad(client, "mass_properties", body=0)
+    mass = cad(client, "mass_props", body=0)
     scene = cad(client, "describe_scene")
     kinds = lambda s: [f["type"] for f in s["features"]]  # noqa: E731 (names count on across projects)
 

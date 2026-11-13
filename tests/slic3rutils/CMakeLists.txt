@@ -48,6 +48,7 @@ add_executable(${_TEST_NAME}_tests
     test_network_versions.cpp
     test_orca_cloud_agent.cpp
     test_action_source.cpp
+    test_command_catalog.cpp
     test_option_state_registry.cpp
     test_plugin_host_api.cpp
     # Exercise seam enums and predicates through the embedded Python host API.
@@ -90,7 +91,7 @@ add_executable(${_TEST_NAME}_tests
 
 if (SLIC3R_CAD)
     target_sources(${_TEST_NAME}_tests PRIVATE test_design_sketch_tool.cpp)
-    # The Design tab's MCP surface: list_cad_tools, describe_cad_tool and call_cad_tool.
+    # The Design tab's commands.
     target_sources(${_TEST_NAME}_tests PRIVATE test_mcp_cad.cpp)
 endif ()
 

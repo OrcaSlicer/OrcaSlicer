@@ -1,21 +1,29 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/Mcp/McpProtocol.hpp"
 #include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/GUI/Mcp/McpStdioBridge.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "libslic3r_version.h"
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <functional>
 #include <set>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r::GUI::Mcp;
 using nlohmann::json;
+using Slic3r::GUI::CommandCatalog;
+using Slic3r::GUI::CommandSource;
+using Slic3r::GUI::NativeCommand;
+namespace NativeCommands = Slic3r::GUI::NativeCommands;
 
 namespace {
 
@@ -25,9 +33,9 @@ class DirectCaller final : public ToolCaller
 public:
     std::vector<std::string> called; // the tools it ran, in order
 
-    ToolResult call(const ToolDef& def, const json& args) override
+    ToolResult call(const NativeCommand& def, const json& args) override
     {
-        called.push_back(def.name);
+        called.push_back(def.key);
         struct Context final : ToolContext
         {
             std::string id;
@@ -40,20 +48,21 @@ public:
             void set_journal_args(json) override {}
             void begin_operation() override {}
         } ctx;
-        return def.handler(args, ctx);
+        return def.run(args, ctx);
     }
 };
 
 struct Fixture
 {
-    ToolRegistry registry;
-    DirectCaller caller;
-    McpProtocol  protocol{registry, caller, ServerInfo{"orcaslicer", "OrcaSlicer", "9.9.9", "Use get_app_state first."}};
+    CommandCatalog registry;
+    DirectCaller   caller;
+    McpProtocol    protocol{registry, caller, ServerInfo{"orcaslicer", "OrcaSlicer", "9.9.9", "Use get_app_state first."}};
 
     Fixture()
     {
-        ToolDef echo;
-        echo.name         = "echo";
+        NativeCommand echo;
+        echo.key          = "echo";
+        echo.listed       = true;
         echo.description  = "Echo text back.";
         echo.read_only    = true;
         echo.idempotent   = true;
@@ -61,14 +70,15 @@ struct Fixture
                              {"properties", {{"text", {{"type", "string"}}}}},
                              {"required", {"text"}},
                              {"additionalProperties", false}};
-        echo.handler      = [](const json& args, ToolContext&) { return ToolResult::ok({{"echo", args["text"]}}); };
+        echo.run          = [](const json& args, ToolContext&) { return ToolResult::ok({{"echo", args["text"]}}); };
         registry.add(echo);
 
-        ToolDef fail;
-        fail.name        = "fail";
+        NativeCommand fail;
+        fail.key         = "fail";
+        fail.listed      = true;
         fail.destructive = true;
         fail.open_world  = true;
-        fail.handler     = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("it broke", {{"why", "test"}}); };
+        fail.run         = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("it broke", {{"why", "test"}}); };
         registry.add(fail);
     }
 
@@ -134,22 +144,34 @@ TEST_CASE("tools/list keeps registration order and maps annotations", "[Mcp]")
     CHECK(tools[0]["inputSchema"]["required"][0] == "text");
 }
 
-TEST_CASE("tools/list lists the core tools, then the API lane, then the UI lane", "[Mcp]")
+TEST_CASE("tools/list lists the listed commands in the order they were added", "[Mcp]")
 {
-    Fixture f;
-    for (const char* name : {"click", "get_app_state"}) {
-        ToolDef def;
-        def.name    = name;
-        def.handler = [](const json&, ToolContext&) { return ToolResult::ok(); };
-        f.registry.add(def);
-    }
-    const json tools = body(f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}}))["result"]["tools"];
-    REQUIRE(tools.size() == 4);
-    CHECK(tools[0]["name"] == "get_app_state");
-    CHECK(tools[1]["name"] == "echo");
-    CHECK(tools[2]["name"] == "fail");
-    CHECK(tools[3]["name"] == "click");
-    CHECK(tools[3]["description"] == "[ui] ");
+    const CommandCatalog& catalog = NativeCommands::instance();
+    DirectCaller          caller;
+    McpProtocol           protocol{catalog, caller, ServerInfo{}};
+    const json tools = body(protocol.handle_post(PostRequest{json{{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}}.dump(), {}, {}, {}}))
+                           ["result"]["tools"];
+    std::vector<std::string> names;
+    for (const json& tool : tools)
+        names.push_back(tool["name"].get<std::string>());
+
+    std::vector<std::string> added;
+    for (const NativeCommand& def : catalog.commands())
+        if (def.listed)
+            added.push_back(def.key);
+    CHECK(names == added);
+
+    // The families in the order register_all_commands() adds them: the Speed Dial's commands before them are
+    // not listed.
+    REQUIRE_FALSE(names.empty());
+    CHECK(names.front() == "get_app_state");
+    const auto position = [&names](const std::string& name) {
+        const auto it = std::find(names.begin(), names.end(), name);
+        REQUIRE(it != names.end());
+        return it - names.begin();
+    };
+    CHECK(position("search_tools") < position("open_files"));
+    CHECK(position("slice") < position("click"));
 }
 
 TEST_CASE("tools/call returns the result as a JSON text block", "[Mcp]")
@@ -181,6 +203,13 @@ TEST_CASE("an unknown tool is a JSON-RPC error with suggestions", "[Mcp]")
     const json reply = body(f.post({{"jsonrpc", "2.0"}, {"id", 6}, {"method", "tools/call"}, {"params", {{"name", "ecko"}}}}));
     CHECK(reply["error"]["code"] == -32602);
     CHECK(reply["error"]["data"]["did_you_mean"][0] == "echo");
+}
+
+TEST_CASE("one edit distance serves every did-you-mean", "[Mcp]")
+{
+    CHECK(edit_distance("fillet", "filet") == 1);
+    CHECK(edit_distance("", "abc") == 3);
+    CHECK(edit_distance("a", "a") == 0);
 }
 
 TEST_CASE("malformed messages are rejected", "[Mcp]")
@@ -231,18 +260,19 @@ TEST_CASE("the stdio bridge derives no headers from a line that is not a message
 
 TEST_CASE("the catalog the stdio bridge lists without the app holds every tool family", "[Mcp]")
 {
-    const ToolRegistry&   catalog = McpService::offline_catalog();
+    const CommandCatalog& catalog = NativeCommands::instance();
     std::set<std::string> names;
-    for (const ToolDef& def : catalog.tools()) {
-        CHECK(names.insert(def.name).second);
-        CHECK(def.description.rfind(std::string("[") + lane_name(def.lane) + "] ", 0) == 0);
+    for (const NativeCommand& def : catalog.commands()) {
+        if (!def.listed)
+            continue;
+        CHECK(names.insert(def.key).second);
     }
     for (const char* name : {"get_app_state", "run_action", "open_files", "set_settings", "slice", "set_height_ranges", "set_view",
                              "list_widgets", "run_replay", "start_recording", "run_script", "call_tool", "set_variable_layer_height",
                              "set_custom_gcode_at_layer"})
         CHECK(names.count(name) == 1);
     // Built once, for the life of the process.
-    CHECK(&McpService::offline_catalog() == &catalog);
+    CHECK(&NativeCommands::instance() == &catalog);
     CHECK(McpService::server_info().version == SLIC3R_VERSION);
     CHECK_FALSE(McpService::server_info().instructions.empty());
     // Clients cut the instructions off after 4096 characters.
@@ -525,39 +555,30 @@ TEST_CASE("a position or size in mm, an array of numbers, takes no pair list_win
     CHECK(sized == json{{"width", 30}, {"height", 5}});
 }
 
-TEST_CASE("an unknown tool another catalog has is pointed there, not at similar names", "[Mcp]")
+TEST_CASE("an unknown tool is answered with the closest names", "[Mcp]")
 {
     Fixture f;
-    f.registry.set_elsewhere([](const std::string& name) {
-        return name == "echo_cad" ? std::string("it is a CAD tool: call_cad_tool runs it") : std::string();
-    });
-    const char* const pointed = "Unknown tool: echo_cad; it is a CAD tool: call_cad_tool runs it";
+    const json direct = body(f.post({{"jsonrpc", "2.0"}, {"id", 7}, {"method", "tools/call"}, {"params", {{"name", "no_such_tool"}}}}));
+    CHECK(direct["error"]["message"] == "Unknown tool: no_such_tool");
 
-    const json direct = body(f.post({{"jsonrpc", "2.0"}, {"id", 7}, {"method", "tools/call"}, {"params", {{"name", "echo_cad"}}}}));
-    CHECK(direct["error"]["message"] == pointed);
-
-    ToolDef api;
-    api.name         = "call_tool";
+    NativeCommand api;
+    api.key          = "call_tool";
     api.input_schema = {{"type", "object"},
                         {"properties", {{"tool", {{"type", "string"}}}, {"args", {{"type", "object"}}}}},
                         {"required", {"tool"}}};
-    api.handler      = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); };
+    api.run          = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); };
     f.registry.add(api);
-    const json through = body(f.post({{"jsonrpc", "2.0"}, {"id", 8}, {"method", "tools/call"},
-                                      {"params", {{"name", "call_tool"}, {"arguments", {{"tool", "echo_cad"}}}}}}))["result"];
-    CHECK(through["isError"] == true);
-    CHECK(through["content"][0]["text"] == pointed);
-
-    // A name no catalog has still gets the closest tools.
+    // call_tool's target names the closest command, and nothing else.
     const json typo = body(f.post({{"jsonrpc", "2.0"}, {"id", 9}, {"method", "tools/call"},
                                    {"params", {{"name", "call_tool"}, {"arguments", {{"tool", "ech"}}}}}}))["result"];
-    CHECK(typo["content"][0]["text"].get<std::string>().find("did you mean echo") != std::string::npos);
+    CHECK(typo["isError"] == true);
+    CHECK(typo["content"][0]["text"] == "Unknown tool: ech (did you mean echo?)");
 }
 
 TEST_CASE("a call's arguments are normalized, then validated", "[Mcp]")
 {
-    ToolDef capture;
-    capture.name         = "screenshot";
+    NativeCommand capture;
+    capture.key          = "screenshot";
     capture.input_schema = {{"type", "object"},
                             {"properties", {{"target", {{"type", "string"}}}, {"save_path", {{"type", "string"}}}}},
                             {"additionalProperties", false}};
@@ -575,12 +596,12 @@ TEST_CASE("a call's arguments are normalized, then validated", "[Mcp]")
 TEST_CASE("call_tool runs and is journaled as the tool it names", "[Mcp]")
 {
     Fixture f;
-    ToolDef api;
-    api.name         = "call_tool";
+    NativeCommand api;
+    api.key          = "call_tool";
     api.input_schema = {{"type", "object"},
                         {"properties", {{"tool", {{"type", "string"}}}, {"args", {{"type", "object"}}}}},
                         {"required", {"tool"}}};
-    api.handler      = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); };
+    api.run          = [](const json&, ToolContext&) -> ToolResult { throw ToolFailure("not dispatched"); };
     f.registry.add(api);
 
     const json result = body(f.post({{"jsonrpc", "2.0"}, {"id", 4}, {"method", "tools/call"},
@@ -599,20 +620,31 @@ TEST_CASE("call_tool runs and is journaled as the tool it names", "[Mcp]")
     CHECK(unknown["content"][0]["text"].get<std::string>().find("did you mean echo") != std::string::npos);
 }
 
-TEST_CASE("a name the table lacks resolves through the dynamic resolver, without being listed", "[Mcp]")
+// Holds the one operation a plugin offers while it is loaded.
+class MeasureSource final : public CommandSource
+{
+public:
+    MeasureSource()
+    {
+        auto area = std::make_shared<NativeCommand>();
+        area->key = "plugin.measure.area";
+        area->run = [](const json&, ToolContext&) { return ToolResult::ok({{"area", 12.5}}); };
+        m_area    = std::move(area);
+    }
+    std::shared_ptr<const NativeCommand> find(const std::string& key) const override { return key == m_area->key ? m_area : nullptr; }
+    std::vector<std::shared_ptr<const NativeCommand>> all() const override { return {m_area}; }
+
+private:
+    std::shared_ptr<const NativeCommand> m_area;
+};
+
+TEST_CASE("a name the table lacks resolves through a source, without being listed", "[Mcp]")
 {
     Fixture f;
-    f.registry.set_dynamic([](const std::string& name) -> std::shared_ptr<const ToolDef> {
-        if (name != "plugin.measure.area")
-            return nullptr;
-        auto def     = std::make_shared<ToolDef>();
-        def->name    = name;
-        def->handler = [](const json&, ToolContext&) { return ToolResult::ok({{"area", 12.5}}); };
-        return def;
-    });
+    f.registry.add_source(std::make_unique<MeasureSource>());
     REQUIRE(f.registry.lookup("plugin.measure.area") != nullptr);
     CHECK(f.registry.lookup("plugin.measure.volume") == nullptr);
-    CHECK(f.registry.lookup("echo")->name == "echo");
+    CHECK(f.registry.lookup("echo")->key == "echo");
     const json tools = body(f.post({{"jsonrpc", "2.0"}, {"id", 2}, {"method", "tools/list"}}))["result"]["tools"];
     for (const json& t : tools)
         CHECK(t["name"] != "plugin.measure.area");

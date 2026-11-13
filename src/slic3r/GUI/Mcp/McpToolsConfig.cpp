@@ -5,7 +5,6 @@
 // so the UI and the project stay consistent. Preferences are only read here; they change in the Preferences
 // dialog, whose handlers carry their effects.
 
-#include "McpService.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
@@ -1821,10 +1820,9 @@ json search_settings(const std::string& query, std::size_t limit)
     return {{"total", ranked.size()}, {"items", std::move(items)}};
 }
 
-void register_config_tools(McpService& service)
+void register_config_tools(CommandCatalog& catalog)
 {
-    ToolRegistry& reg        = service.registry();
-    const json    plate_prop = {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index (plate scope; default: the current plate)."}};
+    const json plate_prop = {{"type", "integer"}, {"minimum", 0}, {"description", "Plate index (plate scope; default: the current plate)."}};
     // get_settings and set_settings take the same scopes and differ in what they do without one.
     const std::vector<std::string> scopes{"process", "filament", "printer", "object", "part", "project", "plate", "preferences"};
     const std::string              scope_text = "Which settings: the process, filament or printer preset being edited, an "
@@ -1834,8 +1832,8 @@ void register_config_tools(McpService& service)
                                                                  "and printer settings; anything else reads the process.");
     const json write_scope_prop = enum_prop(scopes, scope_text + " Default: the process.");
 
-    reg.add(inspect_tool(
-        "list_presets", L("List presets"),
+    catalog.add(inspect_tool(
+        "api", "list_presets", L("List presets"),
         "Printer, process or filament presets with flags: system or user, selected (and modified), compatible with the "
         "selected printer, and for filaments the slots using them. Only compatible, visible presets unless asked: a fresh "
         "install hides most system filaments and printers (visible: false), and select_preset takes those too.",
@@ -1848,8 +1846,8 @@ void register_config_tools(McpService& service)
                       {"type"}),
         [](const json& args, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return list_presets(args); })); }));
 
-    reg.add(reaching({"resolve_preset", "select_preset", "assign_filament_preset"}, mutate_tool(
-        "select_preset", L("Select a preset"),
+    catalog.add(reaching({"resolve_preset", "select_preset", "assign_filament_preset"}, mutate_tool(
+        "api", "select_preset", L("Select a preset"),
         "Select a printer, process or filament preset by the name its selector shows (or its internal name), as a person "
         "would. A hidden one (list_presets include_hidden) is shown in the selectors first, until the app restarts. With "
         "unsaved changes the Transfer-or-discard prompt opens (blocked_by_dialog) unless preset_changes answers it. A "
@@ -1909,8 +1907,8 @@ void register_config_tools(McpService& service)
             return ToolResult::ok(result);
         })));
 
-    ToolDef save = mutate_tool(
-        "save_preset", L("Save a preset"),
+    NativeCommand save = mutate_tool(
+        "api", "save_preset", L("Save a preset"),
         "Save the printer, process or filament preset being edited, with its unsaved changes, as a preset called name, "
         "which is then selected: what the tab's Save button does through its dialog. A filament is filament_slot's "
         "(default 1), and every slot using the old preset takes the new one. Replacing another existing preset needs "
@@ -1967,10 +1965,10 @@ void register_config_tools(McpService& service)
         });
     // A user preset syncs to the cloud account when preset sync is on.
     save.open_world = true;
-    reg.add(save);
+    catalog.add(save);
 
-    ToolDef remove = mutate_tool(
-        "delete_preset", L("Delete a preset"),
+    NativeCommand remove = mutate_tool(
+        "api", "delete_preset", L("Delete a preset"),
         "Delete a user preset or one inside the project, its file and its cloud copy, as the tab's Delete does, without "
         "asking. A selected preset is replaced as the tab does (its parent or the next preset). Another filament is deleted "
         "without changing the selection, and slots using it take the selected one; another process is selected, deleted "
@@ -2042,10 +2040,10 @@ void register_config_tools(McpService& service)
         true);
     // It deletes the preset's cloud copy too.
     remove.open_world = true;
-    reg.add(remove);
+    catalog.add(remove);
 
-    reg.add(inspect_tool(
-        "get_settings", L("Read settings"),
+    catalog.add(inspect_tool(
+        "api", "get_settings", L("Read settings"),
         "Read settings: each item has its value, as OrcaSlicer writes it, and meta: label, description (what the setting "
         "does, when to change it), where (its settings page and group), type, unit, range, allowed values and mode. Choose "
         "them by keys; by query, a few words matched in keys, labels and descriptions, best matches first; by where, a page "
@@ -2092,8 +2090,8 @@ void register_config_tools(McpService& service)
             }));
         }));
 
-    reg.add(reaching({"set_plate_locked"}, mutate_tool(
-        "set_settings", L("Change settings"),
+    catalog.add(reaching({"set_plate_locked"}, with_expected_ids(mutate_tool(
+        "api", "set_settings", L("Change settings"),
         "Change settings of one scope (default the process) as typing them into its settings tab would. Values are strings "
         "in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as [x, y]). All are "
         "parsed strictly first and applied together, so nothing changes if one is invalid, and a key of another scope is "
@@ -2131,7 +2129,7 @@ void register_config_tools(McpService& service)
             // writing the key would skip.
             if (arg_string(args, "scope") == "preferences")
                 throw ToolFailure("Preferences change in the Preferences dialog: run_action orca_command:open_preferences:orca "
-                                  "with param \"<tab>:<key>\", then set_widget_value {\"target\": {\"name\": \"<key>\", \"within\": "
+                                  "with args {\"tab\": \"<tab>\", \"key\": \"<key>\"}, then set_widget_value {\"target\": {\"name\": \"<key>\", \"within\": "
                                   "\"Preferences\"}, \"value\": ...}");
             if (arg_string(args, "scope") == "project")
                 return set_project_settings(args, ctx);
@@ -2260,10 +2258,10 @@ void register_config_tools(McpService& service)
             });
             settle(ctx);
             return ToolResult::ok(result);
-        })));
+        }))));
 
-    reg.add(inspect_tool(
-        "list_plates", L("List plates"),
+    catalog.add(inspect_tool(
+        "api", "list_plates", L("List plates"),
         "Plates with name, locked, current, objects (how many are on it; list_objects lists them), and the settings they print with: curr_bed_type, "
         "print_sequence, spiral_mode, first_layer_print_sequence and other_layers_print_sequence (null: Auto); overrides "
         "lists those the plate sets itself (set_settings scope plate). Also sliced (an up-to-date slice), wipe_tower [x, y] "

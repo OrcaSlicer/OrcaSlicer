@@ -180,14 +180,16 @@ public:
     static constexpr auto kLinger = std::chrono::milliseconds(4000); // after a call ends
     static constexpr auto kFade   = std::chrono::milliseconds(500);
 
-    void call_started(uint64_t id, std::string title, std::string detail, Clock::time_point now);
+    // `context` is the msgctxt `title` is translated in (title_context()), empty for none.
+    void call_started(uint64_t id, std::string title, std::string detail, Clock::time_point now, std::string context = {});
     void call_detail(uint64_t id, std::string detail);
     void call_ended(uint64_t id, bool ok, std::string error, Clock::time_point now);
 
     struct Line
     {
         uint64_t      id = 0;
-        std::string   title; // untranslated tool title
+        std::string   title;   // untranslated tool title
+        std::string   context; // the msgctxt it is translated in, empty for none
         std::string   detail;
         std::string   error; // a failed call's
         CaptionStatus status = CaptionStatus::Running;
@@ -200,7 +202,7 @@ private:
     struct Call
     {
         uint64_t          id = 0;
-        std::string       title, detail, error;
+        std::string       title, context, detail, error;
         CaptionStatus     status = CaptionStatus::Running;
         Clock::time_point ended;
     };

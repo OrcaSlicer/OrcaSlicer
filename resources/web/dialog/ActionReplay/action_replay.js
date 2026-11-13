@@ -243,7 +243,7 @@ function makeRow(step) {
   head.setAttribute("aria-expanded", "false");
   head.appendChild(el("span", "step-title", step.title));
   if (step.what_text) head.appendChild(el("span", "step-what", step.what_text));
-  if (step.param_text) head.appendChild(el("span", "step-param", step.param_text));
+  if (step.args_text) head.appendChild(el("span", "step-args", step.args_text));
   const tags = el("span", "step-tags");
   for (const id of step.flags || []) {
     const label = FLAG_LABELS[id];

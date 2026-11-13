@@ -206,7 +206,7 @@
 
     // ---- SVG: a new object with nothing selected, a part of the selected cube, then Change file and Save as ----
     {"tool": "select_objects", "args": {"none": true}},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_svg:orca", "param": "${vars.svg}"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_svg:orca", "args": {"path": "${vars.svg}"}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "list_objects", "expect": {"/total": {"eq": 3}, "/plates/0/objects/2/parts/0/svg/path": {"contains": "star.svg"}}},
     {"tool": "get_app_state", "expect": {"/gizmo/name": {"eq": "SVG"}}},
@@ -219,7 +219,7 @@
     {"tool": "list_widgets", "args": {"query": "star-copy"}, "expect": {"/nodes": {"eq": 0}}},
     {"tool": "click", "args": {"target": {"gizmo": "SVG"}}},
     {"tool": "select_objects", "args": {"objects": [0]}},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_svg:orca", "param": "${vars.svg}"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_svg:orca", "args": {"path": "${vars.svg}"}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/2/svg/path": {"contains": "star.svg"}}},
     {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/svg.png", "overwrite": true, "include_image": false}},

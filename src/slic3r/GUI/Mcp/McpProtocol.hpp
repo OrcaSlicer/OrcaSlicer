@@ -2,6 +2,8 @@
 
 #include "McpTypes.hpp"
 
+#include "slic3r/GUI/CommandCatalog.hpp"
+
 #include <nlohmann/json.hpp>
 
 #include <string>
@@ -49,11 +51,12 @@ struct PostReply
 class McpProtocol
 {
 public:
-    McpProtocol(const ToolRegistry& registry, ToolCaller& caller, ServerInfo info);
+    // tools/list shows the commands of `catalog` that are listed; tools/call reaches every command it holds.
+    McpProtocol(const CommandCatalog& catalog, ToolCaller& caller, ServerInfo info);
 
     PostReply handle_post(const PostRequest& request);
 
-    static nlohmann::json tool_to_json(const ToolDef& def);
+    static nlohmann::json tool_to_json(const NativeCommand& command);
     static nlohmann::json result_to_json(const ToolResult& result);
 
 private:
@@ -64,18 +67,13 @@ private:
     nlohmann::json call_tool(const nlohmann::json& params, bool& unknown_tool, std::string& unknown_name);
     nlohmann::json tools_list() const;
 
-    const ToolRegistry& m_registry;
-    ToolCaller&         m_caller;
-    ServerInfo          m_info;
+    const CommandCatalog& m_catalog;
+    ToolCaller&           m_caller;
+    ServerInfo            m_info;
 };
 
 // Decodes the `=?base64?...?=` sentinel form of an Mcp-Name / Mcp-Param header value; plain values
 // pass through unchanged.
 std::string decode_header_value(const std::string& value);
-
-// Readies a call's arguments for `def`, as every caller of a tool does: normalizes `args` in place
-// (normalize_arguments()) and returns why validate_arguments() refuses them; empty when they are valid.
-// Each caller adds its own prefix.
-std::string argument_error(const ToolDef& def, nlohmann::json& args);
 
 }}} // namespace Slic3r::GUI::Mcp

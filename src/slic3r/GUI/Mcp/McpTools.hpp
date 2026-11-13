@@ -3,6 +3,7 @@
 #include "McpTypes.hpp"
 
 #include "libslic3r/CustomGCode.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -15,6 +16,7 @@
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <memory>
 #include <optional>
 #include <string>
 #include <utility>
@@ -38,6 +40,7 @@ namespace CustomGCode { struct Info; }
 
 namespace GUI {
 
+struct AppAction;
 class IMSlider;
 class PartPlateList;
 class Plater;
@@ -50,23 +53,23 @@ struct Refusal;
 namespace Mcp {
 
 class McpService;
-class ToolRegistry;
 struct Replay;
 struct ReplayContext;
 
-// Each tool family registers itself with the service.
-void register_app_tools(McpService& service);
-void register_action_tools(McpService& service);
-void register_project_tools(McpService& service);
-void register_config_tools(McpService& service);
-void register_scene_tools(McpService& service);
-void register_view_tools(McpService& service);
-void register_ui_tools(McpService& service);
-void register_replay_tools(McpService& service);
-void register_record_tools(McpService& service);
-void register_cad_tools(McpService& service);
-void register_python_tools(McpService& service);
-void register_api_tools(McpService& service);
+// Each tool family adds its commands to the catalog (NativeCommands::register_all_commands()), and so do the
+// Design tab's (register_cad_commands(), McpToolsCad.hpp). A command's function reaches the MCP service through
+// its call's context (ToolContext::service()), so the catalog is built without one.
+void register_app_tools(CommandCatalog& catalog);
+void register_action_tools(CommandCatalog& catalog);
+void register_project_tools(CommandCatalog& catalog);
+void register_config_tools(CommandCatalog& catalog);
+void register_scene_tools(CommandCatalog& catalog);
+void register_view_tools(CommandCatalog& catalog);
+void register_ui_tools(CommandCatalog& catalog);
+void register_replay_tools(CommandCatalog& catalog);
+void register_record_tools(CommandCatalog& catalog);
+void register_python_tools(CommandCatalog& catalog);
+void register_api_tools(CommandCatalog& catalog);
 
 // How run_replay_job() runs a replay beyond what the replay says.
 struct ReplayRunOptions
@@ -96,19 +99,26 @@ nlohmann::json prop(const char* type, const std::string& description);
 nlohmann::json enum_prop(std::vector<std::string> values, const std::string& description);
 nlohmann::json array_prop(nlohmann::json items, const std::string& description);
 
+// The typed tools are listed commands (tools/list shows them) made with NativeCommands::long_command(), their
+// function unchanged, each in its `group`: core, api or ui (NativeCommand::group).
 // Pure observation: inline, read-only, inspect guard, not journaled.
-ToolDef inspect_tool(std::string name, std::string title, std::string description, nlohmann::json schema, ToolHandler handler);
+NativeCommand inspect_tool(std::string group, std::string name, std::string title, std::string description, nlohmann::json schema,
+                           CommandFn handler);
+// `command`, naming the operations (GUI/Operations) its function reaches, by function name.
+NativeCommand reaching(std::vector<std::string> operations, NativeCommand command);
 // Anything that changes the app: a job under the mutate guard, journaled.
-// `def`, naming the operations (GUI/Operations) its handler reaches, by function name.
-ToolDef reaching(std::vector<std::string> operations, ToolDef def);
-ToolDef mutate_tool(std::string name, std::string title, std::string description, nlohmann::json schema, ToolHandler handler,
-                    bool destructive = false);
+NativeCommand mutate_tool(std::string group, std::string name, std::string title, std::string description, nlohmann::json schema,
+                          CommandFn handler, bool destructive = false);
 
 // ---- expected object IDs ---------------------------------------------------------------------
 
 // The schema of an expected ID argument: the id list_objects reports for an object or part (`of`), which
 // orca.host shows too, so a script addresses what it read.
 nlohmann::json expected_id_prop(const char* of);
+// `command` with its id_args: the expected-id arguments its schema has (object_id and part_id, as
+// expected_id_prop() describes them, and select_objects' object_ids, part_ids and instance_object_ids). Ids are
+// allocated per process, so the session journal leaves them out (without_expected_ids()).
+NativeCommand with_expected_ids(NativeCommand command);
 // Refuses the call when `args` names an expected object_id, or part_id, that is not the id of `object`,
 // or `volume`, which its index names now: the model changed since the caller read the index. Call it
 // before the tool changes anything.
@@ -139,18 +149,18 @@ int         arg_int(const nlohmann::json& args, const char* key, int fallback);
 double      arg_double(const nlohmann::json& args, const char* key, double fallback);
 bool        arg_bool(const nlohmann::json& args, const char* key, bool fallback);
 
-// ---- search (McpToolsCommon.cpp) -------------------------------------------------------------
+// ---- search ----------------------------------------------------------------------------------
 
-// The words of a search query: lower case, split at anything but a letter or a digit. "to" or "of"
-// starts a word of most help texts, so words of fewer than three letters are left out when the query
-// has longer ones.
-std::vector<std::string> query_words(const std::string& query);
-
-// How well an entry matches the words of query_words(): {words found in `name` or `text`, of them those
-// found in `name`}, {0, 0} when none is. A word is found where a word of the text starts with it, so
-// "retract" finds "retraction"; the text's words are split at underscores, dots and the like and also
-// at a capital in a CamelCase name, so "mesh" finds TriangleMesh.
-std::pair<int, int> match_score(const std::vector<std::string>& words, const std::string& name, const std::string& text);
+// search_tools' answer from `catalog`, every command it holds and those its sources hold now, for `args`:
+// - tool: that command's group, read_only, description and input schema, and its examples when it has some;
+//   ToolFailure, naming the closest keys, for a key lookup() does not resolve.
+// - query: {total, items, use}, the `limit` (default 5) best matches by match_score(), each {name, group, summary,
+//   listed}, and one that is not listed, which no listing shows, with its input_schema too, and its description
+//   where it says more than the summary.
+// - neither: {total, names}, in the order the catalog adds its commands, then its sources'.
+// `group` keeps the commands of one group, in any case; a group no command has is refused, naming those there are.
+// Any thread.
+nlohmann::json search_commands(const CommandCatalog& catalog, const nlohmann::json& args);
 
 // The Speed Dial actions of `listed` (ActionRegistry::describe()'s items: id, title, group, description)
 // that `words` (of query_words()) describe, best first: those matching more of the words, then those
@@ -159,18 +169,15 @@ std::pair<int, int> match_score(const std::vector<std::string>& words, const std
 // and search_tools both rank with it, so one query finds the same actions through either.
 nlohmann::json rank_actions(const nlohmann::json& listed, const std::vector<std::string>& words);
 
-// The catalogs a name an agent calls can belong to: the registered tools and plugin operations, the
-// Speed Dial's built-in commands, and the Design tab's CAD tools.
-enum class Catalog { Tools, Actions, Cad };
+// Why run_action refuses `args` for `action`, or empty when it does not: a command's tile takes its command's
+// arguments, which the command checks, and every other action (a plugin's script or page, a plate's, a setting's
+// or a recent project's) takes none.
+std::string action_args_error(const AppAction& action, const nlohmann::json& args);
 
-// For a name `missed` does not have: where it does belong and how to call it there, as a clause for
-// the error ("it is a CAD tool: call_cad_tool {tool: \"extrude\", args} runs it"); empty when no other
-// catalog has it. A command is known by its id or by the name inside it. Any thread.
-std::string other_catalog_hint(const ToolRegistry& registry, const std::string& name, Catalog missed);
-
-// The first sentence of `text` on one line, for a listing: up to the first full stop followed by a space
-// or the end, "e.g." and "i.e." aside; the whole text when it has none.
-std::string first_sentence(const std::string& text);
+// What run_action answers for `id`, an action id or the name inside one, that no action of the app's state has:
+// for a Design tab tile's, when that tile is there and that call_tool runs its command from any tab; for any
+// other, where an action or a command is found.
+std::string unknown_action(const std::string& id);
 
 // A setting value from JSON in the serialized form set_deserialize accepts: "3", "0.2", "1"/"0"
 // for booleans, "a,b" for arrays. A list of strings (`key` names a coStrings option, such as
@@ -205,9 +212,9 @@ bool python_has_numpy();
 // next work replaces. Hosts `session` (host_python_session()) under `filename` until it ends; a job cancel ends it.
 ToolResult run_python_session_job(McpService& service, ToolContext& ctx, PythonSession& session, const std::string& filename);
 
-// What an editor suggests for each tool: [{name, title (translated), args: {name: {type?, enum?}}}]. The argument
-// descriptions are written for agents, in English, and stay out.
-nlohmann::json editor_tool_catalog(const ToolRegistry& registry);
+// What an editor suggests for each listed command: [{name, title (translated), args: {name: {type?, enum?}}}]. The
+// argument descriptions are written for agents, in English, and stay out.
+nlohmann::json editor_tool_catalog(const CommandCatalog& catalog);
 
 // ---- settings scopes (McpToolsConfig.cpp) ----------------------------------------------------
 
@@ -488,7 +495,7 @@ std::vector<double> part_shape_size(const std::string& shape, const nlohmann::js
 
 // ---- layers (McpToolsLayers.cpp) -------------------------------------------------------------
 
-void register_layer_tools(McpService& service);
+void register_layer_tools(CommandCatalog& catalog);
 
 // The settings a height range modifier takes: layer_height, the per-region process settings the object
 // list offers a part or a range (with `filaments` filament slots), and extruder, the range's filament.

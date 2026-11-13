@@ -279,12 +279,10 @@ ToolResult run_python_session_job(McpService& service, ToolContext& ctx, PythonS
     return ToolResult::ok({{"status", "ended"}});
 }
 
-void register_python_tools(McpService& service)
+void register_python_tools(CommandCatalog& catalog)
 {
-    ToolRegistry& reg = service.registry();
-
-    ToolDef run = mutate_tool(
-        "run_script", L("Run a Python script"),
+    NativeCommand run = mutate_tool(
+        "core", "run_script", L("Run a Python script"),
         "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin "
         "API (search_python_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset "
         "API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args), from the code "
@@ -307,7 +305,8 @@ void register_python_tools(McpService& service)
                                                    "path makes it a file run, as `python file.py` runs it: __file__, sys.argv, imports "
                                                    "from its folder and its PEP 723 dependencies; any other name only names it.")}},
                       {"code"}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             // A plugin's script is the plugin's own code: its identity and grants.
             const std::string& plugin   = ctx.caller_plugin();
             const std::string  identity = !plugin.empty()                     ? plugin :
@@ -357,10 +356,10 @@ void register_python_tools(McpService& service)
     run.cancellable = true;
     // A script reaches outside the app: files, programs and the network.
     run.open_world = true;
-    reg.add(run);
+    catalog.add(run);
 
-    reg.add(inspect_tool(
-        "search_python_api", L("Search the Python API"),
+    catalog.add(inspect_tool(
+        "core", "search_python_api", L("Search the Python API"),
         "Search orca, the Python API of run_script scripts and plugins, in the running build: orca.host (the project's "
         "model and meshes, presets and their editors, slicing data, orca.host.ui windows and dialogs, orca.host.tools "
         "calling these tools) and the classes, events and pages plugins build on. Each entry has its kind, signature (a "

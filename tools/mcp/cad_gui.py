@@ -1,8 +1,9 @@
 """Drive the Design tab of a running OrcaSlicer the way a person does, for the Design-tab GUI tests.
 
 Every action goes through the MCP server's UI tools (set_view, click, mouse_gesture, press_keys,
-set_widget_value, answer_dialog); call_cad_tool is used only to read results back (sketch_describe,
-describe_scene, describe_feature, list_verbs). Nothing here knows a pixel: buttons and rows are
+set_widget_value, answer_dialog); the Design commands are used only to read results back (sketch_describe,
+describe_scene, describe_feature), and the right-click menu's layout is read from the Design table's source,
+scripts/CAD/tool_atlas.json, as the app's own table is generated from it. Nothing here knows a pixel: buttons and rows are
 found by label, and canvas positions come from a calibration that maps the open sketch's plane
 (millimetres) to canvas pixels, so the tests run at any window size, screen scaling and theme. Labels, menu paths and verb names are
 English, which start() checks.
@@ -13,7 +14,9 @@ English, which start() checks.
 """
 
 import collections
+import json
 import math
+import os
 import re
 import sys
 import time
@@ -23,6 +26,9 @@ import orca_mcp
 # Labels carry characters such as "—" and "·", and output piped to a file on Windows is encoded in
 # the system's legacy code page, which may lack them: they print escaped rather than raise.
 sys.stdout.reconfigure(errors="backslashreplace")
+
+# The Design table's source, which DesignOffer.hpp, the right-click menu and the Design commands are made from.
+ATLAS = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, "scripts", "CAD", "tool_atlas.json")
 
 # The 3D canvas by its window name, which every platform lists; only Windows gives it as its label too.
 CANVAS = {"name": "OrcaSceneCanvas"}
@@ -335,16 +341,16 @@ class CadGui:
     # ------------------------------------------------------------ reading
 
     def cad(self, tool, **args):
-        """A CAD tool's result. The tests read with it and change nothing, save one bulk add whose
+        """A Design command's result. The tests read with it and change nothing, save one bulk add whose
         call says why."""
-        return self.client.call_cad_tool(tool, **args)
+        return self.client.call_command(tool, **args)["result"]
 
     def sketch(self):
         return self.cad("sketch_describe")
 
     def _sketch_or_none(self):
         """sketch_describe, or None when no sketch is open. Any other error (a modal dialog refuses
-        every call_cad_tool while it is open) is raised, since it says nothing about the sketch."""
+        every Design command while it is open) is raised, since it says nothing about the sketch."""
         try:
             return self.sketch()
         except orca_mcp.McpError as e:
@@ -840,4 +846,26 @@ class CadGui:
         return self.click_mm(X, Y, button="right", popup_item=path)
 
     def verbs(self, sketch_mode=True):
-        return self.cad("list_verbs", sketch_mode=sketch_mode)["verbs"]
+        """The verbs of the right-click menu, in the Design table's order, for the selection it would be built
+        for now (describe_scene's selection): those of the sketch vocabulary, or with sketch_mode False of the
+        model one, or with None both. Each has id, name, row, row_name, family (its submenu within the row,
+        or None), key, action, sketch_mode, applies (it accepts the selection), modal and hint, as the table
+        has them; entries with no menu row (commands only) are left out."""
+        with open(ATLAS, encoding="utf-8") as f:
+            atlas = json.load(f)
+        slots = atlas["slots"]
+        rows = [s["id"] for s in slots]
+        selection = self.cad("describe_scene")["selection"]["id"]
+        out = []
+        for v in atlas["verbs"]:
+            if v["slot"] is None:
+                continue
+            sketch = v.get("mode") == "sketch"
+            if sketch_mode is not None and sketch != sketch_mode:
+                continue
+            row = rows.index(v["slot"])
+            out.append({"id": v["id"], "name": v["name"], "row": row, "row_name": slots[row]["label"],
+                        "family": v.get("family"), "key": v.get("key"), "action": v.get("action"),
+                        "sketch_mode": sketch, "applies": selection in v["accepts"],
+                        "modal": bool(v.get("modal")), "hint": v.get("hint")})
+        return out

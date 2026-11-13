@@ -2,6 +2,9 @@
 #include "McpPaths.hpp"
 #include "McpTypes.hpp"
 
+#include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
+
 #include <boost/filesystem/path.hpp>
 
 #include <algorithm>
@@ -9,8 +12,8 @@
 #include <cstdint>
 #include <iterator>
 #include <map>
+#include <memory>
 #include <mutex>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -25,22 +28,35 @@ namespace {
 // counted as replacement characters rather than thrown on: the journal only needs the size.
 std::size_t serialized_size(const json& args) { return args.dump(-1, ' ', false, json::error_handler_t::replace).size(); }
 
+// The command a journaled call of `tool` with `args` runs, and the arguments it runs it with: the call's own, or,
+// for run_action of a command's tile, named by the command's key or by the tile's full id, that command and the
+// arguments inside the tile's {id, args}.
+std::pair<std::string, json*> called_command(const std::string& tool, json& args)
+{
+    if (tool != "run_action" || !args.is_object() || !args.value("id", json()).is_string() || !args.value("args", json()).is_object())
+        return {tool, &args};
+    const std::string id     = args["id"];
+    const std::string prefix = std::string(kCommandPrefix) + ':', suffix = std::string(":") + kOrcaSourceKey;
+    if (id.find(':') == std::string::npos)
+        return {id, &args["args"]};
+    if (id.size() > prefix.size() + suffix.size() && id.compare(0, prefix.size(), prefix) == 0 &&
+        id.compare(id.size() - suffix.size(), suffix.size(), suffix) == 0)
+        return {id.substr(prefix.size(), id.size() - prefix.size() - suffix.size()), &args["args"]};
+    return {tool, &args};
+}
+
 } // namespace
 
-json without_expected_ids(const std::string& tool, json args)
+json without_expected_ids(const CommandCatalog& catalog, const std::string& command, json args)
 {
-    // The tools that take expected ids; any other tool's arguments (a plugin operation's own fields among
-    // them) are recorded as given.
-    static const std::set<std::string> takes_ids{"set_settings", "transform", "add_part", "set_height_ranges",
-                                                 "set_variable_layer_height", "select_objects"};
     if (!args.is_object())
         return args;
-    if (tool == "call_tool") {
+    if (command == "call_tool") {
         if (args.contains("args") && args["args"].is_object())
-            args["args"] = without_expected_ids(args.value("tool", std::string()), std::move(args["args"]));
+            args["args"] = without_expected_ids(catalog, args.value("tool", std::string()), std::move(args["args"]));
         return args;
     }
-    if (tool == "run_replay") {
+    if (command == "run_replay") {
         // An inline replay given as JSON text is recorded as the object it parses to, so its steps are
         // stripped too. Text that doesn't parse stays as given: the call fails, and no replay keeps it.
         if (args.contains("replay") && args["replay"].is_string()) {
@@ -51,11 +67,11 @@ json without_expected_ids(const std::string& tool, json args)
         if (args.contains("replay") && args["replay"].is_object() && args["replay"].contains("steps") && args["replay"]["steps"].is_array())
             for (json& step : args["replay"]["steps"])
                 if (step.is_object() && step.contains("args"))
-                    step["args"] = without_expected_ids(step.value("tool", std::string()), std::move(step["args"]));
+                    step["args"] = without_expected_ids(catalog, step.value("tool", std::string()), std::move(step["args"]));
         return args;
     }
-    if (takes_ids.count(tool) != 0)
-        for (const char* key : {"object_id", "part_id", "object_ids", "part_ids", "instance_object_ids"})
+    if (const std::shared_ptr<const NativeCommand> def = catalog.lookup(command))
+        for (const std::string& key : def->id_args)
             args.erase(key);
     return args;
 }
@@ -66,7 +82,7 @@ uint64_t Journal::begin(const std::string& tool, const nlohmann::json& args, boo
     // every other call's begin and end waits on the lock.
     Entry e;
     e.tool           = tool;
-    e.args           = without_expected_ids(tool, args);
+    e.args           = args;
     e.bytes          = serialized_size(e.args);
     e.answers_dialog = answers_dialog;
 
@@ -85,25 +101,12 @@ uint64_t Journal::begin(const std::string& tool, const nlohmann::json& args, boo
 
 void Journal::set_args(uint64_t seq, nlohmann::json args)
 {
-    // As in begin(), the copy and its size are made outside the lock; only the call's tool, which
-    // decides what the copy leaves out, is read under it.
-    auto find = [this, seq] {
-        return std::find_if(m_entries.begin(), m_entries.end(), [seq](const Entry& e) { return e.seq == seq; });
-    };
-    std::string tool;
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        if (const auto it = find(); it != m_entries.end())
-            tool = it->tool;
-        else
-            return;
-    }
-    args                    = without_expected_ids(tool, std::move(args));
+    // As in begin(), the size is measured outside the lock.
     const std::size_t bytes = serialized_size(args);
 
     std::lock_guard<std::mutex> lock(m_mutex);
     // export_replay {clear:true} may have emptied the journal meanwhile.
-    const auto it = find();
+    const auto it = std::find_if(m_entries.begin(), m_entries.end(), [seq](const Entry& e) { return e.seq == seq; });
     if (it == m_entries.end())
         return;
     m_bytes -= it->bytes;
@@ -222,22 +225,27 @@ nlohmann::json Journal::to_replay(const std::string& name, nlohmann::json* left_
                 continue; // waits on a job the journal did not see start
             step["args"]["job"] = "${jobs." + it->second + "}";
         }
+        // The command the step calls and its arguments: run_action of a command's tile calls the tile's command
+        // with the arguments inside the tile's {id, args}, which the step keeps.
+        const auto [tool, called_args] = called_command(e.tool, step["args"]);
+        nlohmann::json& args           = *called_args;
         auto in_out_dir = [&](const char* key) {
-            const std::string file = path_to_utf8(path_from_utf8(e.args[key].get<std::string>()).filename());
+            const std::string file = path_to_utf8(path_from_utf8(args[key].get<std::string>()).filename());
             return "${out_dir}/" + file;
         };
-        auto has_path = [&](const char* key) { return e.args.contains(key) && e.args[key].is_string(); };
-        if ((e.tool == "screenshot" || e.tool == "encode_recording") && has_path("save_path"))
-            step["args"]["save_path"] = in_out_dir("save_path");
-        if (e.tool == "start_recording" && has_path("save_path")) {
-            step["args"]["save_path"]                                = in_out_dir("save_path");
-            recordings[path_compare_key(path_from_utf8(e.args["save_path"].get<std::string>()))] = step["args"]["save_path"];
+        auto has_path = [&](const char* key) { return args.contains(key) && args[key].is_string(); };
+        if ((tool == "screenshot" || tool == "encode_recording") && has_path("save_path"))
+            args["save_path"] = in_out_dir("save_path");
+        if (tool == "start_recording" && has_path("save_path")) {
+            const std::string key = path_compare_key(path_from_utf8(args["save_path"].get<std::string>()));
+            args["save_path"]     = in_out_dir("save_path");
+            recordings[key]       = args["save_path"];
         }
         // An encode of a recording this replay makes reads it where the replay writes it; any other
         // source stays where it is.
-        if (e.tool == "encode_recording" && has_path("path"))
-            if (auto it = recordings.find(path_compare_key(path_from_utf8(e.args["path"].get<std::string>()))); it != recordings.end())
-                step["args"]["path"] = it->second;
+        if (tool == "encode_recording" && has_path("path"))
+            if (auto it = recordings.find(path_compare_key(path_from_utf8(args["path"].get<std::string>()))); it != recordings.end())
+                args["path"] = it->second;
         if (e.unawaited()) {
             const std::string job_name = "job" + std::to_string(job_names.size() + 1);
             job_names[e.job]           = job_name;

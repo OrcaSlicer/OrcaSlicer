@@ -298,7 +298,7 @@ void DesignSketchTool::set_tool(Mode mode)
     // the offer; Width commits, the status line reads "Line — click start, then end", and the
     // rectangle's Height field is sitting over it. (The keyboard cannot reproduce it: in_text
     // includes inline_busy(), so letters are swallowed while a field is open — the switch has to
-    // come from the menu, the toolbar or the MCP server's call_cad_tool.)
+    // come from the menu, the toolbar or the MCP server's Design commands.)
     //
     // reset_autoedit() drains the queue: besides the flags and the seen baseline it clears
     // m_autoedit_dims and sets m_autoedit_dim_idx to -1, so the already-queued CallAfter finds

@@ -151,6 +151,7 @@ src/slic3r/GUI/CameraPopup.cpp
 src/slic3r/GUI/ConnectPrinter.cpp
 src/slic3r/GUI/HMSPanel.cpp
 src/slic3r/GUI/MainFrame.cpp
+src/slic3r/GUI/Mcp/McpPersonContext.cpp
 src/slic3r/GUI/Mcp/McpToolsActions.cpp
 src/slic3r/GUI/Mcp/McpToolsApi.cpp
 src/slic3r/GUI/Mcp/McpToolsApp.cpp

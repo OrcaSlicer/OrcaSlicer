@@ -18,7 +18,7 @@
     {"tool": "open_files", "args": {"paths": "${vars.cube}"}, "expect": {"/added": {"eq": 1}}},
     {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "select_objects", "args": {"object": "1"}},
-    {"tool": "run_action", "args": {"id": "obj_rename", "param": "renamed"}, "expect": {"/ran": {"eq": "orca_command:obj_rename:orca"}}},
+    {"tool": "run_action", "args": {"id": "obj_rename", "args": {"name": "renamed"}}, "expect": {"/ran": {"eq": "orca_command:obj_rename:orca"}}},
     {"tool": "list_objects", "expect": {"/plates/0/objects/1/name": {"eq": "renamed"}, "/plates/0/objects/0/name": {"ne": "renamed"}}},
     {"tool": "run_action", "args": {"action": "view_top"}, "expect": {"/ran": {"eq": "orca_command:view_top:orca"}}},
 

@@ -21,8 +21,9 @@ stdio client ──▶ orca-slicer --mcp-stdio ──┘                   │
                                                           JobRegistry, Journal
 ```
 
-`McpService`, owned by `GUI_App`, owns all of it except the bridge, plus the `ToolRegistry` and
-the `ModalTracker`.
+`McpService`, owned by `GUI_App`, owns all of it except the bridge, plus the `ModalTracker`. The
+commands it serves are the process's command catalog (`NativeCommands::instance()`, see Tool catalog),
+which startup builds without a service.
 
 ## Transport
 
@@ -78,7 +79,7 @@ as `value`, `action` as `id` or `button`, `object` as `objects`, `plate` as `pla
 `query`, `settings` as `values`, and `path`
 as `save_path` where the tool has no `path` of its own. A value in another JSON form is converted: a
 number, boolean, array or object written as a string, an index as a string where a name may also go
-(`"0"` for a plate), a single item for an array. A
+(`"0"` for a plate), a single item for an array, also where null may stand for the array. A
 value outside its argument's enum moves to the one other argument whose enum takes it, when the call
 leaves that out: `set_view`'s `canvas: "front"` is its `camera`. Each enum lists only its own values,
 since listing a camera direction under both had agents give it to the wrong one. Anything that still
@@ -87,13 +88,16 @@ each was an agent's first guess, many times over, and each cost a failed call an
 
 The server `instructions` (under the 4096 characters clients keep) give the workflow: `get_app_state`,
 act, then check the result with the reading tools, keeping screenshots for what those do not report.
+The rest is in three sections, by what the tools are for: running the session, acting on project data,
+which an agent should prefer, and driving the GUI itself.
 They say to prefer typed tools over clicks and never retry a call that returned a job, point to
 `get_settings`' meta and search for what a setting does, say how a gizmo opens and is driven (and that
 `pick_gizmo_file` only stands in for a file picker inside one, since its name draws agents to it for any
 gizmo work), that the camera turns with `set_view` rather than a drag, and which indices are 0-based.
 They also point to `search_tools {query}` as the one search across every catalog an agent calls into:
-the tools, the operations plugins offer (which `tools/list` never shows, so nothing else tells an agent
-they exist), Speed Dial actions, settings, the Python API and the Design tab's CAD tools. An agent rarely
+the commands, among them those `tools/list` never shows (the Speed Dial's commands, the Design tab's and
+the operations plugins offer, so nothing else tells an agent they exist), the Speed Dial's other actions,
+settings and the Python API. An agent rarely
 knows which catalog answers "how do I add a brim", and each catalog has its own search with its own
 arguments. Clients that defer tools load only their names and the
 instructions at first, so the instructions are how an agent without a skill learns which tool to
@@ -185,8 +189,10 @@ are already open, such as Preferences when the server is turned on from there.
 ## Threading
 
 Tool handlers never run on the UI thread. Anything that touches wx goes through
-`ToolContext::run_ui()`. It posts a closure through `UiInvoker` to a `UiDispatcher`, then waits.
-The dispatcher is `wxApp::CallAfter` in the app and a queue the test drains in tests. A closure
+`ToolContext::run_ui()`. A command a person picks is the one call that runs there: its context, a
+`PersonContext`, runs the closure in place (see Speed Dial catalog). For every other call `run_ui()`
+posts a closure through `UiInvoker` to a `UiDispatcher`, then waits. The dispatcher is
+`wxApp::CallAfter` in the app and a queue the test drains in tests. A closure
 still queued after 10 s is abandoned without running, and the call fails saying it was not run and
 is safe to retry. Once a closure has started it may use the caller's stack (the handler's captures),
 so the caller waits for it to finish, through shutdown too; the closure ends when the UI thread
@@ -224,12 +230,12 @@ topmost modal, they apply the mutate checks themselves (`UiInvoker::require_muta
 operation admission (`McpCore::admit()`). `cancel_job` is a recover call too, so neither a dialog the
 operation opened nor another call's nested loop keeps it out.
 
-`ToolDef::inline_call` decides where a call runs. Pure observation tools run on the request
+`NativeCommand::inline_call` decides where a call runs. Pure observation tools run on the request
 thread. Every tool that can activate UI runs as a job on its own thread, recover tools that click
 in dialogs included, since a click can open another modal (Preferences, Keyboard shortcuts, Edit).
 `JobRegistry` names jobs `j1`, `j2`, …, records each job's tool and parent, allows 64 running and
 keeps the last 64 results, plus finished jobs whose parent (a running replay) may still wait for
-them, up to 1024 in all. The request thread waits up to `ToolDef::budget_ms` (45 s, under
+them, up to 1024 in all. The request thread waits up to `NativeCommand::budget_ms` (45 s, under
 Codex's 60 s tool timeout); after that the reply is `{status: "running", job, tool, note}` and the
 job keeps going until `wait {for: "job"}` (at most 50 s per call) returns its result. The server
 never retries a mutating call, and every envelope tells the model not to either.
@@ -371,7 +377,7 @@ plugin API (`orca.host`). What one of them does is often what another does too: 
 command, a tool, and a command run through `run_action`. The checks, the refusal and its wording, the
 undo snapshot and the order of the owner calls of such a function are in one place,
 `src/slic3r/GUI/Operations/` (namespace `Slic3r::GUI::Ops`), and the three interfaces convert their
-arguments and results around it. A command keeps its key and param, a tool its name, arguments and
+arguments and results around it. A command keeps its key and arguments, a tool its name, arguments and
 reply, and a binding its signature; what they share is the rule.
 
 **What is an operation.** An effect, or a rule about one owner's state that its own widgets also
@@ -400,7 +406,7 @@ error also carries the code (`code`) and puts the names under the key it has alw
 `presets`). `run_action` replies with the English text and the code too, where the command ran an
 operation, so a command's refusal reads the same through every route. A caller may add a hint after
 the text (the `export` tool's `wait {for:"idle"}`), never a second wording. A check of an argument's
-form (a path that does not resolve, a param that does not parse, an extension the tool does not
+form (a path that does not resolve, an argument its schema refuses, an extension the tool does not
 write) stays with the caller that owns the argument.
 
 **Undo.** An operation takes the undo snapshot its function takes, once, after its checks pass. A
@@ -423,7 +429,7 @@ open a dialog of its own (a STEP file's mesh options, the modified-presets quest
 `Plater::load_project()`, the Transfer-or-discard prompt of `Tab::select_preset()` when no answer is
 given). A call that stops there behaves as any call behind a dialog: a tool replies
 `blocked_by_dialog`, and a plugin's call waits for the person. A path that asks a person keeps its
-owner method: with no param, and for `load_project` and `new_project` with or without one, a
+owner method: with no arguments, and for `load_project` and `new_project` with or without them, a
 command is the asking path and calls the owner.
 
 **The plugin API.** Where an operation exists for what a binding does, the binding calls it and
@@ -436,7 +442,7 @@ makes the filament tab edit the preset, since its transaction edits that preset.
 
 **What the layer includes.** Owner headers, libslic3r and wx. Nothing from `GUI/Mcp`,
 `NativeCommands.hpp` or `plugin/`, and neither nlohmann/json nor pybind11. The three interfaces
-include it, and GUI code may. The dispatch core (`McpCore`, `ToolRegistry`, `JobRegistry`) includes
+include it, and GUI code may. The dispatch core (`McpCore`, `CommandCatalog`, `JobRegistry`) includes
 nothing from it, and `plugin/` includes nothing from `GUI/Mcp`.
 
 | File | Operations | Reached by |
@@ -485,19 +491,20 @@ A check only one route makes stays with that route, as a step of its own before 
 
 **Keeping it so.** Two checks, neither of which reads what a handler does:
 
-- `ToolDef` and `NativeCommand` have a field naming the operations an entry reaches (`reaching()`
-  where a tool is registered, the `reaches` table of the commands). It is in no listing. A unit test
-  (`test_operations`) walks `McpService::offline_catalog()` and `NativeCommands::catalog()` and
-  requires every tool that is not read-only and every command with a param to name an operation or
-  to be on the test's exception list, with the reason: it runs what its arguments name, it drives the
-  GUI, it changes the session and not the project, its function has one entry point, or it is an
-  asking path. A new tool or param command has to say which it is.
-- `scripts/check_operation_calls.py`, run by the `Check operation calls` workflow, bans in the
-  callers' files (`NativeCommands.cpp`, the `McpTools*.cpp` files but the CAD tools',
-  `plugin/host/*.cpp`) the owner methods the operations call, by name. A banned call that stays,
-  because another function uses the same owner method or the caller is an asking path, is listed in
-  `scripts/operation_calls_baseline.txt` by file and exact source line, under its reason. The check
-  fails on a banned call that is not listed and on a listed line the source no longer has.
+- `NativeCommand` has a field naming the operations a command reaches (`reaching()` where a tool is
+  registered, the `reaches` table of the Speed Dial's commands). It is in no listing. A unit test
+  (`test_operations`) walks `NativeCommands::instance()` and requires every listed command that is not
+  read-only and every palette command that takes arguments (one with a tile that is not listed, whose
+  schema has an argument beside `silent`) to name an operation or to be on the test's exception list,
+  with the reason: it runs what its arguments name, it drives the GUI, it changes the session and not the
+  project, its function has one entry point, it is an asking path, or it calls the undo and redo of a
+  history (`undo`, `redo`). A new tool or command that takes arguments has to say which it is.
+- `scripts/check_operation_calls.py`, run by the `Check operation calls` workflow, bans in the callers' files
+  (`NativeCommands.cpp`, the `McpTools*.cpp` files but the Design commands' `McpToolsCad.cpp`,
+  `plugin/host/*.cpp`) the owner methods the operations call, by name. A banned call that stays, because
+  another function uses the same owner method or the caller is an asking path, is listed in
+  `scripts/operation_calls_baseline.txt` by file and exact source line, under its reason. The check fails on a
+  banned call that is not listed and on a listed line the source no longer has.
 
 Neither catches a rule written again through calls that are not banned, such as a check made of
 getters. That is for review: a caller's handler converts, calls, and shapes the reply.
@@ -511,67 +518,79 @@ a replay file. Where the GUI has no name for the thing, the name is a plain verb
 `answer_dialog`), and a word the GUI uses for something else is avoided: `run_script` would read as the Run
 Script panel, which runs Python.
 
-| Group | Tool | Purpose |
-|---|---|---|
-| App | `get_app_state` | version, platform and display backend, ready, window, the displays' work areas, the MCP endpoint, whether Python runs and Python scripts are allowed, whether the Design tab is on, tab, mode, project, presets, plates, objects, the selection, slicing, the Preview's view type, time mode and layer range, the camera of the 3D view shown, print host uploads, the open gizmo, dialogs, menus closed unseen, auto-answer rules, notifications, jobs |
-| | `wait` | `ready`, `idle`, `dialog`, `no_dialog` or a `job` (default the job given, else `idle`); `timeout_s` up to 50 |
-| | `get_log` | end of the current log file, filtered by minimum level |
-| Speed Dial | `search_actions` | search the action catalog by a query's words, best match first, or list it by group and title; paged |
-| | `run_action` | run an action by id (or the name inside it), with its optional `param`; an error when the action did nothing; waits for a background job it starts (arrange, orient) |
-| Project | `open_files` | load models, a project or G-code by absolute path, with no dialog |
-| | `new_project` | start an empty project (`discard_changes` if it has unsaved changes); `preset_changes` keeps or discards modified presets |
-| | `generate_calibration_test` | a Calibration menu test with typed parameters and no dialog: a new project with the test model and the preset changes the test needs, printed with filament slot 1; refused while presets are modified unless `preset_changes` keeps or discards them |
-| | `save_project` | save the project as `.3mf` to a path (a `.gcode.3mf` path is refused: that is `export` `sliced_3mf`) |
-| | `export` | `gcode`, `sliced_3mf`, `3mf` or `stl` to a path, by default the one its extension names; `gcode` is an export operation |
-| Presets | `list_presets` | printer, process or filament presets with flags (system, user, inside the project, the preset inherited from), paged |
-| | `select_preset` | select by name through the selector (filament per slot), showing a hidden preset first; `preset_changes` transfers or discards unsaved changes without the prompt |
-| | `get_settings` | values and metadata (description, settings page and group, enum labels, per-variant entries) by key, by page or group, or found by words matched in keys, labels and descriptions, of the edited or any saved preset, of an object's or part's overrides with the values they print with, of the project's own settings (plate type, slot colours, flushing volumes, purge mode, prime tower positions, mixed slots), of a plate's (plate type, print sequence, spiral vase, filament orders, name, lock), or of named preferences (read only); `compare` lists only what differs from another preset, the saved one or the parent |
-| | `set_settings` | set values the way the settings tab does, all or none; one entry of a per-variant value; object and part overrides and filaments; the project's and a plate's own settings through their controls' and dialogs' code; `null` takes a preset's key back to its saved or parent value, `reset_all` drops a preset's unsaved changes first; replies with every setting that `changed` |
-| | `save_preset` | save the preset being edited under a name, as a user preset or inside the project |
-| | `delete_preset` | delete a user or project preset, selected or not, as the tab's Delete does (destructive) |
-| Objects | `list_objects` | each plate with the objects on it, then the objects on no plate: objects (filament, auto drop, overrides, brim ears, height range modifiers, variable layer height profile), their instances there (placement, mirrored, bounding box, canvas rectangle on request) and parts (type, filament, placement and bounding box on the bed, scaled and mesh volume, painted facets, text and SVG sources), paged |
-| | `list_plates` | plates with the settings they print with and those they set themselves, how many objects are on each, name, lock, slice state, prime tower position and layer G-codes, paged |
-| | `select_objects` | select objects, instances or parts (indices checked against what the object has), all, or none |
-| | `transform` | translate, rotate, scale or size one instance, relative or absolute, move it to a `position` or to another plate; or the same for one part (`part`) |
-| | `add_part` | add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object: a shape at a size or a model file, optionally at a position |
-| | `arrange` | arrange every unlocked plate or one plate, or fill an object's plate with instances or copies, with the Arrange options panel's settings; waits for the job |
-| | `set_height_ranges` | replace an object's height range modifiers: Z ranges with their own layer height, filament and process settings |
-| | `set_variable_layer_height` | the Variable layer height panel's Adaptive (with its quality), Smooth (radius, keep min) or Reset on an object |
-| Slice | `slice` | current, one or all plates, then the Preview tab as after the Slice button; outcome for each plate, and for an `ok` one its time, filament totals with the flush, cost, layers, max Z, filament changes and grams per slot by use |
-| | `cancel_job` | stop the running slice or G-code export, a pending automatic reslice, or a background job an MCP call started (optionally only a given job), or with `job` a running `encode_recording`; allowed during an operation |
-| | `set_custom_gcode_at_layer` | add or remove a plate's pauses, custom G-code, custom templates and filament changes on its sliced layers, as the Preview layer slider's menu does |
-| View | `set_view` | tab (Design included), 3D view (`canvas`: Prepare, preview, assemble), camera of the 3D view shown (a direction; the Design view's on the Design tab), the point it looks at (`look_at`) and its zoom, `orbit` around what it looks at by degrees on every 3D view, and a `camera_state` readback; preview layers (by number or height), color scheme as the legend's combo picks it, legend rows and time estimate |
-| | `screenshot` | the main window, the 3D view shown (the Design view on the Design tab), topmost dialog or one widget: a downscaled image and a full-size PNG |
-| | `get_slice_stats` | a sliced plate's summary, time and grams per feature type, per-layer Z, height, time and grams (paged), grams per object instance, and the Preview's legend state and colour ranges |
-| Recording | `start_recording` | record the main window with its modal dialogs, or the 3D view shown, into an MJPEG `.mkv`, with the current tool call as a caption and the pointer highlighted when asked for, and with `encode` an MP4 of it once stopped |
-| | `stop_recording` | capture the last state, end the recording and report its file once written: length, frames, drops, the mean UI time of a capture, size and why it ended; the job of the encode `start_recording` asked for |
-| | `encode_recording` | encode a recording into an H.265 or H.264 MP4 with the system ffmpeg; cancellable |
-| GUI | `list_windows` | the open windows, modal or not, with refs for `screenshot`, `list_widgets` and the input tools, their state and whether they resize, paged |
-| | `set_window` | size, move, maximize, minimize or raise the main window, the topmost modal dialog or a window `list_windows` lists, and reply with what the window became once it holds still and the 3D view has drawn at its size |
-| | `list_widgets` | widgets, rows of lists, trees and tables, popups, menus, GL toolbar items, gizmos, the Prepare view's plates and plate icons, and ImGui items, with refs |
-| | `click` | activate a ref or locator, click a row's cell or a plate icon, or click a point of a 3D canvas or custom-drawn widget; list the menu it opens, or run one of its items |
-| | `set_widget_value` | set a widget's text, value, selection or checked state, or a row's checkbox |
-| | `press_keys` | send a key chord to a target or the focused window, whose panels' key hooks see it first; list or run the menu it opens |
-| | `mouse_gesture` | canvas gestures: move, down, up, click, drag, wheel, at pixels or at points of the model (the Design view at pixels); list or run a right click's menu; reports when a gesture moved the camera |
-| | `pick_gizmo_file` | what the open gizmo's file pickers do, with a path: SVG change file and save as, texture import |
-| | `answer_dialog` | press a button of the topmost wx dialog or native message box, or of its page for a web dialog |
-| | `auto_answer_dialogs` | answer matching modals as they open (native ones unseen, a file or folder picker with a path, web ones on their page), and one already open |
-| | `run_javascript` | run JavaScript in a web view (the topmost dialog's while a modal is open), with a page element as `el`, and return the result |
-| Replays and scripts | `run_replay` | run a replay file or inline replay, with results per step |
-| | `export_replay` | write the session journal as a replay; calls whose job is still running are left out and listed |
-| | `run_script` | run Python code against `orca.host`, calling tools through `orca.host.tools`; needs the Python setting (see Python scripts); cancellable |
-| | `search_python_api` | search the `orca` package in the running build: names, signatures and documentation, paged |
-| API | `search_tools` | look up any registered tool or plugin operation by name, list every name, or search every catalog by words |
-| | `call_tool` | call a registered tool or plugin operation by name; runs and is journaled as that tool's own call |
-| CAD | `list_cad_tools` | the Design tab's CAD tools, each with its access and one-line summary, narrowed by a query, paged (CAD builds; answers with the CAD feature off too) |
-| | `describe_cad_tool` | one CAD tool or a list: summary, details, params with `required`, how a failure shows and examples (CAD builds; answers with the CAD feature off too) |
-| | `call_cad_tool` | run a CAD tool of the Design tab: sketches, features, reads and measurements, feature and body edits, undo, commit to plate (CAD builds, Design tab enabled) |
+What each tool does, the arguments it takes and what it replies are in its description, which `tools/list`
+gives a client and the command reference `tests/data/command_catalog.json` holds for a reader (see Making a
+feature reachable). By area, the tools are:
 
-Each tool has a lane, the way it acts, set by `ToolRegistry::add()` from `tool_lane()`: core (the
-session, recovery and Python), API (project data by index and name, JSON in and out) and UI (the GUI
-itself). Every caller reaches every tool; the lane is a hint for the agent choosing one. It starts each
-description (`[core]`, `[api]`, `[ui]`), orders `tools/list` (core, then API, then UI) and orders the
-server instructions.
+**App.** `get_app_state`, `wait` and `get_log`.
+
+**Speed Dial.** `search_actions` and `run_action`.
+
+**Project.** `open_files`, `new_project`, `generate_calibration_test`, `save_project` and `export`.
+
+**Presets.** `list_presets`, `select_preset`, `get_settings`, `set_settings`, `save_preset` and `delete_preset`.
+
+**Objects.** `list_objects`, `list_plates`, `select_objects`, `transform`, `add_part`, `arrange`,
+`set_height_ranges` and `set_variable_layer_height`.
+
+**Slice.** `slice`, `cancel_job` and `set_custom_gcode_at_layer`.
+
+**View.** `set_view`, `screenshot` and `get_slice_stats`.
+
+**Recording.** `start_recording`, `stop_recording` and `encode_recording`.
+
+**GUI.** `list_windows`, `set_window`, `list_widgets`, `click`, `set_widget_value`, `press_keys`,
+`mouse_gesture`, `pick_gizmo_file`, `answer_dialog`, `auto_answer_dialogs` and `run_javascript`.
+
+**Replays and scripts.** `run_replay`, `export_replay`, `run_script` and `search_python_api`.
+
+**API.** `search_tools` and `call_tool`.
+
+The tools are commands of the process's command catalog (`CommandCatalog`, `NativeCommands::instance()`; see
+Speed Dial catalog), beside the Speed Dial's: a tool is a `NativeCommand` with `listed` set, which
+`tools/list` shows in the order the tools were added. Startup builds the catalog, with no MCP service:
+`register_all_commands()` adds the Speed Dial's commands, then each tool family in a fixed order of calls
+(app, api, project, config, scene, layer, view, replay, python, record, action, ui), each through its
+`register_*_tools(catalog)`, and between record and action the Design tab's commands, which no listing shows,
+in a CAD build with the CAD feature on (`register_cad_commands()`; see Design tab), so `tools/list` starts
+with the app's state, the search and the generic call, and ends with the tools that drive the GUI. A tool is
+made with `inspect_tool()`, `mutate_tool()`, `record_tool()` or `recover_input_tool()`, which take its group
+first and build it through `long_command()` with its function unchanged, so it runs where its call does. A
+function reaches the service through its call's context, `ToolContext::service()`: the core gives the service
+that owns it (`McpCore::set_service()`), a person's pick starts the runtime without its endpoint, and a core
+built on its own, as in a unit test, refuses, which ends the call in an error. Every key is unique across the
+catalog, tools and Speed Dial commands together.
+
+Every command is called by its key: `tools/call`, `call_tool`, a replay step and a script's call reach a
+Speed Dial command (`obj_arrange`, `load_project`) as they reach a tool, run and journal it as its own
+call, and the Action Replay window describes such a step as `run_action` of its tile
+(`describe_step()`). `tools/list` and the editors' tool list (`editor_tool_catalog()`) read the listed
+commands only, in the order they were added, so they show the typed tools. `search_tools` reads every
+command, then the plugin operations of the catalog's source (`search_commands()`; see Plugins and the
+tools), so its one inventory finds a Speed Dial command's key as it finds a tool's.
+
+Four commands are both a tool and a tile: `new_project`, `save_project`, `start_recording` and
+`stop_recording`. Each is registered once, in its tool's family, through `with_person_form()`, which gives the
+tool the tile's title, icon and group (`Commands`) and its schema `silent` (`Mcp::with_silent()`). Called with
+no arguments, each does what a person's pick does: New Project asks about unsaved changes, Save Project
+saves to the project's file or asks for one, Start Recording opens its dialog, and Stop Recording stops the
+recording without waiting for its file and shows the person where it went; an agent's call of that form
+replies `blocked_by_dialog` while a dialog asks. New Project's and Save Project's tools are mutate calls,
+so their form is refused where any mutate call is. The recording tools run behind dialogs, but Start
+Recording's form, which opens a dialog, is refused while a modal dialog is open or another call's nested
+loop runs (`UiInvoker::require_mutate()`); Stop Recording's form, which opens nothing, runs where the tool
+does. With arguments, or `silent: true`, it is the tool, which asks nothing, and the journal keeps
+`silent`, so a replay of it asks nothing either. `save_project`'s path is required once any argument is
+given, under `then`; `start_recording` given arguments records for up to an hour unless `max_seconds`
+says otherwise, and its reply says the limit it runs under.
+
+Each tool has a group (`NativeCommand::group`), the way it acts: `core` (the session, recovery from
+dialogs, replays and Python), `api` (project data by index and name, JSON in and out, and the operations
+plugins offer) or `ui` (the GUI itself); the four tools that are also tiles are in their tile's group,
+`Commands`. Every caller reaches every tool, and the group only filters: `search_tools {group}` keeps the
+commands and operations of one group, the Speed Dial's sections (`Object`, `View` and the rest) among the
+groups, compared in any case, and its matches and `{tool}` replies say each one's group. A group no command
+has is refused as an unknown name is, "Unknown group: …", naming the groups there are (`groups`).
 
 Each tool also has an access label, which `tools/list` sends as MCP's annotations. Clients act on it
 differently: Codex asks a person before every call of a destructive tool (unless it is also read-only),
@@ -602,9 +621,11 @@ entry of `objects`, `instances` and `parts`: the `ObjectID` values `list_objects
 too. `check_expected_ids()` refuses the call before anything changes when the index names another object
 or part now, so a replay or script addresses what it read. `list_objects`' description says what the ids are for
 and names the tools that take them, so each property only points back at it. Ids are allocated per
-process, so the journal leaves them out of those tools' calls (`without_expected_ids()`), through
-`call_tool` and inline `run_replay` steps too, and a replay addresses by index; a `run_script` step's code
-and `args`, and a plugin operation's own arguments, are kept as written.
+process, so a tool that takes them names them in its `id_args`, which `with_expected_ids()` reads from its
+schema where the tool is registered, and the core gives the journal its calls without them
+(`without_expected_ids()`, which looks the command up in the catalog), through `call_tool` and inline
+`run_replay` steps too, and a replay addresses by index; a `run_script` step's code and `args`, and a plugin
+operation's own arguments, are kept as written.
 
 Descriptions keep one order: what the tool does, the arguments that change it, `Reply:` with the
 fields it has, then edge cases; a long one puts each case on a line of its own (the scopes of
@@ -628,25 +649,22 @@ any of them. Where a tool takes two unlike things of one word, each says
 whose it is: `discard_changes` drops the project's unsaved changes, `preset_changes` keeps, transfers
 or discards the presets'.
 
-An agent calls into three catalogs by name: the tools (with the operations plugins offer), the Speed
-Dial's actions and the Design tab's CAD tools. `search_tools {query}` finds a name in any of them,
-but each runs through its own tool, so a name reaches the wrong one: `call_tool {tool: "extrude"}`,
-`run_action {id: "slice"}`, `call_cad_tool {tool: "list_objects"}`. The refusal then says where the
-name does run, in place of the closest names of the catalog asked, which would point the wrong way.
-`other_catalog_hint()` (McpToolsActions.cpp) looks the name up in the other two: the registry, the
-CAD tool table, and `NativeCommands::catalog()`, the built-in commands, by key or full id. All three
-answer on any thread, which the registry's other actions (plates, recent projects, plugin scripts)
-do not, and those are not names an agent takes for a tool's. `ToolRegistry::unknown_tool()` builds
-the error for every lookup of a tool that misses, through `set_elsewhere()`, which keeps the
-protocol layer free of the GUI: `tools/call`, `call_tool`, `search_tools {tool}`, a replay step and a
-plugin's or script's call. `run_action`, `call_cad_tool` and `describe_cad_tool` ask it themselves.
+An agent calls into two catalogs by name: the commands (the typed tools, the Speed Dial's commands, the
+Design tab's and the operations plugins offer) and the Speed Dial's actions, which `run_action` runs.
+`search_tools {query}` finds a name in either, and a command runs by its key through `tools/call` and
+`call_tool`, with `search_tools` giving the schema of one `tools/list` does not show. A name that misses
+is answered with the closest names of the catalog asked and nothing else.
+`CommandCatalog::unknown_command()` builds the error for every lookup of a command that misses:
+`tools/call`, `call_tool`, `search_tools {tool}`, a replay step and a plugin's or script's call.
+`run_action` gives the closest action ids, and says that `search_actions` finds an action and
+`search_tools` a command, since the name may be a command's that has no tile; a tile's key runs its
+command. For a Design tile that is not shown it says when the tile is there instead, and that `call_tool`
+runs its command from any tab.
 
-Each tool family registers itself from its own `McpTools*.cpp` through `register_*_tools()`.
-List tools take `limit` and `offset` and reply `{items, offset, total}` (`page()`; `list_objects`, a tree,
-has `plates` and `outside` in place of `items`), with `next_offset` while
-more remain: `search_actions` and `list_cad_tools` too, whose one page holds every CAD tool by default. The
-server instructions give that shape once, rather
-than every description, and each `limit` states its default. `McpPaths.hpp` requires
+Each tool family lives in its own `McpTools*.cpp`. List tools take `limit` and `offset` and reply
+`{items, offset, total}` (`page()`; `list_objects`, a tree, has `plates` and `outside` in place of
+`items`), with `next_offset` while more remain: `search_actions` too. The server instructions give that
+shape once, rather than every description, and each `limit` states its default. `McpPaths.hpp` requires
 absolute paths, since a relative one would resolve against `<datadir>/log`, the GUI's working
 directory; an output's directory must exist, and an existing file is replaced only with
 `overwrite: true`. Paths arrive and leave as UTF-8 text, and so does Orca's `data_dir()`;
@@ -1244,74 +1262,139 @@ it with `save_preset`; staying in the test project, `set_settings {"reset_all": 
 the preset's scope drops the test's settings there and sets the value in one call. The Speed Dial's `calib_*` commands still open
 the dialogs, and their descriptions point at `generate_calibration_test`.
 
-### Design tab: `list_cad_tools`, `describe_cad_tool` and `call_cad_tool`
+### Design tab: the Design commands
 
-`call_cad_tool {tool, args}` is the one way into the Design tab, under the mutate guard. Its CAD
-tools (`Mcp/McpToolsCad.cpp`) sit behind one generic tool rather than a schema each, so agents that
-never open the Design tab pay nothing for them. One table, `kCadTools`, declares every CAD tool's
-name, access and handler; `run_cad_tool()`, the busy gate and `cad_tool_table()` all read it.
-`cad_tool_table()` is the table of record, built once from `tool_rows()` and `kCadTools`: one row
-per CAD tool with a summary of one sentence (at most 120 characters), details, typed params with
-units, defaults and `required` (true for a param without a default), its access, `failure`
-(`error`, or `reply` with a `failure_note` for a tool that reports a rejected rebuild in its reply)
-and examples.
+The Design tab's sketches, features, reads and measurements, feature and body edits and its commit to the
+plate are commands of the catalog (`Mcp/McpToolsCad.cpp`) in the group `Design`, not listed, so agents that
+never open the Design tab pay nothing for them in `tools/list`. Those that open a tool are in the palette,
+whose tiles for them the Speed Dial has while the Design tab is shown (see Speed Dial catalog).
+`register_all_commands()` adds them through `register_cad_commands()` only when the catalog is built with
+the CAD feature on (`CatalogOptions::cad`, which startup takes from `enable_cad_feature` in the editor). With
+it off the catalog holds none: `call_tool {tool: "hole"}` is an unknown command, and `get_app_state` carries
+`cad_note`, how a person turns the feature on (`cad_note()`, in the editor while the catalog holds no Design
+command or the preference is off). The catalog is sealed at startup and the main window makes the Design
+page only then, so turning the feature on or off takes effect after a restart, but for the Speed Dial's
+Design tiles, which go as soon as it is turned off (see Speed Dial catalog); a window rebuilt for a
+language change in between makes the page by the new preference, while the catalog keeps the commands it
+started with.
 
-Two inspect tools read the table, which needs no Design panel and no UI thread. `list_cad_tools
-{query?}` gives each CAD tool's name, access and summary in the table's order, which groups them by
-what they do, as a page like every list's (`items`, `offset`, `total`; its default limit of 200
-holds them all), with `ids` (how face and edge ids expire) and `use`; `query` keeps the tools whose
-name, summary or details hold it, in any case, and `total` counts the ones kept.
-`describe_cad_tool {tool}` gives the whole row of a name, or of each name of a list, once and in
-the order asked, and `id_lifetime` when one of them takes or gives face or edge ids; an unknown
-name fails with the close ones, or, when it is a tool's or a Speed Dial action's, with where that
-runs, as `call_cad_tool` answers one too, before any of the refusals below (see Tool catalog). Both
-answer with the CAD feature off too, and then add a `note` on
-how a person turns it on. That preference lives in `AppConfig`, which Preferences may write
-meanwhile, so it is read on the UI thread (`observe_ui`, `cad_feature_note()`), which the call waits
-for up to the usual queue timeout of 10 s; when the UI does not answer by then, or refuses, the reply
-goes out without the note, which is only advice.
+One table, the Design tab's, declares every command: `kDesignTools` in `CAD/DesignOffer.hpp`, generated from
+`scripts/CAD/tool_atlas.json`, which is also the right-click menu (`docs/HLSD/design-tab.md`). Every entry but
+`align`, which has no GUI path, is a command: its id is the key and its name the title, so the body's move is
+`body_transform`, apart from Prepare's `transform`, and the surface tools are `surf_extrude` and the rest. An
+entry with an action, its menu row's, has a person's form and a tile. An entry with a tool block has a silent
+form, whose function `kSilentForms` binds by the entry's id; a unit test fails for a block with no function
+and a function with no block. The block gives the silent form's access, a summary of one sentence (at most 120
+characters), details, typed params with units, defaults and limits, one to three examples, and whether it
+reports a rejected rebuild in its reply (`ok_false`); the header carries it as JSON text (`doc`).
+`register_cad_commands()` makes a command of each entry (`cad_command()`), in the table's order: the menu's
+verbs, then the 41 entries with no menu row, 133 commands in all. It is `read_only` for a `read` block, and
+has the entry's icon. Its description is the summary, the details and, with `ok_false`, how a rejected rebuild
+shows; an entry with an action only has its hint and what its call does: what its menu row or key does, which
+may open a tool, start a sketch tool or act at once, with the status line in the reply, and the mode it runs
+in, "only in an open sketch" or "only outside a sketch" by its row. Its examples are the block's, each
+`{title, calls: [{tool, args}], needs?}` ending with the command it documents, where an argument
+`{"from_call": i, "key": k}` is the value under `k` in the result of call `i`, and a call of a command that
+has both forms with no other argument is `{"silent": true}`. Its input schema (`cad_input_schema()`) is built
+from the params: a type written `"a|b"` is the list of both, `min`, `exclusive_min` and `max` are `minimum`,
+`exclusiveMinimum` and `maximum`, `enum` and `default` carry over, the unit joins the description, and a param
+without a default is required. A param whose default is null is one its function reads as left out when it is
+null (no limit, the open sketch), so its type also admits null, and its enum holds null: `extrude {"sketch":
+null}` runs the silent form on its default rectangle, as `extrude {"silent": true}` does. A param marked
+`"nullable": false` keeps its type, as its function reads a null as a value given: `thread`'s `plane`, which a
+thread on a plane resolves as the plane named, and `sketch_transform`'s `angle`, `scale`, `count` and `pivot`,
+which an op they do not apply to refuses whenever they are present. For an entry with both forms it goes through `with_silent()`: `silent` is a
+property, and what the silent form requires is under `"if": {"minProperties": 1}, "then": {"required":
+[...]}`, so the call with no arguments, the person's form, requires nothing (`fillet {}` opens the Fillet
+tool, while `fillet {radius: 2}` needs `edge`). The description, the silent form's, says nothing of that call,
+so `silent`'s says what it does and the mode it runs in (all 32 such entries are the model's, outside a
+sketch). An entry with an action only takes no argument at all (`additionalProperties: false`), so `sk_rect
+{silent: true}` is refused by its schema. A limit is the one the tool's function or the kernel applies to
+every call that passes the param, so the schema refuses no call the function would run: a distance that may be
+negative, or a depth a through hole ignores, has none. A command with a silent form also takes `generation`,
+never required, whose description says how face and edge ids expire, and its schema does not refuse an
+argument it does not name, since a tool may read more (a param in radians also in degrees under its name with
+`_deg`); the normalizer reads `index` as `feature` and `params` or `values` as `fields`
+(`normalize_arguments()`), the names `describe_feature`, `set_feature` and the tree edits also read.
 
-`run_cad_tool()` runs the CAD tool on the UI thread, inside `call_cad_tool`'s mutate guard, and
-refuses a call by its cause, in this order. The MCP server is up before the main window, so first
-come `ui_plater()`'s "shutting down" and "still starting" refusals, as for any tool. Then the G-code
-viewer, which has no Design tab (`-32001`); the CAD feature off (Preferences > Features; the main
-window creates the Design page only at startup, so turning it on takes a restart); and a Design
-panel that cannot be built (`-32001`: no page was made at startup, the page is mid-build, or its
-build failed), whose message says to retry and then restart. The panel is otherwise built on the
-first call, since in a headless session nobody clicks the tab; `get_app_state.design_tab` says
-whether this session built it. Then come an unknown CAD tool (`-32601`, with the close names and a
-pointer to `list_cad_tools`), a busy Design tab (`-32002`), and a `generation` that is not an
-unsigned integer (`-32602`) or not the model's (`-32010`). Before the generation is read, the
-project's recipe is loaded into an empty document (`DesignPanel::hydrate_from_model()`), as showing
-the tab would.
+A call with no arguments of an entry with an action, an agent's or a tile's, is the person's form
+(`open_tool()`). It passes `cad_gate()` with `CadAccess::None`, whose only busy rule is the rebuild's, so the
+recipe is loaded and the call refused while the model is being rebuilt, and runs the action in place
+(`DesignPanel::mcp_run_verb()`), as the menu's row and the tab's keys do: an open card does not refuse it,
+since each tool decides what that means to it. Before the action, `open_refusal()` refuses it in two cases
+(`-32000`). An entry runs only in the mode its row belongs to, where the right-click menu offers it
+(`offered_in_mode()`, by the menu's `sketch_map_applies()`, for which a sketch in Constrain mode is open too): a
+model tool such as Shell in an open sketch is refused with "This tool works on the model: finish or cancel the
+sketch first" (`mode: "model"`), a sketch tool outside a sketch with "This tool works in a sketch: open a
+sketch first" (`mode: "sketch"`). No entry is offered in both modes, and the only keys read in both, the
+Ctrl+Shift ones, are no entry's action. The tab's keys take the sketch's entries only in Sketch mode, so in
+Constrain mode they reach the model's while the menu offers the sketch's: there a command does what its menu
+row does, not what its key does. And an action that only the right-click menu reaches (`btn:`, `fly:`),
+whose row the menu greys for a selection it does not accept, is refused for one with "This tool does not apply
+to what is selected", its details naming the selection (`selection_kind`, `selection`) and the atlas ids of
+those the row accepts (`accepts`). It never gives the row's refusal, which is about the document (no body yet)
+and which the menu shows only for a row that takes the selection. A `key:` action runs whatever is selected,
+as its key does. The reply is `{"result": {"interactive": true, "tool", "applies", "modal", "selection_kind",
+"busy", "status"}}`: whether the row accepts the selection, whether a dialog the action opened held the call
+until it was answered (the atlas's `modal` entries but Text, whose dialog is modeless:
+`DesignPanel::mcp_text_dialog_open()` tells it), the selection's kind, `mcp_busy()`'s reason after the action
+(a card, a dialog or a sketch now open) or null, and the text of the tab's status line (`DesignPanel::mcp_status()`). It claims nothing about
+what the action did, which may be to open a card, arm a sketch tool, act at once, or say on the status line
+why it cannot (Loft with fewer than two profile sketches). A modal dialog the action opens holds the call,
+which the core reports as blocked by it, as for `new_project {}`; Text's dialog is modeless, so `sk_text {}`
+replies at once with a `busy` that names it, and its own Cancel or Escape closes it. For a person's pick, a
+refusal is shown in the UI's language where its text is a msgid, as these three refusals are. `describe_scene`
+gives `selection`, `{kind, id}`, the selection the right-click menu would be built for, by its `OfferSel` and
+its atlas id (`kDesignSelectionIds`).
 
-Access decides what `DesignPanel::mcp_busy()` lets through. Nothing runs while a rebuild's worker
-owns the document; otherwise `read` CAD tools always run. `change` and `sketch` CAD tools are
-refused under an open feature card, the Text dialog, Constrain mode or an open body Move. A card
-holds a candidate built from the document as it was when it opened, which a change underneath would
-overwrite, or be overwritten by, on Confirm; the Move holds a body index that a change could point
-at another body. A sketch session lets `sketch` CAD tools through, since driving it is their point,
-and refuses `change` ones, as the GUI would not let the edit land there.
+An agent finds them as it finds any command: `search_tools {group: "Design"}` lists their names, a query
+finds them among the commands with their input schemas, and `search_tools {tool}` gives one's group,
+`read_only`, description, input schema and examples. `call_tool {tool, args}` runs one, its arguments
+validated against its schema, and replies `{"result": ...}`, the tool's own reply; a replay step calls one
+by its name or through `call_tool`, and `orca_mcp.py`'s `call_command()` from Python. An unknown name is
+answered as any unknown command is, with the closest key.
 
-A CAD tool that fails is an error (an `isError` result with `code` `-32000`, `OCCT: …` for a kernel
+A call runs its function on the UI thread: a person's pick in place, an automated call in one UI closure
+under the mutate guard, then `settle()`. Before the silent form, `cad_gate()` refuses a call by its cause, in
+this order. The MCP server is up before the main window, so first come `ui_plater()`'s "shutting down" and
+"still starting" refusals, as for any tool. Then the G-code viewer, which has no Design tab (`-32001`); the
+CAD feature off (Preferences > Features); and a Design panel that cannot be built (`-32001`: no page was made
+at startup, the page is mid-build, or its build failed), whose message says to retry and then restart. The
+panel is otherwise built on the first call, since in a headless session nobody clicks the tab;
+`get_app_state.design_tab` says whether this session has the page. Then come a busy Design tab (`-32002`),
+and a `generation` that is not an unsigned integer (`-32602`) or not the model's (`-32010`). Before the
+generation is read, the project's recipe is loaded into an empty document
+(`DesignPanel::hydrate_from_model()`), as showing the tab would.
+
+A silent form's access (`CadAccess`, from its block) decides what `DesignPanel::mcp_busy()` lets through.
+Nothing runs while a rebuild's worker owns the document; otherwise `read` commands always run, and so does the
+opening of a tool. `change` and `sketch` commands are refused under an open feature card, the Text dialog,
+Constrain mode or an open body Move; in Constrain mode `sketch_commit` and `sketch_cancel` are refused too,
+and the tab's own Confirm or Cancel ends it. A card holds a candidate built from the document as it was when
+it opened, which a change underneath would overwrite, or be overwritten by, on Confirm; the Move holds a body
+index that a change could point at another body. A sketch session lets `sketch` commands through, since
+driving it is their point, and refuses `change` ones, as the GUI would not let the edit land there.
+
+A Design command that fails is an error (an `isError` result with `code` `-32000`, `OCCT: …` for a kernel
 exception) and leaves the design as it was, so `export_replay` drops it and a replay never repeats a
 call that did nothing. That holds for argument errors and for a rebuild the kernel rejects alike.
-The exceptions are the CAD tools whose `failure` is `reply` (`fillet`, `chamfer`, `boolean`,
-`pattern`, `mirror`, `shell`, the surface tools, `import_step`, `set_variable` and others): they
-report a rejected rebuild in their reply, `{ok: false, error}`, after the same rollback, so such a
-call is journaled and replays the same rejection. `extrude`, `revolve`, the `hole` tools, `split`
+The exceptions are the silent forms whose block has `ok_false`, whose descriptions say so (`fillet`,
+`chamfer`, `boolean`, `pattern`, `mirror`, `shell`, the surface tools, `import_step`, `set_variable`
+and others): they report a rejected rebuild in their reply, `{ok: false, error}`, after the same
+rollback, so such a call is journaled and replays the same rejection. `extrude`, `revolve`, the `hole` tools, `split`
 and `sketch_add` fail as errors, so none of them fails two ways depending on its arguments. The
 feature tools that fail as errors add through `add_feature()`: one checkpoint, a rebuild, and on
 failure `CadDocument::rollback()`, which restores the checkpoint without leaving the refused recipe
 on the redo stack and with the redo branch the checkpoint cleared, then "Edit rejected" on the
-status line as for a refused GUI edit. Features made through `call_cad_tool` are named as the cards
+status line as for a refused GUI edit. Features made through a Design command are named as the cards
 name them ("Extrude 3"), from the panel's own counter.
 
 `generation` guards face and edge ids within a session, but its value depends on the session's
-history, so the journal records `call_cad_tool` without `args.generation` and a replay rebuilds the
-same ids.
+history, so the journal records a Design command's call without `generation`, and with `silent`, which it
+adds to a call of a command that has both forms when the call gave nothing else, so that the replay runs the
+silent form rather than opening the tool; a replay rebuilds the same ids.
 
-The plane-taking CAD tools (`sketch_begin`, `extrude`, `revolve`, the `hole` tools, `thread`,
+The plane-taking commands (`sketch_begin`, `extrude`, `revolve`, the `hole` tools, `thread`,
 `split`, `pattern`, `mirror`, `helix`, `project`) share one resolver, `cad_resolve_plane()`: `"XY"`,
 `"XZ"` or `"YZ"` through `modeling_origin`, `{"datum": i}` for a Plane feature, or
 `{"body": b, "face": f}` for a planar face. A face plane for sketching is
@@ -1328,7 +1411,7 @@ evaluate), the bodies with the feature that made them, whether their eye is on, 
 canvas draws and whether the Move gizmo placed them, the undo and redo depth, mate conflicts and the
 document's `auto_close_loops`. `describe_feature {feature}` reads one feature as its card shows
 it, from one per-type table, `feature_card()`: `params`, the `editable` ones named as the
-`CadFeature` members (the names `set_feature_expr` binds) with the `ranges` of the card's spin
+`CadFeature` members (the names `edit_feature` binds) with the `ranges` of the card's spin
 controls, `expr`, the structure the card keeps in `refs` (feature and body indices, face and edge
 ids), a sketch's plane, entities and constraints (snake_case types, point references with a role,
 angles in degrees), `used_by` / `bodies_made`, and, for imported Text or SVG art, how many regions it
@@ -1345,7 +1428,7 @@ its choices). A field an expression drives is refused, since the next rebuild wo
 and so is an end condition that needs a pick the feature does not hold. A rebuild the kernel
 refuses fails the call after `rollback()`. Numeric fields go through
 `CadDocument::set_numeric_field()`, the allow-list expressions use, so a literal edit and a binding
-reach the same fields. An empty `expr` removes a binding (`set_feature_expr`) or a variable
+reach the same fields. An empty `expr` removes a binding (`edit_feature`) or a variable
 (`set_variable`), as the Variables panel's Clear and Remove do; a binding on a field the evaluator
 does not know, or removing one that is not there, is refused.
 
@@ -1396,7 +1479,7 @@ indices move down. `sketch_constraints` reads the open sketch's constraints, or 
 by `sketch`. Live sketch edits are not on the Design undo stack until the commit, as in the GUI.
 
 `query_topology` reads a body from one enumeration (`faces_of()`, `edges_of()`, whose ordinals are
-the ids every other CAD tool takes). A face's kind is its OCCT surface type, from
+the ids every other Design command takes). A face's kind is its OCCT surface type, from
 `GeometryEngine::surface_info()`, with its area and the numbers that define it: a cylinder's radius
 and axis, a cone's apex, axis into its opening, half angle and the radii the face reaches, a
 sphere's centre and radius, a torus's centre, axis and radii; `internal` marks a bore or a
@@ -1417,7 +1500,7 @@ OCCT's `BRepExtrema_DistShapeShape`), and `parallel_gap` across two parallel pla
 may name its own body, and `{"face": f, "axis": true}` stands for a cylinder's axis over the face's
 length, so a hole's height or spacing is one call.
 
-The hole tools drill a face plane's own body, or the body `body` names, else the last body, and
+The hole commands drill a face plane's own body, or the body `body` names, else the last body, and
 take `at` instead of `x`/`y`: a world point projected onto the plane along its normal (the reply's
 `off_plane` says how far), or a cylindrical face or circular edge whose axis the hole shares, which
 replays on any printer. `cad_hole_placement()` resolves all of it before the checkpoint. `extrude
@@ -1452,16 +1535,36 @@ and inspection tools answer from inside that loop: `get_app_state`, `list_widget
 non-modal `wxProgressDialog` titled "Design") and `screenshot`, of the window or of the dialog's own
 ref. On Windows the dialog is the system's task dialog, run on a thread of its own, so it is no wx
 window and `list_widgets` does not list it; the other tools answer as elsewhere. Mutating calls,
-another `call_cad_tool` among them, are refused by `UiInvoker` as running inside `call_cad_tool`, and
-`mcp_busy()` refuses every CAD tool while a rebuild's worker owns the document, the GUI's own
-rebuilds included. A call past the reply budget becomes a running job.
+another Design command and `undo` among them, are refused by `UiInvoker` as running inside the
+rebuilding call ("Busy: thread is still running"), and `mcp_busy()` refuses every Design command while
+a rebuild's worker owns the document, the GUI's own rebuilds included. A call past the reply budget
+becomes a running job.
 
-`undo` and `redo` are Edit > Undo and Redo with the Design tab shown (`menu_undo_redo()`, behind
-the same `menu_can_undo_redo()` gate): the Design history, or inside a sketch session the sketch's
-own, which takes off or puts back the last drawn shape. `run_action undo` stays Prepare's history.
-They have sketch access, so they run in a sketch session, and like every changing CAD tool they are
-refused under an open card, Constrain mode or a pending body Move. The Design history is not saved
-with a project.
+`undo` and `redo` are the Speed Dial's commands (`NativeCommands.cpp`), shared by the Design tab and
+the project, and act on the history of the tab shown, as Edit > Undo and Redo and the top bar's buttons
+do: the Design tab's while `MainFrame::shown_design_panel()` is not null, else the project's.
+`history`, `design` or `project`, names one for automation, which acts whatever tab is shown: a Design
+command runs with Prepare in front, so a replay that drives the Design tab from there would otherwise
+undo a project change. The Design history's is `cad_undo_redo()`: Edit > Undo and Redo with the
+Design tab shown (`menu_undo_redo()`, behind the same `menu_can_undo_redo()` gate), the Design
+history, or inside a sketch session the sketch's own, which takes off or puts back the last drawn
+shape, past `cad_gate()` with sketch access, so it runs in a sketch session and is refused under an
+open card, Constrain mode or a pending body Move, and during a rebuild. A refusal is the call's error
+and never falls through to the other history. The project's is `Plater::undo()` and `redo()`, the Edit menu's,
+which step past the snapshots that do not modify the project to the nearest one that does and load it, and leave
+the active snapshot where it is when there is none, while a background job holds the model, or (undo) in the
+assemble view for a record that is not a gizmo's. The call counts the active history's undo and redo items before
+and after (`Plater::undo_redo_string_getter()`), which change only when the active snapshot moves, and is refused
+with "Nothing was undone in the project's history" (or redone) when neither changed. Success means an entry of the
+history was taken back or put back, as the Undo list shows it, not that the project differs afterwards: the plater
+classes a snapshot by its type, and an action can leave one that changed nothing (renaming an object to the name it
+has). That is an automated call's, `run_action` of the tile
+included: a person's pick from the Speed Dial does what the Edit menu's item does, through
+`menu_undo_redo()`, and where `menu_can_undo_redo()` greys that item it does nothing and shows
+nothing. The reply is the tile's, with `history` and, for the
+Design tab's, `result`, `cad_undo_redo()`'s reply; with the CAD feature off, or in a build without CAD,
+`design` fails ("The CAD feature is off"). Their examples, which call Design commands, are only in a
+catalog that holds them. The Design history is not saved with a project.
 
 The Feature tree's and Bodies list's edits are split from their handlers into index-taking
 `DesignPanel` cores that the handlers call after resolving the selected row, so `feature_delete`,
@@ -1487,9 +1590,9 @@ List's delete path, under one outer snapshot so the commit and the deletions are
 step. It refuses before anything changes: an index out of range or repeated, an object that is
 part of a cut (deleting one asks the person first), an open gizmo, a design with no body, or every
 body hidden. The reply gives the new objects' `list_objects` indices after the deletions.
-`commit` is the one CAD tool that changes Prepare's model. It needs no refusal of its own:
-`call_cad_tool`'s mutate guard keeps every CAD tool out of a modal dialog and out of another call's
-nested event loop.
+`commit` is the one Design command that changes Prepare's model. It needs no refusal of its own:
+the mutate guard a Design command's call runs under keeps it out of a modal dialog and out of another
+call's nested event loop.
 
 `new_design {discard_changes}` is New Design without its confirmation: `clear_document()`, which
 also clears the Design undo history and leaves committed objects on the plate. A design with
@@ -1514,14 +1617,16 @@ A change made only in the Design tab marks the project modified, as other projec
 Prepare's undo stack does: `sync_recipe_to_model()` sets the plater's dirty flag besides the
 backup's change mark. So `get_app_state.project.dirty`, the window title and `open_files` /
 `new_project {discard_changes}` agree with the unsaved-changes prompt that Open and New Project
-show. A project holding only a design loads no objects, and `Plater::load_project()` still names
-it after its file, since a loaded recipe counts as a loaded project.
+show. A project holding only a design loads no objects, and `Plater::load_project()` names it after
+its file all the same, since a loaded recipe counts as a loaded project.
 
-`tests/slic3rutils/test_mcp_cad.cpp` (`[Mcp][CAD]`) checks the CAD tool table against `kCadTools`
-and its readers (`cad_list_tools()`, `cad_describe_tool()`), the CAD-off note, the plane resolver,
-the rollbacks, and the CAD tools through their public seams
+`tests/slic3rutils/test_mcp_cad.cpp` (`[Mcp][CAD]`) checks the Design commands as the catalog holds
+them (one per entry of the Design table but `align`, a silent form for every block and a block for every
+silent form, which entries have a tile and an icon, their schemas, descriptions and access, and every
+example's calls against their commands' schemas), that none is registered with the feature off, how a call is
+journaled, the plane resolver, the rollbacks, and the tools through their public seams
 (`cad_sketch_extrude()`, `cad_sketch_call()`, `cad_query_topology()`, `cad_thread()` and the rest),
-which take a `CadDocument` or a bare `DesignSketchTool` and need no Design panel. The replay
+which take a `CadDocument` or a bare `DesignSketchTool` and need no Design panel. The
 replays run on an instance that `tools/mcp/orca_mcp.py launch --cad` starts:
 `tools/mcp/tests/cad_sketch_to_solid.json`, `cad_sketch_edit.json`, `cad_topology_targets.json`,
 `cad_features.json`, `cad_doc.json` and `cad_canvas.json` (the Design view as a canvas target, its
@@ -1530,27 +1635,117 @@ failed calls and `generation`s, exports it and replays it to the same features a
 properties; `tools/mcp/test_cad_slow_build.py` checks the window during a guarded rebuild;
 `tools/mcp/test_cad_failed_job.py` exports a session whose call failed after its reply budget
 (a hole that misses a slow-to-rebuild coil), which leaves it out, and replays it.
+`tools/mcp/test_cad_examples.py` runs every example, `undo`'s and `redo`'s too, each on a fresh design,
+and fails an example when a call fails or its result has `ok` false, an error, or is the person's form.
 `tools/mcp/test_cad_sketching.py`, `test_cad_context_menu.py` and `test_cad_click_edit.py` drive
 the Design tab through the GUI tools as a person does (canvas gestures, typed values, the offer
-menu, file pickers answered by path rules) and read the result back with `read` CAD tools.
+menu, file pickers answered by path rules) and read the result back with `read` Design commands.
 
 ## Speed Dial catalog
 
 `search_actions` and `run_action` serve the Speed Dial's `ActionRegistry`: built-in commands, plates,
 recent projects, plugin scripts and pages, and, on request, settings. Built-in commands are
-`NativeCommand`s in `NativeCommands.cpp`, with three fields for automation that the palette never
-shows: `description` (English, for agents), `param` (a `CommandParam {type, help}`, typed `None`,
-`Percent`, `Tab`, `Path`, `Index` or `Text`) and `completion` (`Export` when the effect finishes in
-the background after `run()` returns). `describe_commands()` fills them from one table, with a
-key-prefix rule for calibration dialogs (pointing at `generate_calibration_test`), camera views and primitives, and `CommandAction` copies
-them into the `AppAction`. The palette keeps `input` for its picker and never passes a path.
+`NativeCommand`s, added by `register_all_commands()` (`NativeCommands.cpp`). Beside what the palette
+shows, each has what automation reads: `description` (English, for agents), `input_schema` (the JSON
+Schema of its arguments) and `completion` (`Export` when the effect finishes in the background after the
+command returns). `describe_commands()` fills the descriptions from one table, with a key-prefix rule for
+calibration dialogs (pointing at `generate_calibration_test`), camera views and primitives;
+`CommandAction` copies them, the schema and the command's key into the `AppAction`.
+
+The commands live in one `CommandCatalog` (`CommandCatalog.hpp`, which includes no wx), built once at startup
+by `NativeCommands::build()` before the MCP service starts, and sealed: from then on it never changes and any
+thread reads it (`NativeCommands::instance()`, `find()`). A process that never calls `build()`,
+such as the unit tests and the stdio bridge, gets it built on first use; nothing in the GUI process reads it
+before startup builds it, the MCP service included, which `GUI_App` starts after `build()`.
+`register_all_commands()` adds the Speed Dial's commands, then the typed tools (see Tool catalog). Those with
+`in_palette` have a tile, and `ActionRegistry` makes an action of each of them (`palette_commands()`) and of
+nothing else in the catalog: no typed tool has one, but the four that are also a Speed Dial command. The
+Design tab's are the exception: `palette_commands()` leaves group `Design` out, and
+`ActionRegistry::materialize_design_actions()`, which `materialize_live()` runs beside the plate and
+recent-project families for `snapshot()`, `describe()` and `find_live()`, holds a tile for each Design command
+with `in_palette` whose entry is offered in the tab's mode (`Mcp::design_tiles()`, by `Mcp::offered_in_mode()`)
+while `MainFrame::shown_design_panel()` is not null and the CAD feature is on, and none otherwise, so the Speed
+Dial has the sketch's tiles in an open sketch, the model's outside one, and no Design tile on another tab, nor
+once the feature is turned off: the tab stays until the restart, but `cad_gate()` would refuse every pick of
+its tiles. A tile's title is `NativeCommands::tile_title()`: for a Design command, the entry's name translated
+with the `Design` context (`title_context()`), as the right-click menu translates it, and its icon is the
+entry's. Every place that shows a person a command's title translates it so: the Action Replay window's step
+and its summary line, a person's job notices ("Started", "Finished"), the tool list of the replay and script
+editors, and a recording's caption of a call (`CaptionBoard` keeps the context beside the title). Every
+entry's name is marked for translation in that context (`gen_offer_table.py` writes it as `L_CONTEXT`), also
+an entry's with no menu row, which has no tile but is shown in these places. A pin of a Design tile stays in
+the stored favourites while its tile is not live, and only leaves the bar that is shown (`prune_favourites()`,
+`is_design_tile_id()`, which goes by the Design table, so also when the CAD feature was off at startup). Every
+other pin with no live action is dropped. A build without CAD has no Design tile, and drops such a pin as any
+other. The bar's limit of ten is on what it shows: the first ten live pins in their stored order. A pin is
+refused only while the bar shows ten (`add_favourite()`), so a hidden pin never fills it, and a live pin past
+the tenth stays stored and comes onto the bar once a pin before it is unpinned. After each pin, unpin and reorder
+the open Speed Dial's page is sent the bar as the registry then shows it (`SpeedDialWebDialog::send_favourites()`,
+`ActionRegistry::favourites_bar()`), which replaces the page's own after the click's instant change, so the page
+never shows fewer pins than the registry counts. Reordering the bar moves the
+pins it shows among their own places, and every other pin keeps its place (`reordered_favourites()`). Ordinary
+use stores at most thirty pins, ten for each of the three sets of live actions the bar is shown with (the
+Design tab's model, a sketch, and every other tab); reading the stored list cuts it to
+`ActionRegistry::kFavStoredLimit` (100), so a corrupt configuration cannot grow it.
+
+### One function, JSON arguments
+
+A command has one function, `run(args, context)`, which the palette, a menu and every automated caller
+call. Its arguments are a JSON object that matches its `input_schema`, and every caller checks them first
+with `Mcp::argument_error(command, args)`, which normalizes them as a tool's (`normalize_arguments()`) and
+validates them. The context is a `Mcp::ToolContext`: the MCP core's for a call, or a `Mcp::PersonContext`
+(`McpPersonContext.hpp`) for a person's pick, whose `person()` is true. A person's context runs UI
+closures in place, has no job, no journal entry and no operation to hold, and reads as cancelled once
+OrcaSlicer is closing; it needs no MCP service, so every tile runs with the server off.
+
+Two helpers wrap the function a command's author writes and place it on the thread it needs:
+
+- `ui_command(key, title, group, schema, fn, completion)`: `fn(args)` runs on the UI thread and returns an
+  `AppActionRunResult`, what a person's pick shows. Picked by a person, it runs in place, and the reply
+  carries that result as its `notice`. Called by automation, it runs in one `ctx.run_ui()` closure, then
+  `settle()`, and `from_run_result()` makes the reply: `{ran, level, message?}` with the fields of the
+  result's `reply`; an error for an Error or Busy level and for a command that did nothing, worded from an
+  operation's refusal in English with `{code, names?}` as details. With `CommandCompletion::Export` and
+  arguments, the closure first holds the project as an operation (`ctx.begin_operation()`), takes the
+  plater's export ticket around `fn`, and the call waits for the file (`await_gcode_export()`).
+- `long_command(key, title, group, schema, fn, inline_call)`: `fn(args, ctx)` runs where its call does,
+  on the job's thread for an automated call. Picked by a person it is started as a job and returns at
+  once (`ctx.submit()`), since it must not hold the UI thread; a command with `inline_call` runs in place
+  instead. A person's context submits it with `McpCore::submit()` on the service's core, started without
+  its endpoint when the server is off: the job runs as a client's call does, under the same guards and
+  operation admission, is not journaled, and is marked as a person's run (`McpService::as_person()`), so a
+  script it runs runs as the person's. The pick replies at once with the notice "Started:" and the
+  command's title, or an Error when no job started (another operation holds the project, the app is
+  closing); the job's result shows as a notification when it ends.
+
+The palette and the menus call `NativeCommands::run(key, args)`: it checks the arguments, runs the command
+with a person's context and returns the notice for `notify_result()`, or an Error holding the message when
+the arguments are refused, the command throws or it fails without a notice.
+
+A command whose silent form needs a value has a person's form too, which asks for it: with no arguments
+(`Mcp::person_form()`), a command opens its dialog as a person's pick does; with arguments that stand for
+the dialog, it runs without asking. A path skips a file dialog, the Primitive size dialog's dimensions skip
+that dialog, and so on (the tables below). Over automation this holds too: `export_gcode {}` opens its file
+dialog and replies `blocked_by_dialog`. A command with one form, which needs its value, requires it in its
+schema: Go to layer (`percent`) and Go to tab (`tab`), whose value the palette collects in its second phase
+(`input`) and passes as `{"percent": 50}` or `{"tab": "preview"}`; called without it, they are refused.
+A two-form command whose silent form also needs no argument takes `silent: true` (`Mcp::with_silent()`):
+the schema gains `silent`, which only `true` fits, and moves the silent form's `required` list under
+`"if": {"minProperties": 1}, "then": {"required": [...]}`, which the validator reads as "required once any
+argument is given"; it reads no other use of `if`. `with_person_form()` makes such a command of a typed
+tool and the tile's person's form, which runs as a `ui_command()` function does: `new_project`,
+`save_project`, `start_recording` and `stop_recording` (see Tool catalog). Their silent form is the tool's
+own function, which gets the arguments as given, `silent` included, so the journal records the call as
+silent.
+
+### search_actions and run_action
 
 `ActionRegistry::describe(Query)` lists the actions, sorted by group and title, one page of them
 (`{items, offset, total}`). It can filter by group, lists settings only when asked, and keeps the
 actions whose id, title, group, source or description holds its `text`, including the English
-aliases. Each entry has `id`, the English `title` and `group`, `kind`, `description`,
-`param {type, help}`, and `completes: "export"` for exports. Built-in ids look like
-`orca_command:<key>:orca`.
+aliases. Each entry has `id`, the English `title` and `group`, `kind`, `description`, `command` (the
+catalog key) for a command's tile, its `input_schema` when it takes arguments, and `completes: "export"`
+for an export. Built-in ids look like `orca_command:<key>:orca`.
 
 `search_actions` gives `describe()` no text. An agent's query is a few words ("delete object"),
 which no action holds as one text, so `rank_actions()` (McpToolsActions.cpp) scores the listing with
@@ -1562,80 +1757,95 @@ matching more of them in what they are called, then the shorter key, which is th
 `obj_delete` before `obj_delete_all`. The key is scored without the `orca_command:`
 and `:orca` around it, which would make "orca" and "command" match every built-in. `search_tools`
 ranks its `actions` with the same function, so the query that found an action there finds it, and
-the rest, here.
+the rest, here. Its `actions` are the actions that are no command (plates, recent projects, plugin
+scripts and pages): a command's tile carries its key (`describe()`'s `command`), and the command is among
+`search_tools`' commands already, so it appears there once.
 
-`run_action` also takes the key alone (`plate_add`) when only one action
-has it, as agents and the tools' own messages write it. `run_action` calls
-`ActionRegistry::run(id, param, record_stats=false)`, so agent runs never reorder the palette. An
-unknown id that is a tool's name or a CAD tool's is answered with where that runs (see Tool catalog);
-any other returns up to three close ids, scored by edit distance against both the full id and its
-key, a key that contains the request (`delete_all` in `obj_delete_all`) counting as closest. An action
-with `completes_in_background` that gets a path runs as an export operation and completes when the
-file is written.
+`run_action {id, args}` also takes the key alone (`plate_add`) when only one action has it, as agents and
+the tools' own messages write it. It resolves the id on the UI thread with `ActionRegistry::find_live()`,
+which first re-materialises the families whose membership follows live state (plates, recent projects, the
+Design tab's tiles; settings are not, being thousands), so the call after one that added a plate, opened a
+sketch or switched the tab finds the tiles of the app as it is then, and no longer one that is gone. The
+Speed Dial's own picks run from the snapshot it was opened with. An unknown id returns up to three
+close ids, scored by edit distance against both the full id and its key, a key that contains the request
+(`delete_all` in `obj_delete_all`) counting as closest, and says where to find an action or a command (see
+Tool catalog); the id or key of a Design tile that is not live says instead that the tile is there only while
+the Design tab is shown in its mode with the CAD feature on, and that `call_tool` runs its command from any
+tab (`unknown_action()`). A command's tile runs the command's own function:
+`args` are checked against its schema, and it runs through a `Mcp::TileContext`, which is `run_action`'s
+own context except that a command rewriting its journal entry does so inside `run_action`'s, as
+`{"id": ..., "args": ...}`, so a recorded session replays through `run_action`; the reply's `ran` is the
+resolved id. Any other action (a plugin's script or page, a plate's, a setting's, a recent project's) takes
+no arguments, so `args` other than `{}` are refused, saying so (`action_args_error()`); it runs through
+`ActionRegistry::run(id, args, record_stats=false)`, so agent runs never reorder the palette, and replies as a
+command does.
 
-Given a path, a command with a `Path` param skips its file dialog and calls an entry point that has
-none: an operation of `GUI/Operations` where a tool does the same thing (see The operations layer).
-Without a param, it behaves as it does in the palette. The param is an absolute path, or, for
-outputs, a JSON object string `{"path": "...", "overwrite": true}`. `path_param()` resolves it and
-turns a bad path into an Error result.
+### Commands that replace a dialog
 
-| Command | Takes | Entry point |
+Given its arguments, a command skips its dialog and calls an entry point that has none: an operation of
+`GUI/Operations` where a tool does the same thing (see The operations layer). A path is absolute; an output
+takes `overwrite: true` to replace a file that exists. `path_argument()` resolves `{"path", "overwrite"?}` and
+turns a bad or missing path into an Error result.
+
+| Command | Arguments | Entry point |
 |---|---|---|
-| `load_project` | `.3mf` | `Plater::load_project(path)`; still asks about unsaved changes |
-| `import_file` | model file | `Ops::import_models()`: the file's geometry (a project file's settings are not loaded), as one undo step |
-| `import_configs` | `.json`, `.zip`, `.orca_printer`, `.orca_filament`, `.orca_bundle`; `.gcode` | `Ops::import_presets()`; for G-code `MainFrame::load_config_file(path)` |
-| `save_project_as` | output `.3mf` | `Ops::save_project_as()` |
-| `export_gcode` | output `.gcode` | `Ops::start_gcode_export()`; completion `Export` |
-| `export_sliced_file`, `export_all_sliced_file` | output `.gcode.3mf` | `Ops::export_sliced_3mf()` |
-| `export_stl` | output `.stl` | `Ops::export_stl()` |
-| `export_3mf` | output `.3mf` | `Ops::export_model_3mf()` |
-| `export_stl_multi` | existing directory | `Plater::export_stl(..., multiple, dir)` |
-| `add_primitive_svg` | `.svg` | `GLGizmoSVG::create_volume(path, type)`: a new object, or a part of the selected one; a job |
-| `export_config` | existing directory | `ExportConfigsDialog(parent, dir)`: the dialog still opens, and its OK writes there |
-| `install_local_plugin` | `.py`, `.whl` | `install_local_plugin_package(path, parent, message)`, the Plugins dialog's install: it still asks before replacing an installed plugin, in Orca's own "Overwrite Plugin" message dialog, which `answer_dialog` answers on every platform. Cancel makes the command an error saying that the plugin was not installed. A file that is not a `.py` or `.whl` is refused before that. A package that fails inspection or installation is an Error whose message is "Plugin installation failed:" and the reason, such as a `.py` without a name in its PEP 723 `[tool.orcaslicer.plugin]` table |
+| `load_project` | `path`: `.3mf` | `Plater::load_project(path)`, which asks about unsaved changes as Open Project does |
+| `import_file` | `path`: model file | `Ops::import_models()`: the file's geometry (a project file's settings are not loaded), as one undo step |
+| `import_configs` | `path`: `.json`, `.zip`, `.orca_printer`, `.orca_filament`, `.orca_bundle`; `.gcode`; `on_conflict` | `Ops::import_presets()`; for G-code `MainFrame::load_config_file(path)` |
+| `save_project_as` | `path`: output `.3mf`, `overwrite` | `Ops::save_project_as()` |
+| `export_gcode` | `path`: output `.gcode`, `overwrite` | `Ops::start_gcode_export()`; completion `Export` |
+| `export_sliced_file`, `export_all_sliced_file` | `path`: output `.gcode.3mf`, `overwrite` | `Ops::export_sliced_3mf()` |
+| `export_stl` | `path`: output `.stl`, `overwrite` | `Ops::export_stl()` |
+| `export_3mf` | `path`: output `.3mf`, `overwrite` | `Ops::export_model_3mf()` |
+| `export_stl_multi` | `path`: existing directory | `Plater::export_stl(..., multiple, dir)` |
+| `add_primitive_svg` | `path`: `.svg` | `GLGizmoSVG::create_volume(path, type)`: a new object, or a part of the selected one; a job |
+| `export_config` | `path`: existing directory | `ExportConfigsDialog(parent, dir)`: the dialog opens, and its OK writes there |
+| `install_local_plugin` | `path`: `.py`, `.whl` | `install_local_plugin_package(path, parent, message)`, the Plugins dialog's install: it asks before replacing an installed plugin, in Orca's own "Overwrite Plugin" message dialog, which `answer_dialog` answers on every platform. Cancel makes the command an error saying that the plugin was not installed. A file that is not a `.py` or `.whl` is refused before that. A package that fails inspection or installation is an Error whose message is "Plugin installation failed:" and the reason, such as a `.py` without a name in its PEP 723 `[tool.orcaslicer.plugin]` table |
+| `open_preferences` | `tab`, `key` | `GUI_App::open_preferences(tab, key)`: the dialog opens on that tab, scrolled to the preference |
+| `plate_goto` | `plate`: 0-based | `Ops::select_plate()` |
 
 The six shape commands (`add_primitive_cube`, `_cylinder`, `_sphere`, `_cone`, `_disc`, `_torus`)
-take a `Text` param, the size the Primitive size dialog asks for (`"40 40 10"`, `"90 4"`), and then
-call `ObjectList::load_generic_subobject(type, INVALID, true, size)`, which skips the dialog. A param
-with the wrong count of positive numbers is an Error result. With an object selected they add
+take `size`, the dimensions the Primitive size dialog asks for in its order (`[40, 40, 10]`, `[90, 4]`),
+and then call `ObjectList::load_generic_subobject(type, INVALID, true, size)`, which skips the dialog. A
+size with the wrong count of positive numbers is an Error result. With an object selected they add
 nothing (`ObjectList::can_add_shape_object()`), and say so as an Error, in the palette too.
 
 The object structure commands stand for the object list's context-menu items and the plate menu's
 Order By. Like those items, they act on the object list's selected rows, which `select_objects` sets:
 
-| Command | Param | Entry point | Refused when |
+| Command | Arguments | Entry point | Refused when |
 |---|---|---|---|
 | `obj_type_part`, `_negative`, `_modifier`, `_support_blocker`, `_support_enforcer`, `_precise_seam` | none | `ObjectList::set_volume_type(type, true, false)` | a selected row is not a part; the object's last solid part; a text or SVG part to a support or seam type |
-| `obj_rename` | Text: the name | `ObjectList::rename_item(item, name)` | not one object or part row; characters a file name cannot hold |
-| `obj_set_instances` | Index: 1-1000 | `Ops::set_instance_count()` | no object selected; 0 (use `obj_delete`); a cut object; an unprintable instance |
+| `obj_rename` | `name` | `ObjectList::rename_item(item, name)` | not one object or part row; characters a file name cannot hold |
+| `obj_set_instances` | `count`: 1-1000 | `Ops::set_instance_count()` | no object selected; a count below 1 (use `obj_delete`) or above 1000; a cut object; an unprintable instance |
 | `obj_assemble` | none | `ObjectList::merge(true)` | fewer than two object rows; a cut object |
 | `obj_instances_to_objects` | none | `ObjectList::split_instances()` | no object with more than one instance selected |
-| `obj_order_by_name`, `_filament`, `_height`, `_size` | Text: `all` for every plate | `ObjectList::order_objects(order, all)` | no objects to order; a gizmo is open |
+| `obj_order_by_name`, `_filament`, `_height`, `_size` | `all`: every plate | `ObjectList::order_objects(order, all)` | no objects to order; a gizmo is open |
 
 Change Type checks the rows itself: with no part row selected, `set_volume_type()` falls back to the
 3D selection, which for a selected object holds every part, a change no menu offers. That function
 returns why it changed nothing and shows it only for the menu (`show_errors`), so the rule stays in
 one place. `rename_item(item, name)` and `set_number_of_copies(num)` are the work of the Rename and
-Set number of instances items without their dialogs, which the items keep; without a param, the
+Set number of instances items without their dialogs, which the items keep; with no arguments, the
 commands open those dialogs. Order By keeps the menu's toggle: choosing the order the objects already
 have reverses it.
 
 A command whose effect its message does not carry sets `AppActionRunResult::reply`, a JSON object
-whose fields `run_action` adds to its reply and the palette never shows. `obj_order_by_*` reply with
+whose fields an automated call's reply has and the palette never shows. `obj_order_by_*` reply with
 the sorted plates' objects in their new order (`order: [{object, name, plate}]`) and `descending`,
 `obj_assemble` with the new object's `object` and `name`, `obj_instances_to_objects` with the
 `objects` the instances are in, and `obj_set_instances` with `object` and `instances`.
 
-Commands that still open a dialog, such as `export_config`, `plate_rename` or `send_gcode` (see
-Print host uploads), return `blocked_by_dialog`, and the agent answers the dialog; the plate scope sets
-a name without one.
+Commands that open a dialog whatever their arguments, such as `export_config`, `plate_rename` or `send_gcode`
+(see Print host uploads), return `blocked_by_dialog`, and the agent answers the dialog; the plate scope sets a
+name without one.
 
 `filament_add` and `filament_delete` are the filament list's + and - buttons and a slot's Delete menu item
 (`Sidebar::add_filament()` and `Sidebar::delete_filament()`, then the slot counter). They run where the
 buttons show, for printers that take several filaments through one extruder, and not on a G-code file;
 elsewhere, and at the slot limit or with one slot left, they return Info. A new slot goes after the
 physical slots, so mixed filaments move up by one with the objects on them; the message names the new
-slot. `filament_delete` takes a 1-based slot, the last physical one without it, and remaps the objects on
+slot. `filament_delete` takes a 1-based `slot`, the last physical one without it, and remaps the objects on
 it as the GUI does. A mixed filament is refused (an Error): it is deleted from the mixed filament list.
 
 `import_configs` with a path imports presets as the Import Configs dialog does, through
@@ -1644,14 +1854,14 @@ go to `PresetBundle::import_presets()`, and the presets are reloaded and the sid
 file (`.json`) is imported alone, a `.zip` or bundle (`.orca_printer`, `.orca_filament`, `.orca_bundle`)
 with every preset inside it. The dialog asks about each preset that exists already; the command answers
 that question itself, never with "to all", so it is asked about every such preset and the message can name
-them all: the param `{"path": ..., "on_conflict": "overwrite"}` replaces them, and by default (`"skip"`) they
-are kept. `overwrite`, which other path params use for an output file, is refused here rather than read
-with that other meaning. The message lists the presets imported, replaced and kept, found by comparing the
+them all: `on_conflict: "overwrite"` replaces them, and by default (`"skip"`) they are kept. The schema has
+no `overwrite`, which the output commands take for a file, so it is refused here rather than read with
+that other meaning. The message lists the presets imported, replaced and kept, found by comparing the
 preset names before and after; a call that changes nothing is an Error with the dialog's hint about adding
-the printer first. A `.gcode` still loads the settings it was sliced with through
+the printer first. A `.gcode` loads the settings it was sliced with through
 `MainFrame::load_config_file(path)`.
 
-`export_config` with a directory still opens the Export Preset Bundle dialog, given that directory: its
+`export_config` with a directory opens the Export Preset Bundle dialog, given that directory: its
 OK writes there instead of asking for a folder. The agent picks the kind by clicking its label
 (`click`), checks presets with `set_widget_value` on their checkboxes, which are named after the preset, printer
 or filament they stand for, presses OK with `answer_dialog`, and answers the result message. The command
@@ -1659,8 +1869,8 @@ is an Error when the dialog is closed without exporting. Preset files are not ex
 dialog: its archive functions read its own checkboxes.
 
 A command that does nothing, such as an object command with nothing selected, returns its message
-with `AppActionRunResult::done` false. The palette shows it at its level, Info for most, as it always
-has; `run_action` replies `isError`. `obj_arrange` and `obj_orient` say why they did nothing (no
+with `AppActionRunResult::done` false. The palette shows it at its level, Info for most; an automated
+call replies `isError`. `obj_arrange` and `obj_orient` say why they did nothing (no
 objects, or another background job running) and reset the prepare state a plate's Arrange or Auto
 Rotate icon leaves behind, so they act on every plate as the toolbar does. Their job is the call's
 operation (see Worker jobs), so `run_action` returns once it is done.
@@ -1669,20 +1879,22 @@ operation (see Worker jobs), so `run_action` returns once it is done.
 
 Most features need only a Speed Dial command:
 
-1. Add it to `build_command_catalog()` with a key, title, group and runner. Give it a row in
-   `describe_commands()` with an English description of what it does and what it returns.
-2. If it opens a file dialog, give it a `Path` param with help text. Given a param, the runner
-   resolves it with `path_param()` and calls an entry point that shows no dialog. It must not
-   prompt; it returns an Error result instead.
-3. If the effect finishes in the background after `run()` returns, set
-   `CommandCompletion::Export` so that `run_action` waits for the file.
+1. Add it in `register_all_commands()` with a key, title, group and function, through `add()` or
+   `add_with_icon()`, which build it with `ui_command()`. Give it a row in `describe_commands()` with an
+   English description of what it does and what it returns.
+2. If it opens a dialog, give it the arguments that stand for the dialog:
+   `add(...).input_schema = Mcp::object_schema({...})`. With no arguments the function opens the dialog
+   (`Mcp::person_form(args)`); with them, it resolves them (`path_argument()` for a file) and calls an entry
+   point that shows no dialog. It must not prompt; it returns an Error result instead.
+3. If the effect finishes in the background after the function returns, pass
+   `CommandCompletion::Export` to `ui_command()` so that a call given the file waits for it.
 
 The command then appears in the palette, in `search_actions` and `run_action`, and in replays.
 
 What the command does goes into an operation of `GUI/Operations` (see The operations layer): its
-checks, its refusals and their wording, its undo snapshot. The runner resolves its param, calls the
+checks, its refusals and their wording, its undo snapshot. The function reads its arguments, calls the
 operation and answers `refused()` with the refusal or a result, and names the operation in the
-`reaches` table. A command with no param that asks the person calls the owner's method.
+`reaches` table. With no arguments, a command that asks the person calls the owner's method.
 
 When an agent needs structured arguments or results, or has to wait for the effect, add a typed
 tool to the matching `McpTools*.cpp`. Use `inspect_tool()` for pure observation, which runs inline,
@@ -1694,12 +1906,23 @@ runs, so `arg_string()` and its siblings can read the arguments. Do all wx work 
 and get the plater with `ui_plater()`, which fails until the main window is up. A tool that changes
 something calls an operation of `GUI/Operations` for it, the one its command calls where there is
 one, throws `refused()` for the operation's refusal and is registered through `reaching()` with the
-operations it calls. Throw `ToolFailure`
-with a message the model can act on for what is the tool's own to check, such as the form of an argument. Call `settle()` after a change so queued events are handled
+operations it calls. Throw `ToolFailure` with a message the model can act on for what is the tool's own
+to check, such as the form of an argument. Call `settle()` after a change so queued events are handled
 before the reply, and page lists with `page()`. For work that finishes later, call
 `ctx.begin_operation()`, wait with `poll_ui()`, and give the work an identity, as slicing and
 export do. Work on the UI job worker needs none of that: the call that starts it holds it as its
 operation (see Worker jobs). Describe the tool in English, including what the reply holds and when it is a job.
+
+A new or changed command changes the command reference, `tests/data/command_catalog.json`: the
+`catalog_reference()` (`CommandCatalog.hpp`) of the catalog a run with the Design tab holds, every added
+command in the order it was added with its key, English title, group, description, schema, examples,
+whether it is listed and has a tile, its access labels, guard, completion and the operations it names. It
+is where a reader outside the app sees every command, and the skill's list of the Speed Dial's commands is
+written from it (`tools/mcp/gen_skill_reference.py`). The unit test "the checked-in command reference
+matches the catalog" fails until it is regenerated: run `slic3rutils_tests "[Reference]"` with
+`ORCA_UPDATE_COMMAND_REFERENCE=1` in the environment and check the file in. The test compares the file with
+its line ends made LF, since a checkout may turn them into CRLF, and a build without CAD does not check it.
+A plugin's operations are not in it: they are not the build's.
 
 ## GUI automation
 
@@ -1797,7 +2020,7 @@ tools and screenshots reach: `list_widgets` lists its ImGui items, `click` and `
 and `mouse_gesture` takes `canvas: "design"` (`"current"` is the view shown, `shown_canvas()`). A click
 there goes to the Design view's own handlers, so a left click picks a face, edge or body and a right
 click opens the offer menu, which is listed or run like any other. Points of the model name
-Prepare's objects, so on the Design view `mouse_gesture` takes pixels only; `call_cad_tool query_topology`
+Prepare's objects, so on the Design view `mouse_gesture` takes pixels only; the `query_topology` command
 gives its faces.
 
 ### Windows
@@ -1954,7 +2177,7 @@ command that opens a dialog from the 3D view's queued right click leaves it open
 returns; the reply then lists it under `dialogs`. The call waits for that queued click by queuing a
 `CallAfter` on the canvas behind it (one handler's queue is first in, first out) before it settles
 and reads the capture. A later menu in the same call is closed unseen and counted (`menus_closed`);
-a menu that opens in a window where nothing is armed (a `call_cad_tool run_verb` whose offer opens later)
+a menu that opens in a window where nothing is armed (a call that queues a menu to open later)
 is closed unseen too. The last three such menus, with the tool whose window took them, are in
 `get_app_state.closed_menus`.
 
@@ -2175,7 +2398,7 @@ plater's camera, and the Design tab swaps its own into that slot while it is sho
 (`DesignCanvas::enter_viewport()`), so `Plater::get_camera()` is always the shown view's and one code
 path serves all of them. `look_at` is the point the camera looks at, in mm in the view's world
 coordinates, as `list_objects` gives positions. On the Design tab these are the Design view's, the
-frame the CAD tools' world points use, where `describe_scene`'s `modeling_origin` is the sketch
+frame the Design commands' world points use, where `describe_scene`'s `modeling_origin` is the sketch
 planes' origin. `Camera::set_target()` moves the camera parallel, keeping its direction and
 distance. `zoom` is viewport pixels per mm at the target's depth, which are screenshot pixels: exact
 everywhere in an orthographic view, and only at the target's depth in a perspective one
@@ -2770,7 +2993,7 @@ the UI thread, and a step after the replay sees a closed file. At exit `stop()` 
 file, then drops what is still queued and leaves the sink to its threads, which own its state. A
 recording counts as active until its file is closed, for the one-at-a-time rule and for encodes.
 
-**Encoding up front.** `start_recording` takes the Start Recording command's encoding keys (`encode`,
+**Encoding up front.** `start_recording` takes the Start Recording dialog's encoding keys (`encode`,
 `encode_preset`, `codec`, `crf`, `speed`, `profile`), checked by `apply_recording_overrides()` with its
 defaults, the Balanced preset, and refuses `encode` without an ffmpeg before anything records. The
 recording keeps `encode_recording`'s arguments (`RecordingOptions::encode`), and the `stop_recording`
@@ -2783,14 +3006,15 @@ the endpoint, is not encoded. An agent can still encode any recording later with
 **From the app.** The Speed Dial commands `take_screenshot`, `start_recording` and `stop_recording`, which
 the Help menu also has, give a person screenshots and recordings without an agent: a PNG of the main window,
 and a recording of it for up to an hour. Both go in the person's Downloads folder unless they chose another.
+`start_recording` and `stop_recording` are the tools too, of which this is the form with no arguments
+(`with_person_form()`, see Tool catalog); given arguments, or `silent: true`, they are the tools above, and
+`start_recording` then also records for up to an hour unless `max_seconds` says otherwise.
 Start Recording opens `RecordingDialog`, which splits its settings by the file they make. Record holds the
 JPEG quality of the `.mkv` and a switch for each overlay, the pointer and the caption, both off unless the
 person turns them on. Encode to MP4 holds whether ffmpeg encodes it once it ends, with a built-in preset or
 codec, CRF, speed and profile; it is off and disabled when no ffmpeg is found, and says how to get one. A
 rail joins the two stages and shows whether the second runs. The dialog remembers what it starts with in
-AppConfig's `recording` section (`RecordingSettings`). The command's parameter overrides those settings for
-one recording, and with `silent` starts at once without the dialog and remembers nothing; a silent start
-that would encode without an ffmpeg is refused rather than recording unencoded. The encode is
+AppConfig's `recording` section (`RecordingSettings`). The encode is
 `encode_recording` itself, run by `McpService::encode_when_closed()` as an unjournaled job once the
 recording's file is closed (`McpRecorder::wait_closed()`), so it can be cancelled like any encode. No reply
 names the job, which only exists once the file is closed: an agent finds it in `get_app_state.jobs` and waits
@@ -2861,7 +3085,7 @@ falls to almost nothing while the window is still and rises for the motion, wher
 spend it evenly; the video's length in the reply is
 the MP4's movie header's (`mp4_duration()`); an ffmpeg without the encoder is refused, naming what is needed. It runs
 without a console window, polled every 100 ms and terminated when the call is cancelled
-(`ToolDef::cancellable`: `cancel_job {job}` stops it through `McpService::request_stop()`). On Windows it is
+(`NativeCommand::cancellable`: `cancel_job {job}` stops it through `McpService::request_stop()`). On Windows it is
 ended with `TerminateProcess()` on its handle and waited for on that handle, since `TerminateProcess()`
 returns before the process is gone and boost's `terminate()` closes the handle right after it; a child not
 gone within 5 s keeps its files, which the error names, and its source and destination stay reserved for
@@ -3031,8 +3255,9 @@ window is such a navigation, to that file (`WebViewHostDialog::dropped_file()`),
 nothing while a replay runs, as Open is unavailable then. The browser's own keys are off, so Ctrl+R and F5
 don't reload the page back to its draft. The page's editor starts from a commented
 draft and suggests the replay's keys, tool names, a tool's arguments and their allowed values, and
-`${…}` placeholders; the tool part comes from the registry, which the dialog sends once the service is
-ready, so the suggestions match the build. Save writes the text back to the file it was opened from, or
+`${…}` placeholders; the tool part comes from the command catalog's listed tools (`editor_tool_catalog()`),
+which the dialog sends once the service is ready, so the suggestions match the build. Save writes the text
+back to the file it was opened from, or
 asks where to put a new replay file and offers the replay's name as the file name. A replay saved
 somewhere new is that file's from then on: `${replay_dir}` and its output folder follow the file, as for
 an opened one. Closing the window, or opening another replay, with unsaved edits asks first. The page
@@ -3105,7 +3330,9 @@ returned a job into a step with `"await": false` and
 `"save_as": "jobN"`, points the `wait {for: "job"}` that followed at `${jobs.jobN}` (dropping waits
 on jobs it never saw start) and rewrites screenshot paths to `${out_dir}/<file name>`. It moves a
 recording's path there too (`start_recording` records the one it used), and an encode's `save_path`, and
-an encode's source when an earlier `start_recording` recorded it; another source stays where it is.
+an encode's source when an earlier `start_recording` recorded it; another source stays where it is. A
+`run_action` of a command's tile, named by its key or its full id, is rewritten as a call of that command,
+inside the tile's `{id, args}`, so a recording started from the Start Recording tile moves the same way.
 
 A call that runs as a job is judged by its job's final result, not by its reply. `McpCore` tells the
 journal the job's id when it starts it (`Journal::job_started()`) and its result when the handler
@@ -3267,7 +3494,8 @@ code. The install isn't covered by the watcher; uv's 120 s timeout bounds it.
 
 **Identity.** A person's script runs under the audit identity `script`, an agent's under `mcp`
 (`kScriptIdentityPerson`, `kScriptIdentityAgent`); `McpService::person_run()` tells them apart by the run's
-lineage, since the panel's and `--mcp-run`'s jobs are marked as a person's (`as_person()`). The plugin audit
+lineage, since the panel's, `--mcp-run`'s and a person's pick of a long command's jobs are marked as a person's
+(`as_person()`). The plugin audit
 ([plugin-permissions.md](plugin-permissions.md)) judges a script under its identity as it judges a plugin, with
 one difference: a script has no install state to hold a grant, so it is never asked, and what the implicit
 rules don't allow is denied with a `PermissionError` that names the setting. The threads, pool tasks and window
@@ -3302,6 +3530,11 @@ while it lasts, through the run's bridge: its calls are `ToolContext::call_child
 each has its tool's guards, admission and undo, and the GIL is released while it waits. At the end the bridge
 closes, and the run waits for calls already inside it before its `ToolContext` goes. An error result raises
 `orca.host.tools.ToolError` with its data as `details`. Code with no audit identity at all is refused.
+`orca.host.tools.list()` and `describe(name)` only read the command catalog, so they need no run and work
+on any thread, for any code: `list()` gives every command of `NativeCommands::instance()` and then the
+operations its sources hold, each `{name, title, group, description, read_only, listed}`, and
+`describe(name)` one command's entry of the command reference (`command_reference()`, see Making a feature
+reachable), or raises `ToolError` with `did_you_mean` for a name the catalog does not resolve.
 
 **A script's UI.** What a script's run opens (windows, dock panels, progress dialogs, message boxes, notification
 links) is registered under a run-unique owner (`script/<id>`; a plugin key never holds `/`), and closes with the
@@ -3466,7 +3699,7 @@ worker, a Python thread one starts (the thread shim carries the mark) or MCP's o
 operation (`ScopedToolCallerThread`). A call from the UI thread, a slicing hook or another plugin callback
 is refused before anything waits. `install_plugin_tool_caller()` routes a plugin's calls. The UI
 thread, which owns the service and runs the plugin's unload, admits each one: the plugin must still be
-loaded and its scope not ended, and the service is started in its catalog-only mode when MCP is off; the
+loaded and its scope not ended, and the service is started without its endpoint when MCP is off; the
 call then holds a lease the service's drain waits for. A caller that stops waiting because the app closes
 marks its admission abandoned, so no lease is taken that nobody releases. The call runs as
 `McpCore::call_plugin()`: a top-level job owned by the plugin
@@ -3496,7 +3729,9 @@ Its operations are staged and offered once the plugin's load has committed
 load that did not commit, an exception included, drops them, and they are withdrawn when the plugin
 unloads. An operation is reached as
 `plugin.<plugin key>.<name>` through `call_tool`, `orca.host.tools.call` and replay steps, and never
-appears in `tools/list`: `ToolRegistry::set_dynamic()` resolves those names (`ToolRegistry::lookup()`).
+appears in `tools/list`: they are a source of the command catalog (`CommandSource`, added by
+`register_api_tools()`), whose `CommandCatalog::lookup()` resolves those names after the catalog's own
+commands, and whose `source_commands()` `search_tools` lists.
 It runs as a job, under the mutate guard and journaled when it changes something, under the inspect guard
 otherwise; its handler runs under the plugin's identity and grants, and each call is logged with the
 plugin and the caller. A call is refused once the plugin has unloaded, by the plugin manager's state, and
@@ -3504,24 +3739,30 @@ by `PluginOperations::invoke()` when the operation found is no longer the one of
 offered again by a new load). The call's job is the caller's, so an operation already running when its
 plugin unloads runs to its end; its own tool calls are refused from then on.
 
-**`search_tools` and `call_tool`.** `search_tools` gives the schema of any registered tool or operation,
-or lists every name; for `call_cad_tool` it points to `list_cad_tools` and `describe_cad_tool`, which list
-and describe the Design tab's CAD tools.
-Its search by words is the one search across catalogs: the best five tools and operations that match (more
-with `limit`), a tool with the first sentence of its description, since `tools/list` has its schema, and an
-operation with its schema, which nothing else lists; and beside them the best five of each other catalog with
-its total and how to use it: Speed Dial
-actions, the settings being edited (`search_settings()`, as `get_settings` searches without a scope), the
-Python reference and the Design tab's CAD tools (scored on their details too, and noting when the Design
-tab is off). Every catalog is ranked
+**`search_tools` and `call_tool`.** `search_tools` reads one inventory (`search_commands()`): every
+command of the catalog and the operations its source holds. `{tool}` gives any command's description,
+schema, group, `read_only` and `listed`, and its examples when it has some (the Design commands, and `undo`
+and `redo` with them), and a call with neither `tool` nor `query` lists every name. Its `group` narrows the names and
+the command matches to one group (see Tool catalog); the other catalogs' matches beside them are not
+narrowed.
+Its search by words is the one search across catalogs: the best five commands that match (more with
+`limit`), each `{name, group, summary, listed}`, the summary the first sentence of its description. A
+listed command's schema is in `tools/list`; one that is not listed, a Speed Dial command, a Design command or a
+plugin's operation, also carries its `input_schema`, and its description where that says more than the
+summary, which nothing else shows (an operation's first
+sentence only says a plugin offers it). A command is matched on its key, its title and its description,
+and among equal matches a listed one comes first. The reply's `use` says that `call_tool {tool, args}`
+runs a command that is not listed. Beside them come the best five of each other catalog with its total
+and how to use it: the Speed Dial's actions that are no command, the settings being edited
+(`search_settings()`, as `get_settings` searches without a scope) and the Python reference. Every catalog is ranked
 the same way (`query_words()`, `match_score()`): a query word matches where a word of the name or text
 starts with it, CamelCase parts included, and entries matching more words, then more of them in the name,
-come first. Scores of different catalogs don't compare, so each keeps its own list. Actions, settings
-and the Design tab's CAD tools are read on the UI thread: when it can't run the call (a native dialog holds
-it, or it is busy) the search leaves those three out, and before the main window exists (the server starts
-ahead of it) it leaves out the settings. The tools, operations and Python reference answer whatever the UI
-thread is doing. `call_tool {tool, args}` is dispatched before it runs
-(`resolve_api_call()`, in the protocol, in child calls and in the plugin caller): the target's arguments
+come first. Scores of different catalogs don't compare, so each keeps its own list. Actions and settings
+are read on the UI thread: when it can't run the call (a native dialog holds
+it, or it is busy) the search leaves those two out, and before the main window exists (the server starts
+ahead of it) it leaves out the settings. The commands, operations and Python reference answer whatever the
+UI thread is doing. `call_tool {tool, args}` runs any command of the catalog, listed or not, and is dispatched
+before it runs (`resolve_call()`, in the protocol, in child calls and in the plugin caller): the target's arguments
 are normalized and validated, and the call runs as the target's own, with its guard, mode, budget and
 journal flag, so the journal records the target.
 
@@ -3536,14 +3777,15 @@ Replies go to stdout; a 202 writes nothing.
 
 The bridge starts OrcaSlicer only for a tool call, so an agent session that is registered user-wide
 but never calls a tool never opens the app. While nothing answers, every other message is answered
-by an `McpProtocol` of the bridge's own over `McpService::offline_catalog()`, given the headers the
+by an `McpProtocol` of the bridge's own over the process's command catalog (`NativeCommands::instance()`,
+built there on first use, since the bridge never starts the GUI that builds it), given the headers the
 server would get: the handshake, `ping`, `tools/list`, `server/discover`, notifications and unknown
 methods get exactly the reply this build's server gives. That holds because these methods read
-only the catalog and the server's details, and the server keeps no session. The catalog is held by
-a service that is never started: registering a tool only describes it (a schema built from
-constants and compile-time options), and its handler runs only when the tool is called, so
-building it needs neither wx nor a window. A tool's registration must stay that way, never reading
-app state; a unit test builds the catalog without the app.
+only the catalog and the server's details, and the server keeps no session. The catalog needs no
+service: registering a command only describes it (a schema built from constants and compile-time
+options), and its function runs only when the command is called, reaching the service through its
+call's context, so building it needs neither wx nor a window. A command's registration must stay that
+way, never reading app state; a unit test builds the catalog without the app.
 
 A `tools/call` with nothing answering starts `orca-slicer --mcp` detached, with the bridge's
 `--datadir` and `--mcp-port`, and waits up to 60 s. If that process exits within seconds, a running
@@ -3616,12 +3858,20 @@ that can't connect over HTTP; its setup names this executable, so it breaks when
 ## Testing
 
 Unit tests are Catch2 cases tagged `[Mcp]` in `tests/slic3rutils/test_mcp_*.cpp`, run with
-`slic3rutils_tests "[Mcp]"`. `test_mcp_protocol` covers both eras, argument validation, the names
-and values read in place of a tool's own, and the error for an unknown tool another catalog has;
+`slic3rutils_tests "[Mcp]"`. `test_mcp_protocol` covers both eras, the order of `tools/list`, argument
+validation, the names and values read in place of a tool's own, and the error for an unknown tool, which names
+the closest;
 `test_mcp_http` the endpoint rules and a live server (deadlines, eviction, stop); `test_mcp_token`
 who owns the discovery file and when a port counts as held by another window; `test_mcp_core`
 `UiInvoker`, `McpCore` and `JobRegistry` on a hand-stepped dispatcher (guards, abandoned calls,
-jobs, blocked_by_dialog, admission, slots, idle, journal); `test_operations` (tagged `[Operations]`)
+jobs, blocked_by_dialog, admission, slots, idle, journal and the id arguments it leaves out, a context
+with no service, a submitted call);
+`test_command_catalog` (tagged `[CommandCatalog]`) the catalog itself: unique keys, the palette's
+commands, which are listed, the merged commands' schemas and forms, a tool list built without a
+service, a Speed Dial command found by the one lookup, each command's `id_args` against its schema, the
+history `undo` and `redo` take, and the command reference (tagged `[Reference]`): the checked-in file against
+the catalog, and that its entries hold what `tools/list` tells a client and both forms of a two-form command;
+`test_operations` (tagged `[Operations]`)
 the slice and export outcomes, an operation's `Outcome` and `Refusal`, and the catalogs' operation
 names and exception lists; `test_mcp_replay` parsing, substitution, matchers and await; `test_mcp_ui` labels,
 snapshot text, ref liveness, synthetic key state, a key's way through the hooks of its target's
@@ -3646,7 +3896,7 @@ dialog's description, a web dialog rule's wx buttons and web view handles;
 budget, non-blocking push, finish, abort and failed frames, the video transform, overlays and frame
 repeats, captions and what they hide, the ffmpeg command and listings, the files recordings and
 encodes reserve, and the journal's recording paths; `test_mcp_tools` setting serialization, how a query ranks
-the Speed Dial's actions, and which catalog a name its own lacks is pointed to; `test_mcp_config` the object and part scopes' keys and
+the Speed Dial's actions, each typed tool's group, `search_tools`' one inventory and its group filter, and which arguments the journal leaves out; `test_mcp_config` the object and part scopes' keys and
 effective values, the names and places `save_preset` accepts, enum labels and descriptions, the settings search,
 per-variant entries and their writes, preset comparison, `changed`, which unsaved changes a call discarded, which presets
 `delete_preset` refuses or deletes with a custom printer, the project scope's slot colours,
@@ -3696,14 +3946,14 @@ answers 200 or 500,
 `tools/mcp/test_recovery_under_load.py` answering a dialog while stalled clients hold every
 connection. See `tools/mcp/README.md`.
 
-`test_mcp_scene` covers the scene and layer tools without the app: `transform`'s `size`, the shape
-commands' size param, notifications updated before the first ImGui frame, `arrange`'s option rules,
+`test_mcp_scene` covers the scene and layer tools without the app: `transform`'s `size`, the arguments
+of the commands that replace a dialog, notifications updated before the first ImGui frame, `arrange`'s option rules,
 worker-job admission on a stand-in worker (a job past the reply budget, a slow cancel and a timeout,
 three ways to start one, recover input and a person's job), `list_objects`' descriptions of a `Model`
 built in the test (its rows by plate, the plate filter and paging, placement and boxes on the bed,
 mirrors, filament fallback, precise seam subtypes, height ranges, the summary of a variable layer
 height profile), `add_part`'s type names and shape
-sizes, the object structure commands' params, the height ranges `set_height_ranges` accepts (order,
+sizes, the object structure commands' arguments, the height ranges `set_height_ranges` accepts (order,
 overlaps, bounds, keys), and `set_custom_gcode_at_layer`'s edits of a layer slider built in the test (by layer
 and height, in-place edits, refusals that leave the slider as it was, the type names). On the app,
 `tools/mcp/tests/scene.json` checks object structure and placement (transform on instances, plates and

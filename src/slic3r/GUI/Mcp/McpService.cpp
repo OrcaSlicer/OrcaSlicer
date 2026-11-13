@@ -22,7 +22,9 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/Jobs/Worker.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/PythonScriptRunner.hpp"
@@ -145,19 +147,16 @@ WorkerHooks ui_job_worker_hooks()
     return hooks;
 }
 
-// Server instructions shown to the model; clients truncate them at 4096 characters.
 // The scope key of a plugin's calls, which no job id ("j<n>") can equal.
 std::string plugin_scope_key(const std::string& plugin_key) { return "plugin:" + plugin_key; }
 
+// Server instructions shown to the model; clients truncate them at 4096 characters.
 const char* kInstructions =
     "OrcaSlicer, a 3D-printing slicer, driven through its GUI.\n"
-    "Each tool's description starts with its lane: [core] runs the session and recovers from dialogs, [api] acts on "
-    "project data by index and name with JSON in and out, [ui] drives the GUI itself. Every tool is callable; prefer "
-    "[api] tools, and use [ui] tools for what no [api] tool reaches or to see what a person sees.\n"
     "Workflow: get_app_state (is it ready? which presets, plates, dialogs?) -> act -> check it with the reading "
     "tools (list_objects, list_plates, get_settings, slice's reply, get_slice_stats); screenshot only to see what they "
     "do not report.\n"
-    "Core:\n"
+    "Running the session, dialogs, replays and scripts:\n"
     "- A call that takes long or opens a dialog returns {status:\"running\"|\"blocked_by_dialog\", job}. It keeps "
     "running: never retry it. Answer dialogs with answer_dialog (see get_app_state.dialogs), then wait {for:\"job\"}. "
     "A native message box (native: true) is answered with answer_dialog by one of the buttons listed for it; a file or "
@@ -169,10 +168,11 @@ const char* kInstructions =
     "- run_script runs Python against orca.host, the plugin API (search_python_api searches it), computing over meshes and "
     "settings and calling tools through orca.host.tools; its own file, program, thread and network use is restricted "
     "unless get_app_state.python.scripts_unrestricted.\n"
-    "- Not sure what does something? search_tools {query} searches every catalog at once: the tools, the operations "
-    "plugins offer (plugin.<plugin>.<name>, which the tool list does not show; call_tool runs them), Speed Dial actions, "
-    "settings, the Python API and the Design tab's CAD tools, each match with how to use it.\n"
-    "API lane:\n"
+    "- Not sure what does something? search_tools {query} searches every catalog at once: the commands, with those the "
+    "tool list does not show (Speed Dial commands, the Design tab's, and operations plugins offer as "
+    "plugin.<plugin>.<name>; call_tool runs them), the Speed Dial's other actions, settings and the Python API, each "
+    "match with how to use it.\n"
+    "Acting on project data by index and name, JSON in and out; prefer these:\n"
     "- Typed tools: open_files, select_preset, set_settings, slice, export and the rest.\n"
     "- What a setting does, or which one controls an effect: get_settings with keys, or query with a few words, and no "
     "scope, which looks through the process, filament and printer settings; each item names its scope, the one "
@@ -183,7 +183,7 @@ const char* kInstructions =
     "- Lists come in pages: {items, offset, total}, with next_offset while more remain; call again with that offset to "
     "read on. list_objects has plates and outside in place of items.\n"
     "- Paths are absolute. Outputs never overwrite a file unless overwrite is true.\n"
-    "UI lane:\n"
+    "Driving the GUI itself, for what those do not reach or to see what a person sees:\n"
     "- run_action runs every Speed Dial command (search_actions finds them): prefer it to GUI clicks.\n"
     "- list_widgets lists widgets, menus, 3D toolbar items, gizmos, ImGui items and web page elements with refs; click "
     "/ set_widget_value / press_keys / mouse_gesture act on refs from the latest list_widgets call, or on locators, which "
@@ -211,17 +211,7 @@ void McpServiceDeleter::operator()(McpService* service) const
 
 McpService::McpService() = default;
 
-const ToolRegistry& McpService::offline_catalog()
-{
-    // Kept, never destroyed: the catalog's handlers refer to this service, and the bridge answers from
-    // the catalog until the process exits.
-    static McpService* const service = [] {
-        auto* s = new McpService();
-        s->register_tools();
-        return s;
-    }();
-    return service->m_registry;
-}
+const CommandCatalog& McpService::catalog() const { return NativeCommands::instance(); }
 
 ServerInfo McpService::server_info()
 {
@@ -271,11 +261,12 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
                                                 [this](const std::string& tool, bool running) { m_inspector->ui_activity(tool, running); });
         // A plugin's calls are refused from the moment it unloads, before end_plugin_scope() comes.
         m_jobs.set_owner_liveness([](const std::string& plugin) { return PluginManager::instance().is_plugin_loaded(plugin); });
-        m_core       = std::make_unique<McpCore>(m_registry, *m_invoker, m_jobs, &m_journal, CoreTiming{}, ui_job_worker_hooks(),
+        m_core       = std::make_unique<McpCore>(catalog(), *m_invoker, m_jobs, &m_journal, CoreTiming{}, ui_job_worker_hooks(),
                                                  m_recorder.get());
+        // A command reaches the service through its call's context (ToolContext::service()).
+        m_core->set_service(this);
         m_web_presses = std::make_shared<WebPresses>();
         m_modals->set_before_press([this] { release_web_presses(m_web_presses, nullptr); });
-        register_tools();
         track_window_states();
         m_inspector->capture_menus(true);
         if (ImGuiWrapper* imgui = wxGetApp().imgui())
@@ -315,7 +306,7 @@ bool McpService::start(const McpLaunchOptions& options, bool serve, std::string&
 
     // Request threads of an endpoint closed earlier may still be using the protocol object.
     if (!m_protocol) {
-        m_protocol = std::make_unique<McpProtocol>(m_registry, *m_core, server_info());
+        m_protocol = std::make_unique<McpProtocol>(catalog(), *m_core, server_info());
         m_gate     = std::make_shared<RequestGate>();
         m_gate->protocol = m_protocol.get();
     }
@@ -716,29 +707,10 @@ json McpService::describe() const
     return out;
 }
 
-void McpService::register_tools()
+NativeCommand McpService::as_person(const NativeCommand& command)
 {
-    register_app_tools(*this);
-    register_action_tools(*this);
-    register_project_tools(*this);
-    register_config_tools(*this);
-    register_scene_tools(*this);
-    register_layer_tools(*this);
-    register_view_tools(*this);
-    register_ui_tools(*this);
-    register_replay_tools(*this);
-    register_record_tools(*this);
-#ifdef SLIC3R_CAD
-    register_cad_tools(*this);
-#endif
-    register_python_tools(*this);
-    register_api_tools(*this);
-}
-
-ToolDef McpService::as_person(const ToolDef& def)
-{
-    ToolDef person = def;
-    person.handler = [this, handler = def.handler](const json& args, ToolContext& ctx) {
+    NativeCommand person = command;
+    person.run           = [this, handler = command.run](const json& args, ToolContext& ctx) {
         const std::string job = ctx.job_id();
         {
             std::lock_guard<std::mutex> lock(m_run_state_mutex);
@@ -791,7 +763,7 @@ void McpService::run_launch_file()
                 if (!m_options.run_out.empty())
                     args["out_dir"] = m_options.run_out;
             }
-            const ToolDef def = as_person(*m_registry.find(python ? "run_script" : "run_replay"));
+            const NativeCommand def = as_person(*catalog().find(python ? "run_script" : "run_replay"));
             ToolResult    r   = m_core->call(def, args);
             // A replay or script that opened a dialog and answers it itself replies blocked_by_dialog first.
             const std::string status = r.is_error ? std::string() : r.data.value("status", "");
@@ -834,7 +806,7 @@ void McpService::post_ui(std::function<void()> fn)
 
 void McpService::request_stop(const std::string& job) { m_jobs.request_stop(job); }
 
-std::optional<ToolResult> McpService::call_to_end(const ToolDef& def, const json& args)
+std::optional<ToolResult> McpService::call_to_end(const NativeCommand& def, const json& args)
 {
     ToolResult        r      = m_core->call(def, args);
     const std::string status = r.is_error ? std::string() : r.data.value("status", "");
@@ -854,11 +826,11 @@ std::optional<ToolResult> McpService::call_to_end(const ToolDef& def, const json
 
 bool McpService::encode_when_closed(json args, std::function<void(const ToolResult&)> done)
 {
-    const ToolDef* encode = started() ? m_registry.find("encode_recording") : nullptr;
+    const NativeCommand* encode = started() ? catalog().find("encode_recording") : nullptr;
     if (encode == nullptr || m_stopping)
         return false;
     // A person's encode, outside the session journal like Action Replay's runs.
-    ToolDef def = *encode;
+    NativeCommand def = *encode;
     def.journal = false;
     std::lock_guard<std::mutex> lock(m_runs_mutex);
     // Threads that have set their flag are done or about to be; joining them keeps the list short.
@@ -895,10 +867,10 @@ bool McpService::encode_when_closed(json args, std::function<void(const ToolResu
 
 ToolResult McpService::start_encode(const json& args)
 {
-    const ToolDef* encode = started() ? m_registry.find("encode_recording") : nullptr;
+    const NativeCommand* encode = started() ? catalog().find("encode_recording") : nullptr;
     if (encode == nullptr || m_stopping)
         return ToolResult::error("OrcaSlicer is shutting down");
-    ToolDef def   = *encode;
+    NativeCommand def = *encode;
     def.journal   = false;
     def.budget_ms = 0; // the envelope at once; the result comes from wait
     return m_core->call(def, args);
@@ -929,7 +901,7 @@ void McpService::stop_person_runs()
 std::shared_ptr<PersonRun> McpService::start_replay_run(Replay replay, ReplayContext sctx, std::optional<std::size_t> only_step,
                                                         bool discard_authorized, PersonRun::Events events)
 {
-    const ToolDef* run_replay_def = started() ? m_registry.find("run_replay") : nullptr;
+    const NativeCommand* run_replay_def = started() ? catalog().find("run_replay") : nullptr;
     if (run_replay_def == nullptr || m_stopping)
         return nullptr;
     {
@@ -950,9 +922,9 @@ std::shared_ptr<PersonRun> McpService::start_replay_run(Replay replay, ReplayCon
     auto shared   = std::make_shared<Replay>(std::move(replay));
     auto ctx_held = std::make_shared<ReplayContext>(std::move(sctx));
     // run_replay's properties, outside the session journal: a person's run is not an agent's call.
-    ToolDef def = *run_replay_def;
-    def.journal = false;
-    def.handler = [this, run, shared, ctx_held, only_step, discard_authorized](const json&, ToolContext& ctx) {
+    NativeCommand def = *run_replay_def;
+    def.journal       = false;
+    def.run           = [this, run, shared, ctx_held, only_step, discard_authorized](const json&, ToolContext& ctx) {
         const std::string job = ctx.job_id();
         run->set_job(job);
         struct Authorization
@@ -1000,7 +972,7 @@ std::shared_ptr<PersonRun> McpService::start_replay_run(Replay replay, ReplayCon
 std::shared_ptr<PersonRun> McpService::start_python_session(std::shared_ptr<PythonSession> session, const fs::path& file,
                                                            PersonRun::Events events)
 {
-    const ToolDef* run_script = started() ? m_registry.find("run_script") : nullptr;
+    const NativeCommand* run_script = started() ? catalog().find("run_script") : nullptr;
     if (run_script == nullptr || m_stopping || !session)
         return nullptr;
     {
@@ -1020,9 +992,9 @@ std::shared_ptr<PersonRun> McpService::start_python_session(std::shared_ptr<Pyth
     auto hosted   = std::make_shared<std::atomic<bool>>(false);
     auto filename = file.empty() ? std::string("<run_script>") : path_to_utf8(file);
     // run_script's properties, outside the session journal, as a person's run.
-    ToolDef def = as_person(*run_script);
-    def.journal = false;
-    def.handler = [this, run, session, hosted, filename](const json&, ToolContext& ctx) {
+    NativeCommand def = as_person(*run_script);
+    def.journal       = false;
+    def.run           = [this, run, session, hosted, filename](const json&, ToolContext& ctx) {
         run->set_job(ctx.job_id());
         hosted->store(true);
         // A handler that refuses never hosts the session: it ends here all the same.

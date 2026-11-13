@@ -10,9 +10,11 @@
 #include "UiInspector.hpp"
 #include "VideoEncode.hpp"
 #include "VideoOverlay.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 
@@ -368,7 +370,9 @@ OverlayCaption McpRecorder::caption_overlay(Recording& rec, const CaptionBoard::
 
     // At most a few hundred bytes of each, more than any caption shows, so a long value costs little to
     // measure; only what fits is drawn.
-    std::vector<std::pair<std::string, SpanRole>> parts{{shorten(into_u8(wxGetTranslation(from_u8(line.title))), 400), SpanRole::Title}};
+    const wxString title = line.context.empty() ? wxGetTranslation(from_u8(line.title))
+                                                : I18N::translate(line.title, line.context.c_str());
+    std::vector<std::pair<std::string, SpanRole>> parts{{shorten(into_u8(title), 400), SpanRole::Title}};
     if (!line.detail.empty())
         parts.push_back({shorten(line.detail, 400), SpanRole::Detail});
     if (!line.error.empty())
@@ -851,7 +855,7 @@ void McpRecorder::shutdown(std::chrono::milliseconds timeout)
         rec->sink->abort("app_closing");
 }
 
-void McpRecorder::call_started(uint64_t call, const ToolDef& def, const json& args, const std::string& /*parent*/)
+void McpRecorder::call_started(uint64_t call, const NativeCommand& def, const json& args, const std::string& /*parent*/)
 {
     // Calls that act on the app; the inspect ones, recording tools included, only look.
     if (def.guard == GuardClass::Inspect)
@@ -859,8 +863,10 @@ void McpRecorder::call_started(uint64_t call, const ToolDef& def, const json& ar
     std::lock_guard<std::mutex> lock(m_mutex);
     if (!m_rec || m_rec->ending || !m_rec->options.captions)
         return;
-    m_rec->board.call_started(call, def.title, safe_caption_detail(def.name, args), Clock::now());
-    m_captioned[call] = {def.name, {args}};
+    const char* context = title_context(def);
+    m_rec->board.call_started(call, def.title, safe_caption_detail(def.key, args), Clock::now(),
+                              context != nullptr ? context : "");
+    m_captioned[call] = {def.key, {args}};
 }
 
 void McpRecorder::call_args(uint64_t call, const json& args)

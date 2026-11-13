@@ -4390,11 +4390,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // nothing when picked. That defect has shipped three times (edit_feature and sk_move carrying
     // action:null, then a whole flyout family the moment its widget stopped being built), and it
     // cannot be seen by reading either side alone. Verify the join once, here, where every
-    // registration is complete. Cheap: 86 map lookups, once per panel.
+    // registration is complete. Cheap: 89 map lookups, once per panel.
     {
         std::vector<std::string> dead;
-        for (int i = 0; i < kOfferVerbCount; ++i) {
-            const OfferVerb& v = kOfferVerbs[i];
+        for (int i = 0; i < kDesignToolCount; ++i) {
+            const DesignTool& v = kDesignTools[i];
             if (v.action == nullptr || *v.action == '\0')
                 continue;               // kernel support, no GUI path — the row shows disabled
             const std::string a(v.action);
@@ -4835,7 +4835,7 @@ void DesignPanel::on_import_svg()
 // touched while the worker owns it. Exceptions must not escape the worker: `work` is expected
 // to swallow them.
 // True while a worker owns the document. wxYield below runs pending events — and a queued MCP
-// call is one — so the MCP server's call_cad_tool must check this and refuse rather than read or
+// call is one — so the MCP server's Design commands must check this and refuse rather than read or
 // change the document under the worker (DesignPanel::mcp_busy).
 static std::atomic<int> s_doc_worker_busy{0};
 
@@ -4881,7 +4881,7 @@ bool DesignPanel::mcp_busy(bool read_only, bool sketch_method, std::string& why)
     // The Move holds a body index that any change to the document, an undo included, could point
     // at another body; the tree edits and Undo refuse under it too.
     if (body_move_pending()) { why = "a body Move is open in the Design tab"; return true; }
-    // Sketch CAD tools drive the live sketch session, which is the point of them; everything else
+    // The sketch commands drive the live sketch session, which is the point of them; everything else
     // changes the feature list, which a live sketch session is about to commit into.
     if (!sketch_method && m_ui_mode == UiMode::Sketch) { why = "a sketch is open in the Design tab"; return true; }
     return false;
@@ -5948,7 +5948,7 @@ void DesignPanel::on_check_interference()
 void DesignPanel::on_mass_properties()
 {
     // This bounds check is not defensive padding — it is what makes the verb safe to fire from
-    // call_cad_tool's run_verb, which has no offer menu to grey the row out.
+    // its Design command or Speed Dial tile, which have no offer menu to grey the row out.
     if (m_sel_solid_body < 0 || m_sel_solid_body >= int(m_doc.bodies.size())) {
         set_status(StatusKind::Info, _L("Select a body to measure it"));
         return;
@@ -6311,14 +6311,14 @@ void DesignPanel::run_offer_action(const char* action)
         it->second();
 }
 
-// Look a verb up by its offer id and dispatch it — the "run_verb" half of the MCP offer surface.
-// Unknown ids and rows whose action string is null (kernel support, no GUI route yet) return
-// false without touching anything, so the caller can tell "no such verb" from "not wired yet".
+// Look a verb up by its id and dispatch it, as a Design command with no arguments does (a Speed
+// Dial tile, or an agent's call). Unknown ids and entries whose action string is null (no GUI
+// route) return false without touching anything.
 bool DesignPanel::mcp_run_verb(const char* verb_id)
 {
     if (!verb_id) return false;
-    for (int i = 0; i < kOfferVerbCount; ++i) {
-        const OfferVerb& v = kOfferVerbs[i];
+    for (int i = 0; i < kDesignToolCount; ++i) {
+        const DesignTool& v = kDesignTools[i];
         if (std::string(v.id) == verb_id) {
             if (v.action == nullptr) return false;
             run_offer_action(v.action);
@@ -6380,6 +6380,8 @@ wxString DesignPanel::kernel_error_text(const std::string& err)
     return wxString::FromUTF8(err);
 }
 
+wxString DesignPanel::mcp_status() const { return m_status != nullptr ? m_status->GetLabel() : wxString(); }
+
 void DesignPanel::set_status(StatusKind kind, const wxString& body)
 {
     if (m_status == nullptr) return;
@@ -6397,7 +6399,7 @@ void DesignPanel::set_status(StatusKind kind, const wxString& body)
     if (glyph != nullptr && !text.IsEmpty() && !text.StartsWith(L"\u2713") && !text.StartsWith(L"\u2717")
         && !text.StartsWith(L"\u26A0"))
         text = wxString(glyph) + text;
-    m_status->SetLabel(text);   // the ONE place that may call SetLabel directly
+    m_status->SetLabel(text);   // the ONE place that may call SetLabel directly, so mcp_status() reads it
     // m_status is HIDDEN and kept only as the owner of the text and its colour — every caller
     // sets the colour on it just before calling here, so this stays the one place that knows
     // both. What the user reads is drawn along the BASE OF THE VIEWPORT: in the panel the line
@@ -6599,7 +6601,7 @@ void DesignPanel::on_sketch_step(int mode, int step, int picks)
 }
 
 wxMenuItem* DesignPanel::append_offer_item(wxMenu* menu, int id, const wxString& text,
-                                           const OfferVerb& v)
+                                           const DesignTool& v)
 {
     auto* item = new wxMenuItem(menu, id, text);
     if (v.icon != nullptr && *v.icon != '\0') {
@@ -6687,7 +6689,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     for (const auto& b : m_doc.bodies)
         if (CadDocument::is_sheet_shape(b.shape)) { sheet = true; break; }
 
-    auto applies = [&](const OfferVerb& v) {
+    auto applies = [&](const DesignTool& v) {
         return (v.accepts & bit) && v.need_bodies <= bodies && v.need_sketches <= sketches
                && (!v.need_sheet || sheet);
     };
@@ -6708,14 +6710,14 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     auto tr_design = [](const char* s) {
         return wxGetTranslation(wxString::FromUTF8(s), SLIC3R_APP_KEY, "Design");
     };
-    auto label = [&](const OfferVerb& v) {
+    auto label = [&](const DesignTool& v) {
         wxString s = I18N::translate(v.name, "Design");
         if (v.key && *v.key) s += "\t" + wxString::FromUTF8(v.key);
         return s;
     };
 
     wxMenu menu;
-    std::vector<const OfferVerb*> bound;      // menu id offset -> verb
+    std::vector<const DesignTool*> bound;      // menu id offset -> verb
     const int base = wxID_HIGHEST + 4200;
 
     // Header: WHAT the rows below act on, named the way the tree and the cards name it. The rows
@@ -6738,9 +6740,9 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
     bool flat_items = false;
 
     for (const int row : rows) {
-        std::vector<const OfferVerb*> live, family;
-        for (int i = 0; i < kOfferVerbCount; ++i) {
-            const OfferVerb& v = kOfferVerbs[i];
+        std::vector<const DesignTool*> live, family;
+        for (int i = 0; i < kDesignToolCount; ++i) {
+            const DesignTool& v = kDesignTools[i];
             if (v.row != row || v.sketch_mode != sketching) continue;
             family.push_back(&v);
             if (applies(v)) live.push_back(&v);
@@ -6751,7 +6753,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         if (kOfferRowFlat[row]) {
             // Only the verbs about this selection; one blocked by the document stays, greyed,
             // with its reason, as it would inside a family.
-            for (const OfferVerb* v : family) {
+            for (const DesignTool* v : family) {
                 if (!(v->accepts & bit)) continue;
                 const int id = base + int(bound.size());
                 if (applies(*v)) {
@@ -6790,7 +6792,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             // the family accepts this selection at all, the honest thing is to say so, or say
             // nothing.
             const char* why = nullptr;
-            for (const OfferVerb* v : family)
+            for (const DesignTool* v : family)
                 if ((v->accepts & bit) && v->refusal) { why = v->refusal; break; }
             wxString s = fam;
             if (why)
@@ -6801,7 +6803,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
                         why ? why : "no verb accepts this selection");
             menu.Append(base + int(bound.size()), s)->Enable(false);
             bound.push_back(nullptr);
-        } else if (live.size() == 1 && std::none_of(family.begin(), family.end(), [&](const OfferVerb* v) {
+        } else if (live.size() == 1 && std::none_of(family.begin(), family.end(), [&](const DesignTool* v) {
                        return (v->accepts & bit) && !applies(*v); })) {
             offer_trace("row=%d %s -> %s%s", row, kOfferRowNames[row], live[0]->id,
                         live[0]->action ? "" : " (no GUI route)");
@@ -6819,7 +6821,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             // about it and stay out.
             auto* sub = new wxMenu();
             std::vector<std::pair<std::string, wxMenu*>> groups;   // insertion-ordered
-            for (const OfferVerb* v : family) {
+            for (const DesignTool* v : family) {
                 const bool ok = applies(*v);
                 if (!ok && !(v->accepts & bit)) continue;
                 wxMenu* target = sub;
@@ -6881,9 +6883,9 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
         }
         if (cs_a < 0 || cs_b < 0) { cs_a = cs_features[0]; cs_b = cs_features[1]; }
 
-        // The generated verb rows own [base, base + bound.size()); kOfferVerbCount is 87, so a
-        // gap of 500 keeps this section's ids clear of that range and lets its own handler index
-        // by a distinct offset.
+        // The generated verb rows own [base, base + bound.size()); the table has 93 entries with a
+        // row (kDesignToolCount, 134, counts the commands with none too), so a gap of 500 keeps this
+        // section's ids clear of that range and lets its own handler index by a distinct offset.
         const int mate_base = base + 500;
 
         menu.AppendSeparator();
@@ -7144,7 +7146,7 @@ bool DesignPanel::on_add_plane()
     // Tangent and confirming with nothing selected would produce an offset plane reported as
     // a success — the user asks for one construction and silently receives another. The kernel
     // keeps its fallback (it must return SOMETHING), but no user gesture should reach it. The
-    // rules are the kernel's, shared with call_cad_tool's `plane`.
+    // rules are the kernel's, shared with the plane command.
     CadFeature candidate;
     apply_plane_refs(candidate);
     if (const std::string why = m_doc.datum_plane_refusal(candidate); !why.empty()) {
@@ -7383,7 +7385,7 @@ void DesignPanel::on_sys_color_changed()
 // Rehydrate the parametric model from a freshly loaded project (the 3MF carried the recipe in
 // Metadata/orca_cad.bin). Only into an EMPTY document, so an active design is never clobbered
 // when the user toggles back to the tab. Called on tab show and by the MCP server's
-// call_cad_tool before every CAD tool, which would otherwise work on an empty document and then
+// Design commands before each runs, which would otherwise work on an empty document and then
 // overwrite the project's recipe with just its own features.
 void DesignPanel::hydrate_from_model()
 {
@@ -7397,7 +7399,7 @@ void DesignPanel::hydrate_from_model()
     // datum planes off the geometry. A loaded project brings its own (load_recipe).
     // The centre of the Design bed, not the plater's: the plater moves its bed onto the current
     // plate, so on plate 2+ the origin would land one plate stride away from the bed drawn here.
-    // Re-synced first because call_cad_tool calls this without on_tab_shown().
+    // Re-synced first because the Design commands call this without on_tab_shown().
     if (!m_doc.origin_from_recipe) {
         m_viewport->refresh_bed();
         const Vec2d bc = m_viewport->bed_center();
@@ -8129,7 +8131,7 @@ bool DesignPanel::begin_renumber()
 
 void DesignPanel::after_tree_edit(bool ok)
 {
-    // Any edit of the history (undo, delete, show/hide, a CAD tool call...) writes the status line
+    // Any edit of the history (undo, delete, show/hide, a Design command's call...) writes the status line
     // over the plane prompt, so it ends the choice rather than leave it waiting unannounced.
     end_sketch_plane_choice();
     update_undo_redo_buttons();

@@ -5,6 +5,8 @@
 #include "VideoEncode.hpp"
 #include "VideoOverlay.hpp"
 
+#include "slic3r/GUI/CommandCatalog.hpp"
+
 #include <boost/filesystem/path.hpp>
 #include <nlohmann/json.hpp>
 
@@ -121,7 +123,7 @@ public:
     // still queued and leaves the rest to the sink's threads.
     void shutdown(std::chrono::milliseconds timeout);
 
-    void call_started(uint64_t call, const ToolDef& def, const nlohmann::json& args, const std::string& parent) override;
+    void call_started(uint64_t call, const NativeCommand& command, const nlohmann::json& args, const std::string& parent) override;
     void call_args(uint64_t call, const nlohmann::json& args) override;
     void call_ended(uint64_t call, const ToolResult& result) override;
 

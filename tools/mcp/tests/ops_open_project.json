@@ -1,5 +1,5 @@
 // Records what opening a project does through its two routes, the load_project command run with run_action and a
-// path param, and the open_files tool given a .3mf (as auto): on a clean project, on one with unsaved changes
+// path, and the open_files tool given a .3mf (as auto): on a clean project, on one with unsaved changes
 // (the tool with and without discard_changes) and with unsaved preset changes (top_shell_layers 7). The project
 // it opens is saved here first: a cube with wall_loops 5. Each call that may ask runs with "await": false;
 // get_app_state lists the question, which the replay answers, by its title, as a person who does not save: No to
@@ -17,7 +17,7 @@
     {"tool": "set_view", "args": {"tab": "prepare"}},
 
     // ---- The project to open: a cube with wall_loops 5 ----
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "set_settings", "args": {"values": {"wall_loops": 5}}},
     {"tool": "save_project", "args": {"path": "${out_dir}/open_src.3mf", "overwrite": true}},
 
@@ -27,7 +27,7 @@
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
-    {"tool": "run_action", "args": {"id": "orca_command:load_project:orca", "param": "${out_dir}/open_src.3mf"}, "await": false, "save_as": "clean_cmd", "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:load_project:orca", "args": {"path": "${out_dir}/open_src.3mf"}}, "await": false, "save_as": "clean_cmd", "optional": true},
     {"tool": "get_app_state"},
     {"tool": "answer_dialog", "args": {"dialog": {"title": "- Save"}, "button": "no"}, "optional": true},
     {"tool": "answer_dialog", "args": {"dialog": {"title": "unsaved changes"}, "button": "Discard"}, "optional": true},
@@ -58,11 +58,11 @@
 
     // ---- Unsaved project changes (a cylinder), presets clean: the command asks ----
     {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca", "param": "20 10"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca", "args": {"size": [20, 10]}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
-    {"tool": "run_action", "args": {"id": "orca_command:load_project:orca", "param": "${out_dir}/open_src.3mf"}, "await": false, "save_as": "dirty_cmd", "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:load_project:orca", "args": {"path": "${out_dir}/open_src.3mf"}}, "await": false, "save_as": "dirty_cmd", "optional": true},
     {"tool": "get_app_state"},
     {"tool": "answer_dialog", "args": {"dialog": {"title": "- Save"}, "button": "no"}, "optional": true},
     {"tool": "get_app_state"},
@@ -75,7 +75,7 @@
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
     // ---- the tool, without discard_changes, then with it ----
     {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca", "param": "20 10"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cylinder:orca", "args": {"size": [20, 10]}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
     {"tool": "open_files", "args": {"paths": ["${out_dir}/open_src.3mf"]}, "optional": true},
@@ -99,7 +99,7 @@
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
-    {"tool": "run_action", "args": {"id": "orca_command:load_project:orca", "param": "${out_dir}/open_src.3mf"}, "await": false, "save_as": "presets_cmd", "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:load_project:orca", "args": {"path": "${out_dir}/open_src.3mf"}}, "await": false, "save_as": "presets_cmd", "optional": true},
     {"tool": "get_app_state"},
     {"tool": "answer_dialog", "args": {"dialog": {"title": "- Save"}, "button": "no"}, "optional": true},
     {"tool": "get_app_state"},

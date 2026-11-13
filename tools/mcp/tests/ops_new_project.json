@@ -1,7 +1,7 @@
-// Records what a new project does through its two routes, the new_project command run with run_action and the
-// new_project tool: on a clean project, with unsaved project changes (a cube; the tool with and without
-// discard_changes) and with unsaved preset changes (top_shell_layers 7; the command's question answered Discard,
-// then Transfer when it offers that, and the tool's preset_changes keep and discard). Each call starts from the
+// Records what a new project does through its two forms, the person's (the new_project tile run with run_action)
+// and the silent one (new_project called with arguments): on a clean project, with unsaved project changes (a
+// cube; silent: true, then discard_changes) and with unsaved preset changes (top_shell_layers 7; the tile's
+// question answered Discard, then Transfer when it offers that, and preset_changes keep and discard). Each call starts from the
 // Home tab, so the reads show the tab it leaves. The command runs with "await": false; get_app_state lists its
 // question, which the replay answers by its title. After each it reads the objects, the project, the presets'
 // unsaved keys and the undo snapshots taken since the last read (fixtures/ops_undo.py). Plugins get the
@@ -28,12 +28,12 @@
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
     {"tool": "set_view", "args": {"tab": "home"}},
-    {"tool": "new_project", "args": {}, "optional": true},
+    {"tool": "new_project", "args": {"silent": true}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
     // ---- Unsaved project changes: the command asks ----
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "set_view", "args": {"tab": "home"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "get_app_state"},
@@ -48,11 +48,11 @@
     {"tool": "list_objects"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
     // ---- the tool, without discard_changes, then with it ----
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "set_view", "args": {"tab": "home"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
-    {"tool": "new_project", "args": {}, "optional": true},
+    {"tool": "new_project", "args": {"silent": true}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "new_project", "args": {"discard_changes": true}, "optional": true},
     {"tool": "get_app_state"},
@@ -95,7 +95,7 @@
     {"tool": "set_view", "args": {"tab": "home"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
-    {"tool": "new_project", "args": {}, "optional": true},
+    {"tool": "new_project", "args": {"silent": true}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "new_project", "args": {"discard_changes": true}, "optional": true},
     {"tool": "get_app_state"},

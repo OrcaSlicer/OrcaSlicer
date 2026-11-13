@@ -8,10 +8,10 @@ verbs the offer table says apply.
 With no rung named, every rung runs. The offer is where a sketch's verbs live, and for the many
 that have no key it is the only way to them. Each rung opens a sketch on the XY plane, right-clicks
 it with mouse_gesture, which lists the menu the click opens without showing it, and runs an item
-by its label path with popup_item. The menu is graded against call_cad_tool list_verbs, the
-compiled offer table the menu is built from, read for the selection the right-click left; what a
-verb drew is graded on the geometry sketch_describe reads back, or for a text on the feature
-describe_feature reads. Every action goes through the MCP UI tools, and call_cad_tool only reads.
+by its label path with popup_item. The menu is graded against the Design table it is built from
+(CadGui.verbs(): scripts/CAD/tool_atlas.json, for the selection describe_scene says the right-click
+left); what a verb drew is graded on the geometry sketch_describe reads back, or for a text on
+the feature describe_feature reads. Every action goes through the MCP UI tools, and the Design commands only read.
 Exits 0 when every check holds.
 
 The rungs: kinds right-clicks empty space, a line, a circle, a point and two picked lines, and
@@ -78,7 +78,7 @@ def key(k):
 
 def verb_paths(verbs):
     """The label path at which the offer lists each verb that applies, by verb id. `verbs` is
-    list_verbs' sketch vocabulary, read with the selection the right-click left.
+    the Design table's sketch vocabulary (CadGui.verbs()), read with the selection the right-click left.
 
     It follows DesignPanel::show_offer_menu. A row with two or more verbs for the selection is a
     submenu named for the row, holding each verb directly or, for a verb of a family (Rectangle:
@@ -87,7 +87,7 @@ def verb_paths(verbs):
     is held back by the document or sits in a flat row, so a verb is listed exactly when it
     applies."""
     if not all(v["sketch_mode"] for v in verbs):
-        raise ValueError("verb_paths lays out the sketch offer: give it list_verbs' sketch verbs")
+        raise ValueError("verb_paths lays out the sketch offer: give it the table's sketch verbs")
     rows = {}
     for v in verbs:
         rows.setdefault(v["row"], []).append(v)
@@ -844,7 +844,7 @@ def ok_text(s):
 
 
 def feature_names():
-    """The design's features by name, from describe_scene, which goes through call_cad_tool and so
+    """The design's features by name, from describe_scene, which passes the Design commands' gate and so
     reads the design as loaded from the model's copy of it."""
     return [f["name"] for f in gui.cad("describe_scene")["features"]]
 
@@ -860,7 +860,7 @@ def rung_art():
     fixture's path before it shows, and the outline lands in the open sketch. What is graded
     survives a change of font or of importer scale: how many closed loops came back, and the
     exact proportions of a shape whose proportions are known."""
-    # Text, cancelled. The Insert step's Cancel undoes the text. Every call_cad_tool loads the
+    # Text, cancelled. The Insert step's Cancel undoes the text. Every Design command loads the
     # design from the model's copy when the document is empty, so a text left in that copy comes
     # back in describe_scene even though the canvas dropped it.
     gui.enter_sketch()
@@ -877,7 +877,7 @@ def rung_art():
     gui.press("Cancel")  # the ribbon's Cancel, on the Insert step
     until(lambda: feature_names() == before, timeout=2.0)
     left = feature_names()
-    gui.check("art: the ribbon's Cancel after OK leaves no text, read back through call_cad_tool", left == before,
+    gui.check("art: the ribbon's Cancel after OK leaves no text, read back through describe_scene", left == before,
               f"features {left}, before the text {before}")
 
     # Text, kept.
@@ -961,7 +961,7 @@ DRIVEN = {
 def rung_coverage():
     """O8: every sketch verb with no key is driven from the menu, checked against the table.
 
-    The set of keyless sketch verbs list_verbs serves, less the set the rungs drive, must be empty,
+    The set of keyless sketch verbs the Design table has, less the set the rungs drive, must be empty,
     so a verb added without a rung fails here."""
     sk = gui.verbs()
     keyless = {v["id"] for v in sk if v["action"] and not v["key"]}

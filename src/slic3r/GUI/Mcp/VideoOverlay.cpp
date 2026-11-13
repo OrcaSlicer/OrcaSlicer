@@ -435,12 +435,13 @@ double fade(CaptionBoard::Clock::duration since, CaptionBoard::Clock::duration l
 
 } // namespace
 
-void CaptionBoard::call_started(uint64_t id, std::string title, std::string detail, Clock::time_point)
+void CaptionBoard::call_started(uint64_t id, std::string title, std::string detail, Clock::time_point, std::string context)
 {
     Call c;
-    c.id     = id;
-    c.title  = std::move(title);
-    c.detail = std::move(detail);
+    c.id      = id;
+    c.title   = std::move(title);
+    c.context = std::move(context);
+    c.detail  = std::move(detail);
     m_calls.push_back(std::move(c));
     // A burst of quick calls, all lingering at once: the oldest finished ones go. Running calls stay, so a
     // replay still running shows again once its steps have faded; they are few (a replay and its step).
@@ -478,9 +479,10 @@ std::optional<CaptionBoard::Line> CaptionBoard::current(Clock::time_point now)
         return std::nullopt;
     const Call& c = m_calls.back();
     Line        l;
-    l.id     = c.id;
-    l.title  = c.title;
-    l.detail = c.detail;
+    l.id      = c.id;
+    l.title   = c.title;
+    l.context = c.context;
+    l.detail  = c.detail;
     l.error  = c.status == CaptionStatus::Failed ? c.error : std::string();
     l.status = c.status;
     l.alpha  = c.status == CaptionStatus::Running ? 1. : fade(now - c.ended, kLinger);
@@ -681,8 +683,13 @@ std::string caption_detail(const std::string& tool, const json& args)
                 parts.push_back(p.get<std::string>());
         return join(parts);
     }
-    if (kind == "command")
-        return str(what, "key") + (what.contains("param") ? " " + scalar_text(what["param"]) : "");
+    if (kind == "command") {
+        std::vector<std::string> args;
+        for (const json& a : what.value("args", json::array()))
+            if (a.is_string())
+                args.push_back(a.get<std::string>());
+        return str(what, "key") + (args.empty() ? "" : " " + join(args));
+    }
     if (kind == "plates") {
         const json& plates = what["plates"];
         if (plates.is_array()) {

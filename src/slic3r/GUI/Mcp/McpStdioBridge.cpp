@@ -6,6 +6,8 @@
 #include "McpService.hpp"
 #include "McpTypes.hpp"
 #include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "libslic3r_version.h"
 
 #include <boost/asio/connect.hpp>
@@ -307,10 +309,11 @@ PostReply answer_offline(const std::string& line, const std::map<std::string, st
     // A tool needs the app, so the bridge never brings a tools/call here.
     struct NoApp final : ToolCaller
     {
-        ToolResult call(const ToolDef&, const json&) override { return ToolResult::error("OrcaSlicer is not running."); }
+        ToolResult call(const NativeCommand&, const json&) override { return ToolResult::error("OrcaSlicer is not running."); }
     };
     static NoApp       caller;
-    static McpProtocol protocol(McpService::offline_catalog(), caller, McpService::server_info());
+    // The process catalog, built here on first use: this process never starts the GUI that builds it.
+    static McpProtocol protocol(NativeCommands::instance(), caller, McpService::server_info());
     auto header = [&headers](const char* name) {
         const auto it = headers.find(name);
         return it == headers.end() ? std::string() : it->second;

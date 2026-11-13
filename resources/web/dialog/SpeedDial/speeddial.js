@@ -822,6 +822,11 @@ window.HandleStudio = function (payload) {
         if (fid && FAVS.indexOf(fid) !== -1) FAVS.splice(FAVS.indexOf(fid), 1);
         render({ resize: true, keepScroll: true });
         flashHint(T("sd_favs_full", "Favorites are full (%s max)", (payload.limit || K_FAV_LIMIT)));
+    } else if (payload.command === "favourites") {
+        // The bar as C++ now shows it, sent after each pin, unpin and reorder: it settles the click's optimistic
+        // change, and an unpin can bring a pin past the tenth onto the bar, which the page alone cannot know.
+        FAVS = payload.favourites || [];
+        render({ resize: true, keepScroll: true });
     }
 };
 
@@ -1471,10 +1476,11 @@ function toggleFav(id) {
 }
 
 // Fire a command/plugin action; C++ owns the run-confirm (native dialog) + suppression, then
-// closes the popup + toasts.
+// closes the popup + toasts. A plain pick passes no arguments: a command then does what a person's
+// pick does, asking in its dialog where it has one.
 function run(a) {
     if (!a) return;
-    SendMessage({ command: "run_action", id: a.id, title: a.title, param: "" });
+    SendMessage({ command: "run_action", id: a.id, title: a.title, args: {} });
 }
 
 // Activate an entry in the main phase. Two-phase commands switch the palette to their input phase
@@ -1507,13 +1513,13 @@ function runJumpToLayer(pct) {
     if (!isFinite(n) || n < 0 || n > 100) return;
     var a = findActionByInput("percent");
     if (!a) return;
-    SendMessage({ command: "run_action", id: a.id, title: a.title, param: String(n) });
+    SendMessage({ command: "run_action", id: a.id, title: a.title, args: { percent: n } });
 }
 
 function jumpToTab(t) {
     var a = findActionByInput("tab");
     if (!a || !t) return;
-    SendMessage({ command: "run_action", id: a.id, title: a.title, param: t.id });
+    SendMessage({ command: "run_action", id: a.id, title: a.title, args: { tab: t.id } });
 }
 
 // Clear the shared query/cursor state when entering or leaving a phase. Callers set the

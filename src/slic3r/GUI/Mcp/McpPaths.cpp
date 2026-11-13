@@ -7,7 +7,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/nowide/convert.hpp>
 #include <boost/system/error_code.hpp>
-#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cstddef>
@@ -153,28 +152,6 @@ std::optional<fs::path> resolve_output_dir(const std::string& path, std::string&
         return std::nullopt;
     }
     return p;
-}
-
-std::optional<PathParam> parse_path_param(const std::string& param, std::string& err)
-{
-    PathParam out;
-    const auto first = param.find_first_not_of(" \t");
-    if (first != std::string::npos && param[first] == '{') {
-        const nlohmann::json j = nlohmann::json::parse(param, nullptr, false);
-        if (j.is_discarded() || !j.is_object() || !j.contains("path") || !j["path"].is_string()) {
-            err = "the parameter must be a path or {\"path\": \"...\", \"overwrite\": true}";
-            return std::nullopt;
-        }
-        out.path      = j["path"].get<std::string>();
-        out.overwrite = j.value("overwrite", false);
-    } else {
-        out.path = param;
-    }
-    if (out.path.empty()) {
-        err = "path is empty";
-        return std::nullopt;
-    }
-    return out;
 }
 
 fs::path output_dir()

@@ -145,6 +145,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/ActionRegistry.hpp
     GUI/ActionReplayDialog.cpp
     GUI/ActionReplayDialog.hpp
+    GUI/CommandCatalog.cpp
+    GUI/CommandCatalog.hpp
     GUI/NativeCommands.cpp
     GUI/NativeCommands.hpp
     GUI/Operations/ExportOps.cpp
@@ -165,12 +167,15 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/CanvasTarget.hpp
     GUI/Mcp/JobRegistry.cpp
     GUI/Mcp/JobRegistry.hpp
+    GUI/Mcp/McpArguments.cpp
     GUI/Mcp/McpCore.cpp
     GUI/Mcp/McpCore.hpp
     GUI/Mcp/McpHttpServer.cpp
     GUI/Mcp/McpHttpServer.hpp
     GUI/Mcp/McpJournal.cpp
     GUI/Mcp/McpJournal.hpp
+    GUI/Mcp/McpPersonContext.cpp
+    GUI/Mcp/McpPersonContext.hpp
     GUI/Mcp/McpPersonRun.cpp
     GUI/Mcp/McpPersonRun.hpp
     GUI/Mcp/McpProtocol.cpp
@@ -966,7 +971,7 @@ set(SLIC3R_GUI_SOURCES
     Utils/wxInspectorPlugins/Registration.hpp
 )
 
-# Design/CAD tab: parametric sketch UI, its gizmos, and the MCP server's CAD tools.
+# Design/CAD tab: parametric sketch UI, its gizmos, and the MCP server's Design commands.
 # All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
 if (SLIC3R_CAD)
     list(APPEND SLIC3R_GUI_SOURCES

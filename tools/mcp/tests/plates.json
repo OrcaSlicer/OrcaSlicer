@@ -31,15 +31,15 @@
      "expect": {"/level": {"eq": "success"}, "/message": {"eq": "Added filament slot 2."}}},
     {"tool": "run_action", "args": {"id": "orca_command:filament_add:orca"}, "expect": {"/message": {"eq": "Added filament slot 3."}}},
     // A slot past the last is refused; slot 2 by number.
-    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "param": "4"}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "param": "2"}, "expect": {"/message": {"eq": "Deleted filament slot 2."}}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "args": {"slot": 4}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "args": {"slot": 2}}, "expect": {"/message": {"eq": "Deleted filament slot 2."}}},
     {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_is_mixed"]}, "expect": {"/items/0/value": {"eq": "0,0"}}},
 
     // ---- A cube on each of two plates ----
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_action", "args": {"id": "orca_command:plate_add:orca"}},
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "1"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 1}}},
     {"tool": "select_objects", "args": {"none": true}},
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
@@ -51,7 +51,7 @@
                 "/items/0/wipe_tower": {"exists": true}}},
 
     // ---- Plate 1's own plate type and print sequence; plate 0 keeps the global ones ----
-    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "param": "0"}},
+    {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 0}}},
     {"tool": "set_settings", "args": {"scope": "plate", "plate": 1, "values": {"curr_bed_type": "Textured PEI Plate", "print_sequence": "by object"}},
      "expect": {"/plate": {"eq": 1}, "/applied/curr_bed_type": {"eq": "Textured PEI Plate"}, "/applied/print_sequence": {"eq": "by object"},
                 "/changed/curr_bed_type": {"eq": "Textured PEI Plate"}}},
@@ -122,7 +122,7 @@
     {"tool": "answer_dialog", "args": {"button": "OK"}},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.mix}"}},
     {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_is_mixed"]}, "expect": {"/items/0/value": {"eq": "0,0,1"}}},
-    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "param": "3"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "args": {"slot": 3}}, "optional": true},
     {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"first_layer_print_sequence": [2, 1]}}, "optional": true},
     {"tool": "list_plates", "expect": {"/items/0/first_layer_print_sequence": {"eq": null}}},
     {"tool": "run_action", "args": {"id": "orca_command:filament_add:orca"}, "expect": {"/message": {"eq": "Added filament slot 3."}}},

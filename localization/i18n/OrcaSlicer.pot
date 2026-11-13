@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-06 11:18-0600\n"
+"POT-Creation-Date: 2026-11-13 19:50+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2474,12 +2474,6 @@ msgstr ""
 msgid "Unknown error"
 msgstr ""
 
-msgid "Select plugin package"
-msgstr ""
-
-msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
-msgstr ""
-
 msgid "Plugin Terminal"
 msgstr ""
 
@@ -2693,6 +2687,7 @@ msgid ""
 "No  - Do not change these settings for me"
 msgstr ""
 
+#. TRN Read by a screen reader for one entry of the code editor's list of suggestions.
 msgid "Suggestion"
 msgstr ""
 
@@ -3321,6 +3316,9 @@ msgid "Type:"
 msgstr ""
 
 msgid "Choose part type"
+msgstr ""
+
+msgid "A text or SVG part can only be a part, a negative part or a modifier."
 msgstr ""
 
 msgid "Instances to Separated Objects"
@@ -4237,10 +4235,420 @@ msgstr ""
 msgid "Multi-device"
 msgstr ""
 
-msgid "AMS Materials Setting"
+msgid "Replay files"
+msgstr ""
+
+msgid "All files"
+msgstr ""
+
+msgid "Current plate"
+msgstr ""
+
+msgid "All plates"
+msgstr ""
+
+#. TRN %1% is a plate number, counted from 1.
+#, possible-boost-format
+msgid "Plate %1%"
+msgstr ""
+
+#. TRN A step that runs another replay; %1% is how many steps that replay has.
+#, possible-boost-format
+msgid "A replay of %1% step"
+msgid_plural "A replay of %1% steps"
+msgstr[0] ""
+msgstr[1] ""
+
+#, possible-boost-format
+msgid "Checks that %1% is %2%."
+msgstr ""
+
+#, possible-boost-format
+msgid "Checks that %1% is not %2%."
+msgstr ""
+
+#, possible-boost-format
+msgid "Checks that %1% is more than %2%."
+msgstr ""
+
+#, possible-boost-format
+msgid "Checks that %1% is at least %2%."
+msgstr ""
+
+#, possible-boost-format
+msgid "Checks that %1% is less than %2%."
+msgstr ""
+
+#, possible-boost-format
+msgid "Checks that %1% is at most %2%."
+msgstr ""
+
+#, possible-boost-format
+msgid "Checks that %1% contains %2%."
+msgstr ""
+
+#, possible-boost-format
+msgid "Checks that %1% matches %2%."
+msgstr ""
+
+#, possible-boost-format
+msgid "Checks that %1% is missing."
+msgstr ""
+
+#, possible-boost-format
+msgid "Checks that %1% is there."
+msgstr ""
+
+#, possible-boost-format
+msgid "Checks that %1% is not empty."
+msgstr ""
+
+#, possible-boost-format
+msgid "Checks that %1% is empty."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was missing."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was there, which the replay did not expect."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was %2%, not %3%."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was %2%, which the replay did not expect."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was %2%, not more than %3%."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was %2%, not at least %3%."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was %2%, not less than %3%."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was %2%, not at most %3%."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was %2%, which does not contain %3%."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was %2%, which does not match %3%."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was %2%, not empty."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step finished, but %1% was empty."
+msgstr ""
+
+msgid "Action Replay"
+msgstr ""
+
+msgid "Open replay…"
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+#. TRN Saves a new replay file: the button opens a file dialog.
+msgid "Save…"
+msgstr ""
+
+msgid "Save as…"
+msgstr ""
+
+#. TRN Shown for a moment after a replay file is saved.
+msgid "Saved"
+msgstr ""
+
+msgid "(edited)"
+msgstr ""
+
+#. TRN The name a new replay starts with, in the editor of the Action Replay window.
+msgid "Untitled replay"
+msgstr ""
+
+msgid "Steps"
+msgstr ""
+
+msgid "Steps appear here as you write them."
+msgstr ""
+
+msgid "Replay file"
+msgstr ""
+
+msgid "Write a replay here, or open one."
+msgstr ""
+
+#. TRN The first comment line a new replay starts with. MCP is the protocol AI agents use to drive OrcaSlicer.
+msgid "A replay file runs OrcaSlicer's tools in order, the way an AI agent does through MCP."
+msgstr ""
+
+#. TRN A comment line a new replay starts with. "tool", "args" and "expect" are the file's keys and stay in English.
+msgid "Each step names a \"tool\" and its \"args\"; \"expect\" checks the result before the next step."
+msgstr ""
+
+#. TRN %s is the placeholder ${out_dir}, written as is in the replay file.
+#, possible-c-format, possible-boost-format
+msgid "%s is this run's output folder."
+msgstr ""
+
+#. TRN The first %s is a key such as Ctrl+Space, the second one such as Ctrl+Enter.
+#, possible-c-format, possible-boost-format
+msgid "%s shows suggestions, %s replays the file."
+msgstr ""
+
+msgid "Replay"
+msgstr ""
+
+msgid "Replay again"
+msgstr ""
+
+msgid "Stop"
 msgstr ""
 
 msgid "Close"
+msgstr ""
+
+msgid "Open output folder"
+msgstr ""
+
+msgid "Run this step"
+msgstr ""
+
+msgid "Show raw result"
+msgstr ""
+
+msgid "Hide raw result"
+msgstr ""
+
+msgid "Show in folder"
+msgstr ""
+
+msgid "Skipped"
+msgstr ""
+
+msgid "Checks the result"
+msgstr ""
+
+msgid "Writes a file"
+msgstr ""
+
+msgid "Changes presets"
+msgstr ""
+
+msgid "Replaces the project"
+msgstr ""
+
+msgid "Sends to a printer"
+msgstr ""
+
+#. TRN A duration; %s is a number of seconds such as 0.8.
+#, possible-c-format, possible-boost-format
+msgid "%s s"
+msgstr ""
+
+#. TRN %s is the number of the step that is running.
+#, possible-c-format, possible-boost-format
+msgid "Running step %s"
+msgstr ""
+
+#. TRN The first %s is the number of the step that is running, the second how many steps there are.
+#, possible-c-format, possible-boost-format
+msgid "Running step %s of %s"
+msgstr ""
+
+msgid "Don't use OrcaSlicer until the replay finishes."
+msgstr ""
+
+msgid "OrcaSlicer is still starting…"
+msgstr ""
+
+msgid "Open a replay file"
+msgstr ""
+
+#, possible-boost-format
+msgid "Can't read %1%."
+msgstr ""
+
+#. TRN %1% is a file name.
+#, possible-boost-format
+msgid "%1% is a Python script. Python scripts run in the Run Script panel."
+msgstr ""
+
+msgid "Open in Run Script"
+msgstr ""
+
+msgid "Save the replay file"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid ""
+"The file %s already exists.\n"
+"Do you want to replace it?"
+msgstr ""
+
+msgid "Confirm Save As"
+msgstr ""
+
+#, possible-boost-format
+msgid "Can't save %1%."
+msgstr ""
+
+msgid ""
+"Save this replay file?\n"
+"If you don't, your changes are lost."
+msgstr ""
+
+#. TRN %1% is a replay file's name.
+#. TRN %1% is a script's file name.
+#, possible-boost-format
+msgid ""
+"Save the changes to %1%?\n"
+"If you don't, your changes are lost."
+msgstr ""
+
+msgid "Don't save"
+msgstr ""
+
+msgid "Replays can't run while OrcaSlicer is starting or closing."
+msgstr ""
+
+#. TRN %1% is a step number, %2% the name of the tool the replay asks for.
+#, possible-boost-format
+msgid "Step %1% uses a tool this version of OrcaSlicer doesn't have: %2%"
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% step"
+msgid_plural "%1% steps"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "The replay could not run."
+msgstr ""
+
+msgid "This replay replaces the current project, which has unsaved changes. Save them before replaying it?"
+msgstr ""
+
+#. TRN %1% is the step the run stopped at, %2% how many steps the replay has.
+msgid "Stopped."
+msgstr ""
+
+#, possible-boost-format
+msgid "The step didn't finish within %1% second."
+msgid_plural "The step didn't finish within %1% seconds."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "The step's result was not what the replay expected."
+msgstr ""
+
+msgid "The replay's check of this step's result isn't valid."
+msgstr ""
+
+#. TRN %1% is a placeholder such as ${vars.model} that the replay uses.
+#, possible-boost-format
+msgid "The replay refers to %1%, which has no value."
+msgstr ""
+
+#. TRN %1% is the number of the step that saves the job this step needs.
+#, possible-boost-format
+msgid "This step needs the job saved by step %1%. Run that step first."
+msgstr ""
+
+msgid "This step needs a job that no step of this replay saves."
+msgstr ""
+
+msgid "The script was stopped."
+msgstr ""
+
+msgid "The script ran out of time."
+msgstr ""
+
+msgid "The script raised an exception."
+msgstr ""
+
+msgid "This step failed."
+msgstr ""
+
+#. TRN %1% is how many more lines of a script's output there are.
+#, possible-boost-format
+msgid "(%1% more line)"
+msgid_plural "(%1% more lines)"
+msgstr[0] ""
+msgstr[1] ""
+
+#. TRN %1% is the value a Python script returned, as JSON.
+#, possible-boost-format
+msgid "Result: %1%"
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% object"
+msgid_plural "%1% objects"
+msgstr[0] ""
+msgstr[1] ""
+
+#, possible-boost-format
+msgid "%1% plate sliced"
+msgid_plural "%1% plates sliced"
+msgstr[0] ""
+msgstr[1] ""
+
+#, possible-boost-format
+msgid "%1% plate did not slice"
+msgid_plural "%1% plates did not slice"
+msgstr[0] ""
+msgstr[1] ""
+
+#. TRN %1% is the number of the step of the nested replay that failed.
+#, possible-boost-format
+msgid "The nested replay failed at step %1%."
+msgstr ""
+
+#, possible-boost-format
+msgid "Stopped at step %1% of %2%"
+msgstr ""
+
+#. TRN %1% is the step that failed, %2% how many steps the replay has.
+msgid "The step failed."
+msgstr ""
+
+#, possible-boost-format
+msgid "Failed at step %1% of %2%"
+msgstr ""
+
+msgid "Finished, but a nested replay failed."
+msgstr ""
+
+msgid "The step passed."
+msgstr ""
+
+#, possible-boost-format
+msgid "Passed, %1% step in %2% s"
+msgid_plural "Passed, %1% steps in %2% s"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "A replay is running. Stop it and close this window?"
+msgstr ""
+
+msgid "AMS Materials Setting"
 msgstr ""
 
 msgid ""
@@ -4347,9 +4755,6 @@ msgid "Next"
 msgstr ""
 
 msgid "Calibration completed. Please find the most uniform extrusion line on your hot bed like the picture below, and fill the value on its left side into the factor K input box."
-msgstr ""
-
-msgid "Save"
 msgstr ""
 
 msgctxt "Navigation"
@@ -5776,6 +6181,9 @@ msgstr ""
 msgid "Invalid format. Expected vector format: \"%1%\""
 msgstr ""
 
+msgid "The excluded bed area is invalid. It must be a simple, non-self-intersecting polygon."
+msgstr ""
+
 msgid "System agents"
 msgstr ""
 
@@ -6487,6 +6895,9 @@ msgstr ""
 msgid "Set viewing angle"
 msgstr ""
 
+msgid "Follow camera"
+msgstr ""
+
 msgid "Paint Toolbar"
 msgstr ""
 
@@ -6756,6 +7167,24 @@ msgstr ""
 msgid "Measure how fast the 3D scene renders in Prepare and Preview"
 msgstr ""
 
+msgid "Take Screenshot"
+msgstr ""
+
+msgid "Save a picture of the main window"
+msgstr ""
+
+msgid "Start Recording"
+msgstr ""
+
+msgid "Record a video of the main window"
+msgstr ""
+
+msgid "Stop Recording"
+msgstr ""
+
+msgid "Stop the recording and save it"
+msgstr ""
+
 msgid "Show Tip of the Day"
 msgstr ""
 
@@ -6891,6 +7320,15 @@ msgid "Export current configuration to files"
 msgstr ""
 
 msgid "Export"
+msgstr ""
+
+msgid "Run Script"
+msgstr ""
+
+msgid "Show or hide the Run Script panel"
+msgstr ""
+
+msgid "Open a replay file and replay its steps"
 msgstr ""
 
 msgid "Quit"
@@ -7193,6 +7631,646 @@ msgid ""
 msgstr ""
 
 msgid "Synchronization"
+msgstr ""
+
+#. TRN %1% is the title of a command a person started, which ran on in the background.
+#, possible-boost-format
+msgid "Finished: %1%"
+msgstr ""
+
+#. TRN %1% is the title of a command a person started, which runs on in the background.
+#, possible-boost-format
+msgid "Started: %1%"
+msgstr ""
+
+msgid "Search Speed Dial actions"
+msgstr ""
+
+msgid "Run a Speed Dial action"
+msgstr ""
+
+msgid "Find tools, actions, settings and APIs"
+msgstr ""
+
+msgid "Call a tool or plugin operation"
+msgstr ""
+
+msgid "Get app state"
+msgstr ""
+
+msgid "Wait for a condition"
+msgstr ""
+
+msgid "Read the log"
+msgstr ""
+
+msgid "Rebuilding model…"
+msgstr ""
+
+msgid "Mesh"
+msgstr ""
+
+msgid "Fillet"
+msgstr ""
+
+msgid "Chamfer"
+msgstr ""
+
+msgctxt "Design"
+msgid "Hole"
+msgstr ""
+
+msgid "Boolean"
+msgstr ""
+
+msgctxt "Design"
+msgid "Pattern"
+msgstr ""
+
+msgctxt "Design"
+msgid "Shell"
+msgstr ""
+
+msgctxt "Design"
+msgid "Rib"
+msgstr ""
+
+msgid "Surface Extrude"
+msgstr ""
+
+msgid "Surface Revolve"
+msgstr ""
+
+msgid "Thicken Surface"
+msgstr ""
+
+msgid "Surface Offset"
+msgstr ""
+
+msgid "Surface Loft"
+msgstr ""
+
+msgid "Surface Fill"
+msgstr ""
+
+msgid "Draft"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Face %d"
+msgstr ""
+
+msgctxt "Design"
+msgid "Extrude"
+msgstr ""
+
+msgid "Sketch"
+msgstr ""
+
+msgid "Revolve"
+msgstr ""
+
+msgctxt "Design"
+msgid "Mirror"
+msgstr ""
+
+msgid "Thicken"
+msgstr ""
+
+msgctxt "Design"
+msgid "Split"
+msgstr ""
+
+msgctxt "Design"
+msgid "Cut"
+msgstr ""
+
+msgctxt "Design"
+msgid "Project"
+msgstr ""
+
+msgid "Delete Face"
+msgstr ""
+
+msgid "Axis"
+msgstr ""
+
+msgid "Coordinate system"
+msgstr ""
+
+msgctxt "Design"
+msgid "Plane"
+msgstr ""
+
+msgid "Helix"
+msgstr ""
+
+msgid "Thread"
+msgstr ""
+
+msgid "Sweep"
+msgstr ""
+
+msgid "Loft"
+msgstr ""
+
+msgid "Mate"
+msgstr ""
+
+#, possible-c-format, possible-boost-format
+msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
+msgstr ""
+
+msgid "Commit to Plate"
+msgstr ""
+
+#. TRN Refusal of a Design tab tool picked for a selection its right-click menu row is greyed for (Constrain
+#. sketch with a face selected).
+msgid "This tool does not apply to what is selected"
+msgstr ""
+
+#. TRN Refusal of a Design tab tool picked outside a sketch, when it is a sketch tool (a line, a rectangle).
+msgid "This tool works in a sketch: open a sketch first"
+msgstr ""
+
+#. TRN Refusal of a Design tab tool picked while a sketch is open, when it works on the model (Extrude, Shell).
+msgid "This tool works on the model: finish or cancel the sketch first"
+msgstr ""
+
+msgid "List presets"
+msgstr ""
+
+msgid "Select a preset"
+msgstr ""
+
+msgid "Save a preset"
+msgstr ""
+
+msgid "Delete a preset"
+msgstr ""
+
+msgid "Read settings"
+msgstr ""
+
+msgid "Change settings"
+msgstr ""
+
+msgid "List plates"
+msgstr ""
+
+msgid "Set height range modifiers"
+msgstr ""
+
+msgid "Set a variable layer height profile"
+msgstr ""
+
+msgid "Set custom G-code at a layer"
+msgstr ""
+
+msgid "Open files"
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Generate a calibration test"
+msgstr ""
+
+msgid "Run a Python script"
+msgstr ""
+
+msgid "Search the Python API"
+msgstr ""
+
+msgid "Encode a recording"
+msgstr ""
+
+msgid "Run a replay"
+msgstr ""
+
+msgid "Export this session as a replay"
+msgstr ""
+
+msgid "List objects"
+msgstr ""
+
+msgid "Select objects"
+msgstr ""
+
+msgid "Move, rotate or scale an instance or a part"
+msgstr ""
+
+msgid "Add a part or modifier to an object"
+msgstr ""
+
+msgid "Arrange objects or fill the bed"
+msgstr ""
+
+msgid "Cancel a job"
+msgstr ""
+
+msgid "List the windows"
+msgstr ""
+
+msgid "Size or move a window"
+msgstr ""
+
+msgid "List the widgets"
+msgstr ""
+
+msgid "Click an element"
+msgstr ""
+
+msgid "Set a widget's value"
+msgstr ""
+
+msgid "Press keys"
+msgstr ""
+
+msgid "Mouse gesture on the 3D view"
+msgstr ""
+
+msgid "Pick a file for the open gizmo"
+msgstr ""
+
+msgid "Answer a dialog"
+msgstr ""
+
+msgid "Answer dialogs automatically"
+msgstr ""
+
+msgid "Run JavaScript in a web view"
+msgstr ""
+
+msgid "Take a screenshot"
+msgstr ""
+
+msgid "Get slice statistics"
+msgstr ""
+
+msgid "Point the view"
+msgstr ""
+
+msgid "Python scripts"
+msgstr ""
+
+msgid "Python scripts are subject to the same permission checks as plugins: the scripts you run in the Run Script panel or with --mcp-run, and the ones AI agents send through the MCP server. When this option is on, they bypass the permission checks, which is useful for fully automated workflows."
+msgstr ""
+
+msgid "Run Python scripts unrestricted"
+msgstr ""
+
+msgid "Small file"
+msgstr ""
+
+msgid "Balanced"
+msgstr ""
+
+msgid "High quality"
+msgstr ""
+
+msgid "Most compatible"
+msgstr ""
+
+msgid "Record"
+msgstr ""
+
+msgid "MJPEG in .mkv"
+msgstr ""
+
+msgid "Each frame is kept as a JPEG while you work, so recording stays light on the app."
+msgstr ""
+
+msgid "JPEG quality"
+msgstr ""
+
+msgid "30 to 95. Higher is sharper and makes a larger file."
+msgstr ""
+
+msgid "Highlight the pointer"
+msgstr ""
+
+msgid "A ring follows the pointer, and its clicks ripple."
+msgstr ""
+
+msgid "Caption each step"
+msgstr ""
+
+msgid "Names each step an agent or script takes, at the bottom."
+msgstr ""
+
+msgid "Encode to MP4"
+msgstr ""
+
+msgid "When the recording ends, ffmpeg turns it into an MP4 that is easy to share. The .mkv is kept."
+msgstr ""
+
+msgid "ffmpeg wasn't found, so recordings can't be encoded. Install ffmpeg with libx265 and libx264, or set ORCA_FFMPEG to one, then open this dialog again."
+msgstr ""
+
+msgid "Preset"
+msgstr ""
+
+msgid "Codec"
+msgstr ""
+
+msgid "Profile"
+msgstr ""
+
+msgid "Quality (CRF), lower is sharper"
+msgstr ""
+
+msgid "Speed, slower is smaller"
+msgstr ""
+
+#, possible-boost-format
+msgid "Uses %1%"
+msgstr ""
+
+msgid "Change..."
+msgstr ""
+
+msgid "Use the default folder"
+msgstr ""
+
+msgid "Recordings, their MP4s and screenshots are saved here."
+msgstr ""
+
+msgid "Save in"
+msgstr ""
+
+msgid "Start recording"
+msgstr ""
+
+msgid "Choose where recordings and screenshots are saved"
+msgstr ""
+
+#. TRN %1% is a codec's name, such as H.265.
+#, possible-boost-format
+msgid "%1% in .mp4"
+msgstr ""
+
+#. TRN Short label of the indicator the main window shows while a recording runs, as on a camera.
+msgid "REC"
+msgstr ""
+
+msgid "Recording. Click to stop."
+msgstr ""
+
+#. TRN The title of the one cell a new script starts with, which lists the objects of the project.
+msgid "List the objects"
+msgstr ""
+
+#. TRN A comment line of a new script in the Run Script panel. orca.host is the name of OrcaSlicer's Python API.
+msgid "Run Script runs Python with OrcaSlicer's tools and the orca.host API."
+msgstr ""
+
+#. TRN A comment line of a new script. %1% is the cell marker "# %%", written as is; %2% and %3% are keys, such as
+#. Shift+Enter and Ctrl+Enter.
+#, possible-boost-format
+msgid "A line that starts with %1% starts a cell. %2% runs the cell at the cursor, %3% all of them."
+msgstr ""
+
+#. TRN A button of the Run Script panel that starts a new script.
+msgctxt "Script"
+msgid "New"
+msgstr ""
+
+msgid "Start a new script"
+msgstr ""
+
+msgid "Open…"
+msgstr ""
+
+msgid "Open a Python script"
+msgstr ""
+
+msgid "Recent scripts"
+msgstr ""
+
+msgid "No recent scripts"
+msgstr ""
+
+msgid "Close script"
+msgstr ""
+
+#. TRN %s is a key, such as Ctrl+S.
+#, possible-c-format, possible-boost-format
+msgid "Save the script (%s)"
+msgstr ""
+
+msgid "Run all"
+msgstr ""
+
+#. TRN %s is a key, such as Ctrl+Enter.
+#, possible-c-format, possible-boost-format
+msgid "Restart the session and run every cell (%s)"
+msgstr ""
+
+msgid "Run cell"
+msgstr ""
+
+#. TRN %s is a key, such as Shift+Enter.
+#, possible-c-format, possible-boost-format
+msgid "Run the cell at the cursor (%s)"
+msgstr ""
+
+msgid "Interrupt the code that runs now and the threads the session started"
+msgstr ""
+
+msgid "Restart session"
+msgstr ""
+
+msgid "End the session: its variables, imports and threads go"
+msgstr ""
+
+msgid "Untitled script"
+msgstr ""
+
+#. TRN The first item of the Run Script panel's session line, before the number of cells run and of variables.
+msgid "Session"
+msgstr ""
+
+msgid "No session yet"
+msgstr ""
+
+msgid "Running"
+msgstr ""
+
+msgid "Threads are running"
+msgstr ""
+
+msgid "Ending the session…"
+msgstr ""
+
+#. TRN The first %s is the number of the cell that runs, the second how many cells the file has.
+#, possible-c-format, possible-boost-format
+msgid "Running cell %s of %s"
+msgstr ""
+
+msgid "Running the file"
+msgstr ""
+
+msgid "Don't use OrcaSlicer until the script finishes."
+msgstr ""
+
+#. TRN The heading of the console's block for a cell; %s is its number.
+#, possible-c-format, possible-boost-format
+msgid "Cell %s"
+msgstr ""
+
+msgid "(no output)"
+msgstr ""
+
+#. TRN A link in the heading of Run all's block in the Run Script console: opens every cell's row to show its output.
+msgid "Expand all"
+msgstr ""
+
+#. TRN A link in the heading of Run all's block in the Run Script console: folds every cell's row to its heading.
+msgid "Collapse all"
+msgstr ""
+
+#. TRN The + below the last line of the Run Script editor, which adds a "# %%" cell at the end of the script.
+msgid "Add a cell"
+msgstr ""
+
+msgid "Add a cell at the end of the script"
+msgstr ""
+
+msgid "Python, run in the session"
+msgstr ""
+
+msgid "Clear"
+msgstr ""
+
+msgid "Clear the console: the session and its variables stay"
+msgstr ""
+
+#. TRN A menu of the Run Script panel: how the editor shows the script's cells, the parts that start with "# %%".
+msgid "Cells"
+msgstr ""
+
+msgid "How the editor shows the script's cells"
+msgstr ""
+
+#. TRN The heading of the Run Script panel's Cells menu, above its styles: Margin bars only, Dividers, Header bands...
+msgid "Show cells with"
+msgstr ""
+
+#. TRN A style of the Run Script panel's Cells menu: only the coloured bar beside each cell's line numbers.
+msgid "Margin bars only"
+msgstr ""
+
+#. TRN A style of the Run Script panel's Cells menu: a line across the editor above each cell.
+msgid "Dividers"
+msgstr ""
+
+#. TRN A style of the Run Script panel's Cells menu: each cell's first line, "# %% title", drawn as a shaded band.
+msgid "Header bands"
+msgstr ""
+
+#. TRN A style of the Run Script panel's Cells menu: every other cell has a shaded background.
+msgid "Shaded cells"
+msgstr ""
+
+msgid "Highlight the cell at the cursor"
+msgstr ""
+
+#. TRN For a screen reader: the divider between the Run Script panel's editor and its console, whose value is the
+#. editor's share of the panel's width.
+msgid "Width of the editor"
+msgstr ""
+
+msgid "Drag to share the width between the editor and the console. Double-click to reset it."
+msgstr ""
+
+#. TRN The arrows on the divider between the Run Script panel's editor and console, and the strip a hidden side leaves at
+#. the panel's edge.
+msgid "Hide the editor"
+msgstr ""
+
+msgid "Hide the console"
+msgstr ""
+
+msgid "Show the editor"
+msgstr ""
+
+msgid "Show the console"
+msgstr ""
+
+#. TRN The strip a hidden console leaves at the Run Script panel's edge, while a script runs or after one ran.
+msgid "Show the console: a script is running"
+msgstr ""
+
+msgid "Show the console: it has new output"
+msgstr ""
+
+msgid "Show the console: the last run failed"
+msgstr ""
+
+#. TRN The label of the strip a hidden console leaves at the Run Script panel's edge.
+msgid "Console"
+msgstr ""
+
+msgid "New script"
+msgstr ""
+
+msgid "Open a script…"
+msgstr ""
+
+msgid "Open a script, or start a new one."
+msgstr ""
+
+msgid "Start a script"
+msgstr ""
+
+#. TRN %s is the cell marker "# %%", written as is. orca.host is the name of OrcaSlicer's Python API.
+#, possible-c-format, possible-boost-format
+msgid "A Python script runs inside OrcaSlicer and can call every tool an AI agent can, plus the whole orca.host API. Split it into cells with %s and try one cell at a time."
+msgstr ""
+
+#. TRN A line in the console of the Run Script panel, where Run all started a new session.
+msgid "Session restarted for Run all"
+msgstr ""
+
+#. TRN The session line of the Run Script panel: how many cells ran in the session.
+#, possible-boost-format
+msgid "%1% cell run"
+msgid_plural "%1% cells run"
+msgstr[0] ""
+msgstr[1] ""
+
+#. TRN The session line of the Run Script panel: how many variables the session holds.
+#, possible-boost-format
+msgid "%1% variable"
+msgid_plural "%1% variables"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid ""
+"Save this script?\n"
+"If you don't, your changes are lost."
+msgstr ""
+
+msgid "Save the script"
+msgstr ""
+
+#. TRN %1% is a file name, %2% the text encoding it is in (such as cp1252), %3% why the text doesn't fit it.
+#, possible-boost-format
+msgid "Can't save %1% in its encoding, %2%: %3%"
+msgstr ""
+
+#, possible-boost-format
+msgid "%1% can't be read as Python source: %2%"
+msgstr ""
+
+msgid "Scripts can't run while OrcaSlicer is starting or closing."
+msgstr ""
+
+msgid "The script could not run."
+msgstr ""
+
+msgid "Python is not available in this OrcaSlicer."
 msgstr ""
 
 msgid "The device cannot handle more conversations. Please retry later."
@@ -7574,16 +8652,10 @@ msgstr ""
 msgid "Parts Skip"
 msgstr ""
 
-msgid "Stop"
-msgstr ""
-
 msgid "Layer: N/A"
 msgstr ""
 
 msgid "Click to view thermal preconditioning explanation"
-msgstr ""
-
-msgid "Clear"
 msgstr ""
 
 msgid ""
@@ -7948,25 +9020,99 @@ msgstr ""
 msgid "Select an object first."
 msgstr ""
 
+msgid "Wait for the running background job to finish."
+msgstr ""
+
+msgid "There are no objects to orient."
+msgstr ""
+
+#. TRN %1% is why, in English.
+#, possible-boost-format
+msgid "The recording was saved, but could not be encoded: %1%"
+msgstr ""
+
+msgid "Recording encoded"
+msgstr ""
+
+msgid "A recording is already running."
+msgstr ""
+
+msgid "Recording cancelled."
+msgstr ""
+
+msgid "Recording saved. Encoding it to MP4..."
+msgstr ""
+
+msgid "Recording saved"
+msgstr ""
+
+#. TRN %1% is why, in English.
+#, possible-boost-format
+msgid "The recording could not start: %1%"
+msgstr ""
+
+#. TRN "Stop Recording" is the command that ends the recording.
+msgid "Recording started. Stop Recording saves it."
+msgstr ""
+
+msgid "No recording is running."
+msgstr ""
+
+#. TRN %1% is a comma-separated list of preset names.
+#, possible-boost-format
+msgid "Imported presets: %1%."
+msgstr ""
+
+#. TRN %1% is a comma-separated list of preset names.
+#, possible-boost-format
+msgid "Replaced presets: %1%."
+msgstr ""
+
+#. TRN %1% is a comma-separated list of preset names.
+#, possible-boost-format
+msgid "Kept the existing presets: %1%."
+msgstr ""
+
 msgid "Slice and Preview"
 msgstr ""
 
 msgid "Slice & Export"
 msgstr ""
 
+msgid "Slice All Plates"
+msgstr ""
+
 msgid "Go to layer (percent)"
 msgstr ""
 
-msgid "Commands"
+msgid "Go to tab..."
 msgstr ""
 
-msgid "Go to tab..."
+#. TRN %1% is the tab id the command was given, such as "preview".
+#, possible-boost-format
+msgid "No tab has the id \"%1%\"."
+msgstr ""
+
+#. TRN %1% is the id of the tab that could not be opened, such as "monitor".
+#, possible-boost-format
+msgid "The \"%1%\" tab could not be opened."
 msgstr ""
 
 msgid "Load Project"
 msgstr ""
 
 msgid "Save Project As"
+msgstr ""
+
+#. TRN %1% is why, in English.
+#, possible-boost-format
+msgid "The screenshot could not be taken: %1%"
+msgstr ""
+
+msgid "The screenshot could not be saved."
+msgstr ""
+
+msgid "Screenshot saved"
 msgstr ""
 
 msgid "Mode: Simple"
@@ -7997,6 +9143,9 @@ msgid "Export Sliced File"
 msgstr ""
 
 msgid "Export All Sliced Files"
+msgstr ""
+
+msgid "Send G-code to printer host"
 msgstr ""
 
 msgid "Max Volumetric Speed Calibration"
@@ -8056,6 +9205,9 @@ msgstr ""
 msgid "Delete All Objects"
 msgstr ""
 
+msgid "Select All Objects"
+msgstr ""
+
 msgid "Mirror X"
 msgstr ""
 
@@ -8092,6 +9244,66 @@ msgstr ""
 msgid "Auto-Orient"
 msgstr ""
 
+msgid "Select a part first."
+msgstr ""
+
+msgid "Change Type to Part"
+msgstr ""
+
+msgid "Change Type to Negative Part"
+msgstr ""
+
+msgid "Change Type to Modifier"
+msgstr ""
+
+msgid "Change Type to Support Blocker"
+msgstr ""
+
+msgid "Change Type to Support Enforcer"
+msgstr ""
+
+msgid "Change Type to Precise Seam"
+msgstr ""
+
+msgid "Select one object or part first."
+msgstr ""
+
+msgid "Invalid name, the following characters are not allowed:"
+msgstr ""
+
+msgid "Set Number of Instances"
+msgstr ""
+
+msgid "Select two or more objects first."
+msgstr ""
+
+msgid "Cut objects can't be assembled."
+msgstr ""
+
+msgid "Select an object with more than one instance first."
+msgstr ""
+
+msgid "There are no objects to order."
+msgstr ""
+
+msgid "Order by Name"
+msgstr ""
+
+msgid "Order by Filament"
+msgstr ""
+
+msgid "Order by Height"
+msgstr ""
+
+msgid "Order by Size"
+msgstr ""
+
+msgid "Deselect all objects to add a primitive object. To add a shape to the selected object, use its Add Part menu."
+msgstr ""
+
+msgid "The SVG file could not be added."
+msgstr ""
+
 msgid "Add Plate"
 msgstr ""
 
@@ -8122,10 +9334,47 @@ msgstr ""
 msgid "Connect a printer to synchronize the AMS filament list."
 msgstr ""
 
+msgid "Filament slots belong to a filament (FFF) project, not to a G-code file."
+msgstr ""
+
+msgid "This printer has one filament per extruder; change the number of extruders in the printer settings."
+msgstr ""
+
+msgid "Add Filament Slot"
+msgstr ""
+
+msgid "No more filament slots can be added."
+msgstr ""
+
+#, possible-boost-format
+msgid "Added filament slot %1%."
+msgstr ""
+
+msgid "Delete Filament Slot"
+msgstr ""
+
+msgid "The only filament slot cannot be deleted."
+msgstr ""
+
+#, possible-boost-format
+msgid "Filament slot must be 1 to %1%."
+msgstr ""
+
+#, possible-boost-format
+msgid "Filament slot %1% is a mixed filament; delete it from the mixed filament list."
+msgstr ""
+
+#, possible-boost-format
+msgid "Deleted filament slot %1%."
+msgstr ""
+
 msgid "Open Preset Bundle"
 msgstr ""
 
 msgid "Sign in to sync presets."
+msgstr ""
+
+msgid "The configuration was not loaded."
 msgstr ""
 
 msgid "Export All Objects as STLs"
@@ -8138,6 +9387,9 @@ msgid "Export All Objects as DRCs"
 msgstr ""
 
 msgid "Export Toolpaths as OBJ"
+msgstr ""
+
+msgid "Nothing was exported."
 msgstr ""
 
 msgid "About OrcaSlicer"
@@ -8159,6 +9411,15 @@ msgid "Install Plugin"
 msgstr ""
 
 msgid "Install Local Plugin"
+msgstr ""
+
+msgid "Select plugin package"
+msgstr ""
+
+msgid "Plugin files (*.py;*.whl)|*.py;*.whl"
+msgstr ""
+
+msgid "The plugin was not installed."
 msgstr ""
 
 msgid "Unknown command."
@@ -8331,6 +9592,153 @@ msgid ""
 msgstr ""
 
 msgid "Error loading shaders"
+msgstr ""
+
+#. TRN The OpenGL context could not be made current, so nothing can be drawn in the 3D view.
+msgid "OpenGL could not be activated for the 3D view, so it cannot be shown."
+msgstr ""
+
+#. TRN %1% is the name of a graphics card or display adapter as Windows reports it, such as "Microsoft Basic Display Adapter".
+#, possible-boost-format
+msgid "The window is on a display driven by \"%1%\"."
+msgstr ""
+
+msgid "Make sure the display adapter driving this window's display is enabled and its driver is installed and up to date."
+msgstr ""
+
+msgid "If the computer has more than one graphics card, connecting the monitor to another one may help."
+msgstr ""
+
+msgid "If the problem remains, close any overlay or screen capture software and try again."
+msgstr ""
+
+msgid "The file was not written."
+msgstr ""
+
+msgid "The project has no objects."
+msgstr ""
+
+msgid "Another export job is running."
+msgstr ""
+
+msgid "Slicing is in progress. Wait for it to finish and export again."
+msgstr ""
+
+msgid "The plate's slice ended with an error. Fix what it reports and slice again before exporting."
+msgstr ""
+
+msgid "The plate is not sliced. Slice it first."
+msgstr ""
+
+msgid "The export did not start."
+msgstr ""
+
+msgid "The sliced file was not written. Slice first and check for slicing errors."
+msgstr ""
+
+msgid "This printer prints with Print plate, not through a print host."
+msgstr ""
+
+msgid "This printer has no print host. Set one in the printer's connection settings."
+msgstr ""
+
+#, possible-boost-format
+msgid "Plate %1% could not be selected."
+msgstr ""
+
+msgid "The preview has no layers. Slice the plate first."
+msgstr ""
+
+#. TRN %1% is the plate index asked for.
+#, possible-boost-format
+msgid "Plate %1% does not exist (the project has plate 0 only)"
+msgstr ""
+
+#. TRN %1% is the plate index asked for, %2% the last plate's index.
+#, possible-boost-format
+msgid "Plate %1% does not exist (the project has plates 0..%2%)"
+msgstr ""
+
+msgid "There are no objects to arrange."
+msgstr ""
+
+#, possible-boost-format
+msgid "\"%1%\" names several hidden presets. Use the preset's internal name."
+msgstr ""
+
+#, possible-boost-format
+msgid "\"%1%\" is not compatible with the selected printer."
+msgstr ""
+
+#. TRN %1% is a preset name, %2% a filament slot number.
+#, possible-boost-format
+msgid "The selector of filament slot %2% does not offer \"%1%\"."
+msgstr ""
+
+#, possible-boost-format
+msgid "The preset selector does not offer \"%1%\"."
+msgstr ""
+
+#, possible-boost-format
+msgid "The name \"%1%\" is ambiguous in the selector of filament slot %2%. Use the preset's internal name."
+msgstr ""
+
+#, possible-boost-format
+msgid "The name \"%1%\" is ambiguous in the preset selector. Use the preset's internal name."
+msgstr ""
+
+msgid "The settings tab is not available."
+msgstr ""
+
+#. TRN %1% is the filament slot number asked for, %2% the last slot's number.
+#, possible-boost-format
+msgid "Filament slot %1% does not exist (the slots are 1..%2%)"
+msgstr ""
+
+msgid "The unsaved changes cannot be transferred: a printer's changes stay with it."
+msgstr ""
+
+#, possible-boost-format
+msgid "The unsaved changes cannot be transferred: \"%1%\" is a filament of another type."
+msgstr ""
+
+#, possible-boost-format
+msgid "Filament slot %1% is a mixed-color virtual slot, which has no filament preset of its own."
+msgstr ""
+
+#, possible-boost-format
+msgid "Selecting \"%1%\" was cancelled."
+msgstr ""
+
+#. TRN %1% is the preset asked for, %2% the one that is selected.
+#, possible-boost-format
+msgid "\"%2%\" was selected instead of \"%1%\"."
+msgstr ""
+
+msgid ""
+"No presets were imported.\n"
+"Hint: Make sure you have added the corresponding printer before importing the configs."
+msgstr ""
+
+msgid "The project has unsaved changes."
+msgstr ""
+
+msgid "Nothing was imported."
+msgstr ""
+
+msgid "A project is saved without G-code, so its file name cannot end in .gcode.3mf. Export the sliced file instead."
+msgstr ""
+
+msgid "The project was not saved."
+msgstr ""
+
+msgid "A cut object keeps its number of instances."
+msgstr ""
+
+msgid "Make every instance of the object printable first."
+msgstr ""
+
+msgid "The number of instances is a whole number from 1 to 1000."
 msgstr ""
 
 msgctxt "Layers"
@@ -8727,9 +10135,6 @@ msgstr ""
 msgid "Slicing plate %1%: %2%"
 msgstr ""
 
-msgid "Invalid name, the following characters are not allowed:"
-msgstr ""
-
 msgid "Sliced Info"
 msgstr ""
 
@@ -9058,6 +10463,9 @@ msgstr ""
 msgid "This project contains a model made in the Design tab and no other geometry. Enable \"CAD feature (experimental)\" in Preferences and restart to see and edit it; it is kept when the project is saved."
 msgstr ""
 
+msgid "The invalid area has been removed, so please define it again using a valid polygon."
+msgstr ""
+
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr ""
 
@@ -9077,15 +10485,6 @@ msgid "Save file as"
 msgstr ""
 
 msgid "Export OBJ file:"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid ""
-"The file %s already exists.\n"
-"Do you want to replace it?"
-msgstr ""
-
-msgid "Confirm Save As"
 msgstr ""
 
 msgid "Delete object which is a part of cut object"
@@ -9116,9 +10515,6 @@ msgid "Cannot slice: an object overlaps an area reserved for IDEX/IQEX parallel 
 msgstr ""
 
 msgid "Cannot slice: the prime tower overlaps an area reserved for IDEX/IQEX parallel printing (a secondary zone, or a carriage clearance strip inside the primary zone)."
-msgstr ""
-
-msgid "Another export job is running."
 msgstr ""
 
 msgid "Unable to replace with more than one volume"
@@ -9737,6 +11133,51 @@ msgstr ""
 msgid "Choose Download Directory"
 msgstr ""
 
+msgid "Another OrcaSlicer window is serving agents. This window takes over when it closes."
+msgstr ""
+
+msgid "Not running"
+msgstr ""
+
+msgid "The port must be between 1024 and 65535"
+msgstr ""
+
+msgid "The agent connects to the open OrcaSlicer while the MCP server is on. The setup holds the access token, so don't share it."
+msgstr ""
+
+msgid "The agent starts this copy of OrcaSlicer when it isn't open, so set the agent up again after OrcaSlicer moves."
+msgstr ""
+
+msgid "Run the copied command in a terminal, then start a new Claude Code session."
+msgstr ""
+
+msgid "Add the copied lines to config.toml in the .codex folder of your home folder, then start a new Codex session."
+msgstr ""
+
+msgid "Add the copied setting to opencode.json in the .config/opencode folder of your home folder, then restart opencode."
+msgstr ""
+
+msgid "Add the copied entry to cordis.patch.yml in the .dsh folder of your home folder, then restart DeepSeek Harness."
+msgstr ""
+
+msgid "Other apps"
+msgstr ""
+
+msgid "Add the copied settings to the app's MCP configuration file. For an app that can't connect over HTTP, choose stdio."
+msgstr ""
+
+msgid "Copied"
+msgstr ""
+
+msgid "Unrestricted"
+msgstr ""
+
+msgid "Restricted"
+msgstr ""
+
+msgid "Change"
+msgstr ""
+
 #, possible-c-format, possible-boost-format
 msgid ""
 "You've selected network plug-in version %s.\n"
@@ -9852,6 +11293,45 @@ msgid "CAD feature (experimental)"
 msgstr ""
 
 msgid "With this option enabled, the Design tab is shown, where models can be built and edited parametrically. This feature is experimental and still under development."
+msgstr ""
+
+msgid "AI features"
+msgstr ""
+
+msgid "Let AI agents such as Claude Code and Codex open and slice models, change settings and take screenshots while OrcaSlicer is open. Only programs on this computer can connect."
+msgstr ""
+
+msgid "MCP server"
+msgstr ""
+
+msgid "Run a local server that AI agents connect to through the Model Context Protocol (MCP)."
+msgstr ""
+
+msgid "Server port"
+msgstr ""
+
+msgid "Local port of the MCP server."
+msgstr ""
+
+msgid "Server address"
+msgstr ""
+
+msgid "The address agents connect to over HTTP, with the access token."
+msgstr ""
+
+msgid "Connection type"
+msgstr ""
+
+msgid "How the agent you set up below connects to OrcaSlicer."
+msgstr ""
+
+msgid "Add to an agent"
+msgstr ""
+
+msgid "Copy the setup that connects the chosen agent to OrcaSlicer."
+msgstr ""
+
+msgid "Whether Python scripts are subject to the same permission checks as plugins, or bypass them."
 msgstr ""
 
 msgid "Pop up to select filament grouping mode"
@@ -10098,6 +11578,23 @@ msgid ""
 "You can still switch the view type in the preview afterwards."
 msgstr ""
 
+msgid "Simplify preview while dragging"
+msgstr ""
+
+msgid ""
+"What the sliced preview draws while you drag the camera or a preview slider, or zoom with the mouse wheel, so that large prints stay responsive. The full toolpaths are restored as soon as you let go.\n"
+"Off: the full toolpaths.\n"
+"Solid model: the sliced objects and the prime tower as solid shapes in the colors of the current view, cut to the visible layer range, with its bottom and top layers and the supports drawn as toolpaths. Negative volumes are not cut out. A print made object by object, or one on a belt printer, keeps its full toolpaths.\n"
+"Shell only: every layer without its sparse infill, internal solid infill, internal bridges and gap fill, which lie under the walls and skins. Walls, top and bottom surfaces, bridges, supports and the prime tower are drawn whole, so the print looks the same from outside.\n"
+"The bottom and top layers of the visible range are always drawn whole; a layer with no infill of its own, as with infill combination, takes the layers down to the nearest one with infill along."
+msgstr ""
+
+msgid "Solid model"
+msgstr ""
+
+msgid "Shell only"
+msgstr ""
+
 msgid "Dim lower layers"
 msgstr ""
 
@@ -10110,9 +11607,6 @@ msgstr ""
 msgid ""
 "How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
 "99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
-msgstr ""
-
-msgid "Preset"
 msgstr ""
 
 msgid "Remember printer configuration"
@@ -10318,6 +11812,27 @@ msgstr ""
 msgid ""
 "Highlights the toolpaths in Preview as glossy plastic in realistic view.\n"
 "Off, a translucent filament is matte and an opaque one keeps the highlight of the plain view."
+msgstr ""
+
+msgid "Persistent"
+msgstr ""
+
+msgid "When Outline is enabled in the 3D canvas menu, outlines visible objects even when they are not selected."
+msgstr ""
+
+msgid "The configured outline color is invalid."
+msgstr ""
+
+msgid "Persistent color"
+msgstr ""
+
+msgid "Choose the color of the persistent outlines of unselected objects."
+msgstr ""
+
+msgid "Selection color"
+msgstr ""
+
+msgid "Choose the color of the outlines of selected objects."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -12572,9 +14087,6 @@ msgstr ""
 msgid "Transfer"
 msgstr ""
 
-msgid "Don't save"
-msgstr ""
-
 msgid "Discard"
 msgstr ""
 
@@ -13333,9 +14845,6 @@ msgstr ""
 msgid "HTTPS CA file is optional. It is only needed if you use HTTPS with a self-signed certificate."
 msgstr ""
 
-msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
-msgstr ""
-
 msgid "Printer model"
 msgstr ""
 
@@ -13352,6 +14861,9 @@ msgid "Connect"
 msgstr ""
 
 msgid "Manual Setup"
+msgstr ""
+
+msgid "This system uses HTTPS certificates from the system Certificate Store or Keychain. To use a custom CA file, import it there."
 msgstr ""
 
 msgid "IP and Access Code Verified! You may close the window"
@@ -13857,6 +15369,21 @@ msgstr ""
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
 msgstr ""
 
+msgid "A prime tower requires that all objects have the same layer height."
+msgstr ""
+
+msgid "A prime tower requires that all objects are printed over the same number of raft layers."
+msgstr ""
+
+msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
+msgstr ""
+
+msgid "A prime tower requires that all objects are sliced with the same layer height."
+msgstr ""
+
+msgid "The prime tower is only supported if all objects have the same variable layer height."
+msgstr ""
+
 msgid "No extrusions under current settings."
 msgstr ""
 
@@ -13980,21 +15507,6 @@ msgid "A prime tower is not supported when adaptive layer height is on. It requi
 msgstr ""
 
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
-msgstr ""
-
-msgid "A prime tower requires that all objects have the same layer height."
-msgstr ""
-
-msgid "A prime tower requires that all objects are printed over the same number of raft layers."
-msgstr ""
-
-msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
-msgstr ""
-
-msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr ""
-
-msgid "The prime tower is only supported if all objects have the same variable layer height."
 msgstr ""
 
 msgid "One or more object were assigned an extruder that the printer does not have."
@@ -19448,6 +20960,39 @@ msgstr ""
 msgid "Load and store settings at the given directory. This is useful for maintaining different profiles or including configurations from a network storage."
 msgstr ""
 
+msgid "Start the MCP server for AI agents on 127.0.0.1 for this run, whatever the preference says."
+msgstr ""
+
+msgid "MCP server port"
+msgstr ""
+
+msgid "Port of the MCP server. Defaults to the preference, or 13619."
+msgstr ""
+
+msgid "MCP server token"
+msgstr ""
+
+msgid "Bearer token the MCP server requires for this run. The ORCA_MCP_TOKEN environment variable takes precedence and does not show up in the process list."
+msgstr ""
+
+msgid "Run a replay or script"
+msgstr ""
+
+msgid "Run a replay (.json) or a Python script (.py) once the GUI is ready, then exit: 0 when it passed or finished, 1 when a step failed or the script did not finish, 2 when the file is invalid or cannot be read."
+msgstr ""
+
+msgid "Replay output directory"
+msgstr ""
+
+msgid "Where --mcp-run writes a replay's result.json and screenshots. Defaults to <replay name>.out next to the replay."
+msgstr ""
+
+msgid "MCP stdio bridge"
+msgstr ""
+
+msgid "Act as an MCP server on standard input and output for clients that cannot use HTTP, forwarding to the running OrcaSlicer (started with --mcp when none answers)."
+msgstr ""
+
 msgid "Output directory"
 msgstr ""
 
@@ -21573,9 +23118,6 @@ msgstr ""
 msgid "Only materials of the same type can be selected."
 msgstr ""
 
-msgid "Send G-code to printer host"
-msgstr ""
-
 msgid "Upload to Printer Host with the following filename:"
 msgstr ""
 
@@ -23359,9 +24901,6 @@ msgstr ""
 msgid "Export Presets"
 msgstr ""
 
-msgid "Show in folder"
-msgstr ""
-
 msgid "Delete bundle"
 msgstr ""
 
@@ -23839,17 +25378,10 @@ msgstr ""
 msgid "Add material (extrude / revolve / sweep / loft / thicken / rib)"
 msgstr ""
 
-msgctxt "Design"
-msgid "Extrude"
-msgstr ""
-
 msgid "Extrude a sketch profile, or push/pull a picked face"
 msgstr ""
 
 msgid "Create a sketch, or pick a solid face, first"
-msgstr ""
-
-msgid "Revolve"
 msgstr ""
 
 msgid "Revolve a profile about an axis"
@@ -23858,25 +25390,16 @@ msgstr ""
 msgid "Create a sketch profile to revolve first"
 msgstr ""
 
-msgid "Sweep"
-msgstr ""
-
 msgid "Sweep a profile along a path"
 msgstr ""
 
 msgid "Create a profile sketch to sweep first"
 msgstr ""
 
-msgid "Loft"
-msgstr ""
-
 msgid "Loft (skin) between two or more profiles"
 msgstr ""
 
 msgid "Create at least two profile sketches to loft"
-msgstr ""
-
-msgid "Thicken"
 msgstr ""
 
 msgid "Offset a solid face into a thin plate (new body)"
@@ -23889,10 +25412,6 @@ msgstr ""
 msgid "Body %zu"
 msgstr ""
 
-msgctxt "Design"
-msgid "Rib"
-msgstr ""
-
 msgid "Grow a thin wall from an open sketch line, fused to a body"
 msgstr ""
 
@@ -23900,10 +25419,6 @@ msgid "Rib needs a solid body — add or import one first"
 msgstr ""
 
 msgid "Create a sketch with an open line first"
-msgstr ""
-
-msgctxt "Design"
-msgid "Pattern"
 msgstr ""
 
 msgid "Create a solid body to pattern first"
@@ -23915,28 +25430,16 @@ msgstr ""
 msgid "Surface (extrude / revolve / loft / fill / offset / thicken)"
 msgstr ""
 
-msgid "Surface Extrude"
-msgstr ""
-
 msgid "Extrude a sketch into a sheet body (no end caps)"
 msgstr ""
 
 msgid "Create a sketch first"
 msgstr ""
 
-msgid "Surface Revolve"
-msgstr ""
-
 msgid "Revolve a sketch profile into a sheet body"
 msgstr ""
 
-msgid "Surface Loft"
-msgstr ""
-
 msgid "Loft (skin) between 2+ profiles, open (no end caps)"
-msgstr ""
-
-msgid "Surface Fill"
 msgstr ""
 
 msgid "Fill a sketch boundary with a smooth face"
@@ -23945,16 +25448,10 @@ msgstr ""
 msgid "Create a sketch profile to fill first"
 msgstr ""
 
-msgid "Surface Offset"
-msgstr ""
-
 msgid "Offset a sheet body's shell by a signed distance"
 msgstr ""
 
 msgid "No sheet body to offset — create a surface feature first"
-msgstr ""
-
-msgid "Thicken Surface"
 msgstr ""
 
 msgid "Thicken a sheet body into a solid"
@@ -23966,43 +25463,22 @@ msgstr ""
 msgid "Datum / Curve (plane / axis / coord sys / helix / project)"
 msgstr ""
 
-msgctxt "Design"
-msgid "Plane"
-msgstr ""
-
 msgid "Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"
-msgstr ""
-
-msgid "Axis"
 msgstr ""
 
 msgid "Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"
 msgstr ""
 
-msgid "Coordinate system"
-msgstr ""
-
 msgid "Datum coordinate system (world point, or face + direction edge)"
 msgstr ""
 
-msgid "Helix"
-msgstr ""
-
 msgid "Helical curve (spring path) — use as a sweep path for coils / springs / augers"
-msgstr ""
-
-msgctxt "Design"
-msgid "Project"
 msgstr ""
 
 msgid "Project body edges onto a plane as sketch entities"
 msgstr ""
 
 msgid "Project needs a body — add or import one first"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid "Face %d"
 msgstr ""
 
 msgid "(all edges)"
@@ -24017,17 +25493,10 @@ msgstr ""
 msgid "Transform needs a body — add or import one first"
 msgstr ""
 
-msgctxt "Design"
-msgid "Mirror"
-msgstr ""
-
 msgid "Reflect a body about a plane"
 msgstr ""
 
 msgid "Mirror needs a body — add or import one first"
-msgstr ""
-
-msgid "Mate"
 msgstr ""
 
 msgid "Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"
@@ -24069,14 +25538,7 @@ msgstr ""
 msgid "Tilt a picked face by a draft angle"
 msgstr ""
 
-msgctxt "Design"
-msgid "Shell"
-msgstr ""
-
 msgid "Hollow the body to a wall thickness, opening a picked face"
-msgstr ""
-
-msgid "Delete Face"
 msgstr ""
 
 msgid "Remove faces from a body and heal the solid"
@@ -24091,17 +25553,10 @@ msgstr ""
 msgid "Hole / thread"
 msgstr ""
 
-msgctxt "Design"
-msgid "Hole"
-msgstr ""
-
 msgid "Drill a hole, centered on a picked face or placed on a plane"
 msgstr ""
 
 msgid "Pick a face or a plane to drill into"
-msgstr ""
-
-msgid "Thread"
 msgstr ""
 
 msgid "Thread a cylindrical surface (inner bore / outer) or a circular edge"
@@ -24252,13 +25707,7 @@ msgstr ""
 msgid "Fillet / chamfer"
 msgstr ""
 
-msgid "Fillet"
-msgstr ""
-
 msgid "Pick two lines, then drag the arrow or click the radius to set it"
-msgstr ""
-
-msgid "Chamfer"
 msgstr ""
 
 msgid "Pick two lines, then drag the arrow or click the distance to set it"
@@ -24455,9 +25904,6 @@ msgstr ""
 msgid "Choose how Commit to Plate sends the bodies"
 msgstr ""
 
-msgid "Commit to Plate"
-msgstr ""
-
 msgid "All bodies become one object with a part per body, keeping their relative positions"
 msgstr ""
 
@@ -24471,9 +25917,6 @@ msgid "Width / X"
 msgstr ""
 
 msgid "Height / Y"
-msgstr ""
-
-msgid "Sketch"
 msgstr ""
 
 msgid "Distance X"
@@ -24638,9 +26081,6 @@ msgstr ""
 msgid "Total angle (°)"
 msgstr ""
 
-msgid "Boolean"
-msgstr ""
-
 msgid "Subtract"
 msgstr ""
 
@@ -24648,10 +26088,6 @@ msgid "Target (kept)"
 msgstr ""
 
 msgid "Keep tool body"
-msgstr ""
-
-msgctxt "Design"
-msgid "Cut"
 msgstr ""
 
 msgid "Body"
@@ -24745,9 +26181,6 @@ msgid "(pick a side face)"
 msgstr ""
 
 msgid "Face"
-msgstr ""
-
-msgid "Draft"
 msgstr ""
 
 msgid "Pick a side face, then set the draft angle. The face pivots about the body base."
@@ -24967,6 +26400,15 @@ msgstr ""
 msgid "Constraints"
 msgstr ""
 
+msgid "No constraints yet"
+msgstr ""
+
+msgid "Zoom to selection"
+msgstr ""
+
+msgid "Delete constraint"
+msgstr ""
+
 msgid "Feature tree"
 msgstr ""
 
@@ -24991,9 +26433,6 @@ msgid "Move down"
 msgstr ""
 
 msgid "Show / hide"
-msgstr ""
-
-msgid "Zoom to selection"
 msgstr ""
 
 msgid "Check interference — find overlapping bodies"
@@ -25137,6 +26576,11 @@ msgstr[1] ""
 msgid "Sketch %d"
 msgstr ""
 
+#. TRN %1% is the name of the sketch being edited, as its Feature tree row shows it.
+#, possible-boost-format
+msgid "Editing: %1%   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
+msgstr ""
+
 #, possible-c-format, possible-boost-format
 msgid "Editing: Sketch %d   ·   N = look normal to the plane   ·   Confirm or Cancel in the toolbar"
 msgstr ""
@@ -25179,9 +26623,6 @@ msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid "STEP import failed: %s"
-msgstr ""
-
-msgid "Rebuilding model…"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -25229,9 +26670,6 @@ msgid "Mesh conversion failed: %s"
 msgstr ""
 
 msgid "Mesh conversion produced no geometry"
-msgstr ""
-
-msgid "Mesh"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -25670,7 +27108,7 @@ msgstr ""
 msgid "  ·  Esc goes back to Select"
 msgstr ""
 
-msgid "  ·  click a constraint badge to remove it"
+msgid "  ·  click a constraint badge to select it"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -25755,21 +27193,6 @@ msgid "Click a solid FACE in the viewport"
 msgstr ""
 
 msgid "Click a solid EDGE in the viewport"
-msgstr ""
-
-msgid "An angled plane needs an edge to tilt about — pick Edge A"
-msgstr ""
-
-msgid "A midplane needs two faces — pick Face A and Face B"
-msgstr ""
-
-msgid "Face A and Face B are the same face — a midplane needs two different faces"
-msgstr ""
-
-msgid "A tangent plane needs a cylindrical face — pick Face A"
-msgstr ""
-
-msgid "This plane needs two edges — pick Edge A and Edge B"
 msgstr ""
 
 msgid "Plane added — pick it as a sketch plane"
@@ -26029,10 +27452,9 @@ msgstr ""
 msgid "Constraints (%d)"
 msgstr ""
 
-msgid "No constraints yet"
-msgstr ""
-
-msgid "Delete constraint"
+#. TRN Design tab status line. %1% names the selected sketch constraint, e.g. "Horizontal E0·P0 — E0·P1".
+#, possible-boost-format
+msgid "%1% selected — Delete removes it"
 msgstr ""
 
 msgid "Constraint deleted"
@@ -26202,10 +27624,10 @@ msgstr ""
 msgid "All bodies hidden — show one before committing"
 msgstr ""
 
-msgid "Design Assembly"
+msgid "Design Body"
 msgstr ""
 
-msgid "Design Body"
+msgid "Design Assembly"
 msgstr ""
 
 #, possible-c-format
@@ -26317,10 +27739,6 @@ msgid "Select a variable first"
 msgstr ""
 
 msgid "Edit Variable"
-msgstr ""
-
-#, possible-c-format, possible-boost-format
-msgid "Variable '%s' could not be removed (likely still referenced by a feature expression): %s"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -26544,10 +27962,6 @@ msgid "Thread"
 msgstr ""
 
 msgid "Trim the body with a plane — drag the offset arrow; keep one half or both"
-msgstr ""
-
-msgctxt "Design"
-msgid "Split"
 msgstr ""
 
 msgid "Split needs a solid body — add or import one first"
@@ -26955,6 +28369,170 @@ msgstr ""
 msgid "Type the angle between two lines, or the distance between the two picks"
 msgstr ""
 
+msgctxt "Design"
+msgid "Describe scene"
+msgstr ""
+
+msgctxt "Design"
+msgid "Describe feature"
+msgstr ""
+
+msgctxt "Design"
+msgid "Query topology"
+msgstr ""
+
+msgctxt "Design"
+msgid "Slice body"
+msgstr ""
+
+msgctxt "Design"
+msgid "Validate against"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch describe"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch validate"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch constraints"
+msgstr ""
+
+msgctxt "Design"
+msgid "Import step"
+msgstr ""
+
+msgctxt "Design"
+msgid "Import mesh"
+msgstr ""
+
+msgctxt "Design"
+msgid "Hole styled"
+msgstr ""
+
+msgctxt "Design"
+msgid "Hole standard"
+msgstr ""
+
+msgctxt "Design"
+msgid "Bridge"
+msgstr ""
+
+msgctxt "Design"
+msgid "Set variable"
+msgstr ""
+
+msgctxt "Design"
+msgid "Set feature"
+msgstr ""
+
+msgctxt "Design"
+msgid "Feature delete"
+msgstr ""
+
+msgctxt "Design"
+msgid "Feature move"
+msgstr ""
+
+msgctxt "Design"
+msgid "Feature set enabled"
+msgstr ""
+
+msgctxt "Design"
+msgid "Feature rename"
+msgstr ""
+
+msgctxt "Design"
+msgid "Body set"
+msgstr ""
+
+msgctxt "Design"
+msgid "Body delete"
+msgstr ""
+
+msgctxt "Design"
+msgid "Commit"
+msgstr ""
+
+msgctxt "Design"
+msgid "New design"
+msgstr ""
+
+msgctxt "Design"
+msgid "Export step"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch begin"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch commit"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch cancel"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch add"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch select"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch delete"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch construction"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch offset"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch mirror"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch heal"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch set value"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch fillet"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch chamfer"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch trim"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch transform"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch constrain"
+msgstr ""
+
+msgctxt "Design"
+msgid "Sketch unconstrain"
+msgstr ""
+
 msgid "Type the text to insert"
 msgstr ""
 
@@ -27307,6 +28885,24 @@ msgstr ""
 
 #, possible-boost-format
 msgid "needs a cylindrical face at both ends — connector %1% is on a curved face"
+msgstr ""
+
+msgid "A picked face or edge is no longer on the model — pick it again"
+msgstr ""
+
+msgid "An angled plane needs an edge to tilt about — pick Edge A"
+msgstr ""
+
+msgid "A midplane needs two faces — pick Face A and Face B"
+msgstr ""
+
+msgid "Face A and Face B are the same face — a midplane needs two different faces"
+msgstr ""
+
+msgid "A tangent plane needs a cylindrical face — pick Face A"
+msgstr ""
+
+msgid "This plane needs two edges — pick Edge A and Edge B"
 msgstr ""
 
 #. TRN Datum plane entry in the reference plane list. %1% is the plane name.
@@ -30131,9 +31727,6 @@ msgid_plural "Preview: %1% triangles"
 msgstr[0] ""
 msgstr[1] ""
 
-msgid "Steps"
-msgstr ""
-
 msgid "Splits every triangle of the model into four, this many times over. Each step quadruples the count - 3 turns 100 k triangles into 6.4 M - so prefer refining only the painted area unless you need the whole model finer."
 msgstr ""
 
@@ -30360,9 +31953,6 @@ msgstr ""
 msgid "Accurate"
 msgstr ""
 
-msgid "Balanced"
-msgstr ""
-
 msgid "Quick"
 msgstr ""
 
@@ -30585,6 +32175,10 @@ msgid "Select a .py or .whl plugin package."
 msgstr ""
 
 msgid "Failed to install plugin package. See the log for details."
+msgstr ""
+
+#, possible-boost-format
+msgid "Plugin installation failed: %1%"
 msgstr ""
 
 #, possible-c-format, possible-boost-format
@@ -30894,6 +32488,21 @@ msgstr ""
 
 #, possible-c-format, possible-boost-format
 msgid "Add value to %s"
+msgstr ""
+
+#. TRN %s is the original permission value that was removed outside this dialog.
+#, possible-c-format, possible-boost-format
+msgid "The original value is no longer granted: %s. Add the edited value or discard it."
+msgstr ""
+
+#. TRN %s is the original permission value before the user's unsaved edit.
+#, possible-c-format, possible-boost-format
+msgid "Unsaved edit of: %s"
+msgstr ""
+
+#. TRN %s is the original permission value whose unsaved edit will be discarded.
+#, possible-c-format, possible-boost-format
+msgid "Discard edit of %s"
 msgstr ""
 
 msgctxt "Permission value"
@@ -31577,9 +33186,6 @@ msgstr ""
 msgid "Edit Mode"
 msgstr ""
 
-msgid "Run Script"
-msgstr ""
-
 msgid "Add user script"
 msgstr ""
 
@@ -31853,10 +33459,6 @@ msgstr ""
 msgid "The configuration could not be written to disk. Nothing was changed."
 msgstr ""
 
-#, possible-boost-format
-msgid "Plugin installation failed: %1%"
-msgstr ""
-
 #. TRN %1% is the plugin's cloud ID.
 #, possible-boost-format
 msgid "%1%: installed plugin was not found in the catalog."
@@ -32043,6 +33645,13 @@ msgstr ""
 msgid "Failed to create plugin directory %1%: %2%"
 msgstr ""
 
+#. TRN %1% is the name of a TOML table, %2% an example of the comment block that holds it.
+#, possible-boost-format
+msgid ""
+"The plugin has no name. Its PEP 723 block needs a %1% table with a name, as in:\n"
+"%2%"
+msgstr ""
+
 #. TRN %1% is a folder path, %2% the system error message.
 #, possible-boost-format
 msgid "Failed to back up existing plugin %1%: %2%"
@@ -32090,6 +33699,14 @@ msgstr ""
 
 #, possible-boost-format
 msgid "Plugin manifest not found: %1%"
+msgstr ""
+
+#. TRN %1% is a plugin's file name without extension, such as "script".
+#, possible-boost-format
+msgid "The plugin name %1% is reserved; rename the plugin file"
+msgstr ""
+
+msgid "Plugin discovery is still running"
 msgstr ""
 
 msgid "Failed to fetch plugins from the cloud. See logs for details."
@@ -32470,6 +34087,92 @@ msgid "Estimated time:"
 msgstr ""
 
 msgid "Remaining time:"
+msgstr ""
+
+msgid "Suggestions"
+msgstr ""
+
+#. TRN Read by a screen reader for the line numbers beside the code editor.
+msgid "Line numbers. Press Enter to use the fold buttons with the arrow keys, and Escape to leave them."
+msgstr ""
+
+msgid "Line numbers"
+msgstr ""
+
+#. TRN Read by a screen reader for the code editor's text.
+msgid "Code. Press Enter to start editing, and Escape to leave the editor."
+msgstr ""
+
+msgid "Code editor"
+msgstr ""
+
+#. TRN Shown when a person types in the code editor while a script runs.
+msgid "You can edit once the run ends."
+msgstr ""
+
+#. TRN The two %s are line numbers.
+#, possible-c-format, possible-boost-format
+msgid "Unfold lines %s to %s"
+msgstr ""
+
+#. TRN A button beside the code editor's line numbers that shows lines it hid.
+msgctxt "Code editor"
+msgid "Unfold"
+msgstr ""
+
+#. TRN %s is a line number.
+#, possible-c-format, possible-boost-format
+msgid "Fold the lines from line %s"
+msgstr ""
+
+#. TRN A button beside the code editor's line numbers that hides the lines of a block.
+msgctxt "Code editor"
+msgid "Fold"
+msgstr ""
+
+#. TRN The two %s are line numbers.
+#, possible-c-format, possible-boost-format
+msgid "Fold or unfold lines %s to %s"
+msgstr ""
+
+msgid "Find all"
+msgstr ""
+
+msgid "Search for"
+msgstr ""
+
+msgid "Replace all"
+msgstr ""
+
+#. TRN A button of the code editor's search box that replaces the next match.
+msgctxt "Code editor"
+msgid "Replace"
+msgstr ""
+
+msgid "Replace with"
+msgstr ""
+
+#. TRN The code editor's search box: the first %s is the match the cursor is on, the second how many there are.
+#, possible-c-format, possible-boost-format
+msgid "%s of %s"
+msgstr ""
+
+msgid "Search in the selection"
+msgstr ""
+
+msgid "Use a regular expression"
+msgstr ""
+
+#. TRN Shows or hides the replace field of the code editor's search box.
+msgid "Show or hide Replace"
+msgstr ""
+
+msgid "Match whole words"
+msgstr ""
+
+#. TRN Read by a screen reader as the cursor moves in the code editor; %s is a line number.
+#, possible-c-format, possible-boost-format
+msgid "Cursor on line %s"
 msgstr ""
 
 #: resources/data/hints.ini: [hint:Precise wall]

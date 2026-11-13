@@ -258,6 +258,7 @@
 #include "slic3r/GUI/Mcp/McpOptions.hpp"
 #include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
 #include "slic3r/GUI/Mcp/McpService.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/plugin/PluginOperations.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/ParamsDialog.hpp"
@@ -3365,6 +3366,11 @@ bool GUI_App::on_init_inner()
 //    wxSystemOptions::SetOption("msw.notebook.themed-background", 0);
 
 //     Slic3r::debugf "wxWidgets version %s, Wx version %s\n", wxVERSION_STRING, wxVERSION;
+    // The command catalog, before anything that runs or lists a command: the MCP service below and the
+    // Speed Dial's action registry. The preference is read from the config, since is_enable_cad_feature() is in
+    // a CAD build only.
+    NativeCommands::build({is_editor() && app_config->get_bool("enable_cad_feature")});
+
     // The MCP server starts before the first startup dialog (the TLS prompt below, the setup wizard)
     // so an agent can see and answer it; tools that need the main window report not-ready until
     // post_init() has run.

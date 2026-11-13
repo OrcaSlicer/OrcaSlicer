@@ -11,6 +11,8 @@
 #include "McpTypes.hpp"
 #include "UiInvoker.hpp"
 
+#include "slic3r/GUI/CommandCatalog.hpp"
+
 #include <boost/filesystem/path.hpp>
 #include <nlohmann/json.hpp>
 
@@ -55,9 +57,10 @@ struct AutoAnswerSet
     bool        paused = false;
 };
 
-// The MCP server inside the running app: owns the tool catalog, the UI invoker, jobs, the session
-// journal, the modal-dialog tracker and the HTTP endpoint, and runs a --mcp-run once the app is
-// ready. Created by GUI_App; started, suspended and stopped on the UI thread.
+// The MCP server inside the running app: owns the UI invoker, jobs, the session journal, the
+// modal-dialog tracker and the HTTP endpoint, serves the process's command catalog
+// (NativeCommands::instance()), and runs a --mcp-run once the app is ready. Created by GUI_App; started,
+// suspended and stopped on the UI thread.
 //
 // Off unless the preference or --mcp/--mcp-run asks for it; when off, none of this exists.
 // Held in an McpServicePtr, whose deleter is the only way to destroy one.
@@ -68,17 +71,12 @@ public:
     McpService(const McpService&)            = delete;
     McpService& operator=(const McpService&) = delete;
 
-    // The tool catalog this build serves, held by a service that is never started. Building it needs
-    // neither wx nor a window: registering a tool only describes it, and its handler runs only when
-    // the tool is called. The stdio bridge lists the tools from it while no OrcaSlicer is running.
-    // Built on first use and kept until the process exits.
-    static const ToolRegistry& offline_catalog();
     // What initialize and server/discover report: the server's name, version and instructions.
     static ServerInfo server_info();
 
-    // Builds the catalog and, when `serve` is true, opens the HTTP endpoint. A replay or script from
-    // `options` runs after mark_ready(). Returns false with `err` set when the endpoint can't start;
-    // the catalog stays usable for it either way.
+    // Starts the automation runtime (jobs, the core, the UI invoker) and, when `serve` is true, opens the HTTP
+    // endpoint. A replay or script from `options` runs after mark_ready(). Returns false with `err` set when
+    // the endpoint can't start; the runtime stays usable either way.
     bool start(const McpLaunchOptions& options, bool serve, std::string& err);
     // Stops everything; idempotent, and final: start() refuses afterwards. Wakes every waiting call
     // and closes the endpoint, but frees nothing: a call may still be on the UI thread's stack inside
@@ -115,7 +113,9 @@ public:
     // Monotonic counter bumped by suspend(); refs carry it to detect a rebuilt UI.
     uint64_t ui_generation() const { return m_generation; }
 
-    ToolRegistry& registry() { return m_registry; }
+    // The process's command catalog, which the service serves; the same for every service. Any thread, once
+    // startup has built it (NativeCommands::build()).
+    const CommandCatalog& catalog() const;
     JobRegistry&  jobs() { return m_jobs; }
     Journal&      journal() { return m_journal; }
     UiInvoker&    ui() { return *m_invoker; }
@@ -195,9 +195,11 @@ public:
     // refused job sets too. nullptr when the service is not started or is stopping. UI thread.
     std::shared_ptr<PersonRun> start_python_session(std::shared_ptr<PythonSession> session, const boost::filesystem::path& file,
                                                     PersonRun::Events events);
-    // True when a run a person started (Action Replay, the Run Script panel, --mcp-run) is in `lineage`: a
-    // run_script there runs as the person's script, not an agent's. Any thread.
+    // True when a run a person started (Action Replay, the Run Script panel, --mcp-run, a long command a person
+    // picked) is in `lineage`: a run_script there runs as the person's script, not an agent's. Any thread.
     bool person_run(const std::set<std::string>& lineage) const;
+    // `command` with a function that marks its job as a person's run while it runs (person_run()).
+    NativeCommand as_person(const NativeCommand& command);
     // Stops `job` and what it runs: every call it and its descendants make sees itself cancelled
     // (JobRegistry::request_stop). Any thread.
     void request_stop(const std::string& job);
@@ -223,12 +225,9 @@ private:
     friend struct McpServiceDeleter;
     ~McpService();
 
-    void register_tools();
-    // `def` with a handler that marks its job as a person's run while it runs (person_run()).
-    ToolDef as_person(const ToolDef& def);
-    // Calls `def` and follows the job it starts to its end; nullopt when the service stops first. A thread
+    // Calls `command` and follows the job it starts to its end; nullopt when the service stops first. A thread
     // the service owns calls it.
-    std::optional<ToolResult> call_to_end(const ToolDef& def, const nlohmann::json& args);
+    std::optional<ToolResult> call_to_end(const NativeCommand& command, const nlohmann::json& args);
     void set_ready();
     void run_launch_file();
     GuardState guards_on_ui() const;
@@ -240,7 +239,6 @@ private:
     bool             m_port_held_by_other = false;
 
     std::unique_ptr<UiDispatcher>  m_dispatcher;
-    ToolRegistry                   m_registry;
     JobRegistry                    m_jobs;
     Journal                        m_journal;
     // Before the invoker, so it outlives the invoker's callbacks, which read it.
@@ -293,7 +291,7 @@ private:
 };
 
 // Lets plugins call the tools through orca.host.tools: a call from a plugin's Script worker runs as
-// McpCore::call_plugin(), starting the service in its catalog-only mode when MCP is off, and is logged.
+// McpCore::call_plugin(), starting the service without its endpoint when MCP is off, and is logged.
 // Called once by GUI_App as it sets up plugins.
 void install_plugin_tool_caller();
 

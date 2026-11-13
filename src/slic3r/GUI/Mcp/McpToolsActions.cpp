@@ -2,26 +2,19 @@
 // plugin scripts and pages, and (on request) settings - is reachable through these two tools.
 
 #include "slic3r/GUI/I18N.hpp"
-#include "McpService.hpp"
+#include "McpPersonContext.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
 #include "slic3r/GUI/ActionRegistry.hpp"
-#include "slic3r/GUI/GUI.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
-#ifdef SLIC3R_CAD
-#include "slic3r/GUI/Mcp/McpToolsCad.hpp"
-#endif
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/ExportOps.hpp"
-#include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/RunStatus.hpp"
-#include "slic3r/GUI/Plater.hpp"
 
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
-#include <cstdint>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -40,23 +33,6 @@ ActionRegistry& registry_or_fail()
     return *reg;
 }
 
-std::size_t edit_distance(const std::string& a, const std::string& b)
-{
-    std::vector<std::size_t> row(b.size() + 1);
-    for (std::size_t j = 0; j <= b.size(); ++j)
-        row[j] = j;
-    for (std::size_t i = 1; i <= a.size(); ++i) {
-        std::size_t diag = row[0];
-        row[0]           = i;
-        for (std::size_t j = 1; j <= b.size(); ++j) {
-            const std::size_t up = row[j];
-            row[j]               = std::min({row[j] + 1, row[j - 1] + 1, diag + (a[i - 1] == b[j - 1] ? 0 : 1)});
-            diag                 = up;
-        }
-    }
-    return row[b.size()];
-}
-
 // The name inside a "<source>:<name>:<plugin>" id (view_front in orca_command:view_front:orca), which
 // is what agents and the tools' own messages call an action.
 std::string short_id(const std::string& id)
@@ -65,12 +41,13 @@ std::string short_id(const std::string& id)
     return first == std::string::npos || first == last ? id : id.substr(first + 1, last - first - 1);
 }
 
-// The action `id` names: its full id, or a name only one action has. Otherwise ToolFailure: for a name
-// that is a tool of `tools` or a CAD tool, where it runs; else the ids closest to it, scored against
-// both forms, a name containing it (delete_all in obj_delete_all) counting as closest.
-const AppAction& find_action(ActionRegistry& actions, std::string& id, const ToolRegistry& tools)
+// The action `id` names: its full id, or a name only one action has, among the actions of the app's state now
+// (find_live(): the call before may have opened a sketch, added a plate or switched the tab). Otherwise
+// ToolFailure with the ids closest to it, scored against both forms, a name containing it (delete_all in
+// obj_delete_all) counting as closest.
+const AppAction& find_action(ActionRegistry& actions, std::string& id)
 {
-    if (const AppAction* action = actions.by_id(id))
+    if (const AppAction* action = actions.find_live(id))
         return *action;
     ActionRegistry::Query q;
     q.limit = 100000;
@@ -89,26 +66,33 @@ const AppAction& find_action(ActionRegistry& actions, std::string& id, const Too
         id = named.front();
         return *actions.by_id(id);
     }
-    if (const std::string elsewhere = other_catalog_hint(tools, id, Catalog::Actions); !elsewhere.empty())
-        throw ToolFailure("Unknown action id " + id + "; " + elsewhere);
     std::sort(scored.begin(), scored.end());
     json similar = json::array();
     for (std::size_t i = 0; i < scored.size() && similar.size() < 3 && scored[i].first <= id.size() / 3 + 2; ++i)
         similar.push_back(scored[i].second);
-    throw ToolFailure("Unknown action id " + id + "; find it with search_actions", {{"similar", similar}});
-}
-
-const char* level_name(AppActionRunResult::Level level)
-{
-    switch (level) {
-    case AppActionRunResult::Level::Success: return "success";
-    case AppActionRunResult::Level::Error: return "error";
-    case AppActionRunResult::Level::Busy: return "busy";
-    default: return "info";
-    }
+    throw ToolFailure(unknown_action(id), {{"similar", similar}});
 }
 
 } // namespace
+
+std::string action_args_error(const AppAction& action, const json& args)
+{
+    if (!action.command.empty() || person_form(args))
+        return {};
+    return "The action " + action.id() + " takes no arguments: run it without args";
+}
+
+std::string unknown_action(const std::string& id)
+{
+    // A Design tile is no action while it is not live (ActionRegistry::materialize_design_actions()), but its
+    // command is in the catalog.
+    const std::string tile = id.find(':') != std::string::npos ? id : AppAction::compose_id(kCommandPrefix, id, kOrcaSourceKey);
+    if (is_design_tile_id(tile))
+        return id + " is a Design tab tile, there only while the Design tab is shown in its mode (a sketch's or the model's) "
+                    "with the CAD feature on; call_tool {\"tool\": \"" + short_id(tile) + "\"} runs its command from any tab";
+    // The name may be a command's that has no tile, which call_tool runs.
+    return "Unknown action id " + id + "; find an action with search_actions, or a command with search_tools";
+}
 
 json rank_actions(const json& listed, const std::vector<std::string>& words)
 {
@@ -140,29 +124,6 @@ json rank_actions(const json& listed, const std::vector<std::string>& words)
     return ranked;
 }
 
-std::string other_catalog_hint(const ToolRegistry& registry, const std::string& name, Catalog missed)
-{
-    if (name.empty())
-        return {};
-    if (missed != Catalog::Tools && registry.lookup(name) != nullptr)
-        return "it is a tool of its own: call " + name + " directly";
-#ifdef SLIC3R_CAD
-    if (missed != Catalog::Cad) {
-        const std::vector<std::string> cad = cad_tool_names();
-        if (std::find(cad.begin(), cad.end(), name) != cad.end())
-            return "it is a CAD tool: call_cad_tool {tool: \"" + name + "\", args} runs it, and describe_cad_tool {tool} gives its arguments";
-    }
-#endif
-    // The built-in commands only: the registry's other actions (plates, recent projects, plugin
-    // scripts) are read on the UI thread, and their ids are not names an agent mistakes for a tool's.
-    if (missed != Catalog::Actions) {
-        const std::string key = short_id(name);
-        if (NativeCommands::find(key) != nullptr && (name == key || name == "orca_command:" + key + ":orca"))
-            return "it is a Speed Dial action: run_action {id: \"" + name + "\"} runs it";
-    }
-    return {};
-}
-
 ToolResult await_gcode_export(ToolContext& ctx, const Ops::ExportTicket& ticket)
 {
     json done = poll_ui(
@@ -189,15 +150,14 @@ ToolResult await_gcode_export(ToolContext& ctx, const Ops::ExportTicket& ticket)
     return ToolResult::error("The export ended " + status, done);
 }
 
-void register_action_tools(McpService& service)
+void register_action_tools(CommandCatalog& catalog)
 {
-    ToolRegistry& reg = service.registry();
-
-    reg.add(inspect_tool(
-        "search_actions", L("Search Speed Dial actions"),
+    catalog.add(inspect_tool(
+        "ui", "search_actions", L("Search Speed Dial actions"),
         "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, "
         "calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for run_action, a "
-        "description and, when it takes one, a param (type and help). A query ranks them, best match first, as "
+        "description, the command's key for a built-in command, and, when it takes arguments, their input_schema. A query "
+        "ranks them, best match first, as "
         "search_tools does; without one they are listed by group and title. include_settings also lists settings (each "
         "jumps to that setting in the sidebar; use get_settings / set_settings to read or change values).",
         object_schema({{"query", prop("string", "A few words, e.g. \"delete object\": each is matched at the start of the words of "
@@ -222,88 +182,56 @@ void register_action_tools(McpService& service)
             return ToolResult::ok(page(rank_actions(listed["items"], query_words(query)), args, 50));
         }));
 
-    ToolDef run = mutate_tool(
-        "run_action", L("Run a Speed Dial action"),
+    NativeCommand run = mutate_tool(
+        "ui", "run_action", L("Run a Speed Dial action"),
         "Run one action by the id search_actions returned (orca_command:view_front:orca, or the name inside it, view_front), "
-        "with its param when it takes one (a percent, tab id, plate index, "
-        "or an absolute path - commands with a path parameter skip their file dialog; outputs need {\"path\": ..., "
-        "\"overwrite\": true} to replace a file). Actions that open a dialog return blocked_by_dialog; answer it with "
-        "answer_dialog, or, for a native one it can't press (a file picker), register auto_answer_dialogs before the call. "
-        "An export_gcode with a path "
-        "completes when the file is written; an action that starts a background job (obj_arrange, obj_orient) when the "
-        "job ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the "
-        "reply (the obj_order_by_* order, the object obj_assemble made).",
+        "with args, the command's arguments, when it takes some (its input_schema). A command that asks in a dialog asks "
+        "when it is given no args, as a person's pick does, and runs without asking when given them: an absolute path "
+        "skips a file dialog, and an output needs {\"path\": ..., \"overwrite\": true} to replace a file. Go to layer and "
+        "Go to tab need their value ({\"percent\": 50}, {\"tab\": \"preview\"}). Actions that open a dialog return "
+        "blocked_by_dialog; answer it with answer_dialog, or, for a native one it can't press (a file picker), register "
+        "auto_answer_dialogs before the call. An export_gcode with a path completes when the file is written; an action "
+        "that starts a background job (obj_arrange, obj_orient) when the job ends. An action that does nothing (no object "
+        "selected) is an error. Some commands add what they did to the reply (the obj_order_by_* order, the object "
+        "obj_assemble made).",
         object_schema({{"id", prop("string", "Action id from search_actions, or the name inside it.")},
-                       {"param", prop("string", "Parameter, when the action takes one.")}},
+                       {"args", {{"type", "object"}, {"description", "The command's arguments, as its input_schema gives them."}}}},
                       {"id"}),
-        [&service](const json& args, ToolContext& ctx) {
-            std::string       id    = arg_string(args, "id");
-            const std::string param = arg_string(args, "param");
-            Ops::ExportTicket ticket; // of an action that completes in the background
-            json started = ctx.run_ui([&]() -> json {
+        [](const json& args, ToolContext& ctx) {
+            std::string        id           = arg_string(args, "id");
+            json               command_args = args.contains("args") ? args["args"] : json::object();
+            std::string        key;    // the command of a command's tile
+            AppActionRunResult result; // of any other action
+            ctx.run_ui([&]() -> json {
                 ActionRegistry&  actions = registry_or_fail();
-                const AppAction& action  = find_action(actions, id, service.registry());
-                // Without a path the command would ask for one in a native file dialog, which MCP
-                // can't fill in, and export behind it untracked.
-                if (action.completes_in_background && param.empty())
-                    throw ToolFailure("This action needs a path param here: " + action.param_help +
-                                      " (or use the export tool)");
-                const bool background = action.completes_in_background;
-                if (background)
-                    ctx.begin_operation(); // held from before the export starts
-                Plater*    plater     = wxGetApp().plater();
-                uint64_t   before = 0, revision = 0;
-                if (background && plater != nullptr) {
-                    before   = plater->export_seq();
-                    revision = plater->project_revision();
-                }
-                const AppActionRunResult r = actions.run(id, param, /*record_stats=*/false);
-                json out{{"level", level_name(r.level)}, {"message", into_u8(r.message)}, {"done", r.done}, {"background", background}};
-                // An operation's refusal is worded once, in English here as in a tool's reply.
-                if (r.refusal) {
-                    out["message"] = r.refusal->english();
-                    out["refusal"] = {{"code", r.refusal->code}};
-                    if (!r.refusal->names.empty())
-                        out["refusal"]["names"] = r.refusal->names;
-                }
-                if (!r.reply.empty())
-                    out["reply"] = json::parse(r.reply, nullptr, /*allow_exceptions=*/false);
-                if (background && plater != nullptr) {
-                    ticket.seq_before = before;
-                    ticket.seq_after  = plater->export_seq();
-                    ticket.revision   = revision;
-                    if (const auto run = plater->export_run(ticket.seq_after))
-                        ticket.path = run->path;
-                }
-                return out;
+                const AppAction& action  = find_action(actions, id);
+                if (const std::string err = action_args_error(action, command_args); !err.empty())
+                    throw ToolFailure(err);
+                key = action.command;
+                if (key.empty())
+                    result = actions.run(id, command_args, /*record_stats=*/false);
+                return json();
             });
-            // A command that did nothing (no selection, no objects) fails here, though the palette
-            // shows it as information.
-            const bool done    = started["done"].get<bool>();
-            const json details = started.value("refusal", json());
-            if (started["background"].get<bool>()) {
-                if (started["level"] == "error" || !done)
-                    return ToolResult::error(started["message"].get<std::string>(), details);
-                if (ticket.seq_after == ticket.seq_before)
-                    return ToolResult::error(started["message"].get<std::string>().empty() ? "The export did not start." :
-                                                                                             started["message"].get<std::string>());
-                return await_gcode_export(ctx, ticket);
+            if (key.empty()) {
+                settle(ctx);
+                return NativeCommands::from_run_result(id, result);
             }
-            settle(ctx);
-            const std::string level = started["level"];
-            if (level == "error" || level == "busy" || !done)
-                return ToolResult::error(started["message"].get<std::string>().empty() ? "The action failed" : started["message"].get<std::string>(),
-                                         details);
-            json out{{"ran", id}, {"level", level}};
-            if (!started["message"].get<std::string>().empty())
-                out["message"] = started["message"];
-            if (started.contains("reply") && started["reply"].is_object())
-                out.update(started["reply"]);
-            return ToolResult::ok(out);
+            // A command's tile runs the command's own function, as a call of the command does, inside run_action's
+            // journal entry.
+            const NativeCommand* command = NativeCommands::find(key);
+            if (command == nullptr)
+                throw ToolFailure("Unknown command " + key);
+            if (const std::string err = argument_error(*command, command_args); !err.empty())
+                throw ToolFailure("Invalid arguments for " + key + ": " + err);
+            TileContext tile(ctx, id);
+            ToolResult  reply = command->run(command_args, tile);
+            if (!reply.is_error && reply.data.is_object())
+                reply.data["ran"] = id;
+            return reply;
         });
     // Its commands upload G-code to a print host (send_gcode) and sync presets with the cloud account (sync_presets).
     run.open_world = true;
-    reg.add(run);
+    catalog.add(run);
 }
 
 }}} // namespace Slic3r::GUI::Mcp

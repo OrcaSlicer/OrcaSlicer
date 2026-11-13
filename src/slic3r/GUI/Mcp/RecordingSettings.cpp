@@ -1,11 +1,9 @@
 #include "RecordingSettings.hpp"
-#include "McpPaths.hpp"
 #include "VideoEncode.hpp"
 
 #include "libslic3r/AppConfig.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
-#include <boost/filesystem/path.hpp>
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
@@ -116,16 +114,8 @@ void save_recording_settings(AppConfig& config, const RecordingSettings& setting
     config.set(kSection, "folder", settings.folder);
 }
 
-std::string apply_recording_overrides(RecordingSettings& settings, const json& overrides, bool& silent)
+std::string apply_recording_overrides(RecordingSettings& settings, const json& overrides)
 {
-    if (!overrides.is_object())
-        return "the parameter must be a JSON object";
-    static const std::vector<std::string> keys{"quality", "captions", "pointer", "encode", "encode_preset", "codec",
-                                               "crf",     "speed",    "profile", "folder", "silent"};
-    for (const auto& [key, value] : overrides.items())
-        if (!listed(keys, key))
-            return "unknown key \"" + key +
-                   "\": quality, captions, pointer, encode, encode_preset, codec, crf, speed, profile, folder or silent";
     const auto integer = [&](const char* key, int min, int max, int& out) -> std::string {
         if (!overrides.contains(key))
             return {};
@@ -154,7 +144,6 @@ std::string apply_recording_overrides(RecordingSettings& settings, const json& o
     };
 
     RecordingSettings s = settings;
-    bool              quiet = false;
     std::string       err;
     if (overrides.contains("encode_preset")) {
         const json&         v = overrides["encode_preset"];
@@ -167,10 +156,8 @@ std::string apply_recording_overrides(RecordingSettings& settings, const json& o
         }
         apply_encode_preset(s, *p);
     }
-    if (!(err = integer("quality", kMinQuality, kMaxQuality, s.quality)).empty() || !(err = flag("captions", s.captions)).empty() ||
-        !(err = flag("pointer", s.pointer)).empty() || !(err = flag("encode", s.encode)).empty() ||
-        !(err = text("codec", {"h265", "h264"}, s.codec)).empty() || !(err = integer("crf", 0, kMaxCrf, s.crf)).empty() ||
-        !(err = text("speed", encoder_speeds(), s.speed)).empty() || !(err = flag("silent", quiet)).empty())
+    if (!(err = flag("encode", s.encode)).empty() || !(err = text("codec", {"h265", "h264"}, s.codec)).empty() ||
+        !(err = integer("crf", 0, kMaxCrf, s.crf)).empty() || !(err = text("speed", encoder_speeds(), s.speed)).empty())
         return err;
     if (overrides.contains("profile")) {
         if (!(err = text("profile", codec_profiles(s.codec), s.profile)).empty())
@@ -178,17 +165,7 @@ std::string apply_recording_overrides(RecordingSettings& settings, const json& o
     } else {
         fit_profile(s);
     }
-    if (overrides.contains("folder")) {
-        const json& v = overrides["folder"];
-        if (!v.is_string())
-            return "folder must be the path of an existing directory";
-        const auto dir = resolve_output_dir(v.get<std::string>(), err);
-        if (!dir)
-            return "folder: " + err;
-        s.folder = path_to_utf8(*dir);
-    }
     settings = s;
-    silent   = quiet;
     return {};
 }
 

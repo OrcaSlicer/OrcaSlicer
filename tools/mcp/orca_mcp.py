@@ -9,7 +9,7 @@ Standard library only. Two halves:
 
     tools/mcp/orca_mcp.py launch --headless         # fresh datadir on a private headless desktop (Linux), wait until ready
     tools/mcp/orca_mcp.py launch --xvfb             # on a private Xvfb display, for a Linux machine without a desktop
-    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for the CAD tools (list_cad_tools, call_cad_tool)
+    tools/mcp/orca_mcp.py launch --cad              # with the Design (CAD) tab on, for its commands (search_tools group Design)
     tools/mcp/orca_mcp.py launch --unrestricted-scripts  # with Python scripts (run_script) unrestricted
     tools/mcp/orca_mcp.py call get_app_state
     tools/mcp/orca_mcp.py call open_files '{"paths": ["/abs/model.stl"]}'
@@ -193,21 +193,22 @@ class OrcaMcp:
             result = self.call("wait", **{"for": "job", "job": result["job"], "timeout_s": 45})
         return result
 
-    def call_cad_tool(self, tool, /, **args):
-        """Call one CAD tool of the Design tab through call_cad_tool and return its result.
+    def call_command(self, tool, /, **args):
+        """Call one command, a tool or one the tool list does not show (a Design command), through
+        call_tool and return its whole reply; a Design command's result is the reply's "result".
 
         A running job is followed to its end. A call whose first reply is blocked_by_dialog fails at
         once, since a script that waited would wait on a dialog nobody answers. A call that first
         replied running and opens a dialog later is waited on up to await_job's timeout, since wait
         reports only that its job is still running. Every McpError's message starts "<tool>: ", with
-        the original error as its cause. The tool name is positional-only, so a CAD tool's own
-        argument named tool goes to that tool."""
+        the original error as its cause. The command's name is positional-only, so its own argument
+        named tool goes to the command."""
         try:
-            reply = self.call("call_cad_tool", _timeout=600, tool=tool, args=args)
+            reply = self.call("call_tool", _timeout=600, tool=tool, args=args)
             if reply.get("status") == "blocked_by_dialog":
                 titles = ", ".join(f"\"{d.get('title', '')}\"" for d in reply.get("dialogs", []))
                 raise McpError(f"blocked by a dialog: {titles} (job {reply.get('job')} goes on once it is answered)", reply)
-            return self.await_job(reply)["result"]
+            return self.await_job(reply)
         except McpError as e:
             raise McpError(f"{tool}: {e}", e.payload) from e
 
@@ -534,7 +535,7 @@ def main():
     p.add_argument("--printer", help="\"<model>@<nozzle>\" for a fresh datadir, e.g. \"Bambu Lab X1 Carbon@0.4\"")
     p.add_argument("--vendor", default="BBL")
     p.add_argument("--filament")
-    p.add_argument("--cad", action="store_true", help="turn the Design (CAD) tab on, for the CAD tools (list_cad_tools, call_cad_tool)")
+    p.add_argument("--cad", action="store_true", help="turn the Design (CAD) tab on, for its commands (search_tools group Design)")
     p.add_argument("--unrestricted-scripts", action="store_true",
                    help="let Python scripts (run_script) run unrestricted, which no tool can turn on")
     p.add_argument("--timeout", type=int, default=120)

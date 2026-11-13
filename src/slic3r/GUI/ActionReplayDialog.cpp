@@ -1,5 +1,6 @@
 #include "ActionReplayDialog.hpp"
 
+#include "CommandCatalog.hpp"
 #include "GLCanvas3D.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
@@ -116,7 +117,7 @@ std::string join(const json& items)
     return out;
 }
 
-// The step's main line and, for a command with a param, the second line, from describe_step()'s `what`.
+// The step's main line and, for a command given arguments, the second line, from describe_step()'s `what`.
 std::pair<std::string, std::string> what_text(const json& what)
 {
     if (!what.is_object())
@@ -129,7 +130,9 @@ std::pair<std::string, std::string> what_text(const json& what)
     if (kind == "command") {
         const std::string               key     = what.value("key", "");
         const auto*       command = NativeCommands::find(key);
-        return {command != nullptr ? _u8L(command->title.c_str()) : key, what.contains("param") ? value_text(what["param"]) : std::string()};
+        // Titled as its tile is, so a Design command's step reads as the Design tab names its tool.
+        return {command != nullptr ? into_u8(NativeCommands::tile_title(*command)) : key,
+                what.contains("args") ? join(what["args"]) : std::string()};
     }
     if (kind == "recent_project" || kind == "preset")
         return {what.value("name", ""), {}};
@@ -426,7 +429,7 @@ void ActionReplayDialog::send_service_state()
         m_ready_timer.Start(500);
     json msg{{"command", "service"}, {"ready", ready}};
     if (ready)
-        msg["tools"] = Mcp::editor_tool_catalog(s->registry());
+        msg["tools"] = Mcp::editor_tool_catalog(s->catalog());
     call_web_handler(msg);
 }
 
@@ -617,24 +620,24 @@ json ActionReplayDialog::describe(const Mcp::Replay& replay) const
     for (std::size_t i = 0; i < replay.steps.size(); ++i) {
         const Mcp::ReplayStep&      step = replay.steps[i];
         const Mcp::StepDescription  d    = Mcp::describe_step(step, replay, ctx);
-        const Mcp::ToolDef*         def  = s != nullptr ? s->registry().find(step.tool) : nullptr;
+        const NativeCommand*        def  = s != nullptr ? s->catalog().find(step.tool) : nullptr;
         json                        flags = json::array();
         for (Mcp::StepFlag f : d.flags)
             flags.push_back(Mcp::flag_id(f));
         json view{{"index", i + 1},
                   {"tool", step.tool},
-                  {"title", def != nullptr ? _u8L(def->title.c_str()) : step.tool},
+                  {"title", def != nullptr ? into_u8(NativeCommands::tile_title(*def)) : step.tool},
                   {"flags", std::move(flags)},
                   {"checks_result", d.checks_result},
                   {"optional", step.optional},
                   {"args", Mcp::substitute_lenient(step.args, replay, ctx)},
                   {"expect", step.expect},
                   {"checks", checks_view(step.expect)}};
-        const auto [what, param] = what_text(d.what);
+        const auto [what, detail] = what_text(d.what);
         if (!what.empty())
             view["what_text"] = what;
-        if (!param.empty())
-            view["param_text"] = param;
+        if (!detail.empty())
+            view["args_text"] = detail;
         steps.push_back(std::move(view));
     }
     return steps;
@@ -653,7 +656,7 @@ void ActionReplayDialog::parse(const nlohmann::json& payload)
             reply["error"] = err;
         else {
             for (std::size_t i = 0; i < replay->steps.size() && !reply.contains("error"); ++i)
-                if (s->registry().lookup(replay->steps[i].tool) == nullptr)
+                if (s->catalog().lookup(replay->steps[i].tool) == nullptr)
                     // TRN %1% is a step number, %2% the name of the tool the replay asks for.
                     reply["error"] = format(_u8L("Step %1% uses a tool this version of OrcaSlicer doesn't have: %2%"), i + 1,
                                             replay->steps[i].tool);

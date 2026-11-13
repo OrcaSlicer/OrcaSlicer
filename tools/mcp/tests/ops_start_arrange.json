@@ -24,9 +24,9 @@
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
     // ---- Two cubes on one spot: the command, undone, then the tool ----
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "select_objects", "args": {"none": true}},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "list_objects", "expect": {"/total": {"eq": 2}, "/plates/0/objects/0/instances/0/offset/0": {"eq": 128.0},
                                         "/plates/0/objects/1/instances/0/offset/0": {"eq": 128.0}}},

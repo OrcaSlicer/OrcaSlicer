@@ -1,10 +1,8 @@
-// Records what the import_configs command (run_action with a path param) does: one preset file
+// Records what the import_configs command (run_action with a path) does: one preset file
 // (fixtures/mcp_import_pla.json) imported while absent, kept while it exists, and replaced with on_conflict
 // overwrite; a filament exported first with the Export Preset Bundle dialog, as presets.json does, kept,
 // imported once deleted, and replaced; and the refusals (a path that does not exist, a file that is no preset, a
-// .json that holds no preset, the param's overwrite). A param with on_conflict is JSON, which can't hold a
-// Windows ${replay_dir} or ${out_dir}, so those calls go through run_script, which builds the param and calls
-// run_action with it (orca.host.tools.call: the same tool, its result or its error). After each it reads the
+// .json that holds no preset, an overwrite argument, an on_conflict it does not take). After each it reads the
 // presets the import touched, the selected presets and the undo snapshots taken since the last read
 // (fixtures/ops_undo.py). It deletes the presets it made at the end, so it reruns on the same datadir. Every
 // call it records is optional. Run it with
@@ -27,12 +25,12 @@
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
     // ---- One preset file: imported, kept, replaced ----
-    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "param": "${vars.pla}"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "args": {"path": "${vars.pla}"}}, "optional": true},
     {"tool": "list_presets", "args": {"type": "filament", "query": "MCP Import PLA"}},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
-    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "param": "${vars.pla}"}, "optional": true},
-    {"tool": "run_script", "args": {"code": "import json, orca\ntry:\n    result = orca.host.tools.call('run_action', {'id': 'orca_command:import_configs:orca', 'param': json.dumps({'path': args['path'], 'on_conflict': 'overwrite'})})\nexcept Exception as e:\n    result = {'error': str(e)}", "args": {"path": "${vars.pla}"}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "args": {"path": "${vars.pla}"}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "args": {"path": "${vars.pla}", "on_conflict": "overwrite"}}, "optional": true},
     {"tool": "list_presets", "args": {"type": "filament", "query": "MCP Import PLA"}},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
@@ -41,7 +39,7 @@
     {"tool": "run_action", "args": {"id": "orca_command:toggle_developer_mode:orca"}},
     {"tool": "save_preset", "args": {"type": "filament", "name": "MCP Ops Export PLA", "detach": true, "overwrite": true}},
     {"tool": "run_action", "args": {"id": "orca_command:toggle_developer_mode:orca"}},
-    {"tool": "run_action", "args": {"id": "orca_command:export_config:orca", "param": "${out_dir}"}, "await": false, "save_as": "export"},
+    {"tool": "run_action", "args": {"id": "orca_command:export_config:orca", "args": {"path": "${out_dir}"}}, "await": false, "save_as": "export"},
     {"tool": "click", "args": {"target": {"label": "Filament presets(.zip)", "within": "Export Preset Bundle"}}},
     {"tool": "set_widget_value", "args": {"target": {"name": "MCP Ops Export PLA", "within": "Export Preset Bundle"}, "value": true}},
     {"tool": "answer_dialog", "args": {"dialog": {"title": "Export Preset Bundle"}, "button": "ok"}, "await": false, "save_as": "export_ok"},
@@ -51,27 +49,27 @@
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.export}"}},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
     // kept while it exists, imported once deleted, replaced with on_conflict overwrite
-    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "param": "${vars.zip}"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "args": {"path": "${vars.zip}"}}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "select_preset", "args": {"type": "filament", "name": "Bambu PLA Basic", "filament_slot": 1}},
     {"tool": "delete_preset", "args": {"type": "filament", "name": "MCP Ops Export PLA"}},
-    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "param": "${vars.zip}"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "args": {"path": "${vars.zip}"}}, "optional": true},
     {"tool": "list_presets", "args": {"type": "filament", "query": "MCP Ops Export PLA"}},
     {"tool": "get_app_state"},
-    {"tool": "run_script", "args": {"code": "import json, orca\ntry:\n    result = orca.host.tools.call('run_action', {'id': 'orca_command:import_configs:orca', 'param': json.dumps({'path': args['path'], 'on_conflict': 'overwrite'})})\nexcept Exception as e:\n    result = {'error': str(e)}", "args": {"path": "${vars.zip}"}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "args": {"path": "${vars.zip}", "on_conflict": "overwrite"}}, "optional": true},
     {"tool": "list_presets", "args": {"type": "filament", "query": "MCP Ops Export PLA"}},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
-    // ---- Refusals: a missing path, a file that is no preset, a .json with no preset, the param's overwrite ----
-    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "param": "${out_dir}/missing.json"}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "param": "${replay_dir}/fixtures/heightmap.png"}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "param": "${replay_dir}/plates.json"}, "await": false, "save_as": "nopreset", "optional": true},
+    // ---- Refusals: a missing path, a file that is no preset, a .json with no preset, an overwrite, an unknown on_conflict ----
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "args": {"path": "${out_dir}/missing.json"}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "args": {"path": "${replay_dir}/fixtures/heightmap.png"}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "args": {"path": "${replay_dir}/plates.json"}}, "await": false, "save_as": "nopreset", "optional": true},
     {"tool": "get_app_state"},
     {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
     {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.nopreset}"}, "optional": true},
-    {"tool": "run_script", "args": {"code": "import json, orca\ntry:\n    result = orca.host.tools.call('run_action', {'id': 'orca_command:import_configs:orca', 'param': json.dumps({'path': args['path'], 'overwrite': True})})\nexcept Exception as e:\n    result = {'error': str(e)}", "args": {"path": "${vars.pla}"}}, "optional": true},
-    {"tool": "run_script", "args": {"code": "import json, orca\ntry:\n    result = orca.host.tools.call('run_action', {'id': 'orca_command:import_configs:orca', 'param': json.dumps({'path': args['path'], 'on_conflict': 'merge'})})\nexcept Exception as e:\n    result = {'error': str(e)}", "args": {"path": "${vars.pla}"}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "args": {"path": "${vars.pla}", "overwrite": true}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:import_configs:orca", "args": {"path": "${vars.pla}", "on_conflict": "merge"}}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 

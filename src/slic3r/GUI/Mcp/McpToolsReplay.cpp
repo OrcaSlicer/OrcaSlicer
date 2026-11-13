@@ -107,12 +107,10 @@ json run_replay_job(McpService& service, ToolContext& ctx, const Replay& replay,
     return result;
 }
 
-void register_replay_tools(McpService& service)
+void register_replay_tools(CommandCatalog& catalog)
 {
-    ToolRegistry& reg = service.registry();
-
-    ToolDef run = mutate_tool(
-        "run_replay", L("Run a replay"),
+    NativeCommand run = mutate_tool(
+        "core", "run_replay", L("Run a replay"),
         "Replay a list of tool calls in order and report each step: {orca_replay:1, name, vars, steps:[{tool, args, expect, "
         "optional, await, save_as, timeout_s}]}, JSON with comments. Strings may use ${replay_dir}, ${out_dir}, ${env:NAME}, "
         "${vars.NAME} and ${jobs.NAME}. A step that returns a job is awaited unless await:false, which stores the job under "
@@ -125,7 +123,8 @@ void register_replay_tools(McpService& service)
                                    {"description", "The replay itself, as an object or as its JSON text, instead of path."}}},
                        {"out_dir", prop("string", "Absolute directory for result.json and screenshots; created if missing.")},
                        {"vars", {{"type", "object"}, {"description", "Values that override the replay's vars."}}}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             const bool has_path = args.contains("path"), has_replay = args.contains("replay");
             if (has_path == has_replay)
                 return invalid("give exactly one of path and replay");
@@ -155,7 +154,7 @@ void register_replay_tools(McpService& service)
             if (!replay)
                 return invalid(err);
             for (const ReplayStep& step : replay->steps)
-                if (service.registry().lookup(step.tool) == nullptr)
+                if (service.catalog().lookup(step.tool) == nullptr)
                     return invalid("unknown tool " + step.tool);
             if (args.contains("vars"))
                 for (const auto& [key, value] : args["vars"].items())
@@ -171,10 +170,10 @@ void register_replay_tools(McpService& service)
         });
     // Its steps call any tool, run_script included.
     run.open_world = true;
-    reg.add(run);
+    catalog.add(run);
 
-    ToolDef exp = inspect_tool(
-        "export_replay", L("Export this session as a replay"),
+    NativeCommand exp = inspect_tool(
+        "core", "export_replay", L("Export this session as a replay"),
         "Turn the calls this session made into a replay that run_replay runs: mutating calls, wait and screenshot, in order, "
         "with refs replaced by locators, job replies replayed with await:false, and screenshot paths moved under ${out_dir}. "
         "Calls that failed, at once or as a job later, are left out; so is a call whose job is still running (unless it "
@@ -184,7 +183,8 @@ void register_replay_tools(McpService& service)
                        {"path", prop("string", "Absolute .json path to write.")},
                        {"overwrite", prop("boolean", "Replace an existing file.")},
                        {"clear", prop("boolean", "Forget the calls recorded so far once exported.")}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             if (!ctx.caller_plugin().empty())
                 throw ToolFailure("export_replay exports the agent's session, which a plugin's calls are not part of");
             json running;
@@ -208,7 +208,7 @@ void register_replay_tools(McpService& service)
     exp.read_only = false;
     // clear empties the recording, so a second call exports less.
     exp.idempotent = false;
-    reg.add(exp);
+    catalog.add(exp);
 }
 
 }}} // namespace Slic3r::GUI::Mcp

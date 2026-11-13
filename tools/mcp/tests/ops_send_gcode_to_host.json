@@ -21,7 +21,7 @@
     // ---- A Bambu network printer: no objects, not sliced, sliced ----
     {"tool": "run_action", "args": {"id": "orca_command:send_gcode:orca"}, "optional": true},
     {"tool": "get_app_state"},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_action", "args": {"id": "orca_command:send_gcode:orca"}, "optional": true},
     {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "ok"}}},

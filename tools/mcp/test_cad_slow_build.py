@@ -4,10 +4,10 @@
     tools/mcp/orca_mcp.py launch --cad
     tools/mcp/test_cad_slow_build.py
 
-call_cad_tool thread, sweep and loft rebuild as their cards do, off the UI thread behind the progress
+The thread, sweep and loft commands rebuild as their cards do, off the UI thread behind the progress
 dialog (DesignPanel::recompute_guarded). While a long thread builds: get_app_state answers, a screenshot
 of the main window succeeds, list_widgets lists the progress dialog and a screenshot of that window
-captures it (not on Windows, where the dialog is the system's task dialog), and another call_cad_tool is refused rather than run inside the rebuild. The thread then
+captures it (not on Windows, where the dialog is the system's task dialog), and another Design command is refused rather than run inside the rebuild. The thread then
 lands as one feature. Exits 0 when all hold.
 """
 
@@ -41,14 +41,14 @@ def main():
     client, _ = orca_mcp.session_client()
     out = tempfile.mkdtemp(prefix="orca-mcp-slow-")
     client.call("new_project", discard_changes=True)
-    client.call("call_cad_tool", tool="new_design", args={"discard_changes": True})
-    client.call("call_cad_tool", tool="extrude", args=BLOCK)
+    client.call("call_tool", tool="new_design", args={"discard_changes": True})
+    client.call("call_tool", tool="extrude", args=BLOCK)
 
     box = {}
 
     def build():
         try:
-            box["result"] = client.call("call_cad_tool", _timeout=600, tool="thread", args=THREAD)
+            box["result"] = client.call("call_tool", _timeout=600, tool="thread", args=THREAD)
         except orca_mcp.McpError as e:
             box["error"] = str(e)
 
@@ -75,14 +75,14 @@ def main():
                     dialog_shot = client.call("screenshot", target=ref, include_image=False,
                                               save_path=os.path.join(out, "progress.png"))
                 try:
-                    client.call("call_cad_tool", tool="describe_scene")
+                    client.call("call_tool", tool="describe_scene")
                     refused = False
                 except orca_mcp.McpError as e:
                     refused = str(e)
     worker.join(600)
     seconds = time.time() - started
     result = client.await_job(box.get("result")) if "result" in box else None
-    scene = client.call("call_cad_tool", tool="describe_scene")["result"]
+    scene = client.call("call_tool", tool="describe_scene")["result"]
     threads = [f for f in scene["features"] if f["type"] == "Thread"]
 
     print(f"build took {seconds:.1f} s; screenshots in {out}")
@@ -91,7 +91,7 @@ def main():
         ("the thread call succeeds", result is not None and result.get("result", {}).get("ok") is True, box),
         ("get_app_state answers during the build", state_ms is not None, state_ms),
         ("a window screenshot succeeds during the build", bool(window_shot and window_shot.get("width")), window_shot),
-        ("another call_cad_tool is refused during the build", bool(refused) and "Busy" in refused, refused),
+        ("another Design command is refused during the build", bool(refused) and "Busy" in refused, refused),
         ("one thread feature and one body", len(threads) == 1 and len(scene["bodies"]) == 1, scene["features"]),
     ]
     if not native_dialog:

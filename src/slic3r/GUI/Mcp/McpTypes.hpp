@@ -14,7 +14,18 @@
 #include <utility>
 #include <vector>
 
-namespace Slic3r { namespace GUI { namespace Mcp {
+namespace Slic3r { namespace GUI {
+
+// Defined in ActionRegistry.hpp, which brings in wx: a ToolResult only holds one through a shared_ptr, which
+// the code that makes one (NativeCommands.cpp) completes.
+struct AppActionRunResult;
+// Defined in CommandCatalog.hpp, which includes this header.
+struct NativeCommand;
+class CommandCatalog;
+
+namespace Mcp {
+
+class McpService;
 
 // The name of a top-level window the MCP GUI tools never see: list_widgets and locators skip it,
 // run_javascript never picks its web views, keys sent without a target never go to it, window screenshots leave it
@@ -33,12 +44,6 @@ inline constexpr char kSecretField[] = "OrcaSecretForMcp";
 // app; everything else is Mutate and is refused in both situations.
 enum class GuardClass { Inspect, Recover, Mutate };
 
-// Which way a tool acts, for the agent choosing one: Core tools run the session and recover from
-// dialogs, Api tools act on project data by index and name with JSON in and out, Ui tools drive
-// the GUI itself (refs, pixels, GUI commands). Every caller reaches every tool; the lane is a hint,
-// shown at the start of each description and ordering tools/list and the server instructions.
-enum class ToolLane { Core, Api, Ui };
-
 // A tool's outcome in protocol-neutral form. `data` is the JSON the model receives as text (and a
 // script evaluates `expect` against); `content` carries extra MCP content blocks such as images.
 struct ToolResult
@@ -47,6 +52,9 @@ struct ToolResult
     std::vector<nlohmann::json> content;
     bool                        is_error = false;
     std::string                 message;
+    // What a person's pick of the command shows, in the UI's language (NativeCommands::notify_result());
+    // null for a result that shows nothing.
+    std::shared_ptr<const AppActionRunResult> notice;
 
     static ToolResult ok(nlohmann::json data = nlohmann::json::object())
     {
@@ -73,12 +81,25 @@ struct ToolFailure : std::runtime_error
     {}
 };
 
-// The services a handler gets for one call. Handlers run on a request or job thread, never on the
-// UI thread; everything that touches wx goes through run_ui().
+// The services a handler gets for one call. A client's call, a replay's and a script's run on a request or
+// job thread, never on the UI thread, and everything that touches wx goes through run_ui(); a person's pick
+// runs on the UI thread (person()).
 class ToolContext
 {
 public:
     virtual ~ToolContext() = default;
+    // True for a person's pick from the Speed Dial or a menu: the call is on the UI thread and has no job.
+    virtual bool person() const { return false; }
+    // The MCP service the call runs under: what a command that reaches the automation runtime (jobs, the
+    // journal, recordings, the UI inspector) reads it from, so that the catalog is built without a service.
+    // Throws when the call has none: std::logic_error here, ToolFailure where one cannot be started.
+    virtual McpService& service() { throw std::logic_error("This call runs without an MCP service"); }
+    // Starts command `key` with `args` as a job and returns at once, as the reply to a long command that a
+    // person picks. Throws ToolFailure where this call cannot start a job.
+    virtual ToolResult submit(const std::string& key, const nlohmann::json& /*args*/)
+    {
+        throw ToolFailure("This call cannot start " + key + " as a job");
+    }
     // Runs `fn` on the UI thread under the tool's guard class and returns its value. Throws
     // ToolFailure when a guard refuses the call, the UI does not pick it up in time, or the app is
     // closing.
@@ -118,115 +139,74 @@ public:
     }
 };
 
-using ToolHandler = std::function<ToolResult(const nlohmann::json& args, ToolContext& ctx)>;
-
-struct ToolDef
-{
-    std::string    name;
-    std::string    title;
-    std::string    description;
-    nlohmann::json input_schema = {{"type", "object"}, {"properties", nlohmann::json::object()}};
-    // ToolRegistry::add sets it from tool_lane().
-    ToolLane       lane        = ToolLane::Api;
-    // The tool's access label, sent as MCP's annotations. Clients act on them: Codex asks a person before every call
-    // of a destructive tool, and Claude Code runs read-only calls in parallel and retries idempotent ones. read_only:
-    // it changes nothing in the app or the project; screenshot is, since its PNG replaces no file without overwrite,
-    // and export_replay, which can clear the journal, is not. destructive: every call deletes what a person made, with
-    // no undo: delete_preset. A tool that can lose work only when an argument asks for it is not: new_project,
-    // generate_calibration_test and open_files drop unsaved changes only with discard_changes, an output replaces a file only with
-    // overwrite, and encode_recording deletes its source only with delete_source. Nor is a tool that runs what its
-    // arguments name (click and the other input tools, run_action, call_tool, run_replay, run_script), though what it runs may be. The
-    // client sees both in the arguments, and the label would ask on every call. open_world: it can reach outside
-    // OrcaSlicer (a printer, the cloud account, the network, or anything the computer allows), including through what
-    // it runs.
-    bool           read_only   = false;
-    bool           destructive = false;
-    bool           idempotent  = false;
-    bool           open_world  = false;
-    GuardClass     guard       = GuardClass::Mutate;
-    // Pure observation: runs on the request thread and is never a job. Everything that can activate
-    // UI runs as a job instead, because activating UI can open a modal that blocks the call.
-    bool           inline_call = false;
-    // May run while an MCP slice/export operation holds the project (cancel_job).
-    bool           allowed_during_operation = false;
-    // `cancel_job {job}` stops a running call of this tool that is not an operation (encode_recording): the
-    // handler sees ToolContext::cancelled() and ends.
-    bool           cancellable = false;
-    // Recorded by the session journal for export_replay. Observation tools turn this off, except
-    // wait and screenshot, which a replay needs.
-    bool           journal   = true;
-    // How long a call may run before the reply returns a job envelope and the call continues.
-    int            budget_ms = 45000;
-    // The operations (GUI/Operations) the handler reaches, by function name. A tool that changes something
-    // names them or is on the exception list of the catalog test; no listing shows the field.
-    std::vector<std::string> operations;
-    ToolHandler    handler;
-};
-
-// The lane of the tool `name`: the session and recovery tools and Python are Core, the GUI-driving
-// tools Ui, everything else (the typed tools, call_tool, plugin operations) Api.
-ToolLane tool_lane(const std::string& name);
-// "core", "api" or "ui": the tag that starts each tool's description.
-const char* lane_name(ToolLane lane);
-
-class ToolRegistry
-{
-public:
-    // Adds or replaces a tool, setting its lane from tool_lane() and starting its description with the
-    // lane's tag in brackets.
-    void add(ToolDef def);
-    const ToolDef* find(const std::string& name) const;
-    const std::vector<ToolDef>& tools() const { return m_tools; }
-    // Resolves names the table does not hold (plugin operations), which tools/list never shows. Set once,
-    // before any call.
-    void set_dynamic(std::function<std::shared_ptr<const ToolDef>(const std::string&)> resolver) { m_dynamic = std::move(resolver); }
-    // A registered tool, else one the resolver gives, or nullptr. The pointer keeps a resolved tool alive
-    // through its call.
-    std::shared_ptr<const ToolDef> lookup(const std::string& name) const;
-    // Up to `limit` registered names closest to `name`, for "did you mean" errors.
-    std::vector<std::string> similar(const std::string& name, std::size_t limit = 3) const;
-    // Says where a name lookup() does not resolve belongs when another catalog has it (a CAD tool, a
-    // Speed Dial action), as a clause for the error: "it is a CAD tool: call_cad_tool ... runs it".
-    // Called on any thread. Set once, before any call.
-    void set_elsewhere(std::function<std::string(const std::string&)> hint) { m_elsewhere = std::move(hint); }
-    // The error for a name lookup() does not resolve: "Unknown tool: <name>", then where the name does
-    // belong (set_elsewhere), or else, with `suggest`, the closest registered name.
-    std::string unknown_tool(const std::string& name, bool suggest = false) const;
-
-private:
-    std::vector<ToolDef>                                                     m_tools;
-    std::function<std::shared_ptr<const ToolDef>(const std::string&)>        m_dynamic;
-    std::function<std::string(const std::string&)>                           m_elsewhere;
-};
-
-// For a call of call_tool ({tool, args}): replaces `def` and `args` with its target's, normalized and
+// For a call of call_tool ({tool, args}): replaces `command` and `args` with its target's, normalized and
 // validated, so the call runs and is journaled as the target's own. Returns an error message, or "" (also
-// for any other tool, which it leaves as it is).
-std::string resolve_api_call(const ToolRegistry& registry, std::shared_ptr<const ToolDef>& def, nlohmann::json& args);
+// for any other command, which it leaves as it is).
+std::string resolve_call(const CommandCatalog& catalog, std::shared_ptr<const NativeCommand>& command, nlohmann::json& args);
 
-// Executes a tool for the protocol layer: the service implementation adds jobs, budgets, guards
-// and the journal; tests call the handler directly.
+// Executes a command for the protocol layer: the service implementation adds jobs, budgets, guards
+// and the journal; tests call the command's function directly.
 class ToolCaller
 {
 public:
     virtual ~ToolCaller() = default;
-    virtual ToolResult call(const ToolDef& def, const nlohmann::json& args) = 0;
+    virtual ToolResult call(const NativeCommand& command, const nlohmann::json& args) = 0;
 };
 
+// ---- arguments and name matching (McpArguments.cpp) ------------------------------------------
+
 // Validates `args` against the subset of JSON Schema the tool catalog uses (object properties with
-// type, enum, minimum/maximum, required, additionalProperties:false, array items). Returns an empty
-// string when valid, else a message naming the offending property.
+// type, enum, minimum/maximum, required, additionalProperties:false, array items, and the
+// "if": {"minProperties": 1}, "then": {"required": [...]} of with_silent()). Returns an empty string when
+// valid, else a message naming the offending property.
 std::string validate_arguments(const nlohmann::json& schema, const nlohmann::json& args);
+
+// Whether `args` asks for a command's person's form: an object with no members, or null. A command that has
+// a person's form and a silent one does the person's then (it asks, as a person's pick does), and the
+// silent one when it is given any argument.
+bool person_form(const nlohmann::json& args);
+// `args` without `silent`, which only chooses the silent form.
+nlohmann::json silent_args(nlohmann::json args);
+// The schema of a two-form command from its silent form's `schema`: it gains the property `silent`, which
+// takes only true and asks for the silent form with its defaults, and a top-level `required` list moves to
+// "if": {"minProperties": 1}, "then": {"required": [...]}, since the call with no arguments, the person's
+// form, needs none of them.
+nlohmann::json with_silent(nlohmann::json schema);
+
+// Readies a call's arguments for `command`, as every caller of a command does: normalizes `args` in place
+// (normalize_arguments()) and returns why validate_arguments() refuses them; empty when they are valid.
+std::string argument_error(const NativeCommand& command, nlohmann::json& args);
 
 // Rewrites, before validation, what agents often send in place of what the schema asks for: an
 // argument under a name the tool does not take but that stands for one it does, which the call leaves
 // out and the value fits (ref for target, key for keys, text for value, action for id or button, object for objects,
-// plate for plates, filter for query, settings for values, path for save_path), a value written in
+// plate for plates, filter for query, settings for values, path for save_path, index for feature, params or
+// values for fields), a value written in
 // another JSON form (a number, boolean, array or object as a string, a single item for an array),
 // a value outside its argument's enum that only one omitted argument's enum takes (set_view's canvas
 // "front" as camera), and the x and y, or width and height, that list_windows reports, both given, as
 // the position or size array of a tool that takes that array, of integers, and neither part. Anything
 // that still does not fit is left for validate_arguments to report.
 void normalize_arguments(const nlohmann::json& schema, nlohmann::json& args);
+
+// The Levenshtein distance between `a` and `b`: the fewest insertions, deletions and substitutions of one
+// character that turn one into the other. A "did you mean" ranks the names a mistyped one may stand for by it,
+// each lookup with its own threshold.
+std::size_t edit_distance(const std::string& a, const std::string& b);
+
+// The words of a search query: lower case, split at anything but a letter or a digit. "to" or "of"
+// starts a word of most help texts, so words of fewer than three letters are left out when the query
+// has longer ones.
+std::vector<std::string> query_words(const std::string& query);
+
+// How well an entry matches the words of query_words(): {words found in `name` or `text`, of them those
+// found in `name`}, {0, 0} when none is. A word is found where a word of the text starts with it, so
+// "retract" finds "retraction"; the text's words are split at underscores, dots and the like and also
+// at a capital in a CamelCase name, so "mesh" finds TriangleMesh.
+std::pair<int, int> match_score(const std::vector<std::string>& words, const std::string& name, const std::string& text);
+
+// The first sentence of `text` on one line, for a listing: up to the first full stop followed by a space
+// or the end, "e.g." and "i.e." aside; the whole text when it has none.
+std::string first_sentence(const std::string& text);
 
 }}} // namespace Slic3r::GUI::Mcp

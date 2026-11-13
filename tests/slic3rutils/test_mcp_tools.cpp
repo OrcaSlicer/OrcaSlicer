@@ -11,10 +11,16 @@
     #include <CommCtrl.h>
 #endif
 
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 
 #include "python_test_support.hpp"
 
+#include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
@@ -32,12 +38,47 @@
 #include <wx/types.h>
 
 #include <map>
+#include <memory>
+#include <regex>
+#include <set>
 #include <string>
 #include <utility>
 #include <vector>
 
 using namespace Slic3r::GUI::Mcp;
 using nlohmann::json;
+using Slic3r::GUI::CommandCatalog;
+using Slic3r::GUI::CommandSource;
+using Slic3r::GUI::NativeCommand;
+
+namespace {
+
+// Holds one command, as a plugin holds its operations while it is loaded.
+class OneCommandSource final : public CommandSource
+{
+public:
+    explicit OneCommandSource(NativeCommand command) : m_command(std::make_shared<const NativeCommand>(std::move(command))) {}
+
+    std::shared_ptr<const NativeCommand> find(const std::string& key) const override
+    {
+        return key == m_command->key ? m_command : nullptr;
+    }
+    std::vector<std::shared_ptr<const NativeCommand>> all() const override { return {m_command}; }
+
+private:
+    std::shared_ptr<const NativeCommand> m_command;
+};
+
+// A Speed Dial action that runs nothing, with the id `prefix`:`name`:orca, as the registry's own are made.
+class IdleAction final : public Slic3r::GUI::AppAction
+{
+public:
+    IdleAction(const char* prefix, const char* name) : AppAction(prefix, name, "orca", "OrcaSlicer") {}
+
+    Slic3r::GUI::AppActionRunResult run(const json& /*args*/) const override { return {}; }
+};
+
+} // namespace
 
 TEST_CASE("setting values serialize the way their options read them back", "[Mcp]")
 {
@@ -117,30 +158,34 @@ TEST_CASE("an action search ranks by the query's words and puts the plainer comm
     CHECK(rank_actions(listed, query_words("top")) == json::array({listed[2]}));
 }
 
-TEST_CASE("a name its catalog lacks is pointed to the catalog that has it", "[Mcp]")
+TEST_CASE("run_action refuses arguments for an action that takes none", "[Mcp][SpeedDial]")
 {
-    ToolRegistry registry;
-    ToolDef      list;
-    list.name = "list_objects";
-    registry.add(list);
-    const auto says = [&registry](const std::string& name, Catalog missed, const std::string& text) {
-        return other_catalog_hint(registry, name, missed).find(text) != std::string::npos;
-    };
+    // A plate's, a setting's, a recent project's and a plugin's action run what they are, whatever args says.
+    for (const char* prefix : {"orca_plate_goto", "orca_setting", "orca_recent_project", "plugin_script_action", "plugin_page_action"}) {
+        INFO(prefix);
+        const IdleAction action(prefix, "2");
+        CHECK_THAT(action_args_error(action, {{"plate", 2}}), Catch::Matchers::ContainsSubstring("takes no arguments"));
+        CHECK(action_args_error(action, json::object()).empty());
+    }
+    // A command's tile takes its command's arguments, which the command checks against its schema.
+    IdleAction tile("orca_command", "plate_goto");
+    tile.command = "plate_goto";
+    CHECK(action_args_error(tile, {{"plate", 2}}).empty());
+}
 
-    // A Speed Dial command, by the name inside its id or by the whole id.
-    CHECK(says("view_front", Catalog::Tools, "run_action {id: \"view_front\"}"));
-    CHECK(says("orca_command:view_front:orca", Catalog::Tools, "run_action {id: \"orca_command:view_front:orca\"}"));
-    // A tool, asked of the actions or of the CAD tools.
-    CHECK(says("list_objects", Catalog::Actions, "call list_objects directly"));
-    CHECK(says("list_objects", Catalog::Cad, "call list_objects directly"));
-    // Never the catalog that missed the name, and nothing for a name no catalog has.
-    CHECK(other_catalog_hint(registry, "list_objects", Catalog::Tools).empty());
-    CHECK(other_catalog_hint(registry, "view_front", Catalog::Actions).empty());
-    CHECK(other_catalog_hint(registry, "no_such_name", Catalog::Tools).empty());
+TEST_CASE("run_action says where an action it cannot find is", "[Mcp][SpeedDial]")
+{
+    CHECK_THAT(unknown_action("obj_arange"), Catch::Matchers::ContainsSubstring("search_actions"));
 #ifdef SLIC3R_CAD
-    CHECK(says("extrude", Catalog::Tools, "call_cad_tool {tool: \"extrude\", args}"));
-    CHECK(says("extrude", Catalog::Actions, "call_cad_tool {tool: \"extrude\", args}"));
-    CHECK(other_catalog_hint(registry, "extrude", Catalog::Cad).empty());
+    // A Design tab tile, by its id or its key, while it is not shown.
+    for (const char* id : {"orca_command:shell:orca", "shell"}) {
+        INFO(id);
+        const std::string why = unknown_action(id);
+        CHECK_THAT(why, Catch::Matchers::ContainsSubstring("while the Design tab is shown"));
+        CHECK_THAT(why, Catch::Matchers::ContainsSubstring("call_tool {\"tool\": \"shell\"}"));
+    }
+    // A Design command without a tile is any unknown action.
+    CHECK_THAT(unknown_action("orca_command:describe_scene:orca"), Catch::Matchers::ContainsSubstring("search_actions"));
 #endif
 }
 
@@ -210,37 +255,109 @@ TEST_CASE("search_python_api's reference covers the orca package with constructo
     CHECK(rank_python_api(reference, "mesh normals")[0]["name"] == "orca.host.TriangleMesh.face_normals");
 }
 
-TEST_CASE("every tool of the catalog has the lane the concept gives it", "[Mcp]")
+TEST_CASE("a typed tool's group is core, api or ui, and a merged command's is Commands", "[Mcp]")
 {
-    for (const char* name : {"get_app_state", "wait", "cancel_job", "get_log", "run_replay", "export_replay", "answer_dialog",
-                             "auto_answer_dialogs", "run_script", "search_python_api"})
-        CHECK(tool_lane(name) == ToolLane::Core);
-    for (const char* name : {"list_windows", "set_window", "list_widgets", "click", "set_widget_value", "press_keys", "mouse_gesture",
-                             "pick_gizmo_file", "run_javascript", "set_view", "screenshot", "start_recording", "stop_recording",
-                             "encode_recording", "search_actions", "run_action", "select_objects"})
-        CHECK(tool_lane(name) == ToolLane::Ui);
-    for (const char* name : {"set_settings", "slice", "generate_calibration_test", "list_cad_tools", "describe_cad_tool",
-                             "call_cad_tool", "call_tool", "search_tools", "get_slice_stats", "plugin.example.measure"})
-        CHECK(tool_lane(name) == ToolLane::Api);
+    const std::set<std::string> core{"get_app_state", "wait", "cancel_job", "get_log", "run_replay", "export_replay",
+                                     "answer_dialog", "auto_answer_dialogs", "run_script", "search_python_api"};
+    const std::set<std::string> ui{"list_windows", "set_window", "list_widgets", "click", "set_widget_value", "press_keys",
+                                   "mouse_gesture", "pick_gizmo_file", "run_javascript", "set_view", "screenshot",
+                                   "encode_recording", "search_actions", "run_action", "select_objects"};
+    const std::set<std::string> merged{"new_project", "save_project", "start_recording", "stop_recording"};
+    REQUIRE(core.size() == 10);
+    REQUIRE(ui.size() == 15);
+
+    std::map<std::string, std::set<std::string>> by_group;
+    for (const NativeCommand& def : Slic3r::GUI::NativeCommands::instance().commands())
+        if (def.listed)
+            by_group[def.group].insert(def.key);
+    CHECK(by_group.size() == 4);
+    CHECK(by_group["core"] == core);
+    CHECK(by_group["ui"] == ui);
+    CHECK(by_group["Commands"] == merged);
+    // The rest act on project data by index and name.
+    for (const char* name : {"set_settings", "slice", "generate_calibration_test", "get_slice_stats", "search_tools", "call_tool"})
+        CHECK(by_group["api"].count(name) == 1);
 }
 
-TEST_CASE("a registered tool's description starts with its lane, once", "[Mcp]")
+TEST_CASE("no description starts with a bracketed tag", "[Mcp]")
 {
-    ToolRegistry registry;
-    ToolDef      def;
-    def.name        = "click";
-    def.description = "Click a widget.";
-    def.read_only   = false;
-    registry.add(def);
-    const ToolDef* added = registry.find("click");
-    REQUIRE(added != nullptr);
-    CHECK(added->lane == ToolLane::Ui);
-    CHECK(added->description == "[ui] Click a widget.");
-    CHECK_FALSE(added->read_only);
+    const std::regex tag(R"(^\[[a-z]+\] )");
+    for (const NativeCommand& def : Slic3r::GUI::NativeCommands::instance().commands())
+        if (def.listed) {
+            INFO(def.key);
+            CHECK_FALSE(std::regex_search(def.description, tag));
+        }
 
-    // A def copied from the registry and added again keeps one tag.
-    registry.add(*added);
-    CHECK(registry.find("click")->description == "[ui] Click a widget.");
+    // The catalog keeps a listed command's description as it is given.
+    CommandCatalog registry;
+    NativeCommand  def;
+    def.key         = "click";
+    def.description = "Click a widget.";
+    def.listed      = true;
+    registry.add(def);
+    REQUIRE(registry.find("click") != nullptr);
+    CHECK(registry.find("click")->description == "Click a widget.");
+}
+
+TEST_CASE("search_tools reads one inventory", "[Mcp]")
+{
+    const auto command = [](const char* key, const char* group, bool listed, const char* description) {
+        NativeCommand c;
+        c.key          = key;
+        c.group        = group;
+        c.listed       = listed;
+        c.description  = description;
+        c.input_schema = object_schema({{"a", prop("number", "A number.")}});
+        return c;
+    };
+    CommandCatalog catalog;
+    catalog.add(command("measure_bed", "api", true, "Measure the bed. In mm."));
+    NativeCommand tile = command("measure_tile", "View", false, "Measure what the view shows.");
+    tile.in_palette    = true;
+    catalog.add(tile);
+    catalog.add_source(std::make_unique<OneCommandSource>(command("plugin.fixture.measure", "api", false, "Offered by a plugin. Doubles a.")));
+    catalog.seal();
+
+    const json found = search_commands(catalog, {{"query", "measure"}});
+    CHECK(found["total"] == 3);
+    std::map<std::string, json> items;
+    for (const json& item : found["items"])
+        items[item["name"].get<std::string>()] = item;
+    REQUIRE(items.size() == 3);
+    // A listed command's schema is in the tool list; the others' are nowhere else.
+    CHECK(items["measure_bed"]["listed"] == true);
+    CHECK(items["measure_bed"]["summary"] == "Measure the bed.");
+    CHECK_FALSE(items["measure_bed"].contains("input_schema"));
+    for (const char* unlisted : {"measure_tile", "plugin.fixture.measure"}) {
+        INFO(unlisted);
+        CHECK(items[unlisted]["listed"] == false);
+        CHECK(items[unlisted]["input_schema"]["properties"].contains("a"));
+    }
+    // An operation's first sentence only says a plugin offers it.
+    CHECK(items["plugin.fixture.measure"]["description"] == "Offered by a plugin. Doubles a.");
+    CHECK(found["use"].get<std::string>().find("call_tool {tool, args}") != std::string::npos);
+
+    // {tool} describes any of them.
+    const json described = search_commands(catalog, {{"tool", "measure_tile"}});
+    CHECK(described["listed"] == false);
+    CHECK(described["input_schema"]["properties"].contains("a"));
+    CHECK_THROWS_AS(search_commands(catalog, {{"tool", "measure_nothing"}}), ToolFailure);
+
+    // group narrows the names and the matches, in any case, a source's commands included.
+    CHECK(search_commands(catalog, json::object())["names"] == json::array({"measure_bed", "measure_tile", "plugin.fixture.measure"}));
+    CHECK(search_commands(catalog, {{"group", "API"}})["names"] == json::array({"measure_bed", "plugin.fixture.measure"}));
+    CHECK(search_commands(catalog, {{"group", "view"}})["names"] == json::array({"measure_tile"}));
+    const json in_view = search_commands(catalog, {{"group", "View"}, {"query", "measure"}});
+    REQUIRE(in_view["items"].size() == 1);
+    CHECK(in_view["items"][0]["name"] == "measure_tile");
+    // A group no command has is refused with the groups there are.
+    try {
+        search_commands(catalog, {{"group", "commands"}});
+        FAIL("an unknown group was not refused");
+    } catch (const ToolFailure& f) {
+        CHECK(std::string(f.what()).find("Unknown group: commands") != std::string::npos);
+        CHECK(f.details["groups"] == json::array({"api", "View"}));
+    }
 }
 
 TEST_CASE("set_window refuses a request the window can't take, before changing anything", "[Mcp]")
@@ -407,36 +524,45 @@ TEST_CASE("a call naming an object's id is refused once its index names another 
 
 TEST_CASE("the journal records indices without expected ids, except a Python step's arguments", "[Mcp]")
 {
-    CHECK(without_expected_ids("set_settings", json{{"object", 0}, {"object_id", 7}, {"part_id", 8}}) == json{{"object", 0}});
-    CHECK(without_expected_ids("set_height_ranges", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
-    CHECK(without_expected_ids("set_variable_layer_height", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
+    const CommandCatalog& catalog = Slic3r::GUI::NativeCommands::instance();
+    CHECK(without_expected_ids(catalog, "set_settings", json{{"object", 0}, {"object_id", 7}, {"part_id", 8}}) == json{{"object", 0}});
+    CHECK(without_expected_ids(catalog, "set_height_ranges", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
+    CHECK(without_expected_ids(catalog, "set_variable_layer_height", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
     const json replay{{"replay", {{"orca_replay", 1},
                                   {"steps", {{{"tool", "transform"}, {"args", {{"object", 1}, {"object_id", 9}}}},
                                              {{"tool", "run_script"}, {"args", {{"code", "x"}, {"args", {{"object_id", 9}}}}}}}}}}};
-    const json recorded = without_expected_ids("run_replay", replay);
+    const json recorded = without_expected_ids(catalog, "run_replay", replay);
     CHECK(recorded["replay"]["steps"][0]["args"] == json{{"object", 1}});
     CHECK(recorded["replay"]["steps"][1]["args"]["args"]["object_id"] == 9);
-    CHECK(without_expected_ids("run_script", json{{"code", "x"}, {"args", {{"object_id", 3}}}})["args"]["object_id"] == 3);
+    CHECK(without_expected_ids(catalog, "run_script", json{{"code", "x"}, {"args", {{"object_id", 3}}}})["args"]["object_id"] == 3);
 }
 
 TEST_CASE("the journal records an inline replay given as JSON text as its object, without expected ids", "[Mcp]")
 {
+    const CommandCatalog& catalog = Slic3r::GUI::NativeCommands::instance();
     const json as_text{{"replay", "// moves the lid\n"
                                   R"({"orca_replay": 1, "steps": [{"tool": "transform", "args": {"object": 1, "object_id": 9}}]})"}};
-    const json recorded = without_expected_ids("run_replay", as_text);
+    const json recorded = without_expected_ids(catalog, "run_replay", as_text);
     REQUIRE(recorded["replay"].is_object());
     CHECK(recorded["replay"]["steps"][0]["args"] == json{{"object", 1}});
     // Text that doesn't parse is the call's error; it is recorded as given.
-    CHECK(without_expected_ids("run_replay", json{{"replay", "{\"orca_replay\": 1,"}}) == json{{"replay", "{\"orca_replay\": 1,"}});
+    CHECK(without_expected_ids(catalog, "run_replay", json{{"replay", "{\"orca_replay\": 1,"}}) == json{{"replay", "{\"orca_replay\": 1,"}});
 }
 
-TEST_CASE("the journal strips expected ids through call_tool and only from the tools that take them", "[Mcp]")
+TEST_CASE("the journal strips a command's id arguments", "[Mcp]")
 {
-    CHECK(without_expected_ids("call_tool", json{{"tool", "transform"}, {"args", {{"object", 1}, {"object_id", 9}}}}) ==
+    const CommandCatalog& catalog = Slic3r::GUI::NativeCommands::instance();
+    CHECK(without_expected_ids(catalog, "transform", json{{"object", 0}, {"object_id", 7}}) == json{{"object", 0}});
+    // Inside the call_tool and run_replay wrappers too.
+    CHECK(without_expected_ids(catalog, "call_tool", json{{"tool", "transform"}, {"args", {{"object", 1}, {"object_id", 9}}}}) ==
           json{{"tool", "transform"}, {"args", {{"object", 1}}}});
+    const json replay{{"replay", {{"orca_replay", 1},
+                                  {"steps", {{{"tool", "call_tool"}, {"args", {{"tool", "transform"}, {"args", {{"object", 1}, {"object_id", 9}}}}}}}}}}};
+    CHECK(without_expected_ids(catalog, "run_replay", replay)["replay"]["steps"][0]["args"]["args"] == json{{"object", 1}});
     // A plugin operation's own fields of the same names are its arguments, recorded as given.
-    CHECK(without_expected_ids("plugin.measure.area", json{{"object_id", 4}}) == json{{"object_id", 4}});
-    CHECK(without_expected_ids("call_tool", json{{"tool", "plugin.measure.area"}, {"args", {{"object_id", 4}}}})["args"]["object_id"] == 4);
-    CHECK(without_expected_ids("select_objects", json{{"objects", {0, 1}}, {"object_ids", {5, 6}}}) == json{{"objects", {0, 1}}});
-    CHECK(without_expected_ids("select_objects", json{{"instances", {{0, 1}}}, {"instance_object_ids", {5}}}) == json{{"instances", {{0, 1}}}});
+    CHECK(without_expected_ids(catalog, "plugin.measure.area", json{{"object_id", 4}}) == json{{"object_id", 4}});
+    CHECK(without_expected_ids(catalog, "call_tool", json{{"tool", "plugin.measure.area"}, {"args", {{"object_id", 4}}}})["args"]["object_id"] == 4);
+    CHECK(without_expected_ids(catalog, "select_objects", json{{"objects", {0, 1}}, {"object_ids", {5, 6}}}) == json{{"objects", {0, 1}}});
+    CHECK(without_expected_ids(catalog, "select_objects", json{{"instances", {{0, 1}}}, {"instance_object_ids", {5}}}) ==
+          json{{"instances", {{0, 1}}}});
 }

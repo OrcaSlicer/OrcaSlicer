@@ -4,6 +4,7 @@
 
 #include <catch2/catch_message.hpp>
 #include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/GUI_Factories.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
@@ -38,7 +39,7 @@ public:
         : AppAction("test", std::move(title), "src-key", std::move(source_name))
     {}
 
-    AppActionRunResult run(const std::string& param = {}) const override { return {}; }
+    AppActionRunResult run(const nlohmann::json& /*args*/) const override { return {}; }
 };
 
 } // namespace
@@ -107,7 +108,7 @@ TEST_CASE("Command actions are keyed by catalog key, not display title", "[Actio
 // so the displayed title and group equal them.
 TEST_CASE("Command action construction keys by catalog key", "[ActionSource][SpeedDial]")
 {
-    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::catalog();
+    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::instance().commands();
     REQUIRE_FALSE(commands.empty());
     const Slic3r::GUI::NativeCommand& c = commands.front();
 
@@ -131,8 +132,9 @@ TEST_CASE("Actions default to no description or wiki link", "[ActionSource][Spee
     CHECK(action.tooltip.empty());
     CHECK(action.help_url.empty());
 
-    REQUIRE_FALSE(Slic3r::GUI::NativeCommands::catalog().empty());
-    std::unique_ptr<AppAction> command = Slic3r::GUI::NativeCommands::make_action(Slic3r::GUI::NativeCommands::catalog().front());
+    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::instance().commands();
+    REQUIRE_FALSE(commands.empty());
+    std::unique_ptr<AppAction> command = Slic3r::GUI::NativeCommands::make_action(commands.front());
     REQUIRE(command != nullptr);
     CHECK(command->tooltip.empty());
     CHECK(command->help_url.empty());
@@ -142,7 +144,7 @@ TEST_CASE("Actions default to no description or wiki link", "[ActionSource][Spee
 TEST_CASE("Two-phase commands declare their input phase", "[ActionSource][SpeedDial]")
 {
     auto input_of = [](const std::string& key) -> std::string {
-        for (const auto& c : Slic3r::GUI::NativeCommands::catalog())
+        for (const auto& c : Slic3r::GUI::NativeCommands::instance().commands())
             if (c.key == key)
                 return c.input;
         return {};
@@ -155,7 +157,7 @@ TEST_CASE("Two-phase commands declare their input phase", "[ActionSource][SpeedD
 // A typo here would leave a command that never enters its second phase, so pin the allowed set.
 TEST_CASE("Command input tokens stay in the known vocabulary", "[ActionSource][SpeedDial]")
 {
-    for (const auto& c : Slic3r::GUI::NativeCommands::catalog()) {
+    for (const auto& c : Slic3r::GUI::NativeCommands::instance().commands()) {
         INFO(c.key << " input=" << c.input);
         CHECK((c.input.empty() || c.input == "percent" || c.input == "tab"));
     }
@@ -175,15 +177,95 @@ TEST_CASE("Favourite lists are capped and deduped preserving order", "[ActionSou
     CHECK(cap_favourites({"a", "b"}, 0) == std::vector<std::string>{});
 }
 
+TEST_CASE("A pin with no live action is dropped, the others keep their order", "[ActionSource][SpeedDial]")
+{
+    std::vector<std::string> stored, shown;
+    const auto live = [](const std::string& id) { return id != "gone"; };
+    Slic3r::GUI::prune_favourites({"b", "gone", "a"}, live, stored, shown);
+    CHECK(stored == std::vector<std::string>{"b", "a"});
+    CHECK(shown == std::vector<std::string>{"b", "a"});
+#ifndef SLIC3R_CAD
+    // Without the Design table, a Design tile's pin cannot be told from a removed command's.
+    CHECK_FALSE(Slic3r::GUI::is_design_tile_id("orca_command:shell:orca"));
+#endif
+}
+
+namespace {
+
+// `n` pins, pin1 to pin<n>.
+std::vector<std::string> pins(int n)
+{
+    std::vector<std::string> out;
+    for (int i = 1; i <= n; ++i)
+        out.push_back("pin" + std::to_string(i));
+    return out;
+}
+
+} // namespace
+
+TEST_CASE("The favourites bar shows the first ten live pins and keeps the rest", "[ActionSource][SpeedDial]")
+{
+    const auto                     live   = [](const std::string&) { return true; };
+    const std::vector<std::string> twelve = pins(12);
+    std::vector<std::string>       stored, shown;
+    Slic3r::GUI::prune_favourites(twelve, live, stored, shown);
+    CHECK(stored == twelve);
+    CHECK(shown == pins(10));
+    // A pin past the tenth comes onto the bar once one before it is unpinned.
+    std::vector<std::string> unpinned = twelve;
+    unpinned.erase(unpinned.begin());
+    Slic3r::GUI::prune_favourites(unpinned, live, stored, shown);
+    CHECK(shown.back() == "pin11");
+}
+
+TEST_CASE("A pin is refused while the bar shows ten", "[ActionSource][SpeedDial]")
+{
+    const auto               live = [](const std::string&) { return true; };
+    std::vector<std::string> favs = pins(10);
+    CHECK_FALSE(Slic3r::GUI::add_favourite(favs, "pin11", live));
+    CHECK(favs == pins(10));
+    // A pin already on the bar stays where it is.
+    CHECK(Slic3r::GUI::add_favourite(favs, "pin3", live));
+    CHECK(favs == pins(10));
+    // A stored pin past the tenth is not on the bar, which is full, so it is refused as a new one is.
+    favs = pins(12);
+    CHECK_FALSE(Slic3r::GUI::add_favourite(favs, "pin12", live));
+    CHECK(favs == pins(12));
+}
+
+// Ordinary use stores at most thirty pins: ten for each set of live actions the bar is shown with.
+static_assert(ActionRegistry::kFavStoredLimit > 3 * ActionRegistry::kFavLimit, "kFavStoredLimit must stay out of ordinary use's reach");
+
+TEST_CASE("The stored pins stay within their bound however few the bar shows", "[ActionSource][SpeedDial]")
+{
+    const auto               none_live = [](const std::string&) { return false; };
+    std::vector<std::string> favs      = pins(int(ActionRegistry::kFavStoredLimit));
+    CHECK_FALSE(Slic3r::GUI::add_favourite(favs, "one_more", none_live));
+    CHECK(favs.size() == ActionRegistry::kFavStoredLimit);
+}
+
+TEST_CASE("Reordering the bar moves only the pins it shows, each other pin keeping its place", "[ActionSource][SpeedDial]")
+{
+    // The bar shows a, b and c; hidden1 and hidden2 are pins it does not show. The page moves b to the front and
+    // sends the pins it shows.
+    CHECK(Slic3r::GUI::reordered_favourites({"a", "hidden1", "b", "c", "hidden2"}, {"b", "a", "c"}) ==
+          std::vector<std::string>{"b", "hidden1", "a", "c", "hidden2"});
+    // An id that is no pin, and one sent twice, move nothing else.
+    CHECK(Slic3r::GUI::reordered_favourites({"a", "hidden1", "b"}, {"gone", "b", "b", "a"}) ==
+          std::vector<std::string>{"b", "hidden1", "a"});
+}
+
 TEST_CASE("Native command catalog has unique keys and present titles", "[ActionSource][SpeedDial]")
 {
-    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::catalog();
+    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::instance().commands();
     CHECK_FALSE(commands.empty());
 
     std::set<std::string> seen;
     for (const auto& c : commands) {
+        INFO(c.key);
         CHECK_FALSE(c.key.empty());
         CHECK_FALSE(c.title.empty());
+        // A tile shows under its group; a typed tool's group is what search_tools filters by.
         CHECK_FALSE(c.group.empty());
         // A duplicated key would silently shadow the earlier command in the palette.
         CHECK(seen.insert(c.key).second);
@@ -196,7 +278,7 @@ TEST_CASE("Native command catalog has unique keys and present titles", "[ActionS
 // cannot leave broken images in the palette.
 TEST_CASE("Native command icons resolve to shipped SVGs", "[ActionSource][SpeedDial]")
 {
-    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::catalog();
+    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::instance().commands();
     auto icon_of = [&commands](const std::string& key) -> const std::string* {
         for (const auto& c : commands)
             if (c.key == key)
@@ -240,12 +322,31 @@ TEST_CASE("Native command icons resolve to shipped SVGs", "[ActionSource][SpeedD
     }
 }
 
+// The Design tab's tiles are the registry's to show while the tab is shown (materialize_design_actions()),
+// so the palette's own commands, which it holds whatever tab is shown, leave the Design group out.
+TEST_CASE("the palette's own commands leave the Design group out", "[ActionSource][SpeedDial]")
+{
+    Slic3r::GUI::CommandCatalog catalog;
+    for (const char* group : {"Design", "Commands"}) {
+        Slic3r::GUI::NativeCommand c;
+        c.key        = std::string(group) + "_tile";
+        c.title      = group;
+        c.group      = group;
+        c.in_palette = true;
+        catalog.add(std::move(c));
+    }
+    catalog.seal();
+    const std::vector<const Slic3r::GUI::NativeCommand*> palette = Slic3r::GUI::NativeCommands::palette_commands(catalog);
+    REQUIRE(palette.size() == 1);
+    CHECK(palette.front()->key == "Commands_tile");
+}
+
 // The Help-menu commands, wiki/YouTube links and the developer-mode toggle are part of the palette.
 // Guard their presence and that they stay grouped with their peers, so a catalog edit cannot drop
 // or scatter them. Groups are compared to the peer's own group to stay independent of translation.
 TEST_CASE("Native command catalog includes the Help and developer-mode commands", "[ActionSource][SpeedDial]")
 {
-    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::catalog();
+    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::instance().commands();
     auto find = [&commands](const std::string& key) -> const Slic3r::GUI::NativeCommand* {
         for (const auto& c : commands)
             if (c.key == key)
@@ -270,8 +371,8 @@ TEST_CASE("Native command catalog includes the Help and developer-mode commands"
     CHECK(dev_mode->group == mode_simple->group);
 }
 
-// A person takes screenshots and records from the palette, beside Run Script, with no agent involved. Start
-// Recording takes its settings as a parameter, which an agent passes to skip its dialog.
+// A person takes screenshots and records from the palette, beside Run Script, with no agent involved. Start and
+// Stop Recording are the typed tools too, whose arguments skip what the tile does.
 TEST_CASE("Native command catalog has the screenshot and recording commands", "[ActionSource][SpeedDial]")
 {
     const Slic3r::GUI::NativeCommand* runner = Slic3r::GUI::NativeCommands::find("open_action_replay");
@@ -282,7 +383,7 @@ TEST_CASE("Native command catalog has the screenshot and recording commands", "[
         REQUIRE(c != nullptr);
         CHECK(c->group == runner->group);
         CHECK(c->input.empty());
-        CHECK(c->param.type == (std::string(key) == "start_recording" ? Slic3r::GUI::CommandParamType::Text : Slic3r::GUI::CommandParamType::None));
+        CHECK(c->input_schema.at("properties").empty() == (std::string(key) == "take_screenshot"));
         CHECK_FALSE(c->description.empty());
     }
 }
@@ -298,7 +399,7 @@ TEST_CASE("Native command catalog has the Run Script panel and Action Replay com
     REQUIRE(panel != nullptr);
     CHECK(panel->group == replay->group);
     CHECK(panel->input.empty());
-    CHECK(panel->param.type == Slic3r::GUI::CommandParamType::None);
+    CHECK(panel->input_schema.at("properties").empty());
     CHECK_FALSE(panel->description.empty());
 }
 
@@ -306,7 +407,7 @@ TEST_CASE("Native command catalog has the Run Script panel and Action Replay com
 // menu. Groups are compared to a peer's own group to stay independent of translation.
 TEST_CASE("Native command catalog covers the Add menus", "[ActionSource][SpeedDial]")
 {
-    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::catalog();
+    const std::vector<Slic3r::GUI::NativeCommand>& commands = Slic3r::GUI::NativeCommands::instance().commands();
     auto group_of = [&commands](const std::string& key) -> const std::string* {
         for (const auto& c : commands)
             if (c.key == key)

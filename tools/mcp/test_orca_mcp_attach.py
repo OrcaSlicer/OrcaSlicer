@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Checks how orca_mcp.py attaches to a running OrcaSlicer and calls CAD tools, without the app.
+"""Checks how orca_mcp.py attaches to a running OrcaSlicer and calls commands, without the app.
 
     python tools/mcp/test_orca_mcp_attach.py
 
@@ -9,9 +9,9 @@ does through /proc/self/exe, and takes it as given on Windows, as the app does, 
 stdio bridge does (skipped where no symlink can be made). from_datadir() refuses a datadir without
 mcp/server.json, or whose server.json is not JSON or names no port, naming the file and giving the
 --mcp advice; and one whose server.json names a port where nothing listens or where another server
-answers (HTTP 401, a reply that is not JSON), also chaining the cause. call_cad_tool(), against a
-stubbed call(), fails at once on a dialog, follows a running job, prefixes its errors with the CAD
-tool's name, chaining the original, and returns the tool's result. Exits 0 when every check passes.
+answers (HTTP 401, a reply that is not JSON), also chaining the cause. call_command(), against a
+stubbed call(), fails at once on a dialog, follows a running job, prefixes its errors with the
+command's name, chaining the original, and returns the command's whole reply. Exits 0 when every check passes.
 The folders the checks make are removed when they end.
 """
 
@@ -215,33 +215,33 @@ def stub(client, *replies):
     return calls
 
 
-def check_call_cad_tool():
+def check_call_command():
     client = OrcaMcp(1, "t")
     calls = stub(client, {"status": "blocked_by_dialog", "job": "j", "dialogs": [{"title": "Save?"}]})
-    message = raises(lambda: client.call_cad_tool("extrude", distance=5), "Save?")
+    message = raises(lambda: client.call_command("extrude", distance=5), "Save?")
     assert message.startswith("extrude: "), message
     assert len(calls) == 1, calls
-    ok("call_cad_tool() fails at once on a dialog, naming it")
+    ok("call_command() fails at once on a dialog, naming it")
 
     calls = stub(client, {"result": {"ok": True}})
-    assert client.call_cad_tool("extrude", distance=5) == {"ok": True}
-    assert calls == [("call_cad_tool", 600, {"tool": "extrude", "args": {"distance": 5}})], calls
-    ok("call_cad_tool() returns the CAD tool's result")
+    assert client.call_command("extrude", distance=5) == {"result": {"ok": True}}
+    assert calls == [("call_tool", 600, {"tool": "extrude", "args": {"distance": 5}})], calls
+    ok("call_command() calls call_tool and returns the command's whole reply")
 
     calls = stub(client, {"status": "running", "job": "j"}, {"result": 7})
-    assert client.call_cad_tool("sweep", sketch=1, path=0) == 7
+    assert client.call_command("sweep", sketch=1, path=0) == {"result": 7}
     assert calls[1][0] == "wait" and calls[1][2]["job"] == "j", calls
-    ok("call_cad_tool() follows a running job to its result")
+    ok("call_command() follows a running job to its reply")
 
     refused = McpError("kernel refused the hole")
     stub(client, refused)
-    error = raised(lambda: client.call_cad_tool("hole"), "kernel refused the hole")
+    error = raised(lambda: client.call_command("hole"), "kernel refused the hole")
     assert str(error).startswith("hole: "), error
     assert error.__cause__ is refused, repr(error.__cause__)
     stub(client, {"status": "running", "job": "j"}, McpError("the job failed"))
-    message = raises(lambda: client.call_cad_tool("hole"), "the job failed")
+    message = raises(lambda: client.call_command("hole"), "the job failed")
     assert message.startswith("hole: "), message
-    ok("call_cad_tool() starts every error with the CAD tool's name, with the original as its cause")
+    ok("call_command() starts every error with the command's name, with the original as its cause")
 
 
 def main():
@@ -251,7 +251,7 @@ def main():
         check_default_datadir()
         check_symlinked_binary()
         check_from_datadir()
-        check_call_cad_tool()
+        check_call_command()
     return 0
 
 

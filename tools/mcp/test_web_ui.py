@@ -487,7 +487,7 @@ def main():
     call("auto_answer_dialogs", rules=[])
 
     # ---- The Home page, a modeless page window and the web budget ----
-    client.call("run_action", id="orca_command:go_to_tab:orca", param="home")
+    client.call("run_action", id="orca_command:go_to_tab:orca", args={"tab": "home"})
     client.call("run_action", id=WINDOW)
     check("the modeless window's page is listed", wait_for(lambda: 'button "Card one"' in tree(query="Card one"), 10))
     native = client.call("list_widgets", include_web=False)["nodes"]
@@ -543,7 +543,7 @@ def main():
     check("that dialog is gone", wait_for(lambda: dialogs() == []), dialogs())
 
     # ---- A dock panel, beside the 3D view ----
-    client.call("run_action", id="orca_command:go_to_tab:orca", param="prepare")
+    client.call("run_action", id="orca_command:go_to_tab:orca", args={"tab": "prepare"})
     client.call("run_action", id=PANEL)
     check("the dock panel's page is listed", wait_for(lambda: 'button "Ping"' in tree(query="Ping"), 10))
     # Its Content-Security-Policy forbids eval: the agent works there, run_javascript says why it can't.

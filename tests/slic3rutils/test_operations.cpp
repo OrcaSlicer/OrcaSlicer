@@ -1,7 +1,7 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 
-#include "slic3r/GUI/Mcp/McpService.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
@@ -352,13 +352,27 @@ TEST_CASE("a project is not saved under a sliced file's name", "[Operations]")
 
 // ---- The catalogs name their operations ---------------------------------------------------------------
 //
-// A tool that changes something, and a command that takes a param, either names the operations
+// A tool that changes something, and a palette command that takes arguments, either names the operations
 // (GUI/Operations) it reaches or is listed here with the reason it reaches none. The lists are what a
 // new tool or command has to be added to, or kept off, in plain sight. They say how an entry is
 // classified; they do not check what its handler calls, which scripts/check_operation_calls.py does
 // for the owner calls an operation stands for.
 
 namespace {
+
+// A command a person picks from the Speed Dial whose arguments stand for what it asks: it has a tile, no
+// tool lists it (a listed command is under the tools' rule), and its schema has an argument beside the
+// `silent` every two-form command takes. A Design command acts on the Design tab's document, which no
+// operation stands for.
+bool palette_command_with_arguments(const Slic3r::GUI::NativeCommand& command)
+{
+    if (!command.in_palette || command.listed || command.group == Slic3r::GUI::kDesignGroup)
+        return false;
+    for (const auto& [name, schema] : command.input_schema.at("properties").items())
+        if (name != "silent")
+            return true;
+    return false;
+}
 
 // Every function of GUI/Operations a catalog entry may name.
 const std::set<std::string> kOperations = {
@@ -374,13 +388,13 @@ constexpr const char* kDrivesTheGui      = "drives the GUI as a person does: the
 constexpr const char* kSessionState      = "changes the automation session (jobs, the journal, recordings), not the project";
 constexpr const char* kOneEntryPoint     = "its function has one automation entry point, so no second caller can drift from it";
 constexpr const char* kAsks              = "the asking path: it calls the owner's method, which asks the person";
+constexpr const char* kHistory           = "it calls the undo and redo of the history it names, which no operation stands for";
 
 const std::map<std::string, const char*> kToolExceptions = {
     {"run_replay", kRunsWhatItIsGiven},
     {"run_script", kRunsWhatItIsGiven},
     {"run_action", kRunsWhatItIsGiven},
     {"call_tool", kRunsWhatItIsGiven},
-    {"call_cad_tool", kRunsWhatItIsGiven},
     {"run_javascript", kRunsWhatItIsGiven},
     {"click", kDrivesTheGui},
     {"set_widget_value", kDrivesTheGui},
@@ -410,7 +424,6 @@ const std::map<std::string, const char*> kCommandExceptions = {
     {"load_project", kAsks},
     {"go_to_tab", kOneEntryPoint},
     {"open_preferences", kOneEntryPoint},
-    {"start_recording", kSessionState},
     {"export_stl_multi", kOneEntryPoint},
     {"export_config", kOneEntryPoint},
     {"obj_rename", kOneEntryPoint},
@@ -427,6 +440,8 @@ const std::map<std::string, const char*> kCommandExceptions = {
     {"add_primitive_torus", kOneEntryPoint},
     {"install_local_plugin", kOneEntryPoint},
     {"filament_delete", kOneEntryPoint},
+    {"undo", kHistory},
+    {"redo", kHistory},
 };
 
 } // namespace
@@ -487,22 +502,22 @@ TEST_CASE("a filament pick finds the selector's row that stores the preset, else
     CHECK(row_for_preset({}, "Bambu ABS") == -1);
 }
 
-TEST_CASE("a tool that changes something names its operations or is a listed exception", "[Operations]")
+TEST_CASE("a listed command that is not read-only names its operations or is a listed exception", "[Operations]")
 {
-    for (const Slic3r::GUI::Mcp::ToolDef& tool : Slic3r::GUI::Mcp::McpService::offline_catalog().tools()) {
-        if (tool.read_only)
+    for (const Slic3r::GUI::NativeCommand& tool : Slic3r::GUI::NativeCommands::instance().commands()) {
+        if (!tool.listed || tool.read_only)
             continue;
-        INFO(tool.name);
-        const bool excepted = kToolExceptions.count(tool.name) != 0;
+        INFO(tool.key);
+        const bool excepted = kToolExceptions.count(tool.key) != 0;
         // One or the other: an exception that names operations has stopped being one.
         CHECK(tool.operations.empty() == excepted);
     }
 }
 
-TEST_CASE("a command with a param names its operations or is a listed exception", "[Operations]")
+TEST_CASE("a palette command that takes arguments names its operations or is a listed exception", "[Operations]")
 {
-    for (const Slic3r::GUI::NativeCommand& command : Slic3r::GUI::NativeCommands::catalog()) {
-        if (command.param.type == Slic3r::GUI::CommandParamType::None)
+    for (const Slic3r::GUI::NativeCommand& command : Slic3r::GUI::NativeCommands::instance().commands()) {
+        if (!palette_command_with_arguments(command))
             continue;
         INFO(command.key);
         const bool excepted = kCommandExceptions.count(command.key) != 0;
@@ -512,12 +527,7 @@ TEST_CASE("a command with a param names its operations or is a listed exception"
 
 TEST_CASE("a catalog entry names only operations the layer has", "[Operations]")
 {
-    for (const Slic3r::GUI::Mcp::ToolDef& tool : Slic3r::GUI::Mcp::McpService::offline_catalog().tools())
-        for (const std::string& operation : tool.operations) {
-            INFO(tool.name << " names " << operation);
-            CHECK(kOperations.count(operation) == 1);
-        }
-    for (const Slic3r::GUI::NativeCommand& command : Slic3r::GUI::NativeCommands::catalog())
+    for (const Slic3r::GUI::NativeCommand& command : Slic3r::GUI::NativeCommands::instance().commands())
         for (const std::string& operation : command.operations) {
             INFO(command.key << " names " << operation);
             CHECK(kOperations.count(operation) == 1);
@@ -526,11 +536,11 @@ TEST_CASE("a catalog entry names only operations the layer has", "[Operations]")
 
 TEST_CASE("the exception lists name only entries the catalogs have", "[Operations]")
 {
-    const Slic3r::GUI::Mcp::ToolRegistry& tools = Slic3r::GUI::Mcp::McpService::offline_catalog();
     for (const auto& [name, reason] : kToolExceptions) {
         INFO(name << ": " << reason);
-        const Slic3r::GUI::Mcp::ToolDef* tool = tools.find(name);
+        const Slic3r::GUI::NativeCommand* tool = Slic3r::GUI::NativeCommands::find(name);
         REQUIRE(tool != nullptr);
+        CHECK(tool->listed);
         // A read-only tool needs no exception.
         CHECK_FALSE(tool->read_only);
     }
@@ -538,14 +548,40 @@ TEST_CASE("the exception lists name only entries the catalogs have", "[Operation
         INFO(key << ": " << reason);
         const Slic3r::GUI::NativeCommand* command = Slic3r::GUI::NativeCommands::find(key);
         REQUIRE(command != nullptr);
-        CHECK(command->param.type != Slic3r::GUI::CommandParamType::None);
+        CHECK(palette_command_with_arguments(*command));
+    }
+}
+
+// The Design tab's commands act on its document, which no operation stands for, as
+// scripts/check_operation_calls.py leaves McpToolsCad.cpp out.
+TEST_CASE("the operations rule leaves the Design group out", "[Operations]")
+{
+    Slic3r::GUI::NativeCommand tile;
+    tile.key          = "shell";
+    tile.group        = "Design";
+    tile.in_palette   = true;
+    tile.input_schema = {{"type", "object"}, {"properties", {{"thickness", {{"type", "number"}}}, {"silent", {{"type", "boolean"}}}}}};
+    CHECK_FALSE(palette_command_with_arguments(tile));
+    tile.group = "Commands";
+    CHECK(palette_command_with_arguments(tile));
+
+    // With the CAD feature on, no Design command is under the rule, and none is on an exception list.
+    Slic3r::GUI::CommandCatalog catalog;
+    Slic3r::GUI::NativeCommands::register_all_commands(catalog, {true});
+    for (const Slic3r::GUI::NativeCommand& command : catalog.commands()) {
+        if (command.group != "Design")
+            continue;
+        INFO(command.key);
+        CHECK_FALSE(palette_command_with_arguments(command));
+        CHECK(kToolExceptions.count(command.key) == 0);
+        CHECK(kCommandExceptions.count(command.key) == 0);
     }
 }
 
 TEST_CASE("the field that names a tool's operations is in no listing", "[Operations]")
 {
     // tools/list and search_actions stay as they are: the field is for the catalog test alone.
-    const Slic3r::GUI::Mcp::ToolDef* tool = Slic3r::GUI::Mcp::McpService::offline_catalog().find("export");
+    const Slic3r::GUI::NativeCommand* tool = Slic3r::GUI::NativeCommands::find("export");
     REQUIRE(tool != nullptr);
     REQUIRE_FALSE(tool->operations.empty());
     CHECK(tool->input_schema.dump().find("start_gcode_export") == std::string::npos);

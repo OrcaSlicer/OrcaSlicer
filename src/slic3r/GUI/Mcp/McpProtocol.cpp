@@ -1,12 +1,13 @@
 #include "McpProtocol.hpp"
 #include "McpTypes.hpp"
 
+#include "slic3r/GUI/CommandCatalog.hpp"
+
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
 #include <memory>
-#include <set>
 #include <string>
 #include <utility>
 #include <vector>
@@ -62,310 +63,27 @@ int base64_value(char c)
     return -1;
 }
 
-// Levenshtein distance, for "did you mean" suggestions on short identifiers.
-std::size_t edit_distance(const std::string& a, const std::string& b)
-{
-    std::vector<std::size_t> row(b.size() + 1);
-    for (std::size_t j = 0; j <= b.size(); ++j)
-        row[j] = j;
-    for (std::size_t i = 1; i <= a.size(); ++i) {
-        std::size_t diag = row[0];
-        row[0]           = i;
-        for (std::size_t j = 1; j <= b.size(); ++j) {
-            const std::size_t up = row[j];
-            row[j]               = std::min({row[j] + 1, row[j - 1] + 1, diag + (a[i - 1] == b[j - 1] ? 0 : 1)});
-            diag                 = up;
-        }
-    }
-    return row[b.size()];
-}
-
-std::string json_type_name(const json& v)
-{
-    if (v.is_boolean()) return "boolean";
-    if (v.is_number_integer() || v.is_number_unsigned()) return "integer";
-    if (v.is_number()) return "number";
-    if (v.is_string()) return "string";
-    if (v.is_array()) return "array";
-    if (v.is_object()) return "object";
-    return "null";
-}
-
-bool type_matches(const json& value, const json& type)
-{
-    if (type.is_array())
-        return std::any_of(type.begin(), type.end(), [&](const json& t) { return type_matches(value, t); });
-    if (!type.is_string())
-        return true;
-    const std::string t = type.get<std::string>();
-    if (t == "number")
-        return value.is_number();
-    if (t == "integer")
-        return value.is_number_integer() || value.is_number_unsigned() ||
-               (value.is_number_float() && value.get<double>() == double(int64_t(value.get<double>())));
-    return json_type_name(value) == t;
-}
-
-std::string validate_value(const json& schema, const json& value, const std::string& path)
-{
-    if (!schema.is_object())
-        return {};
-    if (auto it = schema.find("type"); it != schema.end() && !type_matches(value, *it))
-        return path + " must be of type " + (it->is_string() ? it->get<std::string>() : it->dump()) + ", got " + json_type_name(value);
-    if (auto it = schema.find("enum"); it != schema.end() && it->is_array() &&
-        std::find(it->begin(), it->end(), value) == it->end())
-        return path + " must be one of " + it->dump();
-    // A bound is read only when it is a number: a plugin operation's schema may be draft-04, whose
-    // exclusiveMinimum is a boolean that qualifies minimum.
-    if (value.is_number()) {
-        if (auto it = schema.find("minimum"); it != schema.end() && it->is_number() && value.get<double>() < it->get<double>())
-            return path + " must be >= " + it->dump();
-        if (auto it = schema.find("exclusiveMinimum"); it != schema.end() && it->is_number() && value.get<double>() <= it->get<double>())
-            return path + " must be > " + it->dump();
-        if (auto it = schema.find("maximum"); it != schema.end() && it->is_number() && value.get<double>() > it->get<double>())
-            return path + " must be <= " + it->dump();
-    }
-    if (value.is_array()) {
-        if (auto it = schema.find("items"); it != schema.end())
-            for (std::size_t i = 0; i < value.size(); ++i)
-                if (std::string err = validate_value(*it, value[i], path + "[" + std::to_string(i) + "]"); !err.empty())
-                    return err;
-    }
-    if (value.is_object() && schema.contains("properties")) {
-        const json& props = schema["properties"];
-        if (auto it = schema.find("required"); it != schema.end() && it->is_array())
-            for (const json& key : *it)
-                if (key.is_string() && !value.contains(key.get<std::string>()))
-                    return (path.empty() ? std::string() : path + ".") + key.get<std::string>() + " is required";
-        const bool closed = schema.value("additionalProperties", true) == false;
-        for (auto it = value.begin(); it != value.end(); ++it) {
-            const std::string child = path.empty() ? it.key() : path + "." + it.key();
-            if (auto p = props.find(it.key()); p != props.end()) {
-                if (std::string err = validate_value(*p, it.value(), child); !err.empty())
-                    return err;
-            } else if (closed) {
-                std::vector<std::string> names;
-                for (auto k = props.begin(); k != props.end(); ++k)
-                    names.push_back(k.key());
-                return "unknown argument " + child + " (accepted: " + json(names).dump() + ")";
-            }
-        }
-    }
-    return {};
-}
-
-// Argument names agents reach for in place of the ones the tools take, each with the names it may
-// stand for, tried in order.
-const std::vector<std::pair<std::string, std::vector<std::string>>>& argument_aliases()
-{
-    static const std::vector<std::pair<std::string, std::vector<std::string>>> aliases{
-        {"ref", {"target"}},          {"key", {"keys"}},        {"text", {"value"}},   {"action", {"id", "button"}},
-        {"object", {"objects"}},      {"plate", {"plates"}},    {"filter", {"query"}}, {"settings", {"values"}},
-        // A capture's output file, where the tool has no path of its own.
-        {"path", {"save_path"}},
-    };
-    return aliases;
-}
-
-bool type_includes(const json& type, const char* name)
-{
-    return type.is_array() ? std::find(type.begin(), type.end(), name) != type.end() : type == name;
-}
-
-// A value in another JSON form than its schema's: a number, boolean, array or object written as a
-// string ("2", "true", "[1, 2]"), a plate index as a string where a name may also go ("0" for
-// "current" | index), or a single item where an array is wanted.
-void coerce_value(const json& schema, json& value)
-{
-    if (!schema.is_object() || !schema.contains("type"))
-        return;
-    const json& type = schema["type"];
-    if (value.is_string()) {
-        json parsed = json::parse(value.get<std::string>(), nullptr, /*allow_exceptions=*/false);
-        if (!parsed.is_discarded() && ((!type_matches(value, type) && type_matches(parsed, type)) ||
-                                       (type_includes(type, "integer") && parsed.is_number_integer()))) {
-            value = std::move(parsed);
-            return;
-        }
-    }
-    if (type == "array" && !value.is_array()) {
-        json item = value;
-        if (schema.contains("items"))
-            coerce_value(schema["items"], item);
-        json wrapped = json::array({std::move(item)});
-        if (validate_value(schema, wrapped, "").empty())
-            value = std::move(wrapped);
-    }
-}
-
 } // namespace
 
-void normalize_arguments(const json& schema, json& args)
-{
-    if (!args.is_object() || !schema.is_object() || !schema.contains("properties"))
-        return;
-    const json& props = schema["properties"];
-    // x and y, and width and height, as list_windows reports them, read as the position and size arrays
-    // of a tool that takes those as window geometry, arrays of integers, and neither part by its own
-    // name. The mm arrays of the 3D tools (transform, add_part) hold numbers and never take a pair. Only
-    // both parts of a pair fold, and never over an array the call gives.
-    struct Pair
-    {
-        const char* name;
-        const char* first;
-        const char* second;
-    };
-    const auto integer_array = [](const json& prop) {
-        return prop.is_object() && prop.value("type", json()) == "array" && prop.contains("items") && prop["items"].is_object() &&
-               prop["items"].value("type", json()) == "integer";
-    };
-    for (const Pair& pair : {Pair{"position", "x", "y"}, Pair{"size", "width", "height"}}) {
-        if (!props.contains(pair.name) || !integer_array(props[pair.name]) || props.contains(pair.first) || props.contains(pair.second) ||
-            args.contains(pair.name) || !args.contains(pair.first) || !args.contains(pair.second))
-            continue;
-        args[pair.name] = json::array({args[pair.first], args[pair.second]});
-        args.erase(pair.first);
-        args.erase(pair.second);
-    }
-    for (const auto& [alias, names] : argument_aliases()) {
-        if (!args.contains(alias) || props.contains(alias))
-            continue;
-        // Only where the value fits: the click tool's action "click" is no button, and its error should name action.
-        for (const std::string& name : names) {
-            if (!props.contains(name) || args.contains(name))
-                continue;
-            json value = args[alias];
-            coerce_value(props[name], value);
-            if (validate_value(props[name], value, name).empty()) {
-                args[name] = std::move(value);
-                args.erase(alias);
-                break;
-            }
-        }
-    }
-    for (auto it = args.begin(); it != args.end(); ++it)
-        if (auto p = props.find(it.key()); p != props.end())
-            coerce_value(*p, it.value());
-    // A value outside its own enum that the enum of one other argument, which the call leaves out,
-    // takes: set_view's canvas "front" is its camera. The schema keeps each enum to its own values,
-    // as listing them under both names would have agents give a value to the wrong one.
-    std::vector<std::pair<std::string, std::string>> moves;
-    for (const auto& [key, value] : args.items()) {
-        const auto own = props.find(key);
-        if (own == props.end() || !own->contains("enum") || validate_value(*own, value, key).empty())
-            continue;
-        std::vector<std::string> fits;
-        for (const auto& [name, prop] : props.items())
-            if (!args.contains(name) && prop.contains("enum") && validate_value(prop, value, name).empty())
-                fits.push_back(name);
-        if (fits.size() == 1)
-            moves.emplace_back(key, fits.front());
-    }
-    for (const auto& [from, to] : moves)
-        if (!args.contains(to)) {
-            args[to] = std::move(args[from]);
-            args.erase(from);
-        }
-}
+// ---- call_tool ----------------------------------------------------------------
 
-// ---- ToolRegistry ------------------------------------------------------------
-
-ToolLane tool_lane(const std::string& name)
+std::string resolve_call(const CommandCatalog& catalog, std::shared_ptr<const NativeCommand>& command, json& args)
 {
-    static const std::set<std::string> core{"get_app_state", "wait",          "cancel_job",          "get_log",    "run_replay",
-                                            "export_replay", "answer_dialog", "auto_answer_dialogs", "run_script", "search_python_api"};
-    static const std::set<std::string> ui{"list_windows",     "set_window",       "list_widgets",   "click",
-                                          "set_widget_value", "press_keys",       "mouse_gesture",  "pick_gizmo_file",
-                                          "run_javascript",   "set_view",         "screenshot",     "start_recording",
-                                          "stop_recording",   "encode_recording", "search_actions", "run_action",
-                                          "select_objects"};
-    if (core.count(name) != 0)
-        return ToolLane::Core;
-    if (ui.count(name) != 0)
-        return ToolLane::Ui;
-    return ToolLane::Api;
-}
-
-const char* lane_name(ToolLane lane)
-{
-    switch (lane) {
-    case ToolLane::Core: return "core";
-    case ToolLane::Ui: return "ui";
-    case ToolLane::Api: break;
-    }
-    return "api";
-}
-
-void ToolRegistry::add(ToolDef def)
-{
-    def.lane                 = tool_lane(def.name);
-    const std::string tag    = std::string("[") + lane_name(def.lane) + "] ";
-    // A def copied from the registry and added again already has its tag.
-    if (def.description.compare(0, tag.size(), tag) != 0)
-        def.description.insert(0, tag);
-    auto it = std::find_if(m_tools.begin(), m_tools.end(), [&](const ToolDef& t) { return t.name == def.name; });
-    if (it != m_tools.end())
-        *it = std::move(def);
-    else
-        m_tools.push_back(std::move(def));
-}
-
-const ToolDef* ToolRegistry::find(const std::string& name) const
-{
-    auto it = std::find_if(m_tools.begin(), m_tools.end(), [&](const ToolDef& t) { return t.name == name; });
-    return it == m_tools.end() ? nullptr : &*it;
-}
-
-std::shared_ptr<const ToolDef> ToolRegistry::lookup(const std::string& name) const
-{
-    if (const ToolDef* def = find(name))
-        return std::shared_ptr<const ToolDef>(std::shared_ptr<const ToolDef>(), def);
-    return m_dynamic ? m_dynamic(name) : nullptr;
-}
-
-std::string resolve_api_call(const ToolRegistry& registry, std::shared_ptr<const ToolDef>& def, json& args)
-{
-    if (!def || def->name != "call_tool")
+    if (!command || command->key != "call_tool")
         return {};
-    const std::string target = args.value("tool", std::string());
-    std::shared_ptr<const ToolDef> inner = registry.lookup(target);
+    const std::string                    target = args.value("tool", std::string());
+    std::shared_ptr<const NativeCommand> inner  = catalog.lookup(target);
     if (!inner)
-        return registry.unknown_tool(target, /*suggest=*/true);
-    if (inner->name == "call_tool")
+        return catalog.unknown_command(target, /*suggest=*/true);
+    if (inner->key == "call_tool")
         return "call_tool calls another tool, not itself";
     json inner_args = args.contains("args") && args["args"].is_object() ? args["args"] : json::object();
     if (std::string err = argument_error(*inner, inner_args); !err.empty())
         return "Invalid arguments for " + target + ": " + err;
-    def  = std::move(inner);
-    args = std::move(inner_args);
+    command = std::move(inner);
+    args    = std::move(inner_args);
     return {};
 }
-
-std::vector<std::string> ToolRegistry::similar(const std::string& name, std::size_t limit) const
-{
-    std::vector<std::pair<std::size_t, std::string>> scored;
-    for (const ToolDef& t : m_tools)
-        scored.emplace_back(t.name.find(name) != std::string::npos ? 0 : edit_distance(name, t.name), t.name);
-    std::sort(scored.begin(), scored.end());
-    std::vector<std::string> out;
-    for (const auto& [score, n] : scored)
-        if (out.size() < limit && score <= std::max<std::size_t>(3, name.size() / 2))
-            out.push_back(n);
-    return out;
-}
-
-std::string ToolRegistry::unknown_tool(const std::string& name, bool suggest) const
-{
-    std::string message = "Unknown tool: " + name;
-    if (const std::string elsewhere = m_elsewhere ? m_elsewhere(name) : std::string(); !elsewhere.empty())
-        return message + "; " + elsewhere;
-    if (suggest)
-        if (const auto close = similar(name); !close.empty())
-            message += " (did you mean " + close.front() + "?)";
-    return message;
-}
-
-std::string validate_arguments(const json& schema, const json& args) { return validate_value(schema, args, ""); }
 
 std::string decode_header_value(const std::string& value)
 {
@@ -390,21 +108,15 @@ std::string decode_header_value(const std::string& value)
     return out;
 }
 
-std::string argument_error(const ToolDef& def, json& args)
-{
-    normalize_arguments(def.input_schema, args);
-    return validate_arguments(def.input_schema, args);
-}
-
 // ---- McpProtocol --------------------------------------------------------------
 
-McpProtocol::McpProtocol(const ToolRegistry& registry, ToolCaller& caller, ServerInfo info)
-    : m_registry(registry), m_caller(caller), m_info(std::move(info))
+McpProtocol::McpProtocol(const CommandCatalog& catalog, ToolCaller& caller, ServerInfo info)
+    : m_catalog(catalog), m_caller(caller), m_info(std::move(info))
 {}
 
-json McpProtocol::tool_to_json(const ToolDef& def)
+json McpProtocol::tool_to_json(const NativeCommand& def)
 {
-    json t{{"name", def.name}, {"description", def.description}, {"inputSchema", def.input_schema}};
+    json t{{"name", def.key}, {"description", def.description}, {"inputSchema", def.input_schema}};
     if (!def.title.empty())
         t["title"] = def.title;
     t["annotations"] = {{"readOnlyHint", def.read_only},
@@ -437,20 +149,19 @@ json McpProtocol::result_to_json(const ToolResult& result)
 
 json McpProtocol::tools_list() const
 {
-    // Core first, then the API lane an agent should prefer, then the UI lane; registration order within each.
+    // The listed commands, in the order they were added.
     json tools = json::array();
-    for (const ToolLane lane : {ToolLane::Core, ToolLane::Api, ToolLane::Ui})
-        for (const ToolDef& def : m_registry.tools())
-            if (def.lane == lane)
-                tools.push_back(tool_to_json(def));
+    for (const NativeCommand& def : m_catalog.commands())
+        if (def.listed)
+            tools.push_back(tool_to_json(def));
     return tools;
 }
 
 json McpProtocol::call_tool(const json& params, bool& unknown_tool, std::string& unknown_name)
 {
     unknown_tool          = false;
-    const std::string              name = params.value("name", "");
-    std::shared_ptr<const ToolDef> def  = m_registry.lookup(name);
+    const std::string                    name = params.value("name", "");
+    std::shared_ptr<const NativeCommand> def  = m_catalog.lookup(name);
     if (def == nullptr) {
         unknown_tool = true;
         unknown_name = name;
@@ -461,7 +172,7 @@ json McpProtocol::call_tool(const json& params, bool& unknown_tool, std::string&
         return result_to_json(ToolResult::error("arguments must be an object"));
     if (std::string err = argument_error(*def, args); !err.empty())
         return result_to_json(ToolResult::error("Invalid arguments: " + err));
-    if (std::string err = resolve_api_call(m_registry, def, args); !err.empty())
+    if (std::string err = resolve_call(m_catalog, def, args); !err.empty())
         return result_to_json(ToolResult::error(err));
     try {
         return result_to_json(m_caller.call(*def, args));
@@ -537,9 +248,9 @@ PostReply McpProtocol::handle_legacy(const json& id, const std::string& method, 
         json        result = call_tool(params, unknown, name);
         if (unknown) {
             json data{{"name", name}};
-            if (auto close = m_registry.similar(name); !close.empty())
+            if (auto close = m_catalog.similar(name); !close.empty())
                 data["did_you_mean"] = close;
-            return reply(200, error_body(id, kInvalidParams, m_registry.unknown_tool(name), std::move(data)));
+            return reply(200, error_body(id, kInvalidParams, m_catalog.unknown_command(name), std::move(data)));
         }
         return result_reply(id, std::move(result));
     }
@@ -599,9 +310,9 @@ PostReply McpProtocol::handle_modern(const json& id, const std::string& method, 
         json        result = call_tool(params, unknown, name);
         if (unknown) {
             json data{{"name", name}};
-            if (auto close = m_registry.similar(name); !close.empty())
+            if (auto close = m_catalog.similar(name); !close.empty())
                 data["did_you_mean"] = close;
-            return reply(200, error_body(id, kInvalidParams, m_registry.unknown_tool(name), std::move(data)));
+            return reply(200, error_body(id, kInvalidParams, m_catalog.unknown_command(name), std::move(data)));
         }
         return result_reply(id, complete(std::move(result)));
     }

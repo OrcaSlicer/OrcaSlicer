@@ -1,7 +1,7 @@
-// The Design tab's MCP surface (list_cad_tools, describe_cad_tool and call_cad_tool): the CAD tool
-// table, the CAD-off note, the plane resolver, the kernel's rollback, reading and editing a feature as
-// its card does, and the open sketch's tools driven on a bare sketch tool. None of it needs a wx
-// application or a Design panel.
+// The Design tab's commands: what the catalog holds of them (schemas, descriptions, examples) and how a call
+// of one is journaled, the plane resolver, the kernel's rollback, reading and editing a feature as its card
+// does, and the open sketch's tools driven on a bare sketch tool. None of it needs a wx application or a
+// Design panel.
 // McpTools.hpp reaches wx's MSW headers through GLCanvas3D.hpp after OCCT has hidden the USER and GDI
 // declarations they need; the Windows headers first keep them, as in test_plugin_host_api.cpp.
 #ifdef WIN32
@@ -31,11 +31,14 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CAD/DesignOffer.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpToolsCad.hpp"
 #include "slic3r/GUI/Mcp/McpTypes.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
@@ -43,12 +46,16 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <nlohmann/json.hpp>
+#include <wx/string.h>
 
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <functional>
+#include <iterator>
 #include <map>
+#include <memory>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -149,23 +156,64 @@ void add_bound_block(CadDocument& doc)
     REQUIRE(doc.recompute());
 }
 
-// Every CAD tool's name, as describe_cad_tool takes a list.
-json all_cad_tools()
+// The Design commands in a catalog of their own.
+GUI::CommandCatalog cad_catalog()
 {
-    json names = json::array();
-    for (const std::string& n : GUI::Mcp::cad_tool_names()) names.push_back(n);
-    return names;
+    GUI::CommandCatalog catalog;
+    GUI::Mcp::register_cad_commands(catalog);
+    catalog.seal();
+    return catalog;
 }
 
-// The row `reply` lists for `name`, or null.
-json row_of(const json& reply, const std::string& name)
+// Every built-in command, with the Design commands among them, as a run with the CAD feature on holds them.
+GUI::CommandCatalog catalog_with_cad()
 {
-    for (const json& row : reply.at(reply.contains("items") ? "items" : "tools"))   // a listing's page, or a description's rows
-        if (row.at("name") == name) return row;
-    return json();
+    GUI::CommandCatalog catalog;
+    GUI::NativeCommands::register_all_commands(catalog, {true});
+    catalog.seal();
+    return catalog;
 }
 
-// Whether a CAD tool param by this name takes face or edge ids.
+// The command `key` of `catalog`; the test stops when there is none.
+const GUI::NativeCommand& command_of(const GUI::CommandCatalog& catalog, const std::string& key)
+{
+    const GUI::NativeCommand* command = catalog.find(key);
+    INFO(key);
+    REQUIRE(command != nullptr);
+    return *command;
+}
+
+// A property of a command's input schema, or null when the schema has none by that name.
+json property_of(const GUI::NativeCommand& command, const std::string& name)
+{
+    return command.input_schema.at("properties").value(name, json());
+}
+
+// The arguments a command's silent form requires, in its order: its schema's, or for a command that also has a
+// person's form, those its schema requires once a call gives any argument (with_silent()).
+std::vector<std::string> required_of(const GUI::NativeCommand& command)
+{
+    const json& schema = command.input_schema;
+    if (schema.contains("then"))
+        return schema.at("then").value("required", std::vector<std::string>());
+    return schema.value("required", std::vector<std::string>());
+}
+
+// Whether `command` has a person's form beside its silent one: it takes `silent`.
+bool two_forms(const GUI::NativeCommand& command) { return command.input_schema.at("properties").contains("silent"); }
+
+// The Design table's row `id`; the test stops when there is none.
+const GUI::DesignTool& design_row(const std::string& id)
+{
+    for (int i = 0; i < GUI::kDesignToolCount; ++i)
+        if (id == GUI::kDesignTools[i].id)
+            return GUI::kDesignTools[i];
+    INFO(id);
+    FAIL("no such row");
+    throw std::logic_error("unreachable");
+}
+
+// Whether a param by this name takes face or edge ids.
 bool is_id_param(const std::string& name)
 {
     static const std::vector<std::string> ids = {"face",   "faces",  "edge",   "edges", "up_to_face",
@@ -173,245 +221,628 @@ bool is_id_param(const std::string& name)
     return std::find(ids.begin(), ids.end(), name) != ids.end();
 }
 
-// Whether a CAD tool param is a plane that may also be a planar face, {"body": b, "face": f}.
-bool takes_face_plane(const json& param)
+// A call's context that runs its UI closures in place and keeps the arguments it journals.
+struct JournalContext final : GUI::Mcp::ToolContext
 {
-    return param.at("name") == "plane" &&
-           param.value("description", std::string()).find("{\"body\": b, \"face\": f}") != std::string::npos;
-}
+    explicit JournalContext(bool person = false) : picked(person) {}
 
-// A call's context whose short reads on the UI thread (observe_ui) give `answer`, or fail as they do
-// when the UI does not answer in time. A run_ui call fails the test.
-struct UiReadContext final : GUI::Mcp::ToolContext
-{
-    json        answer;
-    bool        answers = true;
-    std::string id;
-
-    json observe_ui(const std::function<json()>&) override
-    {
-        if (!answers) throw GUI::Mcp::ToolFailure("the UI did not answer");
-        return answer;
-    }
-    json run_ui(const std::function<json()>&) override
-    {
-        FAIL("cad_feature_note must read the preference through observe_ui");
-        return json();
-    }
-    const std::string& job_id() const override { return id; }
-    bool cancelled() const override { return false; }
-    GUI::Mcp::ToolResult call_child(const std::string&, const json&) override { return GUI::Mcp::ToolResult::error("no children"); }
+    bool                  person() const override { return picked; }
+    json                  run_ui(const std::function<json()>& fn) override { return fn(); }
+    json                  observe_ui(const std::function<json()>&) override { return true; }
+    const std::string&    job_id() const override { return id; }
+    bool                  cancelled() const override { return false; }
+    GUI::Mcp::ToolResult  call_child(const std::string&, const json&) override { return GUI::Mcp::ToolResult::error("no children"); }
     std::set<std::string> lineage() const override { return {}; }
-    void set_journal_args(json) override {}
-    void begin_operation() override {}
+    void                  set_journal_args(json args) override { journaled = std::move(args); }
+    void                  begin_operation() override {}
+
+    bool        picked;
+    std::string id;
+    json        journaled; // null until the call journals its arguments
 };
 
 } // namespace
 
-TEST_CASE("list_cad_tools has one row per dispatched tool", "[Mcp][CAD]")
+TEST_CASE("the CAD commands are the Design table's rows less align", "[Mcp][CAD]")
 {
-    std::vector<std::string> names = GUI::Mcp::cad_tool_names();
-    const json reply = GUI::Mcp::cad_list_tools("");
-    std::sort(names.begin(), names.end());
-    REQUIRE(std::adjacent_find(names.begin(), names.end()) == names.end());
-    CHECK(std::find(names.begin(), names.end(), "describe_tools") == names.end());
-    CHECK(row_names(reply) == names);   // row_names() sorts: the two tables' orders differ
-    CHECK(reply.at("total") == names.size());
-    CHECK_THAT(reply.at("use").get<std::string>(), ContainsSubstring("describe_cad_tool"));
-    CHECK_FALSE(reply.at("ids").get<std::string>().empty());
-    for (const json& row : reply.at("items")) CHECK(row.size() == 3);   // name, access, summary
-    // One page holds them all, in the shape every list has.
-    CHECK(reply.at("offset") == 0);
-    CHECK_FALSE(reply.contains("next_offset"));
-    CHECK_FALSE(reply.contains("tools"));
+    const GUI::CommandCatalog catalog = cad_catalog();
+    std::set<std::string>     keys;
+    for (const GUI::NativeCommand& c : catalog.commands()) {
+        INFO(c.key);
+        CHECK(keys.insert(c.key).second);
+        CHECK(c.group == "Design");
+        CHECK_FALSE(c.listed);
+        // Its title is the row's name, the one the right-click menu and its tile show.
+        CHECK(c.title == design_row(c.key).name);
+    }
+    CHECK(keys.size() == 133);
+    // The body's move is named apart from the Prepare tool transform; undo and redo are the shared commands.
+    CHECK(keys.count("body_transform") == 1);
+    for (const char* gone : {"transform", "undo", "redo", "align"}) {
+        INFO(gone);
+        CHECK(keys.count(gone) == 0);
+    }
 }
 
-TEST_CASE("list_cad_tools pages like the other lists", "[Mcp][CAD]")
+TEST_CASE("the Design table has a form for every row but align", "[Mcp][CAD]")
 {
-    const std::vector<std::string> all = row_names(GUI::Mcp::cad_list_tools(""));
-    const json first = GUI::Mcp::cad_list_tools("", {{"limit", 3}});
-    CHECK(first.at("items").size() == 3);
-    CHECK(first.at("total") == all.size());
-    CHECK(first.at("next_offset") == 3);
-    const json rest = GUI::Mcp::cad_list_tools("", {{"limit", 200}, {"offset", 3}});
-    CHECK(rest.at("items").size() == all.size() - 3);
-    CHECK(rest.at("offset") == 3);
-    CHECK_FALSE(rest.contains("next_offset"));
+    REQUIRE(GUI::kDesignToolCount == 134);
+    for (int i = 0; i < GUI::kDesignToolCount; ++i) {
+        const GUI::DesignTool& t = GUI::kDesignTools[i];
+        INFO(t.id);
+        const bool has_form = t.action != nullptr || t.doc != nullptr;
+        CHECK(has_form == (std::string(t.id) != "align"));
+        // A row's access is its silent form's, and one with no silent form has none.
+        CHECK((t.doc == nullptr) == (t.access == GUI::CadAccess::None));
+        if (t.doc != nullptr) {
+            const json doc = json::parse(t.doc);
+            for (const char* key : {"summary", "details", "params", "examples", "ids"}) {
+                INFO(key);
+                CHECK(doc.contains(key));
+            }
+        }
+    }
+    // Opening Text, SVG or Color opens a dialog.
+    for (int i = 0; i < GUI::kDesignToolCount; ++i) {
+        const std::string id = GUI::kDesignTools[i].id;
+        INFO(id);
+        CHECK(GUI::kDesignTools[i].modal == (id == "sk_text" || id == "sk_svg" || id == "colour"));
+    }
 }
 
-TEST_CASE("every CAD tool's summary is one sentence of at most 120 characters", "[Mcp][CAD]")
+TEST_CASE("every block has a silent function and every silent function a block", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_list_tools("");
-    for (const json& row : reply.at("items")) {
-        INFO(row.at("name").get<std::string>());
-        const std::string summary = row.at("summary").get<std::string>();
+    std::set<std::string> blocks, functions;
+    for (int i = 0; i < GUI::kDesignToolCount; ++i)
+        if (GUI::kDesignTools[i].doc != nullptr)
+            blocks.insert(GUI::kDesignTools[i].id);
+    for (std::size_t i = 0; i < GUI::Mcp::kSilentFormCount; ++i) {
+        INFO(GUI::Mcp::kSilentForms[i].first);
+        CHECK(functions.insert(GUI::Mcp::kSilentForms[i].first).second);
+        CHECK(GUI::Mcp::kSilentForms[i].second != nullptr);
+    }
+    CHECK(blocks.size() == 76);
+    CHECK(blocks == functions);
+}
+
+TEST_CASE("a row with no slot is in no menu row", "[Mcp][CAD]")
+{
+    std::size_t commands_only = 0;
+    for (int i = 0; i < GUI::kDesignToolCount; ++i) {
+        const GUI::DesignTool& t = GUI::kDesignTools[i];
+        INFO(t.id);
+        CHECK(t.row >= -1);
+        CHECK(t.row < GUI::kOfferRowCount);
+        if (t.row != -1)
+            continue;
+        ++commands_only;
+        CHECK(t.action == nullptr);
+        CHECK(t.doc != nullptr);
+    }
+    CHECK(commands_only == 41);
+}
+
+TEST_CASE("the Design table names the row and the family submenu each verb sits in", "[Mcp][CAD]")
+{
+    // The offer lists the corner rectangle at Create > Rectangle > Corner rectangle.
+    const GUI::DesignTool& rect = design_row("sk_rect");
+    CHECK(std::string(GUI::kOfferRowNames[rect.row]) == "Create");
+    CHECK(std::string(rect.family) == "Rectangle");
+    CHECK(std::string(rect.name) == "Corner rectangle");
+    CHECK(rect.sketch_mode);
+    CHECK((rect.accepts & GUI::offer_bit(GUI::OfferSel::SkNone)) != 0);
+    CHECK(std::string(design_row("sk_rect_center").family) == "Rectangle");
+    CHECK(design_row("sk_spline").family == nullptr);   // directly in Create
+    CHECK((design_row("sk_offset").accepts & GUI::offer_bit(GUI::OfferSel::SkNone)) == 0);   // it needs a picked line, curve or pair
+    const GUI::DesignTool& sketch = design_row("sketch");
+    CHECK(std::string(GUI::kOfferRowNames[sketch.row]) == "Create");
+    CHECK(sketch.family == nullptr);   // the feature-mode Sketch sits directly in Create
+    CHECK_FALSE(sketch.sketch_mode);
+    // describe_scene names the selection by the atlas's ids, in OfferSel's order.
+    REQUIRE(std::size(GUI::kDesignSelectionIds) == std::size_t(GUI::OfferSel::Count));
+    CHECK(std::string(GUI::kDesignSelectionIds[int(GUI::OfferSel::None)]) == "none");
+    CHECK(std::string(GUI::kDesignSelectionIds[int(GUI::OfferSel::FacePlanar)]) == "face_planar");
+    CHECK(std::string(GUI::kDesignSelectionIds[int(GUI::OfferSel::Sk2Ent)]) == "sk_2ent");
+}
+
+TEST_CASE("a verb with both forms accepts silent, a verb with one does not", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    CHECK(two_forms(command_of(catalog, "shell")));
+    CHECK_FALSE(two_forms(command_of(catalog, "describe_scene")));
+    CHECK_FALSE(two_forms(command_of(catalog, "sk_rect")));
+    // A command with only a person's form takes no arguments at all.
+    json silent{{"silent", true}};
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "sk_rect"), silent), ContainsSubstring("silent"));
+    json none = json::object();
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sk_rect"), none).empty());
+    // A command that has a tile is the one whose row has an action, and it carries the row's icon.
+    for (const GUI::NativeCommand& c : catalog.commands()) {
+        INFO(c.key);
+        const GUI::DesignTool& row = design_row(c.key);
+        CHECK(c.in_palette == (row.action != nullptr));
+        CHECK(c.icon == (row.icon != nullptr ? row.icon : ""));
+        CHECK(two_forms(c) == (row.action != nullptr && row.doc != nullptr));
+        // A tile with no icon would be a blank square in the Speed Dial.
+        if (c.in_palette)
+            CHECK_FALSE(c.icon.empty());
+    }
+}
+
+TEST_CASE("a two-form CAD command publishes what its silent form requires", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    const GUI::NativeCommand& fillet  = command_of(catalog, "fillet");
+    CHECK_FALSE(fillet.input_schema.contains("required"));
+    CHECK(fillet.input_schema.at("if") == json{{"minProperties", 1}});
+    CHECK(fillet.input_schema.at("then").at("required") == json::array({"edge"}));
+    // No arguments is the person's form, which opens the Fillet tool and requires nothing.
+    json person = json::object();
+    CHECK(GUI::Mcp::argument_error(fillet, person).empty());
+    json radius{{"radius", 2}};
+    CHECK_THAT(GUI::Mcp::argument_error(fillet, radius), ContainsSubstring("edge"));
+    json silent{{"silent", true}};
+    CHECK_THAT(GUI::Mcp::argument_error(fillet, silent), ContainsSubstring("edge"));
+}
+
+TEST_CASE("a Design command is named by its verb's id", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    for (const char* key : {"surf_extrude", "surf_revolve", "surf_loft", "surf_fill", "thicken_surf", "surf_offset", "pat_curve",
+                            "coordsys_v", "mass_props", "interference", "edit_feature", "body_transform"}) {
+        INFO(key);
+        CHECK(catalog.find(key) != nullptr);
+    }
+    const std::set<std::string> old = {"surface_extrude", "surface_revolve", "surface_loft",  "surface_fill",
+                                       "thicken_surface", "surface_offset",  "pattern_on_curve", "coordsys",
+                                       "mass_properties", "check_interference", "set_feature_expr", "transform"};
+    for (const std::string& key : old) {
+        INFO(key);
+        CHECK(catalog.find(key) == nullptr);
+    }
+    // Bound to a name: a range-for over catalog_with_cad().commands() would walk a destroyed catalog.
+    const GUI::CommandCatalog with_cad = catalog_with_cad();
+    for (const GUI::NativeCommand& c : with_cad.commands())
+        for (const json& example : c.examples)
+            for (const json& call : example.at("calls")) {
+                INFO(c.key << " / " << example.value("title", ""));
+                CHECK(old.count(call.at("tool").get<std::string>()) == 0);
+            }
+    // Nor does a description: the names that are no English word.
+    for (const GUI::NativeCommand& c : with_cad.commands())
+        for (const std::string& name : old)
+            if (name != "transform" && name != "coordsys") {
+                INFO(c.key << " / " << name);
+                CHECK(c.description.find(name) == std::string::npos);
+                CHECK(c.input_schema.dump().find(name) == std::string::npos);
+            }
+}
+
+TEST_CASE("a Design command carries its row's icon", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    CHECK(command_of(catalog, "sketch").icon == "design_sketch");
+    CHECK(command_of(catalog, "body_transform").icon == "design_move");
+    // Its tile, titled as the right-click menu names its entry, in the tests' English UI.
+    const std::unique_ptr<GUI::AppAction> tile = GUI::NativeCommands::make_action(command_of(catalog, "sketch"));
+    REQUIRE(tile != nullptr);
+    CHECK(tile->id() == "orca_command:sketch:orca");
+    CHECK(tile->group == "Design");
+    CHECK(tile->title() == "Sketch");
+    CHECK(GUI::NativeCommands::tile_title(command_of(catalog, "sketch")) == "Sketch");
+    CHECK(std::string(GUI::title_context(command_of(catalog, "sketch"))) == "Design");
+    CHECK(tile->icon == "design_sketch");
+    CHECK(tile->command == "sketch");
+}
+
+TEST_CASE("the Design tiles' icons resolve to shipped SVGs", "[Mcp][CAD][SpeedDial]")
+{
+    // An icon comes from a hand-edited atlas row, so a typo would be a blank tile and a blank menu row.
+    const boost::filesystem::path images = boost::filesystem::path(PROFILES_DIR).parent_path() / "images";
+    const GUI::CommandCatalog     catalog = catalog_with_cad();
+    std::size_t                   tiles   = 0;
+    for (const GUI::NativeCommand& c : catalog.commands()) {
+        if (c.group != "Design" || c.icon.empty())
+            continue;
+        INFO(c.key << " -> " << c.icon);
+        CHECK(boost::filesystem::exists(images / (c.icon + ".svg")));
+        tiles += c.in_palette ? 1 : 0;
+    }
+    CHECK(tiles == 89);
+}
+
+TEST_CASE("a tool refused for the selection says it does not apply and what it takes", "[Mcp][CAD]")
+{
+    // Delete Face takes a picked face. With nothing picked, the obstacle is the selection, not the document its
+    // row's refusal speaks of.
+    const GUI::DesignTool&                     delete_face = design_row("delete_face");
+    const int                                  none        = int(GUI::OfferSel::None);
+    const std::optional<GUI::Mcp::ToolFailure> refused     = GUI::Mcp::open_refusal(delete_face, false, none);
+    REQUIRE(refused.has_value());
+    CHECK(std::string(refused->what()) == "This tool does not apply to what is selected");
+    CHECK(refused->details.at("code") == -32000);
+    CHECK(refused->details.at("selection_kind") == 0);
+    CHECK(refused->details.at("selection") == "none");
+    CHECK(refused->details.at("accepts") == json::array({"face_planar", "face_cyl", "face_other"}));
+    CHECK_FALSE(GUI::Mcp::open_refusal(delete_face, false, int(GUI::OfferSel::FacePlanar)).has_value());
+    // Every row only the menu reaches says the same for a selection it does not take, in its own mode.
+    for (int i = 0; i < GUI::kDesignToolCount; ++i) {
+        const GUI::DesignTool& t = GUI::kDesignTools[i];
+        if (t.action == nullptr || std::string(t.action).rfind("key:", 0) == 0)
+            continue;
+        INFO(t.id);
+        int miss = 0;
+        while (miss < int(GUI::OfferSel::Count) && (t.accepts & GUI::offer_bit(GUI::OfferSel(miss))) != 0)
+            ++miss;
+        REQUIRE(miss < int(GUI::OfferSel::Count));
+        const std::optional<GUI::Mcp::ToolFailure> missed = GUI::Mcp::open_refusal(t, t.sketch_mode, miss);
+        REQUIRE(missed.has_value());
+        CHECK(std::string(missed->what()) == "This tool does not apply to what is selected");
+        CHECK(missed->details.at("selection") == GUI::kDesignSelectionIds[miss]);
+    }
+    // A key: action runs whatever is selected, as its key does.
+    CHECK_FALSE(GUI::Mcp::open_refusal(design_row("shell"), false, int(GUI::OfferSel::None)).has_value());
+}
+
+TEST_CASE("a Design tool opens only in the mode its row belongs to", "[Mcp][CAD]")
+{
+    const std::string in_sketch = "This tool works in a sketch: open a sketch first";
+    const std::string on_model  = "This tool works on the model: finish or cancel the sketch first";
+    std::size_t       sketch_rows = 0, model_rows = 0;
+    for (int i = 0; i < GUI::kDesignToolCount; ++i) {
+        const GUI::DesignTool& t = GUI::kDesignTools[i];
+        if (t.action == nullptr)
+            continue;
+        INFO(t.id);
+        CHECK(GUI::Mcp::offered_in_mode(t, t.sketch_mode));
+        CHECK_FALSE(GUI::Mcp::offered_in_mode(t, !t.sketch_mode));
+        // In the other mode it is refused whatever is selected there, before the selection is looked at.
+        for (int kind = 0; kind < int(GUI::OfferSel::Count); ++kind) {
+            INFO(kind);
+            const std::optional<GUI::Mcp::ToolFailure> refused = GUI::Mcp::open_refusal(t, !t.sketch_mode, kind);
+            REQUIRE(refused.has_value());
+            CHECK(std::string(refused->what()) == (t.sketch_mode ? in_sketch : on_model));
+            CHECK(refused->details.at("code") == -32000);
+            CHECK(refused->details.at("mode") == (t.sketch_mode ? "sketch" : "model"));
+        }
+        ++(t.sketch_mode ? sketch_rows : model_rows);
+    }
+    CHECK(sketch_rows == 46);
+    CHECK(model_rows == 43);
+    // Shell opens on the model whatever is picked, and never over an open sketch.
+    CHECK_FALSE(GUI::Mcp::open_refusal(design_row("shell"), false, int(GUI::OfferSel::None)).has_value());
+    CHECK(GUI::Mcp::open_refusal(design_row("shell"), true, int(GUI::OfferSel::SkNone)).has_value());
+    CHECK_FALSE(GUI::Mcp::open_refusal(design_row("sk_rect"), true, int(GUI::OfferSel::SkNone)).has_value());
+}
+
+TEST_CASE("a pinned Design tile stays pinned while its tile is not shown", "[Mcp][CAD][SpeedDial]")
+{
+    CHECK(GUI::is_design_tile_id("orca_command:shell:orca"));
+    CHECK(GUI::is_design_tile_id("orca_command:sk_rect:orca"));
+    CHECK_FALSE(GUI::is_design_tile_id("orca_command:describe_scene:orca"));   // a Design command with no tile
+    CHECK_FALSE(GUI::is_design_tile_id("orca_command:align:orca"));            // an entry with no command
+    CHECK_FALSE(GUI::is_design_tile_id("orca_command:save_project:orca"));
+    CHECK_FALSE(GUI::is_design_tile_id("orca_plate_goto:shell:orca"));
+    CHECK_FALSE(GUI::is_design_tile_id("shell"));
+    // On the Prepare tab no Design tile is live, and the third plate is gone.
+    const std::string           shell = "orca_command:shell:orca", rect = "orca_command:sk_rect:orca";
+    const std::string           save = "orca_command:save_project:orca", plate = "orca_plate_goto:2:orca";
+    const std::set<std::string> live = {save};
+    std::vector<std::string>    stored, shown;
+    const auto                  is_live = [&](const std::string& id) { return live.count(id) != 0; };
+    GUI::prune_favourites({shell, plate, save, rect}, is_live, stored, shown);
+    CHECK(stored == std::vector<std::string>{shell, save, rect});
+    CHECK(shown == std::vector<std::string>{save});
+}
+
+TEST_CASE("a hidden Design pin takes no place on the favourites bar", "[Mcp][CAD][SpeedDial]")
+{
+    // Ten stored pins on the Prepare tab, three of them Design tiles, which are not live there.
+    const std::vector<std::string> design = {"orca_command:shell:orca", "orca_command:sk_rect:orca", "orca_command:fillet:orca"};
+    std::vector<std::string>       favs;
+    for (int i = 1; i <= 7; ++i)
+        favs.push_back("orca_command:command" + std::to_string(i) + ":orca");
+    favs.insert(favs.begin() + 2, design.begin(), design.end());
+    REQUIRE(favs.size() == 10);
+    const auto is_live = [&](const std::string& id) { return std::find(design.begin(), design.end(), id) == design.end(); };
+    std::vector<std::string> stored, shown;
+    GUI::prune_favourites(favs, is_live, stored, shown);
+    CHECK(shown.size() == 7);
+    // Another pin is taken, and all eleven stay stored.
+    std::vector<std::string> pinned = favs;
+    CHECK(GUI::add_favourite(pinned, "orca_command:new_project:orca", is_live));
+    CHECK(pinned.size() == 11);
+    GUI::prune_favourites(pinned, is_live, stored, shown);
+    CHECK(stored == pinned);
+    CHECK(shown.size() == 8);
+}
+
+TEST_CASE("the Design tab's tiles are its mode's tools, and none with the CAD feature off", "[Mcp][CAD][SpeedDial]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    for (const bool sketching : {false, true}) {
+        INFO("sketching " << sketching);
+        std::set<std::string> tiles;
+        for (const GUI::NativeCommand* command : GUI::Mcp::design_tiles(catalog, sketching, /*cad_on=*/true))
+            tiles.insert(command->key);
+        for (const GUI::NativeCommand& command : catalog.commands()) {
+            INFO(command.key);
+            const GUI::DesignTool* entry = GUI::Mcp::find_design_tool(command.key);
+            REQUIRE(entry != nullptr);
+            CHECK(tiles.count(command.key) == (command.in_palette && entry->sketch_mode == sketching ? 1u : 0u));
+        }
+        CHECK(tiles.count(sketching ? "sk_rect" : "shell") == 1);
+        // Turned off while the app runs, the tab stays until a restart, and has no tile.
+        CHECK(GUI::Mcp::design_tiles(catalog, sketching, /*cad_on=*/false).empty());
+    }
+}
+
+TEST_CASE("a Design command with a read block is read-only", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    CHECK(command_of(catalog, "describe_scene").read_only);
+    CHECK(command_of(catalog, "query_topology").read_only);
+    CHECK_FALSE(command_of(catalog, "extrude").read_only);
+    CHECK_FALSE(command_of(catalog, "sketch_add").read_only);
+}
+
+TEST_CASE("a CAD command's schema says what its row says", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog  catalog = cad_catalog();
+    const GUI::NativeCommand&  fillet  = command_of(catalog, "fillet");
+    CHECK(required_of(fillet) == std::vector<std::string>{"edge"});
+    const json radius = property_of(fillet, "radius");
+    CHECK(radius.at("type") == "number");
+    CHECK(radius.at("default") == 1);
+    CHECK(radius.at("exclusiveMinimum") == 0);
+    CHECK_FALSE(radius.contains("minimum"));
+    CHECK_THAT(radius.at("description").get<std::string>(), ContainsSubstring("mm"));
+    CHECK(property_of(fillet, "edge").at("type") == json::array({"integer", "array"}));
+    CHECK(property_of(fillet, "body").at("default") == -1);
+    // Every command with a silent form takes the generation its face and edge ids were read at, and none
+    // requires it; one with only a person's form takes no argument.
+    for (const GUI::NativeCommand& c : catalog.commands()) {
+        INFO(c.key);
+        if (design_row(c.key).doc == nullptr) {
+            CHECK(c.input_schema.at("properties").empty());
+            CHECK(c.input_schema.at("additionalProperties") == false);
+            continue;
+        }
+        const json generation = property_of(c, "generation");
+        REQUIRE(generation.is_object());
+        CHECK(generation.at("type") == "integer");
+        CHECK(generation.at("minimum") == 0);
+        CHECK_FALSE(generation.at("description").get<std::string>().empty());
+        // A param is required when its row gives it no default, and only then.
+        const std::vector<std::string> required = required_of(c);
+        for (const auto& [name, prop] : c.input_schema.at("properties").items()) {
+            INFO(name);
+            const bool is_required = std::find(required.begin(), required.end(), name) != required.end();
+            CHECK(is_required == (name != "generation" && name != "silent" && !prop.contains("default")));
+        }
+        // An argument the row does not name is not refused: the function reads the names it knows.
+        CHECK(c.input_schema.value("additionalProperties", true) == true);
+    }
+    // A type of two kinds, a limit, an enum and a default carry over.
+    CHECK(property_of(command_of(catalog, "sketch_begin"), "plane").at("type") == json::array({"string", "object"}));
+    CHECK(property_of(command_of(catalog, "plane"), "type").at("enum").size() == 6);
+    const json count = property_of(command_of(catalog, "sketch_transform"), "count");
+    CHECK(count.at("minimum") == 2);
+    CHECK(count.at("maximum") == 1000);
+    // export_step's path has no default, so it is required; sketch_transform's angle defaults to null.
+    CHECK(required_of(command_of(catalog, "export_step")) == std::vector<std::string>{"path"});
+    CHECK(property_of(command_of(catalog, "sketch_transform"), "angle").at("default").is_null());
+}
+
+TEST_CASE("a CAD command's limit is the one its function applies", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    // A negative distance grows the surface against the sketch plane's normal.
+    json backwards{{"sketch", 0}, {"distance", -5}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "surf_extrude"), backwards).empty());
+    // A fillet's radius is refused at zero, as its function refuses it, and a small one is not.
+    json flat{{"edge", 0}, {"radius", 0}};
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "fillet"), flat), ContainsSubstring("radius"));
+    json small{{"edge", 0}, {"radius", 0.005}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "fillet"), small).empty());
+}
+
+TEST_CASE("a CAD param whose default is null takes null, which its function reads as left out", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    // No limit; the open sketch's constraints; an extrude that joins the body its profile touches.
+    json no_limit{{"limit", nullptr}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "query_topology"), no_limit).empty());
+    json open_sketch{{"sketch", nullptr}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_constraints"), open_sketch).empty());
+    json auto_mode{{"boolean", nullptr}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "extrude"), auto_mode).empty());
+    // A two-form command given only a null runs its silent form, the default rectangle: the argument stays, so the
+    // call is not the person's, which would open the Extrude card.
+    json rectangle{{"sketch", nullptr}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "extrude"), rectangle).empty());
+    CHECK(rectangle == json{{"sketch", nullptr}});
+    CHECK_FALSE(GUI::Mcp::person_form(rectangle));
+    // A param whose default is a value refuses null, as does one whose function would read a null as given.
+    json no_distance{{"distance", nullptr}};
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "extrude"), no_distance), ContainsSubstring("distance"));
+    json no_angle{{"op", "rotate"}, {"angle", nullptr}};
+    CHECK_THAT(GUI::Mcp::argument_error(command_of(catalog, "sketch_transform"), no_angle), ContainsSubstring("angle"));
+    // One kind still stands for the list of it.
+    json one_kind{{"kinds", "planar"}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "query_topology"), one_kind).empty());
+    CHECK(one_kind == json{{"kinds", {"planar"}}});
+
+    // Every param whose default is null admits null, but these, whose functions read a null as given: thread on a
+    // plane resolves `plane` as the plane named, and sketch_transform tells an op's own params by their presence.
+    const std::set<std::pair<std::string, std::string>> as_given{
+        {"thread", "plane"}, {"sketch_transform", "angle"}, {"sketch_transform", "scale"},
+        {"sketch_transform", "count"}, {"sketch_transform", "pivot"}};
+    int admitting = 0;
+    for (const GUI::NativeCommand& c : catalog.commands())
+        for (const auto& [name, prop] : c.input_schema.at("properties").items()) {
+            if (!prop.contains("default") || !prop.at("default").is_null())
+                continue;
+            INFO(c.key << "." << name);
+            const json& type   = prop.at("type");
+            const bool  admits = type.is_array() && std::find(type.begin(), type.end(), "null") != type.end();
+            CHECK(admits == (as_given.count({c.key, name}) == 0));
+            if (prop.contains("enum"))
+                CHECK((std::find(prop.at("enum").begin(), prop.at("enum").end(), nullptr) != prop.at("enum").end()) == admits);
+            admitting += admits;
+        }
+    CHECK(admitting == 36);
+}
+
+TEST_CASE("a CAD command takes the names its function also reads", "[Mcp][CAD]")
+{
+    // describe_feature and the tree edits read `index` as `feature`, and set_feature `params` or `values` as
+    // `fields`: what agents often call them. The call is read as the schema names them.
+    const GUI::CommandCatalog catalog = cad_catalog();
+    json                      set{{"index", 0}, {"params", {{"width", 20}}}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "set_feature"), set).empty());
+    CHECK(set == json{{"feature", 0}, {"fields", {{"width", 20}}}});
+    json values{{"feature", 0}, {"values", {{"width", 30}}}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "set_feature"), values).empty());
+    CHECK(values == json{{"feature", 0}, {"fields", {{"width", 30}}}});
+    json describe{{"index", 1}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "describe_feature"), describe).empty());
+    CHECK(describe == json{{"feature", 1}});
+    // A command that takes `index` itself keeps it.
+    json unconstrain{{"index", 4}};
+    CHECK(GUI::Mcp::argument_error(command_of(catalog, "sketch_unconstrain"), unconstrain).empty());
+    CHECK(unconstrain == json{{"index", 4}});
+}
+
+TEST_CASE("a CAD command's summary is one sentence of at most 120 characters", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = cad_catalog();
+    for (const GUI::NativeCommand& c : catalog.commands()) {
+        INFO(c.key);
+        const std::string summary = GUI::Mcp::first_sentence(c.description);
         REQUIRE_FALSE(summary.empty());
         CHECK(summary.size() <= 120);
-        CHECK(GUI::Mcp::first_sentence(summary) == summary);
         CHECK(summary.back() == '.');
     }
+    // The description goes on with the row's details, and with how a rejected rebuild shows when the reply says it.
+    CHECK_THAT(command_of(catalog, "sketch_transform").description, ContainsSubstring("polar"));
+    CHECK_THAT(command_of(catalog, "fillet").description, ContainsSubstring("ok is false"));
+    CHECK_THAT(command_of(catalog, "extrude").description, !ContainsSubstring("ok is false"));
+    // One with an action only does what its row does, which for Delete Body is to delete it at once.
+    CHECK_THAT(command_of(catalog, "delete_body").description, ContainsSubstring("or act at once"));
+    CHECK_THAT(command_of(catalog, "delete_body").description, !ContainsSubstring("opens the tool"));
 }
 
-TEST_CASE("list_cad_tools narrows by a query in any case and counts what it kept", "[Mcp][CAD]")
+TEST_CASE("a Design command with a person's form says which mode it runs in", "[Mcp][CAD]")
 {
-    const json sketch = GUI::Mcp::cad_list_tools("SKETCH_");
-    const std::vector<std::string> names = row_names(sketch);
-    CHECK(std::find(names.begin(), names.end(), "sketch_add") != names.end());
-    for (const std::string& n : names) CHECK_THAT(n, ContainsSubstring("sketch_"));
-    CHECK(sketch.at("total") == names.size());
-    CHECK(names.size() < GUI::Mcp::cad_tool_names().size());
-
-    const json none = GUI::Mcp::cad_list_tools("zzzz");
-    CHECK(none.at("items").empty());
-    CHECK(none.at("total") == 0);
-}
-
-TEST_CASE("list_cad_tools finds a tool by a word only its details hold", "[Mcp][CAD]")
-{
-    const json described = GUI::Mcp::cad_describe_tool("sketch_transform").at("tools").at(0);
-    CHECK(described.at("summary").get<std::string>().find("polar") == std::string::npos);
-    CHECK_THAT(described.at("details").get<std::string>(), ContainsSubstring("polar"));
-
-    const json listed = row_of(GUI::Mcp::cad_list_tools("polar"), "sketch_transform");
-    REQUIRE_FALSE(listed.is_null());
-    CHECK(listed.size() == 3);   // the summary only
-}
-
-TEST_CASE("describe_cad_tool takes a name or a list and describes each once", "[Mcp][CAD]")
-{
-    const json one = GUI::Mcp::cad_describe_tool("extrude");
-    REQUIRE(one.at("tools").size() == 1);
-    const json extrude = one.at("tools").at(0);
-    CHECK(extrude.at("name") == "extrude");
-    CHECK(extrude.at("access") == "change");
-    CHECK_FALSE(extrude.at("summary").get<std::string>().empty());
-    CHECK(extrude.at("details").is_string());
-    CHECK(extrude.at("params").is_array());
-    CHECK(extrude.at("failure") == "error");
-    CHECK_FALSE(extrude.contains("failure_note"));
-    CHECK(extrude.at("examples").is_array());
-
-    const json two = GUI::Mcp::cad_describe_tool(json::array({"hole", "fillet", "hole"}));
-    std::vector<std::string> names;
-    for (const json& row : two.at("tools")) names.push_back(row.at("name").get<std::string>());
-    CHECK(names == std::vector<std::string>{"hole", "fillet"});   // in the order asked, each once
-    const json fillet = row_of(two, "fillet");
-    CHECK(fillet.at("failure") == "reply");
-    CHECK_FALSE(fillet.at("failure_note").get<std::string>().empty());
-}
-
-TEST_CASE("describe_cad_tool refuses an unknown name with the close ones", "[Mcp][CAD]")
-{
-    auto refusal = [](const json& tool) { return failure([&] { GUI::Mcp::cad_describe_tool(tool); }); };
-    CHECK_THAT(refusal("extrud"), ContainsSubstring("Unknown CAD tool: extrud"));
-    CHECK_THAT(refusal("extrud"), ContainsSubstring("extrude"));
-    for (const json& bad : {json(3), json(""), json::array(), json::array({"hole", 3})}) {
-        INFO(bad.dump());
-        CHECK_THAT(refusal(bad), ContainsSubstring("a name or a list of names"));
+    const std::string   in_sketch = "It runs only in an open sketch", outside = "It runs only outside a sketch";
+    const GUI::CommandCatalog catalog = cad_catalog();
+    std::size_t               told    = 0;
+    for (const GUI::NativeCommand& c : catalog.commands()) {
+        const GUI::DesignTool& row = design_row(c.key);
+        if (row.action == nullptr)
+            continue;
+        INFO(c.key);
+        // An action only: its description says it. Both forms: the `silent` property, which says what the call
+        // with no arguments does, as the description is the silent form's.
+        const std::string text = row.doc == nullptr ? c.description
+                                                    : property_of(c, "silent").value("description", std::string());
+        CHECK_THAT(text, ContainsSubstring(row.sketch_mode ? in_sketch : outside));
+        CHECK_THAT(text, !ContainsSubstring(row.sketch_mode ? outside : in_sketch));
+        ++told;
     }
+    CHECK(told == 89);
+    CHECK_THAT(command_of(catalog, "sk_rect").description, ContainsSubstring(in_sketch));
+    CHECK_THAT(command_of(catalog, "delete_body").description, ContainsSubstring(outside));
+    CHECK_THAT(property_of(command_of(catalog, "shell"), "silent").value("description", std::string()),
+               ContainsSubstring("opens nothing"));
 }
 
-TEST_CASE("describe_cad_tool marks a param without a default required", "[Mcp][CAD]")
+TEST_CASE("no CAD command exists with the feature off", "[Mcp][CAD]")
 {
-    auto param = [](const char* tool, const char* name) {
-        const json reply = GUI::Mcp::cad_describe_tool(tool);
-        for (const json& p : reply.at("tools").at(0).at("params"))
-            if (p.at("name") == name) return p;
-        FAIL(tool << " has no param " << name);
-        return json();
+    const auto design_commands = [](bool cad) {
+        GUI::CommandCatalog catalog;
+        GUI::NativeCommands::register_all_commands(catalog, {cad});
+        std::size_t count = 0;
+        for (const GUI::NativeCommand& c : catalog.commands())
+            if (c.group == "Design")
+                ++count;
+        return count;
     };
-    CHECK(param("export_step", "path").at("required") == true);
-    CHECK(param("sketch_transform", "angle").at("required") == false);   // "default": null
-
-    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
-    for (const json& row : all.at("tools"))
-        for (const json& p : row.at("params")) {
-            INFO(row.at("name").get<std::string>() << " " << p.at("name").get<std::string>());
-            REQUIRE(p.contains("required"));
-            CHECK(p.at("required").is_boolean());
-            CHECK(p.at("required") == !p.contains("default"));
-        }
+    CHECK(design_commands(false) == 0);
+    CHECK(design_commands(true) == 133);
 }
 
-TEST_CASE("describe_cad_tool gives id_lifetime only for tools that take or give ids", "[Mcp][CAD]")
+TEST_CASE("a CAD call is journaled without its generation and with its silent", "[Mcp][CAD]")
 {
-    CHECK(GUI::Mcp::cad_describe_tool("fillet").contains("id_lifetime"));
-    CHECK(GUI::Mcp::cad_describe_tool("query_topology").contains("id_lifetime"));
-    CHECK(GUI::Mcp::cad_describe_tool("describe_feature").contains("id_lifetime"));   // its refs hold face and edge ids
-    CHECK_FALSE(GUI::Mcp::cad_describe_tool("describe_scene").contains("id_lifetime"));
-    CHECK(GUI::Mcp::cad_describe_tool(json::array({"describe_scene", "fillet"})).contains("id_lifetime"));
+    json                     seen;
+    const GUI::NativeCommand fillet = GUI::Mcp::cad_command("fillet", "Fillet", json{{"type", "object"}, {"properties", json::object()}},
+                                                            [&seen](const json& args) {
+                                                                seen = args;
+                                                                return json{{"ok", true}};
+                                                            });
+    CHECK(fillet.group == "Design");
+    CHECK_FALSE(fillet.listed);
 
-    // A tool takes ids through a face or edge param, or through a plane that may be a planar face; these
-    // give them in their replies.
-    const std::set<std::string> gives_ids = {"query_topology", "measure", "slice_body", "describe_feature"};
-    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
-    for (const json& row : all.at("tools")) {
-        const std::string name = row.at("name").get<std::string>();
-        INFO(name);
-        CHECK_FALSE(row.contains("ids"));
-        bool ids = gives_ids.count(name) != 0;
-        for (const json& p : row.at("params"))
-            if (is_id_param(p.at("name").get<std::string>()) || takes_face_plane(p)) ids = true;
-        CHECK(GUI::Mcp::cad_describe_tool(name).contains("id_lifetime") == ids);
-    }
+    JournalContext             agent;
+    const GUI::Mcp::ToolResult reply = fillet.run({{"generation", 4}, {"silent", true}, {"radius", 2}}, agent);
+    CHECK(agent.journaled == json{{"silent", true}, {"radius", 2}});
+    // The function still checks the generation, and the reply wraps its value.
+    CHECK(seen == json{{"generation", 4}, {"silent", true}, {"radius", 2}});
+    CHECK_FALSE(reply.is_error);
+    CHECK(reply.data == json{{"result", {{"ok", true}}}});
+
+    // A person's pick runs the function in place, with the same reply, and journals nothing.
+    JournalContext person(/*person=*/true);
+    CHECK(fillet.run(json::object(), person).data == json{{"result", {{"ok", true}}}});
+    CHECK(person.journaled.is_null());
+
+    // A silent call of a command that also has a person's form, which gives nothing but its generation, is
+    // journaled silent: with no arguments, its replay would open the tool.
+    const GUI::NativeCommand shell = GUI::Mcp::cad_command(
+        "shell", "Shell", GUI::Mcp::with_silent(json{{"type", "object"}, {"properties", json::object()}}),
+        [](const json&) { return json{{"ok", true}}; });
+    JournalContext generation_only;
+    shell.run({{"generation", 4}}, generation_only);
+    CHECK(generation_only.journaled == json{{"silent", true}});
+    // One with a silent form only has no `silent` to journal.
+    JournalContext read;
+    fillet.run({{"generation", 4}}, read);
+    CHECK(read.journaled == json::object());
+
+    // A failure is the call's error.
+    const GUI::NativeCommand refused = GUI::Mcp::cad_command("hole", "Hole", json{{"type", "object"}, {"properties", json::object()}},
+                                                             [](const json&) -> json {
+                                                                 throw GUI::Mcp::ToolFailure("removed no material", {{"code", -32000}});
+                                                             });
+    CHECK_THROWS_AS(refused.run(json::object(), agent), GUI::Mcp::ToolFailure);
 }
 
-TEST_CASE("list_verbs names the row and the family submenu each verb sits in", "[Mcp][CAD]")
+TEST_CASE("an unknown command is answered with close names only", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_list_verbs(int(GUI::OfferSel::SkNone), json{{"sketch_mode", true}});
-    std::map<std::string, json> verbs;
-    for (const json& v : reply.at("verbs")) {
-        CHECK(v.at("sketch_mode") == true);
-        verbs[v.at("id").get<std::string>()] = v;
-    }
-    // The offer lists the corner rectangle at Create > Rectangle > Corner rectangle.
-    const json& rect = verbs.at("sk_rect");
-    CHECK(rect.at("row_name") == "Create");
-    CHECK(rect.at("family") == "Rectangle");
-    CHECK(rect.at("name") == "Corner rectangle");
-    CHECK(rect.at("applies") == true);
-    CHECK(verbs.at("sk_rect_center").at("family") == "Rectangle");
-    CHECK(verbs.at("sk_spline").at("family").is_null());   // directly in Create
-    CHECK(verbs.at("sk_dimension").at("family").is_null());
-    CHECK(verbs.at("sk_offset").at("applies") == false);   // it needs a picked line, curve or pair
-
-    const json model = GUI::Mcp::cad_list_verbs(int(GUI::OfferSel::None), json{{"sketch_mode", false}});
-    const json& sketch = model.at("verbs").at(0);
-    CHECK(sketch.at("id") == "sketch");
-    CHECK(sketch.at("row_name") == "Create");
-    CHECK(sketch.at("family").is_null());   // the feature-mode Sketch sits directly in Create
-}
-
-TEST_CASE("the CAD-off note is given when the UI says the feature is off, and only then", "[Mcp][CAD]")
-{
-    UiReadContext ctx;
-    ctx.answer = false;
-    const json off = GUI::Mcp::cad_feature_note(ctx);
-    REQUIRE(off.is_string());
-    CHECK_THAT(off.get<std::string>(), ContainsSubstring("Preferences"));
-
-    ctx.answer = true;
-    CHECK(GUI::Mcp::cad_feature_note(ctx).is_null());
-
-    // The note is advice: a UI that does not answer leaves it out rather than failing the reply.
-    ctx.answers = false;
-    CHECK(GUI::Mcp::cad_feature_note(ctx).is_null());
+    const GUI::CommandCatalog catalog = cad_catalog();
+    const std::string         unknown = catalog.unknown_command("extrud", /*suggest=*/true);
+    // The closest key, and no sentence about another tool.
+    CHECK(unknown == "Unknown tool: extrud (did you mean extrude?)");
 }
 
 namespace {
 
-// Whether an example may pass `key` to a tool with these params: one of them, the generation the
-// dispatcher checks on every tool, or <p>_deg for a param <p> in radians, which the tool also reads
-// in degrees.
-bool takes_arg(const json& params, const std::string& key)
+// Whether `command` takes the argument `key`: a property of its schema, or <p>_deg for a property <p> in
+// radians, which the function also reads in degrees.
+bool takes_arg(const GUI::NativeCommand& command, const std::string& key)
 {
-    if (key == "generation") return true;
-    for (const json& p : params) {
-        const std::string name = p.at("name").get<std::string>();
-        if (key == name) return true;
-        if (key == name + "_deg" && p.value("unit", "") == "rad") return true;
-    }
-    return false;
+    const json& properties = command.input_schema.at("properties");
+    if (properties.contains(key)) return true;
+    const std::string suffix = "_deg";
+    if (key.size() <= suffix.size() || key.compare(key.size() - suffix.size(), suffix.size(), suffix) != 0) return false;
+    const auto radians = properties.find(key.substr(0, key.size() - suffix.size()));
+    if (radians == properties.end()) return false;
+    // cad_input_schema() writes a param's unit into its description.
+    const std::string description = radians->value("description", std::string());
+    const std::string unit        = " (rad)";
+    return description == "In rad." ||
+           (description.size() > unit.size() && description.compare(description.size() - unit.size(), unit.size(), unit) == 0);
 }
 
 // Whether an example passes a face or edge id as `key`: a param that takes ids, or a reference that
@@ -425,16 +856,24 @@ bool passes_id(const std::string& key, const json& value)
     return false;
 }
 
+// Whether `value` is {"from_call": i, "key": k}: the value under k in the reply of call i of the example.
+bool from_call(const json& value) { return value.is_object() && value.contains("from_call"); }
+
 } // namespace
 
-TEST_CASE("every CAD tool example calls real tools with arguments they declare", "[Mcp][CAD]")
+TEST_CASE("every example passes its command's schema", "[Mcp][CAD]")
 {
-    const std::vector<std::string> names = GUI::Mcp::cad_tool_names();
-    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
-    for (const json& row : all.at("tools"))
-        for (const json& example : row.at("examples")) {
+    // The Design commands' and undo's and redo's, which a run with the CAD feature on documents with them.
+    const GUI::CommandCatalog catalog   = catalog_with_cad();
+    std::size_t               described = 0;
+    for (const GUI::NativeCommand& c : catalog.commands()) {
+        if (c.examples.is_null())
+            continue;
+        ++described;
+        REQUIRE(c.examples.is_array());
+        for (const json& example : c.examples) {
             const std::string title = example.value("title", "");
-            INFO(row.at("name").get<std::string>() << " / " << title);
+            INFO(c.key << " / " << title);
             CHECK_FALSE(title.empty());
             for (const auto& item : example.items())
                 CHECK_THAT(item.key(), Equals("title") || Equals("calls") || Equals("needs"));
@@ -446,14 +885,16 @@ TEST_CASE("every CAD tool example calls real tools with arguments they declare",
                 INFO("call " << i << ": " << tool);
                 for (const auto& item : calls[i].items())
                     CHECK_THAT(item.key(), Equals("tool") || Equals("args"));
-                REQUIRE(std::find(names.begin(), names.end(), tool) != names.end());
-                const json  params = row_of(all, tool).at("params");
-                const json& args   = calls[i].at("args");
-                REQUIRE(args.is_object());
-                for (const auto& [key, value] : args.items()) {
+                const GUI::NativeCommand& called = command_of(catalog, tool);
+                REQUIRE(calls[i].at("args").is_object());
+                // What an earlier call gives is left out; the rest is what the call sends.
+                json sent = json::object();
+                for (const auto& [key, value] : calls[i].at("args").items()) {
                     INFO("argument " << key);
-                    CHECK(takes_arg(params, key));
-                    if (!value.is_object() || !value.contains("from_call")) continue;
+                    if (!from_call(value)) {
+                        sent[key] = value;
+                        continue;
+                    }
                     const json& from = value.at("from_call");
                     REQUIRE(from.is_number_integer());
                     CHECK(from.get<int>() >= 0);
@@ -461,35 +902,46 @@ TEST_CASE("every CAD tool example calls real tools with arguments they declare",
                     REQUIRE(value.contains("key"));
                     REQUIRE(value.at("key").is_string());
                     CHECK_FALSE(value.at("key").get<std::string>().empty());
+                    // What a later call is given still goes by a name the command takes.
+                    CHECK(takes_arg(called, key));
                 }
-                for (const json& p : params)
-                    if (p.at("required").get<bool>()) {
-                        INFO("required " << p.at("name").get<std::string>());
-                        CHECK(args.contains(p.at("name").get<std::string>()));
-                    }
+                // With no arguments, a command that has a person's form would open its tool instead.
+                if (two_forms(called))
+                    CHECK_FALSE(sent.empty());
+                CHECK(GUI::Mcp::argument_error(called, sent) == "");
+                // The schema lets other names through, which the function then ignores, so a misspelt one
+                // would pass. argument_error() has put an alias under the name it stands for.
+                for (const auto& item : sent.items()) {
+                    INFO("argument " << item.key());
+                    CHECK(takes_arg(called, item.key()));
+                }
             }
+            // An example ends with the command it documents.
+            CHECK(calls.back().at("tool") == c.key);
         }
+    }
+    // The 76 Design commands with a silent form, undo and redo.
+    CHECK(described == 78);
 }
 
-TEST_CASE("every CAD tool example ends with the tool it describes", "[Mcp][CAD]")
+TEST_CASE("an example's argument goes by a name its command takes", "[Mcp][CAD]")
 {
-    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
-    for (const json& row : all.at("tools"))
-        for (const json& example : row.at("examples")) {
-            INFO(row.at("name").get<std::string>() << " / " << example.value("title", ""));
-            REQUIRE_FALSE(example.at("calls").empty());
-            CHECK(example.at("calls").back().at("tool") == row.at("name"));
-        }
+    const GUI::CommandCatalog catalog = cad_catalog();
+    CHECK(takes_arg(command_of(catalog, "fillet"), "radius"));
+    CHECK_FALSE(takes_arg(command_of(catalog, "fillet"), "radious"));
+    // A param in radians is also read in degrees, and only such a param.
+    CHECK(takes_arg(command_of(catalog, "sketch_transform"), "angle_deg"));
+    CHECK_FALSE(takes_arg(command_of(catalog, "fillet"), "radius_deg"));
 }
 
 // A stale id still names a real face or edge, so an example that passes ids shows the safe pattern:
 // read them with query_topology and pass that reply's generation with the call.
-TEST_CASE("every CAD tool example that passes a face or edge id passes the generation it was read at", "[Mcp][CAD]")
+TEST_CASE("every example that passes a face or edge id passes the generation it was read at", "[Mcp][CAD]")
 {
-    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
-    for (const json& row : all.at("tools"))
-        for (const json& example : row.at("examples")) {
-            INFO(row.at("name").get<std::string>() << " / " << example.value("title", ""));
+    const GUI::CommandCatalog catalog = cad_catalog();
+    for (const GUI::NativeCommand& c : catalog.commands())
+        for (const json& example : c.examples) {
+            INFO(c.key << " / " << example.value("title", ""));
             const json& calls = example.at("calls");
             for (size_t i = 0; i < calls.size(); ++i) {
                 const json& args = calls[i].at("args");
@@ -510,14 +962,28 @@ TEST_CASE("every CAD tool example that passes a face or edge id passes the gener
         }
 }
 
-TEST_CASE("every CAD tool has one to three examples", "[Mcp][CAD]")
+TEST_CASE("every CAD command with a silent form has one to three examples", "[Mcp][CAD]")
 {
-    const json all = GUI::Mcp::cad_describe_tool(all_cad_tools());
-    REQUIRE(all.at("tools").size() == GUI::Mcp::cad_tool_names().size());
-    for (const json& row : all.at("tools")) {
-        INFO(row.at("name").get<std::string>());
-        CHECK(row.at("examples").size() >= 1);
-        CHECK(row.at("examples").size() <= 3);
+    const GUI::CommandCatalog catalog = cad_catalog();
+    for (const GUI::NativeCommand& c : catalog.commands()) {
+        INFO(c.key);
+        // A command with an action and no silent form takes no arguments, so there is no call to show.
+        if (design_row(c.key).doc == nullptr) {
+            CHECK(c.examples.is_null());
+            continue;
+        }
+        REQUIRE(c.examples.is_array());
+        CHECK(c.examples.size() >= 1);
+        CHECK(c.examples.size() <= 3);
+    }
+    // undo and redo document the Design history only where the Design commands are.
+    GUI::CommandCatalog without;
+    GUI::NativeCommands::register_all_commands(without, {false});
+    const GUI::CommandCatalog with = catalog_with_cad();
+    for (const char* key : {"undo", "redo"}) {
+        INFO(key);
+        CHECK(command_of(without, key).examples.is_null());
+        CHECK(command_of(with, key).examples.size() == 2);
     }
 }
 
@@ -699,7 +1165,7 @@ TEST_CASE("describe_feature names constraint references as the solver reads them
     CHECK(c[0].at("refs") == json::array({json{{"entity", 0}}, json{{"entity", 1}}}));   // whole lines, no roles
     CHECK_FALSE(c[0].contains("value"));
     CHECK(c[1].at("type") == "angle");
-    CHECK_THAT(c[1].at("value").get<double>(), WithinAbs(90.0, 1e-9));           // degrees, as call_cad_tool takes angles
+    CHECK_THAT(c[1].at("value").get<double>(), WithinAbs(90.0, 1e-9));           // degrees, as the Design commands take angles
     CHECK(c[2].at("refs")[1] == json{{"entity", "origin"}});
     CHECK(c[3].at("type") == "point_on_line");
     CHECK(c[3].at("refs") == json::array({json{{"entity", 1}, {"role", "p1"}}, json{{"entity", 0}}}));
@@ -815,6 +1281,8 @@ TEST_CASE("set_feature refuses what the card would not produce, changing nothing
 
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(doc.features[1], {{"distance", 15}}); }),
                ContainsSubstring("driven by the expression 'h'"));
+    CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(doc.features[1], {{"distance", 15}}); }),
+               ContainsSubstring("remove the binding with edit_feature {field: 'distance', expr: ''}"));
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"depth", 1}}); }),
                ContainsSubstring("editable: distance, distance2, taper_deg, extrude_end, flip, mode"));
     CHECK_THAT(failure([&] { GUI::Mcp::cad_apply_feature_fields(ex, {{"sketch_ref", 2}}); }),
@@ -925,19 +1393,16 @@ TEST_CASE("literal edits and bindings reach the same numeric fields", "[Mcp][CAD
 
 TEST_CASE("commit, new_design and export_step change the design or the plate, and fail as errors", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_describe_tool(json::array({"commit", "new_design", "export_step"}));
-    REQUIRE(reply.at("tools").size() == 3);
-    for (const json& row : reply.at("tools")) {
-        INFO(row.at("name").get<std::string>());
-        CHECK(row.at("access") == "change");
-        CHECK(row.at("failure") == "error");
+    const GUI::CommandCatalog catalog = cad_catalog();
+    for (const char* key : {"commit", "new_design", "export_step"}) {
+        INFO(key);
+        const GUI::NativeCommand& c = command_of(catalog, key);
+        CHECK_FALSE(c.read_only);
+        // A failure is the call's error, not a reply whose ok is false.
+        CHECK_THAT(c.description, !ContainsSubstring("ok is false"));
     }
-
     // export_step's path has no default, so it is required.
-    for (const json& row : reply.at("tools"))
-        if (row.at("name") == "export_step")
-            for (const json& p : row.at("params"))
-                if (p.at("name") == "path") CHECK(p.at("required") == true);
+    CHECK(required_of(command_of(catalog, "export_step")) == std::vector<std::string>{"path"});
 }
 
 TEST_CASE("commit's replace takes distinct object indices that are not part of a cut", "[Mcp][CAD]")
@@ -988,29 +1453,21 @@ TEST_CASE("export_step's STEP file reads back with each body where the Move gizm
     CHECK((shifted.center_of_mass - box.center_of_mass - Vec3d(50, 0, 0)).norm() < 1e-6);
 }
 
-TEST_CASE("undo, redo and the tree and body edits are rows with the access their gate needs", "[Mcp][CAD]")
+TEST_CASE("the tree and body edits change the design, fail as errors and require what they edit", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_describe_tool(json::array({"undo", "redo", "feature_delete", "feature_move", "feature_set_enabled",
-                                                                "feature_rename", "body_set", "body_delete"}));
-    REQUIRE(reply.at("tools").size() == 8);
-    std::map<std::string, std::vector<std::string>> required;
-    for (const json& row : reply.at("tools")) {
-        const std::string name = row.at("name").get<std::string>();
-        INFO(name);
-        // Undo and redo run in a sketch session too, where they act on the drawn shapes.
-        CHECK(row.at("access") == (name == "undo" || name == "redo" ? "sketch" : "change"));
-        CHECK(row.at("failure") == "error");
-        for (const json& p : row.at("params"))
-            if (p.at("required") == true) required[name].push_back(p.at("name").get<std::string>());
+    const GUI::CommandCatalog catalog = cad_catalog();
+    for (const char* key : {"feature_delete", "feature_move", "feature_set_enabled", "feature_rename", "body_set", "body_delete"}) {
+        INFO(key);
+        CHECK_FALSE(command_of(catalog, key).read_only);
+        CHECK_THAT(command_of(catalog, key).description, !ContainsSubstring("ok is false"));
     }
     // The params each one requires.
-    CHECK(required["undo"].empty());
-    CHECK(required["feature_delete"] == std::vector<std::string>{"feature"});
-    CHECK(required["feature_move"] == std::vector<std::string>{"feature", "delta"});
-    CHECK(required["feature_set_enabled"] == std::vector<std::string>{"feature", "enabled"});
-    CHECK(required["feature_rename"] == std::vector<std::string>{"feature", "name"});
-    CHECK(required["body_set"] == std::vector<std::string>{"body"});
-    CHECK(required["body_delete"] == std::vector<std::string>{"body"});
+    CHECK(required_of(command_of(catalog, "feature_delete")) == std::vector<std::string>{"feature"});
+    CHECK(required_of(command_of(catalog, "feature_move")) == std::vector<std::string>{"feature", "delta"});
+    CHECK(required_of(command_of(catalog, "feature_set_enabled")) == std::vector<std::string>{"feature", "enabled"});
+    CHECK(required_of(command_of(catalog, "feature_rename")) == std::vector<std::string>{"feature", "name"});
+    CHECK(required_of(command_of(catalog, "body_set")) == std::vector<std::string>{"body"});
+    CHECK(required_of(command_of(catalog, "body_delete")) == std::vector<std::string>{"body"});
 }
 
 TEST_CASE("abandon_checkpoint drops the refused edit's undo step and keeps what was redoable", "[Mcp][CAD]")
@@ -1347,24 +1804,25 @@ TEST_CASE("revolve without a sketch turns a width by height rectangle lying besi
 
 TEST_CASE("the sketch-to-solid rows take a sketch, and sketch_begin takes every plane form", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_describe_tool(json::array({"sketch_begin", "sketch_describe", "extrude", "revolve"}));
-    std::map<std::string, std::map<std::string, json>> params;
-    for (const json& row : reply.at("tools")) {
-        const std::string name = row.at("name").get<std::string>();
-        INFO(name);
-        CHECK(row.at("failure") == "error");
-        for (const json& p : row.at("params")) params[name][p.at("name").get<std::string>()] = p;
+    const GUI::CommandCatalog catalog = cad_catalog();
+    for (const char* key : {"sketch_begin", "sketch_describe", "extrude", "revolve"}) {
+        INFO(key);
+        CHECK_THAT(command_of(catalog, key).description, !ContainsSubstring("ok is false"));
     }
-    CHECK(row_of(reply, "sketch_describe").at("access") == "read");   // reads, so it also answers under an open card
-    CHECK(params["sketch_begin"]["plane"].at("type") == "string|object");
+    CHECK(command_of(catalog, "sketch_describe").read_only);   // reads, so it also answers under an open card
+    CHECK(property_of(command_of(catalog, "sketch_begin"), "plane").at("type") == json::array({"string", "object"}));
     // Optional everywhere: none of these is required.
-    CHECK(params["sketch_describe"]["sketch"].at("required") == false);
-    CHECK(params["extrude"]["sketch"].at("required") == false);
-    CHECK(params["extrude"]["loop"].at("required") == false);
-    CHECK(params["extrude"].count("body") == 1);
-    CHECK(params["revolve"]["sketch"].at("required") == false);
-    CHECK(params["revolve"]["axis_entity"].at("required") == false);
-    CHECK(params["revolve"].count("body") == 1);
+    CHECK(required_of(command_of(catalog, "sketch_describe")).empty());
+    CHECK(required_of(command_of(catalog, "extrude")).empty());
+    CHECK(required_of(command_of(catalog, "revolve")).empty());
+    for (const char* key : {"sketch", "loop", "body"}) {
+        INFO(key);
+        CHECK(property_of(command_of(catalog, "extrude"), key).is_object());
+    }
+    for (const char* key : {"sketch", "axis_entity", "body"}) {
+        INFO(key);
+        CHECK(property_of(command_of(catalog, "revolve"), key).is_object());
+    }
 }
 
 namespace {
@@ -1900,29 +2358,41 @@ TEST_CASE("plane refuses what the card refuses, and what a construction would no
 
 TEST_CASE("the rows for topology, measure, holes, push/pull and plane", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_describe_tool(
-        json::array({"query_topology", "measure", "hole", "hole_styled", "hole_standard", "extrude", "plane"}));
-    std::map<std::string, json> rows;
-    for (const json& row : reply.at("tools")) rows[row.at("name").get<std::string>()] = row;
-    auto param = [&](const char* tool, const char* name) {
-        for (const json& p : rows.at(tool).at("params"))
-            if (p.at("name") == name) return p;
-        FAIL(tool << " has no param " << name);
-        return json();
+    const GUI::CommandCatalog catalog = cad_catalog();
+    // The property `name` of command `key`, which the test needs it to have.
+    auto param = [&](const char* key, const char* name) {
+        const json p = property_of(command_of(catalog, key), name);
+        INFO(key << " " << name);
+        REQUIRE(p.is_object());
+        return p;
     };
-    CHECK(rows.at("plane").at("access") == "change");
-    CHECK(rows.at("query_topology").at("access") == "read");
-    CHECK(rows.at("measure").at("access") == "read");
-    for (const char* t : {"hole", "hole_styled", "hole_standard", "extrude", "plane"}) CHECK(rows.at(t).at("failure") == "error");
+    auto required = [&](const char* key, const char* name) {
+        const std::vector<std::string> req = required_of(command_of(catalog, key));
+        return std::find(req.begin(), req.end(), name) != req.end();
+    };
+    CHECK_FALSE(command_of(catalog, "plane").read_only);
+    CHECK(command_of(catalog, "query_topology").read_only);
+    CHECK(command_of(catalog, "measure").read_only);
+    for (const char* t : {"hole", "hole_styled", "hole_standard", "extrude", "plane"}) {
+        INFO(t);
+        CHECK_THAT(command_of(catalog, t).description, !ContainsSubstring("ok is false"));
+    }
     // Optional everywhere: none of these is required.
-    for (const char* k : {"kinds", "edge_kinds", "direction", "at_extreme", "convex", "limit"})
-        CHECK(param("query_topology", k).at("required") == false);
+    for (const char* k : {"kinds", "edge_kinds", "direction", "at_extreme", "convex", "limit"}) {
+        param("query_topology", k);
+        CHECK_FALSE(required("query_topology", k));
+    }
     for (const char* hole : {"hole", "hole_styled", "hole_standard"}) {
-        CHECK(param(hole, "at").at("required") == false);
+        param(hole, "at");
+        CHECK_FALSE(required(hole, "at"));
         CHECK(param(hole, "body").at("default") == -1);
     }
-    CHECK(param("extrude", "face").at("required") == false);
-    for (const char* k : {"face_a", "face_b", "edge_a", "edge_b"}) CHECK(param("plane", k).at("required") == false);
+    param("extrude", "face");
+    CHECK_FALSE(required("extrude", "face"));
+    for (const char* k : {"face_a", "face_b", "edge_a", "edge_b"}) {
+        param("plane", k);
+        CHECK_FALSE(required("plane", k));
+    }
     CHECK(param("plane", "type").at("enum").size() == 6);
 }
 
@@ -2255,34 +2725,25 @@ TEST_CASE("split cuts a body with a plane and keeps either piece", "[Mcp][CAD]")
 
 TEST_CASE("the rows for thread, sweep, loft, split and helix", "[Mcp][CAD]")
 {
-    const json reply = GUI::Mcp::cad_describe_tool(json::array({"thread", "sweep", "loft", "split", "helix"}));
-    std::map<std::string, json> rows;
-    for (const json& row : reply.at("tools")) rows[row.at("name").get<std::string>()] = row;
-    REQUIRE(rows.size() == 5);
-    auto param = [&](const char* tool, const char* name) {
-        for (const json& p : rows.at(tool).at("params"))
-            if (p.at("name") == name) return p;
-        FAIL(tool << " has no param " << name);
-        return json();
-    };
+    const GUI::CommandCatalog catalog = cad_catalog();
     for (const char* t : {"thread", "sweep", "loft", "split"}) {
         INFO(t);
-        CHECK(rows.at(t).at("access") == "change");
-        CHECK(rows.at(t).at("failure") == "error");
+        CHECK_FALSE(command_of(catalog, t).read_only);
+        CHECK_THAT(command_of(catalog, t).description, !ContainsSubstring("ok is false"));
     }
     // These of thread and split are optional; sweep's and loft's, which have no default, are required.
-    for (const char* k : {"face", "edge", "designation", "internal", "diameter", "pitch", "depth", "length", "plane", "at"})
-        CHECK(param("thread", k).at("required") == false);
-    CHECK(param("sweep", "sketch").at("required") == true);
-    CHECK(param("sweep", "path").at("required") == true);
-    CHECK(param("loft", "profiles").at("required") == true);
-    CHECK(param("split", "plane").at("required") == false);
-    CHECK(param("split", "face").at("required") == false);
-    CHECK(param("split", "face_body").at("default") == -1);
-    // The text may sit in the summary or the details.
-    const json& helix = rows.at("helix");
-    CHECK_THAT(helix.at("summary").get<std::string>() + " " + helix.at("details").get<std::string>(),
-               ContainsSubstring("start and tangent"));
+    for (const char* k : {"face", "edge", "designation", "internal", "diameter", "pitch", "depth", "length", "plane", "at"}) {
+        INFO(k);
+        CHECK(property_of(command_of(catalog, "thread"), k).is_object());
+    }
+    CHECK(required_of(command_of(catalog, "thread")).empty());
+    CHECK(required_of(command_of(catalog, "sweep")) == std::vector<std::string>{"sketch", "path"});
+    CHECK(required_of(command_of(catalog, "loft")) == std::vector<std::string>{"profiles"});
+    CHECK(required_of(command_of(catalog, "split")).empty());
+    CHECK(property_of(command_of(catalog, "split"), "plane").is_object());
+    CHECK(property_of(command_of(catalog, "split"), "face").is_object());
+    CHECK(property_of(command_of(catalog, "split"), "face_body").at("default") == -1);
+    CHECK_THAT(command_of(catalog, "helix").description, ContainsSubstring("start and tangent"));
 }
 
 // --- The open sketch: shapes, edit ops and constraints (cad_model A5, A7, A8) -----------------
@@ -2807,37 +3268,42 @@ TEST_CASE("sketch_constrain solves with the new constraint or rolls it back, and
     CHECK(r.at("dof") == free_dof - 2);
     CHECK_THAT(failure([&] { sketch(tool, "sketch_unconstrain", {{"index", 99}}); }), ContainsSubstring("out of range"));
     CHECK_THAT(failure([&] { sketch(tool, "sketch_unconstrain", json::object()); }), ContainsSubstring("index must be"));
-    CHECK_THAT(failure([&] { sketch(tool, "sketch_move", json::object()); }), ContainsSubstring("not a CAD tool of the open sketch"));
+    CHECK_THAT(failure([&] { sketch(tool, "sketch_move", json::object()); }), ContainsSubstring("not a Design command of the open sketch"));
 }
 
 TEST_CASE("the rows for the sketch's shapes, edit ops and constraints", "[Mcp][CAD]")
 {
     const std::vector<const char*> tools = {"sketch_add",       "sketch_fillet",    "sketch_chamfer",     "sketch_trim",
                                             "sketch_transform", "sketch_constrain", "sketch_constraints", "sketch_unconstrain"};
-    json names = json::array();
-    for (const char* t : tools) names.push_back(t);
-    const json reply = GUI::Mcp::cad_describe_tool(names);
-    std::map<std::string, json> rows;
-    for (const json& row : reply.at("tools")) rows[row.at("name").get<std::string>()] = row;
-    REQUIRE(rows.size() == tools.size());
+    const GUI::CommandCatalog catalog = cad_catalog();
     for (const char* t : tools) {
         INFO(t);
-        CHECK(rows.at(t).at("access") == (std::string(t) == "sketch_constraints" ? "read" : "sketch"));
-        CHECK(rows.at(t).at("failure") == "error");
+        CHECK(command_of(catalog, t).read_only == (std::string(t) == "sketch_constraints"));
+        CHECK_THAT(command_of(catalog, t).description, !ContainsSubstring("ok is false"));
     }
-    auto param = [&](const char* tool, const char* name) {
-        for (const json& p : rows.at(tool).at("params"))
-            if (p.at("name") == name) return p;
-        FAIL(tool << " has no param " << name);
-        return json();
+    auto param = [&](const char* key, const char* name) {
+        const json p = property_of(command_of(catalog, key), name);
+        INFO(key << " " << name);
+        REQUIRE(p.is_object());
+        return p;
+    };
+    auto required = [&](const char* key, const char* name) {
+        const std::vector<std::string> req = required_of(command_of(catalog, key));
+        return std::find(req.begin(), req.end(), name) != req.end();
     };
     // Required, as a param without a default is; then optional ones.
     for (const auto& [t, k] : std::vector<std::pair<const char*, const char*>>{
              {"sketch_fillet", "radius"}, {"sketch_chamfer", "distance"}, {"sketch_trim", "at"}, {"sketch_transform", "op"},
-             {"sketch_constrain", "type"}, {"sketch_unconstrain", "index"}})
-        CHECK(param(t, k).at("required") == true);
-    for (const char* k : {"angle", "scale", "count", "pivot"}) CHECK(param("sketch_transform", k).at("required") == false);
-    CHECK(param("sketch_constraints", "sketch").at("required") == false);
+             {"sketch_constrain", "type"}, {"sketch_unconstrain", "index"}}) {
+        INFO(t << " " << k);
+        CHECK(required(t, k));
+    }
+    for (const char* k : {"angle", "scale", "count", "pivot"}) {
+        param("sketch_transform", k);
+        CHECK_FALSE(required("sketch_transform", k));
+    }
+    param("sketch_constraints", "sketch");
+    CHECK_FALSE(required("sketch_constraints", "sketch"));
     const json types = param("sketch_add", "type").at("enum");
     for (const char* t : {"polygon", "slot", "ellipse", "ellipse_arc", "spline"})
         CHECK(std::find(types.begin(), types.end(), json(t)) != types.end());

@@ -31,7 +31,8 @@ REBUILD_S = 60.0
 
 
 def cad(client, tool, **args):
-    return client.call("call_cad_tool", _timeout=600, tool=tool, args=args)
+    """A Design command's reply: its {result}, or the envelope of the job it runs as."""
+    return client.call("call_tool", _timeout=600, tool=tool, args=args)
 
 
 def coil(client, turns):
@@ -79,7 +80,7 @@ def main():
           f"{started.get('status')} after {time.time() - start:.1f} s; the coil rebuilds too fast")
     during = client.call("export_replay")
     check("an export while it runs leaves it out and names it",
-          during.get("left_out_running") == [{"tool": "call_cad_tool", "job": started.get("job")}], during.get("left_out_running"))
+          during.get("left_out_running") == [{"tool": "hole", "job": started.get("job")}], during.get("left_out_running"))
     failure = None
     try:
         client.await_job(started)
@@ -89,11 +90,11 @@ def main():
           f"{failure} after {time.time() - start:.1f} s")
     cad(client, "feature_rename", feature=2, name="Coil")
     live_scene = cad(client, "describe_scene")["result"]
-    live_mass = cad(client, "mass_properties", body=0)["result"]
+    live_mass = cad(client, "mass_props", body=0)["result"]
 
     after = client.call("export_replay", path=path, overwrite=True)
-    calls = [s["args"] for s in after["replay"]["steps"] if s["tool"] == "call_cad_tool"]
-    tools = [c["tool"] for c in calls]
+    # A Design command's call is journaled as its own.
+    tools = [s["tool"] for s in after["replay"]["steps"]]
     check("the export leaves the failed hole out", "hole" not in tools, tools)
     check("and keeps the rename made after it", "feature_rename" in tools, tools)
     check("and leaves nothing out", "left_out_running" not in after, after.get("left_out_running"))
@@ -104,7 +105,7 @@ def main():
     check("the exported session replays", replay.get("passed") is True,
           json.dumps([s for s in replay.get("steps", []) if not s.get("ok")][:1]))
     scene = cad(client, "describe_scene")["result"]
-    mass = cad(client, "mass_properties", body=0)["result"]
+    mass = cad(client, "mass_props", body=0)["result"]
     # Feature names count on across projects; the renamed one keeps its name.
     kinds = lambda s: [f["type"] for f in s["features"]]  # noqa: E731
     check("the same features, the coil renamed", kinds(scene) == kinds(live_scene) and scene["features"][2]["name"] == "Coil",

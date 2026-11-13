@@ -41,7 +41,7 @@ Flags flags_of(const StepDescription& d)
     return out;
 }
 
-// An absolute path on this platform: Speed Dial params name files only by absolute paths, and
+// An absolute path on this platform: Speed Dial commands name files only by absolute paths, and
 // "C:/a" is relative outside Windows.
 std::string abs_path(const std::string& name)
 {
@@ -52,11 +52,11 @@ std::string abs_path(const std::string& name)
 #endif
 }
 
-std::string action(const std::string& id, const std::string& param = {})
+std::string action(const std::string& id, const json& command_args = json::object())
 {
     json args{{"id", id}};
-    if (!param.empty())
-        args["param"] = param;
+    if (!command_args.empty())
+        args["args"] = command_args;
     return json{{"tool", "run_action"}, {"args", args}}.dump();
 }
 
@@ -96,6 +96,29 @@ TEST_CASE("project tools replace the project after checking for unsaved changes"
     const StepDescription calib = describe(R"({"tool": "generate_calibration_test", "args": {"test": "temperature"}})");
     CHECK(flags_of(calib) == Flags{"changes_presets", "replaces_project"});
     CHECK(calib.replace == "checked");
+
+    // Silent with its defaults, it checks as with arguments; with none, it asks as New Project does.
+    CHECK(describe(R"({"tool": "new_project", "args": {"silent": true}})").replace == "checked");
+    const StepDescription asked = describe(R"({"tool": "new_project", "args": {}})");
+    CHECK(flags_of(asked) == Flags{"replaces_project"});
+    CHECK(asked.replace == "app_asked");
+}
+
+TEST_CASE("a command called by name is described as its tile is", "[Mcp]")
+{
+    const auto [key, args, flags] = GENERATE_COPY(table<std::string, json, Flags>({
+        {"load_project", {{"path", abs_path("p.3mf")}}, {"replaces_project"}},
+        {"export_stl", {{"path", abs_path("a.stl")}}, {"writes_file"}},
+        {"sync_presets", json::object(), {"changes_presets"}},
+    }));
+    INFO(key << " " << args.dump());
+    const StepDescription by_name = describe(json{{"tool", key}, {"args", args}}.dump());
+    const StepDescription tile    = describe(action("orca_command:" + key + ":orca", args));
+    CHECK(flags_of(by_name) == flags);
+    CHECK(flags_of(by_name) == flags_of(tile));
+    CHECK(by_name.replace == tile.replace);
+    CHECK(by_name.what == tile.what);
+    CHECK(describe_call(key, args) == tile.what);
 }
 
 TEST_CASE("speed dial actions are flagged by their id", "[Mcp]")
@@ -103,33 +126,33 @@ TEST_CASE("speed dial actions are flagged by their id", "[Mcp]")
     struct Case
     {
         std::string id;
-        std::string param;
+        json        args;
         Flags       flags;
         std::string replace;
     };
-    const Case c = GENERATE(values<Case>({
-        {"orca_command:calib_flow_ratio:orca", "", {"changes_presets", "replaces_project"}, "app_asked"},
-        {"orca_command:send_gcode:orca", "", {"sends_to_printer"}, ""},
-        {"orca_command:open_preferences:orca", "", {}, ""},
-        {"orca_command:slice_all:orca", "", {}, ""},
-        {"orca_command:export_gcode:orca", "C:/x/a.gcode", {"writes_file"}, ""},
-        {"orca_command:export_gcode:orca", "", {"writes_file"}, ""},
-        {"orca_command:export_config:orca", "C:/x", {"writes_file"}, ""},
-        {"orca_command:obj_set_instances:orca", "3", {}, ""},
-        {"orca_command:save_project_as:orca", "C:/x/a.3mf", {"writes_file"}, ""},
-        {"orca_command:new_project:orca", "", {"replaces_project"}, "app_asked"},
-        {"orca_command:import_file:orca", abs_path("p.3mf"), {}, ""},
-        {"orca_command:import_file:orca", json{{"path", abs_path("p.3mf")}, {"overwrite", true}}.dump(), {}, ""},
-        {"orca_command:import_file:orca", json{{"path", abs_path("x.gcode")}}.dump(), {}, ""},
-        {"orca_command:import_file:orca", abs_path("b.stl"), {}, ""},
-        {"orca_recent_project:C:/p/a.3mf:orca", "", {"replaces_project"}, "app_asked"},
-        {"orca_plate_goto:1:orca", "", {}, ""},
-        {"orca_setting:layer_height:1", "", {}, ""},
-        {"plugin_replay_action:tool:plugin", "", kEveryFlag, "app_asked"},
-        {"plugin_page_action:page:plugin", "", kEveryFlag, "app_asked"},
+    const json none = json::object();
+    const Case c    = GENERATE_COPY(values<Case>({
+        {"orca_command:calib_flow_ratio:orca", none, {"changes_presets", "replaces_project"}, "app_asked"},
+        {"orca_command:send_gcode:orca", none, {"sends_to_printer"}, ""},
+        {"orca_command:open_preferences:orca", none, {}, ""},
+        {"orca_command:slice_all:orca", none, {}, ""},
+        {"orca_command:export_gcode:orca", {{"path", "C:/x/a.gcode"}}, {"writes_file"}, ""},
+        {"orca_command:export_gcode:orca", none, {"writes_file"}, ""},
+        {"orca_command:export_config:orca", {{"path", "C:/x"}}, {"writes_file"}, ""},
+        {"orca_command:obj_set_instances:orca", {{"count", 3}}, {}, ""},
+        {"orca_command:save_project_as:orca", {{"path", "C:/x/a.3mf"}, {"overwrite", true}}, {"writes_file"}, ""},
+        {"orca_command:new_project:orca", none, {"replaces_project"}, "app_asked"},
+        {"orca_command:import_file:orca", {{"path", abs_path("p.3mf")}}, {}, ""},
+        {"orca_command:import_file:orca", {{"path", abs_path("x.gcode")}}, {}, ""},
+        {"orca_command:import_file:orca", {{"path", abs_path("b.stl")}}, {}, ""},
+        {"orca_recent_project:C:/p/a.3mf:orca", none, {"replaces_project"}, "app_asked"},
+        {"orca_plate_goto:1:orca", none, {}, ""},
+        {"orca_setting:layer_height:1", none, {}, ""},
+        {"plugin_replay_action:tool:plugin", none, kEveryFlag, "app_asked"},
+        {"plugin_page_action:page:plugin", none, kEveryFlag, "app_asked"},
     }));
-    INFO(c.id << " " << c.param);
-    const StepDescription d = describe(action(c.id, c.param));
+    INFO(c.id << " " << c.args.dump());
+    const StepDescription d = describe(action(c.id, c.args));
     CHECK(flags_of(d) == c.flags);
     CHECK(d.replace == c.replace);
 }
@@ -142,19 +165,22 @@ TEST_CASE("plugin actions are taken to answer dialogs", "[Mcp]")
 
 TEST_CASE("speed dial actions describe their command and file", "[Mcp]")
 {
-    const auto [id, param, what] = GENERATE(table<std::string, std::string, json>({
-        {"orca_command:import_file:orca", abs_path("p.3mf"), {{"kind", "command"}, {"key", "import_file"}, {"param", "p.3mf"}}},
-        {"orca_command:import_file:orca", json{{"path", abs_path("p.3mf")}, {"overwrite", true}}.dump(),
-         {{"kind", "command"}, {"key", "import_file"}, {"param", "p.3mf"}}},
-        {"orca_command:import_file:orca", json{{"path", abs_path("x.gcode")}}.dump(), {{"kind", "command"}, {"key", "import_file"}, {"param", "x.gcode"}}},
-        {"orca_command:go_to_layer:orca", "50", {{"kind", "command"}, {"key", "go_to_layer"}, {"param", "50"}}},
-        {"orca_command:slice_all:orca", "", {{"kind", "command"}, {"key", "slice_all"}}},
-        {"orca_recent_project:C:/p/a.3mf:orca", "", {{"kind", "recent_project"}, {"name", "a.3mf"}}},
-        {"orca_setting:layer_height:1", "", {{"kind", "value"}, {"text", "layer_height"}}},
-        {"plugin_replay_action:tool:plugin", "", {{"kind", "value"}, {"text", "plugin_replay_action:tool:plugin"}}},
+    const json none = json::object();
+    const auto [id, args, what] = GENERATE_COPY(table<std::string, json, json>({
+        {"orca_command:import_file:orca", {{"path", abs_path("p.3mf")}}, {{"kind", "command"}, {"key", "import_file"}, {"args", {"path: p.3mf"}}}},
+        {"orca_command:save_project_as:orca", {{"path", abs_path("p.3mf")}, {"overwrite", true}},
+         {{"kind", "command"}, {"key", "save_project_as"}, {"args", {"overwrite: true", "path: p.3mf"}}}},
+        {"orca_command:import_file:orca", {{"path", "models/x.gcode"}}, {{"kind", "command"}, {"key", "import_file"}, {"args", {"path: x.gcode"}}}},
+        {"orca_command:go_to_layer:orca", {{"percent", 50}}, {{"kind", "command"}, {"key", "go_to_layer"}, {"args", {"percent: 50"}}}},
+        {"orca_command:add_primitive_cube:orca", {{"size", {20, 20, 20}}},
+         {{"kind", "command"}, {"key", "add_primitive_cube"}, {"args", {"size: [20,20,20]"}}}},
+        {"orca_command:slice_all:orca", none, {{"kind", "command"}, {"key", "slice_all"}}},
+        {"orca_recent_project:C:/p/a.3mf:orca", none, {{"kind", "recent_project"}, {"name", "a.3mf"}}},
+        {"orca_setting:layer_height:1", none, {{"kind", "value"}, {"text", "layer_height"}}},
+        {"plugin_replay_action:tool:plugin", none, {{"kind", "value"}, {"text", "plugin_replay_action:tool:plugin"}}},
     }));
-    INFO(id << " " << param);
-    CHECK(describe(action(id, param)).what == what);
+    INFO(id << " " << args.dump());
+    CHECK(describe(action(id, args)).what == what);
 }
 
 TEST_CASE("files written inside the output folder are not flagged", "[Mcp]")
@@ -235,7 +261,7 @@ TEST_CASE("nested replays join their steps' descriptions", "[Mcp]")
     CHECK(flags_of(own_folder).empty());
 
     const StepDescription mixed = describe(
-        R"({"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "steps": [{"tool": "run_action", "args": {"id": "orca_command:new_project:orca"}}, {"tool": "new_project"}]}}})");
+        R"({"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "steps": [{"tool": "run_action", "args": {"id": "orca_command:new_project:orca"}}, {"tool": "new_project", "args": {"silent": true}}]}}})");
     CHECK(mixed.replace == "checked");
 
     const StepDescription clicking = describe(
@@ -275,7 +301,7 @@ TEST_CASE("saved jobs don't change a step's flags", "[Mcp]")
 {
     const std::string step = GENERATE(as<std::string>{}, R"({"tool": "open_files", "args": {"paths": ["${jobs.p}"]}})",
                                       R"({"tool": "screenshot", "args": {"save_path": "${jobs.p}/a.png"}})",
-                                      R"({"tool": "run_action", "args": {"id": "orca_command:import_file:orca", "param": "${jobs.p}"}})");
+                                      R"({"tool": "run_action", "args": {"id": "orca_command:import_file:orca", "args": {"path": "${jobs.p}"}}})");
     INFO(step);
     std::string err;
     const auto  replay = parse_replay(R"({"orca_replay": 1, "steps": [)" + step + "]}", err);

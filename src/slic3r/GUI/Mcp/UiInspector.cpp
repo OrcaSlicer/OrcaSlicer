@@ -3610,7 +3610,7 @@ json UiInspector::mouse(GLCanvas3D& canvas, const json& g, const std::string& ow
         if (p.is_array() && p.size() != 2)
             throw ToolFailure("A pixel is [x, y]");
         if (!p.is_array() && design)
-            throw ToolFailure("Points of the model name Prepare objects; on the Design view give x/y (call_cad_tool query_topology gives faces)");
+            throw ToolFailure("Points of the model name Prepare objects; on the Design view give x/y (query_topology gives faces)");
         const wxPoint px = p.is_array() ? wxPoint(p[0].get<int>(), p[1].get<int>()) : target_pixel(canvas, p, check, tolerance);
         pixels.push_back({px.x, px.y});
         return px;

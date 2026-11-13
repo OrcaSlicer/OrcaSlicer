@@ -24,7 +24,7 @@ struct StepDescription
 {
     std::vector<StepFlag> flags; // no duplicates, in enum order
     // What the step acts on: {"kind":"files","names":[...]} | {"kind":"settings","pairs":[...]}
-    // | {"kind":"command","key":k,"param"?:p} (a file param as its file name) | {"kind":"recent_project","name":n}
+    // | {"kind":"command","key":k,"args"?:["name: value", ...]} (a file by its name) | {"kind":"recent_project","name":n}
     // | {"kind":"preset","name":n} | {"kind":"plates","plates":"current"|"all"|index}
     // | {"kind":"replay","steps":n} | {"kind":"value","text":t} | null.
     nlohmann::json what;
@@ -38,7 +38,9 @@ struct StepDescription
 };
 
 // Describes `step` of `replay`, substituting its arguments leniently over `ctx`; a file counts as
-// written inside the output folder when it is inside ctx.out_dir. A run_replay step is described by
+// written inside the output folder when it is inside ctx.out_dir. A step that calls a Speed Dial command
+// by its key (one with a tile and no place in the tool list) is described as run_action of its tile is.
+// A run_replay step is described by
 // the steps of its inline replay, or of its file when `path` reads and parses, each in the nested
 // run's own context (its vars merged with the step's `vars`, its own replay and output folders);
 // past `depth` 4, or when the file doesn't read or parse, it gets every flag, "checked" and

@@ -13,6 +13,7 @@
 #include "UiInspector.hpp"
 #include "WebPages.hpp"
 #include "WindowControl.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -114,9 +115,11 @@ void journal_with_locator(ToolContext& ctx, const json& args, const json& locato
     ctx.set_journal_args(std::move(recorded));
 }
 
-ToolDef recover_input_tool(std::string name, std::string title, std::string description, json schema, ToolHandler handler)
+NativeCommand recover_input_tool(std::string group, std::string name, std::string title, std::string description, json schema,
+                                 CommandFn handler)
 {
-    ToolDef d = mutate_tool(std::move(name), std::move(title), std::move(description), std::move(schema), std::move(handler));
+    NativeCommand d = mutate_tool(std::move(group), std::move(name), std::move(title), std::move(description), std::move(schema),
+                                  std::move(handler));
     d.guard   = GuardClass::Recover;
     return d;
 }
@@ -1326,12 +1329,10 @@ json display_area(unsigned index)
     return {{"index", index}, {"x", area.x}, {"y", area.y}, {"width", area.width}, {"height", area.height}};
 }
 
-void register_ui_tools(McpService& service)
+void register_ui_tools(CommandCatalog& catalog)
 {
-    ToolRegistry& reg = service.registry();
-
-    reg.add(inspect_tool(
-        "list_windows", L("List the windows"),
+    catalog.add(inspect_tool(
+        "ui", "list_windows", L("List the windows"),
         "List OrcaSlicer's open windows: the main window, then the windows that don't block the app (Plugins, an "
         "object's settings, a dock panel floating on its own), then the modal dialogs in the order they opened, the "
         "topmost last. A window's ref goes to screenshot as target to capture that window, to list_widgets as target to "
@@ -1344,13 +1345,14 @@ void register_ui_tools(McpService& service)
         "setting), which no tool reaches and screenshots leave out.",
         object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 100."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             return ToolResult::ok(page(ctx.run_ui([&] { return service.inspector().windows(); }), args));
         }));
 
     {
-        ToolDef def = recover_input_tool(
-            "set_window", L("Size or move a window"),
+        NativeCommand def = recover_input_tool(
+            "ui", "set_window", L("Size or move a window"),
             "Size, move, maximize, minimize or raise a window: the main window (default), the topmost modal dialog, or one "
             "list_windows lists, also while a modal dialog is open. Size the main window before set_view fits the camera and "
             "before start_recording, as a recording keeps its first frame's size. size and position are in the units "
@@ -1371,14 +1373,14 @@ void register_ui_tools(McpService& service)
                                                "or position.")},
                            {"raise", prop("boolean", "Bring the window in front of the app's other windows; active in the reply says "
                                                      "whether it became the active one.")}}),
-            [&service](const json& args, ToolContext& ctx) { return set_window(service, ctx, args); });
+            [](const json& args, ToolContext& ctx) { return set_window(ctx.service(), ctx, args); });
         def.allowed_during_operation = true;
-        reg.add(def);
+        catalog.add(def);
     }
 
     {
-        ToolDef def = inspect_tool(
-            "list_widgets", L("List the widgets"),
+        NativeCommand def = inspect_tool(
+            "ui", "list_widgets", L("List the widgets"),
             "Describe what is on screen as an indented tree, one element per line with a ref to pass to click, set_widget_value, "
             "press_keys and run_javascript (a page element's to mouse_gesture too): the widgets of every shown window, the rows of lists, "
             "trees and tables, each shown popup after the window it opened from, the main menus, the 3D canvas's toolbar "
@@ -1409,7 +1411,8 @@ void register_ui_tools(McpService& service)
                            {"include_web", prop("boolean", "List the elements of web pages (default true).")},
                            {"max_web_nodes",
                             {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Page elements, apart from max_nodes; default 300."}}}}),
-            [&service](const json& args, ToolContext& ctx) {
+            [](const json& args, ToolContext& ctx) {
+                McpService& service = ctx.service();
                 SnapshotOptions o;
                 o.root          = arg_string(args, "target", "all");
                 o.query         = arg_string(args, "query");
@@ -1462,11 +1465,11 @@ void register_ui_tools(McpService& service)
                 r.content.push_back({{"type", "text"}, {"text", tree.empty() ? std::string("(nothing shown)") : tree}});
                 return r;
             });
-        reg.add(def);
+        catalog.add(def);
     }
 
-    reg.add(recover_input_tool(
-        "click", L("Click an element"),
+    catalog.add(recover_input_tool(
+        "ui", "click", L("Click an element"),
         "Click a GUI element as a person would. Menu items, buttons, checkboxes, toggles, radio buttons, toolbar items and "
         "gizmos are activated the way their owners expect: a gizmo opens and a second click closes it (Text on an object "
         "without text creates a text part: created). Other widgets and ImGui items get a mouse click once scrolled into "
@@ -1492,7 +1495,8 @@ void register_ui_tools(McpService& service)
                        {"popup_item", kPopupItemSchema},
                        {"timeout_s", kPageTimeoutSchema}},
                       {"target"}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             end_web_press(service, ctx); // a click ends a press held on a page, even one refused here
             if (is_web_target(args["target"]))
                 return web_click(service, ctx, args);
@@ -1571,8 +1575,8 @@ void register_ui_tools(McpService& service)
             return ToolResult::ok(out);
         }));
 
-    reg.add(recover_input_tool(
-        "set_widget_value", L("Set a widget's value"),
+    catalog.add(recover_input_tool(
+        "ui", "set_widget_value", L("Set a widget's value"),
         "Set a widget's value and send the events a person's edit would. Widgets: text fields (submit, the default, also "
         "presses Enter and leaves the field, which is when Orca's setting fields commit), spin controls, sliders, choice, "
         "combo and list boxes (by option text or index), checkboxes, toggles and a row's checkbox (true or false), and a "
@@ -1591,7 +1595,8 @@ void register_ui_tools(McpService& service)
                        {"submit", prop("boolean", "Press Enter / commit after setting (default true).")},
                        {"timeout_s", kPageTimeoutSchema}},
                       {"target", "value"}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             if (is_web_target(args["target"]))
                 return web_input(service, ctx, args);
             refuse_web_view(service, ctx, args["target"]);
@@ -1607,8 +1612,8 @@ void register_ui_tools(McpService& service)
             return ToolResult::ok(out);
         }));
 
-    reg.add(recover_input_tool(
-        "press_keys", L("Press keys"),
+    catalog.add(recover_input_tool(
+        "ui", "press_keys", L("Press keys"),
         "Send a key chord (\"Ctrl+S\", \"Escape\", \"Return\", \"Delete\", \"Shift+Tab\", \"Left\", \"F5\") and/or type text to "
         "a target or, without one, to the focused window (the topmost dialog while one is open, the shown 3D view when "
         "nothing has focus). As with a real key press, the shortcut handling of the target's panels and window sees the keys "
@@ -1622,7 +1627,8 @@ void register_ui_tools(McpService& service)
                        {"text", prop("string", "Characters to type.")},
                        {"popup_item", kPopupItemSchema},
                        {"timeout_s", kPageTimeoutSchema}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             const std::string keys = arg_string(args, "keys"), text = arg_string(args, "text");
             if (keys.empty() && text.empty())
                 throw ToolFailure("Give keys, text or both");
@@ -1684,8 +1690,8 @@ void register_ui_tools(McpService& service)
 #ifdef SLIC3R_CAD
     mouse_canvases.insert(mouse_canvases.end() - 1, "design");
 #endif
-    reg.add(recover_input_tool(
-        "mouse_gesture", L("Mouse gesture on the 3D view"),
+    catalog.add(recover_input_tool(
+        "ui", "mouse_gesture", L("Mouse gesture on the 3D view"),
         "Make a mouse gesture on a 3D canvas as a person would: move, down, up, click, drag or wheel. It starts at `at`, a "
         "point of the model, which is projected through the camera and by default checked to land on that part (check "
         "\"point\" only projects it), or at x/y, logical pixels from the canvas's top left. A drag goes through `waypoints` to "
@@ -1719,7 +1725,8 @@ void register_ui_tools(McpService& service)
                        {"target", {{"type", json::array({"string", "object"})},
                                    {"description", "A web page's element (its ref or a {web}/{css} locator) to gesture on instead of a 3D canvas."}}},
                        {"timeout_s", kPageTimeoutSchema}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             if (args.contains("target") && is_web_target(args["target"]))
                 return web_mouse(service, ctx, args);
             end_web_press(service, ctx); // a gesture elsewhere ends a press held on a page, even one refused here
@@ -1768,8 +1775,8 @@ void register_ui_tools(McpService& service)
             return ToolResult::ok(out);
         }));
 
-    reg.add(mutate_tool(
-        "pick_gizmo_file", L("Pick a file for the open gizmo"),
+    catalog.add(mutate_tool(
+        "ui", "pick_gizmo_file", L("Pick a file for the open gizmo"),
         "Do what a file picker inside the open gizmo does, with a path instead of its dialog: svg_change loads another SVG "
         "file into the SVG part being edited, svg_save_as writes that part's SVG to a new file (an existing one only with "
         "overwrite), texture_import imports a height-map image into the texture library and puts it on Texture "
@@ -1815,8 +1822,8 @@ void register_ui_tools(McpService& service)
             return ToolResult::ok(out);
         }));
 
-    reg.add(recover_input_tool(
-        "answer_dialog", L("Answer a dialog"),
+    catalog.add(recover_input_tool(
+        "core", "answer_dialog", L("Answer a dialog"),
         "Press a button of the topmost modal dialog: yes, no, ok, cancel, close, apply, a button's label, or a numeric id. "
         "A disabled button (enabled: false) is refused, the dialog's message showing what it still needs, and so is one on "
         "a page the dialog does not show, except a hidden cancel or close, which ends the dialog. The label of an option of a "
@@ -1836,7 +1843,8 @@ void register_ui_tools(McpService& service)
                                    {"additionalProperties", false},
                                    {"description", "Which dialog; default the topmost."}}}},
                       {"button"}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             end_web_press(service, ctx); // pressing a button ends a press held on a page, even one refused here
             const std::string button = arg_string(args, "button");
             const std::string title  = args.contains("dialog") ? args["dialog"].value("title", "") : std::string();
@@ -1989,8 +1997,8 @@ void register_ui_tools(McpService& service)
         }));
 
     {
-        ToolDef def = recover_input_tool(
-            "auto_answer_dialogs", L("Answer dialogs automatically"),
+        NativeCommand def = recover_input_tool(
+            "core", "auto_answer_dialogs", L("Answer dialogs automatically"),
             "Answer modal dialogs automatically when their title or message matches a rule's regex (case-insensitive). "
             "get_app_state.auto_answer_rules lists the rules in force. Called from a replay or script, the rules last until it "
             "ends; otherwise they replace the ones this session set before, and an empty list clears them. A native dialog "
@@ -2011,7 +2019,8 @@ void register_ui_tools(McpService& service)
                                                  {"additionalProperties", false}},
                                                 "Rules, first match wins.")}},
                           {"rules"}),
-            [&service](const json& args, ToolContext& ctx) {
+            [](const json& args, ToolContext& ctx) {
+                McpService& service = ctx.service();
                 std::vector<AutoAnswerRule> rules;
                 for (const json& r : args["rules"])
                     rules.push_back(make_rule(r["match"].get<std::string>(), r["button"].get<std::string>(), r.value("path", std::string()),
@@ -2065,11 +2074,11 @@ void register_ui_tools(McpService& service)
                 return ToolResult::ok(std::move(out));
             });
         def.idempotent = true;
-        reg.add(def);
+        catalog.add(def);
     }
 
-    ToolDef eval = recover_input_tool(
-        "run_javascript", L("Run JavaScript in a web view"),
+    NativeCommand eval = recover_input_tool(
+        "ui", "run_javascript", L("Run JavaScript in a web view"),
         "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, dialogs, plugin windows). Prefer "
         "list_widgets and the input tools (click, set_widget_value, press_keys, mouse_gesture), which see and drive pages as they do widgets. The code runs in the target's page: "
         "a web view's (kind webview in list_widgets), or a page element's, with the element as `el`; without a target, in "
@@ -2082,7 +2091,8 @@ void register_ui_tools(McpService& service)
                        {"target", kTargetSchema},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 1}, {"maximum", 120}, {"description", "Seconds the code gets (default 10)."}}}},
                       {"code"}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             const std::string code     = arg_string(args, "code");
             const auto        timeout  = std::chrono::seconds(std::clamp(arg_int(args, "timeout_s", 10), 1, 120));
             const bool        element  = args.contains("target") && is_web_target(args["target"]);
@@ -2148,7 +2158,7 @@ void register_ui_tools(McpService& service)
         });
     // Its script runs with the page's own reach: the device page and Home talk to printers and the cloud.
     eval.open_world = true;
-    reg.add(eval);
+    catalog.add(eval);
 }
 
 }}} // namespace Slic3r::GUI::Mcp

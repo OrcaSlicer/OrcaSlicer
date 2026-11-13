@@ -1,11 +1,11 @@
 // Records what saving the project under a name does through its two routes, the save_project_as command run with
-// run_action and a path param and the save_project tool: a .3mf path, a .gcode.3mf path, a folder that does not
+// run_action and a path and the save_project tool: a .3mf path, a .gcode.3mf path, a folder that does not
 // exist, a file that exists (the tool without overwrite), and a project with no objects. After each it reads the
 // project's name, file and unsaved state, the recent projects and the undo snapshots taken since the last read
 // (fixtures/ops_undo.py), and whether the file is there: an stl export to the same path with a plate the project
 // lacks refuses with "exists" when it is, with the plate when not. Every call it records is optional. Run it
-// into a fresh --out directory (a command's JSON path param can't carry a Windows ${out_dir}, so the commands
-// write without overwrite and refuse the files of an earlier run):
+// into a fresh --out directory (the commands write without overwrite, so they refuse the files of an earlier
+// run):
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_save_project_as.json --out <new dir>
 {
   "orca_replay": 1,
@@ -19,7 +19,7 @@
     // ---- No objects (the probes come once there is one) ----
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
-    {"tool": "run_action", "args": {"id": "orca_command:save_project_as:orca", "param": "${out_dir}/empty_cmd.3mf"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:save_project_as:orca", "args": {"path": "${out_dir}/empty_cmd.3mf"}}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "save_project", "args": {"path": "${out_dir}/empty_tool.3mf", "overwrite": true}, "optional": true},
     {"tool": "get_app_state"},
@@ -27,13 +27,13 @@
 
     // ---- A .3mf path ----
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/empty_cmd.3mf", "plates": 999}, "optional": true},
     {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/empty_tool.3mf", "plates": 999}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
-    {"tool": "run_action", "args": {"id": "orca_command:save_project_as:orca", "param": "${out_dir}/cmd.3mf"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:save_project_as:orca", "args": {"path": "${out_dir}/cmd.3mf"}}, "optional": true},
     {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/cmd.3mf", "plates": 999}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "search_actions", "args": {"group": "Recent Projects"}},
@@ -47,7 +47,7 @@
 
     // ---- A .gcode.3mf path ----
     {"tool": "transform", "args": {"object": 0, "translate": [5, 0, 0]}},
-    {"tool": "run_action", "args": {"id": "orca_command:save_project_as:orca", "param": "${out_dir}/cmd.gcode.3mf"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:save_project_as:orca", "args": {"path": "${out_dir}/cmd.gcode.3mf"}}, "optional": true},
     {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/cmd.gcode.3mf", "plates": 999}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
@@ -56,12 +56,12 @@
     {"tool": "get_app_state"},
 
     // ---- A folder that does not exist ----
-    {"tool": "run_action", "args": {"id": "orca_command:save_project_as:orca", "param": "${out_dir}/missing/cmd.3mf"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:save_project_as:orca", "args": {"path": "${out_dir}/missing/cmd.3mf"}}, "optional": true},
     {"tool": "save_project", "args": {"path": "${out_dir}/missing/tool.3mf", "overwrite": true}, "optional": true},
     {"tool": "get_app_state"},
 
     // ---- A file that exists: the command to the tool's file, the tool without overwrite to the command's ----
-    {"tool": "run_action", "args": {"id": "orca_command:save_project_as:orca", "param": "${out_dir}/tool.3mf"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:save_project_as:orca", "args": {"path": "${out_dir}/tool.3mf"}}, "optional": true},
     {"tool": "save_project", "args": {"path": "${out_dir}/cmd.3mf"}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},

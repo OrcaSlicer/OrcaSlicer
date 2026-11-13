@@ -6,9 +6,12 @@
 #include "McpService.hpp"
 #include "McpTools.hpp"
 #include "McpTypes.hpp"
+#include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/ExportOps.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PlateOps.hpp"
@@ -386,12 +389,10 @@ json calib_params_json(const json& args, const Calib_Params& p, const DynamicPri
     return out;
 }
 
-void register_project_tools(McpService& service)
+void register_project_tools(CommandCatalog& catalog)
 {
-    ToolRegistry& reg = service.registry();
-
-    reg.add(reaching({"open_project", "import_models"}, mutate_tool(
-        "open_files", L("Open files"),
+    catalog.add(reaching({"open_project", "import_models"}, mutate_tool(
+        "api", "open_files", L("Open files"),
         "Open model files (STL, 3MF, STEP, OBJ, AMF, SVG...), a project (.3mf) or G-code by absolute path, without a file "
         "dialog. Models are added to the current project. A .3mf opens as a project, replacing the current one, unless as "
         "is \"geometry\"; when the current project has unsaved changes that fails, changing nothing, unless "
@@ -402,7 +403,8 @@ void register_project_tools(McpService& service)
                        {"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail when a .3mf "
                                                            "replaces it.")}},
                       {"paths"}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             std::vector<fs::path> paths;
             for (const json& p : args["paths"]) {
                 std::string err;
@@ -447,9 +449,12 @@ void register_project_tools(McpService& service)
             return ToolResult::ok(out);
         })));
 
-    reg.add(reaching({"new_project"}, mutate_tool(
-        "new_project", L("New project"),
-        "Start a new, empty project. Fails, changing nothing, when the current project has unsaved changes, unless "
+    // The Speed Dial's New Project too: with no arguments it asks as the tile does.
+    catalog.add(NativeCommands::with_person_form(reaching({"new_project"}, mutate_tool(
+        {}, "new_project", {},
+        "Start a new, empty project. Called with no arguments, it asks as New Project does, about the unsaved changes "
+        "if there are any: the reply is then blocked_by_dialog, and answer_dialog answers it. With arguments, or silent: "
+        "true, it asks nothing: it fails, changing nothing, when the current project has unsaved changes, unless "
         "discard_changes. The presets' unsaved changes carry over to the new project unless preset_changes is \"discard\", as "
         "New Project's prompt offers. Reply: objects, names, plates; when presets had or have unsaved changes, discarded "
         "and modified list per preset the keys dropped and the keys still unsaved.",
@@ -457,7 +462,8 @@ void register_project_tools(McpService& service)
                                                            "presets', see preset_changes.")},
                        {"preset_changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep "
                                                                   "them for the new project (default) or drop them.")}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             const bool discard         = arg_bool(args, "discard_changes", false) || service.discard_authorized(ctx.lineage());
             const bool discard_presets = arg_string(args, "preset_changes", "keep") == "discard";
             json       out             = ctx.run_ui([&] {
@@ -475,10 +481,15 @@ void register_project_tools(McpService& service)
             });
             settle(ctx);
             return ToolResult::ok(out);
-        })));
+        })),
+        L("New Project"), L("Commands"), "menu_open", [] {
+            if (Plater* plater = wxGetApp().plater())
+                plater->new_project();
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }));
 
-    reg.add(mutate_tool(
-        "generate_calibration_test", L("Generate a calibration test"),
+    catalog.add(mutate_tool(
+        "api", "generate_calibration_test", L("Generate a calibration test"),
         "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test "
         "model, and the process, filament and printer presets changed as the test needs (presets_changed). The test prints "
         "with filament slot 1, so the filament tab is pointed at slot 1's preset. Omitted parameters take the dialog's "
@@ -521,7 +532,8 @@ void register_project_tools(McpService& service)
              {"preset_changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep them for the "
                                                         "test or drop them first. Required when presets are modified.")}},
             {"test"}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             json       recorded = args;
             const bool discard  = arg_bool(args, "discard_changes", false) || service.discard_authorized(ctx.lineage());
             json       out      = ctx.run_ui([&]() -> json {
@@ -626,9 +638,12 @@ void register_project_tools(McpService& service)
             return ToolResult::ok(out);
         }));
 
-    reg.add(reaching({"save_project_as"}, mutate_tool(
-        "save_project", L("Save the project"),
-        "Save the project as a .3mf at an absolute path without a dialog; it becomes the project's file.",
+    // The Speed Dial's Save Project too: with no arguments it saves as the tile does.
+    catalog.add(NativeCommands::with_person_form(reaching({"save_project_as"}, mutate_tool(
+        {}, "save_project", {},
+        "Save the project. Called with no arguments, it saves as Save Project does: to the project's file, or, when it has "
+        "none, through a file dialog (blocked_by_dialog; a native picker needs auto_answer_dialogs registered first). With "
+        "path, it saves a .3mf there without a dialog, and the file becomes the project's.",
         object_schema({{"path", prop("string", "Absolute .3mf path.")}, {"overwrite", prop("boolean", "Replace an existing file.")}}, {"path"}),
         [](const json& args, ToolContext& ctx) {
             std::string err;
@@ -647,10 +662,15 @@ void register_project_tools(McpService& service)
             });
             settle(ctx);
             return ToolResult::ok({{"path", path_to_utf8(*path)}, {"bytes", fs::file_size(*path)}});
-        })));
+        })),
+        L("Save Project"), L("Commands"), "menu_save", [] {
+            if (Plater* plater = wxGetApp().plater())
+                plater->save_project(false);
+            return AppActionRunResult{AppActionRunResult::Level::Success};
+        }));
 
-    reg.add(reaching({"start_gcode_export", "export_sliced_3mf", "export_model_3mf", "export_stl"}, mutate_tool(
-        "export", L("Export"),
+    catalog.add(reaching({"start_gcode_export", "export_sliced_3mf", "export_model_3mf", "export_stl"}, mutate_tool(
+        "api", "export", L("Export"),
         "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the "
         "background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf. 3mf: "
         "the model without slicing data. stl: all objects as one STL. Without format, the path's extension (.gcode, "

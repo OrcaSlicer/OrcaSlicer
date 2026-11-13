@@ -417,12 +417,10 @@ json preview_state(GCodeViewer& viewer)
                 {"layer_count", layers->GetMaxValue() + 1}};
 }
 
-void register_view_tools(McpService& service)
+void register_view_tools(CommandCatalog& catalog)
 {
-    ToolRegistry& reg = service.registry();
-
-    ToolDef screenshot = inspect_tool(
-        "screenshot", L("Take a screenshot"),
+    NativeCommand screenshot = inspect_tool(
+        "ui", "screenshot", L("Take a screenshot"),
         "Capture what OrcaSlicer shows and return it as an image, downscaled to max_dim on the long edge (default 1280), "
         "plus the full-size PNG written to save_path (or the session's output folder). target: \"main\" (the main "
         "window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels; on the "
@@ -437,7 +435,8 @@ void register_view_tools(McpService& service)
                        {"save_path", prop("string", "Absolute .png path for the full-size image.")},
                        {"overwrite", prop("boolean", "Replace an existing save_path.")},
                        {"include_image", prop("boolean", "Return the image itself (default true); false returns only the path.")}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             const json target_arg = args.value("target", json("main"));
             const std::string target = target_arg.is_string() ? target_arg.get<std::string>() : std::string();
             json              locator;
@@ -578,10 +577,10 @@ void register_view_tools(McpService& service)
             return out;
         });
     screenshot.journal = true; // a replay takes the same screenshots
-    reg.add(screenshot);
+    catalog.add(screenshot);
 
-    reg.add(inspect_tool(
-        "get_slice_stats", L("Get slice statistics"),
+    catalog.add(inspect_tool(
+        "api", "get_slice_stats", L("Get slice statistics"),
         "What the Preview shows for a sliced plate. summary: the slice reply's, plus prepare and travel time and travel "
         "distance. features: seconds, share of the print time and grams per feature type (the Line Type legend), and "
         "travel. layers: per layer (1-based, as set_view's layer) Z, height, seconds and grams, paged; layer_features adds "
@@ -647,7 +646,7 @@ void register_view_tools(McpService& service)
                     out["view"] = shown ? preview_view(*canvas) : json();
                     if (index != current)
                         out["note"] = "The Preview shows plate " + std::to_string(current) + "; show plate " + std::to_string(index) +
-                                      " there (run_action orca_command:plate_goto:orca, param \"" + std::to_string(index) + "\") to read its legend";
+                                      " there (run_action orca_command:plate_goto:orca, args {\"plate\": " + std::to_string(index) + "}) to read its legend";
                     else if (!shown)
                         out["note"] = "The Preview has not loaded this plate's toolpaths; show it with set_view {\"tab\": \"preview\"}";
                 }
@@ -666,8 +665,8 @@ void register_view_tools(McpService& service)
     tabs.insert(tabs.begin() + 1, "design");
 #endif
 
-    reg.add(reaching({"show_layer_range"}, mutate_tool(
-        "set_view", L("Point the view"),
+    catalog.add(reaching({"show_layer_range"}, mutate_tool(
+        "ui", "set_view", L("Point the view"),
         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: Prepare's, the "
         "preview or the assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the "
         "default view, or fit to bed / objects / selection, then look_at, the point it looks at, an orbit to look from "
@@ -683,7 +682,7 @@ void register_view_tools(McpService& service)
                                             "Camera direction or fit.")},
                        {"look_at", array_prop({{"type", "number"}}, "[x, y, z] in mm: the point the camera looks at, in the 3D view's "
                                                                    "world coordinates, as list_objects gives positions; on the Design tab, "
-                                                                   "the Design view's, which the CAD tools' world points use (describe_scene's "
+                                                                   "the Design view's, which the Design commands' world points use (describe_scene's "
                                                                    "modeling_origin is the sketch planes' origin). The camera moves "
                                                                    "parallel, keeping its direction and distance. After camera.")},
                        {"orbit", array_prop({{"type", "number"}}, "[yaw, pitch] in degrees: move the camera around what it looks at, "

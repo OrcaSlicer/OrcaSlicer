@@ -26,6 +26,9 @@
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/PrintHostDialogs.hpp"
 #include "slic3r/plugin/PythonInterpreter.hpp"
+#ifdef SLIC3R_CAD
+#include "McpToolsCad.hpp"
+#endif
 #if defined(__WXGTK__)
 #include "slic3r/GUI/LinuxDisplayBackend.hpp"
 #endif
@@ -148,6 +151,8 @@ json app_state(McpService& service)
     // The page exists only when the CAD preference was on at startup.
 #ifdef SLIC3R_CAD
     state["design_tab"] = frame->m_design_page != nullptr;
+    if (json note = cad_note(service.catalog()); !note.is_null())
+        state["cad_note"] = std::move(note);
 #else
     state["design_tab"] = false;
 #endif
@@ -239,19 +244,18 @@ bool condition_holds(McpService& service, const std::string& condition, const st
 
 } // namespace
 
-void register_app_tools(McpService& service)
+void register_app_tools(CommandCatalog& catalog)
 {
-    ToolRegistry& reg = service.registry();
-
-    reg.add(inspect_tool(
-        "get_app_state", L("Get app state"),
+    catalog.add(inspect_tool(
+        "core", "get_app_state", L("Get app state"),
         "Snapshot of OrcaSlicer. Call it first and whenever you are unsure what the app is doing. The app: version, platform "
         "and display backend, whether it is ready, the main window, the displays (each one's work area x, y, width and "
         "height, as set_window takes positions, its scale and whether it is primary), the MCP endpoint (mcp), python "
         "(available: Python runs "
         "in this build; scripts_unrestricted: a script's own file, network, process and thread access is not held to "
-        "OrcaSlicer's folders, which only a person turns on, in Preferences > AI features > Python scripts) and design_tab (the Design tab and call_cad_tool are on; a person turns the CAD feature on in "
-        "Preferences and restarts). The project: current tab and mode, printer technology, name, path and unsaved changes, "
+        "OrcaSlicer's folders, which only a person turns on, in Preferences > AI features > Python scripts), design_tab "
+        "(the Design tab is on, and call_tool runs its commands, search_tools' group Design) and, when they do not run, "
+        "cad_note, how a person turns the CAD feature on. The project: current tab and mode, printer technology, name, path and unsaved changes, "
         "selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the "
         "instances [[object, instance]] they are selected in and, when parts rather than whole instances are selected, "
         "parts [[object, part]], in the indices select_objects takes; wipe_tower when a prime tower is selected; canvas is the 3D "
@@ -265,10 +269,13 @@ void register_app_tools(McpService& service)
         "control; menus closed unseen (a menu a call opened that no reply listed), auto_answer_dialogs rules in force, "
         "notifications, print host uploads (state, progress, error), the open gizmo, running jobs and a running "
         "recording.",
-        object_schema({}), [&service](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&service] { return app_state(service); })); }));
+        object_schema({}), [](const json&, ToolContext& ctx) {
+            McpService& service = ctx.service();
+            return ToolResult::ok(ctx.run_ui([&service] { return app_state(service); }));
+        }));
 
-    ToolDef wait = inspect_tool(
-        "wait", L("Wait for a condition"),
+    NativeCommand wait = inspect_tool(
+        "core", "wait", L("Wait for a condition"),
         "Block until a condition holds or timeout_s passes (max 50). for: \"ready\" (startup finished), \"idle\" (no dialog, "
         "no running job, nothing slicing or arranging, no gizmo working in the background; a run_script run counts only "
         "through the calls it makes), \"dialog\" / \"no_dialog\", or \"job\" with a job id an earlier call returned, whose "
@@ -277,7 +284,8 @@ void register_app_tools(McpService& service)
                                                                                           "is given, else idle.")},
                        {"job", prop("string", "Job id, for \"job\".")},
                        {"timeout_s", {{"type", "number"}, {"minimum", 0}, {"maximum", 50}, {"description", "Default 30."}}}}),
-        [&service](const json& args, ToolContext& ctx) {
+        [](const json& args, ToolContext& ctx) {
+            McpService& service = ctx.service();
             const std::string what    = arg_string(args, "for", args.contains("job") ? "job" : "idle");
             const auto        timeout = std::chrono::milliseconds(int(arg_double(args, "timeout_s", 30) * 1000));
             const auto        start   = std::chrono::steady_clock::now();
@@ -302,10 +310,10 @@ void register_app_tools(McpService& service)
             }
         });
     wait.journal = true; // a replay needs the same waits
-    reg.add(wait);
+    catalog.add(wait);
 
-    reg.add(inspect_tool(
-        "get_log", L("Read the log"),
+    catalog.add(inspect_tool(
+        "core", "get_log", L("Read the log"),
         "The last lines of OrcaSlicer's current log file, optionally only those at or above a level.",
         object_schema({{"lines", {{"type", "integer"}, {"minimum", 1}, {"maximum", 2000}, {"description", "Default 200."}}},
                        {"level", enum_prop({"trace", "debug", "info", "warning", "error", "fatal"}, "Minimum level.")}}),

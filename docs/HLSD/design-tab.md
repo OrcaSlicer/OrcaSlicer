@@ -364,36 +364,68 @@ emits `src/slic3r/GUI/CAD/DesignOffer.hpp` from it. The header is checked in and
 hand-edited; the `check_cad_offer_table.yml` workflow runs the generator with `--check` on every
 push and pull request that touches the atlas, the generator or the header, which is what makes
 "GENERATED — DO NOT EDIT" a fact rather than a request. The generator also refuses an atlas with a
-duplicate verb id, since `mcp_run_verb` resolves a verb by id and would make the second one
-unreachable.
+duplicate verb id, since a verb is resolved by id (`mcp_run_verb`, a command's key) and the second
+one would be unreachable, and a table in which an entry's name is not marked for translation in the
+`Design` context (`L_CONTEXT`): every name is a command's title, which a person sees translated, and
+the mark compiles to the bare string, so nothing at run time could tell it is missing.
+
+The same table is the Design tab's Speed Dial tiles and its automation commands, so the three cannot drift
+apart. The header's `kDesignTools` holds 134 entries: the 93 verbs, each with its menu row, and 41 commands
+with no row (`row` -1), such as `describe_scene`, `sketch_add` or `commit`. Every entry but `align`, which has
+no GUI path, is a command of the catalog whose key is the entry's id and whose title is its name. An entry
+with an `action` does what its menu row does when it is called with no arguments, and has a tile. An entry
+with a `tool` block also runs silently, with arguments: the block is that form's access, params, examples and
+whether it reports a rejected rebuild in its reply, which the header carries as JSON text (`doc`) beside the
+entry's `access` and `ok_false`. `modal` marks the three entries whose action opens a dialog that waits for an
+answer: a modal one for SVG (a file picker) and Color, which holds the call that opened it until it is answered,
+and the Design tab's own modeless dialog for Text, which does not.
+`kDesignSelectionIds` names the selection kinds in `OfferSel`'s order, the ids the verbs' `accepts` use.
 
 The atlas and its generator sit in `scripts/CAD/` rather than in `docs/`: they are build inputs
 for a checked-in header, not documentation.
 
 ## Automation surface
 
-The document is automated through the app's MCP server, on every platform, with three tools:
-`list_cad_tools` lists the Design tab's CAD tools, `describe_cad_tool` gives a CAD tool's arguments,
-how its failure shows and runnable examples, and `call_cad_tool {tool, args}` runs one. The CAD
-tools (`Mcp/McpToolsCad.*`) describe the scene, query topology, measure, and run the same verbs the
-offer does — they re-implement nothing, so a scripted action and a clicked one cannot diverge. Where
-a GUI action is bound to a selection, a card or a dialog, its work is split into a function both
-callers share, and the CAD tool calls that function with explicit arguments instead of driving the
-widgets.
+The document is automated through the app's MCP server, on every platform, with the Design tab's
+commands, one per entry of its table, in the command catalog's group `Design`: `search_tools {group:
+"Design"}` lists them, `search_tools {tool}` gives one's arguments, how its failure shows and runnable
+examples, and `call_tool {tool, args}` runs one. A person picks the same commands from the Speed Dial:
+while the Design tab is shown with the CAD feature on, it has a tile for each entry with an action of the
+mode the tab is in, the sketch's tools in a sketch and the model's outside one, titled as the right-click
+menu names it and with its icon, and on any other tab, or once the feature is turned off, none; a pinned
+Design tile stays pinned while it is not shown, and takes no place on the favourites bar meanwhile. A command
+with no arguments does what the menu's row does, only in the mode the row belongs to, and replies
+`{"result": {"interactive": true, ...}}` with what the tab shows then (its busy reason and status line);
+with arguments, or `silent: true`, the commands (`Mcp/McpToolsCad.*`) describe the scene, query
+topology, measure, and run the same verbs the offer does — they re-implement nothing, so a scripted
+action and a clicked one cannot diverge. Where a GUI action is bound to a selection, a card or a dialog,
+its work is split into a function both callers share, and the command calls that function with explicit
+arguments instead of driving the widgets.
 
-`call_cad_tool` needs the MCP server on (`--mcp`, or Preferences) and the CAD feature on
-(Preferences > Features; the main window creates the Design page only at startup, so turning it on
-takes a restart); with the feature off it is refused, and the two inspect tools still answer, with a
-note on how a person turns it on. A call is refused (`-32002`) while the Design tab is busy: none
-runs while a rebuild owns the document, `change` and `sketch` CAD tools do not run under an open
-feature card, the Text dialog, Constrain mode or a body Move, and a `change` one does not run under
-a sketch session, which `sketch` ones drive. `read` CAD tools are refused only during a rebuild.
+An agent's call needs the MCP server on (`--mcp`, or Preferences), and every command, a person's tile
+included, needs the CAD feature on (Preferences > Features). The catalog holds them only when the feature
+is on at startup, as the main window makes the Design page only then, so turning it on takes a restart;
+with it off they are unknown commands, and `get_app_state` says in `cad_note` how a person turns it on.
+Turned off while OrcaSlicer runs, the tab stays until the restart, but the Speed Dial has no tile of it. A
+call is refused (`-32002`) while the Design tab is busy: none runs while a rebuild owns the document,
+`change` and `sketch` commands do not run under an open feature card, the Text dialog, Constrain mode or a
+body Move, and a `change` one does not run under a sketch session, which `sketch` ones drive. `read`
+commands are refused only during a rebuild, and so is the opening of a tool, which is also refused in the
+mode its row does not belong to (a model tool in a sketch, a sketch tool outside one): the tab's right-click
+menu offers a tool only in its mode and refuses it for nothing else, and each tool decides what an open card
+means to it. For the menu, and so for the commands, a sketch in Constrain mode is open, while the tab's keys
+there are the model's: there a command does what its menu row does, not what its key does. A tool whose
+menu row only the right-click menu reaches (a `btn:` or `fly:` action) is
+refused for a selection its row does not accept, saying so and naming the selections it takes. `undo` and
+`redo` are the shared commands of the Speed Dial and act on the history of the tab shown, the Design tab's
+while it is shown; `history: "design"` names the Design tab's from any tab.
+
 Face and edge ids name faces and edges of the current model, and a rebuild renumbers them while a
 stale id still names a real face or edge, so the replies carry the model's `generation`: a call that
 passes ids with the `generation` they were read at is refused (`-32010`) once the model has moved
 on, rather than acting on another face or edge.
 
-The CAD tools add features through the kernel calls the cards use, named as the cards name them,
+The commands add features through the kernel calls the cards use, named as the cards name them,
 one checkpoint per call. A rebuild that fails is taken back with `CadDocument::rollback()`, which
 leaves nothing to redo, and the status line says "Edit rejected" as it does for a refused GUI
 edit; the call reports the kernel's reason. Planes are named as in the cards: a
@@ -428,7 +460,7 @@ a value field is pending.
 Topology reads come from the kernel: `GeometryEngine::surface_info()` gives a face's surface type,
 area and analytic numbers, `edge_faces()` the faces along each edge, `edge_convexity()` whether
 two faces meet in an outside or inside corner (OCCT's fillet classification), and
-`min_distance()` the closest points of two shapes. The Plane card's Confirm and the `plane` CAD tool
+`min_distance()` the closest points of two shapes. The Plane card's Confirm and the `plane` command
 share `CadDocument::datum_plane_refusal()`, which refuses a construction that is missing a
 reference, names a face or edge no longer on the model, or puts a tangent plane on a face that is
 not a cylinder, so neither reaches the kernel's silent fallback to an offset plane; a refused
@@ -448,8 +480,8 @@ clicks and drags it at pixels, so a left click picks and a right click opens the
 `wxEVT_CHAR_HOOK` as a real key press does, travelling up from the focused widget, so Escape,
 Enter and the tool shortcuts behave as they do for a person.
 
-`docs/HLSD/mcp-server.md` describes the CAD tool table, access rules, error convention and replay
-tests.
+`docs/HLSD/mcp-server.md` describes the Design commands, their table, access rules, error convention
+and replay tests.
 
 ## Where the code lives
 
@@ -464,10 +496,10 @@ tests.
 | `src/slic3r/GUI/CAD/DesignRowList.*` | the Feature tree and Bodies lists, with per-row actions |
 | `src/slic3r/GUI/CAD/DesignCanvas.*` | viewport integration |
 | `src/slic3r/GUI/CAD/DesignSketchTool.*` | in-canvas sketching |
-| `src/slic3r/GUI/Mcp/McpToolsCad.*` | the automation surface: the CAD tool table behind the MCP server's `list_cad_tools`, `describe_cad_tool` and `call_cad_tool` |
+| `src/slic3r/GUI/Mcp/McpToolsCad.*` | the automation surface: the Design commands made from the table, their silent forms (`kSilentForms`) and their gate |
 | `src/slic3r/GUI/CAD/DesignInteraction.hpp` | the Esc level contract |
-| `src/slic3r/GUI/CAD/DesignOffer.hpp` | generated offer table |
-| `scripts/CAD/tool_atlas.json` | source of truth for the offer |
+| `src/slic3r/GUI/CAD/DesignOffer.hpp` | the generated table: the offer, the tiles and the commands |
+| `scripts/CAD/tool_atlas.json` | source of truth for the table |
 
 ## Verification
 
@@ -478,18 +510,19 @@ The kernel is covered by Catch2 suites in `tests/libslic3r/` (`test_caddocument`
 `libslic3r_tests "[CadDocument]"` runs the document's cases.
 
 The automation surface has its own checks. `slic3rutils_tests "[Mcp][CAD]"`
-(`tests/slic3rutils/test_mcp_cad.cpp`) runs the CAD tools' argument checks and kernel calls on a
-`CadDocument` or a bare `DesignSketchTool`, with no panel, and checks the table itself: a row per
-dispatched CAD tool, the summaries, and examples that call only real CAD tools with the arguments
-they declare. On a live application launched with `tools/mcp/orca_mcp.py launch --cad`, the replays
-`tools/mcp/tests/cad_*.json` drive `call_cad_tool`, the live tests `tools/mcp/test_cad_replay.py`,
+(`tests/slic3rutils/test_mcp_cad.cpp`) runs the commands' argument checks and kernel calls on a
+`CadDocument` or a bare `DesignSketchTool`, with no panel, and checks the table and the commands the
+catalog holds: one per entry but `align`, a silent form for every tool block and a block for every silent
+form, their schemas and summaries, and examples that call only real commands with arguments their schemas
+take. On a live application launched with `tools/mcp/orca_mcp.py launch --cad`, the replays
+`tools/mcp/tests/cad_*.json` drive the commands through `call_tool`, the live tests `tools/mcp/test_cad_replay.py`,
 `test_cad_slow_build.py` and `test_cad_failed_job.py` cover journaling and replay, the app staying
 live through a long rebuild, and a call whose job fails after its reply, and
-`tools/mcp/test_cad_examples.py` runs every CAD tool's examples, each on a fresh design. The GUI
+`tools/mcp/test_cad_examples.py` runs every command's examples, each on a fresh design. The GUI
 tests `tools/mcp/test_cad_sketching.py`, `test_cad_context_menu.py` and `test_cad_click_edit.py`
 drive the tab as a person does, through the server's UI tools: they draw on the canvas with
 clicks and typed values, run the offer's verbs from a right click and type into the value fields with
-no click into them, and grade what `call_cad_tool`'s read tools and `list_widgets` report back. They
+no click into them, and grade what the reading commands and `list_widgets` report back. They
 need an English UI and no CI job runs them; `tools/mcp/README.md` says how to run them.
 
 Three checks in `scripts/CAD/` drive a running app through its MCP server as an agent does and

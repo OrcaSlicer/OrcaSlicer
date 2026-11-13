@@ -433,7 +433,7 @@ public:
     }
 
     // Mate connectors. Without a glyph a connector is visible only to a program —
-    // resolve_datum_coordsys's one other consumer is the MCP server's call_cad_tool — so the frame
+    // resolve_datum_coordsys's one other consumer is the MCP server's Design commands — so the frame
     // a mate is built on could not be seen at all. The glyph has to answer two questions on sight
     // (wgsc): which way does Z point (the VERSE), and which of the pair is anchored versus driven
     // (the POLARITY). Nothing in any surveyed CAD system encodes the second one.

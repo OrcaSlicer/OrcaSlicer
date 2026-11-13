@@ -40,13 +40,4 @@ boost::filesystem::path output_dir();
 boost::filesystem::path timestamped_path(const boost::filesystem::path& dir, const std::string& kind, const std::string& extension,
                                          const std::vector<std::string>& companions = {}, std::time_t when = std::time(nullptr));
 
-// The parameter of a Speed Dial command that takes a path: a plain absolute path, or a JSON object
-// string {"path": "...", "overwrite": true}.
-struct PathParam
-{
-    std::string path;
-    bool        overwrite = false;
-};
-std::optional<PathParam> parse_path_param(const std::string& param, std::string& err);
-
 }}} // namespace Slic3r::GUI::Mcp

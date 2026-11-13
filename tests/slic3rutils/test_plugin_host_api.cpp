@@ -17,6 +17,7 @@
 
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <libslic3r/Model.hpp>
 #include <libslic3r/PresetBundle.hpp>
@@ -45,6 +46,7 @@
 
 #include <nlohmann/json.hpp>
 #include <slic3r/GUI/Mcp/McpTools.hpp>
+#include <slic3r/plugin/PluginOperations.hpp>
 
 #include <regex>
 #include <set>
@@ -635,6 +637,78 @@ TEST_CASE("Plugin host API exposes TriangleMesh geometry to Python", "[PluginHos
     // Instance offset (5, 6, 0) must land in the matrix translation column.
     REQUIRE_THAT(instance_matrix.attr("__getitem__")(py::make_tuple(0, 3)).cast<double>(), WithinAbs(5.0, 1e-6));
     REQUIRE_THAT(instance_matrix.attr("__getitem__")(py::make_tuple(1, 3)).cast<double>(), WithinAbs(6.0, 1e-6));
+}
+
+TEST_CASE("a script reads the catalog", "[PluginHost][Python]")
+{
+    py::module_ orca = import_orca_module();
+    // An operation a plugin offers is among the commands while it is offered.
+    Slic3r::PluginOperation op;
+    op.plugin_key  = "catalog_reader";
+    op.name        = "measure";
+    op.description = "Measures the plate.";
+    op.changes     = false;
+    Slic3r::PluginOperations::instance().add(op);
+    py::dict scope;
+    try {
+        py::exec(R"PY(
+import orca
+tools = orca.host.tools
+state = tools.describe("get_app_state")
+commands = tools.list()
+names = [entry["name"] for entry in commands]
+fields = sorted(commands[0])
+plugin_fields = sorted(next(entry for entry in commands if entry["name"] == "plugin.catalog_reader.measure"))
+operation = tools.describe("plugin.catalog_reader.measure")
+try:
+    tools.describe("nope")
+    unknown = None
+except tools.ToolError as error:
+    unknown = (str(error), error.details)
+try:
+    tools.describe("get_app_stat")
+    mistyped = None
+except tools.ToolError as error:
+    mistyped = error.details
+)PY",
+                 scope);
+    } catch (...) {
+        Slic3r::PluginOperations::instance().remove_plugin("catalog_reader");
+        throw;
+    }
+    Slic3r::PluginOperations::instance().remove_plugin("catalog_reader");
+
+    CHECK(scope["state"]["read_only"].cast<bool>());
+    CHECK(scope["state"]["key"].cast<std::string>() == "get_app_state");
+    CHECK(scope["state"].contains("input_schema"));
+    CHECK(py::len(scope["commands"]) >= 53);
+    const std::vector<std::string> list_fields{"description", "group", "listed", "name", "read_only", "title"};
+    CHECK(scope["fields"].cast<std::vector<std::string>>() == list_fields);
+    CHECK(scope["plugin_fields"].cast<std::vector<std::string>>() == list_fields);
+    const auto names = scope["names"].cast<std::vector<std::string>>();
+    for (const char* name : {"get_app_state", "obj_arrange", "plugin.catalog_reader.measure"}) {
+        CAPTURE(name);
+        CHECK(std::count(names.begin(), names.end(), name) == 1);
+    }
+    CHECK(scope["operation"]["group"].cast<std::string>() == "api");
+    CHECK(scope["operation"]["read_only"].cast<bool>());
+    REQUIRE_FALSE(scope["unknown"].is_none());
+    CHECK(scope["unknown"].cast<py::tuple>()[0].cast<std::string>() == "Unknown tool: nope");
+    const py::dict details = scope["unknown"].cast<py::tuple>()[1].cast<py::dict>();
+    REQUIRE(details.contains("did_you_mean"));
+    CHECK(py::isinstance<py::list>(details["did_you_mean"]));
+    REQUIRE_FALSE(scope["mistyped"].is_none());
+    const auto close = scope["mistyped"]["did_you_mean"].cast<std::vector<std::string>>();
+    REQUIRE_FALSE(close.empty());
+    CHECK(close.front() == "get_app_state");
+
+    // search_python_api documents both, as it does every function of the package.
+    std::set<std::string> documented;
+    for (const nlohmann::json& entry : Slic3r::GUI::Mcp::python_api_reference())
+        if (entry["kind"] == "function" && !entry["doc"].get<std::string>().empty())
+            documented.insert(entry["name"].get<std::string>());
+    CHECK(documented.count("orca.host.tools.list") == 1);
+    CHECK(documented.count("orca.host.tools.describe") == 1);
 }
 
 TEST_CASE("every public member of the orca package has documentation and named parameters", "[PluginHost][Python]")

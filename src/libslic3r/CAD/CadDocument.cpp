@@ -4176,11 +4176,11 @@ bool CadDocument::recompute()
     }
     if (built.empty() && any_solid_feature) { error = _u8L("no solid-producing features"); return false; }
 
-    // A feature that leaves a body with a null shape must fail loudly. Until this existed,
-    // recompute() returned true and the document kept advertising the body: describe_scene
-    // counted it, error was empty, and only mass_properties on that specific body revealed
-    // anything was wrong. Returning false hands the caller its normal rollback path, so the
-    // operation that destroyed the body is undone rather than committed.
+    // A feature that leaves a body with a null shape fails the rebuild loudly. Were recompute() to
+    // return true, the document would go on listing the body: describe_scene would count it, error
+    // would be empty, and only mass_props on that body would show anything was wrong. Returning
+    // false hands the caller its normal rollback path, so the operation that destroyed the body is
+    // undone rather than committed.
     for (size_t i = 0; i < built.size(); ++i) {
         if (!built[i].shape.IsNull()) continue;
         const int src = built[i].source_feature;

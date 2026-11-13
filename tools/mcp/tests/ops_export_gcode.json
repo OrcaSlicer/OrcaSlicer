@@ -1,7 +1,7 @@
 // Records what the G-code export does through its two routes, the export tool (format gcode) and the
-// export_gcode command run with run_action and a path param: with no objects, on a plate not sliced, after a
+// export_gcode command run with run_action and a path: with no objects, on a plate not sliced, after a
 // slice that ended with an error, while a slice runs (started by slice_and_preview and slice_all, which return
-// at once), with a plate index the project lacks, with no param, a success, and two exports started back to back
+// at once), with a plate index the project lacks, a success, and two exports started back to back
 // through each route. A replay step returns once a short export has finished, so those two run one after the
 // other; overlapping calls need two clients. Every call it records is optional, so a refusal is kept in
 // result.json with its text, which both routes word alike, and each is followed by the reads that show what it
@@ -9,8 +9,7 @@
 // export to a G-code's path with a plate the project lacks tells whether that file exists: it refuses with
 // "exists" when it does, with the plate when not. Each case waits for idle first, since an export right after an
 // edit is refused as slicing while the edit's background update is pending. Run it into a fresh --out directory
-// (a command's JSON path param can't carry a Windows ${out_dir}, so the commands write without overwrite and
-// refuse the files of an earlier run):
+// (the commands write without overwrite, so they refuse the files of an earlier run):
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/tests/ops_export_gcode.json --out <new dir>
 {
   "orca_replay": 1,
@@ -29,17 +28,17 @@
 
     // ---- No objects ----
     {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/empty_tool.gcode", "overwrite": true}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "param": "${out_dir}/empty_cmd.gcode"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "args": {"path": "${out_dir}/empty_cmd.gcode"}}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
 
     // ---- A plate that is not sliced ----
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "list_objects", "expect": {"/total": {"eq": 1}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
     {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/unsliced_tool.gcode", "overwrite": true}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "param": "${out_dir}/unsliced_cmd.gcode"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "args": {"path": "${out_dir}/unsliced_cmd.gcode"}}, "optional": true},
     {"tool": "list_plates"},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
@@ -48,20 +47,16 @@
     {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/noplate_tool.gcode", "overwrite": true, "plates": 3}, "optional": true},
     {"tool": "get_app_state"},
 
-    // ---- No param: refused by run_action before the command runs ----
-    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca"}, "optional": true},
-    {"tool": "get_app_state"},
-
     // ---- A slice that ended with an error: spiral vase on a plate with two objects ----
     {"tool": "select_objects", "args": {"none": true}},
-    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "param": "20 20 20"}},
+    {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca", "args": {"size": [20, 20, 20]}}},
     {"tool": "arrange", "args": {}},
     {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"spiral_mode": true}}},
     {"tool": "slice", "expect": {"/plates/0/outcome": {"eq": "error"}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
     {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/error_tool.gcode", "overwrite": true}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "param": "${out_dir}/error_cmd.gcode"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "args": {"path": "${out_dir}/error_cmd.gcode"}}, "optional": true},
     {"tool": "list_plates"},
     {"tool": "get_app_state"},
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
@@ -73,7 +68,7 @@
     {"tool": "run_script", "args": {"filename": "${vars.undo}", "code": "import ops_undo\nresult = ops_undo.taken()"}},
     {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/ok_tool.gcode", "overwrite": true}, "optional": true},
     {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ok_tool.gcode", "plates": 999}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "param": "${out_dir}/ok_cmd.gcode"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "args": {"path": "${out_dir}/ok_cmd.gcode"}}, "optional": true},
     {"tool": "export", "args": {"format": "stl", "path": "${out_dir}/ok_cmd.gcode", "plates": 999}, "optional": true},
     {"tool": "list_plates"},
     {"tool": "get_app_state"},
@@ -85,12 +80,12 @@
     {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/twice_tool_2.gcode", "overwrite": true}, "await": false, "save_as": "tool_2", "optional": true},
     {"tool": "get_app_state"},
     {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "param": "${out_dir}/twice_cmd_1.gcode"}, "await": false, "save_as": "cmd_1", "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "param": "${out_dir}/twice_cmd_2.gcode"}, "await": false, "save_as": "cmd_2", "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "args": {"path": "${out_dir}/twice_cmd_1.gcode"}}, "await": false, "save_as": "cmd_1", "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "args": {"path": "${out_dir}/twice_cmd_2.gcode"}}, "await": false, "save_as": "cmd_2", "optional": true},
     {"tool": "get_app_state"},
     {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
     {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/twice_mix_1.gcode", "overwrite": true}, "await": false, "save_as": "mix_1", "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "param": "${out_dir}/twice_mix_2.gcode"}, "await": false, "save_as": "mix_2", "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "args": {"path": "${out_dir}/twice_mix_2.gcode"}}, "await": false, "save_as": "mix_2", "optional": true},
     {"tool": "get_app_state"},
     {"tool": "answer_dialog", "args": {"button": "ok"}, "optional": true},
     {"tool": "wait", "args": {"for": "idle"}},
@@ -105,14 +100,14 @@
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_action", "args": {"id": "orca_command:slice_and_preview:orca"}},
     {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/busy_tool.gcode", "overwrite": true}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "param": "${out_dir}/busy_cmd.gcode"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "args": {"path": "${out_dir}/busy_cmd.gcode"}}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "list_plates"},
     {"tool": "transform", "args": {"object": 0, "translate": [5, 0, 0]}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "run_action", "args": {"id": "orca_command:slice_all:orca"}},
-    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "param": "${out_dir}/busy2_cmd.gcode"}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:export_gcode:orca", "args": {"path": "${out_dir}/busy2_cmd.gcode"}}, "optional": true},
     {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/busy2_tool.gcode", "overwrite": true}, "optional": true},
     {"tool": "get_app_state"},
     {"tool": "wait", "args": {"for": "idle"}},
