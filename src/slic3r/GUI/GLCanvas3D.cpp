@@ -536,7 +536,7 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
         if (m_bar_object_ids.size() > 1)
             // TRN Variable layer height tool: each selected object has a layer height bar at the right edge of the 3D view.
             // Painting over an object in the 3D view, or over its bar, edits the layer heights of that object.
-            imgui.text(_L("Paint over object or its bar to edit its layers."));
+            imgui.text(_L("Paint over an object or its bar to edit its layers."));
     }
 
     ImGui::Separator();
@@ -548,7 +548,9 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
         {_L("Right mouse button"),         _L("Remove detail")},
         {shift + _L("Left mouse button"),  _L("Reset to base")},
         {shift + _L("Right mouse button"), _L("Smoothing")},
-        {ctrl + _L("Mouse wheel"),         _L("Increase/decrease edit area")}
+        {ctrl + _L("Mouse wheel"),         _L("Increase/decrease edit area")},
+        // TRN Variable layer height tool: the plain wheel resizes the edit area only with the cursor on a layer height bar.
+        {_L("Mouse wheel"),                _L("Increase/decrease edit area on the bar")}
     };
 
     float y = canvas.m_main_toolbar.get_height();
