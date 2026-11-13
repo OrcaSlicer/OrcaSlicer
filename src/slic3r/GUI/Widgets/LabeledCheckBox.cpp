@@ -178,7 +178,8 @@ void LabeledCheckBox::ShowFocus(bool focused)
 
 void LabeledCheckBox::UpdateLabelColor()
 {
-    if (m_text->SetForegroundColour(IsEnabled() ? GetForegroundColour() : StateColor::darkModeColorFor(wxColour("#6B6A6A"))))
+    // Own state only: IsEnabled() is also false while an ancestor is disabled, e.g. the main frame under a modal dialog
+    if (m_text->SetForegroundColour(m_check->IsThisEnabled() ? GetForegroundColour() : StateColor::darkModeColorFor(wxColour("#6B6A6A"))))
         m_text->Refresh();
 }
 
