@@ -1365,8 +1365,7 @@ set (CPACK_PACKAGE_VERSION_MAJOR "${ORCA_VERSION_MAJOR}")
 set (CPACK_PACKAGE_VERSION_MINOR "${ORCA_VERSION_MINOR}")
 set (CPACK_PACKAGE_VERSION_PATCH "${ORCA_VERSION_PATCH}")
 set (CPACK_PACKAGE_FILE_NAME "OrcaSlicer_Windows_Installer_V${SoftFever_VERSION}")
-# Suffix the Windows installer with its target arch so the x64 and arm64 builds
-# produce distinct filenames (matches ARCH_SUFFIX in build_orca.yml). Same
+# Suffix the name with the target arch so the x64 and arm64 builds differ. Same
 # CMAKE_SYSTEM_PROCESSOR mapping used by orcaslicer_copy_dlls() above.
 if (WIN32)
     if (CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
@@ -1378,47 +1377,17 @@ endif ()
 set (CPACK_PACKAGE_DESCRIPTION_SUMMARY "Orca Slicer is an open source slicer for FDM printers")
 set (CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/OrcaSlicer/OrcaSlicer")
 set (CPACK_PACKAGE_INSTALL_DIRECTORY ${CPACK_PACKAGE_NAME})
-set (CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/resources/images\\\\OrcaSlicer.ico")
-set (CPACK_NSIS_MUI_ICON "${CPACK_PACKAGE_ICON}")
-set (CPACK_NSIS_MUI_UNIICON "${CPACK_PACKAGE_ICON}")
-# Relative to the install dir: CPack's NSIS template prefixes $INSTDIR itself.
-set (CPACK_NSIS_INSTALLED_ICON_NAME "orca-slicer.exe")
 set (CPACK_PACKAGE_CHECKSUM SHA256)
+# Name of the Apps & features entry the installer writes.
 set (CPACK_PACKAGE_INSTALL_REGISTRY_KEY "OrcaSlicer")
-set (CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
-set (CPACK_NSIS_EXECUTABLES_DIRECTORY ".")
-# set (CPACK_NSIS_MODIFY_PATH "ON")
 set(CPACK_PACKAGE_EXECUTABLES "orca-slicer;OrcaSlicer")
 set(CPACK_CREATE_DESKTOP_LINKS "orca-slicer")
 set (CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/LICENSE.txt) # must also include in install command
+set (CPACK_WIX_UPGRADE_GUID "058245e8-20e0-4a95-9ab7-1acfe17ad511")
 
-# CI release builds Authenticode-sign the installer as makensis builds it: the payload before it is
-# compressed, the uninstaller the installer writes, and the installer itself. Only a configure run
-# with ORCA_SIGN_KMS_KEY in its environment (build_orca.yml) wires this in; scripts/sign_windows.ps1
-# lists what signing needs. The commands go into an included file because CPack writes
-# CPACK_NSIS_* values into CPackConfig.cmake unescaped. !include needs a native path, with its
-# backslashes doubled for CPackConfig.cmake. PowerShell 7 is preferred: Windows PowerShell started
-# under a PowerShell 7 session (CI runs cpack from one) inherits its module path and cannot load
-# Get-AuthenticodeSignature.
-if (WIN32 AND DEFINED ENV{ORCA_SIGN_KMS_KEY})
-    find_program(ORCA_SIGN_PWSH pwsh)
-    if (ORCA_SIGN_PWSH)
-        set(_orca_sign_shell pwsh)
-    else ()
-        set(_orca_sign_shell powershell)
-    endif ()
-    set(ORCA_SIGN_COMMAND "${_orca_sign_shell} -NoProfile -ExecutionPolicy Bypass -File \"${CMAKE_SOURCE_DIR}/scripts/sign_windows.ps1\" -Path")
-    string(CONFIGURE [=[
-!system '@ORCA_SIGN_COMMAND@ "${INST_DIR}"' = 0
-!uninstfinalize '@ORCA_SIGN_COMMAND@ "%1"' = 0
-!finalize '@ORCA_SIGN_COMMAND@ "%1"' = 0
-]=] _orca_sign_nsh @ONLY)
-    file(WRITE "${CMAKE_BINARY_DIR}/sign_windows.nsh" "${_orca_sign_nsh}")
-    file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/sign_windows.nsh" _orca_sign_nsh_path)
-    string(REPLACE "\\" "\\\\" _orca_sign_nsh_path "${_orca_sign_nsh_path}")
-    set(CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS "!include \\\"${_orca_sign_nsh_path}\\\"")
-endif ()
-
-set(CPACK_WIX_UPGRADE_GUID "058245e8-20e0-4a95-9ab7-1acfe17ad511")
-set(CPACK_GENERATOR NSIS)
+# The Windows installer is not a CPack generator: makensis runs
+# packaging/windows/orca-slicer.nsi over a tree staged with "cmake --install",
+# which is what lets it choose a per-user or a machine-wide install. See
+# build_win.bat and build_orca.yml. CPack is kept for the metadata above and for
+# other platforms' generators.
 include(CPack)

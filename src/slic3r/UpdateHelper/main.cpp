@@ -39,6 +39,16 @@ bool parse_handoff_path(int argc, wxChar** argv, wxString& out)
     return false;
 }
 
+// Accepts "--silent" and "--install-only", in any order and anywhere on the line.
+bool has_flag(int argc, wxChar** argv, const wxString& flag)
+{
+    for (int i = 1; i < argc; ++i) {
+        if (wxString(argv[i]) == flag)
+            return true;
+    }
+    return false;
+}
+
 // Reads the handoff at `path`. The command-line path is authoritative, so this
 // never falls back to the default file.
 bool read_handoff_from_file(const std::string& path, Slic3r::UpdateHandoff& out)
@@ -84,6 +94,18 @@ bool UpdateHelperApp::OnInit()
     // Not wxApp::OnInit(): its command-line parser rejects --handoff and returns false.
     SetAppName("OrcaSlicerUpdater");
 
+    // An automatic update starts the helper without a window: "--silent" fetches the
+    // file while the application still runs, "--install-only" installs one fetched
+    // by an earlier run.
+    using Mode = Slic3r::Updater::UpdateHelperFrame::Mode;
+    Mode mode = Mode::Interactive;
+    if (has_flag(argc, argv, "--silent"))
+        mode = Mode::Prefetch;
+    if (has_flag(argc, argv, "--install-only"))
+        mode = Mode::InstallOnly;
+    // The silent modes never open a window, not even for an error.
+    const bool silent_run = mode != Mode::Interactive;
+
     wxString handoff_arg;
     // A path given on the command line wins: the cache directory may differ between the
     // app's environment and this one (HOME or XDG_CACHE_HOME changed), so the default can
@@ -94,11 +116,16 @@ bool UpdateHelperApp::OnInit()
 
     Slic3r::UpdateHandoff handoff;
     if (!read_handoff_from_file(path, handoff)) {
-        if (!from_command_line)
+        // A silent run has no window to show an error in.
+        if (silent_run) {
+            if (from_command_line)
+                Slic3r::write_update_failure("The update information could not be read.");
+        } else if (!from_command_line) {
             wxMessageBox("The updater was started without an update to install.", kDialogTitle,
                          wxOK | wxICON_ERROR);
-        else
+        } else {
             wxMessageBox("The update information could not be read.", kDialogTitle, wxOK | wxICON_ERROR);
+        }
         Slic3r::remove_handoff();
         m_startup_failed = true;
         return true;
@@ -127,15 +154,22 @@ bool UpdateHelperApp::OnInit()
 
     if (!Slic3r::is_release_download_url(handoff.url, handoff.asset_name)) {
         release_lock();
-        Slic3r::Updater::relaunch_app(handoff);
-        wxMessageBox("The update information is incomplete or does not point to an OrcaSlicer release.", kDialogTitle,
-                     wxOK | wxICON_ERROR);
+        if (silent_run) {
+            // No window and no relaunch: the next start reports this.
+            Slic3r::write_update_failure("The update information is incomplete or does not point to an OrcaSlicer release.");
+        } else {
+            Slic3r::Updater::relaunch_app(handoff);
+            wxMessageBox("The update information is incomplete or does not point to an OrcaSlicer release.", kDialogTitle,
+                         wxOK | wxICON_ERROR);
+        }
         m_startup_failed = true;
         return true;
     }
 
-    m_frame = new Slic3r::Updater::UpdateHelperFrame(handoff);
-    m_frame->Show();
+    m_frame = new Slic3r::Updater::UpdateHelperFrame(handoff, mode);
+    // A silent run has no window: the frame exists only to keep the main loop running.
+    if (!silent_run)
+        m_frame->Show();
     m_frame->start();
     return true;
 }

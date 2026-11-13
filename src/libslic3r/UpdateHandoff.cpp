@@ -278,6 +278,26 @@ std::string updater_log_path()
     return (fs::path(cache_root()) / "updater.log").string();
 }
 
+std::string updater_failure_path()
+{
+    return (fs::path(cache_root()) / "update_failed.txt").string();
+}
+
+bool write_update_failure(const std::string& message)
+{
+    return write_file_atomic(updater_failure_path(), message);
+}
+
+bool read_update_failure(std::string& message)
+{
+    return read_file(updater_failure_path(), message) && !message.empty();
+}
+
+void remove_update_failure()
+{
+    remove_file(updater_failure_path());
+}
+
 std::string install_identity_key(const std::string& install_root)
 {
     std::string normalised = install_root;
@@ -319,9 +339,10 @@ DownloadPrep prepare_download_dir(const std::string& dir,
     // A .part is resumed only for the build it was started for, and only while it is
     // smaller than that build: anything else is a leftover.
     std::string recorded;
-    if (!digest.empty() && fs::is_regular_file(part, ec) && read_file(marker.string(), recorded)) {
-        while (!recorded.empty() && (recorded.back() == '\n' || recorded.back() == '\r' || recorded.back() == ' '))
-            recorded.pop_back();
+    const bool  have_marker = read_file(marker.string(), recorded);
+    while (!recorded.empty() && (recorded.back() == '\n' || recorded.back() == '\r' || recorded.back() == ' '))
+        recorded.pop_back();
+    if (!digest.empty() && fs::is_regular_file(part, ec) && have_marker) {
         prep.resumable = recorded == digest;
         if (prep.resumable && expected_size > 0) {
             const auto size = fs::file_size(part, ec);
@@ -337,12 +358,20 @@ DownloadPrep prepare_download_dir(const std::string& dir,
                 prep.dropped.push_back(stale.string());
     }
 
+    // The helper renames a verified download to its asset name. It is kept while it is this
+    // build's, so a prefetch that is never installed does not download the artifact again.
+    const fs::path artifact = directory / keep;
+    if (!prep.complete && !digest.empty() && expected_size > 0 && recorded == digest) {
+        const auto size = fs::file_size(artifact, ec);
+        prep.complete   = !ec && static_cast<int64_t>(size) == expected_size;
+    }
+
     // Whatever else sits here belongs to another release.
     for (fs::directory_iterator it(directory, ec), end; !ec && it != end; it.increment(ec)) {
         const fs::path entry = it->path();
         if (!fs::is_regular_file(entry, ec))
             continue;
-        if (entry == part || entry == marker)
+        if (entry == part || entry == marker || (prep.complete && entry == artifact))
             continue;
         if (fs::remove(entry, ec))
             prep.dropped.push_back(entry.string());

@@ -47,10 +47,18 @@ private:
 class UpdateHelperFrame : public wxFrame
 {
 public:
-    explicit UpdateHelperFrame(const UpdateHandoff& handoff);
+    // How this run was started. The silent modes never show the window: they only
+    // write the log, and leave any failure for the next start to report.
+    enum class Mode {
+        Interactive,  // started from the application: wait, download, install
+        Prefetch,     // --silent: fetch the artifact only; a later run installs it
+        InstallOnly,  // --install-only: the artifact is complete; install after the application quits
+    };
+
+    explicit UpdateHelperFrame(const UpdateHandoff& handoff, Mode mode = Mode::Interactive);
     ~UpdateHelperFrame() override;
 
-    // Starts the wait/download/verify/install sequence.
+    // Starts this mode's sequence on a worker thread.
     void start();
 
     // Valid once the worker has finished; the app returns this from OnRun().
@@ -63,7 +71,17 @@ private:
     void on_cancel(wxCommandEvent& event);
     void on_close(wxCloseEvent& event);
 
+    bool silent() const { return m_mode != Mode::Interactive; }
+
     void run();                                  // worker thread
+    // Fetches the artifact into `artifact` unless an earlier run already did. Does not verify it.
+    bool fetch_artifact(const boost::filesystem::path& download_dir, const std::string& asset,
+                        const boost::filesystem::path& part, const boost::filesystem::path& artifact);
+    // Verifies the file this run or an earlier one fetched. Nothing to install is not a
+    // failure at quit: the next start fetches it again.
+    bool check_artifact(const boost::filesystem::path& artifact);
+    // Ends a failed run: logged, and recorded for the next start when there is no window.
+    void fail(int code, const std::string& message);
     WaitResult wait_for_parent();
     // Taken only after the parent is gone: until then it still holds the lock.
     LockResult take_install_lock(std::string& error);
@@ -74,6 +92,7 @@ private:
     void finish(int code, const wxString& message, bool alert);
 
     UpdateHandoff      m_handoff;
+    Mode               m_mode = Mode::Interactive;
     LogFile            m_log;
     wxStaticText*      m_version_label = nullptr;
     wxStaticText*      m_status = nullptr;

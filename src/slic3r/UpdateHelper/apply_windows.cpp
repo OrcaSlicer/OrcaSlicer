@@ -185,6 +185,43 @@ bool verify_signature(const std::string& artifact_path, std::string& error)
     return true;
 }
 
+// True when this user can write inside the install root. That is what separates
+// a per-user install from a machine-wide one in Program Files. The probe file
+// goes away with its handle.
+bool install_root_writable(const std::wstring& root)
+{
+    std::wstring probe = root;
+    if (!probe.empty() && probe.back() != L'\\')
+        probe += L'\\';
+    probe += L".orca-write-test-" + std::to_wstring(static_cast<unsigned long>(::GetCurrentProcessId()));
+
+    const HANDLE file = ::CreateFileW(probe.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
+                                      FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, nullptr);
+    if (file == INVALID_HANDLE_VALUE)
+        return false;
+    ::CloseHandle(file);
+    return true;
+}
+
+// Waits for the installer to exit, and takes ownership of its handle.
+bool wait_for_installer(HANDLE process, std::string& error)
+{
+    const DWORD waited = ::WaitForSingleObject(process, 30u * 60u * 1000u);
+    DWORD       exit_code = 1;
+    const BOOL  got_exit = ::GetExitCodeProcess(process, &exit_code);
+    ::CloseHandle(process);
+
+    if (waited != WAIT_OBJECT_0) {
+        error = "The installer took too long and the update is unconfirmed.";
+        return false;
+    }
+    if (!got_exit || exit_code != 0) {
+        error = "The installer reported a failure (exit code " + std::to_string(static_cast<long long>(got_exit ? exit_code : 1)) + ").";
+        return false;
+    }
+    return true;
+}
+
 bool run_installer(const std::string& artifact_path, const std::string& install_root, std::string& error)
 {
     // Never hand an unverified executable to the administrator prompt.
@@ -200,6 +237,30 @@ bool run_installer(const std::string& artifact_path, const std::string& install_
     const std::wstring parameters = L"/S /D=" + widen_utf8(root);
     const std::wstring file       = widen_utf8(artifact_path);
     const std::wstring directory  = widen_utf8(root);
+
+    // The installer never raises UAC for itself, so the scope is decided here:
+    // a tree this user can write to is the per-user install, and the installer
+    // is started directly. Anything else is a machine-wide tree, which only an
+    // administrator token can replace.
+    if (install_root_writable(directory)) {
+        STARTUPINFOW startup;
+        ::ZeroMemory(&startup, sizeof(startup));
+        startup.cb = sizeof(startup);
+        PROCESS_INFORMATION process;
+        ::ZeroMemory(&process, sizeof(process));
+
+        std::wstring command = L'"' + file + L"\" " + parameters;
+        // The old build's uninstaller removes the install tree, so it must not be the
+        // working directory: the helper's own folder is inherited instead.
+        if (!::CreateProcessW(file.c_str(), command.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr,
+                              &startup, &process)) {
+            const DWORD last = ::GetLastError();
+            error = "The installer could not be started (error " + std::to_string(static_cast<long long>(last)) + ").";
+            return false;
+        }
+        ::CloseHandle(process.hThread);
+        return wait_for_installer(process.hProcess, error);
+    }
 
     SHELLEXECUTEINFOW info;
     ::ZeroMemory(&info, sizeof(info));
@@ -224,20 +285,7 @@ bool run_installer(const std::string& artifact_path, const std::string& install_
         return false;
     }
 
-    const DWORD waited = ::WaitForSingleObject(info.hProcess, 30u * 60u * 1000u);
-    DWORD       exit_code = 1;
-    const BOOL  got_exit = ::GetExitCodeProcess(info.hProcess, &exit_code);
-    ::CloseHandle(info.hProcess);
-
-    if (waited != WAIT_OBJECT_0) {
-        error = "The installer took too long and the update is unconfirmed.";
-        return false;
-    }
-    if (!got_exit || exit_code != 0) {
-        error = "The installer reported a failure (exit code " + std::to_string(static_cast<long long>(got_exit ? exit_code : 1)) + ").";
-        return false;
-    }
-    return true;
+    return wait_for_installer(info.hProcess, error);
 }
 
 // True when a process other than this one runs an image under install_root.
@@ -283,7 +331,7 @@ bool other_instance_running(const std::string& install_root)
 
 } // namespace
 
-bool apply_windows_install(const UpdateHandoff& handoff, const std::string& artifact_path, ProgressSink& sink, std::string& error)
+bool apply_windows_install(const UpdateHandoff& handoff, const std::string& artifact_path, ProgressSink& sink, std::string& error, bool launch)
 {
     if (sink.cancelled && sink.cancelled()) {
         error = "cancelled";
@@ -344,7 +392,8 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
         return false;
     }
 
-    sink.say(Stage::Launching, 90, "Starting " + label);
+    if (launch)
+        sink.say(Stage::Launching, 90, "Starting " + label);
 
     // Recorded before the launch: a crash while the new build starts still
     // leaves the application knowing what it is running.
@@ -357,7 +406,7 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
         BOOST_LOG_TRIVIAL(warning) << "Could not record the installed build " << handoff.version;
 
     const std::string exe_path = handoff.exe_path.empty() ? install_root + "\\orca-slicer.exe" : handoff.exe_path;
-    if (!launch_detached(exe_path, error)) {
+    if (launch && !launch_detached(exe_path, error)) {
         remove_path_quietly(updater_install_record_path());
         remove_pending_install();
         error += " The installer finished, but the new version did not start.";
@@ -368,7 +417,7 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
 
 #else
 
-bool apply_windows_install(const UpdateHandoff&, const std::string&, ProgressSink&, std::string& error)
+bool apply_windows_install(const UpdateHandoff&, const std::string&, ProgressSink&, std::string& error, bool)
 {
     error = "Windows installs are not supported on this platform.";
     return false;

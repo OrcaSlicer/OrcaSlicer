@@ -448,4 +448,24 @@ void update_skip_values(const UpdateCandidate& candidate,
         skip_version = candidate.version;
 }
 
+UpdateAction update_action(const UpdateRequest& request)
+{
+    if (!request.available)
+        return UpdateAction::None;
+
+    // A manual check ignores a skip: its dialog decides, and the user can still decline there.
+    if (request.skipped && !request.user_initiated)
+        return UpdateAction::None;
+
+    if (!request.automatic)
+        return UpdateAction::InstallNow;
+
+    return UpdateAction::Prefetch;
+}
+
+bool update_ready_to_install(bool download_ready, bool project_dirty, bool job_running)
+{
+    return download_ready && !project_dirty && !job_running;
+}
+
 } // namespace Slic3r

@@ -198,6 +198,31 @@ TEST_CASE("Other artifacts in the download directory are dropped", "[UpdateHando
     CHECK(fs::exists(part_path(dir.path())));
 }
 
+TEST_CASE("A verified artifact is kept for the build it belongs to", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    // The helper renames a verified download to its asset name and leaves the digest marker.
+    write_text(dir.path() / kAsset, std::string(kSize, 'x'));
+    write_text(marker_path(dir.path()), kDigest);
+
+    const DownloadPrep prep = prepare_download_dir(dir.string(), kAsset, kDigest, kSize);
+    CHECK(prep.complete);
+    CHECK_FALSE(prep.resumable);
+    CHECK(fs::exists(dir.path() / kAsset));
+    CHECK(prep.dropped.empty());
+}
+
+TEST_CASE("A verified artifact recorded for another build is dropped", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    write_text(dir.path() / kAsset, std::string(kSize, 'x'));
+    write_text(marker_path(dir.path()), "sha256:2222");
+
+    const DownloadPrep prep = prepare_download_dir(dir.string(), kAsset, kDigest, kSize);
+    CHECK_FALSE(prep.complete);
+    CHECK_FALSE(fs::exists(dir.path() / kAsset));
+}
+
 TEST_CASE("The build a partial download belongs to is recorded next to it", "[UpdateHandoff]")
 {
     ScopedTemporaryDir dir;
@@ -384,4 +409,24 @@ TEST_CASE("The identity key is prefixed and free of whitespace", "[UpdateHandoff
     CHECK(key.find_first_of(" \t\r\n\v\f") == std::string::npos);
     CHECK(key.size() == std::string("installed_artifact:").size() + 16);
     CHECK(key.find_first_not_of("0123456789abcdef", std::string("installed_artifact:").size()) == std::string::npos);
+}
+
+TEST_CASE("A recorded update failure is read once and removed", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    set_updater_cache_dir(dir.string());
+
+    std::string message;
+    CHECK_FALSE(read_update_failure(message));
+
+    CHECK(write_update_failure("The downloaded file is 12 bytes, expected 1000."));
+    CHECK(fs::exists(updater_failure_path()));
+    CHECK(read_update_failure(message));
+    CHECK(message == "The downloaded file is 12 bytes, expected 1000.");
+
+    remove_update_failure();
+    CHECK_FALSE(fs::exists(updater_failure_path()));
+    CHECK_FALSE(read_update_failure(message));
+
+    clear_updater_cache_dir();
 }

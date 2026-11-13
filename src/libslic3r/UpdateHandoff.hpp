@@ -75,6 +75,13 @@ std::string updater_install_record_path();
 std::string updater_pending_path();
 std::string updater_lock_path();
 std::string updater_log_path();
+std::string updater_failure_path();
+
+// Why an update did not install. Written by the helper, read once by the next start: an
+// automatic update shows no dialog, so this is the only way the failure reaches the user.
+bool write_update_failure(const std::string& message);
+bool read_update_failure(std::string& message);
+void remove_update_failure();
 
 // Key of the app config entry recording one install's installed digest. The path is
 // hashed because AppConfig keys cannot hold one: they reject whitespace.

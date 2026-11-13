@@ -447,7 +447,8 @@ jobs:
       # cache, so most runs never download it, and a cache miss fetches the
       # release archive from SourceForge instead of going through the Chocolatey
       # community feed, which hosted runners often cannot reach. Prepending it to
-      # PATH also makes cpack use it over the NSIS preinstalled on some images.
+      # PATH also makes the installer step use it over the NSIS preinstalled on
+      # some images.
       - name: Restore NSIS
         id: nsis-cache
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
@@ -486,8 +487,8 @@ jobs:
       # Windows release builds are Authenticode-signed with the company's key in Google Cloud KMS
       # (README, Code Signing Policy): pushes, schedules and manual runs of main and release/* in
       # this repository, once the WINDOWS_SIGN_* variables are set. The Workload Identity provider
-      # accepts tokens from nothing else. This runs before the build so that CMake wires signing
-      # into the NSIS installer.
+      # accepts tokens from nothing else. This runs before the build so that the signing variables
+      # are in the environment the installer build reads them from.
       - name: Configure code signing
         id: codesign
         if: runner.os == 'Windows' && github.repository == 'OrcaSlicer/OrcaSlicer' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/')) && github.event_name != 'pull_request' && vars.WINDOWS_SIGN_KMS_KEY != ''
@@ -537,7 +538,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         # Shipped into both the already-installed tree (portable zip, MSIX) and
-        # the checkout cpack re-installs from when it builds the NSIS installer.
+        # the checkout the installer step stages from.
         run: scripts\build_preset_cache.bat --prune-source "%BUILD_DIR%" "resources\profiles" "%BUILD_DIR%\OrcaSlicer\resources\profiles"
 
       # Taken after the build because the token lasts an hour, which covers signing, the installer
@@ -553,8 +554,8 @@ jobs:
           create_credentials_file: false
 
       # Signs what the portable zip, the artifact and the MSIX package ship, the profile validator,
-      # and the NSIS plugins the installer carries. The installer build signs its own copy of the
-      # app, since cpack installs the files again.
+      # and the NSIS plugins the installer carries. The installer step stages the files again and
+      # signs that copy.
       - name: Sign Windows binaries
         if: steps.codesign.outcome == 'success'
         shell: pwsh
@@ -587,15 +588,32 @@ jobs:
       # x86 emulation, packaging the native arm64 payload from build-arm64.
       - name: Create installer Win
         if: runner.os == 'Windows' && !vars.SELF_HOSTED
-        working-directory: ${{ github.workspace }}/${{ env.BUILD_DIR }}
-        # Read by scripts/sign_windows.ps1 when CMake wired signing into the installer.
+        # Read by scripts/sign_windows.ps1 while makensis signs the payload, the uninstaller and
+        # the installer itself.
         env:
           ORCA_SIGN_TOKEN: ${{ steps.codesign_auth.outputs.access_token }}
         run: |
-          cpack -G NSIS
+          # makensis packs a tree staged by "cmake --install", not the build dir.
+          $build = Join-Path $env:GITHUB_WORKSPACE $env:BUILD_DIR
+          $stage = Join-Path $env:RUNNER_TEMP 'installer-stage'
+          if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
+          cmake --install $build --prefix $stage --config Release
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+          # The nightly deploy and the signature check name this file, so keep the pattern.
+          $installer = Join-Path $build "OrcaSlicer_Windows_Installer_${{ env.ver }}${{ env.ARCH_SUFFIX }}.exe"
+          $log = Join-Path $build 'makensis.log'
+          $nsis = @('/V3', "/O$log", "/DSTAGE=$stage", "/DOUTFILE=$installer", "/DAPP_VERSION=$('${{ env.ver }}' -replace '^V', '')")
+          if ($env:ORCA_SIGN_CERTFILE -and $env:ORCA_SIGN_KMS_KEY -and $env:ORCA_SIGN_JSIGN) {
+            $shell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { 'pwsh' } else { 'powershell' }
+            $nsis += "-DORCA_SIGN_CMD=$shell -NoProfile -ExecutionPolicy Bypass -File ${{ github.workspace }}/scripts/sign_windows.ps1 -Path"
+          }
+          $nsis += "${{ github.workspace }}/packaging/windows/orca-slicer.nsi"
+
+          & makensis @nsis
           if ($LASTEXITCODE -ne 0) {
             # makensis writes its errors, and the signing hook's output, only to this log.
-            Get-Content _CPack_Packages/*/NSIS/NSISOutput.log -Tail 80
+            Get-Content $log -Tail 80 -ErrorAction SilentlyContinue
             exit 1
           }
 
@@ -616,7 +634,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "7-Zip could not unpack $($installer.Name)." }
             $installed = Join-Path $env:RUNNER_TEMP 'installer-test'
             Start-Process -Wait -FilePath $installer.FullName -ArgumentList '/S', "/D=$installed"
-            $paths += $installer.FullName, $payload, (Join-Path $installed 'Uninstall.exe')
+            $paths += $installer.FullName, $payload, (Join-Path $installed 'uninstall.exe')
           }
           ./scripts/sign_windows.ps1 -Verify -Path $paths
 

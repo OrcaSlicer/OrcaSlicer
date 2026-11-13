@@ -47,12 +47,13 @@ const char* stage_key(Stage stage)
 bool apply_update(const UpdateHandoff& handoff,
                   const std::string&   artifact_path,
                   ProgressSink&        sink,
-                  std::string&         error)
+                  std::string&         error,
+                  bool                 launch_new_build)
 {
     if (handoff.flavour == "windows_installer")
-        return apply_windows_install(handoff, artifact_path, sink, error);
+        return apply_windows_install(handoff, artifact_path, sink, error, launch_new_build);
     if (handoff.flavour == "macos_bundle")
-        return apply_macos_install(handoff, artifact_path, sink, error);
+        return apply_macos_install(handoff, artifact_path, sink, error, launch_new_build);
     error = "This installation cannot update itself.";
     return false;
 }

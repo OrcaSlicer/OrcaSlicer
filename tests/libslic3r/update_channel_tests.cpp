@@ -809,3 +809,59 @@ TEST_CASE("Only the portable and AppImage flavours are download-only", "[UpdateC
     CHECK_FALSE(is_download_only(InstallFlavour::Flatpak));
     CHECK_FALSE(is_download_only(InstallFlavour::Other));
 }
+
+TEST_CASE("A check with nothing to offer has nothing to do", "[UpdateChannel]")
+{
+    UpdateRequest request;
+    request.available = false;
+
+    CHECK(update_action(request) == UpdateAction::None);
+
+    // Unavailable wins over every other field, a manual check included.
+    request.user_initiated = true;
+    request.automatic      = false;
+    CHECK(update_action(request) == UpdateAction::None);
+}
+
+TEST_CASE("An automatic check ignores a skipped update", "[UpdateChannel]")
+{
+    UpdateRequest request;
+    request.available = true;
+    request.skipped   = true;
+    request.automatic = true;
+
+    CHECK(update_action(request) == UpdateAction::None);
+}
+
+TEST_CASE("A manual check installs a skipped update", "[UpdateChannel]")
+{
+    UpdateRequest request;
+    request.available      = true;
+    request.skipped        = true;
+    request.user_initiated = true;
+    request.automatic      = false;
+
+    CHECK(update_action(request) == UpdateAction::InstallNow);
+}
+
+TEST_CASE("An automatic check prefetches the update", "[UpdateChannel]")
+{
+    const UpdateRequest request{true, false, false, true};
+
+    CHECK(update_action(request) == UpdateAction::Prefetch);
+}
+
+TEST_CASE("A non-automatic check installs the update now", "[UpdateChannel]")
+{
+    const UpdateRequest request{true, false, true, false};
+
+    CHECK(update_action(request) == UpdateAction::InstallNow);
+}
+
+TEST_CASE("An update installs on quit only when it is downloaded and nothing is in the way", "[UpdateChannel]")
+{
+    CHECK(update_ready_to_install(true, false, false));
+    CHECK_FALSE(update_ready_to_install(false, false, false));
+    CHECK_FALSE(update_ready_to_install(true, true, false));
+    CHECK_FALSE(update_ready_to_install(true, false, true));
+}

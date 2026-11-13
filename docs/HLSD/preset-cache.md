@@ -351,9 +351,8 @@ every preset JSON they replace — the vendor's own profile included. Only a ven
 actually has a cache is pruned, so a vendor the generator skipped keeps its JSONs and is
 simply parsed at startup.
 
-Caches are generated into the checkout's own `resources/profiles`, because that is what
-cpack re-installs from when it builds the NSIS installer — so that directory is also a
-prune target in CI. Pruning it deletes the checkout's preset JSONs, which is a packaging
+Caches are generated into the checkout's own `resources/profiles`, because that is what the
+Windows installer stages from — so that directory is also a prune target in CI. Pruning it deletes the checkout's preset JSONs, which is a packaging
 step, not something a build should do to a working tree by surprise: the Windows script
 refuses that target unless given `--prune-source`, and CI passes it.
 

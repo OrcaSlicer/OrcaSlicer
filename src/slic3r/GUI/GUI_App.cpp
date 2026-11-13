@@ -1129,9 +1129,30 @@ void GUI_App::post_init()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: false";
     }
 
+    // OnExit() runs after the windows are gone, so the install on exit decides from what the
+    // close saw. Bound here, after the GL retry, so a postponed post_init does not bind twice.
+    mainframe->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& evt) {
+        if (this->plater_ != nullptr) {
+            m_closing_project_dirty = this->plater_->is_project_dirty();
+            m_closing_job_running   = this->plater_->is_background_process_slicing() || this->plater_->is_export_gcode_scheduled();
+        }
+        evt.Skip();
+    });
+
     // Restore a backup and consume installed.json before anything else: the G-code viewer
     // never runs the block below, so it would otherwise never finish an interrupted install.
-    CallAfter([this] { this->finish_pending_update(); });
+    CallAfter([this] {
+        this->finish_pending_update();
+
+        // An automatic update shows no dialog when it fails; the helper leaves a message here.
+        std::string failure;
+        if (this->plater_ != nullptr && read_update_failure(failure)) {
+            this->plater_->get_notification_manager()->push_notification(NotificationType::CustomNotification,
+                                                                         NotificationManager::NotificationLevel::WarningNotificationLevel,
+                                                                         failure);
+            remove_update_failure();
+        }
+    });
 
     // The extra CallAfter() is needed because of Mac, where this is the only way
     // to popup a modal dialog on start without screwing combo boxes.
@@ -2934,6 +2955,8 @@ bool GUI_App::OnInit()
 
 int GUI_App::OnExit()
 {
+    install_update_on_exit();
+
     stop_http_server();
     stop_sync_user_preset();
     if (m_startup_cloud_plugin_fetch_thread.joinable())
@@ -3496,11 +3519,35 @@ bool GUI_App::on_init_inner()
             if (this->plater_ == nullptr || !m_update_candidate.available)
                 return;
 
+            const bool by_user = evt.GetInt() != 0;
+
             // A user-initiated check shows the dialog even for a skipped version; the startup
             // check stays quiet then.
-            if (evt.GetInt() == 0 &&
-                update_is_skipped(m_update_candidate, app_config->get("skip_version"), app_config->skip_artifact()))
+            if (!by_user && update_is_skipped(m_update_candidate, app_config->get("skip_version"), app_config->skip_artifact()))
                 return;
+
+            // The automatic check never shows a dialog: it downloads quietly and installs on quit.
+            if (!by_user) {
+                UpdateRequest request;
+                request.available      = m_update_candidate.available;
+                request.skipped        = false;
+                request.user_initiated = false;
+                request.automatic      = true;
+
+                switch (update_action(request)) {
+                case UpdateAction::Prefetch:
+                    BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": downloading in the background";
+                    prefetch_update();
+                    break;
+                case UpdateAction::InstallNow:
+                    BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": installing now";
+                    break;
+                case UpdateAction::None:
+                    BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": nothing to do";
+                    break;
+                }
+                return;
+            }
 
             // Destroyed before the action runs: the in-app update closes the main frame, which
             // would otherwise delete the dialog as a child and then again at scope exit.
@@ -6859,6 +6906,63 @@ std::string extract_updater_helper()
     }
 }
 
+// The handoff the automatic paths write. The manual path builds its own, because it only
+// writes after taking the install lock.
+UpdateHandoff make_update_handoff(const UpdateCandidate& candidate)
+{
+    UpdateHandoff handoff;
+    handoff.channel       = update_channel_key(candidate.channel);
+    handoff.version       = candidate.version;
+    handoff.version_label = candidate.version_label;
+    handoff.asset_name    = candidate.asset.name;
+    handoff.url           = candidate.asset.url;
+    handoff.digest        = candidate.asset.digest;
+    handoff.size          = candidate.asset.size;
+    handoff.flavour       = install_flavour_key(current_install_flavour());
+    handoff.install_root  = app_install_root();
+    handoff.exe_path      = app_exe_path();
+    handoff.cache_dir     = update_cache_dir();
+    handoff.parent_pid    = current_process_id();
+    handoff.log_path      = updater_log_path();
+    handoff.lock_path     = updater_lock_path();
+    return handoff;
+}
+
+// The copy extract_updater_helper() left in the cache, if any. Preferred at exit, because a
+// prefetch helper may still run from it and Windows cannot replace a running binary.
+std::string extracted_updater_helper()
+{
+    const fs::path dir(updater_helper_dir());
+    std::vector<fs::path> candidates;
+#if defined __APPLE__
+    candidates.push_back(dir / updater_helper_name / "Contents/MacOS" / updater_helper_bare_name);
+    candidates.push_back(dir / updater_helper_bare_name);
+    candidates.push_back(dir / updater_helper_name);
+#else
+    candidates.push_back(dir / "updater" / updater_helper_name);
+    candidates.push_back(dir / updater_helper_name);
+#endif
+    for (const fs::path& candidate : candidates) {
+        boost::system::error_code ec;
+        if (fs::is_regular_file(candidate, ec))
+            return candidate.string();
+    }
+    return {};
+}
+
+// True when the helper's verified download of this candidate is still in the cache.
+bool update_download_ready(const UpdateCandidate& candidate)
+{
+    if (candidate.asset.size <= 0)
+        return false;
+    const fs::path artifact = fs::path(updater_download_dir()) / fs::path(candidate.asset.name).filename();
+    boost::system::error_code ec;
+    if (!fs::is_regular_file(artifact, ec))
+        return false;
+    const auto size = fs::file_size(artifact, ec);
+    return !ec && static_cast<int64_t>(size) == candidate.asset.size;
+}
+
 // True when this process runs from `path`. Compared on disk, so a differently spelled path still matches.
 bool running_from(const std::string& path)
 {
@@ -6922,7 +7026,6 @@ void GUI_App::start_in_app_update()
     }
 
     const std::string lock_path = updater_lock_path();
-    const int64_t     parent_pid = current_process_id();
     if (!acquire_install_lock(lock_path)) {
         MessageDialog dlg(this->mainframe, _L("An update is already in progress."), _L("Update in progress"),
                           wxOK | wxICON_INFORMATION);
@@ -6930,21 +7033,7 @@ void GUI_App::start_in_app_update()
         return;
     }
 
-    UpdateHandoff handoff;
-    handoff.channel       = update_channel_key(m_update_candidate.channel);
-    handoff.version       = m_update_candidate.version;
-    handoff.version_label = m_update_candidate.version_label;
-    handoff.asset_name    = m_update_candidate.asset.name;
-    handoff.url           = m_update_candidate.asset.url;
-    handoff.digest        = m_update_candidate.asset.digest;
-    handoff.size          = m_update_candidate.asset.size;
-    handoff.flavour       = install_flavour_key(current_install_flavour());
-    handoff.install_root  = app_install_root();
-    handoff.exe_path      = app_exe_path();
-    handoff.cache_dir     = update_cache_dir();
-    handoff.parent_pid    = parent_pid;
-    handoff.log_path      = updater_log_path();
-    handoff.lock_path     = lock_path;
+    const UpdateHandoff handoff = make_update_handoff(m_update_candidate);
 
     const std::string helper = extract_updater_helper();
     if (helper.empty()) {
@@ -6985,6 +7074,106 @@ void GUI_App::start_in_app_update()
         MessageDialog dlg(nullptr, _L("Could not start the updater."), _L("Update"), wxOK | wxICON_ERROR);
         dlg.ShowModal();
     }
+}
+
+void GUI_App::prefetch_update()
+{
+    // Without an asset there is no URL or digest to hand off; the helper would refuse the job.
+    if (!can_install_in_app(m_update_candidate, current_install_flavour())) {
+        BOOST_LOG_TRIVIAL(info) << "Not prefetching the update: no asset for this installation";
+        return;
+    }
+
+    set_updater_cache_dir(update_cache_dir());
+
+    // A second check before the install finds the same artifact; it needs no second download.
+    const std::string artifact = m_update_candidate.identity();
+    if (artifact == m_prefetching_artifact) {
+        BOOST_LOG_TRIVIAL(info) << "The background download of " << m_update_candidate.asset.name << " was already started";
+        return;
+    }
+
+    const std::string helper = extract_updater_helper();
+    if (helper.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "Not prefetching the update: the updater helper is missing";
+        return;
+    }
+
+    if (!write_handoff(make_update_handoff(m_update_candidate))) {
+        BOOST_LOG_TRIVIAL(warning) << "Not prefetching the update: could not write the handoff";
+        return;
+    }
+
+    // The helper outlives this process and must not keep the log folder as its working directory.
+    wxExecuteEnv exec_env;
+    exec_env.cwd = from_u8(updater_helper_dir());
+
+    const wxString helper_path  = from_u8(helper);
+    const wxString handoff_path = from_u8(updater_handoff_path());
+    const wchar_t* argv[]       = {helper_path.wc_str(), L"--handoff", handoff_path.wc_str(), L"--silent", nullptr};
+
+    m_prefetching_artifact = artifact;
+    if (wxExecute(argv, wxEXEC_ASYNC, nullptr, &exec_env) <= 0) {
+        m_prefetching_artifact.clear();
+        remove_handoff();
+        BOOST_LOG_TRIVIAL(warning) << "Could not start the background download of " << m_update_candidate.asset.name;
+        return;
+    }
+    BOOST_LOG_TRIVIAL(info) << "Started the background download of " << m_update_candidate.asset.name;
+}
+
+void GUI_App::install_update_on_exit()
+{
+    if (!m_update_candidate.available)
+        return;
+
+    if (!can_install_in_app(m_update_candidate, current_install_flavour())) {
+        BOOST_LOG_TRIVIAL(info) << "Not installing the update on exit: no asset for this installation";
+        return;
+    }
+
+    set_updater_cache_dir(update_cache_dir());
+
+    if (!update_download_ready(m_update_candidate)) {
+        BOOST_LOG_TRIVIAL(info) << "Not installing the update on exit: no verified download of " << m_update_candidate.asset.name;
+        return;
+    }
+
+    // The close event recorded whether a project or a job was at risk; the window is gone here.
+    if (!update_ready_to_install(true, m_closing_project_dirty, m_closing_job_running)) {
+        BOOST_LOG_TRIVIAL(info) << "Update deferred to a later quit: project dirty " << m_closing_project_dirty << ", job running "
+                                << m_closing_job_running;
+        return;
+    }
+
+    // The extracted copy first: a prefetch helper may still run from it, and Windows cannot
+    // replace a running binary.
+    std::string helper = extracted_updater_helper();
+    if (helper.empty())
+        helper = extract_updater_helper();
+    if (helper.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "Not installing the update on exit: the updater helper is missing";
+        return;
+    }
+
+    // The helper deletes the handoff it read at prefetch time, so this writes a fresh one.
+    if (!write_handoff(make_update_handoff(m_update_candidate))) {
+        BOOST_LOG_TRIVIAL(warning) << "Not installing the update on exit: could not write the handoff";
+        return;
+    }
+
+    wxExecuteEnv exec_env;
+    exec_env.cwd = from_u8(updater_helper_dir());
+
+    const wxString helper_path  = from_u8(helper);
+    const wxString handoff_path = from_u8(updater_handoff_path());
+    const wchar_t* argv[]       = {helper_path.wc_str(), L"--handoff", handoff_path.wc_str(), L"--install-only", L"--silent", nullptr};
+    if (wxExecute(argv, wxEXEC_ASYNC, nullptr, &exec_env) <= 0) {
+        remove_handoff();
+        BOOST_LOG_TRIVIAL(warning) << "Could not start the updater on exit";
+        return;
+    }
+    BOOST_LOG_TRIVIAL(info) << "Started the updater on exit for " << m_update_candidate.version_label;
 }
 
 void GUI_App::finish_pending_update()

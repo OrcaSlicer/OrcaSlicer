@@ -227,7 +227,7 @@ struct ScratchGuard
 
 } // namespace
 
-bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifact_path, ProgressSink& sink, std::string& error)
+bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifact_path, ProgressSink& sink, std::string& error, bool launch)
 {
     if (sink.cancelled && sink.cancelled()) {
         error = "cancelled";
@@ -469,7 +469,8 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
 
     guard.release();
 
-    sink.say(Stage::Launching, 90, "Starting " + label);
+    if (launch)
+        sink.say(Stage::Launching, 90, "Starting " + label);
 
     // Recorded before the launch: a crash while the new build starts still
     // leaves the application knowing what it is running.
@@ -483,7 +484,7 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
         return false;
     }
 
-    if (!spawn_unwaited({"/usr/bin/open", "-n", bundle}, error)) {
+    if (launch && !spawn_unwaited({"/usr/bin/open", "-n", bundle}, error)) {
         error = rollback_failure(error);
         return false;
     }
@@ -495,7 +496,7 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
 
 #else
 
-bool apply_macos_install(const UpdateHandoff&, const std::string&, ProgressSink&, std::string& error)
+bool apply_macos_install(const UpdateHandoff&, const std::string&, ProgressSink&, std::string& error, bool)
 {
     error = "macOS installs are not supported on this platform.";
     return false;

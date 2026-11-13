@@ -253,9 +253,10 @@ void LogFile::write(const std::string& message)
 // UpdateHelperFrame
 // ---------------------------------------------------------------------------
 
-UpdateHelperFrame::UpdateHelperFrame(const UpdateHandoff& handoff)
+UpdateHelperFrame::UpdateHelperFrame(const UpdateHandoff& handoff, Mode mode)
     : wxFrame(nullptr, wxID_ANY, "OrcaSlicer Update")
     , m_handoff(handoff)
+    , m_mode(mode)
     , m_log(handoff.log_path)
 {
     SetClientSize(wxSize(480, 200));
@@ -296,7 +297,11 @@ UpdateHelperFrame::UpdateHelperFrame(const UpdateHandoff& handoff)
     Bind(wxEVT_BUTTON, &UpdateHelperFrame::on_cancel, this, wxID_CANCEL);
     Bind(wxEVT_CLOSE_WINDOW, &UpdateHelperFrame::on_close, this);
 
-    m_log.write("update helper started for version " + handoff.version + " on the " + handoff.channel + " channel");
+    const char* mode_name = m_mode == Mode::Prefetch    ? "prefetch"
+                          : m_mode == Mode::InstallOnly ? "install-only"
+                                                        : "interactive";
+    m_log.write(std::string("update helper started in ") + mode_name + " mode for version " + handoff.version +
+                " on the " + handoff.channel + " channel");
 }
 
 UpdateHelperFrame::~UpdateHelperFrame()
@@ -368,8 +373,9 @@ void UpdateHelperFrame::finish(int code, const wxString& message, bool alert)
     m_exit_code.store(code);
     m_worker_done.store(true);
     // The application closed itself for this update: if the update does not go
-    // through, start it again rather than leave the user without one.
-    const bool relaunch = code != 0 && m_parent_gone;
+    // through, start it again rather than leave the user without one. A silent run
+    // must not: the user quit deliberately and the next start reports the failure.
+    const bool relaunch = code != 0 && m_parent_gone && !silent();
     wxTheApp->CallAfter([this, message, alert, relaunch]() {
         if (relaunch && !relaunch_app(m_handoff))
             m_log.write("could not start the application again");
@@ -485,9 +491,130 @@ void log_dropped(const Slic3r::DownloadPrep& prep, LogFile& log)
 
 } // namespace
 
+// Reports a failed run. Without a window the record is the only way the user hears
+// about it; the log keeps the detail.
+void UpdateHelperFrame::fail(int code, const std::string& message)
+{
+    m_log.write(message);
+    if (silent())
+        Slic3r::write_update_failure(message);
+    finish(code, wxString::FromUTF8(message), !silent());
+}
+
+bool UpdateHelperFrame::fetch_artifact(const fs::path& download_dir, const std::string& asset,
+                                       const fs::path& part, const fs::path& artifact)
+{
+    const DownloadPrep prep = prepare_download_dir(download_dir.string(), asset, m_handoff.digest, m_handoff.size);
+    log_dropped(prep, m_log);
+
+    boost::system::error_code ec;
+    if (!prep.resumable && !prep.complete && fs::exists(part, ec)) {
+        // The download would resume on top of bytes from another build.
+        m_log.write("could not remove the partial download " + part.string());
+        fail(1, "An earlier partial download could not be removed.");
+        return false;
+    }
+
+    if (prep.complete) {
+        // A previous run downloaded this build but did not install it: do not fetch
+        // it a second time.
+        m_log.write("the download of " + asset + " is already complete");
+        post(Stage::Downloading, 100, "Downloading " + m_handoff.asset_name + "... done");
+    } else {
+        m_log.write("starting the download" + std::string(prep.resumable ? " (resuming)" : ""));
+        post(Stage::Downloading, 0, "Downloading " + m_handoff.asset_name + "...");
+        m_log.write("downloading " + m_handoff.url + " to " + part.string());
+
+        HttpDownloader downloader;
+        const DownloadResult result = downloader.download(
+            m_handoff.url, part.string(),
+            [this](int64_t done, int64_t total) {
+                const int percent = total > 0 ? static_cast<int>(done * 100 / total) : -1;
+                std::string message = "Downloading " + m_handoff.asset_name + "... " + human_bytes(done);
+                if (total > 0)
+                    message += " of " + human_bytes(total);
+                post(Stage::Downloading, percent, message);
+            },
+            m_cancel_requested);
+
+        if (result.cancelled) {
+            m_log.write("download cancelled at " + std::to_string(result.done) + " bytes");
+            finish(2, "Update cancelled.", false);
+            return false;
+        }
+        if (!result.ok) {
+            m_log.write("download failed: " + result.error);
+            fail(1, "The download failed: " + result.error);
+            return false;
+        }
+        m_log.write("downloaded " + std::to_string(result.done) + " bytes");
+    }
+
+    // The installer runs through the shell, which picks its handler by extension,
+    // so the verified file needs the asset's name rather than ".part". A file that
+    // prepare_download_dir() found already renamed is used as it is.
+    boost::system::error_code rename_ec;
+    if (fs::exists(part, rename_ec)) {
+        fs::rename(part, artifact, rename_ec);
+        if (rename_ec) {
+            m_log.write("could not rename " + part.string() + ": " + rename_ec.message());
+            fail(1, "The downloaded file could not be prepared.");
+            return false;
+        }
+    }
+    if (!fs::is_regular_file(artifact, rename_ec)) {
+        m_log.write("the artifact is missing at " + artifact.string());
+        fail(1, "The downloaded file is missing.");
+        return false;
+    }
+    return true;
+}
+
+bool UpdateHelperFrame::check_artifact(const fs::path& artifact)
+{
+    m_log.write("verifying " + artifact.string());
+    std::string error;
+    if (verify_artifact(artifact, error))
+        return true;
+
+    m_log.write("verification failed: " + error);
+    if (m_mode == Mode::InstallOnly) {
+        // Nothing complete to install at quit, and nothing failed: the next start
+        // fetches it again.
+        m_log.write("no complete download to install, leaving it to the next start");
+        finish(0, "", false);
+    } else {
+        fail(1, error);
+    }
+    return false;
+}
+
 void UpdateHelperFrame::run()
 {
     try {
+        // Every path comes from the handoff: the helper may resolve the cache
+        // directory differently than the application did.
+        std::string asset = fs::path(m_handoff.asset_name).filename().string();
+        if (asset.empty())
+            asset = "update.part";
+        const fs::path download_dir = fs::path(m_handoff.cache_dir) / "downloads";
+        const fs::path part         = download_dir / (asset + ".part");
+        const fs::path artifact     = download_dir / asset;
+
+        // Prefetch only puts the artifact on disk: the install is a separate
+        // --install-only run, started when the application quits.
+        if (m_mode == Mode::Prefetch) {
+            if (fetch_artifact(download_dir, asset, part, artifact) && check_artifact(artifact)) {
+                m_log.write("prefetch done, the install is left to the next run");
+                finish(0, "", false);
+            }
+            return;
+        }
+
+        // Install-only starts when the application quits: the file is already there.
+        if (m_mode == Mode::InstallOnly && !check_artifact(artifact))
+            return;
+
         const WaitResult waited = wait_for_parent();
         if (waited == WaitResult::Cancelled) {
             m_log.write("cancelled while waiting for the parent process");
@@ -495,8 +622,15 @@ void UpdateHelperFrame::run()
             return;
         }
         if (waited == WaitResult::Timeout) {
+            if (silent()) {
+                // The application did not exit in time, and nothing failed: the
+                // verified file stays for the next start.
+                m_log.write("leaving the update for the next start: the parent process is still running");
+                finish(0, "", false);
+                return;
+            }
             m_log.write("giving up: the parent process is still running");
-            finish(1, "OrcaSlicer is still running.", true);
+            fail(1, "OrcaSlicer is still running.");
             return;
         }
         m_parent_gone = true;
@@ -513,78 +647,21 @@ void UpdateHelperFrame::run()
         }
         if (locked == LockResult::Failed) {
             m_log.write("could not take the install lock: " + lock_error);
-            finish(1, wxString::FromUTF8(lock_error), true);
+            fail(1, lock_error);
             return;
         }
 
-        // Every path comes from the handoff: the helper may resolve the cache
-        // directory differently than the application did.
-        std::string asset = fs::path(m_handoff.asset_name).filename().string();
-        if (asset.empty())
-            asset = "update.part";
-        const fs::path     download_dir = fs::path(m_handoff.cache_dir) / "downloads";
-        const fs::path     part         = download_dir / (asset + ".part");
-        const fs::path     artifact     = download_dir / asset;
-        const DownloadPrep prep = prepare_download_dir(download_dir.string(), asset, m_handoff.digest, m_handoff.size);
-        log_dropped(prep, m_log);
+        // A manual update downloads here, once the lock has ruled out a second helper.
+        if (m_mode == Mode::Interactive && !fetch_artifact(download_dir, asset, part, artifact))
+            return;
 
         boost::system::error_code ec;
-        if (!prep.resumable && !prep.complete && fs::exists(part, ec)) {
-            // The download would resume on top of bytes from another build.
-            m_log.write("could not remove the partial download " + part.string());
-            finish(1, "An earlier partial download could not be removed.", true);
-            return;
-        }
-
-        if (prep.complete) {
-            // A previous run downloaded and verified this build but did not install it:
-            // verify it again rather than fetch it a second time.
-            m_log.write("the download of " + asset + " is already complete");
-            post(Stage::Downloading, 100, "Downloading " + m_handoff.asset_name + "... done");
-        } else {
-            m_log.write("starting the download" + std::string(prep.resumable ? " (resuming)" : ""));
-            post(Stage::Downloading, 0, "Downloading " + m_handoff.asset_name + "...");
-            m_log.write("downloading " + m_handoff.url + " to " + part.string());
-
-            HttpDownloader downloader;
-            const DownloadResult result = downloader.download(
-                m_handoff.url, part.string(),
-                [this](int64_t done, int64_t total) {
-                    const int percent = total > 0 ? static_cast<int>(done * 100 / total) : -1;
-                    std::string message = "Downloading " + m_handoff.asset_name + "... " + human_bytes(done);
-                    if (total > 0)
-                        message += " of " + human_bytes(total);
-                    post(Stage::Downloading, percent, message);
-                },
-                m_cancel_requested);
-
-            if (result.cancelled) {
-                m_log.write("download cancelled at " + std::to_string(result.done) + " bytes");
-                finish(2, "Update cancelled.", false);
-                return;
-            }
-            if (!result.ok) {
-                m_log.write("download failed: " + result.error);
-                finish(1, wxString::FromUTF8("The download failed: " + result.error), true);
-                return;
-            }
-            m_log.write("downloaded " + std::to_string(result.done) + " bytes");
-        }
-
-        // The installer runs through the shell, which picks its handler by extension,
-        // so the verified file needs the asset's name rather than ".part".
-        fs::rename(part, artifact, ec);
-        if (ec) {
-            m_log.write("could not rename " + part.string() + ": " + ec.message());
-            finish(1, "The downloaded file could not be prepared.", true);
-            return;
-        }
 
         // Held from here until the install returns: what is verified is what runs.
         ArtifactHold hold(artifact);
         if (!hold.held()) {
             m_log.write("could not hold " + artifact.string() + " open");
-            finish(1, "The downloaded file could not be secured.", true);
+            fail(1, "The downloaded file could not be secured.");
             return;
         }
 
@@ -595,7 +672,7 @@ void UpdateHelperFrame::run()
             m_log.write("verification failed: " + verify_error);
             hold.close();
             fs::remove(artifact, ec);
-            finish(1, "The downloaded file is damaged.", true);
+            fail(1, "The downloaded file is damaged.");
             return;
         }
         m_log.write("checksum and size match");
@@ -608,20 +685,22 @@ void UpdateHelperFrame::run()
         sink.cancelled = [this]() { return m_cancel_requested.load(); };
 
         std::string install_error;
-        if (!apply_update(m_handoff, artifact.string(), sink, install_error)) {
+        if (!apply_update(m_handoff, artifact.string(), sink, install_error, m_mode != Mode::InstallOnly)) {
             m_log.write("install failed: " + install_error);
-            finish(1, wxString::FromUTF8("The update could not be installed: " + install_error), true);
+            fail(1, "The update could not be installed: " + install_error);
             return;
         }
 
         m_log.write("update installed, helper done");
+        // A failure left by an earlier silent run no longer applies.
+        Slic3r::remove_update_failure();
         finish(0, "Update installed. OrcaSlicer is starting...", false);
     } catch (const std::exception& ex) {
         m_log.write(std::string("unexpected error: ") + ex.what());
-        finish(1, "The update helper stopped unexpectedly.", true);
+        fail(1, "The update helper stopped unexpectedly.");
     } catch (...) {
         m_log.write("unexpected error");
-        finish(1, "The update helper stopped unexpectedly.", true);
+        fail(1, "The update helper stopped unexpectedly.");
     }
 }
 
