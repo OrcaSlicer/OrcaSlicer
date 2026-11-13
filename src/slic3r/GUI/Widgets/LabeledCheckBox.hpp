@@ -46,6 +46,7 @@ public:
 
 protected:
     void DoSetToolTip(wxToolTip* tip) override;
+    void DoSetToolTipText(const wxString& tip) override;
 
 private:
     void OnToggled();                  // sends the events

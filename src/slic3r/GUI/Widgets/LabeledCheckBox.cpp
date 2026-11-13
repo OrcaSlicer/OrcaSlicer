@@ -259,3 +259,11 @@ void LabeledCheckBox::DoSetToolTip(wxToolTip* tip)
         win->SetToolTip(text);
     wxPanel::DoSetToolTip(tip);
 }
+
+// wx only changes the text of an existing tooltip here and does not call DoSetToolTip() again
+void LabeledCheckBox::DoSetToolTipText(const wxString& tip)
+{
+    wxPanel::DoSetToolTipText(tip);
+    for (wxWindow* win : std::initializer_list<wxWindow*>{m_check, m_text_box, m_text})
+        win->SetToolTip(tip);
+}
