@@ -362,6 +362,11 @@ class GLCanvas3D
         int last_object_id{ -1 };
         float last_z{ 0.0f };
         LayerHeightEditActionType last_action{ LAYER_HEIGHT_EDIT_ACTION_INCREASE };
+        // Orca: The stroke was started on an object in the scene, not on a bar.
+        bool editing_on_object{ false };
+        // Orca: The height under the cursor on an object a press would paint, where the band is drawn before
+        // the press. -1000 when the cursor is not on one. Set by GLCanvas3D::_picking_pass().
+        float hover_z{ -1000.0f };
 
         LayersEditing() = default;
         ~LayersEditing();
@@ -373,11 +378,14 @@ class GLCanvas3D
         void set_other_objects(std::vector<int> object_ids) { m_other_object_ids = std::move(object_ids); }
         // Orca: lays out the bars for the selected objects (tallest first) and returns the object to
         // show and edit: the one whose bar the mouse is on, or else the one shown so far.
-        int choose_shown_object(const GLCanvas3D& canvas, const Model& model, const std::vector<int>& object_ids);
+        // An object under the mouse that has a bar (hover_object_id) is shown, as it is with its bar under the mouse.
+        int choose_shown_object(const GLCanvas3D& canvas, const Model& model, const std::vector<int>& object_ids, int hover_object_id = -1);
         // Orca: frees the textures of the objects that are no longer selected. Needs the GL context.
         void release_unselected_textures(const Model& model, const std::vector<int>& object_ids);
         // Orca: whether the tool paints this object with its layer heights.
         bool is_edited_object(int object_id) const;
+        // Orca: whether a stroke painted on this object in the scene edits the profile of the object shown.
+        bool is_painted_object(int object_id);
 
         bool is_allowed() const;
 
@@ -1022,6 +1030,7 @@ public:
 #endif // ENABLE_SHOW_CAMERA_TARGET
     GLModel m_background;
     unsigned int m_fxaa_texture_id{ 0 };
+    unsigned int m_fxaa_framebuffer_id{ 0 };
     std::array<unsigned int, 2> m_fxaa_texture_size{ 0, 0 };
     unsigned int m_ssao_color_texture_id{ 0 };
     unsigned int m_ssao_depth_texture_id{ 0 };
@@ -1572,7 +1581,7 @@ public:
     void _perform_layer_editing_action(wxMouseEvent* evt = nullptr);
     // Orca: hands the variable layer height tool the selected objects and the one to show. While
     // rendering, it also frees the textures of the objects no longer selected.
-    void _update_layers_editing_objects(bool rendering);
+    void _update_layers_editing_objects(bool rendering, int hover_object_idx = -1);
 
     // Convert the screen space coordinate to an object space coordinate.
     // If the Z screen space coordinate is not provided, a depth buffer value is substituted.

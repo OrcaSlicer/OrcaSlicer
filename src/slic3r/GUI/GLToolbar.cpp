@@ -251,6 +251,7 @@ GLToolbar::Layout::Layout()
     , top(0.0f)
     , left(0.0f)
     , border(0.0f)
+    , corner_radius(0.0f)
     , separator_size(0.0f)
     , gap_size(0.0f)
     , icons_size(Default_Icons_Size)
@@ -1247,7 +1248,7 @@ int GLToolbar::contains_mouse_vertical(const Vec2d& mouse_pos, const GLCanvas3D&
     return -1;
 }
 
-void GLToolbar::render_background(float left, float top, float right, float bottom, float border_w, float border_h) const
+void GLToolbar::render_background(float left, float top, float right, float bottom, float corner_w, float corner_h) const
 {
     const unsigned int tex_id = m_background_texture.texture.get_id();
     const float tex_width = (float)m_background_texture.texture.get_width();
@@ -1256,10 +1257,10 @@ void GLToolbar::render_background(float left, float top, float right, float bott
         const float inv_tex_width  = 1.0f / tex_width;
         const float inv_tex_height = 1.0f / tex_height;
 
-        const float internal_left   = left + border_w;
-        const float internal_right  = right - border_w;
-        const float internal_top    = top - border_h;
-        const float internal_bottom = bottom + border_w;
+        const float internal_left   = left + corner_w;
+        const float internal_right  = right - corner_w;
+        const float internal_top    = top - corner_h;
+        const float internal_bottom = bottom + corner_h;
 
         const float left_uv   = 0.0f;
         const float right_uv  = 1.0f;
@@ -1405,6 +1406,8 @@ void GLToolbar::render_horizontal(const GLCanvas3D& parent, GLToolbarItem::EType
     const float gap_size = 2.0f * m_layout.gap_size * m_layout.scale * inv_cnv_w;
     const float border_w = 2.0f * m_layout.border * m_layout.scale * inv_cnv_w;
     const float border_h = 2.0f * m_layout.border * m_layout.scale * inv_cnv_h;
+    const float corner_w = 2.0f * m_layout.corner_radius * m_layout.scale * inv_cnv_w;
+    const float corner_h = 2.0f * m_layout.corner_radius * m_layout.scale * inv_cnv_h;
     const float width = 2.0f * get_width() * inv_cnv_w;
     const float height = 2.0f * get_height() * inv_cnv_h;
 
@@ -1419,7 +1422,7 @@ void GLToolbar::render_horizontal(const GLCanvas3D& parent, GLToolbarItem::EType
     const float bottom = top - height;
 
     if (draw_icons)
-        render_background(left, top, right, bottom, border_w, border_h);
+        render_background(left, top, right, bottom, corner_w, corner_h);
 
     left += border_w;
     top  -= border_h;
@@ -1475,6 +1478,8 @@ void GLToolbar::render_vertical(const GLCanvas3D& parent, bool draw_icons)
     const float gap_size = 2.0f * m_layout.gap_size * m_layout.scale * inv_cnv_h;
     const float border_w = 2.0f * m_layout.border * m_layout.scale * inv_cnv_w;
     const float border_h = 2.0f * m_layout.border * m_layout.scale * inv_cnv_h;
+    const float corner_w = 2.0f * m_layout.corner_radius * m_layout.scale * inv_cnv_w;
+    const float corner_h = 2.0f * m_layout.corner_radius * m_layout.scale * inv_cnv_h;
     const float width = 2.0f * get_width() * inv_cnv_w;
     const float height = 2.0f * get_height() * inv_cnv_h;
 
@@ -1487,7 +1492,7 @@ void GLToolbar::render_vertical(const GLCanvas3D& parent, bool draw_icons)
     const float bottom = top - height;
 
     if (draw_icons)
-        render_background(left, top, right, bottom, border_w, border_h);
+        render_background(left, top, right, bottom, corner_w, corner_h);
 
     left += border_w;
     top  -= border_h;
@@ -1682,6 +1687,7 @@ bool setup_collapse_toolbar(GLToolbar& toolbar, std::function<void()> toggle)
     toolbar.set_horizontal_orientation(GLToolbar::Layout::HO_Right);
     toolbar.set_vertical_orientation(GLToolbar::Layout::VO_Top);
     toolbar.set_border(4.0f);
+    toolbar.set_corner_radius(GLToolbar::Top_Corner_Radius);
     toolbar.set_separator_size(4);
     toolbar.set_gap_size(2);
 
