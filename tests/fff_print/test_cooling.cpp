@@ -13,6 +13,13 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <functional>
+#include <set>
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/GCode/OuterWallNodes.hpp"
+#include "libslic3r/Layer.hpp"
+#include "libslic3r/Print.hpp"
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
@@ -157,4 +164,118 @@ TEST_CASE("Overhang fan transitions do not depend on overhang speed", "[Cooling]
                         [](const auto &command) { return command.second.find("S255") != std::string::npos; }));
     REQUIRE(with_speed_feedrates != without_speed_feedrates);
     CHECK(with_speed_fan == without_speed_fan);
+}
+
+namespace {
+size_t count_layer_time_smoothing_comments(const std::string &gcode)
+{
+    size_t count = 0;
+    for (size_t pos = gcode.find("; LAYER_TIME_SMOOTHING"); pos != std::string::npos; pos = gcode.find("; LAYER_TIME_SMOOTHING", pos + 1))
+        ++ count;
+    return count;
+}
+} // namespace
+
+TEST_CASE("Layers are not annotated when layer time smoothing is disabled", "[Cooling]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "layer_height",           0.2 },
+        { "layer_time_smoothing",   false },
+    });
+    CHECK(count_layer_time_smoothing_comments(gcode) == 0);
+}
+
+TEST_CASE("Layer time smoothing annotates every layer and keeps the cooling pass working", "[Cooling]")
+{
+    // A 20 mm cube at 0.2 mm layers has 100 layers.
+    const std::string gcode = slice({ cube(20) }, {
+        { "initial_layer_print_height", 0.2 },
+        { "layer_height",               0.2 },
+        { "layer_time_smoothing",       true },
+    });
+    CHECK(count_layer_time_smoothing_comments(gcode) >= 90);
+    CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
+}
+
+TEST_CASE("Layer time smoothing is ignored in spiral vase mode", "[Cooling]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "spiral_mode",            true },
+        { "layer_time_smoothing",   true },
+    });
+    CHECK(count_layer_time_smoothing_comments(gcode) == 0);
+}
+
+TEST_CASE("Layer time smoothing smooths each object when printing by object", "[Cooling]")
+{
+    const std::string gcode = slice_two_cubes_apart(30., {
+        { "initial_layer_print_height", 0.2 },
+        { "layer_height",               0.2 },
+        { "print_sequence",             "by object" },
+        { "layer_time_smoothing",       true },
+    });
+    // Two 20 mm cubes at 0.2 mm layers have 200 layers together.
+    CHECK(count_layer_time_smoothing_comments(gcode) >= 180);
+    CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
+}
+
+TEST_CASE("Smoothing the outer wall speed along Z leaves no chain markers in the G-code", "[Cooling]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "initial_layer_print_height",         0.2 },
+        { "layer_height",                       0.2 },
+        { "z_direction_outwall_speed_continuous", true },
+    });
+    // The markers only serve the cooling buffer and are not part of the output.
+    CHECK(gcode.find("; COOLING_NODE: ") == std::string::npos);
+    CHECK(gcode.find(";_EXTRUDE_SET_SPEED") == std::string::npos);
+}
+
+TEST_CASE("The outer walls are not marked when smoothing the outer wall speed along Z is disabled", "[Cooling]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "layer_height",                       0.2 },
+        { "z_direction_outwall_speed_continuous", false },
+    });
+    CHECK(gcode.find("; COOLING_NODE: ") == std::string::npos);
+}
+
+TEST_CASE("Smoothing the outer wall speed along Z is ignored in spiral vase mode", "[Cooling]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "spiral_mode",                        true },
+        { "z_direction_outwall_speed_continuous", true },
+    });
+    CHECK(gcode.find("; COOLING_NODE: ") == std::string::npos);
+}
+
+TEST_CASE("The outer walls of a column form a single chain", "[Cooling]")
+{
+    Print print;
+    init_and_process_print({ cube(20) }, print, {
+        { "initial_layer_print_height", 0.2 },
+        { "layer_height",               0.2 },
+    });
+    const OuterWallNodes nodes = OuterWallNodes::build(print);
+    REQUIRE_FALSE(nodes.empty());
+
+    std::set<int> chain_ids;
+    std::function<void(const ExtrusionEntity&)> visit = [&](const ExtrusionEntity &entity) {
+        if (const auto *collection = dynamic_cast<const ExtrusionEntityCollection*>(&entity)) {
+            for (const ExtrusionEntity *child : collection->entities)
+                visit(*child);
+        } else if (entity.role() == erExternalPerimeter) {
+            // Every outer wall is in a chain.
+            const int node = nodes.node_of(&entity);
+            REQUIRE(node >= 0);
+            chain_ids.insert(node);
+        }
+    };
+    for (const PrintObject *object : print.objects())
+        for (const Layer *layer : object->layers())
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->perimeters.entities)
+                    visit(*entity);
+
+    CHECK(chain_ids.size() == 1);
 }

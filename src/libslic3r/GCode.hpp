@@ -225,6 +225,8 @@ struct LayerResult {
     static LayerResult make_nop_layer_result() { return {"", std::numeric_limits<size_t>::max(), false, false, true}; }
 };
 
+class OuterWallNodes;
+
 class GCode {
 
 public:
@@ -568,6 +570,11 @@ protected:
                                double                                     speed             = -1.,
                                const std::vector<const ExtrusionEntity*>& region_perimeters = {},
                                const WipeInwardSupport*                   wipe_support      = nullptr);
+    std::string extrude_entity_impl(const ExtrusionEntity&                     entity,
+                                    const std::string&                         description,
+                                    double                                     speed,
+                                    const std::vector<const ExtrusionEntity*>& region_perimeters,
+                                    const WipeInwardSupport*                   wipe_support);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
     std::string extrude_loop(const ExtrusionLoop&                       loop,
@@ -881,6 +888,10 @@ protected:
 
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;
     std::unique_ptr<SpiralVase>         m_spiral_vase;
+    // Chains of connected outer walls, only built when the outer wall speed is smoothed along Z.
+    std::shared_ptr<const OuterWallNodes> m_outer_wall_nodes;
+    // "<object id>:<instance id>" of the instance being exported, the chains of the instances of one object are separate.
+    std::string                         m_outer_wall_instance_key;
     std::unique_ptr<PressureEqualizer>  m_pressure_equalizer;
     
     std::unique_ptr<AdaptivePAProcessor>      m_pa_processor;

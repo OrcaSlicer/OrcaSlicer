@@ -5,6 +5,8 @@
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Circle.hpp"
 #include "CoolingBuffer.hpp"
+#include "LayerTimeSmoothing.hpp"
+#include "OuterWallSpeedSmoothing.hpp"
 #include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -20,6 +22,8 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <map>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 #include <utility>
@@ -37,18 +41,7 @@
 
 namespace Slic3r {
 
-CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_gcodegen(gcodegen), m_toolchange_prefix(gcodegen.writer().toolchange_prefix()), m_current_extruder(0), m_current_nozzle(0)
-{
-    this->reset(gcodegen.writer().get_position());
-
-    const std::vector<Extruder> &extruders = gcodegen.writer().extruders();
-    m_extruder_ids.reserve(extruders.size());
-    for (const Extruder &ex : extruders) {
-        m_num_extruders = std::max(ex.id() + 1, m_num_extruders);
-        m_extruder_ids.emplace_back(ex.id());
-    }
-
-}
+// The constructor is defined below the DeferredLayer type that one of its members needs complete.
 
 void CoolingBuffer::reset(const Vec3d &position)
 {
@@ -126,6 +119,11 @@ struct CoolingLine
     float   time_max;
     // If marked with the "slowdown" flag, the line has been slowed down.
     bool    slowdown;
+    // Chain of connected outer walls the line belongs to (see OuterWallNodes), -1 when the line is in none.
+    // The chain is identified by the object, its instance and the chain id.
+    unsigned long long chain_object   = 0;
+    unsigned long long chain_instance = 0;
+    int                chain_node     = -1;
 };
 
 // Calculate the required per extruder time stretches.
@@ -357,9 +355,234 @@ std::string CoolingBuffer::process_layer(std::string &&gcode, size_t layer_id, b
     return out;
 }
 
+// A layer collected by collect_layer(): its G-code and the parsed lines after the minimum layer time slow down.
+struct CoolingBuffer::DeferredLayer
+{
+    std::string                         gcode;
+    size_t                              layer_id;
+    float                               layer_time;
+    std::vector<PerExtruderAdjustments> adjustments;
+};
+
+CoolingBuffer::~CoolingBuffer() = default;
+
+CoolingBuffer::CoolingBuffer(GCode &gcodegen) : m_config(gcodegen.config()), m_gcodegen(gcodegen), m_toolchange_prefix(gcodegen.writer().toolchange_prefix()), m_current_extruder(0), m_current_nozzle(0)
+{
+    this->reset(gcodegen.writer().get_position());
+
+    const std::vector<Extruder> &extruders = gcodegen.writer().extruders();
+    m_extruder_ids.reserve(extruders.size());
+    for (const Extruder &ex : extruders) {
+        m_num_extruders = std::max(ex.id() + 1, m_num_extruders);
+        m_extruder_ids.emplace_back(ex.id());
+    }
+
+}
+
+// Layer time changes below this value are ignored, seconds.
+static constexpr float LTS_EPSILON = 1e-3f;
+
+static bool lts_line_in_scope(const CoolingLine &line, LayerTimeSmoothingScope scope)
+{
+    if ((line.type & CoolingLine::TYPE_ADJUSTABLE) == 0)
+        return false;
+    if (scope == ltsExcludeOuterWalls && (line.type & CoolingLine::TYPE_EXTERNAL_PERIMETER))
+        return false;
+    return line.length > 0.f && line.time > 0.f && line.feedrate > 0.f;
+}
+
+static float lts_layer_time(const std::vector<PerExtruderAdjustments> &layer)
+{
+    float time = 0.f;
+    for (const PerExtruderAdjustments &adj : layer)
+        for (const CoolingLine &line : adj.lines)
+            time += line.time;
+    return time;
+}
+
+// Layer time when every extrusion in scope is slowed down to the minimum print speed. FLT_MAX if not limited.
+static float lts_layer_time_max(const std::vector<PerExtruderAdjustments> &layer, LayerTimeSmoothingScope scope)
+{
+    float time = 0.f;
+    for (const PerExtruderAdjustments &adj : layer)
+        for (const CoolingLine &line : adj.lines) {
+            if (lts_line_in_scope(line, scope)) {
+                if (line.time_max == FLT_MAX)
+                    return FLT_MAX;
+                time += std::max(line.time, line.time_max);
+            } else
+                time += line.time;
+        }
+    return time;
+}
+
+// Slow down the extrusions in scope proportionally, so that the layer takes target_time. Returns the layer time reached.
+// All extrusions in scope are slowed down by the same factor, so the speed ratios between the features of the layer
+// (and with them the extrusion widths and the look of the surface) are preserved. The minimum print speed clamps
+// individual lines, therefore the factor is re-evaluated a few times over the lines that can still be slowed down.
+static float lts_stretch_layer(std::vector<PerExtruderAdjustments> &layer, float target_time, LayerTimeSmoothingScope scope)
+{
+    for (size_t iter = 0; iter < 8; ++ iter) {
+        float total      = 0.f;
+        float adjustable = 0.f;
+        for (const PerExtruderAdjustments &adj : layer)
+            for (const CoolingLine &line : adj.lines) {
+                total += line.time;
+                if (lts_line_in_scope(line, scope) && line.time < line.time_max)
+                    adjustable += line.time;
+            }
+        if (total + LTS_EPSILON >= target_time || adjustable <= 0.f)
+            break;
+        const float factor = (target_time - (total - adjustable)) / adjustable;
+        if (factor <= 1.f)
+            break;
+        for (PerExtruderAdjustments &adj : layer)
+            for (CoolingLine &line : adj.lines)
+                if (lts_line_in_scope(line, scope) && line.time < line.time_max) {
+                    const float time = std::min(line.time_max, line.time * factor);
+                    if (time > line.time) {
+                        line.time     = time;
+                        line.feedrate = line.length / line.time;
+                        line.slowdown = true;
+                    }
+                }
+    }
+    return lts_layer_time(layer);
+}
+
+void CoolingBuffer::begin_deferred(bool parse_outer_wall_chains)
+{
+    m_deferred_layers.clear();
+    m_parse_outer_wall_chains = parse_outer_wall_chains;
+    m_deferred_extruder = m_current_extruder;
+}
+
+void CoolingBuffer::collect_layer(std::string &&gcode, size_t layer_id, bool flush)
+{
+    if (m_gcode.empty())
+        m_gcode = std::move(gcode);
+    else
+        m_gcode += gcode;
+    if (! flush)
+        return;
+    // The extruder is tracked here instead of by apply_layer_cooldown(), which runs only after all layers were parsed.
+    const unsigned int extruder_before_apply = m_current_extruder;
+    m_current_extruder = m_deferred_extruder;
+    std::vector<PerExtruderAdjustments> adjustments = this->parse_layer_gcode(m_gcode, m_current_pos, &m_deferred_extruder);
+    m_current_extruder = extruder_before_apply;
+    const float layer_time = this->calculate_layer_slowdown(adjustments);
+    m_deferred_layers.push_back({ std::move(m_gcode), layer_id, layer_time, std::move(adjustments) });
+    m_gcode.clear();
+}
+
+// Remove the "; COOLING_NODE" marker lines of the outer wall chains, they only serve the cooling buffer.
+static std::string remove_chain_markers(const std::string &gcode)
+{
+    static constexpr std::string_view marker = "; COOLING_NODE: ";
+    std::string out;
+    out.reserve(gcode.size());
+    for (size_t pos = 0; pos < gcode.size();) {
+        size_t end = gcode.find('\n', pos);
+        end = end == std::string::npos ? gcode.size() : end + 1;
+        if (gcode.compare(pos, marker.size(), marker) != 0)
+            out.append(gcode, pos, end - pos);
+        pos = end;
+    }
+    return out;
+}
+
+std::vector<std::string> CoolingBuffer::finish_deferred()
+{
+    std::vector<DeferredLayer> layers = std::move(m_deferred_layers);
+    m_deferred_layers.clear();
+
+    const bool has_chain_markers = m_parse_outer_wall_chains;
+    if (m_parse_outer_wall_chains) {
+        // Smooth the speed of every chain of connected outer walls along Z.
+        // chain -> layer -> the (extruder, line) pairs of the outer wall lines of the chain on the layer
+        using ChainKey = std::tuple<unsigned long long, unsigned long long, int>;
+        std::map<ChainKey, std::map<size_t, std::vector<std::pair<size_t, size_t>>>> chains;
+        for (size_t layer_idx = 0; layer_idx < layers.size(); ++ layer_idx)
+            for (size_t extruder_idx = 0; extruder_idx < layers[layer_idx].adjustments.size(); ++ extruder_idx) {
+                const std::vector<CoolingLine> &lines = layers[layer_idx].adjustments[extruder_idx].lines;
+                for (size_t line_idx = 0; line_idx < lines.size(); ++ line_idx)
+                    if (lines[line_idx].chain_node >= 0)
+                        chains[ChainKey(lines[line_idx].chain_object, lines[line_idx].chain_instance, lines[line_idx].chain_node)][layer_idx].emplace_back(extruder_idx, line_idx);
+            }
+        for (const auto &chain : chains) {
+            const size_t first = chain.second.begin()->first;
+            const size_t last  = chain.second.rbegin()->first;
+            std::vector<float> speeds(last - first + 1, 0.f);
+            for (const auto &layer : chain.second)
+                for (const auto &pos : layer.second)
+                    speeds[layer.first - first] = std::max(speeds[layer.first - first], layers[layer.first].adjustments[pos.first].lines[pos.second].feedrate);
+            const std::vector<float> smoothed = smooth_outer_wall_speeds(speeds);
+            for (const auto &layer : chain.second)
+                for (const auto &pos : layer.second) {
+                    CoolingLine &line = layers[layer.first].adjustments[pos.first].lines[pos.second];
+                    const float  speed = smoothed[layer.first - first];
+                    if (speed > 0.f && line.feedrate > speed) {
+                        line.feedrate = speed;
+                        line.slowdown = true;
+                    }
+                    // The outer wall is not slowed down any more by the layer time slow downs.
+                    line.type &= ~CoolingLine::TYPE_ADJUSTABLE;
+                    line.time = (line.feedrate > 0.f && line.length > 0.f) ? line.length / line.feedrate : 0.f;
+                    line.time_max = line.time;
+                }
+        }
+        for (DeferredLayer &layer : layers)
+            layer.layer_time = lts_layer_time(layer.adjustments);
+        m_parse_outer_wall_chains = false;
+    }
+
+    if (! m_config.layer_time_smoothing.value) {
+        std::vector<std::string> out;
+        out.reserve(layers.size());
+        for (DeferredLayer &layer : layers) {
+            std::string gcode = this->apply_layer_cooldown(layer.gcode, layer.layer_id, layer.layer_time, layer.adjustments);
+            out.emplace_back(has_chain_markers ? remove_chain_markers(gcode) : std::move(gcode));
+            layer.gcode.clear();
+            layer.gcode.shrink_to_fit();
+        }
+        return out;
+    }
+
+    LayerTimeSmoother smoother(LayerTimeSmoother::params_from_config(m_config));
+    std::vector<float> times, max_times;
+    times.reserve(layers.size());
+    max_times.reserve(layers.size());
+    for (const DeferredLayer &layer : layers) {
+        times.push_back(layer.layer_time);
+        max_times.push_back(lts_layer_time_max(layer.adjustments, smoother.params().scope));
+    }
+    // The first layer is left as it is.
+    const std::vector<float> targets = smoother.solve(times, max_times, 1);
+    for (size_t i = 0; i < layers.size(); ++ i)
+        if (i >= 1 && targets[i] > times[i] + LTS_EPSILON) {
+            layers[i].layer_time = lts_stretch_layer(layers[i].adjustments, targets[i], smoother.params().scope);
+            smoother.set_time_after(i, layers[i].layer_time);
+        }
+
+    std::vector<std::string> out;
+    out.reserve(layers.size());
+    for (size_t i = 0; i < layers.size(); ++ i) {
+        DeferredLayer &layer = layers[i];
+        std::string    gcode = this->apply_layer_cooldown(layer.gcode, layer.layer_id, layer.layer_time, layer.adjustments);
+        // Prepend a diagnostic comment of the smoothing.
+        if (has_chain_markers)
+            gcode = remove_chain_markers(gcode);
+        out.emplace_back(smoother.layer_comment(i) + std::move(gcode));
+        // The G-code of the layer is no longer needed.
+        layer.gcode.clear();
+        layer.gcode.shrink_to_fit();
+    }
+    return out;
+}
+
 // Parse the layer G-code for the moves, which could be adjusted.
 // Return the list of parsed lines, bucketed by an extruder.
-std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos) const
+std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::string &gcode, std::vector<float> &current_pos, unsigned int *final_extruder) const
 {
     std::vector<PerExtruderAdjustments> per_extruder_adjustments(m_extruder_ids.size());
     std::vector<size_t>                 map_extruder_to_per_extruder_adjustment(m_num_extruders, 0);
@@ -387,6 +610,9 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
     // Time of any other movements before the first extrusion will be excluded from the layer time.
     bool layer_had_extrusion = false;
 
+    struct ChainMarker { unsigned long long object = 0; unsigned long long instance = 0; int node = -1; };
+    ChainMarker chain;
+
     for (; *line_start != 0; line_start = line_end)
     {
         while (*line_end != '\n' && *line_end != 0)
@@ -407,6 +633,12 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             line.type = CoolingLine::TYPE_G2;
         else if (boost::starts_with(sline, "G3 "))
             line.type = CoolingLine::TYPE_G3;
+        else if (m_parse_outer_wall_chains && boost::starts_with(sline, "; COOLING_NODE: ")) {
+            // "; COOLING_NODE: <object id>:<instance id>:<chain id>", the chain id is -1 for an outer wall that is in no chain.
+            chain = ChainMarker();
+            if (std::sscanf(sline.c_str() + 16, "%llu:%llu:%d", &chain.object, &chain.instance, &chain.node) != 3)
+                chain.node = -1;
+        }
         if (line.type) {
             // G0, G1 or G92
             // Parse the G-code line.
@@ -460,6 +692,11 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             if (boost::contains(sline, ";_EXTRUDE_SET_SPEED") && ! wipe && adjust_external) {
                 line.type |= CoolingLine::TYPE_ADJUSTABLE;
                 active_speed_modifier = adjustment->lines.size();
+                if (external_perimeter && chain.node >= 0) {
+                    line.chain_object   = chain.object;
+                    line.chain_instance = chain.instance;
+                    line.chain_node     = chain.node;
+                }
             }
             if ((line.type & CoolingLine::TYPE_G92) == 0) {
                 //BBS: G0, G1, G2, G3. Calculate the duration.
@@ -581,6 +818,8 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             adjustment->lines.emplace_back(std::move(line));
     }
 
+    if (final_extruder != nullptr)
+        *final_extruder = current_extruder;
     return per_extruder_adjustments;
 }
 

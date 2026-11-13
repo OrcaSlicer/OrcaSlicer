@@ -262,6 +262,12 @@ set(lisbslic3r_sources
     GCode/ConflictChecker.hpp
     GCode/CoolingBuffer.cpp
     GCode/CoolingBuffer.hpp
+    GCode/LayerTimeSmoothing.cpp
+    GCode/LayerTimeSmoothing.hpp
+    GCode/OuterWallNodes.cpp
+    GCode/OuterWallNodes.hpp
+    GCode/OuterWallSpeedSmoothing.cpp
+    GCode/OuterWallSpeedSmoothing.hpp
     GCode/ExclusionVolumePathCheck.cpp
     GCode/ExclusionVolumePathCheck.hpp
     GCode/ExclusionVolumeTravelAvoidance.cpp
