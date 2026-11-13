@@ -280,6 +280,8 @@ void GizmoObjectManipulation::update_reset_buttons_visibility()
     // Assembly view has its own selection and transformations, which drop_selection() doesn't update
     m_enable_drop_to_bed = m_glcanvas.get_canvas_type() == GLCanvas3D::ECanvasType::CanvasView3D && selection.can_drop();
 
+    m_enable_center_to_bed = m_glcanvas.get_canvas_type() == GLCanvas3D::ECanvasType::CanvasView3D && selection.can_center();
+
     if (selection.is_single_full_instance() || selection.is_single_volume_or_modifier()) {
         const GLVolume *               volume = selection.get_first_volume();
 
@@ -1079,6 +1081,17 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     imgui_wrapper->disabled_end();
     if(ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
         imgui_wrapper->tooltip(_L("Move the selection along Z so that its lowest point touches the bed."), ImGui::GetFontSize() * 20.0f);
+
+    // ORCA
+    imgui_wrapper->disabled_begin(!m_enable_center_to_bed);
+    ImGui::SameLine(0, space_size);
+    if (imgui_wrapper->button(_L("Center"))) {
+        wxGetApp().plater()->center_selection();
+        UpdateAndShow(true);
+    }
+    imgui_wrapper->disabled_end();
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        imgui_wrapper->tooltip(_L("Move the selection in X and Y to the center of the current plate."), ImGui::GetFontSize() * 20.0f);
 
     ImGui::SameLine();
     GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });

@@ -2467,11 +2467,7 @@ void MenuFactory::append_menu_item_center(wxMenu* menu)
             if (plater()->canvas3D()->get_canvas_type() != GLCanvas3D::ECanvasType::CanvasView3D)
                 return false;
             else {
-                Selection& selection = plater()->get_view3D_canvas3D()->get_selection();
-                PartPlate* plate = plater()->get_partplate_list().get_selected_plate();
-                Vec3d model_pos = selection.get_bounding_box().center();
-                Vec3d center_pos = plate->get_center_origin();
-                return !( (model_pos.x() == center_pos.x()) && (model_pos.y() == center_pos.y()) );
+                return plater()->get_view3D_canvas3D()->get_selection().can_center();
             } //disable if model is at center / not in View3D
         }, m_parent);
 }

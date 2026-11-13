@@ -556,6 +556,20 @@ void Selection::center()
     return;
 }
 
+bool Selection::can_center() const
+{
+    if (!m_valid || is_empty() || is_wipe_tower())
+        return false;
+
+    PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_selected_plate();
+    if (plate == nullptr)
+        return false;
+
+    // center() moves in XY only. Compare with a tolerance: the bounding box is recomputed after the move.
+    const Vec3d distance = plate->get_center_origin() - this->get_bounding_box().center();
+    return std::abs(distance.x()) > EPSILON || std::abs(distance.y()) > EPSILON;
+}
+
 double Selection::get_drop_min_z() const
 {
     if (!m_valid)
