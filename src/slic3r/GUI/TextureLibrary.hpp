@@ -38,7 +38,7 @@ struct TextureLibraryEntry
 // into one collapsible section per pack_key. A capability name is unique only within one capability type
 // (the loader refuses a collision with "Capability collision for type ... and name ...", see
 // PluginManager::check_registry_locked), and textures come from two types, ResourceTexture and
-// ResourcePack, so pack_key (type plus name) identifies the section and keeps that pack's entries
+// ResourcePrinterAsset, so pack_key (type plus name) identifies the section and keeps that pack's entries
 // contiguous.
 //
 // Scanned once and cached. Pass force_rescan after an import, or to pick up a file the user dropped

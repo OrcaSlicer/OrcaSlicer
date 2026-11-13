@@ -1106,7 +1106,7 @@ void PrintConfigDef::init_common_params()
     def->label = L("Printer asset plugins");
     def->tooltip = L("Resource printer asset plugins whose bed model or texture this printer uses.");
     def->mode = comDevelop;
-    def->plugin_type = "resource-pack";
+    def->plugin_type = "resource-printer-asset";
     def->set_default_value(new ConfigOptionStrings());
 
     // A printer preset's plugin manifest. It is kept apart from the process preset's "plugins": the

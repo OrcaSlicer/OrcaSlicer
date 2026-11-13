@@ -15,6 +15,7 @@
 #include <boost/nowide/fstream.hpp>
 #include <ios>
 #include <slic3r/plugin/ResourcePackKinds.hpp>
+#include <string_view>
 
 #ifdef _WIN32
 #ifndef NOMINMAX
@@ -1584,18 +1585,29 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
                                             messages, error);
 }
 
-ResourceFilesByKind collect_resource_pack_files(const std::string&     dir,
-                                               const std::string&     plugin_root,
-                                               const ResourceKindMap& kinds,
-                                               std::string&           error)
+ResourceFilesByKind collect_printer_asset_files(const std::string& dir, const std::string& plugin_root, std::string& error)
 {
     namespace fs = boost::filesystem;
 
-    const ResourceDirMessages messages{_u8L("Resource pack directory is not set"),
-                                       _u8L("Resource pack directory could not be resolved"),
-                                       _u8L("Resource pack path is not a directory"),
-                                       _u8L("Resource pack directory is outside the plugin folder"),
-                                       _u8L("Resource pack directory could not be read")};
+    const ResourceDirMessages messages{_u8L("Printer asset directory is not set"),
+                                       _u8L("Printer asset directory could not be resolved"),
+                                       _u8L("Printer asset path is not a directory"),
+                                       _u8L("Printer asset directory is outside the plugin folder"),
+                                       _u8L("Printer asset directory could not be read")};
+    const std::vector<std::string_view> kinds = {RESOURCE_KIND_BED_MODEL, RESOURCE_KIND_BED_TEXTURE};
+    // The kinds whose extension list allows the extension of `path`.
+    auto kinds_of = [&kinds](const fs::path& path) {
+        std::string ext = path.extension().string();
+        boost::algorithm::to_lower(ext);
+        std::vector<std::string_view> matched;
+        for (std::string_view kind : kinds) {
+            const std::vector<std::string_view>& allowed = find_resource_kind(kind)->extensions;
+            if (std::find(allowed.begin(), allowed.end(), ext) != allowed.end())
+                matched.push_back(kind);
+        }
+        return matched;
+    };
+
     ResourceFilesByKind files_by_kind;
     fs::path resolved_dir;
     fs::path resolved_root;
@@ -1603,46 +1615,18 @@ ResourceFilesByKind collect_resource_pack_files(const std::string&     dir,
         return files_by_kind;
 
     const std::vector<fs::path> files = list_contained_resource_files(
-        resolved_dir, resolved_root,
-        [&kinds](const fs::path& path) { return kinds.count(path.filename().string()) > 0; },
-        messages, error);
+        resolved_dir, resolved_root, [&kinds_of](const fs::path& path) { return !kinds_of(path).empty(); }, messages, error);
     if (!error.empty())
         return {};
 
-    std::set<std::string> listed;
     for (const fs::path& path : files) {
-        const std::string name = path.filename().string();
-        listed.insert(name);
-        for (const std::string& kind : kinds.at(name)) {
-            const ResourceKindSpec* spec = find_resource_kind(kind);
-            if (!spec) {
-                BOOST_LOG_TRIVIAL(warning) << "Resource pack file " << name << " declares unknown kind '" << kind << "'; skipping it";
-                continue;
-            }
-
-            std::string ext = path.extension().string();
-            boost::algorithm::to_lower(ext);
-            if (std::find(spec->extensions.begin(), spec->extensions.end(), ext) == spec->extensions.end()) {
-                BOOST_LOG_TRIVIAL(warning) << "Resource pack file " << name << " has an extension not allowed for kind '" << kind
-                                           << "'; skipping it";
-                continue;
-            }
-
-            std::vector<std::string>& kind_files = files_by_kind[kind];
-            if (std::find(kind_files.begin(), kind_files.end(), path.string()) == kind_files.end())
-                kind_files.push_back(path.string());
-        }
+        for (std::string_view kind : kinds_of(path))
+            files_by_kind[std::string(kind)].push_back(path.string());
     }
-
     for (auto& [kind, kind_files] : files_by_kind) {
-        const ResourceKindSpec* spec = find_resource_kind(kind);
-        if (kind_files.size() > spec->max_files)
-            kind_files.resize(spec->max_files);
-    }
-
-    for (const auto& entry : kinds) {
-        if (!listed.count(entry.first))
-            BOOST_LOG_TRIVIAL(debug) << "Resource pack declares " << entry.first << " but " << dir << " has no such file";
+        const size_t max_files = find_resource_kind(kind)->max_files;
+        if (kind_files.size() > max_files)
+            kind_files.resize(max_files);
     }
     return files_by_kind;
 }

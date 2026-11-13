@@ -10,7 +10,7 @@
 namespace Slic3r {
 
 // A printer preset's bed_custom_model / bed_custom_texture can name a file in an installed
-// resource-pack plugin (a "printer asset pack") instead of a local path:
+// resource-printer-asset plugin (a "printer asset pack") instead of a local path:
 //
 //     orcacloud-asset/<plugin id>/<file>
 //

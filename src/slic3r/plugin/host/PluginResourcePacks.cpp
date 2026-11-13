@@ -8,7 +8,7 @@
 #include "slic3r/plugin/PluginManager.hpp"
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include "slic3r/plugin/ResourcePackKinds.hpp"
-#include "slic3r/plugin/pluginTypes/resourcePack/ResourcePackPluginCapability.hpp"
+#include "slic3r/plugin/pluginTypes/resourcePrinterAsset/ResourcePrinterAssetPluginCapability.hpp"
 #include "slic3r/plugin/pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp"
 
 #include <boost/algorithm/string/case_conv.hpp>
@@ -22,6 +22,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -41,16 +42,14 @@ std::optional<ResourcePackEntry> PluginResourcePacks::build_entry(const PluginCa
         return std::nullopt;
     const PluginCapabilityType type = capability->type();
 
-    // An empty directory or kind map means resolution failed at load, so the pack contributes nothing.
-    std::string     resource_dir;
-    ResourceKindMap resource_kinds;
-    if (type == PluginCapabilityType::ResourcePack) {
-        auto pack_capability = std::dynamic_pointer_cast<ResourcePackPluginCapability>(capability);
-        if (!pack_capability)
+    // An empty directory means resolution failed at load, so the pack contributes nothing.
+    std::string resource_dir;
+    if (type == PluginCapabilityType::ResourcePrinterAsset) {
+        auto asset_capability = std::dynamic_pointer_cast<ResourcePrinterAssetPluginCapability>(capability);
+        if (!asset_capability)
             return std::nullopt;
-        resource_dir   = pack_capability->resource_dir();
-        resource_kinds = pack_capability->resource_kinds();
-        if (resource_dir.empty() || resource_kinds.empty())
+        resource_dir = asset_capability->asset_dir();
+        if (resource_dir.empty())
             return std::nullopt;
     } else if (type == PluginCapabilityType::ResourceTexture) {
         // Kept as its own type so existing texture plugins and their resource-texture manifests keep working.
@@ -82,7 +81,7 @@ std::optional<ResourcePackEntry> PluginResourcePacks::build_entry(const PluginCa
     if (type == PluginCapabilityType::ResourceTexture) {
         entry.files[std::string(RESOURCE_KIND_DISPLACEMENT_TEXTURE)] = collect_resource_texture_files(resource_dir, entry.plugin_root, error);
     } else {
-        entry.files = collect_resource_pack_files(resource_dir, entry.plugin_root, resource_kinds, error);
+        entry.files = collect_printer_asset_files(resource_dir, entry.plugin_root, error);
     }
     if (!error.empty()) {
         BOOST_LOG_TRIVIAL(warning) << "Resource pack '" << entry.display_name << "' was skipped: " << error;
@@ -94,7 +93,7 @@ std::optional<ResourcePackEntry> PluginResourcePacks::build_entry(const PluginCa
 bool PluginResourcePacks::on_plugin_register(const std::string &plugin_key)
 {
     bool changed = false;
-    for (const PluginCapabilityType type : {PluginCapabilityType::ResourcePack, PluginCapabilityType::ResourceTexture}) {
+    for (const PluginCapabilityType type : {PluginCapabilityType::ResourcePrinterAsset, PluginCapabilityType::ResourceTexture}) {
         for (const auto &capability : PluginManager::instance().get_plugin_capabilities(plugin_key, type)) {
             if (capability && on_cap_register(capability->identity()))
                 changed = true;
@@ -138,7 +137,7 @@ bool PluginResourcePacks::on_cap_deregister(const PluginCapabilityId &id)
 void PluginResourcePacks::initial_sweep()
 {
     std::map<PluginCapabilityId, ResourcePackEntry> entries;
-    for (const PluginCapabilityType type : {PluginCapabilityType::ResourcePack, PluginCapabilityType::ResourceTexture}) {
+    for (const PluginCapabilityType type : {PluginCapabilityType::ResourcePrinterAsset, PluginCapabilityType::ResourceTexture}) {
         for (const auto &capability : PluginManager::instance().get_plugin_capabilities("", type)) {
             if (!capability)
                 continue;
@@ -169,7 +168,7 @@ std::string PluginResourcePacks::resolve(const PrinterAssetRef &ref, std::string
 
     std::lock_guard<std::mutex> lock(m_mutex);
     for (const auto &[id, entry] : m_entries) {
-        if (id.type != PluginCapabilityType::ResourcePack || (entry.pack_id != pack_id && entry.plugin_key != ref.plugin_id))
+        if (id.type != PluginCapabilityType::ResourcePrinterAsset || (entry.pack_id != pack_id && entry.plugin_key != ref.plugin_id))
             continue;
         const auto kind_files = entry.files.find(std::string(kind));
         if (kind_files == entry.files.end())
@@ -188,7 +187,7 @@ std::string PluginResourcePacks::capability_name(const PrinterAssetRef &ref) con
 
     std::lock_guard<std::mutex> lock(m_mutex);
     for (const auto &[id, entry] : m_entries)
-        if (id.type == PluginCapabilityType::ResourcePack && (entry.pack_id == pack_id || entry.plugin_key == ref.plugin_id))
+        if (id.type == PluginCapabilityType::ResourcePrinterAsset && (entry.pack_id == pack_id || entry.plugin_key == ref.plugin_id))
             return entry.display_name;
     return {};
 }
@@ -199,7 +198,7 @@ std::string resolve_printer_asset_value(const std::string &value, std::string_vi
     return ref ? PluginResourcePacks::instance().resolve(*ref, kind) : value;
 }
 
-// The name of the ResourcePack capability an installed plugin provides for `ref`, enabled or
+// The name of the ResourcePrinterAsset capability an installed plugin provides for `ref`, enabled or
 // not, or empty when the plugin is not installed here or provides none (or several).
 static std::string installed_capability_name(const PrinterAssetRef &ref)
 {
@@ -207,7 +206,7 @@ static std::string installed_capability_name(const PrinterAssetRef &ref)
     PluginDescriptor descriptor;
     if (!manager.try_get_plugin_descriptor(ref.plugin_id, descriptor))
         return {};
-    const auto capabilities = manager.get_plugin_capabilities(descriptor.plugin_key, PluginCapabilityType::ResourcePack,
+    const auto capabilities = manager.get_plugin_capabilities(descriptor.plugin_key, PluginCapabilityType::ResourcePrinterAsset,
                                                               /*only_enabled=*/false);
     return capabilities.size() == 1 ? capabilities.front()->name() : std::string();
 }

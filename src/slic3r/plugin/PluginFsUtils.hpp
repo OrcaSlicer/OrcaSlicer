@@ -117,13 +117,10 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
                                                         const std::string& plugin_root,
                                                         std::string& error);
 
-// Validated files of a resource pack directly inside `dir`, every one contained in `plugin_root`, named in `kinds`.
-// Each file lands under every kind it declares and the kind's extension list allows; per kind, sorted and capped
-// at ResourceKindSpec::max_files. Empty with `error` set on failure.
-ResourceFilesByKind collect_resource_pack_files(const std::string&     dir,
-                                                const std::string&     plugin_root,
-                                                const ResourceKindMap& kinds,
-                                                std::string&           error);
+// Validated non-recursive .stl/.png/.svg files directly inside `dir` (a printer asset pack's asset folder), every
+// one contained in `plugin_root`, indexed by kind from the extension: .stl is bed_model, .png/.svg bed_texture.
+// Per kind, sorted and capped at ResourceKindSpec::max_files. Empty with `error` set on failure.
+ResourceFilesByKind collect_printer_asset_files(const std::string& dir, const std::string& plugin_root, std::string& error);
 
 // Process-wide mutex serializing every in-process read and read-modify-write of a plugin's
 // .install_state.json sidecar. Hold it across the read and the matching write so two writers

@@ -3180,20 +3180,20 @@ void GUI_App::init_plugin_gui_wiring()
     plugin_mgr.subscribe_on_capability_load_callback([refresh_bed_for_asset_packs](const PluginCapabilityId& capability) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;
-        if (capability.type != PluginCapabilityType::ResourcePack && capability.type != PluginCapabilityType::ResourceTexture)
+        if (capability.type != PluginCapabilityType::ResourcePrinterAsset && capability.type != PluginCapabilityType::ResourceTexture)
             return;
         const bool changed = PluginResourcePacks::instance().on_cap_register(capability);
         // A texture pack does not appear on the bed.
-        refresh_bed_for_asset_packs(changed && capability.type == PluginCapabilityType::ResourcePack);
+        refresh_bed_for_asset_packs(changed && capability.type == PluginCapabilityType::ResourcePrinterAsset);
         Slic3r::GUI::bump_texture_library_generation();
     });
     plugin_mgr.subscribe_on_capability_unload_callback([refresh_bed_for_asset_packs](const PluginCapabilityId& capability) {
         if (wxTheApp == nullptr || wxGetApp().is_closing())
             return;
-        if (capability.type != PluginCapabilityType::ResourcePack && capability.type != PluginCapabilityType::ResourceTexture)
+        if (capability.type != PluginCapabilityType::ResourcePrinterAsset && capability.type != PluginCapabilityType::ResourceTexture)
             return;
         const bool changed = PluginResourcePacks::instance().on_cap_deregister(capability);
-        refresh_bed_for_asset_packs(changed && capability.type == PluginCapabilityType::ResourcePack);
+        refresh_bed_for_asset_packs(changed && capability.type == PluginCapabilityType::ResourcePrinterAsset);
         Slic3r::GUI::bump_texture_library_generation();
     });
     // Packs already loaded before this wiring, or in tests where no callback fires.

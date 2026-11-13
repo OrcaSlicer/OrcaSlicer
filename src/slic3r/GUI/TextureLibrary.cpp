@@ -10,6 +10,7 @@
 #include <ios>
 #include <iterator>
 #include <limits>
+#include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <optional>
 #include <memory>
@@ -74,7 +75,7 @@ void scan_dir(const boost::filesystem::path &dir, TextureSource source, std::vec
 // Appends every loaded pack's displacement_texture files, ordered by the pack's display name, then its key, then
 // file name. Each entry carries the contributing pack's display name and key, which the picker uses to group
 // a pack's textures into one section; names are unique only per capability type, so the key tells two
-// same-named packs apart. ResourceTexture packs and ResourcePack packs both come from the registry.
+// same-named packs apart. ResourceTexture packs and ResourcePrinterAsset packs both come from the registry.
 void scan_plugin_textures(std::vector<TextureLibraryEntry> &out)
 {
     std::vector<TextureLibraryEntry> found;

@@ -8,16 +8,13 @@
 
 namespace Slic3r {
 
-// What a ResourcePack file is for. A pack declares the kinds of each file; a consumer (the Bed Shape
-// dialog, the displacement texture picker) lists only the files declared for its kind.
+// What a plugin file is for. A consumer (the Bed Shape dialog, the displacement texture picker) lists only the
+// files of its kind.
 inline constexpr std::string_view RESOURCE_KIND_BED_MODEL       = "bed_model";
 inline constexpr std::string_view RESOURCE_KIND_BED_TEXTURE     = "bed_texture";
 inline constexpr std::string_view RESOURCE_KIND_DISPLACEMENT_TEXTURE = "displacement_texture";
 
-// File name -> kinds it is declared for: the return value of get_resource_kinds().
-using ResourceKindMap = std::map<std::string, std::vector<std::string>>;
-
-// Kind -> validated absolute paths of the files declared for it, sorted, at most ResourceKindSpec::max_files each.
+// Kind -> validated absolute paths of the files of that kind, sorted, at most ResourceKindSpec::max_files each.
 using ResourceFilesByKind = std::map<std::string, std::vector<std::string>>;
 
 struct ResourceKindSpec

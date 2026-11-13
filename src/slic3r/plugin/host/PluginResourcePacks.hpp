@@ -15,7 +15,7 @@
 
 namespace Slic3r {
 
-// One loaded and enabled ResourcePack or ResourceTexture capability and its files, grouped by the kind each is declared for.
+// One loaded and enabled ResourcePrinterAsset or ResourceTexture capability and its files, grouped by kind.
 struct ResourcePackEntry
 {
     PluginCapabilityId  id;
@@ -27,10 +27,11 @@ struct ResourcePackEntry
     ResourceFilesByKind files;        // kind -> validated absolute paths
 };
 
-// Tracks every loaded and enabled ResourcePack and ResourceTexture capability by id and resolves printer asset
-// references. ResourceTexture is kept as its own type for existing texture plugins and their manifests; its
-// textures are served here as displacement_texture files. Holds strings only: a shared_ptr here would keep a Python
-// object alive past Py_Finalize.
+// Tracks every loaded and enabled ResourcePrinterAsset and ResourceTexture capability by id and resolves printer
+// asset references. Both are served as files of a kind inferred from the capability type and the file extension:
+// printer asset packs give bed_model (.stl) and bed_texture (.png, .svg) files, texture packs give
+// displacement_texture files. Only printer asset packs resolve references. Holds strings only: a shared_ptr here
+// would keep a Python object alive past Py_Finalize.
 class PluginResourcePacks
 {
 public:

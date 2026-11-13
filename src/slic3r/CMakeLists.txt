@@ -731,9 +731,9 @@ set(SLIC3R_GUI_SOURCES
     plugin/pluginTypes/resourceTexture/ResourceTexturePluginCapability.hpp
     plugin/pluginTypes/resourceTexture/ResourceTexturePluginCapability.cpp
     plugin/pluginTypes/resourceTexture/ResourceTexturePluginCapabilityTrampoline.hpp
-    plugin/pluginTypes/resourcePack/ResourcePackPluginCapability.hpp
-    plugin/pluginTypes/resourcePack/ResourcePackPluginCapability.cpp
-    plugin/pluginTypes/resourcePack/ResourcePackPluginCapabilityTrampoline.hpp
+    plugin/pluginTypes/resourcePrinterAsset/ResourcePrinterAssetPluginCapability.hpp
+    plugin/pluginTypes/resourcePrinterAsset/ResourcePrinterAssetPluginCapability.cpp
+    plugin/pluginTypes/resourcePrinterAsset/ResourcePrinterAssetPluginCapabilityTrampoline.hpp
     plugin/pluginTypes/script/ScriptPluginCapability.hpp
     plugin/pluginTypes/script/ScriptPluginCapability.cpp
     plugin/pluginTypes/script/ScriptPluginCapabilityTrampoline.hpp
