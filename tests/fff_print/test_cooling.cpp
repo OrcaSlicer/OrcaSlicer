@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdlib>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/TriangleMesh.hpp"
@@ -157,4 +158,54 @@ TEST_CASE("Overhang fan transitions do not depend on overhang speed", "[Cooling]
                         [](const auto &command) { return command.second.find("S255") != std::string::npos; }));
     REQUIRE(with_speed_feedrates != without_speed_feedrates);
     CHECK(with_speed_fan == without_speed_fan);
+}
+
+namespace {
+// The speed of the first M106 command, or -1 if there is none.
+int first_fan_speed(const std::string &gcode)
+{
+    std::istringstream input(gcode);
+    std::string line;
+    while (std::getline(input, line))
+        if (line.rfind("M106 S", 0) == 0)
+            return std::atoi(line.c_str() + 6);
+    return -1;
+}
+} // namespace
+
+// The part cooling fan runs at first_x_layer_part_fan_speed instead of being off for the first layers.
+TEST_CASE("Part cooling fan speed for the initial layers", "[Cooling]")
+{
+    const auto sliced = [](const char *speed) {
+        return slice({ cube(20) }, {
+            { "close_fan_the_first_x_layers",  3 },
+            { "first_x_layer_part_fan_speed",  speed },
+        });
+    };
+    CHECK(first_fan_speed(sliced("0")) == 0);
+    CHECK(first_fan_speed(sliced("30")) > 0);
+}
+
+// With the linear ramp, the auxiliary fan starts at the initial layer speed and rises to its target speed.
+TEST_CASE("Auxiliary fan linear ramp", "[Cooling]")
+{
+    const std::string gcode = slice({ cube(20) }, {
+        { "auxiliary_fan",                       true },
+        { "additional_cooling_fan_linear_ramp",  true },
+        { "close_additional_fan_first_x_layers", 2 },
+        { "first_x_layer_fan_speed",             "10" },
+        { "additional_cooling_fan_speed",        100 },
+        { "additional_fan_full_speed_layer",     6 },
+    });
+    std::vector<int> speeds;
+    std::istringstream input(gcode);
+    std::string line;
+    while (std::getline(input, line))
+        if (line.rfind("M106 P2 S", 0) == 0)
+            if (const int speed = std::atoi(line.c_str() + 9); speed > 0)
+                speeds.push_back(speed);
+    REQUIRE(speeds.size() > 1);
+    CHECK(std::is_sorted(speeds.begin(), speeds.end()));
+    CHECK(speeds.front() < speeds.back());
+    CHECK(speeds.back() == 255);
 }
