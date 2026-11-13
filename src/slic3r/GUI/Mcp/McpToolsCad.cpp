@@ -157,8 +157,9 @@ const char* const kFailureNote = "A rejected rebuild is reported in the reply: o
 // The rest of the description of a command whose entry has an action and no silent form, after its hint and
 // before mode_note().
 const char* const kOpensToolNote =
-    "It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a "
-    "tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then.";
+    "It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open "
+    "a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the "
+    "tab's status line shows then.";
 
 // The `silent` property of a command whose entry has both forms, before mode_note().
 const char* const kSilentNote =

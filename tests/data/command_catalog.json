@@ -2565,7 +2565,7 @@
   },
   {
    "completion": "none",
-   "description": "Export presets as a bundle or ZIP archives. Opens a dialog: click the label of the kind to export, check the presets (their checkboxes are named after them), press OK, then answer the result message. With a directory, OK writes there instead of asking for a folder.",
+   "description": "Export presets as a bundle or ZIP archives. Opens a dialog: click the label of the kind to export, check its rows (each named after a printer preset or a filament), press OK, then answer the result message. With a directory, OK writes there instead of asking for a folder.",
    "destructive": false,
    "group": "Export",
    "guard": "mutate",
@@ -5093,7 +5093,7 @@
   },
   {
    "completion": "none",
-   "description": "Sketch on the selected flat face or plane, or click one next. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Sketch on the selected flat face or plane, or click one next. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -6201,7 +6201,7 @@
   },
   {
    "completion": "none",
-   "description": "Cut the tool body out of the target. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Cut the tool body out of the target. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -6221,7 +6221,7 @@
   },
   {
    "completion": "none",
-   "description": "Keep only where the two bodies overlap. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Keep only where the two bodies overlap. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -7359,7 +7359,7 @@
   },
   {
    "completion": "none",
-   "description": "Trim the body with a plane — drag the offset arrow; keep one half or both. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Trim the body with a plane — drag the offset arrow; keep one half or both. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -8118,7 +8118,7 @@
   },
   {
    "completion": "none",
-   "description": "Repeat the body around an axis — set the count and sweep. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Repeat the body around an axis — set the count and sweep. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -9796,7 +9796,7 @@
   },
   {
    "completion": "none",
-   "description": "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it). It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it). It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -9909,7 +9909,7 @@
   },
   {
    "completion": "none",
-   "description": "Set the selected body's display color. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Set the selected body's display color. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -9929,7 +9929,7 @@
   },
   {
    "completion": "none",
-   "description": "Frame the selection in the view, keeping the view direction. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Frame the selection in the view, keeping the view direction. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -9949,7 +9949,7 @@
   },
   {
    "completion": "none",
-   "description": "Delete what is selected. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Delete what is selected. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -9969,7 +9969,7 @@
   },
   {
    "completion": "none",
-   "description": "Delete this whole body — removes the feature it was made from. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Delete this whole body — removes the feature it was made from. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -9989,7 +9989,7 @@
   },
   {
    "completion": "none",
-   "description": "Line — click start, then end. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Line — click start, then end. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10009,7 +10009,7 @@
   },
   {
    "completion": "none",
-   "description": "Click points; click the first point to close the loop, right-click to end it open. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Click points; click the first point to close the loop, right-click to end it open. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10029,7 +10029,7 @@
   },
   {
    "completion": "none",
-   "description": "Rectangle — click two opposite corners. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Rectangle — click two opposite corners. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10049,7 +10049,7 @@
   },
   {
    "completion": "none",
-   "description": "Click center, then a corner. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Click center, then a corner. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10069,7 +10069,7 @@
   },
   {
    "completion": "none",
-   "description": "Click two corners of one edge, then a point for the width. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Click two corners of one edge, then a point for the width. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10089,7 +10089,7 @@
   },
   {
    "completion": "none",
-   "description": "Click two opposite corners, then a point for the corner radius. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Click two opposite corners, then a point for the corner radius. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10109,7 +10109,7 @@
   },
   {
    "completion": "none",
-   "description": "Circle — click center, then radius. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Circle — click center, then radius. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10129,7 +10129,7 @@
   },
   {
    "completion": "none",
-   "description": "Click two ends of the diameter. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Click two ends of the diameter. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10149,7 +10149,7 @@
   },
   {
    "completion": "none",
-   "description": "Click three points on the circle. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Click three points on the circle. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10169,7 +10169,7 @@
   },
   {
    "completion": "none",
-   "description": "Arc — click start, end, then a point. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Arc — click start, end, then a point. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10189,7 +10189,7 @@
   },
   {
    "completion": "none",
-   "description": "Click start (on the last entity) then end. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Click start (on the last entity) then end. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10209,7 +10209,7 @@
   },
   {
    "completion": "none",
-   "description": "Click center, then start, then a point for the end angle. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Click center, then start, then a point for the end angle. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10229,7 +10229,7 @@
   },
   {
    "completion": "none",
-   "description": "Slot — two centerline ends, then the width. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Slot — two centerline ends, then the width. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10249,7 +10249,7 @@
   },
   {
    "completion": "none",
-   "description": "Click center, start, end, then a point for the width. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Click center, start, end, then a point for the width. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10269,7 +10269,7 @@
   },
   {
    "completion": "none",
-   "description": "Ellipse — center, major end, minor point. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Ellipse — center, major end, minor point. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10289,7 +10289,7 @@
   },
   {
    "completion": "none",
-   "description": "Click center, major-axis end, minor point, then arc start and end. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Click center, major-axis end, minor point, then arc start and end. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10309,7 +10309,7 @@
   },
   {
    "completion": "none",
-   "description": "Spline — click control points. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Spline — click control points. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10329,7 +10329,7 @@
   },
   {
    "completion": "none",
-   "description": "Triangle — click center, then a vertex. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Triangle — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10349,7 +10349,7 @@
   },
   {
    "completion": "none",
-   "description": "Square — click center, then a vertex. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Square — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10369,7 +10369,7 @@
   },
   {
    "completion": "none",
-   "description": "Pentagon — click center, then a vertex. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Pentagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10389,7 +10389,7 @@
   },
   {
    "completion": "none",
-   "description": "Hexagon — click center, then a vertex. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Hexagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10409,7 +10409,7 @@
   },
   {
    "completion": "none",
-   "description": "Octagon — click center, then a vertex. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Octagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10429,7 +10429,7 @@
   },
   {
    "completion": "none",
-   "description": "Dodecagon — click center, then a vertex. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Dodecagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10449,7 +10449,7 @@
   },
   {
    "completion": "none",
-   "description": "Measure the polygon to its corners (inscribed). It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Measure the polygon to its corners (inscribed). It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10469,7 +10469,7 @@
   },
   {
    "completion": "none",
-   "description": "Measure the polygon to its flats (circumscribed). It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Measure the polygon to its flats (circumscribed). It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10489,7 +10489,7 @@
   },
   {
    "completion": "none",
-   "description": "Point — click to place. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Point — click to place. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10509,7 +10509,7 @@
   },
   {
    "completion": "none",
-   "description": "Type text; it becomes a Text feature on this sketch's plane, editable later. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Type text; it becomes a Text feature on this sketch's plane, editable later. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10529,7 +10529,7 @@
   },
   {
    "completion": "none",
-   "description": "Import an SVG outline into this sketch as editable lines. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Import an SVG outline into this sketch as editable lines. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10549,7 +10549,7 @@
   },
   {
    "completion": "none",
-   "description": "Offset — pick an entity, drag the distance. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Offset — pick an entity, drag the distance. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10569,7 +10569,7 @@
   },
   {
    "completion": "none",
-   "description": "Trim — click a segment to trim it. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Trim — click a segment to trim it. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10589,7 +10589,7 @@
   },
   {
    "completion": "none",
-   "description": "Fillet — pick two lines, set the radius. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Fillet — pick two lines, set the radius. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10609,7 +10609,7 @@
   },
   {
    "completion": "none",
-   "description": "Chamfer — pick two lines, set the distance. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Chamfer — pick two lines, set the distance. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10629,7 +10629,7 @@
   },
   {
    "completion": "none",
-   "description": "Pick entities, drag the spacing handle, click the count; click empty to apply. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Pick entities, drag the spacing handle, click the count; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10649,7 +10649,7 @@
   },
   {
    "completion": "none",
-   "description": "Pick entities, drag the sweep handle, click the count; click empty to apply. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Pick entities, drag the sweep handle, click the count; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10669,7 +10669,7 @@
   },
   {
    "completion": "none",
-   "description": "Mirror — pick axis, then entities. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Mirror — pick axis, then entities. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10689,7 +10689,7 @@
   },
   {
    "completion": "none",
-   "description": "Pick entities, then drag the handle or click the distance; click empty to apply. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Pick entities, then drag the handle or click the distance; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10709,7 +10709,7 @@
   },
   {
    "completion": "none",
-   "description": "Pick entities, then drag around the pivot or click the angle; click empty to apply. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Pick entities, then drag around the pivot or click the angle; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10729,7 +10729,7 @@
   },
   {
    "completion": "none",
-   "description": "Pick entities, then drag the handle or click the factor; click empty to apply. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Pick entities, then drag the handle or click the factor; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10749,7 +10749,7 @@
   },
   {
    "completion": "none",
-   "description": "Dimension — click 2 points or an entity. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Dimension — click 2 points or an entity. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10769,7 +10769,7 @@
   },
   {
    "completion": "none",
-   "description": "Constrain the selected sketch entities to each other. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Constrain the selected sketch entities to each other. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10789,7 +10789,7 @@
   },
   {
    "completion": "none",
-   "description": "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
+   "description": "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10809,7 +10809,7 @@
   },
   {
    "completion": "none",
-   "description": "Toggle construction: geometry that guides but is never built. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Toggle construction: geometry that guides but is never built. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10829,7 +10829,7 @@
   },
   {
    "completion": "none",
-   "description": "Extend — click a line/arc to extend it. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Extend — click a line/arc to extend it. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10849,7 +10849,7 @@
   },
   {
    "completion": "none",
-   "description": "Delete the selected sketch entities. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Delete the selected sketch entities. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10869,7 +10869,7 @@
   },
   {
    "completion": "none",
-   "description": "Type the length of this line. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Type the length of this line. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10889,7 +10889,7 @@
   },
   {
    "completion": "none",
-   "description": "Type the radius of this arc, or the diameter of this circle. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Type the radius of this arc, or the diameter of this circle. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",
@@ -10909,7 +10909,7 @@
   },
   {
    "completion": "none",
-   "description": "Type the angle between two lines, or the distance between the two picks. It takes no arguments and does what the Design tab's menu row or key does, as a person's pick does: open a tool, start a sketch tool, or act at once. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
+   "description": "Type the angle between two lines, or the distance between the two picks. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
    "guard": "mutate",

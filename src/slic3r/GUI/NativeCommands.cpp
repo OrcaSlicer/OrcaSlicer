@@ -625,8 +625,8 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"export_drc_multi", "Export each object as its own Draco (.drc) file."},
         {"export_toolpaths_obj", "Export the sliced toolpaths as an OBJ."},
         {"export_config", "Export presets as a bundle or ZIP archives. Opens a dialog: click the label of the kind to export, check "
-                          "the presets (their checkboxes are named after them), press OK, then answer the result message. With a "
-                          "directory, OK writes there instead of asking for a folder."},
+                          "its rows (each named after a printer preset or a filament), press OK, then answer the result message. "
+                          "With a directory, OK writes there instead of asking for a folder."},
         {"import_file", "Import models (3MF/STL/STEP/SVG/OBJ/AMF). With a path, adds that file's geometry without a dialog, as one undo step; "
                         "a project file's settings are not loaded (load_project opens a project)."},
         {"import_zip_archive", "Import models from a ZIP archive (opens a file dialog)."},

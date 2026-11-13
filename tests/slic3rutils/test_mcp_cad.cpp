@@ -729,7 +729,7 @@ TEST_CASE("a CAD command's summary is one sentence of at most 120 characters", "
     CHECK_THAT(command_of(catalog, "fillet").description, ContainsSubstring("ok is false"));
     CHECK_THAT(command_of(catalog, "extrude").description, !ContainsSubstring("ok is false"));
     // One with an action only does what its row does, which for Delete Body is to delete it at once.
-    CHECK_THAT(command_of(catalog, "delete_body").description, ContainsSubstring("or act at once"));
+    CHECK_THAT(command_of(catalog, "delete_body").description, ContainsSubstring("act at once"));
     CHECK_THAT(command_of(catalog, "delete_body").description, !ContainsSubstring("opens the tool"));
 }
 

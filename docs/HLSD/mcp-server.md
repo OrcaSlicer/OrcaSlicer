@@ -1290,9 +1290,10 @@ reports a rejected rebuild in its reply (`ok_false`); the header carries it as J
 `register_cad_commands()` makes a command of each entry (`cad_command()`), in the table's order: the menu's
 verbs, then the 41 entries with no menu row, 133 commands in all. It is `read_only` for a `read` block, and
 has the entry's icon. Its description is the summary, the details and, with `ok_false`, how a rejected rebuild
-shows; an entry with an action only has its hint and what its call does: what its menu row or key does, which
-may open a tool, start a sketch tool or act at once, with the status line in the reply, and the mode it runs
-in, "only in an open sketch" or "only outside a sketch" by its row. Its examples are the block's, each
+shows; an entry with an action only has its hint and what its call does: what its right-click menu row does,
+which may open a tool, start a sketch tool, act at once or tell the person why it cannot, with the status line
+in the reply, and the mode it runs in, "only in an open sketch" or "only outside a sketch" by its row. Its
+examples are the block's, each
 `{title, calls: [{tool, args}], needs?}` ending with the command it documents, where an argument
 `{"from_call": i, "key": k}` is the value under `k` in the result of call `i`, and a call of a command that
 has both forms with no other argument is `{"silent": true}`. Its input schema (`cad_input_schema()`) is built
