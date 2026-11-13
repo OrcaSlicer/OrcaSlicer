@@ -21,7 +21,7 @@ void SceneCache::capture(Key key)
     if (wxGetApp().get_shader("flat_texture") == nullptr)
         return;
 
-    GLTexture::copy_from_framebuffer(m_texture_id, m_texture_size, key.size[0], key.size[1], GL_NEAREST);
+    GLTexture::copy_from_framebuffer(m_texture_id, m_framebuffer_id, m_texture_size, key.size[0], key.size[1], GL_NEAREST);
 
     m_key = std::move(key);
     m_valid = true;
@@ -56,6 +56,10 @@ void SceneCache::reset()
     if (m_texture_id != 0) {
         glsafe(::glDeleteTextures(1, &m_texture_id));
         m_texture_id = 0;
+    }
+    if (m_framebuffer_id != 0) {
+        glsafe(::glDeleteFramebuffers(1, &m_framebuffer_id));
+        m_framebuffer_id = 0;
     }
     m_texture_size = { { 0, 0 } };
 }
