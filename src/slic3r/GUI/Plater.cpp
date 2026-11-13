@@ -1113,7 +1113,8 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
     m_printer_bbl_sync->Show(isBBL);
     auto *device_manager = wxGetApp().getDeviceManager();
     auto *agent = device_manager ? device_manager->get_agent() : nullptr;
-    m_printer_filament_refresh->Show(agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull);
+    m_printer_filament_refresh->Show(agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull &&
+                                    device_manager->get_selected_machine());
 
     // ORCA show plate type combo box only when its supported
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
@@ -4192,14 +4193,6 @@ void Sidebar::update_presets(Preset::Type preset_type)
         if (GUI::wxGetApp().plater())
             GUI::wxGetApp().plater()->update_machine_sync_status();
 
-        auto *device_manager = wxGetApp().getDeviceManager();
-        auto *agent = device_manager ? device_manager->get_agent() : nullptr;
-        const auto sync_mode = agent ? agent->get_filament_sync_mode() : FilamentSyncMode::none;
-        if (sync_mode == FilamentSyncMode::pull)
-            load_ams_list(device_manager->get_selected_machine());
-        else if (sync_mode == FilamentSyncMode::none)
-            load_ams_list(nullptr);
-
         Layout();
 
         break;
@@ -6285,6 +6278,12 @@ void Sidebar::get_small_btn_sync_pos_size(wxPoint &pt, wxSize &size) {
 
 void Sidebar::load_ams_list(MachineObject* obj)
 {
+    // The printer agent switches after the preset layout is updated.
+    auto *device_manager = wxGetApp().getDeviceManager();
+    auto *agent = device_manager ? device_manager->get_agent() : nullptr;
+    p->m_printer_filament_refresh->Show(obj && agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull);
+    p->m_panel_printer_title->Layout();
+
     std::map<int, DynamicPrintConfig> filament_ams_list;
 
     // build_filament_ams_list handles both subscription-based and non-subscription-based agents:
