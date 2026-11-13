@@ -2136,12 +2136,21 @@ std::optional<ColorSelection> ColorPickerPopup::ColorItem::picker_selection(bool
         const wxColour& color = colors.front();
         return ColorRGBA(color.Red(), color.Green(), color.Blue(), color.Alpha());
     }
-    if (ctype != 0 || !ColorPickerOptions{allow_gradient, true, MAX_EDITABLE_COLORS}.supports_gradient(colors.size()))
-        return std::nullopt;
-    ColorGradient gradient;
-    for (const wxColour& color : colors)
-        gradient.emplace_back(color.Red(), color.Green(), color.Blue(), color.Alpha());
-    return gradient;
+    // ctype 0 is a gradient and 1 is co-extruded colors; both need firmware with manual multi-color support.
+    const ColorPickerOptions options{allow_gradient, true, MAX_EDITABLE_COLORS, allow_gradient};
+    if (ctype == 0 && options.supports_gradient(colors.size())) {
+        ColorGradient gradient;
+        for (const wxColour& color : colors)
+            gradient.emplace_back(color.Red(), color.Green(), color.Blue(), color.Alpha());
+        return gradient;
+    }
+    if (ctype == 1 && options.supports_coextruded(colors.size())) {
+        ColorCoextruded coextruded;
+        for (const wxColour& color : colors)
+            coextruded.colors.emplace_back(color.Red(), color.Green(), color.Blue(), color.Alpha());
+        return coextruded;
+    }
+    return std::nullopt;
 }
 
 ColorPickerPopup::ColorItem ColorPickerPopup::ColorItem::from_picker_selection(const ColorSelection& selection)
@@ -2155,6 +2164,10 @@ ColorPickerPopup::ColorItem ColorPickerPopup::ColorItem::from_picker_selection(c
     };
     if (const auto* solid = std::get_if<ColorRGBA>(&selection)) {
         append(*solid);
+    } else if (const auto* coextruded = std::get_if<ColorCoextruded>(&selection)) {
+        for (const ColorRGBA& color : coextruded->colors)
+            append(color);
+        item.ctype = 1;
     } else {
         for (const ColorRGBA& color : std::get<ColorGradient>(selection))
             append(color);
@@ -2174,7 +2187,7 @@ void ColorPickerPopup::on_custom_clr_picker(wxMouseEvent& /*event*/)
         const wxColour& first = m_def_cols.empty() ? m_def_col : m_def_cols.front();
         const ColorSelection initial = exact ? *exact : ColorSelection{ColorRGBA(first.Red(), first.Green(), first.Blue(), first.Alpha())};
         // Snapshot the custom control's anchor before releasing the transient popup grab.
-        ColorPickerDialog dialog(GetParent(), initial, {m_allow_multi_color, true, MAX_EDITABLE_COLORS},
+        ColorPickerDialog dialog(GetParent(), initial, {m_allow_multi_color, true, MAX_EDITABLE_COLORS, m_allow_multi_color},
                                  !exact && m_def_cols.size() > 1, m_custom_cp);
         Dismiss();
         // Unchanged fallback seeds must not replace a multi-color or oversized selection.

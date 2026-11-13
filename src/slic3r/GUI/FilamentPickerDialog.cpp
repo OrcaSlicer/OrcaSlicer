@@ -602,7 +602,7 @@ void FilamentPickerDialog::BindEvents()
             const auto initial = filament_color_picker_initial(current);
             std::optional<ColorSelection> selected;
             {
-                ColorPickerDialog dialog(this, initial, {true, true}, !filament_color_picker_selection(current), m_more_btn);
+                ColorPickerDialog dialog(this, initial, COLOR_PICKER_ALL_CAPABILITIES, !filament_color_picker_selection(current), m_more_btn);
                 if (dialog.ShowModal() == wxID_OK)
                     selected = dialog.selection();
             }
@@ -619,7 +619,9 @@ void FilamentPickerDialog::BindEvents()
                 colors.emplace_back(wxString::FromUTF8(color));
                 m_cur_filament_color.m_colors.insert(colors.back());
             }
-            m_cur_filament_color.m_color_type = m_ordered_color->gradient ? FilamentColor::ColorType::GRADIENT_CLR : FilamentColor::ColorType::SINGLE_CLR;
+            m_cur_filament_color.m_color_type = m_ordered_color->gradient           ? FilamentColor::ColorType::GRADIENT_CLR :
+                                                m_ordered_color->colors.size() > 1 ? FilamentColor::ColorType::MULTI_CLR :
+                                                                                     FilamentColor::ColorType::SINGLE_CLR;
             UpdateCustomColorPreview(colors, m_ordered_color->gradient);
             UpdateButtonStates(nullptr);
         });

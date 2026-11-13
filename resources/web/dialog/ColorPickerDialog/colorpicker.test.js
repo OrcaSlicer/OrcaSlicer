@@ -21,7 +21,7 @@ test("HSL conversion preserves primary channels and hue wraps at 360", () => {
 test("capabilities default off and reject gradient through every model entry", () => {
   const gradient = {type: "gradient", colors: ["#FF000080", "#0000FF20"]};
   const state = model.createState();
-  assert.deepEqual(state.options, {allow_gradient: false, allow_alpha: false});
+  assert.deepEqual(state.options, {allow_gradient: false, allow_alpha: false, allow_coextruded: false});
   assert.equal(model.createState({}, gradient), null);
   assert.equal(model.applySelection(state, gradient), false);
   assert.equal(model.setMode(state, "gradient"), false);
@@ -118,4 +118,55 @@ test("AMS four-color limits reject oversized palettes and favorites without affe
     assert.deepEqual(model.exportSelection(project), oversized);
     assert.deepEqual(favorites, [oversized]);
   }
+});
+
+test("co-extruded colors need their own capability and keep order, alpha and the color limit", () => {
+  const coextruded = {type: "coextruded", colors: ["#FF000080", "#00FF00", "#0000FF01"]};
+  assert.equal(model.normalizeSelection(coextruded, {allow_gradient: true, allow_alpha: true}, 7), null, "gradient support does not allow co-extruded colors");
+  assert.equal(model.createState({allow_gradient: true, max_gradient_colors: 7}, coextruded), null);
+  const state = model.createState({allow_coextruded: true, allow_alpha: true, max_gradient_colors: 4}, coextruded);
+  assert.equal(state.mode, "solid", "co-extruded colors are edited in Solid mode");
+  assert.deepEqual(model.exportSelection(state), {type: "coextruded", colors: ["#FF000080", "#00FF00FF", "#0000FF01"]});
+  assert.equal(model.setMode(state, "gradient"), false, "no gradient support, so Solid stays");
+  state.active = 2; model.setHex(state, "#112233");
+  assert.deepEqual(model.exportSelection(state).colors, ["#FF000080", "#00FF00FF", "#11223301"]);
+  assert.equal(model.addGradientColor(state), true);
+  assert.equal(model.addGradientColor(state), false, "limit reached");
+  assert.equal(model.normalizeSelection({type: "coextruded", colors: ["#112233"]}, {allow_coextruded: true}, 7), null, "co-extruded colors need 2 colors");
+  assert.equal(model.normalizeSelection({type: "coextruded", colors: Array(8).fill("#112233")}, {allow_coextruded: true}, 7), null);
+  assert.deepEqual(model.normalizeFavorites([coextruded]), [{type: "coextruded", colors: ["#FF000080", "#00FF00FF", "#0000FF01"]}], "favorites keep co-extruded colors");
+});
+
+test("Solid adds co-extruded colors and goes back to a single color", () => {
+  const state = model.createState({allow_coextruded: true, allow_alpha: true, max_gradient_colors: 3}, {type: "solid", colors: ["#FF000080"]});
+  assert.equal(model.removeGradientColor(state), false, "Solid keeps at least one color");
+  assert.equal(model.addGradientColor(state), true);
+  assert.deepEqual(model.exportSelection(state), {type: "coextruded", colors: ["#FF000080", "#BFFF0080"]}, "a second solid color makes it co-extruded");
+  assert.equal(state.active, 1);
+  assert.equal(model.addGradientColor(state), true);
+  assert.equal(model.addGradientColor(state), false, "limit reached");
+  model.removeGradientColor(state); model.removeGradientColor(state);
+  assert.deepEqual(model.exportSelection(state), {type: "solid", colors: ["#FF000080"]}, "one color left is a plain solid again");
+  const plain = model.createState({allow_gradient: true, max_gradient_colors: 7}, {type: "solid", colors: ["#FF0000"]});
+  assert.equal(model.canAddColor(plain), false, "callers without co-extruded colors keep Solid at one color");
+  assert.equal(model.addGradientColor(plain), false);
+});
+
+test("Solid and Gradient keep their own colors", () => {
+  const options = {allow_gradient: true, allow_coextruded: true, allow_alpha: true, max_gradient_colors: 7};
+  const state = model.createState(options, {type: "coextruded", colors: ["#FF000080", "#0000FF"]});
+  state.active = 1;
+  assert.equal(model.setMode(state, "gradient"), true);
+  assert.deepEqual(model.exportSelection(state).colors, ["#0000FFFF", "#FF00BFFF"], "a new gradient starts from the selected solid color");
+  model.setHex(state, "#00FF00");
+  assert.equal(model.setMode(state, "solid"), true);
+  assert.deepEqual(model.exportSelection(state), {type: "coextruded", colors: ["#FF000080", "#0000FFFF"]});
+  assert.equal(model.setMode(state, "gradient"), true);
+  assert.deepEqual(model.exportSelection(state).colors, ["#0000FFFF", "#00FF00FF"]);
+});
+
+test("co-extruded swatches have hard edges at equal segment widths", () => {
+  assert.equal(model.selectionBackground({type: "coextruded", colors: ["#FF0000FF", "#00FF00FF", "#0000FFFF"]}),
+    "linear-gradient(to right, #FF0000FF 0% 33.33%, #00FF00FF 33.33% 66.67%, #0000FFFF 66.67% 100%)");
+  assert.equal(model.selectionBackground({type: "gradient", colors: ["#FF0000FF", "#0000FFFF"]}), "linear-gradient(to right, #FF0000FF, #0000FFFF)");
 });

@@ -108,9 +108,11 @@
     satSlider.style.setProperty("--thumb-color", `hsl(${hsl[0]},${hsl[1]}%,${hsl[2]}%)`);
     modeSwitch.checked = state.mode === "gradient";
     const selection = model.exportSelection(state);
-    // Kept in the layout (visibility only) so the grid doesn't shift between Solid and Gradient.
-    gradientBar.classList.toggle("invisible", state.mode !== "gradient");
-    if (state.mode === "gradient") renderGradient(selection);
+    // Kept in the layout (visibility only) so the grid doesn't shift between Solid and Gradient. Solid
+    // shows its color blocks only where co-extruded colors are allowed.
+    const showBar = state.mode === "gradient" || state.options.allow_coextruded;
+    gradientBar.classList.toggle("invisible", !showBar);
+    if (showBar) renderGradient(selection);
     setSwatch(preview, selection);
     preview.title = `${T("Save current color")}\n${selection.colors.join(" → ")}`;
     if (SPECTRUM_FOLLOWS_SATURATION && hsl[1] !== spectrumSaturation) { spectrumSaturation = hsl[1]; paintSpectrum(); }
@@ -118,18 +120,23 @@
     updateConfirm();
   }
 
-  // One thumb per gradient color, evenly spaced; rebuilt only when the number of colors changes.
+  // One thumb per color: gradient colors are evenly spaced from end to end, and in Solid mode each
+  // color block has its thumb in the middle. Rebuilt only when the number of colors or the mode changes.
   function renderGradient(selection) {
-    const count = selection.colors.length;
+    const count = selection.colors.length, blocks = state.mode === "solid";
     setSwatch(gradientStops.querySelector(".gradient-track"), selection);
+    gradientStops.classList.toggle("color-blocks", blocks);
+    gradientBar.setAttribute("aria-label", T(blocks ? "Solid" : "Gradient"));
     let thumbs = [...gradientStops.querySelectorAll(".gradient-thumb")];
-    if (thumbs.length !== count) {
+    if (thumbs.length !== count || gradientStops.dataset.mode !== state.mode) {
+      gradientStops.dataset.mode = state.mode;
       thumbs.forEach((thumb) => thumb.remove());
       thumbs = selection.colors.map((_, index) => {
         const thumb = document.createElement("button");
         thumb.type = "button"; thumb.className = "gradient-thumb"; thumb.dataset.index = index;
-        thumb.style.setProperty("--stop", index / (count - 1));
-        thumb.setAttribute("aria-label", count === 2 ? T(index ? "Gradient end" : "Gradient start") : `${T("Gradient color")} ${index + 1}`);
+        thumb.style.setProperty("--stop", blocks ? (index + 0.5) / count : index / (count - 1));
+        thumb.setAttribute("aria-label", blocks ? (count === 1 ? T("Solid") : `${T("Co-extruded color")} ${index + 1}`) :
+                                         count === 2 ? T(index ? "Gradient end" : "Gradient start") : `${T("Gradient color")} ${index + 1}`);
         gradientStops.appendChild(thumb);
         return thumb;
       });
@@ -139,14 +146,16 @@
       thumb.setAttribute("aria-pressed", String(state.active === index));
     });
 
-    const multi = maxGradientColors > 2; // −/+ buttons only exist when more than 2 colors are allowed; − also needs a color to spare.
+    // −/+ buttons exist when the mode can have more colors than its minimum (a gradient needs more than 2
+    // allowed, Solid always has room for a second co-extruded color); − also needs a color to spare.
+    const multi = blocks || maxGradientColors > 2;
     gradientAdd.parentElement.classList.toggle("hidden", !multi);
-    gradientRemove.classList.toggle("hidden", !multi || count <= 2);
+    gradientRemove.classList.toggle("hidden", !multi || count <= model.minColors(state));
     gradientAdd.classList.toggle("hidden", !multi);
     // aria-disabled instead of disabled: a disabled button gets no hover, so its tooltip would never show.
-    const full = count >= maxGradientColors;
+    const full = !model.canAddColor(state);
     gradientAdd.setAttribute("aria-disabled", String(full));
-    gradientAdd.title = full ? T("Up to %d colors supported.").replace("%d", maxGradientColors) : T("Add color");
+    gradientAdd.title = full ? T("Up to %d colors supported.").replace("%d", maxGradientColors) : T(blocks ? "Add co-extruded color" : "Add color");
   }
 
   // Every editor the user can see; alpha only when this caller allows it.
@@ -176,7 +185,7 @@
       const row    = document.createElement("button"); row.type = "button"; row.className = "color-item";
       const swatch = document.createElement("span"); swatch.className = "color-swatch";
       const name   = document.createElement("span"); name.className = "color-name"; name.textContent = paletteName(entry.name);
-      setSwatch(swatch, model.normalizeSelection(selection, {allow_gradient: true, allow_alpha: true}, maxGradientColors));
+      setSwatch(swatch, model.normalizeSelection(selection, model.ALL_CAPABILITIES, maxGradientColors));
       row.append(swatch, name); row.title = paletteName(entry.name);
       row.addEventListener("click", () => {
         // Solid palette colors edit the active endpoint while gradient mode is on.
@@ -226,7 +235,7 @@
     // A gradient the host allows but this page does not (switch off) opens as its first color, like
     // other multi-color selections the picker cannot edit; OK then replaces it, Cancel keeps it.
     let selection = payload.selection, preserve = payload.preserve_multi_color === true;
-    if (selection?.type === "gradient" && selection.colors?.length > maxGradientColors) {
+    if (model.MULTI_COLOR_MODES.includes(selection?.type) && selection.colors?.length > maxGradientColors) {
       selection = {type: "solid", colors: [selection.colors[0]]};
       preserve = true;
     }
@@ -270,6 +279,7 @@
       const options = payload.options;
       const hostLimit = options && hostGradientLimit(options);
       if (!options || typeof options.allow_gradient !== "boolean" || typeof options.allow_alpha !== "boolean" ||
+          (options.allow_coextruded !== undefined && typeof options.allow_coextruded !== "boolean") ||
           !Number.isInteger(hostLimit) || hostLimit < 2 || hostLimit > model.MAX_GRADIENT_COLORS ||
           !model.normalizeSelection(payload.selection, options, hostLimit) || !validFavorites(payload.favorites) ||
           (payload.favorites_writable !== undefined && typeof payload.favorites_writable !== "boolean") ||
@@ -313,7 +323,7 @@
   }
 
   function validFavorites(values) {
-    return Array.isArray(values) && values.length <= 24 && values.every((value) => model.normalizeSelection(value, {allow_gradient: true, allow_alpha: true}, model.MAX_GRADIENT_COLORS));
+    return Array.isArray(values) && values.length <= 24 && values.every((value) => model.normalizeSelection(value, model.ALL_CAPABILITIES, model.MAX_GRADIENT_COLORS));
   }
 
   // Saturation the spectrum is currently painted at (always 100 when the option is off).
@@ -409,20 +419,19 @@
   });
   hexInput.addEventListener("blur", () => { if (hexInput.checkValidity()) render(); });
   modeSwitch.addEventListener("change", () => {
-
     setOpacitySliderOpen(false); // Close the opacity slider before the row changes, so it doesn't linger over the gradient bar.
     model.setMode(state, modeSwitch.checked ? "gradient" : "solid");
     render(true);
   });
   // Click on the track selects the nearest thumb. Keyboard users tab to a thumb and press Enter or Space.
   gradientStops.addEventListener("click", (event) => {
-    if (state.mode !== "gradient") return;
     // A thumb is read from its index: a keyboard-triggered click has no pointer position.
     const thumb = event.target.closest(".gradient-thumb"), rect = gradientStops.getBoundingClientRect();
-    const last = state.gradient.length - 1;
-    // Thumbs sit at 10px + (width - 20px) * i / last, matching the CSS.
+    const count = model.modeColors(state).length, last = count - 1;
+    // Gradient thumbs sit at 10px + (width - 20px) * i / last, matching the CSS; a color block is selected by its position.
     const fraction = Math.max(0, Math.min(1, (event.clientX - rect.left - 10) / Math.max(1, rect.width - 20)));
-    const index = thumb ? Number(thumb.dataset.index) : Math.round(fraction * last);
+    const segment = Math.min(last, Math.floor(Math.max(0, event.clientX - rect.left) * count / Math.max(1, rect.width)));
+    const index = thumb ? Number(thumb.dataset.index) : state.mode === "solid" ? segment : Math.round(fraction * last);
     if (index !== state.active) { state.active = index; render(true); }
   });
   gradientAdd.addEventListener("click", () => { if (gradientAdd.getAttribute("aria-disabled") !== "true" && model.addGradientColor(state)) render(true); });

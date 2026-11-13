@@ -58,10 +58,29 @@ TEST_CASE("AMS custom editing only accepts representable gradients on capable fi
     const std::vector<wxColour> colors{wxColour(255, 0, 0, 0), wxColour(0, 0, 255, 128)};
     REQUIRE_FALSE(ColorItem{}.picker_selection(true));
     REQUIRE_FALSE(ColorItem{colors, 0}.picker_selection(false));
-    REQUIRE_FALSE(ColorItem{colors, 1}.picker_selection(true));
+    REQUIRE_FALSE(ColorItem{colors, 1}.picker_selection(false));
     REQUIRE_FALSE(ColorItem{colors, 2}.picker_selection(true));
     REQUIRE_FALSE(ColorItem{std::vector<wxColour>(ColorPickerPopup::MAX_EDITABLE_COLORS + 1, colors.front()), 0}.picker_selection(true));
     REQUIRE(ColorItem{colors, 0}.picker_selection(true));
+    REQUIRE(ColorItem{colors, 1}.picker_selection(true));
+}
+
+TEST_CASE("AMS custom co-extruded colors retain order, alpha and their color type", "[AMSMaterialsSetting]")
+{
+    const std::vector<wxColour> colors{wxColour(255, 0, 0, 0), wxColour(0, 255, 0, 1),
+                                      wxColour(0, 0, 255, 128), wxColour(255, 255, 0, 254)};
+    for (size_t count = 2; count <= std::min(colors.size(), ColorPickerPopup::MAX_EDITABLE_COLORS); ++count) {
+        const ColorItem original{{colors.begin(), colors.begin() + count}, 1};
+        const auto selection = original.picker_selection(true);
+        REQUIRE(selection);
+        REQUIRE(std::holds_alternative<ColorCoextruded>(*selection));
+        const ColorItem result = ColorItem::from_picker_selection(*selection);
+        REQUIRE(result.ctype == 1);
+        REQUIRE(result.colors == original.colors);
+        REQUIRE_FALSE(filament_color_picker_changed(*selection, result.picker_selection(true)));
+        REQUIRE(filament_color_picker_changed(*selection, ColorItem{original.colors, 0}.picker_selection(true)));
+    }
+    REQUIRE_FALSE(ColorItem{std::vector<wxColour>(ColorPickerPopup::MAX_EDITABLE_COLORS + 1, colors.front()), 1}.picker_selection(true));
 }
 
 TEST_CASE("AMS editing rejects five through seven colors while project editing retains them", "[AMSMaterialsSetting]")

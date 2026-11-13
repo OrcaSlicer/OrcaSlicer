@@ -20,16 +20,23 @@ class wxWindow;
 namespace Slic3r::GUI {
 
 // Shared storage limit; individual picker callers may request a lower editing limit.
+// The same limit applies to gradients and co-extruded colors.
 inline constexpr std::size_t COLOR_PICKER_MAX_GRADIENT_COLORS = 7;
 
 // Gradient colors retain their order (2..COLOR_PICKER_MAX_GRADIENT_COLORS); a solid has exactly one color.
 using ColorGradient = std::vector<ColorRGBA>;
-using ColorSelection = std::variant<ColorRGBA, ColorGradient>;
+// Co-extruded filament has its colors side by side along its length; they are drawn as equal
+// segments in order, with the same color count limits as a gradient.
+struct ColorCoextruded {
+    std::vector<ColorRGBA> colors;
+};
+using ColorSelection = std::variant<ColorRGBA, ColorGradient, ColorCoextruded>;
 
 struct ColorPickerOptions {
     bool allow_gradient = false;
     bool allow_alpha = false;
     std::size_t max_gradient_colors = COLOR_PICKER_MAX_GRADIENT_COLORS;
+    bool allow_coextruded = false;
 
     constexpr std::size_t gradient_color_limit() const
     {
@@ -40,10 +47,19 @@ struct ColorPickerOptions {
     {
         return allow_gradient && count >= 2 && count <= gradient_color_limit();
     }
+
+    constexpr bool supports_coextruded(std::size_t count) const
+    {
+        return allow_coextruded && count >= 2 && count <= gradient_color_limit();
+    }
 };
+
+// Every capability, for project colors and favorites that are stored whatever a caller can edit.
+inline constexpr ColorPickerOptions COLOR_PICKER_ALL_CAPABILITIES{true, true, COLOR_PICKER_MAX_GRADIENT_COLORS, true};
 
 // Project storage preserves direction; FilamentColor's set is only for the
 // official palette and cannot represent ordered custom gradients.
+// More than one color without `gradient` is stored as co-extruded (filament_colour_type "1").
 struct FilamentColorPickerValue {
     std::vector<std::string> colors;
     bool gradient = false;

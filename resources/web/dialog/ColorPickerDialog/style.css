@@ -427,6 +427,8 @@ body {
 }
 /* Thumb i of n sits at 10px + (100% - 20px) * i / (n - 1), set inline as --stop. */
 .gradient-thumb { left: calc(10px + (100% - 20px) * var(--stop, 0)) }
+/* Solid color blocks: thumb i of n sits in the middle of its block, at 100% * (i + 0.5) / n. */
+.gradient-stops.color-blocks .gradient-thumb { left: calc(100% * var(--stop, 0)) }
 .gradient-thumb[aria-pressed="true"] {
   width: var(--thumb-size);
   height: var(--thumb-size);

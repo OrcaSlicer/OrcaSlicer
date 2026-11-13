@@ -28,17 +28,20 @@ bypassing wxGTK's requested-position cache. Absolute top-level placement remains
 subject to the window manager; Wayland compositors control it. The official filament palette's
 existing placement is independent of this custom panel.
 A solid selection contains one color; a gradient contains two through
-`COLOR_PICKER_MAX_GRADIENT_COLORS` ordered colors (currently seven). The bridge
-represents these as `{"type":"solid|gradient",
+`COLOR_PICKER_MAX_GRADIENT_COLORS` ordered colors (currently seven). A co-extruded
+selection (`ColorCoextruded`), for filament whose colors run side by side along its
+length, holds the same number of ordered colors, drawn as equal segments with hard edges.
+The bridge represents these as `{"type":"solid|gradient|coextruded",
 "colors":["#RRGGBBAA", ...]}`. RGB input is also accepted and becomes opaque.
 Native validation rejects malformed hex and incorrect cardinality.
-`ColorPickerOptions::max_gradient_colors` lets each caller lower the editing limit;
-it defaults to seven and is clamped to two through seven. Native selection validation
+`ColorPickerOptions::max_gradient_colors` lets each caller lower the editing limit
+for gradients and co-extruded colors; it defaults to seven and is clamped to two through seven. Native selection validation
 and the page use the same effective limit. Shared favorites retain up to seven colors
 regardless of the current caller's limit.
 
 The project filament color action and the official filament picker's More Colors
-action enable ordered gradients and independent alpha for each color. The preset
+action enable ordered gradients, co-extruded colors and independent alpha for each color. Co-extruded colors
+are saved as the project's segmented multicolor type (`filament_colour_type` `1`). The preset
 combo box reads project colors in their stored vector order locally and applies
 changes through `sync_colour_config`,
 retaining the existing RGB/RGBA profile/project formats and dirty marking.
@@ -61,9 +64,16 @@ retain stored alpha. Ordered
 custom results bypass the official palette's `FilamentColor` set. Choosing an
 official swatch retains its existing palette behavior.
 The Linux sidebar's Change extruder color menu uses this same custom editor and
-the filament swatch anchor, including alpha, ordered gradients and configuration syncing.
+the filament swatch anchor, including alpha, ordered gradients, co-extruded colors and configuration syncing.
 
-Striped colors and gradients exceeding the configured color limit cannot be represented
+The Solid/Gradient switch is unchanged. Co-extruded colors are edited in Solid mode:
+where the caller allows them, Solid shows its colors as blocks on the third row, with
+the same − and + buttons as a gradient. Two or more blocks are a co-extruded selection
+and one block is a plain solid color. Solid and Gradient keep their own colors when
+switching; each block's thumb sits in its middle, and a click on the bar selects the
+block under the pointer.
+
+Gradients and co-extruded colors exceeding the configured color limit cannot be represented
 by this editor. A notice explains that the current selection is retained; the
 editor starts from the first color, and unchanged confirmation is a no-op.
 Cancellation is also a no-op. If the WebView backend cannot initialize, a local
@@ -80,18 +90,18 @@ writes legacy favorites.
 AMS material settings retain their fixed/AMS swatches and first-level popup. Only
 its custom-color action opens the editor with alpha enabled, anchored to that custom
 control. Firmware advertising manual multi-color support (`fun2[23]`) also enables
-ordered gradients with at most four colors, matching the AMS manual-write limit.
+ordered gradients and co-extruded colors with at most four colors, matching the AMS manual-write limit.
 AMS and preset swatches exceeding four colors are unavailable for selection;
 the editor also filters oversized palette entries and favorites without deleting them.
 Other printers only offer single-color swatches and favorites.
 The transient popup releases its grab while the modal is open and returns
-to the same selection on cancellation. Unchanged confirmation is a no-op. Existing striped
-or oversized selections start from their first color with the preservation notice.
+to the same selection on cancellation. Unchanged confirmation is a no-op. Existing
+oversized selections start from their first color with the preservation notice.
 Confirmed edits retain the complete ordered RGBA list and color type in the popup;
 the existing packed RGBA event carries the representative first color. Device
 permission/status checks remain at the first-level entry. Saving uses `RRGGBBAA`
-for `tray_color` and, on capable firmware, `cols`, with `ctype=0` for gradients and
-`ctype=2` for single colors. The edited tray updates locally while device status
+for `tray_color` and, on capable firmware, `cols`, with `ctype=0` for gradients,
+`ctype=1` for co-extruded colors and `ctype=2` for single colors. The edited tray updates locally while device status
 is pending. AMS custom swatches interpolate every gradient stop. Single colors,
 gradients and segmented swatches with any nonopaque component composite over a
 rounded checkerboard, including the shared AMS preview renderer. The circular
@@ -127,9 +137,9 @@ editor recovery, ordered endpoint alpha, favorites, gettext keys, and live theme
 changes. These browser checks complement native contract/persistence tests; they
 do not establish the full native modal confirmation and favorites journey.
 
-Gradient and alpha capabilities are independent and default off. Unsupported
-gradients are rejected; disabled alpha normalizes the selected result to opaque.
-Favorites retain both capabilities independently of the current caller. The page
+Gradient, co-extruded and alpha capabilities are independent and default off. Unsupported
+gradients and co-extruded colors are rejected; disabled alpha normalizes the selected result to opaque.
+Favorites retain every capability independently of the current caller. The page
 stores alpha as a byte and only converts to percentage when displaying or editing
 opacity, so switching endpoints does not change alpha precision.
 
