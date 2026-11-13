@@ -170,3 +170,17 @@ test("co-extruded swatches have hard edges at equal segment widths", () => {
     "linear-gradient(to right, #FF0000FF 0% 33.33%, #00FF00FF 33.33% 66.67%, #0000FFFF 66.67% 100%)");
   assert.equal(model.selectionBackground({type: "gradient", colors: ["#FF0000FF", "#0000FFFF"]}), "linear-gradient(to right, #FF0000FF, #0000FFFF)");
 });
+
+test("a new solid starts at the selected gradient color", () => {
+  for (const options of [{allow_gradient: true, allow_alpha: true}, {allow_gradient: true, allow_coextruded: true, allow_alpha: true, max_gradient_colors: 7}]) {
+    const state = model.createState(options, {type: "gradient", colors: ["#FF0000", "#0000FF80"]});
+    state.active = 1;
+    assert.equal(model.setMode(state, "solid"), true);
+    assert.deepEqual(model.exportSelection(state), {type: "solid", colors: ["#0000FF80"]});
+    model.setHex(state, "#00FF00");
+    assert.equal(model.setMode(state, "gradient"), true);
+    assert.deepEqual(model.exportSelection(state).colors, ["#FF0000FF", "#0000FF80"], "the gradient keeps its own colors");
+    assert.equal(model.setMode(state, "solid"), true);
+    assert.deepEqual(model.exportSelection(state), {type: "solid", colors: ["#00FF0080"]}, "and Solid keeps its own color");
+  }
+});

@@ -75,10 +75,10 @@
   function createState(options = {}, selection = {type: "solid", colors: ["#808080"]}) {
     const capabilities = {allow_gradient: options.allow_gradient === true, allow_alpha: options.allow_alpha === true,
                           allow_coextruded: options.allow_coextruded === true};
-    // Solid and Gradient keep their own colors. solid holds one color, or more for a co-extruded selection;
-    // gradient stays null until a selection provides one or the user switches to gradient mode.
+    // Solid and Gradient keep their own colors. solid holds one color, or more for a co-extruded selection.
+    // Each stays null until a selection provides it or the user switches to that mode.
     const state = {options: capabilities, maxGradientColors: gradientLimit(options.max_gradient_colors),
-                   mode: "solid", active: 0, solid: [[128,128,128,255]], gradient: null};
+                   mode: "solid", active: 0, solid: null, gradient: null};
     if (!applySelection(state, selection)) return null;
     return state;
   }
@@ -101,9 +101,13 @@
 
   function setMode(state, mode) {
     if (mode !== "solid" && (mode !== "gradient" || !state.options.allow_gradient)) return false;
-    // A new gradient starts at the current solid color and ends at its contrast color.
-    const solid = state.solid[Math.min(state.active, state.solid.length - 1)];
-    if (mode === "gradient" && !state.gradient) state.gradient = [[...solid], contrastColor(solid, NEW_GRADIENT_HUE_SHIFT)];
+    // A new gradient starts at the selected solid color and ends at its contrast color;
+    // a new solid starts at the selected gradient color.
+    if (mode === "gradient" && !state.gradient) {
+      const solid = state.solid[Math.min(state.active, state.solid.length - 1)];
+      state.gradient = [[...solid], contrastColor(solid, NEW_GRADIENT_HUE_SHIFT)];
+    }
+    if (mode === "solid" && !state.solid) state.solid = [[...state.gradient[state.active]]];
     state.mode = mode;
     state.active = Math.min(state.active, modeColors(state).length - 1);
     return true;
