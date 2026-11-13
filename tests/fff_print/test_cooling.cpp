@@ -1,12 +1,16 @@
 #include <catch2/catch_all.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "test_helpers.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <cstddef>
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/libslic3r.h"
 #include <sstream>
@@ -157,4 +161,44 @@ TEST_CASE("Overhang fan transitions do not depend on overhang speed", "[Cooling]
                         [](const auto &command) { return command.second.find("S255") != std::string::npos; }));
     REQUIRE(with_speed_feedrates != without_speed_feedrates);
     CHECK(with_speed_fan == without_speed_fan);
+}
+
+// Speeds of the extruding moves, in mm/s, in print order.
+static std::vector<double> extrusion_speeds(const std::string &gcode, const DynamicPrintConfig &config)
+{
+    std::vector<double> speeds;
+    GCodeReader parser;
+    parser.apply_config(config);
+    parser.parse_buffer(gcode, [&speeds](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (line.extruding(self) && line.dist_XY(self) > 0.)
+            speeds.push_back(line.new_F(self) / MM_PER_MIN);
+    });
+    return speeds;
+}
+
+// A line that only sets the feed rate takes no time, however the extrusion distances are written.
+TEST_CASE("Layer cooling slowdown does not depend on relative extrusion distances", "[Cooling][Regression]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        // High enough that the defaults print at their own speeds.
+        { "filament_max_volumetric_speed", 100 },
+        { "initial_layer_print_height",    0.3 },
+        { "layer_height",                  0.3 },
+        { "slow_down_for_layer_cooling",   true },
+        // Longer than the cube's layers take, so they are slowed down.
+        { "slow_down_layer_time",          10 },
+        { "slow_down_min_speed",           1 },
+    });
+    config.set_deserialize_strict({ { "use_relative_e_distances", false } });
+    const std::vector<double> absolute = extrusion_speeds(slice({ cube(20) }, config), config);
+    config.set_deserialize_strict({ { "use_relative_e_distances", true } });
+    const std::vector<double> relative = extrusion_speeds(slice({ cube(20) }, config), config);
+
+    REQUIRE(relative.size() == absolute.size());
+    double largest_difference = 0.;
+    for (size_t i = 0; i < relative.size(); ++i)
+        largest_difference = std::max(largest_difference, std::abs(relative[i] - absolute[i]));
+    // Feed rates are written in whole mm/min.
+    CHECK_THAT(largest_difference, Catch::Matchers::WithinAbs(0., 1. / MM_PER_MIN));
 }

@@ -35,6 +35,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 #include "libslic3r/ExPolygon.hpp"
@@ -239,6 +240,29 @@ TEST_CASE("Internal bridge angles follow the lower infill layer and model rotati
             for (const Surface *surface : region->fill_surfaces.filter_by_type(stInternalBridge)) {
                 CAPTURE(pattern, rotation, i);
                 CHECK_THAT(Geometry::rad2deg(surface->bridge_angle), Catch::Matchers::WithinAbs(expected, 0.001));
+                ++bridges;
+            }
+    }
+    REQUIRE(bridges > 0);
+}
+
+TEST_CASE("Internal bridge angles follow a ranged rotation template of the infill below", "[PrintObject][InternalBridge][RotateTemplate]")
+{
+    auto config = internal_bridge_config("hilbertcurve", 1);
+    // A range uses the template parser, which a plain list skips, and the infill direction of 30 must not apply.
+    config.set_deserialize_strict({{"sparse_infill_rotate_template", "+90/10"}, {"infill_direction", 30}});
+    Print print;
+    init_and_process_print({internal_bridge_step()}, print, config);
+    const PrintObject &object = *print.objects().front();
+    size_t bridges = 0;
+    for (size_t i = 1; i < object.layer_count(); ++i) {
+        // "+90/10" puts layer i - 1 at 9 * i degrees, and the bridge crosses it.
+        const double expected = 9. * double(i) + 90.;
+        for (const LayerRegion *region : object.get_layer(i)->regions())
+            for (const Surface *surface : region->fill_surfaces.filter_by_type(stInternalBridge)) {
+                const double bridge_angle = Geometry::rad2deg(surface->bridge_angle);
+                CAPTURE(i, bridge_angle, expected);
+                CHECK_THAT(std::remainder(bridge_angle - expected, 180.), Catch::Matchers::WithinAbs(0., 0.001));
                 ++bridges;
             }
     }
@@ -462,11 +486,20 @@ TEST_CASE("Surface centering survives changes to separated infill settings", "[P
     print.process();
     const auto resliced = surface_fills(print);
 
-    Print fresh_print;
-    Model fresh_model;
-    init_print({mesh}, fresh_print, fresh_model, config, nullptr, false);
-    fresh_print.process();
-    const auto fresh = surface_fills(fresh_print);
+    // The fresh slice depends only on the final settings, which several combinations share,
+    // so slice each set once. The resliced paths must match it exactly, so slicing is deterministic.
+    using FreshKey = std::tuple<std::string, std::string, bool, std::string, std::string>;
+    static std::map<FreshKey, decltype(surface_fills(print))> fresh_slices;
+    const FreshKey fresh_key{pattern, final_center, separated, top_order, density};
+    auto fresh_it = fresh_slices.find(fresh_key);
+    if (fresh_it == fresh_slices.end()) {
+        Print fresh_print;
+        Model fresh_model;
+        init_print({mesh}, fresh_print, fresh_model, config, nullptr, false);
+        fresh_print.process();
+        fresh_it = fresh_slices.emplace(fresh_key, surface_fills(fresh_print)).first;
+    }
+    const auto &fresh = fresh_it->second;
     REQUIRE_FALSE(fresh.empty());
     REQUIRE(resliced.size() == fresh.size());
     std::set<ExtrusionRole> roles;

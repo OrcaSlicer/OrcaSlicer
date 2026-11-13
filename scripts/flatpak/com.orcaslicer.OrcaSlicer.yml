@@ -214,23 +214,26 @@ modules:
         sha256: 1c4bdde9c3c6ef20ea4b50b73601de56769f2eb131b36927d7c6489f102e6c30
         dest: external-packages/SLVS
 
-      # Blosc 1.17.0 (tamasmeszaros fork)
-      - type: file
-        url: https://github.com/tamasmeszaros/c-blosc/archive/refs/heads/v1.17.0_tm.zip
-        sha256: dcb48bf43a672fa3de6a4b1de2c4c238709dad5893d1e097b8374ad84b1fc3b3
-        dest: external-packages/Blosc
+      # Blosc, OpenEXR and OpenVDB are only built with -DSLIC3R_OPENVDB=ON (default OFF).
+      # Uncomment these three entries for such a build.
 
-      # OpenEXR v2.5.5
-      - type: file
-        url: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.5.zip
-        sha256: 0307a3d7e1fa1e77e9d84d7e9a8694583fbbbfd50bdc6884e2c96b8ef6b902de
-        dest: external-packages/OpenEXR
+      # # Blosc 1.17.0 (tamasmeszaros fork)
+      # - type: file
+      #   url: https://github.com/tamasmeszaros/c-blosc/archive/refs/heads/v1.17.0_tm.zip
+      #   sha256: dcb48bf43a672fa3de6a4b1de2c4c238709dad5893d1e097b8374ad84b1fc3b3
+      #   dest: external-packages/Blosc
 
-      # OpenVDB (custom fork)
-      - type: file
-        url: https://github.com/tamasmeszaros/openvdb/archive/a68fd58d0e2b85f01adeb8b13d7555183ab10aa5.zip
-        sha256: f353e7b99bd0cbfc27ac9082de51acf32a8bc0b3e21ff9661ecca6f205ec1d81
-        dest: external-packages/OpenVDB
+      # # OpenEXR v2.5.5
+      # - type: file
+      #   url: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v2.5.5.zip
+      #   sha256: 0307a3d7e1fa1e77e9d84d7e9a8694583fbbbfd50bdc6884e2c96b8ef6b902de
+      #   dest: external-packages/OpenEXR
+
+      # # OpenVDB (custom fork)
+      # - type: file
+      #   url: https://github.com/tamasmeszaros/openvdb/archive/a68fd58d0e2b85f01adeb8b13d7555183ab10aa5.zip
+      #   sha256: f353e7b99bd0cbfc27ac9082de51acf32a8bc0b3e21ff9661ecca6f205ec1d81
+      #   dest: external-packages/OpenVDB
 
       # GMP 6.3.0
       - type: file

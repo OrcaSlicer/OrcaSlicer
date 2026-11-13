@@ -1005,8 +1005,15 @@ std::string AppConfig::load(bool read_only)
                         local_machine.printer_type = p["printer_type"].get<std::string>();
                     if (p.contains("printer_agent_id"))
                         local_machine.printer_agent_id = p["printer_agent_id"].get<std::string>();
+                    // Entries saved before agents were recorded have none. Bambu printers are keyed by
+                    // serial number; the other agents used the address, which is the IP or has a '.' or ':'.
+                    if (local_machine.printer_agent_id.empty() && local_machine.dev_id != local_machine.dev_ip &&
+                        local_machine.dev_id.find_first_of(".:") == std::string::npos)
+                        local_machine.printer_agent_id = "bbl";
                     if (p.contains("access_code"))
                         local_machine.access_code = p["access_code"].get<std::string>();
+                    if (p.contains("ca_file"))
+                        local_machine.ca_file = p["ca_file"].get<std::string>();
                     m_local_machines[local_machine.dev_id] = local_machine;
                 }
             } else {
@@ -1220,6 +1227,8 @@ void AppConfig::save()
         m_json["printer_type"]     = local_machine.second.printer_type;
         m_json["printer_agent_id"] = local_machine.second.printer_agent_id;
         m_json["access_code"]      = local_machine.second.access_code;
+        if (!local_machine.second.ca_file.empty())
+            m_json["ca_file"] = local_machine.second.ca_file;
 
         j["local_machines"][local_machine.first] = m_json;
     }
