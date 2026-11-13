@@ -1,7 +1,6 @@
 #include <numeric>
 #include <math.h>
 #include <initializer_list>
-#include <iterator>
 #include <array>
 #include <map>
 #include <stdlib.h>
@@ -3015,20 +3014,25 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     const coord_t line_width   = coord_t(scale_(this->spacing));
     const coord_t line_spacing = coord_t(scale_(this->spacing) * params.multiline / params.density);
     std::pair<float, Point> rotate_vector = this->_infill_direction(surface);
+    // Only the walls of the lateral patterns overlap: their two families run in one direction and slide over each other with z.
+    const bool merge_walls = params.multiline > 1 && (params.pattern == ipLateralLattice || params.pattern == ipLateralHoneycomb);
     for (auto sweep = sweep_params.begin(); sweep != sweep_params.end(); ++ sweep) {
         const auto same_direction = [sweep](const SweepParams &other) { return other.angle_base == sweep->angle_base; };
         // The lines of one direction never cross, so the lines of a multiline wall are parallel copies of its centerline,
-        // spacing apart, each clipped to the region on its own. The walls of one direction are laid out together, so that
-        // the ones that overlap print as one. The patterns whose lines cross take other paths, see docs/HLSD/multiline-infill.md.
-        if (params.multiline > 1 && std::any_of(sweep_params.begin(), sweep, same_direction))
+        // spacing apart, each clipped to the region on its own. The walls of the lateral patterns are laid out together for
+        // each direction, so that the ones that overlap print as one. The patterns whose lines cross take other paths, see
+        // docs/HLSD/multiline-infill.md.
+        if (merge_walls && std::any_of(sweep_params.begin(), sweep, same_direction))
             continue;
-        std::vector<coord_t> shifts{ coord_t(scale_(sweep->pattern_shift)) };
-        if (params.multiline > 1) {
-            for (auto other = std::next(sweep); other != sweep_params.end(); ++ other)
+        std::vector<coord_t> shifts;
+        if (merge_walls) {
+            for (auto other = sweep; other != sweep_params.end(); ++ other)
                 if (same_direction(*other))
                     shifts.push_back(coord_t(scale_(other->pattern_shift)));
             shifts = multiline_wall_shifts(shifts, params.multiline, line_width, line_spacing);
-        }
+        } else
+            for (int i = 0; i < params.multiline; ++ i)
+                shifts.push_back(coord_t(scale_(sweep->pattern_shift)) + coord_t(std::lround((i - 0.5 * (params.multiline - 1)) * line_width)));
         // Rotate polygons so that we can work with vertical lines here
         const float               angle = rotate_vector.first + sweep->angle_base;
         const ExPolygonWithOffset poly_with_offset(poly_with_offset_base, -angle);
