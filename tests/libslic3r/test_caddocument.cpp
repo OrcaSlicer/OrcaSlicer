@@ -11224,6 +11224,60 @@ TEST_CASE("a feature added while the history is rolled back goes in at the bar",
     REQUIRE(doc.bodies.size() == 2);
 }
 
+TEST_CASE("a New feature inserted at the bar leaves later body targets on their own bodies", "[CadDocument][history]")
+{
+    using Catch::Matchers::WithinRel;
+    CadDocument doc;
+    const int s0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "A");
+    doc.add_extrude(s0, 10.0, false, BooleanMode::New, "BoxA");
+    SketchPlane far = SketchPlane::XY(); far.origin = Vec3d(100, 0, 0);
+    const int s1 = doc.add_sketch(SketchShape::Rectangle, far, 10, 10, 0, "B");
+    doc.add_extrude(s1, 10.0, false, BooleanMode::New, "BoxB");
+    SketchPlane farup = far; farup.origin = Vec3d(100, 0, 10);
+    const int s2 = doc.add_sketch(SketchShape::Rectangle, farup, 10, 10, 0, "T");
+    const int top = doc.add_extrude(s2, 5.0, false, BooleanMode::Add, "TopB");
+    doc.features[size_t(top)].target_body = 1;               // on BoxB, the second body
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    doc.rollback_index = 1;                                  // the bar sits under BoxA
+    REQUIRE(doc.recompute());
+    SketchPlane mid = SketchPlane::XY(); mid.origin = Vec3d(-100, 0, 0);
+    const int s3 = doc.add_sketch(SketchShape::Rectangle, mid, 10, 10, 0, "M");
+    doc.add_extrude(s3, 10.0, false, BooleanMode::New, "BoxM");   // a new body, now ahead of BoxB
+    doc.rollback_index = -1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 3);
+    int taller = 0;
+    for (const auto& b : doc.bodies)
+        if (std::abs(double(SketchEngine::tessellate(b.shape).volume()) - 10.0 * 10.0 * 15.0) < 1.0) ++taller;
+    CHECK(taller == 1);                                      // BoxB + TopB, not BoxM
+}
+
+TEST_CASE("an upstream edit that splits a body leaves later body targets on their own bodies", "[CadDocument][history]")
+{
+    CadDocument doc;
+    const int s0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 10, 0, "Bar");
+    doc.add_extrude(s0, 10.0, false, BooleanMode::New, "BarX");
+    const int s1 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 4, 20, 0, "Slot");
+    const int cut = doc.add_extrude(s1, 5.0, true, BooleanMode::Cut, "SlotCut");   // shallow: Bar stays one piece
+    SketchPlane far = SketchPlane::XY(); far.origin = Vec3d(100, 0, 0);
+    const int s2 = doc.add_sketch(SketchShape::Rectangle, far, 10, 10, 0, "Block");
+    doc.add_extrude(s2, 10.0, false, BooleanMode::New, "BlockX");
+    SketchPlane farup = far; farup.origin = Vec3d(100, 0, 10);
+    const int s3 = doc.add_sketch(SketchShape::Rectangle, farup, 10, 10, 0, "Top");
+    const int top = doc.add_extrude(s3, 5.0, false, BooleanMode::Add, "TopX");
+    doc.features[size_t(top)].target_body = 1;               // on Block, the second body
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    doc.features[size_t(cut)].distance = 40.0;               // now the slot goes through: Bar splits in two
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 3);
+    int block = 0;
+    for (const auto& b : doc.bodies)
+        if (std::abs(double(SketchEngine::tessellate(b.shape).volume()) - 10.0 * 10.0 * 15.0) < 1.0) ++block;
+    CHECK(block == 1);                                       // Block + Top, not a piece of Bar
+}
+
 // The boolean identity V(A u B) + V(A n B) = V(A) + V(B), on random pairs of boxes and cylinders that overlap in every way
 // (apart, touching, crossing, nested): a kernel that loses a sliver or doubles one fails it long before a picture shows.
 TEST_CASE("boolean identity: V(A u B) + V(A n B) = V(A) + V(B) on random overlaps", "[CadDocument][property]")

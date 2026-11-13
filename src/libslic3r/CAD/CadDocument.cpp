@@ -2460,7 +2460,8 @@ static void for_each_datum_ref(CadFeature& f, Visit&& visit)
 // writes into `features` in the old order; the caller then performs the change.
 static void stage_history_change(std::vector<CadFeature>& features,
                                  const std::function<int(int)>& map_feature,
-                                 const std::function<bool(int)>& enabled_after)
+                                 const std::function<bool(int)>& enabled_after,
+                                 int inserted_plane = -1)   // new index of an enabled Plane the change inserts (it takes an ordinal too)
 {
     const int n = int(features.size());
     auto alive = [&](int i) { return i >= 0 && i < n && map_feature(i) >= 0 && enabled_after(i); };
@@ -2472,6 +2473,7 @@ static void stage_history_change(std::vector<CadFeature>& features,
     std::vector<std::pair<int, int>> after;   // (new index, old index) of planes enabled after
     for (int i = 0; i < n; ++i)
         if (features[i].type == CadFeatureType::Plane && alive(i)) after.emplace_back(map_feature(i), i);
+    if (inserted_plane >= 0) after.emplace_back(inserted_plane, -1);   // -1: no old feature, nothing refers to it yet
     std::sort(after.begin(), after.end());
     auto new_ordinal = [&](int old_feature) {
         for (int k = 0; k < int(after.size()); ++k)
@@ -2588,6 +2590,10 @@ int CadDocument::append_feature(const CadFeature& f0)
         for_each_feature_ref(f, [&](int& ref) { if (ref > bar) ok = false; });
         if (ok) {
             pos = bar + 1;
+            // Later features keep their body and datum-plane references by identity, as in a move: the new feature may add
+            // a body or a plane ahead of them, which would otherwise shift every index they hold by one.
+            stage_history_change(features, [&](int i) { return i >= pos ? i + 1 : i; }, [&](int i) { return features[size_t(i)].enabled; },
+                                 f.type == CadFeatureType::Plane && f.enabled ? pos : -1);
             for (CadFeature& g : features)
                 for_each_feature_ref(g, [&](int& ref) { if (ref >= pos) ++ref; });
             if (error_feature >= pos) ++error_feature;
@@ -2823,6 +2829,13 @@ std::vector<std::vector<int>> CadDocument::sketch_closed_loops(const CadFeature&
     return loops;
 }
 
+// A feature index read from a recipe (a 3MF can hold any number): out of range throws, it never indexes.
+static const CadFeature& feature_ref(const std::vector<CadFeature>& v, int i)
+{
+    if (i < 0 || i >= int(v.size())) throw std::runtime_error(_u8L("a feature refers to a sketch that does not exist"));
+    return v[size_t(i)];
+}
+
 TopoDS_Wire CadDocument::loft_profile_wire(const CadFeature& f, size_t ri, bool closed_only, const TopoDS_Shape& context) const
 {
     if (loft_profile_is_face(f, ri)) {   // a face of the target body: its outer boundary is the profile
@@ -2832,7 +2845,7 @@ TopoDS_Wire CadDocument::loft_profile_wire(const CadFeature& f, size_t ri, bool 
         if (w.IsNull()) throw std::runtime_error(_u8L("loft: the face chosen as a profile has no outer boundary"));
         return w;
     }
-    const CadFeature& sk = features[size_t(f.loft_profile_refs[ri])];
+    const CadFeature& sk = feature_ref(features, f.loft_profile_refs[ri]);
     if (sk.type == CadFeatureType::Sketch3D) {   // a curve in space (an edge and its offset copy): the skin between two of them extends a sheet
         std::string e3;
         TopoDS_Wire w = build_sketch3d_wire(sk, e3);
@@ -3061,7 +3074,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
     case CadFeatureType::SmContourFlange: {
         if (f.sketch_ref < 0 || f.sketch_ref >= int(features.size()) || features[f.sketch_ref].type != CadFeatureType::Sketch)
             throw std::runtime_error(_u8L("contour flange needs a sketch"));
-        const CadFeature& sk = features[f.sketch_ref];
+        const CadFeature& sk = feature_ref(features, f.sketch_ref);
         result = SheetMetal::contour_flange(sketch_line_chain(sk), sk.plane.normal, f.distance, sheet_rule_of(f), f.flip);
         have_body = true;
         break;
@@ -3295,7 +3308,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
     case CadFeatureType::SurfaceExtrude: {
         if (f.sketch_ref < 0 || f.sketch_ref >= int(features.size()))
             throw std::runtime_error("surface-extrude: bad sketch ref");
-        const CadFeature& sk = features[f.sketch_ref];
+        const CadFeature& sk = feature_ref(features, f.sketch_ref);
         if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project)
             throw std::runtime_error("surface-extrude: ref is not a sketch");
         TopoDS_Wire wire = build_sketch_wire(sk);
@@ -3312,7 +3325,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
     case CadFeatureType::SurfaceRevolve: {
         if (f.sketch_ref < 0 || f.sketch_ref >= int(features.size()))
             throw std::runtime_error("surface-revolve: bad sketch ref");
-        const CadFeature& sk = features[f.sketch_ref];
+        const CadFeature& sk = feature_ref(features, f.sketch_ref);
         if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project)
             throw std::runtime_error("surface-revolve: ref is not a sketch");
         TopoDS_Wire wire = build_sketch_wire(sk);
@@ -3350,7 +3363,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
     case CadFeatureType::SurfaceFill: {
         if (f.sketch_ref < 0 || f.sketch_ref >= int(features.size()))
             throw std::runtime_error("surface-fill: bad sketch ref");
-        const CadFeature& sk = features[f.sketch_ref];
+        const CadFeature& sk = feature_ref(features, f.sketch_ref);
         if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project && sk.type != CadFeatureType::Sketch3D)
             throw std::runtime_error("surface-fill: ref is not a sketch");
         std::string e3;
@@ -3503,7 +3516,7 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         if (!have_body) throw std::runtime_error(_u8L("rib needs a body"));
         if (f.rib_sketch_ref < 0 || f.rib_sketch_ref >= (int)features.size())
             throw std::runtime_error("rib: bad sketch ref");
-        const CadFeature& sk = features[f.rib_sketch_ref];
+        const CadFeature& sk = feature_ref(features, f.rib_sketch_ref);
         // Project counts as sketch-like here exactly as it does for Extrude, SurfaceExtrude
         // and SurfaceRevolve: it carries plane + Line entities, which is all a rib reads.
         // Ribbing along a projected body edge is otherwise unreachable.
@@ -4676,7 +4689,7 @@ void CadDocument::apply_feature_pattern(std::vector<CadBody>& bodies, const CadF
         throw std::runtime_error(_u8L("pattern: the repeated features must change one existing body (not create or remove bodies)"));
     const int n1 = std::max(1, f.pattern_count), n2 = std::max(1, f.pattern_count2);
     const bool circ = f.pattern_circular;
-    if (long(n1) * (circ ? 1 : n2) > 500) throw std::runtime_error(_u8L("pattern: at most 500 instances"));
+    if (n1 > 500 || n2 > 500 || int64_t(n1) * (circ ? 1 : n2) > 500) throw std::runtime_error(_u8L("pattern: at most 500 instances"));
 
     auto solid_count = [](const TopoDS_Shape& s) { int n = 0; for (TopExp_Explorer e(s, TopAbs_SOLID); e.More(); e.Next()) ++n; return n; };
     auto diff = [&](const TopoDS_Shape& x, const TopoDS_Shape& y) -> TopoDS_Shape {
@@ -5152,6 +5165,10 @@ bool CadDocument::recompute()
     for (size_t i = 0; i < features.size() && (rollback_index < 0 || int(i) <= rollback_index); ++i)
         if (features[i].enabled && produces_body(features[i].type)) { any_solid_feature = true; break; }
     error_feature = -1;
+    // An edit upstream may change how many bodies a feature makes (a deeper cut splits a body, a join that now fails adds one), which
+    // moves every body index after it: have each feature follow the bodies it named by identity, as after a move or a delete.
+    for (CadFeature& f : features)
+        if (f.body_ref_ids.size() == size_t(kBodyRefCount)) f.body_refs_pending = true;
     size_t replaying = 0;
     try {
         { const auto tb = Prof::clock::now(); bind_expressions(); prof.bind_ms = Prof::since(tb); }
