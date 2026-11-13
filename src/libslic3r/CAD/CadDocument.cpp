@@ -605,7 +605,9 @@ static void assign_field(CadFeature& f, const std::string& field, double value)
     if (field.rfind("dim:", 0) == 0) {   // a sketch dimension: the value of entity_constraints[N]; the sketch is re-solved afterwards
         const int k = std::atoi(field.c_str() + 4);
         if (k < 0 || k >= int(f.entity_constraints.size())) throw std::runtime_error(format(_u8L("no sketch dimension %1%"), field));
-        f.entity_constraints[k].value = value;
+        // Expressions work in degrees; an angle constraint stores radians (SketchSolver converts back).
+        auto& c = f.entity_constraints[k];
+        c.value = c.type == SketchConstraintType::Angle ? value * M_PI / 180.0 : value;
         return;
     }
     for (const auto& b : kBindable)
@@ -4902,7 +4904,8 @@ void CadDocument::bind_expressions()
                 // Only a dimension whose value MOVED needs the sketch solved again: the entities already satisfy the others, and a solve
                 // per sketch on every rebuild was a third of a cache-restored recompute.
                 const int k = std::atoi(field.c_str() + 4);
-                dims = dims || k < 0 || k >= int(f.entity_constraints.size()) || f.entity_constraints[size_t(k)].value != v;
+                dims = dims || k < 0 || k >= int(f.entity_constraints.size())
+                    || f.entity_constraints[size_t(k)].value != (f.entity_constraints[size_t(k)].type == SketchConstraintType::Angle ? v * M_PI / 180.0 : v);
             }
             assign_field(f, field, v);
         }

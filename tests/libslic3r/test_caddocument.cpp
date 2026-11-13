@@ -10335,6 +10335,26 @@ TEST_CASE("a sketch dimension can be bound to a variable and follows it", "[CadD
     CHECK_FALSE(doc.recompute());   // no such dimension
 }
 
+TEST_CASE("an angle dimension bound to an expression is in degrees", "[CadDocument][expr]")
+{
+    using R = SketchPointRole; using T = SketchConstraintType;
+    CadDocument doc;
+    std::vector<SketchEntity> ents = { {SketchEntity::Type::Line, Vec2d(0,0), Vec2d(10,0)}, {SketchEntity::Type::Line, Vec2d(0,0), Vec2d(10,5)} };
+    std::vector<SketchEntityConstraintDef> cons;
+    cons.push_back({T::Fix,      0, -1, R::P0, R::P0, 0.0});
+    cons.push_back({T::Fix,      1, -1, R::P0, R::P0, 0.0});
+    cons.push_back({T::Horizontal, 0, -1, R::P0, R::P0, 0.0});
+    cons.push_back({T::Distance, 0,  0, R::P0, R::P1, 10.0});
+    cons.push_back({T::Distance, 1,  1, R::P0, R::P1, 10.0});
+    cons.push_back({T::Angle,    0,  1, R::P0, R::P0, 0.4});
+    const int sk = doc.add_sketch_entities(ents, SketchPlane::XY(), "S", cons);
+    doc.features[sk].expr["dim:5"] = "30";
+    REQUIRE(doc.recompute());
+    CHECK(doc.features[sk].entity_constraints[5].value == Approx(30.0 * M_PI / 180.0));
+    const auto dir = [&](int e) { const Vec2d d = doc.features[sk].entities[e].p1 - doc.features[sk].entities[e].p0; return std::atan2(d.y(), d.x()); };
+    CHECK((dir(1) - dir(0)) * 180.0 / M_PI == Approx(30.0).epsilon(1e-6));   // the angle BETWEEN the lines
+}
+
 TEST_CASE("renaming a variable rewrites what uses it, token-wise", "[CadDocument][expr]")
 {
     CadDocument doc;
