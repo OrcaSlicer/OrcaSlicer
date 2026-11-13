@@ -2890,7 +2890,11 @@ public:
     void save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const;
     // Same document, written to a stream. Invalid UTF-8 in a string value throws nlohmann's type_error unless
     // replace_invalid_utf8 is set, which writes U+FFFD instead (for callers such as stdout with no handler).
-    void save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8 = false) const;
+    // A non-null manifest_source supplies the plugin manifest key and the references derived from it. A
+    // document written as a diff against a parent holds only the options this preset changes, so deriving
+    // the manifest from it would drop the references the preset inherits.
+    void save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version,
+                      bool replace_invalid_utf8 = false, const ConfigBase *manifest_source = nullptr) const;
 
     // Rebuild the in-memory plugin manifest (the "name;uuid;capability" references the plugin
     // dispatchers consume) from the plugin-backed options via the registered resolver. save_to_json()

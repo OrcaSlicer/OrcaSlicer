@@ -1554,7 +1554,7 @@ void ConfigBase::save_to_json(const std::string &file, const std::string &name, 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;
 }
 
-void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8) const
+void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const std::string &from, const std::string &version, bool replace_invalid_utf8, const ConfigBase *manifest_source) const
 {
     json j;
     //record the headers
@@ -1596,8 +1596,9 @@ void ConfigBase::save_to_json(std::ostream &os, const std::string &name, const s
     // the resolver cannot map keeps its existing manifest entry; one with no entry is omitted, and
     // unresolved_plugin_capabilities() reports it so a GUI save entry point can prompt before writing.
     if (resolve_capability_fn) {
-        const std::string        manifest_key = this->plugin_manifest_key();
-        std::vector<std::string> unique_refs  = this->collect_plugin_manifest();
+        const ConfigBase        &source       = manifest_source != nullptr ? *manifest_source : *this;
+        const std::string        manifest_key = source.plugin_manifest_key();
+        std::vector<std::string> unique_refs  = source.collect_plugin_manifest();
         if (unique_refs.empty())
             j.erase(manifest_key);
         else

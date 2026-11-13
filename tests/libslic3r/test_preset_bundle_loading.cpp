@@ -9215,6 +9215,55 @@ TEST_CASE("A printer preset saved against its parent keeps its plugin manifest u
     CHECK(saved.option<ConfigOptionStrings>("printer_plugins")->values == std::vector<std::string>{"agent;;printer-connection"});
 }
 
+namespace {
+// Installs a capability resolver for the duration of a test, cleared on teardown so a failing
+// REQUIRE does not leak it into the cases that assert the no-resolver behavior.
+struct ScopedPluginResolver {
+    explicit ScopedPluginResolver(std::function<std::string(std::string, std::string)> fn)
+        { ConfigBase::set_resolve_capability_fn(std::move(fn)); }
+    ~ScopedPluginResolver() { ConfigBase::set_resolve_capability_fn(nullptr); }
+};
+} // namespace
+
+TEST_CASE("A printer preset saved against its parent keeps the plugin manifest it inherits", "[Preset][Bundle][plugins]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+    // The parent's asset pack resolves to the reference its manifest already holds.
+    ScopedPluginResolver resolver([](const std::string& name, const std::string& type) {
+        if (name == "PEI Plate")
+            return std::string("PackA;8f3c0000-0000-4000-8000-0000000000aa;PEI Plate");
+        return name + ";;" + type;
+    });
+
+    Preset& parent = add_inmemory_preset(bundle.printers, "Parent Printer @System");
+    parent.config.option<ConfigOptionStrings>("printer_asset_plugins", true)->values = {"PEI Plate"};
+    parent.config.option<ConfigOptionStrings>("printer_plugins", true)->values = {"PackA;8f3c0000-0000-4000-8000-0000000000aa;PEI Plate"};
+    parent.config.option<ConfigOptionString>("bed_custom_model", true)->value =
+        "orcacloud-asset/8f3c0000-0000-4000-8000-0000000000aa/plate.stl";
+
+    // The child changes only printer_agent, so the asset pack is not in the diff against the parent.
+    const fs::path file = data_dir.tmp.path() / PRESET_PRINTER_NAME / "Child Printer.json";
+    Preset         child(Preset::TYPE_PRINTER, "Child Printer");
+    child.file    = file.string();
+    child.version = *Semver::parse("1.0.0");
+    child.config  = parent.config;
+    child.config.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = parent.name;
+    child.config.option<ConfigOptionString>("printer_agent", true)->value       = "agent";
+    REQUIRE(child.save(&parent.config));
+
+    DynamicPrintConfig                 saved;
+    std::map<std::string, std::string> key_values;
+    std::string                        reason;
+    saved.load_from_json(file.string(), ForwardCompatibilitySubstitutionRule::EnableSilent, key_values, reason);
+    REQUIRE(reason.empty());
+    // Both the inherited asset pack and the agent this preset adds; the first alone would be dropped
+    // when the file is loaded against its parent.
+    REQUIRE(saved.option<ConfigOptionStrings>("printer_plugins") != nullptr);
+    CHECK(saved.option<ConfigOptionStrings>("printer_plugins")->values ==
+          std::vector<std::string>{"agent;;printer-connection", "PackA;8f3c0000-0000-4000-8000-0000000000aa;PEI Plate"});
+}
+
 TEST_CASE("save_current_preset runs the before-save hook on the config it stores", "[Preset][Bundle]")
 {
     ScopedPresetDataDir data_dir;
@@ -9276,6 +9325,69 @@ TEST_CASE("A printer preset written before printer_plugins keeps its legacy plug
     REQUIRE(loaded->config.option<ConfigOptionStrings>("printer_plugins") != nullptr);
     CHECK(loaded->config.option<ConfigOptionStrings>("printer_plugins")->values ==
           std::vector<std::string>{"Moonraker Agent;8f3c0000-0000-4000-8000-000000000000;moonraker"});
+}
+
+TEST_CASE("A printer preset inheriting its parent keeps a legacy plugins manifest", "[Preset][Bundle][plugins]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+
+    Preset& parent = add_inmemory_preset(bundle.printers, "Parent Printer");
+    parent.is_system = true;
+    parent.config.option<ConfigOptionStrings>("printer_plugins", true)->values = {"Parent Agent;1111;agent"};
+
+    // A child written before the printer manifest key existed: its own references sit under the process
+    // preset's "plugins", and there is no printer_plugins key to carry them past the parent merge.
+    DynamicPrintConfig legacy(bundle.printers.default_preset().config);
+    legacy.option<ConfigOptionString>("printer_settings_id", true)->value = "Legacy Child";
+    legacy.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value  = parent.name;
+    legacy.option<ConfigOptionString>("printer_agent", true)->value        = "agent";
+    legacy.erase("printer_plugins");
+    legacy.set_key_value("plugins", new ConfigOptionStrings{"Legacy Agent;9a7d0000-0000-4000-8000-000000000000;agent"});
+    const fs::path file = data_dir.tmp.path() / PRESET_PRINTER_NAME / "Legacy Child.json";
+    fs::create_directories(file.parent_path());
+    legacy.save_to_json(file.string(), "Legacy Child", "User", "1.0.0");
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.printers.load_presets(data_dir.tmp.path().string(), PRESET_PRINTER_NAME, substitutions,
+                                 ForwardCompatibilitySubstitutionRule::EnableSilent);
+
+    const Preset* loaded = bundle.printers.find_preset("Legacy Child");
+    REQUIRE(loaded != nullptr);
+    CHECK(bundle.printers.error_count() == 0);
+    CHECK(loaded->config.option("plugins") == nullptr);
+    // Merged with the parent's manifest: the child file only holds the references it added.
+    REQUIRE(loaded->config.option<ConfigOptionStrings>("printer_plugins") != nullptr);
+    CHECK(loaded->config.option<ConfigOptionStrings>("printer_plugins")->values ==
+          std::vector<std::string>{"Parent Agent;1111;agent", "Legacy Agent;9a7d0000-0000-4000-8000-000000000000;agent"});
+}
+
+TEST_CASE("Preset::reload keeps a legacy plugins manifest of an inheriting printer preset", "[Preset][Bundle][plugins]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+
+    Preset& parent = add_inmemory_preset(bundle.printers, "Parent Printer");
+    parent.is_system = true;
+    parent.config.option<ConfigOptionStrings>("printer_plugins", true)->values = {"Parent Agent;1111;agent"};
+
+    DynamicPrintConfig legacy(bundle.printers.default_preset().config);
+    legacy.option<ConfigOptionString>(BBL_JSON_KEY_INHERITS, true)->value = parent.name;
+    legacy.option<ConfigOptionString>("printer_agent", true)->value        = "agent";
+    legacy.erase("printer_plugins");
+    legacy.set_key_value("plugins", new ConfigOptionStrings{"Legacy Agent;9a7d0000-0000-4000-8000-000000000000;agent"});
+
+    Preset child(Preset::TYPE_PRINTER, "Legacy Child");
+    child.file = (data_dir.tmp.path() / PRESET_PRINTER_NAME / "Legacy Child.json").string();
+    fs::create_directories(fs::path(child.file).parent_path());
+    legacy.save_to_json(child.file, "Legacy Child", "User", "1.0.0");
+
+    child.reload(parent);
+
+    CHECK(child.config.option("plugins") == nullptr);
+    REQUIRE(child.config.option<ConfigOptionStrings>("printer_plugins") != nullptr);
+    CHECK(child.config.option<ConfigOptionStrings>("printer_plugins")->values ==
+          std::vector<std::string>{"Parent Agent;1111;agent", "Legacy Agent;9a7d0000-0000-4000-8000-000000000000;agent"});
 }
 
 TEST_CASE("The cloud diff force-emits a disabled override only where the cloud would fill a value in", "[Preset][Bundle]")
