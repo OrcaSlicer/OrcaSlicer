@@ -134,6 +134,7 @@
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
+#include "slic3r/Utils/SnapmakerProtocol.hpp"
 #include <boost/filesystem.hpp>
 
 using json = nlohmann::json;
@@ -1317,6 +1318,29 @@ bool SelectMachineDialog::do_ams_mapping(MachineObject *obj_,bool use_ams)
         }
         filament_result = DevMappingUtil::ams_filament_mapping(obj_, m_filaments, m_ams_mapping_result, map_opt);
         //auto_supply_with_ext(obj_->vt_slot);
+    }
+
+    auto* network_agent = wxGetApp().getAgent();
+    auto printer_agent = network_agent ? network_agent->get_printer_agent() : nullptr;
+    const auto* device_map = project_config.option<ConfigOptionInts>("filament_device_map");
+    if (m_print_type == FROM_NORMAL && printer_agent && printer_agent->get_agent_info().id == SNAPMAKER_PRINTER_AGENT_ID && device_map) {
+        // An explicit Prepare selection takes precedence over nearest-color matching.
+        const auto& inventory = wxGetApp().preset_bundle->filament_ams_list;
+        for (auto& filament : m_ams_mapping_result) {
+            if (filament.id < 0 || size_t(filament.id) >= device_map->values.size())
+                continue;
+            const int tool = device_map->values[filament.id] - 1;
+            const auto tray = inventory.find(0x10000 + tool);
+            if (tool < 0 || tool >= 4 || tray == inventory.end())
+                continue;
+            filament.tray_id = tool;
+            filament.ams_id = "0";
+            filament.slot_id = std::to_string(tool);
+            filament.color = tray->second.opt_string("filament_colour", 0u).substr(1) + "FF";
+            filament.ctype = 0;
+            filament.colors.clear();
+            filament.distance = 0;
+        }
     }
 
     if (filament_result == 0) {
@@ -3715,6 +3739,22 @@ void SelectMachineDialog::on_send_print()
     }
 
     m_print_job->task_ams_mapping      = ams_mapping_array;
+    auto* network_agent = wxGetApp().getAgent();
+    auto printer_agent = network_agent ? network_agent->get_printer_agent() : nullptr;
+    if (printer_agent && printer_agent->get_agent_info().id == SNAPMAKER_PRINTER_AGENT_ID) {
+        m_print_job->task_ams_mapping.clear();
+        if (m_print_type == FROM_NORMAL) {
+            auto mapping_config = wxGetApp().preset_bundle->project_config;
+            auto* device_map = mapping_config.option<ConfigOptionInts>("filament_device_map", true);
+            // Honor a subsequent change to a bound row in the Print dialog as well.
+            for (const auto& filament : m_ams_mapping_result) {
+                if (filament.id >= 0 && size_t(filament.id) < device_map->values.size() && device_map->values[filament.id] > 0 &&
+                    filament.get_ams_id() == 0 && filament.get_slot_id() >= 0 && filament.get_slot_id() < 4)
+                    device_map->values[filament.id] = filament.get_slot_id() + 1;
+            }
+            m_print_job->task_ams_mapping = SnapmakerProtocol::filament_mapping(mapping_config);
+        }
+    }
     m_print_job->task_ams_mapping2     = ams_mapping_array2;
     m_print_job->task_ams_mapping_info = ams_mapping_info;
     // Print-dispatch nozzle mapping (H2C hotend rack): attach ONLY when a mapping result exists.

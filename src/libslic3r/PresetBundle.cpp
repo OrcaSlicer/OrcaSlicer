@@ -139,6 +139,7 @@ static std::vector<std::string> s_project_options {
     "nozzle_volume_type",
     "filament_map_mode",
     "filament_map",
+    "filament_device_map",
     // physical_extruder_map intentionally NOT here: it's owned by the printer
     // preset (s_Preset_printer_options). Listing it project-scoped caused
     // project_config's default [0] to clobber the preset's authored value
@@ -574,6 +575,7 @@ PresetBundle::PresetBundle()
     this->printers.select_preset(0);
 
     this->project_config.apply_only(FullPrintConfig::defaults(), s_project_options);
+    this->project_config.option<ConfigOptionInts>("filament_device_map", true);
 }
 
 bool PresetBundle::resolve_preset_config(DynamicPrintConfig &config, Preset::Type type,
@@ -4379,6 +4381,7 @@ void PresetBundle::set_num_filaments(unsigned int n, std::string new_color)
     }
     filament_color_type->resize(n);
     filament_map->values.resize(n, 1);
+    project_config.option<ConfigOptionInts>("filament_device_map", true)->values.resize(n, 0);
     filament_nozzle_map->values.resize(n, 0);
     filament_volume_map->values.resize(n, static_cast<int>(NozzleVolumeType::nvtStandard));
     ams_multi_color_filment.resize(n);
@@ -4453,6 +4456,7 @@ void PresetBundle::update_num_filaments(unsigned int to_del_flament_id)
 
     erase_or_resize(filament_multi_color->values);
     erase_or_resize(filament_color_type->values);
+    erase_or_resize(project_config.option<ConfigOptionInts>("filament_device_map", true)->values);
     erase_or_resize(ams_multi_color_filment);
 
     // Mixed-color metadata. Component IDs reference other slots by 1-based index, so a deleted
@@ -4739,6 +4743,8 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
     }
     if (ams_filament_presets.empty())
         return 0;
+    // Bulk synchronization can replace or reorder rows, so old per-row device bindings no longer apply.
+    project_config.option<ConfigOptionInts>("filament_device_map", true)->values.clear();
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "get filament_colour and from config";
     ConfigOptionStrings *filament_color = project_config.option<ConfigOptionStrings>("filament_colour");
     ConfigOptionStrings *filament_color_type = project_config.option<ConfigOptionStrings>("filament_colour_type");
@@ -6150,6 +6156,7 @@ static void apply_receiver_mix_relocations(DynamicPrintConfig&                  
     move_strings("filament_multi_colour", false);
     move_strings("filament_colour_type", false);
     move_ints("filament_map");
+    move_ints("filament_device_map");
     move_ints("filament_nozzle_map");
     move_ints("filament_volume_map");
     {
@@ -6458,6 +6465,8 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
 
         // Load the project config values. In published mode only the plate/bed geometry keys
         // cross over (the receiver must not inherit the author's filament/purge data).
+        // Older and published projects must not inherit the previous project's device assignments.
+        this->project_config.option<ConfigOptionInts>("filament_device_map", true)->values.clear();
         this->project_config.apply_only(config, is_published ? s_project_options_published : s_project_options);
         // Older projects inherit one-element mixed defaults, regardless of their filament count.
         if (!is_published)

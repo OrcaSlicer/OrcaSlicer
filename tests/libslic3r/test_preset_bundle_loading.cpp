@@ -9196,3 +9196,43 @@ TEST_CASE("The cloud diff force-emits a disabled override only where the cloud w
     // An ironing override defaults to nil: an absent key stays nil, so it is not sent.
     CHECK(key_values.count("filament_ironing_flow") == 0);
 }
+
+TEST_CASE("Loaded spool tool assignments follow project filament rows", "[Preset][Bundle][ToolMapping]")
+{
+    PresetBundle bundle;
+    select_multi_nozzle_printer(bundle, 4, false);
+    bundle.filament_presets = {bundle.filaments.get_selected_preset_name()};
+    bundle.set_num_filaments(4u);
+    auto* mapping = bundle.project_config.option<ConfigOptionInts>("filament_device_map");
+    REQUIRE(mapping != nullptr);
+    mapping->values = {0, 3, 0, 0};
+    CHECK(bundle.full_config(false).option<ConfigOptionInts>("filament_device_map")->values == mapping->values);
+
+    bundle.set_num_filaments(5u);
+    CHECK(mapping->values == std::vector<int>{0, 3, 0, 0, 0});
+    bundle.update_num_filaments(0);
+    CHECK(mapping->values == std::vector<int>{3, 0, 0, 0});
+}
+
+TEST_CASE("Opening an older or published project clears previous loaded-spool assignments", "[Preset][Bundle][ToolMapping]")
+{
+    const bool published = GENERATE(false, true);
+    auto config = published_pla_file_config();
+    config.opt<ConfigOptionFloats>("nozzle_diameter")->values = {0.4, 0.4, 0.4, 0.4};
+    config.option<ConfigOptionBool>("single_extruder_multi_material", true)->value = false;
+    config.opt<ConfigOptionStrings>("filament_colour")->values = {"#000000", "#7D6556", "#7D6556", "#FFFFFF"};
+    config.set_key_value("filament_device_map", new ConfigOptionInts{0, 3, 0, 0});
+    Preset::normalize(config);
+    auto older_config = config;
+    older_config.erase("filament_device_map");
+
+    PresetBundle bundle;
+    bundle.load_config_model("mapped.3mf", std::move(config));
+    REQUIRE(bundle.project_config.option<ConfigOptionInts>("filament_device_map")->values == std::vector<int>{0, 3, 0, 0});
+
+    PublishedConfig pub;
+    pub.published = published;
+    bundle.load_config_model("older.3mf", std::move(older_config), Semver(), published ? &pub : nullptr);
+    const auto& mapping = bundle.project_config.option<ConfigOptionInts>("filament_device_map")->values;
+    CHECK(std::all_of(mapping.begin(), mapping.end(), [](int tool) { return tool == 0; }));
+}

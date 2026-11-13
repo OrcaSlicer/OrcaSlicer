@@ -1,6 +1,7 @@
 #include "Plater.hpp"
 #include "../Utils/NetworkAgent.hpp"
 #include "IPrinterAgent.hpp"
+#include "slic3r/Utils/SnapmakerProtocol.hpp"
 #include "CalibUtils.hpp"
 #include "Flashforge.hpp"
 #include "libslic3r/Config.hpp"
@@ -6024,6 +6025,7 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
         rotate_strings("filament_multi_colour");
         rotate_strings("filament_colour_type");
         rotate_ints("filament_map");
+        rotate_ints("filament_device_map");
         rotate_ints("filament_nozzle_map");
         rotate_ints("filament_volume_map");
         rotate_bools("filament_is_mixed");
@@ -21465,12 +21467,21 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
     if (! physical_printer_config || p->model.objects.empty())
         return;
 
-    PrintHostJob upload_job(physical_printer_config);
+    const auto device_mapping = !only_gcode_mode() && physical_printer_config->opt_string("printer_model") == "Snapmaker U1" ?
+        SnapmakerProtocol::filament_mapping(wxGetApp().preset_bundle->project_config) : std::string();
+    DynamicPrintConfig upload_config = *physical_printer_config;
+    if (!device_mapping.empty()) {
+        // Older U1 profiles use Moonraker's OctoPrint compatibility endpoint, which cannot
+        // attach the native map. Use the native API for this job, leaving the preset intact.
+        upload_config.set_key_value("host_type", new ConfigOptionEnum<PrintHostType>(htMoonraker));
+        upload_config.set_key_value("use_3mf", new ConfigOptionBool(false));
+    }
+    PrintHostJob upload_job(&upload_config);
     if (upload_job.empty())
         return;
 
     // Orca: the use_3mf printer option makes us send a .gcode.3mf to the printer
-    const auto* use_3mf_opt = physical_printer_config->option<ConfigOptionBool>("use_3mf");
+    const auto* use_3mf_opt = upload_config.option<ConfigOptionBool>("use_3mf");
     const bool  use_3mf     = use_3mf_opt != nullptr && use_3mf_opt->value;
 
     upload_job.upload_data.use_3mf = use_3mf;
@@ -21631,6 +21642,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
         upload_job.upload_data.group       = pDlg->group();
         upload_job.upload_data.storage     = pDlg->storage();
         upload_job.upload_data.extended_info = pDlg->extendedInfo();
+        if (!device_mapping.empty())
+            upload_job.upload_data.extended_info["snapmaker_filament_map"] = device_mapping;
         // Orca: gcode inside a .gcode.3mf is index-coded (Metadata/plate_<N>.gcode) and a bundle may
         // carry several of them, so the upload must name which plate to print via a 1-based plateindex.
         // Even a single-plate bundle needs it, since its gcode entry is still indexed. The host upload

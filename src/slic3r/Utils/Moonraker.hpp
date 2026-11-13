@@ -59,7 +59,7 @@ protected:
 
     void set_auth(Http &http) const;
     std::string make_url(const std::string &path) const;
-    bool start_print(wxString &error_msg, const std::string &filename) const;
+    bool start_print(wxString &error_msg, const std::string &filename, const std::string &snapmaker_mapping = {}) const;
 };
 
 }
