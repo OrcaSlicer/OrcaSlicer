@@ -1834,6 +1834,61 @@ TEST_CASE("Multiline infill keeps its lines parallel around a corner", "[Fill]")
     REQUIRE(paths.front().size() < 100);
 }
 
+TEST_CASE("Multiline lateral infill prints overlapping walls as one wall without gaps", "[Fill]")
+{
+    const InfillPattern pattern   = GENERATE(ipLateralLattice, ipLateralHoneycomb);
+    const int           multiline = GENERATE(2, 3);
+    CAPTURE(pattern, multiline);
+    const double    spacing = 0.45;
+    const ExPolygon square{ Points{ Point::new_scale(0., 0.), Point::new_scale(40., 0.), Point::new_scale(40., 40.), Point::new_scale(0., 40.) } };
+    // Away from the boundary, where the lines are connected.
+    const Polygons inner = shrink(to_polygons(square), scale_(3.));
+
+    // The walls of the two directions of both patterns slide over each other with z.
+    for (size_t layer_id = 0; layer_id < 60; ++layer_id) {
+        const double z = 0.2 * double(layer_id + 1);
+        CAPTURE(z);
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        filler->spacing     = spacing;
+        filler->angle       = 0.f;
+        filler->fixed_angle = true;
+        filler->layer_id    = layer_id;
+        filler->z           = z;
+
+        FillParams params;
+        params.pattern                 = pattern;
+        params.density                 = 0.3f;
+        params.multiline               = multiline;
+        params.lateral_lattice_angle_1 = -45.;
+        params.lateral_lattice_angle_2 = 45.;
+        params.infill_overhang_angle   = 60.f;
+        params.dont_adjust             = true;
+        Surface surface(stInternal, square);
+        // The lines run along y.
+        std::vector<double> xs;
+        for (const Polyline &line : intersection_pl(filler->fill_surface(&surface, params), inner)) {
+            REQUIRE(std::abs(line.first_point().x() - line.last_point().x()) < scale_(0.001));
+            xs.push_back(unscale<double>(line.first_point().x() + line.last_point().x()) / 2.);
+        }
+        std::sort(xs.begin(), xs.end());
+
+        // No line is closer than spacing to the next, and the lines spacing apart make up walls.
+        std::vector<size_t> wall_lines{ 1 };
+        for (size_t i = 1; i < xs.size(); ++i) {
+            const double gap = xs[i] - xs[i - 1];
+            CHECK(gap > spacing - 0.001);
+            if (gap < spacing + 0.001)
+                ++wall_lines.back();
+            else
+                wall_lines.push_back(1);
+        }
+        // Not one is thinner than a single wall, but the ones cut by the inner square.
+        REQUIRE(wall_lines.size() > 2);
+        for (size_t i = 1; i + 1 < wall_lines.size(); ++i)
+            CHECK(wall_lines[i] >= size_t(multiline));
+    }
+}
+
 TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itself", "[Fill]")
 {
     const std::string pattern = GENERATE("cubic", "quartercubic");

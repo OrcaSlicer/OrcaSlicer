@@ -22,7 +22,13 @@ its N lines itself as parallel copies of each wave, which never cross
 Lateral Honeycomb have only parallel lines, so they skip `multiline_fill()` too:
 `FillRectilinear::fill_surface_by_multilines()` slices the region with N copies
 of each line, `spacing` apart, and the clipping leaves no outline to join. The
-other patterns outline their usual centerlines.
+two families of the lateral patterns run in one direction and slide over each
+other with z, so their walls overlap on some layers. The walls of one direction
+are therefore laid out together: walls that overlap print as one wall, of as
+many lines `spacing` apart as its width holds, centered on it. Neither a gap nor
+overlapping lines show where two walls meet, and the layout is the same as two
+walls where they just touch and as one where they coincide. The other patterns
+outline their usual centerlines.
 
 ## Non-crossing centerlines
 
