@@ -144,6 +144,9 @@ bool is_plain_path_segment(const std::string& segment)
 
 #ifdef _WIN32
 using LockHandle = HANDLE;
+// Byte the Windows range lock is taken at: past the owner pid, so reading the pid
+// through another handle is not denied by the lock.
+constexpr int64_t k_lock_byte_offset = 64;
 #else
 using LockHandle = int;
 #endif
@@ -182,7 +185,11 @@ bool open_lock_file(const std::string& path, int64_t owner_pid, LockHandle& out)
                                         FILE_ATTRIBUTE_NORMAL, nullptr);
     if (handle == INVALID_HANDLE_VALUE)
         return false;
+    // An exclusive range lock also denies reads through any other handle, so it sits past
+    // the owner pid instead of over it, and the pid stays readable while the lock is held.
+    // A range beyond the end of the file is a valid lock.
     OVERLAPPED overlapped = {};
+    overlapped.Offset     = k_lock_byte_offset;
     if (!::LockFileEx(handle, LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY, 0, 1, 0, &overlapped)) {
         ::CloseHandle(handle);
         return false;
