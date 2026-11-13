@@ -3928,7 +3928,14 @@ int CLI::run(int argc, char **argv)
             }
 
             //computing
+            // Standalone filament presets may omit these: a missing diameter follows the first filament, a missing
+            // support flag is off.
+            auto *filament_diameter = static_cast<ConfigOptionVectorBase *>(m_print_config.option("filament_diameter", true));
+            if (filament_diameter->size() < project_filament_count)
+                filament_diameter->resize(project_filament_count);
             ConfigOptionBools* filament_is_support = m_print_config.option<ConfigOptionBools>("filament_is_support", true);
+            if (filament_is_support->size() < project_filament_count)
+                filament_is_support->values.resize(project_filament_count, false);
 
             const std::vector<int> &min_flush_volumes = Slic3r::GUI::get_min_flush_volumes(m_print_config, 0);
 
