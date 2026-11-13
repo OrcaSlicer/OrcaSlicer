@@ -371,9 +371,9 @@ test("Solid adds co-extruded color blocks only where the caller allows them", op
     assert.equal(selection.colors.length, 3);
     assert.equal(selection.colors[0], "#11223367");
     await page.locator("label[for=modeSwitch]").click();
-    assert.equal((await page.evaluate(() => ColorPickerDialog.exportSelection())).type, "gradient");
+    assert.deepEqual(await page.evaluate(() => ColorPickerDialog.exportSelection()), {...selection, type: "gradient"});
     await page.locator("label[for=modeSwitch]").click();
-    assert.deepEqual(await page.evaluate(() => ColorPickerDialog.exportSelection()), selection, "Solid keeps its color blocks");
+    assert.deepEqual(await page.evaluate(() => ColorPickerDialog.exportSelection()), selection, "the colors carry over and back");
     await page.locator("#confirmBtn").click();
     assert.deepEqual(await page.evaluate(() => messages.at(-1)), {command: "confirm", page_id: ready.page_id, selection});
   }

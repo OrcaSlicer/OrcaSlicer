@@ -75,8 +75,8 @@
   function createState(options = {}, selection = {type: "solid", colors: ["#808080"]}) {
     const capabilities = {allow_gradient: options.allow_gradient === true, allow_alpha: options.allow_alpha === true,
                           allow_coextruded: options.allow_coextruded === true};
-    // Solid and Gradient keep their own colors. solid holds one color, or more for a co-extruded selection.
-    // Each stays null until a selection provides it or the user switches to that mode.
+    // solid holds one color, or more for a co-extruded selection. Each list stays null until a selection
+    // provides it or the user switches to that mode; switching carries multiple colors over (see setMode).
     const state = {options: capabilities, maxGradientColors: gradientLimit(options.max_gradient_colors),
                    mode: "solid", active: 0, solid: null, gradient: null};
     if (!applySelection(state, selection)) return null;
@@ -101,13 +101,18 @@
 
   function setMode(state, mode) {
     if (mode !== "solid" && (mode !== "gradient" || !state.options.allow_gradient)) return false;
-    // A new gradient starts at the selected solid color and ends at its contrast color;
-    // a new solid starts at the selected gradient color.
-    if (mode === "gradient" && !state.gradient) {
+    // Multiple colors carry over in order, so switching only changes how they are drawn: co-extruded
+    // blocks become a gradient, and a gradient becomes blocks where co-extruded colors are allowed.
+    // Otherwise a new gradient starts at the selected solid color and ends at its contrast color,
+    // and a new solid starts at the selected gradient color.
+    const copy = (colors) => colors.map((color) => [...color]);
+    if (mode === "gradient" && state.mode === "solid" && state.solid.length > 1) state.gradient = copy(state.solid);
+    else if (mode === "gradient" && !state.gradient) {
       const solid = state.solid[Math.min(state.active, state.solid.length - 1)];
       state.gradient = [[...solid], contrastColor(solid, NEW_GRADIENT_HUE_SHIFT)];
     }
-    if (mode === "solid" && !state.solid) state.solid = [[...state.gradient[state.active]]];
+    if (mode === "solid" && state.mode === "gradient" && state.options.allow_coextruded) state.solid = copy(state.gradient);
+    else if (mode === "solid" && !state.solid) state.solid = [[...state.gradient[state.active]]];
     state.mode = mode;
     state.active = Math.min(state.active, modeColors(state).length - 1);
     return true;

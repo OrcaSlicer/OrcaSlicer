@@ -69,9 +69,11 @@ the filament swatch anchor, including alpha, ordered gradients, co-extruded colo
 The Solid/Gradient switch is unchanged. Co-extruded colors are edited in Solid mode:
 where the caller allows them, Solid shows its colors as blocks on the third row, with
 the same − and + buttons as a gradient. Two or more blocks are a co-extruded selection
-and one block is a plain solid color. Solid and Gradient keep their own colors when
-switching; each block's thumb sits in its middle, and a click on the bar selects the
-block under the pointer.
+and one block is a plain solid color. Switching carries multiple colors over in order:
+blocks become a gradient, and a gradient becomes blocks where co-extruded colors are
+allowed (elsewhere Solid starts at the selected gradient color). A single solid color
+still starts a new gradient with its contrast color. Each block's thumb sits in its
+middle, and a click on the bar selects the block under the pointer.
 
 Gradients and co-extruded colors exceeding the configured color limit cannot be represented
 by this editor. A notice explains that the current selection is retained; the
