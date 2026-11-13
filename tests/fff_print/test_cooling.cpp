@@ -205,17 +205,38 @@ TEST_CASE("Layer cooling slowdown does not depend on relative extrusion distance
 
 TEST_CASE("External bridge fan control", "[Cooling]")
 {
+    GCodeReader reader;
+    std::string role;
+    int fan = 0;
+
+
     std::string gcode = slice({TestMesh::bridge}, {
                                                     {"enable_overhang_speed",   true},
-                                                    {"overhang_fan_speed",        60},
-                                                    {"external_bridge_fan_speed", 80},
+                                                    {"overhang_fan_speed",        60},//S153
+                                                    {"external_bridge_fan_speed", 80},//S204
                                                   });
-    REQUIRE(gcode.find("M106 S204") != std::string::npos);
+    reader.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        float value;
+        if (boost::starts_with(line.raw(), ";TYPE:"))
+            role = line.raw().substr(6);
+        else if (role == "Bridge" && line.cmd_is("M106") && line.has_value('S', value))
+            fan = value;
+    });
+    REQUIRE(fan==204);
 
     gcode = slice({TestMesh::bridge},             {
-                                                    {"enable_overhang_speed", true},
-                                                    {"overhang_fan_speed", 60},
-                                                    {"external_bridge_fan_speed", -1},
+                                                    {"enable_overhang_speed",   true},
+                                                    {"overhang_fan_speed",        60},//S153
+                                                    {"external_bridge_fan_speed", -1},//S204
                                                   });
-    REQUIRE(gcode.find("M106 S153") != std::string::npos);
+    role = "";
+    fan  =  0;
+    reader.parse_buffer(gcode, [&](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        float value;
+        if (boost::starts_with(line.raw(), ";TYPE:"))
+            role = line.raw().substr(6);
+        else if (role == "Bridge" && line.cmd_is("M106") && line.has_value('S', value))
+            fan = value;
+    });
+    REQUIRE(fan == 153);
 }
