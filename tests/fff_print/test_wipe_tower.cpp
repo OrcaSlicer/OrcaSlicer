@@ -1196,7 +1196,9 @@ TEST_CASE("A tower printed without a tool change is still kept on the bed", "[Wi
     DynamicPrintConfig config = tower_estimate_config("rectangle", 1);
     // The tower needs relative E, which validate() accepts only with a per-layer G92, and
     // has_wipe_tower() wants a real exclusion polygon before it honours wrapping detection.
-    config.set_deserialize_strict({ { "enable_wrapping_detection", "1" },
+    // Only Bambu Lab printers offer wrapping detection, and they print the Type 1 tower.
+    config.set_deserialize_strict({ { "wipe_tower_type", "type1" },
+                                    { "enable_wrapping_detection", "1" },
                                     { "wrapping_exclude_area", "180x180,190x180,190x190,180x190" },
                                     { "wipe_tower_x", "500" }, { "wipe_tower_y", "500" },
                                     { "layer_change_gcode", "G92 E0\n" } });
