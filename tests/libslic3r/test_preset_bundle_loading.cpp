@@ -9248,6 +9248,36 @@ TEST_CASE("save_current_preset runs the before-save hook on the config it stores
     CHECK(selected_name == "Parent Printer");
 }
 
+TEST_CASE("A printer preset written before printer_plugins keeps its legacy plugins manifest", "[Preset][Bundle][plugins]")
+{
+    ScopedPresetDataDir data_dir;
+    PresetBundle        bundle;
+
+    // What a build before the printer manifest key wrote: the printer's plugin references under the
+    // process preset's "plugins", which is not a printer option.
+    DynamicPrintConfig legacy(bundle.printers.default_preset().config);
+    legacy.option<ConfigOptionString>("printer_settings_id", true)->value = "Legacy Printer";
+    legacy.option<ConfigOptionString>("printer_agent", true)->value        = "moonraker";
+    legacy.set_key_value("plugins", new ConfigOptionStrings{"Moonraker Agent;8f3c0000-0000-4000-8000-000000000000;moonraker"});
+    const fs::path file = data_dir.tmp.path() / PRESET_PRINTER_NAME / "Legacy Printer.json";
+    fs::create_directories(file.parent_path());
+    legacy.save_to_json(file.string(), "Legacy Printer", "User", "1.0.0");
+
+    PresetsConfigSubstitutions substitutions;
+    bundle.printers.load_presets(data_dir.tmp.path().string(), PRESET_PRINTER_NAME, substitutions,
+                                 ForwardCompatibilitySubstitutionRule::EnableSilent);
+
+    const Preset* loaded = bundle.printers.find_preset("Legacy Printer");
+    REQUIRE(loaded != nullptr);
+    // Renamed rather than reported as an incorrect key and dropped, so the notice for a plugin that is
+    // not installed here still has the reference it needs.
+    CHECK(bundle.printers.error_count() == 0);
+    CHECK(loaded->config.option("plugins") == nullptr);
+    REQUIRE(loaded->config.option<ConfigOptionStrings>("printer_plugins") != nullptr);
+    CHECK(loaded->config.option<ConfigOptionStrings>("printer_plugins")->values ==
+          std::vector<std::string>{"Moonraker Agent;8f3c0000-0000-4000-8000-000000000000;moonraker"});
+}
+
 TEST_CASE("The cloud diff force-emits a disabled override only where the cloud would fill a value in", "[Preset][Bundle]")
 {
     PresetBundle bundle;

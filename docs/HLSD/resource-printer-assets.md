@@ -63,6 +63,10 @@ plugin-backed with type `resource-printer-asset`, so the printer preset manifest
 hook re-derives the option on every printer preset save. A pack that is not installed here keeps
 the name already in the saved preset's manifest. The notice never blocks slicing.
 
+A printer preset written before `printer_plugins` existed holds its references under the process
+preset's `plugins` key. `Preset::remove_invalid_keys` renames them on load, before the
+unknown-key check, so an upgrade keeps the notice for a plugin this machine lacks.
+
 ## Constraints
 
 - Windows `MAX_PATH`: installed files sit under a long `orca_plugins` path, so Orca Cloud caps

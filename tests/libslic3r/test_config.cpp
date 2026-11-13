@@ -11,6 +11,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PrintConfigConstants.hpp"
+#include "libslic3r/Preset.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 
 #include "test_utils.hpp"
@@ -1005,6 +1006,31 @@ TEST_CASE("A printer preset keeps the printer_plugins entry of a capability not 
     CHECK(unresolved.empty());
     CHECK(manifest == std::vector<std::string>{"Pack;3f2a6c1e;gone"});
     CHECK(config->option("plugins") == nullptr);
+}
+
+TEST_CASE("Legacy printer plugin references move into printer_plugins on load", "[Config][plugins]") {
+    // A printer preset written before "printer_plugins" existed carries its references under the
+    // process preset's key, which is not a printer option; remove_invalid_keys would report and drop
+    // them, and the notice for a plugin this machine lacks would go with them.
+    std::unique_ptr<DynamicPrintConfig> defaults(DynamicPrintConfig::new_from_defaults_keys(Preset::printer_options()));
+    DynamicPrintConfig                  child(*defaults);
+    child.option<ConfigOptionStrings>("printer_plugins")->values = {"Parent Agent;1111;agent"};
+    child.set_key_value("plugins", new ConfigOptionStrings{"Child Agent;2222;agent"});
+
+    // Merged, not replaced: the child file holds only its own references, the parent's manifest is
+    // already in the config the child was built from.
+    CHECK(Preset::remove_invalid_keys(child, *defaults).empty());
+    CHECK(child.option("plugins") == nullptr);
+    CHECK(child.option<ConfigOptionStrings>("printer_plugins")->values ==
+          std::vector<std::string>{"Parent Agent;1111;agent", "Child Agent;2222;agent"});
+
+    // A process preset keeps its own manifest: "plugins" is one of its keys.
+    std::unique_ptr<DynamicPrintConfig> print_defaults(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "plugins"}));
+    DynamicPrintConfig print(*print_defaults);
+    print.option<ConfigOptionStrings>("plugins")->values = {"Pack;3333;pipeline"};
+    CHECK(Preset::remove_invalid_keys(print, *print_defaults).empty());
+    CHECK(print.option<ConfigOptionStrings>("plugins")->values == std::vector<std::string>{"Pack;3333;pipeline"});
 }
 TEST_CASE("H2C/A2L-era multi-nozzle and pre-heat config keys exist", "[config]") {
     // Foundation keys backing H2C 6-nozzle cluster grouping, the pre-heat/pre-cool time

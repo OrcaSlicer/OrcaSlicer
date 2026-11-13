@@ -601,12 +601,36 @@ void Preset::normalize(DynamicPrintConfig &config)
     handle_legacy_sla(config);
 }
 
+// A printer preset written before the printer manifest key existed stores its plugin references under
+// the process preset's key, "plugins". That key is not a printer option, so loading would report and
+// strip the references; rename them here instead, before the validation below. A config holding both
+// keys is a printer preset's: a process preset's config has "plugins" and no "printer_plugins".
+// Returns true when they were moved, so the validation does not report the key it renamed.
+static bool migrate_legacy_printer_plugin_manifest(DynamicPrintConfig &config)
+{
+    const auto *legacy   = config.option<ConfigOptionStrings>("plugins");
+    auto       *manifest = config.option<ConfigOptionStrings>("printer_plugins");
+    if (legacy == nullptr || manifest == nullptr)
+        return false;
+    // Merge, not replace: a child preset's file holds only the references it added, while the parent's
+    // manifest already sits in the config this one was built from.
+    for (const std::string &ref : legacy->values)
+        if (std::find(manifest->values.begin(), manifest->values.end(), ref) == manifest->values.end())
+            manifest->values.push_back(ref);
+    config.erase("plugins");
+    return true;
+}
+
 std::string Preset::remove_invalid_keys(DynamicPrintConfig &config, const DynamicPrintConfig &default_config,
                                         const DynamicPrintConfig *added)
 {
+    const bool migrated_plugins = migrate_legacy_printer_plugin_manifest(config);
+
     std::string incorrect_keys;
     for (const std::string &key : (added != nullptr ? *added : config).keys())
         if (! default_config.has(key)) {
+            if (migrated_plugins && key == "plugins")
+                continue;
             if (incorrect_keys.empty())
                 incorrect_keys = key;
             else {
