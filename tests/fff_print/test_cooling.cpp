@@ -303,7 +303,7 @@ TEST_CASE("Fan speed follows the layer time with acceleration", "[Cooling]")
         config.set_deserialize_strict({
             { "default_acceleration",               0 },
             { "machine_max_acceleration_extruding", "20000,20000" },
-            { "machine_start_gcode",                "M204 S300" },
+            { "machine_start_gcode",                "G90\n  M204 S300 ; indented\nG92 E0" },
         });
     const std::vector<EstimatedLayer> layers = estimated_layers(cube(20), config);
     REQUIRE(layers.size() > 4);

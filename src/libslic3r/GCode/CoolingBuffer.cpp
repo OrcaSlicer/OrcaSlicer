@@ -368,15 +368,16 @@ std::string CoolingBuffer::process_layer(std::string &&gcode, size_t layer_id, b
 // from its command and parameter names; empty for any other line.
 static std::string motion_setting_kind(const std::string &line)
 {
-    if (line.empty() || (line.front() != 'M' && line.front() != 'S'))
+    const size_t start = line.empty() || (line.front() != ' ' && line.front() != '\t') ? 0 : line.find_first_not_of(" \t");
+    if (start >= line.size() || (line[start] != 'M' && line[start] != 'S'))
         return {};
     static constexpr std::array<std::string_view, 7> commands{ "M201", "M203", "M204", "M205", "M221", "M566", "SET_VELOCITY_LIMIT" };
     const size_t           end     = std::min(line.find(';'), line.size());
-    const std::string_view command = std::string_view(line).substr(0, std::min(line.find_first_of(" \t"), end));
+    const std::string_view command = std::string_view(line).substr(start, std::min(line.find_first_of(" \t", start), end) - start);
     if (std::find(commands.begin(), commands.end(), command) == commands.end())
         return {};
     std::vector<std::string_view> names;
-    for (size_t word = command.size(); word < end;) {
+    for (size_t word = start + command.size(); word < end;) {
         word = line.find_first_not_of(" \t", word);
         if (word >= end)
             break;
