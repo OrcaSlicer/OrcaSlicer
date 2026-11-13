@@ -15,9 +15,9 @@ The estimate sets the targets it aims at, and the time the fan goes by.
 
 ## What is timed
 
-A layer is timed from its first extrusion to the end of its G-code. The moves before the first extrusion are
-left out: the layer change, the travel to the part, and a filament change at the start of the layer. A long
-start would otherwise hide a layer whose printing is quick.
+A layer is timed whole, from its layer change to its end, as in the Preview. A layer whose first extrusion comes
+after a filament change is timed from that extrusion instead: a long filament change before the printing would
+otherwise hide a layer whose printing is quick. The time at the feed rates covers the same part of the layer.
 
 The estimate leaves out the time the printer spends loading, unloading or changing a filament
 (`machine_load_filament_time`, `machine_unload_filament_time`, `machine_tool_change_time`). The time at the feed
@@ -31,19 +31,23 @@ second one. Before each estimate it resets that processor and applies the print 
 times set to zero.
 
 The layer is timed from a standstill. The G-code timed is preceded by lines that put the processor in the
-machine state at the first extrusion:
+machine state where the timed part starts:
 
 - the extruder, as a `T` command;
 - the extrusion mode, `M82` or `M83`;
-- the last line of each kind that sets an acceleration or another motion limit, seen in the G-code that went
-  through the cooling before, in the order the lines came;
+- the last line of each kind that sets an acceleration or another motion limit, seen so far, in the order the
+  lines came;
 - the position, as a `G92`.
 
 A line kind is its command and its parameter names, for example `M204 P T` or
 `SET_VELOCITY_LIMIT ACCEL ACCEL_TO_DECEL`, so a later line overrides only what it sets. The commands followed are
-`M201`, `M203`, `M204`, `M205`, `M221`, `M566` and `SET_VELOCITY_LIMIT`. Lines in the start G-code never reach
-the cooling, and the machine limits from the config stand in for them. A `G4 P0` at the end makes the planner
-finish the last moves.
+`M201`, `M203`, `M204`, `M205`, `M221`, `M566` and `SET_VELOCITY_LIMIT`. Most of the G-code reaches the cooling
+layer by layer. `GCode` passes it the G-code that users write and that goes straight to the file before the first
+layer: the start G-code, the IDEX or IQEX mode G-code, and the first filament's start G-code on Bambu Lab
+printers. The machine limits Orca writes at the top of the file come from the config, which the processor has
+already. The first layer starts where the start G-code left the print head, which the export's processor knows by
+then, as it reads everything written before the first layer as it is written. A `G4 P0` at the end makes the
+planner finish the last moves.
 
 ## Slowdown
 
@@ -71,6 +75,8 @@ The fan interpolates on the estimate of the layer as it is printed, after the sl
 
 ## Cost
 
-Each layer is timed once, and a slowed layer about three times more. Slowed layers are small, and the cooling
-runs in its own stage of the export pipeline. On the 51 MB fan calibration cone of issue 11751, the slicing time
-did not change measurably.
+Acceleration only makes a layer longer, so a layer that takes more than every fan and slowdown threshold at its
+feed rates, by a 10% margin, is not timed: it gets the minimum fan and no slowdown either way. Those are the large
+layers, which hold most of the G-code. Any other layer is timed once, and a slowed layer about three times more.
+The cooling runs in its own stage of the export pipeline. On the 51 MB fan calibration cone of issue 11751, whose
+65 s fan threshold has every layer timed, the slicing takes about 2% more processor time.
