@@ -1196,7 +1196,7 @@ namespace Slic3r
         GUI::wxGetApp().sidebar().load_ams_list(nullptr);
     }
 
-    void DeviceManager::OnSelectedMachineChanged(const std::string& /*pre_dev_id*/,
+    void DeviceManager::OnSelectedMachineChanged(const std::string& pre_dev_id,
                                                  const std::string& new_dev_id)
     {
         {
@@ -1209,7 +1209,7 @@ namespace Slic3r
             GUI::wxGetApp().sidebar().update_sync_status(obj_);
             const auto sync_mode = m_agent ? m_agent->get_filament_sync_mode() : FilamentSyncMode::none;
             GUI::wxGetApp().sidebar().load_ams_list(sync_mode == FilamentSyncMode::none ? nullptr : obj_);
-        } else {
+        } else if (!pre_dev_id.empty()) {
             OnSelectedMachineLost();
         }
     }
