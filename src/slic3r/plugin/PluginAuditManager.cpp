@@ -778,7 +778,10 @@ static bool has_denied_config_extension(std::string name)
 
     const boost::filesystem::path path(name);
     const std::string extension = path.extension().string();
-    return extension == ".conf" || extension == ".ini";
+    // A companion keeps the config name in the middle: obn.conf.bak, orcaslicer.ini.old.
+    // The extension is only the trailing suffix, so also match the embedded chain.
+    return extension == ".conf" || extension == ".ini" || name.find(".conf.") != std::string::npos ||
+           name.find(".ini.") != std::string::npos;
 }
 
 void PluginAuditManager::add_keyword_exempt_filename(const std::string& filename)
