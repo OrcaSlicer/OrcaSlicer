@@ -1,8 +1,8 @@
 {
     "name": "SeeMeCNC",
-    "version": "2.8.0.35",
+    "version": "2.8.0.36",
     "force_update": "1",
-    "description": "SeeMeCNC profiles v2.8.0.35. Full profile set for Artemis, BOSSdelta, and RostockMAX printers. Walls are 2 and sparse infill is 15% grid. Support gaps are opened so supports release more easily. Organic tree supports use wall count 0 with the rectilinear base. PLA nozzle temperature is 195. PETG nozzle temperature is 260. Process jerk is 25 on every feature. Print speeds are 20% slower and rounded up to the nearest 10. Travel, first layer, and first-layer infill stay at the earlier speeds. Filaments are PLA, PETG, PETG-CF, PCTG, ABS, PA-CF, and TPU. PCTG prints at 260 C, 265 C on the first layer, bed 80 C, fan 20-40% after 3 layers, and 8 mm^3/s. The bed STL and PNG load from the printer model. Updated for the OrcaSlicer 2.6.0-dev nightly: adaptive infill, paint penetration layers, exclude-object outline tolerance, and high-precision G-code use the new defaults, toolhead collision volumes are empty, and the removed silent mode setting is gone.",
+    "description": "SeeMeCNC profiles v2.8.0.36. Full profile set for Artemis, BOSSdelta, and RostockMAX printers. Walls are 2 and sparse infill is 15% grid. Support gaps are opened so supports release more easily. Organic tree supports use wall count 0 with the rectilinear base. PLA nozzle temperature is 195. PETG nozzle temperature is 260. Process jerk is 25 on every feature. Print speeds are 20% slower and rounded up to the nearest 10. Travel, first layer, and first-layer infill stay at the earlier speeds. Filaments are PLA, PETG, PETG-CF, PCTG, ABS, PA-CF, and TPU. PCTG prints at 260 C on the first layer and on later layers, bed 80 C, fan 20-40% after 3 layers, and 8 mm^3/s. The bed STL and PNG load from the printer model. Updated for the OrcaSlicer 2.6.0-dev nightly: adaptive infill, paint penetration layers, exclude-object outline tolerance, and high-precision G-code use the new defaults, toolhead collision volumes are empty, and the removed silent mode setting is gone.",
     "machine_model_list": [
         {
             "name": "SeeMeCNC Artemis 300",
