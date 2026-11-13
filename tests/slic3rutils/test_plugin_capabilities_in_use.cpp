@@ -96,3 +96,24 @@ TEST_CASE("A missing printer preset plugin is reported but does not block slicin
 
     clear_missing();
 }
+
+TEST_CASE("A missing process preset plugin blocks slicing", "[PluginResolver]")
+{
+    const auto clear_missing = [] {
+        for (const Preset::Type type : {Preset::TYPE_PRINT, Preset::TYPE_PRINTER, Preset::TYPE_FILAMENT})
+            refresh_missing_plugins(type, nullptr);
+    };
+    clear_missing();
+
+    // The same unresolved reference blocks when it comes from the process preset: only printer preset
+    // plugins (printer agents, printer assets) are exempt, so a capability that changes the sliced
+    // result must still be installed first.
+    const Preset print = make_print_preset({"acme;;CapA"}, {"CapA"});
+    refresh_missing_plugins(Preset::TYPE_PRINT, print.config.option<ConfigOptionStrings>("plugins"), &print);
+
+    CHECK(has_missing_plugins());
+    CHECK(has_blocking_plugins());
+
+    clear_missing();
+    CHECK_FALSE(has_blocking_plugins());
+}
