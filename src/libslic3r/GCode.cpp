@@ -8365,6 +8365,13 @@ void GCode::append_full_config(const Print &print, std::string &str)
         "imex_mode_gcodes"sv,
         "imex_parallel_mode"sv,
         "imex_head_filament_map"sv,
+        // The printer preset's plugin manifest and the printer asset packs its bed files come from are
+        // newly-registered printer keys with empty defaults. Leaving them in would add
+        // `; printer_asset_plugins = ` and `; printer_plugins = ` lines to every printer's config block,
+        // including machines that never install a pack. Both are read from the preset, never parsed back
+        // out of the dump, so excluding them keeps the config block byte-identical.
+        "printer_asset_plugins"sv,
+        "printer_plugins"sv,
         "compatible_printers"sv,
         "compatible_prints"sv,
         "filament_colour_type"sv,
