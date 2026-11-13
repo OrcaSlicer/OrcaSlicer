@@ -1602,6 +1602,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts { 100 });
 
+    def = this->add("pre_start_fan_time", coFloats);
+    def->label = L("Pre start fan time");
+    def->tooltip = L("Start the overhang fan early, so that it has time to physically reach the overhang fan speed before the "
+                     "overhang or bridge is printed. The fan is switched on this many seconds before the extrusion that needs it. "
+                     "Set to 0 to switch it on exactly at the overhang.");
+    def->sidetext = L("s");
+    def->min = 0.;
+    def->max = 5.;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{ 0. });
+
     def = this->add("overhang_fan_threshold", coEnums);
     def->label = L("Overhang cooling activation threshold");
     // xgettext:no-c-format, no-boost-format
