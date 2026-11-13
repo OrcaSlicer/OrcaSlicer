@@ -1,3 +1,9 @@
+#include "FirstLayerFlowMath.hpp"
+#include "FirstLayerFlowLabelPlan.hpp"
+#include "FirstLayerFlowOrcaMesh.hpp"
+#include <wx/filename.h>
+#include <wx/utils.h>
+#include <wx/filefn.h>
 #include "Plater.hpp"
 #include "LazyPage.hpp"
 #include "../Utils/NetworkAgent.hpp"
@@ -17758,6 +17764,64 @@ static std::string belt_temp_tower_asset(const Calib_Params &params)
     const int t_end   = (int) lround(params.end);
     return Slic3r::resources_dir() + "/calib/temperature_tower/belt_temp_tower_" +
            std::to_string(t_start) + "_" + std::to_string(t_end) + ".stl";
+}
+
+void Plater::calib_first_layer_flow() {
+    // The reference geometry has one square per object, in patch order.
+    // Only the development build should be used until Orca compilation and
+    // slicing have confirmed the imported volume coordinate conventions.
+    const auto& filament = wxGetApp().preset_bundle->filaments.get_edited_preset().config;
+    const auto* option = filament.option<ConfigOptionFloats>("filament_flow_ratio");
+    if (!option || option->values.empty()) {
+        wxMessageBox("No filament flow ratio is available.", "1st Layer Flow", wxOK | wxICON_ERROR);
+        return;
+    }
+    try {
+        const double selected = option->get_at(0);
+        const auto plan = flf::make_label_plan(selected); // validates input first
+        const std::string template_path = Slic3r::resources_dir() + "/calib/first_layer_flow/squares_only.3mf";
+        if (!wxFileExists(wxString::FromUTF8(template_path.c_str()))) {
+            wxMessageBox("Squares-only template is missing.", "1st Layer Flow", wxOK | wxICON_ERROR);
+            return;
+        }
+        // Import the template as geometry, not as a project or filament preset.
+        const size_t previous_count = model().objects.size();
+        add_model(false, template_path);
+        if (model().objects.size() != previous_count + plan.size()) {
+            wxMessageBox("Unexpected calibration object count after import.",
+                         "1st Layer Flow", wxOK | wxICON_ERROR);
+            return;
+        }
+        // Build labels outside the live model, then import them through Orca's
+        // normal object-loading path. Direct model().add_object() bypasses the
+        // Objects panel bookkeeping and leaves labels partially unmanaged.
+        Model label_model;
+        for (size_t i = 0; i < plan.size(); ++i) {
+            ModelObject* object = model().objects[previous_count + i];
+            auto geometry = plan[i].geometry;
+            flf::place(geometry, -6.4f, 13.0f);
+            object->config.set_key_value("print_flow_ratio",
+                new ConfigOptionFloat(plan[i].multiplier));
+
+            if (object->instances.empty())
+                throw std::runtime_error("Calibration square has no instance");
+
+            const std::string label_name = "Flow label " + plan[i].text;
+            ModelObject* label_object = label_model.add_object(
+                label_name.c_str(), "", flf::to_orca_mesh(geometry, -0.12f));
+            label_object->add_instance(*object->instances.front());
+            label_object->config.set_key_value("print_flow_ratio",
+                new ConfigOptionFloat(plan[i].multiplier));
+        }
+        // This clones the temporary objects into the live model and registers
+        // them with the Objects panel, unlike model().add_object() alone.
+        p->load_model_objects(label_model.objects, false, false, false);
+        update();
+        wxMessageBox("First-layer flow geometry loaded. Inspect labels and per-object flow before printing.",
+                     "1st Layer Flow — Development", wxOK | wxICON_INFORMATION);
+    } catch (const std::exception& e) {
+        wxMessageBox(wxString::FromUTF8(e.what()), "1st Layer Flow", wxOK | wxICON_ERROR);
+    }
 }
 
 void Plater::calib_temp(const Calib_Params& params) {

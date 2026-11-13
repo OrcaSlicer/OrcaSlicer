@@ -3710,6 +3710,13 @@ void MainFrame::init_menubar_as_editor()
         [this](wxCommandEvent&) { run_calibration(CalibKind::FlowRatio); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
+    // First layer flow (experimental Linux generator/import prototype).
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("1st Layer Flow"), _L("First-layer flow calibration"),
+        [this](wxCommandEvent&) {
+            if (m_plater) m_plater->calib_first_layer_flow();
+        }, "", nullptr,
+        [this]() { return m_plater->is_view3D_shown(); }, this);
+
     // Retraction
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Retraction"), _L("Retraction"),
         [this](wxCommandEvent&) { run_calibration(CalibKind::Retraction); }, "", nullptr,
