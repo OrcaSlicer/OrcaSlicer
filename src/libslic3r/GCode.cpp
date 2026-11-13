@@ -8365,13 +8365,6 @@ void GCode::append_full_config(const Print &print, std::string &str)
         "imex_mode_gcodes"sv,
         "imex_parallel_mode"sv,
         "imex_head_filament_map"sv,
-        // The printer preset's plugin manifest and the printer asset packs its bed files come from are
-        // newly-registered printer keys with empty defaults. Leaving them in would add
-        // `; printer_asset_plugins = ` and `; printer_plugins = ` lines to every printer's config block,
-        // including machines that never install a pack. Both are read from the preset, never parsed back
-        // out of the dump, so excluding them keeps the config block byte-identical.
-        "printer_asset_plugins"sv,
-        "printer_plugins"sv,
         "compatible_printers"sv,
         "compatible_prints"sv,
         "filament_colour_type"sv,
@@ -8386,9 +8379,17 @@ void GCode::append_full_config(const Print &print, std::string &str)
     auto is_banned = [](const std::string &key) {
         return banned_keys.find(key) != banned_keys.end();
     };
+    // printer_asset_plugins and printer_plugins default to empty and are written only when set, so a
+    // printer without packs keeps its block unchanged. Both are read back by PresetBundle::config_from_gcode.
+    auto is_empty_plugin_list = [&cfg](const std::string &key) {
+        if (key != "printer_asset_plugins" && key != "printer_plugins")
+            return false;
+        const ConfigOption *opt = cfg.option(key);
+        return opt->type() == coStrings && static_cast<const ConfigOptionStrings *>(opt)->values.empty();
+    };
     std::ostringstream ss;
     for (const std::string& key : cfg.keys()) {
-        if (!is_banned(key) && !cfg.option(key)->is_nil()) {
+        if (!is_banned(key) && !cfg.option(key)->is_nil() && !is_empty_plugin_list(key)) {
             if (key == "wipe_tower_x" || key == "wipe_tower_y") {
                 ss << std::fixed << std::setprecision(3) << "; " << key << " = " << dynamic_cast<const ConfigOptionFloats*>(cfg.option(key))->get_at(print.get_plate_index()) << "\n";
             }
