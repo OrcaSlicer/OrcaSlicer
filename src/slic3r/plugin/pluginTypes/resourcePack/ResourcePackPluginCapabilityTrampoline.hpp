@@ -8,6 +8,7 @@
 
 #include <string>
 #include "slic3r/plugin/PythonPluginInterface.hpp"
+#include "slic3r/plugin/ResourcePackKinds.hpp"
 
 namespace Slic3r {
 

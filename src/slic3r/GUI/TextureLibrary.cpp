@@ -38,6 +38,7 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 
+#include "slic3r/plugin/PythonPluginInterface.hpp"
 #include "slic3r/plugin/ResourcePackKinds.hpp"
 #include "slic3r/plugin/host/PluginResourcePacks.hpp"
 
