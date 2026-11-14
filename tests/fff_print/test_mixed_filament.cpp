@@ -10,6 +10,7 @@
 #include "libslic3r/PrintBase.hpp"
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_message.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -18,6 +19,7 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Flow.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/libslic3r.h"
 
@@ -407,4 +409,67 @@ TEST_CASE("Filament shrinkage compensation counts the wipe tower filament next t
     CHECK(std::any_of(warnings.begin(), warnings.end(), [](const StringObjectException &w) {
         return w.string.find("Filament shrinkage will not be used") != std::string::npos;
     }));
+}
+
+// A mixed slot sits past the printer's nozzles, so its own nozzle_diameter column would fall back
+// to nozzle 1. It prints through its components' nozzles, which validate() requires to match, so
+// its width is theirs.
+TEST_CASE("A mixed filament's nozzle is its components' nozzle", "[MixedFilament][Print]")
+{
+    DynamicPrintConfig config = multifilament_config(4);
+    config.set_deserialize_strict({
+        {"nozzle_diameter",                 "0.4,0.6,0.6"},
+        {"filament_is_mixed",               "0,0,0,1"},
+        {"filament_mixed_components",       ";;;2,3"},
+        {"filament_mixed_sublayer_ratios",  ";;;0.6,0.4"},
+        {"filament_mixed_gradient",         "0,0,0,0"},
+        {"filament_mixed_gradient_range",   ";;;"},
+        {"filament_mixed_gradient_curve",   ";;;"},
+        {"filament_mixed_gradient_per_part","0,0,0,0"},
+        {"enable_mixed_color_sublayer",     "1"},
+        {"outer_wall_filament_id",          "4"},
+        {"inner_wall_filament_id",          "4"},
+        {"sparse_infill_filament_id",       "4"},
+        {"internal_solid_filament_id",      "4"},
+        {"top_surface_filament_id",         "4"},
+        {"bottom_surface_filament_id",      "4"},
+    });
+    size_flush_to_nozzles(config);
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+
+    CHECK_THAT(nozzle_diameter_for_filament(print.config(), 4, false), Catch::Matchers::WithinAbs(0.6, 1e-6));
+    REQUIRE(print.objects().size() == 1);
+    const PrintObject* object = print.objects().front();
+    REQUIRE(print.num_print_regions() >= 1);
+    CHECK_THAT(print.get_print_region(0).flow(*object, frPerimeter, 0.2).nozzle_diameter(), Catch::Matchers::WithinAbs(0.6, 1e-6));
+}
+
+// Every component of a mixed filament traces the same paths at a share of the layer height, so
+// the components must print through nozzles of one diameter. Different diameters are refused.
+TEST_CASE("Mixing filaments on nozzles of different diameters is refused", "[MixedFilament][Print]")
+{
+    DynamicPrintConfig config = mixed_config(true);
+    const bool differ = GENERATE(true, false);
+    config.set_deserialize_strict({
+        {"nozzle_diameter",    differ ? "0.4,0.6" : "0.4,0.4"},
+        {"layer_change_gcode", "G92 E0"}, // required by validate() for Marlin with relative E
+    });
+    size_flush_to_nozzles(config);
+
+    Print print;
+    Model model;
+    init_print({cube(20)}, print, model, config);
+
+    std::vector<StringObjectException> warnings;
+    const StringObjectException err = print.validate(&warnings);
+    if (differ) {
+        CHECK(err.opt_key == "filament_mixed_components");
+        CHECK(err.string.find("0.4") != std::string::npos);
+        CHECK(err.string.find("0.6") != std::string::npos);
+    } else {
+        CHECK(err.string.empty());
+    }
 }

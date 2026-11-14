@@ -94,6 +94,8 @@ struct TrayData
 
     int             ams_id = 0;
     int             slot_id = 0;
+    // Orca: labelled "T%d" instead of transition_tridid()'s "A1"/"B2".
+    bool            is_toolchanger = false;
 };
 
 class MaterialItem: public wxPanel
@@ -119,6 +121,7 @@ public:
     void set_material_cols(int ctype, const std::vector<wxColour>& cols);
 
     void reset_ams_info();
+    void set_toolchanger(bool v) { m_is_toolchanger = v; }
     virtual void reset_valid_info();
 
     void set_nozzle_info(const wxString& mapped_nozzle_str);
@@ -170,6 +173,8 @@ public:
     bool m_warning{false};
     bool m_match {true};
     bool m_enable {true};
+    // Orca: tooltip says "tool" instead of "AMS".
+    bool m_is_toolchanger {false};
 
     void paintEvent(wxPaintEvent &evt);
     virtual void render(wxDC &dc);

@@ -205,6 +205,7 @@
 #include "wxExtensions.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "MainFrame.hpp"
+#include "libslic3r/FilamentCompaction.hpp"
 #ifdef SLIC3R_CAD
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
 #endif
@@ -305,6 +306,11 @@
 #include "libslic3r/Utils.hpp"
 #include <stdexcept>
 #include "FilamentMapDialog.hpp"
+#include "FilamentInventoryEditor.hpp"
+#include "ActivePrinterSession.hpp"
+#include "FilamentInventoryStore.hpp"
+#include "libslic3r/FilamentInventory.hpp"
+#include "DeviceManager.hpp"
 #include "CloneDialog.hpp"
 #include "PurgeModeDialog.hpp"
 
@@ -983,6 +989,8 @@ struct Sidebar::priv
     ScalableButton* m_printer_connect = nullptr;
     ScalableButton* m_printer_bbl_sync = nullptr;
     ScalableButton* m_printer_setting = nullptr;
+    // Orca: opens FilamentInventoryEditor; visibility set in Sidebar::show_SEMM_buttons.
+    ScalableButton* m_printer_inventory = nullptr;
     wxStaticText *  m_text_printer_settings = nullptr;
     wxPanel* m_panel_printer_content = nullptr;
     // Filament Track Switch status overlay: an icon floated over the left/single extruder AMS area,
@@ -2781,6 +2789,8 @@ void Sidebar::update_sync_ams_btn_enable(wxUpdateUIEvent &e)
      }
  }
 
+template<typename T> void setup_dialog_position(T& info);
+
 Sidebar::Sidebar(Plater *parent)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(39 * wxGetApp().em_unit(), -1)), p(new priv(parent))
 {
@@ -2867,6 +2877,30 @@ Sidebar::Sidebar(Plater *parent)
             wxGetApp().run_wizard(RunReason::RR_USER, StartPage::SP_PRINTERS);
             });
 
+        p->m_printer_inventory = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "menu_filament");
+        p->m_printer_inventory->SetToolTip(_L("Printer Material Settings"));
+        p->m_printer_inventory->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+            // Defer the modal: otherwise the button's LEFT_UP can be re-delivered to the title panel
+            // when the modal loop exits, collapsing the printer section.
+            CallAfter([this]() {
+                const Preset  &printer_preset = active_printer_session().profile();
+                FilamentInventoryEditor dlg(this, printer_preset.name, addressable_tool_count_of(printer_preset));
+                // Restore the saved position, else place beside the printer section. Size always refits,
+                // since it depends on the tool count.
+                if (wxGetApp().window_pos_restore(&dlg, "filament_inventory_editor")) {
+                    dlg.Fit();
+                } else {
+                    struct { wxPoint dialog_pos; bool dialog_pos_align_right = true; } at;
+                    setup_dialog_position(at);
+                    const int x = at.dialog_pos_align_right ? at.dialog_pos.x : at.dialog_pos.x - dlg.GetSize().x;
+                    dlg.SetPosition(wxPoint(x, p->m_panel_printer_title->GetScreenPosition().y));
+                }
+                wxGetApp().window_pos_sanitize(&dlg);
+                dlg.ShowModal();
+                wxGetApp().window_pos_save(&dlg, "filament_inventory_editor");
+            });
+        });
+
         wxBoxSizer* h_sizer_title = new wxBoxSizer(wxHORIZONTAL);
         h_sizer_title->Add(p->m_printer_icon, 0, wxALIGN_CENTRE | wxLEFT, FromDIP(SidebarProps::TitlebarMargin()));
         h_sizer_title->AddSpacer(FromDIP(SidebarProps::ElementSpacing()));
@@ -2874,6 +2908,7 @@ Sidebar::Sidebar(Plater *parent)
         //h_sizer_title->AddStretchSpacer();
         h_sizer_title->Add(p->m_printer_connect , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
         h_sizer_title->Add(p->m_printer_bbl_sync, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
+        h_sizer_title->Add(p->m_printer_inventory, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
         h_sizer_title->Add(p->m_printer_setting, 0, wxALIGN_CENTER);
         h_sizer_title->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
         h_sizer_title->SetMinSize(-1, 3 * em);
@@ -5748,6 +5783,11 @@ void Sidebar::on_filament_count_change(size_t num_filaments)
         recalc_filament_scroll_sizes();
         update_mixed_filament_list();
         update_dynamic_filament_list();
+        // Orca: the count is unchanged but the presets/colors behind it may not be (e.g. printer
+        // reselect), and nothing else refreshes the combos in that case.
+        if (decouples_filaments_from_tools(wxGetApp().preset_bundle->printers.get_edited_preset().config))
+            for (PlaterPresetComboBox *choice : choices)
+                choice->update();
         return;
     }
 
@@ -6372,6 +6412,9 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
     if (!wxGetApp().plater()->is_same_printer_for_connected_and_selected()) {
         return;
     }
+    // Orca: a changer this sync reported can show the Printer Material Settings button.
+    if (obj == active_printer_session().live_machine())
+        show_SEMM_buttons();
     std::string ams_filament_ids = wxGetApp().app_config->get("ams_filament_ids", p->ams_list_device);
     std::vector<std::string> list2;
     if (!ams_filament_ids.empty()) {
@@ -6599,12 +6642,39 @@ bool Sidebar::should_show_SEMM_buttons()
     bool is_bbl_vendor = preset_bundle.is_bbl_vendor();
     auto cfg = preset_bundle.printers.get_edited_preset().config;
 
-    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor;
+    // Also when filaments are decoupled: the filament list can still outgrow the tool count.
+    return cfg.opt_bool("single_extruder_multi_material") || is_bbl_vendor || decouples_filaments_from_tools(cfg);
+}
+
+// Orca: the changer the live printer reports, else the one recorded by an earlier sync.
+static std::string reported_changer_dialect()
+{
+    const ActivePrinterSession& session = active_printer_session();
+    if (MachineObject* machine = session.live_machine())
+        if (std::shared_ptr<DevFilaSystem> fila_system = machine->GetFilaSystem(); fila_system && !fila_system->GetChangerDialect().empty())
+            return fila_system->GetChangerDialect();
+    const FilamentInventories store = load_filament_inventories();
+    const auto                it    = store.by_preset.find(session.profile().name);
+    return it != store.by_preset.end() ? it->second.dialect : std::string();
+}
+
+// Orca: needs a configured connection to read the printer's filaments; not gated on host_type since
+// the agent layer picks its own transport. BBL printers have their own AMS sync.
+static bool show_printer_materials_button()
+{
+    const ActivePrinterSession& session = active_printer_session();
+    if (!session.connection().configured())
+        return false;
+    const DynamicPrintConfig& cfg = session.profile().config;
+    return !wxGetApp().preset_bundle->is_bbl_vendor() && printer_has_viewable_filaments(cfg, reported_changer_dialect());
 }
 
 void Sidebar::show_SEMM_buttons()
 {
     // ORCA
+    if (p && p->m_printer_inventory)
+        p->m_printer_inventory->Show(show_printer_materials_button());
+
     if (!p || p->combos_filament.empty() || !p->m_bpButton_add_filament || !p->m_bpButton_del_filament || !p->m_flushing_volume_btn)
         return;
     
@@ -7263,6 +7333,8 @@ struct Plater::priv
     bool m_ignore_event{false};
     bool m_slice_all{false};
     bool m_is_slicing {false};
+    // Orca: back-to-back reslices asked for by FilamentRenumberRequired; one is allowed.
+    int  m_filament_renumber_reslices {0};
     // Missing-plugin set signatures (sorted full refs joined by '\n'), one per notification. They
     // gate plugin-load re-validation and avoid needlessly recreating the notification when the set
     // is unchanged. Whether missing plugins block slicing is derived directly from PluginResolver
@@ -9640,7 +9712,11 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             }
                             if (const auto* colours_opt = config_loaded.option<ConfigOptionStrings>("filament_colour"))
                                 project_filament_count = colours_opt->size();
-                            partplate_list.load_from_3mf_structure(plate_data, project_filament_count);
+                            // The loaded project's nozzle count: its printer preset is applied only later below.
+                            int project_nozzle_count = 1;
+                            if (const ConfigOptionFloats* project_nozzle_diameter = config_loaded.option<ConfigOptionFloats>("nozzle_diameter"))
+                                project_nozzle_count = (int) project_nozzle_diameter->size();
+                            partplate_list.load_from_3mf_structure(plate_data, project_filament_count, project_nozzle_count);
                             partplate_list.update_slice_context_to_current_plate(background_process);
                             this->preview->update_gcode_result(partplate_list.get_current_slice_result());
                             release_PlateData_list(plate_data);
@@ -13643,6 +13719,21 @@ bool Plater::priv::warnings_dialog()
 }
 
 //BBS: add project slice logic
+// Orca: Print::process asks for one more apply when the plate's filaments fit the printer but were
+// numbered past its last tool (see FilamentRenumberRequired).
+static bool is_filament_renumber_request(const SlicingProcessCompletedEvent &evt)
+{
+    if (!evt.error())
+        return false;
+    try {
+        evt.rethrow_exception();
+    } catch (const FilamentRenumberRequired &) {
+        return true;
+    } catch (...) {
+    }
+    return false;
+}
+
 void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
 {
     BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(": enter, m_ignore_event %1%, status %2%")%m_ignore_event %evt.status();
@@ -13653,6 +13744,18 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": ignore this event %1%") % evt.status();
         return;
     }
+
+    // Orca: reslice once with the learned numbering; a repeat request or a failed restart is
+    // reported like any other slicing error.
+    if (is_filament_renumber_request(evt) && m_filament_renumber_reslices == 0) {
+        ++m_filament_renumber_reslices;
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": filament numbering learned, reslicing plate " << partplate_list.get_curr_plate_index();
+        this->background_process.stop();
+        if (q->start_next_slice() == 0)
+            return;
+    }
+    m_filament_renumber_reslices = 0;
+
     //BBS: add project slice logic
     bool is_finished = !m_slice_all || (m_cur_slice_plate == (partplate_list.get_plate_count() - 1));
 
@@ -21079,13 +21182,16 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
         PlateData *plate_data = plate_data_list[i];
         plate_data->printer_model_id = printer_model_id;
         plate_data->nozzle_diameters = nozzle_diameter_str;
+        // ids are g-code tool numbers; look up project data via the compaction slot but keep the id.
+        PartPlate* plate = p->partplate_list.get_plate(i);
         for (auto it = plate_data->slice_filaments_info.begin(); it != plate_data->slice_filaments_info.end(); it++) {
+            const int slot = plate != nullptr ? plate->project_slot_of_tool(it->id) : it->id;
             std::string display_filament_type;
-            it->type  = cfg.get_filament_type(display_filament_type, it->id);
-            it->filament_id = filament_id_opt ? filament_id_opt->get_at(it->id) : "";
+            it->type  = cfg.get_filament_type(display_filament_type, slot);
+            it->filament_id = filament_id_opt ? filament_id_opt->get_at(slot) : "";
             if (id_agent)
                 it->filament_id = id_agent->from_orca_filament_id(it->filament_id);
-            it->color = filament_color ? filament_color->get_at(it->id) : "#FFFFFF";
+            it->color = filament_color ? filament_color->get_at(slot) : "#FFFFFF";
             // save filament info used in curr plate
             int index = p->partplate_list.get_curr_plate_index();
             if (store_params.id_bboxes.size() > index) {
@@ -21540,14 +21646,18 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
             DynamicPrintConfig          cfg                 = wxGetApp().preset_bundle->full_config();
             const auto*                 filament_color      = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_colour"));
             const auto*                 filament_id_opt     = dynamic_cast<const ConfigOptionStrings*>(cfg.option("filament_ids"));
+            // Orca: FilamentInfo::id is the g-code tool number and must stay so for extendedInfo();
+            // project-indexed lookups go through the compaction slot.
+            PartPlate* sliced_plate = get_partplate_list().get_plate(resolved_plate_idx);
             auto enrich_project_filaments = [&](std::vector<FilamentInfo>& filaments) {
                 for (auto& filament : filaments) {
                     if (filament.id < 0)
                         continue;
+                    const int slot = sliced_plate != nullptr ? sliced_plate->project_slot_of_tool(filament.id) : filament.id;
 
                     std::string display_filament_type;
                     try {
-                        filament.type = cfg.get_filament_type(display_filament_type, filament.id);
+                        filament.type = cfg.get_filament_type(display_filament_type, slot);
                     } catch (...) {
                     }
 
@@ -21556,8 +21666,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
                     if (filament.type.empty())
                         filament.type = "Unknown";
 
-                    filament.filament_id = filament_id_opt ? filament_id_opt->get_at(static_cast<size_t>(filament.id)) : "";
-                    filament.color       = filament_color ? filament_color->get_at(static_cast<size_t>(filament.id)) : "#FFFFFF";
+                    filament.filament_id = filament_id_opt ? filament_id_opt->get_at(static_cast<size_t>(slot)) : "";
+                    filament.color       = filament_color ? filament_color->get_at(static_cast<size_t>(slot)) : "#FFFFFF";
                     if (filament.color.empty())
                         filament.color = "#FFFFFF";
                 }
@@ -21571,10 +21681,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
             if (selected_plate_data != nullptr)
                 project_filaments = selected_plate_data->slice_filaments_info;
 
-            if (project_filaments.empty()) {
-                if (PartPlate* plate = get_partplate_list().get_plate(resolved_plate_idx); plate != nullptr)
-                    project_filaments = plate->get_slice_filaments_info();
-            }
+            if (project_filaments.empty() && sliced_plate != nullptr)
+                project_filaments = sliced_plate->get_slice_filaments_info();
 
             if (!project_filaments.empty())
                 enrich_project_filaments(project_filaments);
@@ -22434,9 +22542,9 @@ const std::vector<std::vector<wxColour>>& Plater::get_filament_gradient_ramps() 
 /* Get vector of colors used for rendering of a Preview scene in "Color print" mode
  * It consists of extruder colors and colors, saved in model.custom_gcode_per_print_z
  */
-std::vector<std::string> Plater::get_colors_for_color_print(const GCodeProcessorResult* const result) const
+std::vector<std::string> Plater::get_colors_for_color_print(const GCodeProcessorResult* const result, std::vector<std::string> filament_colors) const
 {
-    std::vector<std::string> colors = get_extruder_colors_from_plater_config(result);
+    std::vector<std::string> colors = std::move(filament_colors);
 
     if (wxGetApp().is_gcode_viewer() && result != nullptr) {
         for (const CustomGCode::Item& code : result->custom_gcode_per_print_z) {

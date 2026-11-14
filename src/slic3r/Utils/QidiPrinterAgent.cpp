@@ -52,6 +52,11 @@ AgentInfo QidiPrinterAgent::get_agent_info_static()
 
 bool QidiPrinterAgent::fetch_filament_info(std::string dev_id, FilamentSyncMode /*sync_mode*/)
 {
+    if (!ensure_device_info(dev_id))
+        return false;
+    if (fetch_afc_filament_info())
+        return true;
+
     std::string error;
 
     // 1. Fetch device info and infer series_id

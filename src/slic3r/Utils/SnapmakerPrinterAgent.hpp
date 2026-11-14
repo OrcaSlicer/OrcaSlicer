@@ -9,6 +9,12 @@ namespace Slic3r {
 
 class PresetCollection;
 
+namespace SnapmakerProtocol {
+// CARD_UID as a 16-hex-digit tag id. The U1 sends an array of tag bytes for a tagged spool and the
+// number 0 otherwise; returns "" when there is no tag or the shape is unknown.
+std::string card_uid_hex(const nlohmann::json& nfc_slot);
+} // namespace SnapmakerProtocol
+
 class SnapmakerPrinterAgent final : public MoonrakerPrinterAgent
 {
 public:
@@ -27,6 +33,9 @@ public:
                                                                     const std::string&      filament_type,
                                                                     const std::string&      sub_type,
                                                                     const std::string&      color_rgba);
+
+    bool supports_filament_push() const override { return true; }
+    bool push_filament_info(std::string dev_id, const FilamentSlotInfo& info) override;
 
     // Combine filament_type + filament_sub_type into a unified type string
     static std::string combine_filament_type(const std::string& type, const std::string& sub_type);
