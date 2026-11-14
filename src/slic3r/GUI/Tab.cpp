@@ -6957,7 +6957,7 @@ void TabPrinter::toggle_options()
 
         // when using firmware retraction, firmware decides retraction length
         bool use_firmware_retraction = m_config->opt_bool("use_firmware_retraction");
-        toggle_option("retract_length", !use_firmware_retraction, i, _L("Retraction length is controlled by the firmware while firmware retraction is enabled."));
+        toggle_option("retraction_length", !use_firmware_retraction, i, _L("Retraction length is controlled by the firmware while firmware retraction is enabled."));
 
         // user can customize travel length if we have retraction length or we"re using
         // firmware retraction
@@ -6978,50 +6978,29 @@ void TabPrinter::toggle_options()
               _L("Enable retraction and set Z hop above zero to use this setting."));
 
         // some options only apply when not using firmware retraction
+        const wxString firmware_retraction_reason =
+            _L("Set retraction length above zero and disable firmware retraction to edit this setting.");
         vec.resize(0);
-        vec = {"retraction_speed", "deretraction_speed", "retract_before_wipe", "retract_after_wipe",
-               "retract_length", "retract_restart_extra", "wipe_distance"};
+        vec = {"retraction_speed", "deretraction_speed", "retract_restart_extra", "wipe_distance"};
         for (auto el : vec)
             //BBS
-            toggle_option(el, retraction && !use_firmware_retraction, i,
-                _L("Set retraction length above zero and disable firmware retraction to edit this setting."));
+            toggle_option(el, retraction && !use_firmware_retraction, i, firmware_retraction_reason);
 
         bool wipe = retraction && m_config->opt_bool("wipe", variant_index);
 
-        // Orca:
+        // Orca: a firmware retraction happens entirely before the wipe, whatever the split is set to.
         double retract_before_wipe = m_config->option<ConfigOptionPercents>("retract_before_wipe")->get_at(variant_index);
         double retract_after_wipe  = m_config->option<ConfigOptionPercents>("retract_after_wipe")->get_at(variant_index);
 
-        toggle_option("retract_before_wipe", wipe && !is_approx(retract_after_wipe, 100.), i,
+        toggle_option("retract_before_wipe", wipe && !use_firmware_retraction && !is_approx(retract_after_wipe, 100.), i,
+            use_firmware_retraction ? firmware_retraction_reason :
             // xgettext:no-c-format, no-boost-format
             _L("Enable retraction and wiping, and set retract after wipe below 100% to edit retract before wipe."));
-        toggle_option("retract_after_wipe", wipe && !is_approx(retract_before_wipe, 100.), i,
+        toggle_option("retract_after_wipe", wipe && !use_firmware_retraction && !is_approx(retract_before_wipe, 100.), i,
+            use_firmware_retraction ? firmware_retraction_reason :
             // xgettext:no-c-format, no-boost-format
             _L("Enable retraction and wiping, and set retract before wipe below 100% to edit retract after wipe."));
 
-        if (use_firmware_retraction && wipe && retract_before_wipe < 100.0) {
-            //wxMessageDialog dialog(parent(),
-            MessageDialog dialog(parent(),
-                _(L("The Retract before wipe option could be only 100% when using the Firmware Retraction mode.\n"
-                    "\nShall I set it to 100% in order to enable Firmware Retraction?")),
-                _(L("Firmware Retraction")), wxICON_WARNING | wxYES | wxNO);
-
-            DynamicPrintConfig new_conf = *m_config;
-            if (dialog.ShowModal() == wxID_YES) {
-                auto wipe = static_cast<ConfigOptionBools*>(m_config->option("wipe")->clone());
-                auto retract_before_wipe = static_cast<ConfigOptionPercents*>(m_config->option("retract_before_wipe")->clone());
-                for (size_t w = 0; w < wipe->values.size(); w++) {
-                    wipe->values[w] = false;
-                    retract_before_wipe->values[w] = 100.0;
-                }
-                new_conf.set_key_value("wipe", wipe);
-                new_conf.set_key_value("retract_before_wipe", retract_before_wipe);
-            }
-            else {
-                new_conf.set_key_value("use_firmware_retraction", new ConfigOptionBool(false));
-            }
-            load_config(new_conf);
-        }
         // BBS
         toggle_option("wipe_distance", wipe, i, _L("Enable retraction and wiping to edit wipe distance."));
 
