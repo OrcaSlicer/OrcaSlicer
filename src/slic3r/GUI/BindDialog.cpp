@@ -767,6 +767,9 @@ PingCodeBindDialog::~PingCodeBindDialog() {
              m_st_txt_error_code->Wrap(FromDIP(330));
              m_st_txt_error_desc->Wrap(FromDIP(330));
              m_st_txt_extra_info->Wrap(FromDIP(330));
+
+             // Lays out the fixed-size panel, which gets no size event on macOS
+             m_sw_bind_failed_info->FitInside();
          }
          else {
              m_sw_bind_failed_info->Show(false);
