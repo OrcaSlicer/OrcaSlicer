@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <limits>
 #include <deque>
+#include <functional>
 #include <map>
 #include <string>
 #include <array>
@@ -140,7 +141,8 @@ class Mouse3DController
 
         // Apply the 3DConnexion events stored in the input queue, reset the input queue.
         // Returns true if any change to the camera took place.
-        bool apply(const Params &params, Camera& camera);
+        // before_camera_move, when given, runs once before the first event that translates or zooms.
+        bool apply(const Params &params, Camera& camera, const std::function<void()>& before_camera_move);
     };
 
     // Background thread works with this copy.
@@ -219,7 +221,7 @@ public:
 #endif // _WIN32
 
     // Apply the received 3DConnexion mouse events to the camera. Called from the UI rendering thread.
-    bool apply(Camera& camera);
+    bool apply(Camera& camera, const std::function<void()>& before_camera_move = nullptr);
 
     // Whether the settings dialog can be shown: a device is connected and, on Windows, the legacy driver path is in use.
     bool can_show_settings_dialog() const;

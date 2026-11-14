@@ -58,7 +58,9 @@ const wxColour ERROR_COLOUR("#D01B1B");
 const char* mouse_action(const char* preference)
 {
     const std::string action = wxGetApp().app_config->get(preference);
-    return action == "1" ? L("Pan View") : action == "2" ? L("Rotate View") : L("None");
+    return action == "1" ? L("Pan View") : action == "2" ? L("Rotate View") :
+        // TRN: Mouse drag action. It moves the camera in dolly mode ("Dolly" is a film and camera term) and zooms otherwise.
+        action == "3" ? L("Dolly/Zoom View") : L("None");
 }
 
 // Page layout in DIPs; titles and rows are indented as in the Preferences dialog.

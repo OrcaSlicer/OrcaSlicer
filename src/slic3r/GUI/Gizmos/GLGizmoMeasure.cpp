@@ -643,7 +643,7 @@ void GLGizmoMeasure::on_render()
     update_if_needed();
 
     const Camera& camera = wxGetApp().plater()->get_camera();
-    const float inv_zoom = (float)camera.get_inv_zoom();
+    const float inv_zoom = INV_ZOOM;
     bool mouse_on_gripper = false;
     bool mouse_on_object =false;
     {
@@ -1524,7 +1524,7 @@ void GLGizmoMeasure::render_dimensioning()
             const auto qz = Eigen::Quaternion<double>::FromTwoVectors(Vec3d::UnitZ(), (endpoint_id == 1) ? normal : -normal);
             const auto qx = Eigen::Quaternion<double>::FromTwoVectors(qz * Vec3d::UnitX(), direction_model);
             const Transform3d view_model_matrix = camera.get_view_matrix() * Geometry::translation_transform(position_model) *
-                qx * qz * Geometry::scale_transform(camera.get_inv_zoom());
+                qx * qz * Geometry::scale_transform(camera.get_pixel_size_at(position_model));
             shader->set_uniform("view_model_matrix", view_model_matrix);
             m_dimensioning.triangle.render();
         };

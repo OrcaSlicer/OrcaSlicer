@@ -1499,7 +1499,15 @@ void GLCanvas3D::Labels::render(const std::vector<const ModelInstance*>& sorted_
         Vec3d screen_box_center = world_to_screen * owner.world_box.center();
         float x = 0.0f;
         float y = 0.0f;
-        if (camera.get_type() == Camera::EType::Perspective) {
+        if (camera.is_dolly_active()) {
+            // Orca: The factor below assumes the default camera distance, so project properly in dolly mode.
+            // Eye space looks along -z: a label on the far side of z = 0 is behind the camera.
+            if (owner.eye_center_z >= 0.0f)
+                continue;
+            const Point screen = CameraUtils::project(camera, owner.world_box.center());
+            x = (float)screen.x();
+            y = (float)screen.y();
+        } else if (camera.get_type() == Camera::EType::Perspective) {
             x = (0.5f + 0.001f * 0.5f * (float)screen_box_center(0)) * viewport[2];
             y = (0.5f - 0.001f * 0.5f * (float)screen_box_center(1)) * viewport[3];
         } else {
@@ -4657,7 +4665,7 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
     // hidden canvas renders nothing, so the motion it swallowed moves the shared camera without
     // ever being drawn and the next visible frame jumps several states at once.
     bool mouse3d_controller_applied = _is_shown_on_screen()
-        && wxGetApp().plater()->get_mouse3d_controller().apply(wxGetApp().plater()->get_camera());
+        && wxGetApp().plater()->get_mouse3d_controller().apply(wxGetApp().plater()->get_camera(), [this]() { _anchor_dolly_target(); });
     m_dirty |= mouse3d_controller_applied;
     m_overlay_dirty |= wxGetApp().plater()->get_notification_manager()->update_notifications(*this);
     auto gizmo = wxGetApp().plater()->get_view3D_canvas3D()->get_gizmos_manager().get_current();
@@ -4880,8 +4888,8 @@ bool GLCanvas3D::handle_shortcut(const KeyChord& chord)
     case Shortcut::MoveSelectionRight: move_selection(Vec3d::UnitX()); break;
     case Shortcut::MoveSelectionUp:    move_selection(Vec3d::UnitY()); break;
     case Shortcut::MoveSelectionDown:  move_selection(-Vec3d::UnitY()); break;
-    case Shortcut::ZoomIn:  _update_camera_zoom(1.0); break;
-    case Shortcut::ZoomOut: _update_camera_zoom(-1.0); break;
+    case Shortcut::ZoomIn:  _anchor_dolly_target(); _update_camera_zoom(1.0); break;
+    case Shortcut::ZoomOut: _anchor_dolly_target(); _update_camera_zoom(-1.0); break;
     case Shortcut::SwitchView: post_event(SimpleEvent(EVT_GLCANVAS_TAB)); break;
     case Shortcut::CollapseSidebar:
         if (!wxGetApp().is_gcode_viewer())
@@ -5241,21 +5249,11 @@ void GLCanvas3D::on_mouse_wheel(wxMouseEvent& evt)
     auto delta = direction_factor * (double)evt.GetWheelRotation() / (double)evt.GetWheelDelta();
     bool zoom_to_mouse = wxGetApp().app_config->get("zoom_to_mouse") == "true";
     if (!zoom_to_mouse) {// zoom to center
+        _anchor_dolly_target();
         _update_camera_zoom(delta);
     }
-    else {
-        auto cnv_size = get_canvas_size();
-        float z{0.f};
-        auto screen_center_3d_pos = _mouse_to_3d({ cnv_size.get_width() * 0.5, cnv_size.get_height() * 0.5 }, &z);
-        auto mouse_3d_pos = _mouse_to_3d({evt.GetX(), evt.GetY()}, &z);
-        Vec3d displacement = mouse_3d_pos - screen_center_3d_pos;
-
-        wxGetApp().plater()->get_camera().translate(displacement);
-        auto origin_zoom = wxGetApp().plater()->get_camera().get_zoom();
-        _update_camera_zoom(delta);
-        auto new_zoom = wxGetApp().plater()->get_camera().get_zoom();
-        wxGetApp().plater()->get_camera().translate((-displacement) / (new_zoom / origin_zoom));
-    }
+    else
+        _update_camera_zoom_at(Point(evt.GetX(), evt.GetY()), delta);
 }
 
 void GLCanvas3D::on_timer(wxTimerEvent& evt)
@@ -5391,8 +5389,13 @@ void GLCanvas3D::on_gesture(wxGestureEvent &evt)
             m_gesture_pan_anchor.reset();
     } else if (evt.GetEventType() == wxEVT_GESTURE_ZOOM) {
         static float zoom_start = 1;
-        if (evt.IsGestureStart())
+        if (evt.IsGestureStart()) {
+            // Orca: Like a wheel step, let the surface under the fingers set the dolly speed.
+            Vec2d screen_position(evt.GetPosition().x, evt.GetPosition().y);
+            apply_retina_scale(screen_position);
+            _anchor_dolly_target(screen_position);
             zoom_start = camera.get_zoom();
+        }
         camera.set_zoom(zoom_start * static_cast<wxZoomGestureEvent&>(evt).GetZoomFactor());
     } else if (evt.GetEventType() == wxEVT_GESTURE_ROTATE) {
         // Orca: Rotation starts a different navigation operation, so a previous pan anchor
@@ -5762,6 +5765,9 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         // Orca: Retain the click position even if the first motion event crosses a surface edge.
         m_mouse.set_start_position_2D_as_invalid();
         m_mouse.drag.start_position_2D = pos;
+        // Orca: A new right click must not inherit this flag from an earlier camera move that did not clear it.
+        if (evt.RightDown() && is_only_one_button_down(evt))
+            m_mouse.ignore_right_up = false;
 
         //BBS: add orient deactivate logic
         if (!m_gizmos.on_mouse(evt)) {
@@ -6059,6 +6065,7 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
         else if (is_camera_pan(evt, button_mappings)) {
             // Orca: Pan uses screen coordinates and must not inherit the rotation start point.
             m_mouse.set_start_position_3D_as_invalid();
+            m_mouse.drag.camera_dolly_aim.reset();
 
             if (!has_mouse_capture()) // ORCA keep tracking mouse position while drag active and cursor not in window bounds
                 m_canvas->CaptureMouse();
@@ -6085,6 +6092,38 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
                         m_mouse.drag.start_position_2D.cast<double>());
                 pan_camera(camera, screen_delta, *m_mouse.drag.camera_pan_anchor);
                 m_dirty = true;
+                m_mouse.ignore_right_up = true;  // will be reset on button up event even if not right button is pressed
+            }
+
+            m_camera_movement = true;
+            m_mouse.drag.start_position_2D = pos;
+        }
+        else if (is_camera_dolly(evt, button_mappings)) {
+            // Orca: The camera moves, so a pan anchor cached earlier in this drag no longer applies.
+            m_mouse.set_start_position_3D_as_invalid();
+            m_mouse.drag.camera_pan_anchor.reset();
+
+            if (!has_mouse_capture()) // ORCA keep tracking mouse position while drag active and cursor not in window bounds
+                m_canvas->CaptureMouse();
+
+            if (m_mouse.is_start_position_2D_defined()) {
+                // Orca: Dragging down moves in. A drag over the full canvas height equals this many wheel
+                // steps, so the speed does not depend on the display scale.
+                constexpr double WheelStepsPerCanvasHeight = 20.0;
+                const int canvas_height = get_canvas_size().get_height();
+                const int dragged_down = pos.y() - m_mouse.drag.start_position_2D.y();
+                // Orca: Aim where the drag started, as the cursor moves away from there during the drag.
+                if (wxGetApp().app_config->get("zoom_to_mouse") == "true" && !m_mouse.drag.camera_dolly_aim.has_value())
+                    m_mouse.drag.camera_dolly_aim = m_mouse.drag.start_position_2D;
+                if (canvas_height > 0 && dragged_down != 0) {
+                    const double steps = WheelStepsPerCanvasHeight * dragged_down / canvas_height;
+                    if (m_mouse.drag.camera_dolly_aim.has_value())
+                        _update_camera_zoom_at(*m_mouse.drag.camera_dolly_aim, steps);
+                    else {
+                        _anchor_dolly_target();
+                        _update_camera_zoom(steps);
+                    }
+                }
                 m_mouse.ignore_right_up = true;  // will be reset on button up event even if not right button is pressed
             }
 
@@ -6152,7 +6191,8 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
             // forces a frame render to ensure that m_hover_volume_idxs is updated even when the user right clicks while
             // the context menu is already shown
             render();
-            if (!m_hover_volume_idxs.empty()) {
+            // Orca: Ending a camera drag over an object is not a click on it, so the selection stays.
+            if (!m_hover_volume_idxs.empty() && !m_mouse.ignore_right_up) {
                 // if right clicking on volume, propagate event through callback (shows context menu)
                 int volume_idx = get_first_hover_volume_idx();
                 if (!m_volumes.volumes[volume_idx]->is_wipe_tower // no context menu for the wipe tower
@@ -6339,6 +6379,11 @@ bool GLCanvas3D::is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButt
         return evt.Dragging() && clicked_button_matches_action(evt, MouseAction::Pan, mappings);
         ;
     }
+}
+
+bool GLCanvas3D::is_camera_dolly(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const
+{
+    return !m_is_touchpad_navigation && evt.Dragging() && clicked_button_matches_action(evt, MouseAction::Dolly, mappings);
 }
 
 Size GLCanvas3D::get_canvas_size() const
@@ -8711,6 +8756,47 @@ void GLCanvas3D::_update_camera_zoom(double zoom)
 {
     wxGetApp().plater()->get_camera().update_zoom(zoom);
     m_dirty = true;
+}
+
+void GLCanvas3D::_update_camera_zoom_at(const Point& screen_position, double zoom)
+{
+    _anchor_dolly_target(screen_position.cast<double>());
+    auto cnv_size = get_canvas_size();
+    Camera& camera = wxGetApp().plater()->get_camera();
+    Vec3d displacement;
+    if (camera.is_dolly_active()) {
+        // Orca: Unprojected points lie on the near plane, which can be far in front of the target plane in dolly
+        // mode. Measure on the target plane, where the zoom gives the scale, to keep that plane under the mouse.
+        displacement = camera.get_inv_zoom() * ((screen_position.x() - 0.5 * cnv_size.get_width()) * camera.get_dir_right() +
+                                                (0.5 * cnv_size.get_height() - screen_position.y()) * camera.get_dir_up());
+    }
+    else {
+        float z{0.f};
+        auto screen_center_3d_pos = _mouse_to_3d({ cnv_size.get_width() * 0.5, cnv_size.get_height() * 0.5 }, &z);
+        auto mouse_3d_pos = _mouse_to_3d(screen_position, &z);
+        displacement = mouse_3d_pos - screen_center_3d_pos;
+    }
+
+    camera.translate(displacement);
+    auto origin_zoom = camera.get_zoom();
+    _update_camera_zoom(zoom);
+    auto new_zoom = camera.get_zoom();
+    camera.translate((-displacement) / (new_zoom / origin_zoom));
+}
+
+void GLCanvas3D::_anchor_dolly_target(const std::optional<Vec2d>& screen_position)
+{
+    Camera& camera = wxGetApp().plater()->get_camera();
+    if (!camera.is_dolly_active())
+        return;
+
+    // Orca: Measure from where the camera is about to be, with any zoom from this frame applied.
+    camera.sync_dolly_distance();
+
+    const Size cnv_size = get_canvas_size();
+    const Vec3d anchor = get_camera_pan_anchor(camera, ECameraNavigationType::Mouse,
+        screen_position.value_or(Vec2d(0.5 * cnv_size.get_width(), 0.5 * cnv_size.get_height())));
+    camera.set_dolly_target_depth((anchor - camera.get_position()).dot(camera.get_dir_forward()));
 }
 
 void GLCanvas3D::_refresh_if_shown_on_screen(bool scene_dirty)
@@ -11153,7 +11239,9 @@ void GLCanvas3D::_render_volumes_for_picking(const Camera& camera) const
 void GLCanvas3D::_render_current_gizmo() const
 {
     //BBS update inv_zoom
-    GLGizmoBase::INV_ZOOM = (float)wxGetApp().plater()->get_camera().get_inv_zoom();
+    // Orca: In dolly mode the scale depends on depth, and the gizmo is at the selection rather than at the target.
+    const Camera& camera = wxGetApp().plater()->get_camera();
+    GLGizmoBase::INV_ZOOM = (float)(m_selection.is_empty() ? camera.get_inv_zoom() : camera.get_pixel_size_at(m_selection.get_bounding_box().center()));
     m_gizmos.render_current_gizmo();
 }
 
