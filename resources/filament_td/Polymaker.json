@@ -1,0 +1,311 @@
+{
+ "brand": "polymaker",
+ "vendor": "Polymaker",
+ "source": "OpenPrintTag material database",
+ "url": "https://github.com/OpenPrintTag/openprinttag-database",
+ "license": "MIT",
+ "copyright": "Copyright 2025 Prusa Research a.s.",
+ "unit": "mm",
+ "filaments": [
+  {
+   "name": "Panchroma Matte PLA Arctic Teal",
+   "type": "PLA",
+   "color": "#61bcc3",
+   "td": 0.6
+  },
+  {
+   "name": "Panchroma Matte PLA Army Beige",
+   "type": "PLA",
+   "color": "#dbbaa5",
+   "td": 0.7
+  },
+  {
+   "name": "Panchroma Matte PLA Army Blue",
+   "type": "PLA",
+   "color": "#2e4462",
+   "td": 0.1
+  },
+  {
+   "name": "Panchroma Matte PLA Army Brown",
+   "type": "PLA",
+   "color": "#795a4d",
+   "td": 0.1
+  },
+  {
+   "name": "Panchroma Matte PLA Army Dark Green",
+   "type": "PLA",
+   "color": "#5f6244",
+   "td": 0.1
+  },
+  {
+   "name": "Panchroma Matte PLA Army Light Green",
+   "type": "PLA",
+   "color": "#ab8c02",
+   "td": 0.8
+  },
+  {
+   "name": "Panchroma Matte PLA Army Purple",
+   "type": "PLA",
+   "color": "#36364a",
+   "td": 0.2
+  },
+  {
+   "name": "Panchroma Matte PLA Army Red",
+   "type": "PLA",
+   "color": "#bf312e",
+   "td": 0.3
+  },
+  {
+   "name": "Panchroma Matte PLA Ash Grey",
+   "type": "PLA",
+   "color": "#485155",
+   "td": 0.1
+  },
+  {
+   "name": "Panchroma Matte PLA Charcoal Black",
+   "type": "PLA",
+   "color": "#2f2e30",
+   "td": 0.1
+  },
+  {
+   "name": "Panchroma Matte PLA Cotton White",
+   "type": "PLA",
+   "color": "#f4efeb",
+   "td": 4.1
+  },
+  {
+   "name": "Panchroma Matte PLA Earth Brown",
+   "type": "PLA",
+   "color": "#7c594a",
+   "td": 0.2
+  },
+  {
+   "name": "Panchroma Matte PLA Electric Indigo",
+   "type": "PLA",
+   "color": "#6858a9",
+   "td": 0.3
+  },
+  {
+   "name": "Panchroma Matte PLA Emerald Green",
+   "type": "PLA",
+   "color": "#22624f",
+   "td": 0.1
+  },
+  {
+   "name": "Panchroma Matte PLA Forest Green",
+   "type": "PLA",
+   "color": "#60ad70",
+   "td": 0.3
+  },
+  {
+   "name": "Panchroma Matte PLA Fossil Grey",
+   "type": "PLA",
+   "color": "#8a8c94",
+   "td": 0.4
+  },
+  {
+   "name": "Panchroma Matte PLA Grass Green",
+   "type": "PLA",
+   "color": "#32bc46",
+   "td": 0.6
+  },
+  {
+   "name": "Panchroma Matte PLA Lava Red",
+   "type": "PLA",
+   "color": "#ed2f2e",
+   "td": 1.9
+  },
+  {
+   "name": "Panchroma Matte PLA Lavender Purple",
+   "type": "PLA",
+   "color": "#9572bf",
+   "td": 0.6
+  },
+  {
+   "name": "Panchroma Matte PLA Lime Green",
+   "type": "PLA",
+   "color": "#d7d602",
+   "td": 2.4
+  },
+  {
+   "name": "Panchroma Matte PLA Lotus Pink",
+   "type": "PLA",
+   "color": "#dd76c0",
+   "td": 2.0
+  },
+  {
+   "name": "Panchroma Matte PLA Muted Blue",
+   "type": "PLA",
+   "color": "#5f778e",
+   "td": 0.5
+  },
+  {
+   "name": "Panchroma Matte PLA Muted Green",
+   "type": "PLA",
+   "color": "#777e71",
+   "td": 0.5
+  },
+  {
+   "name": "Panchroma Matte PLA Muted Mauve",
+   "type": "PLA",
+   "color": "#a36d82",
+   "td": 0.9
+  },
+  {
+   "name": "Panchroma Matte PLA Muted Moss",
+   "type": "PLA",
+   "color": "#92864f",
+   "td": 0.3
+  },
+  {
+   "name": "Panchroma Matte PLA Muted Purple",
+   "type": "PLA",
+   "color": "#7c5c78",
+   "td": 0.6
+  },
+  {
+   "name": "Panchroma Matte PLA Muted Red",
+   "type": "PLA",
+   "color": "#d84b2e",
+   "td": 1.4
+  },
+  {
+   "name": "Panchroma Matte PLA Muted Teal",
+   "type": "PLA",
+   "color": "#5d989e",
+   "td": 0.4
+  },
+  {
+   "name": "Panchroma Matte PLA Muted Terracotta",
+   "type": "PLA",
+   "color": "#c06443",
+   "td": 0.8
+  },
+  {
+   "name": "Panchroma Matte PLA Muted White",
+   "type": "PLA",
+   "color": "#bbada4",
+   "td": 0.7
+  },
+  {
+   "name": "Panchroma Matte PLA Pastel Banana",
+   "type": "PLA",
+   "color": "#f7d475",
+   "td": 3.6
+  },
+  {
+   "name": "Panchroma Matte PLA Pastel Beige",
+   "type": "PLA",
+   "color": "#e4d0b0",
+   "td": 1.6
+  },
+  {
+   "name": "Panchroma Matte PLA Pastel Candy",
+   "type": "PLA",
+   "color": "#f0d6d9",
+   "td": 2.9
+  },
+  {
+   "name": "Panchroma Matte PLA Pastel Coral",
+   "type": "PLA",
+   "color": "#f09a7e",
+   "td": 2.3
+  },
+  {
+   "name": "Panchroma Matte PLA Pastel Ice",
+   "type": "PLA",
+   "color": "#a4d0df",
+   "td": 1.8
+  },
+  {
+   "name": "Panchroma Matte PLA Pastel Mint",
+   "type": "PLA",
+   "color": "#d2debb",
+   "td": 2.9
+  },
+  {
+   "name": "Panchroma Matte PLA Pastel Peach",
+   "type": "PLA",
+   "color": "#f6bf8b",
+   "td": 3.3
+  },
+  {
+   "name": "Panchroma Matte PLA Pastel Peanut",
+   "type": "PLA",
+   "color": "#bf9573",
+   "td": 0.7
+  },
+  {
+   "name": "Panchroma Matte PLA Pastel Periwinkle",
+   "type": "PLA",
+   "color": "#d3c6ff",
+   "td": 1.5
+  },
+  {
+   "name": "Panchroma Matte PLA Pastel Watermelon",
+   "type": "PLA",
+   "color": "#ee474b",
+   "td": 2.4
+  },
+  {
+   "name": "Panchroma Matte PLA Raspberry Blue",
+   "type": "PLA",
+   "color": "#5472d0",
+   "td": 0.5
+  },
+  {
+   "name": "Panchroma Matte PLA Sakura Pink",
+   "type": "PLA",
+   "color": "#eaadbd",
+   "td": 2.3
+  },
+  {
+   "name": "Panchroma Matte PLA Sapphire Blue",
+   "type": "PLA",
+   "color": "#0163a6",
+   "td": 0.5
+  },
+  {
+   "name": "Panchroma Matte PLA Savannah Yellow",
+   "type": "PLA",
+   "color": "#f3c432",
+   "td": 3.5
+  },
+  {
+   "name": "Panchroma Matte PLA Seafoam Green",
+   "type": "PLA",
+   "color": "#7dd4be",
+   "td": 1.1
+  },
+  {
+   "name": "Panchroma Matte PLA Sky Blue",
+   "type": "PLA",
+   "color": "#1ac5fc",
+   "td": 1.3
+  },
+  {
+   "name": "Panchroma Matte PLA Sunrise Orange",
+   "type": "PLA",
+   "color": "#f88b17",
+   "td": 2.9
+  },
+  {
+   "name": "Panchroma Matte PLA Sunshine Yellow",
+   "type": "PLA",
+   "color": "#f9da07",
+   "td": 2.3
+  },
+  {
+   "name": "Panchroma Matte PLA Wine Burgundy",
+   "type": "PLA",
+   "color": "#753e4c",
+   "td": 0.1
+  },
+  {
+   "name": "Panchroma Matte PLA Wood Brown",
+   "type": "PLA",
+   "color": "#ab7449",
+   "td": 0.2
+  }
+ ]
+}
