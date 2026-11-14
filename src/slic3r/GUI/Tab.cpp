@@ -1819,6 +1819,21 @@ void Tab::update_visibility()
     Thaw();
 }
 
+void Tab::set_page_hidden(const wxString& title, bool hidden, const wxString& reason)
+{
+    for (const PageShp& page : m_pages) {
+        if (page->title() != title || page->is_hidden() == hidden)
+            continue;
+        page->set_hidden(hidden);
+        for (const ConfigOptionsGroupShp& group : page->m_optgroups)
+            for (const auto& kvp : group->opt_map())
+                m_option_state_registry.set_page_hidden(kvp.second.first, hidden, reason);
+        update_visibility();
+        update_changed_tree_ui();
+        return;
+    }
+}
+
 void Tab::msw_rescale()
 {
     m_em_unit = em_unit(m_parent);
@@ -2712,13 +2727,20 @@ void Tab::activate_option(const std::string& opt_key, const wxString& category)
 
     while (cur_item >= 0) {
         if (page_title.empty()) {
+            const wxString item_title = m_tabctrl->GetItemText(cur_item);
             bool has = false;
-            for (auto &g : m_pages[cur_item]->m_optgroups) {
-                for (auto &l : g->get_lines()) {
-                    for (auto &o : l.get_options()) { if (o.opt.opt_key == opt_key) { has = true; break; } }
+            // Tree positions skip hidden pages, so find the item's page by its title.
+            for (const PageShp &page : m_pages) {
+                if (translate_category(page->title(), m_type) != item_title)
+                    continue;
+                for (auto &g : page->m_optgroups) {
+                    for (auto &l : g->get_lines()) {
+                        for (auto &o : l.get_options()) { if (o.opt.opt_key == opt_key) { has = true; break; } }
+                        if (has) break;
+                    }
                     if (has) break;
                 }
-                if (has) break;
+                break;
             }
             if (!has) {
                 cur_item = m_tabctrl->GetNextVisible(cur_item);
@@ -3040,7 +3062,6 @@ void TabPrint::build()
         auto optgroup = page->new_optgroup(L("Layer height"), L"param_layer_height");
         optgroup->append_single_option_line("layer_height","quality_settings_layer_height");
         optgroup->append_single_option_line("initial_layer_print_height","quality_settings_layer_height");
-        optgroup->append_single_option_line("enable_mixed_color_sublayer");
 
         optgroup = page->new_optgroup(L("Line width"), L"param_line_width");
         optgroup->append_single_option_line("line_width","quality_settings_line_width");
@@ -3184,7 +3205,6 @@ void TabPrint::build()
 
         optgroup->append_single_option_line("top_shell_layers", "strength_settings_top_bottom_shells#shell-layers");
         optgroup->append_single_option_line("top_shell_thickness", "strength_settings_top_bottom_shells#shell-thickness");
-        optgroup->append_single_option_line("top_color_penetration_layers", "strength_settings_top_bottom_shells#paint-penetration-layers");
         optgroup->append_single_option_line("top_surface_density", "strength_settings_top_bottom_shells#surface-density");
         optgroup->append_single_option_line("top_surface_pattern", "strength_settings_top_bottom_shells#surface-pattern");
         optgroup->append_single_option_line("top_surface_fill_order", "strength_settings_top_bottom_shells#fill-order");
@@ -3194,7 +3214,6 @@ void TabPrint::build()
         optgroup->append_single_option_line("top_surface_expansion_direction", "strength_settings_top_bottom_shells#surface-expansion-direction");
         optgroup->append_single_option_line("bottom_shell_layers", "strength_settings_top_bottom_shells#shell-layers");
         optgroup->append_single_option_line("bottom_shell_thickness", "strength_settings_top_bottom_shells#shell-thickness");
-        optgroup->append_single_option_line("bottom_color_penetration_layers", "strength_settings_top_bottom_shells#paint-penetration-layers");
         optgroup->append_single_option_line("bottom_surface_density", "strength_settings_top_bottom_shells#surface-density");
         optgroup->append_single_option_line("bottom_surface_pattern", "strength_settings_top_bottom_shells#surface-pattern");
         optgroup->append_single_option_line("bottom_surface_fill_order", "strength_settings_top_bottom_shells#fill-order");
@@ -3391,6 +3410,21 @@ void TabPrint::build()
         optgroup->append_single_option_line("tree_support_brim_width", "support_settings_tree#tree-support-brim-width");
 
     page = add_options_page(L("Multimaterial"), "custom-gcode_multi_material"); // ORCA: icon only visible on placeholders
+        optgroup = page->new_optgroup(L("Multicolor"), L"param_mixed_color");
+        optgroup->append_single_option_line("top_color_penetration_layers", "multimaterial_settings_multicolor#paint-penetration-layers");
+        optgroup->append_single_option_line("bottom_color_penetration_layers", "multimaterial_settings_multicolor#paint-penetration-layers");
+        optgroup->append_single_option_line("mmu_segmented_region_max_width", "multimaterial_settings_multicolor#maximum-width-of-segmented-region");
+        optgroup->append_single_option_line("enable_mixed_color_sublayer", "multimaterial_settings_multicolor#mixed-color-sublayer");
+
+        optgroup = page->new_optgroup(L("Filament for Features"), L"param_filament_for_features");
+        optgroup->append_single_option_line("outer_wall_filament_id", "multimaterial_settings_filament_for_features#outer-walls");
+        optgroup->append_single_option_line("inner_wall_filament_id", "multimaterial_settings_filament_for_features#inner-walls");
+        optgroup->append_single_option_line("sparse_infill_filament_id", "multimaterial_settings_filament_for_features#sparse-infill");
+        optgroup->append_single_option_line("internal_solid_filament_id", "multimaterial_settings_filament_for_features#internal-solid-infill");
+        optgroup->append_single_option_line("top_surface_filament_id", "multimaterial_settings_filament_for_features#top-surface");
+        optgroup->append_single_option_line("bottom_surface_filament_id", "multimaterial_settings_filament_for_features#bottom-surface");
+        optgroup->append_single_option_line("wipe_tower_filament", "multimaterial_settings_filament_for_features#wipe-tower");
+
         optgroup = page->new_optgroup(L("Prime tower"), L"param_tower");
         optgroup->append_single_option_line("enable_prime_tower", "multimaterial_settings_prime_tower");
         optgroup->append_single_option_line("prime_tower_skip_points", "multimaterial_settings_prime_tower#skip-points");
@@ -3416,15 +3450,6 @@ void TabPrint::build()
         optgroup->append_single_option_line("wipe_tower_sparse_layers_combination", "multimaterial_settings_prime_tower#combine-sparse-layers");
         optgroup->append_single_option_line("single_extruder_multi_material_priming", "multimaterial_settings_prime_tower#prime-all-printing-extruders");
 
-        optgroup = page->new_optgroup(L("Filament for Features"), L"param_filament_for_features");
-        optgroup->append_single_option_line("outer_wall_filament_id", "multimaterial_settings_filament_for_features#outer-walls");
-        optgroup->append_single_option_line("inner_wall_filament_id", "multimaterial_settings_filament_for_features#inner-walls");
-        optgroup->append_single_option_line("sparse_infill_filament_id", "multimaterial_settings_filament_for_features#sparse-infill");
-        optgroup->append_single_option_line("internal_solid_filament_id", "multimaterial_settings_filament_for_features#internal-solid-infill");
-        optgroup->append_single_option_line("top_surface_filament_id", "multimaterial_settings_filament_for_features#top-surface");
-        optgroup->append_single_option_line("bottom_surface_filament_id", "multimaterial_settings_filament_for_features#bottom-surface");
-        optgroup->append_single_option_line("wipe_tower_filament", "multimaterial_settings_filament_for_features#wipe-tower");
-
         optgroup = page->new_optgroup(L("Ooze prevention"), L"param_ooze_prevention");
         optgroup->append_single_option_line("ooze_prevention", "multimaterial_settings_ooze_prevention");
         optgroup->append_single_option_line("standby_temperature_delta", "multimaterial_settings_ooze_prevention#temperature-variation");
@@ -3441,7 +3466,6 @@ void TabPrint::build()
         optgroup->append_single_option_line("toolchange_cyclic_order", "multimaterial_settings_advanced#toolchange-order");
         optgroup->append_single_option_line("toolchange_cyclic_first_layer", "multimaterial_settings_advanced#toolchange-order");
         optgroup->append_single_option_line("interface_shells", "multimaterial_settings_advanced#interface-shells");
-        optgroup->append_single_option_line("mmu_segmented_region_max_width", "multimaterial_settings_advanced#maximum-width-of-segmented-region");
         optgroup->append_single_option_line("mmu_segmented_region_interlocking_depth", "multimaterial_settings_advanced#interlocking-depth-of-segmented-region");
         optgroup->append_single_option_line("interlocking_beam_width", "multimaterial_settings_advanced#interlocking-beam-width");
         optgroup->append_single_option_line("interlocking_orientation", "multimaterial_settings_advanced#interlocking-direction");
@@ -7163,6 +7187,20 @@ void TabPrinter::on_value_change(const std::string& opt_key, const boost::any& v
         Tab::on_value_change(opt_key, value);
 }
 
+// The Printer tab keeps its Multimaterial page: it holds the options that turn these modes on.
+static void update_multimaterial_pages()
+{
+    const bool hide = wxGetApp().preset_bundle->get_printer_extruder_count() < 2 && !Sidebar::should_show_SEMM_buttons();
+    const wxString reason = _L("This setting requires a printer with multiple extruders or with Single Extruder Multi Material enabled.");
+
+    std::vector<Tab*> tabs = wxGetApp().model_tabs_list;
+    tabs.push_back(wxGetApp().get_tab(Preset::TYPE_PRINT));
+    tabs.push_back(wxGetApp().get_tab(Preset::TYPE_FILAMENT));
+    for (Tab* tab : tabs)
+        if (tab)
+            tab->set_page_hidden("Multimaterial", hide, reason);
+}
+
 void TabPrinter::update()
 {
     m_update_cnt++;
@@ -7229,6 +7267,8 @@ void TabPrinter::update_fff()
             m_config->set_key_value("build_plate_tilt_y", new ConfigOptionFloat(0.));
     }
     m_was_belt_printer = m_config->opt_bool("belt_printer");
+
+    update_multimaterial_pages();
 
     toggle_options();
 }
