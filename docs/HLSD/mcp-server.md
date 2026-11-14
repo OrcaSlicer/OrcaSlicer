@@ -1793,7 +1793,10 @@ Two helpers wrap the function a command's author writes and place it on the thre
 
 The palette and the menus call `NativeCommands::run(key, args)`: it checks the arguments, runs the command
 with a person's context and returns the notice for `notify_result()`, or an Error holding the message when
-the arguments are refused, the command throws or it fails without a notice.
+the arguments are refused, the command refuses the call (`ToolFailure`) or it fails without a notice. Any
+other exception is the command's defect, not an answer to show a person: `run()` logs it with the command's
+key and lets it through to the application's handler (`GUI_App::OnExceptionInMainLoop()`), which treats it as
+one from any other event handler, so running out of memory still ends the app there.
 
 A command whose silent form needs a value has a person's form too, which asks for it: with no arguments
 (`Mcp::person_form()`), a command opens its dialog as a person's pick does; with arguments that stand for

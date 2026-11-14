@@ -88,9 +88,13 @@ ToolResult from_run_result(const std::string& key, const AppActionRunResult& res
 
 // Runs command `key` as a person's pick: checks `args` (Mcp::argument_error()), then runs the command with a
 // Mcp::PersonContext. Returns what the pick shows, the reply's notice, or an Error holding the message when
-// the arguments were refused, the command threw, or it failed with no notice. Unknown keys return a quiet
-// Info. UI thread only.
+// the arguments were refused, the command refused the call (ToolFailure), or it failed with no notice. Unknown
+// keys return a quiet Info, and so does any key while OrcaSlicer is closing. Any other exception is the
+// command's defect, not an answer to show: it is logged with the command's key and leaves this function, for
+// the application's handler (GUI_App::OnExceptionInMainLoop()) as from any other event handler. UI thread only.
 AppActionRunResult run(const std::string& key, const nlohmann::json& args = nlohmann::json::object());
+// The same for `command`, which need not be in the process catalog, whether or not OrcaSlicer is closing.
+AppActionRunResult run(const NativeCommand& command, const nlohmann::json& args = nlohmann::json::object());
 
 // Shows what a command run from the palette or a menu said: its message as a notification at its level,
 // nothing for an empty message or a Busy one. UI thread only.

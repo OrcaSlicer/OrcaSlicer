@@ -62,6 +62,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/log/trivial.hpp>
 #include <nlohmann/json.hpp>
 #include <functional>
 #include <initializer_list>
@@ -1951,20 +1952,29 @@ AppActionRunResult NativeCommands::run(const std::string& key, const json& args)
     const NativeCommand* command = find(key);
     if (command == nullptr)
         return {AppActionRunResult::Level::Info, _L("Unknown command.")};
+    return run(*command, args);
+}
+
+AppActionRunResult NativeCommands::run(const NativeCommand& command, const json& args)
+{
     const auto failed = [](const std::string& why) { return AppActionRunResult{AppActionRunResult::Level::Error, from_u8(why), false}; };
     json       checked = args;
-    if (const std::string err = Mcp::argument_error(*command, checked); !err.empty())
+    if (const std::string err = Mcp::argument_error(command, checked); !err.empty())
         return failed(err);
     Mcp::PersonContext person;
     try {
-        const ToolResult reply = command->run(checked, person);
+        const ToolResult reply = command.run(checked, person);
         if (reply.notice)
             return *reply.notice;
         if (reply.is_error)
             return failed(reply.message);
         return {AppActionRunResult::Level::Success};
+    } catch (const ToolFailure& failure) {
+        return failed(failure.what());
     } catch (const std::exception& e) {
-        return failed(e.what());
+        // The log names the command, which the application's handler does not know.
+        BOOST_LOG_TRIVIAL(error) << "The command " << command.key << " threw: " << e.what();
+        throw;
     }
 }
 

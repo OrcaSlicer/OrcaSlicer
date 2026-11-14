@@ -494,6 +494,26 @@ TEST_CASE("a person's pick runs the function in place", "[CommandCatalog]")
     CHECK(result.notice->message == "Done");
 }
 
+TEST_CASE("a person's pick shows a command's refusal as an error", "[CommandCatalog]")
+{
+    const NativeCommand refuses = NativeCommands::ui_command("k", "K", "Commands", no_arguments(), [](const json&) -> AppActionRunResult {
+        throw ToolFailure("Nothing is selected");
+    });
+    const AppActionRunResult shown = NativeCommands::run(refuses);
+    CHECK(shown.level == AppActionRunResult::Level::Error);
+    CHECK(shown.message == "Nothing is selected");
+    CHECK_FALSE(shown.done);
+}
+
+TEST_CASE("an exception that is not a command's refusal leaves a person's pick", "[CommandCatalog]")
+{
+    // A defect, which the application's handler deals with as it does one from any other event handler.
+    const NativeCommand breaks = NativeCommands::ui_command("k", "K", "Commands", no_arguments(), [](const json&) -> AppActionRunResult {
+        throw std::out_of_range("no such element");
+    });
+    CHECK_THROWS_AS(NativeCommands::run(breaks), std::out_of_range);
+}
+
 TEST_CASE("a long command picked by a person is submitted", "[CommandCatalog]")
 {
     int             calls = 0;
