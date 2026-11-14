@@ -165,6 +165,25 @@ TEST_CASE("The filament flow ratio scales the extruded length once", "[GCode]")
     CHECK_THAT(extruded_length(0.9) / full, Catch::Matchers::WithinRel(0.9, 1e-3));
 }
 
+// The filament option is hidden when the printer lacks chamber control, but it keeps its stored value,
+// so the printer option has to gate the chamber commands on its own.
+TEST_CASE("Chamber temperature commands are written only when the printer supports chamber control", "[GCode]")
+{
+    const bool printer_supports = GENERATE(false, true);
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({ { "support_chamber_temp_control", printer_supports ? "1" : "0" },
+                                    { "activate_chamber_temp_control", "1" },
+                                    { "chamber_temperature", "50" },
+                                    { "machine_start_gcode", "" },
+                                    { "machine_end_gcode", "" } });
+    const std::string gcode = Test::slice({ Test::cube(20) }, config);
+
+    DYNAMIC_SECTION("printer supports chamber control: " << printer_supports) {
+        CHECK((gcode.find("M191 S50") != std::string::npos) == printer_supports);
+        CHECK((gcode.find("M141 S0") != std::string::npos) == printer_supports);
+    }
+}
+
 // Firmwares read the compatibility header lines (Anycubic's GoKlipper heats the bed with
 // first_layer_bed_temperature), so they must describe the filament the plate prints, not filament 1.
 TEST_CASE("The G-code header names the first layer temperatures of the filament the plate prints", "[GCode]")

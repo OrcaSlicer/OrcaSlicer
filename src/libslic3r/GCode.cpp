@@ -4003,12 +4003,15 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         auto center = bbox_wo_wt.center();
         this->placeholder_parser().set("first_layer_center_no_wipe_tower", new ConfigOptionFloats{ {center.x(),center.y()}});
     }
+    // Orca: the filament's "activate_chamber_temp_control" only takes effect when the printer supports chamber
+    // temperature control. The filament option is hidden when the printer option is off, but keeps its stored value.
     bool activate_chamber_temp_control = false;
     auto max_chamber_temp              = 0;
     for (const auto &extruder : m_writer.extruders()) {
         activate_chamber_temp_control |= m_config.activate_chamber_temp_control.get_at(extruder.id());
         max_chamber_temp = std::max(max_chamber_temp, m_config.chamber_temperature.get_at(extruder.id()));
     }
+    activate_chamber_temp_control &= m_config.support_chamber_temp_control.value;
     {
         BedType curr_bed_type = m_config.curr_bed_type;
 
