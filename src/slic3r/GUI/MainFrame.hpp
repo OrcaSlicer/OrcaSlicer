@@ -150,7 +150,10 @@ enum class CalibKind : int
     Cornering, 
     InputShapingFreq, 
     InputShapingDamp,
-    VFA
+    VFA,
+    // Not a printer setting but a filament one: how deep light gets into it, which nothing but a
+    // print can tell you. See Plater::calib_transmission_distance().
+    TransmissionDistance
 };
 
 class MainFrame : public DPIFrame

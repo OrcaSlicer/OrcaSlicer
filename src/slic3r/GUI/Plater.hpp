@@ -44,6 +44,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PrintBase.hpp"
 
+#include "libslic3r/ChromaStack.hpp"
 #include "libslic3r/calib.hpp"
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/FlushVolCalc.hpp"
@@ -415,6 +416,9 @@ public:
     void calib_temp(const Calib_Params& params);
     void calib_max_vol_speed(const Calib_Params& params);
     void calib_retraction(const Calib_Params& params);
+    // The transmission distance wedge: a staircase of the filament under test over a contrasting base,
+    // printed at the height its steps step by. `substrate` and `test` are 0-based filament indices.
+    void calib_transmission_distance(const ChromaWedge& wedge, int substrate, int test);
     void calib_VFA(const Calib_Params& params);
     void calib_input_shaping_freq(const Calib_Params& params);
     void calib_input_shaping_damp(const Calib_Params& params);

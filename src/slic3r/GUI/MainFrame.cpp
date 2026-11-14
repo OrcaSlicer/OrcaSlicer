@@ -3704,6 +3704,10 @@ void MainFrame::init_menubar_as_editor()
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Flow rate (Wizard Dialog)
+    append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Transmission distance"), _L("Transmission distance"),
+        [this](wxCommandEvent&) { run_calibration(CalibKind::TransmissionDistance); }, "", nullptr,
+        [this]() {return m_plater->is_view3D_shown();; }, this);
+
     append_menu_item(m_topbar->GetCalibMenu(), wxID_ANY, _L("Flow ratio"), _L("Flow Rate Calibration"),
         [this](wxCommandEvent&) { run_calibration(CalibKind::FlowRatio); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
@@ -3796,6 +3800,11 @@ void MainFrame::init_menubar_as_editor()
     // Temperature
     append_menu_item(calib_menu, wxID_ANY, _L("Temperature"), _L("Temperature"),
         [this](wxCommandEvent&) { run_calibration(CalibKind::Temperature); }, "", nullptr,
+        [this]() {return m_plater->is_view3D_shown();; }, this);
+
+    // Transmission distance, for ChromaStack colour prints
+    append_menu_item(calib_menu, wxID_ANY, _L("Transmission distance"), _L("Transmission distance"),
+        [this](wxCommandEvent&) { run_calibration(CalibKind::TransmissionDistance); }, "", nullptr,
         [this]() {return m_plater->is_view3D_shown();; }, this);
 
     // Max Volumetric Speed
@@ -4716,6 +4725,25 @@ void MainFrame::run_calibration(CalibKind calib_kind)
         if (!m_temp_calib_dlg)
             m_temp_calib_dlg = new Temp_Calibration_Dlg((wxWindow*) this, wxID_ANY, m_plater);
         m_temp_calib_dlg->ShowModal();
+        break;
+    }
+    case CalibKind::TransmissionDistance: {
+        if (!m_plater)
+            break;
+        // Two filaments, because the test is one seen through the other: the staircase is the filament
+        // being measured and the base under it is the one it has to hide.
+        if (wxGetApp().preset_bundle->filament_presets.size() < 2) {
+            MessageDialog(this,
+                          _L("This test prints a staircase of one filament over another and asks where the one "
+                             "underneath stops showing through, so it needs two filaments loaded."),
+                          _L("Transmission distance"), wxICON_INFORMATION | wxOK)
+                .ShowModal();
+            break;
+        }
+        // Built fresh rather than kept, unlike the dialogs below: what it offers is the filaments that
+        // are loaded now.
+        TransmissionDistance_Test_Dlg dlg((wxWindow *) this, wxID_ANY, m_plater);
+        dlg.ShowModal();
         break;
     }
     case CalibKind::MaxVolumetric: {

@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 #include "libslic3r/TextureDisplacement.hpp"
+#include "libslic3r/ChromaProfile.hpp"
 #include <exception>
 
 namespace Slic3r::GUI {
@@ -32,6 +33,7 @@ void TextureDisplacementPreviewJob::process(Ctl &ctl)
     //
     // The quantizers are built once for the whole run: the palette is the object's, not the part's,
     // and each one fills a colour lookup cube that costs tens of milliseconds.
+    ChromaProfileScope   prof("preview_job/build_texture_displacement");
     TextureColorRequest  color_request;
     TextureColorRequest *color = nullptr;
     if (!m_input.color.empty()) {

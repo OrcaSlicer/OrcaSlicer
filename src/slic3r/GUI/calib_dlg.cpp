@@ -776,6 +776,141 @@ void MaxVolumetricSpeed_Test_Dlg::on_dpi_changed(const wxRect& suggested_rect) {
 }
 
 
+// TransmissionDistance_Test_Dlg
+//
+
+TransmissionDistance_Test_Dlg::TransmissionDistance_Test_Dlg(wxWindow *parent, wxWindowID id, Plater *plater)
+    : DPIDialog(parent, id, _L("Transmission distance test"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE)
+    , m_plater(plater)
+{
+    SetBackgroundColour(*wxWHITE);
+    SetForegroundColour(wxColour("#363636"));
+    SetFont(Label::Body_14);
+
+    wxBoxSizer *v_sizer = new wxBoxSizer(wxVERTICAL);
+    SetSizer(v_sizer);
+
+    const wxString test_str      = _L("Filament to measure") + ": ";
+    const wxString substrate_str = _L("Printed over") + ": ";
+    const wxString steps_str     = _L("Steps") + ": ";
+    const int      text_max      = GetTextMax(this, std::vector<wxString>{ test_str, substrate_str, steps_str });
+
+    auto st_size = wxSize(text_max, -1);
+    auto ti_size = FromDIP(wxSize(200, -1));
+
+    // The test is read by eye: a staircase of one filament over another, looking for the step where
+    // the one underneath stops showing through. Said here, because it is not what a calibration
+    // usually asks of the user and nothing on the plate will say it.
+    auto *intro = new Label(this, _L("Prints a staircase of one filament over another, each step one "
+                                     "layer thicker than the last. The step where the filament "
+                                     "underneath stops showing through is this filament's transmission "
+                                     "distance."));
+    intro->SetWindowStyleFlag(LB_AUTO_WRAP);
+    intro->Wrap(FromDIP(380));
+    v_sizer->Add(intro, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+    LabeledStaticBox *stb             = new LabeledStaticBox(this, _L("Settings"));
+    wxStaticBoxSizer *settings_sizer  = new wxStaticBoxSizer(stb, wxVERTICAL);
+    settings_sizer->AddSpacer(FromDIP(5));
+
+    const std::vector<std::string> &filaments = wxGetApp().preset_bundle->filament_presets;
+    const std::vector<ColorRGBA>    colors    = m_plater->get_extruders_colors();
+
+    m_cbTest      = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, ti_size, 0, nullptr, wxCB_READONLY);
+    m_cbSubstrate = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, ti_size, 0, nullptr, wxCB_READONLY);
+    for (size_t i = 0; i < filaments.size(); ++i) {
+        const wxString label = wxString::Format("%d  %s", int(i) + 1, from_u8(filaments[i]));
+        m_cbTest->Append(label);
+        m_cbSubstrate->Append(label);
+    }
+
+    // The darkest filament loaded is the easiest to watch disappear under a pale staircase, so it is
+    // offered as the one underneath - and the filament being measured is the one that is loaded first,
+    // since that is the one a single-filament printer has on it.
+    int   darkest = 0;
+    float lowest  = 2.f;
+    for (size_t i = 0; i < filaments.size() && i < colors.size(); ++i) {
+        const float lum = 0.2126f * colors[i].r() + 0.7152f * colors[i].g() + 0.0722f * colors[i].b();
+        if (lum < lowest) {
+            lowest  = lum;
+            darkest = int(i);
+        }
+    }
+    m_cbTest->SetSelection(darkest == 0 && filaments.size() > 1 ? 1 : 0);
+    m_cbSubstrate->SetSelection(darkest);
+
+    auto labelled_row = [&](const wxString &text, wxWindow *control) {
+        auto *row = new wxBoxSizer(wxHORIZONTAL);
+        row->Add(new wxStaticText(this, wxID_ANY, text, wxDefaultPosition, st_size, wxALIGN_LEFT), 0,
+                 wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+        row->Add(control, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
+        settings_sizer->Add(row, 0, wxLEFT, FromDIP(3));
+    };
+    labelled_row(test_str, m_cbTest);
+    labelled_row(substrate_str, m_cbSubstrate);
+
+    m_siSteps = new SpinInput(this, "16", "", wxDefaultPosition, FromDIP(wxSize(120, -1)), 0, 4, 60, 16);
+    labelled_row(steps_str, m_siSteps);
+
+    // The steps are layers, so the test is only readable at the layer height it was built for. Shown
+    // rather than offered: it comes from the print profile, and changing it here would print a
+    // staircase whose steps are not the ones the reading is turned into a number with.
+    const DynamicPrintConfig &print_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    if (print_config.has("layer_height"))
+        m_layer_height_mm = float(print_config.opt_float("layer_height"));
+    auto *height_text = new wxStaticText(this, wxID_ANY,
+                                         wxString::Format(_L("Printed at %.3f mm layers, from the print profile."),
+                                                          m_layer_height_mm));
+    settings_sizer->Add(height_text, 0, wxALL, FromDIP(5));
+
+    v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+    v_sizer->AddSpacer(FromDIP(5));
+
+    auto *warn = new Label(this, _L("This replaces what is on the plate."));
+    warn->SetWindowStyleFlag(LB_AUTO_WRAP);
+    warn->Wrap(FromDIP(380));
+    v_sizer->Add(warn, 0, wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+    v_sizer->AddSpacer(FromDIP(5));
+
+    auto *dlg_btns = new DialogButtons(this, { "OK", "Cancel" });
+    v_sizer->Add(dlg_btns, 0, wxEXPAND);
+    dlg_btns->GetOK()->Bind(wxEVT_BUTTON, &TransmissionDistance_Test_Dlg::on_start, this);
+
+    wxGetApp().UpdateDlgDarkUI(this);
+
+    Layout();
+    Fit();
+    v_sizer->SetSizeHints(this);
+}
+
+TransmissionDistance_Test_Dlg::~TransmissionDistance_Test_Dlg() {}
+
+void TransmissionDistance_Test_Dlg::on_start(wxCommandEvent &event)
+{
+    const int test      = m_cbTest->GetSelection();
+    const int substrate = m_cbSubstrate->GetSelection();
+    if (test < 0 || substrate < 0 || test == substrate) {
+        MessageDialog msg_dlg(nullptr,
+                              _L("The staircase and the filament under it have to be two different filaments: the "
+                                 "test is one seen through the other."),
+                              wxEmptyString, wxICON_WARNING | wxOK);
+        msg_dlg.ShowModal();
+        return;
+    }
+
+    ChromaWedge wedge;
+    wedge.steps           = m_siSteps->GetValue();
+    wedge.layer_height_mm = m_layer_height_mm;
+    m_plater->calib_transmission_distance(wedge, substrate, test);
+    EndModal(wxID_OK);
+}
+
+void TransmissionDistance_Test_Dlg::on_dpi_changed(const wxRect &suggested_rect)
+{
+    this->Refresh();
+    Fit();
+}
+
 // VFA_Test_Dlg
 //
 

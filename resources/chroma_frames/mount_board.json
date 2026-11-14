@@ -1,0 +1,13 @@
+{
+  "chroma_frame": 1,
+  "name": "Mount board",
+  "category": "classic",
+  "width_mm": 20.0,
+  "rise_mm": 3.0,
+  "outline": { "shape": "rectangle" },
+  "profile": [
+    [0.0, 1.0], [0.85, 1.0], [1.0, 0.0]
+  ],
+  "profile_scaling": "proportional",
+  "legacy_profile": "mat"
+}

@@ -18037,6 +18037,60 @@ void Plater::_calib_temp_belt_sectioned(const Calib_Params& params, double belt_
     p->background_process.fff_print()->set_calib_params(params);
 }
 
+void Plater::calib_transmission_distance(const ChromaWedge &wedge, int substrate, int test)
+{
+    const auto name = _L("Transmission distance test");
+    new_project(false, false, name);
+    wxGetApp().mainframe->select_tab(TAB_ID_PREPARE);
+
+    // Every other calibration loads its model from the shipped assets. This one cannot: the steps are
+    // layers, so the model is only right for one layer height, and the layer height is the user's.
+    // Writing it out and loading it back keeps it on the same path as the rest - plate placement,
+    // naming, arrange - rather than opening a second way into the scene.
+    const indexed_triangle_set its = chroma_wedge_mesh(wedge);
+    const boost::filesystem::path path = boost::filesystem::path(temporary_dir()) / "chromastack_wedge.stl";
+    if (!its_write_stl_binary(path.string().c_str(), "chromastack_wedge", its)) {
+        MessageDialog(static_cast<wxWindow *>(wxGetApp().mainframe),
+                      _L("Could not write the calibration model."), _L("Transmission distance"), wxICON_ERROR | wxOK)
+            .ShowModal();
+        return;
+    }
+    if (!add_model(false, path.string()))
+        return;
+    if (model().objects.empty())
+        return;
+
+    ModelObject *obj = model().objects.front();
+    obj->name        = into_u8(name);
+
+    // The print has to be made of the layers the steps are counted in, first layer included: a thicker
+    // first layer would make every step a different thickness from the one it is read as.
+    obj->config.set_key_value("layer_height", new ConfigOptionFloat(double(wedge.layer_height_mm)));
+    obj->config.set_key_value("initial_layer_print_height", new ConfigOptionFloat(double(wedge.layer_height_mm)));
+
+    // The base in one filament and the staircase in the other, which is the whole of the test: what is
+    // being looked for is the step where the base below stops showing through.
+    const double base_z = double(wedge.base_height_mm());
+    const double top_z  = base_z + double(wedge.steps) * double(wedge.layer_height_mm);
+    obj->layer_config_ranges.clear();
+    {
+        ModelConfig &cfg = obj->layer_config_ranges[{ 0., base_z }];
+        cfg.set_key_value("extruder", new ConfigOptionInt(substrate + 1));
+        cfg.set_key_value("layer_height", new ConfigOptionFloat(double(wedge.layer_height_mm)));
+    }
+    {
+        ModelConfig &cfg = obj->layer_config_ranges[{ base_z, top_z }];
+        cfg.set_key_value("extruder", new ConfigOptionInt(test + 1));
+        cfg.set_key_value("layer_height", new ConfigOptionFloat(double(wedge.layer_height_mm)));
+    }
+
+    changed_objects({ 0 });
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->update_dirty();
+    wxGetApp().get_tab(Preset::TYPE_PRINT)->reload_config();
+    if (ObjectList *list = wxGetApp().obj_list(); list != nullptr)
+        list->rebuild_layer_ranges(0);
+}
+
 void Plater::calib_max_vol_speed(const Calib_Params& params)
 {
     const auto calib_vol_speed_name = _L("Max volumetric speed test");
