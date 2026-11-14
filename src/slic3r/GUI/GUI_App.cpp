@@ -466,19 +466,9 @@ public:
 #endif // !__APPLE__
         )
     {
-		// Some desktop environments ignore splash screen typed window properties
-		// when running the app through Wayland,resulting in the titlebar being shown 
-		// on the splash screen. The code below creates a client-side window decoration
-		// when running on Wayland and then removes that decoration. This ensures every 
-		// environment correctly targets and removes the titlebar for this screen.
-		#if defined(__WXGTK__)
-	        if (Slic3r::GUI::is_running_on_wayland()) {
-	            GtkWidget *empty = gtk_fixed_new();
-	            gtk_widget_set_size_request(empty, 0, 0);
-	            gtk_window_set_titlebar(GTK_WINDOW(GetHandle()), empty);
-	            gtk_window_set_decorated(GTK_WINDOW(GetHandle()), false);
-	        }
-		#endif
+#if defined(__WXGTK__)
+        Slic3r::GUI::remove_wayland_titlebar(this);
+#endif
 		
         this->SetPosition(pos);
         this->CenterOnScreen();

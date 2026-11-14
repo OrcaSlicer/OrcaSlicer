@@ -4,6 +4,7 @@
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "I18N.hpp"
+#include "LinuxDisplayBackend.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "NativeCommands.hpp"
@@ -164,6 +165,7 @@ SpeedDialWebDialog::SpeedDialWebDialog(wxWindow* parent)
     // wxGTK dialogs default to CENTER_ON_PARENT, which places the window at its first map and then
     // keeps that position for every later Show(). position_over_parent() supplies the origin instead.
     gtk_window_set_position(GTK_WINDOW(GetHandle()), GTK_WIN_POS_NONE);
+    remove_wayland_titlebar(this);
 #endif
     // The dial dismisses itself when the focus leaves it. The hide is deferred by kHideSettleMs and
     // re-checked, so a focus bounce shorter than that is not a dismissal. It does not protect against

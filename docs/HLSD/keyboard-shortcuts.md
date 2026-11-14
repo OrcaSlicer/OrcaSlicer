@@ -51,7 +51,10 @@ bare printable key in the frame hook would swallow that character in every text 
 The dialog refuses such chords and `ShortcutRegistry::load()` drops them from the config.
 Space counts as typing. The speed dial's default is the one bare Space, and
 `MainFrame` leaves it to a focused control that uses Space itself (text fields, buttons,
-combo boxes), so it opens the dial from the canvases and the tab strip only.
+combo boxes), so it opens the dial from the canvases and the tab strip only. Selecting a page
+with a 3D view (Prepare, Preview, the Design tab) gives the view the keyboard: the page's own
+`SetFocus()` would hand it to its first focusable control, a sidebar control there, which keeps
+Space until the pointer enters the view.
 
 `MainFrame::handle_global_shortcut` skips a chord that `KeyChord::edits_text()` reports
 while a text field has the focus (a wx text entry, spin control, web view or ImGui

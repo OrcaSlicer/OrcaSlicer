@@ -3936,7 +3936,9 @@ view type change, and the preview refusals of `set_view`, `tools/mcp/test_set_wi
 `set_window` on the main window (sized twice, moved, placed over its display's work area, maximized and
 minimized, and restored from both, with a window screenshot of the size on Wayland), on the Plugins
 window by its ref and on Preferences by its `{label}` locator (on X11 with the main window kept under it
-in the X server's stacking order), `tools/mcp/test_set_view_camera.py`
+in the X server's stacking order), `tools/mcp/test_speed_dial_open.py` the 3D view's keyboard focus after
+a switch to Prepare, Preview or the Design tab, Space opening the Speed Dial there, and the dial without
+KWin's title bar, `tools/mcp/test_set_view_camera.py`
 `set_view`'s `look_at` and `zoom` after a queued fit (and its note while no 3D view draws), clamping,
 an orbit that keeps `look_at`, the camera Preview shares and the Design tab's own, with `camera_state`
 and `get_app_state.camera`, and a fit after the window was sized while no 3D view showed,

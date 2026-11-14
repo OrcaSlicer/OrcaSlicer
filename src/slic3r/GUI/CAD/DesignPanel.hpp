@@ -69,6 +69,7 @@ public:
     explicit DesignPanel(wxWindow* parent);
     void on_tab_shown();        // re-sync bed to the active printer when the Design tab is activated
     void on_tab_hidden();       // another tab took over: take the viewport status line down with us
+    void focus_viewport();      // the tab was selected: the viewport, the keyboard's owner in this tab, takes it
     // From MainFrame, like the other pages: re-rasterise the icons at the new scale, and on a theme
     // switch also move every token colour onto the new theme.
     void msw_rescale();

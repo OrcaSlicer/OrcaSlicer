@@ -7304,6 +7304,12 @@ void DesignPanel::on_tab_hidden()
     update_sidebar_pane();
 }
 
+void DesignPanel::focus_viewport()
+{
+    if (m_viewport)
+        m_viewport->SetFocus();
+}
+
 void DesignPanel::on_tab_shown()
 {
     if (m_viewport)

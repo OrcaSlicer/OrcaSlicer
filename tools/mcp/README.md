@@ -480,6 +480,13 @@ Prepare and checks the same for it, with no more web views in `list_widgets` tha
 without a target reaching the 3D view, a window screenshot, and an agent's `run_script` finishing
 while it is shown; `run_replay` still runs the smoke test and a nested inline replay.
 
+`test_speed_dial_open.py` goes from Home to Prepare, the Design tab (launched with `--cad`) and Preview by
+their tabs, and checks that the page's 3D view then holds the keyboard focus and that Space opens the Speed
+Dial, which Escape closes. A pointer entering a view also gives it the focus, so the tab switch itself is
+proved only where no pointer rests on the view: on a native Wayland display, or a desktop with the pointer
+elsewhere. Where KWin runs the display, it also checks through KWin's D-Bus that KWin draws no title bar on
+the dial.
+
 `tests/slice_stats.json` slices one cube, then two cubes in two colours, and checks the slice
 reply's statistics: layers, max Z, filament changes, and each filament slot's model, flush and
 prime tower grams.

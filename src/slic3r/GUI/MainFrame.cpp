@@ -1610,7 +1610,19 @@ void MainFrame::init_tabpanel() {
             DesignPanel::ensure()->update_undo_redo_buttons();
 #endif
 
-        if (panel)
+        // A page with a 3D view gives the keyboard to the view. The page's own SetFocus() would give it to
+        // its first focusable child, a sidebar control, which keeps Space (the Speed Dial) and the view's
+        // other keys until the pointer enters the view. A view switch posted above focuses the view it
+        // shows in turn.
+        if (panel == m_plater) {
+            if (GLCanvas3D* canvas = m_plater->get_current_canvas3D())
+                canvas->force_set_focus();
+        }
+#ifdef SLIC3R_CAD
+        else if (m_design_page != nullptr && panel == m_design_page)
+            DesignPanel::ensure()->focus_viewport();
+#endif
+        else if (panel)
             panel->SetFocus();
     });
 
