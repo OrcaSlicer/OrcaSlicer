@@ -653,6 +653,10 @@ public:
     bool is_support_agora{false};
     bool is_support_upgrade_kit{false};
     bool is_support_filament_setting_inprinting{false};
+    // AMS / external slot settings may be edited during a print: the printer advertises it
+    // (print.flag3 bit 3), or the user enabled "allow_ams_edit_while_printing", since some
+    // firmware accepts the edit without advertising it.
+    bool can_edit_filament_while_printing() const;
     bool is_support_internal_timelapse { false };// fun[28], support timelapse without SD card
     bool m_support_mqtt_homing { false };// fun[32]
     bool is_support_brtc{false};                 // fun[31], support tcp and upload protocol

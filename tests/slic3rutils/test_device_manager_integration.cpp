@@ -382,3 +382,25 @@ TEST_CASE("AMS filament settings default a supplied single-color list to type tw
     CHECK(payload.at("cols").get<std::vector<std::string>>() == colors);
     CHECK(payload.at("ctype") == 2);
 }
+
+TEST_CASE("AMS slots are editable during a print when the printer advertises it or the user allows it", "[DeviceManager][AMSMaterialsSetting]")
+{
+    ScopedAppConfig app_config;
+    auto agent = std::make_shared<TestPrinterAgent>("integration-agent");
+    NetworkAgent network(nullptr, agent);
+    DeviceManager manager(&network, false, &app_config.config);
+    MachineObject object(&manager, &network, "Test printer", "integration-device", "192.0.2.10");
+
+    // print.flag3 bit 3 set: the printer advertises in-print slot edits
+    object.is_support_filament_setting_inprinting = true;
+    app_config.config.set_bool("allow_ams_edit_while_printing", false);
+    CHECK(object.can_edit_filament_while_printing());
+
+    // not advertised and not allowed: read only, as before
+    object.is_support_filament_setting_inprinting = false;
+    CHECK_FALSE(object.can_edit_filament_while_printing());
+
+    // not advertised but allowed in Preferences
+    app_config.config.set_bool("allow_ams_edit_while_printing", true);
+    CHECK(object.can_edit_filament_while_printing());
+}
