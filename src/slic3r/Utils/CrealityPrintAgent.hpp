@@ -34,6 +34,7 @@ public:
         std::string filament_type; // "PLA", "ABS", "PETG", ... or "" if the printer cannot name the spool
         std::string brand_name;    // "Hyper PLA", ... or ""
         std::string vendor;        // "Creality", "eSUN", or "" if unknown
+        int         remain = -1;   // Filament left on the spool, 0..100; -1 when the box does not report it
     };
 
     explicit CrealityPrintAgent(std::string log_dir);

@@ -26,6 +26,7 @@ class wxString;
 class wxTextCtrl;
 class wxStaticText;
 class ScalableButton;
+class Label;
 class wxBoxSizer;
 class wxComboBox;
 class wxStaticBitmap;
@@ -201,6 +202,10 @@ public:
     // BBS
     wxButton* clr_picker { nullptr };
 
+    // Filament left in the printer slot this filament was synced from; hidden unless the printer
+    // measures it. Set with set_remain().
+    Label* remain_label { nullptr };
+
     wxColor get_color() { return m_color; }
 
     bool switch_to_tab();
@@ -214,6 +219,8 @@ public:
     void OnSelect(wxCommandEvent& evt) override;
     void update_badge_according_flag();
     void set_sync_badge(bool show);
+    // Show the percentage left in the synced slot, or hide it for a value outside 0..100.
+    void set_remain(int percent);
 
     FilamentColor get_cur_color_info();
     void show_default_color_picker();

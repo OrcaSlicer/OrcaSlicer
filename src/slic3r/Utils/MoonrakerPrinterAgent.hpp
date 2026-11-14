@@ -3,6 +3,7 @@
 
 #include "IPrinterAgent.hpp"
 #include "bambu_networking.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
 
 #include <functional>
 #include <chrono>
@@ -116,12 +117,17 @@ protected:
         std::string tray_info_idx;       // Filament ID (optional)
         int         bed_temp = 0;        // Optional
         int         nozzle_temp = 0;     // Optional
+        int         remain = -1;         // Filament left, 0..100; -1 when the printer does not report it
     };
 
     // Build ams JSON and call parser
-    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays);
+    // `ams_type` picks how the device page draws each unit; an AMS-Lite unit shows no filament level.
+    void build_ams_payload(int ams_count, int max_lane_index, const std::vector<AmsTrayData>& trays,
+                           DevAmsType ams_type = DevAmsType::AMS_LITE);
     // Name shown for a filament unit, or empty for the AMS Lite name
     virtual std::string ams_unit_name(int /*ams_id*/) const { return {}; }
+    // A slot reported its filament level, so status reports keep the level display on
+    std::atomic<bool> reports_filament_level{false};
 
     // Methods that derived classes may need to override or access
     virtual bool init_device_info(const std::string& dev_id, const std::string& dev_ip, const std::string& username, const std::string& password, bool use_ssl, const std::string& port);
