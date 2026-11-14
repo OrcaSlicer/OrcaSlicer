@@ -1,7 +1,8 @@
 
 #Content
 {
-	padding:0%  15%;
+	padding-right:10%;
+	padding-left: 10%;
 }
 
 #FeatureText
@@ -14,21 +15,9 @@
 #CheckArea
 {
 	margin-top:10mm;
-	line-height: 30px;
 }
-/* ORCA brokes shape of custom css checkbox
-#InstallCheck
-{
-	width: 30px;
-}
-*/
 
 #RestartText
 {
 	padding-left:30px;
-}
-
-.TextPoint
-{
-	font-size:14px;
 }

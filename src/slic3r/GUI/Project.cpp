@@ -145,6 +145,7 @@ void ProjectPanel::create_browser()
     // Created empty and loaded after the strings are added, so the first load already has them.
     m_browser = WebView::CreateWebView(this, wxEmptyString);
     m_browser->AddUserScript(wxString::FromUTF8(WebViewHostDialog::localized_strings_script(project_page_strings())));
+    m_browser->AddUserScript(wxString::FromUTF8(WebViewHostDialog::theme_user_script()));
     m_browser->Bind(wxEVT_WEBVIEW_NAVIGATED, &ProjectPanel::on_navigated, this);
     m_browser->Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &ProjectPanel::OnScriptMessage, this, m_browser->GetId());
     m_browser->Bind(wxEVT_WEBVIEW_NAVIGATING, &ProjectPanel::onWebNavigating, this);
