@@ -2137,14 +2137,14 @@ std::optional<ColorSelection> ColorPickerPopup::ColorItem::picker_selection(bool
         return ColorRGBA(color.Red(), color.Green(), color.Blue(), color.Alpha());
     }
     // ctype 0 is a gradient and 1 is co-extruded colors; both need firmware with manual multi-color support.
-    const ColorPickerOptions options{allow_gradient, true, MAX_EDITABLE_COLORS, allow_gradient};
+    const ColorPickerOptions options{allow_gradient, true, MAX_EDITABLE_COLORS};
     if (ctype == 0 && options.supports_gradient(colors.size())) {
         ColorGradient gradient;
         for (const wxColour& color : colors)
             gradient.emplace_back(color.Red(), color.Green(), color.Blue(), color.Alpha());
         return gradient;
     }
-    if (ctype == 1 && options.supports_coextruded(colors.size())) {
+    if (ctype == 1 && options.supports_gradient(colors.size())) {
         ColorCoextruded coextruded;
         for (const wxColour& color : colors)
             coextruded.colors.emplace_back(color.Red(), color.Green(), color.Blue(), color.Alpha());

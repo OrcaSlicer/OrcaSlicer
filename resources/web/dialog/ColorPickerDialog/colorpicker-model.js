@@ -23,8 +23,8 @@
   // Selection types the bridge carries. A co-extruded selection is two or more solid colors side by
   // side along the filament; the page edits it in Solid mode, as solid color blocks.
   const MULTI_COLOR_MODES = ["gradient", "coextruded"];
-  const typeAllowed = (options, type) => type === "solid" || (type === "gradient" && options.allow_gradient === true) ||
-                                         (type === "coextruded" && options.allow_coextruded === true);
+  // Callers that allow gradients also allow co-extruded colors: both are multi-color selections.
+  const typeAllowed = (options, type) => type === "solid" || options.allow_gradient === true;
 
   // `maxGradientColors` caps how many colors a gradient or co-extruded selection may have (2 when omitted).
   function normalizeSelection(value, options = {}, maxGradientColors = 2) {
@@ -73,10 +73,9 @@
 
   // options.max_gradient_colors (2..7, default 2) is how many colors this page lets a gradient or co-extruded selection have.
   function createState(options = {}, selection = {type: "solid", colors: ["#808080"]}) {
-    const capabilities = {allow_gradient: options.allow_gradient === true, allow_alpha: options.allow_alpha === true,
-                          allow_coextruded: options.allow_coextruded === true};
+    const capabilities = {allow_gradient: options.allow_gradient === true, allow_alpha: options.allow_alpha === true};
     // solid holds one color, or more for a co-extruded selection. Each list stays null until a selection
-    // provides it or the user switches to that mode; switching carries multiple colors over (see setMode).
+    // provides it or the user switches to that mode for the first time (see setMode).
     const state = {options: capabilities, maxGradientColors: gradientLimit(options.max_gradient_colors),
                    mode: "solid", active: 0, solid: null, gradient: null};
     if (!applySelection(state, selection)) return null;
@@ -101,18 +100,14 @@
 
   function setMode(state, mode) {
     if (mode !== "solid" && (mode !== "gradient" || !state.options.allow_gradient)) return false;
-    // Multiple colors carry over in order, so switching only changes how they are drawn: co-extruded
-    // blocks become a gradient, and a gradient becomes blocks where co-extruded colors are allowed.
-    // Otherwise a new gradient starts at the selected solid color and ends at its contrast color,
-    // and a new solid starts at the selected gradient color.
+    // The first switch to a mode converts the other mode's colors: several colors carry over in order,
+    // while one solid color starts a gradient that ends at its contrast color. After that each mode keeps its own colors.
     const copy = (colors) => colors.map((color) => [...color]);
-    if (mode === "gradient" && state.mode === "solid" && state.solid.length > 1) state.gradient = copy(state.solid);
-    else if (mode === "gradient" && !state.gradient) {
+    if (mode === "gradient" && !state.gradient) {
       const solid = state.solid[Math.min(state.active, state.solid.length - 1)];
-      state.gradient = [[...solid], contrastColor(solid, NEW_GRADIENT_HUE_SHIFT)];
+      state.gradient = state.solid.length > 1 ? copy(state.solid) : [[...solid], contrastColor(solid, NEW_GRADIENT_HUE_SHIFT)];
     }
-    if (mode === "solid" && state.mode === "gradient" && state.options.allow_coextruded) state.solid = copy(state.gradient);
-    else if (mode === "solid" && !state.solid) state.solid = [[...state.gradient[state.active]]];
+    if (mode === "solid" && !state.solid) state.solid = copy(state.gradient);
     state.mode = mode;
     state.active = Math.min(state.active, modeColors(state).length - 1);
     return true;
@@ -120,9 +115,9 @@
 
   // Fewest colors the current mode keeps: a gradient needs 2, Solid can go back to a single color.
   const minColors = (state) => state.mode === "solid" ? 1 : 2;
-  // Solid only gets more colors when this caller allows co-extruded selections.
+  // Solid only gets more colors when this caller allows multi-color (gradient) selections.
   function canAddColor(state) {
-    return (state.mode === "gradient" || state.options.allow_coextruded) && modeColors(state).length < state.maxGradientColors;
+    return state.options.allow_gradient && modeColors(state).length < state.maxGradientColors;
   }
 
   // Adds a gradient color or, in Solid mode, a co-extruded color after the selected one.
@@ -172,7 +167,7 @@
   }
 
   // Favorites retain full capabilities regardless of what this caller can select.
-  const ALL_CAPABILITIES = {allow_gradient: true, allow_alpha: true, allow_coextruded: true};
+  const ALL_CAPABILITIES = {allow_gradient: true, allow_alpha: true};
   function normalizeFavorites(values) {
     if (!Array.isArray(values)) return [];
     return values.slice(0, 24).map((value) => normalizeSelection(value, ALL_CAPABILITIES, MAX_GRADIENT_COLORS)).filter(Boolean);

@@ -109,8 +109,8 @@
     modeSwitch.checked = state.mode === "gradient";
     const selection = model.exportSelection(state);
     // Kept in the layout (visibility only) so the grid doesn't shift between Solid and Gradient. Solid
-    // shows its color blocks only where co-extruded colors are allowed.
-    const showBar = state.mode === "gradient" || state.options.allow_coextruded;
+    // shows its color blocks only where multi-color selections are allowed.
+    const showBar = state.options.allow_gradient;
     gradientBar.classList.toggle("invisible", !showBar);
     if (showBar) renderGradient(selection);
     setSwatch(preview, selection);
@@ -279,7 +279,6 @@
       const options = payload.options;
       const hostLimit = options && hostGradientLimit(options);
       if (!options || typeof options.allow_gradient !== "boolean" || typeof options.allow_alpha !== "boolean" ||
-          (options.allow_coextruded !== undefined && typeof options.allow_coextruded !== "boolean") ||
           !Number.isInteger(hostLimit) || hostLimit < 2 || hostLimit > model.MAX_GRADIENT_COLORS ||
           !model.normalizeSelection(payload.selection, options, hostLimit) || !validFavorites(payload.favorites) ||
           (payload.favorites_writable !== undefined && typeof payload.favorites_writable !== "boolean") ||

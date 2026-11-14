@@ -344,12 +344,11 @@ test("The eyedropper stays hidden without a native sampler, even where the WebVi
   assert.equal(await count(page, "sample_screen"), 0);
 });
 
-test("Solid adds co-extruded color blocks only where the caller allows them", options, async t => {
+test("Solid adds co-extruded color blocks only where the caller allows multi-color selections", options, async t => {
   for (const coextruded of [false, true]) {
     const {page, ready, send} = await open(t);
     const payload = init(ready, true, true);
-    assert.equal(await send({...payload, options: {...payload.options, allow_coextruded: "yes"}}), false);
-    assert.equal(await send({...payload, options: {...payload.options, allow_coextruded: coextruded, max_gradient_colors: 7}}), true);
+    assert.equal(await send({...payload, options: {...payload.options, allow_gradient: coextruded, max_gradient_colors: 7}}), true);
     assert.equal(await page.locator("#modeSwitch").isChecked(), false);
     assert.equal(await page.locator("#gradientCtrlBar").isVisible(), coextruded, "Solid shows its color bar only with co-extruded colors");
     if (!coextruded) continue;

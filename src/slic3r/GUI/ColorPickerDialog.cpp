@@ -138,7 +138,7 @@ std::optional<ColorSelection> normalize_color_selection(const ColorSelection& se
         if (!normalize_color(*solid, options.allow_alpha))
             return std::nullopt;
     } else if (auto* coextruded = std::get_if<ColorCoextruded>(&normalized)) {
-        if (!options.supports_coextruded(coextruded->colors.size()))
+        if (!options.supports_gradient(coextruded->colors.size()))
             return std::nullopt;
         for (ColorRGBA& color : coextruded->colors)
             if (!normalize_color(color, options.allow_alpha))
@@ -172,7 +172,7 @@ std::optional<ColorSelection> color_selection_from_json(const nlohmann::json& va
             if (!parse_color((*colors)[i], gradient[i]))
                 return std::nullopt;
         return normalize_color_selection(gradient, options);
-    } else if (*type == "coextruded" && options.supports_coextruded(colors->size())) {
+    } else if (*type == "coextruded" && options.supports_gradient(colors->size())) {
         ColorCoextruded coextruded{std::vector<ColorRGBA>(colors->size())};
         for (std::size_t i = 0; i < coextruded.colors.size(); ++i)
             if (!parse_color((*colors)[i], coextruded.colors[i]))
@@ -1120,7 +1120,6 @@ void ColorPickerDialog::send_initial_state()
         favorites.push_back(color_selection_to_json(selection));
     const nlohmann::json payload = {{"command", "init"}, {"page_id", m_page_id},
                                    {"options", {{"allow_gradient", m_options.allow_gradient}, {"allow_alpha", m_options.allow_alpha},
-                                                {"allow_coextruded", m_options.allow_coextruded},
                                                 {"max_gradient_colors", m_options.gradient_color_limit()}}},
                                    {"can_sample_screen", ColorSampler::m_sampler_available},
                                    {"selection", color_selection_to_json(m_initial)}, {"favorites", std::move(favorites)},

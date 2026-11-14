@@ -163,17 +163,16 @@ TEST_CASE("Ordered multi-color gradients round trip up to the color limit", "[Fi
     REQUIRE_FALSE(filament_color_picker_selection({too_many_gradient_colors(), true}));
 }
 
-TEST_CASE("Co-extruded colors have their own capability with the shared color limit", "[FilamentColorPicker]")
+TEST_CASE("Co-extruded colors follow the gradient capability and the shared color limit", "[FilamentColorPicker]")
 {
     const auto limit = GENERATE(std::size_t{2}, std::size_t{4}, COLOR_PICKER_MAX_GRADIENT_COLORS);
-    const ColorPickerOptions options{false, true, limit, true};
-    REQUIRE_FALSE(options.supports_coextruded(1));
-    REQUIRE(options.supports_coextruded(2));
-    REQUIRE(options.supports_coextruded(limit));
-    REQUIRE_FALSE(options.supports_coextruded(limit + 1));
-    REQUIRE_FALSE(options.supports_gradient(2));
-    REQUIRE_FALSE(ColorPickerOptions{true, true, limit}.supports_coextruded(2));
-    REQUIRE(COLOR_PICKER_ALL_CAPABILITIES.supports_coextruded(COLOR_PICKER_MAX_GRADIENT_COLORS));
+    const ColorPickerOptions options{true, true, limit};
+    REQUIRE_FALSE(options.supports_gradient(1));
+    REQUIRE(options.supports_gradient(2));
+    REQUIRE(options.supports_gradient(limit));
+    REQUIRE_FALSE(options.supports_gradient(limit + 1));
+    REQUIRE_FALSE(ColorPickerOptions{false, true, limit}.supports_gradient(2));
+    REQUIRE(COLOR_PICKER_ALL_CAPABILITIES.supports_gradient(COLOR_PICKER_MAX_GRADIENT_COLORS));
 }
 
 TEST_CASE("Project co-extruded colors keep order and alpha and stay distinct from gradients", "[FilamentColorPicker]")
