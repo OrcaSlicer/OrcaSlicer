@@ -425,10 +425,9 @@ if [ "\$XDG_SESSION_TYPE" = "wayland" ] && [ "\$ZINK_DISABLE_OVERRIDE" != "1" ];
                 [ "\$DRIVER_MAJOR" -gt 555 ] && ZINK_FORCE_OVERRIDE=1
             fi
             if [ "\$ZINK_FORCE_OVERRIDE" = "1" ]; then
-                export __GLX_VENDOR_LIBRARY_NAME=mesa
-                export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
-                export MESA_LOADER_DRIVER_OVERRIDE=zink
-                export GALLIUM_DRIVER=zink
+                # The binary sets Mesa's zink variables only while it creates its GL context, so WebKit's
+                # processes do not inherit them (OpenGLManager.cpp).
+                export ORCA_ZINK_OVERRIDE=1
                 # WebKit's NVIDIA DMABUF workaround is applied by the binary itself,
                 # gated on the runtime WebKitGTK version (src/OrcaSlicer.cpp).
             fi
