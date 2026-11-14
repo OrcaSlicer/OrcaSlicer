@@ -14,6 +14,7 @@
 #include <exception>
 #include <cstdint>
 
+#include <cstddef>
 #include <cstdlib>
 #include <cstring>
 #include <string>
@@ -43,8 +44,9 @@
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
+#include "McpArguments.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
 #include "McpPaths.hpp"
 #include "UiInspector.hpp"   // gizmo_name: the name get_app_state reports
 #include "slic3r/GUI/CAD/DesignPanel.hpp"
@@ -176,17 +178,18 @@ const char* mode_note(const DesignTool& t)
                            "constrains a sketch, its Confirm or Cancel button ends that).";
 }
 
-// cad_note()'s text, given while the preference is off and while it is on but was off at startup. The
-// catalog holds the Design commands only when the feature was on at startup, and the main window creates
-// the Design page only then too (its panel is built on first use), so turning the feature on takes a restart.
-const char* const kCadOffNote = "call_tool runs no Design command now: they need the CAD feature on in Preferences > "
-                                "Features, and on when OrcaSlicer started. A person turns it on there if it is off, and "
-                                "restarts OrcaSlicer.";
+// cad_note()'s text, given while the feature is off and while it is on but was off at startup. The
+// catalog holds the Design commands only when the feature was on at startup (the preference, or the command
+// line's --cad), and the main window creates the Design page only then too (its panel is built on first use),
+// so turning the feature on takes a restart.
+const char* const kCadOffNote = "call_tool runs no Design command now: they need the CAD feature on when OrcaSlicer "
+                                "started, in Preferences > Features or with --cad. A person turns it on there if it is "
+                                "off and restarts OrcaSlicer, or starts it with --cad.";
 
 // Why a catalog built with the CAD feature off leaves out the Design commands, after "Unknown tool: <key>; "
 // or a tile's "<key> is a Design tab tile, and " (unknown_action()).
 const char* const kCadOffAtStartup = "the CAD feature was off when OrcaSlicer started: a person turns it on in "
-                                     "Preferences > Features and restarts OrcaSlicer";
+                                     "Preferences > Features and restarts OrcaSlicer, or starts it with --cad";
 
 json describe_scene(DesignPanel* panel)
 {

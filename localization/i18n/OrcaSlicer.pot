@@ -7914,10 +7914,14 @@ msgstr ""
 msgid "Python scripts"
 msgstr ""
 
-msgid "Python scripts are subject to the same permission checks as plugins: the scripts you run in the Run Script panel or with --mcp-run, and the ones AI agents send through the MCP server. When this option is on, they bypass the permission checks, which is useful for fully automated workflows."
+msgid "Python scripts are subject to the same permission checks as plugins: the scripts you run in the Run Script panel or with --run, and the ones AI agents send through the MCP server. When this option is on, they bypass the permission checks, which is useful for fully automated workflows."
 msgstr ""
 
 msgid "Run Python scripts unrestricted"
+msgstr ""
+
+#. TRN Python scripts window. --unrestricted-scripts is a command line option: keep it as it is.
+msgid "OrcaSlicer was started with --unrestricted-scripts, so scripts run unrestricted until it closes, whatever this setting says."
 msgstr ""
 
 msgid "Small file"
@@ -11167,6 +11171,11 @@ msgid "Add the copied settings to the app's MCP configuration file. For an app t
 msgstr ""
 
 msgid "Copied"
+msgstr ""
+
+#. TRN Preferences, after a setting that a command line option turned on until OrcaSlicer closes. The row
+#. shows the saved setting, which the option does not change.
+msgid "(on for this run by the command line)"
 msgstr ""
 
 msgid "Unrestricted"
@@ -20966,25 +20975,7 @@ msgstr ""
 msgid "MCP server port"
 msgstr ""
 
-msgid "Port of the MCP server. Defaults to the preference, or 13619."
-msgstr ""
-
-msgid "MCP server token"
-msgstr ""
-
-msgid "Bearer token the MCP server requires for this run. The ORCA_MCP_TOKEN environment variable takes precedence and does not show up in the process list."
-msgstr ""
-
-msgid "Run a replay or script"
-msgstr ""
-
-msgid "Run a replay (.json) or a Python script (.py) once the GUI is ready, then exit: 0 when it passed or finished, 1 when a step failed or the script did not finish, 2 when the file is invalid or cannot be read."
-msgstr ""
-
-msgid "Replay output directory"
-msgstr ""
-
-msgid "Where --mcp-run writes a replay's result.json and screenshots. Defaults to <replay name>.out next to the replay."
+msgid "Start the MCP server for this run on this port, as --mcp does. 0 takes the port from the preference, or 13619."
 msgstr ""
 
 msgid "MCP stdio bridge"
@@ -20993,10 +20984,28 @@ msgstr ""
 msgid "Act as an MCP server on standard input and output for clients that cannot use HTTP, forwarding to the running OrcaSlicer (started with --mcp when none answers)."
 msgstr ""
 
+msgid "Run a replay or script"
+msgstr ""
+
+msgid "Run a replay (.json) or a Python script (.py) once the GUI is ready, then exit: 0 when it passed or finished, 1 when a step failed or the script did not finish, 2 when the file is invalid or cannot be read."
+msgstr ""
+
+msgid "Unrestricted Python scripts"
+msgstr ""
+
+msgid "Let Python scripts bypass the permission checks for this run, whatever the preference says."
+msgstr ""
+
+msgid "Design tab"
+msgstr ""
+
+msgid "Show the Design tab and offer its commands for this run, whatever the CAD feature preference says."
+msgstr ""
+
 msgid "Output directory"
 msgstr ""
 
-msgid "This is the output directory for exported files."
+msgid "This is the output directory for exported files. With --run, it is where the run's files go: a replay's result.json and screenshots, and the files saved without a path."
 msgstr ""
 
 msgid "Export statistics"

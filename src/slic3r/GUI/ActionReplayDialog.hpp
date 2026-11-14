@@ -33,9 +33,9 @@ struct ReplayContext;
 // The Action Replay window: a person opens or writes a replay file (an orca_replay, the JSON list of tool calls an
 // agent session exports), saves it, reads its steps and replays it, whole or one step at a time, watching each step's
 // outcome. The page (resources/web/dialog/ActionReplay) shows; this host parses, describes, words and runs, through the
-// MCP service's replay runner without opening its endpoint. A Python script opened or dropped here is offered to the Run
-// Script panel instead. Modeless, one at a time (MainFrame::show_action_replay), and invisible to the MCP GUI tools, so
-// a replay can't act on it.
+// automation runtime's replay runner without opening the MCP endpoint. A Python script opened or dropped here is
+// offered to the Run Script panel instead. Modeless, one at a time (MainFrame::show_action_replay), and invisible to
+// the MCP GUI tools, so a replay can't act on it.
 class ActionReplayDialog : public WebViewHostDialog, public CodeEditorWindow
 {
 public:
@@ -57,7 +57,7 @@ private:
     nlohmann::json localized_strings() const override;
 
     void handle(const nlohmann::json& payload);
-    void send_service_state();
+    void send_runtime_state();
     void open_file();
     void on_navigating(wxWebViewEvent& event);
     void dropped(const boost::filesystem::path& path);

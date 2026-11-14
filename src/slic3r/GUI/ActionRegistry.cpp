@@ -1,5 +1,6 @@
 #include "ActionRegistry.hpp"
 
+#include "ActionIds.hpp"
 #include "CommandCatalog.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"

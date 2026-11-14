@@ -15,9 +15,9 @@
 #include "Mcp/McpReplay.hpp"
 #include "Mcp/McpPersonRun.hpp"
 #include "Mcp/McpReplaySummary.hpp"
-#include "Mcp/McpService.hpp"
+#include "Mcp/AutomationRuntime.hpp"
 #include "Mcp/McpTools.hpp"
-#include "Mcp/McpTypes.hpp"
+#include "Mcp/WindowNames.hpp"
 #include "Widgets/WebViewHostDialog.hpp"
 #include "libslic3r/Utils.hpp"
 #ifdef __APPLE__
@@ -67,12 +67,6 @@ using nlohmann::json;
 namespace fs = boost::filesystem;
 
 namespace {
-
-Mcp::McpService* service()
-{
-    Mcp::McpService* s = wxGetApp().mcp_service();
-    return s != nullptr && s->started() && !s->stopping() ? s : nullptr;
-}
 
 std::string timestamp()
 {
@@ -261,15 +255,16 @@ ActionReplayDialog::ActionReplayDialog(wxWindow* parent) : WebViewHostDialog(par
 {
     // Replays drive the main window through the MCP tools; the dialog keeps out of their sight.
     SetName(Mcp::kHiddenFromAutomation);
-    // Replaying needs the MCP service's tools and jobs, never its network endpoint.
-    if (service() == nullptr)
-        wxGetApp().start_mcp_service(false);
+    // Replaying needs the runtime's tools and jobs, started here without the network endpoint, and its steps drive
+    // the GUI.
+    if (Mcp::AutomationRuntime* runtime = wxGetApp().automation())
+        runtime->enable_gui_instruments();
 
     m_ready_timer.Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
-        Mcp::McpService* s = service();
+        Mcp::AutomationRuntime* s = wxGetApp().automation();
         if (s == nullptr || s->ready())
             m_ready_timer.Stop();
-        send_service_state();
+        send_runtime_state();
     });
     Bind(wxEVT_CLOSE_WINDOW, &ActionReplayDialog::on_close, this);
     static const char page[] = "web/dialog/ActionReplay/index.html";
@@ -388,7 +383,7 @@ void ActionReplayDialog::handle(const nlohmann::json& payload)
     const std::string command = payload.value("command", "");
     try {
         if (command == "init")
-            send_service_state();
+            send_runtime_state();
         else if (command == "open_file")
             open_file();
         else if (command == "edit") {
@@ -421,15 +416,15 @@ void ActionReplayDialog::handle(const nlohmann::json& payload)
     }
 }
 
-void ActionReplayDialog::send_service_state()
+void ActionReplayDialog::send_runtime_state()
 {
-    Mcp::McpService* s     = service();
-    const bool       ready = s != nullptr && s->ready();
-    if (!ready && s != nullptr && !m_ready_timer.IsRunning())
+    Mcp::AutomationRuntime* runtime = wxGetApp().automation();
+    const bool              ready   = runtime != nullptr && runtime->ready();
+    if (!ready && runtime != nullptr && !m_ready_timer.IsRunning())
         m_ready_timer.Start(500);
-    json msg{{"command", "service"}, {"ready", ready}};
+    json msg{{"command", "runtime"}, {"ready", ready}};
     if (ready)
-        msg["tools"] = Mcp::editor_tool_catalog(s->catalog());
+        msg["tools"] = Mcp::editor_tool_catalog(NativeCommands::instance());
     call_web_handler(msg);
 }
 
@@ -611,7 +606,6 @@ Mcp::ReplayContext ActionReplayDialog::context() const
 
 json ActionReplayDialog::describe(const Mcp::Replay& replay) const
 {
-    Mcp::McpService* s = service();
     // ${jobs.NAME} stays as written: a full run starts from no saved jobs and a single step uses the
     // ones saved when it runs, so a job id resolved now would be one neither of them uses.
     Mcp::ReplayContext ctx = context();
@@ -619,8 +613,8 @@ json ActionReplayDialog::describe(const Mcp::Replay& replay) const
     json               steps = json::array();
     for (std::size_t i = 0; i < replay.steps.size(); ++i) {
         const Mcp::ReplayStep&      step = replay.steps[i];
-        const Mcp::StepDescription  d    = Mcp::describe_step(step, replay, ctx);
-        const NativeCommand*        def  = s != nullptr ? s->catalog().find(step.tool) : nullptr;
+        const Mcp::StepDescription  d    = Mcp::describe_step(NativeCommands::instance(), step, replay, ctx);
+        const NativeCommand*        def  = NativeCommands::instance().find(step.tool);
         json                        flags = json::array();
         for (Mcp::StepFlag f : d.flags)
             flags.push_back(Mcp::flag_id(f));
@@ -647,7 +641,7 @@ void ActionReplayDialog::parse(const nlohmann::json& payload)
 {
     json reply{{"command", "parsed"}, {"seq", payload.value("seq", 0)}, {"ok", false}};
     try {
-        Mcp::McpService* s = service();
+        Mcp::AutomationRuntime* s = wxGetApp().automation();
         std::string      err;
         const auto       replay = Mcp::parse_replay(m_text, err);
         if (s == nullptr)
@@ -656,7 +650,7 @@ void ActionReplayDialog::parse(const nlohmann::json& payload)
             reply["error"] = err;
         else {
             for (std::size_t i = 0; i < replay->steps.size() && !reply.contains("error"); ++i)
-                if (s->catalog().lookup(replay->steps[i].tool) == nullptr)
+                if (NativeCommands::instance().lookup(replay->steps[i].tool) == nullptr)
                     // TRN %1% is a step number, %2% the name of the tool the replay asks for.
                     reply["error"] = format(_u8L("Step %1% uses a tool this version of OrcaSlicer doesn't have: %2%"), i + 1,
                                             replay->steps[i].tool);
@@ -683,7 +677,7 @@ void ActionReplayDialog::run(const nlohmann::json& payload)
 {
     if (running())
         return;
-    Mcp::McpService* s = service();
+    Mcp::AutomationRuntime* s = wxGetApp().automation();
     if (s == nullptr || !s->ready()) {
         refuse(_u8L("Replays can't run while OrcaSlicer is starting or closing."));
         return;
@@ -711,7 +705,7 @@ void ActionReplayDialog::run(const nlohmann::json& payload)
     // check them themselves), or ones the replay may answer the app's own question for.
     bool checked = false, app_asked = false, answers = false;
     for (std::size_t i = only ? *only - 1 : 0; i < (only ? *only : replay->steps.size()); ++i) {
-        const Mcp::StepDescription d = Mcp::describe_step(replay->steps[i], *replay, ctx);
+        const Mcp::StepDescription d = Mcp::describe_step(NativeCommands::instance(), replay->steps[i], *replay, ctx);
         checked                      = checked || d.replace == "checked";
         app_asked                    = app_asked || d.replace == "app_asked";
         answers                      = answers || d.answers_dialogs;
@@ -775,7 +769,7 @@ void ActionReplayDialog::run(const nlohmann::json& payload)
     m_single  = only;
     m_total   = replay->steps.size();
     m_started = std::chrono::steady_clock::now();
-    m_run     = s->start_replay_run(std::move(*replay), ctx, only, discard, std::move(events));
+    m_run     = Mcp::start_replay_run(*s, std::move(*replay), ctx, only, discard, std::move(events));
     if (!m_run) {
         refuse(_u8L("Replays can't run while OrcaSlicer is starting or closing."));
         return;
@@ -786,7 +780,7 @@ void ActionReplayDialog::run(const nlohmann::json& payload)
     if (MainFrame* frame = wxGetApp().mainframe)
         keep_window_above(GetHandle(), frame->GetHandle(), true);
 #endif
-    // Reaches the page before any report of this run: those come through the service's dispatcher
+    // Reaches the page before any report of this run: those come through the runtime's dispatcher
     // and then call_web_handler(), two CallAfter()s on the app's queue, after this one.
     json started{{"command", "run_started"}, {"total", m_total}};
     if (only)

@@ -20,9 +20,10 @@
 
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
+#include "slic3r/GUI/Mcp/McpArguments.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
 #include "slic3r/GUI/Mcp/WindowControl.hpp"
 #include "slic3r/GUI/Camera.hpp"
@@ -45,6 +46,7 @@
 #include <utility>
 #include <vector>
 
+using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Mcp;
 using nlohmann::json;
 using Slic3r::GUI::CommandCatalog;
@@ -192,7 +194,8 @@ TEST_CASE("run_action says where an action it cannot find is", "[Mcp][SpeedDial]
                 CHECK_THAT(why, Catch::Matchers::ContainsSubstring("call_tool {\"tool\": \"shell\"}"));
             } else {
                 CHECK(why == id + " is a Design tab tile, and the CAD feature was off when OrcaSlicer started: a person "
-                                  "turns it on in Preferences > Features and restarts OrcaSlicer");
+                                  "turns it on in Preferences > Features and restarts OrcaSlicer, or starts it with "
+                                  "--cad");
             }
         }
         // A Design command without a tile is any unknown action.

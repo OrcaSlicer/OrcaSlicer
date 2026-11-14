@@ -1,6 +1,6 @@
 #include "UiRefs.hpp"
 
-#include "McpTypes.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <nlohmann/json.hpp>
 

@@ -12,7 +12,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "libslic3r/Utils.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/Mcp/ModalTracker.hpp"
 #include "slic3r/GUI/Mcp/UiRefs.hpp"
 #include "slic3r/GUI/Mcp/WebPages.hpp"
@@ -47,6 +47,7 @@
 
 using json = nlohmann::json;
 using namespace Slic3r;
+using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Mcp;
 
 namespace {

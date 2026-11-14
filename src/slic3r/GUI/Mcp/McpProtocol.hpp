@@ -1,8 +1,7 @@
 #pragma once
 
-#include "McpTypes.hpp"
-
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -27,6 +26,9 @@ struct ServerInfo
     std::string version;
     std::string instructions;
 };
+
+// What initialize and server/discover report: the server's name, version and instructions (McpServerInfo.cpp).
+ServerInfo server_info();
 
 // One POSTed message and the transport headers the protocol checks. Header values are empty when
 // the header was absent.

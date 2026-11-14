@@ -3,11 +3,12 @@
 // search_tools's search also reaches the other catalogs an agent calls into: the Speed Dial's other actions,
 // settings and the Python API.
 
+#include "McpArguments.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
 
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/GUI.hpp"

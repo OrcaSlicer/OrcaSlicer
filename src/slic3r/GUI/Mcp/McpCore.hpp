@@ -1,10 +1,10 @@
 #pragma once
 
 #include "JobRegistry.hpp"
-#include "McpTypes.hpp"
 #include "UiInvoker.hpp"
 
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -22,7 +22,7 @@
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 class Journal;
-class McpService;
+class AutomationRuntime;
 
 struct CoreTiming
 {
@@ -79,6 +79,8 @@ public:
 
     // A call from a client. Mutate commands become top-level jobs.
     ToolResult call(const NativeCommand& command, const nlohmann::json& args) override;
+    // As call(), with the job marked a person's.
+    ToolResult call_person(const NativeCommand& command, const nlohmann::json& args);
     // A call made by a running job (a replay step or a script's call). The new job's parent is `parent_job`, so a
     // `wait {for:"idle"}` from that job does not wait for it, and the journal leaves it out.
     ToolResult call_child(const NativeCommand& command, const nlohmann::json& args, const std::string& parent_job,
@@ -92,12 +94,11 @@ public:
     // is the agent's session.
     ToolResult call_plugin(const NativeCommand& command, const nlohmann::json& args, const std::string& plugin_key);
     // Starts `command` as a client's call starts a job, under the same guards and operation admission, whatever
-    // its inline_call, and returns the job's id without waiting; not journaled. It is a person's pick, so with a
-    // service set the job runs as a person's run (McpService::as_person()). `done` gets the job's result on
-    // the job's thread as it ends. A call refused before a job starts (another job's operation holds the
-    // project, too many jobs) returns an empty id and gets its refusal through `done` at once, on the calling
-    // thread. Once the core is shutting down it returns an empty id and never calls `done`. What `done` throws
-    // is dropped. Any thread.
+    // its inline_call, and returns the job's id without waiting; not journaled. It is a person's pick, so its job
+    // is marked a person's (JobRegistry::person_in()). `done` gets the job's result on the job's thread as it
+    // ends. A call refused before a job starts (another job's operation holds the project, too many jobs) returns
+    // an empty id and gets its refusal through `done` at once, on the calling thread. Once the core is shutting
+    // down it returns an empty id and never calls `done`. What `done` throws is dropped. Any thread.
     std::string submit(const NativeCommand& command, const nlohmann::json& args, std::function<void(const ToolResult&)> done);
 
     // Refuses new calls. The owner wakes UiInvoker and JobRegistry, which makes running calls return.
@@ -109,10 +110,10 @@ public:
     const CommandCatalog& catalog() const { return m_catalog; }
     UiInvoker&            ui() { return m_ui; }
     JobRegistry&          jobs() { return m_jobs; }
-    // The service that owns the core, which ToolContext::service() of its calls returns; nullptr for a core
+    // The runtime that owns the core, which ToolContext::runtime() of its calls returns; nullptr for a core
     // built on its own, as a unit test builds one. Set once, before any call.
-    void        set_service(McpService* service) { m_service = service; }
-    McpService* service() const { return m_service; }
+    void               set_runtime(AutomationRuntime* runtime) { m_runtime = runtime; }
+    AutomationRuntime* runtime() const { return m_runtime; }
 
     // Operation admission for a change made by `job` ("" for a call that holds nothing), on the UI
     // thread: throws ToolFailure while another job's operation holds the project, or while the UI job
@@ -132,12 +133,15 @@ public:
 
 private:
     std::uint64_t dialog_of(const std::string& job) const;
-    ToolResult run(const NativeCommand& command, const nlohmann::json& args, const std::string& parent, const std::string& plugin);
+    // `person` marks the call's job a person's (JobRegistry::create()); an inline call has no job to mark.
+    ToolResult run(const NativeCommand& command, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
+                   bool person);
     // Starts `command` as a job on a thread of its own, under operation admission: returns the job's id, or ""
     // with `refused` set when no job started. The job's journal entry is `seq` (0 for none); `done`, when
     // given, gets the job's result on its thread as it ends, before a wait on the job sees it.
     std::string start_job(const NativeCommand& command, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
-                          uint64_t seq, uint64_t call, const std::function<void(const ToolResult&)>& done, ToolResult& refused);
+                          bool person, uint64_t seq, uint64_t call, const std::function<void(const ToolResult&)>& done,
+                          ToolResult& refused);
     // Whether the core refuses new calls.
     bool shutting_down();
     // On `job`'s thread once its handler returned: when it holds the UI job worker, waits until the
@@ -152,7 +156,7 @@ private:
     CoreTiming            m_timing;
     WorkerHooks           m_worker;
     CallObserver*         m_observer;
-    McpService*           m_service = nullptr;
+    AutomationRuntime*    m_runtime = nullptr;
     std::atomic<uint64_t> m_next_call{1};
 
     // The job whose call started the worker's current job, and whether a cancel was asked for it.

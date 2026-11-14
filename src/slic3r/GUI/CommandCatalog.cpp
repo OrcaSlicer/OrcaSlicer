@@ -1,6 +1,7 @@
 #include "CommandCatalog.hpp"
 
-#include "Mcp/McpTypes.hpp"
+#include "CommandTypes.hpp"
+#include "Mcp/McpArguments.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -102,12 +103,12 @@ std::string CommandCatalog::unknown_command(const std::string& key, bool suggest
 
 namespace {
 
-const char* guard_name(Mcp::GuardClass guard)
+const char* guard_name(GuardClass guard)
 {
     switch (guard) {
-    case Mcp::GuardClass::Inspect: return "inspect";
-    case Mcp::GuardClass::Recover: return "recover";
-    case Mcp::GuardClass::Mutate: return "mutate";
+    case GuardClass::Inspect: return "inspect";
+    case GuardClass::Recover: return "recover";
+    case GuardClass::Mutate: return "mutate";
     }
     return "mutate";
 }

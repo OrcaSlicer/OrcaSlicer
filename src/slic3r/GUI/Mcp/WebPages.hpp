@@ -19,10 +19,13 @@ class wxDialog;
 class wxWebView;
 class wxWindow;
 
-namespace Slic3r { namespace GUI { namespace Mcp {
+namespace Slic3r { namespace GUI {
+
+class ToolContext;
+
+namespace Mcp {
 
 class ModalTracker;
-class ToolContext;
 
 // Web pages as the GUI tools see them. Every wxWebView of OrcaSlicer - its dialogs and tabs, sign-in
 // pages, plugin dialogs, windows, pages and dock panels - is read and driven through the page agent
@@ -181,7 +184,7 @@ private:
 };
 
 // Asks the agents of the presses `owner` made (every one when null) to release them, without
-// waiting, where no call is there to wait: as a run ends, the endpoint closes, the service stops
+// waiting, where no call is there to wait: as a run ends, the endpoint closes, the runtime stops
 // or an auto-answer rule presses a button. Each release names its press, which the page ends only if
 // it still holds it, so it carries no deadline: a page busy now releases once free. A press its page
 // confirms is dropped. A frame's release, which its page forwards, reaches the frame before any

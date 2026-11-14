@@ -255,10 +255,8 @@ def write_conf(conf, data):
         f.write("\n")
 
 
-def seed_datadir(datadir, printer, cad=False, unrestricted_scripts=False):
-    """Seed a fresh datadir's OrcaSlicer.conf. A datadir that has one keeps it, except for the settings
-    cad and unrestricted_scripts turn on, which only the file can: the app creates the Design tab only at
-    startup, when its setting is on, and no tool lets Python scripts run unrestricted.
+def seed_datadir(datadir, printer):
+    """Seed a fresh datadir's OrcaSlicer.conf. A datadir that has one keeps it.
 
     A fresh datadir keeps the Orca Cloud login in its own token file (use_encrypted_token_file), not in the
     system's secret store, so the instance starts signed out and never reads the person's login: on macOS
@@ -266,26 +264,13 @@ def seed_datadir(datadir, printer, cad=False, unrestricted_scripts=False):
     vendor, model, nozzle, filament = printer
     os.makedirs(datadir, exist_ok=True)
     conf = os.path.join(datadir, "OrcaSlicer.conf")
-    switches = {}
-    if cad:
-        switches["enable_cad_feature"] = True
-    if unrestricted_scripts:
-        switches["mcp_python_unrestricted"] = "true"
     if os.path.exists(conf):
-        if switches:
-            with open(conf, encoding="utf-8") as f:
-                text = f.read()
-            # The app ends the file with a checksum line after the JSON; a mismatch only logs.
-            data = json.loads(text[:text.rfind("}") + 1])
-            data.setdefault("app", {}).update(switches)
-            write_conf(conf, data)
         return
     write_conf(conf, {"firstguide": {"finish": True},
                       "models": [{"model": model, "nozzle_diameter": nozzle, "vendor": vendor}],
                       "filaments": [filament],
                       "presets": {"machine": f"{model} {nozzle} nozzle"},
-                      "app": {"check_for_updates": False, "show_daily_tips": False, "use_encrypted_token_file": True,
-                              **switches}})
+                      "app": {"check_for_updates": False, "show_daily_tips": False, "use_encrypted_token_file": True}})
 
 
 # The headless compositors --headless tries, in order, by the binary each needs.
@@ -469,13 +454,15 @@ def launch(args):
     if args.printer:
         model, _, nozzle = args.printer.partition("@")
         printer = (args.vendor, model, nozzle or "0.4", args.filament or DEFAULT_PRINTER[3])
-    seed_datadir(datadir, printer, args.cad, args.unrestricted_scripts)
+    seed_datadir(datadir, printer)
 
     env = dict(os.environ, ORCA_MCP_TOKEN=token)
     binary = find_binary(args.bin)
     server, display_env, server_pid = start_display(args, datadir)
     app_env(env, datadir, display_env)
-    cmd = [binary, "--datadir", datadir, "--mcp", "--mcp-port", str(args.port)] + args.extra
+    # The two flags hold for this run and never write the datadir's settings.
+    flags = (["--cad"] if args.cad else []) + (["--unrestricted-scripts"] if args.unrestricted_scripts else [])
+    cmd = [binary, "--datadir", datadir, "--mcp", "--mcp-port", str(args.port)] + flags + args.extra
     log = open(os.path.join(datadir, "mcp-launch.log"), "w")
     proc = subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT, start_new_session=True)
 
@@ -540,9 +527,10 @@ def main():
     p.add_argument("--printer", help="\"<model>@<nozzle>\" for a fresh datadir, e.g. \"Bambu Lab X1 Carbon@0.4\"")
     p.add_argument("--vendor", default="BBL")
     p.add_argument("--filament")
-    p.add_argument("--cad", action="store_true", help="turn the Design (CAD) tab on, for its commands (search_tools group Design)")
+    p.add_argument("--cad", action="store_true",
+                   help="start the app with --cad: the Design (CAD) tab on for this run, for its commands (search_tools group Design)")
     p.add_argument("--unrestricted-scripts", action="store_true",
-                   help="let Python scripts (run_script) run unrestricted, which no tool can turn on")
+                   help="start the app with --unrestricted-scripts: Python scripts (run_script) unrestricted for this run")
     p.add_argument("--timeout", type=int, default=120)
     p.add_argument("--print-config", action="store_true", help="print client setup commands")
     p.add_argument("extra", nargs="*", help="extra orca-slicer arguments after --")

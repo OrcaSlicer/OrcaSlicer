@@ -1,6 +1,6 @@
 #include "McpReplay.hpp"
 #include "McpPaths.hpp"
-#include "McpTypes.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <algorithm>
 #include <chrono>

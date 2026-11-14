@@ -14,6 +14,7 @@
 
 #include <chrono>
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <limits>
@@ -44,7 +45,7 @@ class GLToolbarItem;
 
 namespace Mcp {
 
-class McpService;
+class ModalTracker;
 
 // What a ref or locator points at.
 struct UiTarget
@@ -129,7 +130,9 @@ struct ClickOptions
 class UiInspector
 {
 public:
-    explicit UiInspector(McpService& service) : m_service(service) {}
+    UiInspector(ModalTracker& modals, std::function<uint64_t()> ui_generation)
+        : m_modals(modals), m_ui_generation(std::move(ui_generation))
+    {}
     ~UiInspector() { capture_menus(false); }
     UiInspector(const UiInspector&)            = delete;
     UiInspector& operator=(const UiInspector&) = delete;
@@ -241,7 +244,9 @@ private:
         std::string owner;
     };
 
-    McpService&                m_service;
+    ModalTracker&              m_modals;
+    // The UI generation refs carry, so that a ref into a rebuilt main window reads stale.
+    std::function<uint64_t()>  m_ui_generation;
     RefTable<UiTarget>         m_refs;
     std::optional<HeldGesture> m_held;
 
@@ -294,7 +299,7 @@ bool hidden_from_automation(const wxWindow* w);
 bool skipped_by_walks(const wxWindow* w);
 // "No modal dialog is open", naming the shown windows that don't block (the Plugins dialog) and how
 // to reach them, since an agent sees them as dialogs too. UI thread only.
-std::string no_modal_dialog(McpService& service);
+std::string no_modal_dialog(ModalTracker& modals);
 // What a locator's `within` names `w`'s window by: its top-level window's title, empty for the main
 // window, whose title follows the project name.
 std::string within_of(wxWindow* w);

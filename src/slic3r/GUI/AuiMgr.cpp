@@ -1,7 +1,7 @@
 #include "AuiMgr.hpp"
 
 #include "GUI_App.hpp"
-#include "Mcp/McpTypes.hpp"
+#include "Mcp/WindowNames.hpp"
 #ifdef __WXGTK__
 #include "LinuxDisplayBackend.hpp"
 #endif

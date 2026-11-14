@@ -23,7 +23,8 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r_version.h"
 #include "slic3r/GUI/UserNotification.hpp"
-#include "slic3r/GUI/Mcp/McpServicePtr.hpp"
+#include "slic3r/GUI/GUI_Init.hpp"
+#include "slic3r/GUI/Mcp/AutomationRuntimePtr.hpp"
 #include "slic3r/Utils/CloudDeleteQueue.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include "libslic3r/Point.hpp"
@@ -56,7 +57,6 @@
 
 class wxMenuItem;
 class wxMenuBar;
-class wxTimer;
 class wxTopLevelWindow;
 class wxDataViewCtrl;
 class wxBookCtrlBase;
@@ -120,6 +120,9 @@ class HttpServer;
 class ImGuiWrapper;
 class OpenGLManager;
 class UpgradeNetworkJob;
+namespace Mcp {
+class McpEndpoint;
+}
 
 typedef std::function<void(int status, int percent, bool& cancel)> InstallProgressFn;
 
@@ -386,10 +389,11 @@ private:
     bool             m_show_error_msgdlg{false};
     wxString         m_info_dialog_content;
     std::unique_ptr<HttpServer> m_http_server;
-    Mcp::McpServicePtr m_mcp;
+    Mcp::AutomationRuntimePtr m_automation;
+    // After the runtime, so it is destroyed first: it holds the runtime by reference. Null in a session that never
+    // opened it.
+    std::unique_ptr<Mcp::McpEndpoint> m_mcp_endpoint;
     std::unique_ptr<RunScriptPanel> m_run_script_panel;
-    bool               m_mcp_wanted = false;        // the endpoint should be open: --mcp, the preference, or Preferences
-    std::unique_ptr<wxTimer> m_mcp_takeover_timer;  // retries the port another window holds; created on first need
     bool             m_show_gcode_window{true};
     boost::thread    m_check_network_thread;
 public:
@@ -403,7 +407,11 @@ public:
     bool            initialized() const { return m_initialized; }
     inline bool     is_enable_multi_machine() { return this->app_config&& this->app_config->get("enable_multi_machine") == "true"; }
 #ifdef SLIC3R_CAD
-    inline bool     is_enable_cad_feature() { return this->app_config && this->app_config->get_bool("enable_cad_feature"); }
+    // the saved preference
+    bool cad_feature_setting() const { return this->app_config && this->app_config->get_bool("enable_cad_feature"); }
+    // in force: the preference, or --cad for this run
+    bool is_enable_cad_feature() const { return cad_feature_setting() || cad_feature_set_for_run(); }
+    bool cad_feature_set_for_run() const { return this->init_params != nullptr && this->init_params->cad; }
     inline bool     is_auto_close_sketch_loops() { return !this->app_config
         || this->app_config->get_bool("auto_close_sketch_loops"); }
 #endif
@@ -668,24 +676,30 @@ public:
     void            start_http_server(int port, const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            stop_http_server();
 
-    // MCP server for AI agents, from Preferences or --mcp/--mcp-run. `serve` opens the HTTP
-    // endpoint; a --mcp-run alone needs only the tool catalog. While another window that shares
-    // the configuration folder holds the port, this one keeps trying and takes it over when that
-    // window closes. UI thread.
-    bool            start_mcp_service(bool serve, std::string* error = nullptr);
-    // Closes the endpoint until the next start, as turning the server off in Preferences does; the
-    // service lives on, since an MCP call may have opened Preferences.
-    void            stop_mcp_endpoint();
-    // Stops the MCP service but keeps it: a call may still be on the stack (a nested event loop).
-    void            stop_mcp_service();
-    // Stops it and frees it once no call runs in it. Outside any event loop only (OnExit, CleanUp).
-    void            destroy_mcp_service();
-    // Moves the MCP endpoint to the port set in Preferences, which replaces one given on the command
-    // line for the rest of the session: a serving endpoint reopens on it, and a later start opens on it.
-    bool            restart_mcp_endpoint(std::string* error = nullptr);
-    Mcp::McpService* mcp_service() { return m_mcp.get(); }
-    // The Run Script panel's controller, built on first use and kept until the MCP service, whose job hosts its session,
-    // goes away.
+    // The automation runtime, ready for use: started, by this call if need be and without the MCP endpoint, and not
+    // stopping. nullptr while OrcaSlicer closes or the runtime stops. UI thread.
+    Mcp::AutomationRuntime* automation();
+    // The runtime if something has started it, stopping or not. Never starts it. UI thread.
+    Mcp::AutomationRuntime* automation_if_started();
+    // The MCP endpoint, or nullptr before the first open. UI thread.
+    Mcp::McpEndpoint* mcp_endpoint();
+    // Opens the endpoint on the port of the command line, else of the preference, starting the runtime first.
+    // Shows a notification when it cannot open and no other window holds the port. While OrcaSlicer closes it
+    // opens nothing and only returns the error.
+    bool open_mcp_endpoint(std::string* error = nullptr);
+    // Closes the endpoint until the next open, as turning the server off in Preferences does. The runtime carries
+    // on, since an MCP call may have opened Preferences. UI thread.
+    void close_mcp_endpoint();
+    // Moves the endpoint to the port set in Preferences, which replaces one given on the command line for the rest
+    // of the session: an endpoint that serves, or waits for a port another window holds, reopens on it, and a later
+    // open opens on it. UI thread.
+    bool restart_mcp_endpoint(std::string* error = nullptr);
+    // Closes the endpoint, then stops the runtime; both are kept, since a call may still be on the stack.
+    void stop_automation();
+    // Stops both and frees them once no thread is inside. Outside any event loop only (OnExit, CleanUp).
+    void destroy_automation();
+    // The Run Script panel's controller, built on first use and kept until the automation runtime, whose job hosts
+    // its session, goes away.
     RunScriptPanel&  run_script_panel();
     RunScriptPanel*  run_script_panel_if_built() { return m_run_script_panel.get(); }
 

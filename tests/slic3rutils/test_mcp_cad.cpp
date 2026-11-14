@@ -35,9 +35,10 @@
 #include "slic3r/GUI/CAD/DesignOffer.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
+#include "slic3r/GUI/Mcp/McpArguments.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/McpToolsCad.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 
 #include <TopoDS_Edge.hxx>
@@ -222,7 +223,7 @@ bool is_id_param(const std::string& name)
 }
 
 // A call's context that runs its UI closures in place and keeps the arguments it journals.
-struct JournalContext final : GUI::Mcp::ToolContext
+struct JournalContext final : GUI::ToolContext
 {
     explicit JournalContext(bool person = false) : picked(person) {}
 
@@ -231,7 +232,7 @@ struct JournalContext final : GUI::Mcp::ToolContext
     json                  observe_ui(const std::function<json()>&) override { return true; }
     const std::string&    job_id() const override { return id; }
     bool                  cancelled() const override { return false; }
-    GUI::Mcp::ToolResult  call_child(const std::string&, const json&) override { return GUI::Mcp::ToolResult::error("no children"); }
+    GUI::ToolResult       call_child(const std::string&, const json&) override { return GUI::ToolResult::error("no children"); }
     std::set<std::string> lineage() const override { return {}; }
     void                  set_journal_args(json args) override { journaled = std::move(args); }
     void                  begin_operation() override {}
@@ -457,7 +458,7 @@ TEST_CASE("a tool refused for the selection says it does not apply and what it t
     // row's refusal speaks of.
     const GUI::DesignTool&                     delete_face = design_row("delete_face");
     const int                                  none        = int(GUI::OfferSel::None);
-    const std::optional<GUI::Mcp::ToolFailure> refused     = GUI::Mcp::open_refusal(delete_face, false, none);
+    const std::optional<GUI::ToolFailure>      refused     = GUI::Mcp::open_refusal(delete_face, false, none);
     REQUIRE(refused.has_value());
     CHECK(std::string(refused->what()) == "This tool does not apply to what is selected");
     CHECK(refused->details.at("code") == -32000);
@@ -475,7 +476,7 @@ TEST_CASE("a tool refused for the selection says it does not apply and what it t
         while (miss < int(GUI::OfferSel::Count) && (t.accepts & GUI::offer_bit(GUI::OfferSel(miss))) != 0)
             ++miss;
         REQUIRE(miss < int(GUI::OfferSel::Count));
-        const std::optional<GUI::Mcp::ToolFailure> missed = GUI::Mcp::open_refusal(t, t.sketch_mode, miss);
+        const std::optional<GUI::ToolFailure> missed = GUI::Mcp::open_refusal(t, t.sketch_mode, miss);
         REQUIRE(missed.has_value());
         CHECK(std::string(missed->what()) == "This tool does not apply to what is selected");
         CHECK(missed->details.at("selection") == GUI::kDesignSelectionIds[miss]);
@@ -499,7 +500,7 @@ TEST_CASE("a Design tool opens only in the mode its row belongs to", "[Mcp][CAD]
         // In the other mode it is refused whatever is selected there, before the selection is looked at.
         for (int kind = 0; kind < int(GUI::OfferSel::Count); ++kind) {
             INFO(kind);
-            const std::optional<GUI::Mcp::ToolFailure> refused = GUI::Mcp::open_refusal(t, !t.sketch_mode, kind);
+            const std::optional<GUI::ToolFailure> refused = GUI::Mcp::open_refusal(t, !t.sketch_mode, kind);
             REQUIRE(refused.has_value());
             CHECK(std::string(refused->what()) == (t.sketch_mode ? in_sketch : on_model));
             CHECK(refused->details.at("code") == -32000);
@@ -785,7 +786,7 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     CHECK_FALSE(fillet.listed);
 
     JournalContext             agent;
-    const GUI::Mcp::ToolResult reply = fillet.run({{"generation", 4}, {"silent", true}, {"radius", 2}}, agent);
+    const GUI::ToolResult      reply = fillet.run({{"generation", 4}, {"silent", true}, {"radius", 2}}, agent);
     CHECK(agent.journaled == json{{"silent", true}, {"radius", 2}});
     // The function still checks the generation, and the reply wraps its value.
     CHECK(seen == json{{"generation", 4}, {"silent", true}, {"radius", 2}});
@@ -813,9 +814,9 @@ TEST_CASE("a CAD call is journaled without its generation and with its silent", 
     // A failure is the call's error.
     const GUI::NativeCommand refused = GUI::Mcp::cad_command("hole", "Hole", json{{"type", "object"}, {"properties", json::object()}},
                                                              [](const json&) -> json {
-                                                                 throw GUI::Mcp::ToolFailure("removed no material", {{"code", -32000}});
+                                                                 throw GUI::ToolFailure("removed no material", {{"code", -32000}});
                                                              });
-    CHECK_THROWS_AS(refused.run(json::object(), agent), GUI::Mcp::ToolFailure);
+    CHECK_THROWS_AS(refused.run(json::object(), agent), GUI::ToolFailure);
 }
 
 TEST_CASE("an unknown command is answered with close names only", "[Mcp][CAD]")

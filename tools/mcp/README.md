@@ -20,12 +20,11 @@ an `OrcaSlicer.conf` that has a finished setup wizard and one printer and filame
 Carbon 0.4 by default), with update checks and daily tips turned off, and with the Orca Cloud login kept
 in a token file in the datadir (`use_encrypted_token_file`) instead of the system's secret store, so the
 instance starts signed out and never reads your login: on macOS that read would stop a newly built app at
-a keychain prompt. `--cad` turns the Design
-(CAD) tab on, and with it its commands: it sets `enable_cad_feature` in a fresh datadir's
-`OrcaSlicer.conf`, and in a reused one too, since the app creates the Design tab and its commands only at
-startup, when that setting is on.
-`--unrestricted-scripts` lets Python scripts (`run_script`) run unrestricted the same way, by setting
-`mcp_python_unrestricted`, since no tool can turn that on. The token comes from
+a keychain prompt. `--cad` starts the app with
+`--cad`, which turns the Design (CAD) tab on for that run, and with it its commands, and
+`--unrestricted-scripts` starts it with `--unrestricted-scripts`, which lets Python scripts
+(`run_script`) run unrestricted for that run. Neither writes the datadir's `OrcaSlicer.conf`, and a later
+launch without them has the settings the datadir holds. The token comes from
 `ORCA_MCP_TOKEN` or is generated, and it reaches the app through the environment, not the command
 line. On Linux, `launch` also sets `SSL_CERT_FILE`, so a fresh datadir doesn't prompt for a CA
 bundle. On Windows, it gives the instance its own WebView2 profile in the datadir, apart from the one
@@ -139,13 +138,30 @@ tools/mcp/orca_mcp.py run-replay tools/mcp/smoke_test.json --out /tmp/orca-smoke
 tools/mcp/orca_mcp.py stop
 ```
 
-Without the harness, `orca-slicer --datadir DIR --mcp-run tools/mcp/smoke_test.json
---mcp-run-out /tmp/orca-smoke` runs the replay and exits. On Linux, set `SSL_CERT_FILE` (for
+Without the harness, `orca-slicer --datadir DIR --run tools/mcp/smoke_test.json
+--outputdir /tmp/orca-smoke` runs the replay and exits. On Linux, set `SSL_CERT_FILE` (for
 example to `/etc/ssl/certs/ca-certificates.crt`) as the harness does; otherwise a prompt for the CA
 bundle blocks startup before the replay can run. The exit code is 0 when it passes, 1
-when a step fails and 2 when the replay is invalid. The run leaves `result.json` and the
-screenshots in the output directory. `tests/replay_basic.json` is the smallest such check: load,
-change a setting, slice and capture.
+when a step fails and 2 when the replay is invalid, cannot be read or is neither a `.json` nor a `.py`
+file. The run leaves `result.json` and the screenshots in the `--outputdir` folder, or without it in
+`<replay name>.out` beside the replay. Files that a step or a script saves without a path go to the
+`--outputdir` folder too, or without it to `<datadir>/automation/out`. A `--run` launch is never handed to a window that is already open, whatever
+the single-instance preference says, and it is refused with an action or `--downward-check`, which start
+no GUI. `tests/replay_basic.json` is the smallest such check: load, change a setting, slice and capture.
+
+`test_command_line.py [--bin PATH] [CHECK ...]` checks that command line, starting the built app as its own
+child on fresh data folders: that the options it does not have are refused before any GUI starts, `--run`'s exit
+codes and folders, its refusal beside an action or `--downward-check`, that `--mcp-port` alone opens the server,
+that `--unrestricted-scripts` and `--cad` hold for the run without writing the configuration, and a run beside a
+window already open on the same data folder. It prints one line per check and takes about two to three minutes.
+
+`test_runtime_lifecycle.py [--bin PATH] [CHECK ...]` checks how the app's automation behaves while the app closes,
+and while its server is switched off and on during a call, starting the built app as its own child on fresh data
+folders. The app is closed with the File menu's Quit while a job runs, while a recording runs, and while a call no
+stop interrupts is still running, where the app keeps the runtime rather than free it under the call and logs that
+a call did not return; a `--run` with the endpoint never opened exits on its own; and the server, switched off and
+on in Preferences during a call, serves on the port it had. It prints one line per check and takes about three
+minutes.
 
 `test_plugin_tools.py` checks a plugin's calls into the tools in the running app: it side-loads
 `tests/plugins/mcp_tools_fixture` into a fresh data folder and launches twice: over MCP, with the Design tab
@@ -156,18 +172,18 @@ and a thread it starts reach the tools, an auto-answer rule it sets is the plugi
 refused, nothing it calls is journaled, a script that finds its progress dialog handle can use it,
 `tests/plugins/mcp_tools_broken`, whose load fails, offers none of its operations, and unticking the
 plugin in the Plugins dialog withdraws its operation and ends its rule); and without MCP,
-where a `--mcp-run` runs the plugin's script and its rule is still the plugin's. Run it as
+where a `--run` runs the plugin's script and its rule is still the plugin's. Run it as
 `python tools/mcp/test_plugin_tools.py`. The
 Run Script panel's `.py` files are not driven from here: the panel is hidden from automation and opens its
 files through a file picker, so how it reads and saves them is covered by the unit tests of
 `decode_python_source()` and `encode_python_source()`.
 
-A `.py` file given to `--mcp-run` runs as a Python script (`run_script`) instead, exiting 0 when it
+A `.py` file given to `--run` runs as a Python script (`run_script`) instead, exiting 0 when it
 finishes and 1 when it raises, is cancelled or runs out of time; its traceback goes to the log. A
 script's own file access is held to OrcaSlicer's folders, and it starts no programs or threads and reaches
-no network, until the setting lets scripts run unrestricted: set `"mcp_python_unrestricted": "true"` in the
-`app` section of the datadir's `OrcaSlicer.conf` before the launch, as
-`orca_mcp.py launch --unrestricted-scripts` does, since no tool can turn it on.
+no network, unless scripts run unrestricted: start the app with `--unrestricted-scripts` for one run (as
+`orca_mcp.py launch --unrestricted-scripts` does), or a person turns the setting on in Preferences. No tool
+can turn either on.
 
 A `.py` file runs as Python runs it (`python file.py`), with the whole plugin API: `__name__` is
 `"__main__"`, `__file__` and `sys.argv` name it, the modules beside it import (afresh each run, so an edit

@@ -2,9 +2,9 @@
 
 #include "libslic3r/Model.hpp"
 
-#include "McpTypes.hpp"
 #include "UiInspector.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PlateOps.hpp"

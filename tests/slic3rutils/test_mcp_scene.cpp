@@ -25,6 +25,7 @@
 #include <imgui/imgui.h>
 #include <nlohmann/json.hpp>
 
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/IMSlider.hpp"
@@ -33,7 +34,6 @@
 #include "slic3r/GUI/Mcp/McpCore.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/Mcp/UiInvoker.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
@@ -82,12 +82,12 @@ TEST_CASE("size targets scale uniformly when one axis is given", "[Mcp][Scene]")
     CHECK(Mcp::size_factors(current, json::array({80, 30, nullptr})).isApprox(Vec3d(4. / 3., 1.5, 1.)));
     CHECK(Mcp::size_factors(current, json::array({30, 10, 5})).isApprox(Vec3d(0.5, 0.5, 1.)));
 
-    CHECK_THROWS_AS(Mcp::size_factors(current, json::array({0, nullptr, nullptr})), Mcp::ToolFailure);
-    CHECK_THROWS_AS(Mcp::size_factors(current, json::array({-80, nullptr, nullptr})), Mcp::ToolFailure);
-    CHECK_THROWS_AS(Mcp::size_factors(current, json::array({80, 30})), Mcp::ToolFailure);
-    CHECK_THROWS_AS(Mcp::size_factors(current, json::array({nullptr, nullptr, nullptr})), Mcp::ToolFailure);
+    CHECK_THROWS_AS(Mcp::size_factors(current, json::array({0, nullptr, nullptr})), ToolFailure);
+    CHECK_THROWS_AS(Mcp::size_factors(current, json::array({-80, nullptr, nullptr})), ToolFailure);
+    CHECK_THROWS_AS(Mcp::size_factors(current, json::array({80, 30})), ToolFailure);
+    CHECK_THROWS_AS(Mcp::size_factors(current, json::array({nullptr, nullptr, nullptr})), ToolFailure);
     // A flat shape has no size to scale along its flat axis.
-    CHECK_THROWS_AS(Mcp::size_factors(Vec3d(50., 50., 0.), json::array({nullptr, nullptr, 2})), Mcp::ToolFailure);
+    CHECK_THROWS_AS(Mcp::size_factors(Vec3d(50., 50., 0.), json::array({nullptr, nullptr, 2})), ToolFailure);
 }
 
 TEST_CASE("a primitive's size has one number above 0 per dimension its dialog asks for", "[Mcp][Scene]")
@@ -302,45 +302,45 @@ struct Harness
     Harness()
     {
         timing.soft_budget = 100ms;
-        add("arrange", Mcp::GuardClass::Mutate, [this](const json&, Mcp::ToolContext& ctx) {
+        add("arrange", GuardClass::Mutate, [this](const json&, ToolContext& ctx) {
             ctx.run_ui([&] {
                 worker.start(job_length);
                 return json();
             });
             while (ctx.observe_ui([&] { return json(worker.busy()); }).get<bool>())
                 std::this_thread::sleep_for(20ms);
-            return Mcp::ToolResult::ok({{"arranged", true}});
+            return ToolResult::ok({{"arranged", true}});
         });
-        add("run_action", Mcp::GuardClass::Mutate, [this](const json&, Mcp::ToolContext& ctx) {
+        add("run_action", GuardClass::Mutate, [this](const json&, ToolContext& ctx) {
             ctx.run_ui([&] {
                 worker.start(job_length);
                 return json();
             });
-            return Mcp::ToolResult::ok({{"ran", "obj_arrange"}});
+            return ToolResult::ok({{"ran", "obj_arrange"}});
         });
-        add("click", Mcp::GuardClass::Recover, [this](const json&, Mcp::ToolContext& ctx) {
+        add("click", GuardClass::Recover, [this](const json&, ToolContext& ctx) {
             ctx.run_ui([&] {
                 core->admit({}); // the target is outside any dialog
                 ui.post([this] { worker.start(job_length); });
                 return json();
             });
             ctx.observe_ui([] { return json(); }); // settle
-            return Mcp::ToolResult::ok();
+            return ToolResult::ok();
         });
-        add("press_keys", Mcp::GuardClass::Recover, [this](const json&, Mcp::ToolContext& ctx) {
-            return Mcp::ToolResult::ok(ctx.run_ui([&] {
+        add("press_keys", GuardClass::Recover, [this](const json&, ToolContext& ctx) {
+            return ToolResult::ok(ctx.run_ui([&] {
                 core->admit({});
                 return json("deleted");
             }));
         });
-        add("answer_dialog", Mcp::GuardClass::Recover,
-            [](const json&, Mcp::ToolContext& ctx) { return Mcp::ToolResult::ok(ctx.run_ui([] { return json("pressed"); })); });
-        add("edit", Mcp::GuardClass::Mutate,
-            [](const json&, Mcp::ToolContext& ctx) { return Mcp::ToolResult::ok(ctx.run_ui([] { return json("edited"); })); });
-        add("read", Mcp::GuardClass::Inspect,
-            [this](const json&, Mcp::ToolContext& ctx) { return Mcp::ToolResult::ok(ctx.run_ui([&] { return json(worker.busy()); })); });
-        add("cancel_job", Mcp::GuardClass::Recover, [this](const json&, Mcp::ToolContext& ctx) {
-            return Mcp::ToolResult::ok(ctx.run_ui([&] {
+        add("answer_dialog", GuardClass::Recover,
+            [](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([] { return json("pressed"); })); });
+        add("edit", GuardClass::Mutate,
+            [](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([] { return json("edited"); })); });
+        add("read", GuardClass::Inspect,
+            [this](const json&, ToolContext& ctx) { return ToolResult::ok(ctx.run_ui([&] { return json(worker.busy()); })); });
+        add("cancel_job", GuardClass::Recover, [this](const json&, ToolContext& ctx) {
+            return ToolResult::ok(ctx.run_ui([&] {
                 for (const std::string& op : jobs.running_operations())
                     if (core->cancel_worker(op))
                         return json(op);
@@ -356,12 +356,12 @@ struct Harness
             core->shutdown();
     }
 
-    void add(const std::string& name, Mcp::GuardClass guard, CommandFn handler)
+    void add(const std::string& name, GuardClass guard, CommandFn handler)
     {
         NativeCommand d;
         d.key                      = name;
         d.guard                    = guard;
-        d.inline_call              = guard == Mcp::GuardClass::Inspect;
+        d.inline_call              = guard == GuardClass::Inspect;
         d.allowed_during_operation = name == "cancel_job";
         d.budget_ms                = 200;
         d.run                      = std::move(handler);
@@ -372,17 +372,17 @@ struct Harness
         core = std::make_unique<Mcp::McpCore>(registry, invoker, jobs, &journal, timing,
                                               Mcp::WorkerHooks{[this] { return worker.busy(); }, [this] { worker.cancel(); }});
     }
-    Mcp::ToolResult call(const std::string& tool) { return core->call(*registry.find(tool), json::object()); }
+    ToolResult call(const std::string& tool) { return core->call(*registry.find(tool), json::object()); }
 
     // Starts a worker job with `tool`, which outlives the reply budget; returns the call's job.
     std::string start_job(const std::string& tool)
     {
-        const Mcp::ToolResult started = call(tool);
+        const ToolResult started = call(tool);
         REQUIRE_FALSE(started.is_error);
         REQUIRE(started.data["status"] == "running");
         return started.data["job"];
     }
-    bool refused_by(const Mcp::ToolResult& r, const std::string& job)
+    bool refused_by(const ToolResult& r, const std::string& job)
     {
         return r.is_error && r.message.find("Busy: job " + job + " is running an operation") != std::string::npos;
     }
@@ -416,7 +416,7 @@ TEST_CASE("a cancelled worker job keeps admission until the worker is really idl
     {
         h.start();
         const std::string job       = h.start_job("arrange");
-        const Mcp::ToolResult cancel = h.call("cancel_job");
+        const ToolResult cancel      = h.call("cancel_job");
         REQUIRE_FALSE(cancel.is_error);
         CHECK(cancel.data == job);
         CHECK(h.refused_by(h.call("edit"), job));
@@ -485,16 +485,16 @@ TEST_CASE("a worker job that starts between a call's closures is the call's, who
     // The worker doesn't record who queued a job, so a person's job that starts while a call that
     // found the worker idle is still running is claimed by that call, as one its change queued is.
     Harness h;
-    h.add("settle", Mcp::GuardClass::Mutate, [](const json&, Mcp::ToolContext& ctx) {
+    h.add("settle", GuardClass::Mutate, [](const json&, ToolContext& ctx) {
         ctx.run_ui([] { return json("edited"); });
         for (int i = 0; i < 10; ++i) {
             ctx.observe_ui([] { return json(); });
             std::this_thread::sleep_for(20ms);
         }
-        return Mcp::ToolResult::ok();
+        return ToolResult::ok();
     });
     h.start();
-    Mcp::ToolResult settled;
+    ToolResult      settled;
     std::thread     caller([&h, &settled] { settled = h.call("settle"); });
     std::this_thread::sleep_for(60ms);
     h.ui.post([&h] { h.worker.start(h.job_length); }); // a person starts Text typing
@@ -512,11 +512,11 @@ TEST_CASE("a worker job a person started refuses changes but not reads, and canc
     h.start();
     h.worker.start(800ms); // Text typing
     for (const char* change : {"edit", "press_keys"}) {
-        const Mcp::ToolResult refused = h.call(change);
+        const ToolResult refused = h.call(change);
         CHECK(refused.is_error);
         CHECK(refused.message.find("Busy: a background job") != std::string::npos);
     }
-    const Mcp::ToolResult read = h.call("read");
+    const ToolResult read = h.call("read");
     CHECK_FALSE(read.is_error);
     CHECK(read.data == true);
     CHECK(h.call("cancel_job").data.is_null());
@@ -788,19 +788,19 @@ TEST_CASE("a shape's size needs one positive number per field of the size dialog
     // No size: the built-in one.
     CHECK(Mcp::part_shape_size("disc", json()).empty());
 
-    CHECK_THROWS_AS(Mcp::part_shape_size("cube", json::array({40, 30})), Mcp::ToolFailure);
-    CHECK_THROWS_AS(Mcp::part_shape_size("sphere", json::array({8, 8})), Mcp::ToolFailure);
-    CHECK_THROWS_AS(Mcp::part_shape_size("cylinder", json::array({0, 3})), Mcp::ToolFailure);
-    CHECK_THROWS_AS(Mcp::part_shape_size("cylinder", json::array({-6, 3})), Mcp::ToolFailure);
-    CHECK_THROWS_AS(Mcp::part_shape_size("cylinder", json::array({std::nan(""), 3})), Mcp::ToolFailure);
-    CHECK_THROWS_AS(Mcp::part_shape_size("cylinder", json::array({"6", 3})), Mcp::ToolFailure);
-    CHECK_THROWS_AS(Mcp::part_shape_size("cylinder", json(6)), Mcp::ToolFailure);
-    CHECK_THROWS_AS(Mcp::part_shape_size("slab", json()), Mcp::ToolFailure);
+    CHECK_THROWS_AS(Mcp::part_shape_size("cube", json::array({40, 30})), ToolFailure);
+    CHECK_THROWS_AS(Mcp::part_shape_size("sphere", json::array({8, 8})), ToolFailure);
+    CHECK_THROWS_AS(Mcp::part_shape_size("cylinder", json::array({0, 3})), ToolFailure);
+    CHECK_THROWS_AS(Mcp::part_shape_size("cylinder", json::array({-6, 3})), ToolFailure);
+    CHECK_THROWS_AS(Mcp::part_shape_size("cylinder", json::array({std::nan(""), 3})), ToolFailure);
+    CHECK_THROWS_AS(Mcp::part_shape_size("cylinder", json::array({"6", 3})), ToolFailure);
+    CHECK_THROWS_AS(Mcp::part_shape_size("cylinder", json(6)), ToolFailure);
+    CHECK_THROWS_AS(Mcp::part_shape_size("slab", json()), ToolFailure);
     // The message names the fields, as the dialog does.
     try {
         Mcp::part_shape_size("torus", json::array({20}));
         FAIL("a torus with one size was accepted");
-    } catch (const Mcp::ToolFailure& e) {
+    } catch (const ToolFailure& e) {
         CHECK(std::string(e.what()) == "A torus's size is [Inner diameter, Tube diameter] in mm, each above 0");
     }
 }
@@ -869,9 +869,9 @@ TEST_CASE("height ranges are checked before the object changes", "[Mcp][Scene][L
     CHECK_THROWS_WITH(parse_ranges(json::array({range(0, 20), range(5, 10)})), ContainsSubstring("0-20 and 5-10 overlap"));
     // Empty, reversed, below the bed or without a top.
     CHECK_THROWS_WITH(parse_ranges(json::array({range(5, 5)})), ContainsSubstring("0 <= min_z < max_z"));
-    CHECK_THROWS_AS(parse_ranges(json::array({range(6, 5)})), Mcp::ToolFailure);
-    CHECK_THROWS_AS(parse_ranges(json::array({range(-1, 5)})), Mcp::ToolFailure);
-    CHECK_THROWS_AS(parse_ranges(json::array({json{{"min_z", 0}}})), Mcp::ToolFailure);
+    CHECK_THROWS_AS(parse_ranges(json::array({range(6, 5)})), ToolFailure);
+    CHECK_THROWS_AS(parse_ranges(json::array({range(-1, 5)})), ToolFailure);
+    CHECK_THROWS_AS(parse_ranges(json::array({json{{"min_z", 0}}})), ToolFailure);
 
     // A layer height given is checked against the printer's, with the range's filament.
     int asked = -1;
@@ -890,11 +890,11 @@ TEST_CASE("height ranges are checked before the object changes", "[Mcp][Scene][L
 
     // Filaments are 0 (the object's) up to the slot count.
     CHECK_THROWS_WITH(parse_ranges(json::array({range(0, 5, {{"extruder", 3}})})), ContainsSubstring("1-2"));
-    CHECK_THROWS_AS(parse_ranges(json::array({range(0, 5, {{"extruder", -1}})})), Mcp::ToolFailure);
+    CHECK_THROWS_AS(parse_ranges(json::array({range(0, 5, {{"extruder", -1}})})), ToolFailure);
     // Values are parsed strictly.
     CHECK_THROWS_WITH(parse_ranges(json::array({range(0, 5, {{"sparse_infill_density", "lots"}})})),
                       ContainsSubstring("Invalid value for sparse_infill_density"));
-    CHECK_THROWS_AS(parse_ranges(json::array({range(0, 5, {{"wall_loops", nullptr}})})), Mcp::ToolFailure);
+    CHECK_THROWS_AS(parse_ranges(json::array({range(0, 5, {{"wall_loops", nullptr}})})), ToolFailure);
 }
 
 TEST_CASE("range settings take the keys the range settings page offers", "[Mcp][Scene][Layers]")
@@ -912,13 +912,13 @@ TEST_CASE("range settings take the keys the range settings page offers", "[Mcp][
     try {
         parse_ranges(json::array({range(0, 5, {{"enable_support", true}})}));
         FAIL("an object setting was accepted for a range");
-    } catch (const Mcp::ToolFailure& e) {
+    } catch (const ToolFailure& e) {
         CHECK_THAT(e.what(), ContainsSubstring("not a height range setting"));
     }
     try {
         parse_ranges(json::array({range(0, 5, {{"sparse_infill_dens", "20%"}})}));
         FAIL("an unknown key was accepted");
-    } catch (const Mcp::ToolFailure& e) {
+    } catch (const ToolFailure& e) {
         REQUIRE(e.details.contains("similar"));
         CHECK(std::find(e.details["similar"].begin(), e.details["similar"].end(), json("sparse_infill_density")) != e.details["similar"].end());
     }

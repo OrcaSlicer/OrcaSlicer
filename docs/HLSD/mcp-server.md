@@ -8,12 +8,13 @@ files, picks presets, changes settings, clicks through the GUI and slices. It al
 screenshots before and after a fix and replays the steps from a replay file. A user can drive
 OrcaSlicer from Claude Code, Codex, Cursor or Claude Desktop.
 
-The server runs inside the GUI process, because most of what an agent reproduces is GUI
-behaviour, and reuses the Speed Dial catalog, so a feature added to the palette reaches agents,
-replays and scripts too. It is off by default; until it is first turned on, `McpService` does not exist, so
-there is no thread, socket, modal-dialog hook, ImGui item recording or synthetic input state. The code is in
-`src/slic3r/GUI/Mcp/`; the protocol, transport, threading core, replay runner and operation logic
-don't use wx, so they can be unit-tested.
+The server runs inside the GUI process, because most of what an agent reproduces is GUI behaviour, and
+reuses the Speed Dial catalog, so a feature added to the palette reaches agents, replays and scripts
+too. It is off by default. The code is in `src/slic3r/GUI/Mcp/`. The core, which uses no wx (the command
+catalog's type, the dispatch core, the hand-off to the UI thread, the job registry, the followed threads, the
+journal, the paths, argument checking, the protocol and HTTP transport, what the server says of itself, the
+replay model, Action Replay's summary of a replay, the setup a client copies, the stdio bridge and the token),
+is the library `libslic3r_automation`, so it is unit-tested without the GUI (see Testing).
 
 ```
 MCP client ──POST /mcp──▶ McpHttpServer ──▶ McpProtocol ──▶ McpCore ──▶ UiInvoker ──▶ UI thread
@@ -21,9 +22,17 @@ stdio client ──▶ orca-slicer --mcp-stdio ──┘                   │
                                                           JobRegistry, Journal
 ```
 
-`McpService`, owned by `GUI_App`, owns all of it except the bridge, plus the `ModalTracker`. The
-commands it serves are the process's command catalog (`NativeCommands::instance()`, see Tool catalog),
-which startup builds without a service.
+Two classes, both owned by `GUI_App`, hold all of it except the bridge. `AutomationRuntime` runs
+commands for every front end: the MCP endpoint, Action Replay, the Run Script panel, plugins, a person's
+commands from the Speed Dial and the command line's run. It owns the dispatch core (`McpCore`), the
+jobs, the journal, the UI invoker, the `ModalTracker`, the recorder and the scopes a run, a plugin or a
+client leaves state in. `McpEndpoint` is the MCP server and nothing else: the HTTP server, the protocol,
+the request gate, the token, the discovery file and the takeover of a port another window holds. It
+holds the runtime by reference and reaches its core through the protocol; the runtime does not know it.
+Neither exists until something needs it: the runtime until a front end first asks for it, the endpoint
+until the server is first turned on. Until then there is no thread, socket, modal-dialog hook, ImGui
+item recording or synthetic input state. The commands the runtime runs are the process's command catalog
+(`NativeCommands::instance()`, see Tool catalog), which startup builds without either.
 
 ## Transport
 
@@ -107,10 +116,10 @@ load.
 
 The bearer token is 32 random bytes as 64 hex characters in `<datadir>/mcp/token`: directory 0700
 and file created 0600 with `O_CREAT|O_EXCL` on POSIX, the per-user ACL of `%APPDATA%` on Windows.
-It stays out of AppConfig, whose writes and backups use default permissions. `ORCA_MCP_TOKEN`
-(preferred, as it stays out of the process list) or `--mcp-token` overrides it for one run;
-`get_app_state.mcp.token_source` says which is in force. Every start of the endpoint reads the file, so
-deleting it and turning the server off and on in Preferences issues a new token. While
+It stays out of AppConfig, whose writes and backups use default permissions. `ORCA_MCP_TOKEN` overrides
+it for one run, and stays out of the process list; `get_app_state.mcp.token_source` (`file` or
+`ORCA_MCP_TOKEN`) says which is in force. Every start of the endpoint reads the file, so deleting it and
+turning the server off and on in Preferences issues a new token. While
 serving, `<datadir>/mcp/server.json` holds `{url, port, pid, version, token}` with the token in
 use, so the stdio bridge and the harness connect without the launch environment. It is written
 owner-only via an exclusive temporary file and a rename (`write_private_file()`), and removed on
@@ -119,72 +128,105 @@ file, and one that stops must not hide another's server from the stdio bridge.
 
 ## Lifecycle
 
-`GUI_App::on_init_inner()` starts the service once AppConfig is loaded. That is before the first
-startup dialog, such as the TLS prompt or the setup wizard, so an agent can answer those dialogs.
-`--mcp` or the `mcp_enabled` preference opens the endpoint, while `--mcp-run` alone, or opening
-Action Replay or the Run Script panel, only builds the catalog. `get_app_state.ready` stays false until `post_init()` calls `mark_ready()`, the Prepare
-canvas has loaded OpenGL and the main window has built its tab pages, and tools that need the main
-window fail with "still starting". Starting on Home, the canvas loads OpenGL at idle after
-`post_init()` (MainFrame's GL prebuild), and before that a 3MF save would draw its thumbnail with no
-GL functions loaded. The same idle queue builds the tab pages (`MainFrame::prebuild_pending()`); a
-page's web view registers its `wx` script message handler with a script it waits for in a nested
-loop, and on GTK calls that came in meanwhile have left that wait unfinished for good, so that no web
-view made afterwards gets `window.wx` and a dialog page's own buttons do nothing. So `mark_ready()`
-polls every 100 ms until both are done. A hidden canvas that can't get a GL context loads OpenGL on
-its first draw instead, and the pages build only while no input arrives, so after 10 s ready no
-longer waits for either. Becoming ready also starts the `--mcp-run` file. Notifications don't depend on this: one pushed or updated before the first
-ImGui frame has built the font waits for its first render to measure its text.
+`GUI_App::on_init_inner()` opens the endpoint once AppConfig is loaded when `--mcp`, `--mcp-port` or the
+`mcp_enabled` preference asks for it (`GUI_App::open_mcp_endpoint()`, which starts the runtime first). That is
+before the first startup dialog, such as the TLS prompt or the setup wizard, so an agent can answer those
+dialogs. `--run` alone starts the runtime without the endpoint, and so do Action Replay, the Run
+Script panel, a plugin's tool call and a person's recording or long command when the server is off. Each
+front end gets the runtime from `GUI_App::automation()`, which starts it on first use and returns
+nullptr while OrcaSlicer closes or the runtime stops; `automation_if_started()` returns it, stopping or
+not, and never starts it. `get_app_state.ready` stays false until `post_init()` calls `mark_ready()`,
+the Prepare canvas has loaded OpenGL and the main window has built its tab pages, and tools that need
+the main window fail with "still starting". Starting on Home, the canvas loads OpenGL at idle after
+`post_init()` (MainFrame's GL prebuild), and before that a 3MF save would draw its thumbnail with no GL
+functions loaded. The same idle queue builds the tab pages (`MainFrame::prebuild_pending()`); a page's
+web view registers its `wx` script message handler with a script it waits for in a nested loop, and on
+GTK calls that came in meanwhile have left that wait unfinished for good, so that no web view made
+afterwards gets `window.wx` and a dialog page's own buttons do nothing. So `mark_ready()` polls every
+100 ms until both are done. A hidden canvas that can't get a GL context loads OpenGL on its first draw
+instead, and the pages build only while no input arrives, so after 10 s ready no longer waits for
+either. Becoming ready also starts the `--run` file, which `start_launch_run()` registers with
+`on_ready()`. Notifications don't depend on this: one pushed or updated before the first ImGui frame has
+built the font waits for its first render to measure its text.
 
-The service stops, idempotently, at the start of `MainFrame::shutdown()` when the app closes
-(before panels are destroyed) and on `wxEVT_END_SESSION` (after which macOS calls `exit()`).
-`McpService::stop()` wakes every waiting call with "shutting down" (`UiInvoker::shutdown()`,
-`JobRegistry::wake_all()`), refuses new calls, closes the endpoint and removes the discovery file,
-drops every auto-answer rule, clears `SyntheticInput`, removes the menu capture and turns ImGui
-recording off. It frees
-nothing: a call may still be on the UI thread's stack inside a nested event loop, using the
-inspector and the modal tracker, and job and request threads may still be returning.
-A stopped service never starts again. `GUI_App` holds the service in an `McpServicePtr`, whose
-deleter (`McpServiceDeleter`) is the only way to destroy one: the destructor is private. The
-deleter stops the service, waits with `McpService::drain()` until no request, call or job thread
-is inside it, and frees it; a call that never returns would make freeing a crash, so after 10 s the
-service is left in place instead. `GUI_App::destroy_mcp_service()` runs it from `OnExit()`, and
-from `CleanUp()` after a failed initialization, outside any event loop, so no closure can be
-running. HTTP request threads reach the protocol through a shared `RequestGate`, which `drain()`
-closes, so a late request gets 503 rather than a freed object. `McpCore`'s own destructor waits for
-every call and job thread to leave, however long that takes; its owner drains first, so it returns
-at once.
+A front end asks for what it uses. `AutomationRuntime::start()` brings up the dispatch core, the jobs,
+the UI invoker, the modal tracker, the recorder and the list of presses held on web pages: all that a
+person's recording or a long command a person picked from the Speed Dial needs, the recorder drawing the
+modal dialogs from the tracker's stack. The GUI instruments are the UI inspector behind `list_widgets`
+and the input tools, the menu capture, ImGui item recording and, on Wayland, the window-state hooks
+(`track_window_states()`). `enable_gui_instruments()` turns them on, once, for the front ends that drive
+the GUI: `McpEndpoint::open()` when it opens, Action Replay as it opens, the Run Script panel on its
+page's `init`, the command line's run (`start_launch_run()`) and a plugin's call as the UI thread admits
+it. A person's pick from the Speed Dial (`PersonContext`) does not. The log reads `Automation runtime
+started` as the runtime starts and `Automation GUI instruments on` when they go on, so a session that
+began with a person's recording shows the second line only once something drives the GUI. ImGui items
+are recorded as a frame draws them, so turning the instruments on asks the shown 3D view for a frame.
+`AutomationRuntime::inspector()` turns them on itself if no front end has, so a command never finds the
+inspector missing.
+
+Both stop, idempotently, at the start of `MainFrame::shutdown()` when the app closes (before panels are
+destroyed) and on `wxEVT_END_SESSION` (after which macOS calls `exit()`): `GUI_App::stop_automation()`
+closes the endpoint, then stops the runtime, and does nothing for one that was never made.
+`McpEndpoint::close()` closes the socket, stops the takeover retries, removes the discovery file and
+closes the runtime's client scope; requests in flight run on. `AutomationRuntime::stop()` wakes every
+waiting call with "shutting down" (`UiInvoker::shutdown()`, `JobRegistry::wake_all()`), refuses new
+calls, joins the threads of the followed calls (Threading), drops every auto-answer rule, clears
+`SyntheticInput` and, when the GUI instruments are on, removes the menu capture and turns ImGui
+recording off; nothing turns them on again. Neither frees anything: a call may still be on the UI
+thread's stack inside a nested event loop, using the inspector and the modal tracker, and job and
+request threads may still be returning. A stopped runtime never starts again.
+
+`GUI_App` holds the runtime in an `AutomationRuntimePtr`, whose deleter (`AutomationRuntimeDeleter`) is
+the only way to destroy one: the destructor is private. The deleter stops the runtime, waits with
+`AutomationRuntime::drain()` until no lease is held and no call or job thread is inside the core, and
+frees it; a call that never returns would make freeing a crash, so after 10 s the runtime is left in
+place instead, and the log says "Automation runtime: a call did not return; leaving it in place". The
+endpoint is held in a `std::unique_ptr` declared after the runtime, so it is destroyed first whichever
+way `GUI_App` goes. `GUI_App::destroy_automation()` runs from `OnExit()`, and from `CleanUp()` after a
+failed initialization, outside any event loop, so no closure can be running: it drops the Run Script
+panel, calls `stop_automation()`, then waits up to 10 s with `McpEndpoint::drain()` for the request
+threads to leave the protocol. HTTP request threads reach the protocol through a shared `RequestGate`,
+which `drain()` closes, so a late request gets 503 rather than a freed object. When a request is still
+inside after 10 s, both are left in place, since the protocol reaches the runtime's core, and the log
+says so; otherwise the endpoint is freed, then the runtime goes through its deleter. `McpCore`'s own
+destructor waits for every call and job thread to leave, however long that takes; its owner drains
+first, so it returns at once.
 
 A language change runs `MainFrame::shutdown()` from `recreate_GUI()`, which only suspends the
-service: the transport stays up, the UI generation is bumped so every GUI ref goes stale, UI calls
+runtime: the endpoint stays open, the UI generation is bumped so every GUI ref goes stale, UI calls
 fail with a request to retry, and `ready` is false until `recreate_GUI()` resumes it. A UI closure
 posted before the rebuild refuses to run after it ("not run, safe to retry").
 
 Several OrcaSlicer windows may run at once, and those that share a configuration folder share the
-`mcp_enabled` preference and the port. The bind is exclusive (`SO_REUSEADDR` stays off on
-Windows, and POSIX refuses a second listener), so the first window to start serves and agents,
-over HTTP or stdio, reach it. A later window that wants to serve finds the port taken by the
-process the discovery file names (`discovery_held_by_other()`): it reports no error, Preferences
-says another window is serving agents, and `GUI_App` tries the port every 3 s, so when the serving
-window closes, one of the others takes over and writes the discovery file. A window that cannot
-bind for any other reason reports it and stops trying. Windows meant to serve side by side need
-their own configuration folders (`--datadir`) or `--mcp-port`; agents then pick one by its URL, or
-the stdio bridge by `--datadir`. The server makes no attempt to route between windows.
+`mcp_enabled` preference and the port. The bind is exclusive (`SO_REUSEADDR` stays off on Windows, and
+POSIX refuses a second listener), so the first window to start serves and agents, over HTTP or stdio,
+reach it. A later window that wants to serve finds the port taken by the process the discovery file
+names (`discovery_held_by_other()`): it reports no error, Preferences says another window is serving
+agents, and the endpoint tries the port every 3 s, so when the serving window closes, one of the others
+takes over and writes the discovery file. A window that cannot bind for any other reason reports it and
+stops trying: a retry that fails otherwise is shown as a notification, through the function `GUI_App`
+builds the endpoint with. Windows meant to serve side by side need their own configuration folders
+(`--datadir`) or `--mcp-port`; agents then pick one by its URL, or the stdio bridge by `--datadir`. The
+server makes no attempt to route between windows.
 
-Preferences turns the server on with `GUI_App::start_mcp_service()` and off with
-`GUI_App::stop_mcp_endpoint()`, which stops the takeover retries and calls
-`McpService::stop_serving()` to close only the endpoint and remove the discovery file. The
-catalog, running jobs and a launch run carry on, because the call that opened Preferences may
-itself be an MCP call still on the stack. The port field shows the port in use, `--mcp-port`'s
-included, and only an edit of it is saved and reopens the endpoint, through
-`GUI_App::restart_mcp_endpoint()`: the field also commits when focus merely passes through it. A
-port set in Preferences replaces `--mcp-port` for the rest of the session, also while the server is
-off. Closing the endpoint drops the session's auto-answer rules, and a client's rules
-that a call still running registers afterwards are refused, so a person using the app afterwards
-never has a prompt answered for them. Closing doesn't wait for in-flight requests, which
-may be waiting on the UI thread that closes it; their replies are dropped. A bind failure is
-logged, shown as a notification and in Preferences, and a start from Preferences never reruns a
-`--mcp-run` file. The modal tracker is created with the service and picks up modal dialogs that
-are already open, such as Preferences when the server is turned on from there.
+Preferences turns the server on with `GUI_App::open_mcp_endpoint()` and off with
+`GUI_App::close_mcp_endpoint()`, which closes only the endpoint. The runtime, running jobs and a launch
+run carry on, because the call that opened Preferences may itself be an MCP call still on the stack, and
+turning the server on again opens the same endpoint, with the protocol it had, on the same port.
+Preferences reads the endpoint through `GUI_App::mcp_endpoint()`, and `get_app_state.mcp` is the
+endpoint's `describe()`: whether it serves and, while it does, its port, URL, token source, token file
+and discovery file; in a session that never opened it, `{serving: false}`. The port field shows the port
+in use, `--mcp-port`'s included, and only an edit of it is saved and reopens the endpoint, through
+`GUI_App::restart_mcp_endpoint()`: the field also commits when focus merely passes through it. A port
+set in Preferences replaces `--mcp-port` for the rest of the session, also while the server is off.
+Closing the endpoint closes the runtime's client scope (`close_client_scope()`): a client's auto-answer
+rules, recording and held presses end, and a client's rules that a call still running registers
+afterwards are refused (`client_scope_open()`), so a person using the app afterwards never has a prompt
+answered for them. Closing doesn't wait for in-flight requests, which may be waiting on the UI thread
+that closes it; their replies are dropped. A bind failure is logged, shown as a notification and in
+Preferences, and opening the endpoint from Preferences never reruns a `--run` file. The modal
+tracker is created with the runtime and picks up modal dialogs that are already open, such as
+Preferences when the server is turned on from there.
 
 ## Threading
 
@@ -221,7 +263,7 @@ window isn't being drawn when it isn't.
 | `Mutate` | everything else | no |
 
 The closure checks the guards on the UI thread, since the app can change between posting and
-running. A closing app or a stopped service fails the call with "shutting down". A frame being
+running. A closing app or a stopped runtime fails the call with "shutting down". A frame being
 recreated fails it with "retry". A mutate call is refused while a modal dialog is open, and the
 refusal lists the dialogs. It is also refused when it would run inside another UI call's nested
 event loop: a modal, `ProgressDialog::Update` or `wxYield`. The GUI input tools (`click`,
@@ -267,6 +309,26 @@ made while one is open is picked up at once instead of waiting for an unrelated 
 first takes one of 32 slots. Without one, a job call returns its `running` envelope at once and an
 inline call returns `{status: "pending"}`, so at most 32 request threads ever block, well under the
 64-connection cap.
+
+**Followed calls.** A run a person starts (Action Replay, the Run Script panel, `--run`) and the encode
+of a person's recording once it ends outlive any reply, so the runtime follows each on a thread of its own:
+`AutomationRuntime::follow()` takes a `FollowedCall`, calls its command and waits past a `running` or
+`blocked_by_dialog` reply for the job's result. Its `ready` runs first on that thread and may complete the
+arguments: the encode waits there for the recording's file, and `--run` reads its file there, off the UI
+thread. `ended` gets the result; while the runtime stops, that is an error ("OrcaSlicer is shutting down") when
+the call was refused or cut short within its reply budget, and nothing when the runtime stopped while the call's
+job was being waited for. `stop` lets `stop_followed()` end
+the call early; `suspend()` and `stop()` call it first, while the main window the runs act on is still the
+current one. The threads are a `FollowedThreads`: a start joins the threads whose work has returned, and
+`stop()` joins the rest once it has woken their waits. `follow()` may be called from any thread. A start and
+the join take one lock, and the join refuses every start after it, so a call followed while the runtime stops
+is refused or joined, never left running.
+
+**The person mark.** A job a person's run makes is created with the person mark (`McpCore::call_person()`,
+and `McpCore::submit()` for a long command a person picks), and the mark counts while the job is unfinished:
+`JobRegistry::person_in()` finds it in a call's lineage, so a script under the run runs as the person's
+(Identity, under Python scripts). An agent's call never has it, a call made right after a person's run
+included.
 
 ### Operations
 
@@ -548,7 +610,7 @@ feature reachable). By area, the tools are:
 
 The tools are commands of the process's command catalog (`CommandCatalog`, `NativeCommands::instance()`; see
 Speed Dial catalog), beside the Speed Dial's: a tool is a `NativeCommand` with `listed` set, which
-`tools/list` shows in the order the tools were added. Startup builds the catalog, with no MCP service:
+`tools/list` shows in the order the tools were added. Startup builds the catalog, with no automation runtime:
 `register_all_commands()` adds the Speed Dial's commands, then each tool family in a fixed order of calls
 (app, api, project, config, scene, layer, view, replay, python, record, action, ui), each through its
 `register_*_tools(catalog)`, and between record and action the Design tab's commands, which no listing shows,
@@ -556,8 +618,8 @@ in a CAD build with the CAD feature on (`register_cad_commands()`; see Design ta
 with the app's state, the search and the generic call, and ends with the tools that drive the GUI. A tool is
 made with `inspect_tool()`, `mutate_tool()`, `record_tool()` or `recover_input_tool()`, which take its group
 first and build it through `long_command()` with its function unchanged, so it runs where its call does. A
-function reaches the service through its call's context, `ToolContext::service()`: the core gives the service
-that owns it (`McpCore::set_service()`), a person's pick starts the runtime without its endpoint, and a core
+function reaches the automation runtime through its call's context, `ToolContext::runtime()`: the core gives the
+runtime that owns it (`McpCore::set_runtime()`), a person's pick starts the runtime without the endpoint, and a core
 built on its own, as in a unit test, refuses, which ends the call in an error. Every key is unique across the
 catalog, tools and Speed Dial commands together.
 
@@ -1271,12 +1333,13 @@ plate are commands of the catalog (`Mcp/McpToolsCad.cpp`) in the group `Design`,
 never open the Design tab pay nothing for them in `tools/list`. Those that open a tool are in the palette,
 whose tiles for them the Speed Dial has while the Design tab is shown (see Speed Dial catalog).
 `register_all_commands()` adds them through `register_cad_commands()` only when the catalog is built with
-the CAD feature on (`CatalogOptions::cad`, which startup takes from `enable_cad_feature` in the editor). With
+the CAD feature on (`CatalogOptions::cad`, which startup takes in the editor from the value in force: the
+`enable_cad_feature` preference, or `--cad` for the run). With
 it off the catalog holds none, and records that it leaves them out (`leave_out_cad_commands()`):
 `call_tool {tool: "hole"}` is an unknown command whose error says the feature was off when OrcaSlicer
 started and how a person turns it on, and `get_app_state` carries
 `cad_note`, how a person turns the feature on (`cad_note()`, in the editor while the catalog holds no Design
-command or the preference is off). The catalog is sealed at startup and the main window makes the Design
+command or the feature is off). The catalog is sealed at startup and the main window makes the Design
 page only then, so turning the feature on or off takes effect after a restart, but for the Speed Dial's
 Design tiles, which go as soon as it is turned off (see Speed Dial catalog); a window rebuilt for a
 language change in between makes the page by the new preference, while the catalog keeps the commands it
@@ -1659,10 +1722,10 @@ calibration dialogs (pointing at `generate_calibration_test`), camera views and 
 `CommandAction` copies them, the schema and the command's key into the `AppAction`.
 
 The commands live in one `CommandCatalog` (`CommandCatalog.hpp`, which includes no wx), built once at startup
-by `NativeCommands::build()` before the MCP service starts, and sealed: from then on it never changes and any
+by `NativeCommands::build()` before the automation runtime starts, and sealed: from then on it never changes and any
 thread reads it (`NativeCommands::instance()`, `find()`). A process that never calls `build()`,
 such as the unit tests and the stdio bridge, gets it built on first use; nothing in the GUI process reads it
-before startup builds it, the MCP service included, which `GUI_App` starts after `build()`.
+before startup builds it, the automation runtime included, which `GUI_App` starts after `build()`.
 `register_all_commands()` adds the Speed Dial's commands, then the typed tools (see Tool catalog). Those with
 `in_palette` have a tile, and `ActionRegistry` makes an action of each of them (`palette_commands()`) and of
 nothing else in the catalog: no typed tool has one, but the four that are also a Speed Dial command. The
@@ -1699,10 +1762,14 @@ Design tab's model, a sketch, and every other tab); reading the stored list cuts
 A command has one function, `run(args, context)`, which the palette, a menu and every automated caller
 call. Its arguments are a JSON object that matches its `input_schema`, and every caller checks them first
 with `Mcp::argument_error(command, args)`, which normalizes them as a tool's (`normalize_arguments()`) and
-validates them. The context is a `Mcp::ToolContext`: the MCP core's for a call, or a `Mcp::PersonContext`
-(`McpPersonContext.hpp`) for a person's pick, whose `person()` is true. A person's context runs UI
-closures in place, has no job, no journal entry and no operation to hold, and reads as cancelled once
-OrcaSlicer is closing; it needs no MCP service, so every tile runs with the server off.
+validates them. The context is a `ToolContext`, declared beside the catalog with the other types a command
+is written in (`CommandTypes.hpp`: `ToolResult`, `ToolFailure`, `GuardClass`). It is the MCP core's for a
+call, or a `Mcp::PersonContext` (`McpPersonContext.hpp`) for a person's pick, whose `person()` is true. A
+person's pick runs in place on the UI thread, outside the runtime's dispatch core: it has no job, no journal
+entry and no operation to hold, and its context reads as cancelled once OrcaSlicer is closing. It needs no MCP
+endpoint, so every tile runs with the server off. A pick starts the automation runtime only when its command
+needs it: through its context (`runtime()`, `submit()`), as a long command does, or through
+`GUI_App::automation()`, as a person's recording and the Action Replay and Run Script windows do.
 
 Two helpers wrap the function a command's author writes and place it on the thread it needs:
 
@@ -1717,10 +1784,10 @@ Two helpers wrap the function a command's author writes and place it on the thre
 - `long_command(key, title, group, schema, fn, inline_call)`: `fn(args, ctx)` runs where its call does,
   on the job's thread for an automated call. Picked by a person it is started as a job and returns at
   once (`ctx.submit()`), since it must not hold the UI thread; a command with `inline_call` runs in place
-  instead. A person's context submits it with `McpCore::submit()` on the service's core, started without
-  its endpoint when the server is off: the job runs as a client's call does, under the same guards and
-  operation admission, is not journaled, and is marked as a person's run (`McpService::as_person()`), so a
-  script it runs runs as the person's. The pick replies at once with the notice "Started:" and the
+  instead. A person's context submits it with `McpCore::submit()` on the runtime's core, started without
+  the endpoint when the server is off: the job runs as a client's call does, under the same guards and
+  operation admission, is not journaled, and its job carries the person mark (`JobRegistry::person_in()`), so
+  a script it runs runs as the person's. The pick replies at once with the notice "Started:" and the
   command's title, or an Error when no job started (another operation holds the project, the app is
   closing); the job's result shows as a notification when it ends.
 
@@ -1948,6 +2015,10 @@ setting). An option of a selector Orca builds of buttons (`RadioGroup`, `TabCtrl
 is a button that reads checked while it is the selected one (`selector_option()`), so `set_widget_value true`
 selects it, and a `SwitchButton` with a label at each end has the one it is on as its value.
 
+The inspector, the menu capture, ImGui item recording and, on Wayland, the window-state hooks are the
+GUI instruments, which exist once a front end that drives the GUI has turned them on (see Lifecycle).
+The inspector is built from the modal tracker and the UI generation alone, not from the runtime.
+
 Input tools take a `target`: a ref (also read written as `{ref: "w12"}`), or a locator, which is
 stable across runs and is what the journal stores. A locator is one of:
 
@@ -2008,7 +2079,7 @@ the shortcut modifier (Command on macOS) in both, and `rawctrl` the macOS Contro
 keys are released however the gesture ends; a `mouse_gesture` `down` keeps its button held, and a
 `move` drags with it, until an `up`, another gesture (one that fails included; a request the server
 rejects for its arguments never runs and changes nothing), the end of the replay or script that pressed it,
-the closing of the endpoint for a client's press, or the service's stop. A client's gesture that
+the closing of the endpoint for a client's press, or the runtime's stop. A client's gesture that
 reaches the UI thread after its endpoint closed is refused. Keys without a target go to the
 focused window inside the topmost modal, else that modal, else the focused window, else the 3D view
 shown.
@@ -2139,8 +2210,8 @@ compositor-private interfaces do (KWin's scripting, sway's IPC), and GNOME has n
 `position` is refused there, naming `GDK_BACKEND=x11`, under which the app runs through XWayland and every
 field works. `list_windows`, `set_window` and `get_app_state.window` leave positions out. Size,
 maximize and normal work. GTK never reports a minimized window, but the compositor's `suspended` state
-(xdg-shell 6) reaches it as a fully obscured visibility notify, which emission hooks installed when the
-service starts record on the window (`track_window_states()`). Hidden is not minimized: KWin hides a
+(xdg-shell 6) reaches it as a fully obscured visibility notify, which emission hooks installed with the
+GUI instruments record on the window (`track_window_states()`). Hidden is not minimized: KWin hides a
 minimized window at once, but also one on another virtual desktop and every window while the screens are
 off, and Mutter hides any window it has not shown for 3 s. So a window reads minimized while it is hidden
 and a minimize from `set_window` stands, which ends once the window shows, takes the focus or closes. A
@@ -2158,7 +2229,7 @@ that the person restores the window from the taskbar, and a refused `raise` repl
 ### Menus
 
 Every popup and context menu goes through `popup_menu()` (`SyntheticInput.hpp`), which is
-`wxWindow::PopupMenu()` unless the MCP server has installed a capture
+`wxWindow::PopupMenu()` unless the GUI instruments are on, which install a capture
 (`SyntheticInput::set_menu_capture()`). The capture is there because a native menu loop holds the UI
 thread until a person closes the menu: on macOS it pauses wx's pending events, and with them every
 `run_ui()` closure. So MCP never shows a menu. `UiInspector::on_menu()` takes a menu that opens in a call's window: from the start of each of
@@ -2300,8 +2371,8 @@ menu, and either is captured as any other menu (Menus above).
 
 The 3D canvases draw their panels with ImGui, which has no widgets to walk. ImGui's test-engine
 hooks (`IMGUI_ENABLE_TEST_ENGINE`) report every item a frame adds while
-`ImGuiContext::TestEngineHookItems` is set, which `ImGuiWrapper` does only while the service runs;
-otherwise ImGui skips each hook with one branch. `ImGuiWrapper` keeps the items of each canvas's
+`ImGuiContext::TestEngineHookItems` is set, which `ImGuiWrapper` does only while the GUI instruments
+are on; otherwise ImGui skips each hook with one branch. `ImGuiWrapper` keeps the items of each canvas's
 last frame: id, label, window, rectangle and status flags, and whether the item lies outside the
 visible part of its window. The hooks reach the recorder through `ImGuiContext::TestEngine`, so they
 work without the app. Orca's copy of ImGui adds two hooks upstream lacks: `ItemValue`, through which
@@ -2720,7 +2791,7 @@ not run it. The releases are asked all at once and get one second together, so a
 answer holds up none of the others, and the call still names the dialog it works in before the
 soft budget, past which an open dialog would read as what it waits on. Like the widgets' held
 press, a page's belongs to the client, replay or script that made it: a replay's or script's ends with it,
-a client's when the endpoint closes, every one when the service stops, and a client's down sent
+a client's when the endpoint closes, every one when the runtime stops, and a client's down sent
 after the endpoint closed is refused. These releases, and an auto-answer rule's before it presses a
 button, are made on the UI thread without waiting (`release_web_presses()`) and with no deadline,
 so a page busy then releases once free: a page's own confirmed release drops its record, and a
@@ -2914,7 +2985,8 @@ there, so Windows leaves out one that DWM cloaks or that a window above it cover
 application's, a window of ours that is not a popup, or a popup over another window or left out. Only a
 popup over the same window that is drawn itself, and a layered window at constant alpha 0, do not count. AppKit
 draws macOS's menus and tooltips in windows of its own, which only the window server shows, so drawing
-views leaves them out. The full-size PNG goes to `save_path` or `<datadir>/mcp/out/OrcaSlicer-screenshot-<timestamp>.png`. The image
+views leaves them out. The full-size PNG goes to `save_path` or `OrcaSlicer-screenshot-<timestamp>.png` in the output
+folder (`output_dir()`: the `--outputdir` of a `--run` launch, else `<datadir>/automation/out`). The image
 block is scaled to `max_dim` on the long edge (default 1280, clamped to 256–2000).
 `include_image: false` returns only the path.
 
@@ -2925,6 +2997,12 @@ works, and `encode_recording` turns it into an MP4 to attach to an issue. Record
 since it runs while the app works: frames are kept as JPEG in a Matroska file (MJPEG), and the H.265
 encode, which costs far more, comes after it. There is no audio. `McpRecorder` holds at most one
 recording; `get_app_state.recording` shows it while it runs.
+
+The recorder starts with the runtime and needs none of the GUI instruments. It is built from the modal
+tracker, whose stack it draws, the UI generation its kept canvas frames belong to, whether the main window is
+being rebuilt, and a way to queue a function on the UI thread, not from the runtime. So a person's Start
+Recording with the server off starts the runtime without the instruments: its captions, pointer and dialogs
+are recorded all the same, and the person's own menus show as they do without automation.
 
 **Capture.** The UI thread captures a frame per tick of a one-shot `wxTimer`, which fires inside
 modal loops too. `start_recording` takes the first frame in its own UI closure: it fixes the video's
@@ -2995,12 +3073,12 @@ it, so the last call's effect is in the video even if the timer has not ticked s
 `stop_recording`, after `max_seconds`, at 4 GiB, on a write error, when
 the replay or script that started it ends (`run_replay_job()`, which names a file still being written after 30 s
 as the result's `unfinished_recording`), when the endpoint closes for a client's
-(`stop_serving()`; a run's carries on), and at exit. Ending from any thread sets a flag the next tick
+(`close_client_scope()`; a run's carries on), and at exit. Ending from any thread sets a flag the next tick
 reads, tells the sink to finish, and posts the timer and input filter's cleanup to the UI thread; the
 sink drains its queue, writes the last frame again at the end time so the video lasts until then,
 closes the file and calls back, on its own thread. So ending never needs a UI round trip: a run's
-end waits for the file without deadlocking against `McpService::stop()`, which joins run threads on
-the UI thread, and a step after the replay sees a closed file. At exit `stop()` waits 5 s for the
+end waits for the file without deadlocking against `AutomationRuntime::stop()`, which joins the followed calls'
+threads on the UI thread, and a step after the replay sees a closed file. At exit `stop()` waits 5 s for the
 file, then drops what is still queued and leaves the sink to its threads, which own its state. A
 recording counts as active until its file is closed, for the one-at-a-time rule and for encodes.
 
@@ -3008,7 +3086,7 @@ recording counts as active until its file is closed, for the one-at-a-time rule 
 `encode_preset`, `codec`, `crf`, `speed`, `profile`), checked by `apply_recording_overrides()` with its
 defaults, the Balanced preset, and refuses `encode` without an ffmpeg before anything records. The
 recording keeps `encode_recording`'s arguments (`RecordingOptions::encode`), and the `stop_recording`
-that reports it, once its file is closed, starts the encode with `McpService::start_encode()`: a job of
+that reports it, once its file is closed, starts the encode with `start_encode()` (`McpToolsRecord.cpp`): a job of
 its own, outside the journal (a replayed `start_recording` asks for it again), whose envelope the report
 carries as `encode`, so the agent waits for the MP4 by that job's id. A recording that ended on its own
 is encoded when the next `stop_recording` reports it; one nothing reports, a client's that ended with
@@ -3026,11 +3104,12 @@ person turns them on. Encode to MP4 holds whether ffmpeg encodes it once it ends
 codec, CRF, speed and profile; it is off and disabled when no ffmpeg is found, and says how to get one. A
 rail joins the two stages and shows whether the second runs. The dialog remembers what it starts with in
 AppConfig's `recording` section (`RecordingSettings`). The encode is
-`encode_recording` itself, run by `McpService::encode_when_closed()` as an unjournaled job once the
-recording's file is closed (`McpRecorder::wait_closed()`), so it can be cancelled like any encode. No reply
+`encode_recording` itself, run by `McpRecorder::encode_when_closed()` as an unjournaled job that the runtime
+follows (`follow()`) once the recording's file is closed (`McpRecorder::wait_closed()`, in the call's `ready`), so
+it can be cancelled like any encode. No reply
 names the job, which only exists once the file is closed: an agent finds it in `get_app_state.jobs` and waits
 for it by its id, as the command's description says.
-Start Recording starts the service without its endpoint when the server is off, as Action Replay and the
+Start Recording starts the runtime without the endpoint when the server is off, as Action Replay and the
 Run Script panel do. The person's recording has its own owner (`kPersonOwner`), so neither a run's end nor the
 endpoint closing ends it. Whatever ends it tells the person where it went, in a notification whose button
 opens the folder: Stop Recording itself, which stops any recording, an agent's too, ending it as
@@ -3096,7 +3175,7 @@ falls to almost nothing while the window is still and rises for the motion, wher
 spend it evenly; the video's length in the reply is
 the MP4's movie header's (`mp4_duration()`); an ffmpeg without the encoder is refused, naming what is needed. It runs
 without a console window, polled every 100 ms and terminated when the call is cancelled
-(`NativeCommand::cancellable`: `cancel_job {job}` stops it through `McpService::request_stop()`). On Windows it is
+(`NativeCommand::cancellable`: `cancel_job {job}` stops it through `JobRegistry::request_stop()`). On Windows it is
 ended with `TerminateProcess()` on its handle and waited for on that handle, since `TerminateProcess()`
 returns before the process is gone and boost's `terminate()` closes the handle right after it; a child not
 gone within 5 s keeps its files, which the error names, and its source and destination stay reserved for
@@ -3230,25 +3309,34 @@ step's `reason` says why in parts a host can word: `cancelled`, `timeout {second
 op, expected, actual, exists}`, `expect_invalid`, `placeholder {text}`, `missing_job {name,
 saved_by}` (the step that saves that job, when one does) or `tool` (the tool's own error). A replay
 file's `out_dir` defaults to `<replay name>.out` beside it. An inline replay's defaults to
-`<datadir>/mcp/out/replay-<timestamp>`, which is also its `${replay_dir}`.
+`replay-<timestamp>` in the output folder (`output_dir()`), which is also its `${replay_dir}`.
 
 The engine (`McpReplay.cpp`, wx-free) and the job around it (`run_replay_job()` in
-`McpToolsReplay.cpp`) are shared by `run_replay`, `--mcp-run` and Action Replay. A run
-stops before its next step, and stops waiting on a step's job, once the service stops or a stop was
-asked for any job in its lineage (`McpService::request_stop()`), so a nested `run_replay` stops with
+`McpToolsReplay.cpp`) are shared by `run_replay`, `--run` and Action Replay. A run
+stops before its next step, and stops waiting on a step's job, once the runtime stops or a stop was
+asked for any job in its lineage (`JobRegistry::request_stop()`), so a nested `run_replay` stops with
 the run that holds it. Stop requests last the session, and `JobRegistry` records each job's ancestor
 chain when it is created, so a descendant still reaches its root after finished ancestors are
 forgotten. A step during which the stop came is failed as `cancelled` whatever it returned (a
 cancelled slice still reports its plates) and ends the run, `optional` or not. The engine reports
 each step as it starts and ends, and can run a single step with the jobs earlier runs saved.
 
-`orca-slicer --mcp-run FILE [--mcp-run-out DIR]` runs a replay (`.json`) or a Python script (`.py`) once
-the GUI is ready. It doesn't open the endpoint unless `--mcp` is also given. A replay writes `result.json`
-and screenshots to the output directory, which defaults to `<replay name>.out` next to the replay. Then
-it closes the app without prompting and exits 0 if the replay passed or the script finished, 1 if a step
-failed or the script did not finish, and 2 if the file is invalid or can't be read. `OrcaSlicer.cpp`
-resolves both paths against the original working directory, since the GUI changes it. wx ignores
-`OnExit()`'s return value, so `GUI_Run()` returns `McpService::run_exit_code()` after `wxEntry()`.
+`orca-slicer --run FILE [--outputdir DIR]` runs a replay (`.json`) or a Python script (`.py`) once the GUI
+is ready. `--run` itself asks only for the runtime: the endpoint opens with it when `--mcp` or `--mcp-port` is
+also given or the saved `mcp_enabled` preference is on. `--outputdir` names the
+session's output folder: `start_launch_run()` hands it to `set_run_output_dir()`, so `output_dir()` returns
+it and files a call saves without a path go there, and a replay writes `result.json` and its screenshots
+there. Without it a replay writes to `<replay name>.out` next to the replay, and `output_dir()` is
+`<datadir>/automation/out`. Then the run closes the app without prompting and exits 0 if the replay passed
+or the script finished, 1 if a step failed or the script did not finish, and 2 if the file is invalid,
+can't be read or is neither a `.json` nor a `.py` file. A `--run` launch keeps a window of its own:
+`GUI_Run()` calls `instance_check()` with `never_send`, so the launch is never handed to a running
+instance, whatever the `single_instance` preference says, and its exit code is its own. The call still
+sets the instance hash, which `post_init()` reads. Where no GUI starts, beside a slicing action or
+`--downward-check`, `CLI::run()` refuses `--run` with `CLI_INVALID_PARAMS` and a line on stderr that names
+it, rather than leave the file unrun. `OrcaSlicer.cpp` resolves both paths against the original working
+directory, since the GUI changes it. wx ignores `OnExit()`'s return value, so `GUI_Run()` returns
+`launch_exit_code()` (`LaunchRun.hpp`) after `wxEntry()`.
 
 ### Action Replay
 
@@ -3267,14 +3355,14 @@ nothing while a replay runs, as Open is unavailable then. The browser's own keys
 don't reload the page back to its draft. The page's editor starts from a commented
 draft and suggests the replay's keys, tool names, a tool's arguments and their allowed values, and
 `${…}` placeholders; the tool part comes from the command catalog's listed tools (`editor_tool_catalog()`),
-which the dialog sends once the service is ready, so the suggestions match the build. Save writes the text
+which the dialog sends once the runtime is ready, so the suggestions match the build. Save writes the text
 back to the file it was opened from, or
 asks where to put a new replay file and offers the replay's name as the file name. A replay saved
 somewhere new is that file's from then on: `${replay_dir}` and its output folder follow the file, as for
 an opened one. Closing the window, or opening another replay, with unsaved edits asks first. The page
 reports every edit to the host, which parses, runs and saves that one copy of the text, so the host can
-ask and save even when the window's close box starts the close. Opening the window starts the service
-without the endpoint, as `--mcp-run` does, so a person replays files with the server off.
+ask and save even when the window's close box starts the close. Opening the window starts the runtime
+without the endpoint, as `--run` does, so a person replays files with the server off.
 
 **The editor.** Action Replay and the Run Script panel edit in Ace (`ace-builds` 1.45.2, BSD-3-Clause),
 vendored unmodified in `resources/web/include/ace/` (its `src-min-noconflict` core, the JSON and Python
@@ -3291,15 +3379,15 @@ message keys, and `code_editor.js` hands them to `ace.config.setMessages()`. Eac
 chords its editor binds (`editor_keys`), which the main frame's menu rule reads (Keys, under Run Script
 panel). Action Replay's language is a JSON mode of its own (`orca_replay`, `replay_editor.js`).
 
-`McpService::start_replay_run()` runs the replay as a job of `run_replay`'s kind but outside the
-session journal, since a person's run is not an agent's call. A thread the service owns follows the
-job past a `running` or `blocked_by_dialog` reply to its result, posts it once, and is joined by
-`stop()`. Step reports and the result reach the dialog through the service's dispatcher as
+`start_replay_run()` (`McpPersonRun.cpp`) runs the replay as a job of `run_replay`'s kind but outside the
+session journal, since a person's run is not an agent's call, with the person mark. The runtime follows the
+job (`follow()`) past a `running` or `blocked_by_dialog` reply to its result, which it posts once. Step reports
+and the result reach the dialog through the runtime's dispatcher as
 `PersonRun` events, which the dialog drops once it is gone. `PersonRun::stop()` latches, so a stop
 asked before the job exists still counts, requests the stop for the job (`JobRegistry::request_stop()`)
 and cancels its operation as `cancel_job` does. Every call the run and its nested replays make
-then sees `ToolContext::cancelled()`, so a step that waits, such as `wait`, returns at once. `suspend()` and `stop()` stop every run first, while the main
-window they run in is still the current one.
+then sees `ToolContext::cancelled()`, so a step that waits, such as `wait`, returns at once. `suspend()` and `stop()`
+stop every run first (`stop_followed()`), while the main window they run in is still the current one.
 
 Before a run the dialog describes each step with `describe_step()` (`McpReplaySummary.cpp`, wx-free):
 what it acts on, and flags for effects beyond the open project (writes a file outside the output
@@ -3312,8 +3400,9 @@ replacing step either checks unsaved changes itself (`new_project`, `open_files`
 `generate_calibration_test`) or goes through the app's own save question (`close_with_confirm()`). When the project
 has unsaved changes and the steps to run hold a step of the first kind, or one of the second kind
 with a step that can answer a dialog, the dialog asks whether to save first. Yes saves; No lets the
-run's replacing tools treat the run as `discard_changes: true` (`McpService::discard_authorized()`,
-read from the job lineage when the tool checks), so changes are dropped only when a step really
+run's replacing tools treat the run as `discard_changes: true`: the run's handler marks its job as it starts
+(`JobRegistry::allow_discard()`), the mark counts while the job is unfinished, and a tool reads it from its
+call's lineage when it checks (`discard_allowed_in()`), so changes are dropped only when a step really
 replaces the project. The runner never answers the app's own question.
 
 The window is named `kHiddenFromAutomation`: `list_widgets` and locators skip it, `list_windows` lists
@@ -3368,7 +3457,7 @@ be satisfied. Only the call's own job counts as its job: a
 
 A Python script is a `.py` file or a code string that runs on the plugin interpreter as an embedded macro: the
 main program of a run inside OrcaSlicer, with the whole plugin API (`orca.host`), without being packaged as a
-plugin. A person runs one in the Run Script panel or with `--mcp-run file.py`; an agent sends one with
+plugin. A person runs one in the Run Script panel or with `--run file.py`; an agent sends one with
 `run_script {code, args, timeout_s, filename}`; a plugin's code may call `run_script` too. A script that runs
 under `python file.py` runs the same way here, and code written for a plugin's `execute()` (windows, progress,
 presets, storage) runs from a script unchanged. A script is not a plugin: it gets no permission prompt and no
@@ -3381,7 +3470,7 @@ Script panel, below). The code is text, compiled as Python
 compiles any code string, so a coding line in it changes nothing; a file's bytes are decoded first as Python reads
 a source file, by its BOM or its PEP 263 declaration, else as UTF-8 (`decode_python_source()`). It runs as the main
 program, in a `types.ModuleType("__main__")` of its own, with `args` bound and `orca` importable. A run is a *file
-run* when `filename` names an existing file (a saved script's in the panel and `--mcp-run`'s do): `__file__` and
+run* when `filename` names an existing file (a saved script's in the panel and `--run`'s do): `__file__` and
 `sys.argv` (`[path]`) name it, its folder serves its imports, and its PEP 723 dependencies are installed first.
 Any other name (the default `<run_script>`, a bare traceback name) is code sent as text, which gets none of that;
 `filename` still names it in tracebacks. The value left in `result` is read once when the body returns; in code
@@ -3504,9 +3593,10 @@ script's and a plugin's never write the folder at once. An install that fails ma
 code. The install isn't covered by the watcher; uv's 120 s timeout bounds it.
 
 **Identity.** A person's script runs under the audit identity `script`, an agent's under `mcp`
-(`kScriptIdentityPerson`, `kScriptIdentityAgent`); `McpService::person_run()` tells them apart by the run's
-lineage, since the panel's, `--mcp-run`'s and a person's pick of a long command's jobs are marked as a person's
-(`as_person()`). The plugin audit
+(`kScriptIdentityPerson`, `kScriptIdentityAgent`); `JobRegistry::person_in()` tells them apart by the run's
+lineage, since the jobs of Action Replay, the panel, `--run` and a person's pick of a long command carry the
+person mark while they are unfinished (Threading). So a `run_script` that the panel's session calls through
+`orca.host.tools` runs as the person's too. The plugin audit
 ([plugin-permissions.md](plugin-permissions.md)) judges a script under its identity as it judges a plugin, with
 one difference: a script has no install state to hold a grant, so it is never asked, and what the implicit
 rules don't allow is denied with a `PermissionError` that names the setting. The threads, pool tasks and window
@@ -3516,21 +3606,26 @@ reserved: a plugin whose key equals one is refused before any of its code runs, 
 a script. A plugin's `run_script` runs under the plugin's own identity and grants instead, with the same
 main-program environment, but its windows, callbacks and storage stay the plugin's.
 
-**The setting.** One switch, `mcp_python_unrestricted`, off by default, decides how a person's scripts and an
-agent's `run_script` are judged (a plugin's `run_script` is the plugin's and ignores it). Off, a script is
+**The setting.** One switch, `python_scripts_unrestricted`, off by default, decides how a person's scripts and an
+agent's `run_script` are judged (a plugin's `run_script` is the plugin's and ignores it), and the command line's
+`--unrestricted-scripts` turns it on for one run without writing it. Off, a script is
 restricted: its Python code reads and writes OrcaSlicer's data folder, reads the resources folder, the standard
 library and, in a file run, the folder of its file (`PythonRunScope::allow_folder_reads()`, a scoped root on
 each of the run's threads, so its imports work), and is denied every other audited access: files elsewhere,
 programs, threads and the network. On, every audited access is allowed to it
 (`PluginAuditManager::set_scripts_unrestricted()`, which `apply_python_scripts_setting()` sets at startup and
-on a change, and the audit reads on whichever thread raises the event). The categorical denies every plugin has
+on a change to the value in force, and the audit reads on whichever thread raises the event). The categorical denies every plugin has
 (`is_denied_path()`) hold either way. The audit is a Python audit hook, not a sandbox: the tools a script calls
 through `orca.host.tools` and the rest of `orca.host` run OrcaSlicer's own code and are not judged, so a
 restricted script still does what an agent's tool calls do. The setting is changed only in `PythonScriptsDialog`,
 opened from Preferences › AI features › Python scripts, which is named `kHiddenFromAutomation`: the UI tools never
-see it and `ModalTracker` leaves it off the stack, so no dialog tool or auto-answer rule reaches it. No tool
-writes the key, and `get_app_state.python.scripts_unrestricted` reads it, so an agent learns what its script may
-do before it plans a run rather than from a refusal.
+see it and `ModalTracker` leaves it off the stack, so no dialog tool or auto-answer rule reaches it. No tool and no
+command line option writes the key. Two functions keep the saved setting apart from the value in force:
+`python_scripts_setting()` is the key, which the dialog and the Preferences row show and the dialog writes, and
+`python_scripts_unrestricted()` is the key or the run's flag (`set_python_scripts_for_run()`, called once at
+startup), which the audit gets and `get_app_state.python.scripts_unrestricted` reads, so an agent learns what its
+script may do before it plans a run rather than from a refusal. While the flag is on, the row adds "(on for this
+run by the command line)" and the dialog says the flag is on under its checkbox.
 
 **The host surface and the bridge.** A script reaches the whole `orca.host`, as a plugin does: reads, `orca.host.ui`
 (message boxes, progress dialogs, HTML windows, dock panels, notifications), the staged preset update, bundle
@@ -3623,9 +3718,9 @@ dependencies as its first work starts. `run_python_code()` is a session with one
 with streaming, quoting, Cell events and cell results off and a stop closing every window of the run, which is how it
 keeps the run described above.
 
-**The session job.** `McpService::start_python_session()` hosts the panel's session as an unjournaled person's
-`run_script` job (`run_python_session_job()`) on a thread the service owns, which `stop()` joins and
-`stop_person_runs()` stops. The job is idle for `wait {for: "idle"}` as any `run_script` job is, so agents' and
+**The session job.** `start_python_session()` (`McpToolsPython.cpp`) hosts the panel's session as an unjournaled
+person's `run_script` job (`run_python_session_job()`), which the runtime follows (`follow()`) on a thread that
+`stop()` joins and `stop_followed()` stops. The job is idle for `wait {for: "idle"}` as any `run_script` job is, so agents' and
 plugins' runs overlap with it, sharing no state, tracebacks included. It owns what its calls leave behind for the
 whole session, as a run does (`begin_run_scope()`): auto-answer rules, recordings, held presses. Between works its
 rule layer is paused (`ModalTracker::set_paused()`; the rules listing shows it as paused), so a rule a cell
@@ -3709,9 +3804,9 @@ A plugin's call waits for the UI thread, so it comes only from a thread nothing 
 worker, a Python thread one starts (the thread shim carries the mark) or MCP's own thread running a plugin
 operation (`ScopedToolCallerThread`). A call from the UI thread, a slicing hook or another plugin callback
 is refused before anything waits. `install_plugin_tool_caller()` routes a plugin's calls. The UI
-thread, which owns the service and runs the plugin's unload, admits each one: the plugin must still be
-loaded and its scope not ended, and the service is started without its endpoint when MCP is off; the
-call then holds a lease the service's drain waits for. A caller that stops waiting because the app closes
+thread, which owns the runtime and runs the plugin's unload, admits each one: the plugin must still be
+loaded and its scope not ended, and the runtime is started without the endpoint when MCP is off; the
+call then holds a lease the runtime's drain waits for. A caller that stops waiting because the app closes
 marks its admission abandoned, so no lease is taken that nobody releases. The call runs as
 `McpCore::call_plugin()`: a top-level job owned by the plugin
 (`JobRegistry::owner()`), never journaled, whose children inherit the plugin
@@ -3793,8 +3888,8 @@ built there on first use, since the bridge never starts the GUI that builds it),
 server would get: the handshake, `ping`, `tools/list`, `server/discover`, notifications and unknown
 methods get exactly the reply this build's server gives. That holds because these methods read
 only the catalog and the server's details, and the server keeps no session. The catalog needs no
-service: registering a command only describes it (a schema built from constants and compile-time
-options), and its function runs only when the command is called, reaching the service through its
+runtime: registering a command only describes it (a schema built from constants and compile-time
+options), and its function runs only when the command is called, reaching the runtime through its
 call's context, so building it needs neither wx nor a window. A command's registration must stay that
 way, never reading app state; a unit test builds the catalog without the app.
 
@@ -3826,9 +3921,20 @@ A line that is valid JSON but not one message object, such as a batch, gets an e
 
 ## Configuration
 
-The CLI options are in `CLIMiscConfigDef`, so the GUI still starts: `--mcp`, `--mcp-port N`,
-`--mcp-token T`, `--mcp-run FILE`, `--mcp-run-out DIR` and `--mcp-stdio`. The AppConfig `app`
-section holds `mcp_enabled` (false) and `mcp_port` (13619). Preferences › General › AI features
+The CLI options are in `CLIMiscConfigDef`, so the GUI still starts: `--mcp`, `--mcp-port N`, `--mcp-stdio`,
+`--run FILE` (with `--outputdir DIR`, see Replays), `--unrestricted-scripts` and `--cad`. `--mcp-port` opens the
+endpoint as `--mcp` does, whatever its value, and 0 takes the preference's port: every option has a value after
+`CLI::setup()`, so `OrcaSlicer.cpp` reads whether it was given from `m_given_option_keys`. `--mcp`,
+`--unrestricted-scripts` and `--cad` each turn their setting on for the run, and the flag never writes the
+configuration; without the flag the setting decides. `--mcp` opens the endpoint at startup, and Preferences'
+server switch still closes and opens it during the run, saving `mcp_enabled`, as it does without the flag. With
+`--unrestricted-scripts` or `--cad` the setting is on until OrcaSlicer closes, whatever Preferences saves
+meanwhile. `GUI_InitParams` holds these two flags.
+Each of the two settings has two readers: the saved setting (`python_scripts_setting()`,
+`GUI_App::cad_feature_setting()`), which Preferences shows with "(on for this run by the command line)" beside
+it while the flag is on, and the value in force (`python_scripts_unrestricted()`,
+`GUI_App::is_enable_cad_feature()`), which the rest of the app reads, `get_app_state` included. The AppConfig
+`app` section holds `mcp_enabled` (false) and `mcp_port` (13619). Preferences › General › AI features
 opens with a line on what agents can do and who can connect, then has five rows:
 
 - **"MCP server"**: checked while the server runs. A dot and a line beside it give the state:
@@ -3868,23 +3974,49 @@ that can't connect over HTTP; its setup names this executable, so it breaks when
 
 ## Testing
 
-Unit tests are Catch2 cases tagged `[Mcp]` in `tests/slic3rutils/test_mcp_*.cpp`, run with
-`slic3rutils_tests "[Mcp]"`. `test_mcp_protocol` covers both eras, the order of `tools/list`, argument
-validation, the names and values read in place of a tool's own, and the error for an unknown tool, which names
-the closest;
-`test_mcp_http` the endpoint rules and a live server (deadlines, eviction, stop); `test_mcp_token`
+Unit tests are Catch2 cases in two suites. The automation core is the library
+`libslic3r_automation`: sixteen units of `src/slic3r/GUI` (the command catalog's type, the dispatch core, the
+hand-off to the UI thread, the job registry, the followed threads, the journal, the paths, argument checking,
+the protocol and HTTP transport, what the server says of itself, the replay model, Action Replay's summary of a
+replay, the setup a client copies, the stdio bridge and the token), which `libslic3r_gui` links.
+Its tests are in `tests/automation/`, run with `automation_tests`
+(the `test_mcp_*` cases are tagged `[Mcp]`, `test_command_catalog`'s `[CommandCatalog]`); that suite links the
+library and libslic3r and nothing of `libslic3r_gui`, so it builds without wx and the embedded Python. What
+needs the GUI library (the runtime, the endpoint, the tool families, the process catalog `NativeCommands`
+builds) is tested in `tests/slic3rutils/`: the `test_mcp_*.cpp` cases are tagged `[Mcp]`, and the other files
+named below carry tags of their own (`test_command_catalog` `[CommandCatalog]`, `test_operations`
+`[Operations]`, `test_imgui_wrapper` `[ImGuiWrapper]`), so
+`slic3rutils_tests "[Mcp],[CommandCatalog],[Operations],[ImGuiWrapper]"` runs them all. The build keeps wx out
+of the core: `src/CMakeLists.txt` adds the library
+before it finds wxWidgets. On Linux, wx's include paths and definitions apply at directory scope only from the
+point after which the library is added. On Windows and macOS, wx's setup header and definitions come only with
+the wx targets, which the library does not link. So a wx include in a core unit fails to compile, and a call
+from a core unit into the GUI library fails to link `automation_tests`.
+
+In `tests/automation/`, `test_mcp_protocol` covers both eras, argument validation, the names and values read
+in place of a tool's own, and the error for an unknown tool, which names the closest;
+`test_mcp_http` the endpoint rules and a live server (deadlines, eviction, stop); `test_mcp_paths` the output
+folder, the run's or `<datadir>/automation/out`; `test_mcp_token`
 who owns the discovery file and when a port counts as held by another window; `test_mcp_core`
 `UiInvoker`, `McpCore` and `JobRegistry` on a hand-stepped dispatcher (guards, abandoned calls,
-jobs, blocked_by_dialog, admission, slots, idle, journal and the id arguments it leaves out, a context
-with no service, a submitted call);
-`test_command_catalog` (tagged `[CommandCatalog]`) the catalog itself: unique keys, the palette's
-commands, which are listed, the merged commands' schemas and forms, a tool list built without a
-service, a Speed Dial command found by the one lookup, each command's `id_args` against its schema, the
-history `undo` and `redo` take, and the command reference (tagged `[Reference]`): the checked-in file against
-the catalog, and that its entries hold what `tools/list` tells a client and both forms of a two-form command;
-`test_operations` (tagged `[Operations]`)
+jobs, blocked_by_dialog, admission, slots, idle, journal and the id arguments it leaves out, a submitted
+call, a job's person and discard marks) and the followed threads (`FollowedThreads`: a returned work's thread
+joined by the next start, a stop that reaches only the works still running, no start after the join);
+`test_command_catalog` (tagged `[CommandCatalog]`) the catalog's own rules (keys, sealing, order,
+sources, a Design command's title context, the schema of a two-form command) and a command's reference entry;
+`test_mcp_replay` parsing, substitution, matchers and await; `test_mcp_replay_summary` how Action Replay
+describes and flags a replay's steps; `test_mcp_setup` the HTTP and stdio setups a client copies.
+
+In `tests/slic3rutils/`, the files of the same name hold the cases that need the GUI library:
+`test_mcp_core` a context with no runtime and a tile's journal update; `test_mcp_protocol` the order of the
+process catalog's `tools/list` and the tool families the stdio bridge lists; `test_command_catalog` the
+process catalog itself: unique keys, the palette's commands, which are listed, the merged commands' schemas
+and forms, a tool list built without a runtime, a Speed Dial command found by the one lookup, each command's
+`id_args` against its schema, the history `undo` and `redo` take, and the command reference (tagged
+`[Reference]`): the checked-in file against the catalog, and that its entries hold what `tools/list` tells a
+client and both forms of a two-form command. The others there: `test_operations` (tagged `[Operations]`)
 the slice and export outcomes, an operation's `Outcome` and `Refusal`, and the catalogs' operation
-names and exception lists; `test_mcp_replay` parsing, substitution, matchers and await; `test_mcp_ui` labels,
+names and exception lists; `test_mcp_ui` labels,
 snapshot text, ref liveness, synthetic key state, a key's way through the hooks of its target's
 parents (with a display), how ImGui items are labelled and named, value
 matching and the model-target projection and surface check (`CanvasTarget`); `test_mcp_results`
@@ -3912,14 +4044,15 @@ effective values, the names and places `save_preset` accepts, enum labels and de
 per-variant entries and their writes, preset comparison, `changed`, which unsaved changes a call discarded, which presets
 `delete_preset` refuses or deletes with a custom printer, the project scope's slot colours,
 flushing multipliers and matrix, and the plate scope's filament orders and layer ranges and
-`list_plates`' layer numbers and layer G-codes, the preferences scope's keys, and `generate_calibration_test`'s arguments,
+`list_plates`' layer numbers and layer G-codes, the preferences scope's keys, the scripts setting's saved value and value in
+force, and `generate_calibration_test`'s arguments,
 defaults, the dialogs' shared rules, VFA's auto-adjust and the parameters the journal records. End to end, `tools/mcp/orca_mcp.py` launches
 the app on Linux on the XWayland of a private headless compositor (KWin, else mutter, which is not
 tested yet), which gives it the GPU's OpenGL and a window manager, or, on a machine without a desktop,
 on a private Xvfb display (with `-noreset`, and the pointer parked in a corner so no tooltip lands in
 a screenshot); on macOS and Windows it opens the app on the desktop. It runs
 `tools/mcp/smoke_test.json`. `tools/mcp/tests/replay_basic.json`
-checks `--mcp-run` headless, `tools/mcp/tests/gizmos.json` every gizmo through the GUI tools,
+checks `--run` headless, `tools/mcp/tests/gizmos.json` every gizmo through the GUI tools,
 `tools/mcp/tests/multicolor.json` object and part filaments and the project scope, `tools/mcp/tests/presets.json` saving,
 reading and comparing presets, explaining settings, per-variant entries, `changed`, reverting keys, answering the
 unsaved-changes prompts of a preset switch and a new project, deleting presets, exporting and importing
@@ -3956,6 +4089,10 @@ and `get_app_state.camera`, and a fit after the window was sized while no 3D vie
 `tools/mcp/test_export_running_job.py` an export during and after a job that outlived its reply,
 `tools/mcp/test_send_gcode.py` `send_gcode` and `get_app_state.uploads` against a stub print host that
 answers 200 or 500,
+`tools/mcp/test_command_line.py` the command line's options (the refused ones, `--run`'s exit codes, folders and
+refusals, `--mcp-port`, the two run flags, and a run beside a window already open),
+`tools/mcp/test_runtime_lifecycle.py` the app's exit with a job, a recording or a call no stop interrupts still
+running and with the endpoint never opened, and the server switched off and on during a call,
 `tools/mcp/test_stdio_bridge.py` the stdio bridge, and
 `tools/mcp/test_recovery_under_load.py` answering a dialog while stalled clients hold every
 connection. See `tools/mcp/README.md`.

@@ -21,7 +21,7 @@ struct PluginPermissions;
 // reader maps that form onto the boolean permission.
 inline constexpr const char* kThreadPermissionTarget = "thread";
 
-// The audit identities of a Python script a person (the Run Script panel, --mcp-run) or an agent
+// The audit identities of a Python script a person (the Run Script panel, --run) or an agent
 // (run_script) starts. A script is judged as a plugin is, but has no install state to hold a grant: what
 // the implicit rules don't allow is denied without a prompt, unless scripts run unrestricted
 // (set_scripts_unrestricted). The identities are reserved: no plugin key may equal them, so a plugin is

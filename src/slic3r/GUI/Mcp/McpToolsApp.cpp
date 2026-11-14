@@ -2,17 +2,18 @@
 
 #include "JobRegistry.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "McpEndpoint.hpp"
 #include "McpPaths.hpp"
 #include "McpRecorder.hpp"
 #include "libslic3r/Config.hpp"
-#include "McpService.hpp"
+#include "AutomationRuntime.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "PythonScriptsDialog.hpp"
 #include "ScreenCapture.hpp"
 #include "UiInspector.hpp"
 #include "WindowControl.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -28,6 +29,7 @@
 #include "slic3r/plugin/PythonInterpreter.hpp"
 #ifdef SLIC3R_CAD
 #include "McpToolsCad.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #endif
 #if defined(__WXGTK__)
 #include "slic3r/GUI/LinuxDisplayBackend.hpp"
@@ -103,21 +105,23 @@ const char* mode_name(ConfigOptionMode mode)
 }
 
 // The app as an agent sees it. UI thread.
-json app_state(McpService& service)
+json app_state(AutomationRuntime& runtime)
 {
+    // A session that never opened the MCP endpoint has none.
+    const McpEndpoint* endpoint = wxGetApp().mcp_endpoint();
     json state{{"version", SLIC3R_VERSION},
                {"platform", platform_name()},
                {"display_backend", display_backend()},
-               {"ready", service.ready()},
-               {"dialogs", service.modals().snapshot()},
-               {"closed_menus", service.inspector().closed_menus()},
-               {"auto_answer_rules", service.modals().rules_json()},
-               {"mcp", service.describe()},
+               {"ready", runtime.ready()},
+               {"dialogs", runtime.modals().snapshot()},
+               {"closed_menus", runtime.inspector().closed_menus()},
+               {"auto_answer_rules", runtime.modals().rules_json()},
+               {"mcp", endpoint != nullptr ? endpoint->describe() : json{{"serving", false}}},
                {"python",
                 {{"available", PythonInterpreter::instance().is_initialized()},
                  {"scripts_unrestricted", python_scripts_unrestricted(*wxGetApp().app_config)}}},
-               {"jobs", service.jobs().list()}};
-    if (json recording = service.recorder().state(); !recording.is_null())
+               {"jobs", runtime.jobs().list()}};
+    if (json recording = runtime.recorder().state(); !recording.is_null())
         state["recording"] = std::move(recording);
     // Each display's work area, where set_window can place a window.
     json displays = json::array();
@@ -151,7 +155,7 @@ json app_state(McpService& service)
     // The page exists only when the CAD preference was on at startup.
 #ifdef SLIC3R_CAD
     state["design_tab"] = frame->m_design_page != nullptr;
-    if (json note = cad_note(service.catalog()); !note.is_null())
+    if (json note = cad_note(NativeCommands::instance()); !note.is_null())
         state["cad_note"] = std::move(note);
 #else
     state["design_tab"] = false;
@@ -219,16 +223,16 @@ json app_state(McpService& service)
 }
 
 // Whether `condition` holds now. UI thread.
-bool condition_holds(McpService& service, const std::string& condition, const std::set<std::string>& own_jobs)
+bool condition_holds(AutomationRuntime& runtime, const std::string& condition, const std::set<std::string>& own_jobs)
 {
     if (condition == "ready")
-        return service.ready();
+        return runtime.ready();
     if (condition == "dialog")
-        return service.modals().any_open();
+        return runtime.modals().any_open();
     if (condition == "no_dialog")
-        return !service.modals().any_open();
+        return !runtime.modals().any_open();
     if (condition == "idle") {
-        if (service.modals().any_open() || service.jobs().any_running_except(own_jobs))
+        if (runtime.modals().any_open() || runtime.jobs().any_running_except(own_jobs))
             return false;
         Plater* plater = wxGetApp().plater();
         if (plater == nullptr)
@@ -253,7 +257,8 @@ void register_app_tools(CommandCatalog& catalog)
         "height, as set_window takes positions, its scale and whether it is primary), the MCP endpoint (mcp), python "
         "(available: Python runs "
         "in this build; scripts_unrestricted: a script's own file, network, process and thread access is not held to "
-        "OrcaSlicer's folders, which only a person turns on, in Preferences > AI features > Python scripts), design_tab "
+        "OrcaSlicer's folders, which only a person turns on, in Preferences > AI features > Python scripts or for one run "
+        "with --unrestricted-scripts), design_tab "
         "(the Design tab is on, and call_tool runs its commands, search_tools' group Design) and, when they do not run, "
         "cad_note, how a person turns the CAD feature on. The project: current tab and mode, printer technology, name, path and unsaved changes, "
         "selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the "
@@ -270,8 +275,8 @@ void register_app_tools(CommandCatalog& catalog)
         "notifications, print host uploads (state, progress, error), the open gizmo, running jobs and a running "
         "recording.",
         object_schema({}), [](const json&, ToolContext& ctx) {
-            McpService& service = ctx.service();
-            return ToolResult::ok(ctx.run_ui([&service] { return app_state(service); }));
+            AutomationRuntime& runtime = ctx.runtime();
+            return ToolResult::ok(ctx.run_ui([&runtime] { return app_state(runtime); }));
         }));
 
     NativeCommand wait = inspect_tool(
@@ -285,7 +290,7 @@ void register_app_tools(CommandCatalog& catalog)
                        {"job", prop("string", "Job id, for \"job\".")},
                        {"timeout_s", {{"type", "number"}, {"minimum", 0}, {"maximum", 50}, {"description", "Default 30."}}}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             const std::string what    = arg_string(args, "for", args.contains("job") ? "job" : "idle");
             const auto        timeout = std::chrono::milliseconds(int(arg_double(args, "timeout_s", 30) * 1000));
             const auto        start   = std::chrono::steady_clock::now();
@@ -293,14 +298,14 @@ void register_app_tools(CommandCatalog& catalog)
                 const std::string job = arg_string(args, "job");
                 if (job.empty())
                     throw ToolFailure("job is required for \"job\"");
-                require_own_job(ctx, service.jobs(), job, "waits for");
-                if (auto r = service.jobs().wait(job, timeout, [&ctx] { return ctx.cancelled(); }))
+                require_own_job(ctx, runtime.jobs(), job, "waits for");
+                if (auto r = runtime.jobs().wait(job, timeout, [&ctx] { return ctx.cancelled(); }))
                     return *r;
                 return ToolResult::ok({{"status", "running"}, {"job", job}, {"note", "Still running; wait again."}});
             }
             const std::set<std::string> own = ctx.lineage();
             for (;;) {
-                const bool holds = ctx.run_ui([&] { return json(condition_holds(service, what, own)); }).get<bool>();
+                const bool holds = ctx.run_ui([&] { return json(condition_holds(runtime, what, own)); }).get<bool>();
                 const auto waited = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start);
                 if (holds)
                     return ToolResult::ok({{"satisfied", true}, {"waited_ms", waited.count()}});

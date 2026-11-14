@@ -255,9 +255,12 @@
 #include "slic3r/GUI/ConfigWizardTypes.hpp"
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/HttpServer.hpp"
+#include "slic3r/GUI/Mcp/AutomationRuntime.hpp"
+#include "slic3r/GUI/Mcp/LaunchRun.hpp"
+#include "slic3r/GUI/Mcp/McpEndpoint.hpp"
 #include "slic3r/GUI/Mcp/McpOptions.hpp"
+#include "slic3r/GUI/Mcp/McpPluginCaller.hpp"
 #include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
-#include "slic3r/GUI/Mcp/McpService.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/plugin/PluginOperations.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
@@ -1228,8 +1231,8 @@ void GUI_App::post_init()
     if (m_startup_cloud_report)
         std::exchange(m_startup_cloud_report, nullptr)();
 
-    if (m_mcp)
-        m_mcp->mark_ready();
+    if (m_automation)
+        m_automation->mark_ready();
 
     BOOST_LOG_TRIVIAL(info) << "finished post_init";
 //BBS: remove the single instance currently
@@ -2922,7 +2925,7 @@ bool GUI_App::OnInit()
 
 int GUI_App::OnExit()
 {
-    destroy_mcp_service();
+    destroy_automation();
     stop_http_server();
     stop_sync_user_preset();
     if (m_startup_cloud_plugin_fetch_thread.joinable())
@@ -2985,9 +2988,9 @@ void GUI_App::CleanUp()
     stop_orca_health_check(m_agent);
     if (m_startup_cloud_plugin_fetch_thread.joinable())
         m_startup_cloud_plugin_fetch_thread.join();
-    // Same reason: the MCP server started before the first startup dialog, so an initialization that
-    // failed after it never reaches OnExit().
-    destroy_mcp_service();
+    // Same reason: the automation runtime and the MCP endpoint start before the first startup dialog, so an
+    // initialization that failed after them never reaches OnExit().
+    destroy_automation();
     wxApp::CleanUp();
 }
 
@@ -3096,13 +3099,12 @@ void GUI_App::init_plugin_gui_wiring()
 
     plugin_mgr.subscribe_on_unload_callback(PluginHostUi::close_windows_for_plugin);
     Mcp::install_plugin_tool_caller();
-    Mcp::apply_python_scripts_setting(*app_config);
     // A plugin loaded again may make tool calls again.
     plugin_mgr.subscribe_on_load_callback([](const std::string& plugin_key) {
         if (wxTheApp != nullptr)
             wxGetApp().CallAfter([plugin_key] {
-                if (Mcp::McpService* service = wxGetApp().mcp_service(); service != nullptr && service->started())
-                    service->plugin_loaded(plugin_key);
+                if (Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started())
+                    runtime->plugin_loaded(plugin_key);
             });
     });
     plugin_mgr.subscribe_on_unload_callback([](const std::string& plugin_key) {
@@ -3110,8 +3112,8 @@ void GUI_App::init_plugin_gui_wiring()
         // What the plugin's tool calls left behind (rules, a recording, a held press) ends with it.
         if (wxTheApp != nullptr)
             wxGetApp().CallAfter([plugin_key] {
-                if (Mcp::McpService* service = wxGetApp().mcp_service(); service != nullptr && service->started())
-                    service->end_plugin_scope(plugin_key);
+                if (Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started())
+                    runtime->end_plugin_scope(plugin_key);
             });
     });
     plugin_mgr.subscribe_on_load_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
@@ -3291,7 +3293,7 @@ bool GUI_App::on_init_inner()
     // Stop the Orca Cloud health check as OnExit() does, so no request is in flight while exit() tears down.
     wxGetApp().Bind(wxEVT_END_SESSION, [this](wxCloseEvent &e) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "received wxEVT_END_SESSION";
-        stop_mcp_service();
+        stop_automation();
         stop_sync_user_preset();
         stop_orca_health_check(m_agent);
         // Before the plugin manager and network module go away.
@@ -3356,18 +3358,25 @@ bool GUI_App::on_init_inner()
 //    wxSystemOptions::SetOption("msw.notebook.themed-background", 0);
 
 //     Slic3r::debugf "wxWidgets version %s, Wx version %s\n", wxVERSION_STRING, wxVERSION;
-    // The command catalog, before anything that runs or lists a command: the MCP service below and the
-    // Speed Dial's action registry. The preference is read from the config, since is_enable_cad_feature() is in
-    // a CAD build only.
-    NativeCommands::build({is_editor() && app_config->get_bool("enable_cad_feature")});
+    // The command catalog, before anything that runs or lists a command: the automation runtime below and the
+    // Speed Dial's action registry. Then the Python scripts setting's value in force, before the endpoint opens and
+    // the command line's run starts, so that get_app_state and the first script read it. Each value in force is the
+    // preference, or the command line's flag (--cad, --unrestricted-scripts). The CAD feature's is read here from the
+    // config and the launch parameters, since is_enable_cad_feature() is in a CAD build only.
+    const bool cad_in_force = app_config->get_bool("enable_cad_feature") || (init_params != nullptr && init_params->cad);
+    NativeCommands::build({is_editor() && cad_in_force});
+    Mcp::set_python_scripts_for_run(init_params != nullptr && init_params->unrestricted_scripts);
+    Mcp::apply_python_scripts_setting(*app_config);
 
-    // The MCP server starts before the first startup dialog (the TLS prompt below, the setup wizard)
+    // The MCP endpoint opens before the first startup dialog (the TLS prompt below, the setup wizard)
     // so an agent can see and answer it; tools that need the main window report not-ready until
-    // post_init() has run.
+    // post_init() has run. A --run alone starts the runtime without the endpoint.
     if (init_params != nullptr) {
-        const bool serve = init_params->mcp.enable || app_config->get_bool("mcp_enabled");
-        if (serve || !init_params->mcp.run_file.empty())
-            start_mcp_service(serve);
+        if (init_params->mcp.enable || app_config->get_bool("mcp_enabled"))
+            open_mcp_endpoint();
+        if (!init_params->mcp.run_file.empty())
+            if (Mcp::AutomationRuntime* runtime = automation())
+                Mcp::start_launch_run(*runtime, init_params->mcp);
     }
     if (is_editor()) {
         std::string msg = Slic3r::Http::tls_global_init();
@@ -5106,8 +5115,8 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
     update_publish_status();
 
     m_is_recreating_gui = false;
-    if (m_mcp)
-        m_mcp->resume();
+    if (m_automation)
+        m_automation->resume();
     if (m_run_script_panel)
         m_run_script_panel->main_window_rebuilt();
 
@@ -8498,78 +8507,101 @@ void GUI_App::stop_http_server()
     m_http_server->stop();
 }
 
-bool GUI_App::start_mcp_service(bool serve, std::string* error)
+namespace {
+
+// What the MCP endpoint could not open for, as an error notification once the main window has a plater.
+void show_mcp_endpoint_error(const std::string& err)
 {
-    // Only the launch options from the command line carry a file to run (--mcp-run); a later start from Preferences
-    // must not run it again.
-    Mcp::McpLaunchOptions options;
-    if (init_params != nullptr && !m_post_initialized)
-        options = init_params->mcp;
-    else if (init_params != nullptr) {
-        options.port  = init_params->mcp.port;
-        options.token = init_params->mcp.token;
-    }
-    if (!m_mcp)
-        m_mcp.reset(new Mcp::McpService());
-    if (serve)
-        m_mcp_wanted = true;
+    if (Plater* plater = wxGetApp().plater())
+        plater->get_notification_manager()->push_notification(NotificationType::CustomNotification,
+                                                               NotificationManager::NotificationLevel::ErrorNotificationLevel, err);
+}
+
+} // namespace
+
+Mcp::AutomationRuntime* GUI_App::automation()
+{
+    if (is_closing())
+        return nullptr;
+    // A runtime that has stopped is kept, and refuses to start again.
+    if (!m_automation)
+        m_automation.reset(new Mcp::AutomationRuntime());
     std::string err;
-    const bool  ok = m_mcp->start(options, serve, err);
-    if (!ok && serve && m_mcp->port_held_by_other_window()) {
-        // Another window that shares the configuration folder serves agents. Not an error: try the
-        // port every few seconds, so agents keep a server once that window closes.
-        if (!m_mcp_takeover_timer) {
-            m_mcp_takeover_timer = std::make_unique<wxTimer>();
-            m_mcp_takeover_timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
-                if (m_mcp_wanted && m_mcp && !m_mcp->serving() && !is_closing())
-                    start_mcp_service(true);
-                else
-                    m_mcp_takeover_timer->Stop();
-            });
-        }
-        if (!m_mcp_takeover_timer->IsRunning())
-            m_mcp_takeover_timer->Start(3000);
-    } else {
-        if (m_mcp_takeover_timer)
-            m_mcp_takeover_timer->Stop();
-        if (!ok && plater() != nullptr)
-            plater()->get_notification_manager()->push_notification(NotificationType::CustomNotification,
-                                                                    NotificationManager::NotificationLevel::ErrorNotificationLevel,
-                                                                    err);
-    }
+    if (!m_automation->start(err))
+        return nullptr;
     if (m_post_initialized)
-        m_mcp->mark_ready();
+        m_automation->mark_ready();
+    return m_automation.get();
+}
+
+Mcp::AutomationRuntime* GUI_App::automation_if_started() { return m_automation.get(); }
+
+Mcp::McpEndpoint* GUI_App::mcp_endpoint() { return m_mcp_endpoint.get(); }
+
+bool GUI_App::open_mcp_endpoint(std::string* error)
+{
+    std::string err;
+    bool        ok = false;
+    if (Mcp::AutomationRuntime* runtime = automation()) {
+        if (!m_mcp_endpoint)
+            // A retry that fails for another reason than the port being held is shown as a first open's failure is.
+            m_mcp_endpoint = std::make_unique<Mcp::McpEndpoint>(*runtime, show_mcp_endpoint_error);
+        // The command line's port, if any.
+        const int option_port = init_params != nullptr ? init_params->mcp.port : 0;
+        ok = m_mcp_endpoint->open(Mcp::endpoint_port(option_port, app_config != nullptr ? app_config->get("mcp_port") : std::string()),
+                                  err);
+        // Another window that shares the configuration folder serves agents: not an error, and the endpoint takes
+        // the port over when that window closes.
+        if (!ok && !m_mcp_endpoint->port_held_by_other_window())
+            show_mcp_endpoint_error(err);
+    } else
+        err = "OrcaSlicer is closing";
     if (error != nullptr)
         *error = err;
     return ok;
 }
 
-void GUI_App::stop_mcp_endpoint()
+void GUI_App::close_mcp_endpoint()
 {
-    m_mcp_wanted = false;
-    if (m_mcp_takeover_timer)
-        m_mcp_takeover_timer->Stop();
-    if (m_mcp)
-        m_mcp->stop_serving();
+    if (m_mcp_endpoint)
+        m_mcp_endpoint->close();
 }
 
 bool GUI_App::restart_mcp_endpoint(std::string* error)
 {
     if (init_params != nullptr)
         init_params->mcp.port = 0;
-    if (!m_mcp || !m_mcp->serving())
+    // Serving, or waiting for the port another window holds: either goes to the new port.
+    if (!m_mcp_endpoint || !(m_mcp_endpoint->serving() || m_mcp_endpoint->port_held_by_other_window()))
         return true;
-    m_mcp->stop_serving();
-    return start_mcp_service(true, error);
+    m_mcp_endpoint->close();
+    return open_mcp_endpoint(error);
 }
 
-void GUI_App::stop_mcp_service()
+void GUI_App::stop_automation()
 {
-    m_mcp_wanted = false;
-    if (m_mcp_takeover_timer)
-        m_mcp_takeover_timer->Stop();
-    if (m_mcp)
-        m_mcp->stop();
+    if (m_mcp_endpoint)
+        m_mcp_endpoint->close();
+    if (m_automation)
+        m_automation->stop();
+}
+
+void GUI_App::destroy_automation()
+{
+    // The Run Script panel's session is a job of the runtime: it goes first.
+    m_run_script_panel.reset();
+    stop_automation();
+    // Outside any event loop, so nothing the waits hold up can be running. A request thread still inside the
+    // protocol reaches the runtime's core through it: then neither is freed.
+    if (m_mcp_endpoint && !m_mcp_endpoint->drain(std::chrono::seconds(10))) {
+        BOOST_LOG_TRIVIAL(error) << "MCP server: a request did not return; leaving the endpoint and the automation runtime in place";
+        (void) m_mcp_endpoint.release();
+        (void) m_automation.release();
+        return;
+    }
+    m_mcp_endpoint.reset();
+    // Its deleter waits for running calls, and leaves in place a runtime whose calls never return.
+    m_automation.reset();
 }
 
 RunScriptPanel& GUI_App::run_script_panel()
@@ -8577,17 +8609,6 @@ RunScriptPanel& GUI_App::run_script_panel()
     if (!m_run_script_panel)
         m_run_script_panel = std::make_unique<RunScriptPanel>();
     return *m_run_script_panel;
-}
-
-void GUI_App::destroy_mcp_service()
-{
-    // The Run Script panel's session is a job of the service: it goes first.
-    m_run_script_panel.reset();
-    // Before wxApp::CleanUp(): a timer must not outlive the toolkit.
-    m_mcp_takeover_timer.reset();
-    // Outside any event loop: the deleter waits for running calls, and leaks a service whose calls
-    // never return.
-    m_mcp.reset();
 }
 
 #ifdef __linux__

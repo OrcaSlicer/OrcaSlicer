@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Mcp/McpTypes.hpp"
+#include "CommandTypes.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -11,8 +11,8 @@
 #include <unordered_map>
 #include <vector>
 
-// The command type and the catalog that holds every command. No wx here, so that the wx-free units of
-// the MCP server can include it.
+// The command type and the catalog that holds every command. No wx here: this header is part of the library
+// libslic3r_automation, which is built without wx.
 namespace Slic3r { namespace GUI {
 
 // The group of the Design tab's commands (Mcp::register_cad_commands()), an untranslated msgid as every
@@ -25,7 +25,7 @@ enum class CommandCompletion { None, Export };
 
 // A command's function: the arguments match `input_schema`; the context is the call's, a person's pick
 // (ToolContext::person()) or an automated call.
-using CommandFn = std::function<Mcp::ToolResult(const nlohmann::json& args, Mcp::ToolContext& ctx)>;
+using CommandFn = std::function<ToolResult(const nlohmann::json& args, ToolContext& ctx)>;
 
 // One command of the app: identity, what a person sees of it, what an agent reads about it and how to
 // run it. NativeCommands::make_action() wraps one as a thin AppAction for the Speed Dial, so the catalog
@@ -64,8 +64,8 @@ struct NativeCommand
     // tools, run_action, call_tool, run_replay, run_script), though what it runs may be. The client sees both in
     // the arguments, and the label would ask on every call. open_world: it can reach outside OrcaSlicer (a
     // printer, the cloud account, the network, or anything the computer allows), including through what it runs.
-    bool            read_only = false, destructive = false, idempotent = false, open_world = false;
-    Mcp::GuardClass guard     = Mcp::GuardClass::Mutate;
+    bool       read_only = false, destructive = false, idempotent = false, open_world = false;
+    GuardClass guard     = GuardClass::Mutate;
     // inline_call: pure observation, which runs on the request thread and is never a job; everything that can
     // activate UI runs as a job instead, because activating UI can open a modal that blocks the call. journal:
     // recorded by the session journal for export_replay; observation commands turn it off, except wait and

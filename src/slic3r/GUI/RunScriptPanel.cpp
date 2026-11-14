@@ -7,14 +7,16 @@
 #include "KeyChord.hpp"
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
+#include "NativeCommands.hpp"
 #include "Plater.hpp"
 #include "Shortcuts.hpp"
 #include "format.hpp"
+#include "Mcp/AutomationRuntime.hpp"
+#include "Mcp/McpArguments.hpp"
 #include "Mcp/McpPaths.hpp"
 #include "Mcp/McpPersonRun.hpp"
-#include "Mcp/McpService.hpp"
 #include "Mcp/McpTools.hpp"
-#include "Mcp/McpTypes.hpp"
+#include "Mcp/WindowNames.hpp"
 #include "Widgets/WebView.hpp"
 #include "Widgets/WebViewHostDialog.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -71,12 +73,6 @@ constexpr int         kMaxRecent      = 10;
 constexpr std::size_t kOutputPerTick  = 256 * 1024;
 // A toggle the page asks for this soon after one the main frame dispatched is the same key press, delivered twice.
 constexpr auto        kToggleEcho     = std::chrono::milliseconds(150);
-
-Mcp::McpService* service()
-{
-    Mcp::McpService* s = wxGetApp().mcp_service();
-    return s != nullptr && s->started() && !s->stopping() ? s : nullptr;
-}
 
 #ifdef __APPLE__
 const char* const kEnter = "Return";
@@ -347,10 +343,10 @@ RunScriptPanel::RunScriptPanel() : m_alive(std::make_shared<std::atomic<bool>>(t
 {
     m_timer.Bind(wxEVT_TIMER, [this](wxTimerEvent&) { tick(); });
     m_ready_timer.Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
-        Mcp::McpService* s = service();
+        Mcp::AutomationRuntime* s = wxGetApp().automation();
         if (s == nullptr || s->ready())
             m_ready_timer.Stop();
-        send_service_state();
+        send_runtime_state();
     });
     // The pane comes back after a rebuild once the old main window is gone: a WebView2 created while the window it
     // replaces still exists shows a blank page. recreate_GUI() Destroy()s that window, which wx deletes in its idle pass
@@ -371,7 +367,7 @@ RunScriptPanel::~RunScriptPanel()
     m_alive->store(false);
     m_timer.Stop();
     m_ready_timer.Stop();
-    // The service, which hosts the session on a thread of its own, joins that thread as it stops.
+    // The runtime, which hosts the session on a thread of its own, joins that thread as it stops.
     if (m_session) {
         m_session->end();
         m_session->stop();
@@ -494,11 +490,12 @@ void RunScriptPanel::handle(const json& payload)
     const std::string command = payload.value("command", "");
     try {
         if (command == "init") {
-            // The panel needs the service's tools and jobs, never its network endpoint.
-            if (wxGetApp().mcp_service() == nullptr)
-                wxGetApp().start_mcp_service(false);
+            // The panel needs the runtime's tools and jobs, started here without the network endpoint, and its
+            // scripts drive the GUI.
+            if (Mcp::AutomationRuntime* runtime = wxGetApp().automation())
+                runtime->enable_gui_instruments();
             send(state());
-            send_service_state();
+            send_runtime_state();
             read_api();
         } else if (command == "editor_keys") {
             m_editor_keys.clear();
@@ -566,7 +563,7 @@ void RunScriptPanel::handle(const json& payload)
 
 json RunScriptPanel::state() const
 {
-    Mcp::McpService* s = service();
+    Mcp::AutomationRuntime* s = wxGetApp().automation();
     json             script = script_message();
     script.erase("command");
     return {{"command", "state"},
@@ -639,15 +636,15 @@ void RunScriptPanel::send_session_state()
     send({{"command", "session"}, {"state", now}});
 }
 
-void RunScriptPanel::send_service_state()
+void RunScriptPanel::send_runtime_state()
 {
-    Mcp::McpService* s     = service();
-    const bool       ready = s != nullptr && s->ready();
-    if (!ready && s != nullptr && !m_ready_timer.IsRunning())
+    Mcp::AutomationRuntime* runtime = wxGetApp().automation();
+    const bool              ready   = runtime != nullptr && runtime->ready();
+    if (!ready && runtime != nullptr && !m_ready_timer.IsRunning())
         m_ready_timer.Start(500);
-    send({{"command", "service"}, {"ready", ready}});
+    send({{"command", "runtime"}, {"ready", ready}});
     if (ready)
-        send({{"command", "catalog"}, {"tools", Mcp::editor_tool_catalog(s->catalog())}});
+        send({{"command", "catalog"}, {"tools", Mcp::editor_tool_catalog(NativeCommands::instance())}});
 }
 
 // The orca.host API's entries, read once per app run on a thread of the panel's, which it joins.
@@ -835,7 +832,7 @@ void RunScriptPanel::run(const json& payload)
 {
     if (m_running || m_waiting)
         return;
-    Mcp::McpService* s = service();
+    Mcp::AutomationRuntime* s = wxGetApp().automation();
     if (s == nullptr || !s->ready()) {
         refuse(_u8L("Scripts can't run while OrcaSlicer is starting or closing."));
         return;
@@ -881,7 +878,7 @@ void RunScriptPanel::run(const json& payload)
 
 bool RunScriptPanel::start_session()
 {
-    Mcp::McpService* s = service();
+    Mcp::AutomationRuntime* s = wxGetApp().automation();
     if (s == nullptr) {
         refuse(_u8L("Scripts can't run while OrcaSlicer is starting or closing."));
         return false;
@@ -895,7 +892,7 @@ bool RunScriptPanel::start_session()
         m_running = false;
         send({{"command", "run_finished"}, {"status", "refused"}, {"message", result.value("error", std::string())}});
     };
-    m_session_run = s->start_python_session(session, m_file, std::move(events));
+    m_session_run = Mcp::start_python_session(*s, session, m_file, std::move(events));
     if (!m_session_run) {
         refuse(_u8L("Scripts can't run while OrcaSlicer is starting or closing."));
         return false;
@@ -997,7 +994,7 @@ void RunScriptPanel::tick()
                 send({{"command", "run_finished"}, {"status", "refused"}, {"message", _u8L("Scripts can't run while OrcaSlicer is starting or closing.")}});
             }
         } else if (m_running) {
-            // Ended without reporting its work: its job was refused, or the service stopped.
+            // Ended without reporting its work: its job was refused, or the runtime stopped.
             m_running = false;
             send({{"command", "run_finished"}, {"status", "refused"}, {"message", _u8L("Scripts can't run while OrcaSlicer is starting or closing.")}});
         }

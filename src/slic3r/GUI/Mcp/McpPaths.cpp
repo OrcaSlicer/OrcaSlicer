@@ -1,5 +1,4 @@
 #include "McpPaths.hpp"
-#include "McpToken.hpp"
 
 #include "libslic3r/Utils.hpp"
 
@@ -11,6 +10,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <ctime>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <utility>
@@ -154,12 +154,32 @@ std::optional<fs::path> resolve_output_dir(const std::string& path, std::string&
     return p;
 }
 
+namespace {
+
+// Set on the UI thread at startup, read by the threads that save files.
+std::mutex g_run_output_mutex;
+fs::path   g_run_output_dir;
+
+} // namespace
+
 fs::path output_dir()
 {
-    const fs::path dir = mcp_dir(path_from_utf8(data_dir())) / "out";
+    fs::path dir;
+    {
+        std::lock_guard<std::mutex> lock(g_run_output_mutex);
+        dir = g_run_output_dir;
+    }
+    if (dir.empty())
+        dir = path_from_utf8(data_dir()) / "automation" / "out";
     boost::system::error_code ec;
     fs::create_directories(dir, ec);
     return dir;
+}
+
+void set_run_output_dir(const fs::path& dir)
+{
+    std::lock_guard<std::mutex> lock(g_run_output_mutex);
+    g_run_output_dir = dir;
 }
 
 fs::path timestamped_path(const fs::path& dir, const std::string& kind, const std::string& extension, const std::vector<std::string>& companions,

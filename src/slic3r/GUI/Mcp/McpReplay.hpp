@@ -1,6 +1,6 @@
 #pragma once
 
-#include "McpTypes.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <boost/filesystem/path.hpp>
 #include <nlohmann/json.hpp>

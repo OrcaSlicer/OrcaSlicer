@@ -1,7 +1,8 @@
 #include "McpProtocol.hpp"
-#include "McpTypes.hpp"
+#include "McpArguments.hpp"
 
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <algorithm>
 #include <cstddef>

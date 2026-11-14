@@ -13,7 +13,7 @@ class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
-// Input state that automation (the MCP server) holds down while it synthesizes a gesture.
+// Input state that automation holds down while it synthesizes a gesture.
 // Synthesized wx events carry their own modifier and button flags, but parts of the 3D view also
 // ask the system for the keyboard and mouse state; those reads go through get_key_state() and
 // get_mouse_state(), which add whatever automation is holding. Empty unless a synthesized gesture
@@ -31,7 +31,7 @@ void clear();
 // Popup and context menus that open while automation acts on the UI go to `capture` instead of
 // being shown: a native menu loop would hold the UI thread until a person closed the menu, and on
 // macOS it pauses the queued calls automation runs through. `capture` returns false to let a menu
-// show. Empty unless the MCP server runs; clear() leaves it.
+// show. Empty unless the GUI instruments are on (`enable_gui_instruments()`); clear() leaves it.
 void set_menu_capture(std::function<bool(wxMenu& menu, wxWindow& owner)> capture);
 } // namespace SyntheticInput
 

@@ -18,7 +18,7 @@ class PythonRunScope;
 class PythonSession;
 
 // A Python script a person or an agent starts (run_script, a .py in the Run Script dialog or
-// --mcp-run), or a plugin's run_script: code run on the plugin interpreter without being packaged
+// --run), or a plugin's run_script: code run on the plugin interpreter without being packaged
 // as a plugin.
 struct PythonRunRequest
 {

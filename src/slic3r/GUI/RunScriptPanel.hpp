@@ -30,10 +30,10 @@ class RunScriptPane;
 
 // The Run Script panel: a dock pane under the 3D view (it can float) whose page (resources/web/dialog/RunScript) edits a
 // Python script in `# %%` cells and runs them, one at a time or the whole file, in a live session (PythonSession) hosted
-// by the MCP service as a person's run_script job. One per app, owned by GUI_App: the script's text, file and unsaved
-// state, the session and the recent scripts live here, so they survive the pane, which a main-window rebuild (a language
-// change) destroys and the panel builds again. The pane and everything in it are hidden from the automation tools.
-// UI thread.
+// by the automation runtime as a person's run_script job. One per app, owned by GUI_App: the script's text, file and
+// unsaved state, the session and the recent scripts live here, so they survive the pane, which a main-window rebuild (a
+// language change) destroys and the panel builds again. The pane and everything in it are hidden from the automation
+// tools. UI thread.
 class RunScriptPanel final : public CodeEditorWindow
 {
 public:
@@ -94,7 +94,7 @@ private:
 
     void run(const nlohmann::json& payload);
     void refuse(const std::string& message);
-    // Starts a session on the script's file as it is now; false (and refused) when the service can't host one.
+    // Starts a session on the script's file as it is now; false (and refused) when the runtime can't host one.
     bool start_session();
     // Ends the session and stops what it runs, its teardown included; it is dropped once it has ended.
     void end_session();
@@ -102,7 +102,7 @@ private:
     void submit(PythonWork work, const nlohmann::json& started);
     void tick();
     void finish_run(const PythonSessionEvent& done);
-    void send_service_state();
+    void send_runtime_state();
     void read_api();
 
     std::shared_ptr<std::atomic<bool>> m_alive;

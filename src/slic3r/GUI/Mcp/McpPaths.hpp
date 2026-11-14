@@ -30,9 +30,11 @@ std::optional<boost::filesystem::path> resolve_output_path(const std::string& pa
 // An existing directory (multi-file exports).
 std::optional<boost::filesystem::path> resolve_output_dir(const std::string& path, std::string& err);
 
-// Where screenshots, recordings and replay outputs go when no path is given: <datadir>/mcp/out, created
-// when missing.
+// The folder files are saved to when a call names none: the run's folder when the command line gave one
+// (set_run_output_dir), else <datadir>/automation/out. Created on first use.
 boost::filesystem::path output_dir();
+// An empty path takes the run's folder back.
+void set_run_output_dir(const boost::filesystem::path& dir);
 
 // A path in `dir` for a new file named "OrcaSlicer-<kind>-YYYYMMDD-HHMMSS<extension>" for the local time
 // `when`, so files of one kind sort by when they were made and say where they came from. A name taken by a

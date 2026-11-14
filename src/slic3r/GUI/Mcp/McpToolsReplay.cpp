@@ -1,14 +1,15 @@
 // run_replay and export_replay: deterministic replays of tool calls, and turning a session into one.
 
 #include "JobRegistry.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "McpJournal.hpp"
 #include "McpPaths.hpp"
 #include "McpRecorder.hpp"
 #include "McpReplay.hpp"
-#include "McpService.hpp"
+#include "AutomationRuntime.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -57,12 +58,12 @@ std::string timestamp()
     return buf;
 }
 
-// An invalid replay is a tool error flagged `invalid`, which --mcp-run turns into exit code 2.
+// An invalid replay is a tool error flagged `invalid`, which --run turns into exit code 2.
 ToolResult invalid(const std::string& message) { return ToolResult::error("Invalid replay: " + message, {{"invalid", true}}); }
 
 } // namespace
 
-json run_replay_job(McpService& service, ToolContext& ctx, const Replay& replay, ReplayContext& sctx, const ReplayRunOptions& options)
+json run_replay_job(AutomationRuntime& runtime, ToolContext& ctx, const Replay& replay, ReplayContext& sctx, const ReplayRunOptions& options)
 {
     boost::system::error_code ec;
     fs::create_directories(sctx.out_dir, ec);
@@ -70,31 +71,31 @@ json run_replay_job(McpService& service, ToolContext& ctx, const Replay& replay,
         throw ToolFailure("Cannot create " + path_to_utf8(sctx.out_dir) + ": " + ec.message());
 
     const std::string job = ctx.job_id();
-    service.begin_run_scope(job);
+    runtime.begin_run_scope(job);
     struct ScopeEnd
     {
-        McpService& service;
+        AutomationRuntime& runtime;
         std::string job;
         bool        recording_waited = false; // the run below waited for the replay's recording already
-        ~ScopeEnd() { service.end_run_scope(job, !recording_waited); }
-    } scope_end{service, job};
+        ~ScopeEnd() { runtime.end_run_scope(job, !recording_waited); }
+    } scope_end{runtime, job};
 
     const auto stopped = [&ctx] { return ctx.cancelled(); };
 
     ReplayHost host;
     host.call     = [&ctx](const std::string& tool, const json& a) { return ctx.call_child(tool, a); };
-    host.wait_job = [&service, &stopped](const std::string& id, int timeout_s) {
-        return service.jobs().wait(id, std::chrono::seconds(timeout_s), stopped);
+    host.wait_job = [&runtime, &stopped](const std::string& id, int timeout_s) {
+        return runtime.jobs().wait(id, std::chrono::seconds(timeout_s), stopped);
     };
     host.cancelled     = stopped;
     host.step_started  = options.step_started;
     host.step_finished = options.step_finished;
-    host.open_dialogs  = [&service] { return service.ui().open_dialogs(); };
+    host.open_dialogs  = [&runtime] { return runtime.ui().open_dialogs(); };
 
     json result = run_replay(replay, sctx, host, options.only_step);
     // A recording the replay started ends with it, its file closed before the result is written; one still
     // being written after the wait is named, since an encode of it would fail.
-    std::optional<std::string> unfinished = service.recorder().end_owned_by(job, "run_ended", true);
+    std::optional<std::string> unfinished = runtime.recorder().end_owned_by(job, "run_ended", true);
     scope_end.recording_waited            = true;
     if (unfinished)
         result["unfinished_recording"] = *unfinished;
@@ -124,7 +125,7 @@ void register_replay_tools(CommandCatalog& catalog)
                        {"out_dir", prop("string", "Absolute directory for result.json and screenshots; created if missing.")},
                        {"vars", {{"type", "object"}, {"description", "Values that override the replay's vars."}}}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             const bool has_path = args.contains("path"), has_replay = args.contains("replay");
             if (has_path == has_replay)
                 return invalid("give exactly one of path and replay");
@@ -154,7 +155,7 @@ void register_replay_tools(CommandCatalog& catalog)
             if (!replay)
                 return invalid(err);
             for (const ReplayStep& step : replay->steps)
-                if (service.catalog().lookup(step.tool) == nullptr)
+                if (NativeCommands::instance().lookup(step.tool) == nullptr)
                     return invalid("unknown tool " + step.tool);
             if (args.contains("vars"))
                 for (const auto& [key, value] : args["vars"].items())
@@ -165,7 +166,7 @@ void register_replay_tools(CommandCatalog& catalog)
                 return invalid("out_dir must be an absolute path");
             if (!has_path)
                 sctx.replay_dir = sctx.out_dir;
-            json result = run_replay_job(service, ctx, *replay, sctx, ReplayRunOptions{});
+            json result = run_replay_job(runtime, ctx, *replay, sctx, ReplayRunOptions{});
             return ToolResult::ok(std::move(result));
         });
     // Its steps call any tool, run_script included.
@@ -184,11 +185,11 @@ void register_replay_tools(CommandCatalog& catalog)
                        {"overwrite", prop("boolean", "Replace an existing file.")},
                        {"clear", prop("boolean", "Forget the calls recorded so far once exported.")}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             if (!ctx.caller_plugin().empty())
                 throw ToolFailure("export_replay exports the agent's session, which a plugin's calls are not part of");
             json running;
-            json replay = service.journal().to_replay(arg_string(args, "name", "session " + timestamp()), &running);
+            json replay = runtime.journal().to_replay(arg_string(args, "name", "session " + timestamp()), &running);
             json out{{"steps", replay["steps"].size()}};
             if (!running.empty())
                 out["left_out_running"] = std::move(running);
@@ -201,7 +202,7 @@ void register_replay_tools(CommandCatalog& catalog)
                 out["path"] = path_to_utf8(*path);
             }
             if (arg_bool(args, "clear", false))
-                service.journal().clear();
+                runtime.journal().clear();
             out["replay"] = std::move(replay);
             return ToolResult::ok(std::move(out));
         });

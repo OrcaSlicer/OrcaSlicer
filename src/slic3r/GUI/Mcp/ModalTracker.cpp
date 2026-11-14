@@ -1,9 +1,10 @@
 #include "ModalTracker.hpp"
 
 #include "McpPaths.hpp"
-#include "McpTypes.hpp"
+#include "WindowNames.hpp"
 #include "UiInspector.hpp"
 #include "WebPages.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"

@@ -2,7 +2,6 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "slic3r/GUI/CommandCatalog.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PlateOps.hpp"

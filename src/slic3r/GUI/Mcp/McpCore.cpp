@@ -1,13 +1,12 @@
 #include "McpCore.hpp"
 
 #include "JobRegistry.hpp"
+#include "McpArguments.hpp"
 #include "McpJournal.hpp"
-#include "McpProtocol.hpp"
-#include "McpService.hpp"
-#include "McpTypes.hpp"
 #include "UiInvoker.hpp"
 
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -108,12 +107,12 @@ public:
         });
     }
     const std::string& job_id() const override { return m_job; }
-    // The service that owns the core; a core built on its own has none, and the base refuses.
-    McpService& service() override
+    // The runtime that owns the core; a core built on its own has none, and the base refuses.
+    AutomationRuntime& runtime() override
     {
-        if (McpService* service = m_core.service())
-            return *service;
-        return ToolContext::service();
+        if (AutomationRuntime* runtime = m_core.runtime())
+            return *runtime;
+        return ToolContext::runtime();
     }
     // A plugin's call reads as cancelled the moment the plugin unloads, before the unload's stop request comes;
     // a handler that waits or polls then ends, one that does neither runs to its end.
@@ -229,12 +228,14 @@ bool McpCore::shutting_down()
     return m_stopping || m_ui.is_shutdown();
 }
 
-ToolResult McpCore::call(const NativeCommand& command, const nlohmann::json& args) { return run(command, args, {}, {}); }
+ToolResult McpCore::call(const NativeCommand& command, const nlohmann::json& args) { return run(command, args, {}, {}, false); }
+
+ToolResult McpCore::call_person(const NativeCommand& command, const nlohmann::json& args) { return run(command, args, {}, {}, true); }
 
 ToolResult McpCore::call_child(const NativeCommand& command, const nlohmann::json& args, const std::string& parent_job,
                                const std::string& plugin)
 {
-    return run(command, args, parent_job, plugin);
+    return run(command, args, parent_job, plugin, false);
 }
 
 ToolResult McpCore::call_child_named(const std::string& tool, const nlohmann::json& raw_args, const std::string& parent_job,
@@ -253,7 +254,7 @@ ToolResult McpCore::call_child_named(const std::string& tool, const nlohmann::js
 
 ToolResult McpCore::call_plugin(const NativeCommand& command, const nlohmann::json& args, const std::string& plugin_key)
 {
-    return run(command, args, {}, plugin_key);
+    return run(command, args, {}, plugin_key, false);
 }
 
 std::string McpCore::submit(const NativeCommand& command, const nlohmann::json& args, std::function<void(const ToolResult&)> done)
@@ -263,8 +264,7 @@ std::string McpCore::submit(const NativeCommand& command, const nlohmann::json& 
     struct Leave { McpCore* core; ~Leave() { core->leave(); } } leave_on_return{this};
     ToolResult refused;
     // A person's pick: its job, and a script it runs, are the person's, as a run the person starts is.
-    const std::string job = start_job(m_service != nullptr ? m_service->as_person(command) : command, args, {}, {}, 0, m_next_call++,
-                                      done, refused);
+    const std::string job = start_job(command, args, {}, {}, true, 0, m_next_call++, done, refused);
     // A refusal at shutdown is no answer to give: the caller is told nothing, as a call it never made.
     if (job.empty() && !shutting_down())
         deliver(done, refused);
@@ -272,7 +272,8 @@ std::string McpCore::submit(const NativeCommand& command, const nlohmann::json& 
 }
 
 std::string McpCore::start_job(const NativeCommand& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
-                               uint64_t seq, uint64_t call, const std::function<void(const ToolResult&)>& done, ToolResult& refused)
+                               bool person, uint64_t seq, uint64_t call, const std::function<void(const ToolResult&)>& done,
+                               ToolResult& refused)
 {
     // Operation admission: an MCP operation holds the project until it finishes; only recovery
     // input and the commands that may run during an operation (cancel_job) get through.
@@ -284,7 +285,7 @@ std::string McpCore::start_job(const NativeCommand& def, const nlohmann::json& a
 
     std::string job;
     try {
-        job = m_jobs.create(def.key, parent, plugin);
+        job = m_jobs.create(def.key, parent, plugin, person);
     } catch (const ToolFailure& f) {
         refused = ToolResult::error(f.what());
         return {};
@@ -335,7 +336,8 @@ std::string McpCore::start_job(const NativeCommand& def, const nlohmann::json& a
     return job;
 }
 
-ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin)
+ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, const std::string& parent, const std::string& plugin,
+                        bool person)
 {
     if (m_ui.is_shutdown() || !enter())
         return ToolResult::error("OrcaSlicer is shutting down");
@@ -373,7 +375,7 @@ ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, co
     }
 
     ToolResult        refused;
-    const std::string job = start_job(def, args, parent, plugin, seq, call, {}, refused);
+    const std::string job = start_job(def, args, parent, plugin, person, seq, call, {}, refused);
     if (job.empty())
         return finish(std::move(refused));
 

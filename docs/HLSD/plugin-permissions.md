@@ -120,16 +120,17 @@ nested events of the same operation are not asked again.
 
 ### Python scripts
 
-A Python script run from the Run Script panel, with `--mcp-run` or by an agent's `run_script`
+A Python script run from the Run Script panel, with `--run` or by an agent's `run_script`
 is not a plugin, but its events are judged here under a reserved identity, `script` or `mcp`
 (see "Python scripts" in [mcp-server.md](mcp-server.md)). A script has no sidecar, so it holds
 no grant and is never asked: steps 1 to 3 apply to it, and any other event is denied with a
 `PermissionError` that names the setting below. A file run also reads the folder of its file,
 through a per-call scoped root.
 
-The "Run Python scripts unrestricted" setting (Preferences, AI features, Python scripts; off by
-default) lifts this for every script: while it is on, a script's event is allowed right after
-step 1, so only the denied paths stay blocked. No plugin key may equal a script identity; such a
+The "Run Python scripts unrestricted" setting (`python_scripts_unrestricted`: Preferences, AI features,
+Python scripts; off by default) lifts this for every script, and so does the command line's
+`--unrestricted-scripts` for one run, without writing the setting: while either is on, a script's event
+is allowed right after step 1, so only the denied paths stay blocked. No plugin key may equal a script identity; such a
 plugin is refused at load.
 
 ## Permission prompts

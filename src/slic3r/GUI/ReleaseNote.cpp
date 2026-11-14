@@ -19,7 +19,7 @@
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
+#include "slic3r/GUI/Mcp/WindowNames.hpp"
 #include <boost/nowide/fstream.hpp>
 #include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include <exception>

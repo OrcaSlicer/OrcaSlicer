@@ -1,6 +1,6 @@
 #pragma once
 
-#include "McpTypes.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -11,19 +11,21 @@
 #include <utility>
 
 // The contexts a command runs with besides the MCP core's own: a person's pick, and a Speed Dial tile that
-// run_action runs. No wx here, so that the core's tests can include it.
+// run_action runs. No wx here, so that unit tests can include it (the slic3rutils tile case does).
 namespace Slic3r { namespace GUI { namespace Mcp {
 
-// A person's pick from the Speed Dial or a menu, on the UI thread, which no MCP service needs to run: UI
-// closures run in place, and there is no job, no journal entry and no operation to hold.
+// A person's pick from the Speed Dial or a menu, on the UI thread and outside the automation runtime's dispatch
+// core: UI closures run in place, and there is no job, no journal entry and no operation to hold. It needs no MCP
+// endpoint, and the runtime starts only when the pick's command needs it: through this context (runtime(),
+// submit()) or through GUI_App::automation().
 class PersonContext final : public ToolContext
 {
 public:
     bool               person() const override { return true; }
-    // The MCP service, started without its endpoint when the server is off, as the Run Script panel starts
-    // it. Throws ToolFailure when it cannot start: OrcaSlicer is closing, or no app runs (a unit test).
-    McpService&        service() override;
-    // Starts command `key` as a job on the service's core (McpCore::submit()), under the admission a client's
+    // The automation runtime, started without the MCP endpoint when the server is off, as the Run Script panel
+    // starts it. Throws ToolFailure when it cannot start: OrcaSlicer is closing, or no app runs (a unit test).
+    AutomationRuntime& runtime() override;
+    // Starts command `key` as a job on the runtime's core (McpCore::submit()), under the admission a client's
     // call has, and returns at once: an Info notice "Started: <title>", or an Error when no job started. The
     // job's result is shown as a notification once it ends.
     ToolResult         submit(const std::string& key, const nlohmann::json& args) override;
@@ -47,11 +49,11 @@ class TileContext final : public ToolContext
 public:
     TileContext(ToolContext& call, std::string action_id) : m_call(call), m_id(std::move(action_id)) {}
 
-    bool           person() const override { return m_call.person(); }
-    McpService&    service() override { return m_call.service(); }
-    ToolResult     submit(const std::string& key, const nlohmann::json& args) override { return m_call.submit(key, args); }
-    nlohmann::json run_ui(const std::function<nlohmann::json()>& fn) override { return m_call.run_ui(fn); }
-    nlohmann::json observe_ui(const std::function<nlohmann::json()>& fn) override { return m_call.observe_ui(fn); }
+    bool               person() const override { return m_call.person(); }
+    AutomationRuntime& runtime() override { return m_call.runtime(); }
+    ToolResult         submit(const std::string& key, const nlohmann::json& args) override { return m_call.submit(key, args); }
+    nlohmann::json     run_ui(const std::function<nlohmann::json()>& fn) override { return m_call.run_ui(fn); }
+    nlohmann::json     observe_ui(const std::function<nlohmann::json()>& fn) override { return m_call.observe_ui(fn); }
     const std::string& job_id() const override { return m_call.job_id(); }
     bool               cancelled() const override { return m_call.cancelled(); }
     ToolResult call_child(const std::string& tool, const nlohmann::json& args) override { return m_call.call_child(tool, args); }

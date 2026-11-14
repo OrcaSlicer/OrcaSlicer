@@ -1,6 +1,6 @@
 #pragma once
 
-#include "McpTypes.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -35,11 +35,18 @@ public:
     static constexpr std::size_t kKeepFinishedMax = 1024;
 
     // Registers a running job. `owner` is the plugin whose call it is ("" for anyone else's);
-    // a child job takes its parent's. Throws ToolFailure when kMaxRunning jobs are already running, and
-    // kPluginUnloaded when its plugin is unloaded(), which is asked once the job is registered: a plugin
-    // found loaded then was loaded while the job was there for its unload to find, so every job of the
-    // plugin is either refused or one the unload finds running.
-    std::string create(const std::string& tool, const std::string& parent, const std::string& owner = {});
+    // a child job takes its parent's. `person` marks a run a person started (Action Replay, the Run Script
+    // panel, the command line's run, a long command a person picked). Throws ToolFailure when kMaxRunning
+    // jobs are already running, and kPluginUnloaded when its plugin is unloaded(), which is asked once the
+    // job is registered: a plugin found loaded then was loaded while the job was there for its unload to
+    // find, so every job of the plugin is either refused or one the unload finds running.
+    std::string create(const std::string& tool, const std::string& parent, const std::string& owner = {}, bool person = false);
+    // True when an unfinished job in `lineage` carries the person mark: a run_script there runs as the person's.
+    bool person_in(const std::set<std::string>& lineage) const;
+    // Lets the unfinished job `id`, and the calls under it, drop the project's unsaved changes: the user chose
+    // not to save before a run that replaces the project. Does nothing for an unknown or finished job.
+    void allow_discard(const std::string& id);
+    bool discard_allowed_in(const std::set<std::string>& lineage) const;
     // Whether the call's plugin (`owner`, else the owner of the job `parent`) is blocked or, by the liveness
     // hook, no longer loaded. False for a call that is not a plugin's.
     bool unloaded(const std::string& parent, const std::string& owner) const;
@@ -95,7 +102,7 @@ public:
 
 private:
     // create() without the liveness check.
-    std::string register_job(const std::string& tool, const std::string& parent, const std::string& owner);
+    std::string register_job(const std::string& tool, const std::string& parent, const std::string& owner, bool person);
 
     struct Job
     {
@@ -108,6 +115,9 @@ private:
         bool                                  finished  = false;
         bool                                  operation = false;
         bool                                  idle      = false;
+        // The marks count only while the job is unfinished.
+        bool                                  person    = false;
+        bool                                  discard   = false;
         ToolResult                            result;
         std::chrono::steady_clock::time_point created;
     };

@@ -3,11 +3,9 @@
 
 #include "McpOptions.hpp"
 #include "McpProtocol.hpp"
-#include "McpService.hpp"
-#include "McpTypes.hpp"
 #include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
-#include "slic3r/GUI/NativeCommands.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "libslic3r_version.h"
 
 #include <boost/asio/connect.hpp>
@@ -30,9 +28,11 @@
 #include <boost/nowide/iostream.hpp>
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <functional>
 #include <map>
 #include <utility>
 #include <vector>
@@ -304,7 +304,8 @@ std::string string_member(const json& obj, const char* key)
 // The reply this build's server would give to `line`, for any request but tools/call: the other
 // methods only read the tool catalog and the server's details, and the server keeps no session, so
 // the reply is the same whether or not OrcaSlicer runs.
-PostReply answer_offline(const std::string& line, const std::map<std::string, std::string>& headers)
+PostReply answer_offline(const std::string& line, const std::map<std::string, std::string>& headers,
+                         const std::function<const CommandCatalog&()>& catalog)
 {
     // A tool needs the app, so the bridge never brings a tools/call here.
     struct NoApp final : ToolCaller
@@ -312,8 +313,9 @@ PostReply answer_offline(const std::string& line, const std::map<std::string, st
         ToolResult call(const NativeCommand&, const json&) override { return ToolResult::error("OrcaSlicer is not running."); }
     };
     static NoApp       caller;
-    // The process catalog, built here on first use: this process never starts the GUI that builds it.
-    static McpProtocol protocol(NativeCommands::instance(), caller, McpService::server_info());
+    // Made on the first request answered here, the only time `catalog` is called: this process never starts
+    // the GUI, so the catalog may be built on that call.
+    static McpProtocol protocol(catalog(), caller, server_info());
     auto header = [&headers](const char* name) {
         const auto it = headers.find(name);
         return it == headers.end() ? std::string() : it->second;
@@ -356,7 +358,7 @@ std::map<std::string, std::string> bridge_headers(const json& message, const std
     return h;
 }
 
-int run_stdio_bridge(int argc, char** argv)
+int run_stdio_bridge(int argc, char** argv, const std::function<const CommandCatalog&()>& catalog)
 {
 #ifdef _WIN32
     _setmode(_fileno(stdin), _O_BINARY);
@@ -463,7 +465,7 @@ int run_stdio_bridge(int argc, char** argv)
         }
         if (!endpoint) {
             if (!needs_app) {
-                const PostReply offline = answer_offline(line, headers);
+                const PostReply offline = answer_offline(line, headers, catalog);
                 reply                   = std::make_pair(offline.status, offline.body);
             } else if (connect())
                 reply = post(*endpoint, line, headers, &sent);

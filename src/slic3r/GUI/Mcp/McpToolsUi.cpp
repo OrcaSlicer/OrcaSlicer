@@ -5,15 +5,16 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "McpCore.hpp"
 #include "McpPaths.hpp"
-#include "McpService.hpp"
+#include "AutomationRuntime.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
+#include "WindowNames.hpp"
 #include "ModalTracker.hpp"
 #include "ScreenCapture.hpp"
 #include "UiInspector.hpp"
 #include "WebPages.hpp"
 #include "WindowControl.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -83,21 +84,21 @@ const json kModifiersSchema = {{"type", "array"},
                                {"description", "Modifier keys held during the click, as in press_keys: ctrl and cmd are both Command on macOS "
                                                "and Ctrl elsewhere; rawctrl is the macOS Control key."}};
 
-bool in_top_dialog(McpService& service, wxWindow* window)
+bool in_top_dialog(AutomationRuntime& runtime, wxWindow* window)
 {
-    wxDialog* top = service.modals().top();
+    wxDialog* top = runtime.modals().top();
     return top != nullptr && window != nullptr && owning_window(window) == top;
 }
 
 // GUI input tools run under the recover guard so they can work in the topmost modal dialog; a
 // target anywhere else gets the checks a mutate call would: no other call's nested loop, no open
 // modal, and operation admission (no MCP operation holding the project, no busy UI job worker).
-void guard_target(McpService& service, wxWindow* window)
+void guard_target(AutomationRuntime& runtime, wxWindow* window)
 {
-    if (in_top_dialog(service, window))
+    if (in_top_dialog(runtime, window))
         return;
-    service.ui().require_mutate();
-    service.core().admit({});
+    runtime.ui().require_mutate();
+    runtime.core().admit({});
 }
 
 // The window a target is in: a widget's own, a row's list.
@@ -133,7 +134,7 @@ const json kPopupItemSchema = prop("string", "Run this item of the menu the inpu
 // input queued have run. A call that fails before reading it drops it.
 struct InputMenu
 {
-    McpService&  service;
+    AutomationRuntime&  runtime;
     ToolContext& ctx;
     std::string  item;
     int          token = 0;
@@ -145,7 +146,7 @@ struct InputMenu
     // which runs it too).
     std::shared_ptr<bool> marked;
 
-    InputMenu(McpService& service, ToolContext& ctx, std::string item) : service(service), ctx(ctx), item(std::move(item)) {}
+    InputMenu(AutomationRuntime& runtime, ToolContext& ctx, std::string item) : runtime(runtime), ctx(ctx), item(std::move(item)) {}
     InputMenu(const InputMenu&)            = delete;
     InputMenu& operator=(const InputMenu&) = delete;
     ~InputMenu()
@@ -154,7 +155,7 @@ struct InputMenu
             return;
         try {
             ctx.observe_ui([this] {
-                service.inspector().drop_menu(token);
+                runtime.inspector().drop_menu(token);
                 return json();
             });
         } catch (const ToolFailure&) {
@@ -162,7 +163,7 @@ struct InputMenu
     }
 
     // UI thread, in the input's closure, before the input.
-    void arm() { token = service.inspector().arm_menu(item); }
+    void arm() { token = runtime.inspector().arm_menu(item); }
     // UI thread, after an input to a 3D view, on the handler the input posted its work to.
     void mark(wxEvtHandler* queue)
     {
@@ -180,9 +181,9 @@ struct InputMenu
         settle(ctx);
         const int t = std::exchange(token, 0);
         return ctx.observe_ui([&] {
-            json out = service.inspector().disarm_menu(t);
-            if ((dialogs || out.contains("ran")) && service.modals().any_open())
-                out["dialogs"] = service.modals().snapshot();
+            json out = runtime.inspector().disarm_menu(t);
+            if ((dialogs || out.contains("ran")) && runtime.modals().any_open())
+                out["dialogs"] = runtime.modals().snapshot();
             return out;
         });
     }
@@ -214,11 +215,11 @@ std::vector<wxWebView*> visible_webviews()
 
 // The web view a script without a target runs in: the one in the topmost modal dialog while one is
 // open, else the only one shown.
-wxWebView* default_webview(McpService& service)
+wxWebView* default_webview(AutomationRuntime& runtime)
 {
     std::vector<wxWebView*> webs = visible_webviews();
     std::string             where;
-    if (wxDialog* top = service.modals().top()) {
+    if (wxDialog* top = runtime.modals().top()) {
         std::vector<wxWebView*> in_top;
         for (wxWebView* w : webs)
             if (owning_window(w) == top)
@@ -242,16 +243,16 @@ wxWebView* default_webview(McpService& service)
 // A web view in a dialog under the topmost modal one is refused, one in the topmost takes input as
 // that dialog's widgets do (and the call works in that dialog), and any other gets the checks a
 // mutate call would.
-void guard_page(McpService& service, ToolContext& ctx, wxWebView* web)
+void guard_page(AutomationRuntime& runtime, ToolContext& ctx, wxWebView* web)
 {
-    const std::vector<wxDialog*>& stack = service.modals().stack();
+    const std::vector<wxDialog*>& stack = runtime.modals().stack();
     const auto                    in    = std::find(stack.begin(), stack.end(), owning_window(web));
     if (in != stack.end() && *in != stack.back())
         throw ToolFailure("\"" + into_u8((*in)->GetTitle()) + "\" is under \"" + into_u8(stack.back()->GetTitle()) +
                           "\"; answer the topmost dialog first");
     if (in != stack.end())
-        ctx.works_in_dialog(service.modals().serial(stack.back()));
-    guard_target(service, web);
+        ctx.works_in_dialog(runtime.modals().serial(stack.back()));
+    guard_target(runtime, web);
 }
 
 // ---- web pages ----------------------------------------------------------------------------------
@@ -271,16 +272,16 @@ bool is_web_target(const json& target)
 
 // A widget target that is a web view itself (its `w` ref, or a {class: "webview"} locator), whose page
 // wx events never reach: its handle, `within` and locator, or 0 for any other target.
-WebHandle web_view_target(McpService& service, ToolContext& ctx, const json& target, std::string& within, json* locator = nullptr)
+WebHandle web_view_target(AutomationRuntime& runtime, ToolContext& ctx, const json& target, std::string& within, json* locator = nullptr)
 {
     WebHandle out = 0;
     ctx.run_ui([&]() -> json {
-        const UiTarget t = service.inspector().resolve(target);
+        const UiTarget t = runtime.inspector().resolve(target);
         if (auto* web = dynamic_cast<wxWebView*>(target_window(t))) {
             out    = web_handle(web);
             within = within_of(web);
             if (locator != nullptr)
-                *locator = service.inspector().locator_for(t);
+                *locator = runtime.inspector().locator_for(t);
         }
         return json();
     });
@@ -288,10 +289,10 @@ WebHandle web_view_target(McpService& service, ToolContext& ctx, const json& tar
 }
 
 // click and set_widget_value on a web view: the page's elements are the targets.
-void refuse_web_view(McpService& service, ToolContext& ctx, const json& target)
+void refuse_web_view(AutomationRuntime& runtime, ToolContext& ctx, const json& target)
 {
     std::string within;
-    if (web_view_target(service, ctx, target, within) != 0)
+    if (web_view_target(runtime, ctx, target, within) != 0)
         throw ToolFailure("That is a web view, whose page wx events don't reach; target one of its page elements: a d ref from "
                           "list_widgets, or a {web} / {css} locator");
 }
@@ -447,10 +448,10 @@ void check_page_reply(const PageReply& r, std::chrono::seconds timeout, bool act
 // The pages a locator looks in: the shown ones within `within`, in snapshot order. Without `within`
 // while the topmost modal dialog shows a page, only that dialog's pages, the ones list_widgets reads
 // and the only ones input can reach, so a page behind it never makes a label ambiguous.
-std::vector<wxWebView*> locator_pages(McpService& service, const std::string& within)
+std::vector<wxWebView*> locator_pages(AutomationRuntime& runtime, const std::string& within)
 {
-    std::vector<wxWebView*> webs = service.inspector().web_views(within);
-    if (wxDialog* top = within.empty() ? service.modals().top() : nullptr) {
+    std::vector<wxWebView*> webs = runtime.inspector().web_views(within);
+    if (wxDialog* top = within.empty() ? runtime.modals().top() : nullptr) {
         std::vector<wxWebView*> in_top;
         for (wxWebView* w : webs)
             if (owning_window(w) == top)
@@ -462,12 +463,12 @@ std::vector<wxWebView*> locator_pages(McpService& service, const std::string& wi
 }
 
 // Finds a page element by ref or locator; `index` picks among the matches of all locator_pages().
-WebTarget resolve_web(McpService& service, ToolContext& ctx, const json& target, std::chrono::seconds timeout)
+WebTarget resolve_web(AutomationRuntime& runtime, ToolContext& ctx, const json& target, std::chrono::seconds timeout)
 {
     WebTarget out;
     if (!is_web_locator(target)) {
         ctx.run_ui([&]() -> json {
-            const UiTarget t = service.inspector().resolve(target);
+            const UiTarget t = runtime.inspector().resolve(target);
             if (t.kind != UiTarget::Kind::WebElement)
                 throw ToolFailure("The ref is not a page element");
             auto* web = dynamic_cast<wxWebView*>(t.window.get());
@@ -511,14 +512,14 @@ WebTarget resolve_web(McpService& service, ToolContext& ctx, const json& target,
         webs.clear();
         withins.clear();
         ctx.run_ui([&]() -> json {
-            const std::vector<wxWebView*> pages = locator_pages(service, within);
+            const std::vector<wxWebView*> pages = locator_pages(runtime, within);
             for (wxWebView* w : pages) {
                 webs.push_back(web_handle(w));
                 withins.push_back(within_of(w));
             }
-            if (wxDialog* top = service.modals().top(); top != nullptr && !pages.empty() &&
+            if (wxDialog* top = runtime.modals().top(); top != nullptr && !pages.empty() &&
                                                          std::all_of(pages.begin(), pages.end(), [top](wxWebView* w) { return owning_window(w) == top; }))
-                ctx.works_in_dialog(service.modals().serial(top));
+                ctx.works_in_dialog(runtime.modals().serial(top));
             return json();
         });
         matches.clear();
@@ -599,7 +600,7 @@ WebTarget resolve_web(McpService& service, ToolContext& ctx, const json& target,
 
 // The locator the journal records for the element an action reached: the page's own, with `within`,
 // and `index` among the matches of every page a locator looks in.
-json web_locator(McpService& service, ToolContext& ctx, const WebTarget& t, const json& reply, std::chrono::seconds timeout)
+json web_locator(AutomationRuntime& runtime, ToolContext& ctx, const WebTarget& t, const json& reply, std::chrono::seconds timeout)
 {
     if (!reply.contains("loc") || !reply["loc"].is_object())
         return json();
@@ -608,7 +609,7 @@ json web_locator(McpService& service, ToolContext& ctx, const WebTarget& t, cons
         loc["within"] = t.within;
     std::vector<WebHandle> webs;
     ctx.observe_ui([&]() -> json {
-        for (wxWebView* w : locator_pages(service, t.within))
+        for (wxWebView* w : locator_pages(runtime, t.within))
             webs.push_back(web_handle(w));
         return json();
     });
@@ -632,10 +633,10 @@ std::string refused_button(const std::string& button, DialogPress refused)
 
 // `closed: true`, with the dialogs still open under the one that closed (the filament picker under the
 // colour picker it opened), whose answer is still to give. Any thread.
-json closed_reply(McpService& service)
+json closed_reply(AutomationRuntime& runtime)
 {
     json out{{"closed", true}};
-    if (json open = service.modals().snapshot(); !open.empty())
+    if (json open = runtime.modals().snapshot(); !open.empty())
         out["dialogs"] = std::move(open);
     return out;
 }
@@ -669,7 +670,7 @@ std::string watch_id()
 // when a configuration frame could not be compared (then changed only when a line was found), and how
 // many messages the page itself sent OrcaSlicer during the action (posted). A change after that is the
 // next snapshot's to show.
-json observe_page(McpService& service, ToolContext& ctx, const WebTarget& t, const PageBefore& before, const json& reply)
+json observe_page(AutomationRuntime& runtime, ToolContext& ctx, const WebTarget& t, const PageBefore& before, const json& reply)
 {
     const std::string href       = reply.value("href", std::string());
     const bool        moved_hash = reply.contains("href0") && reply.value("href0", std::string()) != href;
@@ -689,11 +690,11 @@ json observe_page(McpService& service, ToolContext& ctx, const WebTarget& t, con
         try {
             change = ctx.observe_ui([&]() -> json {
                 wxWebView*  web   = web_view_of(t.web);
-                const auto& stack = service.modals().stack();
-                if (web == nullptr || (before.modal != 0 && !service.modals().is_open(before.modal)))
-                    return closed_reply(service);
+                const auto& stack = runtime.modals().stack();
+                if (web == nullptr || (before.modal != 0 && !runtime.modals().is_open(before.modal)))
+                    return closed_reply(runtime);
                 if (stack.size() > before.stack)
-                    return {{"dialogs", service.modals().snapshot()}};
+                    return {{"dialogs", runtime.modals().snapshot()}};
                 // The page's own URL is the new one when it moved; the web view's may lag behind it.
                 if (moved_hash)
                     return navigated(href);
@@ -703,7 +704,7 @@ json observe_page(McpService& service, ToolContext& ctx, const WebTarget& t, con
             });
         } catch (const ToolFailure&) {
             // A native dialog the action opened can hold the UI thread's queue (macOS).
-            return service.modals().any_open() ? json{{"dialogs", service.modals().snapshot()}} : json::object();
+            return runtime.modals().any_open() ? json{{"dialogs", runtime.modals().snapshot()}} : json::object();
         }
         if (!change.is_null())
             return change;
@@ -714,7 +715,7 @@ json observe_page(McpService& service, ToolContext& ctx, const WebTarget& t, con
     if (!doc.empty()) {
         const PageReply now = ask_page(ctx, t.web, {{"op", "doc"}}, std::chrono::steady_clock::now() + 1s);
         if (now.state == PageReply::State::Destroyed)
-            return closed_reply(service);
+            return closed_reply(runtime);
         if (now.state == PageReply::State::Answered && now.value.contains("doc") && now.value.value("doc", std::string()) != doc)
             return navigated(now.value.value("href", std::string()));
     }
@@ -725,7 +726,7 @@ json observe_page(McpService& service, ToolContext& ctx, const WebTarget& t, con
     // it is not past its deadline when a busy page answers the rounds before it slowly.
     const PageReply c = ask_page(ctx, t.web, {{"op", "changes"}, {"watch", before.watch}}, std::chrono::steady_clock::now() + 3s);
     if (c.state == PageReply::State::Destroyed)
-        return closed_reply(service);
+        return closed_reply(runtime);
     // A page that lost the outline (one past its minute) or failed to compare says nothing.
     if (c.state != PageReply::State::Answered || !c.value.contains("added") || c.value.contains("error"))
         return json::object();
@@ -764,8 +765,8 @@ struct DownPress
 };
 
 // Runs `action` on a page element, waiting up to `timeout` for the page.
-WebActed web_act(McpService& service, ToolContext& ctx, const WebTarget& t, const std::string& action, json args, std::chrono::seconds timeout,
-                 const DownPress& down = {})
+WebActed web_act(AutomationRuntime& runtime, ToolContext& ctx, const WebTarget& t, const std::string& action, json args,
+                 std::chrono::seconds timeout, const DownPress& down = {})
 {
     const auto deadline = std::chrono::steady_clock::now() + timeout;
     PageBefore before;
@@ -774,29 +775,29 @@ WebActed web_act(McpService& service, ToolContext& ctx, const WebTarget& t, cons
     PageCalls  calls;
     ctx.run_ui([&]() -> json {
         // A client's down sent after the endpoint closed would leave a press no one releases.
-        if (down.client && !service.endpoint_open())
+        if (down.client && !runtime.client_scope_open())
             throw ToolFailure("The MCP server was turned off before this gesture ran; it was not performed");
         wxWebView* web = web_view_of(t.web);
         if (web == nullptr || !web->IsShownOnScreen())
             throw ToolFailure("The page's web view is gone or hidden; call list_widgets again");
-        guard_page(service, ctx, web);
-        if (in_top_dialog(service, web))
-            before.modal = service.modals().serial(service.modals().top());
-        before.stack     = service.modals().stack().size();
+        guard_page(runtime, ctx, web);
+        if (in_top_dialog(runtime, web))
+            before.modal = runtime.modals().serial(runtime.modals().top());
+        before.stack     = runtime.modals().stack().size();
         before.url       = into_u8(web->GetCurrentURL());
         args["scale"]    = web->GetContentScaleFactor();
         request["args"]  = args;
         calls.start(web, request);
         // From here on a release sent to the page runs after the down.
         if (down.id != 0)
-            service.web_presses().sent(down.id);
+            runtime.web_presses().sent(down.id);
         return json();
     });
     calls.wait(ctx, deadline);
     WebActed  out;
     PageReply r = calls.reply(0);
     if (r.state == PageReply::State::Destroyed) {
-        out.after = closed_reply(service);
+        out.after = closed_reply(runtime);
         return out;
     }
     check_page_reply(r, timeout, true, ctx);
@@ -805,7 +806,7 @@ WebActed web_act(McpService& service, ToolContext& ctx, const WebTarget& t, cons
         // An element of a plugin configuration frame: its page forwarded the action to the frame.
         const PageReply p = follow_relays(ctx, {t.web}, {value["relay"]}, deadline).front();
         if (p.state == PageReply::State::Destroyed) {
-            out.after = closed_reply(service);
+            out.after = closed_reply(runtime);
             return out;
         }
         check_page_reply(p, timeout, true, ctx);
@@ -819,8 +820,8 @@ WebActed web_act(McpService& service, ToolContext& ctx, const WebTarget& t, cons
         }
     }
     out.reply   = value;
-    out.locator = web_locator(service, ctx, t, value, std::min(timeout, std::chrono::seconds(3)));
-    out.after   = observe_page(service, ctx, t, before, value);
+    out.locator = web_locator(runtime, ctx, t, value, std::min(timeout, std::chrono::seconds(3)));
+    out.after   = observe_page(runtime, ctx, t, before, value);
     return out;
 }
 
@@ -865,9 +866,9 @@ PressAgent agent_of(const WebTarget& t) { return press_agent(t.web, t.doc, t.key
 // deadline and not run. A gone web view or frame holds nothing. The releases get one second, so a
 // call waits on them for less than the soft budget and still names the dialog it works in (which its
 // target's lookup does next) before an open dialog would read as what the call waits on.
-void end_web_press(McpService& service, ToolContext& ctx, const std::optional<PressAgent>& keep = std::nullopt)
+void end_web_press(AutomationRuntime& runtime, ToolContext& ctx, const std::optional<PressAgent>& keep = std::nullopt)
 {
-    WebPresses&                          presses = service.web_presses();
+    WebPresses&                          presses = runtime.web_presses();
     const std::vector<WebPresses::Press> held    = presses.releasable(keep);
     if (held.empty())
         return;
@@ -899,19 +900,19 @@ void end_web_press(McpService& service, ToolContext& ctx, const std::optional<Pr
             presses.drop(held[i].id);
 }
 
-ToolResult web_click(McpService& service, ToolContext& ctx, const json& args)
+ToolResult web_click(AutomationRuntime& runtime, ToolContext& ctx, const json& args)
 {
     if (args.contains("popup_item"))
         throw ToolFailure("popup_item is for the menus OrcaSlicer opens; a page's own menu is part of the page, so call list_widgets after "
                           "the click");
     const auto timeout = web_timeout(args);
-    WebTarget  t       = resolve_web(service, ctx, args["target"], timeout);
+    WebTarget  t       = resolve_web(runtime, ctx, args["target"], timeout);
     json       a{{"button", arg_string(args, "button", "left")}, {"double", arg_bool(args, "double", false)}, {"modifiers", web_modifiers(args)}};
     if (args.contains("x") || args.contains("y")) {
         a["x"] = arg_int(args, "x", 0);
         a["y"] = arg_int(args, "y", 0);
     }
-    WebActed acted = web_act(service, ctx, t, "click", a, timeout);
+    WebActed acted = web_act(runtime, ctx, t, "click", a, timeout);
     journal_web(ctx, args, acted.locator);
     // A text line is clicked through its block, whose own kind and name the page replies with; the
     // reply names what was listed.
@@ -923,11 +924,11 @@ ToolResult web_click(McpService& service, ToolContext& ctx, const json& args)
     return ToolResult::ok(out);
 }
 
-ToolResult web_input(McpService& service, ToolContext& ctx, const json& args)
+ToolResult web_input(AutomationRuntime& runtime, ToolContext& ctx, const json& args)
 {
     const auto timeout = web_timeout(args);
-    WebTarget  t       = resolve_web(service, ctx, args["target"], timeout);
-    WebActed   acted   = web_act(service, ctx, t, "input", {{"value", args["value"]}, {"submit", arg_bool(args, "submit", true)}}, timeout);
+    WebTarget  t       = resolve_web(runtime, ctx, args["target"], timeout);
+    WebActed   acted   = web_act(runtime, ctx, t, "input", {{"value", args["value"]}, {"submit", arg_bool(args, "submit", true)}}, timeout);
     journal_web(ctx, args, acted.locator);
     json       out{{"label", acted.reply.value("label", t.label)}};
     const json state = acted.reply.value("state", json::object());
@@ -940,7 +941,7 @@ ToolResult web_input(McpService& service, ToolContext& ctx, const json& args)
 }
 
 // Keys for a page: its element `t`, or with a null key the page's focused element.
-ToolResult web_keys(McpService& service, ToolContext& ctx, const json& args, WebTarget t)
+ToolResult web_keys(AutomationRuntime& runtime, ToolContext& ctx, const json& args, WebTarget t)
 {
     if (args.contains("popup_item"))
         throw ToolFailure("popup_item is for the menus OrcaSlicer opens; a page's own menu is part of the page, so call list_widgets after "
@@ -952,20 +953,20 @@ ToolResult web_keys(McpService& service, ToolContext& ctx, const json& args, Web
         a["key"]       = key["key"];
         a["mods"]      = key["mods"];
     }
-    WebActed acted = web_act(service, ctx, t, "key", a, web_timeout(args));
+    WebActed acted = web_act(runtime, ctx, t, "key", a, web_timeout(args));
     journal_web(ctx, args, acted.locator);
     json out{{"sent", keys.empty() ? json() : json(keys)}, {"typed", text}, {"to", acted.reply.value("to", std::string("page"))}};
     out.update(acted.after);
     return ToolResult::ok(out);
 }
 
-ToolResult web_mouse(McpService& service, ToolContext& ctx, const json& args)
+ToolResult web_mouse(AutomationRuntime& runtime, ToolContext& ctx, const json& args)
 {
     // A move or an up finds its target first, to know whether it belongs to a press held there.
     const std::string action = arg_string(args, "action", "click");
     const bool        joins  = action == "move" || action == "up";
     if (!joins)
-        end_web_press(service, ctx);
+        end_web_press(runtime, ctx);
     if (args.contains("at") || args.contains("canvas"))
         throw ToolFailure("A page element's gesture takes x/y from its top left, not at or canvas");
     if (args.contains("popup_item"))
@@ -975,14 +976,14 @@ ToolResult web_mouse(McpService& service, ToolContext& ctx, const json& args)
     if (joins) {
         // One whose target can't be found ends the presses held, as any other gesture does.
         try {
-            t = resolve_web(service, ctx, args["target"], timeout);
+            t = resolve_web(runtime, ctx, args["target"], timeout);
         } catch (...) {
-            end_web_press(service, ctx);
+            end_web_press(runtime, ctx);
             throw;
         }
-        end_web_press(service, ctx, agent_of(t));
+        end_web_press(runtime, ctx, agent_of(t));
     } else
-        t = resolve_web(service, ctx, args["target"], timeout);
+        t = resolve_web(runtime, ctx, args["target"], timeout);
     json       a{{"action", action}, {"button", arg_string(args, "button", "left")},
                  {"double", arg_bool(args, "double", false)},   {"modifiers", web_modifiers(args)},
                  {"steps", arg_int(args, "steps", 10)},          {"delta", arg_int(args, "delta", 0)}};
@@ -1006,9 +1007,9 @@ ToolResult web_mouse(McpService& service, ToolContext& ctx, const json& args)
     // ends. An up ends the presses its agent held when it was sent, not one a later down made. One
     // that failed or timed out ends none: past its deadline the page does not run it, so the press may
     // still be held, and a release of one that is not only answers.
-    WebPresses&                      presses = service.web_presses();
+    WebPresses&                      presses = runtime.web_presses();
     const PressAgent                 agent   = agent_of(t);
-    const std::string                owner   = service.run_owner(service.jobs().ancestry(ctx.job_id()));
+    const std::string                owner   = runtime.run_owner(runtime.jobs().ancestry(ctx.job_id()));
     const std::uint64_t              pressed = action == "down" ? presses.hold(agent, owner) : 0;
     const std::vector<std::uint64_t> ended   = action == "up" ? presses.of(agent) : std::vector<std::uint64_t>();
     // The page keeps the press's id, so a release ends that press and no later one.
@@ -1016,7 +1017,7 @@ ToolResult web_mouse(McpService& service, ToolContext& ctx, const json& args)
         a["press"] = pressed;
     WebActed acted;
     try {
-        acted = web_act(service, ctx, t, "mouse", a, timeout, {pressed, owner.empty()});
+        acted = web_act(runtime, ctx, t, "mouse", a, timeout, {pressed, owner.empty()});
     } catch (...) {
         // A down refused before it was sent is released as one that was: its release only answers.
         if (pressed != 0)
@@ -1033,13 +1034,13 @@ ToolResult web_mouse(McpService& service, ToolContext& ctx, const json& args)
 
 // The page keys without a target go to: the focused web view, or the topmost dialog's only web view
 // when the focus is on none of the dialog's own widgets. Null when the keys are a widget's. UI thread.
-wxWebView* key_page(McpService& service)
+wxWebView* key_page(AutomationRuntime& runtime)
 {
-    wxWindow* target = service.inspector().key_target(nullptr);
+    wxWindow* target = runtime.inspector().key_target(nullptr);
     if (auto* web = dynamic_cast<wxWebView*>(target))
         return web;
     auto* dialog = dynamic_cast<wxDialog*>(target);
-    if (dialog == nullptr || dialog != service.modals().top())
+    if (dialog == nullptr || dialog != runtime.modals().top())
         return nullptr;
     std::vector<wxWebView*> webs;
     for (wxWebView* w : visible_webviews())
@@ -1053,7 +1054,7 @@ wxWebView* key_page(McpService& service)
 // The window set_window's target names: the main window, the topmost modal dialog, or the window a ref or
 // locator is in. Refuses one no tool may size or move. `locator` gets what the journal records for a
 // ref. UI thread.
-wxTopLevelWindow& window_target(McpService& service, const json& target, json& locator)
+wxTopLevelWindow& window_target(AutomationRuntime& runtime, const json& target, json& locator)
 {
     wxWindow* window = nullptr;
     if (target == "main") {
@@ -1061,20 +1062,20 @@ wxTopLevelWindow& window_target(McpService& service, const json& target, json& l
         if (window == nullptr)
             throw ToolFailure("The main window is not up yet");
     } else if (target == "dialog") {
-        window = service.modals().top();
+        window = runtime.modals().top();
         if (window == nullptr)
-            throw ToolFailure(no_modal_dialog(service));
+            throw ToolFailure(no_modal_dialog(runtime.modals()));
     } else {
         UiTarget t;
         try {
-            t = service.inspector().resolve(target);
+            t = runtime.inspector().resolve(target);
         } catch (const ToolFailure& e) {
             // A window's ref goes stale once the window is destroyed, and list_windows gives the open ones'.
             if (!target.is_string())
                 throw;
             throw ToolFailure(std::string(e.what()) + ", or list_windows for the open windows", e.details);
         }
-        locator = service.inspector().locator_for(t);
+        locator = runtime.inspector().locator_for(t);
         window  = t.window.get() != nullptr ? wxGetTopLevelParent(t.window.get()) : nullptr;
     }
     if (dynamic_cast<wxPopupWindow*>(window) != nullptr)
@@ -1108,7 +1109,7 @@ wxTopLevelWindow* live_window(wxTopLevelWindow* window)
 // waits for that before sizing, as a size given meanwhile is lost: on Wayland the compositor's answer to
 // the restore sizes the window again, and wx would size it by the maximized window's decorations. A window
 // brought back from the minimized state is finished restoring once it is back (finish_restore(), macOS).
-ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
+ToolResult set_window(AutomationRuntime& runtime, ToolContext& ctx, const json& args)
 {
     const json target = args.value("target", json("main"));
     json       locator;
@@ -1140,7 +1141,7 @@ ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
             raise_window(w);
     };
     ctx.run_ui([&] {
-        wxTopLevelWindow& w   = window_target(service, target, locator);
+        wxTopLevelWindow& w   = window_target(runtime, target, locator);
         auto*             dlg = dynamic_cast<wxDialog*>(&w);
         main                  = &w == wxGetApp().mainframe;
         modal                 = dlg != nullptr && dlg->IsModal();
@@ -1224,7 +1225,7 @@ ToolResult set_window(McpService& service, ToolContext& ctx, const json& args)
         if (w == nullptr)
             throw ToolFailure(closed);
         // list_windows's own entry, so the two report a window alike.
-        const json entry = service.inspector().window_entry(*w, modal);
+        const json entry = runtime.inspector().window_entry(*w, modal);
         json       reply{{"title", entry["title"]}, {"kind", entry["kind"]}, {"ref", entry["ref"]}, {"size", {entry["width"], entry["height"]}}};
         if (entry.contains("x"))
             reply["position"] = {entry["x"], entry["y"]};
@@ -1346,8 +1347,8 @@ void register_ui_tools(CommandCatalog& catalog)
         object_schema({{"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 200}, {"description", "Default 100."}}},
                        {"offset", {{"type", "integer"}, {"minimum", 0}}}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
-            return ToolResult::ok(page(ctx.run_ui([&] { return service.inspector().windows(); }), args));
+            AutomationRuntime& runtime = ctx.runtime();
+            return ToolResult::ok(page(ctx.run_ui([&] { return runtime.inspector().windows(); }), args));
         }));
 
     {
@@ -1373,7 +1374,7 @@ void register_ui_tools(CommandCatalog& catalog)
                                                "or position.")},
                            {"raise", prop("boolean", "Bring the window in front of the app's other windows; active in the reply says "
                                                      "whether it became the active one.")}}),
-            [](const json& args, ToolContext& ctx) { return set_window(ctx.service(), ctx, args); });
+            [](const json& args, ToolContext& ctx) { return set_window(ctx.runtime(), ctx, args); });
         def.allowed_during_operation = true;
         catalog.add(def);
     }
@@ -1412,7 +1413,7 @@ void register_ui_tools(CommandCatalog& catalog)
                            {"max_web_nodes",
                             {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Page elements, apart from max_nodes; default 300."}}}}),
             [](const json& args, ToolContext& ctx) {
-                McpService& service = ctx.service();
+                AutomationRuntime& runtime = ctx.runtime();
                 SnapshotOptions o;
                 o.root          = arg_string(args, "target", "all");
                 o.query         = arg_string(args, "query");
@@ -1427,7 +1428,7 @@ void register_ui_tools(CommandCatalog& catalog)
                 for (int i = 0; i < 20; ++i) {
                     const bool busy = ctx.run_ui([&] {
                                              std::vector<wxWebView*> later;
-                                             const std::vector<wxWebView*> read = service.inspector().snapshot_pages(o, &later);
+                                             const std::vector<wxWebView*> read = runtime.inspector().snapshot_pages(o, &later);
                                              pages.clear();
                                              behind.clear();
                                              std::transform(read.begin(), read.end(), std::back_inserter(pages), web_handle);
@@ -1456,7 +1457,7 @@ void register_ui_tools(CommandCatalog& catalog)
                     for (WebHandle h : behind)
                         if (const wxWebView* web = web_view_of(h))
                             o.pages[web] = {{"note", "behind a modal dialog"}};
-                    return service.inspector().snapshot(o);
+                    return runtime.inspector().snapshot(o);
                 });
                 ToolResult r = ToolResult::ok();
                 const std::string tree = snap["tree"].get<std::string>();
@@ -1496,11 +1497,11 @@ void register_ui_tools(CommandCatalog& catalog)
                        {"timeout_s", kPageTimeoutSchema}},
                       {"target"}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
-            end_web_press(service, ctx); // a click ends a press held on a page, even one refused here
+            AutomationRuntime& runtime = ctx.runtime();
+            end_web_press(runtime, ctx); // a click ends a press held on a page, even one refused here
             if (is_web_target(args["target"]))
-                return web_click(service, ctx, args);
-            refuse_web_view(service, ctx, args["target"]);
+                return web_click(runtime, ctx, args);
+            refuse_web_view(runtime, ctx, args["target"]);
             ClickOptions o;
             o.button       = arg_string(args, "button", "left");
             o.double_click = arg_bool(args, "double", false);
@@ -1511,15 +1512,15 @@ void register_ui_tools(CommandCatalog& catalog)
             json         locator;
             GLCanvas3D*  canvas = nullptr;
             int          gizmo  = -1;
-            InputMenu    menu(service, ctx, arg_string(args, "popup_item"));
+            InputMenu    menu(runtime, ctx, arg_string(args, "popup_item"));
             // A list's rows get their places a frame after they change (on GTK; a dialog's tree rebuilt
             // by a preset choice), so a row is scrolled to first and given up to 1 s to take its place.
             bool placed = false;
             for (int i = 0; i < 20; ++i) {
                 placed = ctx.run_ui([&] {
-                                UiTarget t = service.inspector().resolve(args["target"]);
-                                guard_target(service, target_window(t));
-                                return json(service.inspector().place_row(t));
+                                UiTarget t = runtime.inspector().resolve(args["target"]);
+                                guard_target(runtime, target_window(t));
+                                return json(runtime.inspector().place_row(t));
                             })
                              .get<bool>();
                 if (placed)
@@ -1531,16 +1532,16 @@ void register_ui_tools(CommandCatalog& catalog)
                 if (const std::string undrawn = undrawn_window(ctx); !undrawn.empty())
                     throw ToolFailure("The row can't be scrolled into the list's view: " + undrawn);
             json out = ctx.run_ui([&] {
-                UiTarget t = service.inspector().resolve(args["target"]);
-                locator    = service.inspector().locator_for(t);
-                guard_target(service, target_window(t));
+                UiTarget t = runtime.inspector().resolve(args["target"]);
+                locator    = runtime.inspector().locator_for(t);
+                guard_target(runtime, target_window(t));
                 canvas = t.canvas;
                 gizmo  = t.gizmo;
                 menu.arm();
-                json clicked = service.inspector().click(t, o);
+                json clicked = runtime.inspector().click(t, o);
                 // A 3D view posts a click's work to itself; a plate icon posts its dialogs to the plater.
                 const bool  plate_icon = t.kind == UiTarget::Kind::PlateIcon;
-                GLCanvas3D* view       = service.inspector().canvas_of(&t);
+                GLCanvas3D* view       = runtime.inspector().canvas_of(&t);
                 if (plate_icon && o.button == "left")
                     menu.mark(&ui_plater());
                 else if (view != nullptr)
@@ -1596,16 +1597,16 @@ void register_ui_tools(CommandCatalog& catalog)
                        {"timeout_s", kPageTimeoutSchema}},
                       {"target", "value"}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             if (is_web_target(args["target"]))
-                return web_input(service, ctx, args);
-            refuse_web_view(service, ctx, args["target"]);
+                return web_input(runtime, ctx, args);
+            refuse_web_view(runtime, ctx, args["target"]);
             json locator;
             json out = ctx.run_ui([&] {
-                UiTarget t = service.inspector().resolve(args["target"]);
-                locator    = service.inspector().locator_for(t);
-                guard_target(service, target_window(t));
-                return service.inspector().input(t, args["value"], arg_bool(args, "submit", true));
+                UiTarget t = runtime.inspector().resolve(args["target"]);
+                locator    = runtime.inspector().locator_for(t);
+                guard_target(runtime, target_window(t));
+                return runtime.inspector().input(t, args["value"], arg_bool(args, "submit", true));
             });
             journal_with_locator(ctx, args, locator);
             settle(ctx);
@@ -1628,42 +1629,42 @@ void register_ui_tools(CommandCatalog& catalog)
                        {"popup_item", kPopupItemSchema},
                        {"timeout_s", kPageTimeoutSchema}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             const std::string keys = arg_string(args, "keys"), text = arg_string(args, "text");
             if (keys.empty() && text.empty())
                 throw ToolFailure("Give keys, text or both");
             if (args.contains("target") && is_web_target(args["target"]))
-                return web_keys(service, ctx, args, resolve_web(service, ctx, args["target"], web_timeout(args)));
+                return web_keys(runtime, ctx, args, resolve_web(runtime, ctx, args["target"], web_timeout(args)));
             // Keys for a web view itself, or for none while a page has the focus, go to that page's
             // focused element.
             WebTarget page;
             json      view_locator;
             if (args.contains("target"))
-                page.web = web_view_target(service, ctx, args["target"], page.within, &view_locator);
+                page.web = web_view_target(runtime, ctx, args["target"], page.within, &view_locator);
             else
                 ctx.run_ui([&] {
-                    if (wxWebView* web = key_page(service)) {
+                    if (wxWebView* web = key_page(runtime)) {
                         page.web    = web_handle(web);
                         page.within = within_of(web);
                     }
                     return json();
                 });
             if (page.web != 0) {
-                ToolResult r = web_keys(service, ctx, args, page);
+                ToolResult r = web_keys(runtime, ctx, args, page);
                 journal_with_locator(ctx, args, view_locator);
                 return r;
             }
             json         locator;
-            InputMenu    menu(service, ctx, arg_string(args, "popup_item"));
+            InputMenu    menu(runtime, ctx, arg_string(args, "popup_item"));
             json out = ctx.run_ui([&] {
                 std::optional<UiTarget> t;
                 if (args.contains("target")) {
-                    t       = service.inspector().resolve(args["target"]);
-                    locator = service.inspector().locator_for(*t);
+                    t       = runtime.inspector().resolve(args["target"]);
+                    locator = runtime.inspector().locator_for(*t);
                 }
-                guard_target(service, service.inspector().key_target(t ? &*t : nullptr));
+                guard_target(runtime, runtime.inspector().key_target(t ? &*t : nullptr));
                 menu.arm();
-                return service.inspector().key(t ? &*t : nullptr, keys, text);
+                return runtime.inspector().key(t ? &*t : nullptr, keys, text);
             });
             journal_with_locator(ctx, args, locator);
             out.update(menu.read());
@@ -1726,24 +1727,24 @@ void register_ui_tools(CommandCatalog& catalog)
                                    {"description", "A web page's element (its ref or a {web}/{css} locator) to gesture on instead of a 3D canvas."}}},
                        {"timeout_s", kPageTimeoutSchema}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             if (args.contains("target") && is_web_target(args["target"]))
-                return web_mouse(service, ctx, args);
-            end_web_press(service, ctx); // a gesture elsewhere ends a press held on a page, even one refused here
+                return web_mouse(runtime, ctx, args);
+            end_web_press(runtime, ctx); // a gesture elsewhere ends a press held on a page, even one refused here
             if (args.contains("target"))
                 throw ToolFailure("mouse_gesture's target is a web page's element; a 3D canvas is chosen with canvas");
             const std::string action = arg_string(args, "action", "click");
             if (args.contains("popup_item") && action != "click" && action != "up")
                 throw ToolFailure("popup_item goes with action click or up, which open a right click's menu");
-            const std::string owner = service.run_owner(service.jobs().ancestry(ctx.job_id()));
-            InputMenu         menu(service, ctx, arg_string(args, "popup_item"));
+            const std::string owner = runtime.run_owner(runtime.jobs().ancestry(ctx.job_id()));
+            InputMenu         menu(runtime, ctx, arg_string(args, "popup_item"));
             json out = ctx.run_ui([&] {
                 // A client's press that runs after the endpoint closed would stay held, with no one left
                 // to release it.
-                if (owner.empty() && !service.endpoint_open())
+                if (owner.empty() && !runtime.client_scope_open())
                     throw ToolFailure("The MCP server was turned off before this gesture ran; it was not performed");
                 // The canvases are in the main window, which takes no input while a dialog is open.
-                guard_target(service, wxGetApp().mainframe);
+                guard_target(runtime, wxGetApp().mainframe);
                 try {
                     ui_plater(); // refuses while OrcaSlicer starts or closes
                     const std::string name   = arg_string(args, "canvas", "current");
@@ -1760,14 +1761,14 @@ void register_ui_tools(CommandCatalog& catalog)
                     const Transform3d view   = camera.get_view_matrix();
                     const double      zoom   = camera.get_zoom();
                     menu.arm();
-                    json done = service.inspector().mouse(*canvas, args, owner);
+                    json done = runtime.inspector().mouse(*canvas, args, owner);
                     menu.mark(canvas->get_wxglcanvas());
                     if (canvas != design_canvas() && (!camera.get_view_matrix().isApprox(view) || camera.get_zoom() != zoom))
                         done["camera_moved"] = true;
                     return done;
                 } catch (...) {
                     // A gesture that fails ends a press held from before it, as any other gesture would.
-                    service.inspector().release_held(nullptr);
+                    runtime.inspector().release_held(nullptr);
                     throw;
                 }
             });
@@ -1844,15 +1845,15 @@ void register_ui_tools(CommandCatalog& catalog)
                                    {"description", "Which dialog; default the topmost."}}}},
                       {"button"}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
-            end_web_press(service, ctx); // pressing a button ends a press held on a page, even one refused here
+            AutomationRuntime& runtime = ctx.runtime();
+            end_web_press(runtime, ctx); // pressing a button ends a press held on a page, even one refused here
             const std::string button = arg_string(args, "button");
             const std::string title  = args.contains("dialog") ? args["dialog"].value("title", "") : std::string();
             // The dialog to answer, found again on the UI thread for each step.
             auto find_dialog = [&]() -> wxDialog* {
-                const auto& stack = service.modals().stack();
+                const auto& stack = runtime.modals().stack();
                 if (stack.empty())
-                    throw ToolFailure(no_modal_dialog(service));
+                    throw ToolFailure(no_modal_dialog(runtime.modals()));
                 wxDialog* dialog = stack.back();
                 if (!title.empty()) {
                     auto contains = [&](wxDialog* d) {
@@ -1866,7 +1867,7 @@ void register_ui_tools(CommandCatalog& catalog)
                             if (contains(d))
                                 throw ToolFailure("\"" + into_u8(d->GetTitle()) + "\" is under \"" + into_u8(dialog->GetTitle()) +
                                                   "\"; answer the topmost dialog first");
-                        throw ToolFailure("No open dialog's title contains \"" + title + "\"", {{"dialogs", service.modals().snapshot()}});
+                        throw ToolFailure("No open dialog's title contains \"" + title + "\"", {{"dialogs", runtime.modals().snapshot()}});
                     }
                 }
                 if (is_native_dialog(dialog) && message_box_buttons(dialog).empty())
@@ -1883,7 +1884,7 @@ void register_ui_tools(CommandCatalog& catalog)
             json out = ctx.run_ui([&]() -> json {
                 wxDialog* dialog = find_dialog();
                 dialog_title     = into_u8(dialog->GetTitle());
-                serial           = service.modals().serial(dialog);
+                serial           = runtime.modals().serial(dialog);
                 int id           = dialog_button_by_label(dialog, button);
                 if (id == wxID_NONE) {
                     if (wxWebView* web = web_view_in(dialog)) {
@@ -1910,14 +1911,14 @@ void register_ui_tools(CommandCatalog& catalog)
                 settle(ctx);
                 // A message box closes once its own loop runs again, which a press always makes it do;
                 // that loop may run after the UI thread has served other calls.
-                auto open = [&] { return ctx.observe_ui([&] { return json(service.modals().is_open(serial)); }).get<bool>(); };
+                auto open = [&] { return ctx.observe_ui([&] { return json(runtime.modals().is_open(serial)); }).get<bool>(); };
                 bool still_open = open();
                 for (const auto end = std::chrono::steady_clock::now() + 1s; native && still_open && std::chrono::steady_clock::now() < end;) {
                     std::this_thread::sleep_for(20ms);
                     still_open = open();
                 }
                 if (!still_open)
-                    out.update(closed_reply(service));
+                    out.update(closed_reply(runtime));
                 return ToolResult::ok(out);
             }
             // A web dialog: its page's button by that label, which may take up to 3 s to show. Every ask
@@ -1937,8 +1938,8 @@ void register_ui_tools(CommandCatalog& catalog)
                     wxWebView* web    = web_view_of(page.web);
                     if (dialog != web_dialog || web == nullptr)
                         throw ToolFailure("The dialog changed while its page was being asked; call list_widgets again");
-                    before.modal = service.modals().serial(dialog);
-                    before.stack = service.modals().stack().size();
+                    before.modal = runtime.modals().serial(dialog);
+                    before.stack = runtime.modals().stack().size();
                     before.url   = into_u8(web->GetCurrentURL());
                     calls.start(web, request);
                     return json();
@@ -1948,7 +1949,7 @@ void register_ui_tools(CommandCatalog& catalog)
                 if (r.state == PageReply::State::Destroyed)
                 {
                     json gone{{"dialog", dialog_title}, {"button", button}, {"web", true}};
-                    gone.update(closed_reply(service));
+                    gone.update(closed_reply(runtime));
                     return ToolResult::ok(gone);
                 }
                 // A page that can't be asked (busy, or its agent failing) leaves cancel and close to the
@@ -1962,7 +1963,7 @@ void register_ui_tools(CommandCatalog& catalog)
                 }
                 if (r.value.contains("pressed") && r.value["pressed"].is_string()) {
                     out = {{"dialog", dialog_title}, {"button", r.value["pressed"]}, {"pressed", true}, {"web", true}};
-                    out.update(observe_page(service, ctx, page, before, r.value));
+                    out.update(observe_page(runtime, ctx, page, before, r.value));
                     return ToolResult::ok(out);
                 }
                 page_buttons = r.value.value("buttons", json::array());
@@ -1988,11 +1989,11 @@ void register_ui_tools(CommandCatalog& catalog)
             });
             settle(ctx);
             const bool gone = ctx.observe_ui([&]() -> json {
-                                     const auto& stack = service.modals().stack();
+                                     const auto& stack = runtime.modals().stack();
                                      return std::find(stack.begin(), stack.end(), web_dialog) == stack.end();
                                  }).get<bool>();
             if (gone)
-                out.update(closed_reply(service));
+                out.update(closed_reply(runtime));
             return ToolResult::ok(out);
         }));
 
@@ -2020,17 +2021,17 @@ void register_ui_tools(CommandCatalog& catalog)
                                                 "Rules, first match wins.")}},
                           {"rules"}),
             [](const json& args, ToolContext& ctx) {
-                McpService& service = ctx.service();
+                AutomationRuntime& runtime = ctx.runtime();
                 std::vector<AutoAnswerRule> rules;
                 for (const json& r : args["rules"])
                     rules.push_back(make_rule(r["match"].get<std::string>(), r["button"].get<std::string>(), r.value("path", std::string()),
                                               r.value("overwrite", false)));
                 const std::vector<AutoAnswerRule> registered = rules;
-                const AutoAnswerSet set = service.set_auto_answer(std::move(rules), service.jobs().ancestry(ctx.job_id()));
-                json out{{"scope", set.scope}, {"rules", service.modals().rules_json()}};
+                const AutoAnswerSet set = runtime.set_auto_answer(std::move(rules), runtime.jobs().ancestry(ctx.job_id()));
+                json out{{"scope", set.scope}, {"rules", runtime.modals().rules_json()}};
                 // Paused rules leave the dialog that is open now to the person, as they leave the ones that open later.
                 json answered = set.paused ? json() : ctx.run_ui([&]() -> json {
-                    wxDialog* top = service.modals().top();
+                    wxDialog* top = runtime.modals().top();
                     // A message box is pressed as answer_dialog presses it; a picker can't be.
                     const bool native = top != nullptr && is_native_dialog(top);
                     if (top == nullptr || (native && message_box_buttons(top).empty()))
@@ -2041,12 +2042,12 @@ void register_ui_tools(CommandCatalog& catalog)
                         // A path rule answers a picker only as it opens.
                         if (rule.path.empty() && rule_matches(rule, info["title"].get<std::string>(), info["message"].get<std::string>(), text)) {
                             // The rule may have been paused (a Run Script work ended) or replaced since it was registered.
-                            if (!service.modals().rule_in_force(set.layer, rule.pattern, rule.button))
+                            if (!runtime.modals().rule_in_force(set.layer, rule.pattern, rule.button))
                                 return json();
                             // A web dialog is answered on its page, as ModalTracker::Enter() does.
                             if (info.value("web", false) && native_dialog_button(top, rule.button) == wxID_NONE) {
                                 const int standard = standard_dialog_button(rule.button);
-                                start_web_answer(service.modals(), top, set.layer, rule.pattern, rule.button,
+                                start_web_answer(runtime.modals(), top, set.layer, rule.pattern, rule.button,
                                                  standard == wxID_CANCEL || standard == wxID_CLOSE ? standard : int(wxID_NONE));
                                 return {{"dialog", info["title"]}, {"button", rule.button}, {"web", "answering on its page"}};
                             }
@@ -2058,9 +2059,9 @@ void register_ui_tools(CommandCatalog& catalog)
                             if (const std::optional<DialogPress> refused = refused_press(top, id))
                                 return {{"dialog", info["title"]}, {"button", rule.button}, {*refused == DialogPress::Hidden ? "hidden" : "disabled", true}};
                             // As before any other press, the presses mouse_gesture downs left on pages end first.
-                            service.modals().before_press();
+                            runtime.modals().before_press();
                             if (press_dialog_button(top, id) != DialogPress::Failed) {
-                                service.modals().count_use(set.layer, rule.pattern, rule.button);
+                                runtime.modals().count_use(set.layer, rule.pattern, rule.button);
                                 return {{"dialog", info["title"]}, {"button", rule.button}};
                             }
                         }
@@ -2069,7 +2070,7 @@ void register_ui_tools(CommandCatalog& catalog)
                 if (!answered.is_null()) {
                     out["answered_open_dialog"] = std::move(answered);
                     settle(ctx);
-                    out["rules"] = service.modals().rules_json();
+                    out["rules"] = runtime.modals().rules_json();
                 }
                 return ToolResult::ok(std::move(out));
             });
@@ -2092,11 +2093,11 @@ void register_ui_tools(CommandCatalog& catalog)
                        {"timeout_s", {{"type", "integer"}, {"minimum", 1}, {"maximum", 120}, {"description", "Seconds the code gets (default 10)."}}}},
                       {"code"}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             const std::string code     = arg_string(args, "code");
             const auto        timeout  = std::chrono::seconds(std::clamp(arg_int(args, "timeout_s", 10), 1, 120));
             const bool        element  = args.contains("target") && is_web_target(args["target"]);
-            WebTarget         page     = element ? resolve_web(service, ctx, args["target"], timeout) : WebTarget();
+            WebTarget         page     = element ? resolve_web(runtime, ctx, args["target"], timeout) : WebTarget();
             const auto        deadline = std::chrono::steady_clock::now() + timeout;
             json              request{{"op", "eval"}, {"script", code}, {"expires", page_expiry(deadline)}};
             if (element) {
@@ -2111,19 +2112,19 @@ void register_ui_tools(CommandCatalog& catalog)
                 if (element)
                     web = web_view_of(page.web);
                 else if (args.contains("target")) {
-                    UiTarget t = service.inspector().resolve(args["target"]);
-                    locator    = service.inspector().locator_for(t);
+                    UiTarget t = runtime.inspector().resolve(args["target"]);
+                    locator    = runtime.inspector().locator_for(t);
                     web        = dynamic_cast<wxWebView*>(target_window(t));
                     if (web == nullptr)
                         throw ToolFailure("The target is not a web view (list_widgets lists them as kind webview)");
                 } else
-                    web = default_webview(service);
+                    web = default_webview(runtime);
                 if (web == nullptr)
                     throw ToolFailure("The page's web view is gone; call list_widgets again");
-                guard_page(service, ctx, web);
+                guard_page(runtime, ctx, web);
                 page.web     = web_handle(web);
-                before.modal = in_top_dialog(service, web) ? service.modals().serial(service.modals().top()) : 0;
-                before.stack = service.modals().stack().size();
+                before.modal = in_top_dialog(runtime, web) ? runtime.modals().serial(runtime.modals().top()) : 0;
+                before.stack = runtime.modals().stack().size();
                 before.url   = into_u8(web->GetCurrentURL());
                 calls.start(web, request);
                 return json();
@@ -2153,7 +2154,7 @@ void register_ui_tools(CommandCatalog& catalog)
             json              value = json::parse(text, nullptr, false);
             out["result"]           = value.is_discarded() ? json(text) : value;
             // What followed, the page's new url with navigated, overrides the one from before.
-            out.update(observe_page(service, ctx, page, before, r.value));
+            out.update(observe_page(runtime, ctx, page, before, r.value));
             return ToolResult::ok(out);
         });
     // Its script runs with the page's own reach: the device page and Home talk to printers and the cloud.

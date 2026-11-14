@@ -2,8 +2,8 @@
 
 Launches OrcaSlicer on a fresh data folder with the Design tab on (in a build with CAD) and
 tests/plugins/mcp_tools_fixture side-loaded, and tests/plugins/mcp_tools_broken, whose load fails after declaring an
-operation: over MCP, then once without MCP, running a replay with --mcp-run, so the plugin's calls go to the
-service started without its endpoint. The first launch also checks that the plugin is sent the NewProject event when
+operation: over MCP, then once without MCP, running a replay with --run, so the plugin's calls go to the
+runtime started without its endpoint. The first launch also checks that the plugin is sent the NewProject event when
 the new_project tool or command starts a project, and ends by unticking the fixture in the Plugins dialog, as a person
 unloads it.
 Run it as python tools/mcp/test_plugin_tools.py [--bin PATH].
@@ -222,7 +222,7 @@ def main():
         harness(env, "stop")
         time.sleep(3)
 
-        # --- Without MCP: a launch replay runs the plugin's script, whose calls reach the service without its endpoint. ---
+        # --- Without MCP: a launch replay runs the plugin's script, whose calls reach the runtime without its endpoint. ---
         install(datadir)  # enabled again: unticking it saved it disabled
         steps = os.path.join(datadir, "plugin_rule.json")
         with open(steps, "w", encoding="utf-8") as f:
@@ -232,7 +232,7 @@ def main():
         out = os.path.join(plugin_dir, "out_rule.json")
         if os.path.exists(out):
             os.remove(out)
-        subprocess.run([binary, "--datadir", datadir, "--mcp-run", steps], env=env, timeout=600)
+        subprocess.run([binary, "--datadir", datadir, "--run", steps], env=env, timeout=600)
         try:
             with open(out, encoding="utf-8") as f:
                 offline = json.load(f)

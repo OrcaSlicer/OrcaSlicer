@@ -38,6 +38,9 @@ struct GUI_InitParams
 	bool                        input_gcode { false };
 
     Mcp::McpLaunchOptions       mcp;
+    // On for this run only: the command line never writes these settings.
+    bool unrestricted_scripts = false;   // --unrestricted-scripts
+    bool cad                  = false;   // --cad
 };
 
 int GUI_Run(GUI_InitParams &params);

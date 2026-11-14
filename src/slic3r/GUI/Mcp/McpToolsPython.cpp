@@ -2,11 +2,16 @@
 // reference.
 
 #include "JobRegistry.hpp"
+#include "McpArguments.hpp"
 #include "McpCore.hpp"
-#include "McpService.hpp"
+#include "McpPaths.hpp"
+#include "McpPersonRun.hpp"
+#include "AutomationRuntime.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
 
+#include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/plugin/PluginAuditManager.hpp"
@@ -14,6 +19,8 @@
 #include "slic3r/plugin/PythonScriptRunner.hpp"
 #include "slic3r/plugin/PythonSession.hpp"
 #include "slic3r/plugin/host/PluginHostTools.hpp"
+
+#include <boost/filesystem/path.hpp>
 
 #include <pybind11/eval.h>
 #include <pybind11/gil.h>
@@ -24,6 +31,8 @@
 #include <atomic>
 #include <chrono>
 #include <cstddef>
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -59,12 +68,12 @@ private:
 class SessionBridge final : public ToolBridge
 {
 public:
-    SessionBridge(McpService& service, const std::string& session_job)
-        : m_service(service), m_node(service.jobs(), "run_script", session_job)
+    SessionBridge(AutomationRuntime& runtime, const std::string& session_job)
+        : m_runtime(runtime), m_node(runtime.jobs(), "run_script", session_job)
     {}
     json call(const std::string& tool, const json& args) override
     {
-        ToolResult r = m_service.core().call_child_named(tool, args, m_node.id());
+        ToolResult r = m_runtime.core().call_child_named(tool, args, m_node.id());
         if (r.is_error)
             throw ToolCallError(r.message, r.data);
         return r.data;
@@ -75,11 +84,11 @@ public:
     {
         const std::string node = m_node.id();
         m_stopped              = true;
-        m_service.request_stop(node);
-        // Found again on the UI thread: the service may be gone by the time the closure runs.
-        m_service.post_ui([node] {
-            if (McpService* service = wxGetApp().mcp_service())
-                service->cancel_operations_of(node);
+        m_runtime.jobs().request_stop(node);
+        // Found again on the UI thread: the runtime may be gone by the time the closure runs.
+        m_runtime.post_ui([node] {
+            if (AutomationRuntime* runtime = wxGetApp().automation_if_started())
+                runtime->cancel_operations_of(node);
         });
     }
     // As a work starts: after a stop its calls get a node no stop was asked for.
@@ -90,9 +99,9 @@ public:
     }
 
 private:
-    McpService&       m_service;
-    LineageNode       m_node;
-    std::atomic<bool> m_stopped{false};
+    AutomationRuntime& m_runtime;
+    LineageNode        m_node;
+    std::atomic<bool>  m_stopped{false};
 };
 
 // python_api_reference()'s walk over the orca package.
@@ -245,38 +254,84 @@ bool python_has_numpy()
     }
 }
 
-ToolResult run_python_session_job(McpService& service, ToolContext& ctx, PythonSession& session, const std::string& filename)
+ToolResult run_python_session_job(AutomationRuntime& runtime, ToolContext& ctx, PythonSession& session, const std::string& filename)
 {
     const std::string job = ctx.job_id();
     // The session waits for the person between works: `wait {for: "idle"}` counts only the calls it makes.
-    service.jobs().set_idle(job);
+    runtime.jobs().set_idle(job);
     // What its calls leave behind is the session's, as a run's is; its rules act only while a work runs.
-    service.begin_run_scope(job);
-    service.set_run_scope_paused(job, true);
+    runtime.begin_run_scope(job);
+    runtime.set_run_scope_paused(job, true);
     struct ScopeEnd
     {
-        McpService& service;
+        AutomationRuntime& runtime;
         std::string job;
-        ~ScopeEnd() { service.end_run_scope(job); }
-    } scope_end{service, job};
+        ~ScopeEnd() { runtime.end_run_scope(job); }
+    } scope_end{runtime, job};
 
-    SessionBridge        bridge(service, job);
+    SessionBridge        bridge(runtime, job);
     ScopedToolBridge     bound(bridge);
     PythonSessionRequest request;
     request.identity     = kScriptIdentityPerson;
     request.filename     = filename;
     request.cancelled    = [&ctx] { return ctx.cancelled(); };
     request.stop_calls   = [&bridge] { bridge.stop_calls(); };
-    request.work_started = [&service, &bridge, job] {
+    request.work_started = [&runtime, &bridge, job] {
         bridge.renew_after_stop();
-        service.set_run_scope_paused(job, false);
+        runtime.set_run_scope_paused(job, false);
     };
-    request.work_ended = [&service, job] {
-        service.set_run_scope_paused(job, true);
-        service.release_run_presses(job);
+    request.work_ended = [&runtime, job] {
+        runtime.set_run_scope_paused(job, true);
+        runtime.release_run_presses(job);
     };
     host_python_session(request, session);
     return ToolResult::ok({{"status", "ended"}});
+}
+
+std::shared_ptr<PersonRun> start_python_session(AutomationRuntime& runtime, std::shared_ptr<PythonSession> session,
+                                                const boost::filesystem::path& file, PersonRun::Events events)
+{
+    const NativeCommand* run_script = NativeCommands::instance().find("run_script");
+    if (run_script == nullptr || runtime.stopping() || !session)
+        return nullptr;
+    auto run      = std::make_shared<PersonRun>(runtime, std::move(events));
+    auto hosted   = std::make_shared<std::atomic<bool>>(false);
+    auto filename = file.empty() ? std::string("<run_script>") : path_to_utf8(file);
+    // run_script's properties, outside the session journal, as a person's run.
+    NativeCommand def = *run_script;
+    def.journal       = false;
+    def.run           = [&runtime, run, session, hosted, filename](const json&, ToolContext& ctx) {
+        run->set_job(ctx.job_id());
+        hosted->store(true);
+        // A handler that refuses never hosts the session: it ends here all the same.
+        struct Ended
+        {
+            PythonSession& session;
+            ~Ended()
+            {
+                if (!session.ended())
+                    session.host_returned();
+            }
+        } ended{*session};
+        return run_python_session_job(runtime, ctx, *session, filename);
+    };
+
+    FollowedCall call;
+    call.command = std::move(def);
+    call.person  = true;
+    call.ended   = [&runtime, run, session, hosted](const std::optional<ToolResult>& r) {
+        run->mark_ended();
+        // Refused before its handler ran: the session was never hosted.
+        if (r && !hosted->load())
+            session->host_returned();
+        if (!r || runtime.stopping() || !r->is_error)
+            return;
+        run->post_finished(json{{"error", r->message}}, json());
+    };
+    call.stop = [run] { run->stop(); };
+    if (!runtime.follow(std::move(call)))
+        return nullptr;
+    return run;
 }
 
 void register_python_tools(CommandCatalog& catalog)
@@ -306,25 +361,25 @@ void register_python_tools(CommandCatalog& catalog)
                                                    "from its folder and its PEP 723 dependencies; any other name only names it.")}},
                       {"code"}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             // A plugin's script is the plugin's own code: its identity and grants.
             const std::string& plugin   = ctx.caller_plugin();
-            const std::string  identity = !plugin.empty()                     ? plugin :
-                                          service.person_run(ctx.lineage()) ? kScriptIdentityPerson :
-                                                                              kScriptIdentityAgent;
+            const std::string  identity = !plugin.empty()                          ? plugin :
+                                          runtime.jobs().person_in(ctx.lineage()) ? kScriptIdentityPerson :
+                                                                                    kScriptIdentityAgent;
 
             // A run owns what its calls leave behind (auto-answer rules, a recording, a held press) as a JSON
             // script does: it all ends with the run.
             const std::string job = ctx.job_id();
             // A run may wait for a person in its window: `wait {for: "idle"}` counts only the calls it makes.
-            service.jobs().set_idle(job);
-            service.begin_run_scope(job);
+            runtime.jobs().set_idle(job);
+            runtime.begin_run_scope(job);
             struct ScopeEnd
             {
-                McpService& service;
+                AutomationRuntime& runtime;
                 std::string job;
-                ~ScopeEnd() { service.end_run_scope(job); }
-            } scope_end{service, job};
+                ~ScopeEnd() { runtime.end_run_scope(job); }
+            } scope_end{runtime, job};
 
             RunBridge        bridge(ctx);
             ScopedToolBridge bound(bridge);
@@ -338,7 +393,7 @@ void register_python_tools(CommandCatalog& catalog)
             request.budget    = std::chrono::seconds(arg_int(args, "timeout_s", 300));
             request.cancelled = [&ctx] { return ctx.cancelled(); };
             // A stop or time-out cancels the run's tool calls in flight too, so one that waits returns at once.
-            request.stop_calls = [&service, job] { service.request_stop(job); };
+            request.stop_calls = [&runtime, job] { runtime.jobs().request_stop(job); };
             const PythonRunOutcome out = run_python_code(request);
             if (out.status == "unavailable")
                 throw ToolFailure(out.message);

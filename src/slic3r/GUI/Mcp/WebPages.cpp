@@ -1,9 +1,9 @@
 #include "WebPages.hpp"
 
-#include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "UiInspector.hpp"
 #include "UiRefs.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/Widgets/WebView.hpp"
@@ -31,6 +31,7 @@
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <functional>

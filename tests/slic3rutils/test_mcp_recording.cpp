@@ -3,10 +3,10 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
 #include "slic3r/GUI/Mcp/McpPaths.hpp"
 #include "slic3r/GUI/Mcp/McpRecorder.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/Mcp/MkvWriter.hpp"
 #include "slic3r/GUI/Mcp/RecordingSettings.hpp"
 #include "slic3r/GUI/Mcp/RecordingSink.hpp"
@@ -54,6 +54,7 @@
 #include <utility>
 #include <vector>
 
+using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Mcp;
 using nlohmann::json;
 using namespace std::chrono_literals;

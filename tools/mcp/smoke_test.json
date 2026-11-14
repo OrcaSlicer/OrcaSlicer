@@ -3,7 +3,7 @@
 // instance with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/smoke_test.json --out /tmp/smoke
 // or headless with
-//   orca-slicer --mcp-run tools/mcp/smoke_test.json --mcp-run-out /tmp/smoke
+//   orca-slicer --run tools/mcp/smoke_test.json --outputdir /tmp/smoke
 {
   "orca_replay": 1,
   "name": "smoke",

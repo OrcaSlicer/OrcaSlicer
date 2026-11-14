@@ -1,9 +1,10 @@
 #pragma once
 
-#include "McpTypes.hpp"
+#include "McpPersonRun.hpp"
 
 #include "libslic3r/CustomGCode.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -52,13 +53,13 @@ struct Refusal;
 
 namespace Mcp {
 
-class McpService;
+class AutomationRuntime;
 struct Replay;
 struct ReplayContext;
 
 // Each tool family adds its commands to the catalog (NativeCommands::register_all_commands()), and so do the
-// Design tab's (register_cad_commands(), McpToolsCad.hpp). A command's function reaches the MCP service through
-// its call's context (ToolContext::service()), so the catalog is built without one.
+// Design tab's (register_cad_commands(), McpToolsCad.hpp). A command's function reaches the automation runtime
+// through its call's context (ToolContext::runtime()), so the catalog is built without one.
 void register_app_tools(CommandCatalog& catalog);
 void register_action_tools(CommandCatalog& catalog);
 void register_project_tools(CommandCatalog& catalog);
@@ -84,9 +85,9 @@ struct ReplayRunOptions
 // Runs a parsed replay as the calling job, as run_replay does: steps are child calls, dialog rules
 // the replay registers end with it, and result.json goes to sctx.out_dir (created if missing). It
 // stops before the next step, and stops waiting on a step's job, once the call is cancelled: the
-// service stops, or a stop was asked for any job in the call's lineage (McpService::request_stop), so
+// runtime stops, or a stop was asked for any job in the call's lineage (JobRegistry::request_stop), so
 // a nested run_replay stops with the run that holds it. Returns run_replay()'s result with out_dir (and result_file).
-nlohmann::json run_replay_job(McpService& service, ToolContext& ctx, const Replay& replay, ReplayContext& sctx,
+nlohmann::json run_replay_job(AutomationRuntime& runtime, ToolContext& ctx, const Replay& replay, ReplayContext& sctx,
                               const ReplayRunOptions& options);
 
 // ---- schema helpers --------------------------------------------------------------------------
@@ -211,11 +212,27 @@ bool python_has_numpy();
 // recording, a held press) until the session ends, with its rules paused between works and its presses released as each
 // work ends. The calls hang under a lineage node of the job, which a stop cancels, inline calls included, and which the
 // next work replaces. Hosts `session` (host_python_session()) under `filename` until it ends; a job cancel ends it.
-ToolResult run_python_session_job(McpService& service, ToolContext& ctx, PythonSession& session, const std::string& filename);
+ToolResult run_python_session_job(AutomationRuntime& runtime, ToolContext& ctx, PythonSession& session, const std::string& filename);
+
+// Hosts the Run Script panel's `session` as an unjournaled person's run_script job (run_python_session_job()), which
+// `runtime` follows on a thread of its own that its stop() joins and stop_followed() stops. `file` is the session's
+// file; empty for an unsaved script. `events.finished` is posted only for a job refused before its handler ran or a
+// handler that refused (Python scripts off), as {"error": message}; the session's end is PythonSession::ended(),
+// which a refused job sets too. nullptr when the runtime is not started or is stopping, or when the system cannot
+// start a thread. UI thread.
+std::shared_ptr<PersonRun> start_python_session(AutomationRuntime& runtime, std::shared_ptr<PythonSession> session,
+                                                const boost::filesystem::path& file, PersonRun::Events events);
 
 // What an editor suggests for each listed command: [{name, title (translated), args: {name: {type?, enum?}}}]. The
 // argument descriptions are written for agents, in English, and stay out.
 nlohmann::json editor_tool_catalog(const CommandCatalog& catalog);
+
+// ---- recording (McpToolsRecord.cpp) ----------------------------------------------------------
+
+// Starts encode_recording with `args` as an unjournaled job of its own and returns at once: the job's envelope, or
+// the error that refused it. For a recording's encode that stop_recording starts, which a replay of the recording
+// asks for again. Any thread.
+ToolResult start_encode(AutomationRuntime& runtime, const nlohmann::json& args);
 
 // ---- settings scopes (McpToolsConfig.cpp) ----------------------------------------------------
 

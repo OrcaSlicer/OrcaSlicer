@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/Mcp/McpReplay.hpp"
 #include "slic3r/GUI/Mcp/McpReplaySummary.hpp"
 
@@ -9,16 +10,35 @@
 
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace Slic3r::GUI::Mcp;
 using nlohmann::json;
+using Slic3r::GUI::CommandCatalog;
+using Slic3r::GUI::NativeCommand;
 
 namespace {
 
 using Flags = std::vector<std::string>;
 
 const Flags kEveryFlag{"writes_file", "changes_presets", "replaces_project", "sends_to_printer"};
+
+// The commands the cases call by their key, each with a tile and no place in the tool list, as the app's catalog
+// has them. Every other tool the cases name is a typed tool, which the summary describes by its name.
+CommandCatalog tile_catalog()
+{
+    CommandCatalog catalog;
+    for (const char* key : {"load_project", "export_stl", "sync_presets"}) {
+        NativeCommand command;
+        command.key        = key;
+        command.in_palette = true;
+        command.listed     = false;
+        catalog.add(std::move(command));
+    }
+    catalog.seal();
+    return catalog;
+}
 
 // Describes the one step of a replay built around `step`, run from C:/replays with output in C:/out.
 StepDescription describe(const std::string& step, const std::string& vars = "{}")
@@ -30,7 +50,7 @@ StepDescription describe(const std::string& step, const std::string& vars = "{}"
     ReplayContext ctx;
     ctx.replay_dir = "C:/replays";
     ctx.out_dir    = "C:/out";
-    return describe_step(replay->steps[0], *replay, ctx);
+    return describe_step(tile_catalog(), replay->steps[0], *replay, ctx);
 }
 
 Flags flags_of(const StepDescription& d)
@@ -118,7 +138,34 @@ TEST_CASE("a command called by name is described as its tile is", "[Mcp]")
     CHECK(flags_of(by_name) == flags_of(tile));
     CHECK(by_name.replace == tile.replace);
     CHECK(by_name.what == tile.what);
-    CHECK(describe_call(key, args) == tile.what);
+    CHECK(describe_call(tile_catalog(), key, args) == tile.what);
+}
+
+TEST_CASE("a step that calls a tile's command by its key is described from the catalog it is given", "[Mcp]")
+{
+    std::string err;
+    const auto  replay = parse_replay(R"({"orca_replay": 1, "steps": [{"tool": "export_stl", "args": {"path": "C:/a.stl"}}]})", err);
+    INFO(err);
+    REQUIRE(replay.has_value());
+    ReplayContext ctx;
+    ctx.out_dir = "C:/out";
+
+    CommandCatalog catalog;
+    NativeCommand  export_stl;
+    export_stl.key        = "export_stl";
+    export_stl.in_palette = true;
+    export_stl.listed     = false;
+    catalog.add(std::move(export_stl));
+    catalog.seal();
+    const StepDescription tile = describe_step(catalog, replay->steps[0], *replay, ctx);
+    REQUIRE(tile.what.is_object());
+    CHECK(tile.what.value("kind", "") == "command");
+    CHECK(tile.what.value("key", "") == "export_stl");
+
+    // Without the command in the catalog, the step is described from its arguments, as a typed tool's call is.
+    const StepDescription unknown = describe_step(CommandCatalog(), replay->steps[0], *replay, ctx);
+    const std::string     kind    = unknown.what.is_object() ? unknown.what.value("kind", "") : std::string();
+    CHECK(kind != "command");
 }
 
 TEST_CASE("speed dial actions are flagged by their id", "[Mcp]")
@@ -310,8 +357,8 @@ TEST_CASE("saved jobs don't change a step's flags", "[Mcp]")
     without.out_dir = "C:/out";
     ReplayContext with = without;
     with.jobs          = json{{"p", "j12"}};
-    const StepDescription a = describe_step(replay->steps[0], *replay, without);
-    const StepDescription b = describe_step(replay->steps[0], *replay, with);
+    const StepDescription a = describe_step(tile_catalog(), replay->steps[0], *replay, without);
+    const StepDescription b = describe_step(tile_catalog(), replay->steps[0], *replay, with);
     CHECK(flags_of(a) == flags_of(b));
     CHECK(a.replace == b.replace);
     CHECK(a.answers_dialogs == b.answers_dialogs);

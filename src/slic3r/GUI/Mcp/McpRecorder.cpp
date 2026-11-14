@@ -1,8 +1,7 @@
 #include "McpRecorder.hpp"
 
 #include "McpPaths.hpp"
-#include "McpService.hpp"
-#include "McpTypes.hpp"
+#include "AutomationRuntime.hpp"
 #include "MkvWriter.hpp"
 #include "ModalTracker.hpp"
 #include "RecordingSink.hpp"
@@ -11,6 +10,8 @@
 #include "VideoEncode.hpp"
 #include "VideoOverlay.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -47,10 +48,12 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <deque>
 #include <exception>
+#include <functional>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -235,8 +238,16 @@ private:
     McpRecorder& m_recorder;
 };
 
-McpRecorder::McpRecorder(McpService& service)
-    : m_service(service), m_filter(std::make_unique<InputFilter>(*this)), m_input(std::make_unique<Input>())
+McpRecorder::McpRecorder(ModalTracker&                              modals,
+                         std::function<uint64_t()>                  ui_generation,
+                         std::function<bool()>                      suspended,
+                         std::function<void(std::function<void()>)> post_ui)
+    : m_modals(modals)
+    , m_ui_generation(std::move(ui_generation))
+    , m_suspended(std::move(suspended))
+    , m_post_ui(std::move(post_ui))
+    , m_filter(std::make_unique<InputFilter>(*this))
+    , m_input(std::make_unique<Input>())
 {}
 
 McpRecorder::~McpRecorder()
@@ -256,11 +267,13 @@ McpRecorder::~McpRecorder()
 
 namespace {
 
-// The captured area: the main window with the modal dialogs on it, or the 3D view shown. Sets where it
-// is on the screen, for the pointer, and `note` to what the capture approximated. UI thread.
-bool capture_area(McpService& service, Recording& rec, const CaptureOptions& options, wxImage& out, std::string& note, std::string& err)
+// The captured area: the main window with the modal dialogs of `modals` on it, or the 3D view shown. Sets
+// where it is on the screen, for the pointer, and `note` to what the capture approximated. Fails while
+// `suspended`, the main window being rebuilt. UI thread.
+bool capture_area(ModalTracker& modals, bool suspended, Recording& rec, const CaptureOptions& options, wxImage& out,
+                  std::string& note, std::string& err)
 {
-    if (service.suspended()) {
+    if (suspended) {
         err = "OrcaSlicer is rebuilding its window";
         return false;
     }
@@ -311,7 +324,7 @@ bool capture_area(McpService& service, Recording& rec, const CaptureOptions& opt
             };
             // The modal dialogs, outermost first, which is how they stack.
             std::vector<wxTopLevelWindow*> drawn{frame};
-            for (wxDialog* dialog : service.modals().stack()) {
+            for (wxDialog* dialog : modals.stack()) {
                 if (dialog == nullptr || is_native_dialog(dialog) || hidden_from_automation(dialog) || !dialog->IsShownOnScreen())
                     continue;
                 std::string            dialog_err;
@@ -408,7 +421,7 @@ bool McpRecorder::canvas_frame(Recording& rec, GLCanvas3D& canvas, wxImage& out,
 {
     // The frame on screen is the last one the canvas presented: kept until it presents another.
     Recording::CanvasFrame& kept       = rec.canvases[&canvas];
-    const uint64_t          generation = m_service.ui_generation();
+    const uint64_t          generation = m_ui_generation();
     const wxSize            size       = canvas.get_wxglcanvas()->GetClientSize();
     if (kept.image.IsOk() && kept.generation == generation && kept.size == size && kept.presented == canvas.presented_frames()) {
         out = kept.image;
@@ -464,7 +477,7 @@ json McpRecorder::start(const RecordingOptions& options, uint64_t files_owner)
     };
     wxImage     first;
     std::string note, err;
-    if (!capture_area(m_service, *rec, capture_options, first, note, err))
+    if (!capture_area(m_modals, m_suspended(), *rec, capture_options, first, note, err))
         throw ToolFailure("Cannot record: " + err);
     rec->note = note; // no other thread has it yet
     std::tie(rec->video_w, rec->video_h) = video_size(first.GetWidth(), first.GetHeight(), options.max_dim);
@@ -569,7 +582,7 @@ void McpRecorder::capture_frame(Recording& rec, Clock::time_point now, const wxI
         options.canvas_frame        = [this, &rec](GLCanvas3D& canvas, wxImage& out, std::string& err) { return canvas_frame(rec, canvas, out, err); };
         options.sessions            = rec.windows.get();
         std::string note, err;
-        if (!capture_area(m_service, rec, options, image, note, err)) {
+        if (!capture_area(m_modals, m_suspended(), rec, options, image, note, err)) {
             ++rec.skipped;
             return;
         }
@@ -662,10 +675,10 @@ void McpRecorder::end_recording(const std::shared_ptr<Recording>& rec, const std
     if (wxThread::IsMain())
         ended(*this);
     else
-        // Found again on the UI thread: the service may be gone by then.
-        m_service.post_ui([ended] {
-            if (McpService* service = wxGetApp().mcp_service(); service != nullptr)
-                ended(service->recorder());
+        // Found again on the UI thread: the runtime may be gone by then.
+        m_post_ui([ended] {
+            if (AutomationRuntime* runtime = wxGetApp().automation_if_started(); runtime != nullptr)
+                ended(runtime->recorder());
         });
 }
 
@@ -813,6 +826,31 @@ bool McpRecorder::wait_closed(const fs::path& path, std::chrono::milliseconds ti
     return !rec || rec->options.path != path || rec->sink->wait_finalized(timeout);
 }
 
+bool McpRecorder::encode_when_closed(AutomationRuntime& runtime, json args, std::function<void(const ToolResult&)> done)
+{
+    const NativeCommand* encode = NativeCommands::instance().find("encode_recording");
+    if (encode == nullptr || runtime.stopping())
+        return false;
+    FollowedCall call;
+    // A person's encode, outside the session journal like Action Replay's runs.
+    call.command         = *encode;
+    call.command.journal = false;
+    call.args            = std::move(args);
+    // The sink's threads close the file soon after the recording ends.
+    call.ready = [this, &runtime](json& encode_args) {
+        const fs::path source = path_from_utf8(encode_args.value("path", std::string()));
+        while (!runtime.stopping() && !wait_closed(source, std::chrono::seconds(1))) {
+        }
+        return !runtime.stopping();
+    };
+    call.ended = [&runtime, done = std::move(done)](const std::optional<ToolResult>& r) {
+        if (!r || runtime.stopping())
+            return;
+        runtime.post_ui([done, result = *r] { done(result); });
+    };
+    return runtime.follow(std::move(call));
+}
+
 void McpRecorder::suspend()
 {
     std::shared_ptr<Recording> rec;
@@ -834,7 +872,7 @@ bool McpRecorder::running() const
 
 void McpRecorder::update_indicator() const
 {
-    if (wxGetApp().is_closing() || m_service.suspended())
+    if (wxGetApp().is_closing() || m_suspended())
         return;
     if (MainFrame* frame = wxGetApp().mainframe; frame != nullptr)
         frame->show_recording_indicator(running());
@@ -933,7 +971,7 @@ bool McpRecorder::shows(const Recording& rec, wxWindow* window) const
         if (top == wxGetApp().mainframe)
             return true;
     }
-    const auto& stack = m_service.modals().stack();
+    const auto& stack = m_modals.stack();
     return std::find(stack.begin(), stack.end(), top) != stack.end();
 }
 

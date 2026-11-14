@@ -2,6 +2,8 @@
 
 #include "McpReplay.hpp"
 
+#include "slic3r/GUI/CommandCatalog.hpp"
+
 #include <nlohmann/json.hpp>
 
 #include <string>
@@ -39,18 +41,19 @@ struct StepDescription
 
 // Describes `step` of `replay`, substituting its arguments leniently over `ctx`; a file counts as
 // written inside the output folder when it is inside ctx.out_dir. A step that calls a Speed Dial command
-// by its key (one with a tile and no place in the tool list) is described as run_action of its tile is.
-// A run_replay step is described by
+// by its key (one of `catalog` with a tile and no place in the tool list) is described as run_action of
+// its tile is. A run_replay step is described by
 // the steps of its inline replay, or of its file when `path` reads and parses, each in the nested
 // run's own context (its vars merged with the step's `vars`, its own replay and output folders);
 // past `depth` 4, or when the file doesn't read or parse, it gets every flag, "checked" and
 // answers_dialogs.
-StepDescription describe_step(const ReplayStep& step, const Replay& replay, const ReplayContext& ctx, int depth = 0);
+StepDescription describe_step(const CommandCatalog& catalog, const ReplayStep& step, const Replay& replay,
+                              const ReplayContext& ctx, int depth = 0);
 
-// What a call of `tool` with `args` acts on, as describe_step()'s `what` says it, Speed Dial ids
-// included, but from the arguments as they are and without reading files: a run_replay call is named
+// What a call of `tool` with `args` acts on, as describe_step()'s `what` says it over `catalog`, Speed Dial
+// ids included, but from the arguments as they are and without reading files: a run_replay call is named
 // by its replay file. For recording captions.
-nlohmann::json describe_call(const std::string& tool, const nlohmann::json& args);
+nlohmann::json describe_call(const CommandCatalog& catalog, const std::string& tool, const nlohmann::json& args);
 
 // What a finished step returned, from the tools' real replies: {"kind":"objects","count":n}
 // | {"kind":"plates","ok":n,"other":m} | {"kind":"file","name":n}

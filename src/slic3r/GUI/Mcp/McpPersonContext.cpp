@@ -1,10 +1,10 @@
 #include "McpPersonContext.hpp"
 
 #include "McpCore.hpp"
-#include "McpService.hpp"
-#include "McpTypes.hpp"
+#include "AutomationRuntime.hpp"
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
@@ -57,15 +57,13 @@ ToolResult PersonContext::call_child(const std::string& tool, const nlohmann::js
     throw ToolFailure("A person's pick does not call " + tool);
 }
 
-McpService& PersonContext::service()
+AutomationRuntime& PersonContext::runtime()
 {
     auto* app = dynamic_cast<GUI_App*>(wxTheApp);
     if (app == nullptr || app->is_closing())
         throw ToolFailure("OrcaSlicer is closing");
-    if (McpService* s = app->mcp_service(); s == nullptr || !s->started())
-        app->start_mcp_service(false);
-    McpService* s = app->mcp_service();
-    if (s == nullptr || !s->started() || s->stopping())
+    AutomationRuntime* s = app->automation();
+    if (s == nullptr)
         throw ToolFailure("The automation runtime could not start");
     return *s;
 }
@@ -75,13 +73,13 @@ ToolResult PersonContext::submit(const std::string& key, const nlohmann::json& a
     const std::shared_ptr<const NativeCommand> command = NativeCommands::instance().lookup(key);
     if (command == nullptr)
         throw ToolFailure("Unknown command " + key);
-    McpService* const     owner   = &service();
-    const std::thread::id caller  = std::this_thread::get_id();
-    auto                  refusal = std::make_shared<std::optional<ToolResult>>();
-    const std::string     title   = into_u8(NativeCommands::tile_title(*command));
-    const std::string     job     = owner->core().submit(*command, args, [owner, caller, refusal, title](const ToolResult& r) {
+    AutomationRuntime* const owner   = &runtime();
+    const std::thread::id    caller  = std::this_thread::get_id();
+    auto                     refusal = std::make_shared<std::optional<ToolResult>>();
+    const std::string        title   = into_u8(NativeCommands::tile_title(*command));
+    const std::string        job     = owner->core().submit(*command, args, [owner, caller, refusal, title](const ToolResult& r) {
         // A refusal comes at once, on this thread: it is the reply. A job's result comes on the job's thread,
-        // while the service still runs it, and is shown on the UI thread.
+        // while the runtime still runs it, and is shown on the UI thread.
         if (std::this_thread::get_id() == caller) {
             *refusal = r;
             return;

@@ -1,0 +1,76 @@
+#pragma once
+
+#include "slic3r/GUI/CommandCatalog.hpp"
+
+#include <nlohmann/json.hpp>
+
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+namespace Slic3r { namespace GUI { namespace Mcp {
+
+// For a call of call_tool ({tool, args}): replaces `command` and `args` with its target's, normalized and
+// validated, so the call runs and is journaled as the target's own. Returns an error message, or "" (also
+// for any other command, which it leaves as it is).
+std::string resolve_call(const CommandCatalog& catalog, std::shared_ptr<const NativeCommand>& command, nlohmann::json& args);
+
+// ---- arguments and name matching (McpArguments.cpp) ------------------------------------------
+
+// Validates `args` against the subset of JSON Schema the tool catalog uses (object properties with
+// type, enum, minimum/maximum, required, additionalProperties:false, array items, and the
+// "if": {"minProperties": 1}, "then": {"required": [...]} of with_silent()). Returns an empty string when
+// valid, else a message naming the offending property.
+std::string validate_arguments(const nlohmann::json& schema, const nlohmann::json& args);
+
+// Whether `args` asks for a command's person's form: an object with no members, or null. A command that has
+// a person's form and a silent one does the person's then (it asks, as a person's pick does), and the
+// silent one when it is given any argument.
+bool person_form(const nlohmann::json& args);
+// `args` without `silent`, which only chooses the silent form.
+nlohmann::json silent_args(nlohmann::json args);
+// The schema of a two-form command from its silent form's `schema`: it gains the property `silent`, which
+// takes only true and asks for the silent form with its defaults, and a top-level `required` list moves to
+// "if": {"minProperties": 1}, "then": {"required": [...]}, since the call with no arguments, the person's
+// form, needs none of them.
+nlohmann::json with_silent(nlohmann::json schema);
+
+// Readies a call's arguments for `command`, as every caller of a command does: normalizes `args` in place
+// (normalize_arguments()) and returns why validate_arguments() refuses them; empty when they are valid.
+std::string argument_error(const NativeCommand& command, nlohmann::json& args);
+
+// Rewrites, before validation, what agents often send in place of what the schema asks for: an
+// argument under a name the tool does not take but that stands for one it does, which the call leaves
+// out and the value fits (ref for target, key for keys, text for value, action for id or button, object for objects,
+// plate for plates, filter for query, settings for values, path for save_path, index for feature, params or
+// values for fields), a value written in
+// another JSON form (a number, boolean, array or object as a string, a single item for an array),
+// a value outside its argument's enum that only one omitted argument's enum takes (set_view's canvas
+// "front" as camera), and the x and y, or width and height, that list_windows reports, both given, as
+// the position or size array of a tool that takes that array, of integers, and neither part. Anything
+// that still does not fit is left for validate_arguments to report.
+void normalize_arguments(const nlohmann::json& schema, nlohmann::json& args);
+
+// The Levenshtein distance between `a` and `b`: the fewest insertions, deletions and substitutions of one
+// character that turn one into the other. A "did you mean" ranks the names a mistyped one may stand for by it,
+// each lookup with its own threshold.
+std::size_t edit_distance(const std::string& a, const std::string& b);
+
+// The words of a search query: lower case, split at anything but a letter or a digit. "to" or "of"
+// starts a word of most help texts, so words of fewer than three letters are left out when the query
+// has longer ones.
+std::vector<std::string> query_words(const std::string& query);
+
+// How well an entry matches the words of query_words(): {words found in `name` or `text`, of them those
+// found in `name`}, {0, 0} when none is. A word is found where a word of the text starts with it, so
+// "retract" finds "retraction"; the text's words are split at underscores, dots and the like and also
+// at a capital in a CamelCase name, so "mesh" finds TriangleMesh.
+std::pair<int, int> match_score(const std::vector<std::string>& words, const std::string& name, const std::string& text);
+
+// The first sentence of `text` on one line, for a listing: up to the first full stop followed by a space
+// or the end, "e.g." and "i.e." aside; the whole text when it has none.
+std::string first_sentence(const std::string& text);
+
+}}} // namespace Slic3r::GUI::Mcp

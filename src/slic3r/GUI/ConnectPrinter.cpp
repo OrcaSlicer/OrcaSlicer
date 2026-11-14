@@ -11,7 +11,7 @@
 #include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include "slic3r/GUI/Widgets/TextInput.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
+#include "slic3r/GUI/Mcp/WindowNames.hpp"
 #include <wx/event.h>
 #include <string>
 #include "slic3r/GUI/wxExtensions.hpp"

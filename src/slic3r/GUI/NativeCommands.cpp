@@ -1,8 +1,10 @@
 #include "NativeCommands.hpp"
 
+#include "ActionIds.hpp"
 #include "calib_dlg.hpp"
 #include "Camera.hpp"
 #include "CommandCatalog.hpp"
+#include "CommandTypes.hpp"
 #include "CreatePresetsDialog.hpp"
 #include "DailyTips.hpp"
 #include "GLCanvas3D.hpp"
@@ -35,16 +37,16 @@
 #include "SceneBenchmark.hpp"
 #include "format.hpp"
 #include "DeviceCore/DevManager.h"
+#include "Mcp/McpArguments.hpp"
 #include "Mcp/McpPaths.hpp"
 #include "Mcp/McpPersonContext.hpp"
 #include "Mcp/McpRecorder.hpp"
-#include "Mcp/McpService.hpp"
+#include "Mcp/AutomationRuntime.hpp"
 #include "Mcp/McpTools.hpp"
 #ifdef SLIC3R_CAD
 #include "CAD/DesignPanel.hpp"
 #include "Mcp/McpToolsCad.hpp"
 #endif
-#include "Mcp/McpTypes.hpp"
 #include "Mcp/RecordingSettings.hpp"
 #include "Mcp/ScreenCapture.hpp"
 #include "Mcp/UiInvoker.hpp"
@@ -200,15 +202,14 @@ AppActionRunResult project_undo_redo(bool redo, bool agent)
     if (plater != nullptr)
         redo ? plater->redo() : plater->undo();
     if (agent && (plater == nullptr || project_history_items(*plater) == before))
-        throw Mcp::ToolFailure(redo ? "Nothing was redone in the project's history (nothing to put back, or a background job is running)"
-                                    : "Nothing was undone in the project's history (nothing to take back, or a background job is running)");
+        throw ToolFailure(redo ? "Nothing was redone in the project's history (nothing to put back, or a background job is running)"
+                               : "Nothing was undone in the project's history (nothing to take back, or a background job is running)");
     return {AppActionRunResult::Level::Success, {}, true, json{{"history", "project"}}.dump()};
 }
 
 // An automated call of Undo, or Redo, on the history args.history names: "design", the Design tab's, or
 // "project". Without it the history is the shown tab's, as the Edit menu's Undo and Redo choose it. The reply says
-// which history it was and, for the Design tab's, what Mcp::cad_undo_redo() replies. A refusal is thrown as
-// Mcp::ToolFailure.
+// which history it was and, for the Design tab's, what Mcp::cad_undo_redo() replies. A refusal is thrown as ToolFailure.
 AppActionRunResult undo_redo(const json& args, bool redo)
 {
     std::string history = args.value("history", std::string());
@@ -224,7 +225,7 @@ AppActionRunResult undo_redo(const json& args, bool redo)
         json reply{{"history", "design"}, {"result", Mcp::cad_undo_redo(redo)}};
         return {AppActionRunResult::Level::Success, {}, true, reply.dump()};
 #else
-        throw Mcp::ToolFailure("The CAD feature is off: this build of OrcaSlicer has no Design tab");
+        throw ToolFailure("The CAD feature is off: this build of OrcaSlicer has no Design tab");
 #endif
     }
     return project_undo_redo(redo, /*agent=*/true);
@@ -402,31 +403,21 @@ void notify_error(const wxString& text)
                                                                NotificationManager::NotificationLevel::ErrorNotificationLevel, into_u8(text));
 }
 
-// Recordings are the MCP service's: the one a person's pick reaches (Mcp::PersonContext::service()), which with the
-// server off is started without its endpoint. nullptr when it cannot start, as while OrcaSlicer closes.
-Mcp::McpService* recording_service()
-{
-    try {
-        return &Mcp::PersonContext().service();
-    } catch (const Mcp::ToolFailure&) {
-        return nullptr;
-    }
-}
-
 // Encodes the recording at `path` to an MP4 beside it once its file is closed, and tells the person how that
-// went. False when it cannot start: OrcaSlicer is closing.
+// went. False when it cannot start: OrcaSlicer is closing, or the system cannot start a thread.
 bool encode_when_closed(const boost::filesystem::path& path, const Mcp::RecordingSettings& settings)
 {
-    Mcp::McpService* service = wxGetApp().mcp_service();
-    if (service == nullptr || wxGetApp().is_closing())
+    Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started();
+    if (runtime == nullptr || wxGetApp().is_closing())
         return false;
-    return service->encode_when_closed(Mcp::encode_arguments(settings, Mcp::path_to_utf8(path)), [](const Mcp::ToolResult& r) {
+    const auto done = [](const ToolResult& r) {
         if (r.is_error)
             // TRN %1% is why, in English.
             notify_error(format_wxstr(_L("The recording was saved, but could not be encoded: %1%"), r.message));
         else
             notify_saved(_L("Recording encoded"), Mcp::path_from_utf8(r.data.value("path", std::string())));
-    });
+    };
+    return runtime->recorder().encode_when_closed(*runtime, Mcp::encode_arguments(settings, Mcp::path_to_utf8(path)), done);
 }
 
 } // namespace
@@ -450,12 +441,14 @@ AppActionRunResult NativeCommands::start_person_recording()
     Mcp::save_recording_settings(config, settings);
     config.save();
 
-    Mcp::McpService* service = recording_service();
-    if (service == nullptr)
+    // Recordings are the automation runtime's, which with the server off starts without its endpoint. None while
+    // OrcaSlicer closes.
+    Mcp::AutomationRuntime* runtime = wxGetApp().automation();
+    if (runtime == nullptr)
         return {};
     // The switch is remembered as the person left it; without an ffmpeg this recording is not encoded.
     settings.encode                = settings.encode && has_ffmpeg;
-    Mcp::McpRecorder&     recorder = service->recorder();
+    Mcp::McpRecorder&     recorder = runtime->recorder();
     Mcp::RecordingOptions options;
     options.quality     = settings.quality;
     options.captions    = settings.captions;
@@ -490,17 +483,17 @@ AppActionRunResult NativeCommands::start_person_recording()
 
 AppActionRunResult NativeCommands::stop_recording_in_app()
 {
-    Mcp::McpService*     service = wxGetApp().mcp_service();
-    const nlohmann::json state   = service != nullptr && service->started() ? service->recorder().state() : nlohmann::json();
+    Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started();
+    const nlohmann::json    state   = runtime != nullptr ? runtime->recorder().state() : nlohmann::json();
     if (state.is_null() || state.value("ending", false))
         return AppActionRunResult{AppActionRunResult::Level::Info, _L("No recording is running."), false};
     // What the window shows now, even if the timer has not ticked since, before the notification shows.
-    service->recorder().capture_now();
+    runtime->recorder().capture_now();
     // The recording may be an agent's, a replay's or a script's; the person stopped it all the same, so they are told
     // where it went. Before it ends: a person's recording that is to be encoded says so instead, as it ends.
     const boost::filesystem::path path = Mcp::path_from_utf8(state["path"].get<std::string>());
     notify_saved(_L("Recording saved"), path);
-    service->recorder().end(kStoppedInApp);
+    runtime->recorder().end(kStoppedInApp);
     return AppActionRunResult{AppActionRunResult::Level::Success, {}, true, path_reply(path)};
 }
 
@@ -887,7 +880,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         const CommandFn picked = ui_command(command.key, command.title, command.group, command.input_schema,
                                             [redo](const json& args) { return picked_undo_redo(args, redo); })
                                      .run;
-        command.run = [picked, automated = std::move(command.run)](const json& args, Mcp::ToolContext& ctx) {
+        command.run = [picked, automated = std::move(command.run)](const json& args, ToolContext& ctx) {
             return ctx.person() ? picked(args, ctx) : automated(args, ctx);
         };
     };
@@ -1840,10 +1833,10 @@ NativeCommand NativeCommands::ui_command(std::string key, std::string title, std
     c.group        = std::move(group);
     c.input_schema = std::move(schema);
     c.completion   = completion;
-    c.run          = [key = c.key, fn = std::move(fn), completion](const json& args, Mcp::ToolContext& ctx) {
+    c.run          = [key = c.key, fn = std::move(fn), completion](const json& args, ToolContext& ctx) {
         if (ctx.person()) {
             AppActionRunResult shown = fn(args);
-            Mcp::ToolResult    reply = from_run_result(key, shown);
+            ToolResult         reply = from_run_result(key, shown);
             reply.notice             = std::make_shared<const AppActionRunResult>(std::move(shown));
             return reply;
         }
@@ -1867,7 +1860,7 @@ NativeCommand NativeCommands::ui_command(std::string key, std::string title, std
             }
             return json();
         });
-        Mcp::ToolResult reply = from_run_result(key, result);
+        ToolResult reply = from_run_result(key, result);
         if (!exports) {
             Mcp::settle(ctx);
             return reply;
@@ -1875,7 +1868,7 @@ NativeCommand NativeCommands::ui_command(std::string key, std::string title, std
         if (reply.is_error)
             return reply;
         if (ticket.seq_after == ticket.seq_before)
-            return Mcp::ToolResult::error(result.message.empty() ? "The export did not start." : into_u8(result.message));
+            return ToolResult::error(result.message.empty() ? "The export did not start." : into_u8(result.message));
         return Mcp::await_gcode_export(ctx, ticket);
     };
     return c;
@@ -1889,7 +1882,7 @@ NativeCommand NativeCommands::long_command(std::string key, std::string title, s
     c.group        = std::move(group);
     c.input_schema = std::move(schema);
     c.inline_call  = inline_call;
-    c.run          = [key = c.key, fn = std::move(fn), inline_call](const json& args, Mcp::ToolContext& ctx) {
+    c.run          = [key = c.key, fn = std::move(fn), inline_call](const json& args, ToolContext& ctx) {
         // A person's pick is on the UI thread, which a long function must not hold.
         if (ctx.person() && !inline_call)
             return ctx.submit(key, args);
@@ -1904,13 +1897,13 @@ NativeCommand NativeCommands::with_person_form(NativeCommand tool, std::string t
     // The person's form runs as a ui_command() function does: in place for a person's pick, in one UI closure
     // for an automated call, whose reply then says what the pick showed.
     const CommandFn asks    = ui_command(tool.key, title, group, Mcp::object_schema({}), [person](const json&) { return person(); }).run;
-    const bool      checked = !person_form_behind_dialogs && tool.guard != Mcp::GuardClass::Mutate;
+    const bool      checked = !person_form_behind_dialogs && tool.guard != GuardClass::Mutate;
     tool.title              = std::move(title);
     tool.group              = std::move(group);
     tool.icon               = std::move(icon);
     tool.in_palette         = true;
     tool.input_schema       = Mcp::with_silent(std::move(tool.input_schema));
-    tool.run = [key = tool.key, person = std::move(person), asks, checked, silent = std::move(tool.run)](const json& args, Mcp::ToolContext& ctx) {
+    tool.run = [key = tool.key, person = std::move(person), asks, checked, silent = std::move(tool.run)](const json& args, ToolContext& ctx) {
         if (!Mcp::person_form(args))
             return silent(args, ctx);
         if (!checked || ctx.person())
@@ -1918,7 +1911,7 @@ NativeCommand NativeCommands::with_person_form(NativeCommand tool, std::string t
         // An agent's call of a tool whose guard lets it run behind dialogs: the person's form opens what a pick
         // opens, so it is refused while a modal dialog is open or another call's nested loop runs, in the UI
         // closure that runs it.
-        Mcp::UiInvoker& ui = ctx.service().ui();
+        Mcp::UiInvoker& ui = ctx.runtime().ui();
         return ui_command(key, {}, {}, Mcp::object_schema({}), [&person, &ui](const json&) {
                    ui.require_mutate();
                    return person();
@@ -1927,7 +1920,7 @@ NativeCommand NativeCommands::with_person_form(NativeCommand tool, std::string t
     return tool;
 }
 
-Mcp::ToolResult NativeCommands::from_run_result(const std::string& key, const AppActionRunResult& result)
+ToolResult NativeCommands::from_run_result(const std::string& key, const AppActionRunResult& result)
 {
     // An operation's refusal is worded once, in English here as in a tool's reply.
     const std::string message = result.refusal ? result.refusal->english() : into_u8(result.message);
@@ -1940,7 +1933,7 @@ Mcp::ToolResult NativeCommands::from_run_result(const std::string& key, const Ap
             if (!result.refusal->names.empty())
                 details["names"] = result.refusal->names;
         }
-        return Mcp::ToolResult::error(message.empty() ? "The action failed" : message, std::move(details));
+        return ToolResult::error(message.empty() ? "The action failed" : message, std::move(details));
     }
     json out{{"ran", key}, {"level", level_name(result.level)}};
     if (!message.empty())
@@ -1948,7 +1941,7 @@ Mcp::ToolResult NativeCommands::from_run_result(const std::string& key, const Ap
     if (!result.reply.empty())
         if (json reply = json::parse(result.reply, nullptr, /*allow_exceptions=*/false); reply.is_object())
             out.update(reply);
-    return Mcp::ToolResult::ok(std::move(out));
+    return ToolResult::ok(std::move(out));
 }
 
 AppActionRunResult NativeCommands::run(const std::string& key, const json& args)
@@ -1964,7 +1957,7 @@ AppActionRunResult NativeCommands::run(const std::string& key, const json& args)
         return failed(err);
     Mcp::PersonContext person;
     try {
-        const Mcp::ToolResult reply = command->run(checked, person);
+        const ToolResult reply = command->run(checked, person);
         if (reply.notice)
             return *reply.notice;
         if (reply.is_error)
@@ -1988,8 +1981,8 @@ void NativeCommands::notify_result(const AppActionRunResult& result)
 
 bool NativeCommands::recording_active()
 {
-    Mcp::McpService* service = wxGetApp().mcp_service();
-    return service != nullptr && service->started() && service->recorder().active();
+    Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started();
+    return runtime != nullptr && runtime->recorder().active();
 }
 
 }} // namespace Slic3r::GUI

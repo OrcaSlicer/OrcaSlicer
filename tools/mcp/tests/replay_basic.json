@@ -1,6 +1,6 @@
 // Opens a model, changes a print setting, slices and captures the preview: the smallest end-to-end
-// check of --mcp-run. Run from anywhere:
-//   orca-slicer --mcp-run tools/mcp/tests/replay_basic.json --mcp-run-out /tmp/out
+// check of --run. Run from anywhere:
+//   orca-slicer --run tools/mcp/tests/replay_basic.json --outputdir /tmp/out
 {
   "orca_replay": 1,
   "name": "basic slice",

@@ -61,7 +61,7 @@ function scheduleParse(delay) {
   const seq = ++state.parseSeq;
   state.stale = true;
   state.parseTimer = setTimeout(() => {
-    // Asked again once the service is ready (HandleStudio's "service").
+    // Asked again once the automation runtime is ready (HandleStudio's "runtime").
     if (!state.ready) return;
     if (!sourceText().trim()) {
       onParsed({ seq, ok: false, empty: true });
@@ -517,11 +517,11 @@ function renderFooter() {
 
 function HandleStudio(msg) {
   switch (msg.command) {
-  case "service": {
+  case "runtime": {
     const was = state.ready;
     state.ready = !!msg.ready;
     if (msg.tools) setEditorTools(msg.tools);
-    // A replay parsed while the service was starting got only "still starting" back.
+    // A replay parsed while the automation runtime was starting got only "still starting" back.
     if (state.ready && !was && !busy()) scheduleParse(0);
     render();
     break;

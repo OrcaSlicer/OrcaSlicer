@@ -1,5 +1,5 @@
 #include "JobRegistry.hpp"
-#include "McpTypes.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -31,9 +31,9 @@ bool JobRegistry::unloaded(const std::string& parent, const std::string& owner) 
     return m_owner_loaded && !m_owner_loaded(plugin);
 }
 
-std::string JobRegistry::create(const std::string& tool, const std::string& parent, const std::string& owner)
+std::string JobRegistry::create(const std::string& tool, const std::string& parent, const std::string& owner, bool person)
 {
-    const std::string id = register_job(tool, parent, owner);
+    const std::string id = register_job(tool, parent, owner, person);
     if (unloaded(id, {})) {
         // Never started: nothing waits for it, and a stop the unload asked for it meanwhile goes with it.
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -44,7 +44,7 @@ std::string JobRegistry::create(const std::string& tool, const std::string& pare
     return id;
 }
 
-std::string JobRegistry::register_job(const std::string& tool, const std::string& parent, const std::string& owner)
+std::string JobRegistry::register_job(const std::string& tool, const std::string& parent, const std::string& owner, bool person)
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     const std::size_t running = std::count_if(m_jobs.begin(), m_jobs.end(), [](const auto& kv) { return !kv.second.finished; });
@@ -55,6 +55,7 @@ std::string JobRegistry::register_job(const std::string& tool, const std::string
     job.tool    = tool;
     job.parent  = parent;
     job.owner   = owner;
+    job.person  = person;
     job.created = std::chrono::steady_clock::now();
     if (!parent.empty()) {
         job.ancestors.push_back(parent);
@@ -196,6 +197,31 @@ std::optional<ToolResult> JobRegistry::wait(const std::string& id, std::chrono::
         if (m_woken)
             return std::nullopt;
     }
+}
+
+bool JobRegistry::person_in(const std::set<std::string>& lineage) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return std::any_of(lineage.begin(), lineage.end(), [this](const std::string& id) {
+        const auto it = m_jobs.find(id);
+        return it != m_jobs.end() && !it->second.finished && it->second.person;
+    });
+}
+
+void JobRegistry::allow_discard(const std::string& id)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (auto it = m_jobs.find(id); it != m_jobs.end() && !it->second.finished)
+        it->second.discard = true;
+}
+
+bool JobRegistry::discard_allowed_in(const std::set<std::string>& lineage) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return std::any_of(lineage.begin(), lineage.end(), [this](const std::string& id) {
+        const auto it = m_jobs.find(id);
+        return it != m_jobs.end() && !it->second.finished && it->second.discard;
+    });
 }
 
 void JobRegistry::request_stop(const std::string& id)

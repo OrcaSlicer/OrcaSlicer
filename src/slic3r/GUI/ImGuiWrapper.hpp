@@ -58,12 +58,12 @@ bool menu_item_with_icon(const char *label, const char *shortcut, ImVec2 icon_si
 class ImGuiWrapper
 {
 public:
-    // Automation (the MCP server) lists and clicks ImGui items, which have no window handles. While
-    // recording is on, every item a frame adds is recorded with its id, label, window and rectangle
-    // (in ImGui coordinates), along with the values fields show and the text the frame draws, per
-    // canvas: the canvas calls set_frame_owner() before new_frame(), and end_frame() publishes the
-    // frame's items as that owner's latest. Off unless the MCP server runs; ImGui then skips the
-    // hooks with one branch per item.
+    // Automation lists and clicks ImGui items, which have no window handles. While recording is on,
+    // every item a frame adds is recorded with its id, label, window and rectangle (in ImGui
+    // coordinates), along with the values fields show and the text the frame draws, per canvas: the
+    // canvas calls set_frame_owner() before new_frame(), and end_frame() publishes the frame's items as
+    // that owner's latest. Off unless the GUI instruments are on (`enable_gui_instruments()`); ImGui
+    // then skips the hooks with one branch per item.
     struct RecordedItem
     {
         unsigned    id = 0;

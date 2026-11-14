@@ -922,7 +922,7 @@ function HandleStudio(msg) {
     applyScript(msg.script || { none: true });
     renderRecent();
     break;
-  case "service":
+  case "runtime":
     S.ready = !!msg.ready;
     render();
     break;

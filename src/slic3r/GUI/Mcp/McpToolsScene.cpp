@@ -9,12 +9,12 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Point.hpp"
 #include "McpPaths.hpp"
-#include "McpService.hpp"
+#include "AutomationRuntime.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
 #include "UiInspector.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -23,6 +23,7 @@
 #include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
 #include "slic3r/GUI/Jobs/Worker.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/NotificationManager.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 #include "slic3r/GUI/Operations/PlateOps.hpp"
@@ -1194,7 +1195,7 @@ void register_scene_tools(CommandCatalog& catalog)
                        {"fill_with", enum_prop({"instances", "copies"}, "Default instances.")},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 1800}, {"description", "Cancel it after this long (default 300)."}}}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             ArrangeStart start;
             ctx.run_ui([&] {
                 start = start_arrange(ui_plater(), args);
@@ -1219,7 +1220,7 @@ void register_scene_tools(CommandCatalog& catalog)
                 if (ctx.cancelled())
                     throw;
                 // McpCore keeps the call's admission until the cancelled job has really stopped.
-                ctx.observe_ui([&] { return json(service.core().cancel_worker(ctx.job_id())); });
+                ctx.observe_ui([&] { return json(runtime.core().cancel_worker(ctx.job_id())); });
                 throw ToolFailure("The arrangement did not finish within " + std::to_string(timeout.count()) + " s, so it was cancelled");
             }
         })));
@@ -1357,28 +1358,28 @@ void register_scene_tools(CommandCatalog& catalog)
         "operation, a run_script run or an encode_recording. Allowed while an operation holds the project.",
         object_schema({{"job", prop("string", "The operation's job to cancel, e.g. \"j12\".")}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
-            const auto ops = service.jobs().running_operations();
+            AutomationRuntime& runtime = ctx.runtime();
+            const auto ops = runtime.jobs().running_operations();
             // A plugin stops only what its own calls started, so it names the job.
             if (!ctx.caller_plugin().empty() && !args.contains("job"))
                 throw ToolFailure("A plugin cancels only the jobs of its own calls: give the job");
             if (args.contains("job"))
-                require_own_job(ctx, service.jobs(), arg_string(args, "job"), "cancels");
+                require_own_job(ctx, runtime.jobs(), arg_string(args, "job"), "cancels");
             if (args.contains("job")) {
                 const std::string job = arg_string(args, "job");
                 if (std::find(ops.begin(), ops.end(), job) == ops.end()) {
                     // A call that is no operation but can be stopped: its handler watches for the stop.
-                    const NativeCommand* def = service.catalog().find(service.jobs().running_tool(job));
+                    const NativeCommand* def = NativeCommands::instance().find(runtime.jobs().running_tool(job));
                     if (def == nullptr || !def->cancellable)
                         throw ToolFailure("Job " + job + " is not a running operation", {{"running", ops}});
-                    service.request_stop(job);
+                    runtime.jobs().request_stop(job);
                     return ToolResult::ok({{"was_running", true}, {"job", job}});
                 }
             }
             json out = ctx.run_ui([&]() -> json {
                 // Only a job an MCP call started: a person's (Text typing) is theirs to stop.
                 for (const std::string& op : ops)
-                    if ((!args.contains("job") || op == arg_string(args, "job")) && service.core().cancel_worker(op))
+                    if ((!args.contains("job") || op == arg_string(args, "job")) && runtime.core().cancel_worker(op))
                         return {{"was_running", true}, {"job", op}};
                 Plater& plater = ui_plater();
                 // A slice operation still waiting to request its slice counts: the cancel keeps it from starting.

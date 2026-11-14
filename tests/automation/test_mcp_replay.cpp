@@ -2,11 +2,12 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/Mcp/McpReplay.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
 
 #include <nlohmann/json.hpp>
 
+#include <cstddef>
 #include <cstdlib>
 #include <functional>
 #include <map>
@@ -20,6 +21,7 @@
 #include <stdlib.h> // setenv
 #endif
 
+using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Mcp;
 using nlohmann::json;
 

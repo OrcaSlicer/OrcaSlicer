@@ -3,11 +3,14 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include "automation/automation_test_utils.hpp"
+
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
+#include "slic3r/GUI/Mcp/McpArguments.hpp"
 #include "slic3r/GUI/Mcp/McpPersonContext.hpp"
 #include "slic3r/GUI/Mcp/McpProtocol.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/Outcome.hpp"
 
@@ -29,33 +32,34 @@
 #include <utility>
 #include <vector>
 
+// The catalog's cases that need the GUI library: the process catalog NativeCommands builds, the commands its
+// helpers make, and a person's context. The others are in tests/automation/test_command_catalog.cpp.
+
 using Catch::Matchers::ContainsSubstring;
 using nlohmann::json;
 using Slic3r::GUI::AppActionRunResult;
 using Slic3r::GUI::CommandCatalog;
 using Slic3r::GUI::CommandCompletion;
 using Slic3r::GUI::CommandFn;
-using Slic3r::GUI::CommandSource;
+using Slic3r::GUI::GuardClass;
 using Slic3r::GUI::NativeCommand;
+using Slic3r::GUI::ToolCaller;
+using Slic3r::GUI::ToolContext;
+using Slic3r::GUI::ToolFailure;
+using Slic3r::GUI::ToolResult;
+using Slic3r::GUI::Mcp::Test::command;
+using Slic3r::GUI::Mcp::Test::OneCommandSource;
 namespace Mcp            = Slic3r::GUI::Mcp;
 namespace NativeCommands = Slic3r::GUI::NativeCommands;
 namespace Ops            = Slic3r::GUI::Ops;
 
 namespace {
 
-NativeCommand command(std::string key, bool in_palette = false)
-{
-    NativeCommand c;
-    c.key        = std::move(key);
-    c.in_palette = in_palette;
-    return c;
-}
-
 json no_arguments() { return {{"type", "object"}, {"properties", json::object()}}; }
 
 // A call's context without the MCP core: UI closures run in place and nothing is left to wait for. It
 // counts the operations a call begins and records the commands it submits as jobs.
-class TestContext final : public Mcp::ToolContext
+class TestContext final : public ToolContext
 {
 public:
     explicit TestContext(bool person = false) : m_person(person) {}
@@ -65,14 +69,14 @@ public:
     json           observe_ui(const std::function<json()>& /*fn*/) override { return true; }
     const std::string& job_id() const override { return m_job; }
     bool           cancelled() const override { return false; }
-    Mcp::ToolResult call_child(const std::string& /*tool*/, const json& /*args*/) override { return Mcp::ToolResult::error("no child calls"); }
+    ToolResult call_child(const std::string& /*tool*/, const json& /*args*/) override { return ToolResult::error("no child calls"); }
     std::set<std::string> lineage() const override { return {}; }
     void                  set_journal_args(json args) override { journaled = std::move(args); }
     void                  begin_operation() override { ++operations; }
-    Mcp::ToolResult       submit(const std::string& key, const json& /*args*/) override
+    ToolResult            submit(const std::string& key, const json& /*args*/) override
     {
         submitted.push_back(key);
-        return Mcp::ToolResult::ok();
+        return ToolResult::ok();
     }
 
     int                      operations = 0;
@@ -82,22 +86,6 @@ public:
 private:
     bool        m_person;
     std::string m_job;
-};
-
-// Holds one command, as a plugin's operations are held while it is loaded.
-class OneCommandSource final : public CommandSource
-{
-public:
-    explicit OneCommandSource(std::string key) : m_command(std::make_shared<const NativeCommand>(command(std::move(key)))) {}
-
-    std::shared_ptr<const NativeCommand> find(const std::string& key) const override
-    {
-        return key == m_command->key ? m_command : nullptr;
-    }
-    std::vector<std::shared_ptr<const NativeCommand>> all() const override { return {m_command}; }
-
-private:
-    std::shared_ptr<const NativeCommand> m_command;
 };
 
 std::vector<std::string> keys_of(const std::vector<NativeCommand>& commands)
@@ -152,71 +140,6 @@ std::string first_difference(const std::string& actual, const std::string& expec
 }
 
 } // namespace
-
-TEST_CASE("a key added twice is refused", "[CommandCatalog]")
-{
-    CommandCatalog catalog;
-    catalog.add(command("a"));
-    CHECK_THROWS_AS(catalog.add(command("a")), std::logic_error);
-    CHECK(catalog.commands().size() == 1);
-}
-
-TEST_CASE("a sealed catalog refuses additions", "[CommandCatalog]")
-{
-    CommandCatalog catalog;
-    catalog.add(command("a"));
-    CHECK_FALSE(catalog.sealed());
-    catalog.seal();
-    CHECK(catalog.sealed());
-    CHECK_THROWS_AS(catalog.add(command("b")), std::logic_error);
-    CHECK_THROWS_AS(catalog.add_source(std::make_unique<OneCommandSource>("plugin.x.y")), std::logic_error);
-    CHECK(catalog.find("b") == nullptr);
-}
-
-TEST_CASE("find sees added commands, lookup also a source's", "[CommandCatalog]")
-{
-    CommandCatalog catalog;
-    catalog.add(command("slice"));
-    catalog.add_source(std::make_unique<OneCommandSource>("plugin.x.y"));
-    catalog.seal();
-
-    CHECK(catalog.find("plugin.x.y") == nullptr);
-    const std::shared_ptr<const NativeCommand> from_source = catalog.lookup("plugin.x.y");
-    REQUIRE(from_source != nullptr);
-    CHECK(from_source->key == "plugin.x.y");
-
-    const NativeCommand* added = catalog.find("slice");
-    REQUIRE(added != nullptr);
-    CHECK(catalog.lookup("slice").get() == added);
-
-    CHECK(catalog.lookup("plugin.x.z") == nullptr);
-    REQUIRE(catalog.source_commands().size() == 1);
-    CHECK(catalog.source_commands().front()->key == "plugin.x.y");
-}
-
-TEST_CASE("commands keep the order they were added in", "[CommandCatalog]")
-{
-    CommandCatalog catalog;
-    for (const char* key : {"c", "a", "b"})
-        catalog.add(command(key));
-    catalog.seal();
-    CHECK(keys_of(catalog.commands()) == std::vector<std::string>{"c", "a", "b"});
-}
-
-TEST_CASE("a Design command's title is translated in the Design context, any other's in none", "[CommandCatalog]")
-{
-    NativeCommand design;
-    design.key   = "shell";
-    design.title = "Shell";
-    design.group = Slic3r::GUI::kDesignGroup;
-    REQUIRE(Slic3r::GUI::title_context(design) != nullptr);
-    CHECK(std::string(Slic3r::GUI::title_context(design)) == "Design");
-    NativeCommand other;
-    other.key   = "save_project";
-    other.title = "Save project";
-    other.group = "Commands";
-    CHECK(Slic3r::GUI::title_context(other) == nullptr);
-}
 
 TEST_CASE("the process catalog's palette is the Speed Dial's commands", "[CommandCatalog]")
 {
@@ -333,9 +256,9 @@ TEST_CASE("a merged command's call with no arguments is the person's form", "[Co
 {
     int        tool_calls = 0, person_calls = 0;
     const json schema{{"type", "object"}, {"properties", {{"path", {{"type", "string"}}}}}, {"required", {"path"}}};
-    const auto tool = NativeCommands::long_command("k", "K", "", schema, [&tool_calls](const json&, Mcp::ToolContext&) {
+    const auto tool = NativeCommands::long_command("k", "K", "", schema, [&tool_calls](const json&, ToolContext&) {
         ++tool_calls;
-        return Mcp::ToolResult::ok({{"tool", true}});
+        return ToolResult::ok({{"tool", true}});
     });
     const NativeCommand merged = NativeCommands::with_person_form(tool, "K", "Commands", "menu_save", [&person_calls] {
         ++person_calls;
@@ -348,11 +271,11 @@ TEST_CASE("a merged command's call with no arguments is the person's form", "[Co
     CHECK(merged.input_schema["properties"].contains("silent"));
 
     TestContext           agent;
-    const Mcp::ToolResult asked = merged.run(json::object(), agent);
+    const ToolResult      asked = merged.run(json::object(), agent);
     CHECK(person_calls == 1);
     CHECK(tool_calls == 0);
     CHECK(asked.data["ran"] == "k");
-    const Mcp::ToolResult given = merged.run({{"path", "a"}}, agent);
+    const ToolResult given = merged.run({{"path", "a"}}, agent);
     CHECK(person_calls == 1);
     CHECK(tool_calls == 1);
     CHECK(given.data["tool"] == true);
@@ -361,10 +284,10 @@ TEST_CASE("a merged command's call with no arguments is the person's form", "[Co
 TEST_CASE("an agent's call of a person's form is checked as a mutate call, a person's is not", "[CommandCatalog]")
 {
     int  person_calls = 0;
-    auto tool         = NativeCommands::long_command("k", "K", "", no_arguments(), [](const json&, Mcp::ToolContext&) {
-        return Mcp::ToolResult::ok();
+    auto tool         = NativeCommands::long_command("k", "K", "", no_arguments(), [](const json&, ToolContext&) {
+        return ToolResult::ok();
     });
-    tool.guard        = Mcp::GuardClass::Inspect; // as the recording tools run, behind dialogs
+    tool.guard        = GuardClass::Inspect; // as the recording tools run, behind dialogs
     const auto person = [&person_calls] {
         ++person_calls;
         return AppActionRunResult{AppActionRunResult::Level::Success, "Asked"};
@@ -372,8 +295,8 @@ TEST_CASE("an agent's call of a person's form is checked as a mutate call, a per
     const NativeCommand opens = NativeCommands::with_person_form(tool, "K", "Commands", "", person);
     const NativeCommand quiet = NativeCommands::with_person_form(tool, "K", "Commands", "", person, /*person_form_behind_dialogs=*/true);
 
-    // An agent's call asks the service's UI for the mutate check before the person's form runs: a context
-    // without a service refuses it, and the form never runs.
+    // An agent's call asks the runtime's UI for the mutate check before the person's form runs: a context
+    // without a runtime refuses it, and the form never runs.
     TestContext agent;
     CHECK_THROWS_AS(opens.run(json::object(), agent), std::logic_error);
     CHECK(person_calls == 0);
@@ -390,9 +313,9 @@ TEST_CASE("an agent's call of a person's form is checked as a mutate call, a per
 
 TEST_CASE("a silent call is journaled silent", "[CommandCatalog]")
 {
-    const NativeCommand tool = NativeCommands::long_command("k", "K", "", no_arguments(), [](const json& args, Mcp::ToolContext& ctx) {
+    const NativeCommand tool = NativeCommands::long_command("k", "K", "", no_arguments(), [](const json& args, ToolContext& ctx) {
         ctx.set_journal_args(args);
-        return Mcp::ToolResult::ok();
+        return ToolResult::ok();
     });
     const NativeCommand merged = NativeCommands::with_person_form(tool, "K", "Commands", "", [] { return AppActionRunResult{}; });
 
@@ -408,13 +331,13 @@ TEST_CASE("a recording started with arguments lasts an hour by default", "[Comma
     CHECK_THAT(start->input_schema["properties"]["max_seconds"]["description"].get<std::string>(), ContainsSubstring("default 3600"));
 }
 
-TEST_CASE("the catalog needs no service", "[CommandCatalog]")
+TEST_CASE("the catalog needs no runtime", "[CommandCatalog]")
 {
-    // No McpService is made in this test: the catalog is built without one, and its listing is the tool list.
+    // No AutomationRuntime is made in this test: the catalog is built without one, and its listing is the tool list.
     const CommandCatalog& catalog = NativeCommands::instance();
-    struct NoApp final : Mcp::ToolCaller
+    struct NoApp final : ToolCaller
     {
-        Mcp::ToolResult call(const NativeCommand&, const json&) override { return Mcp::ToolResult::error("no app"); }
+        ToolResult call(const NativeCommand&, const json&) override { return ToolResult::error("no app"); }
     } caller;
     Mcp::McpProtocol protocol(catalog, caller, Mcp::ServerInfo{});
     const Mcp::PostReply reply = protocol.handle_post({json{{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/list"}}.dump(), {}, {}, {}});
@@ -462,7 +385,7 @@ TEST_CASE("a command the catalog leaves out is unknown with the reason", "[Comma
         INFO(key);
         CHECK(no_cad.unknown_command(key, /*suggest=*/true) ==
               "Unknown tool: " + key + "; the CAD feature was off when OrcaSlicer started: a person turns it on in "
-                                       "Preferences > Features and restarts OrcaSlicer");
+                                       "Preferences > Features and restarts OrcaSlicer, or starts it with --cad");
     }
 #else
     CHECK(no_cad.left_out("extrude") == nullptr);
@@ -556,31 +479,6 @@ TEST_CASE("a sealed catalog is read from eight threads", "[CommandCatalog]")
     CHECK(first[4].found == nullptr);
 }
 
-TEST_CASE("the person's form is the call with no arguments", "[CommandCatalog]")
-{
-    CHECK(Mcp::person_form(json::object()));
-    CHECK(Mcp::person_form(json()));
-    CHECK_FALSE(Mcp::person_form({{"silent", true}}));
-    CHECK_FALSE(Mcp::person_form({{"path", "a"}}));
-    CHECK(Mcp::silent_args({{"silent", true}, {"path", "a"}}) == json{{"path", "a"}});
-}
-
-TEST_CASE("a two-form schema requires its arguments only when some are given", "[CommandCatalog]")
-{
-    const json s = Mcp::with_silent({{"type", "object"},
-                                     {"properties", {{"path", {{"type", "string"}}}, {"overwrite", {{"type", "boolean"}}}}},
-                                     {"required", {"path"}},
-                                     {"additionalProperties", false}});
-    CHECK_FALSE(s.contains("required"));
-    CHECK(s["then"]["required"] == json::array({"path"}));
-    CHECK(s["properties"]["silent"]["enum"] == json::array({true}));
-    CHECK(Mcp::validate_arguments(s, json::object()).empty());
-    CHECK(Mcp::validate_arguments(s, {{"path", "a"}}).empty());
-    CHECK_THAT(Mcp::validate_arguments(s, {{"overwrite", true}}), ContainsSubstring("path"));
-    CHECK_THAT(Mcp::validate_arguments(s, {{"silent", true}}), ContainsSubstring("path"));
-    CHECK_THAT(Mcp::validate_arguments(s, {{"silent", false}}), ContainsSubstring("silent"));
-}
-
 TEST_CASE("a person's pick runs the function in place", "[CommandCatalog]")
 {
     int                 calls = 0;
@@ -589,7 +487,7 @@ TEST_CASE("a person's pick runs the function in place", "[CommandCatalog]")
         return AppActionRunResult{AppActionRunResult::Level::Success, "Done"};
     });
     Mcp::PersonContext    person;
-    const Mcp::ToolResult result = c.run(json::object(), person);
+    const ToolResult      result = c.run(json::object(), person);
     CHECK(calls == 1);
     REQUIRE(result.notice != nullptr);
     CHECK(result.notice->level == AppActionRunResult::Level::Success);
@@ -599,9 +497,9 @@ TEST_CASE("a person's pick runs the function in place", "[CommandCatalog]")
 TEST_CASE("a long command picked by a person is submitted", "[CommandCatalog]")
 {
     int             calls = 0;
-    const CommandFn fn    = [&calls](const json&, Mcp::ToolContext&) {
+    const CommandFn fn    = [&calls](const json&, ToolContext&) {
         ++calls;
-        return Mcp::ToolResult::ok();
+        return ToolResult::ok();
     };
     TestContext person(true);
     NativeCommands::long_command("k", "K", "Commands", no_arguments(), fn).run(json::object(), person);
@@ -626,7 +524,7 @@ TEST_CASE("a person's submit refuses an unknown command, and starts no job witho
     // The lookup comes first; starting the runtime, the job and its notices need the app, which no unit test runs.
     Mcp::PersonContext person;
     CHECK_THROWS_WITH(person.submit("no_such_command", json::object()), ContainsSubstring("Unknown command no_such_command"));
-    CHECK_THROWS_AS(person.submit("run_script", json::object()), Mcp::ToolFailure);
+    CHECK_THROWS_AS(person.submit("run_script", json::object()), ToolFailure);
 }
 
 TEST_CASE("an Export command called with arguments takes the project, and with none does not", "[CommandCatalog]")
@@ -636,7 +534,7 @@ TEST_CASE("an Export command called with arguments takes the project, and with n
     CHECK(exporting.completion == CommandCompletion::Export);
 
     TestContext           given;
-    const Mcp::ToolResult refused = exporting.run({{"path", "a.gcode"}}, given);
+    const ToolResult      refused = exporting.run({{"path", "a.gcode"}}, given);
     CHECK(given.operations == 1);
     CHECK(refused.is_error);
     CHECK(refused.message == "Nothing to export");
@@ -668,7 +566,7 @@ TEST_CASE("a rename to an empty name is refused before anything is renamed", "[C
     REQUIRE(rename != nullptr);
     // No app runs here: the refusal comes before the command looks at the object list.
     TestContext           agent;
-    const Mcp::ToolResult refused = rename->run({{"name", ""}}, agent);
+    const ToolResult      refused = rename->run({{"name", ""}}, agent);
     CHECK(refused.is_error);
     CHECK_THAT(refused.message, ContainsSubstring("name"));
 }
@@ -702,7 +600,7 @@ TEST_CASE("a person's undo shows nothing where the Edit menu's is greyed, an age
         const NativeCommand* command = NativeCommands::find(key);
         REQUIRE(command != nullptr);
         TestContext           person(true);
-        const Mcp::ToolResult picked = command->run(design, person);
+        const ToolResult      picked = command->run(design, person);
         REQUIRE(picked.notice != nullptr);
         CHECK(picked.notice->message.empty());
         CHECK(picked.notice->level != AppActionRunResult::Level::Error);
@@ -710,14 +608,14 @@ TEST_CASE("a person's undo shows nothing where the Edit menu's is greyed, an age
         CHECK_FALSE(picked.notice->done);
         // An agent's call reaches the Design history's gate, which says why it cannot run.
         TestContext agent;
-        CHECK_THROWS_AS(command->run(design, agent), Mcp::ToolFailure);
+        CHECK_THROWS_AS(command->run(design, agent), ToolFailure);
     }
 }
 
 TEST_CASE("a command's result reads as run_action's did", "[CommandCatalog]")
 {
     using Level = AppActionRunResult::Level;
-    const Mcp::ToolResult done = NativeCommands::from_run_result("k", {Level::Success, "Done"});
+    const ToolResult done = NativeCommands::from_run_result("k", {Level::Success, "Done"});
     CHECK_FALSE(done.is_error);
     CHECK(done.data == json{{"ran", "k"}, {"level", "success"}, {"message", "Done"}});
     CHECK(NativeCommands::from_run_result("k", {Level::Busy, "Wait"}).is_error);
@@ -726,7 +624,7 @@ TEST_CASE("a command's result reads as run_action's did", "[CommandCatalog]")
     CHECK(NativeCommands::from_run_result("k", {Level::Info, "Select an object first.", false}).is_error);
 
     // What a command adds to its reply joins the reply's fields.
-    const Mcp::ToolResult ordered = NativeCommands::from_run_result("k", {Level::Success, {}, true, R"({"descending": true})"});
+    const ToolResult ordered = NativeCommands::from_run_result("k", {Level::Success, {}, true, R"({"descending": true})"});
     CHECK(ordered.data == json{{"ran", "k"}, {"level", "success"}, {"descending", true}});
 
     Ops::Refusal why;
@@ -734,7 +632,7 @@ TEST_CASE("a command's result reads as run_action's did", "[CommandCatalog]")
     why.msgid = "There are no objects.";
     AppActionRunResult refused{Level::Error, "translated", false};
     refused.refusal              = std::make_shared<const Ops::Refusal>(why);
-    const Mcp::ToolResult failed = NativeCommands::from_run_result("k", refused);
+    const ToolResult failed      = NativeCommands::from_run_result("k", refused);
     CHECK(failed.is_error);
     CHECK(failed.message == "There are no objects.");
     CHECK(failed.data["code"] == "no_objects");
@@ -805,9 +703,9 @@ TEST_CASE("the reference leaves out nothing a client is told", "[CommandCatalog]
         CHECK(entry["open_world"] == annotations["openWorldHint"]);
     }
     // The entries marked listed are the tools a client's tools/list names.
-    struct NoApp final : Mcp::ToolCaller
+    struct NoApp final : ToolCaller
     {
-        Mcp::ToolResult call(const NativeCommand&, const json&) override { return Mcp::ToolResult::error("no app"); }
+        ToolResult call(const NativeCommand&, const json&) override { return ToolResult::error("no app"); }
     } caller;
     Mcp::McpProtocol protocol(catalog, caller, Mcp::ServerInfo{});
     const Mcp::PostReply reply = protocol.handle_post({json{{"jsonrpc", "2.0"}, {"id", 1}, {"method", "tools/list"}}.dump(), {}, {}, {}});
@@ -818,45 +716,6 @@ TEST_CASE("the reference leaves out nothing a client is told", "[CommandCatalog]
         tools.insert(tool["name"].get<std::string>());
     CHECK_FALSE(tools.empty());
     CHECK(listed == tools);
-}
-
-TEST_CASE("a reference entry has the command's fields, and its examples only when it has some", "[CommandCatalog][Reference]")
-{
-    NativeCommand c = command("export_it", true);
-    c.title         = "Export It";
-    c.group         = "Commands";
-    c.description   = "Exports it.";
-    c.input_schema  = {{"type", "object"}, {"properties", {{"path", {{"type", "string"}}}}}};
-    c.guard         = Mcp::GuardClass::Recover;
-    c.completion    = CommandCompletion::Export;
-    c.operations    = {"export_gcode"};
-    c.open_world    = true;
-    const json entry = Slic3r::GUI::command_reference(c);
-    CHECK(entry == json{{"key", "export_it"},
-                        {"title", "Export It"},
-                        {"group", "Commands"},
-                        {"description", "Exports it."},
-                        {"input_schema", c.input_schema},
-                        {"listed", false},
-                        {"in_palette", true},
-                        {"read_only", false},
-                        {"destructive", false},
-                        {"idempotent", false},
-                        {"open_world", true},
-                        {"guard", "recover"},
-                        {"completion", "export"},
-                        {"operations", json::array({"export_gcode"})}});
-
-    const json call{{"tool", "export_it"}, {"args", {{"path", "a"}}}};
-    c.guard          = Mcp::GuardClass::Inspect;
-    c.completion     = CommandCompletion::None;
-    c.examples       = json::array({json{{"title", "Export"}, {"calls", json::array({call})}}});
-    const json other = Slic3r::GUI::command_reference(c);
-    CHECK(other["guard"] == "inspect");
-    CHECK(other["completion"] == "none");
-    CHECK(other["examples"] == c.examples);
-    c.guard = Mcp::GuardClass::Mutate;
-    CHECK(Slic3r::GUI::command_reference(c)["guard"] == "mutate");
 }
 
 TEST_CASE("the reference shows both forms of a two-form command", "[CommandCatalog][Reference]")

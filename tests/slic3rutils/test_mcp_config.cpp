@@ -15,10 +15,10 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
-#include "slic3r/GUI/Mcp/McpOptions.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
+#include "slic3r/GUI/Mcp/McpEndpoint.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
 #include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
 
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Config.hpp"
@@ -43,6 +43,7 @@
 #include <vector>
 
 using namespace Slic3r;
+using namespace Slic3r::GUI;
 using namespace Slic3r::GUI::Mcp;
 using nlohmann::json;
 
@@ -722,14 +723,46 @@ TEST_CASE("the preferences scope reads the keys it is given, as stored, and list
     CHECK_THROWS_AS(preferences_settings(config, json{{"keys", {"region"}}, {"compare", ":saved"}}), ToolFailure);
 }
 
-TEST_CASE("Python scripts run restricted unless a person let them run unrestricted", "[Mcp]")
+TEST_CASE("the run's flag lets scripts run unrestricted without changing the setting", "[Mcp]")
 {
+    // The flag is process-wide: it goes back off however the case ends.
+    struct RunFlagOff
+    {
+        ~RunFlagOff() { set_python_scripts_for_run(false); }
+    } run_flag_off;
+
     AppConfig config;
-    CHECK_FALSE(python_scripts_unrestricted(config));
-    config.set_bool(kPythonUnrestrictedKey, true);
+    config.set_bool("python_scripts_unrestricted", false);
+    set_python_scripts_for_run(true);
+    CHECK(python_scripts_set_for_run());
     CHECK(python_scripts_unrestricted(config));
-    config.set_bool(kPythonUnrestrictedKey, false);
+    CHECK_FALSE(python_scripts_setting(config));
+    CHECK_FALSE(config.get_bool("python_scripts_unrestricted"));
+
+    set_python_scripts_for_run(false);
     CHECK_FALSE(python_scripts_unrestricted(config));
+    config.set_bool("python_scripts_unrestricted", true);
+    CHECK(python_scripts_unrestricted(config));
+    CHECK(python_scripts_setting(config));
+
+    // Another key, whatever its name, is not the setting.
+    AppConfig other;
+    other.set_bool("python_scripts_unrestricted", false);
+    other.set_bool("mcp_python_unrestricted", true);
+    CHECK_FALSE(python_scripts_unrestricted(other));
+    CHECK_FALSE(python_scripts_setting(other));
+}
+
+TEST_CASE("the endpoint's port is the option's, then the setting's, then the default", "[Mcp]")
+{
+    CHECK(endpoint_port(13700, "13800") == 13700);
+    CHECK(endpoint_port(0, "13800") == 13800);
+    CHECK(endpoint_port(0, "") == 13619);
+    CHECK(endpoint_port(0, "abc") == 13619);
+    CHECK(endpoint_port(0, "0") == 13619);
+    CHECK(endpoint_port(0, "70000") == 13619);
+    // An option out of range gives the default, not the setting.
+    CHECK(endpoint_port(70000, "13800") == 13619);
 }
 
 namespace {

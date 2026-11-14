@@ -1,9 +1,9 @@
 // Argument checking and name matching for the command catalog: the schema validator, the normalizer that
 // reads what agents send in place of a schema's form, what tells a command's person's form from its silent
 // one, the words and scores of the searches, and the edit distance every "did you mean" ranks with. It
-// includes no wx header, so the wx-free units, such as the protocol layer, and their tests can use it.
+// includes no wx header: it is a unit of the library libslic3r_automation, which is built without wx.
 
-#include "McpTypes.hpp"
+#include "McpArguments.hpp"
 
 #include "slic3r/GUI/CommandCatalog.hpp"
 

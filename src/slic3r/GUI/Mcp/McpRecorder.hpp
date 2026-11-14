@@ -1,11 +1,11 @@
 #pragma once
 
 #include "McpCore.hpp"
-#include "McpTypes.hpp"
 #include "VideoEncode.hpp"
 #include "VideoOverlay.hpp"
 
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <boost/filesystem/path.hpp>
 #include <nlohmann/json.hpp>
@@ -33,7 +33,8 @@ class GLCanvas3D;
 
 namespace Mcp {
 
-class McpService;
+class AutomationRuntime;
+class ModalTracker;
 struct Recording;
 
 // `font` resized so that a memory DC, which caption text is drawn in, draws a line of it `line_height`
@@ -74,11 +75,13 @@ inline constexpr const char* kPersonOwner = "person";
 // recording ends when stopped, at its time limit, when the replay or script that started it ends, when the
 // endpoint closes for a client's, on a write error and at exit; the sink then finalizes the file on its
 // own threads, so ending it needs no UI round trip. Created and destroyed on the UI thread with the
-// service; the CallObserver methods come from call threads.
+// runtime; the CallObserver methods come from call threads.
 class McpRecorder : public CallObserver
 {
 public:
-    explicit McpRecorder(McpService& service);
+    // `post_ui` queues a function on the UI thread; nothing runs once the app is gone.
+    McpRecorder(ModalTracker& modals, std::function<uint64_t()> ui_generation, std::function<bool()> suspended,
+                std::function<void(std::function<void()>)> post_ui);
     ~McpRecorder() override;
     McpRecorder(const McpRecorder&)            = delete;
     McpRecorder& operator=(const McpRecorder&) = delete;
@@ -112,6 +115,11 @@ public:
     // Any thread. Waits up to `timeout` for the recording at `path` to have its file closed; true once it has,
     // or when that recording is not the latest, since another starts only after it is closed.
     bool wait_closed(const boost::filesystem::path& path, std::chrono::milliseconds timeout) const;
+    // Any thread. Encodes a recording once its file is closed: encode_recording with `args` as an unjournaled job,
+    // which `runtime` follows to its end before posting `done` its result on the UI thread. The job is cancelled
+    // like any encode (cancel_job {job}, the runtime's stop), and `done` is not called once the runtime stops.
+    // False when the runtime is not started or is stopping, or when the system cannot start a thread.
+    bool encode_when_closed(AutomationRuntime& runtime, nlohmann::json args, std::function<void(const ToolResult&)> done);
     // The files recordings and encodes use; shared with the sinks' finalizers.
     const std::shared_ptr<RecordingFiles>& files() const { return m_files; }
 
@@ -153,8 +161,13 @@ private:
     void update_indicator() const;
     nlohmann::json report(Recording& rec) const;
 
-    McpService&                     m_service;
-    std::shared_ptr<RecordingFiles> m_files = std::make_shared<RecordingFiles>();
+    // The modal dialogs a capture draws over the main window.
+    ModalTracker&                              m_modals;
+    // The UI generation a kept canvas frame belongs to, and whether the main window is being rebuilt.
+    std::function<uint64_t()>                  m_ui_generation;
+    std::function<bool()>                      m_suspended;
+    std::function<void(std::function<void()>)> m_post_ui;
+    std::shared_ptr<RecordingFiles>            m_files = std::make_shared<RecordingFiles>();
 
     mutable std::mutex         m_mutex;
     std::shared_ptr<Recording> m_rec; // the latest recording, running, ending or finished

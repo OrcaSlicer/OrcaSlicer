@@ -6,13 +6,13 @@
 #include "libvgcode/include/Types.hpp"
 #include "libvgcode/include/Viewer.hpp"
 #include "McpPaths.hpp"
-#include "McpService.hpp"
+#include "AutomationRuntime.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
 #include "ModalTracker.hpp"
 #include "ScreenCapture.hpp"
 #include "UiInspector.hpp"
 #include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GCodeViewer.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI.hpp"
@@ -436,7 +436,7 @@ void register_view_tools(CommandCatalog& catalog)
                        {"overwrite", prop("boolean", "Replace an existing save_path.")},
                        {"include_image", prop("boolean", "Return the image itself (default true); false returns only the path.")}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             const json target_arg = args.value("target", json("main"));
             const std::string target = target_arg.is_string() ? target_arg.get<std::string>() : std::string();
             json              locator;
@@ -456,8 +456,8 @@ void register_view_tools(CommandCatalog& catalog)
             if (target != "main" && target != "canvas" && target != "dialog")
                 // Scrolled into view first, and painted before the capture below runs.
                 ctx.run_ui([&] {
-                    UiTarget t = service.inspector().resolve(target_arg);
-                    service.inspector().reveal(t);
+                    UiTarget t = runtime.inspector().resolve(target_arg);
+                    runtime.inspector().reveal(t);
                     return json();
                 });
             // A canvas that comes back blank has not drawn yet; it does within moments.
@@ -473,14 +473,14 @@ void register_view_tools(CommandCatalog& catalog)
                             throw ToolFailure("No 3D view is shown; switch to one with set_view tab");
                         cap = capture_canvas(*canvas, err);
                     } else if (target == "dialog") {
-                        wxDialog* top = service.modals().top();
+                        wxDialog* top = runtime.modals().top();
                         if (top == nullptr)
-                            throw ToolFailure(no_modal_dialog(service));
+                            throw ToolFailure(no_modal_dialog(runtime.modals()));
                         cap = capture_window(*top, err);
                     } else if (target != "main") {
                         // A widget: its top-level window, cropped to the widget unless it is that window.
-                        const UiTarget t = service.inspector().resolve(target_arg);
-                        locator          = service.inspector().locator_for(t);
+                        const UiTarget t = runtime.inspector().resolve(target_arg);
+                        locator          = runtime.inspector().locator_for(t);
                         // A page element is captured as its web view.
                         wxWindow*      w = t.window.get();
                         if ((t.kind != UiTarget::Kind::Window && t.kind != UiTarget::Kind::WebElement) || w == nullptr)
@@ -494,7 +494,7 @@ void register_view_tools(CommandCatalog& catalog)
                             view.locator = {{"class", "webview"}};
                             if (const std::string within = within_of(w); !within.empty())
                                 view.locator["within"] = within;
-                            locator = service.inspector().locator_for(view);
+                            locator = runtime.inspector().locator_for(view);
                         }
                         if (t.page >= 0) {
                             // A tab: its page, which only the selected tab shows.
@@ -505,7 +505,7 @@ void register_view_tools(CommandCatalog& catalog)
                                 throw ToolFailure("The tab's page is not shown; click the tab (click) first");
                             w = book->GetPage(size_t(t.page));
                         }
-                        if (GLCanvas3D* canvas = service.inspector().canvas_of(&t); canvas != nullptr && canvas->get_wxglcanvas() == w) {
+                        if (GLCanvas3D* canvas = runtime.inspector().canvas_of(&t); canvas != nullptr && canvas->get_wxglcanvas() == w) {
                             cap = capture_canvas(*canvas, err);
                         } else {
                             wxWindow* top = wxGetTopLevelParent(w);

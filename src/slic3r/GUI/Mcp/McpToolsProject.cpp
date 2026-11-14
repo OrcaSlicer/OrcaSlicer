@@ -2,12 +2,13 @@
 // Calibration menu's tests, which start a new project.
 
 #include "slic3r/GUI/I18N.hpp"
+#include "JobRegistry.hpp"
 #include "McpPaths.hpp"
-#include "McpService.hpp"
+#include "AutomationRuntime.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
@@ -404,7 +405,7 @@ void register_project_tools(CommandCatalog& catalog)
                                                            "replaces it.")}},
                       {"paths"}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             std::vector<fs::path> paths;
             for (const json& p : args["paths"]) {
                 std::string err;
@@ -417,7 +418,7 @@ void register_project_tools(CommandCatalog& catalog)
                 throw ToolFailure("paths is empty");
             const std::string as      = arg_string(args, "as", "auto");
             // A run the user let drop unsaved changes (Run Script's "don't save") counts as discard_changes.
-            const bool        discard = arg_bool(args, "discard_changes", false) || service.discard_authorized(ctx.lineage());
+            const bool        discard = arg_bool(args, "discard_changes", false) || runtime.jobs().discard_allowed_in(ctx.lineage());
             json out = ctx.run_ui([&]() -> json {
                 Plater& plater = ui_plater();
                 if (paths.size() == 1 && has_extension(paths[0], {".gcode", ".bgcode"})) {
@@ -463,8 +464,8 @@ void register_project_tools(CommandCatalog& catalog)
                        {"preset_changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep "
                                                                   "them for the new project (default) or drop them.")}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
-            const bool discard         = arg_bool(args, "discard_changes", false) || service.discard_authorized(ctx.lineage());
+            AutomationRuntime& runtime = ctx.runtime();
+            const bool discard         = arg_bool(args, "discard_changes", false) || runtime.jobs().discard_allowed_in(ctx.lineage());
             const bool discard_presets = arg_string(args, "preset_changes", "keep") == "discard";
             json       out             = ctx.run_ui([&] {
                 ui_plater();
@@ -533,9 +534,9 @@ void register_project_tools(CommandCatalog& catalog)
                                                         "test or drop them first. Required when presets are modified.")}},
             {"test"}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             json       recorded = args;
-            const bool discard  = arg_bool(args, "discard_changes", false) || service.discard_authorized(ctx.lineage());
+            const bool discard  = arg_bool(args, "discard_changes", false) || runtime.jobs().discard_allowed_in(ctx.lineage());
             json       out      = ctx.run_ui([&]() -> json {
                 Plater& plater = ui_plater();
                 if (plater.printer_technology() != ptFFF)

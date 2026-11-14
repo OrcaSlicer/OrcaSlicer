@@ -6,8 +6,9 @@
 // dialog, whose handlers carry their effects.
 
 #include "slic3r/GUI/I18N.hpp"
+#include "McpArguments.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/CreatePresetsDialog.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"

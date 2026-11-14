@@ -1,14 +1,15 @@
 // start_recording, stop_recording and encode_recording: a video of what OrcaSlicer shows, optionally captioned
 // with the current tool call and its pointer highlighted, and its encode to MP4.
 
+#include "McpCore.hpp"
 #include "McpPaths.hpp"
 #include "McpRecorder.hpp"
-#include "McpService.hpp"
+#include "AutomationRuntime.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
 #include "RecordingSettings.hpp"
 #include "VideoEncode.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 
@@ -96,6 +97,17 @@ std::vector<std::string> encode_preset_keys()
 
 } // namespace
 
+ToolResult start_encode(AutomationRuntime& runtime, const json& args)
+{
+    const NativeCommand* encode = NativeCommands::instance().find("encode_recording");
+    if (encode == nullptr || runtime.stopping())
+        return ToolResult::error("OrcaSlicer is shutting down");
+    NativeCommand def = *encode;
+    def.journal   = false;
+    def.budget_ms = 0; // the envelope at once; the result comes from wait
+    return runtime.core().call(def, args);
+}
+
 void register_record_tools(CommandCatalog& catalog)
 {
     // The Speed Dial's Start Recording too: with no arguments it opens the tile's dialog.
@@ -131,7 +143,7 @@ void register_record_tools(CommandCatalog& catalog)
                        {"save_path", prop("string", "Absolute .mkv path; default the session's output folder.")},
                        {"overwrite", prop("boolean", "Replace an existing save_path, and with encode its MP4.")}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
+            AutomationRuntime& runtime = ctx.runtime();
             RecordingOptions o;
             o.target      = arg_string(args, "target", "main");
             o.fps         = arg_int(args, "fps", 10);
@@ -164,14 +176,14 @@ void register_record_tools(CommandCatalog& catalog)
                     o.encode["overwrite"] = true;
             }
             // Like auto-answer rules: a run's recording ends with the run, a client's with the endpoint.
-            const std::vector<std::string> ancestry = service.jobs().ancestry(ctx.job_id());
-            o.owner                                 = service.run_owner(ancestry);
+            const std::vector<std::string> ancestry = runtime.jobs().ancestry(ctx.job_id());
+            o.owner                                 = runtime.run_owner(ancestry);
             // A call of a run that has ended (its scope gone before this ran): not a client's call.
-            if (o.owner.empty() && service.recorder().owner_ended_in(ancestry))
+            if (o.owner.empty() && runtime.recorder().owner_ended_in(ancestry))
                 throw ToolFailure("The replay or script that started the recording has ended");
             // Reserved here, off the UI thread: comparing paths may touch the disk. start() keeps the
             // reservation for the recording or releases it.
-            const std::shared_ptr<RecordingFiles>& files = service.recorder().files();
+            const std::shared_ptr<RecordingFiles>& files = runtime.recorder().files();
             const uint64_t                         owner = files->new_owner();
             if (const std::string why = files->reserve(owner, {{o.path, RecordingFiles::Use::Recording}}); !why.empty())
                 throw ToolFailure("Cannot record there: " + why);
@@ -189,12 +201,12 @@ void register_record_tools(CommandCatalog& catalog)
             } release{*files, owner, handed_over};
             json out = ctx.run_ui([&] {
                 ui_plater(); // refuses while OrcaSlicer starts or closes
-                // On the UI thread, as stop_serving() runs: a client's start queued while the endpoint
+                // On the UI thread, as close_client_scope() runs: a client's start queued while the endpoint
                 // closed must not begin a recording nothing would end.
-                if (o.owner.empty() && !service.endpoint_open())
+                if (o.owner.empty() && !runtime.client_scope_open())
                     throw ToolFailure("The MCP server was turned off; the recording was not started");
                 handed_over = true; // start() owns the reservation from here, success or not
-                return service.recorder().start(o, owner);
+                return runtime.recorder().start(o, owner);
             });
             if (settings.encode)
                 out["encode"] = {{"codec", settings.codec},
@@ -225,22 +237,22 @@ void register_record_tools(CommandCatalog& catalog)
                         "file, it shows the person a notification naming it and replies with its path; the next "
                         "stop_recording with silent: true reports it as ended stopped_in_app.",
                         object_schema({}), [](const json&, ToolContext& ctx) {
-                            McpService& service = ctx.service();
+                            AutomationRuntime& runtime = ctx.runtime();
                             // The last state too, even if the timer has not ticked since the last call. Without the
                             // UI thread (a native dialog holds it), the recording ends with its last frame.
                             try {
                                 ctx.run_ui([&] {
-                                    service.recorder().capture_now();
+                                    runtime.recorder().capture_now();
                                     return json();
                                 });
                             } catch (const ToolFailure&) {
                             }
                             json encode;
-                            json report = service.recorder().stop_and_report(std::chrono::seconds(60), encode);
+                            json report = runtime.recorder().stop_and_report(std::chrono::seconds(60), encode);
                             if (report.is_null())
                                 throw ToolFailure("No recording is running");
                             if (!encode.is_null()) {
-                                const ToolResult r = service.start_encode(encode);
+                                const ToolResult r = start_encode(runtime, encode);
                                 report["encode"]   = r.is_error ? json{{"error", r.message}} : r.data;
                             }
                             return ToolResult::ok(report);
@@ -265,8 +277,8 @@ void register_record_tools(CommandCatalog& catalog)
                                              "encoder's (high, main).")},
                        {"delete_source", prop("boolean", "Delete the .mkv once encoded (a recording this session made).")}}),
         [](const json& args, ToolContext& ctx) {
-            McpService& service = ctx.service();
-            const std::shared_ptr<RecordingFiles>& files = service.recorder().files();
+            AutomationRuntime& runtime = ctx.runtime();
+            const std::shared_ptr<RecordingFiles>& files = runtime.recorder().files();
             std::string                            err;
             fs::path                               source;
             if (args.contains("path")) {

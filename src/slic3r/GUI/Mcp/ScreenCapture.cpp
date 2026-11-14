@@ -1,6 +1,6 @@
 #include "ScreenCapture.hpp"
 
-#include "McpTypes.hpp"
+#include "WindowNames.hpp"
 #include "UiInspector.hpp"
 #include "slic3r/GUI/LinuxDisplayBackend.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"

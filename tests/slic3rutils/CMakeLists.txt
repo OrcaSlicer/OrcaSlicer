@@ -30,15 +30,10 @@ add_executable(${_TEST_NAME}_tests
     test_lazy.cpp
     test_mcp_config.cpp
     test_mcp_core.cpp
-    test_mcp_http.cpp
     test_operations.cpp
     test_mcp_protocol.cpp
     test_mcp_recording.cpp
-    test_mcp_replay.cpp
-    test_mcp_replay_summary.cpp
     test_mcp_scene.cpp
-    test_mcp_setup.cpp
-    test_mcp_token.cpp
     test_mcp_tools.cpp
     test_mcp_ui.cpp
     test_mcp_web.cpp

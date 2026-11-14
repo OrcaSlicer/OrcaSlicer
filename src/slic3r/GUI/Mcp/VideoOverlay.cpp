@@ -2,6 +2,8 @@
 
 #include "McpReplaySummary.hpp"
 
+#include "slic3r/GUI/NativeCommands.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cctype>
@@ -672,7 +674,7 @@ std::string caption_detail(const std::string& tool, const json& args)
             pairs.push_back(key + " = " + (is_sensitive_key(key) ? std::string("\xE2\x80\xA2\xE2\x80\xA2\xE2\x80\xA2") : scalar_text(value)));
         return join(pairs);
     }
-    const json what = describe_call(tool, args);
+    const json what = describe_call(NativeCommands::instance(), tool, args);
     if (!what.is_object())
         return {};
     const std::string kind = str(what, "kind");

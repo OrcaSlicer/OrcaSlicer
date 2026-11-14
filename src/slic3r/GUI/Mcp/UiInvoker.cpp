@@ -1,4 +1,4 @@
-#include "McpTypes.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "UiInvoker.hpp"
 
 #include <algorithm>

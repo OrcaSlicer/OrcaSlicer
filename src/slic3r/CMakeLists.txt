@@ -145,8 +145,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/ActionRegistry.hpp
     GUI/ActionReplayDialog.cpp
     GUI/ActionReplayDialog.hpp
-    GUI/CommandCatalog.cpp
-    GUI/CommandCatalog.hpp
     GUI/NativeCommands.cpp
     GUI/NativeCommands.hpp
     GUI/Operations/ExportOps.cpp
@@ -163,43 +161,24 @@ set(SLIC3R_GUI_SOURCES
     GUI/Operations/RunStatus.hpp
     GUI/SyntheticInput.cpp
     GUI/SyntheticInput.hpp
+    GUI/Mcp/AutomationRuntime.cpp
+    GUI/Mcp/AutomationRuntime.hpp
+    GUI/Mcp/AutomationRuntimePtr.hpp
     GUI/Mcp/CanvasTarget.cpp
     GUI/Mcp/CanvasTarget.hpp
-    GUI/Mcp/JobRegistry.cpp
-    GUI/Mcp/JobRegistry.hpp
-    GUI/Mcp/McpArguments.cpp
-    GUI/Mcp/McpCore.cpp
-    GUI/Mcp/McpCore.hpp
-    GUI/Mcp/McpHttpServer.cpp
-    GUI/Mcp/McpHttpServer.hpp
-    GUI/Mcp/McpJournal.cpp
-    GUI/Mcp/McpJournal.hpp
+    GUI/Mcp/LaunchRun.cpp
+    GUI/Mcp/LaunchRun.hpp
+    GUI/Mcp/McpEndpoint.cpp
+    GUI/Mcp/McpEndpoint.hpp
     GUI/Mcp/McpPersonContext.cpp
     GUI/Mcp/McpPersonContext.hpp
     GUI/Mcp/McpPersonRun.cpp
     GUI/Mcp/McpPersonRun.hpp
-    GUI/Mcp/McpProtocol.cpp
-    GUI/Mcp/McpProtocol.hpp
     GUI/Mcp/McpRecorder.cpp
     GUI/Mcp/McpRecorder.hpp
-    GUI/Mcp/McpOptions.hpp
-    GUI/Mcp/McpReplay.cpp
-    GUI/Mcp/McpReplay.hpp
-    GUI/Mcp/McpReplaySummary.cpp
-    GUI/Mcp/McpReplaySummary.hpp
-    GUI/Mcp/McpService.cpp
-    GUI/Mcp/McpService.hpp
-    GUI/Mcp/McpServicePtr.hpp
-    GUI/Mcp/McpSetup.cpp
-    GUI/Mcp/McpSetup.hpp
-    GUI/Mcp/McpStdioBridge.cpp
-    GUI/Mcp/McpStdioBridge.hpp
-    GUI/Mcp/McpToken.cpp
-    GUI/Mcp/McpToken.hpp
     GUI/Mcp/McpTools.hpp
-    GUI/Mcp/McpPaths.cpp
-    GUI/Mcp/McpPaths.hpp
     GUI/Mcp/McpPluginCaller.cpp
+    GUI/Mcp/McpPluginCaller.hpp
     GUI/Mcp/McpToolsActions.cpp
     GUI/Mcp/McpToolsApi.cpp
     GUI/Mcp/McpToolsApp.cpp
@@ -215,7 +194,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/McpToolsView.cpp
     GUI/Mcp/ScreenCapture.cpp
     GUI/Mcp/ScreenCapture.hpp
-    GUI/Mcp/McpTypes.hpp
     GUI/Mcp/PythonScriptsDialog.cpp
     GUI/Mcp/PythonScriptsDialog.hpp
     GUI/Mcp/MkvWriter.cpp
@@ -228,8 +206,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Mcp/RecordingSink.hpp
     GUI/Mcp/UiInspector.cpp
     GUI/Mcp/UiInspector.hpp
-    GUI/Mcp/UiInvoker.cpp
-    GUI/Mcp/UiInvoker.hpp
     GUI/Mcp/UiRefs.cpp
     GUI/Mcp/UiRefs.hpp
     GUI/Mcp/VideoEncode.cpp
@@ -1089,7 +1065,7 @@ else()
     set(_opengl_link_lib OpenGL::GL)
 endif()
 
-target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto LibDataChannel::LibDataChannel noise::noise pybind11::embed)
+target_link_libraries(libslic3r_gui libslic3r libslic3r_automation cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto LibDataChannel::LibDataChannel noise::noise pybind11::embed)
 
 # MCP recordings encode their frames with libjpeg directly. libslic3r links it privately, and imported
 # targets are scoped to the directory that found them.

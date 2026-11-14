@@ -2,15 +2,15 @@
 #include "UiInspector.hpp"
 
 #include "CanvasTarget.hpp"
-#include "McpService.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
+#include "WindowNames.hpp"
 #include "ModalTracker.hpp"
 #include "ScreenCapture.hpp"
 #include "WindowControl.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/BBLTopbar.hpp"
 #include "slic3r/GUI/Camera.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/ExtraRenderers.hpp"
 #include "slic3r/GUI/GLToolbar.hpp"
@@ -486,21 +486,21 @@ wxPoint client_pos_in_tlw(wxWindow* w)
 
 // Shown top-level windows: the main frame first, then the others (modal dialogs last, in the
 // order they opened).
-std::vector<wxTopLevelWindow*> top_level_windows(McpService& service)
+std::vector<wxTopLevelWindow*> top_level_windows(ModalTracker& modals)
 {
     std::vector<wxTopLevelWindow*> out;
     if (wxGetApp().mainframe != nullptr && wxGetApp().mainframe->IsShown())
         out.push_back(wxGetApp().mainframe);
-    const auto& modals = service.modals().stack();
+    const auto& stack = modals.stack();
     for (wxWindow* w : wxTopLevelWindows) {
         auto* tlw = dynamic_cast<wxTopLevelWindow*>(w);
         if (tlw == nullptr || !tlw->IsShown() || tlw == wxGetApp().mainframe || tlw->GetName() == kHiddenFromAutomation)
             continue;
-        if (std::find(modals.begin(), modals.end(), tlw) != modals.end())
+        if (std::find(stack.begin(), stack.end(), tlw) != stack.end())
             continue;
         out.push_back(tlw);
     }
-    for (wxDialog* d : modals)
+    for (wxDialog* d : stack)
         if (d->IsShown())
             out.push_back(d);
     return out;
@@ -636,10 +636,10 @@ bool is_native_control(wxWindow* w)
 
 } // namespace
 
-std::string no_modal_dialog(McpService& service)
+std::string no_modal_dialog(ModalTracker& modals)
 {
     std::string open;
-    for (wxTopLevelWindow* tlw : top_level_windows(service))
+    for (wxTopLevelWindow* tlw : top_level_windows(modals))
         if (tlw != wxGetApp().mainframe && dynamic_cast<wxDialog*>(tlw) != nullptr)
             open += (open.empty() ? "\"" : ", \"") + label_of(tlw) + "\"";
     if (open.empty())
@@ -2023,7 +2023,7 @@ bool UiInspector::push(UiNode node, UiTarget target, std::vector<UiNode>& nodes,
 
 std::string UiInspector::add_ref(UiTarget target)
 {
-    const uint64_t generation = m_service.ui_generation();
+    const uint64_t generation = m_ui_generation();
     std::function<bool()> alive;
     char                  kind = 'w';
     switch (target.kind) {
@@ -2526,20 +2526,20 @@ std::vector<wxWindow*> UiInspector::snapshot_roots(const SnapshotOptions& o)
             roots.push_back(popup);
     };
     if (o.root == "dialog") {
-        if (wxDialog* d = m_service.modals().top())
+        if (wxDialog* d = m_modals.top())
             with_popups(d);
         else
-            throw ToolFailure(no_modal_dialog(m_service));
+            throw ToolFailure(no_modal_dialog(m_modals));
     } else if (o.root == "main") {
         if (wxGetApp().mainframe == nullptr)
             throw ToolFailure("The main window is not up yet");
         with_popups(wxGetApp().mainframe);
     } else if (o.root == "popup") {
-        for (wxTopLevelWindow* tlw : top_level_windows(m_service))
+        for (wxTopLevelWindow* tlw : top_level_windows(m_modals))
             for (wxWindow* popup : popups_of(tlw))
                 roots.push_back(popup);
     } else if (o.root == "all" || o.root.empty()) {
-        for (wxTopLevelWindow* tlw : top_level_windows(m_service))
+        for (wxTopLevelWindow* tlw : top_level_windows(m_modals))
             with_popups(tlw);
     } else {
         const UiTarget t = resolve(json(o.root));
@@ -2553,7 +2553,7 @@ std::vector<wxWindow*> UiInspector::snapshot_roots(const SnapshotOptions& o)
 std::vector<wxWebView*> UiInspector::snapshot_pages(const SnapshotOptions& o, std::vector<wxWebView*>* behind)
 {
     std::vector<wxWebView*> out;
-    wxDialog*               top = m_service.modals().top();
+    wxDialog*               top = m_modals.top();
     std::function<void(wxWindow*)> visit = [&](wxWindow* w) {
         if (!w->IsShownOnScreen() || hidden_from_automation(w))
             return;
@@ -2589,7 +2589,7 @@ std::vector<wxWebView*> UiInspector::web_views(const std::string& within)
             if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && !skipped_by_walks(child))
                 visit(child);
     };
-    for (wxTopLevelWindow* tlw : top_level_windows(m_service))
+    for (wxTopLevelWindow* tlw : top_level_windows(m_modals))
         if (within.empty() || label_of(tlw) == within)
             visit(tlw);
     return out;
@@ -2605,7 +2605,7 @@ json UiInspector::snapshot(const SnapshotOptions& o)
     json out{{"tree", format_snapshot(nodes, omitted)}, {"nodes", nodes.size()}};
     if (omitted > 0)
         out["omitted"] = omitted;
-    json dialogs = m_service.modals().snapshot();
+    json dialogs = m_modals.snapshot();
     if (!dialogs.empty())
         out["dialogs"] = std::move(dialogs);
     return out;
@@ -2667,7 +2667,7 @@ json UiInspector::window_entry(wxTopLevelWindow& tlw, bool modal)
 
 json UiInspector::windows()
 {
-    const std::vector<wxDialog*>& modals = m_service.modals().stack();
+    const std::vector<wxDialog*>& modals = m_modals.stack();
     json                          out    = json::array();
     if (wxGetApp().mainframe != nullptr && wxGetApp().mainframe->IsShown())
         out.push_back(window_entry(*wxGetApp().mainframe, false));
@@ -2692,7 +2692,7 @@ UiTarget UiInspector::resolve(const json& target)
 {
     if (target.is_string()) {
         std::string     err;
-        const UiTarget* t = m_refs.resolve(target.get<std::string>(), m_service.ui_generation(), err);
+        const UiTarget* t = m_refs.resolve(target.get<std::string>(), m_ui_generation(), err);
         if (t == nullptr)
             throw ToolFailure(err);
         UiTarget out = *t;
@@ -2888,7 +2888,7 @@ std::vector<wxWindow*> UiInspector::match_windows(const json& locator)
             if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && !skipped_by_walks(child))
                 visit(child);
     };
-    for (wxTopLevelWindow* tlw : top_level_windows(m_service))
+    for (wxTopLevelWindow* tlw : top_level_windows(m_modals))
         if (within.empty() || label_of(tlw) == within)
             visit(tlw);
     if (matches.size() > 1 && !locator.contains("class")) {
@@ -2938,7 +2938,7 @@ std::vector<std::pair<wxWindow*, ListRow>> UiInspector::match_rows(const json& l
 {
     const std::string      within = locator.value("within", "");
     std::vector<wxWindow*> roots;
-    for (wxTopLevelWindow* tlw : top_level_windows(m_service))
+    for (wxTopLevelWindow* tlw : top_level_windows(m_modals))
         if (within.empty() || label_of(tlw) == within)
             roots.push_back(tlw);
     const json& row = locator["row"];
@@ -2961,7 +2961,7 @@ std::vector<std::pair<wxBookCtrlBase*, int>> UiInspector::match_tabs(const json&
             if (dynamic_cast<wxTopLevelWindow*>(child) == nullptr && !skipped_by_walks(child))
                 visit(child);
     };
-    for (wxTopLevelWindow* tlw : top_level_windows(m_service))
+    for (wxTopLevelWindow* tlw : top_level_windows(m_modals))
         if (within.empty() || label_of(tlw) == within)
             visit(tlw);
     return out;
@@ -3514,7 +3514,7 @@ wxWindow* UiInspector::key_target(const UiTarget* t) const
     // Focus left in a window the tools don't see (the Action Replay window) is no target for keys.
     if (focus != nullptr && hidden_from_automation(focus))
         focus = nullptr;
-    if (wxDialog* top = m_service.modals().top())
+    if (wxDialog* top = m_modals.top())
         return focus != nullptr && owning_window(focus) == top ? focus : top;
     if (focus != nullptr)
         return focus;

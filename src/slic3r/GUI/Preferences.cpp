@@ -50,14 +50,14 @@
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Mcp/McpOptions.hpp"
 #include "slic3r/GUI/Mcp/McpPaths.hpp"
-#include "slic3r/GUI/Mcp/McpService.hpp"
+#include "slic3r/GUI/Mcp/McpEndpoint.hpp"
 #include "slic3r/GUI/Mcp/McpSetup.hpp"
 #include "slic3r/GUI/Mcp/McpToken.hpp"
 #include "slic3r/GUI/Mcp/PythonScriptsDialog.hpp"
-#include <exception>
 #include <wx/clipbrd.h>
 #include <wx/sizer.h>
 #include <wx/stdpaths.h>
+#include <wx/window.h>
 #include <wx/timer.h>
 #include <wx/unichar.h>
 #include <wx/chartype.h>
@@ -1402,26 +1402,20 @@ static constexpr int MCP_HINT_WIDTH   = 270;
 // The setup row's Copy button, in DIP: ButtonType::Parameter's height, narrower to leave the picker room.
 static const wxSize MCP_COPY_BUTTON_SIZE(100, 26);
 
-// The running server's port, otherwise the one turning it on here opens, which McpService::start()
-// reads the same way: --mcp-port until a port is set in Preferences, then the saved one.
-static int mcp_port(const Mcp::McpService *mcp, AppConfig *config)
+// The running server's port, otherwise the one turning it on here opens (GUI_App::open_mcp_endpoint()):
+// --mcp-port until a port is set in Preferences, then the saved one.
+static int mcp_port(const Mcp::McpEndpoint *endpoint, AppConfig *config)
 {
-    if (mcp != nullptr && mcp->serving())
-        return mcp->port();
+    if (endpoint != nullptr && endpoint->serving())
+        return endpoint->port();
     const GUI_InitParams *params = wxGetApp().init_params;
-    int                   port   = params != nullptr ? params->mcp.port : 0;
-    if (port <= 0) {
-        try {
-            port = std::stoi(config->get("mcp_port"));
-        } catch (const std::exception &) {}
-    }
-    return port > 0 && port <= 65535 ? port : Mcp::kDefaultPort;
+    return Mcp::endpoint_port(params != nullptr ? params->mcp.port : 0, config->get("mcp_port"));
 }
 
 // Where agents connect over HTTP.
-static std::string mcp_url(const Mcp::McpService *mcp, AppConfig *config)
+static std::string mcp_url(const Mcp::McpEndpoint *endpoint, AppConfig *config)
 {
-    return "http://127.0.0.1:" + std::to_string(mcp_port(mcp, config)) + "/mcp";
+    return "http://127.0.0.1:" + std::to_string(mcp_port(endpoint, config)) + "/mcp";
 }
 
 // The program a stdio setup runs. Inside an AppImage the executable path is a temporary mount.
@@ -1466,9 +1460,9 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_server(wxString title, wxString t
     wxBoxSizer *m_sizer = create_item_label(title, tooltip);
 
     // Checked while the server runs, also when --mcp started it for this session only.
-    const Mcp::McpService *mcp = wxGetApp().mcp_service();
+    const Mcp::McpEndpoint *endpoint = wxGetApp().mcp_endpoint();
     auto checkbox = new ::CheckBox(m_parent);
-    checkbox->SetValue(app_config->get_bool("mcp_enabled") || (mcp != nullptr && mcp->serving()));
+    checkbox->SetValue(app_config->get_bool("mcp_enabled") || (endpoint != nullptr && endpoint->serving()));
     checkbox->SetToolTip(tooltip);
     checkbox->SetName("mcp_enabled");
 
@@ -1486,9 +1480,9 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_server(wxString title, wxString t
         app_config->save();
         std::string err;
         if (on)
-            wxGetApp().start_mcp_service(true, &err);
+            wxGetApp().open_mcp_endpoint(&err);
         else
-            wxGetApp().stop_mcp_endpoint();
+            wxGetApp().close_mcp_endpoint();
         update_mcp_status(err);
     });
     m_mcp_status_timer.Bind(wxEVT_TIMER, [this](wxTimerEvent &) { update_mcp_status(); });
@@ -1517,13 +1511,13 @@ void PreferencesDialog::update_mcp_status(const std::string &note)
 {
     if (m_mcp_status == nullptr)
         return;
-    const Mcp::McpService *mcp     = wxGetApp().mcp_service();
-    const bool             serving = mcp != nullptr && mcp->serving();
-    const bool             enabled = app_config->get_bool("mcp_enabled");
-    // Another window that shares the configuration folder holds the port, and GUI_App takes it over
+    const Mcp::McpEndpoint *endpoint = wxGetApp().mcp_endpoint();
+    const bool              serving  = endpoint != nullptr && endpoint->serving();
+    const bool              enabled  = app_config->get_bool("mcp_enabled");
+    // Another window that shares the configuration folder holds the port, and the endpoint takes it over
     // when that window closes. Not a fault, so neither its bind error nor the warning colour shows,
     // and the timer refreshes the status for the takeover.
-    const bool  held = !serving && mcp != nullptr && mcp->port_held_by_other_window();
+    const bool  held = !serving && endpoint != nullptr && endpoint->port_held_by_other_window();
     const std::string shown_note = held ? std::string() : note;
     wxString    text;
     if (serving) {
@@ -1553,7 +1547,7 @@ void PreferencesDialog::update_mcp_status(const std::string &note)
     m_mcp_status->Wrap(FromDIP(MCP_STATUS_WIDTH));
     // While the server is off, the address it will listen on, dimmed.
     m_mcp_address->SetForegroundColour(serving ? primary : secondary);
-    m_mcp_address->SetLabel(from_u8(mcp_url(mcp, app_config)));
+    m_mcp_address->SetLabel(from_u8(mcp_url(endpoint, app_config)));
     m_mcp_status_dot->Refresh();
     m_mcp_status->Refresh();
     m_mcp_address->Refresh();
@@ -1569,7 +1563,7 @@ void PreferencesDialog::update_mcp_status(const std::string &note)
 wxBoxSizer *PreferencesDialog::create_item_mcp_port(wxString title, wxString tooltip)
 {
     wxBoxSizer *m_sizer = create_item_label(title, tooltip);
-    auto        shown   = std::make_shared<long>(mcp_port(wxGetApp().mcp_service(), app_config));
+    auto        shown   = std::make_shared<long>(mcp_port(wxGetApp().mcp_endpoint(), app_config));
     auto        input   = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE,
                                           wxTE_PROCESS_ENTER);
     StateColor  input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled),
@@ -1696,22 +1690,23 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_connect(wxString title, wxString 
     });
 
     copy_button->Bind(wxEVT_BUTTON, [this, picker, confirm = confirm_on_button(copy_button, _L("Copied"))](wxCommandEvent &) {
-        const Mcp::Agent       agent     = Mcp::Agent(picker->GetSelection());
-        const Mcp::Transport   transport = Mcp::Transport(m_mcp_transport->GetSelection());
-        const Mcp::McpService *mcp       = wxGetApp().mcp_service();
+        const Mcp::Agent        agent     = Mcp::Agent(picker->GetSelection());
+        const Mcp::Transport    transport = Mcp::Transport(m_mcp_transport->GetSelection());
+        const Mcp::McpEndpoint *endpoint  = wxGetApp().mcp_endpoint();
         // The token the server uses: its own while it runs, otherwise the token file's, which turning it
         // on reads. A stdio setup holds none: --mcp-stdio reads it from the discovery file.
         std::string token;
         if (transport == Mcp::Transport::Http) {
             std::string err;
-            token = mcp != nullptr && mcp->serving() ? mcp->token() : Mcp::load_or_create_token(Mcp::path_from_utf8(data_dir()), err);
+            token = endpoint != nullptr && endpoint->serving() ? endpoint->token() :
+                                                                  Mcp::load_or_create_token(Mcp::path_from_utf8(data_dir()), err);
             if (token.empty()) {
                 update_mcp_status(err);
                 return;
             }
         }
         if (wxTheClipboard->Open()) {
-            const std::string setup = Mcp::agent_setup(agent, transport, mcp_url(mcp, app_config), token, mcp_executable());
+            const std::string setup = Mcp::agent_setup(agent, transport, mcp_url(endpoint, app_config), token, mcp_executable());
             wxTheClipboard->SetData(new wxTextDataObject(from_u8(setup)));
             wxTheClipboard->Close();
             confirm();
@@ -1723,15 +1718,26 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_connect(wxString title, wxString 
     return with_mcp_hint(m_sizer, m_mcp_agent_hint);
 }
 
+// Added to a row that shows a saved setting which a command line flag turned on for this run.
+static wxStaticText *run_override_label(wxWindow *parent)
+{
+    // TRN Preferences, after a setting that a command line option turned on until OrcaSlicer closes. The row
+    // shows the saved setting, which the option does not change.
+    auto label = new wxStaticText(parent, wxID_ANY, _L("(on for this run by the command line)"));
+    label->SetForegroundColour(DESIGN_GRAY900_COLOR);
+    label->SetFont(::Label::Body_14);
+    return label;
+}
+
 // The setting itself is changed only in its own window, which automation can't reach: this page is
-// reachable by the UI tools, so a switch here could be turned on by an agent.
+// reachable by the UI tools, so a switch here could be turned on by an agent. The row shows the saved setting.
 wxBoxSizer *PreferencesDialog::create_item_mcp_python(wxString title, wxString tooltip)
 {
     wxBoxSizer *m_sizer = create_item_label(title, tooltip);
 
     auto state      = new ::Label(m_parent, wxEmptyString);
     auto show_state = [this, state] {
-        state->SetLabel(Mcp::python_scripts_unrestricted(*app_config) ? _L("Unrestricted") : _L("Restricted"));
+        state->SetLabel(Mcp::python_scripts_setting(*app_config) ? _L("Unrestricted") : _L("Restricted"));
     };
     show_state();
 
@@ -1745,6 +1751,8 @@ wxBoxSizer *PreferencesDialog::create_item_mcp_python(wxString title, wxString t
 
     m_sizer->Add(state, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
     m_sizer->Add(button, 0, wxALIGN_CENTER_VERTICAL);
+    if (Mcp::python_scripts_set_for_run())
+        m_sizer->Add(run_override_label(m_parent), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
     return m_sizer;
 }
 
@@ -2206,6 +2214,9 @@ void PreferencesDialog::create_items()
         _L("With this option enabled, the Design tab is shown, where models can be built and edited "
            "parametrically. This feature is experimental and still under development."),
         "enable_cad_feature", _L("(Requires restart)"));
+    // The checkbox is the saved preference; --cad turns the feature on for this run without changing it.
+    if (wxGetApp().cad_feature_set_for_run())
+        item_cad_feature->Add(run_override_label(m_parent), 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
     g_sizer->Add(item_cad_feature);
 #endif
 

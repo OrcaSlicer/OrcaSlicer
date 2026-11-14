@@ -13153,38 +13153,36 @@ CLIMiscConfigDef::CLIMiscConfigDef()
 
     def = this->add("mcp_port", coInt);
     def->label = L("MCP server port");
-    def->tooltip = L("Port of the MCP server. Defaults to the preference, or 13619.");
+    def->tooltip = L("Start the MCP server for this run on this port, as --mcp does. 0 takes the port from the preference, or 13619.");
     def->cli_params = "port";
     def->min = 0;
     def->max = 65535;
     def->set_default_value(new ConfigOptionInt(0));
-
-    def = this->add("mcp_token", coString);
-    def->label = L("MCP server token");
-    def->tooltip = L("Bearer token the MCP server requires for this run. The ORCA_MCP_TOKEN environment variable takes precedence and does not show up in the process list.");
-    def->cli_params = "token";
-    def->set_default_value(new ConfigOptionString());
-
-    def = this->add("mcp_run", coString);
-    def->label = L("Run a replay or script");
-    def->tooltip = L("Run a replay (.json) or a Python script (.py) once the GUI is ready, then exit: 0 when it passed or finished, 1 when a step failed or the script did not finish, 2 when the file is invalid or cannot be read.");
-    def->cli_params = "file";
-    def->set_default_value(new ConfigOptionString());
-
-    def = this->add("mcp_run_out", coString);
-    def->label = L("Replay output directory");
-    def->tooltip = L("Where --mcp-run writes a replay's result.json and screenshots. Defaults to <replay name>.out next to the replay.");
-    def->cli_params = "dir";
-    def->set_default_value(new ConfigOptionString());
 
     def = this->add("mcp_stdio", coBool);
     def->label = L("MCP stdio bridge");
     def->tooltip = L("Act as an MCP server on standard input and output for clients that cannot use HTTP, forwarding to the running OrcaSlicer (started with --mcp when none answers).");
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("run", coString);
+    def->label = L("Run a replay or script");
+    def->tooltip = L("Run a replay (.json) or a Python script (.py) once the GUI is ready, then exit: 0 when it passed or finished, 1 when a step failed or the script did not finish, 2 when the file is invalid or cannot be read.");
+    def->cli_params = "file";
+    def->set_default_value(new ConfigOptionString());
+
+    def = this->add("unrestricted_scripts", coBool);
+    def->label = L("Unrestricted Python scripts");
+    def->tooltip = L("Let Python scripts bypass the permission checks for this run, whatever the preference says.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("cad", coBool);
+    def->label = L("Design tab");
+    def->tooltip = L("Show the Design tab and offer its commands for this run, whatever the CAD feature preference says.");
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("outputdir", coString);
     def->label = L("Output directory");
-    def->tooltip = L("This is the output directory for exported files.");
+    def->tooltip = L("This is the output directory for exported files. With --run, it is where the run's files go: a replay's result.json and screenshots, and the files saved without a path.");
     def->cli_params = "dir";
     def->set_default_value(new ConfigOptionString());
 

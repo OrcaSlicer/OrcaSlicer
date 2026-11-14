@@ -260,11 +260,10 @@ def check_seed_datadir():
 
     reused = scratch("orca-seed-reused-")
     orca_mcp.write_conf(os.path.join(reused, "OrcaSlicer.conf"), {"app": {"use_encrypted_token_file": False}})
-    orca_mcp.seed_datadir(reused, orca_mcp.DEFAULT_PRINTER, cad=True)
-    app = read_conf(reused)["app"]
-    assert app.get("enable_cad_feature") is True, app
-    assert app.get("use_encrypted_token_file") is False, app
-    ok("seed_datadir() leaves a reused datadir's login where its conf keeps it")
+    orca_mcp.seed_datadir(reused, orca_mcp.DEFAULT_PRINTER)
+    conf = read_conf(reused)
+    assert conf == {"app": {"use_encrypted_token_file": False}}, conf
+    ok("seed_datadir() leaves a reused datadir's conf as it is, its login where the conf keeps it")
 
 
 def main():

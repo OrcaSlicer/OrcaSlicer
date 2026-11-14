@@ -403,8 +403,8 @@ its work is split into a function both callers share, and the command calls that
 arguments instead of driving the widgets.
 
 An agent's call needs the MCP server on (`--mcp`, or Preferences), and every command, a person's tile
-included, needs the CAD feature on (Preferences > Features). The catalog holds them only when the feature
-is on at startup, as the main window makes the Design page only then, so turning it on takes a restart;
+included, needs the CAD feature on (Preferences > Features, or `--cad` for one run). The catalog holds them
+only when the feature is on at startup, as the main window makes the Design page only then, so turning it on takes a restart;
 with it off they are unknown commands, whose error says how a person turns it on, as `get_app_state`'s
 `cad_note` does.
 Turned off while OrcaSlicer runs, the tab stays until the restart, but the Speed Dial has no tile of it. A

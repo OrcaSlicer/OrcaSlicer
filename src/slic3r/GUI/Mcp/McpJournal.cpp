@@ -1,9 +1,9 @@
 #include "McpJournal.hpp"
 #include "McpPaths.hpp"
-#include "McpTypes.hpp"
 
-#include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/ActionIds.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 
 #include <boost/filesystem/path.hpp>
 

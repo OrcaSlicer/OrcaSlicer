@@ -2,7 +2,7 @@
 
 #include "ActionRegistry.hpp" // for AppAction / AppActionRunResult
 #include "CommandCatalog.hpp"
-#include "Mcp/McpTypes.hpp"
+#include "CommandTypes.hpp"
 
 #include <nlohmann/json.hpp>
 #include <wx/string.h>
@@ -84,7 +84,7 @@ AppActionRunResult stop_recording_in_app();
 // What a command's result replies to an automated call: {"ran": key, "level", "message"?} with the fields
 // of its `reply`. It is an error for a Busy or Error level and for a command that did nothing; an operation's
 // refusal is worded in English, with {"code", "names"?} as the error's details.
-Mcp::ToolResult from_run_result(const std::string& key, const AppActionRunResult& result);
+ToolResult from_run_result(const std::string& key, const AppActionRunResult& result);
 
 // Runs command `key` as a person's pick: checks `args` (Mcp::argument_error()), then runs the command with a
 // Mcp::PersonContext. Returns what the pick shows, the reply's notice, or an Error holding the message when

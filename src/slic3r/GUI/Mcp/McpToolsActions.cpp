@@ -2,11 +2,13 @@
 // plugin scripts and pages, and (on request) settings - is reachable through these two tools.
 
 #include "slic3r/GUI/I18N.hpp"
+#include "McpArguments.hpp"
 #include "McpPersonContext.hpp"
 #include "McpTools.hpp"
-#include "McpTypes.hpp"
+#include "slic3r/GUI/ActionIds.hpp"
 #include "slic3r/GUI/ActionRegistry.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/NativeCommands.hpp"
 #include "slic3r/GUI/Operations/ExportOps.hpp"

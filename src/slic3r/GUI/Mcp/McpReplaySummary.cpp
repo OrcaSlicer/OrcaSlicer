@@ -1,11 +1,10 @@
 #include "McpReplaySummary.hpp"
+#include "McpArguments.hpp"
 #include "McpPaths.hpp"
 #include "McpReplay.hpp"
-#include "McpTypes.hpp"
 
-#include "slic3r/GUI/ActionRegistry.hpp"
+#include "slic3r/GUI/ActionIds.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
-#include "slic3r/GUI/NativeCommands.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/path.hpp>
@@ -180,11 +179,11 @@ void describe_action(Builder& b, const json& args)
     }
 }
 
-// A command that has a tile and no typed tool's place in the tool list (load_project, export_stl): called by
-// its key, it does what run_action of its tile does.
-bool tile_command(const std::string& tool)
+// A command of `catalog` that has a tile and no typed tool's place in the tool list (load_project, export_stl):
+// called by its key, it does what run_action of its tile does.
+bool tile_command(const CommandCatalog& catalog, const std::string& tool)
 {
-    const NativeCommand* command = NativeCommands::find(tool);
+    const NativeCommand* command = catalog.find(tool);
     return command != nullptr && command->in_palette && !command->listed;
 }
 
@@ -199,7 +198,7 @@ std::optional<std::string> read_text(const fs::path& path)
 }
 
 // A run_replay step: the nested replay, read in the context its run will have.
-void describe_nested(Builder& b, const json& args, const ReplayContext& outer, int depth)
+void describe_nested(Builder& b, const CommandCatalog& catalog, const json& args, const ReplayContext& outer, int depth)
 {
     std::optional<Replay> nested;
     ReplayContext         ctx;
@@ -239,7 +238,7 @@ void describe_nested(Builder& b, const json& args, const ReplayContext& outer, i
         return;
     }
     for (const ReplayStep& step : nested->steps)
-        b.join(describe_step(step, *nested, ctx, depth + 1));
+        b.join(describe_step(catalog, step, *nested, ctx, depth + 1));
 }
 
 // The first scalar argument as "key: value", for tools without a more telling description.
@@ -287,14 +286,14 @@ json describe_what(const std::string& tool, const json& args)
 
 } // namespace
 
-json describe_call(const std::string& tool, const json& args)
+json describe_call(const CommandCatalog& catalog, const std::string& tool, const json& args)
 {
     if (tool == "run_action") {
         Builder b;
         describe_action(b, args);
         return b.d.what;
     }
-    if (tile_command(tool)) {
+    if (tile_command(catalog, tool)) {
         Builder b;
         describe_command(b, tool, args);
         return b.d.what;
@@ -316,7 +315,8 @@ const char* flag_id(StepFlag flag)
     return "";
 }
 
-StepDescription describe_step(const ReplayStep& step, const Replay& replay, const ReplayContext& ctx, int depth)
+StepDescription describe_step(const CommandCatalog& catalog, const ReplayStep& step, const Replay& replay, const ReplayContext& ctx,
+                              int depth)
 {
     const json        args = substitute_lenient(step.args, replay, ctx);
     const std::string tool = step.tool;
@@ -328,10 +328,10 @@ StepDescription describe_step(const ReplayStep& step, const Replay& replay, cons
         return b.done();
     }
     if (tool == "run_replay") {
-        describe_nested(b, args, ctx, depth);
+        describe_nested(b, catalog, args, ctx, depth);
         return b.done();
     }
-    if (tile_command(tool)) {
+    if (tile_command(catalog, tool)) {
         describe_command(b, tool, args);
         return b.done();
     }

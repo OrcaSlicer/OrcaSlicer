@@ -314,7 +314,7 @@ namespace instance_check_internal
 #endif //__APPLE__/__linux__
 } //namespace instance_check_internal
 
-bool instance_check(int argc, char** argv, bool app_config_single_instance)
+bool instance_check(int argc, char** argv, bool app_config_single_instance, bool never_send)
 {
 	std::size_t hashed_path;
 #ifdef _WIN32
@@ -358,6 +358,8 @@ bool instance_check(int argc, char** argv, bool app_config_single_instance)
 	instance_check_internal::CommandLineAnalysis cla = instance_check_internal::process_command_line(argc, argv);
 	if (! cla.should_send.has_value())
 		cla.should_send = app_config_single_instance;
+	if (never_send)
+		cla.should_send = false;
 #ifdef _WIN32
 	GUI::wxGetApp().init_single_instance_checker(lock_name + ".lock", data_dir() + "\\cache\\");
 	if (cla.should_send.value() && GUI::wxGetApp().single_instance_checker()->IsAnotherRunning()) {

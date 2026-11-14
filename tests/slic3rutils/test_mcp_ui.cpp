@@ -26,9 +26,8 @@
 #include "slic3r/GUI/ImGuiWrapper.hpp"
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/Mcp/CanvasTarget.hpp"
-#include "slic3r/GUI/Mcp/McpService.hpp"
-#include "slic3r/GUI/Mcp/McpServicePtr.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
+#include "slic3r/GUI/Mcp/ModalTracker.hpp"
+#include "slic3r/GUI/Mcp/WindowNames.hpp"
 #include "slic3r/GUI/Mcp/UiInspector.hpp"
 #include "slic3r/GUI/Mcp/UiRefs.hpp"
 
@@ -46,6 +45,7 @@
 
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <optional>
 #include <set>
@@ -532,8 +532,10 @@ TEST_CASE("a key goes to the hooks of the target and its parents before the targ
     wxInitializer init;
     REQUIRE(init.IsOk());
     {
-        McpServicePtr service(new McpService());
-        UiInspector   inspector(*service);
+        // With no automation runtime, it sends a key as a real key press goes: to the hooks of the target and its
+        // parents before the target.
+        ModalTracker modals;
+        UiInspector  inspector(modals, [] { return uint64_t(1); });
 
         // A panel whose hook takes Escape, as the Design tab's does, in a frame with a hook of its own.
         wxFrame                  frame(nullptr, wxID_ANY, "keys");

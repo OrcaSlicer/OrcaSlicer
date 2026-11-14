@@ -25,6 +25,7 @@
 #include "libvgcode/include/Types.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/CommandCatalog.hpp"
+#include "slic3r/GUI/CommandTypes.hpp"
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
@@ -32,15 +33,14 @@
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/Mcp/CanvasTarget.hpp"
 #include "slic3r/GUI/Mcp/JobRegistry.hpp"
+#include "slic3r/GUI/Mcp/McpArguments.hpp"
 #include "slic3r/GUI/Mcp/McpCore.hpp"
 #include "slic3r/GUI/Mcp/McpJournal.hpp"
 #include "slic3r/GUI/Mcp/McpPaths.hpp"
 #include "slic3r/GUI/Mcp/McpProtocol.hpp"
 #include "slic3r/GUI/Mcp/McpReplay.hpp"
-#include "slic3r/GUI/Mcp/McpService.hpp"
-#include "slic3r/GUI/Mcp/McpServicePtr.hpp"
 #include "slic3r/GUI/Mcp/McpTools.hpp"
-#include "slic3r/GUI/Mcp/McpTypes.hpp"
+#include "slic3r/GUI/Mcp/WindowNames.hpp"
 #include "slic3r/GUI/Mcp/ModalTracker.hpp"
 #include "slic3r/GUI/Mcp/UiInspector.hpp"
 #include "slic3r/GUI/Mcp/UiInvoker.hpp"
@@ -1141,8 +1141,8 @@ TEST_CASE("a menu opened while a call acts on the UI is listed, run by its path 
     wxInitializer init;
     REQUIRE(init.IsOk());
     {
-        McpServicePtr service(new McpService());
-        UiInspector   inspector(*service);
+        ModalTracker modals;
+        UiInspector  inspector(modals, [] { return uint64_t(1); });
         inspector.capture_menus(true);
 
         // A menu as MenuFactory builds one: handlers on the menu, item states from wxEVT_UPDATE_UI
@@ -2241,8 +2241,8 @@ TEST_CASE("set_widget_value false is refused on a selected radio button, which s
     GuiApp app;
     REQUIRE(app.init.IsOk());
     {
-        McpServicePtr service(new McpService());
-        UiInspector   inspector(*service);
+        ModalTracker  modals;
+        UiInspector   inspector(modals, [] { return uint64_t(1); });
         wxFrame       frame(nullptr, wxID_ANY, "radios");
         auto*         first  = new wxRadioButton(&frame, wxID_ANY, "First", wxPoint(0, 0), wxDefaultSize, wxRB_GROUP);
         auto*         second = new wxRadioButton(&frame, wxID_ANY, "Second", wxPoint(0, 30));
