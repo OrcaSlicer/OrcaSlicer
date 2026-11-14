@@ -3758,6 +3758,9 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->placeholder_parser().set("first_non_support_hotend", new ConfigOptionInts(first_non_support_hotends));
     this->placeholder_parser().set("initial_no_support_tool", initial_non_support_extruder_id);
     this->placeholder_parser().set("initial_no_support_extruder", initial_non_support_extruder_id);
+    this->placeholder_parser().set("initial_no_support_nozzle_id",
+        first_nozzle_id_for_gcode_placeholder(group_result, (int) initial_non_support_extruder_id,
+                                              (int) get_extruder_id(initial_non_support_extruder_id)));
     this->placeholder_parser().set("initial_no_support_hotend",
         first_hotend_id_for_gcode_placeholder(group_result, is_bbl_printers, (int) initial_non_support_extruder_id,
                                               (int) get_extruder_id(initial_non_support_extruder_id)));

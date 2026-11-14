@@ -1,0 +1,88 @@
+{
+	"type": "machine",
+	"name": "Bambu Lab H3C 0.4 nozzle",
+	"inherits": "fdm_h3c_machine",
+	"from": "system",
+	"setting_id": "GM060",
+	"instantiation": "true",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printer_variant": "0.4",
+	"default_filament_profile": [
+		"Bambu PLA Basic @BBL H3C"
+	],
+	"default_print_profile": "0.20mm Standard @BBL H3C",
+	"hotend_heating_rate": [
+		"7.5",
+		"7.5"
+	],
+	"machine_max_acceleration_extruding": [
+		"25000",
+		"25000",
+		"25000",
+		"25000"
+	],
+	"machine_max_acceleration_x": [
+		"25000",
+		"25000",
+		"25000",
+		"25000"
+	],
+	"machine_max_acceleration_y": [
+		"25000",
+		"25000",
+		"25000",
+		"25000"
+	],
+	"machine_max_acceleration_z": [
+		"1000",
+		"1000",
+		"1000",
+		"1000"
+	],
+	"machine_max_speed_x": [
+		"1400",
+		"1400",
+		"1400",
+		"1400"
+	],
+	"machine_max_speed_y": [
+		"1400",
+		"1400",
+		"1400",
+		"1400"
+	],
+	"machine_max_speed_z": [
+		"35",
+		"35",
+		"35",
+		"35"
+	],
+	"max_layer_height": [
+		"0.28"
+	],
+	"min_layer_height": [
+		"0.08"
+	],
+	"retraction_length": [
+		"0.8",
+		"0.8"
+	],
+	"extruder_variant_list": [
+		"Direct Drive Standard,Direct Drive High Flow"
+	],
+	"printer_extruder_id": [
+		"1",
+		"1"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"deretract_speed_extruder_change": [
+		"30",
+		"30",
+		"30"
+	]
+}

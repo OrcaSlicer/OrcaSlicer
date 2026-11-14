@@ -1,0 +1,109 @@
+{
+	"type": "process",
+	"name": "0.10mm Standard @BBL H3C 0.2 nozzle",
+	"inherits": "fdm_h3c_process",
+	"from": "system",
+	"setting_id": "GP262",
+	"instantiation": "true",
+	"bottom_shell_layers": "5",
+	"bottom_color_penetration_layers": "5",
+	"bridge_speed": [
+		"50",
+		"50"
+	],
+	"default_acceleration": [
+		"20000",
+		"20000"
+	],
+	"gap_infill_speed": [
+		"50",
+		"50"
+	],
+	"initial_layer_line_width": "0.25",
+	"initial_layer_print_height": "0.1",
+	"initial_layer_speed": [
+		"40",
+		"40"
+	],
+	"inner_wall_line_width": "0.22",
+	"inner_wall_speed": [
+		"150",
+		"150"
+	],
+	"internal_solid_infill_line_width": "0.22",
+	"internal_solid_infill_speed": [
+		"150",
+		"150"
+	],
+	"ironing_flow": "25%",
+	"ironing_inset": "0.11",
+	"ironing_spacing": "0.15",
+	"ironing_speed": "30",
+	"layer_height": "0.1",
+	"line_width": "0.22",
+	"outer_wall_line_width": "0.22",
+	"outer_wall_speed": [
+		"100",
+		"100"
+	],
+	"prime_tower_brim_width": "3",
+	"prime_tower_flat_ironing": "0",
+	"sparse_infill_line_width": "0.22",
+	"skin_infill_line_width": "0.22",
+	"skeleton_infill_line_width": "0.22",
+	"sparse_infill_pattern": "grid",
+	"sparse_infill_speed": [
+		"100",
+		"100"
+	],
+	"support_bottom_z_distance": "0.1",
+	"support_line_width": "0.22",
+	"support_threshold_angle": "30",
+	"support_top_z_distance": "0.1",
+	"top_shell_layers": "7",
+	"top_color_penetration_layers": "7",
+	"top_shell_thickness": "0.8",
+	"top_surface_line_width": "0.22",
+	"top_surface_pattern": "monotonicline",
+	"top_surface_speed": [
+		"150",
+		"150"
+	],
+	"wall_loops": "4",
+	"initial_layer_infill_speed": [
+		"70",
+		"70"
+	],
+	"inner_wall_acceleration": [
+		"12000",
+		"12000"
+	],
+	"outer_wall_acceleration": [
+		"7000",
+		"7000"
+	],
+	"overhang_1_4_speed": [
+		"60",
+		"60"
+	],
+	"overhang_2_4_speed": [
+		"50",
+		"50"
+	],
+	"overhang_3_4_speed": [
+		"30",
+		"30"
+	],
+	"print_extruder_id": [
+		"1",
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"description": "It has a small layer height, and results in almost negligible layer lines and high printing quality. It is suitable for most general printing cases.",
+	"compatible_printers": [
+		"Bambu Lab H3C 0.2 nozzle"
+	]
+}

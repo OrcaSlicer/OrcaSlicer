@@ -1,0 +1,264 @@
+{
+	"type": "filament",
+	"name": "Bambu PLA Tough+ @BBL H3C base",
+	"inherits": "fdm_h3c_filament",
+	"from": "system",
+	"filament_id": "OF342jVN",
+	"instantiation": "false",
+	"activate_air_filtration": [
+		"0",
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"60",
+		"60"
+	],
+	"chamber_temperature": [
+		"0"
+	],
+	"close_fan_the_first_x_layers": [
+		"1"
+	],
+	"close_additional_fan_first_x_layers": [
+		"1"
+	],
+	"cool_plate_temp": [
+		"35"
+	],
+	"cool_plate_temp_initial_layer": [
+		"35"
+	],
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"fan_cooling_layer_time": [
+		"100"
+	],
+	"fan_max_speed": [
+		"100",
+		"100"
+	],
+	"fan_min_speed": [
+		"100",
+		"100"
+	],
+	"filament_preheat_temperature_delta": [
+		"10",
+		"10"
+	],
+	"filament_cost": [
+		"20.99"
+	],
+	"filament_density": [
+		"1.21"
+	],
+	"filament_deretraction_speed": [
+		"nil",
+		"nil"
+	],
+	"filament_dev_ams_drying_ams_limitations": [
+		"1",
+		"0",
+		"2",
+		"3"
+	],
+	"filament_dev_ams_drying_heat_distortion_temperature": [
+		"45",
+		"45",
+		"60",
+		"45"
+	],
+	"filament_dev_ams_drying_temperature": [
+		"45",
+		"45",
+		"45",
+		"45",
+		"55",
+		"55",
+		"45",
+		"45"
+	],
+	"filament_dev_ams_drying_time": [
+		"12",
+		"12",
+		"12",
+		"12",
+		"12",
+		"12",
+		"12",
+		"12"
+	],
+	"filament_dev_chamber_drying_bed_temperature": [
+		"70"
+	],
+	"filament_dev_chamber_drying_time": [
+		"12.0"
+	],
+	"filament_dev_drying_cooling_temperature": [
+		"45"
+	],
+	"filament_dev_drying_softening_temperature": [
+		"50",
+		"50",
+		"65",
+		"50"
+	],
+	"filament_flow_ratio": [
+		"0.98",
+		"0.98"
+	],
+	"filament_flush_temp": [
+		"0",
+		"0"
+	],
+	"filament_is_support": [
+		"0"
+	],
+	"filament_long_retractions_when_cut": [
+		"nil",
+		"nil"
+	],
+	"long_retractions_when_ec": [
+		"0",
+		"0"
+	],
+	"filament_pre_cooling_temperature": [
+		"0",
+		"0"
+	],
+	"filament_pre_cooling_temperature_nc": [
+		"0",
+		"0"
+	],
+	"filament_prime_volume": [
+		"20"
+	],
+	"filament_ramming_volumetric_speed": [
+		"-1",
+		"-1"
+	],
+	"filament_retraction_distances_when_cut": [
+		"nil",
+		"nil"
+	],
+	"retraction_distances_when_ec": [
+		"10",
+		"10"
+	],
+	"filament_retraction_speed": [
+		"nil",
+		"nil"
+	],
+	"filament_soluble": [
+		"0"
+	],
+	"filament_type": [
+		"PLA"
+	],
+	"filament_vendor": [
+		"Bambu Lab"
+	],
+	"filament_z_hop": [
+		"nil",
+		"nil"
+	],
+	"full_fan_speed_layer": [
+		"0"
+	],
+	"additional_fan_full_speed_layer": [
+		"0"
+	],
+	"filament_ramming_travel_time": [
+		"0",
+		"0"
+	],
+	"filament_change_length": [
+		"0"
+	],
+	"hot_plate_temp": [
+		"55"
+	],
+	"hot_plate_temp_initial_layer": [
+		"55"
+	],
+	"nozzle_temperature": [
+		"245",
+		"245"
+	],
+	"nozzle_temperature_initial_layer": [
+		"245",
+		"245"
+	],
+	"nozzle_temperature_range_high": [
+		"250",
+		"250"
+	],
+	"nozzle_temperature_range_low": [
+		"220",
+		"220"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"required_nozzle_HRC": [
+		"3"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"20",
+		"20"
+	],
+	"supertack_plate_temp": [
+		"45"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"45"
+	],
+	"temperature_vitrification": [
+		"45"
+	],
+	"textured_plate_temp": [
+		"55"
+	],
+	"textured_plate_temp_initial_layer": [
+		"55"
+	],
+	"volumetric_speed_coefficients": [
+		"0 0 0 0 0 0",
+		"0 0 0 0 0 0"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_adhesiveness_category": [
+		"100"
+	],
+	"fins_extrude_safe_temp": [
+		"57"
+	],
+	"filament_retract_length_toolchange": [
+		"nil",
+		"nil"
+	],
+	"filament_retract_restart_extra_toolchange": [
+		"nil",
+		"nil"
+	]
+}
