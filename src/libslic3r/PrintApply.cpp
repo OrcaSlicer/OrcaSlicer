@@ -1364,6 +1364,20 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 	new_full_config.option("filament_settings_id",         true);
 	new_full_config.option("printer_settings_id",          true);
 
+    // A tower that slicing moved to fit stays where it was moved while the plate still asks for the spot it
+    // did not fit, so the plater taking the new position late does not invalidate the slice.
+    if (m_wipe_tower_moved_from) {
+        auto        *x     = new_full_config.option<ConfigOptionFloats>("wipe_tower_x");
+        auto        *y     = new_full_config.option<ConfigOptionFloats>("wipe_tower_y");
+        const size_t plate = size_t(m_plate_index);
+        if (x != nullptr && y != nullptr && plate < x->size() && plate < y->size() &&
+            Vec2d(x->values[plate], y->values[plate]) == *m_wipe_tower_moved_from) {
+            x->values[plate] = m_config.wipe_tower_x.get_at(plate);
+            y->values[plate] = m_config.wipe_tower_y.get_at(plate);
+        } else
+            m_wipe_tower_moved_from.reset();
+    }
+
     // BBS
     std::vector <unsigned int> used_filaments = this->extruders(true);
     std::unordered_set <unsigned int> used_filament_set(used_filaments.begin(), used_filaments.end());

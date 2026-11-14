@@ -4248,32 +4248,30 @@ void GLCanvas3D::reload_scene(bool refresh_immediately, bool force_full_scene_re
                 float brim_width = float(footprint.brim_width);
                 Vec3d wipe_tower_size(footprint.width, footprint.depth, footprint.height);
 
-                // set_default_wipe_tower_pos_for_plate doesn't rerun when painting changes the
+                // Slicing moves a tower that did not fit where it was placed. Store where it is printed,
+                // which the generated tower fits, so the plate shows it there and keeps it there.
+                const std::optional<Vec2d> moved = current_print->is_step_done(psWipeTower) ?
+                    current_print->wipe_tower_moved_position(Vec2d(proj_cfg.opt<ConfigOptionFloats>("wipe_tower_x")->get_at(plate_id),
+                                                                   proj_cfg.opt<ConfigOptionFloats>("wipe_tower_y")->get_at(plate_id))) :
+                    std::nullopt;
+                if (moved) {
+                    x = float(moved->x());
+                    y = float(moved->y());
+                    ConfigOptionFloat wt_x_opt(moved->x()), wt_y_opt(moved->y());
+                    dynamic_cast<ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->set_at(&wt_x_opt, plate_id, 0);
+                    dynamic_cast<ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->set_at(&wt_y_opt, plate_id, 0);
+                    // The stored position changes once, so this is shown once per move.
+                    if (NotificationManager *notifications = wxGetApp().notification_manager(); notifications != nullptr)
+                        notifications->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::RegularNotificationLevel,
+                            format(_u8L("The prime tower on plate %1% no longer fits where it was placed, so it was moved to free space on the plate."), plate_id + 1));
+                }
+                // Otherwise: set_default_wipe_tower_pos_for_plate doesn't rerun when painting changes the
                 // filament count, so redo its clamp here on every reload — unconditionally: a
                 // paint-triggered reload can arrive before the background process invalidates
                 // psWipeTower, so gating on it would skip the clamp exactly when it is needed.
-                {
-                    Vec3d clamped_pos, clamped_size;
-                    WipeTowerRelocation relocation;
-                    part_plate->estimate_wipe_tower_polygon(full_config, plate_id, clamped_pos, clamped_size, 0, false, &relocation);
-                    if (std::abs(x - (float) clamped_pos(0)) > EPSILON || std::abs(y - (float) clamped_pos(1)) > EPSILON) {
-                        x = (float) clamped_pos(0);
-                        y = (float) clamped_pos(1);
-                        ConfigOptionFloat wt_x_opt(x), wt_y_opt(y);
-                        dynamic_cast<ConfigOptionFloats*>(proj_cfg.option("wipe_tower_x"))->set_at(&wt_x_opt, plate_id, 0);
-                        dynamic_cast<ConfigOptionFloats*>(proj_cfg.option("wipe_tower_y"))->set_at(&wt_y_opt, plate_id, 0);
-                        // The stored position changes once, so this is shown once per move.
-                        if (NotificationManager *notifications = wxGetApp().notification_manager(); notifications != nullptr && relocation.moved) {
-                            if (relocation.overlaps_objects)
-                                notifications->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::WarningNotificationLevel,
-                                    // TRN %1% is the plate number.
-                                    format(_u8L("The prime tower on plate %1% no longer fits where it was placed. There is no free space left on the plate for it, so it was moved onto an object."), plate_id + 1));
-                            else
-                                notifications->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::RegularNotificationLevel,
-                                    // TRN %1% is the plate number.
-                                    format(_u8L("The prime tower on plate %1% no longer fits where it was placed, so it was moved to free space on the plate."), plate_id + 1));
-                        }
-                    }
+                else if (part_plate->fit_wipe_tower_estimate(full_config, proj_cfg)) {
+                    x = float(proj_cfg.opt<ConfigOptionFloats>("wipe_tower_x")->get_at(plate_id));
+                    y = float(proj_cfg.opt<ConfigOptionFloats>("wipe_tower_y")->get_at(plate_id));
                 }
 
                 if (!current_print->is_step_done(psWipeTower) || !current_print->wipe_tower_data().wipe_tower_mesh_data) {

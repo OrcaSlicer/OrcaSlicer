@@ -11724,22 +11724,31 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
     for (ModelObject *model_object : this->model.objects)
         model_object->sync_painted_modifiers();
 
-    Print::ApplyStatus invalidated;
     const auto& preset_bundle = wxGetApp().preset_bundle;
-    if (preset_bundle->get_printer_extruder_count() > 1) {
-        PartPlate* cur_plate = background_process.get_current_plate();
-        std::vector<int> f_maps = cur_plate->get_real_filament_maps(preset_bundle->project_config);
-        std::vector<int> f_volume_maps = cur_plate->get_filament_volume_maps();
-        if (f_volume_maps.empty()) {
-            f_volume_maps = preset_bundle->get_default_nozzle_volume_types_for_filaments(f_maps);
+    auto apply_to_print = [this, &preset_bundle]() {
+        if (preset_bundle->get_printer_extruder_count() > 1) {
+            PartPlate* cur_plate = background_process.get_current_plate();
+            std::vector<int> f_maps = cur_plate->get_real_filament_maps(preset_bundle->project_config);
+            std::vector<int> f_volume_maps = cur_plate->get_filament_volume_maps();
+            if (f_volume_maps.empty()) {
+                f_volume_maps = preset_bundle->get_default_nozzle_volume_types_for_filaments(f_maps);
+            }
+            // Set the device filament info before Print::apply: it compares the payload and invalidates the
+            // grouping steps when the AMS material inventory changed, so apply must see it in the same pass.
+            background_process.fff_print()->set_extruder_filament_info(get_extruder_filament_info());
+            return background_process.apply(this->model, preset_bundle->full_config(false, f_maps, f_volume_maps));
         }
-        // Set the device filament info before Print::apply: it compares the payload and invalidates the
-        // grouping steps when the AMS material inventory changed, so apply must see it in the same pass.
-        background_process.fff_print()->set_extruder_filament_info(get_extruder_filament_info());
-        invalidated = background_process.apply(this->model, preset_bundle->full_config(false, f_maps, f_volume_maps));
+        return background_process.apply(this->model, preset_bundle->full_config(false));
+    };
+    Print::ApplyStatus invalidated = apply_to_print();
+    // Orca: place the plate's prime tower for what the print now holds before it is validated, as reload_scene()
+    // does. A thinner layer, from the preset, a variable layer height or a layer range, grows the tower past where
+    // it stands, and most of those edits reach here with no scene reload. The print takes the new position too.
+    if (const Print *print = background_process.fff_print(); print != nullptr && print->has_wipe_tower() && !print->is_step_done(psWipeTower) &&
+        background_process.get_current_plate()->fit_wipe_tower_estimate(preset_bundle->full_config(), preset_bundle->project_config)) {
+        invalidated = std::max(invalidated, apply_to_print());
+        view3D->reload_scene(false);
     }
-    else
-        invalidated = background_process.apply(this->model, preset_bundle->full_config(false));
 
     if ((invalidated == Print::APPLY_STATUS_CHANGED) || (invalidated == Print::APPLY_STATUS_INVALIDATED))
         // BBS: add only gcode mode

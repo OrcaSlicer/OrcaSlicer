@@ -4659,6 +4659,17 @@ bool PrintObject::update_layer_height_profile(const ModelObject &model_object, c
 
     return updated;
 }
+
+coordf_t PrintObject::min_layer_height(const ModelObject &model_object, const SlicingParameters &slicing_parameters)
+{
+    std::vector<coordf_t> layer_height_profile;
+    update_layer_height_profile(model_object, slicing_parameters, layer_height_profile);
+    // The profile holds (z, layer height) pairs, and the layers in between interpolate the heights.
+    coordf_t height = slicing_parameters.layer_height;
+    for (size_t i = 1; i < layer_height_profile.size(); i += 2)
+        height = std::min(height, layer_height_profile[i]);
+    return height;
+}
 //BBS:
 void PrintObject::get_certain_layers(float start, float end, std::vector<LayerPtrs> &out, std::vector<BoundingBox> &boundingbox_objects)
 {

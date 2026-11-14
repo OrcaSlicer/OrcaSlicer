@@ -158,8 +158,10 @@ WipeTowerFootprint estimate_wipe_tower_footprint(const ConfigBase &config, WipeT
         return footprint;
 
     // A tower printed for one of the reasons above has no tool change to purge for; both
-    // planners give it the idle depth below and nothing more.
-    const size_t purge_count = filaments_cnt > 1 ? (dual_nozzle ? filaments_cnt : filaments_cnt - 1) : 0;
+    // planners give it the idle depth below and nothing more. Cyclic ordering prints the same
+    // sequence on every layer, so a layer also changes back to the filament it starts with.
+    const bool   cyclic_order = opt_enum("toolchange_ordering", int(ToolChangeOrderingType::Default)) == int(ToolChangeOrderingType::Cyclic);
+    const size_t purge_count  = filaments_cnt > 1 ? (dual_nozzle || cyclic_order ? filaments_cnt : filaments_cnt - 1) : 0;
 
     // Type2 purges one volume per tool change. Type1 plans per filament below; here the volume
     // only decides whether a tower exists.

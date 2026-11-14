@@ -88,6 +88,7 @@
 
 #include "I18N.hpp"
 #include "GUI_App.hpp"
+#include "NotificationManager.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "BackgroundSlicingProcess.hpp"
@@ -3947,6 +3948,11 @@ WipeTowerFootprint PartPlate::estimate_wipe_tower_footprint(const DynamicPrintCo
         }
         const ConfigOption *object_layer_height = object->config.option("layer_height");
         layer_height = std::min(layer_height, object_layer_height != nullptr ? object_layer_height->getFloat() : global_layer_height);
+        // A variable layer height or a layer range can slice it thinner. Only those objects pay for the
+        // slicing parameters, as this runs on every scene reload.
+        if (!object->layer_height_profile.empty() || !object->layer_config_ranges.empty())
+            layer_height = std::min(layer_height, double(PrintObject::min_layer_height(
+                *object, PrintObject::slicing_parameters(config, *object, float(object->max_z()), Vec3d::Ones()))));
     }
     if (layer_height == std::numeric_limits<double>::max())
         layer_height = global_layer_height;
@@ -4077,6 +4083,44 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 	wipe_tower_ap.is_wipe_tower = true;
 
 	return wipe_tower_ap;
+}
+
+bool PartPlate::fit_wipe_tower_estimate(const DynamicPrintConfig &full_config, DynamicPrintConfig &project_config)
+{
+    // Object by object, only a plate holding a single instance prints a tower.
+    const auto *print_sequence = full_config.option<ConfigOptionEnum<PrintSequence>>("print_sequence");
+    if ((get_print_seq() == PrintSequence::ByObject ||
+         (get_print_seq() == PrintSequence::ByDefault && print_sequence != nullptr && print_sequence->value == PrintSequence::ByObject)) &&
+        printable_instance_size() != 1)
+        return false;
+    auto *wipe_tower_x = project_config.option<ConfigOptionFloats>("wipe_tower_x");
+    auto *wipe_tower_y = project_config.option<ConfigOptionFloats>("wipe_tower_y");
+    if (wipe_tower_x == nullptr || wipe_tower_y == nullptr)
+        return false;
+    Vec3d               fitted_pos, fitted_size;
+    WipeTowerRelocation relocation;
+    estimate_wipe_tower_polygon(full_config, m_plate_index, fitted_pos, fitted_size, 0, false, &relocation);
+    // No depth: the plate prints no tower.
+    if (fitted_size.y() <= 0.)
+        return false;
+    if (std::abs(wipe_tower_x->get_at(m_plate_index) - (float) fitted_pos.x()) <= EPSILON &&
+        std::abs(wipe_tower_y->get_at(m_plate_index) - (float) fitted_pos.y()) <= EPSILON)
+        return false;
+    ConfigOptionFloat wt_x_opt((float) fitted_pos.x()), wt_y_opt((float) fitted_pos.y());
+    wipe_tower_x->set_at(&wt_x_opt, m_plate_index, 0);
+    wipe_tower_y->set_at(&wt_y_opt, m_plate_index, 0);
+    // The stored position changes once, so this is shown once per move.
+    if (NotificationManager *notifications = wxGetApp().notification_manager(); notifications != nullptr && relocation.moved) {
+        if (relocation.overlaps_objects)
+            notifications->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::WarningNotificationLevel,
+                // TRN %1% is the plate number.
+                format(_u8L("The prime tower on plate %1% no longer fits where it was placed. There is no free space left on the plate for it, so it was moved onto an object."), m_plate_index + 1));
+        else
+            notifications->push_notification(NotificationType::CustomNotification, NotificationManager::NotificationLevel::RegularNotificationLevel,
+                // TRN %1% is the plate number.
+                format(_u8L("The prime tower on plate %1% no longer fits where it was placed, so it was moved to free space on the plate."), m_plate_index + 1));
+    }
+    return true;
 }
 
 bool PartPlate::operator<(PartPlate& plate) const

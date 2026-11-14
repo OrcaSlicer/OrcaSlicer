@@ -492,6 +492,9 @@ public:
     // Initialize the layer_height_profile from the model_object's layer_height_profile, from model_object's layer height table, or from slicing parameters.
     // Returns true, if the layer_height_profile was changed.
     static bool     update_layer_height_profile(const ModelObject &model_object, const SlicingParameters &slicing_parameters, std::vector<coordf_t> &layer_height_profile);
+    // Thinnest layer the object is sliced at: the smallest height of its layer height profile, which holds its
+    // variable layer height and the heights of its layer ranges. The prime tower is sized for it before slicing.
+    static coordf_t min_layer_height(const ModelObject &model_object, const SlicingParameters &slicing_parameters);
 
     // Collect the slicing parameters, to be used by variable layer thickness algorithm,
     // by the interactive layer height editor and by the printing process itself.
@@ -1391,6 +1394,12 @@ public:
     BoundingBoxf        get_wipe_tower_bbx() const { return m_wipe_tower_data.bbx; }
     Vec2f               get_rib_offset() const { return m_wipe_tower_data.rib_offset; }
     const FakeWipeTower& get_fake_wipe_tower() const { return m_fake_wipe_tower; }
+    // Where the tower is printed when the plate places it at `position` (plate-local), which it did not fit
+    // once generated. Empty when the tower was not moved from `position`.
+    std::optional<Vec2d> wipe_tower_moved_position(const Vec2d &position) const;
+    // The position nearest `position` (plate-local) where the tower's `footprint` (relative to its position,
+    // brim included) fits the printable area, clear of the objects and the exclusion areas.
+    std::optional<Vec2d> nearest_fitting_wipe_tower_position(const Polygon &footprint, const Vec2d &position) const;
 
     void set_check_multi_filaments_compatibility(bool check) { m_need_check_multi_filaments_compatibility = check; }
     bool need_check_multi_filaments_compatibility() const { return m_need_check_multi_filaments_compatibility; }
@@ -1501,7 +1510,9 @@ private:
     bool                invalidate_state_by_config_options(const ConfigOptionResolver &new_config, const std::vector<t_config_option_key> &opt_keys);
 
     void                _make_skirt();
-    void                _make_wipe_tower();
+    // A tower that does not fit where it is placed is moved to the nearest spot where it does when
+    // move_to_fit is set, and refused otherwise.
+    void                _make_wipe_tower(bool move_to_fit = true);
     // Belt mode: route filament-change purging into the belt purge prism
     // (flush-into-objects) without generating a classic wipe tower.
     void                _plan_belt_purge();
@@ -1619,6 +1630,9 @@ private:
     //BBS
     ConflictResultOpt m_conflict_result;
     FakeWipeTower     m_fake_wipe_tower;
+    // The position the plate gave a tower that _make_wipe_tower() moved, as it did not fit there. apply()
+    // keeps the moved tower while the plate still asks for this position.
+    std::optional<Vec2d> m_wipe_tower_moved_from;
     bool              m_has_auto_filament_map_result{false};
     
     std::vector<std::set<int>> m_geometric_unprintable_filaments;
