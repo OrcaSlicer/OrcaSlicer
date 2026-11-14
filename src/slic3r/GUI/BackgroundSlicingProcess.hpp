@@ -175,6 +175,9 @@ public:
 	// Once the G-code export is scheduled, the apply() methods will do nothing.
 	bool is_export_scheduled() const { return ! m_export_path.empty(); }
 	bool is_upload_scheduled() const { return ! m_upload_job.empty(); }
+	// True when the last slice ran post-processing (scripts / psGCodePostProcess plugins) in place on
+	// m_temp_output_path. Export and upload then copy that file as-is instead of running them again.
+	bool is_gcode_post_processed() const { return m_gcode_post_processed; }
 
 	enum State {
 		// m_thread  is not running yet, or it did not reach the STATE_IDLE yet (it does not wait on the condition yet).
@@ -258,6 +261,9 @@ private:
 	SL1Archive                  m_sla_archive;
 		// Temporary G-code, there is one defined for the BackgroundSlicingProcess, differentiated from the other processes by a process ID.
 	std::string 				m_temp_output_path;
+	// Set by process_fff() when post-processing was applied in place to m_temp_output_path, cleared by
+	// reset(). Tells the export/upload paths they must not run scripts and plugins a second time.
+	bool m_gcode_post_processed = false;
 	// Output path provided by the user. The output path may be set even if the slicing is running,
 	// but once set, it cannot be re-set.
 	std::string 				m_export_path;
