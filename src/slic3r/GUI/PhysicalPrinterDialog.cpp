@@ -26,6 +26,7 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
+#include <boost/format.hpp>
 
 #include <wx/event.h>
 #include <wx/gdicmn.h>

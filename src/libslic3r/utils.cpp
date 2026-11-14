@@ -17,6 +17,9 @@
 #include <boost/log/expressions/formatters/stream.hpp>
 #include <boost/log/expressions/attr.hpp>
 #include <boost/log/expressions/formatters/date_time.hpp>
+#include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/date_time/posix_time/posix_time_io.hpp>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 #include <boost/date_time/posix_time/ptime.hpp>
 #include <boost/log/attributes/current_thread_id.hpp>
 #include <boost/log/expressions/message.hpp>
@@ -1352,6 +1355,21 @@ bool is_shapes_dir(const std::string& dir)
 #endif /* WIN32 */
 
 namespace Slic3r {
+
+std::string get_bbl_monitor_end_time_dhm(float time_in_secs)
+{
+    if (time_in_secs == 0.0f)
+        return {};
+
+    std::stringstream stream;
+    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+    auto endTime = now + boost::posix_time::seconds(static_cast<int>(time_in_secs));
+    auto facet = new boost::posix_time::time_facet("%H:%M");//%Y-%m-%d %H:%M:%S
+    stream.imbue(std::locale(std::locale::classic(), facet));
+    stream << endTime;
+
+    return stream.str();
+}
 
 size_t get_utf8_sequence_length(const std::string& text, size_t pos)
 {

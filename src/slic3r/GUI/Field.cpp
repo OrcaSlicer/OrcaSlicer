@@ -69,6 +69,7 @@
 #include <wx/listbook.h>
 #include <wx/tokenzr.h>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/format.hpp>
 #include <wx/types.h>
 #include "OG_CustomCtrl.hpp"
 #include "MsgDialog.hpp"

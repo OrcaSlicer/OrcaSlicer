@@ -6,7 +6,7 @@
 #include "Widgets/WebViewHostDialog.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include <atomic>
-#include <boost/thread/detail/thread.hpp>
+#include <boost/thread/thread.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <nlohmann/json_fwd.hpp>
 #include <memory>

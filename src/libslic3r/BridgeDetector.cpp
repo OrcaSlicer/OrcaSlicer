@@ -1,4 +1,5 @@
 #include "BridgeDetector.hpp"
+#include "BoostPolygonTraits.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
 #include "ExPolygon.hpp"

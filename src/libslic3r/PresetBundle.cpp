@@ -81,6 +81,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/format.hpp>
 #include <miniz/miniz.h>
 #include <tbb/blocked_range.h>
 #include <tbb/parallel_for.h>

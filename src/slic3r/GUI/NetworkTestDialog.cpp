@@ -9,6 +9,7 @@
 #include "libslic3r/AppConfig.hpp"
 #include <boost/asio/ip/address.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/format.hpp>
 #include <wx/event.h>
 #include <wx/string.h>
 #include <wx/wx.h>
