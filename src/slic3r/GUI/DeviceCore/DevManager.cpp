@@ -660,11 +660,17 @@ namespace Slic3r
         }
     }
 
-    bool DeviceManager::set_selected_machine(std::string dev_id)
+    bool DeviceManager::set_selected_machine(const std::string& dev_id,
+                                             bool record_as_last,
+                                             ConnectResultHandler on_result)
     {
         m_restore_last_machine = false; // any selection settles a pending restore_last_machine()
         BOOST_LOG_TRIVIAL(info) << "set_selected_machine=" << dev_id
             << " cur_selected=" << selected_machine;
+        if (pending_connection.second) {
+            pending_connection.second(ConnectResult::discarded, "");
+        }
+        pending_connection = {};
         auto my_machine_list = get_my_machine_list(get_current_printer_agent_id());
         auto it = my_machine_list.find(dev_id);
         BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: set_selected_machine lookup dev_id=" << dev_id
@@ -739,6 +745,7 @@ namespace Slic3r
                     // lan mode printer reconnect printer
                     if (m_agent)
                     {
+                        pending_connection = {dev_id, std::move(on_result)};
                         m_agent->disconnect_printer();
                         it->second->reset();
 
@@ -764,6 +771,7 @@ namespace Slic3r
                     else
                     {
                         BOOST_LOG_TRIVIAL(info) << "set_selected_machine: select new lan machine, dev_id =" << dev_id;
+                        pending_connection = {dev_id, std::move(on_result)};
                         it->second->reset();
                         it->second->connect();
                         it->second->set_lan_mode_connection_state(true);
@@ -782,7 +790,9 @@ namespace Slic3r
         }
 
         selected_machine = dev_id;
-        record_user_last_machine(selected_machine);
+        if (record_as_last) {
+            record_user_last_machine(selected_machine);
+        }
         BOOST_LOG_TRIVIAL(trace) << "Orca diagnostic: DeviceManager selection complete selected_machine="
                                 << selected_machine;
         return true;
@@ -1160,7 +1170,7 @@ namespace Slic3r
         return m_agent ? m_agent->get_user_selected_machine() : "";
     }
 
-    void DeviceManager::load_last_machine()
+    void DeviceManager::load_last_machine(ConnectResultHandler on_result)
     {
         // Reconnect only the printer the user last selected under this agent, LAN or cloud, never
         // another one: an unrequested connection to a printer the user then switches away from is
@@ -1168,9 +1178,15 @@ namespace Slic3r
         if (get_selected_machine())
             return;
 
+        // Do not select an arbitrary first machine: agent swaps intentionally leave the selection
+        // empty until the new agent explicitly selects its configured printer.
         const std::string last_machine = get_user_last_machine();
-        if (!last_machine.empty() && get_my_machine_list(get_current_printer_agent_id()).count(last_machine) != 0)
-            set_selected_machine(last_machine);
+        if (last_machine.empty())
+            return;
+
+        // Only attempt to reconnect to a machine that is still registered.
+        if (get_my_machine_list(get_current_printer_agent_id()).count(last_machine) != 0)
+            set_selected_machine(last_machine, true, std::move(on_result));
     }
 
     void DeviceManager::restore_last_machine()
@@ -1179,6 +1195,20 @@ namespace Slic3r
         // accepted (parse_user_print_info) or a selection is made, the restore stays pending.
         m_restore_last_machine = true;
         load_last_machine();
+    }
+
+    bool DeviceManager::notify_connect_result(const std::string& dev_id,
+                                              ConnectResult result,
+                                              const std::string& message)
+    {
+        if (pending_connection.first != dev_id) { return false; }
+
+        auto pending = std::move(pending_connection);
+        pending_connection = {};
+        if (!pending.second) { return false; }
+
+        pending.second(result, message);
+        return true;
     }
 
     void DeviceManager::OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state)
