@@ -220,6 +220,7 @@ TEST_CASE("Native command icons resolve to shipped SVGs", "[ActionSource][SpeedD
                               // These previously pointed at blank placeholder SVGs or theme-broken ones.
                               Expected{"obj_delete", "delete"},
                               Expected{"export_gcode", "custom-gcode_gcode"},
+                              Expected{"publish_3mf", "menu_publish"},
                               Expected{"import_file", "menu_open"},
                               Expected{"help_open_config_folder", "open_project"},
                               Expected{"help_check_updates", "refresh"},

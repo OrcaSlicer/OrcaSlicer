@@ -53,6 +53,22 @@ static const ConfigOptionStrings *filament_variant_list(const DynamicPrintConfig
     return config.option<ConfigOptionStrings>("filament_extruder_variant");
 }
 
+bool publish_is_variant_bearing(const std::string &key)
+{
+    return filament_options_with_variant.count(publish_base_key(key)) != 0;
+}
+
+bool publish_is_action_control(const ConfigOptionDef &def)
+{
+    switch (def.gui_type) {
+    case ConfigOptionDef::GUIType::color:
+    case ConfigOptionDef::GUIType::plugin_picker:
+    case ConfigOptionDef::GUIType::plugin_config:
+    case ConfigOptionDef::GUIType::printer_agent_select: return true;
+    default: return false;
+    }
+}
+
 std::vector<size_t> publish_filament_columns(const std::vector<int> &self_index, size_t slot)
 {
     std::vector<size_t> columns;
@@ -157,6 +173,95 @@ PublishResolvedColumn publish_resolved_column(const DynamicPrintConfig &uncompac
     return out;
 }
 
+std::vector<PublishExtruderEntry> publish_extruder_rule(const DynamicPrintConfig &target,
+                                                        const DynamicPrintConfig &printer,
+                                                        const DynamicPrintConfig &project,
+                                                        size_t extruder, bool split_hybrid,
+                                                        std::string_view id_key,
+                                                        std::string_view variant_key)
+{
+    std::vector<PublishExtruderEntry> entries;
+
+    const ConfigOptionEnumsGeneric *extruder_types = printer.option<ConfigOptionEnumsGeneric>("extruder_type");
+    if (extruder_types == nullptr || extruder >= extruder_types->size())
+        return entries;
+
+    // A project without a nozzle type reads as Standard, as full_fff_config pads it. A populated
+    // array bounds the extruder: a short one is stale state, as in publish_resolved_column, not a
+    // padded map, so it resolves no column rather than another extruder's.
+    NozzleVolumeType nozzle = nvtStandard;
+    const ConfigOptionEnumsGeneric *nozzle_volumes = project.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    if (nozzle_volumes != nullptr && !nozzle_volumes->empty()) {
+        if (extruder >= nozzle_volumes->size())
+            return entries;
+        nozzle = NozzleVolumeType(nozzle_volumes->get_at(extruder));
+    }
+
+    const std::string id_name(id_key);
+    const std::string variant_name(variant_key);
+    if (!target.has(id_name) || !target.has(variant_name))
+        return entries;
+
+    const int extruder_type = extruder_types->get_at(extruder);
+    // A type outside ExtruderType yields no variant string, which a preset would match anywhere.
+    if (extruder_type < 0 || extruder_type > etMaxExtruderType)
+        return entries;
+
+    std::vector<NozzleVolumeType> nozzles;
+    if (!split_hybrid)
+        // A hybrid extruder has no preset column of its own: it reads the Standard one, as
+        // get_index_for_extruder matches Hybrid as Standard.
+        nozzles.emplace_back(nozzle == nvtHybrid ? nvtStandard : nozzle);
+    else if (nozzle == nvtHybrid)
+        // The process section shows one page per sub-nozzle type, Standard first.
+        nozzles = { nvtStandard, nvtHighFlow };
+    else
+        nozzles.emplace_back(nozzle);
+
+    const std::set<NozzleVolumeType> valid_nozzles = get_valid_nozzle_volume_type();
+    const ExtruderType               type          = ExtruderType(extruder_type);
+    entries.reserve(nozzles.size());
+    for (const NozzleVolumeType nozzle_type : nozzles) {
+        // An unsupported type yields an empty variant string, which a preset would match anywhere.
+        if (valid_nozzles.count(nozzle_type) == 0)
+            continue;
+        const int column = target.get_index_for_extruder(int(extruder) + 1, id_name, type, nozzle_type, variant_name);
+        if (column < 0)
+            continue;
+        entries.push_back({ int(nozzle_type), size_t(column) });
+    }
+    return entries;
+}
+
+std::string publish_variant_notice(const DynamicPrintConfig &uncompacted, size_t slot)
+{
+    const PublishResolvedColumn resolved = publish_resolved_column(uncompacted, slot);
+    if (resolved.exact || !resolved.file_column.has_value() || resolved.required_variant.empty() ||
+        resolved.used_variant.empty())
+        return std::string();
+    // TRN %1% is the filament slot number, %2% the variant the printer requires, %3% the variant whose values are published.
+    return (boost::format(L("Slot %1%: the printer needs the \"%2%\" variant, which the filament does not define. "
+                            "Publishing the values printed with \"%3%\".")) %
+            (slot + 1) % resolved.required_variant % resolved.used_variant)
+        .str();
+}
+
+// A caller-supplied variant column must address `slot`. In a real layout that means one of the
+// slot's file columns; an identity layout has one column per slot, so the slot index is the column.
+// publish_normalize_material_entries never asks that of an identity layout - it leaves such keys
+// untouched - so the fallback only serves the filter's slot masking.
+static bool publish_column_in_slot(const std::vector<size_t> &columns, int slot, int column)
+{
+    if (column < 0)
+        return false;
+    if (columns.empty())
+        return column == slot;
+    return std::find(columns.begin(), columns.end(), size_t(column)) != columns.end();
+}
+
+// Why both column checks drop a caller-supplied column.
+static constexpr const char *PUBLISH_COLUMN_OUT_OF_SLOT_REASON = " (the column belongs to another slot or is out of range)";
+
 void publish_normalize_material_entries(std::vector<PublishedMaterialEntry> &entries,
                                         const DynamicPrintConfig &uncompacted,
                                         std::vector<std::string> *notices)
@@ -184,30 +289,27 @@ void publish_normalize_material_entries(std::vector<PublishedMaterialEntry> &ent
         if (!resolved.exact && notices != nullptr) {
             // One notice per partial slot that has variant-bearing keys to write.
             const bool has_variant_key = std::any_of(entry.keys.begin(), entry.keys.end(), [](const std::string &key) {
-                return filament_options_with_variant.count(publish_base_key(key)) != 0;
+                return publish_is_variant_bearing(key);
             });
-            if (has_variant_key && resolved.file_column.has_value())
-                notices->emplace_back((boost::format(L("Slot %1%: the printer needs the \"%2%\" variant, which the filament does not "
-                                                       "define. Publishing the values printed with \"%3%\".")) %
-                                       (entry.slot + 1) % resolved.required_variant % resolved.used_variant)
-                                          .str());
+            if (has_variant_key) {
+                const std::string notice = publish_variant_notice(uncompacted, size_t(entry.slot));
+                if (!notice.empty())
+                    notices->emplace_back(notice);
+            }
         }
 
-        auto in_slot = [&columns](int column) {
-            return column >= 0 && std::find(columns.begin(), columns.end(), size_t(column)) != columns.end();
-        };
         std::vector<std::string> keys;
         keys.reserve(entry.keys.size());
         std::set<std::string> seen;
         for (const std::string &key : entry.keys) {
             const std::string base = publish_base_key(key);
             std::string normalized  = key;
-            if (filament_options_with_variant.count(base) != 0) {
+            if (publish_is_variant_bearing(base)) {
                 if (const int column = publish_key_index(key); column >= 0) {
                     // A caller-supplied column must address this slot; never ship another slot's value.
-                    if (!in_slot(column)) {
-                        BOOST_LOG_TRIVIAL(warning) << "publish: dropping \"" << key << "\" from slot " << (entry.slot + 1)
-                                                   << " (the column belongs to another slot or is out of range)";
+                    if (!publish_column_in_slot(columns, entry.slot, column)) {
+                        BOOST_LOG_TRIVIAL(warning) << "publish: dropping \"" << key << "\" from slot "
+                                                   << (entry.slot + 1) << PUBLISH_COLUMN_OUT_OF_SLOT_REASON;
                         continue;
                     }
                 } else {
@@ -302,6 +404,25 @@ const std::set<std::string>& publish_mixed_keys()
     return mixed_keys;
 }
 
+std::vector<std::string> publish_changed_keys(const DynamicPrintConfig &before, const DynamicPrintConfig &after)
+{
+    std::vector<std::string> keys = after.keys();
+    std::vector<std::string> before_keys = before.keys();
+    keys.insert(keys.end(), before_keys.begin(), before_keys.end());
+    std::sort(keys.begin(), keys.end());
+    keys.erase(std::unique(keys.begin(), keys.end()), keys.end());
+
+    std::vector<std::string> changed;
+    for (const std::string &key : keys) {
+        const ConfigOption *after_option  = after.option(key);
+        const ConfigOption *before_option = before.option(key);
+        if (after_option == nullptr || before_option == nullptr || after_option->type() != before_option->type() ||
+            *after_option != *before_option)
+            changed.push_back(key);
+    }
+    return changed;
+}
+
 // The printer tab's "Retraction" optgroup (TabPrinter::build_fff, Tab.cpp), in tab order.
 // KEEP IN SYNC with that optgroup: the published-3MF printer allowlist is built from these
 // lists, so any key shown there must be publishable here (and vice versa).
@@ -365,6 +486,39 @@ std::vector<std::string> collect_dirty_settings_keys(const PresetBundle& bundle)
     for (const std::string& key : bundle.filaments.current_dirty_options(true))
         keys.insert(key);
 
+    return std::vector<std::string>(keys.begin(), keys.end());
+}
+
+std::vector<std::string> publish_dirty_material_keys(
+    const DynamicPrintConfig &uncompacted,
+    const std::vector<std::string> &slot_presets,
+    const std::vector<bool> &slot_is_mixed,
+    const std::string &edited_preset_name,
+    const std::vector<std::string> &dirty_keys)
+{
+    std::set<std::string> keys;
+    for (size_t slot = 0; slot < slot_presets.size(); ++slot) {
+        if (slot_presets[slot] != edited_preset_name)
+            continue;
+        if (slot < slot_is_mixed.size() && slot_is_mixed[slot])
+            continue;
+        for (const std::string &key : dirty_keys) {
+            const std::string base = publish_base_key(key);
+            if (base.empty())
+                continue;
+            if (publish_is_variant_bearing(key)) {
+                const int local = publish_key_index(key);
+                if (local < 0)
+                    continue;
+                const std::optional<size_t> column = publish_filament_local_to_file(uncompacted, slot, size_t(local));
+                if (!column.has_value())
+                    continue;
+                keys.insert(base + "#" + std::to_string(*column));
+            } else if (uncompacted.has(base)) {
+                keys.insert(base);
+            }
+        }
+    }
     return std::vector<std::string>(keys.begin(), keys.end());
 }
 
@@ -458,7 +612,7 @@ DynamicPrintConfig filter_published_config(
             base_keys_to_include.insert(base_key); // hand-crafted, slot-less: whole vector
             return;
         }
-        if (filament_options_with_variant.count(base_key) == 0) {
+        if (!publish_is_variant_bearing(base_key)) {
             base_keys_to_include.insert(base_key);
             slot_mask_map[base_key].insert(entry.slot);
             material_masked_keys.insert(base_key);
@@ -469,11 +623,9 @@ DynamicPrintConfig filter_published_config(
         const int                 supplied = publish_key_index(key);
         if (supplied >= 0) {
             // A caller-supplied column must address this slot; never ship another slot's value.
-            const bool valid = columns.empty() ? supplied == entry.slot :
-                                                 std::find(columns.begin(), columns.end(), size_t(supplied)) != columns.end();
-            if (!valid) {
-                BOOST_LOG_TRIVIAL(warning) << "publish: dropping material key \"" << key << "\" of slot " << (entry.slot + 1)
-                                           << " (the column belongs to another slot or is out of range)";
+            if (!publish_column_in_slot(columns, entry.slot, supplied)) {
+                BOOST_LOG_TRIVIAL(warning) << "publish: dropping material key \"" << key << "\" of slot "
+                                           << (entry.slot + 1) << PUBLISH_COLUMN_OUT_OF_SLOT_REASON;
                 return;
             }
         }

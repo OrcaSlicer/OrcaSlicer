@@ -241,7 +241,7 @@ PresetNameStatus check_preset_name(const PresetCollection &presets, const std::s
 
     // Control characters (ASCII 0-31 and DEL) can come in through copy and paste, mostly tabs and line feeds.
     if (std::any_of(name.begin(), name.end(), [](unsigned char c) { return c < 0x20 || c == 0x7F; })) {
-        info_line = _L("Name is invalid;") + "\n" + _L("control characters are not allowed.");
+        info_line = _L("Name is invalid;\ncontrol characters are not allowed.");
         return PresetNameStatus::Invalid;
     }
 
