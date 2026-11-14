@@ -330,6 +330,15 @@ bool PrusaFileParser::check_3mf_from_prusa(const std::string filename)
     const std::string sub_relationship_file = "3D/_rels/3dmodel.model.rels";
     int               sub_index             = mz_zip_reader_locate_file(&archive, sub_relationship_file.c_str(), nullptr, 0);
     if (sub_index == -1) {
+        // The Slic3r family (PrusaSlicer, SuperSlicer, Slic3r) keeps object names in this sidecar, which only
+        // load_3mf reads, so it identifies these files whatever application wrote them. Orca and Bambu projects
+        // keep theirs in model_settings.config, which load_bbs_3mf reads.
+        if (mz_zip_reader_locate_file(&archive, MODEL_CONFIG_FILE.c_str(), nullptr, 0) != -1 &&
+            mz_zip_reader_locate_file(&archive, "Metadata/model_settings.config", nullptr, 0) == -1) {
+            m_from_prusa = true;
+            goto EXIT;
+        }
+
         const std::string model_file       = "3D/3dmodel.model";
         int               model_file_index = mz_zip_reader_locate_file(&archive, model_file.c_str(), nullptr, 0);
         if (model_file_index != -1) {

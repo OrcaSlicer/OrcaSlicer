@@ -172,7 +172,79 @@ bool load_named_cad_3mf(const std::string &path, Model &model, LoadStrategy opti
     return loaded;
 }
 
+// Written the way the Slic3r family does: objects are unnamed in the model file, and only the sidecar names them.
+void write_slic3r_family_3mf(const std::string &path, const std::string &application, const std::vector<std::string> &extra_entries = {})
+{
+    const std::string mesh = R"xml(<mesh><vertices>
+<vertex x="0" y="0" z="0"/><vertex x="1" y="0" z="0"/>
+<vertex x="0" y="1" z="0"/><vertex x="0" y="0" z="1"/>
+</vertices><triangles><triangle v1="0" v2="2" v3="1"/><triangle v1="0" v2="1" v3="3"/>
+<triangle v1="0" v2="3" v3="2"/><triangle v1="1" v2="2" v3="3"/></triangles></mesh>)xml";
+    const std::string model = R"xml(<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" xmlns:slic3rpe="http://schemas.slic3r.org/3mf/2017/06">
+<metadata name="slic3rpe:Version3mf">1</metadata>
+<metadata name="Application">)xml" + application + R"xml(</metadata>
+<resources><object id="1" type="model">)xml" + mesh + R"xml(</object><object id="2" type="model">)xml" + mesh + R"xml(</object></resources>
+<build><item objectid="1"/><item objectid="2"/></build></model>)xml";
+    Zipper archive(path);
+    archive.add_entry("_rels/.rels");
+    archive << R"xml(<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Target="/3D/3dmodel.model" Id="rel0" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel"/></Relationships>)xml";
+    archive.add_entry("3D/3dmodel.model", model.data(), model.size());
+    archive.add_entry("Metadata/Slic3r_PE_model.config");
+    // solid_fill_pattern exists only in SuperSlicer: settings Orca doesn't know must not fail the load.
+    archive << R"xml(<?xml version="1.0" encoding="UTF-8"?><config>
+<object id="1" instances_count="1"><metadata type="object" key="name" value="Foot_Left.STL"/>
+<metadata type="object" key="solid_fill_pattern" value="smooth"/><volume firstid="0" lastid="3"/></object>
+<object id="2" instances_count="1"><metadata type="object" key="name" value="Foot_Right.STL"/><volume firstid="0" lastid="3"/></object>
+</config>)xml";
+    for (const std::string &entry : extra_entries) {
+        archive.add_entry(entry);
+        archive << "<config/>";
+    }
+    archive.finalize();
+}
+
 } // namespace
+
+TEST_CASE("3MFs from the Slic3r family take object names from their model config", "[3mf][Regression]")
+{
+    const std::string application = GENERATE("SuperSlicer-2.4", "Slic3r-1.3.0", "PrusaSlicer-2.6.0");
+    CAPTURE(application);
+    ScopedSlic3rTemporaryDir temporary_dir("orca_slic3r_family_names");
+    ScopedTemporaryFile file(".3mf");
+    write_slic3r_family_3mf(file.string(), application);
+
+    DynamicPrintConfig config;
+    ConfigSubstitutionContext substitutions(ForwardCompatibilitySubstitutionRule::Enable);
+    En3mfType file_type = En3mfType::From_Other;
+    PlateDataPtrs plates;
+    std::vector<Preset *> presets;
+    const Model model = Model::read_from_archive(file.string(), &config, &substitutions, file_type, LoadStrategy::LoadModel, &plates, &presets);
+    release_PlateData_list(plates);
+    for (Preset *preset : presets)
+        delete preset;
+
+    CHECK(file_type == En3mfType::From_Prusa);
+    REQUIRE(model.objects.size() == 2);
+    CHECK(model.objects[0]->name == "Foot_Left.STL");
+    CHECK(model.objects[1]->name == "Foot_Right.STL");
+}
+
+TEST_CASE("3MFs the Orca loader can read are not taken for the Slic3r family", "[3mf][Regression]")
+{
+    ScopedTemporaryFile file(".3mf");
+    SECTION("A project with both model configs") {
+        write_slic3r_family_3mf(file.string(), "OrcaSlicer-2.3.0", {"Metadata/model_settings.config"});
+    }
+    SECTION("Models split across files") {
+        write_slic3r_family_3mf(file.string(), "SuperSlicer-2.4", {"3D/_rels/3dmodel.model.rels"});
+    }
+    SECTION("A CAD 3MF without a model config") {
+        write_named_cad_3mf(file.string(), false);
+    }
+    PrusaFileParser parser;
+    CHECK_FALSE(parser.check_3mf_from_prusa(file.string()));
+}
 
 TEST_CASE("CAD 3MF imports leaf names only when original names are enabled", "[3mf][OriginalNames]")
 {

@@ -4,7 +4,7 @@
 #include <string>
 
 namespace Slic3r {
-// PrusaFileParser is used to check 3mf file is from Prusa
+// PrusaFileParser is used to check 3mf file is from PrusaSlicer or another Slic3r-family application
 class PrusaFileParser
 {
 public:
