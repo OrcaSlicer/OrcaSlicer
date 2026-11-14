@@ -7066,24 +7066,23 @@ int PartPlateList::move_plate_to_index(int old_index, int new_index)
 		delta = -1;
 	}
 
-	// Orca: custom G-codes (color changes, pauses, custom G-code) are stored per plate index
-	// in the model, so they have to follow the plates to their new positions.
+	// Orca: custom G-codes are stored per plate index, so move them with the plate.
 	if (m_model) {
 		std::map<int, CustomGCode::Info> remapped;
 		for (auto& [idx, info] : m_model->plates_custom_gcodes) {
 			int target = idx;
 			if (idx == old_index)
 				target = new_index;
-			else if (old_index > new_index && idx >= new_index && idx < old_index)
+			else if (new_index <= idx && idx < old_index)
 				target = idx + 1;
-			else if (old_index < new_index && idx > old_index && idx <= new_index)
+			else if (old_index < idx && idx <= new_index)
 				target = idx - 1;
 			remapped[target] = std::move(info);
 		}
 		m_model->plates_custom_gcodes = std::move(remapped);
 	}
 
-	// Orca: wipe tower positions are stored per plate index too, so move them with the plate.
+	// Orca: wipe tower positions are stored per plate index too.
 	if (m_plater) {
 		DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
 		for (const char* key : { "wipe_tower_x", "wipe_tower_y" }) {
@@ -7093,10 +7092,9 @@ int PartPlateList::move_plate_to_index(int old_index, int new_index)
 			// Missing entries fall back to the first one, so filling them in keeps every position.
 			const double first = values.front();
 			values.resize(std::max(values.size(), m_plate_list.size()), first);
-			if (old_index > new_index)
-				std::rotate(values.begin() + new_index, values.begin() + old_index, values.begin() + old_index + 1);
-			else
-				std::rotate(values.begin() + old_index, values.begin() + old_index + 1, values.begin() + new_index + 1);
+			const double moved = values[old_index];
+			values.erase(values.begin() + old_index);
+			values.insert(values.begin() + new_index, moved);
 		}
 	}
 
