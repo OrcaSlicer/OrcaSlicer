@@ -371,6 +371,47 @@ TEST_CASE("Sparse infill only arc fitting emits arcs in the sparse infill alone"
     CHECK(arcs_per_type("disabled").empty());
 }
 
+TEST_CASE("Walls slowed down for overhangs keep their arc fitting", "[GCode]")
+{
+    // An upside-down cone: every layer's wall overhangs the one below, so it prints slower than the wall speed.
+    // 360 facets keep the walls within the resolution of a circle, so they fit arcs.
+    TriangleMesh cone = make_cone(20.0, 10.0, 2.0 * PI / 360.0);
+    cone.rotate_x(float(PI));
+    const double      wall_speed = 60.;
+    const std::string gcode      = Test::slice({ cone }, {
+        { "enable_arc_fitting",          "enabled" },
+        { "enable_overhang_speed",       1 },
+        { "outer_wall_speed",            wall_speed },
+        { "inner_wall_speed",            wall_speed },
+        { "overhang_1_4_speed",          "50" },
+        { "overhang_2_4_speed",          "40" },
+        { "overhang_3_4_speed",          "30" },
+        { "overhang_4_4_speed",          "20" },
+        { "slow_down_for_layer_cooling", 0 },
+        { "z_hop",                       "0" },
+    });
+
+    // Moves in the outer wall, the one that overhangs: arcs, and moves slower than the wall speed.
+    size_t             arcs = 0, slowed = 0;
+    std::istringstream input(gcode);
+    std::string        line, type;
+    while (std::getline(input, line)) {
+        if (line.rfind(";TYPE:", 0) == 0) {
+            type = line.substr(6);
+            continue;
+        }
+        if (type != "Outer wall")
+            continue;
+        if (line.rfind("G2 ", 0) == 0 || line.rfind("G3 ", 0) == 0)
+            ++arcs;
+        const size_t f = line.find(" F");
+        if (line.rfind("G1 ", 0) == 0 && f != std::string::npos && std::stod(line.substr(f + 2)) < wall_speed * 60. - 1.)
+            ++slowed;
+    }
+    CHECK(slowed > 0);
+    CHECK(arcs > 0);
+}
+
 TEST_CASE("Exported moves use the decimal places selected by the G-code precision option, and supports use the standard ones", "[GCode]")
 {
     const bool high_precision = GENERATE(false, true);
