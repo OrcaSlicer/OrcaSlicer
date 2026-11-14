@@ -1130,15 +1130,9 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
         // ORCA: a non-Bambu printer with several extruders lists one nozzle row per tool; Bambu's own
         // multi-extruder printers keep the left/right pair above.
         const bool multi_extruder_rows = !preset_bundle.is_bbl_vendor() && extruder_count > 1;
-        const auto &diameters = cfg.option<ConfigOptionFloats>("nozzle_diameter")->values;
-        const bool mixed_diameters = std::any_of(diameters.begin(), diameters.end(), [&diameters](double value) {
-            return get_diameter_string(value) != get_diameter_string(diameters.front());
-        });
-
-        // The variant box switches the machine variant. The card below lists the nozzles when there
-        // are flow variants to choose or extruders of different diameters; otherwise the box says it all.
+        // The checkbox controls the nozzle selector for both custom and vendor profiles.
         panel_nozzle_dia->Show(true);
-        extruder_single_sizer->Show(has_flow_variant || (multi_extruder_rows && mixed_diameters));
+        extruder_single_sizer->Show(has_flow_variant);
         single_extruder->SetNozzleRowCount(multi_extruder_rows ? size_t(extruder_count) : 1);
     } else {
         panel_nozzle_dia->Show(false);
@@ -4045,7 +4039,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
         auto diameter = printer_preset.config.opt_string("printer_variant");
         auto extruder_max_nozzle_count = printer_preset.config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
         const bool has_flow_variant = preset_bundle.support_different_extruders();
-        auto update_extruder_variant = [printer_model, extruders_def, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,diameter,extruder_max_nozzle_count,has_flow_variant](ExtruderGroup & extruder, size_t row, int index) {
+        auto update_extruder_variant = [printer_model, extruders_def, extruders, nozzle_volumes_def, nozzle_volumes, extruder_variants,diameter,extruder_max_nozzle_count,has_flow_variant, &printer_preset](ExtruderGroup & extruder, size_t row, int index) {
             ComboBox *combo_flow = extruder.rows[row].flow;
             combo_flow->Clear();
             // A profile may leave the per-extruder lists shorter than the nozzle count (they are
@@ -4061,7 +4055,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
                 // get_at falls back to the first entry when a profile defines no per-extruder value,
                 // so extruders without an explicit sub-nozzle count never offer Hybrid. A nullable-int
                 // nil is INT_MAX (> 1) and would otherwise falsely pass the gate, so exclude it too.
-                if (boost::algorithm::contains(extruder_variants->values[index], type + " " + nozzle_volumes_def->enum_labels[i]) ||
+                if (boost::algorithm::contains(get_extruder_variant_list(printer_preset.config, index), type + " " + nozzle_volumes_def->enum_labels[i]) ||
                     (extruder_max_nozzle_count->get_at(index) > 1 && extruder_max_nozzle_count->get_at(index) != ConfigOptionIntsNullable::nil_value() &&
                     nozzle_volumes_def->enum_keys_map->at(nozzle_volumes_def->enum_values[i]) == nvtHybrid)) {
                     auto cur_volume_type = nozzle_volumes_def->enum_keys_map->at(nozzle_volumes_def->enum_values[i]);

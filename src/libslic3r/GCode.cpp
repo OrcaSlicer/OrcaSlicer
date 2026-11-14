@@ -8317,6 +8317,7 @@ void GCode::append_full_config(const Print &print, std::string &str)
     cfg.option<ConfigOptionInts>("filament_map_2", true)->values = print.config().filament_map_2.values;
     // Sorted list of config keys, which shall not be stored into the G-code. Initializer list.
     static const std::set<std::string_view> banned_keys( {
+        "allow_different_nozzles",
         // filament_extruder_compatibility is a device-side (blacklist) compatibility hint read from the
         // loaded presets, never consumed by slicing or firmware. Keep it out of the G-code config block so
         // the config key stays inert to g-code (byte-identical output).

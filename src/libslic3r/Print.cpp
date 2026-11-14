@@ -408,6 +408,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "support_material_interface_fan_speed",
         "internal_bridge_fan_speed", // ORCA: Add support for separate internal bridge fan speed control
         "ironing_fan_speed",
+        "allow_different_nozzles", // UI capability; derived nozzle settings invalidate their own steps.
         "single_extruder_multi_material_priming",
         "activate_air_filtration",
         "activate_air_filtration_during_print",
