@@ -118,6 +118,14 @@ public:
     // accessibility layer to trigger the button from a screen reader.
     void Click();
 
+#ifdef __WXOSX__
+    // (Re)expose this button to VoiceOver using its current label as the accessible
+    // name. `selected` is announced as the selected-tab state, so tab bars pass
+    // whether this button is the active tab whenever their selection changes; the
+    // last set state is kept across label/tooltip/enable updates.
+    void applyAccessibility(bool selected);
+#endif
+
 #if wxUSE_ACCESSIBILITY
     // Return the accessible object that exposes this button's accessible name, role
     // and state to screen readers. See ButtonAccessible in Button.cpp.
@@ -157,8 +165,12 @@ private:
     void sendButtonEvent();
 
 #ifdef __WXOSX__
-    // (Re)expose this button to VoiceOver using its current label as the accessible name.
+    // Re-apply the last set accessibility configuration (name, enabled and selected
+    // state unchanged), used when the label or tooltip changes.
     void applyAccessibility();
+
+    // The "selected" state applied by the last applyAccessibility(bool) call.
+    bool m_accessibility_selected{ false };
 #endif
 
     // parent motion

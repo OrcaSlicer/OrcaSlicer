@@ -5,6 +5,9 @@
 #include "GUI_App.hpp"
 #include "wxExtensions.hpp"
 #include "Widgets/Button.hpp"
+#ifdef __WXOSX__
+#include "slic3r/GUI/Accessibility/AccessibilityMac.h"
+#endif
 
 //BBS set font size
 
@@ -68,6 +71,14 @@ ButtonsListCtrl::ButtonsListCtrl(wxWindow *parent, wxBoxSizer* side_tools) :
     //this->Bind(wxEVT_PAINT, &ButtonsListCtrl::OnPaint, this);
     Bind(wxEVT_SYS_COLOUR_CHANGED, [](auto& e){
     });
+#ifdef __WXOSX__
+    // Expose the tab strip to VoiceOver as a toolbar, matching the macOS toolbar
+    // paradigm (like the Activity Monitor toolbar): its tab buttons are the items
+    // and the active tab announces as "selected".
+    Slic3r::GUI::Accessibility::Descriptor desc;
+    desc.role = Slic3r::GUI::Accessibility::Role::Toolbar;
+    Slic3r::GUI::Accessibility::apply(this, desc);
+#endif
 }
 
 void ButtonsListCtrl::OnPaint(wxPaintEvent&)
@@ -135,6 +146,9 @@ void ButtonsListCtrl::SetSelection(int sel)
     // BBS: change button color
     wxColour selected_btn_bg("#009688");    // Gradient #009688
     if (m_selection >= 0 && m_selection < static_cast<int>(m_pageButtons.size())) {
+#ifdef __WXOSX__
+        m_pageButtons[m_selection]->applyAccessibility(false);
+#endif
         StateColor bg_color = StateColor(
         std::pair{wxColour(107, 107, 107), (int) StateColor::Hovered},
         std::pair{wxColour(59, 68, 70), (int) StateColor::Normal});
@@ -152,6 +166,9 @@ void ButtonsListCtrl::SetSelection(int sel)
     }
 
     m_selection = sel;
+#ifdef __WXOSX__
+    m_pageButtons[m_selection]->applyAccessibility(true);
+#endif
 
     StateColor bg_color = StateColor(
         std::pair{wxColour(0, 150, 136), (int) StateColor::Hovered},
@@ -264,10 +281,19 @@ void ButtonsListCtrl::SetPageText(size_t n, const wxString& strText)
 // ORCA
 void ButtonsListCtrl::SetCompact(size_t n, bool compact)
 {
+    if (n >= m_pageButtons.size())
+        return;
     int em = em_unit(this);
     Button* btn = m_pageButtons[n];
     btn->SetMinSize({(compact ? 40 : 136) * em / 10, 36 * em / 10});
     btn->SetLabel(compact ? "" : m_pageLabels[n]);
+    // The blanked label is also the accessible name, so the icon-only tab keeps its
+    // name through the tooltip: Button falls back to its tooltip when its label is
+    // empty, and sighted users get hover help. Restoring the label clears the tooltip.
+    if (compact && !m_pageLabels[n].empty())
+        btn->SetToolTip(m_pageLabels[n]);
+    else
+        btn->UnsetToolTip();
 }
 
 wxString ButtonsListCtrl::GetPageText(size_t n) const

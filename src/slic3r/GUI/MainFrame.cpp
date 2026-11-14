@@ -1581,7 +1581,11 @@ void MainFrame::init_tabpanel() {
             select_tab(TAB_ID_HOME);
             WebViewPanel::ensure()->load_url(url);
         });
-        m_tabpanel->AddPage(TAB_ID_HOME, m_home_page, "", "tab_home_active");
+        m_tabpanel->AddPage(TAB_ID_HOME, m_home_page, _L("Home"), "tab_home_active");
+        // Home is an icon-only tab: compact it right away so the label stays hidden
+        // while still naming the tab for tooltips, the SpeedDial tab picker and
+        // assistive technologies.
+        m_tabpanel->GetBtnsListCtrl()->SetCompact(static_cast<size_t>(m_tabpanel->FindPageByName(TAB_ID_HOME)), true);
         m_param_panel = new ParamsPanel(m_tabpanel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBK_LEFT | wxTAB_TRAVERSAL);
     }
 

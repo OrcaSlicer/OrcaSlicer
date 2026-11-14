@@ -26,6 +26,7 @@ namespace Accessibility {
 enum class Role {
     Button,   // NSAccessibilityButtonRole
     Checkbox, // NSAccessibilityCheckBoxRole
+    Toolbar,  // NSAccessibilityToolbarRole
 };
 
 // How a wxWindow should be exposed to assistive technologies.
@@ -34,6 +35,9 @@ struct Descriptor {
     // Accessible name. When empty, the window's tooltip is used so icon-only controls
     // still get a name.
     wxString name;
+    // Whether the element is the selected member of its group, e.g. the active tab of
+    // a tab bar. VoiceOver announces the element as "selected".
+    bool selected{ false };
     // Default action invoked when the assistive technology activates the element. Stored
     // as a block on the window's NSView (see detach()) and may capture the widget's
     // `this`. Ignored for native controls, which have their own press action.
