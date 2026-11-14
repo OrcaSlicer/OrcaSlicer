@@ -2195,9 +2195,10 @@ void PrintConfigDef::init_fff_params()
     def = this->add("brim_ears_detection_length", coFloat);
     def->label = L("Brim ear detection radius");
     def->category = L("Support");
-    def->tooltip = L("The geometry will be decimated before detecting sharp angles. "
-                     "This parameter indicates the minimum length of the deviation for the decimation.\n"
-                     "0 to deactivate.");
+    def->tooltip = L("The direction change at a corner is measured over a window of this length along the outline.\n"
+                     "The window grows while the outline keeps curving, so a rounded corner counts as one corner "
+                     "once its whole turn is seen.\n"
+                     "0 to measure the angle at every vertex without smoothing.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->mode = comAdvanced;

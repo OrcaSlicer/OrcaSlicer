@@ -440,6 +440,120 @@ TEST_CASE("Outer-only painted brim ears stay out of model holes", "[SkirtBrim]")
     CHECK_FALSE(brim_enters_first_layer_hole(print));
 }
 
+// A 40 mm wide, 3 mm tall prism whose 70 degree apex is rounded by a 1.5 mm fillet in six chords: the
+// outline test_brim.cpp builds, as a mesh the pipeline can slice.
+// Same outline as filleted_triangle_outline(1.5, 6) in the libslic3r test_brim.cpp fixture.
+static TriangleMesh triangle_with_rounded_apex()
+{
+    const std::vector<Vec2d> outline{
+        Vec2d(0., 0.),          Vec2d(40., 0.),         Vec2d(17.6811, 26.5986), Vec2d(17.3195, 26.9111),
+        Vec2d(16.8780, 27.0940), Vec2d(16.4013, 27.1287), Vec2d(15.9380, 27.0117), Vec2d(15.5349, 26.7549),
+        Vec2d(15.2330, 26.3844),
+    };
+    const float          height = 3.f;
+    std::vector<Vec3f>   vertices;
+    std::vector<Vec3i32> faces;
+    const size_t         n = outline.size();
+    for (const Vec2d &p : outline) {
+        vertices.emplace_back(float(p.x()), float(p.y()), 0.f);
+        vertices.emplace_back(float(p.x()), float(p.y()), height);
+    }
+    // Fan from rim vertex 0, so the first triangle is i = 1; starting at 0 would emit a face with a
+    // repeated vertex on both caps.
+    for (size_t i = 1; i + 1 < n; ++ i) {
+        faces.emplace_back(0, int(2 * (i + 1)), int(2 * i));            // bottom cap, facing down
+        faces.emplace_back(1, int(2 * i + 1), int(2 * (i + 1) + 1));    // top cap, facing up
+    }
+    for (size_t i = 0; i < n; ++ i) {
+        const size_t j = (i + 1) % n;
+        faces.emplace_back(int(2 * i), int(2 * j), int(2 * j + 1));
+        faces.emplace_back(int(2 * i), int(2 * j + 1), int(2 * i + 1));
+    }
+    return TriangleMesh(vertices, faces);
+}
+
+// One entry per ear. The slicer clips each ear disc against the object, so an ear is a half disc, not a
+// ring; its axis-aligned bounding box centre still identifies it, and that centre stays valid under the
+// turns used below. Coordinates are scaled, hence scaled() tolerances.
+static std::vector<Vec2d> brim_ear_centres(Print &print)
+{
+    std::vector<Vec2d> centres;
+    for (const auto &kv : print.get_brimMap()) {
+        Polylines paths;
+        kv.second.collect_polylines(paths);
+        for (const Polyline &path : paths) {
+            if (path.points.empty())
+                continue;
+            const BoundingBox box    = path.bounding_box();
+            const Vec2d       centre = (box.min.cast<double>() + box.max.cast<double>()) * 0.5;
+            if (std::none_of(centres.begin(), centres.end(), [&centre](const Vec2d &e) { return (e - centre).norm() < scaled(1.); }))
+                centres.push_back(centre);
+        }
+    }
+    return centres;
+}
+
+// Sorted distances between every pair of ear centres: independent of where the part ends up on the plate.
+static std::vector<double> ear_centre_distances(const std::vector<Vec2d> &centres)
+{
+    std::vector<double> distances;
+    for (size_t i = 0; i < centres.size(); ++ i)
+        for (size_t j = i + 1; j < centres.size(); ++ j)
+            distances.push_back((centres[i] - centres[j]).norm());
+    std::sort(distances.begin(), distances.end());
+    return distances;
+}
+
+// A rounded corner must keep its ear whatever the part's orientation: the corner used to be measured after
+// a decimation anchored on the contour's start vertex, which moves when the object is rotated.
+TEST_CASE("Mouse ears stay on the same corners when the object rotates", "[SkirtBrim]")
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "skirt_loops",                0 },
+        { "brim_type",                  "brim_ears" },
+        { "brim_width",                 3 },
+        { "brim_ears_max_angle",        125 },
+        { "brim_ears_detection_length", 1 },
+        { "initial_layer_line_width",   0.5 },
+    });
+
+    // Not auto-arranged, so the part is rotated about its own footprint centre and stays on the bed.
+    auto slice_rotated = [&config](double rotation) {
+        Print print;
+        Model model;
+        init_print({ triangle_with_rounded_apex() }, print, model, config, nullptr, false);
+        const Vec3d pivot = model.objects.front()->raw_mesh_bounding_box().center();
+        const Transform3d about_pivot = Geometry::translation_transform(Vec3d(pivot.x(), pivot.y(), 0.)) *
+            Geometry::rotation_transform(Vec3d(0., 0., Geometry::deg2rad(rotation))) *
+            Geometry::translation_transform(Vec3d(-pivot.x(), -pivot.y(), 0.));
+        model.objects.front()->instances.front()->set_transformation(Geometry::Transformation(about_pivot));
+        print.apply(model, config);
+        print.process();
+        return std::make_pair(brim_loop_count(print), brim_ear_centres(print));
+    };
+
+    const std::pair<size_t, std::vector<Vec2d>> base = slice_rotated(0.);
+    REQUIRE(base.first > 0);
+    // Two sharp base corners plus the rounded apex, at every orientation.
+    REQUIRE(base.second.size() == 3);
+    const std::vector<double> base_distances = ear_centre_distances(base.second);
+
+    for (double rotation : { 37., 90., 180. }) {
+        DYNAMIC_SECTION("rotation " << rotation) {
+            const std::pair<size_t, std::vector<Vec2d>> rotated = slice_rotated(rotation);
+            REQUIRE(rotated.second.size() == base.second.size());
+            CHECK(rotated.first == base.first);
+            // The ear positions are compared up to the rigid motion the rotation applies, so the plate
+            // placement the slicer chooses for the rotated footprint does not enter the comparison.
+            const std::vector<double> distances = ear_centre_distances(rotated.second);
+            REQUIRE(distances.size() == base_distances.size());
+            for (size_t i = 0; i < distances.size(); ++ i)
+                CHECK_THAT(distances[i], Catch::Matchers::WithinAbs(base_distances[i], scaled(0.5)));
+        }
+    }
+}
+
 SCENARIO("Skirt has the configured number of loops", "[SkirtBrim]") {
     GIVEN("20mm cube and default config") {
         WHEN("skirt_loops is set to 2")  {
