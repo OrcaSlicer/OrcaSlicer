@@ -58,6 +58,8 @@ public:
     void EndExternalStream();
 
     void SetIdleImage(wxString const & image);
+    // An idle image made in memory rather than loaded from a file.
+    void SetIdleImage(wxImage const & image);
 
     wxMediaState GetState() override;
 
@@ -84,6 +86,8 @@ protected:
 
 private:
     wxString m_idle_image;
+    wxImage  m_idle_frame; // when set, shown instead of m_idle_image
+    wxImage  idle_frame() const { return m_idle_frame.IsOk() ? m_idle_frame : wxImage(m_idle_image); }
     wxMediaState m_state  = wxMEDIASTATE_STOPPED;
     int m_error  = 0;
     wxSize m_video_size = wxDefaultSize;
