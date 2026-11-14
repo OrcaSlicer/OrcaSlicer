@@ -583,7 +583,7 @@ static bool doesVolumeIntersect(const VolumeSlices& vs1, const std::vector<Bound
 }
 
 //BBS: grouping the volumes of an object according to their connection relationship
-bool groupingVolumes(std::vector<VolumeSlices> objSliceByVolume, std::vector<groupedVolumeSlices>& groups, double resolution, int firstLayerReplacedBy)
+static bool groupingVolumes(std::vector<VolumeSlices> &&objSliceByVolume, std::vector<groupedVolumeSlices>& groups, double resolution, int firstLayerReplacedBy)
 {
     std::vector<int> groupIndex(objSliceByVolume.size(), -1);
     double offsetValue = 0.05 / SCALING_FACTOR;
@@ -669,11 +669,15 @@ bool groupingVolumes(std::vector<VolumeSlices> objSliceByVolume, std::vector<gro
 }
 
 //BBS: filter the members of "objSliceByVolume" such that only "model_part" are included
-std::vector<VolumeSlices> findPartVolumes(const std::vector<VolumeSlices>& objSliceByVolume, ModelVolumePtrs model_volumes) {
+static std::vector<VolumeSlices> findPartVolumes(const std::vector<VolumeSlices>& objSliceByVolume, ModelVolumePtrs model_volumes) {
     std::vector<VolumeSlices> outPut;
+    outPut.reserve(objSliceByVolume.size());
     for (const auto& vs : objSliceByVolume) {
         for (const auto& mv : model_volumes) {
-            if (vs.volume_id == mv->id() && mv->is_model_part()) outPut.push_back(vs);
+            if (vs.volume_id == mv->id() && mv->is_model_part()) {
+                outPut.push_back(vs);
+                break;
+            }
         }
     }
     return outPut;
@@ -875,7 +879,7 @@ void groupingVolumesForBrim(PrintObject* object, LayerPtrs& layers, int firstLay
 
     const auto           scaled_resolution = scaled<double>(object->print()->config().resolution.value);
     auto partsObjSliceByVolume = findPartVolumes(object->firstLayerObjSliceMod(), object->model_object()->volumes);
-    groupingVolumes(partsObjSliceByVolume, object->firstLayerObjGroupsMod(), scaled_resolution, firstLayerReplacedBy);
+    groupingVolumes(std::move(partsObjSliceByVolume), object->firstLayerObjGroupsMod(), scaled_resolution, firstLayerReplacedBy);
     applyNegtiveVolumes(object->model_object()->volumes, object->firstLayerObjSliceMod(), object->firstLayerObjGroupsMod(), scaled_resolution);
 
     // BBS: the actual first layer slices stored in layers are re-sorted by volume group and will be used to generate brim
@@ -946,6 +950,8 @@ void PrintObject::slice()
 
     // BBS: the actual first layer slices stored in layers are re-sorted by volume group and will be used to generate brim
     groupingVolumesForBrim(this, m_layers, firstLayerReplacedBy);
+    firstLayerObjSliceByVolume.clear();
+    firstLayerObjSliceByVolume.shrink_to_fit();
 
     // Update bounding boxes, back up raw slices of complex models.
     tbb::parallel_for(
