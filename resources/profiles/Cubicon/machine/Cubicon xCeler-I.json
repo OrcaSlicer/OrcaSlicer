@@ -6,5 +6,5 @@
 	"bed_texture": "Cubicon xCeler-I_bed_texture.svg",
 	"family": "Cubicon",
 	"machine_tech": "FFF",
-	"default_materials": "Cubicon PLA @Cubicon xCeler-I 0.4 nozzle"
+	"default_materials": "Cubicon PLA @Cubicon xCeler-I 0.4 nozzle;Cubicon PLA+ @Cubicon xCeler-I 0.4 nozzle;Cubicon PLAi21 @Cubicon xCeler-I 0.4 nozzle;Cubicon PETG @Cubicon xCeler-I 0.4 nozzle;Cubicon ABS @Cubicon xCeler-I 0.4 nozzle;Cubicon ABS-A100 @Cubicon xCeler-I 0.4 nozzle;Cubicon ABSk @Cubicon xCeler-I 0.4 nozzle;Cubicon PC @Cubicon xCeler-I 0.4 nozzle;Cubicon PA-CF @Cubicon xCeler-I 0.4 nozzle"
 }
