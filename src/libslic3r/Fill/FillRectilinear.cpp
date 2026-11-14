@@ -3001,6 +3001,34 @@ static inline void remove_overlapped(Polylines& polylines, coord_t line_width){
     polylines = std::move(cleaned);
 }
 
+// Orca: cells stretched across the layers or turned, which the trapezoids of multiline infill don't follow.
+static bool stretched_across_layers(const FillParams &params)
+{
+    return params.sparse_infill_scale[0] != 1. || params.sparse_infill_scale[1] != 1. || params.sparse_infill_rotation_x != 0.;
+}
+
+// Orca: the lines on the layer at z of a family of planes n . (p - refpt) + shift_per_z * z + c = k * spacing of the
+// regular cells, where n is the normal of its lines at angle and c is shift less shift_per_z * z, once the cells are
+// stretched by scale along the axes of the pattern at phi, then turned by rotation_x around its X axis. The lines keep
+// the form of the regular ones, with their normal at angle, spacing times the spacing and shift.
+struct TransformedSweep
+{
+    double angle;
+    double spacing;
+    double shift;
+};
+static TransformedSweep transform_sweep(double angle, double shift, double shift_per_z, double z, double phi, const std::array<double, 3> &scale,
+                                        double rotation_x)
+{
+    // The planes transform by the inverse transpose of the transform of the points, in the frame of the pattern.
+    const Vec3d  regular(std::cos(angle - phi) / scale[0], std::sin(angle - phi) / scale[1], shift_per_z / scale[2]);
+    const double c = std::cos(rotation_x);
+    const double s = std::sin(rotation_x);
+    const Vec3d  normal(regular.x(), c * regular.y() - s * regular.z(), s * regular.y() + c * regular.z());
+    const double length = std::hypot(normal.x(), normal.y());
+    return { std::atan2(normal.y(), normal.x()) + phi, 1. / length, (shift - shift_per_z * z + normal.z() * z) / length };
+}
+
 bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillParams params, const std::initializer_list<SweepParams> &sweep_params, Polylines &polylines_out)
 {
     assert(sweep_params.size() >= 1);
@@ -3017,12 +3045,25 @@ bool FillRectilinear::fill_surface_by_multilines(const Surface *surface, FillPar
     coord_t line_width   = coord_t(scale_(this->spacing));
     coord_t line_spacing = coord_t(scale_(this->spacing) * params.multiline / params.density);
     std::pair<float, Point> rotate_vector = this->_infill_direction(surface);
+    const bool transformed = params.sparse_infill_scale != std::array<double, 3>{ 1., 1., 1. } || params.sparse_infill_rotation_x != 0.;
     for (const SweepParams &sweep : sweep_params) {
         // Rotate polygons so that we can work with vertical lines here
-        float angle = rotate_vector.first + sweep.angle_base;
+        float   angle   = rotate_vector.first + sweep.angle_base;
+        coord_t spacing = line_spacing;
+        coord_t shift   = coord_t(scale_(sweep.pattern_shift));
+        if (transformed) {
+            const TransformedSweep lines = transform_sweep(angle, sweep.pattern_shift, sweep.shift_per_z, this->z, this->pattern_axes_angle(),
+                                                           params.sparse_infill_scale, params.sparse_infill_rotation_x);
+            // Planes all but parallel to the layer cross it far apart.
+            if (lines.spacing > 1000.)
+                continue;
+            angle   = float(lines.angle);
+            spacing = coord_t(std::lround(line_spacing * lines.spacing));
+            shift   = coord_t(std::lround(scale_(lines.shift)));
+        }
 
         make_fill_lines(ExPolygonWithOffset(poly_with_offset_base, -angle), rotate_vector.second.rotated(-angle), angle,
-                        line_width + coord_t(SCALED_EPSILON), line_spacing, coord_t(scale_(sweep.pattern_shift)), fill_lines);
+                        line_width + coord_t(SCALED_EPSILON), spacing, shift, fill_lines);
     }
         
     // Apply multiline offset if needed
@@ -3397,7 +3438,7 @@ bool FillRectilinear::fill_surface_trapezoidal(
         // Same z shifted lines as the single-line cubic; the slanted ones cross tau above the horizontal ones.
         auto pos_mod = [](double a, double m) { const double r = std::fmod(a, m); return r < 0. ? r + m : r; };
         const double h     = 0.5 * std::sqrt(3.0) * period;
-        const double shift = scale_(std::sqrt(0.5) * this->z);
+        const double shift = scale_(std::sqrt(0.5) * this->z / params.sparse_infill_scale[2]);
         const double tau   = pos_mod(-3. * shift, h);
         const double y0    = pos_mod(-2. * shift, 2. * h);
 
@@ -3430,8 +3471,8 @@ bool FillRectilinear::fill_surface_trapezoidal(
     {
         // Staircases on the lines of the single-line pattern. See docs/HLSD/multiline-infill.md.
         const double cos45 = std::sqrt(0.5);
-        const double a     = quarter_cubic_shift(this->z, 0., period, d1 / 2);
-        const double b     = quarter_cubic_shift(this->z, 0.5, period, d1 / 2);
+        const double a     = quarter_cubic_shift(this->z / params.sparse_infill_scale[2], 0., period, d1 / 2);
+        const double b     = quarter_cubic_shift(this->z / params.sparse_infill_scale[2], 0.5, period, d1 / 2);
         const double p     = period;
 
         // How far the crossings on one line of a pair move up and those on the other down, where the lines are too close for two cuts.
@@ -3608,7 +3649,7 @@ Polylines FillGrid::fill_surface(const Surface *surface, const FillParams &param
 {
     Polylines polylines_out;
 
-    if (params.multiline > 1) {
+    if (params.multiline > 1 && !stretched_across_layers(params)) {
         // Experimental trapezoidal grid
         if (!this->fill_surface_trapezoidal(
                  surface, params, polylines_out, 0))
@@ -3648,7 +3689,7 @@ Polylines FillLateralLattice::fill_surface(const Surface *surface, const FillPar
 
 Polylines FillTriangles::fill_surface(const Surface *surface, const FillParams &params){
     Polylines polylines_out;
-        if (params.multiline > 1) {
+        if (params.multiline > 1 && !stretched_across_layers(params)) {
         // Experimental trapezoidal grid
         if (!this->fill_surface_trapezoidal(
                  surface, params, polylines_out, 1))
@@ -3668,7 +3709,7 @@ Polylines FillTriangles::fill_surface(const Surface *surface, const FillParams &
 Polylines FillStars::fill_surface(const Surface *surface, const FillParams &params)
 {
     Polylines polylines_out;
-    if (params.multiline > 1) {
+    if (params.multiline > 1 && !stretched_across_layers(params)) {
         if (!this->fill_surface_trapezoidal(
                  surface, params, polylines_out, 2))
             BOOST_LOG_TRIVIAL(error) << "FillStars::fill_surface_trapezoidal() failed.";
@@ -3685,15 +3726,17 @@ Polylines FillStars::fill_surface(const Surface *surface, const FillParams &para
 Polylines FillCubic::fill_surface(const Surface *surface, const FillParams &params)
 {
     Polylines polylines_out;
-    if (params.multiline > 1) {
+    if (params.multiline > 1 && !stretched_across_layers(params)) {
         if (!this->fill_surface_trapezoidal(surface, params, polylines_out, 3))
             BOOST_LOG_TRIVIAL(error) << "FillCubic::fill_surface_trapezoidal() failed.";
         return polylines_out;
     }
+    // The three families of planes of the cube rise and fall by sqrt(1/2) per unit of height.
     coordf_t dx = sqrt(0.5) * z;
+    const float rise = float(sqrt(0.5));
     if (! this->fill_surface_by_multilines(
             surface, params, 
-            { { 0.f, float(dx) }, { float(M_PI / 3.), - float(dx) }, { float(M_PI * 2. / 3.), float(dx) } },
+            { { 0.f, float(dx), rise }, { float(M_PI / 3.), - float(dx), -rise }, { float(M_PI * 2. / 3.), float(dx), rise } },
             polylines_out))
         BOOST_LOG_TRIVIAL(error) << "FillCubic::fill_surface() failed to fill a region.";
     return polylines_out; 
@@ -3702,7 +3745,7 @@ Polylines FillCubic::fill_surface(const Surface *surface, const FillParams &para
 Polylines FillQuarterCubic::fill_surface(const Surface* surface, const FillParams& params)
 {
     Polylines polylines_out;
-    if (params.multiline > 1) {
+    if (params.multiline > 1 && !stretched_across_layers(params)) {
         if (!this->fill_surface_trapezoidal(surface, params, polylines_out, 4))
             BOOST_LOG_TRIVIAL(error) << "FillQuarterCubic::fill_surface_trapezoidal() failed.";
         return polylines_out;
@@ -3712,10 +3755,10 @@ Polylines FillQuarterCubic::fill_surface(const Surface* surface, const FillParam
     coord_t period = coord_t(scale_(this->spacing) *params.multiline / params.density) * 4;
 
     // First half tetrahedral fill
-    float dx1 = unscale_(quarter_cubic_shift(z, 0.0, period, line_width / 2));
+    float dx1 = unscale_(quarter_cubic_shift(z / params.sparse_infill_scale[2], 0.0, period, line_width / 2));
 
     // Second half tetrahedral fill
-    float dx2 = unscale_(quarter_cubic_shift(z, 0.5, period, line_width / 2));
+    float dx2 = unscale_(quarter_cubic_shift(z / params.sparse_infill_scale[2], 0.5, period, line_width / 2));
     if (!this->fill_surface_by_multilines(
             surface, params, 
             {{0.f, dx1}, {0.f, -dx1}, {float(M_PI / 2.), dx2}, {float(M_PI / 2.), -dx2}},

@@ -14,6 +14,7 @@
 #include "../Point.hpp"
 #include "../Polyline.hpp"
 #include "../PrintConfig.hpp"
+#include "TpmsField.hpp"
 
 namespace Slic3r {
 
@@ -112,8 +113,7 @@ using AdaptiveInfillFields = std::array<AdaptiveInfillFieldPtr, size_t(AdaptiveI
 
 struct AdaptiveTpms
 {
-    // Implicit TPMS equation with a period of 2 PI.
-    float (*equation)(float x, float y, float z);
+    TpmsEquation         equation;
     // Pattern frequencies at the surface and at the center, in radians per mm.
     double               surface_frequency;
     double               interior_frequency;
