@@ -119,7 +119,7 @@ public:
 
 	// Fill in the grid with closed contours.
 	void create(const Polygons &polygons, coord_t resolution);
-	void create(const std::vector<const Polygon*> &polygons, coord_t resolution);
+	void create(const ConstPolygonPtrs &polygons, coord_t resolution);
 	void create(const std::vector<Points> &polygons, coord_t resolution) { this->create(polygons, resolution, false); }
 	void create(const ExPolygon &expoly, coord_t resolution);
 	void create(const ExPolygons &expolygons, coord_t resolution);
