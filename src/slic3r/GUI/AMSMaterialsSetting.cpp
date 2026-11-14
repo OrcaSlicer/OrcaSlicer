@@ -2187,7 +2187,7 @@ void ColorPickerPopup::on_custom_clr_picker(wxMouseEvent& /*event*/)
         const wxColour& first = m_def_cols.empty() ? m_def_col : m_def_cols.front();
         const ColorSelection initial = exact ? *exact : ColorSelection{ColorRGBA(first.Red(), first.Green(), first.Blue(), first.Alpha())};
         // Snapshot the custom control's anchor before releasing the transient popup grab.
-        ColorPickerDialog dialog(GetParent(), initial, {m_allow_multi_color, true, MAX_EDITABLE_COLORS, m_allow_multi_color},
+        ColorPickerDialog dialog(GetParent(), initial, {m_allow_multi_color, true, MAX_EDITABLE_COLORS},
                                  !exact && m_def_cols.size() > 1, m_custom_cp);
         Dismiss();
         // Unchanged fallback seeds must not replace a multi-color or oversized selection.
