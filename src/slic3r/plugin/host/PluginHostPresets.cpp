@@ -21,8 +21,11 @@
 
 #include <pybind11/stl.h>
 
+#include <wx/event.h>
 #include <wx/string.h>
 
+#include <algorithm>
+#include <cctype>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -589,6 +592,39 @@ void update_filament_slot(int slot_number, const std::string& key, const std::st
     transaction.commit();
 }
 
+// A slot's color is project state, not a preset setting, so it is set the way picking it in the
+// sidebar sets it: no preset changes. colors are "#RRGGBB"; several make a multi-color filament.
+void set_filament_slot_color(int slot_number, const std::vector<std::string>& colors, bool gradient)
+{
+    if (colors.empty())
+        throw std::invalid_argument("At least one color is required");
+    for (const std::string& color : colors)
+        if (color.size() != 7 || color[0] != '#'
+            || !std::all_of(color.begin() + 1, color.end(), [](unsigned char c) { return std::isxdigit(c); }))
+            throw std::invalid_argument("\"" + color + "\" is not a color in #RRGGBB form");
+
+    PluginHostUi::run_on_ui_thread([&] {
+        GUI::GUI_App& app    = require_gui_app();
+        PresetBundle& bundle = *app.preset_bundle;
+        resolved_slot_preset(bundle, slot_number);
+        const size_t slot_index = static_cast<size_t>(slot_number) - 1;
+        if (bundle.is_mixed_filament(slot_index))
+            throw std::invalid_argument("Filament slot " + std::to_string(slot_number)
+                                        + " is a mixed-color virtual slot; its color comes from the filaments it mixes");
+        std::vector<GUI::PlaterPresetComboBox*>& combos = app.plater()->sidebar().combos_filament();
+        if (slot_index >= combos.size() || combos[slot_index] == nullptr)
+            throw std::runtime_error("The sidebar has no selector for filament slot " + std::to_string(slot_number));
+
+        std::vector<std::string> upper(colors);
+        for (std::string& color : upper)
+            std::transform(color.begin(), color.end(), color.begin(), [](unsigned char c) { return char(std::toupper(c)); });
+        combos[slot_index]->sync_colour_config(upper, gradient);
+        auto* evt = new wxCommandEvent(GUI::EVT_FILAMENT_COLOR_CHANGED);
+        evt->SetInt(static_cast<int>(slot_index));
+        wxQueueEvent(app.plater(), evt);
+    });
+}
+
 void reload_local_bundle(const std::string& bundle_id)
 {
     bool        reloaded = false;
@@ -789,7 +825,21 @@ void host_bindings::register_presets(py::module_& host)
             "preset editors accept only update(key, value); this form raises "
             "ValueError on them. Equivalent to begin_update(slot_number) with an omitted preset_name "
             "(the slot's current assignment is kept), then set(key, value) and commit(); like "
-            "begin_update() this call blocks the background Script worker.");
+            "begin_update() this call blocks the background Script worker.")
+        .def(
+            "set_slot_color",
+            [](const PresetEditor& editor, int slot_number, const std::vector<std::string>& colors, bool gradient) {
+                if (editor.type != Preset::TYPE_FILAMENT)
+                    throw std::invalid_argument("set_slot_color() is only available on orca.host.preset.filament");
+                set_filament_slot_color(slot_number, colors, gradient);
+            },
+            py::arg("slot_number"), py::arg("colors"), py::arg("gradient") = false,
+            "Set the color of a 1-based filament slot, as picking it in the sidebar does. colors is a list of "
+            "\"#RRGGBB\" strings: one for a single-color filament, several for a multi-color one, drawn as "
+            "segments or, with gradient=True, blended. The color is project state, so no preset changes and "
+            "none becomes dirty. An out-of-range, empty or unresolved slot, a mixed-color virtual slot or a "
+            "malformed color raises an error and changes nothing. Runs on the UI thread; it may be called from "
+            "the Script worker or from a window's message callback.");
 
     // The three preset categories edited by the main tabs. `process` is the print/process preset,
     // `printer` the machine preset and `filament` the currently edited filament preset (its
