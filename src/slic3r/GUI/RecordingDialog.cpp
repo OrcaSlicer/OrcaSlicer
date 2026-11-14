@@ -240,24 +240,30 @@ RecordingDialog::RecordingDialog(wxWindow* parent, const Mcp::RecordingSettings&
     auto* quality_hint = field_label(_L("30 to 95. Higher is sharper and makes a larger file."));
     quality_row->Add(quality_hint, 0, wxALIGN_BOTTOM | wxLEFT | wxBOTTOM, FromDIP(8));
     record->Add(quality_row, 0, wxTOP | wxBOTTOM, FromDIP(8));
-    // The overlays, each switched at its row's end as encoding is in its stage's header.
-    const auto overlay = [&](const char* name, bool on, const wxString& title, const wxString& hint) {
+    // A setting switched at its row's end, as encoding is in its stage's header, `gap` below what is above it.
+    // An encoding one turns off with the stage.
+    const auto switch_row = [&](wxSizer* stage, int gap, bool encoding, const char* name, bool on, const wxString& title,
+                                const wxString& hint) {
         auto* toggle = new ::SwitchButton(this);
         toggle->SetName(name);
         toggle->SetValue(on);
-        auto* text = new wxBoxSizer(wxVERTICAL);
-        text->Add(new ::Label(this, Label::Body_14, title), 0);
-        text->Add(field_label(hint), 0, wxTOP, FromDIP(2));
+        auto* title_label = new ::Label(this, Label::Body_14, title);
+        auto* hint_label  = field_label(hint);
+        auto* text        = new wxBoxSizer(wxVERTICAL);
+        text->Add(title_label, 0);
+        text->Add(hint_label, 0, wxTOP, FromDIP(2));
         auto* row = new wxBoxSizer(wxHORIZONTAL);
         row->Add(text, 1, wxALIGN_CENTER_VERTICAL);
         row->Add(toggle, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(12));
-        record->Add(row, 0, wxEXPAND | wxTOP, FromDIP(8));
+        stage->Add(row, 0, wxEXPAND | wxTOP, gap);
+        if (encoding)
+            m_encoding.insert(m_encoding.end(), {title_label, hint_label, toggle});
         return toggle;
     };
-    m_pointer  = overlay("pointer", settings.pointer, _L("Highlight the pointer"),
-                         _L("A ring follows the pointer, and its clicks ripple."));
-    m_captions = overlay("captions", settings.captions, _L("Caption each step"),
-                         _L("Names each step an agent or script takes, at the bottom."));
+    m_pointer  = switch_row(record, FromDIP(8), false, "pointer", settings.pointer, _L("Highlight the pointer"),
+                            _L("A ring follows the pointer, and its clicks ripple."));
+    m_captions = switch_row(record, FromDIP(8), false, "captions", settings.captions, _L("Caption each step"),
+                            _L("Names each step an agent or script takes, at the bottom."));
     record->AddSpacer(FromDIP(14));
     auto* record_row = new wxBoxSizer(wxHORIZONTAL);
     record_row->Add(m_record_rail, 0, wxEXPAND | wxRIGHT, FromDIP(14));
@@ -274,7 +280,7 @@ RecordingDialog::RecordingDialog(wxWindow* parent, const Mcp::RecordingSettings&
     m_encode->SetName("encode");
     encode_header->Add(m_encode, 0, wxALIGN_CENTER_VERTICAL);
     encode->Add(encode_header, 0, wxEXPAND);
-    encode->Add(stage_text(this, _L("When the recording ends, ffmpeg turns it into an MP4 that is easy to share. The .mkv is kept.")), 0,
+    encode->Add(stage_text(this, _L("When the recording ends, ffmpeg turns it into an MP4 that is easy to share.")), 0,
                 wxTOP | wxBOTTOM, FromDIP(4));
     if (!m_has_ffmpeg) {
         const bool dark = wxGetApp().dark_mode();
@@ -319,6 +325,8 @@ RecordingDialog::RecordingDialog(wxWindow* parent, const Mcp::RecordingSettings&
     grid->Add(field(_L("Quality (CRF), lower is sharper"), m_crf), 0, wxEXPAND);
     grid->Add(field(_L("Speed, slower is smaller"), m_speed), 0, wxEXPAND);
     encode->Add(grid, 0, wxEXPAND | wxTOP, FromDIP(12));
+    m_keep_raw = switch_row(encode, FromDIP(12), true, "keep_raw_video_file", settings.keep_raw_video_file,
+                            _L("Keep the raw video file"), _L("The .mkv stays beside the MP4; off, it is deleted once encoded."));
     if (m_has_ffmpeg) {
         auto* uses = field_label(format_wxstr(_L("Uses %1%"), from_path(*ffmpeg)));
         m_encoding.push_back(uses);
@@ -416,6 +424,7 @@ Mcp::RecordingSettings RecordingDialog::settings() const
     s.captions = m_captions->GetValue();
     s.pointer  = m_pointer->GetValue();
     s.encode   = m_encode_on;
+    s.keep_raw_video_file = m_keep_raw->GetValue();
     s.codec   = codecs()[std::size_t(std::max(0, m_codec->GetSelection()))].first;
     s.crf     = typed_value(m_crf);
     s.speed   = Mcp::encoder_speeds()[std::size_t(std::max(0, m_speed->GetSelection()))];
@@ -487,7 +496,7 @@ void RecordingDialog::on_dpi_changed(const wxRect&)
         c->Rescale();
         c->SetMinSize(wxSize(FromDIP(200), -1));
     }
-    for (::SwitchButton* toggle : {m_pointer, m_captions, m_encode})
+    for (::SwitchButton* toggle : {m_pointer, m_captions, m_encode, m_keep_raw})
         toggle->Rescale();
     m_folder_text->Rescale();
     m_change_folder->Rescale();

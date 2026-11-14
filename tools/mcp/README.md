@@ -261,7 +261,8 @@ Preferences dialog opened and closed, a slice. It stops the recording (frames, l
 it to H.265, then has a nested replay start a recording of the 3D view that it never stops, checks the
 replay's end closed it, and encodes that to H.264. Short recordings check that a recording has no overlays
 unless `captions` or `pointer` turns one on, that one started with a path and no `max_seconds` runs under an
-hour's limit, and that one started with `encode` is encoded as a job once `stop_recording` reports it. Its
+hour's limit, and that one started with `encode` is encoded as a job once `stop_recording` reports it, the
+encode deleting its `.mkv` unless `keep_raw_video_file` keeps it. Its
 `new_project` and `stop_recording` calls pass `silent: true`: with no arguments they would do what a
 person's pick does, asking and stopping without a report. The encodes need an ffmpeg with libx265 and libx264
 (`ORCA_FFMPEG`, or `ffmpeg` on `PATH`) and are optional without one. Look at the videos, or at frames

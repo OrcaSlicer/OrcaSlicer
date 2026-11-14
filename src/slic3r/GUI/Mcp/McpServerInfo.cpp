@@ -55,7 +55,8 @@ const char* kInstructions =
     "- screenshot returns a downscaled image plus the full-size PNG path; target \"canvas\" is the 3D view.\n"
     "- start_recording / stop_recording record a video (MJPEG .mkv), optionally with the tool calls as captions and the "
     "pointer highlighted; with encode, stop_recording then encodes it to MP4 with the system ffmpeg as a job to wait "
-    "for, and encode_recording encodes any recording later.";
+    "for, and encode_recording encodes any recording later. An encode deletes the .mkv this session recorded once the "
+    "MP4 is written, unless keep_raw_video_file.";
 
 } // namespace
 

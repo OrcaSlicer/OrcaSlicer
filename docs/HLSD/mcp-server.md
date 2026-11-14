@@ -665,9 +665,9 @@ a confirmation on calls an agent makes all the time.
 PNG replaces no file without `overwrite`; `export_replay`, which can clear the journal, is not.
 `destructive`: every call deletes what a person made, with no undo: `delete_preset`, which takes the
 preset's file and its cloud copy. A tool that can lose work only when an argument asks for it is not:
-`new_project`, `generate_calibration_test` and `open_files` drop unsaved changes only with `discard_changes`, an output
-replaces a file only with `overwrite: true`, and `encode_recording` deletes its source only with
-`delete_source`. Nor is a tool that runs what its arguments name: the input tools (`click`, `set_widget_value`, `press_keys`, `mouse_gesture`), which press
+`new_project`, `generate_calibration_test` and `open_files` drop unsaved changes only with `discard_changes`, and an
+output replaces a file only with `overwrite: true`. Nor is `encode_recording`, which deletes only a recording this
+session made, once its MP4 has replaced it. Nor is a tool that runs what its arguments name: the input tools (`click`, `set_widget_value`, `press_keys`, `mouse_gesture`), which press
 whatever is on screen, a Delete button included, `run_action`, `call_tool`, `run_replay` and
 `run_script`. What they run may be destructive, but the client sees both in the arguments, and the
 label would ask on every call. `open_world` (`openWorldHint`): the tool can reach outside OrcaSlicer, to a
@@ -3083,9 +3083,10 @@ file, then drops what is still queued and leaves the sink to its threads, which 
 recording counts as active until its file is closed, for the one-at-a-time rule and for encodes.
 
 **Encoding up front.** `start_recording` takes the Start Recording dialog's encoding keys (`encode`,
-`encode_preset`, `codec`, `crf`, `speed`, `profile`), checked by `apply_recording_overrides()` with its
-defaults, the Balanced preset, and refuses `encode` without an ffmpeg before anything records. The
-recording keeps `encode_recording`'s arguments (`RecordingOptions::encode`), and the `stop_recording`
+`encode_preset`, `codec`, `crf`, `speed`, `profile`, `keep_raw_video_file`), checked by
+`apply_recording_overrides()` with its defaults, the Balanced preset, and refuses `encode` without an ffmpeg
+before anything records. The encode deletes the `.mkv` once the MP4 is written unless `keep_raw_video_file`
+keeps it, as every encode does (see Encoding). The recording keeps `encode_recording`'s arguments (`RecordingOptions::encode`), and the `stop_recording`
 that reports it, once its file is closed, starts the encode with `start_encode()` (`McpToolsRecord.cpp`): a job of
 its own, outside the journal (a replayed `start_recording` asks for it again), whose envelope the report
 carries as `encode`, so the agent waits for the MP4 by that job's id. A recording that ended on its own
@@ -3101,7 +3102,8 @@ and a recording of it for up to an hour. Both go in the person's Downloads folde
 Start Recording opens `RecordingDialog`, which splits its settings by the file they make. Record holds the
 JPEG quality of the `.mkv` and a switch for each overlay, the pointer and the caption, both off unless the
 person turns them on. Encode to MP4 holds whether ffmpeg encodes it once it ends, with a built-in preset or
-codec, CRF, speed and profile; it is off and disabled when no ffmpeg is found, and says how to get one. A
+codec, CRF, speed and profile, and whether the `.mkv` stays beside the MP4 (off unless the person turns it
+on); it is off and disabled when no ffmpeg is found, and says how to get one. A
 rail joins the two stages and shows whether the second runs. The dialog remembers what it starts with in
 AppConfig's `recording` section (`RecordingSettings`). The encode is
 `encode_recording` itself, run by `McpRecorder::encode_when_closed()` as an unjournaled job that the runtime
@@ -3181,11 +3183,16 @@ returns before the process is gone and boost's `terminate()` closes the handle r
 gone within 5 s keeps its files, which the error names, and its source and destination stay reserved for
 the session, since it may still be using them. `RecordingFiles`
 keeps the files in use, compared by `path_compare_key()` (Unicode case-folded on Windows and macOS): the
-recording until its file is closed, and each encode's source and destination. Encodes may share a source, but one with `delete_source` holds its source alone, and
-nothing writes a file anything else uses. Output goes to a temporary file of the call's own, renamed
-over the destination on success; the call's files (that, ffmpeg's log, and the listings it read) are
-removed whatever the outcome, and no other call's. `delete_source` deletes
-only a recording this session made.
+recording until its file is closed, and each encode's source and destination. Encodes may share a source, but one
+that deletes it holds it alone, and nothing writes a file anything else uses. Output goes to a temporary file of the
+call's own, renamed over the destination on success; the call's files (that, ffmpeg's log, and the listings it
+read) are removed whatever the outcome, and no other call's.
+
+An encode is asked for to get the MP4, so once the MP4 is written it deletes the `.mkv` unless
+`keep_raw_video_file` keeps it, the one name `encode_recording`, `start_recording` and the Start Recording dialog
+share; an encode that fails or is cancelled leaves it. It deletes only a recording this session made
+(`RecordingFiles::is_finished()`): any other `.mkv` is the person's own file, which stays, and the reply's
+`raw_video_file_deleted` and `note` say so.
 
 ## Preview data
 

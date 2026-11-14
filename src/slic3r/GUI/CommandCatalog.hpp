@@ -59,10 +59,11 @@ struct NativeCommand
     // without overwrite, and export_replay, which can clear the journal, is not. destructive: every call deletes
     // what a person made, with no undo: delete_preset. A command that can lose work only when an argument asks
     // for it is not: new_project, generate_calibration_test and open_files drop unsaved changes only with
-    // discard_changes, an output replaces a file only with overwrite, and encode_recording deletes its source
-    // only with delete_source. Nor is a command that runs what its arguments name (click and the other input
-    // tools, run_action, call_tool, run_replay, run_script), though what it runs may be. The client sees both in
-    // the arguments, and the label would ask on every call. open_world: it can reach outside OrcaSlicer (a
+    // discard_changes, and an output replaces a file only with overwrite. Nor is a command that runs what its
+    // arguments name (click and the other input tools, run_action, call_tool, run_replay, run_script), though
+    // what it runs may be. The client sees both in the arguments, and the label would ask on every call. Nor is
+    // encode_recording, which deletes only a recording this session made, once its MP4 has replaced it.
+    // open_world: it can reach outside OrcaSlicer (a
     // printer, the cloud account, the network, or anything the computer allows), including through what it runs.
     bool       read_only = false, destructive = false, idempotent = false, open_world = false;
     GuardClass guard     = GuardClass::Mutate;

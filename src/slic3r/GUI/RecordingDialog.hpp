@@ -31,10 +31,10 @@ boost::filesystem::path capture_folder(const Mcp::RecordingSettings& settings);
 
 // Start Recording's dialog. Its two stages say which settings make which file: Record, the JPEG quality of
 // the .mkv the frames go into and whether they show the pointer and captions, and Encode to MP4, which ffmpeg
-// runs once the recording ends, from a built-in preset or field by field. A rail joins them, showing whether
-// the second runs; it can't without an ffmpeg, and the stage then says how to get one. Below them is the
-// folder both files go in. Each control is named after the key of the command's parameter it sets, so an
-// agent can set it with set_value.
+// runs once the recording ends, from a built-in preset or field by field, and whether the .mkv stays beside
+// the MP4 it makes. A rail joins them, showing whether the second runs; it can't without an ffmpeg, and the
+// stage then says how to get one. Below them is the folder both files go in. Each control is named after the
+// key of the command's parameter it sets, so an agent can set it with set_widget_value.
 class RecordingDialog : public DPIDialog
 {
 public:
@@ -72,6 +72,7 @@ private:
     SpinInput*             m_crf           = nullptr;
     ::ComboBox*            m_speed         = nullptr;
     ::ComboBox*            m_profile       = nullptr;
+    ::SwitchButton*        m_keep_raw      = nullptr; // keep_raw_video_file
     ::TextInput*           m_folder_text   = nullptr;
     ::Button*              m_change_folder = nullptr;
     ::Label*               m_default_link  = nullptr;

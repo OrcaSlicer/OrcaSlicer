@@ -38,8 +38,9 @@
      "expect": {"/ended": {"eq": "stopped"}, "/frames": {"ge": 5}, "/written": {"ge": 5}, "/seconds": {"gt": 1}, "/size_bytes": {"gt": 0},
                 "/capture_ms": {"gt": 0}}},
     {"tool": "get_app_state", "expect": {"/recording": {"exists": false}}},
-    {"tool": "encode_recording", "args": {"save_path": "${out_dir}/session.mp4", "overwrite": true}, "optional": true,
-     "expect": {"/codec": {"eq": "h265"}, "/encoder": {"eq": "libx265"}, "/seconds": {"gt": 1}}},
+    {"tool": "encode_recording", "args": {"save_path": "${out_dir}/session.mp4", "overwrite": true, "keep_raw_video_file": true},
+     "optional": true,
+     "expect": {"/codec": {"eq": "h265"}, "/encoder": {"eq": "libx265"}, "/seconds": {"gt": 1}, "/raw_video_file_deleted": {"eq": false}}},
 
     // A recording a replay starts ends with that replay, its file closed when the replay's call returns.
     {"tool": "run_replay", "args": {"replay": {"orca_replay": 1, "name": "inner", "steps": [
@@ -49,7 +50,7 @@
      "expect": {"/passed": {"eq": true}, "/unfinished_recording": {"exists": false}}},
     {"tool": "stop_recording", "args": {"silent": true}, "expect": {"/ended": {"eq": "run_ended"}, "/path": {"regex": "inner\\.mkv$"}}},
     {"tool": "encode_recording", "args": {"overwrite": true, "codec": "h264"}, "optional": true,
-     "expect": {"/path": {"regex": "inner\\.mp4$"}, "/encoder": {"eq": "libx264"}}},
+     "expect": {"/path": {"regex": "inner\\.mp4$"}, "/encoder": {"eq": "libx264"}, "/raw_video_file_deleted": {"eq": true}}},
     // The replay's end released the file: recording to it again starts at once, with no overlays by default.
     {"tool": "start_recording", "args": {"save_path": "${out_dir}/inner.mkv", "overwrite": true},
      "expect": {"/captions": {"eq": false}, "/pointer": {"eq": false}}},
@@ -68,14 +69,27 @@
     {"tool": "stop_recording", "args": {"silent": true}, "expect": {"/ended": {"eq": "stopped"}}},
 
     // Encoding asked for up front (an ffmpeg with libx264): the stop that reports the recording starts the encode
-    // as a job of its own, which wait idle waits for.
+    // as a job of its own, which wait idle waits for, and the encode deletes the .mkv once the MP4 is written.
     {"tool": "start_recording", "args": {"save_path": "${out_dir}/encoded.mkv", "overwrite": true, "encode": true,
                                          "encode_preset": "compatible", "crf": 30}, "optional": true,
-     "expect": {"/encode/codec": {"eq": "h264"}, "/encode/crf": {"eq": 30}, "/encode/profile": {"eq": "high"}}},
+     "expect": {"/encode/codec": {"eq": "h264"}, "/encode/crf": {"eq": 30}, "/encode/profile": {"eq": "high"},
+                "/encode/keep_raw_video_file": {"eq": false}}},
     {"tool": "stop_recording", "args": {"silent": true}, "optional": true,
      "expect": {"/path": {"regex": "encoded\\.mkv$"}, "/encode/status": {"eq": "running"}, "/encode/job": {"exists": true}}},
     {"tool": "wait", "args": {"for": "idle", "timeout_s": 50}, "optional": true, "expect": {"/satisfied": {"eq": true}}},
     {"tool": "get_app_state", "optional": true,
-     "expect": {"/jobs/0/tool": {"eq": "encode_recording"}, "/jobs/0/state": {"eq": "done"}}}
+     "expect": {"/jobs/0/tool": {"eq": "encode_recording"}, "/jobs/0/state": {"eq": "done"}}},
+    {"tool": "run_script", "args": {"code": "import os\nresult = {name: os.path.exists(path) for name, path in args.items()}",
+                                    "args": {"mkv": "${out_dir}/encoded.mkv", "mp4": "${out_dir}/encoded.mp4"}}, "optional": true,
+     "expect": {"/result/mkv": {"eq": false}, "/result/mp4": {"eq": true}}},
+    // keep_raw_video_file keeps the .mkv beside the MP4.
+    {"tool": "start_recording", "args": {"save_path": "${out_dir}/kept.mkv", "overwrite": true, "encode": true,
+                                         "encode_preset": "compatible", "keep_raw_video_file": true}, "optional": true,
+     "expect": {"/encode/keep_raw_video_file": {"eq": true}}},
+    {"tool": "stop_recording", "args": {"silent": true}, "optional": true, "expect": {"/encode/job": {"exists": true}}},
+    {"tool": "wait", "args": {"for": "idle", "timeout_s": 50}, "optional": true, "expect": {"/satisfied": {"eq": true}}},
+    {"tool": "run_script", "args": {"code": "import os\nresult = {name: os.path.exists(path) for name, path in args.items()}",
+                                    "args": {"mkv": "${out_dir}/kept.mkv", "mp4": "${out_dir}/kept.mp4"}}, "optional": true,
+     "expect": {"/result/mkv": {"eq": true}, "/result/mp4": {"eq": true}}}
   ]
 }

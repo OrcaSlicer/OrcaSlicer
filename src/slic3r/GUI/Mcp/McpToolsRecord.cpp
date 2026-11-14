@@ -119,7 +119,8 @@ void register_record_tools(CommandCatalog& catalog)
         "the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so "
         "the frame rate drops where capturing is slow. One recording at a time: one a replay or script starts ends with it, a "
         "client's when the server is turned off. With encode, the stop_recording that reports it also encodes it to an MP4 "
-        "beside it, as the Start Recording command does; encode_recording makes an MP4 of any recording later. Called with no "
+        "beside it, as the Start Recording command does, and the .mkv is deleted once the MP4 is written unless "
+        "keep_raw_video_file; encode_recording makes an MP4 of any recording later. Called with no "
         "arguments, it opens the Start Recording dialog instead, as the Start Recording command does (blocked_by_dialog): "
         "its controls are named after their settings for set_widget_value, answer_dialog \"Start recording\" starts the "
         "person's recording, which neither the end of a replay or script nor the server turning off ends, and the dialog "
@@ -140,6 +141,8 @@ void register_record_tools(CommandCatalog& catalog)
                        {"profile", enum_prop({"high", "main", "baseline", "main10"},
                                              "With encode: h264 high, main or baseline; h265 main or main10 (default the preset's, else "
                                              "the codec's first).")},
+                       {"keep_raw_video_file", prop("boolean", "With encode: keep the .mkv beside the MP4 (default false: the "
+                                                               "encode deletes it once the MP4 is written).")},
                        {"save_path", prop("string", "Absolute .mkv path; default the session's output folder.")},
                        {"overwrite", prop("boolean", "Replace an existing save_path, and with encode its MP4.")}}),
         [](const json& args, ToolContext& ctx) {
@@ -212,7 +215,8 @@ void register_record_tools(CommandCatalog& catalog)
                 out["encode"] = {{"codec", settings.codec},
                                  {"crf", settings.crf},
                                  {"speed", settings.speed},
-                                 {"profile", settings.profile}};
+                                 {"profile", settings.profile},
+                                 {"keep_raw_video_file", settings.keep_raw_video_file}};
             // The limit it runs under, which a call that leaves it out did not choose.
             out["max_seconds"] = o.max_seconds;
             // The path used, so a replay records into its own output folder under the same name and its
@@ -232,7 +236,8 @@ void register_record_tools(CommandCatalog& catalog)
                         "the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, the replay or script that started it ended, a "
                         "write error) is reported once by the next stop_recording. For a recording started with encode, it then "
                         "starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns "
-                        "encode_recording's result. This is the call with silent: true. Called with no arguments, it stops "
+                        "encode_recording's result, whose raw_video_file_deleted says whether the .mkv was deleted. "
+                        "This is the call with silent: true. Called with no arguments, it stops "
                         "the recording as the Stop Recording command does, whoever started it: without waiting for its "
                         "file, it shows the person a notification naming it and replies with its path; the next "
                         "stop_recording with silent: true reports it as ended stopped_in_app.",
@@ -265,7 +270,8 @@ void register_record_tools(CommandCatalog& catalog)
         "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, else ffmpeg on PATH; it "
         "needs libx265 or libx264), keeping its timing. Takes this session's last finished recording unless path names "
         "one, and writes beside it unless save_path says where. A long encode returns a job: wait for it, or cancel_job {job} "
-        "stops it. delete_source removes the .mkv afterwards, only for a recording this session made.",
+        "stops it. Once the MP4 is written, it deletes the .mkv if this session recorded it, unless keep_raw_video_file; "
+        "any other .mkv is kept. raw_video_file_deleted in the reply says which.",
         object_schema({{"path", prop("string", "Absolute .mkv of a finished recording; default this session's last.")},
                        {"save_path", prop("string", "Absolute .mp4 path; default the recording's, with .mp4.")},
                        {"overwrite", prop("boolean", "Replace an existing save_path.")},
@@ -275,7 +281,8 @@ void register_record_tools(CommandCatalog& catalog)
                        {"profile", enum_prop({"high", "main", "baseline", "main10"},
                                              "h264: high, main or baseline; h265: main, or main10 for 10 bits per sample. Default the "
                                              "encoder's (high, main).")},
-                       {"delete_source", prop("boolean", "Delete the .mkv once encoded (a recording this session made).")}}),
+                       {"keep_raw_video_file", prop("boolean", "Keep the .mkv beside the MP4 (default false: a recording this "
+                                                               "session made is deleted once the MP4 is written).")}}),
         [](const json& args, ToolContext& ctx) {
             AutomationRuntime& runtime = ctx.runtime();
             const std::shared_ptr<RecordingFiles>& files = runtime.recorder().files();
@@ -311,9 +318,11 @@ void register_record_tools(CommandCatalog& catalog)
             }
             if (RecordingFiles::same_file(source, dest))
                 throw ToolFailure("save_path is the recording itself");
-            const bool remove = arg_bool(args, "delete_source", false);
-            if (remove && !files->is_finished(source))
-                throw ToolFailure("delete_source deletes only a recording this session made; " + path_to_utf8(source) + " is not one");
+            // The .mkv goes once the MP4 is written unless it is to be kept, and only a recording this session made:
+            // any other .mkv is the person's own file, so it stays.
+            const bool keep_asked = arg_bool(args, "keep_raw_video_file", false);
+            const bool ours       = files->is_finished(source);
+            const bool remove     = !keep_asked && ours;
 
             const std::string codec   = arg_string(args, "codec", "h265");
             const std::string encoder = encoder_for(codec);
@@ -420,8 +429,9 @@ void register_record_tools(CommandCatalog& catalog)
                                 {"encoder", encoder},
                                 {"seconds", std::round(seconds * 10.) / 10.},
                                 {"size_bytes", ec ? 0 : size}};
-            if (remove)
-                out["source_deleted"] = !fs::exists(source, ec);
+            out["raw_video_file_deleted"] = remove && !fs::exists(source, ec);
+            if (!keep_asked && !ours)
+                out["note"] = "The .mkv was kept: an encode deletes only a recording this session made";
             return ToolResult::ok(out);
         });
     encode.cancellable = true;

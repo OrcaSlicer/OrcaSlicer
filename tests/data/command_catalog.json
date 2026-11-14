@@ -4860,7 +4860,7 @@
   },
   {
    "completion": "none",
-   "description": "Record a video of OrcaSlicer until stop_recording: the main window with any modal dialog on it (target main), or the 3D view shown (canvas). Frames are MJPEG in a Matroska (.mkv) file with their real timestamps. With captions, the tool call acting on the app shows as a caption at the bottom (secret setting values never show); with pointer, the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so the frame rate drops where capturing is slow. One recording at a time: one a replay or script starts ends with it, a client's when the server is turned off. With encode, the stop_recording that reports it also encodes it to an MP4 beside it, as the Start Recording command does; encode_recording makes an MP4 of any recording later. Called with no arguments, it opens the Start Recording dialog instead, as the Start Recording command does (blocked_by_dialog): its controls are named after their settings for set_widget_value, answer_dialog \"Start recording\" starts the person's recording, which neither the end of a replay or script nor the server turning off ends, and the dialog remembers the settings; silent: true starts one here at once with the defaults.",
+   "description": "Record a video of OrcaSlicer until stop_recording: the main window with any modal dialog on it (target main), or the 3D view shown (canvas). Frames are MJPEG in a Matroska (.mkv) file with their real timestamps. With captions, the tool call acting on the app shows as a caption at the bottom (secret setting values never show); with pointer, the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so the frame rate drops where capturing is slow. One recording at a time: one a replay or script starts ends with it, a client's when the server is turned off. With encode, the stop_recording that reports it also encodes it to an MP4 beside it, as the Start Recording command does, and the .mkv is deleted once the MP4 is written unless keep_raw_video_file; encode_recording makes an MP4 of any recording later. Called with no arguments, it opens the Start Recording dialog instead, as the Start Recording command does (blocked_by_dialog): its controls are named after their settings for set_widget_value, answer_dialog \"Start recording\" starts the person's recording, which neither the end of a replay or script nor the server turning off ends, and the dialog remembers the settings; silent: true starts one here at once with the defaults.",
    "destructive": false,
    "group": "Commands",
    "guard": "inspect",
@@ -4906,6 +4906,10 @@
       "maximum": 30,
       "minimum": 1,
       "type": "integer"
+     },
+     "keep_raw_video_file": {
+      "description": "With encode: keep the .mkv beside the MP4 (default false: the encode deletes it once the MP4 is written).",
+      "type": "boolean"
      },
      "max_dim": {
       "description": "Long edge of the video in pixels (default 1920).",
@@ -4989,7 +4993,7 @@
   },
   {
    "completion": "none",
-   "description": "Stop the running recording and return its file once it is written: seconds, frames captured and written, frames dropped when encoding fell behind, failed when they could not be encoded, or skipped when the window could not be captured, the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, the replay or script that started it ended, a write error) is reported once by the next stop_recording. For a recording started with encode, it then starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns encode_recording's result. This is the call with silent: true. Called with no arguments, it stops the recording as the Stop Recording command does, whoever started it: without waiting for its file, it shows the person a notification naming it and replies with its path; the next stop_recording with silent: true reports it as ended stopped_in_app.",
+   "description": "Stop the running recording and return its file once it is written: seconds, frames captured and written, frames dropped when encoding fell behind, failed when they could not be encoded, or skipped when the window could not be captured, the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, the replay or script that started it ended, a write error) is reported once by the next stop_recording. For a recording started with encode, it then starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns encode_recording's result, whose raw_video_file_deleted says whether the .mkv was deleted. This is the call with silent: true. Called with no arguments, it stops the recording as the Stop Recording command does, whoever started it: without waiting for its file, it shows the person a notification naming it and replies with its path; the next stop_recording with silent: true reports it as ended stopped_in_app.",
    "destructive": false,
    "group": "Commands",
    "guard": "inspect",
@@ -5017,7 +5021,7 @@
   },
   {
    "completion": "none",
-   "description": "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, else ffmpeg on PATH; it needs libx265 or libx264), keeping its timing. Takes this session's last finished recording unless path names one, and writes beside it unless save_path says where. A long encode returns a job: wait for it, or cancel_job {job} stops it. delete_source removes the .mkv afterwards, only for a recording this session made.",
+   "description": "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, else ffmpeg on PATH; it needs libx265 or libx264), keeping its timing. Takes this session's last finished recording unless path names one, and writes beside it unless save_path says where. A long encode returns a job: wait for it, or cancel_job {job} stops it. Once the MP4 is written, it deletes the .mkv if this session recorded it, unless keep_raw_video_file; any other .mkv is kept. raw_video_file_deleted in the reply says which.",
    "destructive": false,
    "group": "ui",
    "guard": "inspect",
@@ -5040,8 +5044,8 @@
       "minimum": 0,
       "type": "integer"
      },
-     "delete_source": {
-      "description": "Delete the .mkv once encoded (a recording this session made).",
+     "keep_raw_video_file": {
+      "description": "Keep the .mkv beside the MP4 (default false: a recording this session made is deleted once the MP4 is written).",
       "type": "boolean"
      },
      "overwrite": {

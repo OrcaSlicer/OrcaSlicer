@@ -1214,12 +1214,14 @@ TEST_CASE("each encode preset is matched by its own fields, and a changed field 
         s.crf += 1;
         CHECK(matching_encode_preset(s) == "custom");
     }
-    // The defaults are the Balanced preset, with the overlays and encoding off until the person turns them on.
+    // The defaults are the Balanced preset, with the overlays and encoding off until the person turns them on, and
+    // an encode keeping only the MP4.
     const RecordingSettings defaults;
     CHECK(matching_encode_preset(defaults) == "balanced");
     CHECK_FALSE(defaults.captions);
     CHECK_FALSE(defaults.pointer);
     CHECK_FALSE(defaults.encode);
+    CHECK_FALSE(defaults.keep_raw_video_file);
     CHECK(defaults.folder.empty());
 }
 
@@ -1235,6 +1237,7 @@ TEST_CASE("remembered recording settings come back, and a bad value keeps its de
     s.crf      = 20;
     s.speed    = "slow";
     s.profile  = "baseline";
+    s.keep_raw_video_file = true;
     s.folder   = "/somewhere/videos";
     save_recording_settings(config, s);
     CHECK(load_recording_settings(config) == s);
@@ -1278,12 +1281,19 @@ TEST_CASE("start_recording's encode arguments override the settings, a preset be
     CHECK_FALSE(apply_recording_overrides(s, json{{"encode", "yes"}}).empty());
     CHECK_FALSE(apply_recording_overrides(s, json{{"speed", "warp"}}).empty());
     CHECK_FALSE(apply_recording_overrides(s, json{{"encode_preset", "tiny"}}).empty());
+    CHECK_FALSE(apply_recording_overrides(s, json{{"keep_raw_video_file", "yes"}}).empty());
     CHECK(s == before);
 
-    const json args = encode_arguments(s, "C:/videos/a.mkv");
+    // The encode is told whether to keep the .mkv.
+    json args = encode_arguments(s, "C:/videos/a.mkv");
     CHECK(args["path"] == "C:/videos/a.mkv");
     CHECK(args["codec"] == "h265");
     CHECK(args["profile"] == "main10");
+    CHECK(args["keep_raw_video_file"] == false);
+    CHECK(apply_recording_overrides(s, json{{"keep_raw_video_file", true}}).empty());
+    CHECK(s.keep_raw_video_file);
+    args = encode_arguments(s, "C:/videos/a.mkv");
+    CHECK(args["keep_raw_video_file"] == true);
 }
 
 TEST_CASE("a capture is named for its time, and a name in use gets a number", "[Mcp][Recording]")

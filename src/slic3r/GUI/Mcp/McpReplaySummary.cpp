@@ -347,9 +347,9 @@ StepDescription describe_step(const CommandCatalog& catalog, const ReplayStep& s
     if (one_of(tool, {"screenshot", "start_recording"}))
         writes_outside("save_path");
     if (tool == "encode_recording") {
-        // Without save_path the video goes beside its source; delete_source removes the source.
+        // Without save_path the video goes beside its source, which it deletes unless keep_raw_video_file.
         writes_outside(args.contains("save_path") ? "save_path" : "path");
-        if (args.contains("delete_source") && args["delete_source"].is_boolean() && args["delete_source"].get<bool>())
+        if (!(args.contains("keep_raw_video_file") && args["keep_raw_video_file"].is_boolean() && args["keep_raw_video_file"].get<bool>()))
             writes_outside("path");
     }
     if (tool == "export_replay")

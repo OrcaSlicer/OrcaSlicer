@@ -247,6 +247,10 @@ TEST_CASE("files written inside the output folder are not flagged", "[Mcp]")
         {R"({"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "Save", "button": "cancel"}]}})", {}},
         {R"({"tool": "auto_answer_dialogs", "args": {"rules": [{"match": "Discard", "button": "no"}, {"match": "Save", "button": "ok", "path": "C:/x/a.3mf", "overwrite": true}]}})",
          {"writes_file"}},
+        // An encode deletes its source unless it keeps the raw video file.
+        {R"({"tool": "encode_recording", "args": {"path": "C:/x/a.mkv", "save_path": "${out_dir}/a.mp4"}})", {"writes_file"}},
+        {R"({"tool": "encode_recording", "args": {"path": "C:/x/a.mkv", "save_path": "${out_dir}/a.mp4", "keep_raw_video_file": true}})", {}},
+        {R"({"tool": "encode_recording", "args": {"path": "${out_dir}/a.mkv"}})", {}},
         {R"({"tool": "export", "args": {"path": "${out_dir}/a.gcode"}})", {"writes_file"}},
         {R"({"tool": "save_preset", "args": {"type": "filament", "name": "Mine"}})", {"changes_presets"}},
         {R"({"tool": "delete_preset", "args": {"type": "filament", "name": "Mine"}})", {"changes_presets"}},

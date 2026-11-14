@@ -90,6 +90,7 @@ RecordingSettings load_recording_settings(const AppConfig& config)
     s.captions = config.get(kSection, "captions") == "true";
     s.pointer  = config.get(kSection, "pointer") == "true";
     s.encode   = config.get(kSection, "encode") == "true";
+    s.keep_raw_video_file = config.get(kSection, "keep_raw_video_file") == "true";
     if (const std::string codec = config.get(kSection, "codec"); !encoder_for(codec).empty())
         s.codec = codec;
     if (const std::string speed = config.get(kSection, "speed"); listed(encoder_speeds(), speed))
@@ -111,6 +112,7 @@ void save_recording_settings(AppConfig& config, const RecordingSettings& setting
     config.set(kSection, "crf", std::to_string(settings.crf));
     config.set(kSection, "speed", settings.speed);
     config.set(kSection, "profile", settings.profile);
+    config.set(kSection, "keep_raw_video_file", settings.keep_raw_video_file);
     config.set(kSection, "folder", settings.folder);
 }
 
@@ -157,7 +159,8 @@ std::string apply_recording_overrides(RecordingSettings& settings, const json& o
         apply_encode_preset(s, *p);
     }
     if (!(err = flag("encode", s.encode)).empty() || !(err = text("codec", {"h265", "h264"}, s.codec)).empty() ||
-        !(err = integer("crf", 0, kMaxCrf, s.crf)).empty() || !(err = text("speed", encoder_speeds(), s.speed)).empty())
+        !(err = integer("crf", 0, kMaxCrf, s.crf)).empty() || !(err = text("speed", encoder_speeds(), s.speed)).empty() ||
+        !(err = flag("keep_raw_video_file", s.keep_raw_video_file)).empty())
         return err;
     if (overrides.contains("profile")) {
         if (!(err = text("profile", codec_profiles(s.codec), s.profile)).empty())
@@ -171,7 +174,8 @@ std::string apply_recording_overrides(RecordingSettings& settings, const json& o
 
 json encode_arguments(const RecordingSettings& settings, const std::string& path)
 {
-    return {{"path", path}, {"codec", settings.codec}, {"crf", settings.crf}, {"speed", settings.speed}, {"profile", settings.profile}};
+    return {{"path", path},           {"codec", settings.codec},     {"crf", settings.crf},
+            {"speed", settings.speed}, {"profile", settings.profile}, {"keep_raw_video_file", settings.keep_raw_video_file}};
 }
 
 }}} // namespace Slic3r::GUI::Mcp

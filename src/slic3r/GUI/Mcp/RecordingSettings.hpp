@@ -12,9 +12,9 @@ class AppConfig;
 namespace Slic3r { namespace GUI { namespace Mcp {
 
 // What the person's Start Recording asks for: the frames' JPEG quality, whether they show captions and the
-// pointer, whether and how the recording is encoded to MP4 once it ends, and the folder both go in. The Start
-// Recording dialog shows them and AppConfig's "recording" section remembers them; the command's parameter
-// overrides them for one recording.
+// pointer, whether and how the recording is encoded to MP4 once it ends and whether the .mkv stays beside the
+// MP4, and the folder both go in. The Start Recording dialog shows them and AppConfig's "recording" section
+// remembers them; the command's parameter overrides them for one recording.
 struct RecordingSettings
 {
     int         quality  = 80;    // the frames' JPEG quality, 30-95, as start_recording's
@@ -25,12 +25,16 @@ struct RecordingSettings
     int         crf     = 28;
     std::string speed   = "medium";
     std::string profile = "main";
+    // With encode: the .mkv stays beside the MP4. Off, the encode deletes it once the MP4 is written, so a
+    // failed or cancelled encode still leaves it.
+    bool        keep_raw_video_file = false;
     std::string folder; // absolute, UTF-8; empty for the default folder, the person's Downloads
 
     bool operator==(const RecordingSettings& o) const
     {
         return quality == o.quality && captions == o.captions && pointer == o.pointer && encode == o.encode && codec == o.codec &&
-               crf == o.crf && speed == o.speed && profile == o.profile && folder == o.folder;
+               crf == o.crf && speed == o.speed && profile == o.profile && keep_raw_video_file == o.keep_raw_video_file &&
+               folder == o.folder;
     }
 };
 
@@ -56,10 +60,10 @@ std::string matching_encode_preset(const RecordingSettings& settings);
 RecordingSettings load_recording_settings(const AppConfig& config);
 void              save_recording_settings(AppConfig& config, const RecordingSettings& settings);
 
-// Applies start_recording's encode arguments, an object with any of encode, encode_preset, codec, crf, speed and
-// profile, other keys left alone: encode_preset's fields first, then the fields it names. A codec named without a
-// profile takes the codec's default profile when the one it had does not fit. Returns what is wrong, "" when
-// nothing; `settings` is then unchanged.
+// Applies start_recording's encode arguments, an object with any of encode, encode_preset, codec, crf, speed,
+// profile and keep_raw_video_file, other keys left alone: encode_preset's fields first, then the fields it
+// names. A codec named without a profile takes the codec's default profile when the one it had does not fit.
+// Returns what is wrong, "" when nothing; `settings` is then unchanged.
 std::string apply_recording_overrides(RecordingSettings& settings, const nlohmann::json& overrides);
 
 // encode_recording's arguments for the recording at `path` (UTF-8).
