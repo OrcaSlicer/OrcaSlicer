@@ -126,6 +126,7 @@ bool GLGizmoFdmSupports::on_init()
     m_desc["tool_type"]          = _L("Tool type");
     m_desc["gap_fill"]           = _L("Gap fill");
     m_desc["cursor_size"]        = _L("Brush size");
+    m_desc["fill_spacing"]       = _L("Fill spacing");
     m_desc["smart_fill_angle"]   = _L("Smart fill angle");
     m_desc["gap_area"]           = _L("Gap area");
 
@@ -213,6 +214,10 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
     if (! m_c->selection_info()->model_object())
         return;
 
+    // ORCA: the LINE anchor's rubber band, drawn in the ImGui pass so it survives the cursor
+    //       leaving the part.
+    render_tool_preview();
+
     float  scale       = m_parent.get_scale();
     #ifdef WIN32
         int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
@@ -277,14 +282,14 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc.at("tool_type"));
-    std::array<wchar_t, 4> tool_ids = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon };
-    std::array<wchar_t, 4> icons;
+    std::array<wchar_t, 6> tool_ids = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon, ImGui::LineToolIcon, ImGui::RectToolIcon };
+    std::array<wchar_t, 6> icons;
     if (m_is_dark_mode)
-        icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon, ImGui::FillButtonDarkIcon, ImGui::GapFillDarkIcon };
+        icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon, ImGui::FillButtonDarkIcon, ImGui::GapFillDarkIcon, ImGui::LineToolDarkIcon, ImGui::RectToolDarkIcon };
     else
-        icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon };
+        icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon, ImGui::LineToolIcon, ImGui::RectToolIcon };
 
-    std::array<wxString, 4> tool_tips = { _L("Circle"), _L("Sphere"), _L("Fill"), _L("Gap Fill") };
+    std::array<wxString, 6> tool_tips = { _L("Circle"), _L("Sphere"), _L("Fill"), _L("Gap Fill"), _L("Line"), _L("Rectangle") };
     for (int i = 0; i < tool_ids.size(); i++) {
         //std::string  str_label = std::string("##");
         //std::wstring btn_name = icons[i] + boost::nowide::widen(str_label);
@@ -389,6 +394,39 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##smart_fill_angle_input", &m_smart_fill_angle, 0.05f, 0.0f, 0.0f, "%.2f");
+    } else if (m_current_tool == ImGui::LineToolIcon) {
+        m_cursor_type = TriangleSelector::CursorType::CIRCLE;
+        m_tool_type   = ToolType::LINE;
+
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("cursor_size"));
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+    } else if (m_current_tool == ImGui::RectToolIcon) {
+        m_cursor_type = TriangleSelector::CursorType::CIRCLE;
+        m_tool_type   = ToolType::RECTANGLE;
+
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("cursor_size"));
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("fill_spacing"));
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##fill_spacing", &m_rect_spacing_px, RectSpacingMin, RectSpacingMax, "%.0f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##fill_spacing_input", &m_rect_spacing_px, 1.f, 0.0f, 0.0f, "%.0f");
     } else if (m_current_tool == ImGui::GapFillIcon) {
         m_tool_type = ToolType::GAP_FILL;
         m_cursor_type = TriangleSelector::CursorType::POINTER;
@@ -500,6 +538,12 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
 
 void GLGizmoFdmSupports::tool_changed(wchar_t old_tool, wchar_t new_tool)
 {
+    // ORCA: a tool switch drops a LINE anchor or RECTANGLE corner that never got its second click.
+    if (old_tool == ImGui::LineToolIcon || new_tool == ImGui::LineToolIcon)
+        m_line_pending = false;
+    if (old_tool == ImGui::RectToolIcon || new_tool == ImGui::RectToolIcon)
+        m_rect_pending = false;
+
     if ((old_tool == ImGui::GapFillIcon && new_tool == ImGui::GapFillIcon) ||
         (old_tool != ImGui::GapFillIcon && new_tool != ImGui::GapFillIcon))
         return;
