@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "test_helpers.hpp"
@@ -15,6 +16,7 @@
 #include "libslic3r/libslic3r.h"
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -161,6 +163,95 @@ TEST_CASE("Overhang fan transitions do not depend on overhang speed", "[Cooling]
                         [](const auto &command) { return command.second.find("S255") != std::string::npos; }));
     REQUIRE(with_speed_feedrates != without_speed_feedrates);
     CHECK(with_speed_fan == without_speed_fan);
+}
+
+// Per layer: the time of its XY moves at their feed rates, and the speeds of its outer wall extrusions, in mm/s.
+struct LayerMoves
+{
+    double              time = 0.;
+    std::vector<double> outer_wall_speeds;
+};
+
+static std::vector<LayerMoves> layer_moves(const std::string &gcode)
+{
+    std::vector<LayerMoves> layers;
+    bool outer_wall = false;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&layers, &outer_wall](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view comment = line.comment();
+        if (comment == "TEST_LAYER")
+            layers.emplace_back();
+        else if (comment.rfind("TYPE:", 0) == 0)
+            outer_wall = comment == "TYPE:Outer wall";
+        const double speed = line.new_F(self) / MM_PER_MIN;
+        if (layers.empty() || speed <= 0. || !(line.cmd_is("G0") || line.cmd_is("G1")))
+            return;
+        layers.back().time += line.dist_XY(self) / speed;
+        if (outer_wall && line.extruding(self))
+            layers.back().outer_wall_speeds.push_back(speed);
+    });
+    return layers;
+}
+
+TEST_CASE("Layer cooling slowdown keeps outer walls out of the resonance avoidance range", "[Cooling]")
+{
+    constexpr double min_speed = 40.;
+    constexpr double max_speed = 90.;
+    // With inner walls and infill to slow down instead, the outer walls stay at the top of the range. A lone outer
+    // wall cannot pass its time on, so it drops to the bottom; its layers are quick, hence the shorter layer time.
+    const bool   lone_wall  = GENERATE(false, true);
+    const double held_speed = lone_wall ? min_speed : max_speed;
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "bottom_shell_layers",           lone_wall ? 0 : 3 },
+        { "dont_slow_down_outer_wall",     false },
+        { "enable_arc_fitting",            "disabled" },
+        { "enable_overhang_speed",         false },
+        { "filament_max_volumetric_speed", 100 },
+        { "initial_layer_print_height",    0.3 },
+        // Below the range, so resonance avoidance leaves it alone.
+        { "initial_layer_speed",           30 },
+        { "layer_height",                  0.3 },
+        { "max_resonance_avoidance_speed", max_speed },
+        { "min_resonance_avoidance_speed", min_speed },
+        { "outer_wall_speed",              200 },
+        { "slow_down_for_layer_cooling",   true },
+        { "slow_down_layer_time",          lone_wall ? 2 : 10 },
+        { "slow_down_layers",              0 },
+        { "slow_down_min_speed",           10 },
+        { "sparse_infill_density",         lone_wall ? "0%" : "15%" },
+        { "top_shell_layers",              lone_wall ? 0 : 3 },
+        { "wall_loops",                    lone_wall ? 1 : 3 },
+    });
+    config.set_key_value("layer_change_gcode", new ConfigOptionString{";TEST_LAYER"});
+
+    // A cone's layers shrink upwards, so the slowdown deepens through the range.
+    config.set_deserialize_strict({ { "resonance_avoidance", false } });
+    const std::vector<LayerMoves> without = layer_moves(slice({ make_cone(15., 15.) }, config));
+    config.set_deserialize_strict({ { "resonance_avoidance", true } });
+    const std::vector<LayerMoves> with = layer_moves(slice({ make_cone(15., 15.) }, config));
+
+    std::vector<double> without_in_range;
+    std::vector<double> with_in_range;
+    bool                held = false;
+    for (const LayerMoves &layer : without)
+        for (double speed : layer.outer_wall_speeds)
+            if (speed > min_speed + 0.5 && speed < max_speed - 0.5)
+                without_in_range.push_back(speed);
+    for (const LayerMoves &layer : with)
+        for (double speed : layer.outer_wall_speeds) {
+            if (speed > min_speed + 0.5 && speed < max_speed - 0.5)
+                with_in_range.push_back(speed);
+            held |= std::abs(speed - held_speed) < 0.1;
+        }
+    REQUIRE_FALSE(without_in_range.empty());
+    CHECK(with_in_range.empty());
+    CHECK(held);
+
+    // No layer gets shorter than the slowdown made it without resonance avoidance.
+    REQUIRE(with.size() == without.size());
+    for (size_t i = 0; i < with.size(); ++i)
+        CHECK(with[i].time > 0.995 * without[i].time);
 }
 
 // Speeds of the extruding moves, in mm/s, in print order.
