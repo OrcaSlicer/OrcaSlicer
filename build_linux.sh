@@ -485,6 +485,8 @@ elif [[ "${DISTRIBUTION_LIKE}" == *"arch"* ]] ; then
     DISTRIBUTION="arch"
 elif [[ "${DISTRIBUTION_LIKE}" == *"suse"* ]] ; then
     DISTRIBUTION="suse"
+elif [[ "${DISTRIBUTION_LIKE}" == *"fedora"* ]] ; then
+    DISTRIBUTION="fedora"
 fi
 
 if [ ! -f "./scripts/linux.d/${DISTRIBUTION}" ] ; then
