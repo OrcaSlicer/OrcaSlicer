@@ -1,4 +1,7 @@
 #include "PluginLoader.hpp"
+#ifdef SLIC3R_CAD
+#include "host/PluginHostCad.hpp"
+#endif
 
 // plugin_loader fills and tears down a Plugin, so it needs the complete type. The
 // declaration lives with the registry that owns it; the dependency is .cpp-only, so the
@@ -144,6 +147,9 @@ void teardown_capabilities(std::vector<std::shared_ptr<PluginCapabilityInterface
         } catch (...) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Plugin on_unload failed";
         }
+#ifdef SLIC3R_CAD
+        PluginHostCad::close_for_plugin(capability->audit_plugin_key());
+#endif
     }
     capabilities.clear();
 }

@@ -53,6 +53,36 @@
 
 namespace py = pybind11;
 
+#ifdef SLIC3R_CAD
+TEST_CASE("CAD face bindings return no selection before a Design viewport exists", "[PluginHost][Python]")
+{
+    py::object cad = import_orca_module().attr("host").attr("cad");
+    CHECK(cad.attr("selected_face")().is_none());
+    CHECK(py::hasattr(cad, "SelectedFace"));
+    CHECK(py::hasattr(cad, "FaceSelectionSubscription"));
+    CHECK(cad.attr("selected_shape")().is_none());
+    CHECK(cad.attr("selected_edge")().is_none());
+    CHECK(cad.attr("selected_vertex")().is_none());
+    CHECK(py::hasattr(cad, "Shape"));
+    CHECK(py::hasattr(cad, "ShapeType"));
+    CHECK(py::hasattr(cad, "BoundaryLoop"));
+    CHECK(py::hasattr(cad, "Frame"));
+    // An unattributed callback could not be cleaned up on plugin unload.
+    try {
+        cad.attr("on_face_selection_changed")(py::cpp_function([](py::object) {}));
+        FAIL("subscription unexpectedly accepted a call outside a plugin capability");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+    }
+    try {
+        cad.attr("on_selection_changed")(py::cpp_function([](py::object) {}));
+        FAIL("generic subscription unexpectedly accepted an unattributed callback");
+    } catch (const py::error_already_set& error) {
+        CHECK(error.matches(PyExc_RuntimeError));
+    }
+}
+#endif
+
 namespace {
 
 // import_orca_module() lives in python_test_support.hpp (shared with

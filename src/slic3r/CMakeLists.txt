@@ -865,6 +865,12 @@ set(SLIC3R_GUI_SOURCES
 # All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
 if (SLIC3R_CAD)
     list(APPEND SLIC3R_GUI_SOURCES
+        GUI/CAD/CadFaceSelection.hpp
+        GUI/CAD/CadShapeSelection.hpp
+        plugin/host/CadFaceSelectionState.hpp
+        plugin/host/PluginHostCad.cpp
+        plugin/host/PluginHostCadGeometry.cpp
+        plugin/host/PluginHostCad.hpp
         GUI/CAD/DesignPanel.cpp
         GUI/CAD/DesignPanel.hpp
         GUI/CAD/DesignRowList.cpp

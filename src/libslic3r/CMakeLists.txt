@@ -584,6 +584,8 @@ set(lisbslic3r_sources
 # vendored SolveSpace solver; both are pulled in only when SLIC3R_CAD is ON.
 if (SLIC3R_CAD)
     list(APPEND lisbslic3r_sources
+            CAD/CadShape.cpp
+            CAD/CadShape.hpp
             CAD/GeometryEngine.cpp
             CAD/GeometryEngine.hpp
             CAD/SketchEngine.cpp

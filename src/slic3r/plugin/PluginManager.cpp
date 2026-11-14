@@ -17,6 +17,9 @@
 #include "PyPluginTrampoline.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginBridge.hpp"
+#ifdef SLIC3R_CAD
+#include "host/PluginHostCad.hpp"
+#endif
 
 #include "OrcaCloudServiceAgent.hpp"
 #include "libslic3r/Semver.hpp"
@@ -76,6 +79,10 @@ std::vector<std::string>* permission_bucket(PluginPermissions& permissions, Plug
 
 void Plugin::release_module()
 {
+#ifdef SLIC3R_CAD
+    // Also covers a failed load and subscriptions created by on_unload().
+    PluginHostCad::close_for_plugin(descriptor.plugin_key);
+#endif
     if (module == nullptr && plugin_sys_paths.empty() && plugin_modules.empty())
         return;
 
@@ -93,6 +100,10 @@ PluginManager& PluginManager::instance()
     // next, so ~PluginManager can still drain it during its own shutdown().
     PythonInterpreter::instance();
     ScriptAsyncRuntime::instance();
+#ifdef SLIC3R_CAD
+    // Unloaded entries still call CAD cleanup from ~Plugin during static destruction.
+    PluginHostCad::initialize();
+#endif
     static PluginManager inst;
     return inst;
 }
@@ -1119,6 +1130,9 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
         return true;
     }
 
+#ifdef SLIC3R_CAD
+    PluginHostCad::close_for_plugin(plugin_key);
+#endif
     notify_unload_complete();
 
     cancel_and_wait_for_capabilities(removed.capabilities);
@@ -1159,8 +1173,12 @@ void PluginManager::unload_all_plugins()
 
     // Bulk shutdown intentionally skips the normal unload notification path, but resources owned
     // by GUI subscribers still need to be torn down before the interpreter is finalized.
-    for (const std::string& key : removed_keys)
+    for (const std::string& key : removed_keys) {
+#ifdef SLIC3R_CAD
+        PluginHostCad::close_for_plugin(key);
+#endif
         run_on_unload_callbacks(key);
+    }
 
     // Broadcast cancellation to every plugin before waiting. This keeps bulk unload from
     // starving a later plugin while an earlier plugin uses the full cancellation grace period.

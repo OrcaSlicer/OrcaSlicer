@@ -28,6 +28,14 @@
 #include <vector>
 #include <cstddef>
 #include <math.h>
+#include <utility>
+#include <BRepPrimAPI_MakeCone.hxx>
+#include <BRep_Tool.hxx>
+#include <TopExp.hxx>
+#include <TopoDS.hxx>
+#include <TopoDS_Edge.hxx>
+#include <TopoDS_Vertex.hxx>
+#include <gp_Pnt.hxx>
 
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/CAD/SketchEngine.hpp"
@@ -35,13 +43,102 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/CAD/CadDocument.hpp"
+#include "libslic3r/CAD/CadShape.hpp"
+#include "libslic3r/CAD/GeometryEngine.hpp"
 #include "slic3r/GUI/3DScene.hpp"
 #include "slic3r/GUI/CAD/DesignSketchTool.hpp"
+#include "slic3r/plugin/host/CadFaceSelectionState.hpp"
+
+namespace Slic3r::GUI {
+// Exercise the same native transition that consumes resolved canvas hits, without a GL context.
+struct DesignSketchToolTestAccess
+{
+    static bool pick(DesignSketchTool& tool, DesignSketchTool::SolidSel kind, int index, bool extend = false,
+                     const Vec3d& vertex = Vec3d::Zero())
+    {
+        DesignSketchTool::SolidPick hit;
+        hit.kind = kind;
+        hit.body = 0;
+        hit.face = 0;
+        if (kind == DesignSketchTool::SolidSel::Face) hit.face = index;
+        if (kind == DesignSketchTool::SolidSel::Edge) hit.edge = index;
+        hit.vertex_pt = vertex;
+        return tool.apply_solid_pick(std::move(hit), extend);
+    }
+};
+} // namespace Slic3r::GUI
 
 using namespace Slic3r;
 using namespace Slic3r::GUI;
 using Catch::Matchers::WithinAbs;
 using Catch::Matchers::WithinRel;
+
+TEST_CASE("Native CAD edge removal and pick transitions publish clean snapshots", "[DesignSketchTool][CadFaceSelection][Regression]")
+{
+    CadDocument doc;
+    CadFeature imported;
+    imported.type = CadFeatureType::Import;
+    imported.imported_solid = BRepPrimAPI_MakeCone(11.4, 36.4, 25.).Shape();
+    doc.features.push_back(std::move(imported));
+    REQUIRE(doc.recompute());
+
+    DesignSketchTool tool;
+    tool.set_solid_pick(&doc.bodies, &doc.display_mesh, &doc.display_tri_face, &doc.display_tri_body);
+    CadShapeSelectionState state;
+    tool.on_cad_selection_changed = [&](auto selection) { state.update(std::move(selection)); };
+    using Pick = DesignSketchToolTestAccess;
+    using Kind = DesignSketchTool::SolidSel;
+
+    REQUIRE(Pick::pick(tool, Kind::Edge, 0));
+    REQUIRE(Pick::pick(tool, Kind::Edge, 2, true));
+    REQUIRE(state.selected());
+    const std::vector<int> both_edges{0, 2};
+    CHECK(state.selected()->edge_indices == both_edges);
+    const auto added_revision = state.selected()->selection_revision;
+    REQUIRE(Pick::pick(tool, Kind::Edge, 0, true));
+    REQUIRE(state.selected());
+    CHECK(state.selected()->edge_indices == std::vector<int>{2});
+    CHECK(state.selected()->edge_index == 2);
+    CHECK(state.selected()->selection_revision > added_revision);
+    CHECK(state.selected()->shape->type() == CadShapeType::Edge);
+    REQUIRE(Pick::pick(tool, Kind::Edge, 2, true));
+    CHECK_FALSE(state.selected());
+
+    // Removing the primary edge promotes the previous edge instead of keeping a stale id.
+    REQUIRE(Pick::pick(tool, Kind::Edge, 0));
+    REQUIRE(Pick::pick(tool, Kind::Edge, 2, true));
+    REQUIRE(Pick::pick(tool, Kind::Edge, 2, true));
+    REQUIRE(state.selected());
+    CHECK(state.selected()->edge_index == 0);
+    CHECK(state.selected()->edge_indices == std::vector<int>{0});
+    const auto edge_revision = state.selected()->selection_revision;
+
+    const auto edge = TopoDS::Edge(GeometryEngine::edge_by_index(doc.bodies[0].shape, 0));
+    const gp_Pnt vertex = BRep_Tool::Pnt(TopExp::FirstVertex(edge));
+    REQUIRE(Pick::pick(tool, Kind::Vertex, 0, false, Vec3d(vertex.X(), vertex.Y(), vertex.Z())));
+    REQUIRE(state.selected());
+    CHECK(state.selected()->kind == "vertex");
+    CHECK(state.selected()->face_index == -1);
+    CHECK(state.selected()->edge_index == -1);
+    CHECK(state.selected()->edge_indices.empty());
+    CHECK(state.selected()->vertex_index >= 0);
+    CHECK_FALSE(state.selected()->face);
+    CHECK(state.selected()->shape->type() == CadShapeType::Vertex);
+    CHECK(state.selected()->selection_revision > edge_revision);
+    const auto vertex_revision = state.selected()->selection_revision;
+
+    REQUIRE(Pick::pick(tool, Kind::Face, 1));
+    REQUIRE(state.selected());
+    CHECK(state.selected()->kind == "face");
+    CHECK(state.selected()->face_index == 1);
+    CHECK(state.selected()->edge_index == -1);
+    CHECK(state.selected()->vertex_index == -1);
+    CHECK(state.selected()->edge_indices.empty());
+    CHECK(state.selected()->shape->type() == CadShapeType::Face);
+    CHECK(state.selected()->selection_revision > vertex_revision);
+    REQUIRE(state.selected()->face);
+    CHECK(state.selected()->face->face_index == 1);
+}
 
 namespace {
 
