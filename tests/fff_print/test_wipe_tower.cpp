@@ -432,6 +432,46 @@ static DynamicPrintConfig tower_estimate_config(const char *wall_type, unsigned 
         { "raft_layers",                    "0"       } });
 }
 
+// The filament a Type 1 tower extrudes for two 20 mm cubes on filaments 1 and 2, so every layer changes
+// filament, given the process prime volume and the prime volume of each filament.
+static double type1_tower_filament(const char *prime_volume, const char *filament_prime_volume)
+{
+    DynamicPrintConfig config = tower_estimate_config("rectangle");
+    config.set_deserialize_strict({ { "wipe_tower_type",       "type1" },
+                                    { "prime_volume",          prime_volume },
+                                    { "filament_prime_volume", filament_prime_volume },
+                                    { "wipe_tower_x",          "120" },
+                                    { "wipe_tower_y",          "120" } });
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> overrides = { {}, { { "extruder", "2" } } };
+    Print print;
+    Model model;
+    init_print({ cube(20), cube(20) }, print, model, config, &overrides);
+    const std::string gcode = Slic3r::Test::gcode(print);
+
+    // The filament extruded under the prime tower's role tag.
+    double      extruded = 0.;
+    bool        in_tower = false;
+    GCodeReader parser;
+    parser.apply_config(print.config());
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view raw = line.raw();
+        if (raw.rfind(";TYPE:", 0) == 0 || raw.rfind("; FEATURE: ", 0) == 0)
+            in_tower = raw.find("Prime tower") != std::string_view::npos;
+        else if (in_tower && line.extruding(self))
+            extruded += line.dist_E(self);
+    });
+    return extruded;
+}
+
+TEST_CASE("The Type 1 tower purges the prime volume of each filament, not the process one", "[WipeTower]")
+{
+    const double filament_45 = type1_tower_filament("45", "45,45");
+    REQUIRE(filament_45 > 0.);
+    CHECK_THAT(type1_tower_filament("5", "45,45"), Catch::Matchers::WithinRel(filament_45, 1e-6));
+    CHECK_THAT(type1_tower_filament("60", "45,45"), Catch::Matchers::WithinRel(filament_45, 1e-6));
+    CHECK(type1_tower_filament("45", "15,15") < filament_45);
+}
+
 TEST_CASE("The tower is sized for the thinnest layer any object on the plate is sliced at", "[WipeTower]")
 {
     // The tower has to survive its thinnest layer, so an override finer than the preset drives
