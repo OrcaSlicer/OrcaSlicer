@@ -1936,6 +1936,82 @@ TEST_CASE("An empty list applied by index replaces the target list", "[Config][R
     CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());
 }
 
+// The accessors assert on an empty vector, so these only run where asserts are compiled out.
+#ifdef NDEBUG
+TEST_CASE("get_at on an empty option vector returns a default instead of reading out of bounds", "[Config]") {
+    SECTION("const accessor returns the zero or empty value") {
+        const ConfigOptionFloats  floats;
+        const ConfigOptionInts    ints;
+        const ConfigOptionStrings strings;
+        const ConfigOptionBools   bools;
+        const ConfigOptionPoints  points;
+        const ConfigOptionFloatsOrPercents fop;
+        const ConfigOptionFloatsNullable   nullable_floats;
+        const ConfigOptionBoolsNullable    nullable_bools;
+        CHECK(floats.get_at(0) == 0.);
+        CHECK(floats.get_at(5) == 0.);
+        CHECK(ints.get_at(3) == 0);
+        CHECK(strings.get_at(0).empty());
+        CHECK_FALSE(bools.get_at(0));
+        CHECK(points.get_at(2) == Vec2d::Zero());
+        CHECK(fop.get_at(0).value == 0.);
+        CHECK_FALSE(fop.get_at(0).percent);
+        CHECK(nullable_floats.get_at(1) == 0.);
+        CHECK_FALSE(nullable_bools.get_at(1));
+    }
+
+    SECTION("writes through the non-const accessor are discarded") {
+        ConfigOptionFloats  floats;
+        ConfigOptionFloats  other_floats;
+        ConfigOptionStrings strings;
+        ConfigOptionBools   bools;
+        ConfigOptionPoints  points;
+        ConfigOptionIntsNullable nullable_ints;
+        ConfigOptionInts    ints;
+        ConfigOptionFloatsOrPercents fop;
+        ConfigOptionFloatsNullable   nullable_floats;
+        ConfigOptionBoolsNullable    nullable_bools;
+
+        floats.get_at(0)  = 42.;
+        strings.get_at(0) = "scribble";
+        bools.get_at(0)   = true;
+        points.get_at(0)  = Vec2d(3., 4.);
+        nullable_ints.get_at(0) = 7;
+        ints.get_at(0)    = 5;
+        fop.get_at(0)     = FloatOrPercent{9., true};
+        nullable_floats.get_at(0) = 3.;
+        nullable_bools.get_at(0)  = true;
+
+        CHECK(floats.get_at(0) == 0.);
+        CHECK(other_floats.get_at(0) == 0.);
+        CHECK(std::as_const(floats).get_at(0) == 0.);
+        CHECK(strings.get_at(0).empty());
+        CHECK_FALSE(bools.get_at(0));
+        CHECK(points.get_at(0) == Vec2d::Zero());
+        CHECK(nullable_ints.get_at(0) == 0);
+        CHECK(ints.get_at(0) == 0);
+        CHECK(fop.get_at(0).value == 0.);
+        CHECK_FALSE(fop.get_at(0).percent);
+        CHECK(nullable_floats.get_at(0) == 0.);
+        CHECK_FALSE(nullable_bools.get_at(0));
+        CHECK(ints.values.empty());
+        CHECK(fop.values.empty());
+        CHECK(nullable_floats.values.empty());
+        CHECK(nullable_bools.values.empty());
+        CHECK(floats.values.empty());
+        CHECK(strings.values.empty());
+    }
+
+    SECTION("non-empty vectors still clamp past-the-end indices to the first element") {
+        const ConfigOptionFloats floats({1.5, 2.5});
+        ConfigOptionBools bools({true, false});
+        CHECK(floats.get_at(1) == 2.5);
+        CHECK(floats.get_at(9) == 1.5);
+        CHECK(bools.get_at(9));
+    }
+}
+#endif
+
 namespace {
 
 const Pointfs shared_area_bed = { { 0., 0. }, { 350., 0. }, { 350., 350. }, { 0., 350. } };
