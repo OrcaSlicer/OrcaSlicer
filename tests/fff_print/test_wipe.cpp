@@ -192,15 +192,19 @@ TEST_CASE("Inward wipe preserves retraction splits and minimum travel", "[Wipe][
     const char *wall_generator = GENERATE("classic", "arachne");
     const char *relative_e = GENERATE("0", "1");
     const char *reduce_crossing_wall = GENERATE("0", "1");
-    const char *minimum_travel = GENERATE("5", "1", "0");
+    // Retract after outer wall ignores the threshold when leaving the outer wall, so
+    // with a 5 mm threshold it must retract at every transition, like a zero threshold.
+    const auto [minimum_travel, retract_after_outer_wall] = GENERATE(table<const char *, bool>({
+        {"5", false}, {"1", false}, {"0", false}, {"5", true}
+    }));
     const bool wipe_on_loops = GENERATE(false, true);
     const auto split = GENERATE(table<const char *, const char *>({
         {"0%", "50%"}, {"25%", "25%"}, {"100%", "0%"}, {"0%", "100%"}, {"0%", "0%"}
     }));
     const char *before_percent = std::get<0>(split);
     const char *after_percent = std::get<1>(split);
-    CAPTURE(wall_generator, relative_e, reduce_crossing_wall, minimum_travel, wipe_on_loops,
-            before_percent, after_percent);
+    CAPTURE(wall_generator, relative_e, reduce_crossing_wall, minimum_travel, retract_after_outer_wall,
+            wipe_on_loops, before_percent, after_percent);
     DynamicPrintConfig config = wipe_config(
         wall_generator, true, "50%", "10%", wipe_on_loops, "3", "inner-outer-inner wall");
     config.set_deserialize_strict({
@@ -208,6 +212,7 @@ TEST_CASE("Inward wipe preserves retraction splits and minimum travel", "[Wipe][
         {"use_relative_e_distances", relative_e},
         {"reduce_crossing_wall", reduce_crossing_wall},
         {"retraction_minimum_travel", minimum_travel},
+        {"retract_after_outer_wall", retract_after_outer_wall ? "1" : "0"},
         {"retract_when_changing_layer", "0"},
         {"use_firmware_retraction", "0"},
         {"retract_before_wipe", before_percent},
@@ -306,7 +311,7 @@ TEST_CASE("Inward wipe preserves retraction splits and minimum travel", "[Wipe][
         REQUIRE(transitions == 5);
         REQUIRE(same_layer_transitions >= 4);
         REQUIRE(outer_wipes == std::count(regular_wipes.begin(), regular_wipes.end(), true));
-        if (std::stod(minimum_travel) == 0.)
+        if (std::stod(minimum_travel) == 0. || retract_after_outer_wall)
             REQUIRE(outer_wipes == transitions);
         else
             REQUIRE(outer_wipes < transitions);
