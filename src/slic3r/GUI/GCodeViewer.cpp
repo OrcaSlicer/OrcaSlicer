@@ -7,6 +7,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/Line.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/IMEXHelpers.hpp"
@@ -46,6 +47,7 @@
 #include "libvgcode/include/Viewer.hpp"
 #include "libvgcode/include/PathVertex.hpp"
 #include <cstddef>
+#include <cfloat>
 #include <cstring>
 #include "slic3r/GUI/LibVGCode/LibVGCodeWrapper.hpp"
 #include <cassert>
@@ -63,6 +65,8 @@
 #include <cfloat>
 #include <initializer_list>
 #include <optional>
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_reduce.h>
 #include "libslic3r_version.h"
 #include <wx/busycursor.h>
 #include "libslic3r/Slicing.hpp"
@@ -3026,6 +3030,323 @@ void GCodeViewer::set_layers_z_range(const std::array<unsigned int, 2>& layers_z
 {
     m_viewer.set_layers_view_range(static_cast<uint32_t>(layers_z_range[0]), static_cast<uint32_t>(layers_z_range[1]));
     update_moves_slider(true);
+}
+
+std::optional<GCodeViewer::ToolpathHit> GCodeViewer::pick_toolpath(const Linef3& ray) const
+{
+    if (!has_data() || m_viewer.get_vertices_count() < 2)
+        return std::nullopt;
+
+    const libvgcode::Interval& full_range    = m_viewer.get_view_full_range();
+    const libvgcode::Interval& visible_range = m_viewer.get_view_visible_range();
+    const libvgcode::Interval& enabled_range = m_viewer.get_view_enabled_range();
+    if (full_range[0] >= full_range[1] || visible_range[0] > visible_range[1])
+        return std::nullopt;
+
+    size_t start_v = m_viewer.is_top_layer_only_view_range() ? full_range[0] : visible_range[0];
+    const size_t end_v = std::min(m_no_render_path ? enabled_range[0] : visible_range[1], m_viewer.get_vertices_count() - 1);
+
+    const libvgcode::Interval& layers_range = m_viewer.get_layers_view_range();
+    const bool spiral_vase_single_layer = m_viewer.is_spiral_vase_mode() && layers_range[0] > 0 && layers_range[0] == layers_range[1];
+    if (spiral_vase_single_layer && start_v > 0)
+        --start_v;
+
+    if (start_v >= end_v)
+        return std::nullopt;
+
+    const Vec3f ray_orig = ray.a.cast<float>();
+    const Vec3f ray_vec  = (ray.b - ray.a).cast<float>();
+    const float ray_len_sq = ray_vec.squaredNorm();
+    if (ray_len_sq <= 1e-12f)
+        return std::nullopt;
+    const Vec3f ray_dir = ray_vec / std::sqrt(ray_len_sq);
+
+    if (m_paths_bounding_box.defined) {
+        const Vec3f bb_min = m_paths_bounding_box.min.cast<float>() - Vec3f(2.0f, 2.0f, 2.0f);
+        const Vec3f bb_max = m_paths_bounding_box.max.cast<float>() + Vec3f(2.0f, 2.0f, 2.0f);
+        float tmin = 0.0f;
+        float tmax = FLT_MAX;
+        for (int axis = 0; axis < 3; ++axis) {
+            if (std::abs(ray_dir[axis]) < 1e-8f) {
+                if (ray_orig[axis] < bb_min[axis] || ray_orig[axis] > bb_max[axis])
+                    return std::nullopt;
+            } else {
+                const float inv_d = 1.0f / ray_dir[axis];
+                float t1 = (bb_min[axis] - ray_orig[axis]) * inv_d;
+                float t2 = (bb_max[axis] - ray_orig[axis]) * inv_d;
+                if (t1 > t2)
+                    std::swap(t1, t2);
+                tmin = std::max(tmin, t1);
+                tmax = std::min(tmax, t2);
+                if (tmin > tmax)
+                    return std::nullopt;
+            }
+        }
+    }
+
+    std::array<bool, libvgcode::GCODE_EXTRUSION_ROLES_COUNT> role_visible{};
+    for (size_t r = 0; r < role_visible.size(); ++r)
+        role_visible[r] = m_viewer.is_extrusion_role_visible(static_cast<libvgcode::EGCodeExtrusionRole>(r));
+    const bool custom_visible  = role_visible[static_cast<size_t>(libvgcode::EGCodeExtrusionRole::Custom)];
+    const bool travels_visible = m_viewer.is_option_visible(libvgcode::EOptionType::Travels);
+    const bool wipes_visible   = m_viewer.is_option_visible(libvgcode::EOptionType::Wipes);
+    const float travels_radius = m_viewer.get_travels_radius();
+    const float wipes_radius   = m_viewer.get_wipes_radius();
+
+    struct Candidate {
+        float       t{ FLT_MAX };
+        size_t      seg_idx{ SIZE_MAX };
+        ToolpathHit hit{};
+    };
+
+    const Candidate best = tbb::parallel_reduce(
+        tbb::blocked_range<size_t>(start_v, end_v),
+        Candidate{},
+        [&](const tbb::blocked_range<size_t>& range, Candidate local) -> Candidate {
+            for (size_t i = range.begin(); i < range.end(); ++i) {
+                const libvgcode::PathVertex& v0 = m_viewer.get_vertex_at(i);
+                const libvgcode::PathVertex& v1 = m_viewer.get_vertex_at(i + 1);
+
+                if (v0.position == v1.position || v0.type != v1.type || v0.type == libvgcode::EMoveType::Seam)
+                    continue;
+
+                if ((v1.layer_id < layers_range[0] || v1.layer_id > layers_range[1]) &&
+                    !(spiral_vase_single_layer && i == start_v))
+                    continue;
+
+                Vec3f p0 = libvgcode::convert(v0.position);
+                Vec3f p1 = libvgcode::convert(v1.position);
+                float half_w = 0.0f;
+                float half_h = 0.0f;
+
+                if (v0.is_extrusion()) {
+                    const auto role_idx = static_cast<size_t>(v0.role);
+                    if (role_idx >= role_visible.size() || !role_visible[role_idx])
+                        continue;
+                    if (v0.is_custom_gcode() && !custom_visible)
+                        continue;
+                    half_w = 0.5f * std::max(v0.width, v1.width);
+                    half_h = 0.5f * std::max(v0.height, v1.height);
+                    p0.z() -= 0.5f * v0.height;
+                    p1.z() -= 0.5f * v1.height;
+                } else if (v0.is_travel()) {
+                    if (!travels_visible)
+                        continue;
+                    half_w = travels_radius;
+                    half_h = travels_radius;
+                } else if (v0.is_wipe()) {
+                    if (!wipes_visible)
+                        continue;
+                    half_w = wipes_radius;
+                    half_h = wipes_radius;
+                } else {
+                    continue;
+                }
+
+                if (half_w <= 0.0f || half_h <= 0.0f)
+                    continue;
+
+                const Vec3f inv_scale(1.0f / half_w, 1.0f / half_w, 1.0f / half_h);
+                const Vec3f d_ray = ray_dir.cwiseProduct(inv_scale);
+                const Vec3f d_seg = (p1 - p0).cwiseProduct(inv_scale);
+                const Vec3f w0    = (ray_orig - p0).cwiseProduct(inv_scale);
+
+                const float a = d_ray.squaredNorm();
+                const float b = d_ray.dot(d_seg);
+                const float c = d_seg.squaredNorm();
+                const float d = d_ray.dot(w0);
+                const float e = d_seg.dot(w0);
+                const float denom = a * c - b * b;
+
+                float u = 0.0f;
+                if (c > 1e-8f && denom > 1e-8f)
+                    u = std::clamp((a * e - b * d) / denom, 0.0f, 1.0f);
+
+                float t = (b * u - d) / a;
+                if (t < 0.0f) {
+                    t = 0.0f;
+                    u = (c > 1e-8f) ? std::clamp(e / c, 0.0f, 1.0f) : 0.0f;
+                } else if (c > 1e-8f) {
+                    u = std::clamp((b * t + e) / c, 0.0f, 1.0f);
+                    t = std::max(0.0f, (b * u - d) / a);
+                }
+
+                const Vec3f diff = w0 + t * d_ray - u * d_seg;
+                const float dist_sq = diff.squaredNorm();
+                if (dist_sq > 1.0f)
+                    continue;
+
+                const float t_entry = std::max(0.0f, t - std::sqrt(std::max(0.0f, 1.0f - dist_sq) / a));
+                if (t_entry > local.t || (t_entry == local.t && i >= local.seg_idx))
+                    continue;
+
+                const Vec3f hit_pos = p0 + u * (p1 - p0);
+                if (m_clipping_plane[0] * hit_pos.x() + m_clipping_plane[1] * hit_pos.y() +
+                    m_clipping_plane[2] * hit_pos.z() + m_clipping_plane[3] < 0.0f)
+                    continue;
+
+                local.t       = t_entry;
+                local.seg_idx = i;
+                local.hit     = ToolpathHit{ static_cast<uint32_t>(i + 1), v1.layer_id, v1.gcode_id };
+            }
+            return local;
+        },
+        [](const Candidate& lhs, const Candidate& rhs) -> Candidate {
+            if (rhs.t < lhs.t || (rhs.t == lhs.t && rhs.seg_idx < lhs.seg_idx))
+                return rhs;
+            return lhs;
+        });
+
+    if (best.seg_idx == SIZE_MAX)
+        return std::nullopt;
+
+    return best.hit;
+}
+
+bool GCodeViewer::on_mouse_click_toolpath(const Linef3& ray, bool shift_down)
+{
+    if (m_layers_slider == nullptr || m_moves_slider == nullptr)
+        return false;
+
+    const std::optional<ToolpathHit> hit = pick_toolpath(ray);
+    if (!hit.has_value())
+        return false;
+
+    const int target_layer = std::clamp(static_cast<int>(hit->layer_id), m_layers_slider->GetMinValue(), m_layers_slider->GetMaxValue());
+
+    if (!shift_down) {
+        const SelectedSlider sel = m_layers_slider->GetSelection();
+        const bool use_lower = (sel == SelectedSlider::ssLower) && !m_layers_slider->is_one_layer();
+        const int active_layer = use_lower ? m_layers_slider->GetLowerValue() : m_layers_slider->GetHigherValue();
+
+        if (target_layer != active_layer) {
+            if (use_lower)
+                m_layers_slider->SetLowerValue(target_layer);
+            else
+                m_layers_slider->SetHigherValue(target_layer);
+            set_layers_z_range({
+                static_cast<unsigned int>(m_layers_slider->GetLowerValue()),
+                static_cast<unsigned int>(m_layers_slider->GetHigherValue())
+            });
+            m_layers_slider->set_as_dirty(false);
+        }
+        m_moves_slider->SetHigherValue(m_moves_slider->GetMaxValue());
+        update_sequential_view_current(
+            static_cast<unsigned int>(m_moves_slider->GetLowerValueD() - 1.0),
+            static_cast<unsigned int>(m_moves_slider->GetHigherValueD() - 1.0));
+    } else {
+        if (m_layers_slider->GetHigherValue() != target_layer) {
+            m_layers_slider->SetHigherValue(target_layer);
+            set_layers_z_range({
+                static_cast<unsigned int>(m_layers_slider->GetLowerValue()),
+                static_cast<unsigned int>(m_layers_slider->GetHigherValue())
+            });
+            m_layers_slider->set_as_dirty(false);
+        }
+
+        const int target_tick = m_moves_slider->get_tick_from_value(static_cast<double>(hit->vertex_id + 1), true);
+        if (target_tick >= m_moves_slider->GetMinValue()) {
+            m_moves_slider->SetHigherValue(target_tick);
+            update_sequential_view_current(
+                static_cast<unsigned int>(m_moves_slider->GetLowerValueD() - 1.0),
+                static_cast<unsigned int>(m_moves_slider->GetHigherValueD() - 1.0));
+        }
+    }
+
+    if (wxGetApp().imgui() != nullptr)
+        wxGetApp().imgui()->set_requires_extra_frame();
+
+    return true;
+}
+
+void GCodeViewer::step_layers_slider(int delta)
+{
+    if (!has_data() || m_layers_slider == nullptr || m_layers_slider->is_rendering_as_disabled() || delta == 0)
+        return;
+
+    if (m_layers_slider->is_one_layer()) {
+        m_layers_slider->SetHigherValue(m_layers_slider->GetHigherValue() + delta);
+    } else if (m_layers_slider->GetSelection() == SelectedSlider::ssLower) {
+        m_layers_slider->SetLowerValue(m_layers_slider->GetLowerValue() + delta);
+    } else {
+        m_layers_slider->SetHigherValue(m_layers_slider->GetHigherValue() + delta);
+    }
+
+    if (wxGetApp().imgui() != nullptr)
+        wxGetApp().imgui()->set_requires_extra_frame();
+}
+
+void GCodeViewer::step_moves_slider(int delta)
+{
+    if (!has_data() || m_moves_slider == nullptr || m_moves_slider->is_rendering_as_disabled() || delta == 0)
+        return;
+
+    m_moves_slider->SetHigherValue(m_moves_slider->GetHigherValue() + delta);
+
+    if (wxGetApp().imgui() != nullptr)
+        wxGetApp().imgui()->set_requires_extra_frame();
+}
+
+void GCodeViewer::step_view_type(int delta)
+{
+    if (!has_data() || view_type_items_str.empty() || delta == 0)
+        return;
+
+    const int count = static_cast<int>(view_type_items_str.size());
+    const int new_sel = std::clamp(m_view_type_sel + delta, 0, count - 1);
+    if (new_sel == m_view_type_sel)
+        return;
+
+    m_fold = false;
+    m_view_type_sel = new_sel;
+    set_view_type(view_type_items[m_view_type_sel]);
+    reset_visible(view_type_items[m_view_type_sel]);
+    const std::string view_type_name = view_type_to_config_name(view_type_items[m_view_type_sel]);
+    if (!view_type_name.empty())
+        wxGetApp().app_config->set("preview_last_view_type", view_type_name);
+    update_moves_slider();
+
+    if (wxGetApp().imgui() != nullptr)
+        wxGetApp().imgui()->set_requires_extra_frame();
+}
+
+bool GCodeViewer::reset_sliders()
+{
+    if (!has_data() || m_layers_slider == nullptr || m_moves_slider == nullptr)
+        return false;
+
+    bool changed = false;
+    if (m_layers_slider->is_one_layer())
+        changed |= m_layers_slider->switch_one_layer_mode();
+
+    if (m_layers_slider->GetLowerValue() != m_layers_slider->GetMinValue()) {
+        m_layers_slider->SetLowerValue(m_layers_slider->GetMinValue());
+        changed = true;
+    }
+    if (m_layers_slider->GetHigherValue() != m_layers_slider->GetMaxValue()) {
+        m_layers_slider->SetHigherValue(m_layers_slider->GetMaxValue());
+        changed = true;
+    }
+    if (m_moves_slider->GetHigherValue() != m_moves_slider->GetMaxValue()) {
+        m_moves_slider->SetHigherValue(m_moves_slider->GetMaxValue());
+        changed = true;
+    }
+
+    if (changed) {
+        set_layers_z_range({
+            static_cast<unsigned int>(m_layers_slider->GetLowerValue()),
+            static_cast<unsigned int>(m_layers_slider->GetHigherValue())
+        });
+        m_layers_slider->set_as_dirty(false);
+        m_moves_slider->SetHigherValue(m_moves_slider->GetMaxValue());
+        update_sequential_view_current(
+            static_cast<unsigned int>(m_moves_slider->GetLowerValueD() - 1.0),
+            static_cast<unsigned int>(m_moves_slider->GetHigherValueD() - 1.0));
+        if (wxGetApp().imgui() != nullptr)
+            wxGetApp().imgui()->set_requires_extra_frame();
+    }
+
+    return changed;
 }
 
 class ToolpathsObjExporter
