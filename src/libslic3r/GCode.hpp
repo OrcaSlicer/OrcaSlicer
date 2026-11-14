@@ -828,6 +828,8 @@ protected:
     bool                                m_enable_extrusion_role_markers;
     // Keeps track of the last extrusion role passed to the processor
     ExtrusionRole                       m_last_processor_extrusion_role;
+    // Orca: the next extruded path starts an outer wall on an overhang; tag it for the preview.
+    bool                                m_outer_overhang_tag_pending{false};
     // How many times will change_layer() be called?
     // change_layer() will update the progress bar.
     unsigned int                        m_layer_count;

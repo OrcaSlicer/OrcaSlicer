@@ -1297,6 +1297,10 @@ std::vector<int> get_min_flush_volumes(const DynamicPrintConfig &full_config, si
         filament_long_retractions_when_cut = filament_long_retractions_when_cut_opt->values;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": get filament_long_retractions_when_cut from config, size=%1%, values=%2%")%filament_long_retractions_when_cut.size() %filament_long_retractions_when_cut_opt->serialize();
     }
+    // A standalone preset that omits either key leaves it shorter than the filament list; the rest follow
+    // the first filament, as get_at() reads them when slicing.
+    filament_retraction_distance_when_cut.resize(filament_size, filament_retraction_distance_when_cut.empty() ? 18.0 : filament_retraction_distance_when_cut.front());
+    filament_long_retractions_when_cut.resize(filament_size, filament_long_retractions_when_cut.empty() ? 0 : filament_long_retractions_when_cut.front());
 
     for (size_t idx = 0; idx < filament_size; ++idx) {
         int extra_flush_volume = nozzle_volume_val;
@@ -11716,6 +11720,10 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
 
     background_process.fff_print()->set_check_multi_filaments_compatibility(wxGetApp().app_config->get("enable_high_low_temp_mixed_printing") == "false");
 
+    // Painted modifiers have no geometry in the scene, the parts they are painted on were moved without them.
+    for (ModelObject *model_object : this->model.objects)
+        model_object->sync_painted_modifiers();
+
     Print::ApplyStatus invalidated;
     const auto& preset_bundle = wxGetApp().preset_bundle;
     if (preset_bundle->get_printer_extruder_count() > 1) {
@@ -21111,6 +21119,8 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
         }
     }
 
+    for (ModelObject *model_object : p->model.objects)
+        model_object->sync_painted_modifiers();
     bool store_result = Slic3r::store_bbs_3mf(store_params);
     // reset designed info
     if (!has_design_info)
@@ -24654,6 +24664,7 @@ wxMenu* Plater::object_menu()           { return p->menus.object_menu();        
 wxMenu* Plater::part_menu()             { return p->menus.part_menu();              }
 wxMenu* Plater::text_part_menu()        { return p->menus.text_part_menu();         }
 wxMenu* Plater::svg_part_menu()         { return p->menus.svg_part_menu();          }
+wxMenu* Plater::painted_modifier_menu() { return p->menus.painted_modifier_menu();  }
 wxMenu* Plater::sla_object_menu()       { return p->menus.sla_object_menu();        }
 wxMenu* Plater::default_menu()          { return p->menus.default_menu();           }
 wxMenu* Plater::instance_menu()         { return p->menus.instance_menu();          }
