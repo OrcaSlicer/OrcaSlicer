@@ -18,6 +18,8 @@ add_executable(${_TEST_NAME}_tests
     test_filament_color_picker.cpp
     test_ams_materials_setting.cpp
     test_gcode_preview_colors.cpp
+    test_gizmo_move.cpp
+    test_gizmo_rotate.cpp
     # The reduced toolpath set's end bands, from libvgcode's layer table.
     test_libvgcode_layers.cpp
     # The vertex that stands for a role when the solid model takes the toolpaths' colours.

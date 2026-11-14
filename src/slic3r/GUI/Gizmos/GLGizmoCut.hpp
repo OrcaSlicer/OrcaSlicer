@@ -74,13 +74,9 @@ class GLGizmoCut3D : public GLGizmoBase
     double m_grabber_connection_len{ 0.0 };
     Vec3d  m_cut_plane_start_move_pos {Vec3d::Zero()};
 
-    double m_snap_coarse_in_radius{ 0.0 };
-    double m_snap_coarse_out_radius{ 0.0 };
-    double m_snap_fine_in_radius{ 0.0 };
-    double m_snap_fine_out_radius{ 0.0 };
-
     // dragging angel in hovered axes
     double m_angle{ 0.0 };
+    double m_starting_mouse_angle{ 0.0 };
 
     TriangleMesh    m_connector_mesh;
     // workaround for using of the clipping plane normal
@@ -260,6 +256,8 @@ class GLGizmoCut3D : public GLGizmoBase
 public:
     GLGizmoCut3D(GLCanvas3D& parent, const std::string& icon_filename, unsigned int sprite_id);
 
+    static bool is_over_snap_marking(const Vec2d& mouse_pos, double radius, bool coarse);
+
     std::string get_tooltip() const override;
     bool unproject_on_cut_plane(const Vec2d& mouse_pos, Vec3d& pos, Vec3d& pos_world, bool respect_contours = true);
     bool gizmo_event(SLAGizmoEventType action, const Vec2d& mouse_position, bool shift_down, bool alt_down, bool control_down);
@@ -297,6 +295,7 @@ protected:
     Vec3d              mouse_position_in_local_plane(GrabberID axis, const Linef3&mouse_ray) const;
     void               dragging_grabber_move(const GLGizmoBase::UpdateData &data);
     void               dragging_grabber_rotation(const GLGizmoBase::UpdateData &data);
+    double             grabber_rotation_angle_offset() const;
     void               dragging_connector(const GLGizmoBase::UpdateData &data);
     void               on_dragging(const UpdateData&data) override;
     void               on_start_dragging() override;

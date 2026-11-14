@@ -4,6 +4,7 @@
 #include "GLGizmoBase.hpp"
 //BBS: add size adjust related
 #include "GizmoObjectManipulation.hpp"
+#include "libslic3r/Line.hpp"
 #include "libslic3r/Point.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include <array>
@@ -24,6 +25,7 @@ class GLGizmoMove3D : public GLGizmoBase
     Vec3d m_center{ Vec3d::Zero() };
     BoundingBoxf3 m_bounding_box;
     double m_snap_step{ 1.0 };
+    Linef3 m_starting_mouse_ray;
     Vec3d m_starting_drag_position{ Vec3d::Zero() };
     Vec3d m_starting_box_center{ Vec3d::Zero() };
     Vec3d m_starting_box_bottom_center{ Vec3d::Zero() };
@@ -48,6 +50,10 @@ public:
 
     double get_snap_step(double step) const { return m_snap_step; }
     void set_snap_step(double step) { m_snap_step = step; }
+
+    static double calc_drag_displacement(const Linef3& mouse_ray, const Linef3& starting_mouse_ray,
+                                         const Vec3d& starting_drag_position, const Vec3d& starting_box_center,
+                                         bool snap, double snap_step);
 
     std::string get_tooltip() const override;
 
@@ -77,7 +83,6 @@ protected:
     virtual void on_render_input_window(float x, float y, float bottom_limit) override;
 
 private:
-    double calc_projection(const UpdateData& data) const;
     void   render_align_preview();
     void   change_cs_by_selection(); //cs mean Coordinate System
 private:
