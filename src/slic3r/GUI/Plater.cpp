@@ -18517,6 +18517,20 @@ void Plater::load_gcode(const wxString& filename)
 {
     BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << __LINE__ << " entry and filename: " << filename;
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__;
+    // A G-code passed on the command line reaches this point from
+    // GUI_App::post_init() on the first idle event, which can run before the
+    // 3D canvas has rendered (and initialized OpenGL) for the first time.
+    // GCodeViewer::init() then calls uninitialized GL function pointers and
+    // crashes. Defer until the canvas is ready; the pending paint event is
+    // already queued ahead of the CallAfter, so this converges immediately.
+    if (p->get_current_canvas3D() == nullptr || !p->get_current_canvas3D()->is_initialized()) {
+        wxGetApp().CallAfter([this, filename] {
+            // Do not keep retrying while the app shuts down.
+            if (!wxGetApp().is_closing())
+                this->load_gcode(filename);
+        });
+        return;
+    }
     if (! is_gcode_file(into_u8(filename))
         || (m_last_loaded_gcode == filename && m_only_gcode)
         )
