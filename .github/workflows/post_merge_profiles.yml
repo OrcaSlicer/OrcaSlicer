@@ -226,7 +226,18 @@ jobs:
             echo "::warning::skipping vendor(s) with no FOLDER_MERGERS grant (no asset built or published for them this run): ${unauthorized[*]}"
           fi
 
-          echo "vendors=${authorized[*]}" >> "$GITHUB_OUTPUT"
+          # Newline-delimited, not space-joined: vendor names may contain spaces
+          # (e.g. "FELIX Printers", "Co Print"), so consumers must read this
+          # line by line rather than word-splitting it.
+          if [ "${#authorized[@]}" -eq 0 ]; then
+            echo "vendors=" >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "vendors<<VENDORS_EOF"
+              printf '%s\n' "${authorized[@]}"
+              echo "VENDORS_EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Resolve Orca version
         id: orca
@@ -253,17 +264,20 @@ jobs:
         id: pver
         if: steps.vendors.outputs.vendors != ''
         shell: bash
+        env:
+          VENDORS: ${{ steps.vendors.outputs.vendors }}
         run: |
           set -euo pipefail
           : > "$RUNNER_TEMP/pver.tsv"
-          for v in ${{ steps.vendors.outputs.vendors }}; do
+          while IFS= read -r v; do
+            [ -n "$v" ] || continue
             pv="$(jq -r '.version // empty' "resources/profiles/$v.json")"
             if ! [[ "$pv" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
               echo "::error::vendor $v version '${pv:-<none>}' must be 4 numeric parts (A.B.C.D) for the OTA asset name; fix resources/profiles/$v.json"
               exit 1
             fi
             printf '%s\t%s\n' "$v" "$pv" >> "$RUNNER_TEMP/pver.tsv"
-          done
+          done <<< "$VENDORS"
 
       - name: Download generate_system_cache
         if: steps.vendors.outputs.vendors != ''
@@ -282,6 +296,8 @@ jobs:
         id: pkg
         if: steps.vendors.outputs.vendors != ''
         shell: bash
+        env:
+          VENDORS: ${{ steps.vendors.outputs.vendors }}
         run: |
           set -euo pipefail
           # One timestamp for the whole run so a multi-vendor merge groups together.
@@ -290,14 +306,15 @@ jobs:
           out="$RUNNER_TEMP/assets"
           mkdir -p "$out"
 
-          for v in ${{ steps.vendors.outputs.vendors }}; do
+          while IFS= read -r v; do
+            [ -n "$v" ] || continue
             ./generate_system_cache -p "$GITHUB_WORKSPACE/resources/profiles" -v "$v" -l 2
             opc="resources/profiles/$v.opc"
             [ -f "$opc" ] || { echo "::error::$opc was not generated"; exit 1; }
             pv="$(awk -F'\t' -v v="$v" '$1==v{print $2}' "$RUNNER_TEMP/pver.tsv")"
             name="${orca_ver}_${v}_${pv}_${ts}.zip"
             ( cd resources/profiles && zip -q -j "$out/$name" "$v.opc" )
-          done
+          done <<< "$VENDORS"
           echo "dir=$out" >> "$GITHUB_OUTPUT"
 
       - name: Mint profiles-repo token
