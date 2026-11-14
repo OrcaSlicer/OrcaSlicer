@@ -1230,8 +1230,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("max_travel_detour_distance", have_avoid_crossing_perimeters, -1, _L("Enable avoiding crossing walls to edit the maximum travel detour distance."));
 
     bool has_set_other_flow_ratios = config->opt_bool("set_other_flow_ratios");
-    for (auto el : {"first_layer_flow_ratio", "outer_wall_flow_ratio", "inner_wall_flow_ratio", "overhang_flow_ratio", "sparse_infill_flow_ratio", "internal_solid_infill_flow_ratio", "gap_fill_flow_ratio", "support_flow_ratio", "support_interface_flow_ratio"})
+    for (auto el : {"first_layer_flow_ratio", "outer_wall_flow_ratio", "inner_wall_flow_ratio", "sparse_infill_flow_ratio", "internal_solid_infill_flow_ratio", "gap_fill_flow_ratio", "support_flow_ratio", "support_interface_flow_ratio"})
         toggle_line(el, has_set_other_flow_ratios, -1, _L("Enable setting other flow ratios to use this setting."));
+    toggle_field("overhang_flow_ratio", has_set_other_flow_ratios, -1, _L("Enable setting other flow ratios to use this setting."));
 
     bool has_overhang_speed = config->opt_bool_nullable("enable_overhang_speed", variant_index);
     const wxString overhang_speed_reason = _L("Enable slowing down for overhangs to use this setting.");
@@ -1301,6 +1302,16 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_detect_overhang_wall = config->opt_bool("detect_overhang_wall");
     bool has_overhang_reverse     = config->opt_bool("overhang_reverse");
     bool allow_overhang_reverse   = !has_spiral_vase;
+    const bool show_overhang_wall_overlap = has_detect_overhang_wall && have_arachne;
+    toggle_line("overhang_wall_overlap", show_overhang_wall_overlap);
+    toggle_line("overhang_wall_overlap_start", show_overhang_wall_overlap);
+    toggle_line("overhang_wall_overlap_full", show_overhang_wall_overlap);
+    const auto *overhang_wall_overlap = config->option<ConfigOptionPercent>("overhang_wall_overlap");
+    const bool has_overhang_wall_overlap = show_overhang_wall_overlap &&
+                                          overhang_wall_overlap != nullptr && overhang_wall_overlap->value > 0;
+    const wxString overhang_wall_overlap_reason = _L("Set overhang wall overlap to a value greater than 0 to use this setting.");
+    toggle_field("overhang_wall_overlap_start", has_overhang_wall_overlap, -1, overhang_wall_overlap_reason);
+    toggle_field("overhang_wall_overlap_full", has_overhang_wall_overlap, -1, overhang_wall_overlap_reason);
     toggle_line("unsupported_wall_last", has_detect_overhang_wall, -1, _L("Enable overhang wall detection to use this setting."));
     toggle_line("overhang_reverse", allow_overhang_reverse, -1, _L("Reverse overhang direction is unavailable in spiral vase mode."));
     toggle_line("overhang_reverse_internal_only", allow_overhang_reverse && has_overhang_reverse, -1, _L("Disable spiral vase mode and enable reverse overhang direction to use this setting."));

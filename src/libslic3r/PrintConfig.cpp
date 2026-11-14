@@ -5914,6 +5914,47 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    def = this->add("overhang_wall_overlap", coPercent);
+    def->label = L("Overhang wall overlap");
+    def->category = L("Quality");
+    def->tooltip = L("Sets the maximum extra overlap between adjacent walls in overhang areas. "
+                     "Higher values allow inner walls to move closer to their outer neighbors, increasing overlap. "
+                     "The outermost wall stays in place.\n"
+                     "Set to 0 to disable. "
+                     "Requires the Arachne wall generator and 'Detect overhang walls'.");
+    def->sidetext = "%";
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 20;
+    def->set_default_value(new ConfigOptionPercent(0));
+
+    def = this->add("overhang_wall_overlap_start", coPercent);
+    def->label = L("Overlap activation threshold");
+    def->full_label = L("Overhang wall overlap activation threshold");
+    def->category = L("Quality");
+    def->tooltip = L("Extra overlap adjustment is enabled in regions where the overhang percentage exceeds this value.\n"
+                     "For a smooth transition, the adjustment extends into nearby regions below this threshold. "
+                     "This threshold therefore does not mark the position where extra overlap starts increasing from zero.");
+    def->sidetext = "%";
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionPercent(25));
+
+    def = this->add("overhang_wall_overlap_full", coPercent);
+    def->label = L("Overlap full threshold");
+    def->full_label = L("Overhang wall overlap full threshold");
+    def->category = L("Quality");
+    def->tooltip = L("Sets the overhang percentage at which extra overlap reaches its limit. "
+                     "Lower values reach the limit at milder overhangs.\n"
+                     "If this value is at or below the activation threshold, extra overlap gradually increases to the limit "
+                     "once the adjustment is triggered.");
+    def->sidetext = "%";
+    def->mode = comAdvanced;
+    def->min = 0;
+    def->max = 100;
+    def->set_default_value(new ConfigOptionPercent(75));
+
     def = this->add("unsupported_wall_last", coBool);
     def->label = L("Print unsupported walls last");
     def->category = L("Quality");

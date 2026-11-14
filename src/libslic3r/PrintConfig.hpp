@@ -1547,6 +1547,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatsNullable, filament_ironing_speed))
     // Detect bridging perimeters
     ((ConfigOptionBool, detect_overhang_wall))
+    ((ConfigOptionPercent, overhang_wall_overlap))
+    ((ConfigOptionPercent, overhang_wall_overlap_start))
+    ((ConfigOptionPercent, overhang_wall_overlap_full))
     ((ConfigOptionBool, unsupported_wall_last))
     ((ConfigOptionInt, outer_wall_filament_id))
     ((ConfigOptionInt, inner_wall_filament_id))
