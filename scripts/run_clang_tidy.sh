@@ -257,6 +257,13 @@ echo "Comparing against $BASE"
 
 # --- Run ----------------------------------------------------------------------
 
+# Apple's compiler finds the macOS SDK through xcrun, so the compile database names
+# none; any other clang-tidy, such as the pinned one, finds it through SDKROOT.
+if [ "$OS" = Darwin ] && [ -z "${SDKROOT:-}" ]; then
+    SDKROOT=$(xcrun --show-sdk-path)
+    export SDKROOT
+fi
+
 args=(-p "$BUILD_DIR" --base "$BASE" --clang-tidy "$CLANG_TIDY")
 [ -n "$JOBS" ] && args+=(-j "$JOBS")
 [ "$FIX" = 1 ] && args+=(-- --fix)

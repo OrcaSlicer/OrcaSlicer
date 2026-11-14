@@ -18,7 +18,8 @@ CheckOptions:
   # Headers that declare a symbol but are not the one to include: per-platform
   # implementations of wxWidgets and Boost.Thread (a Linux run would suggest the
   # GTK or pthread one), library internals and forward declarations (MSVC's STL
-  # __msvc_* and the Windows UCRT's corecrt_* included), CPython's headers behind
+  # __msvc_*, the Windows UCRT's corecrt_*, libc++'s __*/ directories and the
+  # macOS SDK's _*.h behind its C headers included), CPython's headers behind
   # Python.h (python3.x/ on Linux and macOS, libpython/include/ on Windows),
   # curl's behind curl.h, oneTBB's behind tbb/, and
   # admesh's stl.h, which the include path also exposes without its directory.
@@ -31,7 +32,8 @@ CheckOptions:
   # The boost/process headers are only included through Utils/BoostProcessCompat.hpp.
   # FFmpeg's C headers are left alone because they are only included inside
   # extern "C", which an inserted include would miss. OS-specific headers (GLib,
-  # GTK, D-Bus, POSIX, the Windows SDK) are only used inside platform #if blocks,
+  # GTK, D-Bus, POSIX, the Windows SDK, the macOS SDK's frameworks and MacTypes.h)
+  # are only used inside platform #if blocks,
   # and an include added at the top of the file would break the other platforms'
   # builds. A symbol these provide is not reported missing.
   # Write every / as [/\\] so the patterns also match Windows paths.
@@ -46,6 +48,8 @@ CheckOptions:
     bits[/\\].*;
     corecrt_.*\.h;
     __msvc_.*\.hpp;
+    __[a-z0-9_]+[/\\].*;
+    [/\\]_[A-Za-z0-9_]+\.h;
     boost[/\\]multiprecision[/\\]fwd\.hpp;
     imconfig\.h;
     expat_external\.h;
@@ -68,6 +72,8 @@ CheckOptions:
     termios\.h;
     [/\\](um|shared)[/\\].*;
     sal\.h;
+    \.framework[/\\].*;
+    MacTypes\.h;
     tchar\.h;
     clipper[/\\]clipper\.hpp;
     png(lib)?conf\.h;

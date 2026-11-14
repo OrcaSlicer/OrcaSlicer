@@ -25,9 +25,11 @@ struct CatalogOptions
 // Adds the built-in commands to `catalog`: the Speed Dial's, each with in_palette, then the typed tools, each
 // listed, family by family (Mcp::register_app_tools() and the others), and with options.cad the Design tab's
 // (Mcp::register_cad_commands()), not listed, of which those with an action have a tile the Speed Dial shows
-// in the Design tab. new_project, save_project, start_recording and stop_recording are both: typed tools with
-// a tile (with_person_form()). undo and redo act on the Design tab's history or the project's, a person's pick
-// as the Edit menu's item does; with options.cad their examples show the Design tab's.
+// in the Design tab; without it, in a build with CAD, it records that it leaves them out and why
+// (Mcp::leave_out_cad_commands()). new_project, save_project, start_recording and stop_recording are both:
+// typed tools with a tile (with_person_form()). undo and redo act on the Design tab's history or the
+// project's, a person's pick as the Edit menu's item does; with options.cad their examples show the Design
+// tab's.
 void register_all_commands(CommandCatalog& catalog, const CatalogOptions& options);
 
 // Builds and seals the process catalog. UI thread, once, at startup; a second call, or a call after

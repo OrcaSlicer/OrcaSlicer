@@ -1242,6 +1242,10 @@ macOS. On MSW it breaks `wxTopLevelWindowMSW::OnActivate`'s focus restore in the
 - `append_shortcut_item` records the item in `m_shortcut_menu_items`, and `update_shortcut_labels()` rewrites the
   labels with `SetItemLabel` after the user rebinds a key. Menu text for a registry shortcut always goes through
   these helpers, never through a hard-coded `"\tCtrl+X"`.
+- `GetItemLabelText()` drops a key after `"\t"` but keeps one after `" - "`, so on macOS it returns the label with
+  the key text. `MainFrame::menu_item_label()` gives a menu bar item's label without it, from the label the item was
+  made with: the MCP server names menu items by it, so a menu path is the same on every platform. A menu bar item
+  that writes a fixed key after `sep` itself, outside these helpers, records its plain label in `m_key_text_items`.
 
 **`Plater::PopupMenu(menu, pos)`** (`Plater.cpp`).
 - It calls `wxGetApp().mainframe->PopupMenu(menu, pos)`. The invoking window is MainFrame, so **`pos` is in

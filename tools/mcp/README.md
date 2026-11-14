@@ -17,7 +17,10 @@ Python. It uses only the standard library. `docs/HLSD/mcp-server.md` covers the 
 
 `launch` creates a fresh temporary datadir unless you pass `--datadir`. It seeds the datadir with
 an `OrcaSlicer.conf` that has a finished setup wizard and one printer and filament (Bambu Lab X1
-Carbon 0.4 by default), with update checks and daily tips turned off. `--cad` turns the Design
+Carbon 0.4 by default), with update checks and daily tips turned off, and with the Orca Cloud login kept
+in a token file in the datadir (`use_encrypted_token_file`) instead of the system's secret store, so the
+instance starts signed out and never reads your login: on macOS that read would stop a newly built app at
+a keychain prompt. `--cad` turns the Design
 (CAD) tab on, and with it its commands: it sets `enable_cad_feature` in a fresh datadir's
 `OrcaSlicer.conf`, and in a reused one too, since the app creates the Design tab and its commands only at
 startup, when that setting is on.
@@ -427,7 +430,8 @@ once, and that a negative part, and a point seen through the bed from below, are
 `tests/context_menus.json` right-clicks a cube, the empty bed and two selected objects, and clicks a
 preset edit button that opens a menu: each menu is listed in the reply, or an item of it run with
 `popup_item` (a modifier, a primitive, Delete), and none is ever shown, so on macOS the run finishes
-with nobody pressing Escape.
+with nobody pressing Escape. It also picks the Edit menu's Undo and Redo by the paths `Edit>Undo` and
+`Edit>Redo`, which name them on every platform, though macOS shows their keys after them.
 
 `tests/rows.json` drives rows and popups: object list rows (plates, an object and its parts, Ctrl
 to add a row, the Printable column, a double click), the object's and a part's menus run from their

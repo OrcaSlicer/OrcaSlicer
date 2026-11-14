@@ -405,7 +405,8 @@ arguments instead of driving the widgets.
 An agent's call needs the MCP server on (`--mcp`, or Preferences), and every command, a person's tile
 included, needs the CAD feature on (Preferences > Features). The catalog holds them only when the feature
 is on at startup, as the main window makes the Design page only then, so turning it on takes a restart;
-with it off they are unknown commands, and `get_app_state` says in `cad_note` how a person turns it on.
+with it off they are unknown commands, whose error says how a person turns it on, as `get_app_state`'s
+`cad_note` does.
 Turned off while OrcaSlicer runs, the tab stays until the restart, but the Speed Dial has no tile of it. A
 call is refused (`-32002`) while the Design tab is busy: none runs while a rebuild owns the document,
 `change` and `sketch` commands do not run under an open feature card, the Text dialog, Constrain mode or a

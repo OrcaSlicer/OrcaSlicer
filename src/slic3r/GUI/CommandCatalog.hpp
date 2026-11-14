@@ -117,6 +117,9 @@ public:
     // Before seal(); after it, throws std::logic_error. A source's commands are not checked against the
     // added ones: lookup() finds an added command first.
     void add_source(std::unique_ptr<CommandSource> source);
+    // Before seal(); after it, throws std::logic_error. Records that this catalog leaves out `key`, a command
+    // a run of the app with other options holds, and `why`, which unknown_command() gives after the key.
+    void leave_out(const std::string& key, std::string why);
     void seal();
     bool sealed() const { return m_sealed; }
 
@@ -130,17 +133,20 @@ public:
     const std::vector<NativeCommand>& commands() const { return m_commands; }
     // What the sources hold now, source by source.
     std::vector<std::shared_ptr<const NativeCommand>> source_commands() const;
+    // Why this catalog leaves out `key` (leave_out()), or nullptr when it does not.
+    const std::string* left_out(const std::string& key) const;
     // Up to `limit` keys of added commands closest to `key`, for "did you mean" errors: a key that
     // contains `key` first, then by edit distance, none further than max(3, half the length of `key`).
     std::vector<std::string> similar(const std::string& key, std::size_t limit = 3) const;
 
-    // The error for a key lookup() does not resolve: "Unknown tool: <key>", with `suggest` followed by the
-    // closest key.
+    // The error for a key lookup() does not resolve: "Unknown tool: <key>", followed by why the catalog leaves
+    // it out (leave_out()), or else with `suggest` by the closest key.
     std::string unknown_command(const std::string& key, bool suggest = false) const;
 
 private:
     std::vector<NativeCommand>                   m_commands;
-    std::unordered_map<std::string, std::size_t> m_index; // key -> position in m_commands
+    std::unordered_map<std::string, std::size_t> m_index;    // key -> position in m_commands
+    std::unordered_map<std::string, std::string> m_left_out; // key -> why the catalog leaves it out
     std::vector<std::unique_ptr<CommandSource>>  m_sources;
     bool                                         m_sealed = false;
 };

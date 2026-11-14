@@ -70,6 +70,11 @@ NativeCommand cad_command(std::string key, std::string title, nlohmann::json sch
 // and not among them.
 void register_cad_commands(CommandCatalog& catalog);
 
+// Records in `catalog`, built with the CAD feature off, that it leaves out the keys register_cad_commands()
+// adds, because the feature was off when OrcaSlicer started and how a person turns it on
+// (CommandCatalog::leave_out()).
+void leave_out_cad_commands(CommandCatalog& catalog);
+
 // The input schema of a tool block: an object whose properties are the block's params, a type written "a|b"
 // as the list of both, min, exclusive_min and max as minimum, exclusiveMinimum and maximum, enum and default
 // as written, and the unit joined to the description; a param with no default is required. `generation`, the

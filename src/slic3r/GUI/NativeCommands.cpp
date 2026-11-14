@@ -1764,6 +1764,8 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
 #ifdef SLIC3R_CAD
     if (options.cad)
         Mcp::register_cad_commands(catalog);
+    else
+        Mcp::leave_out_cad_commands(catalog);
 #endif
     Mcp::register_action_tools(catalog);
     Mcp::register_ui_tools(catalog);

@@ -50,6 +50,7 @@ using nlohmann::json;
 using Slic3r::GUI::CommandCatalog;
 using Slic3r::GUI::CommandSource;
 using Slic3r::GUI::NativeCommand;
+namespace NativeCommands = Slic3r::GUI::NativeCommands;
 
 namespace {
 
@@ -175,17 +176,28 @@ TEST_CASE("run_action refuses arguments for an action that takes none", "[Mcp][S
 
 TEST_CASE("run_action says where an action it cannot find is", "[Mcp][SpeedDial]")
 {
-    CHECK_THAT(unknown_action("obj_arange"), Catch::Matchers::ContainsSubstring("search_actions"));
+    CHECK_THAT(unknown_action("obj_arange", NativeCommands::instance()), Catch::Matchers::ContainsSubstring("search_actions"));
 #ifdef SLIC3R_CAD
-    // A Design tab tile, by its id or its key, while it is not shown.
-    for (const char* id : {"orca_command:shell:orca", "shell"}) {
-        INFO(id);
-        const std::string why = unknown_action(id);
-        CHECK_THAT(why, Catch::Matchers::ContainsSubstring("while the Design tab is shown"));
-        CHECK_THAT(why, Catch::Matchers::ContainsSubstring("call_tool {\"tool\": \"shell\"}"));
+    // A Design tab tile, by its id or its key, while it is not shown: in a run with the CAD feature on at startup
+    // call_tool runs its command from any tab, and in one with it off there is no such command.
+    for (const bool cad : {true, false}) {
+        CommandCatalog catalog;
+        NativeCommands::register_all_commands(catalog, {cad});
+        catalog.seal();
+        for (const std::string id : {"orca_command:shell:orca", "shell"}) {
+            INFO(id << (cad ? ", the CAD feature on" : ", the CAD feature off"));
+            const std::string why = unknown_action(id, catalog);
+            if (cad) {
+                CHECK_THAT(why, Catch::Matchers::ContainsSubstring("while the Design tab is shown"));
+                CHECK_THAT(why, Catch::Matchers::ContainsSubstring("call_tool {\"tool\": \"shell\"}"));
+            } else {
+                CHECK(why == id + " is a Design tab tile, and the CAD feature was off when OrcaSlicer started: a person "
+                                  "turns it on in Preferences > Features and restarts OrcaSlicer");
+            }
+        }
+        // A Design command without a tile is any unknown action.
+        CHECK_THAT(unknown_action("orca_command:describe_scene:orca", catalog), Catch::Matchers::ContainsSubstring("search_actions"));
     }
-    // A Design command without a tile is any unknown action.
-    CHECK_THAT(unknown_action("orca_command:describe_scene:orca"), Catch::Matchers::ContainsSubstring("search_actions"));
 #endif
 }
 

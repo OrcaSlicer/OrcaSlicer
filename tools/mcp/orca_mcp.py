@@ -258,7 +258,11 @@ def write_conf(conf, data):
 def seed_datadir(datadir, printer, cad=False, unrestricted_scripts=False):
     """Seed a fresh datadir's OrcaSlicer.conf. A datadir that has one keeps it, except for the settings
     cad and unrestricted_scripts turn on, which only the file can: the app creates the Design tab only at
-    startup, when its setting is on, and no tool lets Python scripts run unrestricted."""
+    startup, when its setting is on, and no tool lets Python scripts run unrestricted.
+
+    A fresh datadir keeps the Orca Cloud login in its own token file (use_encrypted_token_file), not in the
+    system's secret store, so the instance starts signed out and never reads the person's login: on macOS
+    that read stops a newly built app at a keychain prompt that only a person can answer."""
     vendor, model, nozzle, filament = printer
     os.makedirs(datadir, exist_ok=True)
     conf = os.path.join(datadir, "OrcaSlicer.conf")
@@ -280,7 +284,8 @@ def seed_datadir(datadir, printer, cad=False, unrestricted_scripts=False):
                       "models": [{"model": model, "nozzle_diameter": nozzle, "vendor": vendor}],
                       "filaments": [filament],
                       "presets": {"machine": f"{model} {nozzle} nozzle"},
-                      "app": {"check_for_updates": False, "show_daily_tips": False, **switches}})
+                      "app": {"check_for_updates": False, "show_daily_tips": False, "use_encrypted_token_file": True,
+                              **switches}})
 
 
 # The headless compositors --headless tries, in order, by the binary each needs.

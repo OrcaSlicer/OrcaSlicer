@@ -438,6 +438,38 @@ TEST_CASE("a Speed Dial command is found by the one lookup", "[CommandCatalog]")
     CHECK_THAT(unknown, !ContainsSubstring("run_action"));
 }
 
+TEST_CASE("a command the catalog leaves out is unknown with the reason", "[CommandCatalog]")
+{
+    CommandCatalog catalog;
+    catalog.add(command("hold"));
+    catalog.leave_out("holes", "the feature was off");
+    catalog.seal();
+    REQUIRE(catalog.left_out("holes") != nullptr);
+    CHECK(*catalog.left_out("holes") == "the feature was off");
+    CHECK(catalog.left_out("hold") == nullptr);
+    // The reason, and no close key: the key names the command the caller meant.
+    CHECK(catalog.unknown_command("holes", /*suggest=*/true) == "Unknown tool: holes; the feature was off");
+    CHECK(catalog.unknown_command("holx", /*suggest=*/true) == "Unknown tool: holx (did you mean hold?)");
+    CHECK_THROWS_AS(catalog.leave_out("shell", "too late"), std::logic_error);
+
+    // A run with the CAD feature off at startup leaves out the Design commands, and says how a person turns it
+    // on; a build without CAD has no Design commands to leave out.
+    CommandCatalog no_cad;
+    NativeCommands::register_all_commands(no_cad, {false});
+    no_cad.seal();
+#ifdef SLIC3R_CAD
+    for (const std::string key : {"extrude", "hole", "describe_scene"}) {
+        INFO(key);
+        CHECK(no_cad.unknown_command(key, /*suggest=*/true) ==
+              "Unknown tool: " + key + "; the CAD feature was off when OrcaSlicer started: a person turns it on in "
+                                       "Preferences > Features and restarts OrcaSlicer");
+    }
+#else
+    CHECK(no_cad.left_out("extrude") == nullptr);
+#endif
+    CHECK(no_cad.left_out("obj_arrange") == nullptr);
+}
+
 TEST_CASE("every expected-id argument of a schema is in id_args", "[CommandCatalog]")
 {
     for (const NativeCommand& c : NativeCommands::instance().commands()) {

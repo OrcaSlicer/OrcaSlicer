@@ -13237,7 +13237,11 @@ void Plater::priv::set_current_panel(wxPanel* panel, bool no_slice)
         //view_toolbar.select_item("Assemble");
     }
 
-    current_panel->SetFocusFromKbd();
+    // The shown view's canvas takes the keyboard. Focusing its panel instead hands the focus to the canvas, the
+    // panel's one focusable child, except on macOS after a switch: hiding the panel whose canvas had the focus
+    // moves it to the next view AppKit can focus, the panel just shown, and a panel that holds the focus itself
+    // keeps it (wxControlContainer::DoSetFocus()), so the view's keys would wait for the pointer to enter it.
+    get_current_canvas3D()->force_set_focus();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": successfully, exit");
 }

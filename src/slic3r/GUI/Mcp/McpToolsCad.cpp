@@ -183,6 +183,11 @@ const char* const kCadOffNote = "call_tool runs no Design command now: they need
                                 "Features, and on when OrcaSlicer started. A person turns it on there if it is off, and "
                                 "restarts OrcaSlicer.";
 
+// Why a catalog built with the CAD feature off leaves out the Design commands, after "Unknown tool: <key>; "
+// or a tile's "<key> is a Design tab tile, and " (unknown_action()).
+const char* const kCadOffAtStartup = "the CAD feature was off when OrcaSlicer started: a person turns it on in "
+                                     "Preferences > Features and restarts OrcaSlicer";
+
 json describe_scene(DesignPanel* panel)
 {
     CadDocument& doc = panel->mcp_doc();
@@ -3760,6 +3765,13 @@ void register_cad_commands(CommandCatalog& catalog)
     for (const DesignTool& t : kDesignTools)
         if (t.action != nullptr || t.doc != nullptr)
             catalog.add(design_command(t));
+}
+
+void leave_out_cad_commands(CommandCatalog& catalog)
+{
+    for (const DesignTool& t : kDesignTools)
+        if (t.action != nullptr || t.doc != nullptr)
+            catalog.leave_out(t.id, kCadOffAtStartup);
 }
 
 json cad_note(const CommandCatalog& catalog)

@@ -175,9 +175,10 @@ nlohmann::json rank_actions(const nlohmann::json& listed, const std::vector<std:
 std::string action_args_error(const AppAction& action, const nlohmann::json& args);
 
 // What run_action answers for `id`, an action id or the name inside one, that no action of the app's state has:
-// for a Design tab tile's, when that tile is there and that call_tool runs its command from any tab; for any
-// other, where an action or a command is found.
-std::string unknown_action(const std::string& id);
+// for a Design tab tile's, when that tile is there and that call_tool runs its command from any tab, or, when
+// `catalog` leaves the tile's command out (CommandCatalog::leave_out()), why; for any other, where an action or a
+// command is found.
+std::string unknown_action(const std::string& id, const CommandCatalog& catalog);
 
 // A setting value from JSON in the serialized form set_deserialize accepts: "3", "0.2", "1"/"0"
 // for booleans, "a,b" for arrays. A list of strings (`key` names a coStrings option, such as

@@ -276,6 +276,8 @@ class MainFrame : public DPIFrame
         bool        accelerator;   // false keeps the binding display-only on macOS, where the menu bar's accelerators are live
     };
     std::vector<ShortcutMenuItem> m_shortcut_menu_items;
+    // Menu bar items whose label shows a fixed key as text after sep, and their label without it.
+    std::vector<std::pair<const wxMenuItem*, wxString>> m_key_text_items;
 
     wxString shortcut_label(const wxString& label, Shortcut shortcut, bool accelerator);
     template<typename... Args>
@@ -482,6 +484,10 @@ public:
     int         get_calibration_curr_tab();
     void        select_view(const std::string& direction);
     void        update_shortcut_labels();
+    // A menu item's label without the key shown after it, the name automation gives the item. GetItemLabelText()
+    // drops a key that follows "\t"; on macOS a key the menu bar must not take follows sep instead (shortcut_label()),
+    // which it keeps, so for MainFrame's own items that label is the one the item was made with.
+    wxString    menu_item_label(const wxMenuItem& item) const;
     // Propagate changed configuration from the Tab to the Plater and save changes to the AppConfig
     void        on_config_changed(DynamicPrintConfig* cfg) const ;
     void        set_print_button_to_default(PrintSelectType select_type);

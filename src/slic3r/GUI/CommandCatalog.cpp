@@ -33,6 +33,13 @@ void CommandCatalog::add_source(std::unique_ptr<CommandSource> source)
     m_sources.push_back(std::move(source));
 }
 
+void CommandCatalog::leave_out(const std::string& key, std::string why)
+{
+    if (m_sealed)
+        throw std::logic_error("The command catalog is sealed; leaving out " + key + " comes too late");
+    m_left_out[key] = std::move(why);
+}
+
 void CommandCatalog::seal() { m_sealed = true; }
 
 const NativeCommand* CommandCatalog::find(const std::string& key) const
@@ -75,9 +82,18 @@ std::vector<std::string> CommandCatalog::similar(const std::string& key, std::si
     return out;
 }
 
+const std::string* CommandCatalog::left_out(const std::string& key) const
+{
+    const auto it = m_left_out.find(key);
+    return it == m_left_out.end() ? nullptr : &it->second;
+}
+
 std::string CommandCatalog::unknown_command(const std::string& key, bool suggest) const
 {
     std::string message = "Unknown tool: " + key;
+    // A key left out names the command the caller meant, so no other key is suggested.
+    if (const std::string* why = left_out(key))
+        return message + "; " + *why;
     if (suggest)
         if (const std::vector<std::string> close = similar(key); !close.empty())
             message += " (did you mean " + close.front() + "?)";

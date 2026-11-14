@@ -70,7 +70,7 @@ const AppAction& find_action(ActionRegistry& actions, std::string& id)
     json similar = json::array();
     for (std::size_t i = 0; i < scored.size() && similar.size() < 3 && scored[i].first <= id.size() / 3 + 2; ++i)
         similar.push_back(scored[i].second);
-    throw ToolFailure(unknown_action(id), {{"similar", similar}});
+    throw ToolFailure(unknown_action(id, NativeCommands::instance()), {{"similar", similar}});
 }
 
 } // namespace
@@ -82,14 +82,17 @@ std::string action_args_error(const AppAction& action, const json& args)
     return "The action " + action.id() + " takes no arguments: run it without args";
 }
 
-std::string unknown_action(const std::string& id)
+std::string unknown_action(const std::string& id, const CommandCatalog& catalog)
 {
-    // A Design tile is no action while it is not live (ActionRegistry::materialize_design_actions()), but its
-    // command is in the catalog.
+    // A Design tile is no action while it is not live (ActionRegistry::materialize_design_actions()); its
+    // command is in the catalog, unless the catalog was built with the CAD feature off.
     const std::string tile = id.find(':') != std::string::npos ? id : AppAction::compose_id(kCommandPrefix, id, kOrcaSourceKey);
-    if (is_design_tile_id(tile))
+    if (is_design_tile_id(tile)) {
+        if (const std::string* why = catalog.left_out(short_id(tile)))
+            return id + " is a Design tab tile, and " + *why;
         return id + " is a Design tab tile, there only while the Design tab is shown in its mode (a sketch's or the model's) "
                     "with the CAD feature on; call_tool {\"tool\": \"" + short_id(tile) + "\"} runs its command from any tab";
+    }
     // The name may be a command's that has no tile, which call_tool runs.
     return "Unknown action id " + id + "; find an action with search_actions, or a command with search_tools";
 }

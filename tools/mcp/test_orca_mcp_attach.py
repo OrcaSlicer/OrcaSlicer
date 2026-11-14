@@ -11,7 +11,8 @@ mcp/server.json, or whose server.json is not JSON or names no port, naming the f
 --mcp advice; and one whose server.json names a port where nothing listens or where another server
 answers (HTTP 401, a reply that is not JSON), also chaining the cause. call_command(), against a
 stubbed call(), fails at once on a dialog, follows a running job, prefixes its errors with the
-command's name, chaining the original, and returns the command's whole reply. Exits 0 when every check passes.
+command's name, chaining the original, and returns the command's whole reply. seed_datadir() keeps a fresh
+datadir's login in its own token file and leaves a reused datadir's where it is. Exits 0 when every check passes.
 The folders the checks make are removed when they end.
 """
 
@@ -244,10 +245,33 @@ def check_call_command():
     ok("call_command() starts every error with the command's name, with the original as its cause")
 
 
+def read_conf(datadir):
+    with open(os.path.join(datadir, "OrcaSlicer.conf"), encoding="utf-8") as f:
+        text = f.read()
+    return json.loads(text[:text.rfind("}") + 1])
+
+
+def check_seed_datadir():
+    fresh = scratch("orca-seed-")
+    orca_mcp.seed_datadir(fresh, orca_mcp.DEFAULT_PRINTER)
+    app = read_conf(fresh)["app"]
+    assert app.get("use_encrypted_token_file") is True, app
+    ok("seed_datadir() keeps a fresh datadir's login in its own token file, not the system's secret store")
+
+    reused = scratch("orca-seed-reused-")
+    orca_mcp.write_conf(os.path.join(reused, "OrcaSlicer.conf"), {"app": {"use_encrypted_token_file": False}})
+    orca_mcp.seed_datadir(reused, orca_mcp.DEFAULT_PRINTER, cad=True)
+    app = read_conf(reused)["app"]
+    assert app.get("enable_cad_feature") is True, app
+    assert app.get("use_encrypted_token_file") is False, app
+    ok("seed_datadir() leaves a reused datadir's login where its conf keeps it")
+
+
 def main():
     global _ROOT
     with tempfile.TemporaryDirectory(prefix="orca-attach-") as root:
         _ROOT = root
+        check_seed_datadir()
         check_default_datadir()
         check_symlinked_binary()
         check_from_datadir()

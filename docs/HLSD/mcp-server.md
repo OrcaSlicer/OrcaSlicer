@@ -653,13 +653,15 @@ An agent calls into two catalogs by name: the commands (the typed tools, the Spe
 Design tab's and the operations plugins offer) and the Speed Dial's actions, which `run_action` runs.
 `search_tools {query}` finds a name in either, and a command runs by its key through `tools/call` and
 `call_tool`, with `search_tools` giving the schema of one `tools/list` does not show. A name that misses
-is answered with the closest names of the catalog asked and nothing else.
-`CommandCatalog::unknown_command()` builds the error for every lookup of a command that misses:
-`tools/call`, `call_tool`, `search_tools {tool}`, a replay step and a plugin's or script's call.
+is answered with the closest names of the catalog asked and nothing else, unless the catalog leaves that
+command out (`CommandCatalog::leave_out()`): then it says why. A catalog built with the CAD feature off
+leaves out the Design commands, and says that the feature was off when OrcaSlicer started and how a person
+turns it on. `CommandCatalog::unknown_command()` builds the error for every lookup of a command that
+misses: `tools/call`, `call_tool`, `search_tools {tool}`, a replay step and a plugin's or script's call.
 `run_action` gives the closest action ids, and says that `search_actions` finds an action and
 `search_tools` a command, since the name may be a command's that has no tile; a tile's key runs its
 command. For a Design tile that is not shown it says when the tile is there instead, and that `call_tool`
-runs its command from any tab.
+runs its command from any tab, or, when the catalog leaves its command out, why.
 
 Each tool family lives in its own `McpTools*.cpp`. List tools take `limit` and `offset` and reply
 `{items, offset, total}` (`page()`; `list_objects`, a tree, has `plates` and `outside` in place of
@@ -1270,7 +1272,9 @@ never open the Design tab pay nothing for them in `tools/list`. Those that open 
 whose tiles for them the Speed Dial has while the Design tab is shown (see Speed Dial catalog).
 `register_all_commands()` adds them through `register_cad_commands()` only when the catalog is built with
 the CAD feature on (`CatalogOptions::cad`, which startup takes from `enable_cad_feature` in the editor). With
-it off the catalog holds none: `call_tool {tool: "hole"}` is an unknown command, and `get_app_state` carries
+it off the catalog holds none, and records that it leaves them out (`leave_out_cad_commands()`):
+`call_tool {tool: "hole"}` is an unknown command whose error says the feature was off when OrcaSlicer
+started and how a person turns it on, and `get_app_state` carries
 `cad_note`, how a person turns the feature on (`cad_note()`, in the editor while the catalog holds no Design
 command or the preference is off). The catalog is sealed at startup and the main window makes the Design
 page only then, so turning the feature on or off takes effect after a restart, but for the Speed Dial's
@@ -1353,7 +1357,8 @@ finds them among the commands with their input schemas, and `search_tools {tool}
 `read_only`, description, input schema and examples. `call_tool {tool, args}` runs one, its arguments
 validated against its schema, and replies `{"result": ...}`, the tool's own reply; a replay step calls one
 by its name or through `call_tool`, and `orca_mcp.py`'s `call_command()` from Python. An unknown name is
-answered as any unknown command is, with the closest key.
+answered as any unknown command is: with the closest key, or, for a Design command's name in a run started
+with the CAD feature off, with how a person turns it on.
 
 A call runs its function on the UI thread: a person's pick in place, an automated call in one UI closure
 under the mutate guard, then `settle()`. Before the silent form, `cad_gate()` refuses a call by its cause, in
@@ -1772,7 +1777,8 @@ close ids, scored by edit distance against both the full id and its key, a key t
 (`delete_all` in `obj_delete_all`) counting as closest, and says where to find an action or a command (see
 Tool catalog); the id or key of a Design tile that is not live says instead that the tile is there only while
 the Design tab is shown in its mode with the CAD feature on, and that `call_tool` runs its command from any
-tab (`unknown_action()`). A command's tile runs the command's own function:
+tab, or, in a run started with the feature off, that it was off then and how a person turns it on, as
+`call_tool` does (`unknown_action()`). A command's tile runs the command's own function:
 `args` are checked against its schema, and it runs through a `Mcp::TileContext`, which is `run_action`'s
 own context except that a command rewriting its journal entry does so inside `run_action`'s, as
 `{"id": ..., "args": ...}`, so a recorded session replays through `run_action`; the reply's `ran` is the
@@ -2182,8 +2188,12 @@ a menu that opens in a window where nothing is armed (a call that queues a menu 
 is closed unseen too. The last three such menus, with the tool whose window took them, are in
 `get_app_state.closed_menus`.
 
-A menu path is the item labels joined with `>`, as `GetItemLabelText()` gives them, matched without
-case; a trailing `...` may be left out. A label repeated among its siblings is numbered from its
+A menu path is the item labels joined with `>`, each without the key the menu shows after it
+(`MainFrame::menu_item_label()`), matched without case; a trailing `...` may be left out. That is the
+label `GetItemLabelText()` gives, which drops a key written after a tab, but for a key the macOS menu
+bar shows as plain text after ` - ` so that it does not take the key from text fields (`Edit>Undo`, not
+`Edit>Undo - ⌘+Z`), which `MainFrame` drops by the label it made the item with. So a path is the same
+on every platform. A label repeated among its siblings is numbered from its
 second time on (`Change Filament>Generic PLA #2`), so every listed path names one item, and the
 marker the Change Filament list appends to the slot in use (" (current)", translated) is left out of
 the numbering and the matching, so a path recorded with another slot in use still names the same
@@ -3920,7 +3930,8 @@ presets with a path, and reading a preference changed in the Preferences dialog,
 targets on negative parts and from below the bed, `tools/mcp/tests/slice_stats.json` the slice
 reply's statistics on one and two colours, `tools/mcp/tests/preview.json` `get_slice_stats`,
 `get_app_state.preview` and `set_view`'s preview arguments, `tools/mcp/tests/context_menus.json` context
-and button menus listed and run without one ever showing, `tools/mcp/tests/rows.json` object list
+and button menus listed and run without one ever showing, and the Edit menu's Undo and Redo picked by
+their paths, `tools/mcp/tests/rows.json` object list
 rows, checklist rows, the object settings table and the print button's popup,
 `tools/mcp/tests/recording.json` a recording with clicks, a dialog and a slice, stopped and encoded,
 and one a replay ends, `tools/mcp/tests/plate_icons.json` plate icons (lock, settings, arrange, the plate menu, move to

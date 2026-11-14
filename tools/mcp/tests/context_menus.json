@@ -34,6 +34,13 @@
     {"tool": "run_action", "args": {"id": "orca_command:redo:orca"}},
     {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1/type": {"eq": "modifier"}}},
 
+    // ---- The Edit menu's Undo and Redo, named by their labels alone on every platform, though macOS shows
+    // their keys as text after them ----
+    {"tool": "click", "args": {"target": {"menu": "Edit>Undo"}}, "expect": {"/clicked": {"eq": "Edit>Undo"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1": {"exists": false}}},
+    {"tool": "click", "args": {"target": {"menu": "Edit>Redo"}}, "expect": {"/clicked": {"eq": "Edit>Redo"}}},
+    {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1/type": {"eq": "modifier"}}},
+
     // ---- Empty space with nothing selected: the default menu ----
     {"tool": "select_objects", "args": {"none": true}},
     {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "x": 1000, "y": 150},

@@ -506,6 +506,16 @@ std::vector<wxTopLevelWindow*> top_level_windows(McpService& service)
     return out;
 }
 
+// A menu item's label as automation names it, without the key shown after it (MainFrame::menu_item_label()), so
+// a menu path is the same on every platform. Only a GUI_App has a main window: the unit tests run menus under a
+// plain wxApp.
+std::string menu_label(const wxMenuItem& item)
+{
+    const auto*      app   = dynamic_cast<const GUI_App*>(wxTheApp);
+    const MainFrame* frame = app != nullptr ? app->mainframe : nullptr;
+    return into_u8(frame != nullptr ? frame->menu_item_label(item) : item.GetItemLabelText());
+}
+
 // The menus of the main window: its menu bar on macOS, the title bar's File and dropdown menus
 // elsewhere.
 std::vector<std::pair<std::string, wxMenu*>> main_menus()
@@ -525,7 +535,7 @@ std::vector<std::pair<std::string, wxMenu*>> main_menus()
         if (wxMenu* top = topbar->GetTopMenu())
             for (wxMenuItem* item : top->GetMenuItems())
                 if (item->IsSubMenu())
-                    out.emplace_back(into_u8(item->GetItemLabelText()), item->GetSubMenu());
+                    out.emplace_back(menu_label(*item), item->GetSubMenu());
     }
     return out;
 }
@@ -546,7 +556,7 @@ wxMenuItem* find_menu_item(int id, std::string* path)
         for (wxMenuItem* item : menu->GetMenuItems()) {
             if (item->IsSeparator())
                 continue;
-            const std::string here = prefix + ">" + into_u8(item->GetItemLabelText());
+            const std::string here = prefix + ">" + menu_label(*item);
             if (item->GetId() == id && !item->IsSubMenu()) {
                 if (path)
                     *path = here;
@@ -570,7 +580,7 @@ wxMenuItem* find_menu_path(const std::string& wanted, int& id)
         for (wxMenuItem* item : menu->GetMenuItems()) {
             if (item->IsSeparator())
                 continue;
-            const std::string here = prefix + ">" + into_u8(item->GetItemLabelText());
+            const std::string here = prefix + ">" + menu_label(*item);
             if (!item->IsSubMenu() && lower(here) == lower(wanted)) {
                 id = item->GetId();
                 return item;
@@ -599,7 +609,7 @@ std::vector<MenuEntry> menu_entries(wxMenu& menu)
             if (item->IsSeparator())
                 continue;
             MenuEntry e;
-            e.label     = into_u8(item->GetItemLabelText());
+            e.label     = menu_label(*item);
             e.parent    = parent;
             e.id        = item->GetId();
             e.enabled   = enabled && item->IsEnabled();
@@ -2093,7 +2103,7 @@ void UiInspector::add_menus(wxMenu* menu, const std::string& path, wxWindow* fra
     for (wxMenuItem* item : menu->GetMenuItems()) {
         if (item->IsSeparator())
             continue;
-        const std::string label = into_u8(item->GetItemLabelText());
+        const std::string label = menu_label(*item);
         const std::string here  = path + ">" + label;
         UiNode node;
         node.kind    = item->IsSubMenu() ? "menu" : "menu_item";

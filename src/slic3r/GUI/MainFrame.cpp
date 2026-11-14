@@ -2966,6 +2966,19 @@ void MainFrame::update_shortcut_labels()
         panel->shortcuts_changed();
 }
 
+wxString MainFrame::menu_item_label(const wxMenuItem& item) const
+{
+#ifdef __APPLE__
+    for (const ShortcutMenuItem& entry : m_shortcut_menu_items)
+        if (entry.item == &item)
+            return wxMenuItem::GetLabelText(entry.label);
+    for (const auto& [shown, label] : m_key_text_items)
+        if (shown == &item)
+            return wxMenuItem::GetLabelText(label);
+#endif
+    return item.GetItemLabelText();
+}
+
 CodeEditorWindow* MainFrame::focused_code_editor() const
 {
     const wxWindow* focus = wxWindow::FindFocus();
@@ -3560,7 +3573,7 @@ void MainFrame::init_menubar_as_editor()
                     m_plater->select_all(); },
             "", nullptr, [this](){return focused_code_editor() != nullptr || can_select(); }, this);
         // BBS Deslect All
-        append_menu_item(editMenu, wxID_ANY, _L("Deselect All") + sep + _L_CONTEXT("Esc", "Keyboard Shortcut"),
+        wxMenuItem* deselect_all = append_menu_item(editMenu, wxID_ANY, _L("Deselect All") + sep + _L_CONTEXT("Esc", "Keyboard Shortcut"),
             _L("Deselects all objects"), [this, handle_key_event](wxCommandEvent&) {
                 wxKeyEvent e;
                 e.SetEventType(wxEVT_KEY_DOWN);
@@ -3570,6 +3583,7 @@ void MainFrame::init_menubar_as_editor()
                 }
                 m_plater->deselect_all(); },
             "", nullptr, [this](){return can_deselect(); }, this);
+        m_key_text_items.emplace_back(deselect_all, _L("Deselect All"));
         //editMenu->AppendSeparator();
         //append_menu_check_item(editMenu, wxID_ANY, _L("Show Model Mesh(TODO)"),
         //    _L("Display triangles of models."), [this](wxCommandEvent& evt) {
