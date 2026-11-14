@@ -812,6 +812,22 @@ protected:
                 score += height_score / valid_items_cnt;
         }
 
+        // Orca: the nozzle keeps coming down to a prime tower compacted by "No sparse layers", and
+        // the rod then sweeps the tower's Y span over the whole bed, so nothing taller than the rod
+        // clearance may share that span. Same test as compacted_wipe_tower_clearance().
+        if (params.compacted_tower_growth >= 0 && item.height > params.clearance_height_to_rod) {
+            const auto item_bb = item.boundingBox();
+            const auto iy1     = item_bb.minCorner().y() + item.inflation();
+            const auto iy2     = item_bb.maxCorner().y() - item.inflation();
+            for (const Item& p : m_items) {
+                if (!p.is_wipe_tower) continue;
+                const auto tower_bb = p.boundingBox();
+                const auto grown    = p.inflation() + params.compacted_tower_growth;
+                if (std::max(iy1, tower_bb.minCorner().y() + grown) - std::min(iy2, tower_bb.maxCorner().y() - grown) < scaled(params.clearance_dist_to_rod))
+                    score += LARGE_COST_TO_REJECT * 1.2;
+            }
+        }
+
         std::set<int> extruder_ids;
         for (int i = 0; i < m_items.size(); i++) {
             Item& p = m_items[i];
@@ -1159,6 +1175,15 @@ void _arrange(
     //sl::offset(corrected_bin, md);
     ArrangeParams mod_params = params;
     mod_params.min_obj_distance = 0;  // items are already inflated
+    // Orca: aligning the finished pile would carry objects taller than the rod clearance back into
+    // the Y span of a compacted prime tower, which objfunc() has just kept them out of. A
+    // best_object_pos away from the bed centre makes the AutoArranger align the pile to it whatever
+    // do_final_align says, so that point goes back to the centre as well.
+    if (params.compacted_tower_growth >= 0 &&
+        std::any_of(shapes.begin(), shapes.end(), [&params](const Item &itm) { return itm.height > params.clearance_height_to_rod; })) {
+        mod_params.do_final_align = false;
+        mod_params.align_center   = Vec2d(0.5, 0.5);
+    }
 
     AutoArranger<BinT> arranger{corrected_bin, mod_params, progressfn, stopfn};
 

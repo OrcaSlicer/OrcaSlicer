@@ -166,7 +166,7 @@ void FillBedJob::prepare()
 
                 m_unselected.emplace_back(ap);
             }*/
-    if (auto wt = get_wipe_tower_arrangepoly(*m_plater))
+    if (auto wt = get_wipe_tower_arrangepoly(*m_plater, params, m_selected))
         m_unselected.emplace_back(std::move(*wt));
 
     double sc = scaled<double>(1.) * scaled(1.);

@@ -6,6 +6,9 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/IMEXArrange.hpp"
+#include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/Print.hpp"
+#include "libslic3r/GCode/WipeTower.hpp"
 
 #include "slic3r/GUI/PartPlate.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
@@ -158,11 +161,56 @@ static WipeTower get_wipe_tower(const Plater &plater, int plate_idx)
     return WipeTower{plater.canvas3D()->get_wipe_tower_info(plate_idx)};
 }
 
-arrangement::ArrangePolygon get_wipetower_arrange_poly(WipeTower* tower)
+// Orca: a prime tower compacted by "No sparse layers" stays low, so the toolhead comes down beside it
+// at every tool change. Objects have to keep the toolhead radius from it, as they do from one another
+// when printing by object, so the arranger is given the tower grown by that much.
+// object_gap is the distance in mm the arranger keeps around every object anyway, which counts
+// towards that clearance. params.compacted_tower says whether the tower is compacted at all; once
+// grown, params.compacted_tower_growth holds by how much (scaled) the polygon now reaches past the
+// tower's own zone, which the arranger needs to find the tower's Y span again.
+static void grow_compacted_wipe_tower(arrangement::ArrangePolygon& ap, arrangement::ArrangeParams& params, double object_gap)
+{
+    if (!params.compacted_tower || ap.poly.contour.points.empty())
+        return;
+
+    // The config init_arrange_params() read params from.
+    const PrintConfig& config = wxGetApp().plater()->get_partplate_list().get_current_fff_print().config();
+    // The tower's polygon holds its brim already, both the one of a tower already there and the
+    // estimated one, so only the margin for the line width is left to add.
+    const Polygons footprint = offset(ap.poly.contour, float(scale_(compacted_tower_footprint_padding(config, 0.))));
+    if (footprint.empty())
+        return;
+    const CompactedTowerZone zone = compacted_wipe_tower_zone(config, footprint.front());
+    if (zone.empty())
+        return;
+    const coord_t  growth = scaled(std::max(0., zone.body_radius - object_gap));
+    const Polygons grown  = offset(zone.hull, float(growth), jtRound, scale_(0.1));
+    if (grown.empty())
+        return;
+    ap.poly.contour               = grown.front();
+    params.compacted_tower_growth = growth;
+}
+
+// Orca: the gap in mm the arranger will leave around each of the objects it is about to place, which
+// is the smallest inflation update_selected_items_inflation() gives them. It is worked out on copies,
+// since the arrange jobs only inflate the objects after the tower is in place.
+static double arranged_object_gap(const arrangement::ArrangeParams& params, const ArrangePolygons& selected, const DynamicPrintConfig* print_cfg)
+{
+    if (selected.empty())
+        return 0.;
+    arrangement::ArrangeParams params_copy   = params;
+    ArrangePolygons            selected_copy = selected;
+    update_selected_items_inflation(selected_copy, print_cfg, params_copy);
+    const auto by_inflation = [](const ArrangePolygon& lhs, const ArrangePolygon& rhs) { return lhs.inflation < rhs.inflation; };
+    return unscale<double>(std::min_element(selected_copy.begin(), selected_copy.end(), by_inflation)->inflation);
+}
+
+arrangement::ArrangePolygon get_wipetower_arrange_poly(WipeTower* tower, arrangement::ArrangeParams& params, double object_gap)
 {
     ArrangePolygon ap = tower->get_arrange_polygon();
     ap.bed_idx = 0;
     ap.setter = NULL; // do not move wipe tower
+    grow_compacted_wipe_tower(ap, params, object_gap);
     return ap;
 }
 
@@ -488,6 +536,8 @@ void ArrangeJob::prepare_wipe_tower()
     BOOST_LOG_TRIVIAL(info) << "arrange: need_wipe_tower=" << need_wipe_tower;
 
 
+    const double object_gap = arranged_object_gap(params, m_selected, m_plater->config());
+
     ArrangePolygon    wipe_tower_ap;
     wipe_tower_ap.name = "WipeTower";
     wipe_tower_ap.is_virt_object = true;
@@ -509,7 +559,7 @@ void ArrangeJob::prepare_wipe_tower()
             continue;
         if (auto wti = get_wipe_tower(*m_plater, bedid)) {
             // wipe tower is already there
-            wipe_tower_ap = get_wipetower_arrange_poly(&wti);
+            wipe_tower_ap = get_wipetower_arrange_poly(&wti, params, object_gap);
             wipe_tower_ap.bed_idx = bedid_unlocked;
             m_unselected.emplace_back(wipe_tower_ap);
         }
@@ -520,6 +570,7 @@ void ArrangeJob::prepare_wipe_tower()
                 extruder_ids.insert(plate_extruders.begin(), plate_extruders.end());
             }
             wipe_tower_ap = estimate_wipe_tower_info(bedid, extruder_ids);
+            grow_compacted_wipe_tower(wipe_tower_ap, params, object_gap);
             wipe_tower_ap.bed_idx = bedid_unlocked;
             m_unselected.emplace_back(wipe_tower_ap);
         }
@@ -585,7 +636,7 @@ void ArrangeJob::prepare_partplate() {
 
     // BBS
     if (auto wti = get_wipe_tower(*m_plater, current_plate_index)) {
-        ArrangePolygon&& ap = get_wipetower_arrange_poly(&wti);
+        ArrangePolygon&& ap = get_wipetower_arrange_poly(&wti, params, arranged_object_gap(params, m_selected, m_plater->config()));
         m_unselected.emplace_back(std::move(ap));
     }
 
@@ -965,11 +1016,11 @@ void ArrangeJob::finalize(bool canceled, std::exception_ptr &eptr) {
 }
 
 std::optional<arrangement::ArrangePolygon>
-get_wipe_tower_arrangepoly(const Plater &plater)
+get_wipe_tower_arrangepoly(const Plater &plater, arrangement::ArrangeParams &params, const arrangement::ArrangePolygons &placed)
 {
     int id = plater.canvas3D()->fff_print()->get_plate_index();
     if (auto wti = get_wipe_tower(plater, id))
-        return get_wipetower_arrange_poly(&wti);
+        return get_wipetower_arrange_poly(&wti, params, arranged_object_gap(params, placed, plater.config()));
 
     return {};
 }
@@ -997,6 +1048,7 @@ arrangement::ArrangeParams init_arrange_params(Plater *p)
 
     params.clearance_height_to_rod             = print_config.extruder_clearance_height_to_rod.value;
     params.clearance_height_to_lid             = print_config.extruder_clearance_height_to_lid.value;
+    params.clearance_dist_to_rod               = print_config.extruder_clearance_dist_to_rod.value;
     params.clearance_radius                    = print_config.extruder_clearance_radius.value + object_skirt_offset * 2;
     params.object_skirt_offset                 = object_skirt_offset;
     params.printable_height                    = print_config.printable_height.value;
@@ -1037,6 +1089,11 @@ arrangement::ArrangeParams init_arrange_params(Plater *p)
         params.bed_shrink_x = BED_SHRINK_SEQ_PRINT;
         params.bed_shrink_y = BED_SHRINK_SEQ_PRINT;
     }
+
+    // Orca: the same condition as the slicer's clearance check for a compacted prime tower. Smooth
+    // timelapse and wrapping detection keep the tower at full height, and printing by object has a
+    // clearance check of its own.
+    params.compacted_tower = !params.is_seq_print && wipe_tower_sparse_layers_skipped(print_config);
     return params;
 }
 
