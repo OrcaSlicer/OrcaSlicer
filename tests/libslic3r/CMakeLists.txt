@@ -43,6 +43,7 @@ add_executable(${_TEST_NAME}_tests
     test_publish_settings.cpp
     test_vendor_cache.cpp
     test_preset_options.cpp
+    test_user_printer_variants.cpp
     test_edge_grid.cpp
     test_elephant_foot_compensation.cpp
     test_exclusion_volumes.cpp
