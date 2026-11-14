@@ -874,6 +874,20 @@ void DropDown::mouseMove(wxMouseEvent &event)
 
 void DropDown::mouseWheelMoved(wxMouseEvent &event)
 {
+#ifdef __WXMSW__
+    // A focused submenu may receive wheel events while the cursor is over the main list.
+    if (mainDropDown && mainDropDown->IsShown()) {
+        const wxPoint screen_pt = wxGetMousePosition();
+        if (!GetScreenRect().Contains(screen_pt) && mainDropDown->GetScreenRect().Contains(screen_pt)) {
+            const wxPoint main_pt = mainDropDown->ScreenToClient(screen_pt);
+            wxMouseEvent forwarded(event);
+            forwarded.SetX(main_pt.x);
+            forwarded.SetY(main_pt.y);
+            mainDropDown->mouseWheelMoved(forwarded);
+            return;
+        }
+    }
+#endif
     auto delta = event.GetWheelRotation();
     wxSize  size  = GetSize();
     wxPoint pt2   = offset + wxPoint{0, delta};
