@@ -91,6 +91,9 @@ public:
     wxString GetItemTooltip(unsigned int n) const;
     void     SetItemTooltip(unsigned int n, wxString const &value);
 
+    // Optional text drawn right-aligned in the dropdown row (e.g. the nozzle side of a filament).
+    void     SetItemRightText(unsigned int n, wxString const &value);
+
     wxString GetItemAlias(unsigned int n) const;
     void     SetItemAlias(unsigned int n, wxString const &value);
 
