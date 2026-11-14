@@ -1835,6 +1835,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionStrings,             imex_mode_names))
     ((ConfigOptionStrings,             imex_mode_active_tools))
     ((ConfigOptionStrings,             imex_mode_gcodes))
+    ((ConfigOptionBool,                enable_filament_mapping))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
     ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
     ((ConfigOptionString,              toolchange_cyclic_order))
@@ -2622,6 +2623,9 @@ public:
     // state is considered changed from perspective of the undo/redo stack.
     void         reset() { m_data.clear(); touch(); }
 
+    // Orca: for a copy derived deterministically from rhs, so it doesn't read as changed.
+    void         mirror_timestamp_of(const ModelConfig &rhs) { m_timestamp = rhs.m_timestamp; }
+
     void         assign_config(const ModelConfig &rhs) {
         if (m_timestamp != rhs.m_timestamp) {
             m_data      = rhs.m_data;
@@ -2771,6 +2775,26 @@ static bool has_zero_flush_volume_for_used_filaments(const std::vector<T> &fv_ma
 size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id);
 
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer);
+
+// True when the project's filaments are decoupled from the printer's tools: enable_filament_mapping
+// on a non-Bambu printer with one filament per nozzle (>= 2 nozzles, not
+// single_extruder_multi_material).
+bool decouples_filaments_from_tools(const ConfigBase& printer_config);
+
+// The size of the printer's T<n> namespace: the nozzle count. Only meaningful when
+// decouples_filaments_from_tools() is true.
+size_t filament_namespace_size(const ConfigBase& printer_config, size_t nozzle_count);
+
+// Filament i -> extruder i up to extruder_count, the rest -> master_extruder_id_0based (clamped to
+// >= 0). Returns 0-based extruder indices. All callers must agree, or every Print::apply sees a
+// config diff.
+std::vector<int> non_bbl_identity_filament_extruder_map(size_t filament_count, size_t extruder_count, int master_extruder_id_0based);
+// The same, with the extruder count and master_extruder_id read from the config.
+std::vector<int> non_bbl_identity_filament_extruder_map(const ConfigBase& config, size_t filament_count);
+
+// Pad (never truncate) a 3mf plate filament_map with 1 and clamp entries into [1, nozzle_count].
+// An empty map, meaning "use the global filament_map", stays empty.
+void normalize_plate_filament_map(std::vector<int>& values, size_t filament_count, size_t nozzle_count);
 
 } // namespace Slic3r
 

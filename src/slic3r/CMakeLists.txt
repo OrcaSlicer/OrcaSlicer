@@ -562,6 +562,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/TabButton.cpp
     GUI/TabButton.hpp
     GUI/Tab.cpp
+    GUI/PlateFilamentNozzles.cpp
+    GUI/PlateFilamentNozzles.hpp
     GUI/Tab.hpp
     GUI/TaskManager.cpp
     GUI/TaskManager.hpp
