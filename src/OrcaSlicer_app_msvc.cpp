@@ -205,6 +205,28 @@ protected:
 bool OpenGLVersionCheck::message_pump_exit = false;
 #endif /* SLIC3R_GUI */
 
+// Under a debugger (e.g. Visual Studio),  tie child processes (WebView2, Crashpad) to our lifetime
+// so "Stop Debugging" doesn't leave them running.
+static void bind_child_processes_to_lifetime_when_debugging()
+{
+    if (!::IsDebuggerPresent())
+        return;
+
+    HANDLE job = ::CreateJobObjectW(nullptr, nullptr);
+    if (job == nullptr)
+        return;
+
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION info = {};
+    info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+
+    if (!::SetInformationJobObject(job, JobObjectExtendedLimitInformation, &info, sizeof(info)) ||
+        !::AssignProcessToJobObject(job, ::GetCurrentProcess())) {
+        ::CloseHandle(job);
+        return;
+    }
+    // The job handle is intentionally never closed. The OS closes it when this process terminates
+}
+
 extern "C" {
     typedef int (__stdcall *Slic3rMainFunc)(int argc, wchar_t **argv);
     Slic3rMainFunc orcaslicer_main = nullptr;
@@ -224,6 +246,8 @@ int wmain(int argc, wchar_t **argv)
     // Without this call, the seemingly same message box is being opened by the abort() function, but that is too late and
     // the application will be killed even if "Ignore" button is pressed.
     _set_error_mode(_OUT_TO_MSGBOX);
+
+    bind_child_processes_to_lifetime_when_debugging();
 
     std::vector<wchar_t*> argv_extended;
     argv_extended.emplace_back(argv[0]);
