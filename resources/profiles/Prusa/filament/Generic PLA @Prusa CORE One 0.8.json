@@ -8,7 +8,8 @@
 	"filament_id": "OFDSrzZ8",
 	"instantiation": "true",
 	"compatible_printers": [
-		"Prusa CORE One 0.8 nozzle"
+		"Prusa CORE One 0.8 nozzle",
+		"Prusa CORE One L 0.8 nozzle"
 	],
 	"filament_max_volumetric_speed": [
 		"19"
