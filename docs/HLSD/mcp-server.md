@@ -1628,9 +1628,10 @@ with "Nothing was undone in the project's history" (or redone) when neither chan
 history was taken back or put back, as the Undo list shows it, not that the project differs afterwards: the plater
 classes a snapshot by its type, and an action can leave one that changed nothing (renaming an object to the name it
 has). That is an automated call's, `run_action` of the tile
-included: a person's pick from the Speed Dial does what the Edit menu's item does, through
-`menu_undo_redo()`, and where `menu_can_undo_redo()` greys that item it does nothing and shows
-nothing. The reply is the tile's, with `history` and, for the
+included: a person's pick from the Speed Dial does what the Edit menu's item does, and where the menu greys
+that item it does nothing and shows nothing: on the Design tab's history through `menu_undo_redo()` where
+`menu_can_undo_redo()` allows, and on the project's only where `Plater::can_undo()` (or `can_redo()`) holds,
+so not from the Preview or while a job runs, since `Plater::undo()` itself acts wherever it is called. The reply is the tile's, with `history` and, for the
 Design tab's, `result`, `cad_undo_redo()`'s reply; with the CAD feature off, or in a build without CAD,
 `design` fails ("The CAD feature is off"). Their examples, which call Design commands, are only in a
 catalog that holds them. The Design history is not saved with a project.

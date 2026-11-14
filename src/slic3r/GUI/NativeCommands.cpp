@@ -258,6 +258,11 @@ AppActionRunResult picked_undo_redo(const json& args, bool redo)
     if (history == "design")
         return greyed;
 #endif
+    // Plater::undo() and redo() act wherever they are called from; the menu's item is what keeps them to the 3D
+    // view with no job running.
+    const Plater* plater = wxGetApp().plater();
+    if (plater == nullptr || !(redo ? plater->can_redo() : plater->can_undo()))
+        return greyed;
     return project_undo_redo(redo, /*agent=*/false);
 }
 
