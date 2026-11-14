@@ -2546,6 +2546,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<EnsureVerticalShellThickness>(EnsureVerticalShellThickness::evstAll));
     
+    def           = this->add("ensure_walls_foundation", coBool);
+    def->label    = L("Ensure walls foundation");
+    def->category = L("Strength");
+    def->tooltip  = L("Generate additional support under the walls in the sparse infill to ensure their rigidity. ");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     auto def_top_fill_pattern = def = this->add("top_surface_pattern", coEnum);
     def->label = L("Top surface pattern");
     def->category = L("Strength");

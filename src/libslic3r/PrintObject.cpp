@@ -801,6 +801,11 @@ void PrintObject::prepare_infill()
         }
     }
 
+    // defines the first continuous layer under the top surface.
+    // ensures reliable anchoring of the perimeters if they are attached to a sparse infill.
+    this->discover_extra_elements();
+    m_print->throw_if_canceled();
+
     // the following step needs to be done before combination because it may need
     // to remove only half of the combined infill
     this->bridge_over_infill();
@@ -1516,8 +1521,7 @@ bool PrintObject::invalidate_state_by_config_options(
                     steps.emplace_back(posPerimeters);
             }
         } else if (
-               opt_key == "wall_loops"
-            || opt_key == "alternate_extra_wall"
+               opt_key == "alternate_extra_wall"
             || opt_key == "top_one_wall_type"
             || opt_key == "min_width_top_surface"
             || opt_key == "only_one_wall_first_layer"
@@ -1702,6 +1706,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "align_infill_direction_to_model" 
             || opt_key == "extra_solid_infills"
             || opt_key == "ensure_vertical_shell_thickness"
+            || opt_key == "ensure_walls_foundation"
             || opt_key == "bridge_angle"
             || opt_key == "internal_bridge_angle" // ORCA: Internal bridge angle override
             || opt_key == "relative_bridge_angle" // ORCA: Relative bridge angle
@@ -1767,7 +1772,7 @@ bool PrintObject::invalidate_state_by_config_options(
             assert(old_density && new_density);
             if (is_approx(old_density->value, 0.) || is_approx(new_density->value, 0.))
                 steps.emplace_back(posPerimeters);
-            steps.emplace_back(posInfill);
+            steps.emplace_back(posPrepareInfill);
         } else if (opt_key == "top_surface_expansion") {
             // ORCA: without the expansion the top fill never reaches the space freed by only_one_wall_top, so the
             // walls over top surfaces are kept. Only crossing zero matters; posPerimeters cascades to posPrepareInfill.
@@ -1810,7 +1815,8 @@ bool PrintObject::invalidate_state_by_config_options(
             steps.emplace_back(posInfill);
             steps.emplace_back(posSupportMaterial);
         } else if (
-                opt_key == "wall_generator"
+               opt_key == "wall_loops"
+            || opt_key == "wall_generator"
             || opt_key == "wall_transition_length"
             || opt_key == "wall_transition_filter_deviation"
             || opt_key == "wall_transition_angle"
@@ -3334,6 +3340,7 @@ void PrintObject::bridge_over_infill()
                 for (LayerRegion *region : layer->regions()) {
                     ExPolygons sparse_infill = to_expolygons(region->fill_surfaces.filter_by_type(stInternal));
                     ExPolygons solid_infill  = to_expolygons(region->fill_surfaces.filter_by_type(stInternalSolid));
+                    //ExPolygons bridge_infill = to_expolygons(region->fill_surfaces.filter_by_type(stInternalBridge));
 
                     if (sparse_infill.empty()) {
                         break;
@@ -3347,6 +3354,7 @@ void PrintObject::bridge_over_infill()
 
                     solid_infill  = union_safety_offset_ex(solid_infill);
                     sparse_infill = diff_ex(sparse_infill, solid_infill);
+                    //sparse_infill = diff_ex(sparse_infill, offset_ex(bridge_infill, SCALED_EPSILON)); // exclude bridges
 
                     region->fill_surfaces.remove_types({stInternalSolid, stInternal});
                     for (const ExPolygon &ep : solid_infill) {
@@ -5112,6 +5120,193 @@ void PrintObject::combine_infill()
         }
     }
 }
+
+// A top island that an erosion of this radius wipes out is too narrow to justify a sub-top band
+// underneath it. Eroding rather than measuring the area also rejects long thin slivers, whose area
+// can be large while no part of them is wide enough to matter.
+//static constexpr double SUB_TOP_MIN_TOP_EROSION_MM = 1.5;
+
+void PrintObject::discover_extra_elements()
+{
+    BOOST_LOG_TRIVIAL(trace) << "discover_extra_elements()";
+    if (m_layers.size() < 2)
+        return;
+
+    // Create a cache for additional solid surfaces.
+    const size_t num_to_process = m_layers.size() - 1;
+    typedef std::pair<LayerRegion*, SurfaceCollection> SurfacesCacheRecord;
+    std::vector<std::vector<SurfacesCacheRecord>> cache_surfaces(num_to_process);
+
+    auto merge_surfaces = [](SurfacesCacheRecord& cache, bool make_subtop) { 
+        SurfaceCollection new_surfaces;
+        SurfacesPtr crop_surfaces = cache.first->fill_surfaces.filter_by_type_except(stInternal);
+        ExPolygons crop_first     = union_ex(to_expolygons(crop_surfaces));
+        for (auto& s : cache.second)
+            new_surfaces.append(diff_ex(s.expolygon, crop_first), s.surface_type);
+        ExPolygons internal_solid = union_ex(to_expolygons(cache.first->fill_surfaces.filter_by_type(stInternalSolid)),
+                                             to_expolygons(new_surfaces.filter_by_type(stInternalSolid)), true);
+        cache.first->fill_surfaces.remove_type(stInternalSolid);
+        new_surfaces.remove_type(stInternalSolid);
+        surfaces_append(cache.first->fill_surfaces.surfaces, internal_solid, stInternalSolid); // stSubTop if (make_subtop == true)
+        surfaces_append(cache.first->fill_surfaces.surfaces, new_surfaces.surfaces);
+    };
+
+    auto process_layer = [&](size_t idx_layer, std::vector<SurfacesCacheRecord>& cache_record) {
+        m_print->throw_if_canceled();
+        const Layer *upper = m_layers[idx_layer + 1];
+        Layer       *layer = m_layers[idx_layer];
+
+        ExPolygons top_mask;
+        for (const LayerRegion *upper_region : upper->regions())
+            for (const Surface &s : upper_region->fill_surfaces.surfaces)
+                if (s.surface_type == stTop)
+                    top_mask.emplace_back(s.expolygon);
+        if (top_mask.empty())
+            return;
+
+        //const auto    erosion    = float(scale_(SUB_TOP_MIN_TOP_EROSION_MM));
+        //const coord_t min_extent = coord_t(scale_(2. * SUB_TOP_MIN_TOP_EROSION_MM));
+        //ExPolygons    large_tops;
+        //for (ExPolygon &top : union_ex(top_mask)) {
+        //    // An island narrower than the erosion diameter cannot survive it, and its extents are a
+        //    // linear scan against a boolean, so check them before paying for the offset.
+        //    const Point extents = get_extents(top).size();
+        //    if (extents.x() < min_extent || extents.y() < min_extent)
+        //        continue;
+        //    if (! offset_ex(top, - erosion).empty())
+        //        large_tops.emplace_back(std::move(top));
+        //}
+        //if (large_tops.empty())
+        //    return;
+        //top_mask = std::move(large_tops);
+
+        // The vertex cull below runs once per island of every region, and it walks the points of
+        // every mask polygon. Caching the extents here lets a polygon whose box misses the island
+        // be dropped without touching its points at all.
+        std::vector<BoundingBox> top_extents;
+        top_extents.reserve(top_mask.size());
+        for (const ExPolygon &top : top_mask)
+            top_extents.emplace_back(get_extents(top));
+
+        for (LayerRegion *layerm : layer->m_regions) {
+            const coord_t base_width = layerm->flow(frPerimeter).scaled_width();
+            const coord_t min_area   = base_width * base_width * 25;
+            const float min_width    = float(layerm->flow(frSolidInfill).scaled_spacing());
+            int top_shell_layers     = layerm->m_region->config().top_shell_layers.value;
+            coordf_t current_height  = layer->print_z;
+            coordf_t min_height      = current_height - layerm->m_region->config().top_shell_thickness.value;
+            int min_layer            = this->get_layer_idx_get_printz(min_height, EPSILON);
+            top_shell_layers         = std::max(std::max(top_shell_layers - 1, (int) idx_layer - min_layer), 0);
+
+            int bottom_shell_layers  = layerm->m_region->config().bottom_shell_layers.value;
+            bool is_not_solid        = layerm->m_region->config().top_surface_density.value < 100;
+            ExPolygons crop_mask     = layerm->fill_no_overlap_expolygons;
+            
+            // A claimed island keeps its geometry and every other field, only its type changes, so
+            // retype in place rather than rebuilding the collection.
+            Surfaces new_surfaces;
+            for (Surface &surface : layerm->fill_surfaces.surfaces) {
+                //if (surface.surface_type != stInternalSolid) // to crop all surfaces
+                //    continue;
+                // Trim the mask to the island first, so one island does not have to face the whole
+                // layer's top geometry. Opening then drops what only grazes the mask: an island is
+                // claimed on real overlap, not on a shared edge.
+                const BoundingBox island_bbox = get_extents(surface.expolygon).inflated(SCALED_EPSILON);
+                Polygons          local_mask;
+                for (size_t i = 0; i < top_mask.size(); ++ i)
+                    if (top_extents[i].overlap(island_bbox))
+                        append(local_mask, ClipperUtils::clip_clipper_polygons_with_subject_bbox(top_mask[i], island_bbox));
+                int number_of_walls    = layerm->m_region->config().wall_loops.value;
+                float offset_distance  = base_width * std::max(number_of_walls - 1, 0);
+                ExPolygons walls_solid = offset_ex(local_mask, offset_distance);
+                    
+                for (auto& s : walls_solid) // clear tiny holes
+                    for (auto& h : s.holes)
+                        if (h.area() > -min_area)
+                            h.clear();
+
+                // If the top surface does not have 100% density, the underlying layer follows the contours of the upper one, which is visible through it.
+                // The space under the perimeters will be filled with a bridge infill. This is done for decorative purposes. 
+                // If the density is solid, then the lower layer will also be solid, even under the perimeters.
+
+                // Fixme: When implementing stSubTop, need ensure that the under top surface to be not stInternalSolid but stSubTop.
+                if (is_not_solid) {
+                    surfaces_append(new_surfaces, intersection_ex(local_mask, crop_mask, ApplySafetyOffset::Yes), stInternalSolid);
+                    surfaces_append(new_surfaces, intersection_ex(diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), crop_mask, ApplySafetyOffset::Yes), stInternalBridge);
+                } else
+                    surfaces_append(new_surfaces, intersection_ex(walls_solid, crop_mask, ApplySafetyOffset::Yes), stInternalSolid);
+                
+                if (!layerm->m_region->config().ensure_walls_foundation)
+                    continue;
+
+                // The cache is filled with polygons that have solid fill and are located beneath each top surface with nearest perimeters.
+                // Each such polygon extends downward by 1/4 of the line width for each layer to provide additional strength against the side bend of the upper element.
+                // Below the perimeters, there are additional solid layers with a height equal to the width of all internal walls.
+                // This is an additional strengthening against to preventing the top element from being pressed into the sparse infill at vertical load.
+                int penetration = top_shell_layers + std::max((int)(offset_distance / scale_(config().layer_height.value)) - top_shell_layers, 1);
+                for (int j = 1; j <= penetration; ++j) {
+                    if (idx_layer - j <= bottom_shell_layers)
+                        break;
+                    Layer* lower = m_layers[idx_layer - j];
+                    for (LayerRegion* lowerm : lower->m_regions) {
+                        Surfaces new_lower_surfaces;
+                        ExPolygons crop_mask_lower = lowerm->fill_no_overlap_expolygons;
+                        ExPolygons slab = offset_ex((j < top_shell_layers) ? walls_solid : diff_ex(walls_solid, local_mask, ApplySafetyOffset::Yes), base_width / 4 * j);
+                        for (Surface& lower_surface : lowerm->fill_surfaces.surfaces)
+                            surfaces_append(new_lower_surfaces, intersection_ex(slab, crop_mask_lower, ApplySafetyOffset::Yes), stInternalSolid);
+                        
+                        cache_record.push_back(SurfacesCacheRecord(lowerm, new_lower_surfaces));
+                    }
+                }
+            }
+            SurfacesCacheRecord cache(layerm, new_surfaces);
+            merge_surfaces(cache, true);
+        }
+    };
+
+    // A layer reads the tops of the layer above and retypes its own fill surfaces, so neighbours
+    // must not run together. Splitting the sweep by parity keeps every pair of concurrent layers
+    // two apart, which leaves the read and write sets disjoint.
+    for (size_t parity = 0; parity < 2; ++ parity) {
+        if (num_to_process <= parity)
+            continue;
+        const size_t count = (num_to_process - parity + 1) / 2;
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, count),
+            [&process_layer, parity, &cache_surfaces](const tbb::blocked_range<size_t> &range) {
+                for (size_t k = range.begin(); k < range.end(); ++ k) {
+                    size_t idx = parity + 2 * k;
+                    process_layer(idx, cache_surfaces[idx]);
+                }
+            });
+    }
+
+    // Optimizing caсhe
+    std::vector<SurfacesCacheRecord> optimized_surfaces;
+    for (auto s : cache_surfaces) {
+        if (s.size()) {
+            for (auto r : s) {
+                bool finded = false;
+                for (auto o : optimized_surfaces) {
+                    if (r.first == o.first) {
+                        o.second.append(r.second.surfaces);
+                        finded = true;
+                        break;
+                    }
+                }
+                if (!finded)
+                    optimized_surfaces.push_back(std::move(r)); 
+            }
+        }
+    }
+
+    // Allocating caсhe to their positions
+    tbb::parallel_for(tbb::blocked_range<size_t>(0, optimized_surfaces.size()), 
+        [&merge_surfaces, &optimized_surfaces](const tbb::blocked_range<size_t> &range) {
+            for (size_t k = range.begin(); k < range.end(); ++k) {
+                merge_surfaces(optimized_surfaces[k], false);
+            }
+    });
+} // end of discover_extra_elements
 
 void PrintObject::_generate_support_material()
 {

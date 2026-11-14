@@ -61,11 +61,29 @@ SurfacesPtr SurfaceCollection::filter_by_type(const SurfaceType type) const
     return ss;
 }
 
+SurfacesPtr SurfaceCollection::filter_by_type_except(const SurfaceType type) const
+{
+    SurfacesPtr ss;
+    for (const Surface& surface : this->surfaces)
+        if (surface.surface_type != type)
+            ss.push_back(&surface);
+    return ss;
+}
+
 SurfacesPtr SurfaceCollection::filter_by_types(std::initializer_list<SurfaceType> types) const
 {
     SurfacesPtr ss;
     for (const Surface &surface : this->surfaces)
         if (std::find(types.begin(), types.end(), surface.surface_type) != types.end())
+            ss.push_back(&surface);
+    return ss;
+}
+
+SurfacesPtr SurfaceCollection::filter_by_types_except(std::initializer_list<SurfaceType> types) const
+{
+    SurfacesPtr ss;
+    for (const Surface& surface : this->surfaces)
+        if (std::find(types.begin(), types.end(), surface.surface_type) == types.end())
             ss.push_back(&surface);
     return ss;
 }
