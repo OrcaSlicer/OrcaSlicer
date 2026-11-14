@@ -411,6 +411,10 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
     bool overhangs_reverse = perimeter_generator.config->overhang_reverse &&
                              perimeter_generator.layer_id % 2 == 1;  // Only calculate overhang degree on even (from GUI POV) layers
 
+    // ORCA: how far the widths along one path may spread, wall_width_tolerance of the line's width; 0 keeps a path per width.
+    const double width_tolerance = perimeter_generator.object_config->wall_width_tolerance.value / 100.;
+    auto width_band = [width_tolerance](const Flow &flow) { return float(width_tolerance * flow.scaled_width()); };
+
     ExtrusionEntityCollection extrusion_coll;
     for (PerimeterGeneratorArachneExtrusion& pg_extrusion : pg_extrusions) {
         Arachne::ExtrusionLine* extrusion = pg_extrusion.extrusion;
@@ -454,7 +458,8 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
 
             // get non-overhang paths by intersecting this loop with the grown lower slices
             extrusion_paths_append(paths, clip_extrusion(extrusion_path, lower_slices_paths, ctIntersection), role,
-                                   is_external ? perimeter_generator.ext_perimeter_flow : perimeter_generator.perimeter_flow);
+                                   is_external ? perimeter_generator.ext_perimeter_flow : perimeter_generator.perimeter_flow,
+                                   width_band(is_external ? perimeter_generator.ext_perimeter_flow : perimeter_generator.perimeter_flow));
 
             // Always reverse extrusion if use fuzzy skin: https://github.com/OrcaSlicer/OrcaSlicer/pull/2413#issuecomment-1769735357
             if (overhangs_reverse && perimeter_generator.has_fuzzy_skin) {
@@ -495,7 +500,7 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
             // outside the grown lower slices (thus where the distance between
             // the loop centerline and original lower slices is >= half nozzle diameter
             extrusion_paths_append(paths, clip_extrusion(extrusion_path, lower_slices_paths, ctDifference), erOverhangPerimeter,
-                perimeter_generator.overhang_flow);
+                perimeter_generator.overhang_flow, width_band(perimeter_generator.overhang_flow));
 
             // Reapply the nearest point search for starting point.
             // We allow polyline reversal because Clipper may have randomly reversed polylines during clipping.
@@ -556,7 +561,8 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
                 steep_overhang_hole    = true;
             }
 
-            extrusion_paths_append(paths, *extrusion, role, is_external ? perimeter_generator.ext_perimeter_flow : perimeter_generator.perimeter_flow);
+            extrusion_paths_append(paths, *extrusion, role, is_external ? perimeter_generator.ext_perimeter_flow : perimeter_generator.perimeter_flow,
+                                   width_band(is_external ? perimeter_generator.ext_perimeter_flow : perimeter_generator.perimeter_flow));
         }
 
         // Append paths to collection.
