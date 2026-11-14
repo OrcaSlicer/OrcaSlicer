@@ -874,6 +874,14 @@ void AMSControl::enable_ams_setting(bool en)
     m_button_ams_setting->Enable(en);
 }
 
+void AMSControl::show_ams_setting(bool show)
+{
+    if (m_button_ams_setting->IsShown() == show)
+        return;
+    m_button_ams_setting->Show(show);
+    m_amswin->Layout();
+}
+
 void AMSControl::show_vams_kn_value(bool show)
 {
     //m_vams_lib->show_kn_value(show);
