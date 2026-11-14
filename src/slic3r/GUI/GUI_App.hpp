@@ -502,6 +502,11 @@ public:
     void            UpdateDarkUI(wxWindow *window, bool highlited = false, bool just_font = false);
     void            UpdateDarkUIWin(wxWindow* win);
     void            Update_dark_mode_flag();
+    // Re-read the effective theme; when it changed, apply it application-wide.
+    // Returns true only for the caller that observed the change.
+    bool            refresh_system_theme();
+    // Apply the current theme everywhere: native chrome, custom UI, 3D canvases.
+    void            apply_dark_mode_change();
     // update color mode for whole dialog including all children
     void            UpdateDlgDarkUI(wxDialog* dlg);
     void            UpdateFrameDarkUI(wxFrame* dlg);

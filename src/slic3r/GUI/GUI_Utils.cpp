@@ -428,7 +428,8 @@ wxFont get_default_font_for_dpi(const wxWindow *window, int dpi)
 }
 
 bool check_dark_mode() {
-#if 0 //#ifdef _WIN32  // #ysDarkMSW - Allow it when we deside to support the sustem colors for application
+#ifdef _WIN32
+    // Read the registry directly: wxSystemSettings::GetAppearance() is affected by MSWEnableDarkMode(DarkMode_Auto).
     wxRegKey rk(wxRegKey::HKCU,
         "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
     if (rk.Exists() && rk.HasValue("AppsUseLightTheme")) {
@@ -445,7 +446,7 @@ bool check_dark_mode() {
 void update_dark_ui(wxWindow* window)
 {
 #ifdef SUPPORT_DARK_MODE
-    bool is_dark = wxGetApp().app_config->get("dark_color_mode") == "1";
+    bool is_dark = wxGetApp().dark_mode();
 #else
     bool is_dark = false;
 #endif
@@ -456,8 +457,7 @@ void update_dark_ui(wxWindow* window)
 
 void update_dark_config()
 {
-    wxSystemAppearance app = wxSystemSettings::GetAppearance();
-    GUI::wxGetApp().app_config->set("dark_color_mode", app.IsDark() ? "1" : "0");
+    // The colour theme setting is only changed in Preferences. Here just track the system theme.
     wxGetApp().Update_dark_mode_flag();
 }
 

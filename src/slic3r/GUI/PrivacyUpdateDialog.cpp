@@ -168,7 +168,7 @@ void PrivacyUpdateDialog::RunScript(std::string script)
 {
     WebView::RunScript(m_vebview_release_note, script);
     std::string switch_dark_mode_script = "SwitchDarkMode(";
-    switch_dark_mode_script += wxGetApp().app_config->get("dark_color_mode") == "1" ? "true" : "false";
+    switch_dark_mode_script += wxGetApp().dark_mode() ? "true" : "false";
     switch_dark_mode_script += ");";
     WebView::RunScript(m_vebview_release_note, switch_dark_mode_script);
     script.clear();

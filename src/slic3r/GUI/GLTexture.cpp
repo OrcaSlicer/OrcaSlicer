@@ -304,7 +304,7 @@ bool GLTexture::load_from_svg_files_as_sprites_array(const std::vector<std::stri
     if (filenames.empty() || states.empty() || sprite_size_px == 0)
         return false;
 
-    bool dark_mode = wxGetApp().app_config->get("dark_color_mode") == "1";
+    bool dark_mode = wxGetApp().dark_mode();
 
     // every tile needs to have a 1px border around it to avoid artifacts when linear sampling on its edges
     unsigned int sprite_size_px_ex = sprite_size_px + 1;
