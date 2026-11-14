@@ -736,19 +736,39 @@ inline std::string get_bbl_monitor_time_dhm(float time_in_secs)
     return buffer;
 }
 
-inline std::string get_bbl_monitor_end_time_dhm(float time_in_secs)
+// Clock time as "HH:MM" (24 h) or "hh:MM AM/PM" (12 h); ":SS" is added when second >= 0.
+inline std::string format_clock_time(int hour, int minute, bool use_12h_format, int second = -1)
+{
+    std::ostringstream stream;
+    stream << std::setfill('0') << std::setw(2) << (use_12h_format ? (hour % 12 == 0 ? 12 : hour % 12) : hour)
+           << ':' << std::setw(2) << minute;
+    if (second >= 0)
+        stream << ':' << std::setw(2) << second;
+    if (use_12h_format)
+        stream << (hour >= 12 ? " PM" : " AM");
+    return stream.str();
+}
+
+// The time of day a print ends (24 h, or 12 h when `use_12h_format`), followed by "+N" when that is N days
+// after `now`, e.g. "14:30 +1".
+inline std::string get_bbl_monitor_end_time_dhm(float time_in_secs, bool use_12h_format, const boost::posix_time::ptime& now)
 {
     if (time_in_secs == 0.0f)
         return {};
 
-    std::stringstream stream;
-    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-    auto endTime = now + boost::posix_time::seconds(static_cast<int>(time_in_secs));
-    auto facet = new boost::posix_time::time_facet("%H:%M");//%Y-%m-%d %H:%M:%S
-    stream.imbue(std::locale(std::locale::classic(), facet));
-    stream << endTime;
+    const auto end_time    = now + boost::posix_time::seconds(static_cast<int>(time_in_secs));
+    const auto time_of_day = end_time.time_of_day();
+    std::string result     = format_clock_time(int(time_of_day.hours()), int(time_of_day.minutes()), use_12h_format);
 
-    return stream.str();
+    const long day_offset = (end_time.date() - now.date()).days();
+    if (day_offset != 0)
+        result += " +" + std::to_string(day_offset);
+    return result;
+}
+
+inline std::string get_bbl_monitor_end_time_dhm(float time_in_secs, bool use_12h_format = false)
+{
+    return get_bbl_monitor_end_time_dhm(time_in_secs, use_12h_format, boost::posix_time::second_clock::local_time());
 }
 
 inline std::string get_bbl_remain_time_dhms(float time_in_secs)
