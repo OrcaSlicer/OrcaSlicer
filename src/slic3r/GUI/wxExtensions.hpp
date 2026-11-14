@@ -52,7 +52,7 @@ wxMenuItem* append_menu_check_item(wxMenu* menu, int id, const wxString& string,
     std::function<bool()> const enable_condition = []() { return true; },
     std::function<bool()> const check_condition = []() { return true; }, wxWindow* parent = nullptr);
 
-void enable_menu_item(wxUpdateUIEvent& evt, std::function<bool()> const cb_condition, wxMenuItem* item, wxWindow* win);
+void enable_menu_item(wxUpdateUIEvent& evt, std::function<bool()> const cb_condition, wxWindow* win);
 
 class wxDialog;
 

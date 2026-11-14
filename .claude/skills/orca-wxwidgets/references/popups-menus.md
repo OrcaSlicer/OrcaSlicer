@@ -1300,7 +1300,9 @@ wxMenuItem* append_menu_check_item(wxMenu*, int id, const wxString&, const wxStr
   pass `nullptr`.
 - A non-null `parent` binds a `wxEVT_UPDATE_UI` handler for that id on `parent` that is never unbound. It calls
   `enable_menu_item` (`evt.Enable(cb_condition())`), which on macOS also re-applies the icon, grayscale when
-  disabled, on every validation (§14). `append_menu_check_item` binds `Enable` + `Check` the same way.
+  disabled, on every validation (§14). It finds the item by the event's id in the menu that sent the event and
+  keeps no pointer to it: the handler outlives a menu that is destroyed and an item that is removed.
+  `append_menu_check_item` binds `Enable` + `Check` the same way.
   `append_menu_radio_item` takes no conditions.
 - Without `parent`, `cb_condition` is ignored: no enable callback is wired.
 
