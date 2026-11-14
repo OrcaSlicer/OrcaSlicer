@@ -19,6 +19,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include <wx/string.h>
 
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/io_context.hpp>
@@ -52,6 +53,10 @@
 #include "slic3r/GUI/DeviceCore/DevStorage.h"
 #include "slic3r/Utils/IPrinterAgent.hpp"
 #include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
+#include "slic3r/Utils/Moonraker.hpp"
+#include "slic3r/Utils/PrintHost.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "test_utils.hpp"
 
@@ -1076,4 +1081,43 @@ TEST_CASE("A file that is not a 3MF is uploaded as it is, named after the job wh
     CHECK(upload.find("filename=\"" + file_name + "\"") != std::string::npos);
     CHECK(upload.find("; plain G-code") != std::string::npos);
     CHECK(std::distance(boost::filesystem::directory_iterator(dir.path()), boost::filesystem::directory_iterator()) == 1);
+}
+
+TEST_CASE("A mapped U1 upload starts only after its physical tool map is delivered", "[MoonrakerPrinterAgent][Snapmaker][ToolMapping][Upload]")
+{
+    // Exercise the actual legacy HTTP upload path against a loopback printer, never hardware.
+    class TestMoonraker : public Moonraker {
+    public:
+        using Moonraker::Moonraker;
+        bool test(wxString&) const override { return true; }
+    };
+    const bool valid_map = GENERATE(true, false);
+    ScopedTemporaryDir dir("u1-mapped-upload");
+    const auto gcode = dir.path() / "capy.gcode";
+    boost::filesystem::ofstream(gcode, std::ios::binary) << "M109 T1 S220\nT1\n";
+    FakePrinter printer(Behavior::AnswersPings);
+    DynamicPrintConfig config;
+    config.set_key_value("print_host", new ConfigOptionString(printer.base_url()));
+    config.set_key_value("printhost_apikey", new ConfigOptionString());
+    config.set_key_value("printhost_cafile", new ConfigOptionString());
+    config.set_key_value("printhost_ssl_ignore_revoke", new ConfigOptionBool(false));
+    TestMoonraker host(&config);
+    PrintHostUpload upload;
+    upload.source_path = gcode;
+    upload.upload_path = "capy.gcode";
+    upload.post_action = PrintHostPostUploadAction::StartPrint;
+    upload.extended_info["snapmaker_filament_map"] = valid_map ? "[0,3,0,0]" : "[0,5,0,0]";
+    std::vector<wxString> errors;
+    const bool sent = host.upload(upload, [](Http::Progress, bool&) {},
+                                  [&](wxString error) { errors.push_back(error); }, [](wxString, wxString) {});
+    CHECK(sent == valid_map);
+    CHECK(printer.upload().find("name=\"print\"\r\n\r\nfalse") != std::string::npos);
+    CHECK(printer.upload().find("M109 T1 S220\nT1\n") != std::string::npos);
+    if (valid_map) {
+        CHECK(errors.empty());
+        CHECK(printer.script() == "SDCARD_PRINT_FILE_WITH_PARAMETERS FILENAME=\"capy.gcode\" MAP_TABLE=\"[[0,0],[1,2],[2,2],[3,3]]\"");
+    } else {
+        CHECK_FALSE(errors.empty());
+        CHECK(printer.script().empty());
+    }
 }

@@ -3092,6 +3092,13 @@ void PrintConfigDef::init_fff_params()
     def->mode    = comDevelop;
     def->set_default_value(new ConfigOptionInts{0});
 
+    // Project metadata: selected physical tools for printer-side mapping, 1-based; 0 is unassigned.
+    // This must not enter the slicing engine's filament_map, which has different semantics.
+    def = this->add("filament_device_map", coInts);
+    def->mode = comDevelop;
+    def->min = 0;
+    def->set_default_value(new ConfigOptionInts{0});
+
     def = this->add("filament_map", coInts);
     def->label = L("Filament map to extruder");
     def->tooltip = L("Filament map to extruder.");

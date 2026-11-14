@@ -74,6 +74,8 @@
 #include "wxExtensions.hpp"
 
 #include "DeviceCore/DevManager.h"
+#include "slic3r/Utils/IPrinterAgent.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 
@@ -297,7 +299,6 @@ int PresetComboBox::update_ams_color()
         auto *preset = m_collection->find_preset(name);
         if (preset)
             color = preset->config.opt_string("default_filament_colour", 0u);
-        if (color.empty()) return -1;
     } else {
         auto &ams_list = wxGetApp().preset_bundle->filament_ams_list;
         auto  iter     = ams_list.find(idx);
@@ -310,6 +311,28 @@ int PresetComboBox::update_ams_color()
         colors = iter->second.opt<ConfigOptionStrings>("filament_multi_colour")->values;
     }
     DynamicPrintConfig *cfg        = &wxGetApp().preset_bundle->project_config;
+    // Update the selected row's device assignment alongside its preset and color.
+    DynamicPrintConfig new_cfg;
+    auto device_map = cfg->option<ConfigOptionInts>("filament_device_map", true)->values;
+    device_map.resize(std::max(cfg->option<ConfigOptionStrings>("filament_colour")->values.size(), size_t(m_filament_idx + 1)), 0);
+    device_map[m_filament_idx] = 0;
+    auto* agent = wxGetApp().getAgent();
+    auto printer_agent = agent ? agent->get_printer_agent() : nullptr;
+    if (idx >= 0 && printer_agent && printer_agent->get_agent_info().id == SNAPMAKER_PRINTER_AGENT_ID) {
+        const auto& tray = wxGetApp().preset_bundle->filament_ams_list.at(idx);
+        const int tool_index = idx & 0xffff;
+        // U1 A1..A4 are physical tools, unlike an AMS's feeder slots.
+        if (tray.opt_string("ams_id", 0u) == "0" && tool_index < 4)
+            device_map[m_filament_idx] = tool_index + 1;
+    }
+    new_cfg.set_key_value("filament_device_map", new ConfigOptionInts(device_map));
+    if (color.empty()) {
+        // A preset with no default color still releases the previous loaded-spool binding.
+        cfg->apply(new_cfg);
+        wxGetApp().plater()->on_config_change(new_cfg);
+        return idx;
+    }
+
     auto color_head = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour")->clone()); // single color (the first color if multi-color filament)
     auto color_pack = static_cast<ConfigOptionStrings *>(cfg->option("filament_multi_colour")->clone()); // multi color (all colors in all kinds of filament)
     auto color_type = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour_type")->clone()); // color type
@@ -330,8 +353,6 @@ int PresetComboBox::update_ams_color()
     else color_str.erase(color_str.size() - 1);
     color_pack->values[m_filament_idx] = color_str;
 
-    // Update color informations in config
-    DynamicPrintConfig new_cfg;
     new_cfg.set_key_value("filament_colour", color_head);
     new_cfg.set_key_value("filament_colour_type", color_type);
     new_cfg.set_key_value("filament_multi_colour", color_pack);
@@ -561,14 +582,20 @@ int PresetComboBox::selected_connected_printer() const
 
 bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
 {
+    m_first_ams_filament = m_last_ams_filament = 0;
     bool selected_in_ams      = false;
     bool is_bbl_vendor_preset = m_preset_bundle->is_bbl_vendor();
-    if (is_bbl_vendor_preset && !m_preset_bundle->filament_ams_list.empty()) {
+    auto *device_manager = wxGetApp().getDeviceManager();
+    auto *agent = device_manager ? device_manager->get_agent() : nullptr;
+    bool has_pull_filaments = agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull;
+    if ((is_bbl_vendor_preset || has_pull_filaments) && !m_preset_bundle->filament_ams_list.empty()) {
         // When a filament track switch is installed and calibrated, every AMS filament is reachable
         // from both extruders, so present one deduplicated group instead of the Left/Right split.
-        bool fila_switch_ready = wxGetApp().sidebar().is_fila_switch_ready();
-        bool dual_extruder   = (m_preset_bundle->filament_ams_list.begin()->first & 0x10000) == 0;
-        if (fila_switch_ready)
+        bool fila_switch_ready = is_bbl_vendor_preset && wxGetApp().sidebar().is_fila_switch_ready();
+        bool dual_extruder = is_bbl_vendor_preset && (m_preset_bundle->filament_ams_list.begin()->first & 0x10000) == 0;
+        if (!is_bbl_vendor_preset)
+            set_label_marker(Append(_L("Printer filaments"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
+        else if (fila_switch_ready)
             set_label_marker(Append(_L("AMS filaments"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
         else
             set_label_marker(Append(dual_extruder ? _L("Left filaments") : _L("AMS filament"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
@@ -1823,7 +1850,7 @@ void TabPresetComboBox::update()
         //    set_label_marker(Append(separator(L("System presets")), wxNullBitmap));
     }
 
-    if (m_type == Preset::TYPE_FILAMENT && m_preset_bundle->is_bbl_vendor())
+    if (m_type == Preset::TYPE_FILAMENT)
         add_ams_filaments(into_u8(selected));
 
     //BBS: add project embedded preset logic

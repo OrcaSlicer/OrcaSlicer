@@ -1,6 +1,7 @@
 #include "Plater.hpp"
 #include "../Utils/NetworkAgent.hpp"
 #include "IPrinterAgent.hpp"
+#include "slic3r/Utils/SnapmakerProtocol.hpp"
 #include "CalibUtils.hpp"
 #include "Flashforge.hpp"
 #include "libslic3r/Config.hpp"
@@ -982,6 +983,7 @@ struct Sidebar::priv
     ScalableButton* m_printer_icon = nullptr;
     ScalableButton* m_printer_connect = nullptr;
     ScalableButton* m_printer_bbl_sync = nullptr;
+    ScalableButton* m_printer_filament_refresh = nullptr;
     ScalableButton* m_printer_setting = nullptr;
     wxStaticText *  m_text_printer_settings = nullptr;
     wxPanel* m_panel_printer_content = nullptr;
@@ -1110,6 +1112,10 @@ void Sidebar::priv::layout_printer(bool isBBL, bool isDual)
     m_printer_connect->Show(!isBBL);
     //btn_sync_printer->Show(isBBL);
     m_printer_bbl_sync->Show(isBBL);
+    auto *device_manager = wxGetApp().getDeviceManager();
+    auto *agent = device_manager ? device_manager->get_agent() : nullptr;
+    m_printer_filament_refresh->Show(agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull &&
+                                    device_manager->get_selected_machine());
 
     // ORCA show plate type combo box only when its supported
     PresetBundle &preset_bundle = *wxGetApp().preset_bundle;
@@ -2859,6 +2865,17 @@ Sidebar::Sidebar(Plater *parent)
             deal_btn_sync();
         });
 
+        p->m_printer_filament_refresh = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "refresh");
+        p->m_printer_filament_refresh->SetToolTip(_L("Refresh filament information from printer"));
+        p->m_printer_filament_refresh->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
+            auto *device_manager = wxGetApp().getDeviceManager();
+            auto *agent = device_manager ? device_manager->get_agent() : nullptr;
+            if (agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull) {
+                wxBusyCursor busy;
+                load_ams_list(device_manager->get_selected_machine());
+            }
+        });
+
         p->m_printer_setting = new ScalableButton(p->m_panel_printer_title, wxID_ANY, "settings");
         p->m_printer_setting->Bind(wxEVT_BUTTON, [](wxCommandEvent &e) {
             // p->editing_filament = -1;
@@ -2874,6 +2891,7 @@ Sidebar::Sidebar(Plater *parent)
         //h_sizer_title->AddStretchSpacer();
         h_sizer_title->Add(p->m_printer_connect , 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
         h_sizer_title->Add(p->m_printer_bbl_sync, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing())); // used larger margin to prevent accidental clicks
+        h_sizer_title->Add(p->m_printer_filament_refresh, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(SidebarProps::WideSpacing()));
         h_sizer_title->Add(p->m_printer_setting, 0, wxALIGN_CENTER);
         h_sizer_title->AddSpacer(FromDIP(SidebarProps::TitlebarMargin()));
         h_sizer_title->SetMinSize(-1, 3 * em);
@@ -5516,6 +5534,7 @@ void Sidebar::msw_rescale()
     p->m_printer_icon->msw_rescale();
     p->m_printer_connect->msw_rescale();
     p->m_printer_bbl_sync->msw_rescale();
+    p->m_printer_filament_refresh->msw_rescale();
     p->m_printer_icon->msw_rescale();
     p->m_printer_setting->msw_rescale();
 
@@ -5626,6 +5645,7 @@ void Sidebar::sys_color_changed()
 #endif
     //p->btn_sync_printer->SetIcon("printer_sync");
     p->m_printer_bbl_sync->msw_rescale();
+    p->m_printer_filament_refresh->msw_rescale();
     p->m_printer_connect->msw_rescale();
     // for (wxWindow* btn : std::vector<wxWindow*>{ p->btn_reslice, p->btn_export_gcode })
     //    wxGetApp().UpdateDarkUI(btn, true);
@@ -6005,6 +6025,7 @@ void Sidebar::add_custom_filament(wxColour new_col, const std::string& preset_na
         rotate_strings("filament_multi_colour");
         rotate_strings("filament_colour_type");
         rotate_ints("filament_map");
+        rotate_ints("filament_device_map");
         rotate_ints("filament_nozzle_map");
         rotate_ints("filament_volume_map");
         rotate_bools("filament_is_mixed");
@@ -6259,6 +6280,12 @@ void Sidebar::get_small_btn_sync_pos_size(wxPoint &pt, wxSize &size) {
 
 void Sidebar::load_ams_list(MachineObject* obj)
 {
+    // The printer agent switches after the preset layout is updated.
+    auto *device_manager = wxGetApp().getDeviceManager();
+    auto *agent = device_manager ? device_manager->get_agent() : nullptr;
+    p->m_printer_filament_refresh->Show(obj && agent && agent->get_filament_sync_mode() == FilamentSyncMode::pull);
+    p->m_panel_printer_title->Layout();
+
     std::map<int, DynamicPrintConfig> filament_ams_list;
 
     // build_filament_ams_list handles both subscription-based and non-subscription-based agents:
@@ -21440,12 +21467,21 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
     if (! physical_printer_config || p->model.objects.empty())
         return;
 
-    PrintHostJob upload_job(physical_printer_config);
+    const auto device_mapping = !only_gcode_mode() && physical_printer_config->opt_string("printer_model") == "Snapmaker U1" ?
+        SnapmakerProtocol::filament_mapping(wxGetApp().preset_bundle->project_config) : std::string();
+    DynamicPrintConfig upload_config = *physical_printer_config;
+    if (!device_mapping.empty()) {
+        // Older U1 profiles use Moonraker's OctoPrint compatibility endpoint, which cannot
+        // attach the native map. Use the native API for this job, leaving the preset intact.
+        upload_config.set_key_value("host_type", new ConfigOptionEnum<PrintHostType>(htMoonraker));
+        upload_config.set_key_value("use_3mf", new ConfigOptionBool(false));
+    }
+    PrintHostJob upload_job(&upload_config);
     if (upload_job.empty())
         return;
 
     // Orca: the use_3mf printer option makes us send a .gcode.3mf to the printer
-    const auto* use_3mf_opt = physical_printer_config->option<ConfigOptionBool>("use_3mf");
+    const auto* use_3mf_opt = upload_config.option<ConfigOptionBool>("use_3mf");
     const bool  use_3mf     = use_3mf_opt != nullptr && use_3mf_opt->value;
 
     upload_job.upload_data.use_3mf = use_3mf;
@@ -21606,6 +21642,8 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
         upload_job.upload_data.group       = pDlg->group();
         upload_job.upload_data.storage     = pDlg->storage();
         upload_job.upload_data.extended_info = pDlg->extendedInfo();
+        if (!device_mapping.empty())
+            upload_job.upload_data.extended_info["snapmaker_filament_map"] = device_mapping;
         // Orca: gcode inside a .gcode.3mf is index-coded (Metadata/plate_<N>.gcode) and a bundle may
         // carry several of them, so the upload must name which plate to print via a 1-based plateindex.
         // Even a single-plate bundle needs it, since its gcode entry is still indexed. The host upload

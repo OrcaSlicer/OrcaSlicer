@@ -1,4 +1,8 @@
 #include "SnapmakerPrinterAgent.hpp"
+#include "SnapmakerProtocol.hpp"
+#include "bambu_networking.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "Http.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 #include "IPrinterAgent.hpp"
@@ -17,6 +21,44 @@
 #include <cctype>
 
 namespace Slic3r {
+
+std::string SnapmakerProtocol::filament_mapping(const DynamicPrintConfig& config)
+{
+    const auto* map = config.option<ConfigOptionInts>("filament_device_map");
+    if (!map || std::none_of(map->values.begin(), map->values.end(), [](int tool) { return tool != 0; }))
+        return {};
+    return nlohmann::json(map->values).dump();
+}
+
+std::string SnapmakerProtocol::start_script(const std::string& filename, const std::string& mapping)
+{
+    // Klipper's quoted command arguments cannot contain a quote or a line break.
+    if (filename.empty() || filename.find_first_of("\"\r\n") != std::string::npos)
+        return {};
+    const auto map = nlohmann::json::parse(mapping, nullptr, false);
+    if (!map.is_array() || map.empty() || map.size() > 32)
+        return {};
+    auto table = nlohmann::json::array();
+    for (size_t i = 0; i < map.size(); ++i) {
+        if (!map[i].is_number_integer() || map[i] < 0 || map[i] > 4)
+            return {};
+        const int tool = map[i].get<int>();
+        if (tool > 0 || i < 4)
+            table.push_back({i, tool > 0 ? tool - 1 : static_cast<int>(i)});
+    }
+    if (table.empty())
+        return {};
+    return "SDCARD_PRINT_FILE_WITH_PARAMETERS FILENAME=\"" + filename + "\" MAP_TABLE=\"" + table.dump() + "\"";
+}
+
+bool SnapmakerPrinterAgent::print_uploaded_file(const PrintParams& params, const std::string& filename)
+{
+    if (params.ams_mapping.empty())
+        return MoonrakerPrinterAgent::print_uploaded_file(params, filename);
+    const auto script = SnapmakerProtocol::start_script(filename, params.ams_mapping);
+    // A malformed mapping must never fall back to starting with the wrong tool.
+    return !script.empty() && send_gcode_sync(device_info.dev_id, script);
+}
 
 namespace {
 
