@@ -80,6 +80,10 @@ struct FillParams
     // Monotonic infill - strictly left to right for better surface quality of top infills.
     bool 		monotonic		{ false };
 
+    // Orca: special value for the pattern generator.
+    // In particular, for the Hilbert curve, can specify the classic mode or choose a centered Hilbert Spiral with its order.
+    int         pattern_mode    {0}; 
+
     // For Honeycomb.
     // we were requested to complete each loop;
     // in this case we don't try to make more continuous paths
@@ -149,9 +153,14 @@ public:
     coordf_t    overlap;
     // in radians, ccw, 0 = East
     float       angle;
+    // own center displacement
+    Point       shift;
 
     // Orca: Fill direction is fixed absolute angle if SurfaceFillParams.fixed_angle or config.ironing_angle_fixed
     bool        fixed_angle{false};
+    // Orca: Separated infills flag
+    bool        separated_infills{false};
+    
     // In scaled coordinates. Maximum lenght of a perimeter segment connecting two infill lines.
     // Used by the FillRectilinear2, FillGrid2, FillTriangles, FillStars and FillCubic.
     // If left to zero, the links will not be limited.

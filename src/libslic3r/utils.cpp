@@ -1790,6 +1790,23 @@ std::string format_diameter_to_str(double diameter, int precision)
     return oss.str();
 }
 
+std::string get_str_value_wo_zeros(double in)
+{
+    std::string repl_str = Slic3r::format("%f", in);
+    size_t s             = repl_str.find_first_not_of('0');
+    size_t e             = repl_str.length() - 1;
+    size_t d             = repl_str.find('.');
+    if (d < repl_str.length()) {
+        e = repl_str.find_last_not_of('0');
+        if (d == e)
+            e--;
+    }
+    repl_str = repl_str.substr(s, e - s + 1);
+    if (repl_str == "" || repl_str[0] == '.')
+        repl_str = "0" + repl_str;
+    return repl_str;
+}
+
 // Returns platform-specific string to be used as log output.
 std::string log_memory_info(bool ignore_loglevel)
 {
