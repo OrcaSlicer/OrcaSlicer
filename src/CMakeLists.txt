@@ -135,6 +135,17 @@ if(ORCA_TOOLS)
 endif()
 
 # Create a slic3r executable
+if(SLIC3R_GUI)
+    add_executable(OrcaLanMonitorWorker "${CMAKE_CURRENT_SOURCE_DIR}/slic3r/Utils/LanMonitorWorker.cpp")
+    set_target_properties(OrcaLanMonitorWorker PROPERTIES
+        OUTPUT_NAME "orca-lan-monitor-worker" MACOSX_BUNDLE FALSE)
+    target_compile_features(OrcaLanMonitorWorker PRIVATE cxx_std_17)
+    target_include_directories(OrcaLanMonitorWorker PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/../deps_src")
+    target_link_libraries(OrcaLanMonitorWorker PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+endif()
+
+# Create a slic3r executable
 # Process manifests for various platforms.
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev-utils/platform/msw/OrcaSlicer.rc.in ${CMAKE_CURRENT_BINARY_DIR}/OrcaSlicer.rc @ONLY)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/dev-utils/platform/msw/OrcaSlicer.manifest.in ${CMAKE_CURRENT_BINARY_DIR}/OrcaSlicer.manifest @ONLY)
@@ -175,6 +186,15 @@ if (NOT WIN32 AND NOT APPLE)
 endif ()
 
 target_link_libraries(OrcaSlicer libslic3r cereal::cereal)
+if(SLIC3R_GUI)
+    add_dependencies(OrcaSlicer OrcaLanMonitorWorker)
+    if(APPLE AND CMAKE_MACOSX_BUNDLE)
+        add_custom_command(TARGET OrcaSlicer POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "$<TARGET_FILE:OrcaLanMonitorWorker>" "$<TARGET_BUNDLE_DIR:OrcaSlicer>/Contents/MacOS/"
+            VERBATIM)
+    endif()
+endif()
 # target_include_directories(OrcaSlicer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/slic3r)
 if (APPLE)
 #    add_compile_options(-stdlib=libc++)
@@ -392,6 +412,9 @@ message(STATUS "libslic3r-CMAKE_BUILD_TYPE: ${build_type}")
 message(STATUS "CMAKE_CURRENT_BINARY_DIR: ${CMAKE_CURRENT_BINARY_DIR}")
 if (WIN32)
     install(TARGETS OrcaSlicer RUNTIME DESTINATION ".")
+    if(SLIC3R_GUI)
+        install(TARGETS OrcaLanMonitorWorker RUNTIME DESTINATION ".")
+    endif()
     if (MSVC)
         install(TARGETS OrcaSlicer_app_gui RUNTIME DESTINATION ".")
     endif ()
@@ -403,4 +426,7 @@ else ()
         install(FILES ${output_sos_${build_type}} DESTINATION "${CMAKE_INSTALL_PREFIX}")
     endif()
     install(TARGETS OrcaSlicer RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR})
+    if(SLIC3R_GUI AND NOT APPLE)
+        install(TARGETS OrcaLanMonitorWorker RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    endif()
 endif ()

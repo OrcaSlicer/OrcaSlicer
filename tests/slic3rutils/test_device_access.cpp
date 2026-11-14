@@ -22,6 +22,32 @@
 
 using namespace Slic3r;
 
+TEST_CASE("Multi-device includes paired offline P1 LAN printers without changing selection or cloud targets", "[DeviceAccess][LanMonitor]")
+{
+    AppConfig config;
+    BBLocalMachine saved;
+    saved.dev_id = "TESTP1S";
+    saved.dev_name = "Paired P1S";
+    saved.dev_ip = "192.0.2.10";
+    saved.printer_type = "C12";
+    saved.printer_agent_id = BBL_PRINTER_AGENT_ID;
+    saved.access_code = "test-code";
+    config.update_local_machine(saved);
+    config.set("multi_devices", "0", saved.dev_id);
+    NetworkAgent network(nullptr, nullptr);
+    DeviceManager manager(&network, false, &config);
+    auto* machine = manager.get_local_machine(saved.dev_id);
+    REQUIRE(machine);
+    machine->m_is_online = false;
+    const auto selected = manager.get_selected_machine();
+    CHECK(manager.get_multi_machine_list().count(saved.dev_id) == 1);
+    CHECK(manager.get_my_cloud_machine_list().count(saved.dev_id) == 0);
+    CHECK(manager.get_selected_machine() == selected);
+    CHECK(config.get("multi_devices", "0") == saved.dev_id);
+    machine->revoke_access();
+    CHECK(manager.get_multi_machine_list().count(saved.dev_id) == 0);
+}
+
 namespace {
 
 class RecordingAgent : public MoonrakerPrinterAgent

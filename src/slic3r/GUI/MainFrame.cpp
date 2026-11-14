@@ -2859,6 +2859,7 @@ void MainFrame::on_sys_color_changed()
     // update Plater
     wxGetApp().plater()->sys_color_changed();
     MonitorPanel::when_built([](MonitorPanel& monitor) { monitor.on_sys_color_changed(); });
+    MultiMachinePage::when_built([](MultiMachinePage& page) { page.on_sys_color_changed(); });
     CalibrationPanel::when_built([](CalibrationPanel& calibration) { calibration.on_sys_color_changed(); });
 #ifdef SLIC3R_CAD
     DesignPanel::when_built([](DesignPanel& design) { design.on_sys_color_changed(); });

@@ -93,6 +93,7 @@ class ShortcutRegistry;
 enum class ShortcutContext : uint8_t;
 enum class PreferencesTab;
 class MainFrame;
+class LanMonitorManager;
 class Sidebar;
 class ObjectSettings;
 class ObjectList;
@@ -328,6 +329,7 @@ private:
     //BBS
     std::atomic<bool> m_is_closing {false};
     Slic3r::DeviceManager* m_device_manager { nullptr };
+    std::unique_ptr<LanMonitorManager> m_lan_monitor;
     Slic3r::UserManager* m_user_manager { nullptr };
     Slic3r::TaskManager* m_task_manager { nullptr };
     NetworkAgent* m_agent { nullptr };
@@ -411,6 +413,7 @@ public:
     void show_message_box(std::string msg) { wxMessageBox(msg); }
     EAppMode get_app_mode() const { return m_app_mode; }
     Slic3r::DeviceManager* getDeviceManager() { return m_device_manager; }
+    LanMonitorManager* get_lan_monitor() const { return m_lan_monitor.get(); }
     bool                   is_blocking_printing(MachineObject *obj_ = nullptr);
     bool                   is_blocking_printing(MachineObject *obj_, const std::string& source_model);
     Slic3r::TaskManager*   getTaskManager() { return m_task_manager; }

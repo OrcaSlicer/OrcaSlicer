@@ -97,6 +97,63 @@ Cloud camera operations are device-scoped:
 This is separate from the local camera URL exposed by `IPrinterAgent`, which is currently scoped to
 the active printer agent because a normal LAN agent represents one physical printer connection.
 
+### Multi-device LAN monitoring
+
+`GUI_App` owns `LanMonitorManager`, independently of the selected printer agent and the lifetime of
+the Device and Multi-device pages. When Multi-device management is enabled, its six saved selection
+slots also accept paired P1-family Bambu LAN printers, including temporarily offline printers.
+LAN selections are monitoring-only; bulk sending and task management retain their cloud targets.
+Status workers and camera playback both honor the Bambu networking preference. Workers resolve
+the configured SDK through the same installed-library resolver used by the normal Device agent.
+The preference remains disabled by default and the existing selection format is unchanged.
+
+Each selected LAN printer has a child `orca-lan-monitor-worker` process. The Bambu SDK factory
+returns a process-global agent, so process isolation gives every observer its own callbacks,
+connection, configuration directory and failure boundary. The worker reuses the installed 02.x
+networking module, existing access code and public certificates. Credentials travel through stdin,
+never command arguments or a second credential store. SDK configuration and logs use a separate
+cache directory. No Python runtime is involved in production monitoring.
+
+Observers send full-status requests through their own SDK instance. They reconstruct full/delta
+reports using the same pure merge operation as Device, then decode only job identity, name, state,
+progress and remaining duration. They never invoke `MachineObject::parse_json`, change the selected
+printer, or expose control commands. The parent receives normalized JSON snapshots and updates UI
+state on the main thread. Telemetry expires after 30 seconds. Transient failures retry with
+exponential backoff capped at 30 seconds; authentication failures wait for changed credentials or
+Retry. Weak session ownership and generation checks discard output after removal or replacement.
+
+`ProcessRunner` serializes child-process creation so concurrent monitor launches cannot inherit
+each other's pipe handles. Once launched, workers run independently; terminating one produces EOF
+for its readers without requiring another monitor to exit.
+
+The Cameras subpage creates one `wxMediaCtrl3` per visible LAN tile. `BambuCameraSource` constructs
+explicit printer URLs shared with Device playback; it does not consult global Device selection.
+Each decoder owns its own camera tunnel. Hiding a page, removing a tile or reloading networking
+destroys the affected player and joins its decoder before the source module can unload. Camera
+failures retry locally and do not affect status monitoring.
+
+The player distinguishes SDK log diagnostics from playback failure: a diagnostic can be nonzero
+while frames continue arriving. Tiles retry on a decoder/transport exit or an initialization
+timeout, without treating a recoverable diagnostic as a disconnect.
+
+Tiles finish layout before starting playback and mark a camera live after its first decoded frame.
+Status text updates keep the video geometry fixed. Connection identity includes the printer,
+address, protocol and credentials; firmware and client metadata can update without restarting a
+working stream. A later reconnect uses the latest metadata.
+
+Frame repainting presents the background and last valid picture in one buffered paint operation;
+missing or undecodable frames retain the previous picture. Pending frame repaints are coalesced.
+Native frame pacing uses an interruptible monotonic-clock wait which releases the frame mutex,
+so repainting and stopping playback do not wait behind a frame's presentation deadline.
+
+The grid uses two columns when both tiles can be at least 320 DIP wide and otherwise one scrolling
+column; video is letterboxed to preserve its native aspect ratio.
+
+Networking reload stops the status workers and camera tunnels before unloading modules, then
+restores configured status sessions and visible cameras. Application shutdown also stops workers;
+closing a worker's stdin is its normal graceful exit signal, while the process runner can terminate
+a stuck child without touching Device's SDK instance.
+
 ## Agent registration and selection
 
 `NetworkAgentFactory` maintains the printer-agent registry. Each registry entry contains an agent ID,
