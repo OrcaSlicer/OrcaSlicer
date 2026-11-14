@@ -505,6 +505,14 @@ enum OverhangFanThreshold {
     Overhang_threshold_bridge
 };
 
+// Per-filament request for purifying the chamber air once the print has finished.
+enum PurifyAirAtPrintEnd {
+    paeFollowPrinter = 0, // leave the printer's own setting untouched
+    paeOff,
+    paeInternal,          // internal circulation
+    paeExternal           // exhaust
+};
+
 // BBS
 enum BedType {
     btDefault = 0,
@@ -1855,6 +1863,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                auxiliary_fan))
     ((ConfigOptionEnum<FanDirection>,  fan_direction))
     ((ConfigOptionBool,                support_air_filtration))
+    ((ConfigOptionBool,                support_purify_air_at_print_end))
     ((ConfigOptionBool,                support_cooling_filter))
     ((ConfigOptionBool,                cooling_filter_enabled))
     ((ConfigOptionEnum<PrinterStructure>,printer_structure))
@@ -2045,6 +2054,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBools,              activate_air_filtration_on_completion))
     ((ConfigOptionInts,               during_print_exhaust_fan_speed))
     ((ConfigOptionInts,               complete_print_exhaust_fan_speed))
+    ((ConfigOptionEnumsGeneric,       purify_air_at_print_end))
     ((ConfigOptionFloatOrPercent,     initial_layer_line_width))
     ((ConfigOptionFloat,              initial_layer_print_height))
     ((ConfigOptionFloatsNullable,     initial_layer_speed))
