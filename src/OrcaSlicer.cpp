@@ -2536,6 +2536,12 @@ int CLI::run(int argc, char **argv)
 
     if (filament_count == 0)
         filament_count = load_filament_count;
+    // The per-filament lists are sized by the project's filament count, so an extra file would be indexed past their end.
+    if (load_filament_count > filament_count) {
+        BOOST_LOG_TRIVIAL(error) << boost::format("%1% filaments loaded, but the project has only %2%") % load_filament_count % filament_count;
+        record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+        flush_and_exit(CLI_INVALID_PARAMS);
+    }
 
     if (is_bbl_3mf && (load_filament_count > 0) && (load_filaments_set.size() == 1))
     {
