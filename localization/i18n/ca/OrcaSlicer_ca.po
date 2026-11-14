@@ -15448,16 +15448,6 @@ msgid "%1% modifier \"%2%\" of \"%3%\" (%4% in total) covers an entire perimeter
 msgstr "El modificador %1% \"%2%\" de \"%3%\" (%4% en total) cobreix un perímetre sencer"
 
 # AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "el modificador \"%1%\" de \"%2%\" no ha tingut cap efecte sobre la costura (potser no arriba a la línia central del perímetre imprès)"
-
-# AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "el modificador \"%1%\" de \"%2%\" (%3% en total) no ha tingut cap efecte sobre la costura (potser no arriba a la línia central del perímetre imprès)"
-
-# AI Translated
 msgid "Seam placement may differ from expected."
 msgstr "La posició de la costura pot ser diferent de l'esperada."
 

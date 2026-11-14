@@ -15324,16 +15324,6 @@ msgid "%1% modifier \"%2%\" of \"%3%\" (%4% in total) covers an entire perimeter
 msgstr "Modifikatorius %1% „%2%“ objekto „%3%“ (iš viso %4%) apima visą perimetrą"
 
 # AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "objekto „%2%“ modifikatorius „%1%“ neturėjo įtakos siūlei (galbūt jis nesiekia spausdinamo perimetro vidurio linijos)"
-
-# AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "objekto „%2%“ modifikatorius „%1%“ (iš viso %3%) neturėjo įtakos siūlei (galbūt jis nesiekia spausdinamo perimetro vidurio linijos)"
-
-# AI Translated
 msgid "Seam placement may differ from expected."
 msgstr "Siūlės vieta gali skirtis nuo numatytos."
 
