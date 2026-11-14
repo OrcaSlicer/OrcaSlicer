@@ -658,7 +658,8 @@ protected:
 
     std::string     extrude_perimeters(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool is_first_layer, bool is_infill_first, bool unsupported_loops_only = false);
     std::string     extrude_infill(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool ironing);
-    std::string     extrude_support(const ExtrusionEntityCollection& support_fills, const ExtrusionRole support_extrusion_role);
+    // ironing_speed > 0 sets the speed of the support ironing paths, otherwise they use the general ironing speed.
+    std::string     extrude_support(const ExtrusionEntityCollection& support_fills, const ExtrusionRole support_extrusion_role, double ironing_speed = -1.0);
 
     // Farthest-point timelapse: find the extrusion point farthest from camera (0,0)
     void compute_farthest_point(const std::vector<LayerToPrint> &layers, int most_used_extruder,
