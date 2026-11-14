@@ -76,7 +76,9 @@ public:
     // vendor forks read only the first, current Klipper only the second, and 0.13 prefers the second.
     static void append_klipper_accel_to_decel(std::string &gcode, unsigned int acceleration, double accel_to_decel_factor);
     std::string set_junction_deviation(double junction_deviation); 
-    std::string set_pressure_advance(double pa, int tool = -1) const;
+    // tool addresses one IMEX carriage explicitly. extruder_id names the extruder that prints with this PA for a
+    // caller that runs behind the writer, like adaptive PA; -1 means the active one. Only RepRapFirmware uses it.
+    std::string set_pressure_advance(double pa, int tool = -1, int extruder_id = -1) const;
     std::string set_input_shaping(char axis, float damp, float freq, std::string type) const;
     std::string reset_e(bool force = false);
     std::string update_progress(unsigned int num, unsigned int tot, bool allow_100 = false) const;
