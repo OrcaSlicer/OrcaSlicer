@@ -5,7 +5,7 @@
 #include <wx/gdicmn.h>
 #include <wx/dialog.h>
 #include <wx/font.h>
-#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/LabeledCheckBox.hpp"
 #include "slic3r/GUI/ReleaseNote.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "slic3r/GUI/Widgets/Button.hpp"
@@ -40,7 +40,6 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <wx/string.h>
-#include <wx/tglbtn.h>
 #include <wx/toplevel.h>
 #include <wx/utils.h>
 
@@ -110,30 +109,18 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
 
 void MsgDialog::show_dsa_button(wxString const &title)
 {
-    m_checkbox_dsa = new CheckBox(this);
-    m_dsa_sizer->Add(m_checkbox_dsa, 0, wxALIGN_CENTER);
-    m_checkbox_dsa->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+    m_checkbox_dsa = new LabeledCheckBox(this, title.IsEmpty() ? _L("Don't show again") : title);
+    m_checkbox_dsa->SetFont(::Label::Body_13);
+    m_checkbox_dsa->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
+    m_checkbox_dsa->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
         auto event = wxCommandEvent(EVT_CHECKBOX_CHANGE);
-        event.SetInt(m_checkbox_dsa->GetValue()?1:0);
+        event.SetInt(e.IsChecked() ? 1 : 0);
         event.SetEventObject(this);
         wxPostEvent(this, event);
         e.Skip();
     });
-
-    auto  m_text_dsa = new wxStaticText(this, wxID_ANY, title.IsEmpty() ? _L("Don't show again") : title, wxDefaultPosition, wxDefaultSize, 0);
-    auto on_toggle = [this]() {
-        m_checkbox_dsa->SetValue(!m_checkbox_dsa->GetValue());
-        wxCommandEvent ev(wxEVT_TOGGLEBUTTON, m_checkbox_dsa->GetId());
-        ev.SetEventObject(m_checkbox_dsa);
-        m_checkbox_dsa->GetEventHandler()->ProcessEvent(ev);
-    };
-    m_text_dsa->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
-    m_text_dsa->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
-
-    m_dsa_sizer->Add(m_text_dsa, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+    m_dsa_sizer->Add(m_checkbox_dsa, 0, wxALIGN_CENTER);
     m_dsa_sizer->AddSpacer(FromDIP(10)); // spacing after checkbox
-    m_text_dsa->SetFont(::Label::Body_13);
-    m_text_dsa->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
     btn_sizer->Layout();
     Fit();
 }
@@ -830,17 +817,9 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     wxBoxSizer* sizer_button = new wxBoxSizer(wxHORIZONTAL);
 
     /*dont show again*/
-    auto checkbox = new ::CheckBox(this);
-    checkbox->SetValue(false);
-
-
-    auto checkbox_title = new Label(this, _L("Don't show this dialog again"));
-    checkbox_title->SetForegroundColour(0x323A3C);
-    checkbox_title->SetFont(::Label::Body_14);
-    checkbox_title->Wrap(-1);
-
-    checkbox->Bind(wxEVT_TOGGLEBUTTON, [this, checkbox](wxCommandEvent &e) {
-        m_show_again = checkbox->GetValue();
+    auto checkbox = new LabeledCheckBox(this, _L("Don't show this dialog again"));
+    checkbox->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &e) {
+        m_show_again = e.IsChecked();
         e.Skip();
     });
 
@@ -848,8 +827,7 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     m_button_confirm->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_confirm->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {EndModal(wxCLOSE);});
 
-    sizer_button->Add(checkbox, 0, wxALL, 5);
-    sizer_button->Add(checkbox_title, 0, wxALL, 5);
+    sizer_button->Add(checkbox, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     sizer_button->Add(0, 0, 1, wxEXPAND, 5);
     sizer_button->Add(m_button_confirm, 0, wxALL, FromDIP(ButtonProps::ChoiceButtonGap()));
 
