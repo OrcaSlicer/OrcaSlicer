@@ -5549,9 +5549,12 @@ void GLCanvas3D::on_mouse(wxMouseEvent& evt)
     // inside ImGui (focused window, active widget and popups are cleared). ImGui applies that rule only in a frame
     // drawn while the button is down, and a press that changes nothing (one on a plate) draws none, so the dialog
     // kept the focus and the arrow keys after a plate was picked on the canvas. For every ImGui window, not only
-    // the dialog, so a canvas click means the same thing whatever overlay is open.
+    // the dialog, so a canvas click means the same thing whatever overlay is open. An active widget is left to
+    // ImGui: cleared here, between frames, an edited field never reports IsItemDeactivatedAfterEdit() and its value
+    // is lost. The frame below sees the click and ends the edit itself.
     else if (evt.LeftDown() && imgui->display_initialized()) {
-        ImGui::SetWindowFocus(nullptr);
+        if (!ImGui::IsAnyItemActive())
+            ImGui::SetWindowFocus(nullptr);
         _set_overlay_as_dirty(); // a press on empty canvas draws no frame by itself; show the change now
     }
 
