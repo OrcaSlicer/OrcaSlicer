@@ -10,6 +10,7 @@
 
 #include <wx/event.h>
 
+#include <chrono>
 #include <cstddef>
 #include <memory>
 #include <string>
@@ -186,6 +187,7 @@ private:
     std::shared_ptr<PathCutJob> m_running;       // the cut in flight, to stop it when the tool closes
     bool    m_preview_dirty{true};
     bool    m_busy{false};                     // a cut job is running
+    std::chrono::steady_clock::time_point m_busy_since; // ... since then: shown while it runs
     bool    m_limits_open{false};               // the Limits section is expanded (last frame)
     bool    m_conn_open{false};                 // the Connectors section is expanded (last frame)
 };

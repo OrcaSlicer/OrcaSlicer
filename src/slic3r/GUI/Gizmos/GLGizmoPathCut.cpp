@@ -1067,6 +1067,21 @@ void GLGizmoPathCut::on_render_input_window(float x, float y, float bottom_limit
             ImGui::PopStyleColor();
         ImGui::PopTextWrapPos();
     }
+    // While a cut runs: the seconds it has taken and a moving bar, so the tool is seen working. The cut
+    // does not report how far it is, so the bar only runs.
+    if (m_busy) {
+        const float seconds = std::chrono::duration<float>(std::chrono::steady_clock::now() - m_busy_since).count();
+        // TRN %1%: whole seconds since the cut started
+        const std::string elapsed = GUI::format(_u8L("%1% s"), int(seconds));
+        ImGui::ProgressBar(std::fmod(seconds, 2.f) / 2.f, ImVec2(ImGui::GetFontSize() * 20.f, ImGui::GetFontSize() * 0.4f), "");
+        ImGui::SameLine();
+        m_imgui->text(elapsed);
+        // Nothing else redraws the canvas while the cut runs (no mouse, no keys), so the bar would stand
+        // still: about ten frames a second. The timer only wakes the idle handler, which renders when the
+        // gizmo is dirty.
+        set_dirty();
+        m_parent.schedule_extra_frame(100);
+    }
 
     ImGui::PopStyleVar(); // FramePadding
     GizmoImguiEnd();
@@ -1892,6 +1907,7 @@ void GLGizmoPathCut::perform_cut()
 
     m_busy             = true;
     m_message          = _u8L("Cutting, please wait...");
+    m_busy_since       = std::chrono::steady_clock::now();
     m_message_is_error = false;
     m_parent.set_as_dirty();
 
@@ -2164,6 +2180,7 @@ bool GLGizmoPathCut::start_cutting_holes(const std::shared_ptr<PathCutJob> &st)
     st->abort          = false; // a run cancelled before is dropped by its generation
     m_busy             = true;
     m_message          = _u8L("Cutting the holes into the pieces...");
+    m_busy_since       = std::chrono::steady_clock::now();
     m_message_is_error = false;
     m_running          = st;
     const unsigned generation = m_generation;
