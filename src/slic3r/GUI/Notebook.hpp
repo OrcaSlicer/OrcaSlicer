@@ -54,6 +54,8 @@ public:
         return n < m_pageIcons.size() ? m_pageIcons[n] : empty;
     }
     wxFlexGridSizer* GetBtnsSizer(){return m_buttons_sizer;}; // ORCA
+    // ORCA: button of the currently selected page, the landing target for keyboard pane navigation
+    wxWindow* GetSelectedButton() const;
     // ORCA: a companion widget shown right after the tab buttons (before any side_tools), e.g.
     // an overflow indicator. Pass nullptr to remove it; ownership stays with the caller.
     void SetOverflowButton(wxWindow* button);
@@ -70,6 +72,10 @@ private:
     std::vector<wxString>           m_pageLabels; // ORCA
     std::vector<std::string>        m_pageIcons;  // ORCA: resource icon name per page, plugin pages empty
     wxWindow*                       m_overflow_button{nullptr}; // ORCA
+    // ORCA: set while an Enter/Space on a tab button is on its way to becoming a click,
+    // so SetSelection knows the activation came from the keyboard. Must outlive the key
+    // event: the selection change it triggers is delivered through a posted event.
+    bool                            m_activating_from_keyboard{false}; // ORCA
 };
 
 class Notebook : public wxBookCtrlBase
