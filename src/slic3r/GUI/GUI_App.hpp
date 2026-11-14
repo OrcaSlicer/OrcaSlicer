@@ -360,6 +360,8 @@ private:
     // What the close event saw, because OnExit() runs after the Plater is gone.
     bool m_closing_project_dirty { false };
     bool m_closing_job_running { false };
+    // A helper already owns this run's install; a second one must not be started at exit.
+    bool m_update_install_started { false };
     static std::string version_display;
     HMSQuery    *hms_query { nullptr };
     FilamentColorCodeQuery* m_filament_color_code_query{ nullptr };
@@ -626,6 +628,9 @@ public:
     void            install_update_on_exit();
     // Cleans up after an install that happened while this build was being replaced.
     void            finish_pending_update();
+    // Records what the close event saw, for install_update_on_exit(). Bound on every
+    // mainframe, including a frame rebuilt by recreate_GUI().
+    void            bind_mainframe_close_handler();
     // Offers to migrate user filament presets made against an older release that lost printers their parent
     // listed then. At startup it asks on every start that finds such presets, unless the user chose not to be
     // reminded; while the user presets sync with the cloud, it waits until they have been pulled. by_user also

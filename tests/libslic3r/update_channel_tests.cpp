@@ -346,6 +346,28 @@ const char* stable_portable_release_json()
     ])JSON";
 }
 
+// A stable release newer than the -dev version a nightly build reports.
+const char* stable_after_dev_release_json()
+{
+    return R"JSON([
+        {
+            "tag_name": "v2.6.1",
+            "prerelease": false,
+            "html_url": "https://example.invalid/releases/v2.6.1",
+            "body": "2.6.1",
+            "updated_at": "2026-11-25T10:00:00Z",
+            "assets": [
+                {
+                    "name": "OrcaSlicer_Windows_Installer_V2.6.1_x64.exe",
+                    "browser_download_url": "https://example.invalid/OrcaSlicer_Windows_Installer_V2.6.1_x64.exe",
+                    "digest": "sha256:2610",
+                    "size": 420
+                }
+            ]
+        }
+    ])JSON";
+}
+
 } // namespace
 
 TEST_CASE("A stable release newer than the running version is offered", "[UpdateChannel]")
@@ -421,6 +443,88 @@ TEST_CASE("Switching from stable to nightly offers the nightly release", "[Updat
 
     CHECK(candidate.available);
     CHECK(candidate.reason == "channel_switch");
+}
+
+TEST_CASE("A hand-installed nightly is not downgraded by the channel it infers", "[UpdateChannel]")
+{
+    // Nothing recorded its channel, so Stable reads the running dev build as nightly and treats
+    // the check as a channel switch. 2.5.0 sorts below the running build, so it is not offered.
+    const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::Stable, "", "",
+                                                     "2.6.0-dev", "2026-11-01T00:00:00Z",
+                                                     InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK_FALSE(candidate.available);
+    CHECK(candidate.reason == "up_to_date");
+    CHECK(candidate.version == "2.5.0");
+}
+
+TEST_CASE("A hand-installed prerelease is not downgraded by the channel it infers", "[UpdateChannel]")
+{
+    // No recorded channel, so Stable reads the running 2.6.0-rc1 as a prerelease and treats the
+    // check as a channel switch: 2.5.0 sorts below the running build, so it is not offered.
+    const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::Stable, "", "",
+                                                     "2.6.0-rc1", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK_FALSE(candidate.available);
+    CHECK(candidate.reason == "up_to_date");
+    CHECK(candidate.version == "2.5.0");
+}
+
+TEST_CASE("A hand-installed prerelease is offered the stable release of its own version", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(newer_prerelease_release_json(), UpdateChannel::Stable, "", "",
+                                                     "2.6.0-rc1", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.reason == "channel_switch");
+    CHECK(candidate.version == "2.6.0");
+}
+
+TEST_CASE("A hand-installed dev build is offered a newer stable release", "[UpdateChannel]")
+{
+    const UpdateCandidate candidate = resolve_update(stable_after_dev_release_json(), UpdateChannel::Stable, "", "",
+                                                     "2.6.0-dev", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.reason == "channel_switch");
+    CHECK(candidate.version == "2.6.1");
+}
+
+TEST_CASE("A hand-installed build whose version cannot be compared is not switched", "[UpdateChannel]")
+{
+    // Nothing recorded the channel and the version does not parse, so it belongs to no channel
+    // an ordering could be checked against: the stable release is not offered, even though
+    // Stable is what the user selected.
+    const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::Stable, "", "",
+                                                     "dev build", "", InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK_FALSE(candidate.available);
+    CHECK(candidate.reason == "up_to_date");
+}
+
+TEST_CASE("A recorded prerelease channel still switches to the stable channel", "[UpdateChannel]")
+{
+    // The switch comes from the setting, not from the version: the stable artifact is offered
+    // even though it sorts below the running prerelease.
+    const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::Stable,
+                                                     "sha256:2600rc", "prerelease", "2.6.0-rc1", "",
+                                                     InstallFlavour::WindowsInstaller, "x86_64");
+
+    CHECK(candidate.available);
+    CHECK(candidate.reason == "channel_switch");
+    CHECK(candidate.version == "2.5.0");
+}
+
+TEST_CASE("The channel of a version follows its suffix", "[UpdateChannel]")
+{
+    // 2.6.0-dev parses as a semver prerelease but is the nightly version, so it is checked first.
+    CHECK(channel_of_version("2.6.0-dev") == UpdateChannel::Nightly);
+    CHECK(channel_of_version("2.6.0-rc1") == UpdateChannel::PreRelease);
+    CHECK(channel_of_version("2.6.0-beta") == UpdateChannel::PreRelease);
+    CHECK(channel_of_version("2.6.0-alpha") == UpdateChannel::PreRelease);
+    CHECK(channel_of_version("2.6.0") == UpdateChannel::Stable);
+    CHECK(channel_of_version("") == UpdateChannel::Nightly);
+    CHECK(channel_of_version("garbage") == UpdateChannel::Nightly);
 }
 
 TEST_CASE("The pre-release channel offers the final release when it is newer than every prerelease", "[UpdateChannel]")
@@ -567,13 +671,29 @@ TEST_CASE("A supported flavour with no matching asset is offered so the release 
     CHECK_FALSE(can_install_in_app(candidate, InstallFlavour::MacOSBundle));
 }
 
-TEST_CASE("Only a candidate with an asset, URL and digest is installed in-app", "[UpdateChannel]")
+TEST_CASE("Only a candidate with an asset, URL, digest and size is installed in-app", "[UpdateChannel]")
 {
     const UpdateCandidate candidate = resolve_update(stable_releases_json(), UpdateChannel::Stable, "", "",
                                                      "2.4.9", "", InstallFlavour::WindowsInstaller, "x86_64");
 
     CHECK(can_install_in_app(candidate, InstallFlavour::WindowsInstaller));
     CHECK_FALSE(can_install_in_app(candidate, InstallFlavour::Msix));
+}
+
+TEST_CASE("An asset without a size is not installed in-app", "[UpdateChannel]")
+{
+    // prepare_download_dir can never call a zero-sized download complete, so it would be
+    // fetched again on every start and the quit-time install would never run.
+    UpdateCandidate candidate;
+    candidate.asset.name   = "OrcaSlicer_Windows_Installer_V2.5.0_x64.exe";
+    candidate.asset.url    = "https://example.invalid/OrcaSlicer_Windows_Installer_V2.5.0_x64.exe";
+    candidate.asset.digest = "sha256:2222";
+    candidate.asset.size   = 0;
+
+    CHECK_FALSE(can_install_in_app(candidate, InstallFlavour::WindowsInstaller));
+
+    candidate.asset.size = 200;
+    CHECK(can_install_in_app(candidate, InstallFlavour::WindowsInstaller));
 }
 
 TEST_CASE("A portable Windows build is offered the portable zip directly", "[UpdateChannel]")

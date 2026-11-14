@@ -15,6 +15,7 @@
 
 #include "catch2/catch_test_macros.hpp"
 #include "catch2/generators/catch_generators.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/UpdateHandoff.hpp"
 #include "libslic3r/Utils.hpp"
 #include "test_utils.hpp"
@@ -118,10 +119,72 @@ TEST_CASE("An explicit cache directory wins until it is cleared", "[UpdateHandof
 
     set_updater_cache_dir(custom.string());
     CHECK(updater_cache_dir() == custom.string());
+    // No install root named: the shareable flat directory, as before this split.
+    CHECK(updater_install_root().empty());
     CHECK(fs::path(updater_download_dir()) == custom / "downloads");
 
     clear_updater_cache_dir();
     CHECK(updater_cache_dir() == default_dir);
+}
+
+TEST_CASE("Each install downloads into its own directory", "[UpdateHandoff]")
+{
+    clear_updater_cache_dir();
+    const fs::path shared = fs::path(updater_cache_dir()) / "downloads";
+
+    CHECK(fs::path(updater_download_dir()) == shared);
+
+    set_updater_install_root("/opt/OrcaSlicer");
+    const fs::path parent = fs::path(updater_download_dir());
+    CHECK(updater_install_root() == "/opt/OrcaSlicer");
+    CHECK(parent.parent_path() == shared);
+    CHECK(parent.filename() == install_identity_hex("/opt/OrcaSlicer"));
+
+    // The job handed to the helper is keyed too: two copies share one cache, and one must
+    // not overwrite the job the other one handed over.
+    const std::string keyed_handoff = updater_handoff_path();
+    CHECK(fs::path(keyed_handoff).parent_path() == fs::path(updater_cache_dir()));
+    CHECK(fs::path(keyed_handoff) != fs::path(updater_cache_dir()) / "handoff.json");
+
+    set_updater_install_root("/opt/OrcaSlicer/client");
+    CHECK(fs::path(updater_download_dir()) != parent);
+
+    // Clearing the cache also clears the install root, or the next one to use it inherits this install.
+    clear_updater_cache_dir();
+    CHECK(updater_install_root().empty());
+    CHECK(fs::path(updater_download_dir()) == fs::path(updater_cache_dir()) / "downloads");
+}
+
+TEST_CASE("Each install extracts its helper into its own directory", "[UpdateHandoff]")
+{
+    clear_updater_cache_dir();
+    const fs::path shared = fs::path(updater_cache_dir()) / "helper";
+
+    CHECK(fs::path(updater_helper_dir()) == shared);
+
+    set_updater_install_root("/opt/OrcaSlicer");
+    const fs::path own = fs::path(updater_helper_dir());
+    CHECK(own.parent_path() == shared);
+    CHECK(own.filename() == install_identity_hex("/opt/OrcaSlicer"));
+
+    set_updater_install_root("/opt/OrcaSlicer/client");
+    CHECK(fs::path(updater_helper_dir()) != own);
+
+    clear_updater_cache_dir();
+    CHECK(fs::path(updater_helper_dir()) == shared);
+}
+
+TEST_CASE("A download is named after the asset, inside its own directory", "[UpdateHandoff]")
+{
+    // A path-like asset name is reduced to its file name, so it cannot leave the directory.
+    const DownloadPaths paths = download_paths("cache", "../OrcaSlicer_V2.5.0.AppImage");
+
+    CHECK(fs::path(paths.part) == fs::path("cache") / "OrcaSlicer_V2.5.0.AppImage.part");
+    CHECK(fs::path(paths.marker) == fs::path("cache") / "OrcaSlicer_V2.5.0.AppImage.part.digest");
+    CHECK(fs::path(paths.artifact) == fs::path("cache") / "OrcaSlicer_V2.5.0.AppImage");
+
+    // No asset name to go by: the artifact still lands in the directory.
+    CHECK(fs::path(download_paths("cache", "").artifact) == fs::path("cache") / "update.part");
 }
 
 TEST_CASE("A partial download of the same build is kept for resuming", "[UpdateHandoff]")
@@ -185,17 +248,40 @@ TEST_CASE("A download the size of the build is verified instead of fetched again
     CHECK(fs::exists(part_path(dir.path())));
 }
 
-TEST_CASE("Other artifacts in the download directory are dropped", "[UpdateHandoff]")
+TEST_CASE("Another candidate's partial download is left alone", "[UpdateHandoff]")
 {
     ScopedTemporaryDir dir;
     write_partial_download(dir.path(), kDigest, 400);
+    // A second helper is fetching a different release into the same per-install directory.
+    const fs::path other = dir.path() / "OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.4.0.AppImage.part";
+    const fs::path other_marker = dir.path() / "OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.4.0.AppImage.part.digest";
+    write_text(other, std::string(50, 'y'));
+    write_text(other_marker, "sha256:3333");
+
+    const DownloadPrep prep = prepare_download_dir(dir.string(), kAsset, kDigest, kSize);
+    CHECK(prep.resumable);
+    CHECK(prep.dropped.empty());
+    CHECK(fs::exists(other));
+    CHECK(fs::exists(other_marker));
+    CHECK(read_text(other_marker) == "sha256:3333");
+    CHECK(fs::exists(part_path(dir.path())));
+}
+
+TEST_CASE("A verified artifact of the prepared candidate is still swept for another build", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    // This candidate's own artifact, recorded for a build other than the one being prepared.
+    write_text(dir.path() / kAsset, std::string(kSize, 'x'));
+    write_text(marker_path(dir.path()), "sha256:2222");
+    // A different release another helper is fetching.
     const fs::path other = dir.path() / "OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.4.0.AppImage.part";
     write_text(other, std::string(50, 'y'));
 
     const DownloadPrep prep = prepare_download_dir(dir.string(), kAsset, kDigest, kSize);
-    CHECK(contains(prep.dropped, other));
-    CHECK_FALSE(fs::exists(other));
-    CHECK(fs::exists(part_path(dir.path())));
+    CHECK_FALSE(prep.complete);
+    CHECK(contains(prep.dropped, dir.path() / kAsset));
+    CHECK_FALSE(fs::exists(dir.path() / kAsset));
+    CHECK(fs::exists(other));
 }
 
 TEST_CASE("A verified artifact is kept for the build it belongs to", "[UpdateHandoff]")
@@ -221,6 +307,27 @@ TEST_CASE("A verified artifact recorded for another build is dropped", "[UpdateH
     const DownloadPrep prep = prepare_download_dir(dir.string(), kAsset, kDigest, kSize);
     CHECK_FALSE(prep.complete);
     CHECK_FALSE(fs::exists(dir.path() / kAsset));
+}
+
+TEST_CASE("A download the verifier rejected is fetched again", "[UpdateHandoff]")
+{
+    ScopedTemporaryDir dir;
+    // The helper renames a verified download to its asset name and keeps the digest marker.
+    write_text(dir.path() / kAsset, std::string(kSize, 'x'));
+    write_text(marker_path(dir.path()), kDigest);
+    CHECK(prepare_download_dir(dir.string(), kAsset, kDigest, kSize).complete);
+
+    // A prefetch of another build is still writing its .part.
+    const fs::path other = dir.path() / "OrcaSlicer_Linux_AppImage_Ubuntu2404_V2.4.0.AppImage.part";
+    write_text(other, std::string(50, 'y'));
+
+    discard_download(dir.string(), kAsset);
+    CHECK_FALSE(fs::exists(dir.path() / kAsset));
+    CHECK_FALSE(fs::exists(marker_path(dir.path())));
+    CHECK(fs::exists(other));
+
+    // Nothing is left for the next run to take as complete, so it downloads the file again.
+    CHECK_FALSE(prepare_download_dir(dir.string(), kAsset, kDigest, kSize).complete);
 }
 
 TEST_CASE("The build a partial download belongs to is recorded next to it", "[UpdateHandoff]")
@@ -409,6 +516,44 @@ TEST_CASE("The identity key is prefixed and free of whitespace", "[UpdateHandoff
     CHECK(key.find_first_of(" \t\r\n\v\f") == std::string::npos);
     CHECK(key.size() == std::string("installed_artifact:").size() + 16);
     CHECK(key.find_first_not_of("0123456789abcdef", std::string("installed_artifact:").size()) == std::string::npos);
+}
+
+TEST_CASE("The install hex is the identity key without its prefix", "[UpdateHandoff]")
+{
+    const std::string root = "/opt/OrcaSlicer";
+    CHECK(install_identity_key(root) == "installed_artifact:" + install_identity_hex(root));
+    CHECK(install_identity_hex("").empty());
+    // Usable as a directory name: the hash never carries a separator.
+    CHECK(install_identity_hex(root).find_first_of("/\\") == std::string::npos);
+}
+
+TEST_CASE("Two install roots record their own channel and artifact", "[UpdateHandoff]")
+{
+    AppConfig config;
+    config.set_installed_build("/opt/OrcaSlicer", "stable", "sha256:1111");
+    config.set_installed_build("/opt/OrcaSlicer/client", "nightly", "sha256:2222");
+
+    CHECK(config.installed_channel("/opt/OrcaSlicer") == "stable");
+    CHECK(config.installed_channel("/opt/OrcaSlicer/client") == "nightly");
+    CHECK(config.installed_artifact("/opt/OrcaSlicer") == "sha256:1111");
+    CHECK(config.installed_artifact("/opt/OrcaSlicer/client") == "sha256:2222");
+    CHECK(config.installed_channel("/opt/other").empty());
+}
+
+TEST_CASE("A build recorded before the keying is moved to the first root that claims it", "[UpdateHandoff]")
+{
+    AppConfig config;
+    config.set("app", "installed_artifact", "sha256:1111");
+    config.set("app", "installed_channel", "nightly");
+
+    config.migrate_installed_artifact("/opt/OrcaSlicer");
+    CHECK(config.installed_artifact("/opt/OrcaSlicer") == "sha256:1111");
+    CHECK(config.installed_channel("/opt/OrcaSlicer") == "nightly");
+
+    // Claimed once: a second copy of the application must not read it as its own build.
+    config.migrate_installed_artifact("/opt/OrcaSlicer/client");
+    CHECK(config.installed_artifact("/opt/OrcaSlicer/client").empty());
+    CHECK(config.installed_channel("/opt/OrcaSlicer/client").empty());
 }
 
 TEST_CASE("A recorded update failure is read once and removed", "[UpdateHandoff]")

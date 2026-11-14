@@ -126,7 +126,14 @@ bool UpdateHelperApp::OnInit()
         } else {
             wxMessageBox("The update information could not be read.", kDialogTitle, wxOK | wxICON_ERROR);
         }
-        Slic3r::remove_handoff();
+        // The default path is keyed by install, which the unreadable file does not tell us:
+        // remove the file this run was pointed at.
+        if (from_command_line) {
+            boost::system::error_code remove_ec;
+            fs::remove(path, remove_ec);
+        } else {
+            Slic3r::remove_handoff();
+        }
         m_startup_failed = true;
         return true;
     }
@@ -137,6 +144,10 @@ bool UpdateHelperApp::OnInit()
     if (handoff.cache_dir.empty())
         handoff.cache_dir = Slic3r::updater_cache_dir();
     Slic3r::set_updater_cache_dir(handoff.cache_dir);
+    // Two copies of the application share one cache, and each keeps its downloads in a
+    // directory keyed by its install root. The application resolved that root the same
+    // way, so the artifact it prefetched is the one this run finds.
+    Slic3r::set_updater_install_root(handoff.install_root);
 
     // Handed to the frame, which takes it only once the parent has exited: the
     // application still owns it while it is closing down. The helper releases it

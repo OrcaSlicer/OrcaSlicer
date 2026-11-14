@@ -16,14 +16,13 @@
 #include <crt_externs.h>
 #include <signal.h>
 #include <spawn.h>
+#include <stdio.h> // renamex_np, RENAME_SWAP
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
-
-#include "libslic3r/UpdateHandoff.hpp"
 
 #endif
 
@@ -135,6 +134,14 @@ bool path_exists(const std::string& path)
 {
     boost::system::error_code ec;
     return boost::filesystem::exists(boost::filesystem::path(path), ec);
+}
+
+// Exchanges two paths in one step, so neither of them is ever missing. RENAME_SWAP is
+// not available on every filesystem (SMB and older ones refuse it), which is what the
+// two renames at the call sites handle.
+bool swap_paths(const std::string& left, const std::string& right)
+{
+    return ::renamex_np(left.c_str(), right.c_str(), RENAME_SWAP) == 0;
 }
 
 std::string move_script(const std::vector<std::pair<std::string, std::string>>& moves)
@@ -347,9 +354,11 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
     }
 
     // Written before anything moves: the application restores the backup on its
-    // next start if we die between "old moved aside" and "new in place".
+    // next start if we die between "old moved aside" and "new in place". The swap
+    // below exchanges the two paths, so the old bundle ends up where the new one is
+    // staged; the fallback moves it to `backup` and rewrites this record first.
     PendingInstall pending;
-    pending.backup  = backup;
+    pending.backup  = parent_writable ? staged : backup;
     pending.target  = bundle;
     pending.digest  = handoff.digest;
     pending.channel = handoff.channel;
@@ -363,33 +372,42 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
     bool moved_old  = false;
     bool placed_new = false;
     bool elevated   = false;
+    bool swapped    = false;
     // Undoes the moves that happened. The new tree is moved aside to `staged`, not
     // deleted, so a failed restore still leaves it on disk. True only when the
     // previous bundle is demonstrably back at `bundle`.
     auto rollback = [&]() -> bool {
-        std::vector<std::pair<std::string, std::string>> undo;
-        if (placed_new)
-            undo.push_back({bundle, staged});
-        if (moved_old)
-            undo.push_back({backup, bundle});
-
         bool restored = true;
-        if (elevated) {
-            std::string ignored;
-            restored = elevated_moves(undo, ignored);
+        if (swapped) {
+            // The exchange back, so the bundle is never missing either way.
+            restored = swap_paths(bundle, staged);
         } else {
-            for (const auto& move : undo) {
-                boost::system::error_code move_ec;
-                boost::filesystem::rename(boost::filesystem::path(move.first), boost::filesystem::path(move.second), move_ec);
-                if (move_ec) {
-                    restored = false;
-                    break;
+            std::vector<std::pair<std::string, std::string>> undo;
+            if (placed_new)
+                undo.push_back({bundle, staged});
+            if (moved_old)
+                undo.push_back({backup, bundle});
+
+            if (elevated) {
+                std::string ignored;
+                restored = elevated_moves(undo, ignored);
+            } else {
+                for (const auto& move : undo) {
+                    boost::system::error_code move_ec;
+                    boost::filesystem::rename(boost::filesystem::path(move.first), boost::filesystem::path(move.second), move_ec);
+                    if (move_ec) {
+                        restored = false;
+                        break;
+                    }
                 }
             }
         }
         if (restored) {
             boost::system::error_code dir_ec;
-            restored = boost::filesystem::is_directory(boost::filesystem::path(bundle), dir_ec) && !path_exists(backup);
+            restored = boost::filesystem::is_directory(boost::filesystem::path(bundle), dir_ec);
+            // A rename path that did not move back leaves the previous bundle at `backup`.
+            if (restored && !swapped)
+                restored = !path_exists(backup);
         }
 
         remove_path_quietly(updater_install_record_path());
@@ -407,7 +425,8 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
     auto rollback_failure = [&](const std::string& message) {
         if (rollback())
             return message + " The previous version was put back.";
-        return message + " The previous version could not be restored; the previous bundle is still at " + backup + ".";
+        return message + " The previous version could not be restored; the previous bundle is still at " +
+               (swapped ? staged : backup) + ".";
     };
 
     sink.say(Stage::Installing, 70, "Replacing the application");
@@ -427,7 +446,22 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
         elevated   = true;
         moved_old  = true;
         placed_new = true;
+    } else if (swap_paths(bundle, staged)) {
+        // One exchange, so a helper death cannot leave the bundle's path without an
+        // application. The pending record already names where the old bundle went.
+        swapped    = true;
+        moved_old  = true;
+        placed_new = true;
     } else {
+        // No exchange on this filesystem (SMB, older ones) or it was refused: the two
+        // renames, with the record rewritten for where the old bundle will land.
+        pending.backup = backup;
+        if (!write_pending_install(pending)) {
+            remove_path_quietly(staged);
+            remove_pending_install();
+            error = "The update could not be recorded, so nothing was changed.";
+            return false;
+        }
         ec.clear();
         boost::filesystem::rename(boost::filesystem::path(bundle), boost::filesystem::path(backup), ec);
         if (ec) {
@@ -489,7 +523,7 @@ bool apply_macos_install(const UpdateHandoff& handoff, const std::string& artifa
         return false;
     }
 
-    // Success: the backup and the pending record stay behind on purpose; the
+    // Success: the previous bundle and the pending record stay behind on purpose; the
     // application cleans both up on its next start.
     return true;
 }

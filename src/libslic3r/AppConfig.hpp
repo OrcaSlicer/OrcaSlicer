@@ -385,22 +385,13 @@ public:
 	// the channel it came from. Empty until the first in-app update.
 	std::string 		installed_artifact(const std::string& install_root) const
 							{ return this->get(install_identity_key(install_root)); }
-	std::string 		installed_channel() const { return this->get("installed_channel"); }
-	void 				set_installed_build(const std::string& install_root, const std::string& channel, const std::string& artifact)
-							{ this->set("installed_channel", channel); this->set(install_identity_key(install_root), artifact); }
+	// Both values are keyed by install root: two copies of the application share one
+	// config file, and one must not be read as the other. The artifact lives under
+	// install_identity_key(root), the channel under that key plus ".channel".
+	std::string 		installed_channel(const std::string& install_root) const;
+	void 				set_installed_build(const std::string& install_root, const std::string& channel, const std::string& artifact);
 	// Moves a build recorded before the identity was keyed by install root into this root's slot.
-	void 				migrate_installed_artifact(const std::string& install_root)
-							{
-								const std::string legacy = this->get("installed_artifact");
-								if (legacy.empty())
-									return;
-								const std::string key = install_identity_key(install_root);
-								if (this->get(key).empty())
-									this->set(key, legacy);
-								// The keyed slot is authoritative from here on, or the unkeyed value
-								// would be claimed by whichever copy of the application starts next.
-								this->erase("app", "installed_artifact");
-							}
+	void 				migrate_installed_artifact(const std::string& install_root);
 
 	// Artifact digest the user asked not to be offered again (nightly channel).
 	std::string 		skip_artifact() const { return this->get("skip_artifact"); }

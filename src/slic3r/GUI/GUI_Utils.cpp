@@ -284,13 +284,6 @@ bool is_running_in_flatpak()
 
 namespace {
 
-// Directory part of a path, without a trailing separator.
-std::string parent_directory(const std::string& path)
-{
-    const auto separator = path.find_last_of("/\\");
-    return separator == std::string::npos ? std::string() : path.substr(0, separator);
-}
-
 // True when the executable sits in a CMake build tree rather than in an installation.
 // Updating one would replace the tree being worked on instead of a copy the user installed.
 // Linux is left out: there only an AppImage or a Flatpak can update itself at all, and a
@@ -298,17 +291,21 @@ std::string parent_directory(const std::string& path)
 #if defined(_WIN32) || defined(__APPLE__)
 bool inside_build_tree(const std::string& exe_path)
 {
-    boost::system::error_code ec;
     boost::filesystem::path dir = boost::filesystem::path(exe_path).parent_path();
-    for (int depth = 0; depth < 5 && !dir.empty(); ++depth) {
+    if (dir.empty())
+        return false;
+
+    // Walk to the volume root: a macOS tree puts the bundle at
+    // build/<arch>/src/<config>/OrcaSlicer.app/Contents/MacOS, so a fixed depth misses it.
+    boost::system::error_code ec;
+    for (;;) {
         if (boost::filesystem::exists(dir / "CMakeCache.txt", ec))
             return true;
         const boost::filesystem::path parent = dir.parent_path();
         if (parent == dir)
-            break;
+            return false;
         dir = parent;
     }
-    return false;
 }
 #endif
 
@@ -371,7 +368,7 @@ Slic3r::InstallFlavour current_install_flavour()
     if (inside_build_tree(app_exe_path()))
         return Slic3r::InstallFlavour::Other;
     // The NSIS installer puts uninstall.exe beside the executable; the portable build does not.
-    const std::string exe_dir = parent_directory(app_exe_path());
+    const std::string exe_dir = boost::filesystem::path(app_exe_path()).parent_path().string();
     if (!exe_dir.empty()) {
         const std::wstring uninstall = wxString::FromUTF8((exe_dir + "/uninstall.exe").c_str()).ToStdWstring();
         if (::GetFileAttributesW(uninstall.c_str()) != INVALID_FILE_ATTRIBUTES)
@@ -405,7 +402,7 @@ std::string app_install_root()
     if (bundle != std::string::npos)
         return exe.substr(0, bundle + 4); // include the ".app" extension
 #endif
-    return parent_directory(exe);
+    return boost::filesystem::path(exe).parent_path().string();
 }
 
 std::string update_cache_dir()

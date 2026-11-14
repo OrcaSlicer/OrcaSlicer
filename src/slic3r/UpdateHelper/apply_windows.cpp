@@ -19,6 +19,8 @@
         #pragma comment(lib, "wintrust.lib")
     #endif
 
+    #include <wchar.h>
+
     #include <chrono>
     #include <cstdio>
     #include <cwchar>
@@ -28,8 +30,7 @@
 
     #include <boost/filesystem.hpp>
     #include <boost/log/trivial.hpp>
-
-    #include "libslic3r/UpdateHandoff.hpp"
+    #include <boost/nowide/convert.hpp>
 
 #endif
 
@@ -42,36 +43,10 @@ namespace {
 
 namespace fs = boost::filesystem;
 
-std::wstring widen_utf8(const std::string& text)
-{
-    if (text.empty())
-        return std::wstring();
-    const int needed = ::MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
-    if (needed <= 0)
-        return std::wstring();
-    std::wstring out(static_cast<size_t>(needed), L'\0');
-    ::MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, out.data(), needed);
-    out.resize(static_cast<size_t>(needed) - 1);
-    return out;
-}
-
-std::string narrow_utf8(const std::wstring& text)
-{
-    if (text.empty())
-        return std::string();
-    const int needed = ::WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, nullptr, 0, nullptr, nullptr);
-    if (needed <= 0)
-        return std::string();
-    std::string out(static_cast<size_t>(needed), '\0');
-    ::WideCharToMultiByte(CP_UTF8, 0, text.c_str(), -1, out.data(), needed, nullptr, nullptr);
-    out.resize(static_cast<size_t>(needed) - 1);
-    return out;
-}
-
 // Handoff paths travel as UTF-8; boost::filesystem on Windows takes UTF-16.
 fs::path to_path(const std::string& utf8)
 {
-    return fs::path(widen_utf8(utf8));
+    return fs::path(boost::nowide::widen(utf8));
 }
 
 // The display name of the certificate that signed the embedded PKCS#7 message.
@@ -114,7 +89,7 @@ std::wstring signer_display_name(HCERTSTORE store, HCRYPTMSG message)
 // signer with a warning, which is what a local build wants.
 bool verify_signature(const std::string& artifact_path, std::string& error)
 {
-    const std::wstring file = widen_utf8(artifact_path);
+    const std::wstring file = boost::nowide::widen(artifact_path);
     if (file.empty()) {
         error = "The installer path is not valid.";
         return false;
@@ -153,7 +128,7 @@ bool verify_signature(const std::string& artifact_path, std::string& error)
 
     // WinVerifyTrust accepts any trusted signer, so the signer identity is read
     // from the embedded PKCS#7 message and compared with the pinned publisher.
-    const std::wstring expected = widen_utf8(ORCA_UPDATER_PUBLISHER);
+    const std::wstring expected = boost::nowide::widen(ORCA_UPDATER_PUBLISHER);
     if (expected.empty()) {
         BOOST_LOG_TRIVIAL(warning) << "The update publisher is not pinned in this build; any trusted signer is accepted.";
         return true;
@@ -178,16 +153,16 @@ bool verify_signature(const std::string& artifact_path, std::string& error)
         return false;
     }
     if (_wcsicmp(actual.c_str(), expected.c_str()) != 0) {
-        error = "The update is signed by \"" + narrow_utf8(actual) + "\", not by " + ORCA_UPDATER_PUBLISHER +
+        error = "The update is signed by \"" + boost::nowide::narrow(actual) + "\", not by " + ORCA_UPDATER_PUBLISHER +
                 ", so it was not run.";
         return false;
     }
     return true;
 }
 
-// True when this user can write inside the install root. That is what separates
-// a per-user install from a machine-wide one in Program Files. The probe file
-// goes away with its handle.
+// True when this user can write inside the install root. A per-user tree is
+// writable and a protected tree is not, whatever the uninstall record says.
+// The probe file goes away with its handle.
 bool install_root_writable(const std::wstring& root)
 {
     std::wstring probe = root;
@@ -203,30 +178,260 @@ bool install_root_writable(const std::wstring& root)
     return true;
 }
 
-// Waits for the installer to exit, and takes ownership of its handle.
-bool wait_for_installer(HANDLE process, std::string& error)
+// One string value from the machine hive. The view selects the 64-bit or the
+// 32-bit registry: installers built before this helper were 32-bit and wrote
+// under WOW6432Node.
+std::wstring read_machine_value(const std::wstring& key_path, const wchar_t* name, REGSAM view)
+{
+    HKEY key = nullptr;
+    if (::RegOpenKeyExW(HKEY_LOCAL_MACHINE, key_path.c_str(), 0, KEY_READ | view, &key) != ERROR_SUCCESS)
+        return std::wstring();
+
+    std::wstring value;
+    DWORD        type = 0;
+    DWORD        size = 0;
+    if (::RegQueryValueExW(key, name, nullptr, &type, nullptr, &size) == ERROR_SUCCESS &&
+        (type == REG_SZ || type == REG_EXPAND_SZ) && size > sizeof(wchar_t)) {
+        value.resize(size / sizeof(wchar_t));
+        if (::RegQueryValueExW(key, name, nullptr, &type, reinterpret_cast<LPBYTE>(value.data()), &size) == ERROR_SUCCESS) {
+            while (!value.empty() && value.back() == L'\0')
+                value.pop_back();
+            // NSIS expands this type when it reads it, so the installer would compare a
+            // different string than this one; expand it here too.
+            if (type == REG_EXPAND_SZ && !value.empty()) {
+                const DWORD needed = ::ExpandEnvironmentStringsW(value.c_str(), nullptr, 0);
+                if (needed > 1) {
+                    std::wstring expanded(needed, L'\0');
+                    const DWORD  written = ::ExpandEnvironmentStringsW(value.c_str(), expanded.data(), needed);
+                    if (written > 1 && written <= needed) {
+                        expanded.resize(written - 1);
+                        value = expanded;
+                    }
+                }
+            }
+        } else {
+            value.clear();
+        }
+    }
+    ::RegCloseKey(key);
+    return value;
+}
+
+// Trailing separators are not part of the tree: "C:\Apps\OrcaSlicer\" and
+// "C:\Apps\OrcaSlicer" name one directory.
+std::wstring without_trailing_separators(std::wstring path)
+{
+    while (path.size() > 3 && (path.back() == L'\\' || path.back() == L'/'))
+        path.pop_back();
+    return path;
+}
+
+// Whole directories, case-insensitively: "C:\Apps\Orca" is not "C:\Apps\OrcaSlicer".
+bool same_directory(const std::wstring& left, const std::wstring& right)
+{
+    const std::wstring a = without_trailing_separators(left);
+    const std::wstring b = without_trailing_separators(right);
+    return !a.empty() && !b.empty() && _wcsicmp(a.c_str(), b.c_str()) == 0;
+}
+
+// An UninstallString is the path of the uninstaller, quoted by this installer
+// and by some older ones, so the tree is what remains once the quotes and the
+// file name are removed.
+std::wstring uninstall_string_root(const std::wstring& value)
+{
+    std::wstring path = value;
+    if (path.size() >= 2 && path.front() == L'"' && path.back() == L'"')
+        path = path.substr(1, path.size() - 2);
+
+    const std::wstring suffix = L"\\uninstall.exe";
+    if (path.size() > suffix.size() && _wcsicmp(path.c_str() + (path.size() - suffix.size()), suffix.c_str()) == 0)
+        path.resize(path.size() - suffix.size());
+    return path;
+}
+
+// The tree the machine hive records, resolved exactly as the installer resolves it:
+// the 64-bit view first, then WOW6432Node; InstallLocation, then the CPack-era legacy
+// value, then UninstallString. Empty when nothing is recorded. The record is what makes
+// an install machine-wide; it does not say the tree is protected, because an
+// administrator can install into a folder this user can write.
+std::wstring machine_install_root()
+{
+    // The key names packaging/windows/orca-slicer.nsi writes, and the one the
+    // CPack-era installer wrote its tree into instead.
+    const std::wstring uninstall_key = L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OrcaSlicer";
+    const std::wstring legacy_key    = L"Software\\SoftFever\\OrcaSlicer";
+    const REGSAM       views[]       = { KEY_WOW64_64KEY, KEY_WOW64_32KEY };
+
+    for (const REGSAM view : views) {
+        std::wstring root = read_machine_value(uninstall_key, L"InstallLocation", view);
+        if (!root.empty())
+            return root;
+        // The CPack-era installer wrote only this default value.
+        root = read_machine_value(legacy_key, nullptr, view);
+        if (!root.empty())
+            return root;
+        const std::wstring uninstall = read_machine_value(uninstall_key, L"UninstallString", view);
+        if (!uninstall.empty())
+            return uninstall_string_root(uninstall);
+    }
+    return std::wstring();
+}
+
+// True when a record in either view names this tree, in any of the three forms. The
+// installer only updates the tree its own resolution names, so a tree recorded in the
+// other view is refused rather than updated by the wrong rule.
+bool machine_record_names(const std::wstring& root)
+{
+    if (root.empty())
+        return false;
+
+    const std::wstring uninstall_key = L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OrcaSlicer";
+    const std::wstring legacy_key    = L"Software\\SoftFever\\OrcaSlicer";
+    const REGSAM       views[]       = { KEY_WOW64_64KEY, KEY_WOW64_32KEY };
+
+    for (const REGSAM view : views) {
+        if (same_directory(root, read_machine_value(uninstall_key, L"InstallLocation", view)))
+            return true;
+        if (same_directory(root, read_machine_value(legacy_key, nullptr, view)))
+            return true;
+        const std::wstring uninstall = read_machine_value(uninstall_key, L"UninstallString", view);
+        if (!uninstall.empty() && same_directory(root, uninstall_string_root(uninstall)))
+            return true;
+    }
+    return false;
+}
+
+// %LOCALAPPDATA%\Programs\OrcaSlicer: the tree a first double-click install gets, and the
+// one the installer cannot tell from an explicit /D= while a machine record exists.
+std::wstring per_user_directory()
+{
+    const DWORD size = ::GetEnvironmentVariableW(L"LOCALAPPDATA", nullptr, 0);
+    if (size == 0)
+        return std::wstring();
+
+    std::wstring base(size, L'\0');
+    const DWORD  written = ::GetEnvironmentVariableW(L"LOCALAPPDATA", base.data(), size);
+    if (written == 0 || written >= size)
+        return std::wstring();
+    base.resize(written);
+    return base + L"\\Programs\\OrcaSlicer";
+}
+
+// The helper's own directory. It is never the install tree, which the old
+// build's uninstaller removes while the installer runs.
+std::wstring current_directory()
+{
+    const DWORD size = ::GetCurrentDirectoryW(0, nullptr);
+    if (size == 0)
+        return std::wstring();
+
+    std::wstring directory(size, L'\0');
+    const DWORD  written = ::GetCurrentDirectoryW(size, directory.data());
+    if (written == 0 || written >= size)
+        return std::wstring();
+    directory.resize(written);
+    return directory;
+}
+
+enum class InstallerResult { Done, Failed, StillRunning };
+
+// Waits for the installer to exit, and takes ownership of its handle. A timeout is
+// not a failure: the installer is still writing the tree, and stopping it here would
+// leave that tree half written with nothing to finish it.
+InstallerResult wait_for_installer(HANDLE process, std::string& error)
 {
     const DWORD waited = ::WaitForSingleObject(process, 30u * 60u * 1000u);
-    DWORD       exit_code = 1;
-    const BOOL  got_exit = ::GetExitCodeProcess(process, &exit_code);
+    if (waited == WAIT_TIMEOUT) {
+        ::CloseHandle(process);
+        BOOST_LOG_TRIVIAL(warning) << "The installer is still running after its timeout; leaving it to finish.";
+        return InstallerResult::StillRunning;
+    }
+
+    DWORD      exit_code = 1;
+    const BOOL got_exit  = ::GetExitCodeProcess(process, &exit_code);
     ::CloseHandle(process);
 
     if (waited != WAIT_OBJECT_0) {
-        error = "The installer took too long and the update is unconfirmed.";
-        return false;
+        error = "The installer could not be followed to its end.";
+        return InstallerResult::Failed;
     }
     if (!got_exit || exit_code != 0) {
         error = "The installer reported a failure (exit code " + std::to_string(static_cast<long long>(got_exit ? exit_code : 1)) + ").";
-        return false;
+        return InstallerResult::Failed;
     }
-    return true;
+    return InstallerResult::Done;
 }
 
-bool run_installer(const std::string& artifact_path, const std::string& install_root, std::string& error)
+// The final spelling of a directory, with the \\?\ prefix removed, or empty when it
+// cannot be read. A junction, a shortcut or a substituted drive resolves to the path
+// it points at, which is not the path that was asked for.
+std::wstring resolved_directory(const std::wstring& directory)
+{
+    const HANDLE handle = ::CreateFileW(directory.c_str(), 0,
+                                        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+                                        FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+    if (handle == INVALID_HANDLE_VALUE)
+        return std::wstring();
+
+    std::wstring  buffer(MAX_PATH, L'\0');
+    DWORD         length = ::GetFinalPathNameByHandleW(handle, buffer.data(), static_cast<DWORD>(buffer.size()), FILE_NAME_NORMALIZED);
+    if (length >= buffer.size()) {
+        buffer.resize(length);
+        length = ::GetFinalPathNameByHandleW(handle, buffer.data(), static_cast<DWORD>(buffer.size()), FILE_NAME_NORMALIZED);
+    }
+    ::CloseHandle(handle);
+    if (length == 0 || length >= buffer.size())
+        return std::wstring();
+
+    buffer.resize(length);
+    if (buffer.compare(0, 8, L"\\\\?\\UNC\\") == 0)
+        return L"\\\\" + buffer.substr(8);
+    if (buffer.compare(0, 4, L"\\\\?\\") == 0)
+        return buffer.substr(4);
+    return buffer;
+}
+
+// A tree a machine record names is updated through an elevated installer even when this
+// user can write to it. The uninstaller the administrator then runs from that tree is one
+// this user could have replaced, and RMDir /r and File /r follow junctions: check that the
+// tree is the one that was asked for and that its uninstaller carries the pinned publisher.
+bool check_writable_machine_tree(const std::wstring& directory, std::string& error)
+{
+    const DWORD attributes = ::GetFileAttributesW(directory.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES) {
+        error = "The installation folder could not be read, so the update was not run.";
+        return false;
+    }
+    if ((attributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0) {
+        error = "The installation folder is a link to another folder, so the update was not run.";
+        return false;
+    }
+
+    const std::wstring resolved = resolved_directory(directory);
+    if (resolved.empty()) {
+        error = "The final path of the installation folder could not be read, so the update was not run.";
+        return false;
+    }
+    if (!same_directory(resolved, directory)) {
+        error = "The installation folder is not where it is recorded (" + boost::nowide::narrow(resolved) +
+                "), so the update was not run.";
+        return false;
+    }
+
+    const std::string uninstaller = boost::nowide::narrow(directory) + "\\uninstall.exe";
+    boost::system::error_code ec;
+    if (!fs::is_regular_file(to_path(uninstaller), ec)) {
+        error = "The uninstaller of the all-users install is missing, so the update was not run.";
+        return false;
+    }
+    return verify_signature(uninstaller, error);
+}
+
+InstallerResult run_installer(const std::string& artifact_path, const std::string& install_root, std::string& error)
 {
     // Never hand an unverified executable to the administrator prompt.
     if (!verify_signature(artifact_path, error))
-        return false;
+        return InstallerResult::Failed;
 
     // /S silent, /D= the install directory. NSIS requires /D= to be last and
     // unquoted, and it must not have a trailing backslash.
@@ -234,15 +439,41 @@ bool run_installer(const std::string& artifact_path, const std::string& install_
     while (root.size() > 3 && (root.back() == '\\' || root.back() == '/'))
         root.pop_back();
 
-    const std::wstring parameters = L"/S /D=" + widen_utf8(root);
-    const std::wstring file       = widen_utf8(artifact_path);
-    const std::wstring directory  = widen_utf8(root);
+    const std::wstring parameters        = L"/S /D=" + boost::nowide::widen(root);
+    const std::wstring file              = boost::nowide::widen(artifact_path);
+    const std::wstring directory         = boost::nowide::widen(root);
+    const std::wstring working_directory = current_directory();
+    const std::wstring machine_root      = machine_install_root();
+    const bool         recorded_machine  = same_directory(directory, machine_root);
+    const bool         tree_writable     = install_root_writable(directory);
 
-    // The installer never raises UAC for itself, so the scope is decided here:
-    // a tree this user can write to is the per-user install, and the installer
-    // is started directly. Anything else is a machine-wide tree, which only an
-    // administrator token can replace.
-    if (install_root_writable(directory)) {
+    // A per-user copy at the default path cannot be told from a first install once a machine
+    // record exists: the installer would retarget the recorded tree, the helper would record
+    // this one. Refuse instead of writing a tree the caller did not ask for.
+    if (!machine_root.empty() && !recorded_machine && same_directory(directory, per_user_directory())) {
+        error = "OrcaSlicer is installed for all users in " + boost::nowide::narrow(machine_root) +
+                ". Update that copy, or uninstall it first.";
+        return InstallerResult::Failed;
+    }
+
+    // A tree recorded only in the other registry view is a machine install this build's
+    // installer would treat as per-user, writing the wrong hive.
+    if (!recorded_machine && machine_record_names(directory)) {
+        error = "This copy is recorded as an all-users install that this version cannot update in place. "
+                "Uninstall OrcaSlicer, then install this version again.";
+        return InstallerResult::Failed;
+    }
+
+    // The elevated branch below runs the tree's own uninstaller as the administrator.
+    // A tree this user can write cannot be trusted with that executable.
+    if (recorded_machine && tree_writable && !check_writable_machine_tree(directory, error))
+        return InstallerResult::Failed;
+
+    // The installer never raises UAC for itself, so the scope is decided here.
+    // A tree a machine record names is machine-wide even when this user can
+    // write to it: the entry in HKLM needs an administrator to rewrite. A tree
+    // this user cannot write to needs the token whatever the record says.
+    if (!recorded_machine && tree_writable) {
         STARTUPINFOW startup;
         ::ZeroMemory(&startup, sizeof(startup));
         startup.cb = sizeof(startup);
@@ -251,12 +482,12 @@ bool run_installer(const std::string& artifact_path, const std::string& install_
 
         std::wstring command = L'"' + file + L"\" " + parameters;
         // The old build's uninstaller removes the install tree, so it must not be the
-        // working directory: the helper's own folder is inherited instead.
-        if (!::CreateProcessW(file.c_str(), command.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr,
-                              &startup, &process)) {
+        // working directory: the helper's own folder is used instead.
+        if (!::CreateProcessW(file.c_str(), command.data(), nullptr, nullptr, FALSE, 0, nullptr,
+                              working_directory.empty() ? nullptr : working_directory.c_str(), &startup, &process)) {
             const DWORD last = ::GetLastError();
             error = "The installer could not be started (error " + std::to_string(static_cast<long long>(last)) + ").";
-            return false;
+            return InstallerResult::Failed;
         }
         ::CloseHandle(process.hThread);
         return wait_for_installer(process.hProcess, error);
@@ -269,7 +500,8 @@ bool run_installer(const std::string& artifact_path, const std::string& install_
     info.lpVerb       = L"runas";
     info.lpFile       = file.c_str();
     info.lpParameters = parameters.c_str();
-    info.lpDirectory  = directory.c_str();
+    // Same working directory as the unelevated branch, for the same reason.
+    info.lpDirectory  = working_directory.empty() ? nullptr : working_directory.c_str();
     info.nShow        = SW_SHOWNORMAL;
 
     if (!::ShellExecuteExW(&info)) {
@@ -278,11 +510,11 @@ bool run_installer(const std::string& artifact_path, const std::string& install_
             error = "The update was cancelled at the administrator prompt.";
         else
             error = "The installer could not be started (error " + std::to_string(static_cast<long long>(last)) + ").";
-        return false;
+        return InstallerResult::Failed;
     }
     if (info.hProcess == nullptr) {
         error = "The installer started but could not be followed, so the update is unconfirmed.";
-        return false;
+        return InstallerResult::Failed;
     }
 
     return wait_for_installer(info.hProcess, error);
@@ -293,7 +525,7 @@ bool run_installer(const std::string& artifact_path, const std::string& install_
 // uninstall first and then fail halfway.
 bool other_instance_running(const std::string& install_root)
 {
-    std::wstring prefix = widen_utf8(install_root);
+    std::wstring prefix = boost::nowide::widen(install_root);
     for (wchar_t& ch : prefix)
         if (ch == L'/')
             ch = L'\\';
@@ -387,8 +619,23 @@ bool apply_windows_install(const UpdateHandoff& handoff, const std::string& arti
     }
 
     sink.say(Stage::Installing, 30, "Running the installer");
-    if (!run_installer(artifact_path, install_root, error)) {
+    const InstallerResult installed = run_installer(artifact_path, install_root, error);
+    if (installed == InstallerResult::StillRunning) {
+        // Neither installed nor failed: the installer is still writing the tree. Reported
+        // through the sink so the helper exits 0, records nothing, and starts nothing.
         remove_pending_install();
+        error = "The installer is still running. Start OrcaSlicer after it finishes.";
+        sink.say(Stage::Failed, 100, error);
+        return false;
+    }
+    if (installed == InstallerResult::Failed) {
+        remove_pending_install();
+        // The installer removes the previous version before it writes the new
+        // one. When it stopped in between, no application is left to start and
+        // the installer's own message cannot name the consequence.
+        if (!fs::is_regular_file(to_path(install_root + "\\orca-slicer.exe"), ec))
+            error += " The previous version was removed and the new one could not be written, so OrcaSlicer has to be "
+                     "installed again from the release page.";
         return false;
     }
 

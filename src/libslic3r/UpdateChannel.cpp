@@ -6,8 +6,11 @@
 #include <cstdio>
 #include <ctime>
 #include <exception>
+#include <locale>
 #include <string>
 
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <nlohmann/json.hpp>
 
 namespace Slic3r {
@@ -36,25 +39,6 @@ int64_t integer_field(const json& object, const char* key)
     if (it == object.end() || !it->is_number())
         return 0;
     return it->get<int64_t>();
-}
-
-bool contains(const std::string& text, const std::string& needle)
-{
-    return text.find(needle) != std::string::npos;
-}
-
-bool ends_with(const std::string& text, const char* suffix)
-{
-    const std::string tail(suffix);
-    return text.size() >= tail.size() && text.compare(text.size() - tail.size(), tail.size(), tail) == 0;
-}
-
-std::string lower_ascii(std::string text)
-{
-    for (char& ch : text)
-        if (ch >= 'A' && ch <= 'Z')
-            ch = static_cast<char>(ch - 'A' + 'a');
-    return text;
 }
 
 std::string strip_version_prefix(const std::string& tag)
@@ -99,7 +83,8 @@ std::string nightly_label(const std::string& updated_at)
 
 bool asset_is_excluded(const std::string& name)
 {
-    return contains(name, "profile_validator") || contains(name, "Debug_PDB") || contains(name, "preset_tests");
+    return boost::algorithm::contains(name, "profile_validator") || boost::algorithm::contains(name, "Debug_PDB") ||
+           boost::algorithm::contains(name, "preset_tests");
 }
 
 bool asset_matches_flavour(const std::string& name, InstallFlavour flavour, const std::string& arch)
@@ -109,22 +94,25 @@ bool asset_matches_flavour(const std::string& name, InstallFlavour flavour, cons
 
     switch (flavour) {
     case InstallFlavour::WindowsInstaller:
-        if (!contains(name, "Windows_Installer") || !ends_with(name, ".exe"))
+        if (!boost::algorithm::contains(name, "Windows_Installer") || !boost::algorithm::ends_with(name, ".exe"))
             return false;
-        return is_x64 ? contains(name, "_x64") : (is_arm ? contains(name, "_arm64") : false);
+        return is_x64 ? boost::algorithm::contains(name, "_x64")
+                      : (is_arm ? boost::algorithm::contains(name, "_arm64") : false);
     case InstallFlavour::WindowsPortable:
-        if (!contains(name, "portable") || !ends_with(name, ".zip"))
+        if (!boost::algorithm::contains(name, "portable") || !boost::algorithm::ends_with(name, ".zip"))
             return false;
-        return is_x64 ? contains(name, "_x64") : (is_arm ? contains(name, "_arm64") : false);
+        return is_x64 ? boost::algorithm::contains(name, "_x64")
+                      : (is_arm ? boost::algorithm::contains(name, "_arm64") : false);
     case InstallFlavour::MacOSBundle:
-        return contains(name, "Mac_universal") && ends_with(name, ".dmg");
+        return boost::algorithm::contains(name, "Mac_universal") && boost::algorithm::ends_with(name, ".dmg");
     case InstallFlavour::LinuxAppImage:
-        if (!contains(name, "AppImage") || !ends_with(name, ".AppImage"))
+        if (!boost::algorithm::contains(name, "AppImage") || !boost::algorithm::ends_with(name, ".AppImage"))
             return false;
         // _belt builds are discontinued; their assets are never refreshed.
-        if (contains(name, "_belt"))
+        if (boost::algorithm::contains(name, "_belt"))
             return false;
-        return is_arm ? contains(name, "aarch64") : (is_x64 ? !contains(name, "aarch64") : false);
+        return is_arm ? boost::algorithm::contains(name, "aarch64")
+                      : (is_x64 ? !boost::algorithm::contains(name, "aarch64") : false);
     case InstallFlavour::Msix:
     case InstallFlavour::Flatpak:
     case InstallFlavour::Other:
@@ -137,11 +125,13 @@ bool asset_matches_flavour(const std::string& name, InstallFlavour flavour, cons
 bool asset_matches_channel(const std::string& name, UpdateChannel channel, const std::string& version)
 {
     if (channel == UpdateChannel::Nightly)
-        return contains(name, "_nightly");
+        return boost::algorithm::contains(name, "_nightly");
     if (version.empty())
         return false;
     // Case-insensitive: the v2.3.2-rc release shipped its assets spelled V2.3.2-RC.
-    return contains(lower_ascii(name), "v" + lower_ascii(version));
+    // The classic locale, because the global one may fold 'I' to a dotless 'i'.
+    return boost::algorithm::contains(boost::algorithm::to_lower_copy(name, std::locale::classic()),
+                                      "v" + boost::algorithm::to_lower_copy(version, std::locale::classic()));
 }
 
 UpdateAsset pick_asset(const json& release, UpdateChannel channel, const std::string& version,
@@ -287,8 +277,22 @@ bool is_download_only(InstallFlavour flavour)
 
 bool can_install_in_app(const UpdateCandidate& candidate, InstallFlavour flavour)
 {
+    // A zero size can never be reported complete by prepare_download_dir, so the artifact
+    // would be swept and fetched again on every start.
     return in_app_install_supported(flavour) && !candidate.asset.name.empty() && !candidate.asset.url.empty() &&
-           !candidate.asset.digest.empty();
+           !candidate.asset.digest.empty() && candidate.asset.size > 0;
+}
+
+UpdateChannel channel_of_version(const std::string& version)
+{
+    // "-dev" first: 2.6.0-dev parses as a semver prerelease, but it is the nightly version.
+    const std::string lower = boost::algorithm::to_lower_copy(version, std::locale::classic());
+    if (version.empty() || boost::algorithm::contains(lower, "-dev") || !Semver::parse(version))
+        return UpdateChannel::Nightly;
+    if (boost::algorithm::contains(lower, "-rc") || boost::algorithm::contains(lower, "-beta") ||
+        boost::algorithm::contains(lower, "-alpha"))
+        return UpdateChannel::PreRelease;
+    return UpdateChannel::Stable;
 }
 
 UpdateCandidate resolve_update(const std::string& releases_json,
@@ -369,19 +373,34 @@ UpdateCandidate resolve_update(const std::string& releases_json,
     // Switching channel normally offers that channel's current artifact even when it sorts
     // lower. Pre-Release is the exception: its candidate is the newest release of any kind,
     // so the override could only hand back something older than what is running.
-    const bool channel_switch = channel != UpdateChannel::PreRelease &&
-                                !installed_channel.empty() && installed_channel != update_channel_key(channel);
+    // A build installed by hand has no recorded channel, so its version says where it came from.
+    const bool        inferred_channel = installed_channel.empty();
+    const std::string source_channel =
+        inferred_channel ? update_channel_key(channel_of_version(running_version)) : installed_channel;
+    bool channel_switch = channel != UpdateChannel::PreRelease && source_channel != update_channel_key(channel);
+    // An inferred switch must not downgrade: the automatic check would otherwise replace a
+    // hand-installed 2.6.0-rc1 with the newest stable at quit, with no dialog. A version that
+    // cannot be compared takes no switch either: offering a channel's current build without an
+    // ordering test is the same silent downgrade.
+    if (channel_switch && inferred_channel)
+        channel_switch = Semver::parse(running_version) && is_newer_version(candidate.version, running_version);
+
+    // A nightly keeps its version, so only its artifact identity tells whether it is newer;
+    // before the first in-app install, the release time has to stand in for the identity.
+    const bool nightly_without_identity = channel == UpdateChannel::Nightly && installed_artifact.empty();
+    bool       release_is_newer         = false;
+    if (channel != UpdateChannel::Nightly)
+        release_is_newer = is_newer_version(candidate.version, running_version);
+    else if (!installed_artifact.empty())
+        release_is_newer = true;
+    else
+        release_is_newer = nightly_is_newer_than_build(candidate.version, build_timestamp);
+
+    // Why an older release is not offered. A nightly from a build with no timestamp cannot
+    // be compared at all, which is worth its own line in the log.
+    const std::string not_newer_reason = nightly_without_identity && build_timestamp.empty() ? "source_build" : "up_to_date";
 
     // Whether the release itself is worth offering, whether or not an asset fits this flavour.
-    bool release_is_newer = false;
-    if (channel != UpdateChannel::Nightly) {
-        release_is_newer = is_newer_version(candidate.version, running_version);
-    } else if (!installed_artifact.empty()) {
-        release_is_newer = true;
-    } else if (nightly_is_newer_than_build(candidate.version, build_timestamp)) {
-        release_is_newer = true;
-    }
-
     if (candidate.asset.name.empty() || candidate.asset.digest.empty()) {
         // Offer the release even without an installable asset: the caller opens the Store or
         // the release page instead, so the update is not hidden forever.
@@ -398,21 +417,9 @@ UpdateCandidate resolve_update(const std::string& releases_json,
         candidate.reason    = "channel_switch";
         return candidate;
     }
-
-    if (channel != UpdateChannel::Nightly) {
-        if (!release_is_newer) {
-            candidate.reason = "up_to_date";
-            return candidate;
-        }
-    } else if (installed_artifact.empty()) {
-        if (build_timestamp.empty()) {
-            candidate.reason = "source_build";
-            return candidate;
-        }
-        if (!nightly_is_newer_than_build(candidate.version, build_timestamp)) {
-            candidate.reason = "up_to_date";
-            return candidate;
-        }
+    if (!release_is_newer) {
+        candidate.reason = not_newer_reason;
+        return candidate;
     }
 
     candidate.available = true;

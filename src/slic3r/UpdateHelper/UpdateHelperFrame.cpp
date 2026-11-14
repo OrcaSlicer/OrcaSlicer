@@ -3,6 +3,7 @@
 #include "slic3r/UpdateHelper/HttpDownloader.hpp"
 
 #include <algorithm>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <chrono>
@@ -10,6 +11,7 @@
 #include <cstdio>
 #include <ctime>
 #include <exception>
+#include <locale>
 #include <string>
 #include <signal.h>
 #include <mutex>
@@ -23,9 +25,9 @@
 
 #include <openssl/evp.h>
 
-#include <time.h>
 #include <utility>
 #include <thread>
+
 #include <wx/app.h>
 #include <wx/button.h>
 #include <wx/event.h>
@@ -77,15 +79,6 @@ std::string timestamp()
     char buffer[32] = { 0 };
     std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", &parts);
     return buffer;
-}
-
-std::string lower_ascii(std::string value)
-{
-    for (char& c : value) {
-        if (c >= 'A' && c <= 'Z')
-            c = static_cast<char>(c - 'A' + 'a');
-    }
-    return value;
 }
 
 std::string human_bytes(int64_t bytes)
@@ -376,7 +369,7 @@ void UpdateHelperFrame::finish(int code, const wxString& message, bool alert)
     // through, start it again rather than leave the user without one. A silent run
     // must not: the user quit deliberately and the next start reports the failure.
     const bool relaunch = code != 0 && m_parent_gone && !silent();
-    wxTheApp->CallAfter([this, message, alert, relaunch]() {
+    wxTheApp->CallAfter([this, message, alert, relaunch, code]() {
         if (relaunch && !relaunch_app(m_handoff))
             m_log.write("could not start the application again");
         if (!message.empty()) {
@@ -388,7 +381,8 @@ void UpdateHelperFrame::finish(int code, const wxString& message, bool alert)
             const wxString log_path = wxString::FromUTF8(m_handoff.log_path);
             if (!log_path.empty())
                 text += "\n\nLog: " + log_path;
-            wxMessageBox(text, "OrcaSlicer Update", wxOK | wxICON_ERROR, this);
+            // A run that exits 0 has something to say, not a failure to report.
+            wxMessageBox(text, "OrcaSlicer Update", wxOK | (code == 0 ? wxICON_INFORMATION : wxICON_ERROR), this);
         }
         wxTheApp->ExitMainLoop();
     });
@@ -444,38 +438,54 @@ UpdateHelperFrame::LockResult UpdateHelperFrame::take_install_lock(std::string& 
     return LockResult::Failed;
 }
 
-bool UpdateHelperFrame::verify_artifact(const fs::path& path, std::string& error) const
+bool UpdateHelperFrame::verify_artifact(const fs::path& path, std::string& error, VerifyFailure* failure) const
 {
+    if (failure != nullptr)
+        *failure = VerifyFailure::None;
+
     boost::system::error_code ec;
     const auto      size = fs::file_size(path, ec);
     if (ec) {
         error = "The downloaded file is missing.";
+        if (failure != nullptr)
+            *failure = VerifyFailure::Missing;
         return false;
     }
     if (m_handoff.size > 0 && static_cast<int64_t>(size) != m_handoff.size) {
         error = "The downloaded file is " + std::to_string(size) + " bytes, expected " +
                 std::to_string(m_handoff.size) + ".";
+        if (failure != nullptr)
+            *failure = VerifyFailure::SizeMismatch;
         return false;
     }
 
-    std::string expected = lower_ascii(m_handoff.digest);
+    std::string expected = boost::algorithm::to_lower_copy(m_handoff.digest, std::locale::classic());
     const std::string prefix = "sha256:";
     if (expected.compare(0, prefix.size(), prefix) == 0)
         expected = expected.substr(prefix.size());
     else if (expected.find(':') != std::string::npos) {
         error = "Unsupported checksum \"" + m_handoff.digest + "\".";
+        if (failure != nullptr)
+            *failure = VerifyFailure::BadDigest;
         return false;
     }
     if (expected.empty()) {
         error = "The update does not carry a checksum.";
+        if (failure != nullptr)
+            *failure = VerifyFailure::BadDigest;
         return false;
     }
 
     std::string actual;
-    if (!sha256_hex(path, actual, error))
+    if (!sha256_hex(path, actual, error)) {
+        if (failure != nullptr)
+            *failure = VerifyFailure::ReadError;
         return false;
+    }
     if (actual != expected) {
         error = "Checksum mismatch: the file is sha256:" + actual + ".";
+        if (failure != nullptr)
+            *failure = VerifyFailure::DigestMismatch;
         return false;
     }
     return true;
@@ -487,6 +497,22 @@ void log_dropped(const Slic3r::DownloadPrep& prep, LogFile& log)
 {
     for (const std::string& path : prep.dropped)
         log.write("dropped " + path);
+}
+
+// A file that cannot be read is not known to be wrong, so it is moved out of the way
+// rather than deleted: the next run fetches it again, and prepare_download_dir() sweeps
+// the copy.
+void move_unreadable_aside(const fs::path& artifact, LogFile& log)
+{
+    const fs::path aside(artifact.string() + ".unreadable");
+    boost::system::error_code ec;
+    fs::remove(aside, ec);
+    ec.clear();
+    fs::rename(artifact, aside, ec);
+    if (ec)
+        log.write("could not move the unreadable download aside: " + ec.message());
+    else
+        log.write("moved the unreadable download to " + aside.string());
 }
 
 } // namespace
@@ -501,10 +527,11 @@ void UpdateHelperFrame::fail(int code, const std::string& message)
     finish(code, wxString::FromUTF8(message), !silent());
 }
 
-bool UpdateHelperFrame::fetch_artifact(const fs::path& download_dir, const std::string& asset,
-                                       const fs::path& part, const fs::path& artifact)
+bool UpdateHelperFrame::fetch_artifact(const fs::path& download_dir, const fs::path& part,
+                                       const fs::path& artifact)
 {
-    const DownloadPrep prep = prepare_download_dir(download_dir.string(), asset, m_handoff.digest, m_handoff.size);
+    const DownloadPrep prep = prepare_download_dir(download_dir.string(), m_handoff.asset_name, m_handoff.digest,
+                                                   m_handoff.size);
     log_dropped(prep, m_log);
 
     boost::system::error_code ec;
@@ -518,7 +545,7 @@ bool UpdateHelperFrame::fetch_artifact(const fs::path& download_dir, const std::
     if (prep.complete) {
         // A previous run downloaded this build but did not install it: do not fetch
         // it a second time.
-        m_log.write("the download of " + asset + " is already complete");
+        m_log.write("the download of " + m_handoff.asset_name + " is already complete");
         post(Stage::Downloading, 100, "Downloading " + m_handoff.asset_name + "... done");
     } else {
         m_log.write("starting the download" + std::string(prep.resumable ? " (resuming)" : ""));
@@ -572,16 +599,42 @@ bool UpdateHelperFrame::fetch_artifact(const fs::path& download_dir, const std::
 
 bool UpdateHelperFrame::check_artifact(const fs::path& artifact)
 {
+    // Recorded before verifying, so verification can tell a file that is not there at all
+    // from one that vanished while it was being read.
+    boost::system::error_code ec;
+    const bool                existed = fs::is_regular_file(artifact, ec);
+
     m_log.write("verifying " + artifact.string());
-    std::string error;
-    if (verify_artifact(artifact, error))
+    std::string   error;
+    VerifyFailure failure = VerifyFailure::None;
+    if (verify_artifact(artifact, error, &failure))
         return true;
 
     m_log.write("verification failed: " + error);
+    const bool content_failure = failure == VerifyFailure::SizeMismatch || failure == VerifyFailure::DigestMismatch;
+    if (content_failure) {
+        // The bytes are wrong, so this file can never verify: drop it for the next run.
+        discard_download(updater_download_dir(), m_handoff.asset_name);
+        m_log.write("dropped the rejected download " + artifact.string());
+    } else if (failure == VerifyFailure::ReadError) {
+        // Unreadable says nothing about the bytes, so it is moved aside instead of dropped:
+        // the next run fetches it again rather than tripping over the same file for ever.
+        move_unreadable_aside(artifact, m_log);
+    } else if (failure == VerifyFailure::Missing && existed) {
+        m_log.write("the artifact disappeared while it was being verified");
+    }
+
     if (m_mode == Mode::InstallOnly) {
-        // Nothing complete to install at quit, and nothing failed: the next start
-        // fetches it again.
-        m_log.write("no complete download to install, leaving it to the next start");
+        if (content_failure) {
+            fail(1, error);
+            return false;
+        }
+        // Nothing complete to install, and nothing failed: the next start fetches it again.
+        // The application already closed for this update, so it is started again rather
+        // than left missing.
+        m_log.write("no complete download to install; starting the application again");
+        if (!relaunch_app(m_handoff))
+            m_log.write("could not start the application again");
         finish(0, "", false);
     } else {
         fail(1, error);
@@ -592,28 +645,25 @@ bool UpdateHelperFrame::check_artifact(const fs::path& artifact)
 void UpdateHelperFrame::run()
 {
     try {
-        // Every path comes from the handoff: the helper may resolve the cache
-        // directory differently than the application did.
-        std::string asset = fs::path(m_handoff.asset_name).filename().string();
-        if (asset.empty())
-            asset = "update.part";
-        const fs::path download_dir = fs::path(m_handoff.cache_dir) / "downloads";
-        const fs::path part         = download_dir / (asset + ".part");
-        const fs::path artifact     = download_dir / asset;
+        // The cache directory came from the handoff, so every path below lands where the
+        // application expects it.
+        const fs::path      download_dir(updater_download_dir());
+        const DownloadPaths paths = download_paths(download_dir.string(), m_handoff.asset_name);
+        const fs::path      part(paths.part);
+        const fs::path      artifact(paths.artifact);
 
         // Prefetch only puts the artifact on disk: the install is a separate
         // --install-only run, started when the application quits.
         if (m_mode == Mode::Prefetch) {
-            if (fetch_artifact(download_dir, asset, part, artifact) && check_artifact(artifact)) {
+            if (fetch_artifact(download_dir, part, artifact) && check_artifact(artifact)) {
+                // A failure left by an earlier run no longer applies: the download this
+                // start needed is in place.
+                Slic3r::remove_update_failure();
                 m_log.write("prefetch done, the install is left to the next run");
                 finish(0, "", false);
             }
             return;
         }
-
-        // Install-only starts when the application quits: the file is already there.
-        if (m_mode == Mode::InstallOnly && !check_artifact(artifact))
-            return;
 
         const WaitResult waited = wait_for_parent();
         if (waited == WaitResult::Cancelled) {
@@ -652,10 +702,14 @@ void UpdateHelperFrame::run()
         }
 
         // A manual update downloads here, once the lock has ruled out a second helper.
-        if (m_mode == Mode::Interactive && !fetch_artifact(download_dir, asset, part, artifact))
+        if (m_mode == Mode::Interactive && !fetch_artifact(download_dir, part, artifact))
             return;
 
-        boost::system::error_code ec;
+        // Install-only has nothing to fetch: the file a previous run left is what it
+        // installs, if it is still there. Checked after the parent is gone, so a run with
+        // nothing to install starts the application again only once it has exited.
+        if (m_mode == Mode::InstallOnly && !check_artifact(artifact))
+            return;
 
         // Held from here until the install returns: what is verified is what runs.
         ArtifactHold hold(artifact);
@@ -667,11 +721,19 @@ void UpdateHelperFrame::run()
 
         post(Stage::Verifying, 100, "Verifying the download...");
         m_log.write("verifying " + artifact.string());
-        std::string verify_error;
-        if (!verify_artifact(artifact, verify_error)) {
+        std::string   verify_error;
+        VerifyFailure verify_failure = VerifyFailure::None;
+        if (!verify_artifact(artifact, verify_error, &verify_failure)) {
             m_log.write("verification failed: " + verify_error);
             hold.close();
-            fs::remove(artifact, ec);
+            // Closed before the delete: Windows cannot remove a file this process holds open.
+            if (verify_failure == VerifyFailure::SizeMismatch || verify_failure == VerifyFailure::DigestMismatch) {
+                // Only wrong bytes are dropped. A read error says nothing about the file.
+                discard_download(download_dir.string(), m_handoff.asset_name);
+                m_log.write("dropped the rejected download " + artifact.string());
+            } else if (verify_failure == VerifyFailure::ReadError) {
+                move_unreadable_aside(artifact, m_log);
+            }
             fail(1, "The downloaded file is damaged.");
             return;
         }
@@ -679,6 +741,15 @@ void UpdateHelperFrame::run()
 
         ProgressSink sink;
         sink.report = [this](Stage stage, int percent, const std::string& message) {
+            if (stage == Stage::Failed) {
+                // The install stopped without failing: the Windows installer outlived its
+                // timeout and is still writing the tree. Nothing is recorded and nothing is
+                // started, so the run ends 0 with the message to the user.
+                m_unfinished_install = message;
+                m_log.write("install unfinished: " + message);
+                post(stage, percent, message);
+                return;
+            }
             m_log.write(std::string(stage_key(stage)) + " " + std::to_string(percent) + "% " + message);
             post(stage, percent, message);
         };
@@ -686,6 +757,11 @@ void UpdateHelperFrame::run()
 
         std::string install_error;
         if (!apply_update(m_handoff, artifact.string(), sink, install_error, m_mode != Mode::InstallOnly)) {
+            if (!m_unfinished_install.empty()) {
+                m_log.write("leaving the running installer to finish the update");
+                finish(0, wxString::FromUTF8(m_unfinished_install), !silent());
+                return;
+            }
             m_log.write("install failed: " + install_error);
             fail(1, "The update could not be installed: " + install_error);
             return;

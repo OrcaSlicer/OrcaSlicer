@@ -560,6 +560,20 @@ if not "%cache_args%" == "" echo Compiler cache: %cache_exe%
 set "SIG_FLAG="
 if defined ORCA_UPDATER_SIG_KEY set "SIG_FLAG=-DORCA_UPDATER_SIG_KEY=%ORCA_UPDATER_SIG_KEY%"
 
+REM The updater's signing values reach configure from the environment anyway,
+REM because version.inc lets each of them override the cache. Naming them here
+REM keeps the cache and the environment at the same value and says which ones a
+REM release build carries. A value with a space in it stays one argument.
+set "PIN_FLAGS="
+if defined ORCA_UPDATER_PUBLISHER set PIN_FLAGS=%PIN_FLAGS% "-DORCA_UPDATER_PUBLISHER=%ORCA_UPDATER_PUBLISHER%"
+if defined ORCA_UPDATER_TEAM_ID set PIN_FLAGS=%PIN_FLAGS% "-DORCA_UPDATER_TEAM_ID=%ORCA_UPDATER_TEAM_ID%"
+if defined ORCA_BUILD_TIMESTAMP set PIN_FLAGS=%PIN_FLAGS% "-DORCA_BUILD_TIMESTAMP=%ORCA_BUILD_TIMESTAMP%"
+
+REM A release build refuses to configure without the pin its platform needs, so
+REM this is what the release workflow sets. A developer build leaves it unset.
+set "RELEASE_FLAG="
+if defined ORCA_RELEASE_BUILD set "RELEASE_FLAG=-DORCA_RELEASE_BUILD=ON"
+
 set "TESTS_FLAG=-DBUILD_TESTS=OFF"
 if "%build_tests%" == "ON" set "TESTS_FLAG=-DBUILD_TESTS=ON"
 if "%run_tests%" == "ON" set "TESTS_FLAG=-DBUILD_TESTS=ON"
@@ -752,7 +766,7 @@ if "%build_slicer%" == "ON" (
     )
 
     if not "%no_configure%" == "ON" (
-        call :print_and_run cmake -B "%build_dir%" -G "%generator%" %gen_args% -DORCA_TOOLS=ON %SIG_FLAG% %TESTS_FLAG% %DEP_TREE_FLAG% -DCMAKE_BUILD_TYPE=%build_type% !slicer_args! %ORCA_SLICER_CMAKE_ARGS%
+        call :print_and_run cmake -B "%build_dir%" -G "%generator%" %gen_args% -DORCA_TOOLS=ON %SIG_FLAG% %PIN_FLAGS% %RELEASE_FLAG% %TESTS_FLAG% %DEP_TREE_FLAG% -DCMAKE_BUILD_TYPE=%build_type% !slicer_args! %ORCA_SLICER_CMAKE_ARGS%
         %error_check%
     )
 
@@ -1021,6 +1035,10 @@ REM get_str_len <string> -> length in %ret%
     echo    ORCA_DEPS_CMAKE_ARGS      Extra arguments for the deps configure
     echo    ORCA_SLICER_CMAKE_ARGS    Extra arguments for the slicer configure
     echo    ORCA_UPDATER_SIG_KEY      Update signing key baked into the slicer
+    echo    ORCA_UPDATER_PUBLISHER    Signer the updater requires of a download
+    echo    ORCA_UPDATER_TEAM_ID      Apple team id it requires on macOS
+    echo    ORCA_BUILD_TIMESTAMP      Build id, as CI stamps it
+    echo    ORCA_RELEASE_BUILD        Set to ON to refuse a build without those pins
     echo    git_commit_hash           Revision to stamp into the build, as CI does
     echo    NINJA_STATUS              Ninja progress format, if you want your own
     echo    debugscript               Set to ON to trace this script

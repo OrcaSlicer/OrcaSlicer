@@ -69,10 +69,18 @@ struct UpdateCandidate {
 // True when the candidate names an artifact the in-app updater can fetch and verify.
 bool can_install_in_app(const UpdateCandidate& candidate, InstallFlavour flavour);
 
+// The channel a build belongs to, from its version string, for a build installed outside
+// the application and therefore carrying no recorded channel: a "-dev" or unparseable
+// version is nightly, "-rc"/"-beta"/"-alpha" is a pre-release, anything else stable.
+UpdateChannel channel_of_version(const std::string& version);
+
 // releases_json is the array returned by /latest (GitHub releases shape).
 // running_version is SoftFever_VERSION; build_timestamp is SLIC3R_BUILD_TIMESTAMP
 // (empty on source builds). installed_artifact and installed_channel describe the
 // build that is running now (empty on the first run after this feature ships).
+// A switch to another channel is offered even for a lower version, except when the
+// current channel had to be inferred from running_version: then the candidate must
+// not sort below the running build.
 UpdateCandidate resolve_update(const std::string& releases_json,
                                UpdateChannel       channel,
                                const std::string&  installed_artifact,

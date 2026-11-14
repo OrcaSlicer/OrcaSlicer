@@ -7,9 +7,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <mutex>
-#include <stdio.h>
 #include <string>
 
 #include <boost/filesystem.hpp>

@@ -67,6 +67,9 @@ public:
 private:
     enum class WaitResult { Ready, Timeout, Cancelled };
     enum class LockResult { Acquired, Cancelled, Failed };
+    // Why verification failed. Only SizeMismatch and DigestMismatch say the bytes are wrong;
+    // a read error or an unsupported digest says nothing about the file.
+    enum class VerifyFailure { None, Missing, SizeMismatch, DigestMismatch, BadDigest, ReadError };
 
     void on_cancel(wxCommandEvent& event);
     void on_close(wxCloseEvent& event);
@@ -75,7 +78,7 @@ private:
 
     void run();                                  // worker thread
     // Fetches the artifact into `artifact` unless an earlier run already did. Does not verify it.
-    bool fetch_artifact(const boost::filesystem::path& download_dir, const std::string& asset,
+    bool fetch_artifact(const boost::filesystem::path& download_dir,
                         const boost::filesystem::path& part, const boost::filesystem::path& artifact);
     // Verifies the file this run or an earlier one fetched. Nothing to install is not a
     // failure at quit: the next start fetches it again.
@@ -85,7 +88,8 @@ private:
     WaitResult wait_for_parent();
     // Taken only after the parent is gone: until then it still holds the lock.
     LockResult take_install_lock(std::string& error);
-    bool verify_artifact(const boost::filesystem::path& path, std::string& error) const;
+    bool verify_artifact(const boost::filesystem::path& path, std::string& error,
+                         VerifyFailure* failure = nullptr) const;
 
     void post(Stage stage, int percent, const std::string& message);
     void show_progress(Stage stage, int percent, const wxString& message);
@@ -105,6 +109,9 @@ private:
     std::atomic<int>   m_exit_code{ 1 };
     // Worker thread only. Set once the parent is gone, so the application can be started again.
     bool               m_parent_gone = false;
+    // Worker thread only. Set by an install that stopped without failing: the Windows
+    // installer outlived its timeout and is still writing the tree.
+    std::string        m_unfinished_install;
     std::thread        m_worker;
 };
 

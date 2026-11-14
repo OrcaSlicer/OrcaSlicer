@@ -2,13 +2,12 @@
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-#include <cerrno>
 #include <cstring>
 #include <libslic3r/UpdateHandoff.hpp>
 #include <string>
-#include <system_error>
 
 #include <boost/filesystem.hpp>
+#include <boost/nowide/convert.hpp>
 
 #include "slic3r/UpdateHelper/InstallPlatform.hpp"
 
@@ -71,27 +70,6 @@ void remove_path_quietly(const std::string& path)
     }
 }
 
-#if defined(_WIN32)
-
-namespace {
-
-std::wstring widen_utf8(const std::string& text)
-{
-    if (text.empty())
-        return std::wstring();
-    const int needed = ::MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
-    if (needed <= 0)
-        return std::wstring();
-    std::wstring out(static_cast<size_t>(needed), L'\0');
-    ::MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, out.data(), needed);
-    out.resize(static_cast<size_t>(needed) - 1);
-    return out;
-}
-
-} // namespace
-
-#endif
-
 bool launch_detached(const std::string& exe_path, std::string& error)
 {
     if (exe_path.empty()) {
@@ -100,7 +78,7 @@ bool launch_detached(const std::string& exe_path, std::string& error)
     }
 
 #if defined(_WIN32)
-    const std::wstring exe = widen_utf8(exe_path);
+    const std::wstring exe = boost::nowide::widen(exe_path);
     if (exe.empty()) {
         error = "The program path is not valid.";
         return false;

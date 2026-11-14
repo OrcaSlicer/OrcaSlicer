@@ -86,8 +86,8 @@
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <vector>
+#include <initializer_list>
 #include <sstream>
-#include <wx/buffer.h>
 #include <wx/dcclient.h>
 #include <wx/chartype.h>
 #include <utility>
@@ -1130,14 +1130,8 @@ void GUI_App::post_init()
     }
 
     // OnExit() runs after the windows are gone, so the install on exit decides from what the
-    // close saw. Bound here, after the GL retry, so a postponed post_init does not bind twice.
-    mainframe->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& evt) {
-        if (this->plater_ != nullptr) {
-            m_closing_project_dirty = this->plater_->is_project_dirty();
-            m_closing_job_running   = this->plater_->is_background_process_slicing() || this->plater_->is_export_gcode_scheduled();
-        }
-        evt.Skip();
-    });
+    // close saw. Bound here after the GL retry, and again for a frame recreate_GUI() builds.
+    bind_mainframe_close_handler();
 
     // Restore a backup and consume installed.json before anything else: the G-code viewer
     // never runs the block below, so it would otherwise never finish an interrupted install.
@@ -1168,9 +1162,11 @@ void GUI_App::post_init()
                 std::string network_ver = Slic3r::NetworkAgent::get_version();
                 bool        sys_preset  = app_config->get("sync_system_preset") == "true";
                 this->preset_updater->sync(http_url, language, network_ver, sys_preset ? preset_bundle : nullptr);
-            }
 
-            this->check_new_version_sf();
+                // The check starts a background download of the new build, so it stays offline
+                // in stealth mode with the rest. Help > Check for Updates still works.
+                this->check_new_version_sf();
+            }
             if (!cw_showed)
                 this->check_legacy_user_filament_presets(false);
             const auto cloud_provider = get_printer_cloud_provider();
@@ -1947,6 +1943,23 @@ namespace {
 
     // Page the update dialog opens for the Flatpak build.
     constexpr const char* flathub_app_url = "https://flathub.org/apps/com.orcaslicer.OrcaSlicer";
+
+    // Where an installation that cannot update in place gets the release: the Microsoft Store
+    // for the MSIX package, Flathub for the Flatpak, and the asset itself for a download-only
+    // install. An install without a verifiable asset falls back to the release page rather
+    // than pointing at a URL the helper would refuse.
+    void open_update_page(const UpdateCandidate& candidate)
+    {
+        const InstallFlavour flavour = current_install_flavour();
+        if (is_running_in_msix())
+            open_ms_store_product_page();
+        else if (flavour == InstallFlavour::Flatpak)
+            wxLaunchDefaultBrowser(from_u8(flathub_app_url));
+        else if (is_download_only(flavour) && is_release_download_url(candidate.asset.url, candidate.asset.name))
+            wxLaunchDefaultBrowser(from_u8(candidate.asset.url));
+        else
+            wxLaunchDefaultBrowser(from_u8(candidate.release_url));
+    }
 
     // The Orca agent's health check reports into GUI_App from a worker thread, and the agent can
     // outlive GUI_App's use of it (the plugin service keeps a reference), so stop the check before
@@ -3305,6 +3318,10 @@ bool GUI_App::on_init_inner()
     // Stop the Orca Cloud health check as OnExit() does, so no request is in flight while exit() tears down.
     wxGetApp().Bind(wxEVT_END_SESSION, [this](wxCloseEvent &e) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "received wxEVT_END_SESSION";
+        // OnExit() never runs on this path, so a verified update is installed here instead of
+        // being dropped; the helper only installs after this process has gone. A launch that
+        // already happened is not repeated.
+        install_update_on_exit();
         stop_sync_user_preset();
         stop_orca_health_check(m_agent);
         // Before the plugin manager and network module go away.
@@ -3519,34 +3536,47 @@ bool GUI_App::on_init_inner()
             if (this->plater_ == nullptr || !m_update_candidate.available)
                 return;
 
-            const bool by_user = evt.GetInt() != 0;
+            UpdateRequest request;
+            request.available      = m_update_candidate.available;
+            request.skipped        = update_is_skipped(m_update_candidate, app_config->get("skip_version"),
+                                                       app_config->skip_artifact());
+            request.user_initiated = evt.GetInt() != 0;
+            request.automatic      = !request.user_initiated;
 
-            // A user-initiated check shows the dialog even for a skipped version; the startup
-            // check stays quiet then.
-            if (!by_user && update_is_skipped(m_update_candidate, app_config->get("skip_version"), app_config->skip_artifact()))
+            switch (update_action(request)) {
+            case UpdateAction::None:
+                // A user-initiated check shows the dialog even for a skipped version; the
+                // startup check stays quiet then. The candidate is dropped: the install at
+                // quit must not take it, and an artifact prefetched before the skip may
+                // still be in the cache.
+                BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": nothing to do";
+                m_update_candidate = UpdateCandidate();
                 return;
-
-            // The automatic check never shows a dialog: it downloads quietly and installs on quit.
-            if (!by_user) {
-                UpdateRequest request;
-                request.available      = m_update_candidate.available;
-                request.skipped        = false;
-                request.user_initiated = false;
-                request.automatic      = true;
-
-                switch (update_action(request)) {
-                case UpdateAction::Prefetch:
-                    BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": downloading in the background";
-                    prefetch_update();
-                    break;
-                case UpdateAction::InstallNow:
-                    BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": installing now";
-                    break;
-                case UpdateAction::None:
-                    BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": nothing to do";
-                    break;
+            case UpdateAction::Prefetch:
+                // The automatic check never shows a dialog: it downloads quietly and installs
+                // when the application quits.
+                BOOST_LOG_TRIVIAL(info) << "Update " << m_update_candidate.version_label << ": downloading in the background";
+                // prefetch_update() only logs for a flavour that cannot install in place, so the
+                // user would never hear of the release. Point them at it instead.
+                if (!can_install_in_app(m_update_candidate, current_install_flavour())) {
+                    if (NotificationManager* notifications = notification_manager()) {
+                        const UpdateCandidate candidate = m_update_candidate;
+                        notifications->push_notification(
+                            NotificationType::CustomNotification,
+                            NotificationManager::NotificationLevel::ImportantNotificationLevel,
+                            _u8L("A new version of OrcaSlicer is available."),
+                            _u8L("Open the download page"),
+                            [candidate](wxEvtHandler*) {
+                                open_update_page(candidate);
+                                return true;
+                            });
+                    }
+                    return;
                 }
+                prefetch_update();
                 return;
+            case UpdateAction::InstallNow:
+                break;
             }
 
             // Destroyed before the action runs: the in-app update closes the main frame, which
@@ -3569,27 +3599,22 @@ bool GUI_App::on_init_inner()
             }
             switch (answer) {
             case wxID_YES: {
-                // Store builds get updates from the Microsoft Store and Flatpak builds from Flathub.
-                // Download-only installs open the asset itself. An install without a verifiable
-                // asset falls back to the release page instead of preparing an empty handoff.
-                const InstallFlavour flavour = current_install_flavour();
-                if (can_install_in_app(m_update_candidate, flavour))
+                // Store builds get updates from the Microsoft Store and Flatpak builds from
+                // Flathub. Download-only installs open the asset itself.
+                if (can_install_in_app(m_update_candidate, current_install_flavour()))
                     start_in_app_update();
-                else if (is_running_in_msix())
-                    open_ms_store_product_page();
-                else if (flavour == InstallFlavour::Flatpak)
-                    wxLaunchDefaultBrowser(from_u8(flathub_app_url));
-                else if (is_download_only(flavour) &&
-                         is_release_download_url(m_update_candidate.asset.url, m_update_candidate.asset.name))
-                    wxLaunchDefaultBrowser(from_u8(m_update_candidate.asset.url));
                 else
-                    wxLaunchDefaultBrowser(from_u8(m_update_candidate.release_url));
+                    open_update_page(m_update_candidate);
+                // The page replaces the install: nothing may remain armed for the quit path.
+                m_update_candidate = UpdateCandidate();
                 break;
             }
+            // A declined or dismissed dialog disarms the candidate: install_update_on_exit()
+            // would otherwise install what the user just refused.
             case wxID_NO:
-                break;
             default:
-                ;
+                m_update_candidate = UpdateCandidate();
+                break;
             }
             });
 
@@ -5093,6 +5118,8 @@ void GUI_App::recreate_GUI(const wxString &msg_name)
 
     switch_window_pools();
     mainframe = new MainFrame();
+    // The rebuilt frame needs the close handler too, or the snapshot below stays stale.
+    bind_mainframe_close_handler();
     if (is_editor())
         // hide settings tabs after first Layout
         mainframe->select_tab(TAB_ID_PREPARE);
@@ -6600,9 +6627,7 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
     const UpdateChannel  channel            = update_channel_from_key(app_config->update_channel());
     const std::string    install_root       = app_install_root();
     const std::string    installed_artifact = app_config->installed_artifact(install_root);
-    const std::string    installed_channel  = app_config->installed_channel();
-    const std::string    skip_version       = app_config->get("skip_version");
-    const std::string    skip_artifact      = app_config->skip_artifact();
+    const std::string    installed_channel  = app_config->installed_channel(install_root);
     const InstallFlavour flavour            = current_install_flavour();
 
     auto http = Http::get(version_check_url);
@@ -6617,13 +6642,20 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
           BOOST_LOG_TRIVIAL(error) << format("Error getting: `%1%`: HTTP %2%, %3%", "check_new_version_sf", http_status,
                                              error);
         })
-        .on_complete([this, by_user, channel, installed_artifact, installed_channel, skip_version, skip_artifact,
-                      flavour](std::string body, unsigned http_status) {
-          if (http_status != 200)
+        .on_complete([this, by_user, channel, installed_artifact, installed_channel, flavour](std::string body, unsigned http_status) {
+          // Every return below offers no update. The candidate is cleared on the UI thread so
+          // that a withdrawn or unreachable release is not installed by the quit path.
+          auto drop_candidate = [this] {
+            GUI::wxGetApp().CallAfter([this] { m_update_candidate = UpdateCandidate(); });
+          };
+          if (http_status != 200) {
+            drop_candidate();
             return;
+          }
           try {
             boost::trim(body);
             if (body.empty()) {
+                drop_candidate();
                 if (by_user != 0)
                     this->no_new_version();
                 return;
@@ -6636,27 +6668,27 @@ void GUI_App::check_new_version_sf(bool show_tips, int by_user)
 
             if (!candidate.available) {
                 BOOST_LOG_TRIVIAL(info) << "No update offered: " << candidate.reason;
+                drop_candidate();
                 if (by_user != 0)
                     this->no_new_version();
                 return;
             }
 
-            if (update_is_skipped(candidate, skip_version, skip_artifact) && by_user == 0) {
-                BOOST_LOG_TRIVIAL(info) << "Update " << candidate.version_label << " was skipped by the user";
-                return;
-            }
-
             GUI::wxGetApp().CallAfter([this, by_user, candidate] {
                 // The channel may have changed while the request was in flight.
-                if (update_channel_from_key(this->app_config->update_channel()) != candidate.channel)
+                if (update_channel_from_key(this->app_config->update_channel()) != candidate.channel) {
+                    m_update_candidate = UpdateCandidate();
                     return;
+                }
                 m_update_candidate = candidate;
                 wxCommandEvent* evt = new wxCommandEvent(EVT_SLIC3R_VERSION_ONLINE);
                 evt->SetString(from_u8(candidate.version_label));
                 evt->SetInt(by_user);
                 QueueEvent(evt);
             });
-          } catch (...) {}
+          } catch (...) {
+            drop_candidate();
+          }
         });
 
     http.perform();
@@ -6805,44 +6837,54 @@ int64_t current_process_id()
 #endif
 }
 
-// Where the helper ships, in lookup order: the bare executable of a macOS bundle, then
-// the updater folder of a packaged install, then beside the executable (a development
-// build).
-std::vector<std::string> updater_helper_candidates()
+// Where the helper ships, in lookup order relative to `exe_dir`: the bare executable a
+// macOS bundle carries, then the updater folder of a packaged install, then beside the
+// executable (a development build).
+std::vector<fs::path> updater_helper_candidates(const fs::path& exe_dir)
 {
-    std::vector<std::string> candidates;
-    const std::string        exe_dir = fs::path(app_exe_path()).parent_path().string();
+    std::vector<fs::path> candidates;
 #ifdef __APPLE__
     // Contents/MacOS holds the bare helper beside the main binary. The .app forms come
     // after it, so a wrapped bundle still works.
-    const std::string root = app_install_root();
-    const std::string shared_support =
-        root.empty() ? std::string() : (fs::path(root) / "Contents/SharedSupport").string();
-    if (!exe_dir.empty())
-        candidates.push_back((fs::path(exe_dir) / updater_helper_bare_name).string());
-    if (!shared_support.empty())
-        candidates.push_back((fs::path(shared_support) / updater_helper_bare_name).string());
-    if (!exe_dir.empty())
-        candidates.push_back((fs::path(exe_dir) / updater_helper_name).string());
-    if (!shared_support.empty())
-        candidates.push_back((fs::path(shared_support) / updater_helper_name).string());
+    const fs::path shared_support = exe_dir.parent_path() / "SharedSupport";
+    candidates.push_back(exe_dir / updater_helper_bare_name);
+    candidates.push_back(shared_support / updater_helper_bare_name);
+    // The .app directory first: copied whole by extract_updater_helper(), it keeps the
+    // libraries it carries. The inner executable is the copy already extracted to the cache.
+    candidates.push_back(exe_dir / updater_helper_name);
+    candidates.push_back(exe_dir / updater_helper_name / "Contents/MacOS" / updater_helper_bare_name);
+    candidates.push_back(shared_support / updater_helper_name);
 #else
-    if (!exe_dir.empty()) {
-        candidates.push_back((fs::path(exe_dir) / "updater" / updater_helper_name).string());
-        candidates.push_back((fs::path(exe_dir) / updater_helper_name).string());
-    }
+    candidates.push_back(exe_dir / "updater" / updater_helper_name);
+    candidates.push_back(exe_dir / updater_helper_name);
 #endif
     return candidates;
+}
+
+// The copy extract_updater_helper() left in the cache, if any. Preferred at exit, because a
+// prefetch helper may still run from it and Windows cannot replace a running binary.
+std::string extracted_updater_helper()
+{
+    for (const fs::path& candidate : updater_helper_candidates(fs::path(updater_helper_dir()))) {
+        boost::system::error_code ec;
+        if (fs::is_regular_file(candidate, ec))
+            return candidate.string();
+    }
+    return {};
 }
 
 // Copies the helper into the updater cache so it outlives the application, and returns the
 // path to launch. Empty when no helper was found or the copy failed.
 std::string extract_updater_helper()
 {
-    std::string source;
-    for (const std::string& candidate : updater_helper_candidates()) {
+    const fs::path exe_dir = fs::path(app_exe_path()).parent_path();
+    if (exe_dir.empty())
+        return {};
+
+    fs::path source;
+    for (const fs::path& candidate : updater_helper_candidates(exe_dir)) {
         boost::system::error_code ec;
-        if (fs::exists(fs::path(candidate), ec)) {
+        if (fs::exists(candidate, ec)) {
             source = candidate;
             break;
         }
@@ -6856,12 +6898,28 @@ std::string extract_updater_helper()
 
         // A packaged install ships the helper in an `updater/` folder that also carries
         // the libraries it needs, so the folder is copied, not just the binary.
-        const fs::path source_path(source);
-        const bool     ships_in_folder = source_path.parent_path().filename() == "updater";
-        const fs::path source_tree     = ships_in_folder ? source_path.parent_path() : source_path;
-        const fs::path target         = helper_dir / source_tree.filename();
-        if (fs::exists(target))
-            fs::remove_all(target);
+        const bool     ships_in_folder = source.parent_path().filename() == "updater";
+        const fs::path source_tree     = ships_in_folder ? source.parent_path() : source;
+        const fs::path target          = helper_dir / source_tree.filename();
+        if (fs::exists(target)) {
+            boost::system::error_code remove_ec;
+            fs::remove_all(target, remove_ec);
+            if (remove_ec) {
+                // Usually a prefetch helper still running from the copy, or a root-owned one an
+                // elevated install left behind. It is the same build with the same pins, so
+                // reuse it instead of reporting the updater as missing.
+                const std::string existing = extracted_updater_helper();
+                if (!existing.empty()) {
+                    BOOST_LOG_TRIVIAL(warning) << "Could not replace the updater helper at " << target.string() << ": "
+                                               << remove_ec.message() << "; using the copy already extracted at "
+                                               << existing;
+                    return existing;
+                }
+                BOOST_LOG_TRIVIAL(error) << "Could not replace the updater helper at " << target.string() << ": "
+                                         << remove_ec.message();
+                return {};
+            }
+        }
         fs::copy(source_tree, target, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
 
 #ifdef _WIN32
@@ -6869,7 +6927,6 @@ std::string extract_updater_helper()
         // executable. Copy the DLLs too, or the helper cannot start once the install
         // tree is renamed. Nothing to do when the helper already sits beside the exe.
         if (ships_in_folder) {
-            const fs::path           exe_dir = fs::path(app_exe_path()).parent_path();
             boost::system::error_code iter_ec;
             for (fs::directory_iterator it(exe_dir, iter_ec), end; !iter_ec && it != end; it.increment(iter_ec)) {
                 const fs::path file = it->path();
@@ -6889,7 +6946,7 @@ std::string extract_updater_helper()
 
         fs::path binary = target;
         if (ships_in_folder)
-            binary /= source_path.filename();
+            binary /= source.filename();
 #ifdef __APPLE__
         if (target.extension() == ".app")
             binary = target / "Contents/MacOS" / "OrcaSlicerUpdater";
@@ -6928,26 +6985,24 @@ UpdateHandoff make_update_handoff(const UpdateCandidate& candidate)
     return handoff;
 }
 
-// The copy extract_updater_helper() left in the cache, if any. Preferred at exit, because a
-// prefetch helper may still run from it and Windows cannot replace a running binary.
-std::string extracted_updater_helper()
+// Starts the helper with the handoff and the mode flags it was asked for, from the helper's
+// own folder: it outlives this process and must not keep the log folder as its working
+// directory. False when wx could not start it.
+bool launch_updater_helper(const std::string& helper, std::initializer_list<const wchar_t*> flags)
 {
-    const fs::path dir(updater_helper_dir());
-    std::vector<fs::path> candidates;
-#if defined __APPLE__
-    candidates.push_back(dir / updater_helper_name / "Contents/MacOS" / updater_helper_bare_name);
-    candidates.push_back(dir / updater_helper_bare_name);
-    candidates.push_back(dir / updater_helper_name);
-#else
-    candidates.push_back(dir / "updater" / updater_helper_name);
-    candidates.push_back(dir / updater_helper_name);
-#endif
-    for (const fs::path& candidate : candidates) {
-        boost::system::error_code ec;
-        if (fs::is_regular_file(candidate, ec))
-            return candidate.string();
-    }
-    return {};
+    wxExecuteEnv exec_env;
+    exec_env.cwd = from_u8(updater_helper_dir());
+
+    const wxString              helper_path  = from_u8(helper);
+    const wxString              handoff_path = from_u8(updater_handoff_path());
+    std::vector<const wchar_t*> argv;
+    argv.push_back(helper_path.wc_str());
+    argv.push_back(L"--handoff");
+    argv.push_back(handoff_path.wc_str());
+    argv.insert(argv.end(), flags.begin(), flags.end());
+    argv.push_back(nullptr);
+
+    return wxExecute(argv.data(), wxEXEC_ASYNC, nullptr, &exec_env) > 0;
 }
 
 // True when the helper's verified download of this candidate is still in the cache.
@@ -6955,7 +7010,7 @@ bool update_download_ready(const UpdateCandidate& candidate)
 {
     if (candidate.asset.size <= 0)
         return false;
-    const fs::path artifact = fs::path(updater_download_dir()) / fs::path(candidate.asset.name).filename();
+    const fs::path artifact(download_paths(updater_download_dir(), candidate.asset.name).artifact);
     boost::system::error_code ec;
     if (!fs::is_regular_file(artifact, ec))
         return false;
@@ -7002,6 +7057,25 @@ void GUI_App::set_skip_version(bool skip)
     }
     app_config->set("skip_version", skip_version);
     app_config->set_skip_artifact(skip_artifact);
+
+    // Read the skip values before this: for a nightly the skip names the candidate's digest.
+    // Nothing may install on a quit what the user just asked not to be offered.
+    if (skip)
+        m_update_candidate = UpdateCandidate();
+}
+
+void GUI_App::bind_mainframe_close_handler()
+{
+    if (mainframe == nullptr)
+        return;
+    mainframe->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& evt) {
+        if (this->plater_ != nullptr) {
+            m_closing_project_dirty = this->plater_->is_project_dirty();
+            m_closing_job_running   = this->plater_->is_background_process_slicing() ||
+                                      this->plater_->is_export_gcode_scheduled();
+        }
+        evt.Skip();
+    });
 }
 
 void GUI_App::start_in_app_update()
@@ -7014,6 +7088,28 @@ void GUI_App::start_in_app_update()
     }
 
     set_updater_cache_dir(update_cache_dir());
+    set_updater_install_root(app_install_root());
+
+    // The background prefetch may still have the .part open for append: a second helper would
+    // resume it, fail the digest and report the update as damaged. On Windows
+    // extract_updater_helper() would also delete the folder that prefetch runs from.
+    // A .part whose size already matches the asset is complete, not still downloading: the
+    // helper's next step renames it into place, and a manual install that waits for it would
+    // only ever be told to try again. A .part no prefetch of this run wrote is a leftover: the
+    // helper resumes it, so it is no reason to refuse.
+    if (!update_download_ready(m_update_candidate) && m_prefetching_artifact == m_update_candidate.identity()) {
+        const fs::path part(download_paths(updater_download_dir(), m_update_candidate.asset.name).part);
+        boost::system::error_code part_ec;
+        const auto part_size = fs::file_size(part, part_ec);
+        const int64_t expected = m_update_candidate.asset.size;
+        const bool still_downloading = !part_ec && (expected <= 0 || static_cast<int64_t>(part_size) < expected);
+        if (still_downloading) {
+            MessageDialog dlg(this->mainframe, _L("The update is still downloading. Try again in a moment."),
+                              _L("Update"), wxOK | wxICON_INFORMATION);
+            dlg.ShowModal();
+            return;
+        }
+    }
 
     // Refuse while this app has a local job: an install closes the app and would lose it.
     if (this->plater_ != nullptr && (this->plater_->is_background_process_slicing() ||
@@ -7055,20 +7151,19 @@ void GUI_App::start_in_app_update()
 
     // Close the app before the helper starts: the running binary cannot be replaced.
     // Close(false) keeps the normal prompts (save project, empty the print queue).
+    // OnExit() runs inside Close() and would otherwise start a second, silent helper on the
+    // same install, so this is set first and cleared if the close is vetoed: the app then
+    // keeps running, and a later quit must still be able to install.
+    m_update_install_started = true;
     if (!mainframe || !mainframe->Close(false)) {
+        m_update_install_started = false;
         release_install_lock(lock_path);
         remove_handoff();
         return;
     }
 
     // The helper outlives this process and must not keep the log folder as its working directory.
-    wxExecuteEnv exec_env;
-    exec_env.cwd = from_u8(updater_helper_dir());
-
-    const wxWCharBuffer helper_arg  = from_u8(helper).wc_str();
-    const wxWCharBuffer handoff_arg = from_u8(updater_handoff_path()).wc_str();
-    const wchar_t*      argv[]      = {helper_arg.data(), L"--handoff", handoff_arg.data(), nullptr};
-    if (wxExecute(argv, wxEXEC_ASYNC, nullptr, &exec_env) <= 0) {
+    if (!launch_updater_helper(helper, {})) {
         release_install_lock(lock_path);
         remove_handoff();
         MessageDialog dlg(nullptr, _L("Could not start the updater."), _L("Update"), wxOK | wxICON_ERROR);
@@ -7085,6 +7180,7 @@ void GUI_App::prefetch_update()
     }
 
     set_updater_cache_dir(update_cache_dir());
+    set_updater_install_root(app_install_root());
 
     // A second check before the install finds the same artifact; it needs no second download.
     const std::string artifact = m_update_candidate.identity();
@@ -7104,16 +7200,8 @@ void GUI_App::prefetch_update()
         return;
     }
 
-    // The helper outlives this process and must not keep the log folder as its working directory.
-    wxExecuteEnv exec_env;
-    exec_env.cwd = from_u8(updater_helper_dir());
-
-    const wxString helper_path  = from_u8(helper);
-    const wxString handoff_path = from_u8(updater_handoff_path());
-    const wchar_t* argv[]       = {helper_path.wc_str(), L"--handoff", handoff_path.wc_str(), L"--silent", nullptr};
-
     m_prefetching_artifact = artifact;
-    if (wxExecute(argv, wxEXEC_ASYNC, nullptr, &exec_env) <= 0) {
+    if (!launch_updater_helper(helper, {L"--silent"})) {
         m_prefetching_artifact.clear();
         remove_handoff();
         BOOST_LOG_TRIVIAL(warning) << "Could not start the background download of " << m_update_candidate.asset.name;
@@ -7124,7 +7212,19 @@ void GUI_App::prefetch_update()
 
 void GUI_App::install_update_on_exit()
 {
+    // A helper already handed this install; starting another one races it for the lock.
+    if (m_update_install_started)
+        return;
+
     if (!m_update_candidate.available)
+        return;
+
+    // A skipped candidate, or one from a channel the user has left, is never installed on a
+    // quit: the check stores the candidate before the decision, and an artifact prefetched
+    // before the skip can still be in the cache.
+    if (update_is_skipped(m_update_candidate, app_config->get("skip_version"), app_config->skip_artifact()))
+        return;
+    if (update_channel_from_key(app_config->update_channel()) != m_update_candidate.channel)
         return;
 
     if (!can_install_in_app(m_update_candidate, current_install_flavour())) {
@@ -7133,14 +7233,16 @@ void GUI_App::install_update_on_exit()
     }
 
     set_updater_cache_dir(update_cache_dir());
+    set_updater_install_root(app_install_root());
 
-    if (!update_download_ready(m_update_candidate)) {
+    const bool download_ready = update_download_ready(m_update_candidate);
+    if (!download_ready) {
         BOOST_LOG_TRIVIAL(info) << "Not installing the update on exit: no verified download of " << m_update_candidate.asset.name;
         return;
     }
 
     // The close event recorded whether a project or a job was at risk; the window is gone here.
-    if (!update_ready_to_install(true, m_closing_project_dirty, m_closing_job_running)) {
+    if (!update_ready_to_install(download_ready, m_closing_project_dirty, m_closing_job_running)) {
         BOOST_LOG_TRIVIAL(info) << "Update deferred to a later quit: project dirty " << m_closing_project_dirty << ", job running "
                                 << m_closing_job_running;
         return;
@@ -7162,23 +7264,20 @@ void GUI_App::install_update_on_exit()
         return;
     }
 
-    wxExecuteEnv exec_env;
-    exec_env.cwd = from_u8(updater_helper_dir());
-
-    const wxString helper_path  = from_u8(helper);
-    const wxString handoff_path = from_u8(updater_handoff_path());
-    const wchar_t* argv[]       = {helper_path.wc_str(), L"--handoff", handoff_path.wc_str(), L"--install-only", L"--silent", nullptr};
-    if (wxExecute(argv, wxEXEC_ASYNC, nullptr, &exec_env) <= 0) {
+    if (!launch_updater_helper(helper, {L"--install-only", L"--silent"})) {
+        m_update_install_started = false; // nothing started, a later quit may try again
         remove_handoff();
         BOOST_LOG_TRIVIAL(warning) << "Could not start the updater on exit";
         return;
     }
+    m_update_install_started = true;
     BOOST_LOG_TRIVIAL(info) << "Started the updater on exit for " << m_update_candidate.version_label;
 }
 
 void GUI_App::finish_pending_update()
 {
     set_updater_cache_dir(update_cache_dir());
+    set_updater_install_root(app_install_root());
     app_config->migrate_installed_artifact(app_install_root());
 
     // The record is shared by every copy of the app in this cache. Only the copy it names
@@ -7200,9 +7299,10 @@ void GUI_App::finish_pending_update()
 
     PendingInstall pending;
     if (read_pending_install(pending)) {
-        // The record is the only note of where the previous build or the user's data
-        // went, so it is deleted only once nothing is left to recover. A failed
-        // restore keeps it for the next start to try again.
+        // The record is the only note of where the previous build went, so it is deleted only
+        // once nothing is left to recover. Unfinished work is a failed restore, or a backup
+        // that may still be the only good copy: a leftover backup that cannot be deleted is
+        // not, and retrying it on every start would warn forever.
         bool settled = true;
 
         if (!pending.backup.empty()) {
@@ -7218,18 +7318,23 @@ void GUI_App::finish_pending_update()
                 boost::system::error_code rename_ec;
                 fs::rename(fs::path(pending.backup), fs::path(pending.target), rename_ec);
                 if (rename_ec) {
-                    BOOST_LOG_TRIVIAL(error) << "Could not restore the previous build from " << pending.backup << ": "
-                                             << rename_ec.message() << "; keeping the pending update record";
+                    BOOST_LOG_TRIVIAL(error) << "Could not restore the previous build from " << pending.backup << " to "
+                                             << pending.target << ": " << rename_ec.message()
+                                             << "; the backup stays on disk and the pending update record is kept";
                     settled = false;
                 } else {
                     BOOST_LOG_TRIVIAL(warning) << "Restored the previous build from " << pending.backup;
                 }
             } else if (target_exists && backup_exists && new_build_in_place) {
+                // The new build is in place and answers for the install; the backup is only
+                // leftover. A root-owned one an elevated install left behind can never be
+                // deleted by this user, so log it and drop the record instead of retrying a
+                // removal that will fail on every start.
                 boost::system::error_code ec;
                 fs::remove_all(fs::path(pending.backup), ec);
                 if (ec)
                     BOOST_LOG_TRIVIAL(warning) << "Could not delete the previous build at " << pending.backup << ": "
-                                               << ec.message();
+                                               << ec.message() << "; it stays on disk";
             } else if (target_exists && backup_exists) {
                 // Started from a copy elsewhere, with no sign the new build is in place: the
                 // backup may still be the only good copy, so it stays.

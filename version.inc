@@ -16,27 +16,49 @@ set(ORCA_VERSION_PATCH ${CMAKE_MATCH_3})
 
 set(SLIC3R_VERSION "02.08.01.55")
 
-if (NOT DEFINED ORCA_UPDATER_SIG_KEY)
-    set(ORCA_UPDATER_SIG_KEY "" CACHE STRING "Base64url encoded updater signature key")
-endif()
+# The updater's signing values. The helper refuses an artifact that is not signed by
+# the publisher or team it was built with, and accepts any trusted signer when that
+# value is empty with a warning in the log, which is what a local or unsigned artifact
+# build wants.
+#
+# The environment always wins, empty included. The cache keeps a value between
+# configures, so a tree that is rebuilt after a publisher, team id or timestamp was
+# rotated or removed would otherwise bake in the old one and keep accepting it.
+macro(orca_signing_pin var description)
+    set(${var} "${${var}}" CACHE STRING "${description}")
+    if (DEFINED ENV{${var}})
+        set(${var} "$ENV{${var}}" CACHE STRING "${description}" FORCE)
+    endif ()
+endmacro()
 
-if (NOT DEFINED ORCA_BUILD_TIMESTAMP)
-    set(ORCA_BUILD_TIMESTAMP "" CACHE STRING "Build timestamp (UTC ISO-8601) baked into the binary as a build id")
-endif()
+orca_signing_pin(ORCA_UPDATER_SIG_KEY "Base64url encoded updater signature key")
+orca_signing_pin(ORCA_BUILD_TIMESTAMP "Build timestamp (UTC ISO-8601) baked into the binary as a build id")
+orca_signing_pin(ORCA_UPDATER_PUBLISHER "Expected Authenticode signer display name of update artifacts")
+orca_signing_pin(ORCA_UPDATER_TEAM_ID "Expected Apple Developer Team ID of macOS update artifacts")
 
-# The publisher a downloaded update must be signed by. The helper refuses an artifact
-# signed by anyone else, so a release build has to set these. Empty disables the check
-# with a warning in the log, which is what a local or CI artifact build wants.
-if (NOT DEFINED ORCA_UPDATER_PUBLISHER)
-    set(ORCA_UPDATER_PUBLISHER "" CACHE STRING "Expected Authenticode signer display name of update artifacts")
-endif()
-if (NOT ORCA_UPDATER_PUBLISHER AND DEFINED ENV{ORCA_UPDATER_PUBLISHER})
-    set(ORCA_UPDATER_PUBLISHER "$ENV{ORCA_UPDATER_PUBLISHER}")
-endif()
+# A build that ships installers must carry the pins its platform needs: an empty pin
+# makes the helper accept an update signed by anyone the OS trusts, and that cannot be
+# detected after the fact, because the empty pin is what the binary carries. Release
+# and nightly builds configure with this on; a local or PR build leaves it off.
+option(ORCA_RELEASE_BUILD "Refuse to configure a release without the updater signature pins it needs" OFF)
+if (ORCA_RELEASE_BUILD)
+    if (WIN32 AND NOT ORCA_UPDATER_PUBLISHER)
+        message(FATAL_ERROR "ORCA_RELEASE_BUILD needs ORCA_UPDATER_PUBLISHER on Windows. "
+                            "Without it the updater helper accepts a download signed by any trusted signer.")
+    endif ()
+    if (APPLE AND NOT ORCA_UPDATER_TEAM_ID)
+        message(FATAL_ERROR "ORCA_RELEASE_BUILD needs ORCA_UPDATER_TEAM_ID on macOS. "
+                            "Without it the updater helper accepts a download signed by any trusted signer.")
+    endif ()
+endif ()
 
-if (NOT DEFINED ORCA_UPDATER_TEAM_ID)
-    set(ORCA_UPDATER_TEAM_ID "" CACHE STRING "Expected Apple Developer Team ID of macOS update artifacts")
-endif()
-if (NOT ORCA_UPDATER_TEAM_ID AND DEFINED ENV{ORCA_UPDATER_TEAM_ID})
-    set(ORCA_UPDATER_TEAM_ID "$ENV{ORCA_UPDATER_TEAM_ID}")
-endif()
+# What the updater helper in this tree was built to accept. build_release_macos.sh
+# compares the file before it copies the helper into a bundle, so a tree configured
+# with one set of pins never ships a bundle that was built for another.
+if (WIN32 OR APPLE)
+    file(WRITE "${CMAKE_BINARY_DIR}/updater-signing.txt"
+         "publisher=${ORCA_UPDATER_PUBLISHER}\n"
+         "team_id=${ORCA_UPDATER_TEAM_ID}\n"
+         "sig_key=${ORCA_UPDATER_SIG_KEY}\n"
+         "timestamp=${ORCA_BUILD_TIMESTAMP}\n")
+endif ()

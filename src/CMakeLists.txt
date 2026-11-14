@@ -274,7 +274,9 @@ if (SLIC3R_GUI AND (WIN32 OR APPLE))
 
     # The publisher the downloaded artifact must be signed by: the Authenticode signer's
     # display name on Windows, the Apple Developer Team ID on macOS. Both empty disable
-    # the check with a warning, which is what a local build wants.
+    # the check with a warning, which is what a local build wants; version.inc refuses
+    # to configure with ORCA_RELEASE_BUILD=ON and an empty pin for this platform, so a
+    # build that ships installers always carries one.
     target_compile_definitions(OrcaSlicerUpdater PRIVATE
         "ORCA_UPDATER_PUBLISHER=\"${ORCA_UPDATER_PUBLISHER}\""
         "ORCA_UPDATER_TEAM_ID=\"${ORCA_UPDATER_TEAM_ID}\"")
@@ -472,6 +474,8 @@ else ()
     endif()
     install(TARGETS OrcaSlicer RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR})
     if (APPLE AND TARGET OrcaSlicerUpdater)
-        install(TARGETS OrcaSlicerUpdater RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+        # Inside the bundle, where the application looks for it; beside it in bin/ it is
+        # never found and in-app updates silently fall back to the release page.
+        install(TARGETS OrcaSlicerUpdater RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/OrcaSlicer.app/Contents/MacOS")
     endif ()
 endif ()

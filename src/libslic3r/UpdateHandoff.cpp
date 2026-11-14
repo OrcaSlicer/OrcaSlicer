@@ -4,10 +4,8 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/directory.hpp>
 #include <cstdint>
-#include <cstdio>
 #include <cstdlib>
 #include <algorithm>
-#include <cstring>
 #include <exception>
 #include <ios>
 #include <iterator>
@@ -61,10 +59,29 @@ int64_t integer_field(const json& object, const char* key)
     return it->get<int64_t>();
 }
 
+// Parses one of the records below. A file that is not a JSON object is treated as missing,
+// which is what every caller does with a false return.
+bool parse_record(const std::string& text, json& out)
+{
+    try {
+        out = json::parse(text);
+    } catch (const std::exception&) {
+        return false;
+    }
+    return out.is_object();
+}
+
 std::string& cache_dir_override()
 {
     static std::string dir;
     return dir;
+}
+
+// Empty when the caller did not name an install: downloads then share the flat directory.
+std::string& install_root_override()
+{
+    static std::string root;
+    return root;
 }
 
 // The OS cache directory, resolved without wx: the application resolves the
@@ -218,14 +235,6 @@ bool open_lock_file(const std::string& path, LockHandle& out)
 #endif
 }
 
-bool read_install_record_file(InstallRecord& out)
-{
-    std::string text;
-    if (!read_file(updater_install_record_path(), text))
-        return false;
-    return install_record_from_json(text, out);
-}
-
 } // namespace
 
 std::string updater_cache_dir()
@@ -241,21 +250,45 @@ void set_updater_cache_dir(const std::string& dir)
 void clear_updater_cache_dir()
 {
     cache_dir_override().clear();
+    install_root_override().clear();
+}
+
+void set_updater_install_root(const std::string& root)
+{
+    install_root_override() = root;
+}
+
+std::string updater_install_root()
+{
+    return install_root_override();
 }
 
 std::string updater_download_dir()
 {
-    return (fs::path(cache_root()) / "downloads").string();
+    const fs::path base = fs::path(cache_root()) / "downloads";
+    const std::string& root = install_root_override();
+    if (root.empty())
+        return base.string();
+    return (base / install_identity_hex(root)).string();
 }
 
 std::string updater_helper_dir()
 {
-    return (fs::path(cache_root()) / "helper").string();
+    const fs::path base = fs::path(cache_root()) / "helper";
+    const std::string& root = install_root_override();
+    if (root.empty())
+        return base.string();
+    return (base / install_identity_hex(root)).string();
 }
 
 std::string updater_handoff_path()
 {
-    return (fs::path(cache_root()) / "handoff.json").string();
+    const std::string& root = install_root_override();
+    if (root.empty())
+        return (fs::path(cache_root()) / "handoff.json").string();
+    // Keyed like the downloads: two copies share one cache, and one must not overwrite the
+    // job another one has handed to its helper.
+    return (fs::path(cache_root()) / ("handoff-" + install_identity_hex(root) + ".json")).string();
 }
 
 std::string updater_install_record_path()
@@ -298,8 +331,11 @@ void remove_update_failure()
     remove_file(updater_failure_path());
 }
 
-std::string install_identity_key(const std::string& install_root)
+std::string install_identity_hex(const std::string& install_root)
 {
+    if (install_root.empty())
+        return std::string();
+
     std::string normalised = install_root;
     while (normalised.size() > 1 && (normalised.back() == '/' || normalised.back() == '\\'))
         normalised.pop_back();
@@ -314,10 +350,26 @@ std::string install_identity_key(const std::string& install_root)
         hash *= 1099511628211ull;
     }
     static const char* const hex = "0123456789abcdef";
-    std::string              key = "installed_artifact:";
+    std::string              result;
     for (int shift = 60; shift >= 0; shift -= 4)
-        key.push_back(hex[(hash >> shift) & 0xfu]);
-    return key;
+        result.push_back(hex[(hash >> shift) & 0xfu]);
+    return result;
+}
+
+std::string install_identity_key(const std::string& install_root)
+{
+    return "installed_artifact:" + install_identity_hex(install_root);
+}
+
+DownloadPaths download_paths(const std::string& dir, const std::string& asset_name)
+{
+    const std::string name = fs::path(asset_name).filename().string();
+    const std::string keep = name.empty() ? std::string("update.part") : name;
+    DownloadPaths     paths;
+    paths.part     = (fs::path(dir) / (keep + ".part")).string();
+    paths.marker   = (fs::path(dir) / (keep + ".part.digest")).string();
+    paths.artifact = (fs::path(dir) / keep).string();
+    return paths;
 }
 
 DownloadPrep prepare_download_dir(const std::string& dir,
@@ -325,12 +377,12 @@ DownloadPrep prepare_download_dir(const std::string& dir,
                                   const std::string& digest,
                                   int64_t            expected_size)
 {
-    DownloadPrep      prep;
-    const fs::path    directory(dir);
-    const std::string name   = fs::path(asset_name).filename().string();
-    const std::string keep   = name.empty() ? std::string("update.part") : name;
-    const fs::path    part   = directory / (keep + ".part");
-    const fs::path    marker = directory / (keep + ".part.digest");
+    DownloadPrep        prep;
+    const fs::path      directory(dir);
+    const DownloadPaths paths = download_paths(dir, asset_name);
+    const fs::path      part(paths.part);
+    const fs::path      marker(paths.marker);
+    const fs::path      artifact(paths.artifact);
 
     boost::system::error_code ec;
     if (!fs::is_directory(directory, ec))
@@ -355,7 +407,6 @@ DownloadPrep prepare_download_dir(const std::string& dir,
 
     // The helper renames a verified download to its asset name. It is kept while it is this
     // build's, so a prefetch that is never installed does not download the artifact again.
-    const fs::path artifact = directory / keep;
     if (!prep.complete && !digest.empty() && expected_size > 0 && recorded == digest) {
         const auto size = fs::file_size(artifact, ec);
         prep.complete   = !ec && static_cast<int64_t>(size) == expected_size;
@@ -368,12 +419,25 @@ DownloadPrep prepare_download_dir(const std::string& dir,
                 prep.dropped.push_back(stale.string());
     }
 
-    // Whatever else sits here belongs to another release.
+    // Whatever else sits here is another candidate's, and stays: with a per-install directory a
+    // second helper (a channel switch, a new nightly) may be writing it beside this download.
+    std::vector<std::string> own_names;
+    if (!prep.complete)
+        own_names.push_back(artifact.filename().string());
+    if (asset_name.empty()) {
+        // The names a download took before it was named after its asset.
+        own_names.emplace_back("update.part");
+        own_names.emplace_back("update.part.digest");
+    }
+
     for (fs::directory_iterator it(directory, ec), end; !ec && it != end; it.increment(ec)) {
         const fs::path entry = it->path();
         if (!fs::is_regular_file(entry, ec))
             continue;
-        if (entry == part || entry == marker || (prep.complete && entry == artifact))
+        if (entry == part || entry == marker)
+            continue;
+        const std::string name = entry.filename().string();
+        if (std::find(own_names.begin(), own_names.end(), name) == own_names.end())
             continue;
         if (fs::remove(entry, ec))
             prep.dropped.push_back(entry.string());
@@ -384,6 +448,13 @@ DownloadPrep prepare_download_dir(const std::string& dir,
     if (!prep.complete && !fs::exists(part, ec))
         (void) write_file_atomic(marker.string(), digest);
     return prep;
+}
+
+void discard_download(const std::string& dir, const std::string& asset_name)
+{
+    const DownloadPaths paths = download_paths(dir, asset_name);
+    remove_file(paths.artifact);
+    remove_file(paths.marker);
 }
 
 bool is_release_download_url(const std::string& url, const std::string& asset_name)
@@ -426,12 +497,7 @@ std::string handoff_to_json(const UpdateHandoff& handoff)
 bool handoff_from_json(const std::string& text, UpdateHandoff& out)
 {
     json j;
-    try {
-        j = json::parse(text);
-    } catch (const std::exception&) {
-        return false;
-    }
-    if (!j.is_object())
+    if (!parse_record(text, j))
         return false;
 
     out.channel       = text_field(j, "channel");
@@ -482,12 +548,7 @@ std::string install_record_to_json(const InstallRecord& record)
 bool install_record_from_json(const std::string& text, InstallRecord& out)
 {
     json j;
-    try {
-        j = json::parse(text);
-    } catch (const std::exception&) {
-        return false;
-    }
-    if (!j.is_object())
+    if (!parse_record(text, j))
         return false;
 
     out.digest  = text_field(j, "digest");
@@ -504,7 +565,10 @@ bool write_install_record(const InstallRecord& record)
 
 bool read_install_record(InstallRecord& out)
 {
-    return read_install_record_file(out);
+    std::string text;
+    if (!read_file(updater_install_record_path(), text))
+        return false;
+    return install_record_from_json(text, out);
 }
 
 void remove_install_record()
@@ -526,12 +590,7 @@ std::string pending_install_to_json(const PendingInstall& pending)
 bool pending_install_from_json(const std::string& text, PendingInstall& out)
 {
     json j;
-    try {
-        j = json::parse(text);
-    } catch (const std::exception&) {
-        return false;
-    }
-    if (!j.is_object())
+    if (!parse_record(text, j))
         return false;
 
     out.backup  = text_field(j, "backup");

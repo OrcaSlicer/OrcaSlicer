@@ -8,8 +8,9 @@
 //   installed.json  helper writes, app reads on its next start
 //   pending.json    helper writes before swapping, app deletes after it starts
 //   install.lock    app locks it to claim the install, helper takes it over once the app exits
-//   downloads/      partial and verified artifacts
-//   helper/         the helper, extracted so it can outlive the app
+//   downloads/      partial and verified artifacts, one directory per install
+//   helper/         the helper, extracted so it can outlive the app, one directory
+//                   per install (see updater_helper_dir())
 //   updater.log     helper log
 //
 // The cache lives in the OS cache directory, not in the data directory: it holds a
@@ -25,7 +26,7 @@ namespace Slic3r {
 
 struct UpdateHandoff
 {
-    std::string channel;        // "stable" | "nightly"
+    std::string channel;        // "stable" | "prerelease" | "nightly"
     std::string version;        // "2.5.0", or the build label for nightlies
     std::string version_label;  // what the helper window shows
     std::string asset_name;
@@ -68,7 +69,16 @@ std::string updater_cache_dir();  // the OS cache dir, <cache>/OrcaSlicer/update
 // so it is pointed at the cache the application resolved through the handoff.
 void        set_updater_cache_dir(const std::string& dir);
 void        clear_updater_cache_dir();
+// The install whose downloads and records are used: two copies of the application share
+// one cache, so each downloads into <cache>/downloads/<install hash>. Without that split,
+// prepare_download_dir's sweep of the directory deletes the other install's verified
+// artifact. Empty falls back to the flat <cache>/downloads.
+void        set_updater_install_root(const std::string& root);
+std::string updater_install_root();
 std::string updater_download_dir();
+// Where the helper is extracted: <cache>/helper/<install hash>, so this install cannot launch
+// one another install extracted, or delete its folder while a prefetch helper runs from it.
+// Flat <cache>/helper without an install root. The helper never resolves this path itself.
 std::string updater_helper_dir();
 std::string updater_handoff_path();
 std::string updater_install_record_path();
@@ -83,14 +93,32 @@ bool write_update_failure(const std::string& message);
 bool read_update_failure(std::string& message);
 void remove_update_failure();
 
+// Hash of one install's root, without a prefix: usable as a directory name on every
+// platform, unlike install_identity_key(). Empty for an empty root.
+std::string install_identity_hex(const std::string& install_root);
+
 // Key of the app config entry recording one install's installed digest. The path is
 // hashed because AppConfig keys cannot hold one: they reject whitespace.
 std::string install_identity_key(const std::string& install_root);
 
+// The names a download takes inside its directory: written to `part`, renamed to `artifact`
+// once verified, with `marker` recording the digest the partial file belongs to.
+struct DownloadPaths
+{
+    std::string part;
+    std::string marker;
+    std::string artifact;
+};
+
+// `asset_name` is a release asset name; anything path-like in it is dropped, and an empty
+// name falls back to "update.part".
+DownloadPaths download_paths(const std::string& dir, const std::string& asset_name);
+
 // The state of a partial download in `dir` for `asset_name`, after the directory has been
-// reduced to it. The artifact's digest is recorded beside the .part, so a later run only
-// resumes a download started for that same build: a nightly reuses one asset name and an
-// appended-to .part could never verify.
+// reduced to this download's own files. Another candidate's files are left alone, because a
+// second helper may be writing them. The artifact's digest is recorded beside the .part, so a
+// later run only resumes a download started for that same build: a nightly reuses one asset
+// name and an appended-to .part could never verify.
 struct DownloadPrep
 {
     // The .part belongs to this build and can be resumed.
@@ -105,6 +133,10 @@ DownloadPrep prepare_download_dir(const std::string& dir,
                                   const std::string& asset_name,
                                   const std::string& digest,
                                   int64_t            expected_size);
+
+// Drops a download the verifier rejected: the artifact and its digest marker, so the next
+// run fetches it again. The .part is left alone: a silent prefetch may still be writing it.
+void discard_download(const std::string& dir, const std::string& asset_name);
 
 // Only https downloads of `asset_name` from the OrcaSlicer release page, at
 // releases/download/<tag>/<asset_name>, are fetched and installed.
