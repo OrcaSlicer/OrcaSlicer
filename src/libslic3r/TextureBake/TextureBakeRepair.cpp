@@ -140,7 +140,9 @@ TriSoup resolve_t_junctions(const TriSoup &geometry, const RepairOptions &opts,
         for (size_t fi = 0; fi < faces.size(); ++fi) {
             const auto &f = faces[fi];
             for (int e = 0; e < 3; ++e) {
-                const int a = f[size_t(e)], b = f[size_t((e + 1) % 3)];
+                const int a    = f[size_t(e)];
+                const int b    = f[size_t((e + 1) % 3)];
+                const int apex = f[size_t((e + 2) % 3)];
                 if (e_count[edge_key(a, b)] != 1)
                     continue; // only a boundary edge carries an unresolved T-junction
                 const Vec3d  A     = vert[size_t(a)];
@@ -150,7 +152,12 @@ TriSoup resolve_t_junctions(const TriSoup &geometry, const RepairOptions &opts,
                     continue;
                 std::vector<std::pair<double, int>> found;
                 for (const int c : bv) {
-                    if (c == a || c == b)
+                    if (c == a || c == b || c == apex)
+                        continue;
+                    // Splitting (a, b, apex) at c adds two triangles sharing the interior edge (c, apex).
+                    // If (c, apex) already exists in the mesh, adding two more faces on it would make it
+                    // a non-manifold edge (3+ incident faces).
+                    if (e_count.find(edge_key(c, apex)) != e_count.end())
                         continue;
                     const Vec3d  cv = vert[size_t(c)] - A;
                     const double tp = cv.dot(ev) / elen2;
@@ -164,9 +171,28 @@ TriSoup resolve_t_junctions(const TriSoup &geometry, const RepairOptions &opts,
                               [](const auto &x, const auto &y) { return x.first < y.first; });
                     Split sp{ a, b, {} };
                     for (const auto &m : found)
-                        sp.mids.push_back(m.second);
-                    splits.emplace(fi, std::move(sp));
-                    break; // one site per face per pass; iteration handles cascades
+                        if (sp.mids.empty() || sp.mids.back() != m.second)
+                            sp.mids.push_back(m.second);
+                    // Reject the split if any resulting sub-edge along (a, ..., b) already has 2 incident faces.
+                    bool valid_subedges = !sp.mids.empty();
+                    int  prev_v         = a;
+                    for (const int mid_v : sp.mids) {
+                        const auto it_e = e_count.find(edge_key(prev_v, mid_v));
+                        if (it_e != e_count.end() && it_e->second >= 2) {
+                            valid_subedges = false;
+                            break;
+                        }
+                        prev_v = mid_v;
+                    }
+                    if (valid_subedges) {
+                        const auto it_e = e_count.find(edge_key(prev_v, b));
+                        if (it_e != e_count.end() && it_e->second >= 2)
+                            valid_subedges = false;
+                    }
+                    if (valid_subedges) {
+                        splits.emplace(fi, std::move(sp));
+                        break; // one site per face per pass; iteration handles cascades
+                    }
                 }
             }
         }
