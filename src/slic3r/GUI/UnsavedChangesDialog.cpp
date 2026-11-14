@@ -1693,9 +1693,10 @@ void UnsavedChangesDialog::update_list(SyncExtruderParams *params)
             row_all = add_label(panel_left, left_sizer, label, UNSAVE_CHANGE_DIALOG_OPTION_INDENT);
         else {
             // The change's own box. Extruder count has none: the per-extruder values follow it.
+            // Neither has filament_id: it is listed for information only and is never transferred.
             auto check = new ::CheckBox(panel_left);
             add_check_and_label(left_sizer, check, label, UNSAVE_CHANGE_DIALOG_OPTION_INDENT);
-            if (data.opt_key == "extruders_count")
+            if (data.opt_key == "extruders_count" || data.opt_key == "filament_id")
                 check->Hide();
             else {
                 check->SetValue(true);
@@ -1868,6 +1869,9 @@ std::vector<std::string> UnsavedChangesDialog::options_by_selection(const Preset
     for (const PresetItem &item : m_presetitems) {
         if (type != nullptr && item.type != *type)
             continue;
+        // filament_id is listed for information only: it is not a config option and is never transferred.
+        if (item.opt_key == "filament_id")
+            continue;
         auto check = std::find_if(m_option_checks.begin(), m_option_checks.end(), [&item](const auto &option) {
             return std::get<1>(option) == item.type && std::get<2>(option) == item.opt_key;
         });
@@ -2010,6 +2014,14 @@ void UnsavedChangesDialog::update_tree(Preset::Type type, PresetCollection* pres
             pi.extruder_id = row_extruder_id;
             m_presetitems.push_back(pi);
 
+        }
+
+        // filament_id is not a config option, so it is never among the dirty options above.
+        if (type == Preset::TYPE_FILAMENT) {
+            const std::string &old_id = presets->get_selected_preset().filament_id;
+            const std::string &new_id = presets->get_edited_preset().filament_id;
+            if (old_id != new_id)
+                m_presetitems.push_back({type, "filament_id", _L("Filament"), _L("Basic information"), _L("Filament ID"), from_u8(old_id), from_u8(new_id)});
         }
     }
 

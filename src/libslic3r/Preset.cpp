@@ -3479,6 +3479,9 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
         }
         // Overwriting an existing preset.
         preset.config = std::move(curr_preset.config);
+        // A preset without a parent owns its filament_id, which may have been edited in the filament tab.
+        if (m_type == Preset::TYPE_FILAMENT && preset.inherits().empty())
+            preset.filament_id = curr_preset.filament_id;
         // The newly saved preset will be activated -> make it visible.
         preset.is_visible = true;
         //TODO: remove the detach logic
@@ -3504,8 +3507,12 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
         // TODO: apply change from custom root to devided presets.
         if (preset.inherits().empty()) {
             for (auto &preset2 : m_presets)
-                if (preset2.inherits() == preset.name)
+                if (preset2.inherits() == preset.name) {
                     preset2.reload(preset);
+                    // Derived presets take their parent's filament_id.
+                    if (m_type == Preset::TYPE_FILAMENT)
+                        preset2.filament_id = preset.filament_id;
+                }
         }
     } else {
         // Creating a new preset.
@@ -4216,6 +4223,9 @@ bool PresetCollection::is_dirty(const Preset *edited, const Preset *reference)
         for (auto &opt_key : optional_keys)
             if (reference->config.has(opt_key) != edited->config.has(opt_key))
                 return true;
+        // filament_id lives on the preset, not in its config, but can be edited in the filament tab.
+        if (reference->filament_id != edited->filament_id)
+            return true;
     }
     return false;
 }
