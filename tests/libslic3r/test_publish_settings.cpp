@@ -635,8 +635,8 @@ TEST_CASE("A Full copy drops an unreceived variant key when the receiver lists t
 
 TEST_CASE("Resizing the filament count keeps variant-bearing vectors at their variant length", "[PublishSettings]")
 {
-    // set_num_filaments resizes the per-slot filament keys to the filament count. Two keys in that
-    // list are variant-bearing, so resizing them truncated every variant but the first; readers
+    // The load-time sizing resizes the per-slot filament keys to the filament count. Two filament
+    // keys are variant-bearing, and resizing them truncated every variant but the first; readers
     // clamp, so the extra variants silently reused the first value.
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.option<ConfigOptionStrings>("filament_extruder_variant", true)->values = { "Direct Drive Standard", "Direct Drive High Flow" };
@@ -644,9 +644,12 @@ TEST_CASE("Resizing the filament count keeps variant-bearing vectors at their va
     // as ConfigOptionFloatsNullable.
     config.option<ConfigOptionFloatsNullable>("filament_retract_length_nc", true)->values = { 1.5, 2.5 };
     config.option<ConfigOptionStrings>("volumetric_speed_coefficients", true)->values = { "a", "b" };
-    config.option<ConfigOptionStrings>("filament_colour", true)->values = { "#FF0000" };
+    // Three filaments, so the filament count differs from the variant length, and a per-filament key
+    // authored for one: it must grow to the filament count.
+    config.option<ConfigOptionFloats>("filament_diameter", true)->values = { 1.75, 1.75, 1.75 };
+    config.option<ConfigOptionStrings>("filament_vendor", true)->values = { "Vendor" };
 
-    config.set_num_filaments(1);
+    config.enforce_per_filament_cardinality();
 
     const auto *retract_nc = config.opt<ConfigOptionFloatsNullable>("filament_retract_length_nc");
     REQUIRE(retract_nc != nullptr);
@@ -654,8 +657,8 @@ TEST_CASE("Resizing the filament count keeps variant-bearing vectors at their va
     const auto *volumetric = config.opt<ConfigOptionStrings>("volumetric_speed_coefficients");
     REQUIRE(volumetric != nullptr);
     CHECK(volumetric->size() == 2);
-    // A per-slot key is still sized to the filament count.
-    const auto *colour = config.opt<ConfigOptionStrings>("filament_colour");
-    REQUIRE(colour != nullptr);
-    CHECK(colour->size() == 1);
+    // A plain per-filament key is still sized to the filament count.
+    const auto *vendor = config.opt<ConfigOptionStrings>("filament_vendor");
+    REQUIRE(vendor != nullptr);
+    CHECK(vendor->size() == 3);
 }

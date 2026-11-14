@@ -856,10 +856,6 @@ public:
     // (then the key is further prefixed with the "filament_" prefix).
     const std::vector<std::string>& extruder_retract_keys() const { return m_extruder_retract_keys; }
 
-    // BBS
-    const std::vector<std::string>& filament_option_keys() const { return m_filament_option_keys; }
-    const std::vector<std::string>& filament_retract_keys() const { return m_filament_retract_keys; }
-
 private:
     void init_common_params();
     void init_fff_params();
@@ -868,12 +864,6 @@ private:
 
     std::vector<std::string>    m_extruder_option_keys;
     std::vector<std::string>    m_extruder_retract_keys;
-
-    // BBS
-    void init_filament_option_keys();
-
-    std::vector<std::string>    m_filament_option_keys;
-    std::vector<std::string>    m_filament_retract_keys;
 };
 
 // The one and only global definition of SLic3r configuration options.
@@ -936,11 +926,25 @@ public:
     //return the changed param set
     t_config_option_keys normalize_fdm_2(int num_objects, int used_filaments = 0);
 
+    // Orca: resize every per-N vector option to exactly the length its cardinality implies.
+    // Called at the slicer boundary (after variant expansion) so all counts are final.
+    void                enforce_cardinality();
+
+    // Size the empty options the variant expansion reads through get_at() before it runs. Touches only
+    // empty options, so a config that has none is unchanged.
+    void                size_empty_expansion_inputs();
+
+    // Give the flush matrix and the flush multiplier the shape the slice reads them with: one filaments x filaments
+    // block per nozzle and one multiplier per nozzle. A single-filament config is left alone unless the matrix has
+    // fewer cells than nozzles, since it purges nothing. Returns the keys it rewrote.
+    t_config_option_keys size_flush_volumes_matrix();
+
+    // Orca: load-time subset of enforce_cardinality - sizes only the plain per-filament options (their count is
+    // known before variant expansion). Called from Preset::normalize at preset load.
+    void                enforce_per_filament_cardinality();
+
     size_t              get_parameter_size(const std::string& param_name, size_t extruder_nums);
     void                set_num_extruders(unsigned int num_extruders);
-
-    // BBS
-    void                set_num_filaments(unsigned int num_filaments);
 
     //BBS
     // Validate the PrintConfig. Returns an empty string on success, otherwise an error message is returned.
@@ -1032,6 +1036,12 @@ void set_filament_dev_options(DynamicPrintConfig &config, const std::vector<cons
 // Orca: sizes the per-slot mixed-colour metadata options to new_slot_count, keeping the first
 // old_slot_count values; an option the config lacks is created.
 void resize_mixed_filament_metadata(DynamicPrintConfig &config, size_t old_slot_count, size_t new_slot_count);
+
+// Size flush_volumes_matrix to num_filaments^2 cells per nozzle, flush_volumes_vector to two values per
+// filament and flush_multiplier to one per nozzle, keeping the cells the old layout had for the pairs and
+// nozzles it shares with the new one; a new cell is the sum of the pair's per-filament flush volumes.
+// to_delete_filament_id is the slot the old layout had and the new one lacks, or size_t(-1) for none.
+void resize_flush_volumes_matrix(DynamicPrintConfig &config, size_t num_filaments, size_t nozzle_nums, size_t to_delete_filament_id = size_t(-1));
 
 extern void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride = 1);
 extern void compute_filament_override_value(const std::string& opt_key, const ConfigOption *opt_old_machine, const ConfigOption *opt_new_machine, const ConfigOption *opt_new_filament, const DynamicPrintConfig& new_full_config,

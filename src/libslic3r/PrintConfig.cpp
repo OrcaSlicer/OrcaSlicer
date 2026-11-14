@@ -9052,61 +9052,6 @@ void PrintConfigDef::init_extruder_option_keys()
     assert(std::is_sorted(m_extruder_retract_keys.begin(), m_extruder_retract_keys.end()));
 }
 
-void PrintConfigDef::init_filament_option_keys()
-{
-    m_filament_option_keys = {
-        "default_filament_profile",
-        "deretraction_speed",
-        "filament_colour",
-        "filament_diameter",
-        "filament_retract_length_nc",
-        // "filament_seam_gap",
-        "long_retractions_when_cut",
-        "max_layer_height",
-        "min_layer_height",
-        "retract_after_wipe",
-        "retract_before_wipe",
-        "retract_length_toolchange",
-        "retract_lift_above",
-        "retract_lift_below",
-        "retract_lift_enforce",
-        "retract_restart_extra",
-        "retract_restart_extra_toolchange",
-        "retract_when_changing_layer",
-        "retraction_distances_when_cut",
-        "retraction_length",
-        "retraction_minimum_travel",
-        "retraction_speed",
-        "volumetric_speed_coefficients",
-        "wipe",
-        "wipe_distance",
-        "z_hop",
-        "z_hop_types",
-    };
-
-    m_filament_retract_keys = {
-        "deretraction_speed",
-        "filament_retract_length_nc",
-        "long_retractions_when_cut",
-        "retract_after_wipe",
-        "retract_before_wipe",
-        "retract_lift_above",
-        "retract_lift_below",
-        "retract_lift_enforce",
-        "retract_restart_extra",
-        "retract_when_changing_layer",
-        "retraction_distances_when_cut",
-        "retraction_length",
-        "retraction_minimum_travel",
-        "retraction_speed",
-        "wipe",
-        "wipe_distance",
-        "z_hop",
-        "z_hop_types"
-    };
-    assert(std::is_sorted(m_filament_retract_keys.begin(), m_filament_retract_keys.end()));
-}
-
 void PrintConfigDef::init_sla_params()
 {
     ConfigOptionDef* def;
@@ -10562,35 +10507,6 @@ void  handle_legacy_sla(DynamicPrintConfig &config)
     }
 }
 
-size_t DynamicPrintConfig::get_parameter_size(const std::string& param_name, size_t extruder_nums)
-{
-    constexpr size_t default_param_length = 1;
-    size_t filament_variant_length = default_param_length;
-    size_t process_variant_length = default_param_length;
-    size_t machine_variant_length = default_param_length;
-
-    if (this->has("filament_extruder_variant"))
-        filament_variant_length = this->option<ConfigOptionStrings>("filament_extruder_variant")->size();
-    if (this->has("print_extruder_variant"))
-        process_variant_length = this->option<ConfigOptionStrings>("print_extruder_variant")->size();
-    if (this->has("printer_extruder_variant"))
-        machine_variant_length = this->option<ConfigOptionStrings>("printer_extruder_variant")->size();
-
-    if (printer_options_with_variant_1.count(param_name) > 0) {
-        return machine_variant_length;
-    }
-    else if (printer_options_with_variant_2.count(param_name) > 0) {
-        return machine_variant_length * 2;
-    }
-    else if (filament_options_with_variant.count(param_name) > 0) {
-        return filament_variant_length;
-    }
-    else if (print_options_with_variant.count(param_name) > 0) {
-        return process_variant_length;
-    }
-    return extruder_nums;
-}
-
 // Orca: Special handling for extruder variants
 // BBL printers have extruder variants pre-defined in system profiles, however for customized multi-extruder profile,
 // we need to set up these parameters automatically, otherwise per-extruder options won't work properly.
@@ -10649,29 +10565,6 @@ void DynamicPrintConfig::set_num_extruders(unsigned int num_extruders)
         if (opt != nullptr && opt->is_vector()) {
             static_cast<ConfigOptionVectorBase*>(opt)->resize(get_parameter_size(key, num_extruders), defaults.option(key));
         }
-    }
-}
-
-// BBS
-void DynamicPrintConfig::set_num_filaments(unsigned int num_filaments)
-{
-    const auto& defaults = FullPrintConfig::defaults();
-    for (const std::string& key : print_config_def.filament_option_keys()) {
-        if (key == "default_filament_profile")
-            // Don't resize this field, as it is presented to the user at the "Dependencies" page of the Printer profile and we don't want to present
-            // empty fields there, if not defined by the system profile.
-            continue;
-        // A variant-bearing key holds one value per (slot, variant): its length is the preset's
-        // variant list, not the filament count. Resizing it here truncated every variant but the
-        // first, which the readers then hid by clamping to the first value. Preset::normalize
-        // skips the same keys in its own pass below this call.
-        if (filament_options_with_variant.count(key) != 0)
-            continue;
-        auto* opt = this->option(key, false);
-        assert(opt != nullptr);
-        assert(opt->is_vector());
-        if (opt != nullptr && opt->is_vector())
-            static_cast<ConfigOptionVectorBase*>(opt)->resize(num_filaments, defaults.option(key));
     }
 }
 
@@ -10815,7 +10708,7 @@ bool DynamicPrintConfig::support_different_extruders(int& extruder_count) const
         int size = nozzle_diameters_opt->size();
         extruder_count = size;
         auto extruder_variant_opt = dynamic_cast<const ConfigOptionStrings*>(this->option("extruder_variant_list"));
-        if (extruder_variant_opt != nullptr) {
+        if (extruder_variant_opt != nullptr && !extruder_variant_opt->values.empty()) {
             for (int index = 0; index < size; index++) {
                 std::string variant = extruder_variant_opt->get_at(index);
                 std::vector<std::string> variants_list;
@@ -11460,6 +11353,57 @@ void resize_mixed_filament_metadata(DynamicPrintConfig &config, size_t old_slot_
     resize(config.option<ConfigOptionBools>("filament_mixed_gradient_per_part", true));
 }
 
+void resize_flush_volumes_matrix(DynamicPrintConfig &config, size_t num_filaments, size_t nozzle_nums, size_t to_delete_filament_id)
+{
+    if (to_delete_filament_id == size_t(-1))
+        to_delete_filament_id = num_filaments;
+
+    // The old layout is read off the matrix itself: one block per nozzle, each old_filaments^2 cells. A matrix
+    // that is not that shape for the multiplier count has no per-nozzle blocks to read, so it is one block.
+    const std::vector<double> old_matrix   = config.option<ConfigOptionFloats>("flush_volumes_matrix", true)->values;
+    std::vector<double>      &multipliers  = config.option<ConfigOptionFloats>("flush_multiplier", true)->values;
+    size_t old_nozzle_nums                 = std::max<size_t>(multipliers.size(), 1);
+    size_t old_number_of_filaments         = size_t(std::sqrt(double(old_matrix.size()) / double(old_nozzle_nums)) + EPSILON);
+    if (old_number_of_filaments * old_number_of_filaments * old_nozzle_nums != old_matrix.size()) {
+        old_nozzle_nums         = 1;
+        old_number_of_filaments = static_cast<size_t>(std::sqrt(static_cast<double>(old_matrix.size())) + EPSILON);
+    }
+    if (multipliers.size() != nozzle_nums)
+        multipliers.resize(nozzle_nums, 1.);
+
+    if (old_matrix.size() == num_filaments * num_filaments * nozzle_nums)
+        return;
+
+    // Two values per filament: the flush it needs after another filament and before one.
+    std::vector<double> &filaments = config.option<ConfigOptionFloats>("flush_volumes_vector", true)->values;
+    while (filaments.size() < 2 * num_filaments) {
+        filaments.push_back(filaments.size() > 1 ? filaments[0] : 140.);
+        filaments.push_back(filaments.size() > 1 ? filaments[1] : 140.);
+    }
+    while (filaments.size() > 2 * num_filaments) {
+        filaments.pop_back();
+        filaments.pop_back();
+    }
+
+    const size_t        old_matrix_size = old_number_of_filaments * old_number_of_filaments;
+    const size_t        new_matrix_size = num_filaments * num_filaments;
+    std::vector<double> new_matrix(new_matrix_size * nozzle_nums, 0.);
+    for (size_t i = 0; i < num_filaments; ++i)
+        for (size_t j = 0; j < num_filaments; ++j) {
+            const bool   old_pair = i < old_number_of_filaments && j < old_number_of_filaments;
+            const size_t old_i    = i >= to_delete_filament_id ? i + 1 : i;
+            const size_t old_j    = j >= to_delete_filament_id ? j + 1 : j;
+            for (size_t nozzle_id = 0; nozzle_id < nozzle_nums; ++nozzle_id) {
+                double &cell = new_matrix[i * num_filaments + j + new_matrix_size * nozzle_id];
+                if (old_pair && nozzle_id < old_nozzle_nums && old_i < old_number_of_filaments && old_j < old_number_of_filaments)
+                    cell = old_matrix[old_i * old_number_of_filaments + old_j + old_matrix_size * nozzle_id];
+                else
+                    cell = i == j ? 0. : filaments[2 * i] + filaments[2 * j + 1];
+            }
+        }
+    config.option<ConfigOptionFloats>("flush_volumes_matrix", true)->values = new_matrix;
+}
+
 
 //used for object/region config
 //use the smallest of multiple to single
@@ -11641,7 +11585,7 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
 
     auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("extruder_type"));
     auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("nozzle_volume_type"));
-    if (!opt_extruder_type || !opt_nozzle_volume_type) {
+    if (!opt_extruder_type || !opt_nozzle_volume_type || opt_extruder_type->values.empty() || opt_nozzle_volume_type->values.empty()) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: extruder_type or nozzle_volume_type option not found, skipping")%__LINE__;
         return variant_index;
     }
@@ -11717,6 +11661,9 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: can not find opt define for %2%")%__LINE__%key;
             continue;
         }
+        // An unset option with an empty default has no value to pick; leave it unset.
+        if (const auto *vec = dynamic_cast<const ConfigOptionVectorBase *>(this->option(key)); vec && vec->empty())
+            continue;
         switch (optdef->type) {
             case coStrings:
             {
@@ -11874,7 +11821,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filamen
         //apply process settings
         auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("extruder_type"));
         auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("nozzle_volume_type"));
-        if (!opt_extruder_type || !opt_nozzle_volume_type) {
+        if (!opt_extruder_type || !opt_nozzle_volume_type || opt_extruder_type->values.empty() || opt_nozzle_volume_type->values.empty()) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: extruder_type or nozzle_volume_type option not found, skipping")%__LINE__;
             return;
         }
@@ -11983,7 +11930,7 @@ void DynamicPrintConfig::update_filament_config_values_for_multiple_extruders(Dy
     size_t filament_count = filament_maps.size();
     auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("extruder_type"));
     auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("nozzle_volume_type"));
-    if (!opt_extruder_type || !opt_nozzle_volume_type) {
+    if (!opt_extruder_type || !opt_nozzle_volume_type || opt_extruder_type->values.empty() || opt_nozzle_volume_type->values.empty()) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: extruder_type or nozzle_volume_type option not found, skipping")%__LINE__;
         return;
     }

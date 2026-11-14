@@ -1936,6 +1936,60 @@ TEST_CASE("An empty list applied by index replaces the target list", "[Config][R
     CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());
 }
 
+TEST_CASE("resize_flush_volumes_matrix keeps the pairs and nozzles the old layout had", "[Config][FlushMatrix]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionFloats>("flush_volumes_matrix", true)->values = { 0, 11, 12, 0 };
+    config.option<ConfigOptionFloats>("flush_multiplier", true)->values     = { 1 };
+    config.option<ConfigOptionFloats>("flush_volumes_vector", true)->values = { 100, 200, 300, 400 };
+    const auto matrix = [&config] { return config.option<ConfigOptionFloats>("flush_volumes_matrix")->values; };
+
+    SECTION("a matrix of the right size is left alone") {
+        resize_flush_volumes_matrix(config, 2, 1);
+        CHECK(matrix() == std::vector<double>{ 0, 11, 12, 0 });
+    }
+    SECTION("a third filament keeps the first two and sums the new pairs from the vector") {
+        resize_flush_volumes_matrix(config, 3, 1);
+        // Row i, column j: flush from i to j is vector[2 i] + vector[2 j + 1]; the new filament copies the first.
+        CHECK(matrix() == std::vector<double>{ 0, 11, 100 + 200, 12, 0, 300 + 200, 100 + 200, 100 + 400, 0 });
+        CHECK(config.option<ConfigOptionFloats>("flush_volumes_vector")->values == std::vector<double>{ 100, 200, 300, 400, 100, 200 });
+    }
+    SECTION("a second nozzle gets its own block, seeded from the vector") {
+        resize_flush_volumes_matrix(config, 2, 2);
+        CHECK(matrix() == std::vector<double>{ 0, 11, 12, 0, 0, 100 + 400, 300 + 200, 0 });
+        CHECK(config.option<ConfigOptionFloats>("flush_multiplier")->values == std::vector<double>{ 1, 1 });
+    }
+    SECTION("deleting the first filament keeps the pairs of the second") {
+        config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = { 0, 11, 12, 0 };
+        resize_flush_volumes_matrix(config, 1, 1, 0);
+        CHECK(matrix() == std::vector<double>{ 0 });
+        config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = { 0, 11, 13, 12, 0, 23, 31, 32, 0 };
+        config.option<ConfigOptionFloats>("flush_volumes_vector")->values = { 1, 2, 3, 4, 5, 6 };
+        resize_flush_volumes_matrix(config, 2, 1, 1);
+        CHECK(matrix() == std::vector<double>{ 0, 13, 31, 0 });
+    }
+    SECTION("a matrix that is not one block per multiplier entry is read as one block for the first nozzle") {
+        // Sixteen cells for four filaments, with two multiplier entries: not two 2 x 2 blocks.
+        std::vector<double> four(16);
+        for (size_t i = 0; i < four.size(); ++i)
+            four[i] = i % 5 == 0 ? 0. : 100. + static_cast<double>(i);
+        config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = four;
+        config.option<ConfigOptionFloats>("flush_multiplier")->values     = { 0.3, 0.3 };
+
+        resize_flush_volumes_matrix(config, 4, 2);
+
+        const std::vector<double> resized = matrix();
+        REQUIRE(resized.size() == 32);
+        CHECK(std::vector<double>(resized.begin(), resized.begin() + 16) == four);
+        CHECK(config.option<ConfigOptionFloats>("flush_multiplier")->values == std::vector<double>{ 0.3, 0.3 });
+    }
+    SECTION("a matrix written for more filaments than the project has is cut to the pairs it keeps") {
+        config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = { 0, 123, 999, 456, 0, 999, 999, 999, 0 };
+        resize_flush_volumes_matrix(config, 2, 1);
+        CHECK(matrix() == std::vector<double>{ 0, 123, 456, 0 });
+    }
+}
+
 namespace {
 
 const Pointfs shared_area_bed = { { 0., 0. }, { 350., 0. }, { 350., 350. }, { 0., 350. } };

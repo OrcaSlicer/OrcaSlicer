@@ -200,8 +200,9 @@ TEST_CASE("Grouping context spans the filament count with mis-sized config array
 
     Print print;
     print.apply(model, config);
-    // apply() does not pad the per-filament arrays, so the mis-sizing survives into the engine.
-    REQUIRE(print.config().filament_type.values.size() < print.config().filament_colour.values.size());
+    // apply() pads the short per-filament arrays to the filament count before the engine reads them.
+    REQUIRE(print.config().filament_type.values.size() == print.config().filament_colour.values.size());
+    REQUIRE(print.config().filament_is_support.values.size() == print.config().filament_colour.values.size());
 
     std::vector<std::vector<unsigned int>> layer_filaments = {{0, 1}, {1, 2}, {2, 3}};
 

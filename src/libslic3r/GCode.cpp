@@ -8293,7 +8293,7 @@ void GCode::append_full_config(const Print &print, std::string &str)
         std::vector<double> temp_flush_volumes_matrix = cfg.option<ConfigOptionFloats>("flush_volumes_matrix")->values;
         auto                temp_filament_color       = cfg.option<ConfigOptionStrings>("filament_colour")->values;
         size_t              heads_count_tmp           = temp_cfg_flush_multiplier.size(),
-               matrix_value_count                     = temp_flush_volumes_matrix.size() / temp_cfg_flush_multiplier.size(),
+               matrix_value_count                     = heads_count_tmp == 0 ? 0 : temp_flush_volumes_matrix.size() / heads_count_tmp,
                filament_count_tmp                     = temp_filament_color.size();
         if (filament_count_tmp * filament_count_tmp * heads_count_tmp == temp_flush_volumes_matrix.size()) {
             for (size_t idx = 0; idx < heads_count_tmp; ++idx) {
