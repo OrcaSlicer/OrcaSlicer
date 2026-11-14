@@ -89,6 +89,7 @@ namespace Slic3r
         result.filament_id = tray.setting_id;
         result.ctype = tray.ctype;
         result.colors = tray.cols;
+        result.remain = tray.remain; // 0~100, -1 when the printer does not report it (e.g. non-genuine spools)
 
         /*for new ams mapping*/
         result.ams_id = std::to_string(ams_id);
@@ -114,6 +115,27 @@ namespace Slic3r
                 result.id = ams_id * 4 + slot_id;
             }
         }
+    }
+
+    // Tie-break helper for ams_filament_mapping(): returns true when 'candidate' should replace 'picked' on an exact
+    // distance tie because it has less filament remaining, so partially used spools are consumed first.
+    // - only when the candidate tray is an exact filament_id match for the sliced filament;
+    // - only when both trays report a valid remain (>= 0); an unknown remain (-1) keeps the lowest-slot-first order;
+    // - an empty tray (remain == 0) is never deliberately preferred: a non-empty candidate wins over an empty picked tray.
+    static bool _prefer_tray_by_remain(const FilamentInfo& filament, const std::map<int, FilamentInfo>& trays, int candidate_tray_id, int picked_tray_id)
+    {
+        // find() instead of operator[]: never insert an empty entry into the tray list
+        const auto candidate_it = trays.find(candidate_tray_id);
+        const auto picked_it    = trays.find(picked_tray_id);
+        if (candidate_it == trays.end() || picked_it == trays.end())
+            return false;
+        const FilamentInfo& candidate = candidate_it->second;
+        const FilamentInfo& picked    = picked_it->second;
+        if (filament.filament_id != candidate.filament_id)
+            return false;
+        if (candidate.remain <= 0 || picked.remain < 0)
+            return false;
+        return picked.remain == 0 || candidate.remain < picked.remain;
     }
 
     int DevMappingUtil::ams_filament_mapping(const MachineObject* obj, const std::vector<FilamentInfo>& filaments, std::vector<FilamentInfo>& result, std::vector<bool> map_opt, std::vector<int> exclude_id, bool nozzle_has_ams_then_ignore_ext)
@@ -322,6 +344,13 @@ namespace Slic3r
                             picked_src_idx = i;
                             picked_tar_idx = j;
                         }
+                        // Same colour/type and equal distance: prefer the matching tray with the least filament left.
+                        else if (min_val == distance_map[i][j].distance && picked_tar_idx >= 0
+                                 && _prefer_tray_by_remain(filaments[i], tray_filaments, distance_map[i][j].tray_id, distance_map[i][picked_tar_idx].tray_id))
+                        {
+                            picked_src_idx = i;
+                            picked_tar_idx = j;
+                        }
                     }
                 }
 
@@ -340,6 +369,12 @@ namespace Slic3r
                                 tray_filaments[picked_tar_idx].distance = min_val;
                             }
                             else if (min_val == distance_map[i][j].distance && filaments[picked_src_idx].filament_id != tray_filaments[picked_tar_idx].filament_id && filaments[i].filament_id == tray_filaments[j].filament_id)
+                            {
+                                picked_src_idx = i;
+                                picked_tar_idx = j;
+                            }
+                            else if (min_val == distance_map[i][j].distance && picked_tar_idx >= 0
+                                     && _prefer_tray_by_remain(filaments[i], tray_filaments, distance_map[i][j].tray_id, distance_map[i][picked_tar_idx].tray_id))
                             {
                                 picked_src_idx = i;
                                 picked_tar_idx = j;
