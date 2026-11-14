@@ -150,6 +150,7 @@ struct ArrangeParams {
     float bed_shrink_x = 1;
     float bed_shrink_y = 1;
     float brim_skirt_distance = 0;
+    Axis gantry_axis = Y;
     float clearance_height_to_rod = 0;
     float clearance_height_to_lid = 0;
     float clearance_radius = 0;

@@ -7269,7 +7269,7 @@ void GLCanvas3D::update_sequential_clearance()
 
     const auto& config = fff_print()->config();
     const auto height_polygons = sequential_clearance_height_polygons(convex_and_bounding_boxes, config.printable_height,
-        config.extruder_clearance_height_to_lid, config.extruder_clearance_height_to_rod);
+        config.extruder_clearance_height_to_lid, config.extruder_clearance_height_to_rod, gantry_travel_axis(config));
 
     // sends instances 2d hulls to be rendered
     set_sequential_print_clearance_visible(true);

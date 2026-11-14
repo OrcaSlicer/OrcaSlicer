@@ -302,6 +302,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         // "plugins" is the derived manifest backing the plugin-picker options; on its own it only
         // affects G-code export. The specific option (e.g. slicing_pipeline_plugin) drives any re-slice.
         "plugins",
+        "gantry_travel_axis",
         "extruder_clearance_height_to_rod",
         "extruder_clearance_height_to_lid",
         "extruder_clearance_radius",
@@ -896,6 +897,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
 {
     StringObjectException single_object_exception;
     const auto& print_config = print.config();
+    const Axis sweep = gantry_travel_axis(print_config);
     const Vec3d print_origin = print.get_plate_origin();
     const std::vector<std::vector<BedExcludeRegion>> exclusion_volumes = translated_bed_exclusion_volumes_by_extruder(print);
 
@@ -908,13 +910,13 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         // one PrintObject per distinct transformation, so print.objects() does not list them in order.
         std::pair<int, int>  model_position;
         double               height; // top above the bed, raft included (PrintObject::print_z_max)
-        // Whether the instance reaches above extruder_clearance_height_to_rod, and the Y extent of it
-        // the rod can hit while a later instance prints (see above_rod_y_range).
+        // Whether the instance reaches above extruder_clearance_height_to_rod, and the travel-axis extent of it
+        // the rod can hit while a later instance prints (see above_rod_range).
         bool                 has_above_rod = false;
-        coord_t              rod_min_y     = 0;
-        coord_t              rod_max_y     = 0;
+        coord_t              rod_min     = 0;
+        coord_t              rod_max     = 0;
     };
-    // ORCA: Y extent of an instance's geometry above the rod height, in the same coordinates as the
+    // ORCA: Travel-axis extent of an instance's geometry above the rod height, in the same coordinates as the
     // bounding boxes below. Conservative: any triangle with a vertex above the rod contributes all
     // three of its vertices. Modifiers, blockers and negative volumes are not printed and are skipped.
     const double rod_height = print.config().extruder_clearance_height_to_rod.value;
@@ -928,14 +930,14 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
     }
     const bool skirt_reaches_rod = print.has_infinite_skirt() ||
         (print.config().skirt_loops > 0 && print.config().skirt_height * max_layer_height > rod_height);
-    auto above_rod_y_range = [rod_height](const PrintInstance &instance, coord_t &min_y, coord_t &max_y) -> bool {
+    auto above_rod_range = [rod_height, sweep](const PrintInstance &instance, coord_t &range_min, coord_t &range_max) -> bool {
         // Skip the mesh walk for the common case of an object whose top, raft included, doesn't reach the rod.
         if (instance.print_object->print_z_max() <= scale_(rod_height))
             return false;
         // Mesh Z this far below the rod prints above it once the raft lifts the object.
         const double rod_z = rod_height - instance.print_object->slicing_parameters().object_print_z_min;
-        double ymin = std::numeric_limits<double>::max();
-        double ymax = std::numeric_limits<double>::lowest();
+        double low = std::numeric_limits<double>::max();
+        double high = std::numeric_limits<double>::lowest();
         bool   any  = false;
         const Transform3d inst_trafo = instance.model_instance->get_transformation().get_matrix();
         for (const ModelVolume *volume : instance.print_object->model_object()->volumes) {
@@ -943,25 +945,25 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 continue;
             const Transform3d           trafo = inst_trafo * volume->get_transformation().get_matrix();
             const indexed_triangle_set &its   = volume->mesh().its;
-            std::vector<double> ys(its.vertices.size()), zs(its.vertices.size());
+            std::vector<double> positions(its.vertices.size()), zs(its.vertices.size());
             for (size_t i = 0; i < its.vertices.size(); ++i) {
                 const Vec3d p = trafo * its.vertices[i].cast<double>();
-                ys[i] = p.y();
+                positions[i] = p[sweep];
                 zs[i] = p.z();
             }
             for (const auto &f : its.indices) {
                 if (zs[f(0)] <= rod_z && zs[f(1)] <= rod_z && zs[f(2)] <= rod_z)
                     continue;
                 for (int j = 0; j < 3; ++j) {
-                    ymin = std::min(ymin, ys[f(j)]);
-                    ymax = std::max(ymax, ys[f(j)]);
+                    low = std::min(low, positions[f(j)]);
+                    high = std::max(high, positions[f(j)]);
                 }
                 any = true;
             }
         }
         if (any) {
-            min_y = scaled<coord_t>(ymin);
-            max_y = scaled<coord_t>(ymax);
+            range_min = scaled<coord_t>(low);
+            range_max = scaled<coord_t>(high);
         }
         return any;
     };
@@ -1068,7 +1070,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 struct print_instance_info print_info {&instance, convex_hull.bounding_box(), convex_hull};
                 print_info.height = instance.print_object->print_z_max();
                 print_info.model_position = model_position_of(print.model(), instance.model_instance);
-                print_info.has_above_rod = above_rod_y_range(instance, print_info.rod_min_y, print_info.rod_max_y);
+                print_info.has_above_rod = above_rod_range(instance, print_info.rod_min, print_info.rod_max);
                 const BoundingBox footprint = print_info.bounding_box.inflated(-scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset));
                 if (print_info.has_above_rod && !skirt_reaches_rod) {
                     // The other instance's footprint is grown by half of extruder_clearance_radius, but the rod
@@ -1076,14 +1078,14 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     // shrink it by the same 0.1 mm tolerance the footprint test uses. Never past the footprint
                     // itself, so plates that pass the footprint test still validate.
                     const coord_t extra = scaled<coord_t>(std::max(0., print.config().extruder_clearance_dist_to_rod.value - 0.5 * print.config().extruder_clearance_radius.value));
-                    print_info.rod_min_y = std::max(print_info.rod_min_y + scaled<coord_t>(0.1) - extra, footprint.min.y());
-                    print_info.rod_max_y = std::min(print_info.rod_max_y - scaled<coord_t>(0.1) + extra, footprint.max.y());
+                    print_info.rod_min = std::max(print_info.rod_min + scaled<coord_t>(0.1) - extra, footprint.min[sweep]);
+                    print_info.rod_max = std::min(print_info.rod_max - scaled<coord_t>(0.1) + extra, footprint.max[sweep]);
                 } else {
                     // Below the rod, or with a skirt that reaches it, test the footprint as before. On printers whose
                     // lid clearance is lower than the rod's, overlapping a later instance is what lets an
                     // object below the rod use the rod height instead of the lid height.
-                    print_info.rod_min_y = footprint.min.y();
-                    print_info.rod_max_y = footprint.max.y();
+                    print_info.rod_min = footprint.min[sweep];
+                    print_info.rod_max = footprint.max[sweep];
                 }
                 print_instance_with_bounding_box.push_back(std::move(print_info));
                 convex_hulls_other.emplace_back(std::move(convex_hull));
@@ -1104,8 +1106,8 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
     double hc2              = scale_(print.config().extruder_clearance_height_to_rod); // height to rod
     double printable_height = scale_(print.config().printable_height);
 
-    // Print each instance that reaches above hc2 after every instance that overlaps that part of it in Y, keeping list
-    // order where possible. With no valid order, keep the list order so the check below reports the collision.
+    // Print each instance that reaches above hc2 after every instance overlapping its tall section
+    // along the travel axis, keeping list order where possible. With no valid order, keep the list order so the check below reports the collision.
     {
         const size_t n = print_instance_with_bounding_box.size();
 
@@ -1124,15 +1126,15 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         auto by_list_position = [&list_position](size_t l, size_t r) { return list_position[l] < list_position[r]; };
 
         // Mirrors the vertical-clearance check below: the part of the potentially-too-tall instance
-        // the rod can hit (see rod_min_y) is tested against the other instance's inflated footprint,
+        // the rod can hit (see rod_min) is tested against the other instance's inflated footprint,
         // i.e. everywhere the nozzle can be while that instance prints.
-        auto overlaps_in_y = [&](size_t tall_idx, size_t other_idx) {
+        auto overlaps_along_sweep = [&](size_t tall_idx, size_t other_idx) {
             const auto &A = print_instance_with_bounding_box[tall_idx];
             if (!A.has_above_rod)
                 return false;
             auto &bbB = print_instance_with_bounding_box[other_idx].bounding_box;
-            auto  inter_min = std::max(A.rod_min_y, bbB.min.y());
-            auto  inter_max = std::min(A.rod_max_y, bbB.max.y());
+            auto  inter_min = std::max(A.rod_min, bbB.min[sweep]);
+            auto  inter_max = std::min(A.rod_max, bbB.max[sweep]);
             return inter_max - inter_min > 0;
         };
 
@@ -1156,7 +1158,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 if (!print_instance_with_bounding_box[a].has_above_rod) continue; // nothing reaches the rod: no constraint
                 for (size_t b = 0; b < n; ++b) {
                     if (b == a) continue;
-                    if (!overlaps_in_y(a, b)) continue;
+                    if (!overlaps_along_sweep(a, b)) continue;
                     if (b == last_idx) {
                         // 'a' can't tolerate the last-placed instance printing after it while
                         // overlapping it, and the last instance can't be moved earlier by
@@ -1199,7 +1201,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     solved = true;
                     solved_order = std::move(order);
                 }
-                // else: a cycle among mutually Y-overlapping, over-hc2 instances -> genuinely
+                // else: a cycle among mutually overlapping, over-hc2 instances -> genuinely
                 // unsolvable; fall through to the fallback order below.
             }
         }
@@ -1241,7 +1243,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
     }
     // sequential_print_vertical_clearance_valid
     {
-        // if objects are not overlapped on y-axis, they will not collide even if they are taller than extruder_clearance_height_to_rod
+        // if objects are not overlapped along the travel axis, they will not collide even if they are taller than extruder_clearance_height_to_rod
         int print_instance_count = print_instance_with_bounding_box.size();
         std::map<const PrintInstance*, std::pair<Polygon, float>> too_tall_instances;
         for (int k = 0; k < print_instance_count; k++)
@@ -1249,22 +1251,15 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             auto inst = print_instance_with_bounding_box[k].print_instance;
             // 只需要考虑喷嘴到滑杆的偏移量，这个比整个工具头的碰撞半径要小得多
             // Only the offset from the nozzle to the slide bar needs to be considered, which is much smaller than the collision radius of the entire tool head.
-            // ORCA: test only the part of this instance the rod can hit (see rod_min_y).
+            // ORCA: test only the part of this instance the rod can hit (see rod_min).
             const auto &info_k = print_instance_with_bounding_box[k];
-            const coord_t iy1 = info_k.rod_min_y;
-            const coord_t iy2 = info_k.rod_max_y;
             (const_cast<ModelInstance*>(inst->model_instance))->arrange_order = k+1;
             double height = (k == (print_instance_count - 1))?printable_height:hc1;
 
             for (int i = k+1; i < print_instance_count; i++)
             {
-                auto& p = print_instance_with_bounding_box[i].print_instance;
-                auto bbox2 = print_instance_with_bounding_box[i].bounding_box;
-                auto py1 = bbox2.min.y();
-                auto py2 = bbox2.max.y();
-                auto inter_min = std::max(iy1, py1); // min y of intersection
-                auto inter_max = std::min(iy2, py2); // max y of intersection. length=max_y-min_y>0 means intersection exists
-                if (inter_max - inter_min > 0) {
+                const auto &bbox = print_instance_with_bounding_box[i].bounding_box;
+                if (std::min(info_k.rod_max, bbox.max[sweep]) > std::max(info_k.rod_min, bbox.min[sweep])) {
                     height = hc2;
                     break;
                 }
@@ -1353,7 +1348,7 @@ CompactedTowerZone compacted_wipe_tower_zone(const PrintConfig &config, const Po
             zone.hull = Geometry::convex_hull(grown);
     }
 
-    // The rod sweeps the whole X axis, so its keep-out band is the tower's Y span widened by half
+    // The rod spans the bed, so its keep-out band is the tower's travel-axis span widened by half
     // the nozzle-to-rod offset per side (the instance carries the other half). Orca's sequential
     // check has no such margin, having had no option to read it from until now.
     zone.bbox_rod = zone.hull.bounding_box();
@@ -1382,12 +1377,12 @@ CompactedTowerClearance compacted_wipe_tower_clearance(const PrintConfig &config
     BoundingBox inst_bbox = inst_hull.bounding_box();
     inst_bbox.offset(scale_(config.extruder_clearance_dist_to_rod.value * 0.5));
 
-    // Only the Y span matters for the rod: it spans the whole X axis, so an object sharing the tower's
-    // Y band passes under it however far apart the two are in X.
-    const bool overlaps_in_y = std::min(inst_bbox.max.y(), zone.bbox_rod.max.y()) - std::max(inst_bbox.min.y(), zone.bbox_rod.min.y()) > 0;
+    const Axis sweep = gantry_travel_axis(config);
+    const bool overlaps_rod = std::min(inst_bbox.max[sweep], zone.bbox_rod.max[sweep]) >
+                              std::max(inst_bbox.min[sweep], zone.bbox_rod.min[sweep]);
 
     CompactedTowerClearance result;
-    result.far_clearance = overlaps_in_y ? config.extruder_clearance_height_to_rod.value : config.extruder_clearance_height_to_lid.value;
+    result.far_clearance = overlaps_rod ? config.extruder_clearance_height_to_rod.value : config.extruder_clearance_height_to_lid.value;
 
     // The rod and the lid are the only obstacles once the object stands far enough away. Closer than
     // the toolhead radius it is the head body itself that hits the object, and it does so as soon as
@@ -1575,7 +1570,7 @@ StringObjectException Print::compacted_wipe_tower_clearance_valid(const Print &p
 // With wipe_tower_no_sparse_layers the tower only grows on layers that carry a real toolchange,
 // so it ends up far below the object and the nozzle has to descend to it. While the nozzle sits
 // down on the compacted tower the rod is at tower_z + extruder_clearance_height_to_rod, and it
-// sweeps the tower's Y band across the whole X axis. Anything already printed above that line and
+// spans the bed perpendicular to the gantry travel axis. Anything already printed above that line and
 // sharing the band gets hit. Nearer than the toolhead radius the head body hits the object well before
 // the rod does, which is the horizontal half of the same problem. The spiral Z-hop that opens a wipe-
 // tower travel also leaves the extrusion outline at a low Z, so the footprint used here is the

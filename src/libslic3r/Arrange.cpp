@@ -149,6 +149,7 @@ bool bed_exclusion_applies(const ArrangePolygon &item, const ArrangePolygon &fix
 
 void update_arrange_params(ArrangeParams& params, const DynamicPrintConfig* print_cfg, const ArrangePolygons& selected)
 {
+    params.gantry_axis = gantry_travel_axis(*print_cfg);
     double                             skirt_distance = get_real_skirt_dist(*print_cfg);
     // Note: skirt_distance is now defined between outermost brim and skirt, not the object and skirt.
     // So we can't do max but do adding instead.
@@ -518,7 +519,8 @@ protected:
         double dist_corner_y = ibb.minCorner().y() - origin_pack.y();
         double dist_corner_x = ibb.minCorner().x() - origin_pack.x();
         // occupy as few rows as possible if we have rotations
-        double bindist       = double(ibb.maxCorner().y() - ibb.minCorner().y());
+        const Axis row_axis = params.is_seq_print ? params.gantry_axis : Y;
+        double bindist = at(ibb.maxCorner(), row_axis) - at(ibb.minCorner(), row_axis);
         if (dist_corner_x >= 0 && dist_corner_y >= 0)
             bindist += dist_corner_y + 1 * dist_corner_x;
         else {
@@ -756,24 +758,18 @@ protected:
             double clearance_height_to_rod = params.clearance_height_to_rod;
             bool hasRowHeightConflict = false;
             bool hasLidHeightConflict = false;
-            auto iy1 = item.boundingBox().minCorner().y();
-            auto iy2 = item.boundingBox().maxCorner().y();
-            auto ix1 = item.boundingBox().minCorner().x();
-
-            for (int i = 0; i < m_items.size(); i++) {
-                Item& p = m_items[i];
+            const Axis sweep = params.gantry_axis;
+            const Axis cross = sweep == X ? Y : X;
+            const auto item_box = item.boundingBox();
+            for (Item &p : m_items) {
                 if (p.is_virt_object) continue;
-                auto px1 = p.boundingBox().minCorner().x();
-                auto py1 = p.boundingBox().minCorner().y();
-                auto py2 = p.boundingBox().maxCorner().y();
-                auto inter_min = std::max(iy1, py1); // min y of intersection
-                auto inter_max = std::min(iy2, py2); // max y of intersection. length=max_y-min_y>0 means intersection exists
-                // if this item is lower than existing ones, this item will be printed first, so should not exceed height_to_rod
-                if (iy2 < py1) { hasRowHeightConflict |= (item.height > clearance_height_to_rod); }
-                else if (inter_max - inter_min > 0) {
-                    // if they inter, the one on the left will be printed first
-                    double h = ix1 < px1 ? item.height : p.height;
-                    hasRowHeightConflict |= (h > clearance_height_to_rod);
+                const auto box = p.boundingBox();
+                if (at(item_box.maxCorner(), sweep) < at(box.minCorner(), sweep)) {
+                    hasRowHeightConflict |= item.height > clearance_height_to_rod;
+                } else if (std::min(at(item_box.maxCorner(), sweep), at(box.maxCorner(), sweep)) >
+                           std::max(at(item_box.minCorner(), sweep), at(box.minCorner(), sweep))) {
+                    const bool item_first = at(item_box.minCorner(), cross) < at(box.minCorner(), cross);
+                    hasRowHeightConflict |= (item_first ? item.height : p.height) > clearance_height_to_rod;
                 }
                 // only last item can be heigher than clearance_height_to_lid, so if the existing items are higher than clearance_height_to_lid, there is height conflict
                 hasLidHeightConflict |= (p.height > clearance_height_to_lid);
