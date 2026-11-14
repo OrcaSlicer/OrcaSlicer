@@ -350,6 +350,10 @@ private:
     wxBoxSizer *     m_merge_color_sizer     = nullptr;
     ::CheckBox*      m_merge_color_checkbox = nullptr;
     Label *          m_merge_color_text     = nullptr;
+    // Orca: the "Filament sync mode" preference, offered where the sync happens.
+    wxBoxSizer *     m_color_only_sizer     = nullptr;
+    ::CheckBox*      m_color_only_checkbox  = nullptr;
+    Label *          m_color_only_text      = nullptr;
     bool m_is_empty_project = true;
 
     bool m_check_dirty_fialment  = true;

@@ -524,6 +524,7 @@ void SyncAmsInfoDialog::update_more_setting(bool layout, bool from_more_seting_t
     }
     show_sizer(m_append_color_sizer, m_expand_more_settings);
     show_sizer(m_merge_color_sizer, m_expand_more_settings);
+    show_sizer(m_color_only_sizer, m_expand_more_settings);
     if (layout) {
         m_scrolledWindow->FitInside();
         Layout();
@@ -1080,6 +1081,26 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
 
         more_setting_sizer->Add(m_merge_color_sizer, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
 
+        m_color_only_sizer = new wxBoxSizer(wxHORIZONTAL);
+        m_color_only_sizer->AddSpacer(FromDIP(10));
+        m_color_only_checkbox = new ::CheckBox(m_scrolledWindow, wxID_ANY);
+        m_color_only_checkbox->SetValue(wxGetApp().app_config->get("sync_ams_filament_mode") == "1");
+        m_color_only_checkbox->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent &e) {
+            const bool color_only = wxGetApp().app_config->get("sync_ams_filament_mode") != "1";
+            wxGetApp().app_config->set("sync_ams_filament_mode", color_only ? "1" : "0");
+            m_color_only_checkbox->SetValue(color_only);
+            e.Skip();
+        });
+        m_color_only_checkbox->Hide();
+        m_color_only_sizer->Add(m_color_only_checkbox, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
+        m_color_only_text = new Label(m_scrolledWindow, _L("Sync colors only and keep the project's filament presets."));
+        m_color_only_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636")));
+        m_color_only_text->Hide();
+        m_color_only_sizer->AddSpacer(FromDIP(gap_between_checebox_and_text));
+        m_color_only_sizer->Add(m_color_only_text, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
+
+        more_setting_sizer->Add(m_color_only_sizer, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
+
         bSizer->Add(more_setting_sizer, 0, wxEXPAND | wxLEFT, FromDIP(25));
 
         wxBoxSizer *confirm_boxsizer = new wxBoxSizer(wxVERTICAL);
@@ -1186,6 +1207,8 @@ void SyncAmsInfoDialog::reinit_dialog()
     if (m_specify_plate_idx < 0 || m_specify_plate_idx >= plate_list.get_plate_count())
         m_specify_plate_idx = plate_list.get_curr_plate_index();
 
+    if (m_color_only_checkbox)
+        m_color_only_checkbox->SetValue(wxGetApp().app_config->get("sync_ams_filament_mode") == "1");
     // The dialog is reused across printer switches.
     if (m_clear_btn && m_auto_btn) {
         const bool resolved = selected_printer_is_toolchanger();
@@ -2636,6 +2659,7 @@ void SyncAmsInfoDialog::on_dpi_changed(const wxRect &suggested_rect)
     //m_button_cancel->SetCornerRadius(FromDIP(12));
     m_merge_color_checkbox->Rescale();
     m_append_color_checkbox->Rescale();
+    m_color_only_checkbox->Rescale();
     m_combobox_plate->Rescale();
     Fit();
     Refresh();
@@ -3259,6 +3283,7 @@ void SyncAmsInfoDialog::show_advanced_settings(bool flag, bool update_layout)
     if (!flag) {
         show_sizer(m_append_color_sizer, false);
         show_sizer(m_merge_color_sizer, false);
+        show_sizer(m_color_only_sizer, false);
     } else {
         update_more_setting(update_layout);
     }
