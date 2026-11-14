@@ -1,6 +1,7 @@
 {
 	"type": "process",
 	"name": "0.35mm Standard @SeeMeCNC BOSSdelta 300 0.7",
+	"renamed_from": "0.35mm Standard SeeMeCNC BOSSdelta 300 0.7;0.35mm TPU Vase @SeeMeCNC BOSSdelta 300 0.7;0.35mm TPU Vase SeeMeCNC BOSSdelta 300 0.7",
 	"inherits": "SeeMeCNC process base 0.7mm",
 	"from": "System",
 	"setting_id": "3IhpOE5Jo5dJ82q0",
