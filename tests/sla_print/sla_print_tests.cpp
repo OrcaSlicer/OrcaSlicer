@@ -252,6 +252,8 @@ TEST_CASE("halfcone test", "[halfcone]") {
     indexed_triangle_set m = sla::get_mesh(br, 45);
 
     its_merge_vertices(m);
+    REQUIRE_FALSE(m.indices.empty());
+    CHECK(its_num_open_edges(m) == 0);
     write_debug_obj("sla_print/Halfcone.obj", m);
 }
 
