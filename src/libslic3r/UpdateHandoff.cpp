@@ -352,11 +352,6 @@ DownloadPrep prepare_download_dir(const std::string& dir,
             }
         }
     }
-    if (!prep.resumable && !prep.complete) {
-        for (const fs::path& stale : {part, marker})
-            if (fs::is_regular_file(stale, ec) && fs::remove(stale, ec))
-                prep.dropped.push_back(stale.string());
-    }
 
     // The helper renames a verified download to its asset name. It is kept while it is this
     // build's, so a prefetch that is never installed does not download the artifact again.
@@ -364,6 +359,13 @@ DownloadPrep prepare_download_dir(const std::string& dir,
     if (!prep.complete && !digest.empty() && expected_size > 0 && recorded == digest) {
         const auto size = fs::file_size(artifact, ec);
         prep.complete   = !ec && static_cast<int64_t>(size) == expected_size;
+    }
+
+    // Checked before this, so the marker of a verified artifact is not taken for a leftover.
+    if (!prep.resumable && !prep.complete) {
+        for (const fs::path& stale : {part, marker})
+            if (fs::is_regular_file(stale, ec) && fs::remove(stale, ec))
+                prep.dropped.push_back(stale.string());
     }
 
     // Whatever else sits here belongs to another release.
