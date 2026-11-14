@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <random>
 #include <unordered_set>
 #include <utility>
 
@@ -68,6 +69,8 @@ namespace Slic3r {
 //     Z,z horizontal sinus (z = lazy/half amplitude);
 //     $ arcsin; L quarter circle H→V; l quarter circle V→H;
 //     U,u squared; Q,q cubic; ~ random; ^ pseudorandom; | middle step; # vertical step at end.
+//     The random joints draw from a generator seeded with the layer index, so a layer gets the same angle on every
+//     slice and for every caller, such as the ironing of the layer or a bridge over its infill.
 // - Counting / range length:
 //     After the joint (or after α) a count determines duration of the turn:
 //       N = layer count, B = bottom_shell_layers, T = top_shell_layers.
@@ -95,8 +98,11 @@ double calculate_infill_rotation_angle(const PrintObject* object,
     double             angle = 0.0;
     ConfigOptionFloats rotate_angles;
     const std::string  search_string = "/NnZz$LlUuQq~^|#";
-    if (regex_search(template_string, std::regex("[+\\-%*@\'\"cm" + search_string + "]"))) { // template metalanguage of rotating infill
-        std::regex                 del("[\\s,]+");
+    // Built once: layers and objects are filled in parallel, and building a std::regex writes to a cache of the
+    // shared locale, which is a data race.
+    static const std::regex metalanguage("[+\\-%*@\'\"cm" + search_string + "]");
+    static const std::regex del("[\\s,]+");
+    if (regex_search(template_string, metalanguage)) { // template metalanguage of rotating infill
         std::sregex_token_iterator it(template_string.begin(), template_string.end(), del, -1);
         std::vector<std::string>   tk;
         std::sregex_token_iterator end;
@@ -117,6 +123,10 @@ double calculate_infill_rotation_angle(const PrintObject* object,
         bool              _absolute = false;
         bool              _negative = false;
         std::vector<bool> stop(tk.size(), false);
+        // Not rand(): layers and objects are filled in parallel, so a generator shared between them would make the
+        // angles depend on the thread scheduling.
+        std::mt19937_64   rng(layer_id);
+        const double      random_value = double(rng()) / double(std::mt19937_64::max());
 
         for (int i = 0; i <= layer_id; i++) {
             double fill_z = object->get_layer(i)->bottom_z();
@@ -236,8 +246,8 @@ double calculate_infill_rotation_angle(const PrintObject* object,
             case 9: negvalue = pow(1 - negvalue, 2); break;                 // u-joint, squared, x2 inverse
             case 10: negvalue = 1. - pow(1. - negvalue, 3); break;          // Q-joint, cubic, x3
             case 11: negvalue = pow(1. - negvalue, 3); break;               // q-joint, cubic, x3 inverse
-            case 12: negvalue = (double) rand() / RAND_MAX; break;          // ~-joint, random, fill the whole angle
-            case 13: negvalue += (double) rand() / RAND_MAX - 0.5; break;   // ^-joint, pseudorandom, disperse at middle line
+            case 12: negvalue = random_value; break;                        // ~-joint, random, fill the whole angle
+            case 13: negvalue += random_value - 0.5; break;                 // ^-joint, pseudorandom, disperse at middle line
             case 14: negvalue = 0.5; break;                                 // |-joint, like #-joint but placed at middle angle
             case 15: negvalue = _negative ? 0. : 1.; break;                 // #-joint, vertical at the end angle
             }

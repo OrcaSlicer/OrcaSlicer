@@ -632,6 +632,35 @@ TEST_CASE("Sparse infill rotation template turns the infill layer by layer", "[F
     CHECK(angles == expected);
 }
 
+TEST_CASE("Random infill rotation joints give the same angles on every slice", "[Fill]")
+{
+    // Every 10 layers "+90~10" turns the infill to random angles within the next 90 degrees, and "+90^10" scatters
+    // them around a steady turn by 90 degrees.
+    const std::string template_string = GENERATE("+90~10", "+90^10");
+    CAPTURE(template_string);
+
+    auto slice_angles = [&template_string]() {
+        Print print;
+        // No shells, so every layer is sparse infill rather than solid.
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(10)}, print,
+                                            {{"sparse_infill_rotate_template", template_string},
+                                             {"sparse_infill_density", "40%"},
+                                             {"sparse_infill_pattern", "rectilinear"},
+                                             {"top_shell_layers", 0},
+                                             {"bottom_shell_layers", 0},
+                                             {"layer_height", 0.2}});
+        return angles_per_layer(print, sparse_role);
+    };
+
+    const std::vector<int> angles = slice_angles();
+    // A 10mm cube at 0.2mm layers.
+    REQUIRE(angles.size() == 50);
+    REQUIRE(std::count(angles.begin(), angles.end(), -1) == 0);
+    // Still random rather than one angle for all layers.
+    CHECK(size_t(std::count(angles.begin(), angles.end(), angles.front())) < angles.size());
+    CHECK(slice_angles() == angles);
+}
+
 TEST_CASE("Infill rotation template layer count modifier holds each angle for N layers", "[Fill]")
 {
     Print print;
