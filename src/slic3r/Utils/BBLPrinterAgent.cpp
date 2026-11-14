@@ -22,6 +22,7 @@
 #include <mutex>
 #include <nlohmann/json.hpp>
 #include <openssl/bio.h>
+#include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/pemerr.h>
