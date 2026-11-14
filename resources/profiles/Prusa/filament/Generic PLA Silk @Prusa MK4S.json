@@ -11,8 +11,10 @@
 		"Prusa MK4S 0.25 nozzle",
 		"Prusa MK4S 0.3 nozzle",
 		"Prusa MK4S 0.4 nozzle",
+		"Prusa MK4S MMU3 0.4 nozzle",
 		"Prusa MK4S 0.5 nozzle",
 		"Prusa MK4S HF0.4 nozzle",
+		"Prusa MK4S MMU3 HF0.4 nozzle",
 		"Prusa MK4S HF0.5 nozzle"
 	],
 	"filament_max_volumetric_speed": [

@@ -9,6 +9,7 @@
 	"instantiation": "true",
 	"compatible_printers": [
 		"Prusa MK4S 0.6 nozzle",
+		"Prusa MK4S MMU3 0.6 nozzle",
 		"Prusa MK4S HF0.6 nozzle"
 	],
 	"fan_cooling_layer_time": "22",
