@@ -12,7 +12,9 @@
 #include "libslic3r_version.h"
 #include <libslic3r/PrintConfig.hpp>
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/Config.hpp"
+#include "libslic3r/LocalesUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
 #include <boost/log/trivial.hpp>
@@ -30,6 +32,8 @@
 #include <wx/utils.h>
 #include <wx/webview.h>
 
+#include <algorithm>
+#include <iterator>
 #include <memory>
 #include <utility>
 
@@ -37,6 +41,9 @@ class wxWindow;
 
 #ifdef __linux__
 #include <webkit2/webkit2.h>
+#endif
+#ifdef __APPLE__
+#include "slic3r/Utils/MacDarkMode.hpp"
 #endif
 
 namespace Slic3r {
@@ -117,6 +124,58 @@ static void inject_vue_resize_workaround(wxWebView *webView)
 }
 #endif
 
+static const char* const ZOOM_KEY = "printer_webview_zoom";
+
+#ifndef __WXMSW__
+// WebView2 zooms the page on Ctrl+wheel and Ctrl+-/+/0 itself; WKWebView and WebKitGTK leave that
+// to the application, so the page asks for the zoom steps through the "wx" message handler.
+static void add_zoom_shortcuts(wxWebView *webView)
+{
+    webView->AddUserScript(
+        "(function() {"
+        "  function zoom(step) {"
+        "    if (window.wx) window.wx.postMessage('orca_zoom:' + step);"
+        "  }"
+        "  window.addEventListener('keydown', function(e) {"
+        "    if (!e.metaKey && !e.ctrlKey) return;"
+        "    var step = e.key === '-' ? -1 : (e.key === '=' || e.key === '+') ? 1 : e.key === '0' ? 0 : null;"
+        "    if (step === null) return;"
+        "    e.preventDefault();"
+        "    zoom(step);"
+        "  }, true);"
+        // A touchpad sends a stream of small wheel events, so take at most one step per 100 ms.
+        "  var last = 0;"
+        "  window.addEventListener('wheel', function(e) {"
+        "    if (!e.ctrlKey || e.deltaY === 0) return;"
+        "    e.preventDefault();"
+        "    if (e.timeStamp - last < 100) return;"
+        "    last = e.timeStamp;"
+        "    zoom(e.deltaY < 0 ? 1 : -1);"
+        "  }, { capture: true, passive: false });"
+        "})();",
+        wxWEBVIEW_INJECT_AT_DOCUMENT_START
+    );
+}
+#endif
+
+static double zoom_factor(wxWebView *webView)
+{
+#ifdef __APPLE__
+    return WKWebView_pageZoom(webView->GetNativeBackend());
+#else
+    return webView->GetZoomFactor();
+#endif
+}
+
+static void set_zoom_factor(wxWebView *webView, double zoom)
+{
+#ifdef __APPLE__
+    WKWebView_setPageZoom(webView->GetNativeBackend(), zoom);
+#else
+    webView->SetZoomFactor(zoom);
+#endif
+}
+
 // The strings of the page shown when the printer has no connection set up
 // (resources/web/orca/missing_connection.html), keyed by its data-i18n ids.
 static void add_page_strings(wxWebView *webView)
@@ -183,6 +242,9 @@ void PrinterWebView::create_browser()
 {
     m_browser = WebView::CreateWebView(this, "");
     add_page_strings(m_browser);
+#ifndef __WXMSW__
+    add_zoom_shortcuts(m_browser);
+#endif
 
 #ifdef __linux__
     inject_vue_resize_workaround(m_browser);
@@ -234,6 +296,8 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
     m_url = url;
     m_apikey = apikey;
     m_host_type = host_type;
+    // WebView2 drops the zoom the user set on the page when it navigates.
+    save_zoom();
     m_apikey_sent = false;
     m_url_loaded = false;
     m_handler = create_printer_webview_handler(*this);
@@ -264,6 +328,33 @@ bool PrinterWebView::Show(bool show)
 void PrinterWebView::reload()
 {
     m_browser->Reload();
+}
+
+void PrinterWebView::save_zoom()
+{
+    // Before a page has loaded, WebView2 may not have created the controller GetZoomFactor() reads.
+    if (!m_url_loaded)
+        return;
+    // The stub used when no web view backend is available reports 0.
+    if (const double zoom = zoom_factor(m_browser); zoom > 0.)
+        wxGetApp().app_config->set(ZOOM_KEY, float_to_string_decimal_point(zoom));
+}
+
+void PrinterWebView::step_zoom(int step)
+{
+    // The zoom levels of Chromium-based browsers, WebView2 included.
+    static constexpr double levels[] = {0.25, 1. / 3., 0.5, 2. / 3., 0.75, 0.8, 0.9, 1., 1.1, 1.25, 1.5, 1.75, 2., 2.5, 3., 4., 5.};
+    const double zoom = zoom_factor(m_browser);
+    double next = 1.;
+    if (step > 0) {
+        const auto it = std::upper_bound(std::begin(levels), std::end(levels), zoom + 0.001);
+        next = it == std::end(levels) ? *std::prev(it) : *it;
+    } else if (step < 0) {
+        const auto it = std::lower_bound(std::begin(levels), std::end(levels), zoom - 0.001);
+        next = it == std::begin(levels) ? *it : *std::prev(it);
+    }
+    set_zoom_factor(m_browser, next);
+    save_zoom();
 }
 
 void PrinterWebView::update_mode()
@@ -304,6 +395,11 @@ void PrinterWebView::SendAPIKey()
                                        m_apikey);
     m_browser->RemoveAllUserScripts();
     
+#ifdef __WXGTK__
+    // WebKitGTK keeps the handler and loses only its window.wx alias. Adding the handler again would
+    // connect a second signal handler, which delivers every message twice.
+    m_browser->AddUserScript("window.wx = window.webkit.messageHandlers.wx;");
+#else
     // RemoveAllUserScripts causes WebView to forget about our script message handler, 
     // so re-add it here.
     m_browser->RemoveScriptMessageHandler("wx");
@@ -312,12 +408,16 @@ void PrinterWebView::SendAPIKey()
     WebView::MarkScriptMessageHandlerAdded(m_browser);
     if (!m_browser->AddScriptMessageHandler("wx"))
         wxLogError("Could not add script message handler");
+#endif
 
 #ifdef __linux__
     // Re-inject the vue-resize/WebKitGTK workaround that RemoveAllUserScripts just cleared.
     inject_vue_resize_workaround(m_browser);
 #endif
     add_page_strings(m_browser);
+#ifndef __WXMSW__
+    add_zoom_shortcuts(m_browser);
+#endif
 
     m_browser->AddUserScript(script);
     m_browser->Reload();
@@ -362,7 +462,11 @@ void PrinterWebView::OnLoaded(wxWebViewEvent& evt)
         return;
     //ORCA: url loaded successfully, safe to clear
     m_url_deferred.clear();
-    m_url_loaded = true;
+    // WebView2 also reports in-page route changes as loads, and the zoom set here lasts across navigations.
+    if (!std::exchange(m_url_loaded, true)) {
+        if (const double zoom = string_to_double_decimal_point(wxGetApp().app_config->get(ZOOM_KEY)); zoom > 0.)
+            set_zoom_factor(m_browser, zoom);
+    }
     SendAPIKey();
   
     if (m_handler != nullptr) {
@@ -381,6 +485,11 @@ void PrinterWebView::OnNewWindow(wxWebViewEvent& evt)
 
 void PrinterWebView::OnScriptMessage(wxWebViewEvent& evt)
 {
+  long step = 0;
+  if (wxString arg; evt.GetString().StartsWith("orca_zoom:", &arg) && arg.ToLong(&step)) {
+    step_zoom(int(step));
+    return;
+  }
   if (m_handler != nullptr)
     m_handler->on_script_message(evt);
 }
