@@ -817,9 +817,18 @@ namespace Clipper2Lib {
       std::stable_sort(minima_list_.begin(), minima_list_.end(), LocMinSorter()); //#594
       minima_list_sorted_ = true;
     }
-    LocalMinimaList::const_reverse_iterator i;
-    for (i = minima_list_.rbegin(); i != minima_list_.rend(); ++i)
-      InsertScanline((*i)->vertex->pt.y);
+    // Orca: PopScanline() returns each pending y once, however many times it was inserted, so only the
+    // distinct ys of the local minima are queued. Sorted by descending y they already form a max-heap;
+    // inserting them one by one in ascending order made every insertion climb to the top of the heap.
+    std::vector<int64_t> minima_ys;
+    minima_ys.reserve(minima_list_.size());
+    for (const LocalMinima_ptr& lm : minima_list_)
+      if (minima_ys.empty() || minima_ys.back() != lm->vertex->pt.y)
+        minima_ys.push_back(lm->vertex->pt.y);
+    if (scanline_list_.empty())
+      scanline_list_ = std::priority_queue<int64_t>(std::less<int64_t>(), std::move(minima_ys));
+    else
+      for (int64_t y : minima_ys) InsertScanline(y);
 
     current_locmin_iter_ = minima_list_.begin();
     actives_ = nullptr;
@@ -883,7 +892,9 @@ namespace Clipper2Lib {
 
   void ClipperBase::InsertScanline(int64_t y)
   {
-    scanline_list_.push(y);
+    // Orca: a y already at the top is popped together with this one anyway.
+    if (scanline_list_.empty() || scanline_list_.top() != y)
+      scanline_list_.push(y);
   }
 
 

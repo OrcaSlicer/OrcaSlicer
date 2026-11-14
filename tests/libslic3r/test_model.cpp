@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 #include <algorithm>
 #include <cstddef>
+#include <thread>
 #include <utility>
 #include <vector>
 #include "libslic3r/TriangleMesh.hpp"
@@ -133,6 +134,24 @@ TEST_CASE("Splitting a part drops pieces enclosing no volume and keeps the part 
         CHECK(part->mesh().facets_count() == 12);
         CHECK_FALSE(part->is_splittable());
     }
+}
+
+TEST_CASE("A part asked from several threads at once whether it can be split answers the same for all", "[Model]")
+{
+    // The PrintObjects made from one ModelObject prepare their infill at the same time, and each asks the object's first
+    // part whether it can be split, which fills a cache in the part.
+    Model model;
+    ModelObject *object = model.add_object();
+    const ModelVolume *volume = object->add_volume(flat_triangle_then_cubes({0., 30.}), ModelVolumeType::MODEL_PART, false);
+
+    std::vector<char>        answers(8, 0);
+    std::vector<std::thread> threads;
+    for (size_t i = 0; i < answers.size(); ++ i)
+        threads.emplace_back([volume, &answers, i] { answers[i] = volume->is_splittable() ? 1 : 0; });
+    for (std::thread &thread : threads)
+        thread.join();
+
+    CHECK(std::all_of(answers.begin(), answers.end(), [](char answer) { return answer == 1; }));
 }
 
 TEST_CASE("Splitting a part with a single solid piece keeps just that piece", "[Model]")
