@@ -138,23 +138,12 @@ bool PluginManager::initialize()
     plugin_hooks::install();
 
     // Persist auto-load / capability state to each plugin's .install_state.json sidecar.
-    // On load: write enabled=true plus the current capability flags. On unload: flip enabled=false.
-    // The on-unload callback is skipped during shutdown, so app exit does not wipe the auto-load list.
+    // On load: write enabled=true plus the current capability flags. Unloading flips enabled=false
+    // directly in unload_plugin(), not through the asynchronous completion callbacks: an update
+    // dispatches unload and load callbacks from a worker, and a deferred enabled=false write could
+    // otherwise land after the replacement package has been installed. The unload path is skipped
+    // during shutdown, so app exit does not wipe the auto-load list.
     subscribe_on_load_callback([this](const std::string& key) { write_loaded_plugin_install_state(key); });
-    subscribe_on_unload_callback([this](const std::string& key) {
-        if (m_shutting_down.load(std::memory_order_acquire))
-            return;
-        std::lock_guard<std::mutex> state_lock(install_state_mutex());
-        PluginDescriptor descriptor;
-        if (!try_get_plugin_descriptor(key, descriptor) || descriptor.plugin_root.empty())
-            return;
-        const boost::filesystem::path root(descriptor.plugin_root);
-        PluginInstallState state;
-        if (read_install_state(root, state)) {
-            state.enabled = false;
-            write_install_state(root, state);
-        }
-    });
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Plugin manager initialized";
 
@@ -382,8 +371,8 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
 
     // A package can be temporarily absent while an external side-loader replaces it. Keep the
     // descriptor and its persisted enable state until the user explicitly removes the missing
-    // entry, or a later scan rediscovers it. In particular, do not unload here: the unload callback
-    // would turn a transient filesystem gap into enabled=false in the sidecar.
+    // entry, or a later scan rediscovers it. In particular, do not unload here: unloading would turn
+    // a transient filesystem gap into enabled=false in the sidecar.
     {
         std::lock_guard<std::mutex> lock(m_mutex);
         for (const Plugin& plugin : m_plugins) {
@@ -881,6 +870,7 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
     bool load_in_progress = false;
     bool load_slot_claimed = false;
     bool shutting_down     = false;
+    bool update_in_progress = false;
     std::string invalid_error;
     std::vector<std::string> loaded_capability_names;
 
@@ -903,11 +893,20 @@ void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, s
 
         load_in_progress = m_load_in_progress.count(plugin_id) > 0;
         shutting_down   = m_shutting_down.load(std::memory_order_acquire);
-        if (exists && !invalid && !already_loaded && !load_in_progress && !shutting_down) {
+        update_in_progress = m_updates_in_progress.count(plugin_id) > 0;
+        if (exists && !invalid && !already_loaded && !load_in_progress && !update_in_progress && !shutting_down) {
             m_load_in_progress.insert(plugin_id);
             m_load_errors.erase(plugin_id);
             load_slot_claimed = true;
         }
+    }
+
+    // An update owns the key until it has finished replacing the package on disk and reloads the
+    // new one itself. Starting a load here would import the old package while it is being moved
+    // aside, so the request is dropped rather than left to race the replacement.
+    if (update_in_progress) {
+        BOOST_LOG_TRIVIAL(info) << "Plugin load skipped — update in progress: " << plugin_id;
+        return;
     }
 
     if (already_loaded) {
@@ -1023,7 +1022,7 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
         if (error == LOAD_CANCELLED)
             return; // cancelled: nothing materialized survives, and no error is recorded
         if (registration_failed)
-            mark_plugin_install_state_disabled(plugin_key);
+            (void) mark_plugin_install_state_disabled(plugin_key);
         fail(std::move(error));
         return;
     }
@@ -1119,6 +1118,12 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
         return true;
     }
 
+    // Flip the durable flag here rather than in a completion callback: the update path unloads on
+    // a worker and immediately replaces the package, so a deferred write must not race the new
+    // sidecar. Shutdown skips this to preserve the auto-load list across app exit.
+    if (!m_shutting_down.load(std::memory_order_acquire))
+        (void) mark_plugin_install_state_disabled(plugin_key);
+
     notify_unload_complete();
 
     cancel_and_wait_for_capabilities(removed.capabilities);
@@ -1128,8 +1133,6 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
     // Teardown runs outside m_mutex: it calls into Python and must not hold the registry lock.
     plugin_loader::unload(removed);
 
-    // The .install_state.json sidecar is flipped to enabled=false by the on-unload callback
-    // (skipped during shutdown), so the auto-load list survives app exit.
     BOOST_LOG_TRIVIAL(info) << "Unloaded plugin: " << plugin_key;
 
     return true;
@@ -1249,13 +1252,13 @@ void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_
     write_install_state(boost::filesystem::path(descriptor.plugin_root), descriptor, /*enabled=*/true, capabilities);
 }
 
-void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin_key)
+bool PluginManager::mark_plugin_install_state_disabled(const std::string& plugin_key)
 {
     std::lock_guard<std::mutex> state_lock(install_state_mutex());
 
     PluginDescriptor descriptor;
     if (!try_get_plugin_descriptor(plugin_key, descriptor) || descriptor.plugin_root.empty())
-        return;
+        return false;
 
     const boost::filesystem::path root(descriptor.plugin_root);
     PluginInstallState state;
@@ -1266,17 +1269,18 @@ void PluginManager::mark_plugin_install_state_disabled(const std::string& plugin
     if (status == InstallStateReadStatus::Unreadable) {
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Cannot read install state for " << plugin_key
                                    << "; leaving the sidecar untouched";
-        return;
+        return false;
     }
     if (status == InstallStateReadStatus::Absent)
         seed_install_metadata(state, descriptor);
     state.enabled = false;
     if (!write_install_state(root, state))
-        return;
+        return false;
 
     std::lock_guard<std::mutex> lock(m_mutex);
     if (Plugin* plugin = find_plugin_locked(plugin_key))
         plugin->descriptor.enabled = false;
+    return true;
 }
 
 bool PluginManager::mutate_plugin_permissions(const std::string& plugin_key, const PluginPermissionMutation& mutation,
@@ -1882,6 +1886,68 @@ bool PluginManager::subscribe_and_install_cloud_plugin(const std::string& plugin
     return download_and_install_cloud_plugin(descriptor.plugin_key, descriptor.version, error);
 }
 
+bool PluginManager::install_cloud_plugin_package(const std::string& plugin_key,
+                                                 const std::string& requested_version,
+                                                 const boost::filesystem::path& package_path,
+                                                 const PluginDescriptor& descriptor,
+                                                 std::string& error)
+{
+    error.clear();
+
+    // Record the version fetched from the cloud so install_plugin persists it to the install-state
+    // sidecar (the source of truth for the installed cloud version) instead of the local
+    // manifest/PEP723 header version.
+    PluginDescriptor installed_descriptor = descriptor;
+    installed_descriptor.installed_version = requested_version;
+    // The executable identity belongs to the package being installed. A descriptor taken from the
+    // previous installation can still carry its old wheel import name; clearing it lets
+    // install_plugin() fill entry_package from the replacement's package metadata instead.
+    installed_descriptor.entry_package.clear();
+
+    if (!install_plugin(package_path, installed_descriptor, error)) {
+        if (error.empty())
+            error = _u8L("Failed to install cloud plugin.");
+        set_plugin_error(plugin_key, error);
+        boost::system::error_code ec;
+        boost::filesystem::remove(package_path, ec);
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << error;
+        return false;
+    }
+
+    PluginDescriptor updated_descriptor = installed_descriptor;
+    if (!requested_version.empty())
+        updated_descriptor.version = requested_version;
+    // The version just downloaded and installed is now the locally installed version.
+    updated_descriptor.installed_version = requested_version.empty() ? installed_descriptor.version : requested_version;
+    updated_descriptor.enabled = true;
+    if (updated_descriptor.cloud.has_value()) {
+        updated_descriptor.cloud->installed        = true;
+        updated_descriptor.cloud->update_available = false;
+        updated_descriptor.cloud->unauthorized     = false;
+    }
+    updated_descriptor.clear_error();
+    updated_descriptor.set_unauthorized(false);
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        Plugin* entry = find_plugin_locked(plugin_key);
+        if (entry == nullptr) {
+            error = _u8L("Plugin not found.");
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Cloud plugin " << plugin_key
+                                       << " downloaded successfully but failed to update plugin metadata. Plugin object not found.";
+        } else {
+            entry->descriptor = std::move(updated_descriptor);
+        }
+    }
+    if (!error.empty()) {
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Cloud plugin " << plugin_key << " installed successfully";
+    return true;
+}
+
 bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_key, const std::string& version, std::string& error)
 {
     error.clear();
@@ -1912,53 +1978,96 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
             set_cloud_user(user_id);
     }
 
-    // Record the version we just fetched from the cloud so install_plugin persists it to the
-    // install-state sidecar (the source of truth for the installed cloud version) instead of the
-    // local manifest/PEP723 header version.
-    descriptor.installed_version = requested_version;
+    return install_cloud_plugin_package(plugin_key, requested_version, download.package_path, descriptor, error);
+}
 
-    if (!install_plugin(download.package_path, descriptor, error)) {
-        if (error.empty())
-            error = _u8L("Failed to install cloud plugin.");
-        set_plugin_error(plugin_key, error);
-        boost::system::error_code ec;
-        boost::filesystem::remove(download.package_path, ec);
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << error;
+bool PluginManager::write_plugin_state_after_update(const PluginDescriptor& installed,
+                                                    const std::vector<std::pair<std::string, bool>>& capabilities,
+                                                    bool enabled,
+                                                    std::string& error)
+{
+    if (installed.plugin_root.empty()) {
+        error = _u8L("Plugin folder could not be determined.");
         return false;
     }
 
-    PluginDescriptor updated_descriptor = descriptor;
-    if (!requested_version.empty())
-        updated_descriptor.version = requested_version;
-    // The version just downloaded and installed is now the locally installed version.
-    updated_descriptor.installed_version = requested_version.empty() ? descriptor.version : requested_version;
-    updated_descriptor.enabled = true;
-    if (updated_descriptor.cloud.has_value()) {
-        updated_descriptor.cloud->installed        = true;
-        updated_descriptor.cloud->update_available = false;
-        updated_descriptor.cloud->unauthorized     = false;
+    const boost::filesystem::path root(installed.plugin_root);
+    std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
+    PluginInstallState state;
+    const InstallStateReadStatus status = read_install_state_status(root, state);
+    if (status == InstallStateReadStatus::Unreadable) {
+        error = GUI::format(_u8L("Failed to read plugin install state: %1%"), (root / INSTALL_STATE_FILE).string());
+        return false;
     }
-    updated_descriptor.clear_error();
-    updated_descriptor.set_unauthorized(false);
+    if (status == InstallStateReadStatus::Absent)
+        seed_install_metadata(state, installed);
+
+    // Only the capability choices carry over. The installed package is new executable code, so
+    // it must request every permission again.
+    state.enabled      = enabled;
+    state.capabilities = capabilities;
+    state.permissions  = {};
+
+    if (!write_install_state(root, state)) {
+        error = GUI::format(_u8L("Failed to write plugin install state: %1%"), (root / INSTALL_STATE_FILE).string());
+        return false;
+    }
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (Plugin* plugin = find_plugin_locked(installed.plugin_key))
+        plugin->descriptor.enabled = enabled;
+    return true;
+}
+
+void PluginManager::restore_plugin_state_after_failed_update(const PluginDescriptor& previous,
+                                                             const PluginInstallState& previous_state,
+                                                             bool had_previous_state,
+                                                             bool was_enabled)
+{
+    namespace fs = boost::filesystem;
+
+    if (previous.plugin_root.empty())
+        return;
+
+    const fs::path root(previous.plugin_root);
+    boost::system::error_code ec;
+    if (!fs::exists(root, ec)) {
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Previous plugin folder is missing, cannot restore its state: "
+                                   << previous.plugin_key;
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+
+        PluginInstallState state;
+        const InstallStateReadStatus status = read_install_state_status(root, state);
+        if (status == InstallStateReadStatus::Unreadable) {
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Cannot restore install state for "
+                                       << previous.plugin_key << "; leaving the sidecar untouched";
+            return;
+        }
+
+        if (had_previous_state) {
+            // The snapshot also restores permissions and capability choices, which belong to the
+            // old package and were never replaced.
+            state = previous_state;
+        } else if (status == InstallStateReadStatus::Absent) {
+            seed_install_metadata(state, previous);
+        }
+        // The unload before the failed replacement wrote enabled=false over the old intent.
+        state.enabled = was_enabled;
+
+        if (!write_install_state(root, state))
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to restore install state for " << previous.plugin_key;
+    }
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        Plugin* entry = find_plugin_locked(plugin_key);
-        if (entry == nullptr) {
-            error = _u8L("Plugin not found.");
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Cloud plugin " << plugin_key
-                                       << " downloaded successfully but failed to update plugin metadata. Plugin object not found.";
-        } else {
-            entry->descriptor = std::move(updated_descriptor);
-        }
+        if (Plugin* plugin = find_plugin_locked(previous.plugin_key))
+            plugin->descriptor.enabled = was_enabled;
     }
-    if (!error.empty()) {
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Cloud plugin " << plugin_key << " installed successfully";
-    return true;
 }
 
 bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version)
@@ -1977,6 +2086,35 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
         return false;
     }
 
+    // Claim the key before any network or filesystem work. Both checks and the insert happen under
+    // m_mutex, and load_plugin() checks the same set under it, so an in-flight load cannot be
+    // cancelled halfway by the replacement and a new one cannot start while the package is being
+    // moved aside.
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_load_in_progress.count(plugin_key) > 0)
+            error = _u8L("Plugin load is still in progress");
+        else if (!m_updates_in_progress.insert(plugin_key).second)
+            error = _u8L("A plugin update is already in progress.");
+    }
+    if (!error.empty()) {
+        set_plugin_error(plugin_key, error);
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
+        return false;
+    }
+
+    // Release the claim on every path. The reload of the replacement must run without it, so it
+    // is released explicitly first and the scope guard then has nothing left to do.
+    auto release_update = [this, &plugin_key]() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_updates_in_progress.erase(plugin_key);
+    };
+    struct UpdateScope
+    {
+        std::function<void()> release;
+        ~UpdateScope() { if (release) release(); }
+    } update_scope{release_update};
+
     // An empty version means "update the current plugin". If there is no update available, the
     // intention is unclear.
     if (version.empty()) {
@@ -1991,37 +2129,185 @@ bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::stri
 
     clear_plugin_error(plugin_key);
 
-    if (descriptor.has_local_package()) {
-        boost::filesystem::path resolved_root;
-        bool resolved_allowed_plugin_root = false;
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            resolved_allowed_plugin_root = resolve_allowed_plugin_root(descriptor, get_plugin_directories(m_cloud_user_id),
-                                                                       _u8L("Refusing to delete a plugin outside the known plugin directories."),
-                                                                       resolved_root, error);
-        }
-
-        if (!resolved_allowed_plugin_root) {
-            set_plugin_error(plugin_key, error);
-            return false;
-        }
-
-        unload_plugin(plugin_key);
-
-        if (!delete_plugin_root(resolved_root, plugin_key, error)) {
-            set_plugin_error(plugin_key, error);
-            return false;
-        }
+    // Download before touching the installed package: a failed download must leave the old package
+    // and its sidecar exactly as they were.
+    CloudPluginDownload download;
+    PluginDescriptor download_descriptor = descriptor;
+    if (!m_cloud_service.download_cloud_plugin(download_descriptor, version, download, error)) {
+        if (error.empty())
+            error = _u8L("Failed to download cloud plugin.");
+        set_plugin_error(plugin_key, error);
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << error;
+        return false;
     }
 
-    if (!download_and_install_cloud_plugin(plugin_key, version, error)) {
+    // Re-read after the download: a capability may have been toggled while it ran, and the plugin
+    // may have been removed or replaced. This snapshot is what the update preserves.
+    PluginDescriptor previous;
+    if (!try_get_plugin_descriptor(plugin_key, previous)) {
+        error = GUI::format(_u8L("Plugin not found: %1%"), plugin_key);
+        boost::system::error_code ec;
+        boost::filesystem::remove(download.package_path, ec);
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to find plugin key " << plugin_key;
+        return false;
+    }
+
+    const bool had_local_package = previous.has_local_package();
+    const bool was_loaded        = had_local_package && is_plugin_loaded(plugin_key);
+    const bool was_enabled       = !had_local_package || was_loaded || previous.enabled;
+
+    PluginInstallState previous_state;
+    bool had_previous_state        = false;
+    bool previous_state_unreadable = false;
+    if (had_local_package && !previous.plugin_root.empty()) {
+        std::lock_guard<std::mutex> state_lock(install_state_mutex());
+        const InstallStateReadStatus status =
+            read_install_state_status(boost::filesystem::path(previous.plugin_root), previous_state);
+        had_previous_state        = status == InstallStateReadStatus::Readable;
+        previous_state_unreadable = status == InstallStateReadStatus::Unreadable;
+    }
+
+    // A sidecar that exists but cannot be read may still hold the user's capability choices and
+    // grants. Replacing the package would reset it with an empty capability list, so abort while
+    // the installed package and its sidecar are still untouched. Absent is a package without
+    // stored choices and keeps the normal replacement path.
+    if (previous_state_unreadable) {
+        const boost::filesystem::path previous_root(previous.plugin_root);
+        error = GUI::format(_u8L("Failed to read plugin install state: %1%"),
+                            (previous_root / INSTALL_STATE_FILE).string());
+        boost::system::error_code ec;
+        boost::filesystem::remove(download.package_path, ec);
         set_plugin_error(plugin_key, error);
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
         return false;
     }
 
-    clear_plugin_error(plugin_key);
+    boost::filesystem::path resolved_root;
+    if (had_local_package) {
+        bool resolved_allowed_plugin_root = false;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            resolved_allowed_plugin_root = resolve_allowed_plugin_root(previous, get_plugin_directories(m_cloud_user_id),
+                                                                       _u8L("Refusing to delete a plugin outside the known plugin directories."),
+                                                                       resolved_root, error);
+        }
 
+        if (!resolved_allowed_plugin_root) {
+            boost::system::error_code ec;
+            boost::filesystem::remove(download.package_path, ec);
+            set_plugin_error(plugin_key, error);
+            return false;
+        }
+
+        unload_plugin(plugin_key);
+    }
+
+    // Ensure cloud plugins install to _subscribed/<user_id>/, matching download_and_install.
+    if (auto agent = m_cloud_service.get_cloud_agent()) {
+        const std::string user_id = agent->get_user_id();
+        if (!user_id.empty())
+            set_cloud_user(user_id);
+    }
+
+    std::string install_error;
+    if (!install_cloud_plugin_package(plugin_key, version, download.package_path, previous, install_error)) {
+        // The installer already backs up and restores a package installed at the same path; an old
+        // package at another path was not touched. Either way, put the activation intent back and
+        // reload a package that was active before the attempt.
+        if (had_local_package)
+            restore_plugin_state_after_failed_update(previous, previous_state, had_previous_state, was_enabled);
+
+        if (was_loaded) {
+            release_update();
+            update_scope.release = {};
+            load_plugin(plugin_key);
+            std::string load_error;
+            if (!wait_for_plugin_load(plugin_key, std::chrono::minutes(5), load_error) ||
+                !is_plugin_loaded(plugin_key)) {
+                const std::string reason = load_error.empty() ? _u8L("Plugin failed to load.") : load_error;
+                install_error += "\n" + GUI::format(_u8L("The previous version also failed to reload: %1%"), reason);
+            }
+        }
+
+        error = std::move(install_error);
+        set_plugin_error(plugin_key, error);
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
+        return false;
+    }
+
+    // The install wrote a fresh sidecar with enabled=true, no capabilities and no permissions.
+    // Retain only the user's per-capability choices; permissions stay reset for the new code.
+    PluginDescriptor installed;
+    if (!try_get_plugin_descriptor(plugin_key, installed)) {
+        error = _u8L("Plugin not found.");
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    std::string state_error;
+    const bool state_saved = !had_local_package ||
+        write_plugin_state_after_update(installed, previous_state.capabilities, was_enabled, state_error);
+
+    // A cloud-user change can install into a different directory while the old one still exists.
+    // The installer only replaces the directory it installs into. Keep the old package until the
+    // new one is fully committed (state persisted and, when applicable, reloaded) so any failure
+    // still leaves a fallback on disk.
+    auto remove_stale_old_package = [&]() {
+        if (!had_local_package || resolved_root.empty() || installed.plugin_root.empty())
+            return;
+
+        boost::system::error_code equivalent_ec;
+        const bool same_root = boost::filesystem::equivalent(resolved_root, installed.plugin_root, equivalent_ec);
+        if (!equivalent_ec && !same_root) {
+            std::string cleanup_error;
+            if (!delete_plugin_root(resolved_root, plugin_key, cleanup_error))
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << cleanup_error;
+        }
+    };
+
+    if (had_local_package && !was_enabled) {
+        if (!state_saved) {
+            error = GUI::format(_u8L("Updated the plugin, but failed to save its deactivated state: %1%"), state_error);
+            set_plugin_error(plugin_key, error);
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
+            return false;
+        }
+        remove_stale_old_package();
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Cloud plugin " << plugin_key
+                                << " updated and kept deactivated";
+        return true;
+    }
+
+    // Never reload before the sidecar holds the preserved choices and the cleared permissions: a
+    // load seeded from the installer's fresh sidecar would enable capabilities the user disabled.
+    if (!state_saved) {
+        error = GUI::format(_u8L("Updated the plugin, but failed to preserve its capability state: %1%"), state_error);
+        set_plugin_error(plugin_key, error);
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
+        return false;
+    }
+
+    if (was_loaded) {
+        // Restore the state the user saw before the update. The package is already installed and
+        // its state persisted, so a failure here is reported as a reload failure rather than
+        // hiding the successful update.
+        release_update();
+        update_scope.release = {};
+        load_plugin(plugin_key);
+        std::string load_error;
+        if (!wait_for_plugin_load(plugin_key, std::chrono::minutes(5), load_error) ||
+            !is_plugin_loaded(plugin_key)) {
+            const std::string reason = load_error.empty() ? _u8L("Plugin failed to load.") : load_error;
+            error = GUI::format(_u8L("Updated the plugin, but failed to reload it: %1%"), reason);
+            set_plugin_error(plugin_key, error);
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
+            return false;
+        }
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Cloud plugin " << plugin_key
+                                << " updated and reloaded";
+    }
+
+    remove_stale_old_package();
     return true;
 }
 

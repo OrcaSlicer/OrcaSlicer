@@ -1910,7 +1910,8 @@ function ApplyDetailUpdateButton(button, plugin) {
   const updateStatus = plugin ? GetUpdateStatus(plugin) : "normal";
   button.hidden = updateStatus !== "update_available";
   // Re-enable after each render; the click handler disables it until the catalog refreshes.
-  button.disabled = false;
+  // A loading plugin cannot be updated, so keep the button disabled until its status settles.
+  button.disabled = plugin ? IsPluginLoading(plugin) : false;
 }
 
 function UpdateSelectedPlugin() {
