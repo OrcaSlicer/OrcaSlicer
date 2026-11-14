@@ -41,9 +41,13 @@ jobs:
         if: runner.os == 'Linux' && !vars.SELF_HOSTED
         uses: ./.github/actions/apt-install-deps
       - name: Restore Test Artifact
+        # Native GTK interaction tests need a display on headless runners.
         uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact }}
+      - name: Install virtual display for GUI tests
+        if: runner.os == 'Linux' && !vars.SELF_HOSTED
+        run: sudo apt-get update && sudo apt-get install -y xvfb xauth
       - uses: lukka/get-cmake@latest
         with:
           cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
