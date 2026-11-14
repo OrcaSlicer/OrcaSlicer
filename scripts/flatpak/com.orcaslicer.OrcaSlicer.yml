@@ -115,9 +115,9 @@ modules:
       # Use git instead of archive: wxWidgets 3.3 relies on multiple git
       # submodules (PCRE2, etc.) that are not included in GitHub tarballs.
       - type: git
-        url: https://github.com/OrcaSlicer/Orca-deps-wxWidgets.git
-        branch: v3.3.2
-        commit: b44c39c100975a0ac0e46f937aa3f3eae5e18631
+        url: https://github.com/wxWidgets/wxWidgets.git
+        branch: v3.3.4
+        commit: 6a42a4b999b127cf28a8b5fe686da6b8ca93a9b8
 
   # OrcaSlicer C++ dependencies (built offline with pre-downloaded archives)
   - name: orca_deps
