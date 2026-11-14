@@ -30,6 +30,7 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/Slicing.hpp"
 #include "libslic3r/Layer.hpp"
+#include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/Support/TreeModelVolumes.hpp"
 #include "libslic3r/Support/TreeSupportCommon.hpp"
@@ -40,6 +41,7 @@
 #include <limits>
 #include <cmath>
 #include <map>
+#include <optional>
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/GCode.hpp"
@@ -3402,6 +3404,87 @@ TEST_CASE("The belt build height check uses the compensated height", "[Print][be
         CHECK(error.empty());
     else
         CHECK(error.find(expected) != std::string::npos);
+}
+
+// The open bed edge is the one the belt carries the part past: a tilt about X prints toward +Y and one
+// about Y toward -X, and a negative angle flips that. An untilted belt opens the axis maximum along the
+// belt, and no edge opens without belt printing and an infinite axis.
+TEST_CASE("The belt infinite axis opens the edge the belt runs past", "[Print][belt]")
+{
+    const auto [belt, infinite_y, axis, angle, expect_open, expect_axis, expect_at_max] =
+        GENERATE(table<bool, bool, std::string, double, bool, int, bool>({
+            { true, true, "x", 45., true, 1, true },
+            { true, true, "x", -45., true, 1, false },
+            { true, true, "y", 45., true, 0, false },
+            { true, true, "y", -45., true, 0, true },
+            { true, false, "x", 45., false, 0, false },
+            { false, true, "x", 45., false, 0, false },
+            { true, true, "z", 45., true, 1, true },
+            { true, true, "x", 0., true, 1, true },
+            { true, true, "y", 0., true, 0, true },
+            { true, true, "none", 45., true, 1, true },
+        }));
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "belt_printer", belt },
+        { "belt_printer_infinite_y", infinite_y },
+        { "belt_slice_rotation", axis },
+        { "belt_slice_rotation_angle", angle },
+    });
+
+    INFO("belt " << belt << ", infinite_y " << infinite_y << ", axis " << axis << ", angle " << angle);
+    const std::optional<BedOpenEdge> edge = BeltTransformPipeline::infinite_axis_edge(config);
+    REQUIRE(edge.has_value() == expect_open);
+    if (edge) {
+        CHECK(edge->axis == expect_axis);
+        CHECK(edge->at_max == expect_at_max);
+    }
+}
+
+// With an infinite axis the G-code bed check accepts a part running past the bed edge the belt carries it
+// past, while the opposite edge, where printing starts, and the belt width are still checked.
+TEST_CASE("The belt G-code bed check opens only the edge the belt runs past", "[Print][belt][GCode]")
+{
+    // A 100 x 100 mm bed and a 20 x 150 x 2 mm part, long along the belt, starting at the given offset
+    // along the belt and placed mid-bed across it.
+    const auto [axis, angle, remap_x, infinite_y, start, expect_outside] =
+        GENERATE(table<std::string, double, std::string, bool, double, bool>({
+            { "x", 45., "pos_x", true, 10., false },
+            { "x", 45., "pos_x", false, 10., true },
+            { "x", 45., "pos_x", true, -20., true },
+            // A reversed belt carries the part toward -Y.
+            { "x", -45., "pos_x", true, -60., false },
+            { "x", -45., "pos_x", true, 10., true },
+            // A belt along X carries the part toward -X, which a reversed G-code X axis turns into +X.
+            { "y", 45., "pos_x", true, -60., false },
+            { "y", 45., "pos_x", true, 10., true },
+            { "y", 45., "rev_x", true, -60., false },
+            { "y", 45., "rev_x", true, 10., true },
+        }));
+    DynamicPrintConfig config = belt_test_config();
+    config.set_deserialize_strict({
+        { "printable_area", "0x0,100x0,100x100,0x100" },
+        { "belt_printer_infinite_y", infinite_y },
+        { "belt_slice_rotation", axis },
+        { "belt_slice_rotation_angle", angle },
+        // Keep the belt on G-code X or Y, which the check compares; stock profiles move Y to G-code Z.
+        { "gcode_remap_x", remap_x },
+        { "gcode_remap_y", "pos_y" },
+        { "gcode_remap_z", "pos_z" },
+    });
+    const bool along_x = axis == "y";
+    TriangleMesh part = along_x ? make_cube(150., 20., 2.) : make_cube(20., 150., 2.);
+    part.translate(along_x ? float(start) : 40.f, along_x ? 40.f : float(start), 0.f);
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{ std::move(part) }, print, model, config, nullptr, false);
+    GCodeProcessorResult result;
+    gcode(print, &result);
+
+    INFO("axis " << axis << ", angle " << angle << ", remap_x " << remap_x << ", infinite_y " << infinite_y << ", start " << start);
+    // Bit 2 marks a path outside the bed area.
+    CHECK(((result.gcode_check_result.error_code & (1 << 2)) != 0) == expect_outside);
 }
 
 // A 20 mm cube on the bed with a height range override.

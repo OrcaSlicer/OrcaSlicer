@@ -1718,6 +1718,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
             // anchor, which is only accurate to a fraction of a millimetre.
             BoundingBoxf3 bed = wxGetApp().plater()->build_volume().bounding_volume();
             bed.offset(1.);
+            BuildVolume::open_edge(bed, BeltTransformPipeline::infinite_axis_edge(print.config()));
             m_contained_in_bed = !m_paths_bounding_box.defined || (bed.contains(m_paths_bounding_box.min) && bed.contains(m_paths_bounding_box.max));
         } else
             m_contained_in_bed = wxGetApp().plater()->build_volume().all_paths_inside(gcode_result, m_paths_bounding_box);

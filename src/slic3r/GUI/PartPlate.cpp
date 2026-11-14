@@ -16,6 +16,7 @@
 #include "libslic3r/ExPolygon.hpp"
 #include <functional>
 #include <iterator>
+#include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/GCode/WipeTower.hpp"
 #include "libslic3r/CustomGCode.hpp"
@@ -4466,7 +4467,7 @@ bool PartPlate::check_outside(int obj_id, int instance_id, BoundingBoxf3* boundi
 		return *instance_hull;
 	};
 	BoundingBoxf3 plate_box = get_plate_box();
-	this->open_belt_y(plate_box);
+	this->open_belt_edge(plate_box);
 	if (instance_box.max.z() > plate_box.min.z())
 		plate_box.min.z() += instance_box.min.z(); // not considering outsize if sinking
 
@@ -4475,7 +4476,8 @@ bool PartPlate::check_outside(int obj_id, int instance_id, BoundingBoxf3* boundi
 		// m_height mirrors the printer's printable height and is set in CLI mode too, unlike m_plater.
 		if (plate_box.intersects(instance_box)) {
 			// TODO: FIXME: this does not take exclusion area into account
-			const BuildVolume build_volume(get_shape(), m_height, m_extruder_areas, m_extruder_heights);
+			BuildVolume build_volume(get_shape(), m_height, m_extruder_areas, m_extruder_heights);
+			build_volume.set_open_edge(this->belt_open_edge());
 			const auto state = instance->calc_print_volume_state(build_volume);
 			outside = state == ModelInstancePVS_Partly_Outside;
 		}
@@ -5213,16 +5215,18 @@ Polygon PartPlate::get_shared_printable_polygon() const
 }
 
 
-bool PartPlate::belt_open_y() const
+std::optional<BedOpenEdge> PartPlate::belt_open_edge() const
 {
-	// Headless (CLI) plates have no plater and no wxApp behind wxGetApp(); the CLI's own belt
-	// handling lives in Print::validate().
+	// Headless (CLI) plates have no plater and no wxApp behind wxGetApp(); the CLI opens the edge
+	// on its own build volume.
 	if (m_plater == nullptr || wxGetApp().preset_bundle == nullptr)
-		return false;
-	const DynamicPrintConfig &printer = wxGetApp().preset_bundle->printers.get_edited_preset().config;
-	const auto *belt       = printer.option<ConfigOptionBool>("belt_printer");
-	const auto *infinite_y = printer.option<ConfigOptionBool>("belt_printer_infinite_y");
-	return belt != nullptr && belt->value && infinite_y != nullptr && infinite_y->value;
+		return std::nullopt;
+	return BeltTransformPipeline::infinite_axis_edge(wxGetApp().preset_bundle->printers.get_edited_preset().config);
+}
+
+void PartPlate::open_belt_edge(BoundingBoxf3 &box) const
+{
+	BuildVolume::open_edge(box, this->belt_open_edge());
 }
 
 bool PartPlate::contains(const Vec3d& point) const
@@ -5244,7 +5248,7 @@ bool PartPlate::contains(const BoundingBoxf3& bb) const
 	print_volume.min(1) -= Slic3r::BuildVolume::BedEpsilon;
 	print_volume.max(0) += Slic3r::BuildVolume::BedEpsilon;
 	print_volume.max(1) += Slic3r::BuildVolume::BedEpsilon;
-	this->open_belt_y(print_volume);
+	this->open_belt_edge(print_volume);
 	return print_volume.contains(bb);
 }
 
@@ -5257,7 +5261,7 @@ bool PartPlate::intersects(const BoundingBoxf3& bb) const
 	print_volume.min(1) -= Slic3r::BuildVolume::BedEpsilon;
 	print_volume.max(0) += Slic3r::BuildVolume::BedEpsilon;
 	print_volume.max(1) += Slic3r::BuildVolume::BedEpsilon;
-	this->open_belt_y(print_volume);
+	this->open_belt_edge(print_volume);
 	return print_volume.intersects(bb);
 }
 

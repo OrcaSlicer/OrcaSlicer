@@ -2,6 +2,7 @@
 #include "GCode/MachineFrameTransform.hpp"
 #include "Model.hpp"
 #include "BoundingBox.hpp"
+#include "BuildVolume.hpp"
 #include "Config.hpp"
 #include "Geometry.hpp"
 #include "Point.hpp"
@@ -9,6 +10,7 @@
 #include "libslic3r.h"
 
 #include <limits>
+#include <optional>
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -176,6 +178,20 @@ BeltTransformPipeline::BeltHeightResult BeltTransformPipeline::compute_belt_heig
     const PrintConfig &config, const BoundingBoxf3 &bbox, double original_height)
 {
     return compute_belt_height_and_floor_impl(config, bbox, original_height);
+}
+
+std::optional<BedOpenEdge> BeltTransformPipeline::infinite_axis_edge(const ConfigBase &config)
+{
+    const auto *belt       = config.option<ConfigOptionBool>("belt_printer");
+    const auto *infinite_y = config.option<ConfigOptionBool>("belt_printer_infinite_y");
+    const auto *axis       = config.option<ConfigOptionEnum<BeltRotationAxis>>("belt_slice_rotation");
+    const auto *angle      = config.option<ConfigOptionFloat>("belt_slice_rotation_angle");
+    if (belt == nullptr || !belt->value || infinite_y == nullptr || !infinite_y->value || axis == nullptr || angle == nullptr)
+        return std::nullopt;
+    const bool tilt_y   = axis->value == BeltRotationAxis::Y;
+    const bool tilted   = (axis->value == BeltRotationAxis::X || tilt_y) && std::abs(angle->value) > EPSILON;
+    const bool reversed = tilted && (tilt_y != (angle->value < 0.));
+    return BedOpenEdge{ tilt_y ? 0 : 1, !reversed };
 }
 
 bool BeltTransformPipeline::floor_shear(const PrintConfig &config, BeltFloorParams &out)

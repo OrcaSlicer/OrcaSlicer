@@ -141,6 +141,7 @@
 #include "slic3r/GUI/GuiColor.hpp"
 #include <GLFW/glfw3.h>
 #include "libslic3r/AppConfig.hpp"
+#include "libslic3r/BeltTransform.hpp"
 #include "libslic3r/BuildVolume.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Exception.hpp"
@@ -6589,6 +6590,7 @@ int CLI::run(int argc, char **argv)
                             % print_volume.min(2) % print_volume.max(0) % print_volume.max(1) % print_volume.max(2) << std::endl;
 #else
                         BuildVolume build_volume(part_plate->get_shape(), print_height, part_plate->get_extruder_areas(), current_extruder_print_heights);
+                        build_volume.set_open_edge(BeltTransformPipeline::infinite_axis_edge(m_print_config));
                         //model.update_print_volume_state(build_volume);
                         unsigned int count = model.update_print_volume_state(build_volume);
 
