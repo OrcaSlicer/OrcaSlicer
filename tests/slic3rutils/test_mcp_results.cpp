@@ -24,6 +24,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libvgcode/include/Types.hpp"
 #include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/CommandCatalog.hpp"
 #include "slic3r/GUI/GLToolbar.hpp"
 #include "slic3r/GUI/IMSlider.hpp"
 #include "slic3r/GUI/ImGuiWrapper.hpp"
