@@ -11,8 +11,8 @@ else()
 endif()
 
 orcaslicer_add_cmake_project(Assimp
-    URL https://github.com/assimp/assimp/archive/refs/tags/v6.0.5.zip
-    URL_HASH SHA256=89e477e89df739ecc7dd21874897ac2e70c8944eb1074fbdbbdbf4dd2de6a403
+    URL https://github.com/assimp/assimp/archive/refs/tags/v6.0.6.zip
+    URL_HASH SHA256=951667a2d0f2068456a34ef017645d82e0f3d0eabc36440384fbe3054f665407
     CMAKE_ARGS
         # Assimp's ccache support sets the global RULE_LAUNCH_COMPILE, which breaks
         # the Ninja RC rule. The superbuild forwards CMAKE_<LANG>_COMPILER_LAUNCHER.
