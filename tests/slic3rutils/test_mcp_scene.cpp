@@ -137,7 +137,8 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
     };
     const Names path{"path"}, output{"path", "overwrite"}, all{"all"}, size{"size"};
     const Names recording{"target", "fps",   "max_dim", "quality", "max_seconds", "captions",  "pointer", "encode",
-                          "encode_preset", "codec", "crf", "speed", "profile", "save_path", "overwrite", "silent"};
+                          "encode_preset", "codec", "crf", "speed", "profile", "keep_raw_video_file", "save_path", "overwrite",
+                          "silent"};
     REQUIRE(names("go_to_layer") == Names{"percent"});
     REQUIRE(names("go_to_tab") == Names{"tab"});
     for (const char* key : {"load_project", "import_file", "add_primitive_svg", "install_local_plugin"})
