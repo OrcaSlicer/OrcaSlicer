@@ -17,8 +17,9 @@
 
 #include "libslic3r/IMEXHelpers.hpp"
 #include "libslic3r/PresetBundle.hpp"
-#include "slic3r/GUI/BitmapComboBox.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/wxExtensions.hpp"
@@ -78,9 +79,10 @@ void IMEXFilamentPickerPopover::build_row()
 
     std::vector<wxBitmap*> bmps = get_extruder_color_icons(false /*thin_icon*/);
 
-    auto* choice = new BitmapComboBox(this, wxID_ANY, wxEmptyString,
+    auto* choice = new ::ComboBox(this, wxID_ANY, wxEmptyString,
                                       wxDefaultPosition, wxSize(140, -1),
                                       0, nullptr, wxCB_READONLY);
+    choice->EnableTypeToFilter();
     const int left_pad_px = 8;
     auto pad_left = [&](const wxBitmap& src) -> wxBitmap {
         if (!src.IsOk()) return src;
@@ -101,6 +103,9 @@ void IMEXFilamentPickerPopover::build_row()
             choice->Append(label, pad_left(*bmps[L]));
         else
             choice->Append(label, wxNullBitmap);
+        const auto& names = wxGetApp().preset_bundle->filament_presets;
+        if (L >= 0 && L < int(names.size()))
+            choice->SetItemAlias(choice->GetCount() - 1, from_u8(names[L]));
     }
 
     const auto map = m_plate->get_imex_head_filament_map();

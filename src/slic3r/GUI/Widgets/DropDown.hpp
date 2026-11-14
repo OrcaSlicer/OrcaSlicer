@@ -18,6 +18,9 @@
 
 class wxDC;
 class wxWindow;
+class TextInput;
+class Label;
+class SearchableDropDownList;
 
 #define DD_NO_CHECK_ICON    0x0001
 #define DD_NO_TEXT          0x0002
@@ -50,8 +53,21 @@ public:
     };
 
 private:
+    friend class SearchableDropDownList; // draws search rows with this dropdown's metrics
+
     std::vector<Item> &items;
     size_t             count = 0;
+    TextInput*         search_input = nullptr;
+    SearchableDropDownList* search_list = nullptr;
+    Label*             search_empty = nullptr;
+    bool               search_enabled = false;
+    bool               flat_mode = false; // the filtered list is showing instead of stock rows
+    int                top_inset = 0;     // search header height; stock rows scroll below it
+    void filterSearch();
+    void showFlat(bool flat);
+    void acceptSearch();
+    void searchKeyDown(wxKeyEvent& event);
+
     wxString           group;
     bool               need_sync  = false;
     int                selection  = -1;
@@ -93,6 +109,7 @@ public:
 
 public:
     void Invalidate(bool clear = false);
+    void EnableSearch();
 
     int GetSelection() const { return selection; }
 

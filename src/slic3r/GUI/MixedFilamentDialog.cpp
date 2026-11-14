@@ -296,6 +296,7 @@ void MixedFilamentDialog::append_material_row()
 
     auto* combo = new ComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                                wxSize(FromDIP(166), FromDIP(24)), 0, nullptr, wxCB_READONLY);
+    combo->EnableTypeToFilter();
     combo->SetKeepDropArrow(true);
     combo->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { on_filament_changed(); });
     row->Add(combo, 1, wxALIGN_CENTER_VERTICAL);
