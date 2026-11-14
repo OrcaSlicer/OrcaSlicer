@@ -11,6 +11,7 @@
 #include "Job.hpp"
 #include "libslic3r/Arrange.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Point.hpp"
 #include "libslic3r/IMEXArrange.hpp"
 
 namespace Slic3r {
@@ -63,6 +64,10 @@ class ArrangeJob : public Job
     // BBS: add flag for whether on current part plate
     bool only_on_partplate{false};
 
+    // Arranging only the selection: where its objects were (plate-local, scaled), so the result stays
+    // around that spot instead of jumping to the plate's best object position.
+    std::optional<Vec2crd> m_selection_center;
+
     // clear m_selected and m_unselected, reserve space for next usage
     void clear_input();
 
@@ -73,7 +78,9 @@ class ArrangeJob : public Job
     void prepare_all();
 
     //BBS:prepare the items from current selected partplate
-    void prepare_partplate();
+    // With only_selection just the selected instances are moved; the other ones on the plate stay put
+    // and act as obstacles.
+    void prepare_partplate(bool only_selection = false);
     void prepare_wipe_tower();
     void prepare_belt_regions(int num_plates);
     void prepare_imex_zones();
