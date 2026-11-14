@@ -530,6 +530,13 @@ enum LayerSeq {
     flsCustomize
 };
 
+// Plate settings UI only
+enum SpiralModeChoice {
+    smcSameAsGlobal,
+    smcEnable,
+    smcDisable
+};
+
 enum FanDirection {
     fdUndefine = 0,
     fdLeft,

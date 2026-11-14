@@ -621,6 +621,13 @@ static const t_config_enum_values s_keys_map_LayerSeq = {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(LayerSeq)
 
+static const t_config_enum_values s_keys_map_SpiralModeChoice = {
+    { "Same as Global", smcSameAsGlobal },
+    { "Enable",         smcEnable },
+    { "Disable",        smcDisable },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SpiralModeChoice)
+
 static t_config_enum_values s_keys_map_NozzleType {
     { "undefine",       int(NozzleType::ntUndefine) },
     { "hardened_steel", int(NozzleType::ntHardenedSteel) },
@@ -1512,6 +1519,19 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Customize"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<LayerSeq>(flsAuto));
+
+    def = this->add("spiral_mode_choice", coEnum);
+    def->label = L("Spiral vase");
+    def->tooltip = L("This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam.");
+    def->enum_keys_map = &ConfigOptionEnum<SpiralModeChoice>::get_enum_values();
+    def->enum_values.push_back("Same as Global");
+    def->enum_values.push_back("Enable");
+    def->enum_values.push_back("Disable");
+    def->enum_labels.push_back(L("Same as Global"));
+    def->enum_labels.push_back(L("Enable"));
+    def->enum_labels.push_back(L("Disable"));
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionEnum<SpiralModeChoice>(smcSameAsGlobal));
 
     def = this->add("before_layer_change_gcode", coString);
     def->label = L("Before layer change G-code");

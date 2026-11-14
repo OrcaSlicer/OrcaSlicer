@@ -577,14 +577,11 @@ void PartPlate::set_spiral_vase_mode(bool spiral_mode, bool as_global)
 		m_config.erase(key);
 	else {
 		if (spiral_mode) {
-			if (get_spiral_vase_mode())
+			// already enabled by this plate, nothing changes
+			if (has_spiral_mode_config() && get_spiral_vase_mode())
 				return;
-			// Secondary confirmation
-			auto answer = static_cast<TabPrintPlate*>(wxGetApp().plate_tab)->show_spiral_mode_settings_dialog(false);
-			if (answer == wxID_YES) {
-				m_config.set_key_value(key, new ConfigOptionBool(true));
-				set_vase_mode_related_object_config();
-			}
+			m_config.set_key_value(key, new ConfigOptionBool(true));
+			set_vase_mode_related_object_config();
 		}
 		else
 			m_config.set_key_value(key, new ConfigOptionBool(false));
@@ -2667,7 +2664,7 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
             }
 
 			if (m_partplate_list->render_plate_settings) {
-				bool has_plate_settings = get_bed_type() != BedType::btDefault || get_print_seq() != PrintSequence::ByDefault || !get_first_layer_print_sequence().empty() || !get_other_layers_print_sequence().empty() || has_spiral_mode_config();
+				bool has_plate_settings = get_bed_type() != BedType::btDefault || get_print_seq() != PrintSequence::ByDefault || !get_first_layer_print_sequence().empty() || !get_other_layers_print_sequence().empty() || has_spiral_mode_config() || m_config.has("skirt_start_angle");
                 if (hover_id == 5) {
                     if (!has_plate_settings)
                         render_icon_texture(m_plate_settings_icon.model, m_partplate_list->m_plate_settings_hovered_texture);

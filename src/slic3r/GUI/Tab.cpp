@@ -104,6 +104,7 @@
 #include "Notebook.hpp"
 
 #include "Widgets/ComboBox.hpp"
+#include "PlateSettingsDialog.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/MultiNozzleSync.hpp"
 #include "Widgets/SwitchButton.hpp"
@@ -145,7 +146,17 @@ int mode_to_selection(ConfigOptionMode mode)
 // Forward declaration for early use; definitions live later in this translation unit.
 static void validate_custom_gcode_cb(Tab* tab, const wxString& title, const t_config_option_key& opt_key, const boost::any& value);
 
-static const std::vector<std::string> plate_keys = { "curr_bed_type", "skirt_start_angle", "first_layer_print_sequence", "first_layer_sequence_choice", "other_layers_print_sequence", "other_layers_sequence_choice", "print_sequence", "spiral_mode"};
+static const std::vector<std::string> plate_keys = { "curr_bed_type", "skirt_start_angle", "first_layer_print_sequence", "first_layer_sequence_choice", "other_layers_print_sequence", "other_layers_sequence_choice", "print_sequence", "spiral_mode", "spiral_mode_choice"};
+
+// Plate print sequence choices, ByDefault is UI only
+static const t_config_enum_values s_plate_print_sequence_keys = {
+    { "same as global", int(PrintSequence::ByDefault) },
+    { "by layer",       int(PrintSequence::ByLayer) },
+    { "by object",      int(PrintSequence::ByObject) },
+};
+// Plate skirt start angle entries, out of the valid range so they never clash with a real value
+static const std::string s_plate_skirt_angle_global = "-1000";
+static const std::string s_plate_skirt_angle_custom = "-1001";
 
 static std::pair<std::string, std::string> extruder_variant_keys[]{
     {},                                                  // invalid
@@ -3913,15 +3924,22 @@ void TabPrintModel::update_model_config()
                     m_config->set_key_value("first_layer_sequence_choice", new ConfigOptionEnum<LayerSeq>(flsAuto));
                 }
                 else {
-                    replace(m_all_keys.begin(), m_all_keys.end(), std::string("first_layer_print_sequence"), std::string("first_layer_sequence_choice"));
+                    m_all_keys.push_back("first_layer_sequence_choice"); // sequence keys are stored as "key#n"
                     m_config->set_key_value("first_layer_sequence_choice", new ConfigOptionEnum<LayerSeq>(flsCustomize));
                 }
                 if (!plate_config.has("other_layers_print_sequence")) {
                     m_config->set_key_value("other_layers_sequence_choice", new ConfigOptionEnum<LayerSeq>(flsAuto));
                 }
                 else {
-                    replace(m_all_keys.begin(), m_all_keys.end(), std::string("other_layers_print_sequence"), std::string("other_layers_sequence_choice"));
+                    m_all_keys.push_back("other_layers_sequence_choice");
                     m_config->set_key_value("other_layers_sequence_choice", new ConfigOptionEnum<LayerSeq>(flsCustomize));
+                }
+                if (!plate_config.has("spiral_mode")) {
+                    m_config->set_key_value("spiral_mode_choice", new ConfigOptionEnum<SpiralModeChoice>(smcSameAsGlobal));
+                }
+                else {
+                    m_all_keys.push_back("spiral_mode_choice");
+                    m_config->set_key_value("spiral_mode_choice", new ConfigOptionEnum<SpiralModeChoice>(plate_config.opt_bool("spiral_mode") ? smcEnable : smcDisable));
                 }
                 notify_changed(plate_item.first);
             }
@@ -3945,6 +3963,8 @@ void TabPrintModel::update_model_config()
             }
         }
     }
+    if (m_type == Preset::TYPE_PLATE)
+        static_cast<TabPrintPlate *>(this)->update_same_as_global_fields();
 }
 
 void TabPrintModel::reset_model_config()
@@ -3979,8 +3999,10 @@ void TabPrintModel::activate_selected_page(std::function<void()> throw_if_cancel
                 f->set_value(boost::any(), false);
         }
     }
-    if (m_type == Preset::TYPE_PLATE)
+    if (m_type == Preset::TYPE_PLATE) {
         static_cast<TabPrintPlate *>(this)->update_mixed_filament_seq_state();
+        static_cast<TabPrintPlate *>(this)->update_same_as_global_fields();
+    }
 }
 
 // A mixed-color slot resolves to a different physical filament per layer, so a
@@ -4144,13 +4166,25 @@ void TabPrintPlate::build()
     m_config->option("first_layer_print_sequence", true);
     m_config->option("other_layers_print_sequence", true);
     m_config->option("other_layers_sequence_choice", true);
+    m_config->option("spiral_mode_choice", true);
 
     auto page = add_options_page(L("Plate Settings"), "empty");
     auto optgroup = page->new_optgroup("");
-    optgroup->append_single_option_line("curr_bed_type");
-    optgroup->append_single_option_line("skirt_start_angle");
-    optgroup->append_single_option_line("print_sequence");
-    optgroup->append_single_option_line("spiral_mode");
+    Option bed_type = optgroup->get_option("curr_bed_type");
+    bed_type.opt.enum_values.insert(bed_type.opt.enum_values.begin(), "Default Plate"); // btDefault
+    bed_type.opt.enum_labels.insert(bed_type.opt.enum_labels.begin(), L("Same as Global Plate Type"));
+    optgroup->append_single_option_line(bed_type);
+    Option skirt_angle = optgroup->get_option("skirt_start_angle");
+    skirt_angle.opt.gui_type = ConfigOptionDef::GUIType::f_enum_open;
+    skirt_angle.opt.enum_values = { s_plate_skirt_angle_global, s_plate_skirt_angle_custom };
+    skirt_angle.opt.enum_labels = { L("Same as Global"), L("Custom") };
+    optgroup->append_single_option_line(skirt_angle);
+    Option print_seq = optgroup->get_option("print_sequence");
+    print_seq.opt.enum_keys_map = &s_plate_print_sequence_keys;
+    print_seq.opt.enum_values.insert(print_seq.opt.enum_values.begin(), "same as global");
+    print_seq.opt.enum_labels.insert(print_seq.opt.enum_labels.begin(), L("Same as Global Print Sequence"));
+    optgroup->append_single_option_line(print_seq);
+    optgroup->append_single_option_line("spiral_mode_choice");
     optgroup->append_single_option_line("first_layer_sequence_choice");
     optgroup->append_single_option_line("other_layers_sequence_choice");
 
@@ -4158,6 +4192,38 @@ void TabPrintPlate::build()
         line.undo_to_sys = true;
     }
     optgroup->have_sys_config = [this] { m_back_to_sys = true; return true; };
+    // an emptied skirt start angle reloads the fields, reload through the tab to keep "Same as Global"
+    optgroup->m_fill_empty_value = [this](const std::string&) { reload_config(); };
+
+    // needed for revert icons and modified labels
+    init_options_list();
+}
+
+// Show "Same as Global" for values not overridden by the plate
+void TabPrintPlate::update_same_as_global_fields()
+{
+    if (!m_active_page || m_object_configs.empty())
+        return;
+    auto set_default = [this](const std::string& key, const boost::any& value) {
+        Field* field = m_active_page->get_field(key);
+        if (field && std::find(m_all_keys.begin(), m_all_keys.end(), key) == m_all_keys.end())
+            field->set_value(value, false);
+    };
+    set_default("curr_bed_type", int(btDefault));
+    set_default("print_sequence", int(PrintSequence::ByDefault));
+    set_default("skirt_start_angle", wxString(s_plate_skirt_angle_global));
+
+    // "Same as Global" text of the skirt start angle is not editable, "Custom" turns it into a number
+    Field* angle_field = m_active_page->get_field("skirt_start_angle");
+    auto angle = angle_field ? dynamic_cast<::ComboBox*>(angle_field->getWindow()) : nullptr;
+    if (angle)
+        PlateSettingsDialog::lock_first_entry(angle);
+}
+
+void TabPrintPlate::reload_config()
+{
+    TabPrintModel::reload_config();
+    update_same_as_global_fields();
 }
 
 void TabPrintPlate::reset_model_config()
@@ -4190,6 +4256,55 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
     }
     if (!has_key(k))
         return;
+
+    // Changing to "Enable" asks for confirmation each time, like the dialog
+    if (k == "spiral_mode_choice" && m_config->opt_enum<SpiralModeChoice>(k) == smcEnable) {
+        if (!m_object_configs.empty() && std::all_of(m_object_configs.begin(), m_object_configs.end(), [](const auto& plate_item) {
+                auto plate = dynamic_cast<PartPlate*>(plate_item.first);
+                return plate && plate->has_spiral_mode_config() && plate->get_spiral_vase_mode();
+            }))
+            return; // selected again, nothing changes
+        if (!m_spiral_enable_deferred) { // let the dropdown close first
+            m_spiral_enable_deferred = true;
+            CallAfter([this, opt_key, value] {
+                if (m_config->opt_enum<SpiralModeChoice>("spiral_mode_choice") == smcEnable) // not changed meanwhile
+                    on_value_change(opt_key, value);
+                m_spiral_enable_deferred = false;
+            });
+            return;
+        }
+        // asked before the snapshot and the override are recorded, declining restores the plate's value
+        if (show_spiral_mode_settings_dialog(false) != wxID_YES) {
+            update_model_config();
+            return;
+        }
+    }
+
+    // "Same as Global" / "Auto" works like revert, keep the real global value in m_config
+    if (k == "curr_bed_type" && m_config->opt_enum<BedType>(k) == btDefault) {
+        m_back_to_sys = true;
+        if (auto opt = m_preset_bundle->project_config.option(k))
+            m_config->set_key_value(k, opt->clone());
+    } else if (k == "print_sequence" && m_config->opt_enum<PrintSequence>(k) == PrintSequence::ByDefault) {
+        m_back_to_sys = true;
+        m_config->set_key_value(k, m_parent_tab->m_config->option(k)->clone());
+    } else if (k == "skirt_start_angle" && m_config->opt_float(k) == std::stod(s_plate_skirt_angle_global)) {
+        m_back_to_sys = true;
+        m_config->set_key_value(k, m_parent_tab->m_config->option(k)->clone());
+    } else if (k == "skirt_start_angle" && m_config->opt_float(k) == std::stod(s_plate_skirt_angle_custom)) {
+        // "Custom" starts from the current value
+        const ConfigOption* current = m_object_configs.empty() ? nullptr : m_object_configs.begin()->second->get().option(k);
+        m_config->set_key_value(k, (current ? current : m_parent_tab->m_config->option(k))->clone());
+    } else if (k == "spiral_mode_choice" && m_config->opt_enum<SpiralModeChoice>(k) == smcSameAsGlobal) {
+        m_back_to_sys = true;
+    } else if ((k == "first_layer_sequence_choice" || k == "other_layers_sequence_choice") && m_config->opt_enum<LayerSeq>(k) == flsAuto)
+        m_back_to_sys = true;
+    if (m_back_to_sys && std::find(m_all_keys.begin(), m_all_keys.end(), k) == m_all_keys.end()) {
+        m_back_to_sys = false; // nothing to revert
+        update_changed_ui();
+        return;
+    }
+
     if (!m_object_configs.empty())
         wxGetApp().plater()->take_snapshot((boost::format("Change Option %s") % k).str());
     bool set = true;
@@ -4207,8 +4322,10 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
                 plate->set_first_layer_print_sequence({});
             if (k == "other_layers_sequence_choice")
                 plate->set_other_layers_print_sequence({});
-            if (k == "spiral_mode")
+            if (k == "spiral_mode_choice") {
                 plate->set_spiral_vase_mode(false, true);
+                m_config->set_key_value("spiral_mode", m_parent_tab->m_config->option("spiral_mode")->clone());
+            }
         }
         m_all_keys.erase(std::remove(m_all_keys.begin(), m_all_keys.end(), k), m_all_keys.end());
     }
@@ -4275,8 +4392,10 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
                     wxPostEvent(wxGetApp().plater(), evt);
                 }
             }
-            if (k == "spiral_mode") {
-                plate->set_spiral_vase_mode(m_config->opt_bool("spiral_mode"), false);
+            if (k == "spiral_mode_choice") {
+                bool enable = m_config->opt_enum<SpiralModeChoice>(k) == smcEnable;
+                plate->set_spiral_vase_mode(enable, false); // enabling is confirmed above
+                m_config->set_key_value("spiral_mode", new ConfigOptionBool(enable));
             }
         }
         m_all_keys = concat(m_all_keys, { k });
@@ -4290,6 +4409,7 @@ void TabPrintPlate::on_value_change(const std::string& opt_key, const boost::any
 
     wxGetApp().params_panel()->notify_object_config_changed();
     update();
+    wxGetApp().plater()->get_current_canvas3D()->set_as_dirty(); // plate settings icon
 }
 
 void TabPrintPlate::notify_changed(ObjectBase* object)
@@ -4310,25 +4430,8 @@ void TabPrintPlate::notify_changed(ObjectBase* object)
 void TabPrintPlate::update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options)
 {
     TabPrintModel::update_custom_dirty(dirty_options, nonsys_options);
-    for (auto k : m_all_keys) {
-        if (k == "first_layer_sequence_choice" || k == "other_layers_sequence_choice") {
-            if (m_config->opt_enum<LayerSeq>("first_layer_sequence_choice") != LayerSeq::flsAuto) {
-                dirty_options.push_back(k);
-            }
-            if (m_config->opt_enum<LayerSeq>("other_layers_sequence_choice") != LayerSeq::flsAuto) {
-                dirty_options.push_back(k);
-            }
-        }
-        if (k == "curr_bed_type") {
-            DynamicConfig& global_cfg = m_preset_bundle->project_config;
-            if (global_cfg.has("curr_bed_type")) {
-                BedType global_bed_type = global_cfg.opt_enum<BedType>("curr_bed_type");
-                if (m_config->opt_enum<BedType>("curr_bed_type") != global_bed_type) {
-                    dirty_options.push_back(k);
-                }
-            }
-        }
-    }
+    // every plate override is a modification, "Same as Global" is the only unmodified state
+    dirty_options = concat(dirty_options, m_all_keys);
 }
 
 TabPrintObject::TabPrintObject(ParamsPanel* parent) :
