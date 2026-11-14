@@ -184,6 +184,7 @@ void PresetComboBox::OnSelect(wxCommandEvent& evt)
         this->SetSelection(m_last_selected);
     else if (on_selection_changed && (m_last_selected != selected_item || m_collection->current_is_dirty())) {
         m_last_selected = selected_item;
+        update_source_arrow();
         on_selection_changed(selected_item);
         evt.StopPropagation();
     }
@@ -245,7 +246,7 @@ void PresetComboBox::update_selection()
     SetToolTip(NULL);
 #endif
     SetToolTip(GetString(m_last_selected));
-
+    update_source_arrow();
 // A workaround for a set of issues related to text fitting into gtk widgets:
 #if defined(__WXGTK20__) || defined(__WXGTK3__)
   GtkWidget* widget = m_widget;
@@ -271,6 +272,51 @@ void PresetComboBox::update_selection()
         g_warning("Expected GtkEntry, but got %s", G_OBJECT_TYPE_NAME(widget));
     }
 #endif
+}
+
+void PresetComboBox::update_source_arrow()
+{
+    // Off: keep the arrow or filament swatch set by ComboBox::SetSelection().
+    if (!wxGetApp().app_config->get_bool("show_preset_source_indicators"))
+        return;
+
+    std::string   icon   = "drop_down";
+    const Preset* preset = nullptr;
+    if (m_last_selected >= 0 && m_last_selected < int(GetCount())) {
+        const Marker marker = reinterpret_cast<Marker>(GetClientData(m_last_selected));
+        if (marker == LABEL_ITEM_PHYSICAL_PRINTER) {
+            // Physical printer items stand for the selected printer preset.
+            if (m_collection->get_selected_idx() != size_t(-1))
+                preset = &m_collection->get_selected_preset();
+        } else if (marker != LABEL_ITEM_PRINTER_MODELS) {
+            const wxString alias = GetItemAlias(m_last_selected);
+            preset = m_collection->find_preset(Preset::remove_suffix_modified(into_u8(alias.empty() ? GetString(m_last_selected) : alias)));
+        }
+        // Printer model items are system presets.
+        if (marker == LABEL_ITEM_PRINTER_MODELS || (preset && (preset->is_system || preset->is_default)))
+            icon = "drop_down_indicator_system";
+        else if (preset) // bundle presets count as user presets
+            icon = preset->is_project_embedded ? "drop_down_indicator_project" : "drop_down_indicator_user";
+    }
+
+    // Filament swatch (see get_bmp()): draw it next to the indicator; it replaces the vendor logo.
+    const wxBitmap swatch = preset ? GetItemBitmap(m_last_selected) : wxNullBitmap;
+    if (!swatch.IsOk()) {
+        SetIcon(icon);
+        return;
+    }
+    const Preset& shown = &m_collection->get_selected_preset() == preset ? m_collection->get_edited_preset() : *preset;
+    std::string key = "source_arrow," + icon + "," + shown.config.opt_string("default_filament_colour", 0)
+                    + ",em" + std::to_string(m_em_unit) + (wxGetApp().dark_mode() ? ",dark" : "");
+    wxBitmap* bmp = bitmap_cache().find(key);
+    if (bmp == nullptr) {
+        wxImage swatch_img = swatch.ConvertToImage();
+        if (!swatch_img.HasAlpha())
+            swatch_img.InitAlpha(); // a 24-bit bitmap comes out transparent on MSW
+        bmp = bitmap_cache().insert(key, create_scaled_bitmap(icon, this, 16), bitmap_cache().mkclear(space_icon_width, icon_height),wxBitmap(swatch_img));
+    }
+    SetIcon_1(wxNullBitmap);
+    SetIcon(*bmp);
 }
 
 int PresetComboBox::update_ams_color()
