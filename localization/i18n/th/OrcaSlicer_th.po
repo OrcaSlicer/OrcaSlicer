@@ -15254,16 +15254,6 @@ msgid "%1% modifier \"%2%\" of \"%3%\" (%4% in total) covers an entire perimeter
 msgstr "ตัวปรับแต่ง %1% \"%2%\" ของ \"%3%\" (ทั้งหมด %4% รายการ) ครอบคลุมเส้นรอบวงทั้งเส้น"
 
 # AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "ตัวปรับแต่ง \"%1%\" ของ \"%2%\" ไม่มีผลต่อรอยตะเข็บ (อาจไม่ถึงเส้นกึ่งกลางของเส้นรอบวงที่พิมพ์)"
-
-# AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "ตัวปรับแต่ง \"%1%\" ของ \"%2%\" (ทั้งหมด %3% รายการ) ไม่มีผลต่อรอยตะเข็บ (อาจไม่ถึงเส้นกึ่งกลางของเส้นรอบวงที่พิมพ์)"
-
-# AI Translated
 msgid "Seam placement may differ from expected."
 msgstr "ตำแหน่งรอยตะเข็บอาจแตกต่างจากที่คาดไว้"
 

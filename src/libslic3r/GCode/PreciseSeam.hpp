@@ -4,15 +4,19 @@
 #include <atomic>
 #include <cassert>
 #include <cstddef>
+#include <memory>
 #include <optional>
 #include <vector>
 #include <unordered_map>
 #include <utility>
+#include "libslic3r/AABBTreeLines.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Line.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Polyline.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Model.hpp"
 #include "SeamPlacer.hpp"
 
@@ -55,6 +59,10 @@ struct PreciseSeamWarnings {
     // Fragments saved by the rare-case fallback or accepted as contacts; log only, no user warning.
     // Clipper is deterministic, so a prismatic model can repeat the same case on every layer.
     std::atomic<size_t> recovered_fragments{0};
+    // Fuzzy skin, log only: points carried onto the noisy loop without the line through their surface point, and weak
+    // zones whose carried boundaries came out in the reverse order and were reduced to one point.
+    std::atomic<size_t> approximate_transfers{0};
+    std::atomic<size_t> reversed_zones{0};
 
     // Per-modifier flags for the "had no effect" and "covers an entire perimeter" warnings. Modifiers are
     // registered before the parallel phase, so workers only set flags; unregistered ones (e.g. in tests)
@@ -93,15 +101,80 @@ struct ExtractionContext {
     PreciseSeamWarnings *warnings = nullptr;
 };
 
+namespace detail { struct SurfaceLine; }
+
+// Scaled distance from the perimeter centerline to the model surface the user sees: half the line width,
+// less the object's XY compensation for contours or holes (positive towards air) and a small margin. Zero when
+// the surface practically coincides with the centerline; extraction then clips the centerline itself.
+coord_t surface_shift(double line_width, double compensation);
+
+// A shift that changes along the perimeter: one value per vertex and, on an edge where it does not change
+// linearly between its vertices, values at interior points as (parameter, shift) in increasing parameter order.
+struct ShiftProfile {
+    std::vector<coord_t> vertices;
+    std::vector<std::vector<std::pair<double, coord_t>>> interior; // One list per edge.
+    bool empty() const { return vertices.empty(); }
+};
+
 // Borrows the source polygon; use only until insertion/refinement changes that polygon.
 struct PreparedPerimeter {
+    // The smooth centerline modifiers are evaluated on.
     const Polygon &polygon;
+    // With fuzzy skin, the noisy loop the results are inserted into, made from `polygon`; null when they are
+    // inserted into `polygon` itself. Points are carried onto it within `window` of the smooth line.
+    const Polygon *target = nullptr;
+    coord_t window = 0;
     BoundingBox bounds;
     Polyline line;
     bool valid = false;
+    // Largest distance to the reconstructed surface and its side: air lies inside the polygon of a hole.
+    coord_t shift = 0;
+    bool hole = false;
+    // The shift at every point when it changes along the perimeter; empty when it is `shift` everywhere.
+    ShiftProfile profile;
 
-    explicit PreparedPerimeter(const Polygon &perimeter);
+    explicit PreparedPerimeter(const Polygon &perimeter, coord_t surface_shift = 0, bool is_hole = false);
+    // A profile whose largest shift is within the snapping radius keeps the centerline, as a constant one does.
+    PreparedPerimeter(const Polygon &perimeter, ShiftProfile shift_profile, bool is_hole);
+    ~PreparedPerimeter();
+    // Sets the noisy loop made from `polygon` by fuzzy skin and the window within which its points are looked for
+    // around `polygon`: an estimate from the fuzzy skin settings, not a measured largest distance. An unusable loop
+    // (as the constructor checks) makes the preparation invalid.
+    void set_target(const Polygon &noisy, coord_t noise_window);
+    // The polygon insertion changes.
+    const Polygon &insertion() const { return target != nullptr ? *target : polygon; }
+    // Built on the first request, so perimeters that no modifier approaches never pay for it. Internal to
+    // extraction.
+    const detail::SurfaceLine &surface() const;
+    // The same for the edges of the noisy loop; requires a target.
+    const AABBTreeLines::LinesDistancer<Line> &target_lines() const;
+
+private:
+    mutable std::unique_ptr<detail::SurfaceLine> m_surface;
+    mutable std::unique_ptr<AABBTreeLines::LinesDistancer<Line>> m_target_lines;
 };
+
+// What measuring the shift along one perimeter needs. Lengths in mm.
+struct ShiftMeasurement {
+    // Boundary of the layer's islands as slicing stored them, before elephant foot compensation.
+    const AABBTreeLines::LinesDistancer<Line> &outline;
+    double line_width;           // Of the external perimeter; half of it is the nominal depth of the centerline.
+    double compensation;         // XY compensation of this kind of wall, positive towards air.
+    double outline_compensation; // The part of `compensation` the outline already contains.
+    // Depths of the centerline below the outline that belong to the wall's own surface; elsewhere (a wall thinner
+    // than expected, a boundary between regions) the nominal shift applies.
+    double min_depth;
+    double max_depth;
+};
+
+// The shift at every vertex of a perimeter, and at interior points of edges longer than the sampling step where it
+// does not change linearly along them: the measured depth of the centerline below the outline, less the
+// compensation the outline contains and the margin, never negative. The depth is the offset to the nearest point of
+// the outline projected on the normal of the edge (the larger of the two at a vertex), so at an inner corner, whose
+// nearest outline point is the corner, it is still the distance to each side. Returns an empty profile when every
+// value equals the nominal shift of surface_shift() within the snapping radius, so that walls at their nominal depth
+// keep the constant shift exactly.
+ShiftProfile measure_shift_profile(const Polygon &perimeter, bool hole, const ShiftMeasurement &measurement);
 
 // A vertex is represented by its outgoing edge and parameter zero, including vertex 0.
 struct PerimeterPosition {
@@ -113,14 +186,22 @@ struct PerimeterPosition {
 struct StrongSeamTarget {
     Point point;
     size_t edge_index;
+    // The surface point paired with `point`: the segment end's for Left and Right; for Center, worked out only when
+    // the point is carried onto a noisy loop.
+    std::optional<Point> surface = std::nullopt;
 };
 
 struct PerimeterSegment {
+    // A single point with no edges when the surface was reached only around a convex vertex.
     Polyline polyline;
     // One bound source edge per polyline interval.
     std::vector<size_t> edge_indices;
     PerimeterPosition begin;
     PerimeterPosition end;
+    // The reconstructed surface points paired with the polyline's ends, kept through merging; the ends themselves on
+    // the centerline path. A zero-length segment has the two ends of its piece of arc.
+    Point surface_first;
+    Point surface_last;
     std::optional<StrongSeamTarget> strong_target; // Absent for weak modifiers and full containment.
     // Scaled arc length, calculated only for Center or comparison of multiple strong segments.
     double length = 0.; // Zero means unmeasured for weak, full containment, and a single Left/Right segment.

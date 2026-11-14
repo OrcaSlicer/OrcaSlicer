@@ -15181,16 +15181,6 @@ msgid "%1% modifier \"%2%\" of \"%3%\" (%4% in total) covers an entire perimeter
 msgstr "\"%3%\" nesnesinin %1% değiştiricisi \"%2%\" (toplam %4%), bir çevrenin tamamını kapsıyor"
 
 # AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "\"%2%\" nesnesinin \"%1%\" değiştiricisinin dikiş üzerinde etkisi olmadı (basılan çevrenin merkez çizgisine ulaşmıyor olabilir)"
-
-# AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "\"%2%\" nesnesinin \"%1%\" değiştiricisinin (toplam %3%) dikiş üzerinde etkisi olmadı (basılan çevrenin merkez çizgisine ulaşmıyor olabilir)"
-
-# AI Translated
 msgid "Seam placement may differ from expected."
 msgstr "Dikiş yerleşimi beklenenden farklı olabilir."
 

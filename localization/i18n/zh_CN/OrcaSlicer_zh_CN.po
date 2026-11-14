@@ -15640,16 +15640,6 @@ msgid "%1% modifier \"%2%\" of \"%3%\" (%4% in total) covers an entire perimeter
 msgstr "“%3%”的%1%修改器“%2%”（共 %4% 个）覆盖了整条墙"
 
 # AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "“%2%”的修改器“%1%”对接缝没有影响（它可能未触及所打印墙的中心线）"
-
-# AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "“%2%”的修改器“%1%”（共 %3% 个）对接缝没有影响（它们可能未触及所打印墙的中心线）"
-
-# AI Translated
 msgid "Seam placement may differ from expected."
 msgstr "接缝位置可能与预期不同。"
 

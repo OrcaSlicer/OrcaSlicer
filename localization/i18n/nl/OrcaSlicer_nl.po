@@ -16361,16 +16361,6 @@ msgid "%1% modifier \"%2%\" of \"%3%\" (%4% in total) covers an entire perimeter
 msgstr "Aanpasser \"%2%\" (%1%) van \"%3%\" (%4% in totaal) bedekt een volledige perimeter"
 
 # AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "aanpasser \"%1%\" van \"%2%\" had geen effect op de naad (mogelijk reikt deze niet tot de middellijn van de geprinte perimeter)"
-
-# AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "aanpasser \"%1%\" van \"%2%\" (%3% in totaal) had geen effect op de naad (mogelijk reikt deze niet tot de middellijn van de geprinte perimeter)"
-
-# AI Translated
 msgid "Seam placement may differ from expected."
 msgstr "De plaatsing van de naad kan afwijken van wat verwacht wordt."
 

@@ -15807,16 +15807,6 @@ msgid "%1% modifier \"%2%\" of \"%3%\" (%4% in total) covers an entire perimeter
 msgstr "「%3%」の %1% モディファイア「%2%」(合計%4%個) は外周全体を覆っています"
 
 # AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "「%2%」のモディファイア「%1%」は継ぎ目に影響しませんでした (印刷される外周の中心線に届いていない可能性があります)"
-
-# AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "「%2%」のモディファイア「%1%」(合計%3%個) は継ぎ目に影響しませんでした (印刷される外周の中心線に届いていない可能性があります)"
-
-# AI Translated
 msgid "Seam placement may differ from expected."
 msgstr "継ぎ目の位置が想定と異なる可能性があります。"
 
