@@ -5086,8 +5086,10 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
         key_released(keyCode);
     const bool alt_wheel_released = evt.GetEventType() == wxEVT_KEY_UP && keyCode == WXK_ALT && std::exchange(m_alt_wheel_used, false);
 
+    // Orca: A key moving or rotating the selection stays with the canvas until released, so the edit is saved.
+    const bool key_edits_selection = m_selection_edit.kind != SelectionEdit::None && keyCode == m_selection_edit.key;
     // The plate arrangement dialog takes its navigation keys before ImGui and the shortcuts, which move objects on arrows.
-    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get(); dialog != nullptr && dialog->on_key(evt)) {
+    if (PlateArrangementDialog* dialog = m_plate_arrangement_dialog.get(); dialog != nullptr && !key_edits_selection && dialog->on_key(evt)) {
         render();
         return;
     }
@@ -5139,7 +5141,7 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
                 }
                 else if (keyCode == WXK_CONTROL)
                     m_dirty = true;
-                else if (m_selection_edit.kind != SelectionEdit::None && keyCode == m_selection_edit.key)
+                else if (key_edits_selection)
                     finish_selection_edit();
             }
             else if (evt.GetEventType() == wxEVT_KEY_DOWN) {
