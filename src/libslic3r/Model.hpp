@@ -588,7 +588,7 @@ public:
     std::string get_export_filename() const;
 
     // Get full stl statistics for all object's meshes
-    TriangleMeshStats get_object_stl_stats() const;
+    TriangleMeshStats get_object_stl_stats(const Transform3d& trans = Transform3d::Identity()) const;
     // Get count of errors in the mesh( or all object's meshes, if volume index isn't defined)
     int         get_repaired_errors_count(const int vol_idx = -1) const;
 

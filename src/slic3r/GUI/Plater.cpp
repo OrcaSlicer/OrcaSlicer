@@ -24151,7 +24151,7 @@ void Plater::show_object_info()
     double koef = imperial_units ? GizmoObjectManipulation::mm_to_in : 1.0f;
 
     ModelVolume* vol = nullptr;
-    Transform3d t;
+    Transform3d trans;
     int face_count;
     Vec3d size;
     if (selection.is_single_volume()) {
@@ -24163,10 +24163,10 @@ void Plater::show_object_info()
             return;
         }
         vol = model_object->volumes[vol_idxs[0]];
-        t = model_object->instances[inst_idx]->get_matrix() * vol->get_matrix();
+        trans = model_object->instances[inst_idx]->get_matrix() * vol->get_matrix();
         info_text += (boost::format(_utf8(L("Part name: %1%\n"))) % vol->name).str();
         face_count = static_cast<int>(vol->mesh().facets_count());
-        size = vol->get_convex_hull().transformed_bounding_box(t).size();
+        size = vol->get_convex_hull().transformed_bounding_box(trans).size();
     }
     else {
         //int obj_idx, vol_idx;
@@ -24186,15 +24186,23 @@ void Plater::show_object_info()
     else
         info_text += (boost::format(_utf8(L("Size: %1% x %2% x %3% mm\n"))) %size(0) %size(1) %size(2)).str();
 
-    const TriangleMeshStats& stats = vol ? vol->mesh().stats() : model_object->get_object_stl_stats();
+    const TriangleMeshStats& stats = vol ? vol->mesh().stats() : model_object->get_object_stl_stats(trans);
     double volume_val = stats.volume;
     if (vol)
-        volume_val *= std::fabs(t.matrix().block(0, 0, 3, 3).determinant());
+        volume_val *= std::fabs(trans.matrix().block(0, 0, 3, 3).determinant());
     volume_val = volume_val * pow(koef,3);
     if (imperial_units)
         info_text += (boost::format(_utf8(L("Volume: %1% in³\n"))) %volume_val).str();
     else
         info_text += (boost::format(_utf8(L("Volume: %1% mm³\n"))) %volume_val).str();
+
+    float surface_area_val = vol ? its_surface_area(vol->mesh().its, trans) : stats.surface_area;
+    surface_area_val *= pow(koef, 2);
+    if (imperial_units)
+        info_text += (boost::format(_utf8(L("Surface: %1% in²\n"))) % surface_area_val).str();
+    else
+        info_text += (boost::format(_utf8(L("Surface: %1% mm²\n"))) % surface_area_val).str();
+
     info_text += (boost::format(_utf8(L("Triangles: %1%\n"))) %face_count).str();
 
     wxString info_manifold;

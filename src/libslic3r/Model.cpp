@@ -2789,6 +2789,7 @@ void ModelObject::print_info() const
     }
     cout << "number_of_parts =  " << mesh.stats().number_of_parts << endl;
     cout << "volume = "           << mesh.volume()                << endl;
+    cout << "surface_area = "     << mesh.surface_area()          << endl;
 }
 
 std::string ModelObject::get_export_filename() const
@@ -2811,15 +2812,17 @@ std::string ModelObject::get_export_filename() const
     return ret;
 }
 
-TriangleMeshStats ModelObject::get_object_stl_stats() const
+TriangleMeshStats ModelObject::get_object_stl_stats(const Transform3d& trans) const
 {
     TriangleMeshStats full_stats;
-    full_stats.volume = 0.f;
+    full_stats.volume       = 0.f;
+    full_stats.surface_area = 0.f;
 
     // fill full_stats from all objet's meshes
     for (ModelVolume* volume : this->volumes)
     {
         const TriangleMeshStats& stats = volume->mesh().stats();
+        float surface_area = its_surface_area(volume->mesh().its, trans);
 
         // initialize full_stats (for repaired errors)
         full_stats.open_edges           += stats.open_edges;
@@ -2829,6 +2832,7 @@ TriangleMeshStats ModelObject::get_object_stl_stats() const
         if (volume->is_model_part()) {
             Transform3d trans = instances.empty() ? volume->get_matrix() : (volume->get_matrix() * instances[0]->get_matrix());
             full_stats.volume           += stats.volume * std::fabs(trans.matrix().block(0, 0, 3, 3).determinant());
+            full_stats.surface_area     += its_surface_area(volume->mesh().its, trans);
             full_stats.number_of_parts  += stats.number_of_parts;
         }
     }
