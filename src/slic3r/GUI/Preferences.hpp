@@ -67,7 +67,7 @@ public:
                       const wxString &title = wxT(""),
                       const wxPoint & pos   = wxDefaultPosition,
                       const wxSize &  size  = wxDefaultSize,
-                      long            style = wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX);
+                      long            style = wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxRESIZE_BORDER);
 
     ~PreferencesDialog();
 
