@@ -1235,10 +1235,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     bool has_overhang_speed = config->opt_bool_nullable("enable_overhang_speed", variant_index);
     const wxString overhang_speed_reason = _L("Enable slowing down for overhangs to use this setting.");
-    for (auto el : {"overhang_1_4_speed", "overhang_2_4_speed", "overhang_3_4_speed", "overhang_4_4_speed"})
+    for (auto el : {"overhang_0_4_speed", "overhang_1_4_speed", "overhang_2_4_speed", "overhang_3_4_speed", "overhang_4_4_speed"})
         toggle_line(el, has_overhang_speed, variant_index, overhang_speed_reason);
 
     toggle_line("slowdown_for_curled_perimeters", has_overhang_speed, variant_index, overhang_speed_reason);
+    toggle_line("allow_overhang_speedup", has_overhang_speed, variant_index, overhang_speed_reason);
 
     toggle_line("flush_into_objects", !is_global_config, -1, _L("This setting is available in object settings rather than global print settings."));
 
