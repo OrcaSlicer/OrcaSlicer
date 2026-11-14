@@ -22140,13 +22140,11 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
 
     // After any bed-shape or is_imex change, ensure the IMEX mode icon geometry and
     // raycaster are correct.  set_shape() short-circuits when the bed is unchanged,
-    // so we call refresh_imex_icons() explicitly whenever is_imex is active.
+    // so we call refresh_imex_icons() explicitly.
+    // Orca: also when is_imex is turned off, as the plate move handle takes the IMEX icon's place.
     // Always done AFTER set_bed_shape() so m_shape is current.
-    if (bed_shape_changed || imex_changed) {
-        auto* is_imex_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionBool>("is_imex");
-        if (is_imex_opt && is_imex_opt->value)
-            p->partplate_list.refresh_imex_icons();
-    }
+    if (bed_shape_changed || imex_changed)
+        p->partplate_list.refresh_imex_icons();
 
     config_change_notification(config, std::string("print_sequence"));
 
@@ -23766,6 +23764,20 @@ void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
 
 
 //BBS: select Plate by hover_id
+// Orca: the plate dropped by its move handle; as Move to front, but to any position.
+int Plater::reorder_plate(int from, int to)
+{
+    take_snapshot("Reorder plates");
+    const int ret = p->partplate_list.move_plate_to_index(from, to);
+    p->partplate_list.update_slice_context_to_current_plate(p->background_process);
+    p->preview->update_gcode_result(p->partplate_list.get_current_slice_result());
+    p->sidebar->obj_list()->reload_all_plates();
+    p->partplate_list.update_plates();
+    update();
+    p->partplate_list.select_plate(to);
+    return ret;
+}
+
 int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModidyPlateName)
 {
     int ret;
@@ -23969,6 +23981,10 @@ int Plater::select_plate_by_hover_id(int hover_id, bool right_click, bool isModi
         p->partplate_list.update_plates();
         update();
         p->partplate_list.select_plate(0);
+    }
+    else if (action == (int)PartPlate::PLATE_MOVE_ID && !right_click) {
+        // A click on the move handle without dragging just selects the plate.
+        ret = select_plate(plate_index);
     }
     else if (action == (int)PartPlate::PLATE_IMEX_MODE_ID)
     {
