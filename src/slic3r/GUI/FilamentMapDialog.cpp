@@ -7,7 +7,7 @@
 #include "GUI_App.hpp"
 #include "CapsuleButton.hpp"
 #include "MsgDialog.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Config.hpp"
 #include <vector>
 #include <wx/panel.h>

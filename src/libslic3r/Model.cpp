@@ -228,6 +228,17 @@ void Model::update_links_bottom_up_recursive()
 	}
 }
 
+Model::Model() { assert(this->id().valid()); }
+
+Model::Model(const Model &rhs) : ObjectBase(-1) { assert(this->id().invalid()); this->assign_copy(rhs); assert(this->id().valid()); assert(this->id() == rhs.id()); }
+
+Model::Model(Model &&rhs) : ObjectBase(-1) { assert(this->id().invalid()); this->assign_copy(std::move(rhs)); assert(this->id().valid()); assert(this->id() == rhs.id()); }
+
+Model::Model(int) : ObjectBase(-1)
+{
+    assert(this->id().invalid());
+}
+
 Model::~Model()
 {
     this->clear_objects();

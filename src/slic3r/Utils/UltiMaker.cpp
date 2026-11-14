@@ -25,7 +25,7 @@
 #include <wx/checkbox.h>
 
 #include "PrintHost.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"

@@ -22,7 +22,7 @@
 #include "Event.hpp"
 #include "ObjectDataViewModel.hpp"
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 class wxBitmap;
 

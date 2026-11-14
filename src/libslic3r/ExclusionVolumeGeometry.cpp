@@ -3,7 +3,7 @@
 #include "FilamentMixer.hpp"
 #include "Point.hpp"
 #include "Polygon.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "libslic3r.h"
 #include <cmath>
 #include <cstddef>

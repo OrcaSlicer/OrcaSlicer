@@ -22,7 +22,7 @@
 #include <nlohmann/json.hpp>
 #include <wx/string.h>
 #include "slic3r/GUI/PartPlate.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <memory>
 #include <exception>
 #include "libslic3r/Format/bbs_3mf.hpp"

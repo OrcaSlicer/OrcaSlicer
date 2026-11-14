@@ -3,7 +3,7 @@
 
 #include <algorithm>
 #include <cstddef>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <map>
 #include <string>
 #include <vector>

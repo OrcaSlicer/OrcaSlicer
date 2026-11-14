@@ -2,7 +2,7 @@
 #include <functional>
 #include <cstddef>
 #include <boost/log/trivial.hpp>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/CommonDefs.hpp"
 #include <cstdint>
 #include "libslic3r/Config.hpp"

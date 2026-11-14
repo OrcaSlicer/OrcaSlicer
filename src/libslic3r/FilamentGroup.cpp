@@ -3,7 +3,7 @@
 #include "GCode/ToolOrderUtils.hpp"
 #include "FlushVolPredictor.hpp"
 #include "MultiNozzleUtils.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "libslic3r.h"
 #include <queue>
 #include <cstdint>

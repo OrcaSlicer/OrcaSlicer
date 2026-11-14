@@ -7,7 +7,7 @@
 #include <wx/event.h>
 #include <wx/sizer.h>
 #include <wx/timer.h>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "Widgets/PopupWindow.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/SwitchButton.hpp"

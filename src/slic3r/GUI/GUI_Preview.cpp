@@ -17,7 +17,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cassert>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include <cmath>
 #include <cstdint>

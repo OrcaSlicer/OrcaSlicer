@@ -9,7 +9,7 @@
 #include "libslic3r/ExPolygon.hpp"
 #include "Polygon.hpp"
 #include "libslic3r/PrintBase.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/TriangleSelector.hpp"

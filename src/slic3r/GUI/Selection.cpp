@@ -55,7 +55,7 @@
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/TextConfiguration.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "slic3r/GUI/GLShader.hpp"

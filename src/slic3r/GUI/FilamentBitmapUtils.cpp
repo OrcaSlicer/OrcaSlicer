@@ -38,7 +38,7 @@
 #include "Widgets/Label.hpp"
 #include "Widgets/StateColor.hpp"
 #include "libslic3r/FilamentMixer.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 namespace Slic3r { namespace GUI {
 

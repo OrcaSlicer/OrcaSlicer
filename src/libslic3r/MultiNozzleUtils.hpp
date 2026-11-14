@@ -8,7 +8,7 @@
 #include <optional>
 #include <set>
 #include <unordered_map>
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 
 // Multi-nozzle support types.
 // Declares the filament-grouping result types the slicing pipeline needs, plus the analytic

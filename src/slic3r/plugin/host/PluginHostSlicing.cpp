@@ -22,7 +22,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/Polyline.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <pybind11/detail/common.h>
 #include <pybind11/detail/descr.h>
 #include <pybind11/numpy.h>

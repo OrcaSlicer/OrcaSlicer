@@ -38,7 +38,7 @@
 #include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
 #include <cstddef>
 #include <climits>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <cmath>
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
 #include "slic3r/GUI/Widgets/StaticBox.hpp"

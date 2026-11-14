@@ -9,7 +9,7 @@
 #include <boost/property_tree/ptree.hpp>
 
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 namespace Slic3r {
 

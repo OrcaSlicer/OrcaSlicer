@@ -39,7 +39,7 @@
 
 #include <wx/event.h>
 #include <string>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <cassert>
 #include <vector>
 #include "slic3r/GUI/GUI_Utils.hpp"

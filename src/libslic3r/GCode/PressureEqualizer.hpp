@@ -2,7 +2,7 @@
 #define slic3r_GCode_PressureEqualizer_hpp_
 
 #include "../ExtrusionEntity.hpp"
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 #include <string>
 #include <cstddef>
 #include <vector>

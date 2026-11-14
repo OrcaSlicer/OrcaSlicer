@@ -21,7 +21,7 @@
 #include <vector>
 #include <cstddef>
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 namespace Slic3r {
 

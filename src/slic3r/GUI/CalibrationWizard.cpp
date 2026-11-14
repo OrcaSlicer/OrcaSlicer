@@ -13,7 +13,7 @@
 #include <map>
 #include "libslic3r/Preset.hpp"
 #include <utility>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/libslic3r.h"
 #include <wx/gdicmn.h>
 #include <wx/panel.h>

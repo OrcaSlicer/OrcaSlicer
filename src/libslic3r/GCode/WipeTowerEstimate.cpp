@@ -10,7 +10,7 @@
 #include "../Line.hpp"
 #include "../FilamentMixer.hpp"
 #include "../Point.hpp"
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 #include "../libslic3r.h"
 
 #include <algorithm>

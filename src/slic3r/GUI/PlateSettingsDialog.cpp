@@ -22,7 +22,7 @@
 #include <wx/sizer.h>
 #include "slic3r/GUI/Widgets/TextInput.hpp"
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/FilamentMixer.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
 #include "libslic3r/ParameterUtils.hpp"

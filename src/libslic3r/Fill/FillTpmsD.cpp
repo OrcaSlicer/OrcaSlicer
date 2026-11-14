@@ -14,7 +14,7 @@
 #include "libslic3r/Fill/FillBase.hpp"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/libslic3r.h"
 #include "FillTpmsD.hpp"
 #include "AdaptiveInfillField.hpp"

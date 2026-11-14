@@ -39,7 +39,7 @@
 #include "Plater.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Print.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "GLCanvas3D.hpp"
 #include "GLTexture.hpp"
 #include "3DScene.hpp"

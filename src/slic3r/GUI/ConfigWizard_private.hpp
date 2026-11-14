@@ -34,7 +34,7 @@
 #include <wx/radiobut.h>
 #include <wx/html/htmlwin.h>
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
 #include "BedShapeDialog.hpp"

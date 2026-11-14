@@ -3,7 +3,7 @@
 #include "Config.hpp"
 #include "PresetBundle.hpp"
 #include "Preset.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "MaterialType.hpp"
 #include "I18N.hpp"
 

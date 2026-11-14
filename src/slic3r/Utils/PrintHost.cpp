@@ -26,7 +26,7 @@
 #include <wx/app.h>
 #include <wx/arrstr.h>
 
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Channel.hpp"
 #include "OctoPrint.hpp"
 #include "Duet.hpp"

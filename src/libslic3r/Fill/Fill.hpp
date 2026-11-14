@@ -8,7 +8,7 @@
 #include <string>
 
 #include "../libslic3r.h"
-#include "../PrintConfig.hpp"
+#include "../PrintConfigBase.hpp"
 
 #include "FillBase.hpp"
 

@@ -24,7 +24,7 @@
 #include <cassert>
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "slic3r/GUI/Widgets/TextInput.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <algorithm>
 #include <wx/arrstr.h>
 #include <set>

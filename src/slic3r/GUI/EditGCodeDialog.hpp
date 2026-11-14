@@ -14,7 +14,7 @@
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <wx/srchctrl.h>
 #include <wx/variant.h>
 

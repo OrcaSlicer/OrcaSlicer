@@ -3,7 +3,7 @@
 
 #include "TriangleMesh.hpp"
 #include "Point.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include <string>
 #include <functional>
 #include <Eigen/Core>

@@ -10,7 +10,7 @@
 #include <slic3r/GUI/Widgets/WebViewHostDialog.hpp>
 
 #include "libslic3r_version.h"
-#include <libslic3r/PrintConfig.hpp>
+#include <libslic3r/PrintConfigBase.hpp>
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PresetBundle.hpp"

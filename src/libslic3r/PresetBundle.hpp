@@ -5,7 +5,7 @@
 #include "Preset.hpp"
 #include "PresetCacheFormat.hpp"
 #include "AppConfig.hpp"
-#include "PrintConfig.hpp"
+#include "PrintConfigBase.hpp"
 #include "PublishSettings.hpp"
 #include "Semver.hpp"
 #include "enum_bitmask.hpp"

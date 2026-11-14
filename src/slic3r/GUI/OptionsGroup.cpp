@@ -20,7 +20,7 @@
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include "slic3r/GUI/GUI.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <slic3r/plugin/PythonPluginInterface.hpp>
 #include <string>
 #include <utility>

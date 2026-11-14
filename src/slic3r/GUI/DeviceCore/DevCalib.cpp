@@ -6,7 +6,7 @@
 #include "slic3r/GUI/DeviceManager.hpp"
 
 #include "slic3r/GUI/UserNotification.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 #include <string>
 #include <cassert>

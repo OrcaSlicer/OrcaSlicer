@@ -33,7 +33,7 @@
 #include <assert.h>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/GCodeWriter.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 namespace Slic3r {
 

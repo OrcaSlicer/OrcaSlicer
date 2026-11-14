@@ -16,7 +16,7 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Exception.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "slic3r/GUI/BackgroundSlicingProcess.hpp"
 #include "slic3r/GUI/PostProcessor.hpp"
 #include "test_utils.hpp"

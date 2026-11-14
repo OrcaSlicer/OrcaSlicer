@@ -12,7 +12,7 @@
 #include "catch2/catch_test_macros.hpp"
 #include "libslic3r/IMEXHelpers.hpp"
 #include "libslic3r/IMEXZones.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;

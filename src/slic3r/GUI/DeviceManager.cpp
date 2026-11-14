@@ -18,7 +18,7 @@
 #include <boost/log/trivial.hpp>
 #include <cstdlib>
 #include <cstddef>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <cassert>
 #include "slic3r/GUI/DeviceCore/DevConfigUtil.h"
 #include "libslic3r/Utils.hpp"

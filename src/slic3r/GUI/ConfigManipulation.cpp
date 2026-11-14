@@ -8,7 +8,7 @@
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/MaterialType.hpp"
 #include "MsgDialog.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "Plater.hpp"
 

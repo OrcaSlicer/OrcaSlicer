@@ -17,7 +17,7 @@
 #include <sstream>
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/libslic3r.h"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <vector>
 #include "slic3r/GUI/GUI.hpp"
 #include <wx/app.h>

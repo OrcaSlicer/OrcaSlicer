@@ -10,7 +10,7 @@
 #include <catch2/matchers/catch_matchers_vector.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_approx.hpp>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Preset.hpp"
 
 using namespace Slic3r;

@@ -3,7 +3,7 @@
 #include <string>
 
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "slic3r/GUI/ConfigValueFormatter.hpp"
 
 using namespace Slic3r;

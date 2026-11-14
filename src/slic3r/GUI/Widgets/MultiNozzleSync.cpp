@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <boost/log/trivial.hpp>
 #include <cmath>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Config.hpp"
 #include <cstdlib>
 #include <cstddef>

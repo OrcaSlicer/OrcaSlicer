@@ -37,7 +37,7 @@
 #include <wx/tglbtn.h>
 #include <wx/utils.h>
 #include <wx/event.h>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Utils.hpp"
 #include "Plater.hpp"

@@ -18,7 +18,7 @@
 #include <unordered_set>
 #include <utility>
 #include "libslic3r/Polygon.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 namespace Slic3r {
 

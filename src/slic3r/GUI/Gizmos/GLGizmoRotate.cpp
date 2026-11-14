@@ -35,7 +35,7 @@
 #include "libslic3r/Color.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/GLModel.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"

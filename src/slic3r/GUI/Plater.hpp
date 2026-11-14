@@ -2,7 +2,7 @@
 #define slic3r_Plater_hpp_
 
 #include "libslic3r/Config.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include <cstddef>
 #include <map>
 #include "libslic3r/Technologies.hpp"

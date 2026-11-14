@@ -26,7 +26,7 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 
 using namespace Slic3r;
 namespace fs = boost::filesystem;

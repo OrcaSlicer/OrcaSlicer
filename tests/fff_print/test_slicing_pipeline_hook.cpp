@@ -9,7 +9,7 @@
 #include "libslic3r/Point.hpp"
 #include <catch2/matchers/catch_matchers.hpp>
 #include "libslic3r/ExtrusionEntity.hpp"
-#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PrintConfigBase.hpp"
 #include "test_helpers.hpp"
 using namespace Slic3r;
 

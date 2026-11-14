@@ -12,7 +12,7 @@
 
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Semver.hpp"
-#include "calib.hpp"
+#include "CalibData.hpp"
 
 #define ENV_DEV_HOST		"0"
 #define ENV_QAT_HOST		"1"
