@@ -1,16 +1,16 @@
 {
 	"type": "filament",
-	"name": "3D-Fuel Pro PCTG-CF @base",
+	"name": "3D-Fuel PCTG GF Pro @base",
 	"inherits": "fdm_filament_pctg",
 	"from": "system",
-	"filament_id": "OFAKSEVd",
+	"filament_id": "OFLqfb78",
 	"instantiation": "false",
 	"filament_vendor": [
 		"3D-Fuel"
 	],
 	"filament_type": [
-		"PCTG-CF"
-	],
+		"PCTG-GF"
+ ],
     "filament_diameter": [
         "1.75"
     ],
@@ -18,16 +18,16 @@
         "1.23"
     ],
     "filament_cost": [
-        "54.95"
+        "59.95"
     ],
     "nozzle_temperature": [
-        "270"
+        "260"
     ],
     "nozzle_temperature_initial_layer": [
-        "270"
+        "260"
     ],
     "nozzle_temperature_range_low": [
-        "250"
+        "240"
     ],
     "nozzle_temperature_range_high": [
         "280"
@@ -39,28 +39,28 @@
         "0"
     ],
     "eng_plate_temp": [
-        "70"
+        "60"
     ],
     "eng_plate_temp_initial_layer": [
-        "70"
+        "60"
     ],
     "hot_plate_temp": [
-        "70"
+        "60"
     ],
     "hot_plate_temp_initial_layer": [
-        "70"
+        "60"
     ],
     "textured_plate_temp": [
-        "70"
+        "60"
     ],
     "textured_plate_temp_initial_layer": [
-        "70"
+        "60"
     ],
     "supertack_plate_temp": [
-        "70"
+        "60"
     ],
     "supertack_plate_temp_initial_layer": [
-        "70"
+        "60"
     ],
     "filament_flow_ratio": [
         "0.98"
@@ -79,5 +79,23 @@
     ],
     "required_nozzle_HRC": [
         "60"
+    ],
+	"enable_pressure_advance": [
+		"1"
+    ],
+    "pressure_advance": [
+		"0.7"
+    ],
+    "fan_cooling_layer_time": [
+		"20"
+    ],
+    "slow_down_layer_time": [
+		"18"
+    ],
+    "filament_retraction_length": [
+		"0.3"
+    ],
+    "filament_z_hop": [
+		"0.4"
     ]
 }

@@ -1,36 +1,33 @@
 {
 	"type": "filament",
-	"name": "3D-Fuel Pro PCTG Matte @base",
-	"inherits": "fdm_filament_pctg",
+	"name": "3D-Fuel PLA Tough Pro @base",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"filament_id": "OFJBZl1d",
+	"filament_id": "OFD0J7HW",
 	"instantiation": "false",
 	"filament_vendor": [
 		"3D-Fuel"
 	],
 	"filament_type": [
-		"PCTG"
+		"PLA"
 	],
-    "filament_diameter": [
-        "1.75"
-    ],
     "filament_density": [
-        "1.23"
+        "1.26"
     ],
     "filament_cost": [
-        "59.95"
+        "32.95"
     ],
     "nozzle_temperature": [
-        "260"
-    ],
-    "nozzle_temperature_initial_layer": [
-        "260"
-    ],
-    "nozzle_temperature_range_low": [
         "240"
     ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "nozzle_temperature_range_low": [
+        "220"
+    ],
     "nozzle_temperature_range_high": [
-        "280"
+        "250"
     ],
     "cool_plate_temp": [
         "0"
@@ -45,39 +42,54 @@
         "60"
     ],
     "hot_plate_temp": [
-        "60"
+        "70"
     ],
     "hot_plate_temp_initial_layer": [
-        "60"
+        "70"
     ],
     "textured_plate_temp": [
-        "60"
+        "70"
     ],
     "textured_plate_temp_initial_layer": [
-        "60"
+        "70"
     ],
     "supertack_plate_temp": [
-        "60"
+        "70"
     ],
     "supertack_plate_temp_initial_layer": [
-        "60"
+        "70"
     ],
     "filament_flow_ratio": [
         "0.98"
     ],
     "filament_max_volumetric_speed": [
-        "10"
+        "12"
     ],
     "fan_min_speed": [
-        "0"
+        "10"
     ],
     "fan_max_speed": [
-        "40"
+        "100"
     ],
     "temperature_vitrification": [
         "185"
     ],
-    "required_nozzle_HRC": [
-        "60"
+    "enable_pressure_advance": [
+		"1"
+    ],
+    "pressure_advance": [
+		"0.2"
+    ],
+    "fan_cooling_layer_time": [
+		"30"
+    ],
+    "slow_down_layer_time": [
+		"10"
+    ],
+    "filament_retraction_length": [
+		"0.2"
+    ],
+    "filament_z_hop": [
+		"0.4"
     ]
 }
