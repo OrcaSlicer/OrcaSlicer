@@ -7083,6 +7083,23 @@ int PartPlateList::move_plate_to_index(int old_index, int new_index)
 		m_model->plates_custom_gcodes = std::move(remapped);
 	}
 
+	// Orca: wipe tower positions are stored per plate index too, so move them with the plate.
+	if (m_plater) {
+		DynamicConfig& proj_cfg = wxGetApp().preset_bundle->project_config;
+		for (const char* key : { "wipe_tower_x", "wipe_tower_y" }) {
+			std::vector<double>& values = proj_cfg.opt<ConfigOptionFloats>(key)->values;
+			if (values.empty())
+				continue;
+			// Missing entries fall back to the first one, so filling them in keeps every position.
+			const double first = values.front();
+			values.resize(std::max(values.size(), m_plate_list.size()), first);
+			if (old_index > new_index)
+				std::rotate(values.begin() + new_index, values.begin() + old_index, values.begin() + old_index + 1);
+			else
+				std::rotate(values.begin() + old_index, values.begin() + old_index + 1, values.begin() + new_index + 1);
+		}
+	}
+
 	PartPlate* plate = m_plate_list[old_index];
 	//update the plates between old_index and new_index
 	for (unsigned int i = (unsigned int)old_index; i != (unsigned int)new_index; i = i + delta)

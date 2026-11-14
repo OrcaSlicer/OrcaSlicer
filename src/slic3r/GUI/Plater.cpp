@@ -7259,6 +7259,8 @@ struct Plater::priv
     Camera camera;
     //BBS: partplate related structure
     PartPlateList partplate_list;
+    // Orca: custom G-codes of plates removed by undo / redo, restored if the plate comes back.
+    std::map<ObjectID, CustomGCode::Info> m_custom_gcodes_by_plate_id;
     //BBS: add a flag to ignore cancel event
     bool m_ignore_event{false};
     bool m_slice_all{false};
@@ -7806,6 +7808,7 @@ private:
 
     void undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator it_snapshot);
     void update_after_undo_redo(const UndoRedo::Snapshot& snapshot, bool temp_snapshot_was_taken = false);
+    void remap_plate_custom_gcodes_after_undo_redo(const std::vector<ObjectID>& plate_ids_before);
     void on_action_export_to_sdcard(SimpleEvent&);
     void on_action_export_to_sdcard_all(SimpleEvent&);
     void update_plugin_when_launch(wxCommandEvent& event);
@@ -15805,10 +15808,15 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
 
     // Make a copy of the snapshot, undo/redo could invalidate the iterator
     const UndoRedo::Snapshot snapshot_copy = *it_snapshot;
+    // Orca: custom G-codes are keyed by plate index and not in the snapshot, so remap them by plate ID.
+    std::vector<ObjectID> plate_ids_before;
+    for (int i = 0; i < this->partplate_list.get_plate_count(); ++i)
+        plate_ids_before.push_back(this->partplate_list.get_plate(i)->id());
     // Do the jump in time.
     if (it_snapshot->timestamp < this->undo_redo_stack().active_snapshot_time() ?
         this->undo_redo_stack().undo(model, get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_selection() : this->view3D->get_canvas3d()->get_selection(), get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_gizmos_manager() : this->view3D->get_canvas3d()->get_gizmos_manager(), this->partplate_list, top_snapshot_data, it_snapshot->timestamp) :
         this->undo_redo_stack().redo(model, get_current_canvas3D()->get_canvas_type() == GLCanvas3D::CanvasAssembleView ? assemble_view->get_canvas3d()->get_gizmos_manager() : this->view3D->get_canvas3d()->get_gizmos_manager(), this->partplate_list, it_snapshot->timestamp)) {
+        this->remap_plate_custom_gcodes_after_undo_redo(plate_ids_before);
         if (printer_technology_changed) {
             // Switch to the other printer technology. Switch to the last printer active for that particular technology.
             AppConfig *app_config = wxGetApp().app_config;
@@ -15855,7 +15863,7 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
                     tower_x_opt->set_at(&tower_x_new, plate_idx, 0);
                     tower_y_opt->set_at(&tower_y_new, plate_idx, 0);
                     need_update = true;
-                    break;
+                    // break; // Orca: restore all plates, moving a plate changes several positions
                 }
             }
 
@@ -15882,6 +15890,35 @@ void Plater::priv::undo_redo_to(std::vector<UndoRedo::Snapshot>::const_iterator 
 
     dirty_state.update_from_undo_redo_stack(m_undo_redo_stack_main.project_modified());
     update_title_dirty_status();
+}
+
+void Plater::priv::remap_plate_custom_gcodes_after_undo_redo(const std::vector<ObjectID>& plate_ids_before)
+{
+    std::map<ObjectID, int> index_after;
+    for (int i = 0; i < this->partplate_list.get_plate_count(); ++i)
+        index_after[this->partplate_list.get_plate(i)->id()] = i;
+
+    // Move each plate's entry into the map keyed by plate ID; entries without a plate keep their index.
+    std::map<int, CustomGCode::Info> remapped;
+    for (auto& [idx, info] : model.plates_custom_gcodes) {
+        if (idx >= 0 && idx < (int)plate_ids_before.size())
+            m_custom_gcodes_by_plate_id[plate_ids_before[idx]] = std::move(info);
+        else
+            remapped[idx] = std::move(info);
+    }
+
+    // Put back the entries of plates that exist after the jump.
+    for (auto it = m_custom_gcodes_by_plate_id.begin(); it != m_custom_gcodes_by_plate_id.end();) {
+        auto found = index_after.find(it->first);
+        if (found == index_after.end()) {
+            ++it;
+            continue;
+        }
+        remapped[found->second] = std::move(it->second);
+        it = m_custom_gcodes_by_plate_id.erase(it);
+    }
+
+    model.plates_custom_gcodes = std::move(remapped);
 }
 
 void Plater::priv::update_after_undo_redo(const UndoRedo::Snapshot& snapshot, bool /* temp_snapshot_was_taken */)
