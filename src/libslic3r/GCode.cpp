@@ -4716,7 +4716,10 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // and export G-code into file.
                 tool_ordering.cal_most_used_extruder(print.config());
                 m_printed_objects.emplace_back(&object);
-                this->process_layers(print, tool_ordering, collect_layers_to_print(object, print.config().belt_printer.value), *print_object_instance_sequential_active - object.instances().data(), file,
+                std::vector<LayerToPrint> object_layers = collect_layers_to_print(object, print.config().belt_printer.value);
+                m_object_layer_count = (unsigned int)object_layers.size();
+                m_object_layer_index = 0;
+                this->process_layers(print, tool_ordering, std::move(object_layers), *print_object_instance_sequential_active - object.instances().data(), file,
                                      prime_extruder);
                 {
                     // save the flush statitics stored in tool ordering by object
@@ -6153,6 +6156,15 @@ std::string GCode::process_layer_change_gcode(const Print &print, coordf_t print
         + "\n";
 }
 
+// Orca: Z restarts for every object in sequential prints, so report the layer within the object.
+std::string GCode::object_layer_info_gcode() const
+{
+    if (m_object_layer_count == 0 || m_writer.get_gcode_flavor() != gcfKlipper)
+        return {};
+    return "SET_PRINT_STATS_INFO TOTAL_LAYER=" + std::to_string(m_object_layer_count) +
+           " CURRENT_LAYER=" + std::to_string(m_object_layer_index) + "\n";
+}
+
 // Belt printers: emit one brim-only apron layer.  On a tilted belt the brim ahead
 // of the part lands at slicing Z below the object's first layer, because the
 // object's layer 0 IS its leading contact with the belt.  Those layers carry brim
@@ -6243,6 +6255,7 @@ LayerResult GCode::process_belt_brim_layer(
 
     if (! m_config.layer_change_gcode.value.empty())
         gcode += this->process_layer_change_gcode(print, print_z, most_used_extruder, layer_tools.has_wipe_tower && m_wipe_tower);
+    gcode += this->object_layer_info_gcode();
 
     // Objects sharing this apron Z may use different brim filaments; print each in its own tool.
     for (const unsigned int brim_extruder : layer_tools.extruders) {
@@ -6612,6 +6625,9 @@ LayerResult GCode::process_layer(
     assert(! layers.empty());
     // Either printing all copies of all objects, or just a single copy of a single object.
     assert(single_object_instance_idx == size_t(-1) || layers.size() == 1);
+    // Orca: count the object's layers before the early returns below, so they keep the numbering
+    if (m_object_layer_count > 0)
+        ++m_object_layer_index;
 
     // First object, support and raft layer, if available.
     const Layer         *object_layer  = nullptr;
@@ -6755,6 +6771,9 @@ LayerResult GCode::process_layer(
 
     if (!m_config.layer_change_gcode.value.empty())
         gcode += this->process_layer_change_gcode(print, print_z, most_used_extruder, has_wipe_tower);
+
+    // After the layer change G-code, as many profiles report the whole-print layer there.
+    gcode += this->object_layer_info_gcode();
 
     //BBS: set layer time fan speed after layer change gcode
     gcode += ";_SET_FAN_SPEED_CHANGING_LAYER\n";
