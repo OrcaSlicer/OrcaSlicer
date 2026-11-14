@@ -9233,12 +9233,14 @@ static float overhang_fan_overlap_threshold(int overhang_fan_threshold)
 
 static bool overhang_fan_active(float overlap, int overhang_fan_threshold, ExtrusionRole role)
 {
-    if (role == erBridgeInfill || role == erOverhangPerimeter)
+    if (role == erOverhangPerimeter)
         return true;
-    if (overhang_fan_threshold == Overhang_threshold_none)
-        return is_external_perimeter(role);
     const float overlap_threshold = overhang_fan_overlap_threshold(overhang_fan_threshold);
-    return overlap_threshold >= 0.f && overlap <= overlap_threshold;
+    if (is_external_perimeter(role)) {
+        return (overhang_fan_threshold == Overhang_threshold_none) ||
+               (overlap_threshold >= 0.f && overlap <= overlap_threshold);
+    }
+    return false;
 }
 
 std::string GCode::_extrude(const ExtrusionPath &path, const std::string &path_description, double speed)
@@ -9939,7 +9941,7 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
     auto enable_overhang_bridge_fan = FILAMENT_CONFIG(enable_overhang_bridge_fan);
 
     if (enable_overhang_bridge_fan &&
-        (path.role() == erBridgeInfill || path.role() == erOverhangPerimeter ||
+        (path.role() == erOverhangPerimeter ||
          (overhang_fan_threshold == Overhang_threshold_none && is_external_perimeter(path.role()))))
         path_overhang_fan_active = true;
 
@@ -10073,6 +10075,8 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
 
                     // ORCA: Add support for separate internal bridge fan speed control
                     append_role_based_fan_marker(erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
+                    // ORCA: Add support for separate external bridge fan speed control
+                    append_role_based_fan_marker(erBridgeInfill, "_EXTERNAL_BRIDGE"sv, path.role() == erBridgeInfill);
                 }
 
                 apply_role_based_fan_speed();
@@ -10243,6 +10247,8 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
 
                     // ORCA: Add support for separate internal bridge fan speed control
                     append_role_based_fan_marker(erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
+                    // ORCA: Add support for separate external bridge fan speed control
+                    append_role_based_fan_marker(erBridgeInfill, "_EXTERNAL_BRIDGE"sv, path.role() == erBridgeInfill);
                 }
 
                 apply_role_based_fan_speed();
