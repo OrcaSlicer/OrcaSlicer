@@ -2288,7 +2288,9 @@ void PrintConfigDef::init_fff_params()
                      "many small parts.\n\n"
                      "With multiple filaments or tools in the same layer, minimizing tool changes takes priority: "
                      "objects are grouped by filament first and this setting only orders the instances within each "
-                     "filament group, so the overall sequence may not look like the shortest path across the plate.");
+                     "filament group, so the overall sequence may not look like the shortest path across the plate.\n\n"
+                     "With the Default order, one filament and no prime tower, each layer starts at the object or "
+                     "island closest to the nozzle, so the same order may start at a different place on each layer.");
     def->enum_keys_map = &ConfigOptionEnum<PrintOrder>::get_enum_values();
     def->enum_values.push_back("default");
     def->enum_values.push_back("as_obj_list");
