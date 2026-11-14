@@ -1297,9 +1297,31 @@ if (NOT WIN32 AND NOT APPLE)
     configure_file(${LIBDIR}/dev-utils/platform/unix/build_appimage.sh.in ${CMAKE_CURRENT_BINARY_DIR}/build_appimage.sh USE_SOURCE_PERMISSIONS @ONLY)
 endif()
 
+# Orca: zip the installed hms_*.json into hms.zip. Call after the install(DIRECTORY) of resources/.
+function(orca_install_zip_hms resources_destination)
+    install(CODE "set(_orca_hms_dir \"${resources_destination}/hms\")\nset(_orca_hms_script \"${CMAKE_SOURCE_DIR}/cmake/modules/PackHmsResources.cmake\")")
+    install(CODE [[
+        if(NOT IS_ABSOLUTE "${_orca_hms_dir}")
+            set(_orca_hms_dir "${CMAKE_INSTALL_PREFIX}/${_orca_hms_dir}")
+        endif()
+        if(NOT CMAKE_HOST_WIN32 AND NOT "$ENV{DESTDIR}" STREQUAL "")
+            set(_orca_hms_dir "$ENV{DESTDIR}${_orca_hms_dir}")
+        endif()
+        if(IS_DIRECTORY "${_orca_hms_dir}")
+            execute_process(COMMAND "${CMAKE_COMMAND}" "-DHMS_DIR=${_orca_hms_dir}" -P "${_orca_hms_script}" RESULT_VARIABLE _orca_hms_result)
+            if(NOT _orca_hms_result EQUAL 0)
+                message(FATAL_ERROR "Zipping the HMS resources in ${_orca_hms_dir} failed")
+            endif()
+        else()
+            message(WARNING "HMS resources not found at ${_orca_hms_dir}, shipping them uncompressed")
+        endif()
+    ]])
+endfunction()
+
 # Resources install target, configure fhs.hpp on UNIX
 if (WIN32)
     install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "./resources")
+    orca_install_zip_hms("./resources")
     if(ORCA_BUNDLED_UV_EXECUTABLE)
         install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "./resources/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
     endif()
@@ -1320,6 +1342,7 @@ elseif (SLIC3R_FHS)
     install(DIRECTORY ${SLIC3R_RESOURCES_DIR}/ DESTINATION ${SLIC3R_FHS_RESOURCES}
         PATTERN "*/udev" EXCLUDE
     )
+    orca_install_zip_hms("${SLIC3R_FHS_RESOURCES}")
     if(ORCA_BUNDLED_UV_EXECUTABLE)
         # A Flatpak build finds uv at this exact path, installed by the orca_deps
         # module before this one configures (see ORCA_UV_FLATPAK_BINARY above).
@@ -1343,6 +1366,7 @@ elseif (CMAKE_MACOSX_BUNDLE)
 else ()
     install(FILES src/dev-utils/platform/unix/com.orcaslicer.OrcaSlicer.desktop DESTINATION ${CMAKE_INSTALL_PREFIX}/resources/applications)
     install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "${CMAKE_INSTALL_PREFIX}/resources")
+    orca_install_zip_hms("${CMAKE_INSTALL_PREFIX}/resources")
     if(ORCA_BUNDLED_UV_EXECUTABLE)
         install(PROGRAMS "${ORCA_BUNDLED_UV_EXECUTABLE}" DESTINATION "${CMAKE_INSTALL_PREFIX}/resources/tools/uv" RENAME "${ORCA_BUNDLED_UV_FILENAME}")
     endif()
