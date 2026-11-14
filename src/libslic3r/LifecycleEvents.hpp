@@ -99,6 +99,8 @@ namespace Slic3r
         std::string source;
 
         // Plate, object, or volume index when the source uses an index rather than a stable id.
+        // PrintJobStarted/Finished use the zero-based dispatched local project plate, or -1
+        // for unresolved, external/SD-card or calibration jobs.
         int index = -1;
 
         // Aggregate project dirty state for ProjectDirtyChanged.
@@ -109,6 +111,13 @@ namespace Slic3r
         // the next capability. It is intentionally not exposed through the Python payload API.
         std::function<bool()> cancellation_check;
     };
+
+    // Transport plate numbers are one-based. Only normal jobs from a local project
+    // identify a plate; external and calibration jobs must not borrow the GUI selection.
+    inline int print_job_plate_index(const std::string& print_type, int transport_plate_index, bool local_project = true)
+    {
+        return local_project && print_type == "from_normal" && transport_plate_index > 0 ? transport_plate_index - 1 : -1;
+    }
 
     inline std::string lifecycle_event_to_string(LifecycleEvent event)
     {
