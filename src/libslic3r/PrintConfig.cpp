@@ -5155,6 +5155,17 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionInt(2));
 
+    def           = this->add("interlocking_skip_bottom_layers", coInt);
+    def->label    = L("Interlocking skip bottom layers");
+    def->tooltip  = L("Number of bottom layers on which no interlocking structure is generated. These layers keep the original outlines "
+                      "of the parts, so the beam pattern is not visible on the bottom surface and first layer adhesion stays uniform. "
+                      "Zero generates the interlocking structure starting from the first layer.");
+    def->sidetext = L("layers");
+    def->min      = 0;
+    def->category = L("Advanced");
+    def->mode     = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
+
     // ORCA: special flag for flow rate calibration
     def           = this->add("calib_flowrate_topinfill_special_order", coBool);
     def->mode     = comDevelop;

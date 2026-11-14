@@ -54,6 +54,12 @@ void InterlockingGenerator::generate_interlocking_structure(PrintObject* print_o
     const int      interface_depth    = config.interlocking_depth;
     const int      boundary_avoidance = config.interlocking_boundary_avoidance;
     const coord_t  beam_width         = scaled(config.interlocking_beam_width.value);
+    const size_t   skip_bottom_layers = static_cast<size_t>(std::max(0, config.interlocking_skip_bottom_layers.value));
+
+    // Nothing to do if every layer is excluded from the interlocking structure.
+    if (skip_bottom_layers >= print_object->layer_count()) {
+        return;
+    }
 
     const DilationKernel interface_dilation(GridPoint3(interface_depth, interface_depth, interface_depth), DilationKernel::Type::PRISM);
 
@@ -77,7 +83,7 @@ void InterlockingGenerator::generate_interlocking_structure(PrintObject* print_o
             throw_on_cancel();
 
             InterlockingGenerator gen(*print_object, region_a_index, region_b_index, beam_width, boundary_avoidance, rotation, cell_size, beam_layer_count,
-                                      interface_dilation, air_dilation, air_filtering, throw_on_cancel);
+                                      interface_dilation, air_dilation, air_filtering, skip_bottom_layers, throw_on_cancel);
             gen.generateInterlockingStructure();
         }
     }
@@ -135,7 +141,8 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
     }
 
     // Only alter layers when they are present in both meshes, zip should take care if that.
-    for (size_t layer_nr = 0; layer_nr < print_object.layer_count(); layer_nr++){
+    // Skipped bottom layers keep their original outlines.
+    for (size_t layer_nr = skip_bottom_layers; layer_nr < print_object.layer_count(); layer_nr++){
         throw_on_cancel();
         auto       layer   = print_object.get_layer(layer_nr);
         ExPolygons polys_a = to_expolygons(layer->get_region(region_a_index)->slices.surfaces);
@@ -336,7 +343,8 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
 
     for (size_t region_idx = 0; region_idx < 2; region_idx++) {
         const size_t region = (region_idx == 0) ? region_a_index : region_b_index;
-        for (size_t layer_nr = 0; layer_nr < max_layer_count; layer_nr++) {
+        // Skipped bottom layers keep their original outlines.
+        for (size_t layer_nr = skip_bottom_layers; layer_nr < max_layer_count; layer_nr++) {
             throw_on_cancel();
             ExPolygons layer_outlines = layer_regions[layer_nr];
             expolygons_rotate(layer_outlines, unapply_rotation);
