@@ -460,7 +460,8 @@ public:
     std::vector<size_t> load_files(const std::vector<boost::filesystem::path>& input_files, LoadStrategy strategy = LoadStrategy::LoadModel | LoadStrategy::LoadConfig,  bool ask_multi = false, bool* published_out = nullptr,
                                    const std::function<void()>& before_publish = nullptr);
     // to be called on drag and drop
-    bool load_files(const wxArrayString& filenames);
+    // from_url: the project came from an orcaslicer:// link, so don't ask how to open it.
+    bool load_files(const wxArrayString& filenames, bool from_url = false);
 
     const wxString& get_last_loaded_gcode() const { return m_last_loaded_gcode; }
 
