@@ -31,7 +31,7 @@
 	"detect_overhang_wall": "1",
 	"dont_filter_internal_bridges": "disabled",
 	"draft_shield": "disabled",
-	"elefant_foot_compensation": "0",
+	"elefant_foot_compensation": "0.15",
 	"elefant_foot_compensation_layers": "1",
 	"enable_extra_bridge_layer": "disabled",
 	"enable_overhang_speed": "1",
