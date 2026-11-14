@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PETG Sparkle @System",
+	"inherits": "NOVTAU PETG Sparkle @base",
+	"from": "system",
+	"setting_id": "B9zFjHWROwKVBhaU",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PETG Sparkle @System"
+	],
+	"compatible_printers": []
+}

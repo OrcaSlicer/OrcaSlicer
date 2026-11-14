@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Marble @System",
+	"inherits": "NOVTAU PLA Marble @base",
+	"from": "system",
+	"setting_id": "lWvhkpMte1jAiUQE",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Marble @System"
+	],
+	"compatible_printers": []
+}

@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Wood @System",
+	"inherits": "NOVTAU PLA Wood @base",
+	"from": "system",
+	"setting_id": "037VBlWwSVW3JgOe",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Wood @System"
+	],
+	"compatible_printers": []
+}

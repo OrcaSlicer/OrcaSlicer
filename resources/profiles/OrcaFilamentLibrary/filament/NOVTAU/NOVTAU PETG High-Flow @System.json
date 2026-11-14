@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PETG High-Flow @System",
+	"inherits": "NOVTAU PETG High-Flow @base",
+	"from": "system",
+	"setting_id": "muVFY3NI2YkKZnS6",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PETG High-Flow @System"
+	],
+	"compatible_printers": []
+}

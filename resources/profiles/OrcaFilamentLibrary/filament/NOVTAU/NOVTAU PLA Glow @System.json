@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Glow @System",
+	"inherits": "NOVTAU PLA Glow @base",
+	"from": "system",
+	"setting_id": "LgI3sMQIaZ964svv",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Glow @System"
+	],
+	"compatible_printers": []
+}

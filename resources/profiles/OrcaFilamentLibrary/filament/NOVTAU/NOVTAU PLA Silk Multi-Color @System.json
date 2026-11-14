@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PLA Silk Multi-Color @System",
+	"inherits": "NOVTAU PLA Silk Multi-Color @base",
+	"from": "system",
+	"setting_id": "hPz2DS7nsiW1DlFw",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PLA Silk Multi-Color @System"
+	],
+	"compatible_printers": []
+}

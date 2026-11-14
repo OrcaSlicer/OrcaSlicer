@@ -1,0 +1,12 @@
+{
+	"type": "filament",
+	"name": "NOVTAU PETG Marble @System",
+	"inherits": "NOVTAU PETG Marble @base",
+	"from": "system",
+	"setting_id": "xZ9o8ppVu27ZWpUC",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"NOVTAU PETG Marble @System"
+	],
+	"compatible_printers": []
+}
