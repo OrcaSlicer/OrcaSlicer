@@ -567,6 +567,19 @@ static bool solid_role(ExtrusionRole role) { return is_solid_infill(role) && rol
 static bool sparse_role(ExtrusionRole role) { return role == erInternalInfill; }
 static bool ironing_role(ExtrusionRole role) { return role == erIroning; }
 
+// The angle from line direction `from` to `to`, in whole degrees [0, 180).
+static int line_angle_delta(int from, int to) { return ((to - from) % 180 + 180) % 180; }
+
+static Polylines layer_paths(const Layer &layer, ExtrusionRole role)
+{
+    Polylines polylines;
+    for (const LayerRegion *region : layer.regions())
+        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+            if (entity->role() == role)
+                entity->collect_polylines(polylines);
+    return polylines;
+}
+
 TEST_CASE("Infill rotation template is unaffected by a raft", "[Fill][Regression]")
 {
     // More angles than raft layers, so a raft cannot alias back to the same angle.
@@ -666,7 +679,7 @@ TEST_CASE("Z anti-aliasing keeps the infill rotation template's step", "[Fill]")
     // Z contouring may change when the template advances, but each step must still be 45 degrees.
     int steps = 0;
     for (size_t i = 1; i < angles.size(); ++i) {
-        const int delta = ((angles[i] - angles[i - 1]) % 180 + 180) % 180;
+        const int delta = line_angle_delta(angles[i - 1], angles[i]);
         CAPTURE(i, angles[i - 1], angles[i]);
         // Split rather than "delta == 0 || delta == 45" so Catch2 can show the operands.
         REQUIRE(delta % 45 == 0);
@@ -674,6 +687,321 @@ TEST_CASE("Z anti-aliasing keeps the infill rotation template's step", "[Fill]")
         steps += delta == 45;
     }
     CHECK(steps > 0);
+}
+
+static constexpr double rotate_template_first_layer_height = 0.2;
+
+// Slices a 20-layer box whose first layer is first_layer_height thick and the rest 0.2mm.
+static void slice_for_rotate_templates(Print &print, double first_layer_height)
+{
+    Slic3r::Test::init_and_process_print({make_cube(20, 20, 3.8 + first_layer_height)}, print,
+                                        {{"layer_height", 0.2},
+                                         {"initial_layer_print_height", first_layer_height},
+                                         // Read by the B and T counts.
+                                         {"bottom_shell_layers", 3},
+                                         {"top_shell_layers", 4}});
+}
+
+// The expected angles are the parser's current output, so a deliberate change to a template's output must update them.
+static void check_rotate_template(const std::string &rotate_template, const std::vector<double> &expected,
+                                  double first_layer_height = rotate_template_first_layer_height)
+{
+    CAPTURE(rotate_template);
+    Print print;
+    slice_for_rotate_templates(print, first_layer_height);
+    const PrintObject &object = *print.objects().front();
+    REQUIRE(object.layers().size() == expected.size());
+    for (size_t i = 0; i < expected.size(); ++i) {
+        // The infill direction does not apply when a template is set.
+        const double angle = Geometry::rad2deg(calculate_infill_rotation_angle(&object, object.get_layer(i)->id(), 0., rotate_template));
+        CAPTURE(i, angle, expected[i]);
+        // Compare around the circle, so 360 matches 0.
+        CHECK_THAT(std::remainder(angle - expected[i], 360.), Catch::Matchers::WithinAbs(0., 0.01));
+    }
+}
+
+// Angles that several templates give the 20 layers of slice_for_rotate_templates().
+static const std::vector<double> turn_9_per_layer  = {9, 18, 27, 36, 45, 54, 63, 72, 81, 90, 99, 108, 117, 126, 135, 144, 153, 162, 171, 180};
+static const std::vector<double> turn_18_per_layer = {18, 36, 54, 72, 90, 108, 126, 144, 162, 180, 198, 216, 234, 252, 270, 288, 306, 324, 342, 360};
+static const std::vector<double> step_45_every_5_layers = {45, 45, 45, 45, 45, 90, 90, 90, 90, 90, 135, 135, 135, 135, 135, 180, 180, 180, 180, 180};
+static const std::vector<double> turn_10_per_layer_from_0 = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190};
+
+TEST_CASE("Infill rotation template without operators cycles through its angles", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        {"0,90", {0, 90, 0, 90, 0, 90, 0, 90, 0, 90, 0, 90, 0, 90, 0, 90, 0, 90, 0, 90}},
+        {"0,45,90", {0, 45, 90, 0, 45, 90, 0, 45, 90, 0, 45, 90, 0, 45, 90, 0, 45, 90, 0, 45}},
+    }));
+    check_rotate_template(rotate_template, expected);
+}
+
+TEST_CASE("Relative infill rotation template turns by its angle on every layer", "[Fill][RotateTemplate]")
+{
+    check_rotate_template("+5", {5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100});
+}
+
+TEST_CASE("Infill rotation template angle can be a percent of a full turn", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        {"25%", {90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90}},
+        {"+15%", {54, 108, 162, 216, 270, 324, 18, 72, 126, 180, 234, 288, 342, 36, 90, 144, 198, 252, 306, 0}},
+        {"+25%/10", turn_9_per_layer},
+    }));
+    check_rotate_template(rotate_template, expected);
+}
+
+TEST_CASE("Relative infill rotation template range spreads the turn over its layers", "[Fill][RotateTemplate]")
+{
+    check_rotate_template("+90/10", turn_9_per_layer);
+}
+
+TEST_CASE("Absolute infill rotation template range holds its angle for the range", "[Fill][RotateTemplate]")
+{
+    check_rotate_template("0, 90/10", {0, 90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 0, 90, 90, 90, 90, 90, 90, 90, 90});
+}
+
+TEST_CASE("Infill rotation template step joint holds the end angle of each range", "[Fill][RotateTemplate]")
+{
+    check_rotate_template("+45#5", step_45_every_5_layers);
+}
+
+TEST_CASE("Infill rotation template middle joint holds half the turn for the range", "[Fill][RotateTemplate]")
+{
+    check_rotate_template("+90|5",
+                          {45, 45, 45, 45, 45, 135, 135, 135, 135, 135, 225, 225, 225, 225, 225, 315, 315, 315, 315, 315});
+}
+
+TEST_CASE("Infill rotation template curve joints shape the turn over the range", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        {"+90N10", {0.58, 4.38, 13.38, 27.58, 45, 62.42, 76.62, 85.62, 89.42, 90,
+                    90.58, 94.38, 103.38, 117.58, 135, 152.42, 166.62, 175.62, 179.42, 180}},
+        {"+90n10", {4.79, 11.19, 20.19, 31.79, 45, 58.21, 69.81, 78.81, 85.21, 90,
+                    94.79, 101.19, 110.19, 121.79, 135, 148.21, 159.81, 168.81, 175.21, 180}},
+        {"+90Z10", {17.42, 31.62, 40.62, 44.42, 45, 45.58, 49.38, 58.38, 72.58, 90,
+                    107.42, 121.62, 130.62, 134.42, 135, 135.58, 139.38, 148.38, 162.58, 180}},
+        {"+90z10", {13.21, 24.81, 33.81, 40.21, 45, 49.79, 56.19, 65.19, 76.79, 90,
+                    103.21, 114.81, 123.81, 130.21, 135, 139.79, 146.19, 155.19, 166.79, 180}},
+        {"+90$10", {18.43, 26.57, 33.21, 39.23, 45, 50.77, 56.79, 63.43, 71.57, 90,
+                    108.43, 116.57, 123.21, 129.23, 135, 140.77, 146.79, 153.43, 161.57, 180}},
+        {"+90L10", {14.08, 27.81, 40.86, 52.9, 63.64, 72.81, 80.19, 85.6, 88.89, 90,
+                    104.08, 117.81, 130.86, 142.9, 153.64, 162.81, 170.19, 175.6, 178.89, 180}},
+        {"+90l10", {1.11, 4.4, 9.81, 17.19, 26.36, 37.1, 49.14, 62.19, 75.92, 90,
+                    91.11, 94.4, 99.81, 107.19, 116.36, 127.1, 139.14, 152.19, 165.92, 180}},
+        {"+90U10", {17.1, 32.4, 45.9, 57.6, 67.5, 75.6, 81.9, 86.4, 89.1, 90,
+                    107.1, 122.4, 135.9, 147.6, 157.5, 165.6, 171.9, 176.4, 179.1, 180}},
+        {"+90u10", {72.9, 57.6, 44.1, 32.4, 22.5, 14.4, 8.1, 3.6, 0.9, 0,
+                    162.9, 147.6, 134.1, 122.4, 112.5, 104.4, 98.1, 93.6, 90.9, 90}},
+        {"+90Q10", {24.39, 43.92, 59.13, 70.56, 78.75, 84.24, 87.57, 89.28, 89.91, 90,
+                    114.39, 133.92, 149.13, 160.56, 168.75, 174.24, 177.57, 179.28, 179.91, 180}},
+        {"+90q10", {65.61, 46.08, 30.87, 19.44, 11.25, 5.76, 2.43, 0.72, 0.09, 0,
+                    155.61, 136.08, 120.87, 109.44, 101.25, 95.76, 92.43, 90.72, 90.09, 90}},
+    }));
+    check_rotate_template(rotate_template, expected);
+}
+
+TEST_CASE("Infill rotation template random joints vary the angle within their bounds", "[Fill][RotateTemplate]")
+{
+    Print print;
+    slice_for_rotate_templates(print, rotate_template_first_layer_height);
+    const PrintObject &object = *print.objects().front();
+    REQUIRE(object.layers().size() == turn_9_per_layer.size());
+    // Like "+90/10", both turn 90 degrees over every 10 layers, but they draw each angle from rand().
+    size_t anywhere_off_the_line = 0;
+    size_t near_line_off_the_line = 0;
+    for (size_t i = 0; i < turn_9_per_layer.size(); ++i) {
+        const double range_start = 90. * double(i / 10);
+        const double linear      = turn_9_per_layer[i];
+        const double anywhere    = Geometry::rad2deg(calculate_infill_rotation_angle(&object, object.get_layer(i)->id(), 0., "+90~10"));
+        const double near_line   = Geometry::rad2deg(calculate_infill_rotation_angle(&object, object.get_layer(i)->id(), 0., "+90^10"));
+        CAPTURE(i, range_start, linear, anywhere, near_line);
+        // ~ picks any angle of the range.
+        CHECK(anywhere >= range_start - 0.01);
+        CHECK(anywhere <= range_start + 90.01);
+        // ^ stays within half the range of the linear turn.
+        CHECK(std::abs(near_line - linear) <= 45.01);
+        anywhere_off_the_line += std::abs(anywhere - linear) > 0.01;
+        near_line_off_the_line += std::abs(near_line - linear) > 0.01;
+    }
+    CHECK(anywhere_off_the_line > 0);
+    CHECK(near_line_off_the_line > 0);
+}
+
+TEST_CASE("Infill rotation template minus before the count flips the joint", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        {"+90/-10", {81, 72, 63, 54, 45, 36, 27, 18, 9, 0, 171, 162, 153, 144, 135, 126, 117, 108, 99, 90}},
+        {"+90L-10", {88.89, 85.6, 80.19, 72.81, 63.64, 52.9, 40.86, 27.81, 14.08, 0,
+                     178.89, 175.6, 170.19, 162.81, 153.64, 142.9, 130.86, 117.81, 104.08, 90}},
+    }));
+    check_rotate_template(rotate_template, expected);
+}
+
+TEST_CASE("Infill rotation template range can be a height in mm, cm, m, feet, inches or percent", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        // 1mm is 5 layers.
+        {"+90/1mm", turn_18_per_layer},
+        // 0.2cm, 0.002m and 50% of the 4mm object are each 10 layers.
+        {"+90/0.2cm", turn_9_per_layer},
+        {"+90/0.002m", turn_9_per_layer},
+        {"+90/50%", turn_9_per_layer},
+        // 0.01' is 3.048mm and 0.1" is 2.54mm, which do not end on a layer.
+        {"+90/0.01'", {5.91, 11.81, 17.72, 23.62, 29.53, 35.43, 41.34, 47.24, 53.15, 59.06,
+                       64.96, 70.87, 76.77, 82.68, 88.58, 95.91, 101.81, 107.72, 113.62, 119.53}},
+        {"+90/0.1\"", {7.09, 14.17, 21.26, 28.35, 35.43, 42.52, 49.61, 56.69, 63.78, 70.87,
+                       77.95, 85.04, 92.13, 97.09, 104.17, 111.26, 118.35, 125.43, 132.52, 139.61}},
+    }));
+    check_rotate_template(rotate_template, expected);
+}
+
+TEST_CASE("Infill rotation template layer height unit counts layer_height under a thicker first layer", "[Fill][RotateTemplate]")
+{
+    const auto [first_layer_height, expected] = GENERATE(table<double, std::vector<double>>({
+        // 5 layers of 0.2mm.
+        {0.2, turn_18_per_layer},
+        // With a 0.4mm first layer, the first range is still 5 x 0.2mm = 1mm, so the first layer turns twice as far.
+        {0.4, {36, 54, 72, 90, 108, 126, 144, 162, 180, 198, 216, 234, 252, 270, 288, 306, 324, 342, 360, 378}},
+    }));
+    CAPTURE(first_layer_height);
+    check_rotate_template("+90/5#", expected, first_layer_height);
+}
+
+TEST_CASE("Infill rotation template B and T counts take the bottom and top shell layers", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        // The absolute 0 after each range marks its end, after 3 layers for B and 4 for T.
+        {"+10B, 0", {10, 20, 30, 0, 10, 20, 30, 0, 10, 20, 30, 0, 10, 20, 30, 0, 10, 20, 30, 0}},
+        {"+10T, 0", {10, 20, 30, 40, 0, 10, 20, 30, 40, 0, 10, 20, 30, 40, 0, 10, 20, 30, 40, 0}},
+        // On their own, B and T hold the angle for that many layers, on every pass through the template.
+        {"B, +30", {0, 0, 0, 30, 30, 30, 30, 60, 60, 60, 60, 90, 90, 90, 90, 120, 120, 120, 120, 150}},
+        {"T, +30", {0, 0, 0, 0, 30, 30, 30, 30, 30, 60, 60, 60, 60, 60, 90, 90, 90, 90, 90, 120}},
+        // With ! they hold it only on the first pass.
+        {"B!, +30", {0, 0, 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360, 390, 420, 450, 480, 510}},
+        {"T!, +30", {0, 0, 0, 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360, 390, 420, 450, 480}},
+    }));
+    check_rotate_template(rotate_template, expected);
+}
+
+TEST_CASE("Infill rotation template range that would end above the object is squeezed into the layers left", "[Fill][RotateTemplate]")
+{
+    // Turns 30 degrees over every 3 layers, and the full 30 over the 2 layers left at the top.
+    check_rotate_template("+10B", {10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 195, 210});
+}
+
+TEST_CASE("Infill rotation template star count repeats an instruction", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        {"+10*3, 0", {10, 10, 10, 0, 10, 10, 10, 0, 10, 10, 10, 0, 10, 10, 10, 0, 10, 10, 10, 0}},
+        {"+30*2, -60", {30, 30, 330, 0, 0, 300, 330, 330, 270, 300, 300, 240, 270, 270, 210, 240, 240, 180, 210, 210}},
+    }));
+    check_rotate_template(rotate_template, expected);
+}
+
+TEST_CASE("Infill rotation template bare star sets the start angle without using a layer", "[Fill][RotateTemplate]")
+{
+    // Starts at 5 degrees, then turns 20 degrees over the whole object.
+    check_rotate_template("5*, +20/100%", {6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25});
+}
+
+TEST_CASE("Infill rotation template exclamation mark runs an instruction once", "[Fill][RotateTemplate]")
+{
+    const auto [rotate_template, expected] = GENERATE(table<std::string, std::vector<double>>({
+        {"0!,+10", turn_10_per_layer_from_0},
+        {"0!, +10, +20", {0, 10, 30, 40, 60, 70, 90, 100, 120, 130, 150, 160, 180, 190, 210, 220, 240, 250, 270, 280}},
+    }));
+    check_rotate_template(rotate_template, expected);
+}
+
+TEST_CASE("Printed infill follows the rotation template and ignores the infill direction", "[Fill][RotateTemplate]")
+{
+    // One template from each family that gives whole degrees, with the angles the cases above pin for it.
+    const auto [rotate_template, pinned] = GENERATE(table<std::string, std::vector<double>>({
+        {"+90/10", turn_9_per_layer},
+        {"+45#5", step_45_every_5_layers},
+        {"+90/5#", turn_18_per_layer},
+        {"0!,+10", turn_10_per_layer_from_0},
+    }));
+    const bool sparse = GENERATE(true, false);
+    CAPTURE(rotate_template, sparse);
+
+    Print print;
+    Slic3r::Test::init_and_process_print({make_cube(20, 20, 4)}, print,
+                                        {{"sparse_infill_rotate_template", sparse ? rotate_template : ""},
+                                         {"solid_infill_rotate_template", sparse ? "" : rotate_template},
+                                         // Neither applies while a template is set.
+                                         {"infill_direction", 30},
+                                         {"solid_infill_direction", 30},
+                                         // Without shells every layer is sparse, or solid at 100% density.
+                                         {"sparse_infill_density", sparse ? "40%" : "100%"},
+                                         {"sparse_infill_pattern", "rectilinear"},
+                                         {"internal_solid_infill_pattern", "monotonic"},
+                                         {"top_shell_layers", 0},
+                                         {"bottom_shell_layers", 0},
+                                         {"top_shell_thickness", 0},
+                                         {"bottom_shell_thickness", 0},
+                                         {"layer_height", 0.2},
+                                         {"initial_layer_print_height", 0.2}});
+
+    // As line directions, in the whole degrees angles_per_layer() gives.
+    std::vector<int> expected;
+    for (double angle : pinned)
+        expected.push_back(int(std::lround(std::fmod(angle, 180.))));
+    CHECK(angles_per_layer(print, sparse ? sparse_role : solid_role) == expected);
+}
+
+TEST_CASE("Sparse infill at 100% density turns solid and ignores the sparse rotation template", "[Fill][RotateTemplate]")
+{
+    struct Angles { std::vector<int> solid, sparse; };
+    auto angles_for = [](const std::string &sparse_template) {
+        Print print;
+        Slic3r::Test::init_and_process_print({Slic3r::Test::cube(10)}, print,
+                                            {{"sparse_infill_rotate_template", sparse_template},
+                                             {"sparse_infill_density", "100%"},
+                                             {"internal_solid_infill_pattern", "monotonic"},
+                                             {"layer_height", 0.2},
+                                             {"initial_layer_print_height", 0.2}});
+        return Angles{angles_per_layer(print, solid_role), angles_per_layer(print, sparse_role)};
+    };
+
+    const Angles with_template    = angles_for("+45");
+    const Angles without_template = angles_for("");
+    REQUIRE(with_template.solid.size() == 50);
+    REQUIRE(std::count(with_template.solid.begin(), with_template.solid.end(), -1) == 0);
+    CHECK(std::count(with_template.sparse.begin(), with_template.sparse.end(), -1) == 50);
+    CHECK(with_template.solid == without_template.solid);
+}
+
+TEST_CASE("Infill rotation template turns with the model when aligned to it", "[Fill][RotateTemplate]")
+{
+    auto angles_for = [](double z_rotation) {
+        DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+        config.set_deserialize_strict({{"solid_infill_rotate_template", "0,90"},
+                                       {"align_infill_direction_to_model", 1},
+                                       {"sparse_infill_density", "100%"},
+                                       {"internal_solid_infill_pattern", "monotonic"},
+                                       {"layer_height", 0.2},
+                                       {"initial_layer_print_height", 0.2}});
+        Print print;
+        Model model;
+        Slic3r::Test::init_print({Slic3r::Test::cube(10)}, print, model, config, nullptr, false);
+        model.objects.front()->instances.front()->set_rotation(Vec3d(0., 0., Geometry::deg2rad(z_rotation)));
+        print.apply(model, config);
+        print.process();
+        return angles_per_layer(print, solid_role);
+    };
+
+    const std::vector<int> unrotated = angles_for(0.);
+    const std::vector<int> rotated   = angles_for(30.);
+    REQUIRE(unrotated.size() == 50);
+    REQUIRE(rotated.size() == unrotated.size());
+    REQUIRE(std::count(unrotated.begin(), unrotated.end(), -1) == 0);
+    REQUIRE(std::count(rotated.begin(), rotated.end(), -1) == 0);
+    for (size_t i = 0; i < unrotated.size(); ++i) {
+        CAPTURE(i, unrotated[i], rotated[i]);
+        CHECK(unrotated[i] == (i % 2 == 0 ? 0 : 90));
+        CHECK(line_angle_delta(unrotated[i], rotated[i]) == 30);
+    }
 }
 
 TEST_CASE("Ironing follows the solid infill rotation template", "[Fill]")
@@ -844,9 +1172,10 @@ TEST_CASE("Solid infill direction offsets every layer when no template is set", 
     const std::vector<int> at_30 = angles_for(30);
     REQUIRE(at_0.size() == at_30.size());
     REQUIRE(std::count(at_0.begin(), at_0.end(), -1) == 0);
+    REQUIRE(std::count(at_30.begin(), at_30.end(), -1) == 0);
 
     for (size_t i = 0; i < at_0.size(); ++i) {
-        const int delta = ((at_30[i] - at_0[i]) % 180 + 180) % 180;
+        const int delta = line_angle_delta(at_0[i], at_30[i]);
         CAPTURE(i, at_0[i], at_30[i]);
         CHECK(delta == 30);
     }
@@ -1301,12 +1630,14 @@ TEST_CASE("Cross hatch infill rounds its transition layers with the smooth facto
     REQUIRE(smooth.length < sharp.length);
 }
 
-TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one line", "[Fill]")
+TEST_CASE("Trapezoidal infill rounds its corners only with more than one line", "[Fill]")
 {
-    auto shape_for = [](int multiline, const std::string &smooth_factor) {
+    const std::string pattern = GENERATE("grid", "quartercubic");
+    CAPTURE(pattern);
+    auto shape_for = [&pattern](int multiline, const std::string &smooth_factor) {
         Print print;
         Slic3r::Test::init_and_process_print({Slic3r::Test::cube(20)}, print,
-                                            {{"sparse_infill_pattern", "grid"},
+                                            {{"sparse_infill_pattern", pattern},
                                              {"sparse_infill_density", "20%"},
                                              {"fill_multiline", multiline},
                                              {"sparse_infill_smooth_factor", smooth_factor},
@@ -1322,7 +1653,7 @@ TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one li
     REQUIRE(smooth.sharp_turns < sharp.sharp_turns);
     REQUIRE(smooth.length < sharp.length);
 
-    // A single line per infill wall is the plain crossing line grid, which has no corner of its own.
+    // A single line per infill wall is the plain crossing lines, which have no corner of their own.
     const SparseInfillShape single_sharp  = shape_for(1, "0%");
     const SparseInfillShape single_smooth = shape_for(1, "100%");
     REQUIRE(single_sharp.point_count > 0);
@@ -1332,7 +1663,7 @@ TEST_CASE("Trapezoidal grid infill rounds its corners only with more than one li
 
 TEST_CASE("Multiline infill of an object matches the infill of a larger object with the same center", "[Fill]")
 {
-    const InfillPattern pattern   = GENERATE(ipGrid, ipTriangles, ipStars, ipCubic);
+    const InfillPattern pattern   = GENERATE(ipGrid, ipTriangles, ipStars, ipCubic, ipQuarterCubic);
     const int           multiline = GENERATE(2, 3);
     // A square with cells as large as itself, whose corners are as far out as the object bounding box
     // reaches, and a strip with small cells, whose extents change with every layer orientation.
@@ -1443,6 +1774,45 @@ TEST_CASE("Gyroid infill of an object matches the infill of a larger object with
     }
 }
 
+TEST_CASE("Hilbert curve sparse infill lines up across layers of different sizes", "[Fill]")
+{
+    // A 40mm square up to 5mm, with a 12mm square off its center on top of it up to 10mm, so the
+    // two islands neither share a corner nor need the same size of curve.
+    TriangleMesh step = make_cube(40, 40, 5);
+    TriangleMesh top  = make_cube(12, 12, 5);
+    top.translate(4, 4, 5);
+    step.merge(top);
+    Print print;
+    Slic3r::Test::init_and_process_print({std::move(step)}, print,
+                                        {{"sparse_infill_pattern", "hilbertcurve"},
+                                         {"sparse_infill_density", "25%"},
+                                         {"top_shell_layers", 0},
+                                         {"bottom_shell_layers", 0},
+                                         {"top_shell_thickness", 0},
+                                         {"bottom_shell_thickness", 0},
+                                         {"layer_height", 0.2},
+                                         {"initial_layer_print_height", 0.2},
+                                         {"resolution", 0.012}});
+
+    const PrintObject &object = *print.objects().front();
+    // 10mm at 0.2mm.
+    REQUIRE(object.layers().size() == 50);
+    const Layer    &lower = *object.get_layer(12); // 2.4mm to 2.6mm
+    const Layer    &upper = *object.get_layer(37); // 7.4mm to 7.6mm
+    const Polylines below = layer_paths(lower, erInternalInfill);
+    REQUIRE_FALSE(below.empty());
+    const AABBTreeLines::LinesDistancer<Line> below_tree(to_lines(below));
+
+    // Away from the perimeters, where the curve is cut and joined differently on each layer.
+    const Polylines above = intersection_pl(layer_paths(upper, erInternalInfill), shrink(to_polygons(upper.lslices), scale_(2.)));
+    REQUIRE_FALSE(above.empty());
+    double max_distance = 0.;
+    for (const Polyline &path : above)
+        for (const Point &point : path.equally_spaced_points(scale_(0.25)))
+            max_distance = std::max(max_distance, below_tree.distance_from_lines<false>(point));
+    CHECK(unscale<double>(max_distance) <= 0.012);
+}
+
 TEST_CASE("Multiline infill keeps its lines parallel around a corner", "[Fill]")
 {
     // A left turn by 135 degrees, drawn as two lines half of the 0.4 mm spacing to each side of it.
@@ -1464,18 +1834,74 @@ TEST_CASE("Multiline infill keeps its lines parallel around a corner", "[Fill]")
     REQUIRE(paths.front().size() < 100);
 }
 
+TEST_CASE("Multiline lateral infill prints overlapping walls as one wall without gaps", "[Fill]")
+{
+    const InfillPattern pattern   = GENERATE(ipLateralLattice, ipLateralHoneycomb);
+    const int           multiline = GENERATE(2, 3);
+    CAPTURE(pattern, multiline);
+    const double    spacing = 0.45;
+    const ExPolygon square{ Points{ Point::new_scale(0., 0.), Point::new_scale(40., 0.), Point::new_scale(40., 40.), Point::new_scale(0., 40.) } };
+    // Away from the boundary, where the lines are connected.
+    const Polygons inner = shrink(to_polygons(square), scale_(3.));
+
+    // The walls of the two directions of both patterns slide over each other with z.
+    for (size_t layer_id = 0; layer_id < 60; ++layer_id) {
+        const double z = 0.2 * double(layer_id + 1);
+        CAPTURE(z);
+        std::unique_ptr<Fill> filler(Fill::new_from_type(pattern));
+        filler->spacing     = spacing;
+        filler->angle       = 0.f;
+        filler->fixed_angle = true;
+        filler->layer_id    = layer_id;
+        filler->z           = z;
+
+        FillParams params;
+        params.pattern                 = pattern;
+        params.density                 = 0.3f;
+        params.multiline               = multiline;
+        params.lateral_lattice_angle_1 = -45.;
+        params.lateral_lattice_angle_2 = 45.;
+        params.infill_overhang_angle   = 60.f;
+        params.dont_adjust             = true;
+        Surface surface(stInternal, square);
+        // The lines run along y.
+        std::vector<double> xs;
+        for (const Polyline &line : intersection_pl(filler->fill_surface(&surface, params), inner)) {
+            REQUIRE(std::abs(line.first_point().x() - line.last_point().x()) < scale_(0.001));
+            xs.push_back(unscale<double>(line.first_point().x() + line.last_point().x()) / 2.);
+        }
+        std::sort(xs.begin(), xs.end());
+
+        // No line is closer than spacing to the next, and the lines spacing apart make up walls.
+        std::vector<size_t> wall_lines{ 1 };
+        for (size_t i = 1; i < xs.size(); ++i) {
+            const double gap = xs[i] - xs[i - 1];
+            CHECK(gap > spacing - 0.001);
+            if (gap < spacing + 0.001)
+                ++wall_lines.back();
+            else
+                wall_lines.push_back(1);
+        }
+        // Not one is thinner than a single wall, but the ones cut by the inner square.
+        REQUIRE(wall_lines.size() > 2);
+        for (size_t i = 1; i + 1 < wall_lines.size(); ++i)
+            CHECK(wall_lines[i] >= size_t(multiline));
+    }
+}
+
 TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itself", "[Fill]")
 {
+    const std::string pattern = GENERATE("cubic", "quartercubic");
     const int    multiline = GENERATE(2, 3);
     const double spacing   = 0.45;
-    const double density   = 0.3;
+    const double density   = GENERATE(0.1, 0.3, 0.6);
     const double wall      = multiline * spacing;
-    CAPTURE(multiline);
+    CAPTURE(pattern, multiline, density);
 
     const ExPolygon region{ Slic3r::Points{ Point::new_scale(0., 0.), Point::new_scale(40., 0.),
                                             Point::new_scale(40., 40.), Point::new_scale(0., 40.) } };
-    auto fill = [&region, spacing](int lines, double density, size_t layer_id, double z) {
-        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("cubic"));
+    auto fill = [&region, &pattern, spacing](int lines, double density, size_t layer_id, double z) {
+        std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(pattern));
         filler->spacing  = spacing;
         filler->angle    = float(M_PI / 7.);
         filler->layer_id = layer_id;
@@ -1500,8 +1926,29 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
         return unscale<double>(distance);
     };
 
-    // One z period of the pattern: sqrt(2) / 3 of the 3 * wall / density line spacing.
-    const double z_period = std::sqrt(2.) * wall / density;
+    // The closest two different paths come, up to a line spacing.
+    auto closest_paths = [&inner, spacing](const Polylines &paths) {
+        Lines               lines;
+        std::vector<size_t> owner;
+        for (size_t i = 0; i < paths.size(); ++i)
+            for (const Line &line : paths[i].lines()) {
+                lines.emplace_back(line);
+                owner.emplace_back(i);
+            }
+        const AABBTreeLines::LinesDistancer<Line> tree(lines);
+        double closest = spacing;
+        for (size_t i = 0; i < paths.size(); ++i)
+            for (const Polyline &piece : intersection_pl(paths[i], inner))
+                for (const Point &point : piece.equally_spaced_points(scale_(0.1)))
+                    for (size_t k : tree.all_lines_in_radius(point, scale_(spacing)))
+                        if (owner[k] != i)
+                            closest = std::min(closest, unscale<double>(lines[k].distance_to(point)));
+        return closest;
+    };
+
+    // One z period of the pattern: sqrt(2) / 3 of the 3 * wall / density line spacing of Cubic, sqrt(2) of the
+    // 4 * wall / density line spacing of Quarter Cubic.
+    const double z_period = std::sqrt(2.) * wall / density * (pattern == "cubic" ? 1. : 4.);
     const size_t layers   = 30;
     for (size_t layer_id = 0; layer_id < layers; ++layer_id) {
         const double z = z_period * (layer_id + 0.5) / layers;
@@ -1511,6 +1958,8 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
         CHECK(get_intersections(to_lines(walls)).empty());
         // Long paths running out to the boundary, not loops around the cells.
         CHECK(std::none_of(walls.begin(), walls.end(), [](const Polyline &path) { return path.first_point() == path.last_point(); }));
+        // Neighbouring lines stay a line spacing apart, also where two walls touch. Cubic comes a little closer when dense.
+        CHECK(closest_paths(walls) > (pattern == "cubic" ? 0.9 : 0.99) * spacing);
 
         // Single lines at the same spacing: the walls are drawn along them.
         const Polylines lines = fill(1, density / multiline, layer_id, z);
@@ -1518,6 +1967,56 @@ TEST_CASE("Multiline cubic infill follows the cubic lines without crossing itsel
         CHECK(farthest(lines, walls) < 0.5 * wall);
         CHECK(farthest(walls, lines) < 1.5 * wall);
     }
+}
+
+TEST_CASE("Multiline quarter cubic infill keeps parallel lines together like the single line pattern", "[Fill]")
+{
+    const int    multiline = GENERATE(2, 3);
+    const size_t layer_id  = GENERATE(0, 1);
+    const double spacing   = 0.45;
+    const double density   = 0.2;
+    const double wall      = multiline * spacing;
+    const double period    = 4. * wall / density;
+    // The z where a pair of parallel lines is at its closest, with the middle of the pair and of the lines running along it.
+    // The second pair of lines is 0.7071 of a period behind the first in z / sqrt(2).
+    const auto [phase, along_x, across, along] = GENERATE_COPY(table<double, bool, double, double>({ { 0., true, 0., 0.5 * period },
+                                                                                                     { 0.5, true, 0.5 * period, 0.5 * period },
+                                                                                                     { 1. - std::sqrt(0.5), false, 0., 0.5 * period },
+                                                                                                     { 1.5 - std::sqrt(0.5), false, 0.5 * period, 0.5 * period } }));
+    CAPTURE(multiline, layer_id, phase);
+
+    const ExPolygon region{ Slic3r::Points{ Point::new_scale(-60., -60.), Point::new_scale(60., -60.),
+                                            Point::new_scale(60., 60.), Point::new_scale(-60., 60.) } };
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type(ipQuarterCubic));
+    filler->spacing  = spacing;
+    filler->angle    = float(-M_PI / 2.); // The lines run along x and y.
+    filler->layer_id = layer_id;
+    filler->z        = std::sqrt(2.) * (phase + 0.001) * period;
+
+    FillParams params;
+    params.pattern           = ipQuarterCubic;
+    params.density           = float(density);
+    params.multiline         = multiline;
+    params.dont_adjust       = true;
+    params.anchor_length_max = 0.f; // The bare pattern, without connections along the boundary.
+    Slic3r::Surface surface(stInternal, region);
+    const Polylines paths = filler->fill_surface(&surface, params);
+    REQUIRE_FALSE(paths.empty());
+
+    // Across the pair, away from any crossing: the lines of both walls, a line spacing apart with no gap in the middle.
+    auto probe_point = [along_x = along_x, along = along](double position) {
+        return along_x ? Point::new_scale(position, along) : Point::new_scale(along, position);
+    };
+    const Line probe(probe_point(across - 2. * wall), probe_point(across + 2. * wall));
+    std::vector<double> positions;
+    for (const Polyline &path : paths)
+        for (const Line &line : path.lines())
+            if (Point hit; probe.intersection(line, &hit))
+                positions.emplace_back(unscale<double>(along_x ? hit.x() : hit.y()));
+    std::sort(positions.begin(), positions.end());
+    REQUIRE(positions.size() == size_t(2 * multiline));
+    for (size_t i = 1; i < positions.size(); ++i)
+        CHECK_THAT(positions[i] - positions[i - 1], Catch::Matchers::WithinAbs(spacing, 0.01));
 }
 
 TEST_CASE("Multiline adaptive cubic infill keeps its lines apart without closing them around the cells", "[Fill]")
@@ -1845,11 +2344,7 @@ TEST_CASE("Sparse plane-path anchors match the printed infill", "[Fill][Internal
     print.process();
 
     const Layer &layer = *print.objects().front()->get_layer(4);
-    Polylines printed;
-    for (const LayerRegion *region : layer.regions())
-        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
-            if (entity->role() == erInternalInfill)
-                entity->collect_polylines(printed);
+    const Polylines printed = layer_paths(layer, erInternalInfill);
     REQUIRE_FALSE(printed.empty());
     const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
 
@@ -1909,16 +2404,6 @@ static void count_unmatched(const Polylines &a, const Polylines &b, size_t &samp
                 unmatched += other.empty() || distancer.distance_from_lines<false>(point) > scale_(0.05);
             }
     }
-}
-
-static Polylines layer_paths(const Layer &layer, ExtrusionRole role)
-{
-    Polylines polylines;
-    for (const LayerRegion *region : layer.regions())
-        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
-            if (entity->role() == role)
-                entity->collect_polylines(polylines);
-    return polylines;
 }
 
 // Orca: Share of the paths of a role that the other body does not repeat around its own center.
@@ -2503,11 +2988,7 @@ TEST_CASE("Adaptive TPMS anchors match the printed infill", "[Fill][InternalBrid
                                          {"resolution", 0.012}});
 
     const Layer &layer = *print.objects().front()->get_layer(40);
-    Polylines printed;
-    for (const LayerRegion *region : layer.regions())
-        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
-            if (entity->role() == erInternalInfill)
-                entity->collect_polylines(printed);
+    const Polylines printed = layer_paths(layer, erInternalInfill);
     REQUIRE_FALSE(printed.empty());
     const AABBTreeLines::LinesDistancer<Line> printed_tree(to_lines(printed));
 

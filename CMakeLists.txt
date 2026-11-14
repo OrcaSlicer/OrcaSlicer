@@ -110,7 +110,8 @@ endif()
 
 option(SLIC3R_STATIC            "Compile OrcaSlicer with static libraries (Boost, TBB)" ${SLIC3R_STATIC_INITIAL})
 option(SLIC3R_GUI               "Compile OrcaSlicer with GUI components (OpenGL, wxWidgets)" 1)
-option(SLIC3R_CAD               "Compile OrcaSlicer with the parametric Design/CAD tab (needs OCCT ModelingAlgorithms)" 1)
+option(SLIC3R_OPENVDB           "Compile OrcaSlicer with OpenVDB (used only by SLA hollowing)" 0)
+option(SLIC3R_CAD               "Compile OrcaSlicer with the parametric Design/CAD tab (needs OCCT's TKFillet, TKOffset and TKBool)" 1)
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
 option(SLIC3R_PROFILE           "Compile OrcaSlicer with an invasive Shiny profiler" 0)
 option(SLIC3R_PCH               "Use precompiled headers" 1)
@@ -120,6 +121,7 @@ option(SLIC3R_MSVC_COMPILE_PARALLEL "Compile on Visual Studio in parallel" 1)
 option(SLIC3R_MSVC_PDB          "Generate PDB files on MSVC in Release mode" 1)
 option(SLIC3R_RELATIVE_DEBUG_PATHS "Record a relative compilation directory in debug info (clang-cl)" 0)
 option(SLIC3R_ASAN              "Enable ASan on Clang and GCC" 0)
+option(SLIC3R_GLIBCXX_ASSERTIONS "Enable libstdc++'s lightweight checks (_GLIBCXX_ASSERTIONS)" 0)
 
 # Python stubgen module
 option(ORCA_BUILD_PYTHON_STUBGEN_MODULE "Build importable Python module for pybind11-stubgen" ON)
@@ -132,13 +134,13 @@ set(ORCA_BUNDLED_UV_EXECUTABLE "" CACHE FILEPATH "Path to a uv executable to bun
 #   curl -sL https://github.com/astral-sh/uv/releases/download/<ver>/uv-<triple>.tar.gz.sha256
 # The Flatpak copy in scripts/flatpak/com.orcaslicer.OrcaSlicer.yml pins the
 # same version and hashes and must be bumped with them.
-set(ORCA_UV_VERSION "0.11.21")
-set(ORCA_UV_SHA256_aarch64-apple-darwin      "1f921d491ba5ffeea774eb04d6681ecee379101341cbb1500394993b541bf3f4")
-set(ORCA_UV_SHA256_x86_64-apple-darwin       "f3c8e5708a84b920c18b691214d54d2b0da6b984789caae95d47c95120cb7765")
-set(ORCA_UV_SHA256_aarch64-unknown-linux-gnu "88e800834007cc5efd4675f166eb2a51e7e3ad19876d85fa8805a6fb5c922397")
-set(ORCA_UV_SHA256_x86_64-unknown-linux-gnu  "8c88519b0ef0af9801fcdee419bbb12116bd9e6b18e162ae093c932d8b264050")
-set(ORCA_UV_SHA256_aarch64-pc-windows-msvc   "74e443f8004022dde57a1bd0d10c097830f9ea8feb4ec927db52cd5d805c2f48")
-set(ORCA_UV_SHA256_x86_64-pc-windows-msvc    "ace861f360c6de2babedc1607d0f454b6b09a820dbc8182dc15af927e4df9589")
+set(ORCA_UV_VERSION "0.13.7")
+set(ORCA_UV_SHA256_aarch64-apple-darwin      "81b811b57e4624df7ed3aac148e0359100d9962f3d9dce00aec533dc2e086731")
+set(ORCA_UV_SHA256_x86_64-apple-darwin       "20c47e4c1f630b8abaff8c291fa9b9aa300fef92c4fbff95adf198b55287cda7")
+set(ORCA_UV_SHA256_aarch64-unknown-linux-gnu "71279f8d3c67241e807b9d8db872d1bf541579fb9f08b7d1eb1682196d1e57dc")
+set(ORCA_UV_SHA256_x86_64-unknown-linux-gnu  "c5221ff41b7892bfc223543883600125f6a47fe845093e0f5bdff4f359196d83")
+set(ORCA_UV_SHA256_aarch64-pc-windows-msvc   "505d9e65e7692bac3ddf98c66754aa26c5050c409c184af30a881a0a72cc85e3")
+set(ORCA_UV_SHA256_x86_64-pc-windows-msvc    "0cdc5b38fe5a8168ed6a25814f5ba43c21d313dd3187314fccb37b7cec46e021")
 
 # Version-scoped cache dir so a version bump invalidates the cached binary.
 set(ORCA_UV_DOWNLOAD_DIR "${CMAKE_BINARY_DIR}/.uv/${ORCA_UV_VERSION}")
@@ -660,6 +662,14 @@ if ((NOT MSVC OR IS_CLANG_CL) AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR 
 
 endif()
 
+if (SLIC3R_GLIBCXX_ASSERTIONS)
+    # libstdc++'s lightweight checks: operator[] past the end, front() or
+    # back() on an empty container and the like abort with a message instead
+    # of reading out of range. No class changes layout, so prebuilt deps link
+    # as they are. A no-op with libc++ and the MSVC STL.
+    add_compile_definitions(_GLIBCXX_ASSERTIONS)
+endif ()
+
 if (SLIC3R_ASAN)
     # ASAN should be available on MSVC starting with Visual Studio 2019 16.9
     # https://devblogs.microsoft.com/cppblog/address-sanitizer-for-msvc-now-generally-available/
@@ -876,6 +886,12 @@ if (NOT WIN32)
 else()
     target_link_libraries(libcurl INTERFACE crypt32)
 endif()
+if (APPLE)
+    # libcurl's macOS start-up calls SCDynamicStoreCopyProxies. curl's own
+    # CMake package links the framework, but our FindCURL module builds
+    # CURL::libcurl from the static archive alone.
+    target_link_libraries(libcurl INTERFACE "-framework SystemConfiguration")
+endif()
 
 if (SLIC3R_STATIC AND NOT SLIC3R_STATIC_EXCLUDE_CURL)
     if (NOT APPLE)
@@ -1045,19 +1061,24 @@ target_compile_definitions(pybind11_embed INTERFACE PYBIND11_SIMPLE_GIL_MANAGEME
 add_library(pybind11::embed ALIAS pybind11_embed)
 
 
-if(SLIC3R_STATIC)
-    set(OPENVDB_USE_STATIC_LIBS ON)
-    set(USE_BLOSC TRUE)
-endif ()
+if (SLIC3R_OPENVDB)
+    if(SLIC3R_STATIC)
+        set(OPENVDB_USE_STATIC_LIBS ON)
+        set(USE_BLOSC TRUE)
+    endif ()
 
-find_package(OpenVDB 5.0 COMPONENTS openvdb)
-if(OpenVDB_FOUND)
-    slic3r_remap_configs(IlmBase::Half RelWithDebInfo Release)
-    slic3r_remap_configs(Blosc::blosc RelWithDebInfo Release)
+    find_package(OpenVDB 5.0 COMPONENTS openvdb)
+    if(OpenVDB_FOUND)
+        slic3r_remap_configs(IlmBase::Half RelWithDebInfo Release)
+        slic3r_remap_configs(Blosc::blosc RelWithDebInfo Release)
+    else ()
+        message(FATAL_ERROR "OpenVDB could not be found with the bundled find module. "
+                       "You can try to specify the find module location of your "
+                       "OpenVDB installation with the OPENVDB_FIND_MODULE_PATH cache variable, "
+                       "or configure with -DSLIC3R_OPENVDB=OFF to build without SLA hollowing.")
+    endif ()
 else ()
-    message(FATAL_ERROR "OpenVDB could not be found with the bundled find module. "
-                   "You can try to specify the find module location of your "
-                   "OpenVDB installation with the OPENVDB_FIND_MODULE_PATH cache variable.")
+    message(STATUS "SLIC3R_OPENVDB is OFF: building without OpenVDB (SLA hollowing disabled).")
 endif ()
 
 find_path(SPNAV_INCLUDE_DIR spnav.h)

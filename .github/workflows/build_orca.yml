@@ -62,8 +62,10 @@ jobs:
       # restore it and discard what they compiled. Objects are keyed on the
       # preprocessed source, the compiler and the flags, so a leg only ever
       # hits its own entries. A failed install costs the caching, not the build.
+      # cl under the Visual Studio generator takes no launcher, so that build
+      # runs without one.
       - name: Name the compiler cache leg
-        if: ${{ !inputs.macos-combine-only }}
+        if: ${{ !inputs.macos-combine-only && !(runner.os == 'Windows' && inputs.compiler != 'clang') }}
         shell: bash
         run: |
           leg="${{ runner.os }}-${{ inputs.arch || 'amd64' }}${{ runner.os == 'Windows' && format('-{0}', inputs.compiler) || '' }}"
@@ -76,7 +78,7 @@ jobs:
       # spells it differently on Windows.
       - name: Compiler cache
         id: ccache
-        if: ${{ !inputs.macos-combine-only }}
+        if: ${{ !inputs.macos-combine-only && !(runner.os == 'Windows' && inputs.compiler != 'clang') }}
         continue-on-error: true
         uses: hendrikmuhs/ccache-action@v1.2.24
         with:
@@ -199,7 +201,8 @@ jobs:
       - name: Pack unit tests mac
         if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
         working-directory: ${{ github.workspace }}
-        run: tar -cvf build_tests.tar build/arm64/tests
+        # CMakeFiles holds only object files and precompiled headers, which ctest never reads.
+        run: tar -cf build_tests.tar --exclude='*/CMakeFiles' build/arm64/tests
 
       - name: Upload Test Artifact mac
         if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
@@ -219,14 +222,38 @@ jobs:
         # installed into it here; the source tree keeps its JSONs for later jobs.
         run: ./scripts/build_preset_cache.sh -b build/${{ inputs.arch }} build/${{ inputs.arch }}/OrcaSlicer/OrcaSlicer.app/Contents/Resources/profiles
 
+      # A pull request builds no universal app (build_all.yml), so each arch it
+      # builds ships as its own DMG; every other run packs the bundle for the
+      # universal job below.
+      - name: Create DMG ${{ inputs.arch }} without notary
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && github.event_name == 'pull_request'
+        working-directory: ${{ github.workspace }}
+        run: |
+          # Load the `retry` and `create_dmg` helpers.
+          source ${{ github.workspace }}/scripts/retry.sh
+          source ${{ github.workspace }}/scripts/create_dmg.sh
+          dmg_dir=${{ github.workspace }}/build/${{ inputs.arch }}/OrcaSlicer_dmg
+          mkdir -p "$dmg_dir"
+          rm -rf "$dmg_dir"/*
+          cp -R ${{ github.workspace }}/build/${{ inputs.arch }}/OrcaSlicer/OrcaSlicer.app "$dmg_dir/"
+          ln -sfn /Applications "$dmg_dir/Applications"
+          create_dmg "OrcaSlicer" "$dmg_dir" OrcaSlicer_Mac_${{ inputs.arch }}_${{ env.ver }}.dmg
+
+      - name: Upload DMG ${{ inputs.arch }}
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: OrcaSlicer_Mac_${{ inputs.arch }}_${{ env.ver }}
+          path: ${{ github.workspace }}/OrcaSlicer_Mac_${{ inputs.arch }}_${{ env.ver }}.dmg
+
       - name: Pack macOS app bundle ${{ inputs.arch }}
-        if: runner.os == 'macOS' && !inputs.macos-combine-only
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && github.event_name != 'pull_request'
         working-directory: ${{ github.workspace }}
         run: |
           tar -czvf OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}.tar.gz -C build/${{ inputs.arch }} OrcaSlicer
 
       - name: Upload macOS app bundle ${{ inputs.arch }}
-        if: runner.os == 'macOS' && !inputs.macos-combine-only
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v7
         with:
           name: OrcaSlicer_Mac_bundle_${{ inputs.arch }}_${{ github.sha }}
@@ -425,11 +452,14 @@ jobs:
         run: |
           if ("${{ inputs.arch }}" -eq "arm64") {
             "BUILD_DIR=build-arm64"  | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
-            "ARCH_SUFFIX=_arm64"     | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+            $suffix = "_arm64"
           } else {
             "BUILD_DIR=build"        | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
-            "ARCH_SUFFIX=_x64"       | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
+            $suffix = "_x64"
           }
+          # The clang build ships under the plain names; a cl build's artifacts say so.
+          if ("${{ inputs.compiler }}" -ne "clang") { $suffix += "_msvc" }
+          "ARCH_SUFFIX=$suffix"      | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
 
       - name: setup MSVC
         if: runner.os == 'Windows'
@@ -515,6 +545,7 @@ jobs:
           # cache-path is the install directory inside the deps build directory.
           $deps = (Split-Path "${{ github.workspace }}/${{ inputs.cache-path }}").Replace('\', '/')
           # -l compiles with Visual Studio's clang-cl and -x builds with Ninja; --msvc --msbuild is cl under the Visual Studio generator.
+          # The clang build is the one that ships: a cl build packs and uploads under _msvc names, and only the clang build is tested, checked and deployed.
           $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
           .\build_win.bat -s --tests -i --arch ${{ inputs.arch }} --build-dir $env:BUILD_DIR --deps-dir $deps @flags
         shell: pwsh
@@ -554,13 +585,14 @@ jobs:
           ./scripts/sign_windows.ps1 -Path $paths
 
       - name: Pack unit tests Win
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && inputs.compiler == 'clang'
         working-directory: ${{ github.workspace }}
         shell: pwsh
-        run: tar -cvf build_tests.tar ${{ env.BUILD_DIR }}/tests
+        # CMakeFiles holds only object files and precompiled headers, which ctest never reads.
+        run: tar -cf build_tests.tar --exclude='*/CMakeFiles' ${{ env.BUILD_DIR }}/tests
 
       - name: Upload Test Artifact Win
-        if: runner.os == 'Windows'
+        if: runner.os == 'Windows' && inputs.compiler == 'clang'
         uses: actions/upload-artifact@v7
         with:
           name: ${{ github.sha }}-tests-windows-${{ inputs.arch }}
@@ -636,11 +668,11 @@ jobs:
         if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
         uses: actions/upload-artifact@v7
         with:
-          name: PDB
+          name: PDB${{ inputs.compiler != 'clang' && '_msvc' || '' }}
           path: ${{ github.workspace }}/build/src/Release/Debug_PDB_${{ env.ver }}_for_developers_only.7z
 
       - name: Upload OrcaSlicer_profile_validator Win
-        if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: actions/upload-artifact@v7
         with:
           name: OrcaSlicer_profile_validator_Windows_${{ env.ver }}
@@ -654,7 +686,7 @@ jobs:
         run: scripts\check_exception_throw_info.ps1 -BuildDir $env:BUILD_DIR
 
       - name: Deploy Windows release portable
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: ./.github/actions/deploy-nightly
         with:
           asset_path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_${{ env.ver }}${{ env.ARCH_SUFFIX }}_portable.zip
@@ -662,7 +694,7 @@ jobs:
           content_type: application/x-zip-compressed
 
       - name: Deploy Windows release installer
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: ./.github/actions/deploy-nightly
         with:
           asset_path: ${{ github.workspace }}/${{ env.BUILD_DIR }}/OrcaSlicer_Windows_Installer_${{ env.ver }}${{ env.ARCH_SUFFIX }}.exe
@@ -670,7 +702,7 @@ jobs:
           content_type: application/x-msdownload
 
       - name: Deploy Windows OrcaSlicer_profile_validator release
-        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Windows' && inputs.arch != 'arm64' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: ./.github/actions/deploy-nightly
         with:
           asset_path: ${{ github.workspace }}/build/src/Release/OrcaSlicer_profile_validator.exe
@@ -678,7 +710,7 @@ jobs:
           content_type: application/x-msdownload
 
       - name: Build MSIX Store package Win
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         working-directory: ${{ github.workspace }}
         shell: pwsh
         run: |
@@ -691,7 +723,7 @@ jobs:
             -PublisherDisplayName "${{ vars.ORCA_MSIX_PUBLISHER_DISPLAY_NAME || 'OrcaSlicer' }}"
 
       - name: Upload artifacts Win MSIX
-        if: runner.os == 'Windows' && !vars.SELF_HOSTED
+        if: runner.os == 'Windows' && !vars.SELF_HOSTED && inputs.compiler == 'clang'
         uses: actions/upload-artifact@v7
         with:
           name: OrcaSlicer_Windows_MSIX_${{ env.ver }}${{ env.ARCH_SUFFIX }}
@@ -707,6 +739,12 @@ jobs:
       - name: Build slicer and tests
         if: runner.os == 'Linux'
         shell: bash
+        env:
+          # libstdc++'s checks, so the unit tests abort on an out-of-range
+          # access here too. The Flatpak gets them from its SDK's default
+          # flags and was the only leg catching those on pull requests, which
+          # build it only on request.
+          ORCA_EXTRA_BUILD_ARGS: -DSLIC3R_GLIBCXX_ASSERTIONS=ON
         run: |
           # Build + tar the unit tests (-t) on both Linux legs so each arch
           # (x86_64 + aarch64) gets tested by its own unit_tests_linux_* job.
@@ -715,7 +753,8 @@ jobs:
           appimage=./build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}${{ env.arch_suffix }}_${{ env.ver }}.AppImage
           mv -n ./build/OrcaSlicer_Linux_V${{ env.ver_pure }}.AppImage "$appimage"
           chmod +x "$appimage"
-          tar -cvf build_tests.tar build/tests
+          # CMakeFiles holds only object files and precompiled headers, which ctest never reads.
+          tar -cf build_tests.tar --exclude='*/CMakeFiles' build/tests
 
         # Use tar because upload-artifacts won't always preserve directory structure
         # and doesn't preserve file permissions

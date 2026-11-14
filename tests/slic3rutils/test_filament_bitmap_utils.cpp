@@ -18,7 +18,11 @@
 #include <cstddef>
 
 #include <catch2/catch_all.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <array>
 #include <cmath>
 #include <algorithm>
 
@@ -38,7 +42,6 @@
 #include <wx/string.h>
 #include <cstdlib>
 #include <utility>
-#include <catch2/generators/catch_generators.hpp>
 #endif
 #include <wx/string.h>
 
@@ -277,6 +280,25 @@ TEST_CASE("sample_gradient_ramp returns nothing without a usable curve or step c
     REQUIRE(Slic3r::GUI::sample_gradient_ramp(wxColour(255, 0, 0), wxColour(0, 0, 255), curve, 8).empty());
     curve.points = {{0.0, kGradientMaxRatio, NAN, NAN}, {1.0, kGradientMinRatio, NAN, NAN}};
     REQUIRE(Slic3r::GUI::sample_gradient_ramp(wxColour(255, 0, 0), wxColour(0, 0, 255), curve, 0).empty());
+}
+
+TEST_CASE("tri_clamp snaps a point outside the triangle to the nearest point on its outline", "[FilamentBitmapUtils]")
+{
+    using Slic3r::GUI::TriPoint;
+    // Same winding as the ratio picker: top, bottom-left, bottom-right, with y growing downwards.
+    const TriPoint v0{50, 0}, v1{0, 100}, v2{100, 100};
+    struct Case { TriPoint p; std::array<double, 3> weights; };
+    const Case c = GENERATE(Case{{95, 40}, {0.5, 0.0, 0.5}},   // right of the right edge, nearest its midpoint
+                            Case{{90, 150}, {0.0, 0.1, 0.9}},  // straight below (90, 100) on the bottom edge
+                            Case{{50, -50}, {1.0, 0.0, 0.0}},  // above the top vertex
+                            Case{{150, 150}, {0.0, 0.0, 1.0}}, // past the bottom-right vertex
+                            Case{{50, 50}, {0.5, 0.25, 0.25}}); // inside, left as is
+
+    double w0, w1, w2;
+    Slic3r::GUI::tri_barycentric(Slic3r::GUI::tri_clamp(c.p, v0, v1, v2), v0, v1, v2, w0, w1, w2);
+    CHECK_THAT(w0, Catch::Matchers::WithinAbs(c.weights[0], 1e-9));
+    CHECK_THAT(w1, Catch::Matchers::WithinAbs(c.weights[1], 1e-9));
+    CHECK_THAT(w2, Catch::Matchers::WithinAbs(c.weights[2], 1e-9));
 }
 
 // The headless GTK/macOS suite does not initialize GUI display/font stock objects.

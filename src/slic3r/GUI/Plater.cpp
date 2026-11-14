@@ -1297,6 +1297,10 @@ std::vector<int> get_min_flush_volumes(const DynamicPrintConfig &full_config, si
         filament_long_retractions_when_cut = filament_long_retractions_when_cut_opt->values;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": get filament_long_retractions_when_cut from config, size=%1%, values=%2%")%filament_long_retractions_when_cut.size() %filament_long_retractions_when_cut_opt->serialize();
     }
+    // A standalone preset that omits either key leaves it shorter than the filament list; the rest follow
+    // the first filament, as get_at() reads them when slicing.
+    filament_retraction_distance_when_cut.resize(filament_size, filament_retraction_distance_when_cut.empty() ? 18.0 : filament_retraction_distance_when_cut.front());
+    filament_long_retractions_when_cut.resize(filament_size, filament_long_retractions_when_cut.empty() ? 0 : filament_long_retractions_when_cut.front());
 
     for (size_t idx = 0; idx < filament_size; ++idx) {
         int extra_flush_volume = nozzle_volume_val;
@@ -10087,7 +10091,6 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                     if (obj->name.empty()) {
                         obj->name = fs::path(obj->input_file).filename().string();
                     }
-                    obj->rotate(Geometry::deg2rad(config->opt_float("preferred_orientation")), Axis::Z);
                 }
 
                 if (plate_data.size() > 0) {
@@ -10137,6 +10140,10 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 if (int deleted_objects = model.removed_objects_with_zero_volume(); deleted_objects > 0) {
                     MessageDialog(q, _L("Objects with zero volume removed"), _L("The volume of the object is zero"), wxICON_INFORMATION | wxOK).ShowModal();
                 }
+                // Turn the file's content as one piece by the printer's preferred orientation, once the objects
+                // with no volume are gone. The objects keep their heights for the multi-part check below.
+                if (!type_3mf)
+                    model.rotate_and_center_objects(Geometry::deg2rad(config->opt_float("preferred_orientation")));
                 if (imperial_units)
                     // Convert even if the object is big.
                     convert_from_imperial_units(model, false);
@@ -10677,7 +10684,10 @@ std::vector<size_t> Plater::priv::load_model_objects(const ModelObjectPtrs& mode
                         model_object->instances[i]->set_assemble_transformation(model_object->instances[i]->get_transformation());
                     }
                 }
-            }            
+            }
+            // An object that came without a position would otherwise sit at the origin of the assembly view, on top of the others.
+            if (model_object->instances.empty())
+                model.set_assembly_pos(object);
         }
     }
 
@@ -11709,6 +11719,10 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
     }
 
     background_process.fff_print()->set_check_multi_filaments_compatibility(wxGetApp().app_config->get("enable_high_low_temp_mixed_printing") == "false");
+
+    // Painted modifiers have no geometry in the scene, the parts they are painted on were moved without them.
+    for (ModelObject *model_object : this->model.objects)
+        model_object->sync_painted_modifiers();
 
     Print::ApplyStatus invalidated;
     const auto& preset_bundle = wxGetApp().preset_bundle;
@@ -15463,8 +15477,8 @@ bool Plater::priv::layers_height_allowed() const
     if (printer_technology != ptFFF)
         return false;
 
-    int obj_idx = get_selected_object_idx();
-    return 0 <= obj_idx && obj_idx < (int)model.objects.size() && model.objects[obj_idx]->max_z() > SINKING_Z_THRESHOLD && view3D->is_layers_editing_allowed();
+    // Orca: one object or several.
+    return !view3D->get_canvas3d()->get_layers_editing_object_idxs().empty() && view3D->is_layers_editing_allowed();
 }
 
 bool Plater::priv::can_layers_editing() const
@@ -17209,6 +17223,7 @@ void Plater::calib_pa(const Calib_Params& params)
     print_config->set_key_value("overhang_reverse", new ConfigOptionBool(false));
     print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
     print_config->set_key_value("wipe_inward", new ConfigOptionBool(false));
+    print_config->set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     switch (params.mode) {
         case CalibMode::Calib_PA_Line:
@@ -18122,6 +18137,7 @@ void Plater::calib_retraction(const Calib_Params& params)
 
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
     print_config->set_key_value("wipe_inward", new ConfigOptionBool(false));
+    print_config->set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
 
     float nozzle_diameter = printer_config->option<ConfigOptionFloats>("nozzle_diameter")->get_at(0);
     float layer_height;
@@ -21105,6 +21121,8 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
         }
     }
 
+    for (ModelObject *model_object : p->model.objects)
+        model_object->sync_painted_modifiers();
     bool store_result = Slic3r::store_bbs_3mf(store_params);
     // reset designed info
     if (!has_design_info)
@@ -24648,6 +24666,7 @@ wxMenu* Plater::object_menu()           { return p->menus.object_menu();        
 wxMenu* Plater::part_menu()             { return p->menus.part_menu();              }
 wxMenu* Plater::text_part_menu()        { return p->menus.text_part_menu();         }
 wxMenu* Plater::svg_part_menu()         { return p->menus.svg_part_menu();          }
+wxMenu* Plater::painted_modifier_menu() { return p->menus.painted_modifier_menu();  }
 wxMenu* Plater::sla_object_menu()       { return p->menus.sla_object_menu();        }
 wxMenu* Plater::default_menu()          { return p->menus.default_menu();           }
 wxMenu* Plater::instance_menu()         { return p->menus.instance_menu();          }

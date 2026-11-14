@@ -907,7 +907,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         // Place of the instance in print.model()'s object and instance lists. Copies of one object get
         // one PrintObject per distinct transformation, so print.objects() does not list them in order.
         std::pair<int, int>  model_position;
-        double               height;
+        double               height; // top above the bed, raft included (PrintObject::print_z_max)
         // Whether the instance reaches above extruder_clearance_height_to_rod, and the Y extent of it
         // the rod can hit while a later instance prints (see above_rod_y_range).
         bool                 has_above_rod = false;
@@ -929,13 +929,11 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
     const bool skirt_reaches_rod = print.has_infinite_skirt() ||
         (print.config().skirt_loops > 0 && print.config().skirt_height * max_layer_height > rod_height);
     auto above_rod_y_range = [rod_height](const PrintInstance &instance, coord_t &min_y, coord_t &max_y) -> bool {
-        // A raft lifts the whole object by its thickness, so mesh Z this far below the rod prints above it.
-        const double rod_z = rod_height - instance.print_object->slicing_parameters().object_print_z_min;
-        // Skip the mesh walk for the common case of an object that doesn't reach the rod. Like the too-tall
-        // check below, this compares the top without the raft, so an object only its raft lifts above the
-        // rod keeps the footprint test.
-        if (instance.print_object->max_z() <= scale_(rod_height))
+        // Skip the mesh walk for the common case of an object whose top, raft included, doesn't reach the rod.
+        if (instance.print_object->print_z_max() <= scale_(rod_height))
             return false;
+        // Mesh Z this far below the rod prints above it once the raft lifts the object.
+        const double rod_z = rod_height - instance.print_object->slicing_parameters().object_print_z_min;
         double ymin = std::numeric_limits<double>::max();
         double ymax = std::numeric_limits<double>::lowest();
         bool   any  = false;
@@ -1068,7 +1066,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     }
                 }
                 struct print_instance_info print_info {&instance, convex_hull.bounding_box(), convex_hull};
-                print_info.height = instance.print_object->height();
+                print_info.height = instance.print_object->print_z_max();
                 print_info.model_position = model_position_of(print.model(), instance.model_instance);
                 print_info.has_above_rod = above_rod_y_range(instance, print_info.rod_min_y, print_info.rod_max_y);
                 const BoundingBox footprint = print_info.bounding_box.inflated(-scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset));
@@ -1271,7 +1269,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     break;
                 }
             }
-            if (height < inst->print_object->max_z())
+            if (height < info_k.height)
                 too_tall_instances[inst] = std::make_pair(print_instance_with_bounding_box[k].hull_polygon, unscaled<double>(height));
         }
 
@@ -1528,7 +1526,7 @@ StringObjectException Print::compacted_wipe_tower_clearance_valid(const Print &p
     Polygons              offenders;
     bool                  body_tier_used = false;
     for (const PrintObject *object : print.objects()) {
-        const double object_top = unscaled<double>(object->max_z());
+        const double object_top = unscaled<double>(object->print_z_max());
         for (const PrintInstance &instance : object->instances()) {
             const Polygon inst_hull = compacted_tower_print_instance_hull(*object, instance);
             if (inst_hull.points.empty())
@@ -1642,7 +1640,7 @@ void Print::validate_compacted_wipe_tower_clearance() const
         return;
 
     for (const PrintObject *object : m_objects) {
-        const double object_top = unscaled<double>(object->max_z());
+        const double object_top = unscaled<double>(object->print_z_max());
         for (const PrintInstance &instance : object->instances()) {
             const Polygon inst_hull = compacted_tower_print_instance_hull(*object, instance);
             if (inst_hull.points.empty())
@@ -1821,8 +1819,12 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     const Point plate_shift(scale_(plate_origin.x()), scale_(plate_origin.y()));
     for (Polygon &p : printable_polys)
         p.translate(plate_shift);
-    if (!diff(tower_polys_checked, printable_polys).empty())
+    if (!diff(tower_polys_checked, printable_polys).empty()) {
+        // Moving the tower does not help when no area is reached by every extruder.
+        if (printable_polys.empty())
+            return {L("The extruder printable areas share no common area, so the prime tower cannot be printed.\n")};
         return {L("Prime tower is partially outside the printable area, and it cannot be printed.\n")};
+    }
     if (warning && !diff(tower_polys_estimated, printable_polys).empty())
         warning->string += L("Prime tower is partially outside the printable area, and it cannot be printed.\n");
     return {};
@@ -2104,26 +2106,21 @@ StringObjectException Print::validate_wipe_tower_layering() const
         layer_z_series.assign(m_objects.size(), std::vector<coordf_t>());
 
         for (size_t idx_object = 0; idx_object < m_objects.size(); ++idx_object) {
-            layer_z_series[idx_object] = generate_object_layers(m_objects[idx_object]->slicing_parameters(), layer_height_profile(idx_object), m_objects[idx_object]->config().precise_z_height.value);
+            layer_z_series[idx_object] = generate_object_layers(m_objects[idx_object]->slicing_parameters(), layer_height_profile(idx_object), m_objects[idx_object]->precise_z_height());
         }
 
         for (size_t idx_object = 0; idx_object < m_objects.size(); ++idx_object) {
             if (idx_object == tallest_object_idx) continue;
-            // Check that the layer height profiles are equal. This will happen when one object is
-            // a copy of another, or when a layer height modifier is used the same way on both objects.
-            // The latter case might create a floating point inaccuracy mismatch, so compare
-            // element-wise using an epsilon check.
-            size_t         i   = 0;
+            // Orca: check that the objects are sliced at the same Z over the height they share. The
+            // profiles themselves cannot be compared: one that ends at a lower object's top has an
+            // entry there that the tallest object's profile lacks, though both give the same layers.
+            const std::vector<coordf_t> &layers         = layer_z_series[idx_object];
+            const std::vector<coordf_t> &layers_tallest = layer_z_series[tallest_object_idx];
             const coordf_t eps = 0.5 * EPSILON; // layers closer than EPSILON will be merged later. Let's make
             // this check a bit more sensitive to make sure we never consider two different layers as one.
-            while (i < layer_height_profiles[idx_object].size() && i < layer_height_profiles[tallest_object_idx].size()) {
-                // BBS: remove the break condition, because a variable layer height object and a new object will not be checked when slicing
-                //if (i % 2 == 0 && layer_height_profiles[tallest_object_idx][i] > layer_height_profiles[idx_object][layer_height_profiles[idx_object].size() - 2])
-                //    break;
-                if (std::abs(layer_height_profiles[idx_object][i] - layer_height_profiles[tallest_object_idx][i]) > eps)
+            for (size_t i = 0; i < layers.size() && i < layers_tallest.size(); ++i)
+                if (std::abs(layers[i] - layers_tallest[i]) > eps)
                     return {L("The prime tower is only supported if all objects have the same variable layer height.")};
-                ++i;
-            }
         }
     }
     return {};
@@ -2487,7 +2484,10 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             return {L("The project contains multiple managed belt purge towers. Reload the plate or toggle the belt purge tower off and on to regenerate it.")};
     }
 
-    if (m_config.enable_prime_tower) {
+    if (m_precise_z_height_overridden)
+        // TRN "Precise Z height" is a print setting, "prime tower" the tower that purges the nozzle between filaments.
+        warn(L("Precise Z height is not applied: with the prime tower, objects of different heights that use variable layer height have to share their layers."), "precise_z_height");
+    else if (m_config.enable_prime_tower) {
         for (const PrintObject* object : m_objects) {
             if (object->config().precise_z_height.value) {
                 warn(L("Enabling both precise Z height and the prime tower may cause slicing errors."), "precise_z_height");
@@ -2573,7 +2573,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             have_height     = raw_z > 0;
         } else {
             //FIXME It is quite expensive to generate object layers just to get the print height!
-            auto layers = generate_object_layers(print_object.slicing_parameters(), layer_height_profile(print_object_idx), print_object.config().precise_z_height.value);
+            auto layers = generate_object_layers(print_object.slicing_parameters(), layer_height_profile(print_object_idx), print_object.precise_z_height());
             if (!layers.empty()) {
                 // The object layers start above the raft.
                 const double raft_z  = print_object.slicing_parameters().object_print_z_min;
@@ -3483,6 +3483,9 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             if (!model_volume1.mmu_segmentation_facets.equals(model_volume2.mmu_segmentation_facets))
                 return false;
             if (!model_volume1.fuzzy_skin_facets.equals(model_volume2.fuzzy_skin_facets))
+                return false;
+            if (!model_volume1.painted_modifier_facets.equals(model_volume2.painted_modifier_facets) ||
+                model_volume1.painted_modifier_depth != model_volume2.painted_modifier_depth)
                 return false;
             if (model_volume1.config.get() != model_volume2.config.get())
                 return false;
@@ -5750,10 +5753,15 @@ void Print::_make_wipe_tower()
             } else {
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
+        } else if (m_config.single_extruder_multi_material) {
+            // The tower stops below the last print layer, but a single-extruder MMU still has to unload the last
+            // filament. Unload at the object's top layer so the nozzle doesn't descend into the part on its way
+            // to the tower.
+            wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z), float(layer_height), 0, false, true);
         } else {
-            // The wipe tower does not reach the last print layer.
+            // The wipe tower does not reach the last print layer and nothing needs unloading: without SEMM the
+            // final purge only rams, with no retraction or parking, so it would just extrude in mid-air.
             // Skip final purge to avoid generating purge lines in mid-air.
-            assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
             generate_final_purge = false;
         }
         m_wipe_tower_data.final_purge = generate_final_purge

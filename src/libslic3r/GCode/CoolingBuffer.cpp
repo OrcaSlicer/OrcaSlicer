@@ -410,6 +410,9 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
         if (line.type) {
             // G0, G1 or G92
             // Parse the G-code line.
+            if (m_config.use_relative_e_distances.value)
+                // Reset extruder accumulator before the copy, so a line without an E word does not repeat the last one.
+                current_pos[3] = 0.f;
             std::vector<float> new_pos(current_pos);
             const char *c = sline.data() + 3;
             for (;;) {
@@ -463,9 +466,6 @@ std::vector<PerExtruderAdjustments> CoolingBuffer::parse_layer_gcode(const std::
             }
             if ((line.type & CoolingLine::TYPE_G92) == 0) {
                 //BBS: G0, G1, G2, G3. Calculate the duration.
-                if (m_config.use_relative_e_distances.value)
-                    // Reset extruder accumulator.
-                    current_pos[3] = 0.f;
                 float dif[4];
                 for (size_t i = 0; i < 4; ++ i)
                     dif[i] = new_pos[i] - current_pos[i];

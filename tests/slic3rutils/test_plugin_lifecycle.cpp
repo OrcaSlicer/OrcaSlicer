@@ -19,6 +19,7 @@
 
 #include <boost/filesystem.hpp>
 #include <pybind11/cast.h>
+#include <pybind11/eval.h>
 #include <pybind11/gil.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/pytypes.h>
@@ -1209,6 +1210,38 @@ TEST_CASE("Waiting for Python threads at shutdown ends idle concurrent.futures w
     release.attr("set")();
     CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::seconds(5)) == 0);
     allow_new_tasks();
+}
+
+TEST_CASE("Waiting for Python threads at shutdown counts the hooks an earlier wait gave up on", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+    pybind11::gil_scoped_acquire gil;
+
+    const pybind11::module_ threading = pybind11::module_::import("threading");
+    REQUIRE(pybind11::hasattr(threading, "_threading_atexits"));
+    // A hook that holds only the first thread to run it: a later wait that starts its own hook
+    // thread would find nothing left running, and Py_Finalize would start under the first one.
+    pybind11::dict scope;
+    pybind11::exec("import threading\n"
+                   "release = threading.Event()\n"
+                   "runs = 0\n"
+                   "def hold():\n"
+                   "    global runs\n"
+                   "    runs += 1\n"
+                   "    if runs == 1:\n"
+                   "        release.wait()\n",
+                   scope);
+    pybind11::list hooks = threading.attr("_threading_atexits");
+    hooks.append(scope["hold"]);
+
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds(200)) == 1);
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds(200)) == 1);
+
+    scope["release"].attr("set")();
+    CHECK(PythonInterpreter::join_non_daemon_threads(std::chrono::seconds(5)) == 0);
+    hooks.attr("remove")(scope["hold"]);
 }
 
 #ifndef _WIN32 // Windows adds its system store whatever SSL_CERT_FILE names.

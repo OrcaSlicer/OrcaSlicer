@@ -482,6 +482,21 @@ static PrinterTechnology get_printer_technology(const DynamicConfig &config)
     return (opt == nullptr) ? ptUnknown : opt->value;
 }
 
+// One volume type per nozzle: the config's own types when it has any, else the printer's defaults, as the GUI
+// seeds a project. A nozzle the list leaves out takes its first entry, as a short list is read elsewhere, and
+// extra entries are dropped.
+static std::vector<NozzleVolumeType> nozzle_volume_types_per_nozzle(const DynamicPrintConfig &config, int nozzle_count)
+{
+    const auto *types = config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    if (types == nullptr || types->values.empty())
+        types = config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type");
+    std::vector<NozzleVolumeType> result(nozzle_count, nvtStandard);
+    if (types != nullptr && !types->values.empty())
+        for (int index = 0; index < nozzle_count; index++)
+            result[index] = static_cast<NozzleVolumeType>(types->get_at(index));
+    return result;
+}
+
 //BBS: add flush and exit
 #if defined(__linux__) || defined(__LINUX__)
 #define flush_and_exit(ret)     { boost::nowide::cout << __FUNCTION__ << " found error, return "<<ret<<", exit..." << std::endl;\
@@ -1828,14 +1843,8 @@ int CLI::run(int argc, char **argv)
                     //if (current_is_multi_extruder || (current_printer_variant_count > 1)) {
                         auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(config.option("extruder_type"));
                         auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(config.option("nozzle_volume_type"));
-                        if (opt_nozzle_volume_type) {
-                            int nozzle_volume_type_size = opt_nozzle_volume_type->values.size();
-                            current_nozzle_volume_type.resize(nozzle_volume_type_size, nvtStandard);
-                            for (int i = 0; i < nozzle_volume_type_size; i++)
-                            {
-                                current_nozzle_volume_type[i] = (NozzleVolumeType)(opt_nozzle_volume_type->values[i]);
-                            }
-                        }
+                        // Sized by the rule the new types follow, so types the project keeps compare equal.
+                        current_nozzle_volume_type = nozzle_volume_types_per_nozzle(config, current_extruder_count);
 
                         current_extruder_variants.resize(current_extruder_count, "");
                         for (int e_index = 0; e_index < current_extruder_count; e_index++)
@@ -3203,6 +3212,29 @@ int CLI::run(int argc, char **argv)
     std::vector<std::string>& inherits_group = m_print_config.option<ConfigOptionStrings>("inherits_group", true)->values;
     inherits_group.resize(filament_count + 2, std::string());
     different_settings.resize(filament_count + 2, std::string());
+    // More filaments loaded than the project defines: the project grows to the loaded count, so
+    // every per-filament table from here on covers the loaded slots. The two slot lists above and
+    // compatible_machine_expression_group keep the printer in their last slot, so the new filament
+    // slots go in before it.
+    const int project_defined_filament_count = filament_count;
+    if (filament_count < load_filament_count) {
+        // An empty --load-filaments entry keeps the project's filament in that slot, so past the project's count
+        // it has nothing to keep; only --load-defaultfila fills such a slot, and then it is in load_filaments_index.
+        for (int slot = filament_count + 1; slot <= load_filament_count; slot++) {
+            if (std::find(load_filaments_index.begin(), load_filaments_index.end(), slot) == load_filaments_index.end()) {
+                boost::nowide::cerr << boost::format("--load-filaments slot %1% is empty, but the project defines only %2% filaments, so there is none to keep in it") % slot % filament_count << std::endl;
+                record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, 0, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                flush_and_exit(CLI_INVALID_PARAMS);
+            }
+        }
+        BOOST_LOG_TRIVIAL(info) << boost::format("%1% filaments loaded on a project with %2%, growing the project to %1%") % load_filament_count % filament_count;
+        inherits_group.insert(inherits_group.begin() + filament_count + 1, load_filament_count - filament_count, std::string());
+        different_settings.insert(different_settings.begin() + filament_count + 1, load_filament_count - filament_count, std::string());
+        if (auto *machine_expressions = m_print_config.option<ConfigOptionStrings>("compatible_machine_expression_group");
+            machine_expressions != nullptr && machine_expressions->values.size() == size_t(filament_count + 2))
+            machine_expressions->values.insert(machine_expressions->values.begin() + filament_count + 1, load_filament_count - filament_count, std::string());
+        filament_count = load_filament_count;
+    }
     if (!is_bbl_3mf && !different_process_setting.empty()) {
         different_settings[0] = different_process_setting;
     }
@@ -3415,20 +3447,17 @@ int CLI::run(int argc, char **argv)
     }
 
     //get nozzle_volume_type
-    if(m_extra_config.has("nozzle_volume_type")) {
-        auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(m_extra_config.option("nozzle_volume_type"));
-        if (opt_nozzle_volume_type) {
-            int nozzle_volume_type_size = opt_nozzle_volume_type->values.size();
-            new_nozzle_volume_type.resize(nozzle_volume_type_size, nvtStandard);
-            for (int i = 0; i < nozzle_volume_type_size; i++)
-            {
-                new_nozzle_volume_type[i] = (NozzleVolumeType) (opt_nozzle_volume_type->values[i]);
-            }
-        }
-    }
-    else {
-        new_nozzle_volume_type.resize(new_extruder_count, nvtStandard);
-    }
+    // A value on the command line wins, else the project's types or the printer's defaults.
+    auto *cli_nozzle_volume_type = m_extra_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    const bool cli_has_nozzle_volume_type = cli_nozzle_volume_type != nullptr && !cli_nozzle_volume_type->values.empty();
+    new_nozzle_volume_type = nozzle_volume_types_per_nozzle(cli_has_nozzle_volume_type ? m_extra_config : m_print_config, new_extruder_count);
+    // The project carries one volume type per nozzle, as the GUI writes it, so an export reopens with the
+    // types it was sliced with. The command-line options are applied over the project later, so their value
+    // is sized as well.
+    std::vector<int> &project_nozzle_volume_type = m_print_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values;
+    project_nozzle_volume_type.assign(new_nozzle_volume_type.begin(), new_nozzle_volume_type.end());
+    if (cli_nozzle_volume_type != nullptr)
+        cli_nozzle_volume_type->values = project_nozzle_volume_type;
     new_extruder_variants.resize(new_extruder_count, "");
     const ConfigOptionEnumsGeneric *opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric *>(m_print_config.option("extruder_type"));
     for (int e_index = 0; e_index < new_extruder_count; e_index++) {
@@ -3526,26 +3555,31 @@ int CLI::run(int argc, char **argv)
                 max_self_index = std::max(max_self_index, v);
                 min_self_index = std::min(min_self_index, v);
             }
-            // And a project saved with FEWER filaments than are now loaded (a
-            // one-filament project sliced with two --load-filaments) leaves the tables half filled:
-            // the variant matching below then reads past filament_extruder_variant and
-            // set_with_restore_2 throws an uncaught size error. Regenerate in that case too.
-            if (max_self_index > filament_count || min_self_index < 1 || max_self_index < filament_count
-                || (int) filament_self_index_opt->values.size() < filament_count) {
+            // A project saved with fewer filaments than are now loaded has grown to the loaded
+            // count above; its own layout is checked against the count it was saved with, and
+            // the loaded filaments are appended below.
+            if (max_self_index > project_defined_filament_count || min_self_index < 1 || max_self_index < project_defined_filament_count
+                || (int) filament_self_index_opt->values.size() < project_defined_filament_count) {
                 BOOST_LOG_TRIVIAL(warning) << boost::format("filament_self_index range [%1%, %2%] (size %4%) is invalid for filament_count %3%, regenerating")
-                        % min_self_index % max_self_index % filament_count % filament_self_index_opt->values.size();
+                        % min_self_index % max_self_index % project_defined_filament_count % filament_self_index_opt->values.size();
                 need_regenerate_self_index = true;
             }
         }
         if (need_regenerate_self_index) {
             filament_self_index_opt = m_print_config.option<ConfigOptionInts>("filament_self_index", true);
             std::vector<int>& filament_self_indice = filament_self_index_opt->values;
-            filament_self_indice.resize(filament_count);
-            for (int index = 0; index < filament_count; index++)
+            filament_self_indice.resize(project_defined_filament_count);
+            for (int index = 0; index < project_defined_filament_count; index++)
                 filament_self_indice[index] = index + 1;
         }
 
         std::vector<int> old_self_indice= filament_self_index_opt->values;
+        // A filament loaded beyond the project's count gets one variant of its own, appended after
+        // the project's layout so the project's filaments keep their variant groups. Only this copy
+        // grows: normalize_filament_values_to_variants below lays the project's per-variant values
+        // out by its own filament_self_index, and the config's index is rebuilt after the loop.
+        for (int index = project_defined_filament_count + 1; index <= filament_count; index++)
+            old_self_indice.push_back(index);
         int old_self_indice_size = old_self_indice.size();
         int k = -1, current_filament = 0;
         for (size_t i = 0; i < old_self_indice_size; i++) {
@@ -3922,7 +3956,14 @@ int CLI::run(int argc, char **argv)
             }
 
             //computing
+            // Standalone filament presets may omit these: a missing diameter follows the first filament, a missing
+            // support flag is off.
+            auto *filament_diameter = static_cast<ConfigOptionVectorBase *>(m_print_config.option("filament_diameter", true));
+            if (filament_diameter->size() < project_filament_count)
+                filament_diameter->resize(project_filament_count);
             ConfigOptionBools* filament_is_support = m_print_config.option<ConfigOptionBools>("filament_is_support", true);
+            if (filament_is_support->size() < project_filament_count)
+                filament_is_support->values.resize(project_filament_count, false);
 
             const std::vector<int> &min_flush_volumes = Slic3r::GUI::get_min_flush_volumes(m_print_config, 0);
 
@@ -3962,19 +4003,11 @@ int CLI::run(int argc, char **argv)
                 else
                     extruders.resize(1,int(ExtruderType::etDirectDrive));
 
-                std::vector<int> volume_types;
-                if (m_print_config.has("nozzle_volume_type"))
-                    volume_types = m_print_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values; // get volume type from 3mf
-                else
-                    volume_types.resize(1, int(NozzleVolumeType::nvtStandard));
-
-                if(m_extra_config.has("nozzle_volume_type")) // get volume type from input
-                    volume_types = m_extra_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
-
+                // new_nozzle_volume_type holds one type per nozzle, the command-line value included.
                 for (int eidx = 0; eidx < new_extruder_count; ++eidx) {
                     int index = 0;
                     if (m_print_config.has("printer_extruder_id") && m_print_config.has("printer_extruder_variant"))
-                        index = m_print_config.get_index_for_extruder(eidx + 1, "printer_extruder_id", ExtruderType(extruders[eidx]), NozzleVolumeType(volume_types[eidx]), "printer_extruder_variant");
+                        index = m_print_config.get_index_for_extruder(eidx + 1, "printer_extruder_id", ExtruderType(extruders[eidx]), new_nozzle_volume_type[eidx], "printer_extruder_variant");
                     nozzle_flush_dataset[eidx] = nozzle_flush_dataset_full[index];
                 }
             }
@@ -4073,7 +4106,7 @@ int CLI::run(int argc, char **argv)
                 object->config.assign_config(std::move(object_config));
             }
             for (ModelVolume* v : object->volumes) {
-                if (v->is_model_part() || v->is_modifier()) {
+                if (v->is_model_part() || v->is_region_modifier()) {
                     DynamicPrintConfig volume_config = v->config.get();
                     if (!volume_config.empty()) {
                         /* if (current_extruder_count < new_extruder_count)

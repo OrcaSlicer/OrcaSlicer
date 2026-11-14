@@ -3425,6 +3425,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     case CalibMode::Calib_Auto_PA_Line:
     case CalibMode::Calib_Retraction_tower:
         m_calib_config.set_key_value("wipe_inward", new ConfigOptionBool(false));
+        m_calib_config.set_key_value("retract_after_outer_wall", new ConfigOptionBool(false));
         break;
     default:
         break;
@@ -7589,8 +7590,10 @@ LayerResult GCode::process_layer(
         gcode += std::move(gcode_toolchange);
 
         // let analyzer tag generator aware of a role type change
-        if (layer_tools.has_wipe_tower && m_wipe_tower)
+        if (layer_tools.has_wipe_tower && m_wipe_tower) {
             m_last_processor_extrusion_role = erWipeTower;
+            m_retract_after_last_path = false;
+        }
 
         // Belt printers: now that this pass's tool is selected, lay down any ordinary-layer
         // apron band whose brim filament is this extruder, before the object extrusion at
@@ -8706,6 +8709,11 @@ std::string GCode::extrude_loop(const ExtrusionLoop&                       loop_
         m_multi_flow_segment_path_average_mm3_per_mm = weighted_sum_mm3_per_mm / total_multipath_length;
     // Orca: end of multipath average mm3_per_mm value calculation
     
+    // Orca: the G-code labels the overhanging part of any wall "Overhang wall", so the preview cannot
+    // tell an outer wall that starts on an overhang from an inner one. Only outer walls need the tag.
+    m_outer_overhang_tag_pending = description == "perimeter" && !m_config.spiral_mode &&
+                                   paths.front().role() == erOverhangPerimeter && is_outer_wall(loop_ref);
+
     if (!enable_seam_slope) {
         for (const ExtrusionPath& path : paths) {
             gcode += this->_extrude(path, description, speed_for_path(path));
@@ -8924,6 +8932,23 @@ std::string GCode::extrude_path(const ExtrusionPath& path, const std::string& de
     return gcode;
 }
 
+// Orca: overhanging segments share one role on every wall, so the wall index decides where it is set.
+// Without it (classic thin walls, extra perimeters on overhangs) an external path decides. Unlike
+// !is_inner_wall(), extra perimeters are not an outer wall, and every path counts, not just the first.
+static bool is_outer_wall(const ExtrusionEntity &wall)
+{
+    if (wall.inset_idx >= 0)
+        return wall.inset_idx == 0;
+    const ExtrusionPaths *paths = nullptr;
+    if (const auto *loop = dynamic_cast<const ExtrusionLoop *>(&wall))
+        paths = &loop->paths;
+    else if (const auto *multipath = dynamic_cast<const ExtrusionMultiPath *>(&wall))
+        paths = &multipath->paths;
+    if (paths == nullptr)
+        return wall.role() == erExternalPerimeter;
+    return std::any_of(paths->begin(), paths->end(), [](const ExtrusionPath &path) { return path.role() == erExternalPerimeter; });
+}
+
 // Extrude perimeters: Decide where to put seams (hide or align seams).
 std::string GCode::extrude_perimeters(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool is_first_layer, bool is_infill_first, bool unsupported_loops_only)
 {
@@ -8974,8 +8999,14 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
             for (const ExtrusionEntity* ee : region.perimeters) {
                 if (defer_unsupported && waits_for_infill(ee) != unsupported_loops_only)
                     continue;
+                const size_t size_before = gcode.size();
                 gcode += this->extrude_entity(*ee, "perimeter", -1., region.perimeters,
                                              wipe_support ? &*wipe_support : nullptr);
+                // Orca: set once the whole wall is down, so a gap between its paths is not a travel off it.
+                // A loop shorter than the seam gap prints nothing and leaves the flag alone. m_config still
+                // holds the wall's own region and the calibration overrides.
+                if (gcode.size() != size_before)
+                    m_retract_after_last_path = m_config.retract_after_outer_wall.value && is_outer_wall(*ee);
                 if (wipe_support)
                     wipe_support->append(*ee);
             }
@@ -9395,6 +9426,8 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         }
         m_need_change_layer_lift_z = false;
     }
+    // Orca: the travel off the last wall is done; extrude_perimeters() sets this again after an outer wall.
+    m_retract_after_last_path = false;
 
     if (path.z_contoured && !path.polyline.lines().empty()) {
         double current_z = m_writer.get_position().z();
@@ -9871,6 +9904,12 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         m_last_processor_extrusion_role = path.role();
         sprintf(buf, ";%s%s\n", GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Role).c_str(), ExtrusionEntity::role_to_string(m_last_processor_extrusion_role).c_str());
         gcode += buf;
+    }
+
+    // Orca: must stay before the PA_CHANGE tag: Adaptive PA reads the line right after that tag.
+    if (m_outer_overhang_tag_pending) {
+        m_outer_overhang_tag_pending = false;
+        gcode += ";" + GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Outer_Overhang_Wall) + "\n";
     }
 
     if (last_was_wipe_tower || m_last_width != path.width) {
@@ -10722,7 +10761,10 @@ LiftType GCode::to_lift_type(ZHopType z_hop_types) {
 
 bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftType& lift_type)
 {
-    if (travel.length() < scale_(FILAMENT_CONFIG(retraction_minimum_travel))) {
+    const bool leaving_external_perimeter = is_perimeter(m_last_processor_extrusion_role) && m_last_processor_extrusion_role != erPerimeter;
+    // Orca: a short travel off the outer wall drags its hot end inward; retract_after_outer_wall ignores the threshold there.
+    const bool force_after_outer_wall = m_retract_after_last_path && travel.length() > SCALED_EPSILON;
+    if (!force_after_outer_wall && travel.length() < scale_(FILAMENT_CONFIG(retraction_minimum_travel))) {
         // skip retraction if the move is shorter than the configured threshold
         return false;
     }
@@ -10800,7 +10842,7 @@ bool GCode::needs_retraction(const Polyline &travel, ExtrusionRole role, LiftTyp
 
     //BBS: force to retract when leave from external perimeter for a long travel
     //Better way is judging whether the travel move direction is same with last extrusion move.
-    if (is_perimeter(m_last_processor_extrusion_role) && m_last_processor_extrusion_role != erPerimeter) {
+    if (leaving_external_perimeter) {
         if (ZHopType(FILAMENT_CONFIG(z_hop_types)) == ZHopType::zhtAuto) {
             lift_type = is_through_overhang(clipped_travel) ? LiftType::SpiralLift : LiftType::SlopeLift;
         }
@@ -11001,6 +11043,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     int new_extruder_id = get_extruder_id(new_filament_id);
     if (!m_writer.need_toolchange(new_filament_id))
         return "";
+    // Orca: the tool that printed the outer wall retracts for the tool change; the next tool did not print it.
+    m_retract_after_last_path = false;
 
     const std::optional<ToolchangePositionState> position_before_toolchange =
         this->capture_toolchange_position();
@@ -11023,6 +11067,27 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         }
 
         std::string gcode;
+
+        // Same suppression as the long multi-extruder path: at print-start in IMEX
+        // parallel modes the user's mode_gcode + machine_start_gcode is responsible
+        // for tool selection, so the slicer's bare T<n> would be a duplicate. Mid-
+        // print toolchanges (count > 1) emit normally — Print::validate() blocks
+        // multi-color in configurations where mid-print T<n> wouldn't make sense
+        // (see imex_multicolor_block_reason).
+        const std::string toolchange_command = m_writer.toolchange(new_filament_id, new_extruder_id);
+        const bool emit_toolchange = !toolchange_command.empty() && !imex_suppresses_bare_toolchange(m_imex_parallel_mode, m_toolchange_count);
+        if (emit_toolchange)
+            gcode += toolchange_command;
+        if (Extruder *fil = m_writer.filament())
+            fil->set_config_index((int)get_filament_config_index((int)fil->id()));
+        // Firmware can change the temperature on a T command, so set it again here, as the multi-extruder path below does.
+        if (emit_toolchange && m_config.single_extruder_multi_material && !m_config.enable_prime_tower) {
+            size_t new_fi = get_filament_config_index(new_filament_id);
+            int temp = (m_layer_index <= 0 ? m_config.nozzle_temperature_initial_layer.get_at(new_fi) :
+                                             m_config.nozzle_temperature.get_at(new_fi));
+            gcode += m_writer.set_temperature(temp, false);
+        }
+
         // Append the filament start G-code.
         const std::string &filament_start_gcode = m_config.filament_start_gcode.get_at(new_filament_id);
         if (! filament_start_gcode.empty()) {
@@ -11048,17 +11113,6 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         gcode += set_filament_pressure_advance(new_filament_id,
             imex_pem_tool_for((int) new_filament_id, m_imex_parallel_mode, m_config.physical_extruder_map));
 
-        // Same suppression as the long multi-extruder path: at print-start in IMEX
-        // parallel modes the user's mode_gcode + machine_start_gcode is responsible
-        // for tool selection, so the slicer's bare T<n> would be a duplicate. Mid-
-        // print toolchanges (count > 1) emit normally — Print::validate() blocks
-        // multi-color in configurations where mid-print T<n> wouldn't make sense
-        // (see imex_multicolor_block_reason).
-        const std::string toolchange_command = m_writer.toolchange(new_filament_id, new_extruder_id);
-        if (!imex_suppresses_bare_toolchange(m_imex_parallel_mode, m_toolchange_count))
-            gcode += toolchange_command;
-        if (Extruder *fil = m_writer.filament())
-            fil->set_config_index((int)get_filament_config_index((int)fil->id()));
         if (position_before_toolchange)
             this->synchronize_toolchange_position(*position_before_toolchange, gcode);
         return gcode;
