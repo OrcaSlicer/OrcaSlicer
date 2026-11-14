@@ -142,7 +142,8 @@ bool AutomationRuntime::start(std::string& err)
         m_modals     = std::make_unique<ModalTracker>();
         m_recorder   = std::make_unique<McpRecorder>(*m_modals, [this] { return m_generation.load(); }, [this] { return m_suspended.load(); },
                                                    [this](std::function<void()> fn) { post_ui(std::move(fn)); });
-        // A call's window for taking menus is the inspector's: none while the GUI instruments are off.
+        // A call's window for taking menus is the inspector's: none before there is one, and it takes no menu
+        // while the GUI instruments are off.
         m_invoker    = std::make_unique<UiInvoker>(*m_dispatcher, [this] { return guards_on_ui(); }, [this] { return m_generation.load(); },
                                                 [this] { return m_modals->snapshot(); },
                                                 [this](const std::string& tool, bool running) {
@@ -165,14 +166,16 @@ bool AutomationRuntime::start(std::string& err)
 void AutomationRuntime::enable_gui_instruments()
 {
     // The inspector is built on the modal tracker, so nothing comes before start().
-    if (m_inspector != nullptr || m_modals == nullptr)
+    if (m_instruments_on || m_modals == nullptr)
         return;
-    m_inspector = std::make_unique<UiInspector>(*m_modals, [this] { return m_generation.load(); });
+    if (m_inspector == nullptr)
+        m_inspector = std::make_unique<UiInspector>(*m_modals, [this] { return m_generation.load(); });
     // Once stop() has taken the instruments down, a call still on the UI thread's stack gets an inspector with
     // nothing installed.
     if (m_stopping)
         return;
-    track_window_states();
+    m_instruments_on = true;
+    track_window_states(true);
     m_inspector->capture_menus(true);
     if (ImGuiWrapper* imgui = wxGetApp().imgui())
         imgui->set_item_recording(true);
@@ -184,10 +187,66 @@ void AutomationRuntime::enable_gui_instruments()
     BOOST_LOG_TRIVIAL(info) << "Automation GUI instruments on";
 }
 
+void AutomationRuntime::disable_gui_instruments()
+{
+    if (!m_instruments_on)
+        return;
+    m_instruments_on = false;
+    m_inspector->release_held(nullptr);
+    m_inspector->capture_menus(false);
+    SyntheticInput::clear();
+    if (wxTheApp != nullptr)
+        if (ImGuiWrapper* imgui = wxGetApp().imgui())
+            imgui->set_item_recording(false);
+    track_window_states(false);
+    BOOST_LOG_TRIVIAL(info) << "Automation GUI instruments off";
+}
+
+void AutomationRuntime::hold_gui_instruments()
+{
+    ++m_instrument_holds;
+    enable_gui_instruments();
+}
+
+void AutomationRuntime::release_gui_instruments()
+{
+    if (m_instrument_holds > 0)
+        --m_instrument_holds;
+    sync_gui_instruments();
+}
+
+bool AutomationRuntime::gui_instruments_wanted() const
+{
+    if (m_instrument_holds > 0)
+        return true;
+    std::lock_guard<std::mutex> lock(m_rules_mutex);
+    return m_client_scope_open || !m_run_rule_layers.empty();
+}
+
+void AutomationRuntime::sync_gui_instruments()
+{
+    if (m_stopping)
+        return;
+    if (gui_instruments_wanted())
+        enable_gui_instruments();
+    else
+        disable_gui_instruments();
+}
+
+void AutomationRuntime::post_gui_instruments_sync()
+{
+    // Found again on the UI thread: the runtime may be gone by the time the closure runs.
+    if (m_dispatcher && !m_stopping)
+        m_dispatcher->post([] {
+            if (AutomationRuntime* runtime = wxGetApp().automation_if_started(); runtime != nullptr)
+                runtime->sync_gui_instruments();
+        });
+}
+
 UiInspector& AutomationRuntime::inspector()
 {
     // Only a command reaches it, so the runtime is started and the inspector is made here if need be.
-    if (m_inspector == nullptr)
+    if (!m_instruments_on)
         enable_gui_instruments();
     return *m_inspector;
 }
@@ -222,15 +281,7 @@ void AutomationRuntime::stop()
         m_run_rule_layers.clear();
     }
     release_web_presses(m_web_presses, nullptr);
-    // The GUI instruments, when they were turned on.
-    if (m_inspector) {
-        m_inspector->release_held(nullptr);
-        m_inspector->capture_menus(false);
-    }
-    SyntheticInput::clear();
-    if (m_inspector && wxTheApp != nullptr)
-        if (ImGuiWrapper* imgui = wxGetApp().imgui())
-            imgui->set_item_recording(false);
+    disable_gui_instruments();
 }
 
 bool AutomationRuntime::acquire_lease()
@@ -298,8 +349,12 @@ AutoAnswerSet AutomationRuntime::set_auto_answer(std::vector<AutoAnswerRule> rul
 
 void AutomationRuntime::begin_run_scope(const std::string& job)
 {
-    std::lock_guard<std::mutex> lock(m_rules_mutex);
-    m_run_rule_layers.emplace(job, std::vector<int>{});
+    {
+        std::lock_guard<std::mutex> lock(m_rules_mutex);
+        m_run_rule_layers.emplace(job, std::vector<int>{});
+    }
+    // A run drives the GUI, also one started with the GUI instruments off.
+    post_gui_instruments_sync();
 }
 
 void AutomationRuntime::end_run_scope(const std::string& job, bool wait_recording)
@@ -323,6 +378,8 @@ void AutomationRuntime::end_run_scope(const std::string& job, bool wait_recordin
     if (m_recorder)
         m_recorder->end_owned_by(job, "run_ended", wait_recording);
     release_run_presses(job);
+    // After the presses' release, which is queued the same way: the scope may have been the last to drive the GUI.
+    post_gui_instruments_sync();
 }
 
 void AutomationRuntime::set_run_scope_paused(const std::string& job, bool paused)
@@ -442,6 +499,8 @@ void AutomationRuntime::close_client_scope()
             m_modals->pop_rules(m_session_rule_layer);
         m_session_rule_layer = 0;
     }
+    // The endpoint may have been the last to drive the GUI.
+    sync_gui_instruments();
 }
 
 void AutomationRuntime::suspend()

@@ -387,7 +387,7 @@ void RunScriptPanel::toggle()
 void RunScriptPanel::flip()
 {
     if (on_screen()) {
-        m_wanted = false;
+        set_wanted(false);
         if (Plater* plater = wxGetApp().plater(); plater != nullptr && m_pane != nullptr)
             plater->show_dock_pane(m_pane, false);
     } else
@@ -400,7 +400,7 @@ void RunScriptPanel::show()
     Plater*    plater = wxGetApp().plater();
     if (frame == nullptr || plater == nullptr)
         return;
-    m_wanted = true;
+    set_wanted(true);
     if (!frame->is_prepare_or_preview_tab())
         frame->select_tab(wxString(TAB_ID_PREPARE));
     if (m_pane == nullptr) {
@@ -409,7 +409,7 @@ void RunScriptPanel::show()
             m_pane, "run_script", _L("Run Script"), "bottom", wxSize(900, 320),
             [this, alive = m_alive] {
                 if (alive->load())
-                    m_wanted = false;
+                    set_wanted(false);
             },
             true);
     } else
@@ -419,6 +419,22 @@ void RunScriptPanel::show()
 }
 
 bool RunScriptPanel::on_screen() const { return m_pane != nullptr && m_pane->IsShownOnScreen(); }
+
+void RunScriptPanel::set_wanted(bool wanted)
+{
+    m_wanted = wanted;
+    if (wanted == m_holds_instruments)
+        return;
+    if (wanted) {
+        // Started here without the network endpoint when no front end has started it.
+        Mcp::AutomationRuntime* runtime = wxGetApp().automation();
+        if (runtime == nullptr)
+            return;
+        runtime->hold_gui_instruments();
+    } else if (Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started())
+        runtime->release_gui_instruments();
+    m_holds_instruments = wanted;
+}
 
 void RunScriptPanel::pane_destroyed(RunScriptPane* pane)
 {
@@ -491,9 +507,9 @@ void RunScriptPanel::handle(const json& payload)
     try {
         if (command == "init") {
             // The panel needs the runtime's tools and jobs, started here without the network endpoint, and its
-            // scripts drive the GUI.
-            if (Mcp::AutomationRuntime* runtime = wxGetApp().automation())
-                runtime->enable_gui_instruments();
+            // scripts drive the GUI: a hold the runtime could not give when the panel was shown is taken now.
+            wxGetApp().automation();
+            set_wanted(m_wanted);
             send(state());
             send_runtime_state();
             read_api();

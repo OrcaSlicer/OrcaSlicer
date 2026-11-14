@@ -16,9 +16,10 @@ namespace Slic3r { namespace GUI { namespace Mcp {
 // window is in the Dock, so a window minimized while zoomed comes back zoomed. Elsewhere each call is wx's
 // own. UI thread.
 
-// Starts following the windows a Wayland compositor hides, which GTK passes on only as a visibility
-// change, and the focus that ends a minimize. Once, before the first window_state().
-void track_window_states();
+// Follows, while `on`, the windows a Wayland compositor hides, which GTK passes on only as a visibility
+// change, and the focus that ends a minimize: on before the first window_state(). Turning it off forgets
+// what was followed, so a window reads minimized again only after a set_window minimizes it with this on.
+void track_window_states(bool on);
 
 // "minimized", "maximized" or "normal": a window's state as list_windows reports it and set_window takes
 // it. On Wayland, which reports no minimize, a window reads minimized while the compositor hides it after

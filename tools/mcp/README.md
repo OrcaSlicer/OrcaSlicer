@@ -159,8 +159,9 @@ window already open on the same data folder. It prints one line per check and ta
 and while its server is switched off and on during a call, starting the built app as its own child on fresh data
 folders. The app is closed with the File menu's Quit while a job runs, while a recording runs, and while a call no
 stop interrupts is still running, where the app keeps the runtime rather than free it under the call and logs that
-a call did not return; a `--run` with the endpoint never opened exits on its own; and the server, switched off and
-on in Preferences during a call, serves on the port it had. It prints one line per check and takes about three
+a call did not return; a `--run` with the endpoint never opened exits on its own; the server, switched off and
+on in Preferences during a call, serves on the port it had; and with the server switched off and nothing else
+driving the GUI, the log says the GUI instruments went off. It prints one line per check and takes about three
 minutes.
 
 `test_plugin_tools.py` checks a plugin's calls into the tools in the running app: it side-loads

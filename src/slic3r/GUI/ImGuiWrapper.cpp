@@ -627,8 +627,9 @@ void ImGuiWrapper::new_frame()
 
 ImDrawData* ImGuiWrapper::end_frame()
 {
+    // The frame becomes its owner's latest, and that owner's last one the buffers the next frame fills.
     if (m_item_recording && m_frame_owner != nullptr)
-        m_recorded[m_frame_owner] = m_frame;
+        std::swap(m_recorded[m_frame_owner], m_frame);
     m_frame.items.clear();
     m_frame.texts.clear();
     m_last_string_id = 0;

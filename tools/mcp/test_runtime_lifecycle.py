@@ -1,7 +1,7 @@
 """Checks how OrcaSlicer's automation behaves while the app closes, and while its server is switched off and on
 during a call.
 
-Each of the five checks launches OrcaSlicer on a fresh data folder of its own, with the MCP server on unless it says
+Each of the six checks launches OrcaSlicer on a fresh data folder of its own, with the MCP server on unless it says
 otherwise. The app is started here, as orca_mcp.py launch starts it, but as this script's child: only a process's parent
 can read its exit code on every system. It is closed as a person closes it, by a click on the File menu's Quit item that
 list_widgets lists; the click's reply may not arrive, since the server closes with the app. orca_mcp.py stop would not
@@ -28,8 +28,12 @@ do: on Windows it kills the process.
   the log has a line containing "did not return": the app left the runtime in place under the call rather than free
   it. A missing line means the runtime was freed under the call or the call was interrupted, a change to explain.
   Its limit is longer than the others' since its exit holds the runtime's 10 s drain.
+- instruments_off_with_the_server: a run_script whose code opens Preferences, switches the server off with the widget
+  named mcp_enabled and closes the dialog, so the run ends with no endpoint serving and nothing else driving the GUI.
+  It passes when the log said "Automation GUI instruments on" while the server served and says "Automation GUI
+  instruments off" within 30 s of the switch. No server is left to close the app through, so the process is killed.
 
-Prints one line per check, five in all, and exits 1 when one fails. Checks named on the command line run alone, in
+Prints one line per check, six in all, and exits 1 when one fails. Checks named on the command line run alone, in
 that order. Run it as python tools/mcp/test_runtime_lifecycle.py [--bin PATH] [CHECK ...].
 """
 import http.client
@@ -100,6 +104,20 @@ if opened.get("job"):
     tools.call("wait", {"for": "job", "job": opened["job"], "timeout_s": 30})
 result = [off, on]
 """
+
+# Leaves the server off: the run's reply is lost with the endpoint.
+SWITCH_OFF = """
+import orca
+tools = orca.host.tools
+opened = tools.call("run_action", {"id": "orca_command:open_preferences:orca", "args": {"tab": "general", "key": "mcp_enabled"}})
+tools.call("set_widget_value", {"target": {"name": "mcp_enabled", "within": "Preferences"}, "value": False})
+tools.call("answer_dialog", {"dialog": {"title": "Preferences"}, "button": "close"})
+if opened.get("job"):
+    tools.call("wait", {"for": "job", "job": opened["job"], "timeout_s": 30})
+"""
+# What AutomationRuntime logs as it installs and removes the GUI instruments.
+INSTRUMENTS_ON = "Automation GUI instruments on"
+INSTRUMENTS_OFF = "Automation GUI instruments off"
 
 # The ids of the Matroska elements a finished recording is read for.
 SEGMENT = bytes.fromhex("18538067")
@@ -442,8 +460,35 @@ def exit_with_stuck_call(binary):
         check(name, problems, f"run_script replied running; exit code 0 {took:.1f} s after Quit; the log says: {line}")
 
 
+def instruments_off_with_the_server(binary):
+    name = "instruments_off_with_the_server"
+    with Instance(binary) as app:
+        if app.not_ready:
+            return check(name, [app.not_ready], "")
+        problems = []
+        if not log_lines_containing(app.datadir, INSTRUMENTS_ON):
+            problems.append(f"no \"{INSTRUMENTS_ON}\" line in the log while the server serves")
+        if log_lines_containing(app.datadir, INSTRUMENTS_OFF):
+            problems.append(f"the log says \"{INSTRUMENTS_OFF}\" while the server serves")
+        start = time.monotonic()
+        try:
+            app.orca.call("run_script", _timeout=30, code=SWITCH_OFF)
+        except DROPPED:
+            pass
+        while not log_lines_containing(app.datadir, INSTRUMENTS_OFF) and time.monotonic() - start < 30:
+            time.sleep(0.5)
+        took = time.monotonic() - start
+        if not log_lines_containing(app.datadir, INSTRUMENTS_OFF):
+            closed = log_lines_containing(app.datadir, "MCP server endpoint closed")
+            problems.append(f"no \"{INSTRUMENTS_OFF}\" line in the log 30 s after the switch "
+                            f"(the endpoint {'closed' if closed else 'never closed'})")
+        app.proc.kill()
+        app.proc.wait()
+        check(name, problems, f"the log says \"{INSTRUMENTS_OFF}\" {took:.1f} s after the server was switched off")
+
+
 CHECKS = {f.__name__: f for f in (exit_with_job_running, exit_with_recording, exit_without_endpoint,
-                                  server_off_and_on_during_a_call, exit_with_stuck_call)}
+                                  server_off_and_on_during_a_call, exit_with_stuck_call, instruments_off_with_the_server)}
 
 
 def main():

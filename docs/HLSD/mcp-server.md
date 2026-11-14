@@ -154,15 +154,27 @@ the UI invoker, the modal tracker, the recorder and the list of presses held on 
 person's recording or a long command a person picked from the Speed Dial needs, the recorder drawing the
 modal dialogs from the tracker's stack. The GUI instruments are the UI inspector behind `list_widgets`
 and the input tools, the menu capture, ImGui item recording and, on Wayland, the window-state hooks
-(`track_window_states()`). `enable_gui_instruments()` turns them on, once, for the front ends that drive
-the GUI: `McpEndpoint::open()` when it opens, Action Replay as it opens, the Run Script panel on its
-page's `init`, the command line's run (`start_launch_run()`) and a plugin's call as the UI thread admits
-it. A person's pick from the Speed Dial (`PersonContext`) does not. The log reads `Automation runtime
-started` as the runtime starts and `Automation GUI instruments on` when they go on, so a session that
-began with a person's recording shows the second line only once something drives the GUI. ImGui items
-are recorded as a frame draws them, so turning the instruments on asks the shown 3D view for a frame.
-`AutomationRuntime::inspector()` turns them on itself if no front end has, so a command never finds the
-inspector missing.
+(`track_window_states()`). `enable_gui_instruments()` turns them on for the front ends that drive the
+GUI: `McpEndpoint::open()` when it opens, the command line's run (`start_launch_run()`) and a plugin's
+call as the UI thread admits it. A person's pick from the Speed Dial (`PersonContext`) does not. The log
+reads `Automation runtime started` as the runtime starts and `Automation GUI instruments on` when they go
+on, so a session that began with a person's recording shows the second line only once something drives
+the GUI. ImGui items are recorded as a frame draws them, so turning the instruments on asks the shown 3D
+view for a frame. `AutomationRuntime::inspector()` turns them on itself if they are off, so a command
+never finds the inspector missing.
+
+The instruments cost every frame, every popup menu and, on Wayland, every widget's visibility and focus
+signals, so they are on only while something drives the GUI: the client scope is open (the endpoint
+serves), a replay, a script's run or session, or a plugin has its scope open, or a window holds them.
+Action Replay holds them while it is open and the Run Script panel while it is wanted on screen
+(`hold_gui_instruments()`, `release_gui_instruments()`), so that they stay on between a window's runs and
+its next run finds the 3D view's ImGui items recorded. When the last of these goes (the endpoint closes,
+a run ends, a plugin unloads, a window lets go) the instruments come off, and the log reads `Automation
+GUI instruments off`: the menu capture and its idle handler are removed, ImGui recording stops and drops
+what it recorded, and the window-state hooks are removed with what they noted. The inspector itself stays,
+with its refs, for a call that still holds it. A scope that begins while they are off turns them on again.
+Scopes begin and end on job threads, so those changes are queued to the UI thread, where the state is read
+again as each one runs.
 
 Both stop, idempotently, at the start of `MainFrame::shutdown()` when the app closes (before panels are
 destroyed) and on `wxEVT_END_SESSION` (after which macOS calls `exit()`): `GUI_App::stop_automation()`
@@ -170,9 +182,8 @@ closes the endpoint, then stops the runtime, and does nothing for one that was n
 `McpEndpoint::close()` closes the socket, stops the takeover retries, removes the discovery file and
 closes the runtime's client scope; requests in flight run on. `AutomationRuntime::stop()` wakes every
 waiting call with "shutting down" (`UiInvoker::shutdown()`, `JobRegistry::wake_all()`), refuses new
-calls, joins the threads of the followed calls (Threading), drops every auto-answer rule, clears
-`SyntheticInput` and, when the GUI instruments are on, removes the menu capture and turns ImGui
-recording off; nothing turns them on again. Neither frees anything: a call may still be on the UI
+calls, joins the threads of the followed calls (Threading), drops every auto-answer rule and, when the
+GUI instruments are on, takes them down; nothing turns them on again. Neither frees anything: a call may still be on the UI
 thread's stack inside a nested event loop, using the inspector and the modal tracker, and job and
 request threads may still be returning. A stopped runtime never starts again.
 
@@ -2020,8 +2031,8 @@ is a button that reads checked while it is the selected one (`selector_option()`
 selects it, and a `SwitchButton` with a label at each end has the one it is on as its value.
 
 The inspector, the menu capture, ImGui item recording and, on Wayland, the window-state hooks are the
-GUI instruments, which exist once a front end that drives the GUI has turned them on (see Lifecycle).
-The inspector is built from the modal tracker and the UI generation alone, not from the runtime.
+GUI instruments, which are on while something drives the GUI (see Lifecycle); the inspector, once made,
+stays. It is built from the modal tracker and the UI generation alone, not from the runtime.
 
 Input tools take a `target`: a ref (also read written as `{ref: "w12"}`), or a locator, which is
 stable across runs and is what the journal stores. A locator is one of:
@@ -4104,7 +4115,8 @@ answers 200 or 500,
 `tools/mcp/test_command_line.py` the command line's options (the refused ones, `--run`'s exit codes, folders and
 refusals, `--mcp-port`, the two run flags, and a run beside a window already open),
 `tools/mcp/test_runtime_lifecycle.py` the app's exit with a job, a recording or a call no stop interrupts still
-running and with the endpoint never opened, and the server switched off and on during a call,
+running and with the endpoint never opened, the server switched off and on during a call, and the GUI
+instruments going off with the server,
 `tools/mcp/test_stdio_bridge.py` the stdio bridge, and
 `tools/mcp/test_recovery_under_load.py` answering a dialog while stalled clients hold every
 connection. See `tools/mcp/README.md`.

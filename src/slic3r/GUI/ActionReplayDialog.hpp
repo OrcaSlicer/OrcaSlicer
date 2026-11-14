@@ -81,6 +81,8 @@ private:
     // False once destroyed: page commands are handled later, from the event loop, and must not reach
     // a dialog that is gone by then.
     std::shared_ptr<std::atomic<bool>> m_alive = std::make_shared<std::atomic<bool>>(true);
+    // Whether the window holds the automation runtime's GUI instruments on.
+    bool                               m_holds_instruments = false;
     wxTimer                            m_ready_timer;
     // The page's file, which its own loads navigate to; a navigation to any other file is a drop.
     wxFileName                         m_page;

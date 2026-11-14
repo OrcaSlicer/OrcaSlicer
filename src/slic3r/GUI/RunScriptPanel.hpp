@@ -73,6 +73,9 @@ private:
     void pane_destroyed(RunScriptPane* pane);
     // Hides the panel when it is on screen, else shows it.
     void flip();
+    // Notes whether the pane is wanted on screen. While it is, the panel holds the automation runtime's GUI
+    // instruments on (AutomationRuntime::hold_gui_instruments()): its scripts drive the GUI.
+    void set_wanted(bool wanted);
     void handle(const nlohmann::json& payload);
     void dropped(const boost::filesystem::path& path);
     // A message for the page, sent once it has a pane; checked for liveness at its last hop.
@@ -108,6 +111,7 @@ private:
     std::shared_ptr<std::atomic<bool>> m_alive;
     RunScriptPane*                     m_pane   = nullptr;
     bool                               m_wanted = false;
+    bool                               m_holds_instruments = false;
     // The main window was rebuilt and the pane is wanted back: built at the next idle.
     bool                               m_rebuild_pending = false;
 

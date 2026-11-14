@@ -256,9 +256,11 @@ ActionReplayDialog::ActionReplayDialog(wxWindow* parent) : WebViewHostDialog(par
     // Replays drive the main window through the MCP tools; the dialog keeps out of their sight.
     SetName(Mcp::kHiddenFromAutomation);
     // Replaying needs the runtime's tools and jobs, started here without the network endpoint, and its steps drive
-    // the GUI.
-    if (Mcp::AutomationRuntime* runtime = wxGetApp().automation())
-        runtime->enable_gui_instruments();
+    // the GUI: the window keeps the GUI instruments on while it is open.
+    if (Mcp::AutomationRuntime* runtime = wxGetApp().automation()) {
+        runtime->hold_gui_instruments();
+        m_holds_instruments = true;
+    }
 
     m_ready_timer.Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
         Mcp::AutomationRuntime* s = wxGetApp().automation();
@@ -285,6 +287,9 @@ ActionReplayDialog::~ActionReplayDialog()
         m_run->stop();
         m_run->detach();
     }
+    if (m_holds_instruments)
+        if (Mcp::AutomationRuntime* runtime = wxGetApp().automation_if_started())
+            runtime->release_gui_instruments();
 }
 
 bool ActionReplayDialog::running() const { return m_run && m_run->running(); }

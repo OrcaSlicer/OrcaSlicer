@@ -22,9 +22,10 @@
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <gdk/gdkx.h>
-
-#include <vector>
 #endif
+
+#include <utility>
+#include <vector>
 #endif
 
 namespace Slic3r { namespace GUI { namespace Mcp {
@@ -219,14 +220,33 @@ void set_maximized_hint(GdkWindow* gdk, bool maximized)
 
 } // namespace
 
-void track_window_states()
+void track_window_states([[maybe_unused]] bool on)
 {
 #if defined(__WXGTK__)
-    if (!is_running_on_wayland())
+    // The hooks while they are installed, each with its signal: they run for every widget's signal.
+    static std::vector<std::pair<guint, gulong>> hooks;
+    if (on == !hooks.empty() || (on && !is_running_on_wayland()))
         return;
-    g_signal_add_emission_hook(g_signal_lookup("visibility-notify-event", GTK_TYPE_WIDGET), 0, on_visibility_notify, nullptr, nullptr);
-    g_signal_add_emission_hook(g_signal_lookup("focus-in-event", GTK_TYPE_WIDGET), 0, on_focus_in, nullptr, nullptr);
-    g_signal_add_emission_hook(g_signal_lookup("unmap", GTK_TYPE_WIDGET), 0, on_unmap, nullptr, nullptr);
+    if (on) {
+        const auto add = [](const char* name, GSignalEmissionHook hook) {
+            const guint signal = g_signal_lookup(name, GTK_TYPE_WIDGET);
+            hooks.emplace_back(signal, g_signal_add_emission_hook(signal, 0, hook, nullptr, nullptr));
+        };
+        add("visibility-notify-event", on_visibility_notify);
+        add("focus-in-event", on_focus_in);
+        add("unmap", on_unmap);
+        return;
+    }
+    for (const auto& [signal, hook] : hooks)
+        g_signal_remove_emission_hook(signal, hook);
+    hooks.clear();
+    // What the hooks noted would no longer be kept up.
+    for (wxWindow* w : wxTopLevelWindows)
+        if (const auto* window = dynamic_cast<const wxTopLevelWindow*>(w); window != nullptr)
+            if (GtkWidget* widget = gtk_window_of(*window)) {
+                set_flag(G_OBJECT(widget), kSuspendedKey, false);
+                set_flag(G_OBJECT(widget), kMinimizedKey, false);
+            }
 #endif
 }
 

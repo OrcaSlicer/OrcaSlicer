@@ -86,7 +86,18 @@ public:
     // Turns on what a front end that drives the GUI needs: the UI inspector, menu capture, ImGui item recording
     // and window tracking, and asks the shown 3D view for a frame so its ImGui items are recorded. Idempotent.
     // UI thread.
+    //
+    // The instruments cost every frame and every popup menu, so they stay on only while something drives the
+    // GUI: the client scope is open (the endpoint serves), a replay, a script's run or session, or a plugin has
+    // its scope open, or a window holds them (hold_gui_instruments()). They come off when the last of these
+    // goes, and a scope that begins while they are off turns them on again. A front end turns them on before
+    // what keeps them on begins, as the endpoint does once it listens.
     void enable_gui_instruments();
+    // Keeps the GUI instruments on from hold to release, turning them on at the hold: for a window whose runs
+    // drive the GUI (Action Replay, the Run Script panel), so that they are on between its runs too and its next
+    // run finds the 3D view's ImGui items recorded. One release for each hold. UI thread.
+    void hold_gui_instruments();
+    void release_gui_instruments();
     // Stops everything; idempotent, and final: start() refuses afterwards. Wakes every waiting call, refuses new
     // ones, closes the client scope and joins the threads of the followed calls, but frees nothing: a call may
     // still be on the UI thread's stack inside a nested event loop, and job threads, and the request threads of a
@@ -96,7 +107,8 @@ public:
     // is still running after `timeout`; the runtime must then be kept alive (leaked) rather than
     // destroyed under it.
     bool drain(std::chrono::milliseconds timeout);
-    // The endpoint opened or closed: a client's rules, recording and held presses end with close.
+    // The endpoint opened or closed: a client's rules, recording and held presses end with close, and the GUI
+    // instruments come off when nothing else drives the GUI. UI thread.
     void open_client_scope();
     void close_client_scope();
     // Whether a client's call may leave rules, a recording or a held press behind: from open_client_scope()
@@ -125,7 +137,7 @@ public:
     UiInvoker&    ui() { return *m_invoker; }
     McpCore&      core() { return *m_core; }
     ModalTracker& modals() { return *m_modals; }
-    // Refs from list_widgets live here. Turns the GUI instruments on if no front end has. UI thread only.
+    // Refs from list_widgets live here. Turns the GUI instruments on if they are off. UI thread only.
     UiInspector&  inspector();
     // The presses mouse_gesture downs left on pages, the web counterpart of the inspector's held press.
     // Any thread.
@@ -189,6 +201,16 @@ private:
     std::optional<ToolResult> call_to_end(const NativeCommand& command, const nlohmann::json& args, bool person);
     void set_ready();
     GuardState guards_on_ui() const;
+    // Whether something drives the GUI (see enable_gui_instruments()). UI thread.
+    bool gui_instruments_wanted() const;
+    // Turns the GUI instruments on when something drives the GUI and they are off, and off when nothing does.
+    // Does nothing once the runtime stops. UI thread.
+    void sync_gui_instruments();
+    // Queues sync_gui_instruments() on the UI thread. Any thread.
+    void post_gui_instruments_sync();
+    // Takes down what enable_gui_instruments() installed. The inspector stays, with its refs, for the calls
+    // that hold it. UI thread.
+    void disable_gui_instruments();
 
     std::unique_ptr<UiDispatcher>  m_dispatcher;
     JobRegistry                    m_jobs;
@@ -201,6 +223,9 @@ private:
     std::unique_ptr<McpCore>       m_core;
     // Null until enable_gui_instruments(). UI thread.
     std::unique_ptr<UiInspector>   m_inspector;
+    // Whether the GUI instruments are installed, and how many holds keep them on. UI thread.
+    bool                           m_instruments_on   = false;
+    int                            m_instrument_holds = 0;
     // Made by start(). Shared with the page calls that release its presses, whose replies may come after the runtime.
     std::shared_ptr<WebPresses>    m_web_presses;
 
