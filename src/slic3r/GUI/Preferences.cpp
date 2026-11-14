@@ -1814,6 +1814,12 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_cad_feature);
 #endif
 
+    // Device camera (monitoring live view): open full screen on the active monitor only
+    auto item_camera_fullscreen = create_item_checkbox(_L("Open full screen camera view on active monitor only"),
+        _L("When enabled, the camera full screen view opens only on the monitor that shows OrcaSlicer."),
+        "camera_fullscreen_active_monitor_only");
+    g_sizer->Add(item_camera_fullscreen);
+
 #if 0
     g_sizer->Add(create_item_title(_L("Filament Grouping")), 1, wxEXPAND);
     //temporarily disable it
