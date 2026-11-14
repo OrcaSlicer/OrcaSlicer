@@ -682,17 +682,56 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 // Orca: Keyboard layout corrector
                 // A set of meta commands in an incorrect keyboard layout breaks the command structure.
                 // There is an attempt to automatically correct this before the string is critically distorted.
-                // Russian layout have been added initially. Other national variants may be added.
                 // The layout table contains the correspondence of the pressed national letter in the English layout.
                 if (wxGetApp().app_config->get("keyboard_layout_corrector") == "true") {
                     for (char& ch : ustr) { 
                         if (static_cast<unsigned char>(ch) > 127) { // has any unicode symbol
                             std::wstring wstr(str.ToStdWstring());
-                            std::wstring const in_keyboard_layout[]{L"Ф", L"ф", L"И", L"и", L"С", L"с", L"В", L"в", L"У", L"у", L"А", L"а", L"П",
-                                                                    L"п", L"Р", L"р", L"Ш", L"ш", L"О", L"о", L"Л", L"л", L"Д", L"д", L"Ь", L"ь",
-                                                                    L"Т", L"т", L"Щ", L"щ", L"З", L"з", L"Й", L"й", L"К", L"к", L"Ы", L"ы", L"Е",
-                                                                    L"е", L"Г", L"г", L"М", L"м", L"Ц", L"ц", L"Ч", L"ч", L"Н", L"н", L"Я", L"я"};
-                            std::string const out_symbol{"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"};
+                            //std::wstring const in_keyboard_layout[]{L"Ф", L"ф", L"И", L"и", L"С", L"с", L"В", L"в", L"У", L"у", L"А", L"а", L"П", L"п",
+                            //                                        L"Р", L"р", L"Ш", L"ш", L"О", L"о", L"Л", L"л", L"Д", L"д", L"Ь", L"ь", L"Т", L"т",
+                            //                                        L"Щ", L"щ", L"З", L"з", L"Й", L"й", L"К", L"к", L"Ы", L"ы", L"Е", L"е", L"Г", L"г",
+                            //                                        L"М", L"м", L"Ц", L"ц", L"Ч", L"ч", L"Н", L"н", L"Я", L"я", L"Ё", L"ё", L"Х", L"х",
+                            //                                        L"Ъ", L"ъ", L"Ж", L"ж", L"Э", L"э", L"Б", L"б", L"Ю", L"ю", L"№"};
+                            
+                            // Orca: AI generated table
+                            std::wstring const in_keyboard_layout[]{
+                                L"ФΑㅁشちԱაשฤओش", L"фаㅁشちաაשฟोش", // A a
+                                L"ИΒㅠلابこԻბנฺऑذ", L"иβㅠلابこիბנิॉذ", // B b
+                                L"СΨㅊؤそՑცבฉणز", L"сψㅊؤそցცבแणز", // C c
+                                L"ВΔㅇيしԴდגฏअي", L"вδㅇيしդდגกअي", // D d
+                                L"УΕㄸثいԵეקฎआث", L"уεㄷثいեეקำआث", // E e
+                                L"АΦㄹبはՖფכโइب", L"аφㄹبはֆფכดइب", // F f
+                                L"ПΓㅎلきԳგעฌउل", L"пγㅎلきգგעเउل", // G g
+                                L"РΗㅗاくՀჰי็अا", L"рηㅗاくհჰי้अا", // H h
+                                L"ШΙㅑهにԻიןณईه", L"шιㅑهにիიןรईه", // I i
+                                L"ОΞㅓتまՃჯח๋अت", L"оξㅓتまճჯח่अت", // J j
+                                L"ЛΚㅏنのԿკלษकن", L"лκㅏنのկკלาकن", // K k
+                                L"ДΛㅣمりԼლךศतम", L"дλㅣمりլლךสतम", // L l
+                                L"ЬΜㅡةもՄმצ؟सپ", L"ьμㅡةもմმצทसپ", // M m
+                                L"ТΝㅜىみՆնמ์लد", L"тνㅜىみննמืलد", // N n
+                                L"ЩЎΟㅒخらՈოםฯऐخ", L"щўοㅐخらոოםนऐخ", // O o
+                                L"ЗΠㅖحせՉპפญएح", L"зπㅔحせչპפยएح", // P p
+                                L"Й:ㅃضたՔქ/๐औض", L"й;ㅂضたքქ/ๆऔض", // Q q
+                                L"КΡㄲقすՐრרฑईق", L"кρㄱقすրრרพईق", // R r
+                                L"ЫІΣㄴسとՍსדฆएس", L"ыіσㄴسとսსดหएس", // S s
+                                L"ЕΤㅆفかՏտאธऊف", L"еτㅅفかտտאะऊف", // T t
+                                L"ГΘㅕعなՒუו๊ऊع", L"гθㅕعなւუוีऊع", // U u
+                                L"МΩㅍرひՎვהฮअر", L"мωㅍرひվვהอअر", // V v
+                                L"ЦΣㅉصてԾწऐص", L"цςㅈصてծწไऐص", // W w
+                                L"ЧΧㅌءさԽხס)अط", L"чχㅌءさխხסปअط", // X x
+                                L"НΥㅛغんՅყטํऐغ", L"нυㅛغんյყטัऐغ", // Y y
+                                L"ЯΖㅋئつՁზזऐظ", L"яζㅋئつձზזผऐظ", // Z z
+                                L"ЁҐّろ՜%ऐ×", L"ёґذろ՝_ऐ÷", // ~
+                                L"Х<ほ«ฐढ", L"хجほ»บडج", // { [
+                                L"ЪЇ>へ»ฅञ", L"ъїدへ«ลणچ", // } ]
+                                L"Ж¨れซछ", L"ж΄كれวचک", // : ;
+                                L"ЭЄطけठ", L"эєطけงटگ", // " ' 
+                                L"Бوねฒष", L"бوねม", // < ,
+                                L"Юزるฬ", L"юزるใ", // > .
+                                L"№" // #
+                            };
+                            
+                            std::string const out_symbol{"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz~`{[}]:;\"'<,>.#"};
                             for (int i = 0; i < out_symbol.size(); i++) {
                                 std::wstring kb = in_keyboard_layout[i];
                                 std::string out_string(out_symbol.substr(i, 1));

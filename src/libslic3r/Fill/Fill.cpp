@@ -76,6 +76,14 @@ inline Vec2d rotate_point_CW(double angle, Vec2d p)
     return Vec2d(cs * p.x() - sn * p.y(), sn * p.x() + cs * p.y());
 };
 
+inline double get_layer_z(const PrintObject* object, int layer_id)
+{
+    int m_layer   = object->layers().size() - 1;
+    int idx       = std::min(layer_id, m_layer);
+    int sdx       = std::max(layer_id - m_layer, 0);
+    return object->get_layer(idx)->bottom_z() + sdx * object->config().layer_height.value;
+};
+
 // Orca: The parameters that are taken into account when calculating a rotating infill.
 struct InfillParams
 {
@@ -130,7 +138,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
         size_t const tk_size{tk.size()};
         
         int    repeats         = 0;                     // metacommand repeats counter
-        double divider_steps   = 1;                     // the number of steps of the divisor
+        int    divider_steps   = 0;                     // the number of steps of the divisor
         
         double angle_start     = 0.;                    // the initial position of the angle for the current range
         double angle_add       = 0.;                    // additive for the angle step
@@ -161,12 +169,15 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
 
         for (int i = 0; i <= layer_id; i++) {
             double fill_z = object->get_layer(i)->print_z;
-            
-            if (limit_fill_z <= fill_z + EPSILON) {
+            if (limit_fill_z <= object->get_layer(i)->bottom_z() + EPSILON) {
                 if (repeats-- > 0) { // if repeats >0 then restore parameters for new iteration
-                    double next_fill_z = limit_fill_z - start_fill_z;
-                    start_fill_z       = limit_fill_z;
-                    limit_fill_z += next_fill_z;
+                    if (divider_steps)
+                        limit_fill_z = get_layer_z(object, i + divider_steps);
+                    else {
+                        double next_fill_z = limit_fill_z - start_fill_z;
+                        start_fill_z       = limit_fill_z;
+                        limit_fill_z += next_fill_z;
+                    }
                 } else {
                     start_fill_z = limit_fill_z;
                     fill_form    = std::string::npos;
@@ -460,11 +471,11 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                                             limit_fill_z = height_value * 1000.;
                                         }
                                     } else
-                                        divider_steps = std::max(height_value, 1.); //  divider_steps > 0 : count by layers
+                                        divider_steps = std::max(round(height_value), 1.); //  divider_steps > 0 : count by layers
                                     
-                                    limit_fill_z += fill_z;
+                                    limit_fill_z += start_fill_z;
                                 } else
-                                    divider_steps = std::max(height_value, 1.);
+                                    divider_steps = std::max(round(height_value), 1.);
                             }
 
                             if (cs[0] == '*') { // [R-zone] overall cycles - post [Z-zone]
@@ -473,14 +484,8 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                             }
 
                             // Calculate the altitude when specifying the exact number of layers.
-                            if (divider_steps) {
-                                divider_steps  = round(divider_steps);
-                                int e_layer    = i + divider_steps;
-                                int m_layer    = object->layers().size() - 1;
-                                int idx        = std::min(e_layer, m_layer);
-                                int sdx        = std::max(e_layer - m_layer, 0);
-                                limit_fill_z   = object->get_layer(idx)->print_z + sdx * object->config().layer_height.value;
-                            }
+                            if (divider_steps)
+                                limit_fill_z = get_layer_z(object, i + divider_steps);
 
                             if (!repeats) {                  // if overall cycles = 0
                                 stop[t]      = 1;            // set stop mark on the dumb command
