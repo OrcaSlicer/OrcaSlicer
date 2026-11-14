@@ -710,10 +710,19 @@ void SendToPrinterDialog::update_storage_list(const std::vector<std::string> &st
 
     if (m_storage_radioBox.size() > 0) {
         m_storage_sizer->Add(0, 0, 0, wxEXPAND, FromDIP(6));
-        auto radio = m_storage_radioBox.front();
-        radio->SetValue(true);
-        if (storages.size() > 0)
-           m_selected_storage = storages[0];
+        // Prefer the external storage only when a healthy USB stick is present, otherwise the internal one
+        const bool want_emmc = !m_prefer_external_storage;
+        size_t     selected  = 0;
+        for (size_t i = 0; i < storages.size(); ++i) {
+            if ((storages[i] == "emmc") == want_emmc) {
+                selected = i;
+                break;
+            }
+        }
+        if (selected < m_storage_radioBox.size())
+            m_storage_radioBox[selected]->SetValue(true);
+        if (selected < storages.size())
+           m_selected_storage = storages[selected];
     }
 
     m_storage_panel->Layout();
@@ -1344,6 +1353,7 @@ void SendToPrinterDialog::update_show_status()
                     m_if_has_sdcard = false;
                 else
                     m_if_has_sdcard = true;
+                m_prefer_external_storage = obj_->GetStorage()->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_NORMAL;
 
                 if (m_filetransfer_tunnel) {
                     m_filetransfer_tunnel.reset();
