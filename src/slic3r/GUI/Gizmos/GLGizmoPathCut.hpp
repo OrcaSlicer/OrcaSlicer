@@ -67,6 +67,7 @@ private:
     void               apply_cut(std::shared_ptr<PathCutJob> job); // by value: callers pass m_pending
     void               do_apply_cut(const std::shared_ptr<PathCutJob> &job);
     void               cut_failed();
+    bool               start_cutting_holes(const std::shared_ptr<PathCutJob> &job);
     void               clear_pending();
     void               rebuild_cutter_preview();
     // Manual connectors: after the cut, the cut face is shown and each click on it places a connector.
@@ -126,6 +127,7 @@ private:
     PathCut::ConnectorParams m_conn;
     bool               m_conn_manual{false};     // the user clicks where each connector goes
     bool               m_conn_force{false};      // ... and it goes there even where the checks say it does not fit
+    bool               m_holes_in_mesh{false};   // the connector holes are cut into the pieces, not negative volumes
     std::string        m_message;
     bool               m_message_is_error{false};
     const ModelObject *m_object{nullptr};        // object the points were picked on

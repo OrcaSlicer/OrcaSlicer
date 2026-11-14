@@ -58,6 +58,11 @@ enough; the check casts lines parallel to the axis through a grid of the project
 Connectors are spread out automatically or placed by clicking; the user can tilt the axis, and can
 force a connector where the check rejects it.
 
+The holes are negative volumes of the pieces, as in the Cut tool, so applying a cut stays fast on
+any mesh. On request they are cut into the meshes instead (an mcut difference, only when the cut is
+applied), so the pieces show and export with their holes; a hole set the boolean fails on is kept as
+a negative volume.
+
 ## GUI
 
 The tool is the Curve mode of the Cut tool. It has no toolbar icon of its own: the Cut tool shows its

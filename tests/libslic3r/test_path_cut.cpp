@@ -2,6 +2,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <libslic3r/MeshBoolean.hpp>
 #include <libslic3r/PathCutConnectors.hpp>
 #include <libslic3r/PathCutGeometry.hpp>
 #include <libslic3r/TriangleMesh.hpp>
@@ -11,6 +12,7 @@
 #include <cmath>
 #include <cstddef>
 #include <map>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -650,6 +652,43 @@ TEST_CASE("Connectors on a wavy cut face fit inside both parts", "[PathCut]")
         const PathCut::ConnectorResult big = PathCut::place_connectors(res, level, from, to, prm, error);
         CHECK(big.positions.empty());
         CHECK_FALSE(error.empty());
+    }
+}
+
+TEST_CASE("Connector holes cut into the pieces with a mesh boolean leave them closed, with the holes in them", "[PathCut]")
+{
+    // As above: a 30 x 30 x 40 box cut by a wavy path, separate pins, holes on both sides.
+    const indexed_triangle_set box = its_make_cube(30., 30., 40.);
+    const std::vector<PathCut::V3> pts{{-2., 0., 18.}, {10., 0., 22.}, {20., 0., 17.}, {32., 0., 21.}};
+    const PathCut::ViewCutter vc = PathCut::make_view_cutter(pts, PathCut::V3::UnitY(), PathCut::V3::Zero(), PathCut::V3(30., 30., 40.), 0.2);
+    REQUIRE(vc.valid());
+    const PathCut::CutResult res = PathCut::cut_with_slab(box, vc, false);
+    REQUIRE(res.error.empty());
+    const PathCut::Grouped g = PathCut::group_cut(res, [&vc](const PathCut::V3 &p) { return vc.side(p); }, false, nullptr);
+    const int                   level = PathCut::peg_side(res, g.side_a, g.side_b);
+    const indexed_triangle_set &from  = level == 1 ? g.side_a : g.side_b;
+    const indexed_triangle_set &to    = level == 1 ? g.side_b : g.side_a;
+    PathCut::ConnectorParams prm;
+    prm.type  = PathCut::ConnectorType::Dowel;
+    prm.count = 2;
+    std::string                    error;
+    const PathCut::ConnectorResult c = PathCut::place_connectors(res, level, from, to, prm, error);
+    REQUIRE_FALSE(c.positions.empty());
+
+    for (const auto &[piece, holes, sign] : {std::make_tuple(&from, &c.holes_from, -1.), std::make_tuple(&to, &c.holes_to, 1.)}) {
+        std::vector<TriangleMesh> out;
+        MeshBoolean::mcut::make_boolean(TriangleMesh(*piece), TriangleMesh(*holes), out, "A_NOT_B");
+        REQUIRE(out.size() == 1);
+        const indexed_triangle_set &cut = out.front().its;
+        require_closed_parts({cut});
+        // Less material by about the holes inside the piece, and the middle of each hole is empty now.
+        CHECK(its_volume(cut) < its_volume(*piece) - 0.5 * its_volume(*holes));
+        CHECK(its_volume(cut) > its_volume(*piece) - its_volume(*holes) - 1e-3);
+        for (const PathCut::V3 &p : c.positions) {
+            const PathCut::V3 inside_hole = p + sign * 0.5 * prm.depth * c.axis;
+            CHECK(PathCut::point_inside(*piece, inside_hole));
+            CHECK_FALSE(PathCut::point_inside(cut, inside_hole));
+        }
     }
 }
 
