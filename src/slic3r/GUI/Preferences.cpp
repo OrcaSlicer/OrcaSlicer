@@ -1,4 +1,6 @@
 #include "Preferences.hpp"
+#include <wx/msgdlg.h>
+#include "slic3r/GUI/CAD/McpControl.hpp"
 #include "CloudProvider.hpp"
 #include "ColorPickerDialog.hpp"
 #include "OptionsGroup.hpp"
@@ -798,6 +800,28 @@ wxBoxSizer *PreferencesDialog::create_item_input(wxString title, wxString title2
         e.Skip();
     });
 
+    return m_sizer;
+}
+
+wxBoxSizer *PreferencesDialog::create_item_text(wxString title, wxString tooltip, std::string param, const wxString placeholder)
+{
+    auto tip = tooltip.IsEmpty() ? title : tooltip;
+    wxBoxSizer *m_sizer = create_item_label(title, tip);
+
+    auto       input = new ::TextInput(m_parent, wxEmptyString, wxEmptyString, wxEmptyString, wxDefaultPosition, wxSize(FromDIP(260), DESIGN_INPUT_SIZE.GetHeight()), wxTE_PROCESS_ENTER);
+    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(wxString::FromUTF8(app_config->get(param)));
+    if (!placeholder.IsEmpty()) input->GetTextCtrl()->SetHint(placeholder);
+    input->SetToolTip(tip);
+    m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
+
+    auto save = [this, param, input]() {
+        app_config->set(param, std::string(input->GetTextCtrl()->GetValue().ToUTF8()));
+        app_config->save();
+    };
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [save](wxCommandEvent &e) { save(); e.Skip(); });
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [save](wxFocusEvent &e) { save(); e.Skip(); });
     return m_sizer;
 }
 
@@ -2194,6 +2218,16 @@ void PreferencesDialog::create_items()
     std::vector<wxString> CameraNavStyle = {_L("Default"), _L("Touchpad")};
     auto item_camera_nav_style = create_item_combobox(_L("Camera style"), _L("Select camera navigation style.\nDefault: LMB+move for rotation, RMB/MMB+move for panning.\nTouchpad: Alt+move for rotation, Shift+move for panning."), "camera_navigation_style", CameraNavStyle);
     g_sizer->Add(item_camera_nav_style);
+
+    std::vector<wxString>    NavCorner       = {_L("Top right"), _L("Top left"), _L("Bottom right"), _L("Bottom left")};
+    std::vector<std::string> NavCornerValues = {"top_right", "top_left", "bottom_right", "bottom_left"};
+    auto item_nav_corner = create_item_combobox(_L("3D navigator corner"), _L("The corner of the 3D view that holds the navigator cube and the round view buttons, in Prepare and Design alike."), "navigator_corner", NavCorner, NavCornerValues);
+    g_sizer->Add(item_nav_corner);
+
+    auto item_follow_move = create_item_checkbox(_L("Sketches and holes move with their object"),
+        _L("A sketch, hole or thread drawn on a face goes with that face when the object is moved or turned, not only when it grows or shrinks. Off: it keeps its place in the face's plane."),
+        "design_attached_follow_move");
+    g_sizer->Add(item_follow_move);
 
     auto camera_orbit_mult     = create_camera_orbit_mult_input(_L("Orbit speed multiplier"), _L("Multiplies the orbit speed for finer or coarser camera movement."));
     g_sizer->Add(camera_orbit_mult);

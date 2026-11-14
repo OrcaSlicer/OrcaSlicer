@@ -45,6 +45,18 @@ inline constexpr double kSketchInferAngleTol = 3.0 * M_PI / 180.0;
 std::optional<SketchConstraintType>
 infer_axis_constraint(const Vec2d& anchor, const Vec2d& tip, double ang_tol_rad = kSketchInferAngleTol);
 
+// Direction guide for a line being drawn from `anchor` towards `raw`: when its direction is within `ang_tol_rad`
+// of parallel or perpendicular to an existing (non-degenerate) Line, returns that line and the exact unit
+// direction to snap to (sign chosen to point towards `raw`). The smallest deviation wins; None otherwise.
+struct DirectionGuide {
+    enum class Kind { None, Parallel, Perpendicular };
+    Kind  kind{Kind::None};
+    int   entity{-1};
+    Vec2d dir{1, 0};
+};
+DirectionGuide infer_direction_guide(const std::vector<SketchEntity>& entities, const Vec2d& anchor, const Vec2d& raw,
+                                     double ang_tol_rad);
+
 // Relational constraints to auto-emit for a newly drawn entity `new_ei` against the
 // entities already in the sketch. Pure, no GUI/GL dependencies, unit-testable.
 //

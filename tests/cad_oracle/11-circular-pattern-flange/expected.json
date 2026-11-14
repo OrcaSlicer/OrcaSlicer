@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "annulus R50/r15 h10 minus 6 through cylinders r=5 on a 40 radius: V = pi(R^2-r^2)h - 6 pi rh^2 h, A = 2 pi(R^2-r^2) + 2 pi(R+r)h + 6(2 pi rh h - 2 pi rh^2); 6-fold symmetry keeps the centroid on the axis",
+  "body_count": 1,
+  "volume_mm3": 66758.84388878311,
+  "area_mm2": 19320.79481957723,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    5.0
+  ],
+  "bbox": {
+    "min": [
+      -50.0,
+      -50.0,
+      0.0
+    ],
+    "max": [
+      50.0,
+      50.0,
+      10.0
+    ]
+  },
+  "faces": 10
+}

@@ -390,6 +390,9 @@ void AppConfig::set_defaults()
     // Design tab: draw the printer bed and its plate grid (the Feature tree's Bed row).
     if (get("design_show_bed").empty())
         set_bool("design_show_bed", true);
+    // SolidWorks xDesign shows the three origin planes by default.
+    if (get("design_show_origin").empty())
+        set_bool("design_show_origin", true);
 #endif
 
 //#ifdef SUPPORT_SHOW_HINTS
@@ -407,6 +410,12 @@ void AppConfig::set_defaults()
 
     if (get("show_3d_navigator").empty())
         set_bool("show_3d_navigator", true);
+
+    if (get("navigator_corner").empty())
+        set("navigator_corner", "top_right");
+
+    if (get("design_attached_follow_move").empty())
+        set_bool("design_attached_follow_move", true);
 
     // Show the one-time "Filament Track Switch is ready" tip until it has been seen once.
     if (get("show_fila_switch_tips").empty())

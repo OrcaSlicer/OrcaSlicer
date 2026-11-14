@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "50 (x) by 20 (z) rectangle on XZ extruded +-15 along Y: box 50x30x20 centred at origin",
+  "body_count": 1,
+  "volume_mm3": 30000.0,
+  "area_mm2": 6200.0,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "bbox": {
+    "min": [
+      -25.0,
+      -15.0,
+      -10.0
+    ],
+    "max": [
+      25.0,
+      15.0,
+      10.0
+    ]
+  },
+  "faces": 6
+}

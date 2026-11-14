@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "base x 0..75, y 5..40, z 0..2.5 (trimmed 5 by each flange's setback); bend 1 (R 2.5..5 about y 5, z 5) x 0..75; flange 1 y 0..2.5, z 5..30, x 0..80; bend 2 (R 2.5..5 about x 75, z 5) y 5..40; flange 2 x 77.5..80, z 5..15, y 5..40; minus two d6 through holes at (25,20), (55,20) in the base. A = sum of prism areas - 2 x 4 joint areas (75t, 75t, 35t, 35t) + hole walls - hole discs",
+  "body_count": 1,
+  "volume_mm3": 13916.012042595696,
+  "area_mm2": 12035.962275939059,
+  "center_of_mass": [
+    42.447144354989774,
+    13.304901335083745,
+    7.787102510037218
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      80.0,
+      40.0,
+      30.0
+    ]
+  },
+  "note": "SolidCraft convention: the second flange trims the base under the first bend, so bend 1 stops at x 75 while flange 1's panel runs to x 80 (open corner relief, no fill)."
+}

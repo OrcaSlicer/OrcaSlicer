@@ -1,0 +1,60 @@
+{
+ "name": "base flange, then an edge flange on a clicked edge",
+ "steps": [
+  {
+   "mcp": "sketch_begin",
+   "params": {
+    "plane": "XY"
+   }
+  },
+  {
+   "mcp": "sketch_add",
+   "params": {
+    "rect": [
+     -50,
+     -30,
+     50,
+     30
+    ]
+   }
+  },
+  {
+   "mcp": "sketch_commit"
+  },
+  {
+   "card": {
+    "open": "sheet:1",
+    "confirm": true
+   }
+  },
+  {
+   "expect": {
+    "volume": 15000,
+    "bodies": 1
+   }
+  },
+  {
+   "click_edge": {
+    "axis": "x",
+    "z": "max",
+    "y": "min"
+   }
+  },
+  {
+   "card": {
+    "open": "sheet:2",
+    "set": {
+     "sheet_height": 20,
+     "sheet_angle": 90
+    },
+    "confirm": true
+   }
+  },
+  {
+   "expect": {
+    "volume": 18972.62,
+    "bodies": 1
+   }
+  }
+ ]
+}

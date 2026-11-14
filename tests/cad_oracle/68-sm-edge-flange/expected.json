@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "extrusion along x (100) of the YZ section: base y 5..60 x t; 90 deg bend annulus R 2.5..5 about (y 5, z 5); flange y 0..2.5, z 5..20. Setback (R+t)tan45 = 5 (inside bend position, outer-face height datum: outer face of flange reaches z = 20); V = L*A_sec, A = 2 A_sec + L P_sec",
+  "body_count": 1,
+  "volume_mm3": 18972.621556370217,
+  "area_mm2": 16057.549676223574,
+  "center_of_mass": [
+    50.0,
+    23.996671893539865,
+    3.572504424184866
+  ],
+  "bbox": {
+    "min": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "max": [
+      100.0,
+      60.0,
+      20.0
+    ]
+  },
+  "note": "trim/setback and height datum are SolidCraft's documented edge-flange conventions (sheet.rs add_flanges)"
+}

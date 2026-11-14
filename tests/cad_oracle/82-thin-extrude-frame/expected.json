@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "square frame: the lines' 40 mm square walled 3 mm inside and 1 mm outside (mitred corners) is 42 x 42 less 34 x 34, 10 mm tall: V = (42^2 - 34^2) * 10, A = 2 (42^2 - 34^2) + 4 * 42 * 10 + 4 * 34 * 10",
+  "body_count": 1,
+  "volume_mm3": 6080.0,
+  "area_mm2": 4256.0,
+  "center_of_mass": [
+    0.0,
+    0.0,
+    5.0
+  ],
+  "bbox": {
+    "min": [
+      -21.0,
+      -21.0,
+      0.0
+    ],
+    "max": [
+      21.0,
+      21.0,
+      10.0
+    ]
+  },
+  "faces": 10
+}

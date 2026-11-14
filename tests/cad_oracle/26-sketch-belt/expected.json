@@ -1,0 +1,25 @@
+{
+  "source": "analytic",
+  "method": "belt: convex hull of circles R20 @ (0,0) and r10 @ (50,0) (external tangents, sin a = (R-r)/d) minus the d8 hole at (50,0), extruded 5 as one body; hull area = (R+r) sqrt(d^2-(R-r)^2) + R^2(pi+2a)/2 + r^2(pi-2a)/2; moments by Green's theorem over the line/arc boundary",
+  "body_count": 1,
+  "volume_mm3": 11326.169514235082,
+  "area_mm2": 5637.404150511762,
+  "center_of_mass": [
+    15.321857347287981,
+    0.0,
+    2.5
+  ],
+  "bbox": {
+    "min": [
+      -20.0,
+      -20.0,
+      0.0
+    ],
+    "max": [
+      60.0,
+      20.0,
+      5.0
+    ]
+  },
+  "faces": 7
+}

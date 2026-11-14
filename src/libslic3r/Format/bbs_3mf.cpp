@@ -234,6 +234,7 @@ const std::string SLICE_INFO_CONFIG_FILE = "Metadata/slice_info.config";
 const std::string FILAMENT_SEQUENCE_FILE = "Metadata/filament_sequence.json";
 const std::string BBS_LAYER_HEIGHTS_PROFILE_FILE = "Metadata/layer_heights_profile.txt";
 const std::string ORCA_CAD_RECIPE_FILE = "Metadata/orca_cad.bin";
+const std::string ORCA_CAD_CHAT_FILE   = "Metadata/orca_cad_chat.json";
 // Read-only: the recipe entry's pre-rename name. A reader that knows only the new one drops the
 // feature tree of every project written before the move, without a word. Never written.
 const std::string LEGACY_CAD_RECIPE_FILE = "Metadata/SnapOrca_cad.bin";
@@ -2068,6 +2069,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                         std::string buf((size_t)stat.m_uncomp_size, '\0');
                         if (mz_zip_reader_extract_to_mem(&archive, stat.m_file_index, buf.data(), buf.size(), 0))
                             model.cad_recipe = std::move(buf);
+                    }
+                }
+                else if (boost::algorithm::iequals(name, ORCA_CAD_CHAT_FILE)) {
+                    constexpr mz_uint64 kMaxCadChat = mz_uint64(1) << 24;   // 16 MiB; the panel itself keeps far less
+                    if (stat.m_uncomp_size > 0 && stat.m_uncomp_size <= kMaxCadChat) {
+                        std::string buf((size_t)stat.m_uncomp_size, '\0');
+                        if (mz_zip_reader_extract_to_mem(&archive, stat.m_file_index, buf.data(), buf.size(), 0))
+                            model.cad_chat = std::move(buf);
                     }
                 }
                 else if (boost::algorithm::iequals(name, CUT_INFORMATION_FILE)) {
@@ -6329,6 +6338,7 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
         bool _add_build_to_model_stream(std::stringstream& stream, const BuildItemsList& build_items) const;
         bool _add_layer_height_profile_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_cad_recipe_file_to_archive(mz_zip_archive& archive, Model& model);
+        bool _add_cad_chat_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_layer_config_ranges_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_brim_ear_points_file_to_archive(mz_zip_archive& archive, Model& model);
         bool _add_sla_support_points_file_to_archive(mz_zip_archive& archive, Model& model);
@@ -6739,6 +6749,10 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
             }
 
             if (!_add_cad_recipe_file_to_archive(archive, model)) {
+                close_zip_writer(&archive);
+                return false;
+            }
+            if (!_add_cad_chat_file_to_archive(archive, model)) {
                 close_zip_writer(&archive);
                 return false;
             }
@@ -8042,6 +8056,19 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
                 (const void*)model.cad_recipe.data(), model.cad_recipe.length(),
                 MZ_DEFAULT_COMPRESSION)) {
             add_error("Unable to add CAD recipe file to archive");
+            return false;
+        }
+        return true;
+    }
+
+    bool _BBS_3MF_Exporter::_add_cad_chat_file_to_archive(mz_zip_archive& archive, Model& model)
+    {
+        if (model.cad_chat.empty())
+            return true;
+        if (!mz_zip_writer_add_mem(&archive, ORCA_CAD_CHAT_FILE.c_str(),
+                (const void*)model.cad_chat.data(), model.cad_chat.length(),
+                MZ_DEFAULT_COMPRESSION)) {
+            add_error("Unable to add CAD chat file to archive");
             return false;
         }
         return true;

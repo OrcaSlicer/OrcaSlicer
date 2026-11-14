@@ -1,0 +1,244 @@
+{
+ "id": "52-circular-pattern-fillet",
+ "name": "Circular pattern of boss + fillet",
+ "description": "Disc r40 h8; d12 boss 10 tall at (28,0) joined; boss base edge filleted R2; boss and fillet features circular-patterned x6 about Z.",
+ "exercises": [
+  "extrude_join",
+  "fillet",
+  "circular_pattern",
+  "pattern_of_fillet"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Disc",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "radius": 40,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Disc",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Disc",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 8,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Hub"
+   ]
+  },
+  {
+   "op": "sketch",
+   "name": "BossSketch",
+   "plane": {
+    "ref": "face: top of disc (z=8)",
+    "origin": [
+     0.0,
+     0.0,
+     8.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ],
+    "face": {
+     "type": "plane",
+     "normal_at_point_on_face": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "plane_normal_outward": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "point": [
+      0.0,
+      0.0,
+      8.0
+     ]
+    }
+   },
+   "entities": [
+    {
+     "type": "circle",
+     "center": {
+      "at": [
+       28.0,
+       0.0
+      ]
+     },
+     "radius": 6,
+     "id": "c1"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Boss",
+   "operation": "join",
+   "profiles": [
+    {
+     "sketch": "BossSketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "c1"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 10,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Hub"
+   ]
+  },
+  {
+   "op": "fillet",
+   "name": "BossFillet",
+   "type": "constant_radius",
+   "radius": 2,
+   "tangent_chain": false,
+   "edge_selection": "boss base circle r=6 at z=8",
+   "edges": [
+    {
+     "type": "circle",
+     "start": [
+      22.0,
+      -0.0,
+      8.0
+     ],
+     "end": [
+      22.0,
+      -0.0,
+      8.0
+     ],
+     "center": [
+      28.0,
+      0.0,
+      8.0
+     ],
+     "axis": [
+      0.0,
+      0.0,
+      -1.0
+     ],
+     "point": [
+      34.0,
+      0.0,
+      8.0
+     ]
+    }
+   ]
+  },
+  {
+   "op": "circular_pattern",
+   "name": "BossPattern",
+   "pattern_of": "features",
+   "features": [
+    "Boss",
+    "BossFillet"
+   ],
+   "axis": {
+    "ref": "world Z axis",
+    "origin": [
+     0,
+     0,
+     0
+    ],
+    "dir": [
+     0,
+     0,
+     1
+    ]
+   },
+   "count": 6,
+   "total_angle": 360,
+   "symmetric": false
+  }
+ ]
+}

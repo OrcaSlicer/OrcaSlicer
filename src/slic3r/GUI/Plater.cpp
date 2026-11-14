@@ -10311,6 +10311,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
             // plain model into the open project leaves the current recipe alone.
             if (is_project_file) {
                 q->model().cad_recipe = model.cad_recipe;
+                q->model().cad_chat   = model.cad_chat;
                 loaded_cad_recipe     = !model.cad_recipe.empty();
             }
 
@@ -11166,6 +11167,7 @@ void Plater::priv::reset(bool apply_presets_change, bool reload_presets)
     // clear_objects() only drops the ModelObjects; the CAD recipe is Model-level state and would
     // otherwise be written into every project saved for the rest of the session.
     model.cad_recipe.clear();
+    model.cad_chat.clear();
     assemble_view->get_canvas3d()->reset_explosion_ratio();
     update();
 

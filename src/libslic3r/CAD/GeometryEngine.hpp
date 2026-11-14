@@ -23,6 +23,16 @@ public:
     // already linked via Format/STEP.cpp — no new dependency. err is set on failure (empty result).
     static std::vector<TopoDS_Shape> read_step_solids(const std::string& path, std::string& err);
 
+    // Any CAD file -> top-level solids. STEP/STP go straight to read_step_solids; every other extension
+    // (SolidWorks .sldprt, Fusion .f3d, Inventor .ipt, CATIA .CATPart, FreeCAD .FCStd, Rhino .3dm, IGES, ACIS .sat...)
+    // is first converted to a temporary STEP by the external `cadmpeg` CLI (github.com/cadmpeg/cadmpeg, Apache-2.0,
+    // clean-room native-CAD decoders). It is found through $ORCA_CADMPEG, then PATH; it is not bundled, so without it the
+    // result is empty and err says how to get it. cadmpeg decodes what it can: NX and Creo `.prt` carry no geometry yet.
+    // `warnings`, when given, gets the count of cadmpeg "[warning" findings (e.g. geometry it could not write); "" if none.
+    // The cadmpeg executable read_cad_solids would run ($ORCA_CADMPEG, then PATH); empty when it is not installed.
+    static std::string cadmpeg_executable();
+    static std::vector<TopoDS_Shape> read_cad_solids(const std::string& path, std::string& err, std::string* warnings = nullptr);
+
     // Triangle mesh -> B-rep solid. Native port of mesh2step
     // (github.com/tommasobbianchi/mesh2step): vertices and edges are SHARED across triangles
     // at construction time (vertex cache by deduped index, edge cache by unordered index pair),
@@ -83,9 +93,29 @@ public:
                                        FaceGroup faces = FaceGroup::All);
     static TopoDS_Shape apply_chamfer(const TopoDS_Shape& solid, double distance,
                                        int edge_id);
+    // How a fillet's size is read. Default: `radius` is constant along the edge.
+    //  r2 >= 0     the radius runs linearly from `radius` to `r2` along each edge (end 1 = the end nearest `start` when given)
+    //  chord       `radius` is the width of the round measured across it, not a radius: r = chord / (2 sin(phi/2)), phi = the
+    //              angle between the two faces' outward normals, taken at each edge's midpoint
+    struct FilletLaw {
+        double r2{-1.0};
+        bool   chord{false};
+        bool   has_start{false};
+        Vec3d  start{0, 0, 0};
+        // A radius that follows a B-spline along the edge (u = 0 at the first end .. 1 at the last): the control radii (the
+        // fillet's own radius is the first) and the full knot vector, clamped, degree = knots - radii - 1. Overrides r2.
+        std::vector<double> radii;
+        std::vector<double> knots;
+        // Fit "taper": where `radius` does not fit, the radius follows the room there. A clamped cubic B-spline of 8 equal
+        // spans along each edge, its control radii min(radius, 0.9 * room) at the Greville abscissae, room being the
+        // narrower of the two faces measured square to the edge, times tan(half the angle between the faces). Overrides the rest.
+        bool fit_taper{false};
+    };
     // Several edges in one operation, all ids resolved against `solid`.
     static TopoDS_Shape apply_fillet(const TopoDS_Shape& solid, double radius,
                                      const std::vector<int>& edge_ids);
+    static TopoDS_Shape apply_fillet(const TopoDS_Shape& solid, double radius,
+                                     const std::vector<int>& edge_ids, const FilletLaw& law);
     static TopoDS_Shape apply_chamfer(const TopoDS_Shape& solid, double distance,
                                        const std::vector<int>& edge_ids);
 
@@ -107,6 +137,12 @@ public:
     static std::vector<TopoDS_Edge> edges_of_face(const TopoDS_Face& face);
     // Centre of mass (world) of a face — used to compute the extrude length for "up to face".
     static Vec3d face_centroid_world(const TopoDS_Face& face);
+    // The strategic points of a face, the places a mate connector wants to sit: [0] is always the centroid, then, for EVERY edge of
+    // EVERY wire (outer boundary and holes alike) its end vertices and midpoint, plus the centre of a circular or arc edge and the four
+    // quadrant points of a full circle. So a rectangle gives 9 (centroid, 4 corners, 4 midpoints); a disc 5; a slot its two arc centres,
+    // arc midpoints, line midpoints and corners; a hole adds its own centre and quadrants. Deterministic order, duplicates removed.
+    struct FacePoint { Vec3d p{0, 0, 0}; int kind{0}; };   // kind: 0 centroid, 1 vertex, 2 midpoint, 3 arc/circle centre, 4 quadrant
+    static std::vector<FacePoint> face_snap_points(const TopoDS_Face& face);
     // Outward unit normal of a face at its UV midpoint (orientation-aware) — for the shell gizmo.
     static Vec3d face_normal_world(const TopoDS_Face& face);
     // Sample an edge into a world-space polyline (>=2 pts) for pick-distance + highlight.
@@ -119,6 +155,10 @@ public:
     static int          edge_count(const TopoDS_Shape& shape);
     static TopoDS_Edge  edge_by_index(const TopoDS_Shape& shape, int index);
     static int          edge_index_of(const TopoDS_Shape& shape, const TopoDS_Edge& edge);
+    // Every edge reachable from `index` through vertices where the two edges meet tangent (within
+    // `deg`, direction-insensitive) — the "tangent loop" a double-click on an edge selects. Includes
+    // `index`; ids are the same edge_by_index ids.
+    static std::vector<int> tangent_edge_chain(const TopoDS_Shape& shape, int index, double deg = 2.0);
 
     // Analysis of a cylindrical face for the Thread tool (a hole bore or a cylinder's lateral
     // surface): axis (base at the lower axial end + unit direction), radius, axial extent, and

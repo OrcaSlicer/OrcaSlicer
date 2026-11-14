@@ -867,7 +867,20 @@ if (SLIC3R_CAD)
     list(APPEND SLIC3R_GUI_SOURCES
         GUI/CAD/DesignPanel.cpp
         GUI/CAD/DesignPanel.hpp
+        GUI/CAD/DesignImGuiUi.cpp
+        GUI/CAD/DesignImGuiUi.hpp
+        GUI/CAD/DesignQuotes.cpp
+        GUI/CAD/LlmAgent.cpp
+        GUI/CAD/LlmApi.cpp
+        GUI/CAD/LlmApi.hpp
+        GUI/CAD/LlmAgent.hpp
+        GUI/CAD/LlmPanel.cpp
+        GUI/CAD/LlmPanel.hpp
+        GUI/CAD/DesignQuotes.hpp
+        GUI/CAD/DesignCardModel.hpp
+        GUI/CAD/DesignRibbonTable.hpp
         GUI/CAD/DesignRowList.cpp
+        GUI/CAD/DesignSidebarMirror.cpp
         GUI/CAD/DesignRowList.hpp
         GUI/CAD/DesignTextDialog.cpp
         GUI/CAD/DesignTextDialog.hpp

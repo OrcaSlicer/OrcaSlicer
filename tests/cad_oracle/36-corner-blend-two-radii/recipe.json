@@ -1,0 +1,274 @@
+{
+ "id": "36-corner-blend-two-radii",
+ "name": "Corner blends with two radii",
+ "description": "50x40x30 box; 4 vertical edges R8, then the top-face loop R4 (tangent chain) - 3-edge corner blends with unequal radii.",
+ "exercises": [
+  "fillet",
+  "corner_blend",
+  "tangent_chain"
+ ],
+ "units": {
+  "length": "mm",
+  "angle": "deg",
+  "area": "mm2",
+  "volume": "mm3"
+ },
+ "conventions": {
+  "world": "right-handed; Z up. XY/XZ/YZ are the origin planes.",
+  "sketch_frame": "sketch-local 2D coords; world = plane.origin + x*plane.x_dir + y*plane.y_dir (origin in mm). Profile 'loops' list sketch entity ids.",
+  "point_refs": "'<id>.start' / '<id>.end' / '<id>.center' reuse (share) that existing sketch point; 'at' is its position when referenced.",
+  "extrude_direction": "positive = along sketch plane normal unless stated",
+  "selections": "selected faces/edges carry 'point': a world-space point on the face / the edge's parametric midpoint; pick the nearest face/edge to it."
+ },
+ "parameters": [],
+ "features": [
+  {
+   "op": "sketch",
+   "name": "Extrude1_sketch",
+   "plane": {
+    "ref": "XY",
+    "origin": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "x_dir": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "y_dir": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "normal": [
+     0.0,
+     0.0,
+     1.0
+    ]
+   },
+   "entities": [
+    {
+     "type": "line",
+     "start": {
+      "at": [
+       0,
+       0
+      ]
+     },
+     "end": {
+      "at": [
+       50,
+       0
+      ]
+     },
+     "id": "l1"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l1.end",
+      "at": [
+       50.0,
+       0.0
+      ]
+     },
+     "end": {
+      "at": [
+       50,
+       40
+      ]
+     },
+     "id": "l2"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l2.end",
+      "at": [
+       50.0,
+       40.0
+      ]
+     },
+     "end": {
+      "at": [
+       0,
+       40
+      ]
+     },
+     "id": "l3"
+    },
+    {
+     "type": "line",
+     "start": {
+      "ref": "l3.end",
+      "at": [
+       0.0,
+       40.0
+      ]
+     },
+     "end": {
+      "ref": "l1.start",
+      "at": [
+       0.0,
+       0.0
+      ]
+     },
+     "id": "l4"
+    }
+   ],
+   "constraints": [],
+   "dimensions": []
+  },
+  {
+   "op": "extrude",
+   "name": "Extrude1",
+   "operation": "new",
+   "profiles": [
+    {
+     "sketch": "Extrude1_sketch",
+     "loops": [
+      {
+       "outer": true,
+       "curves": [
+        "l1",
+        "l2",
+        "l3",
+        "l4"
+       ]
+      }
+     ]
+    }
+   ],
+   "extent": {
+    "type": "distance",
+    "distance": 30,
+    "direction": "positive"
+   },
+   "result_bodies": [
+    "Box"
+   ]
+  },
+  {
+   "op": "fillet",
+   "name": "VerticalFillet",
+   "type": "constant_radius",
+   "radius": 8,
+   "tangent_chain": false,
+   "edge_selection": "the 4 vertical edges",
+   "edges": [
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      40.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      40.0,
+      30.0
+     ],
+     "point": [
+      0.0,
+      40.0,
+      15.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      50.0,
+      40.0,
+      0.0
+     ],
+     "end": [
+      50.0,
+      40.0,
+      30.0
+     ],
+     "point": [
+      50.0,
+      40.0,
+      15.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      50.0,
+      0.0,
+      0.0
+     ],
+     "end": [
+      50.0,
+      0.0,
+      30.0
+     ],
+     "point": [
+      50.0,
+      0.0,
+      15.0
+     ]
+    },
+    {
+     "type": "line",
+     "start": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "end": [
+      0.0,
+      0.0,
+      30.0
+     ],
+     "point": [
+      0.0,
+      0.0,
+      15.0
+     ]
+    }
+   ]
+  },
+  {
+   "op": "fillet",
+   "name": "TopFillet",
+   "type": "constant_radius",
+   "radius": 4,
+   "tangent_chain": true,
+   "edge_selection": "one edge of the top face + tangent chain (whole top loop)",
+   "edges": [
+    {
+     "type": "arc",
+     "start": [
+      8.0,
+      0.0,
+      30.0
+     ],
+     "end": [
+      0.0,
+      8.0,
+      30.0
+     ],
+     "center": [
+      8.0,
+      8.0,
+      30.0
+     ],
+     "axis": [
+      -0.0,
+      -0.0,
+      -1.0
+     ],
+     "point": [
+      2.343145751,
+      2.343145751,
+      30.0
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -7,6 +7,8 @@
 using Catch::Approx;   // v3 scopes Approx into the Catch namespace; v2 had it at global scope
 
 #include "libslic3r/CAD/SketchInference.hpp"
+#include <math.h>
+#include <cmath>
 
 using namespace Slic3r;
 using K = InferenceSnap::Kind;
@@ -176,4 +178,22 @@ TEST_CASE("inference: at most one relation per rule per new entity", "[inference
     CHECK(rels.size() == 1);
     CHECK(rels[0].type == SketchConstraintType::EqualRadius);
     CHECK(rels[0].eb == 40);
+}
+
+TEST_CASE("inference: direction guide snaps parallel and perpendicular to an existing line", "[inference]")
+{
+    std::vector<SketchEntity> ents = { line({0, 0}, {10, 10}) };   // 45 degrees
+    // a segment from (20,0) heading ~44 degrees: parallel to the line
+    auto g = infer_direction_guide(ents, {20, 0}, {30, 9.5}, 3.0 * M_PI / 180.0);
+    CHECK(g.kind == DirectionGuide::Kind::Parallel);
+    CHECK(g.entity == 0);
+    CHECK(g.dir.x() == Approx(std::sqrt(0.5)));
+    CHECK(g.dir.y() == Approx(std::sqrt(0.5)));
+    // heading ~ -46 degrees: perpendicular, snapped to exactly -45
+    auto p = infer_direction_guide(ents, {20, 0}, {29.5, -10}, 3.0 * M_PI / 180.0);
+    CHECK(p.kind == DirectionGuide::Kind::Perpendicular);
+    CHECK(p.dir.x() == Approx(std::sqrt(0.5)));
+    CHECK(p.dir.y() == Approx(-std::sqrt(0.5)));
+    // 20 degrees off both: nothing
+    CHECK(infer_direction_guide(ents, {20, 0}, {30, 0}, 3.0 * M_PI / 180.0).kind == DirectionGuide::Kind::None);
 }

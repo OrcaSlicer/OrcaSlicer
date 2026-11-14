@@ -179,6 +179,7 @@
 #include "slic3r/GUI/KeyChord.hpp"
 #include "slic3r/GUI/ObjectDataViewModel.hpp"
 #include "slic3r/GUI/PartPlate.hpp"
+#include "slic3r/GUI/2DBed.hpp"
 #include "slic3r/GUI/SceneCache.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
 
@@ -212,6 +213,8 @@ void Slic3r::GUI::GLCanvas3D::load_render_colors()
 
 namespace Slic3r {
 namespace GUI {
+extern float g_design_bed_alpha;   // 3DBed.cpp
+extern bool  g_design_bed_see_through;   // 3DBed.cpp
 
 static void pan_camera(Camera& camera, const Vec2d& screen_delta, const Vec3d& anchor)
 {
@@ -3042,9 +3045,15 @@ static constexpr float CANVAS_TOOLBAR_PADDING = 2.f;
 static constexpr float CANVAS_TOOLBAR_BUTTON  = 36.f;
 static constexpr float CANVAS_TOOLBAR_SPACING = 6.f;
 
+// The navigator and the round buttons beside it sit in the corner chosen in Preferences. The bottom-left one is the
+// only one the plate switcher and the status line must keep clear of.
+static bool navigator_at_bottom_left() { return !wxGetApp().navigator_right() && wxGetApp().navigator_bottom(); }
+
 // What the corner takes at the left edge of the canvas: the 3D navigator, or else the canvas toolbar.
 static float canvas_corner_height()
 {
+    if (!navigator_at_bottom_left())
+        return CANVAS_TOOLBAR_MARGIN;
     if (wxGetApp().show_3d_navigator())
         return NAVIGATOR_SIZE;
     const int buttons = wxGetApp().show_canvas_zoom_button() ? 3 : 2;
@@ -3058,8 +3067,32 @@ float GLCanvas3D::get_canvas_toolbar_right() const
 #ifdef WIN32
     sc *= (float) get_dpi_for_window(wxGetApp().GetTopWindow()) / (float) DPI_DEFAULT;
 #endif // WIN32
+    if (!navigator_at_bottom_left())   // the bottom-left corner is free
+        return CANVAS_TOOLBAR_MARGIN * sc;
     const float left = wxGetApp().show_3d_navigator() ? NAVIGATOR_SIZE : CANVAS_TOOLBAR_MARGIN;
     return (left + 2.f * CANVAS_TOOLBAR_PADDING + CANVAS_TOOLBAR_BUTTON) * sc;
+}
+
+bool GLCanvas3D::navigator_right() const  { return wxGetApp().navigator_right(); }
+bool GLCanvas3D::navigator_bottom() const { return wxGetApp().navigator_bottom(); }
+
+float GLCanvas3D::navigator_width() const
+{
+    float sc = get_scale();
+#ifdef WIN32
+    sc *= (float) get_dpi_for_window(wxGetApp().GetTopWindow()) / (float) DPI_DEFAULT;
+#endif // WIN32
+    const float nav = wxGetApp().show_3d_navigator() ? NAVIGATOR_SIZE : CANVAS_TOOLBAR_MARGIN;
+    return (nav + 2.f * CANVAS_TOOLBAR_PADDING + CANVAS_TOOLBAR_BUTTON) * sc;
+}
+
+float GLCanvas3D::navigator_height() const
+{
+    float sc = get_scale();
+#ifdef WIN32
+    sc *= (float) get_dpi_for_window(wxGetApp().GetTopWindow()) / (float) DPI_DEFAULT;
+#endif // WIN32
+    return wxGetApp().show_3d_navigator() ? NAVIGATOR_SIZE * sc : 0.f;
 }
 
 GLToolbar& GLCanvas3D::collapse_toolbar() const
@@ -3178,6 +3211,10 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     camera.apply_projection(_max_bounding_box(true, true, true));
 
+    // ImGui is shared by every GL canvas and each canvas's _resize() sets its display size. A canvas that is hidden (or built ahead
+    // of use) resizes to a few pixels, and this canvas's own _resize() then returns early because ITS size did not change: the bars
+    // were laid out in a 20x1 area and the Design tab showed a bare canvas. Say what this canvas's size is, every frame, as the frame starts.
+    wxGetApp().imgui()->set_display_size(float(std::max(1, cnv_size.get_width())), float(std::max(1, cnv_size.get_height())));
     if (m_section_view->follow_camera && is_section_view_active() && m_section_view->normal != -camera.get_dir_forward()) {
         align_section_view_to_camera();
         scene_dirty = true;
@@ -3220,7 +3257,14 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
 
     // An overlay-only frame reuses the last scene pass. The overlay is rebuilt either way, and drawn
     // below once it is known whether the frame differs from the one on screen.
-    const bool reuse_scene = !scene_dirty && _can_reuse_cached_scene(camera);
+    // The Design canvas hosts its ImGui overlays (top bar, left panel, labels) inside the scene pass, so a frame that skips the pass
+    // would draw none of them: it never reuses the cached scene.
+#ifdef SLIC3R_CAD
+    const bool design_canvas = m_design_sketch_tool != nullptr;
+#else
+    const bool design_canvas = false;
+#endif
+    const bool reuse_scene = !scene_dirty && !design_canvas && _can_reuse_cached_scene(camera);
     // Only frames that redraw the scene are profiled.
     if (!reuse_scene && (_is_render_timings_enabled() || m_frame_profiler.is_averaging()))
         m_frame_profiler.begin_frame();
@@ -3365,6 +3409,24 @@ void GLCanvas3D::_render_frame(bool scene_dirty, bool only_init)
     wxGetApp().imgui()->render(draw_data);
     m_frame_profiler.mark("imgui draw");
 
+    if (m_frame_capture) {
+        FrameCapture cb = std::move(m_frame_capture);
+        m_frame_capture = nullptr;
+        const Size cs = get_canvas_size();
+        const int  w = cs.get_width(), h = cs.get_height();
+        if (w > 0 && h > 0) {
+            std::vector<unsigned char> px(size_t(w) * size_t(h) * 4), flipped(px.size());
+            glsafe(::glBindFramebuffer(GL_READ_FRAMEBUFFER, 0));
+            glsafe(::glReadBuffer(GL_BACK));
+            glsafe(::glPixelStorei(GL_PACK_ALIGNMENT, 1));
+            glsafe(::glReadPixels(0, 0, w, h, GL_RGBA, GL_UNSIGNED_BYTE, px.data()));
+            for (int y = 0; y < h; ++y)   // GL rows run bottom-up
+                std::copy_n(px.begin() + ptrdiff_t(size_t(h - 1 - y) * size_t(w) * 4), size_t(w) * 4, flipped.begin() + ptrdiff_t(size_t(y) * size_t(w) * 4));
+            cb(std::move(flipped), w, h);
+        } else
+            cb({}, 0, 0);
+    }
+
     // On Wayland, eglSwapBuffers blocks when the canvas is hidden or
     // occluded. Skip the swap to avoid stalling the render loop.
     // Code run from inside this frame - a modal dialog a gizmo opened from its ImGui panel, a
@@ -3429,6 +3491,7 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     if (m_canvas_type == ECanvasType::CanvasView3D) {
         // m_show_bed gates the plate list too: hiding the bed but leaving its grid and outline
         // floating would read as a rendering fault rather than a deliberate view option.
+        const auto render_bed_layers = [&]() {
         if (show_bed) {
             bool show_axes = m_show_world_axes;
 #ifdef SLIC3R_CAD
@@ -3446,6 +3509,18 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
         if (m_design_canvas && show_bed)
             // Design tab: replace the plate's corner-origin grid with the origin-centred CAD grid.
             _render_cad_grid(camera.get_view_matrix(), camera.get_projection_matrix());
+        };
+        // Design tab: the bed is a surface of the 3D scene, so it has to layer with the model the way a real one does: a body above
+        // it hides it, a body that goes below it is seen through it, and the two meet in a visible line. Drawn first, as everywhere
+        // else, its layers disagreed about depth (the plate wrote it, the background quad did not) and the model sank into it.
+        // So here it is drawn after the opaque objects, depth-tested against them and not writing depth.
+        if (!m_design_canvas)
+            render_bed_layers();
+        else if (!g_design_bed_see_through) {   // default: behind every body, never drawn over one
+            glsafe(::glDepthMask(GL_FALSE));
+            render_bed_layers();
+            glsafe(::glDepthMask(GL_TRUE));
+        }
         m_frame_profiler.mark("plates");
         //BBS: add outline logic
         // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
@@ -3465,6 +3540,14 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
                 camera.get_view_matrix(), camera.get_projection_matrix());
         _render_sla_slices();
         _render_selection();
+        if (m_design_canvas && g_design_bed_see_through) {
+            // translucent: what lies below the bed shows through it, dimmed; what lies above it hides it (depth test)
+            g_design_bed_alpha = 0.35f;
+            glsafe(::glDepthMask(GL_FALSE));
+            render_bed_layers();
+            glsafe(::glDepthMask(GL_TRUE));
+            g_design_bed_alpha = 1.0f;
+        }
         _render_objects(GLVolumeCollection::ERenderType::Transparent, !m_gizmos.is_running());
         _render_wireframe_overlay();
         m_frame_profiler.mark("transparent");
@@ -3554,7 +3637,9 @@ void GLCanvas3D::_render_scene(const Camera& camera, const Size& cnv_size)
     // Design tab: interactive 2D sketch overlay, drawn over the scene but
     // beneath the UI overlays (toolbars, labels).
 #ifdef SLIC3R_CAD
-    if (m_design_sketch_tool != nullptr && m_design_sketch_tool->has_display())
+    // Always: the canvas's ImGui overlays (top bar, left panel) are drawn from inside it, and exist on an empty design too.
+    // render() returns early by itself when there is nothing of the tool's own to draw.
+    if (m_design_sketch_tool != nullptr)
         m_design_sketch_tool->render(*this);
 #endif
 
@@ -7566,8 +7651,10 @@ void GLCanvas3D::_render_3d_navigator()
     sc *= (float) dpi / (float) DPI_DEFAULT;
 #endif // WIN32
 
-    const float viewManipulateLeft = 0;
-    const float viewManipulateTop  = io.DisplaySize.y;
+    // The corner is a preference, the same in Prepare and Design; on the left, Design starts past its panel.
+    const float nav_size           = NAVIGATOR_SIZE * sc;
+    const float viewManipulateLeft = wxGetApp().navigator_right() ? io.DisplaySize.x - nav_size : m_navigator_left_inset;
+    const float viewManipulateTop  = wxGetApp().navigator_bottom() ? io.DisplaySize.y - nav_size : m_navigator_top_inset;
     const float camDistance        = 8.f;
 
     Camera&     camera           = wxGetApp().plater()->get_camera();
@@ -7585,8 +7672,15 @@ void GLCanvas3D::_render_3d_navigator()
 
     const float size  = NAVIGATOR_SIZE * sc;
     m_canvas_toolbar_pos[0] = size;
+    // Idle, the cube fades back so it does not compete with the model; the pointer over it, or a drag on it, brings it forward.
+    const ImVec2 mp         = io.MousePos;
+    const bool   nav_active = m_navigator_dragging || (mp.x >= viewManipulateLeft && mp.x < viewManipulateLeft + size &&
+                                                       mp.y >= viewManipulateTop  && mp.y < viewManipulateTop + size);
+    if (!nav_active)
+        for (const auto c : {ImGuizmo::COLOR::DIRECTION_X, ImGuizmo::COLOR::DIRECTION_Y, ImGuizmo::COLOR::DIRECTION_Z, ImGuizmo::COLOR::TEXT, ImGuizmo::COLOR::FACE})
+            style.Colors[c].w *= 0.45f;
     const auto result = ImGuizmo::ViewManipulate(cameraView, cameraProjection, ImGuizmo::OPERATION::ROTATE, ImGuizmo::MODE::WORLD, nullptr,
-                                                 camDistance, ImVec2(viewManipulateLeft, viewManipulateTop - size), ImVec2(size, size),
+                                                 camDistance, ImVec2(viewManipulateLeft, viewManipulateTop), ImVec2(size, size),
                                                  0x00101010);
 
     // Restore the real mouse-down state
@@ -8680,6 +8774,12 @@ BoundingBoxf3 GLCanvas3D::_max_bounding_box(bool include_gizmos, bool include_be
     }
 
     bb.merge(include_bed_model ? m_bed.extended_bounding_box() : m_bed.build_volume().bounding_volume());
+#ifdef SLIC3R_CAD
+    if (m_design_canvas && m_design_sketch_tool != nullptr) {   // the sketch plane is part of the scene the camera must not clip
+        const BoundingBoxf3 sb = m_design_sketch_tool->scene_bounds();
+        if (sb.defined) bb.merge(sb);
+    }
+#endif
     if (include_plates) {
         bb.merge(wxGetApp().plater()->get_partplate_list().get_bounding_box());
     }
@@ -9668,6 +9768,8 @@ void GLCanvas3D::_render_background()
     glsafe(::glDisable(GL_DEPTH_TEST));
 
     ColorRGBA background_color = m_is_dark ? DEFAULT_BG_LIGHT_COLOR_DARK : DEFAULT_BG_LIGHT_COLOR;
+    if (m_design_canvas && !m_is_dark)
+        background_color = ColorRGBA(1.0f, 1.0f, 1.0f, 1.0f);   // SolidWorks xDesign: plain white viewport
     ColorRGBA error_background_color = m_is_dark ? ERROR_BG_LIGHT_COLOR_DARK : ERROR_BG_LIGHT_COLOR;
     const ColorRGBA bottom_color = use_error_color ? error_background_color : background_color;
 
@@ -9956,10 +10058,14 @@ void GLCanvas3D::_render_cad_grid(const Transform3d& view_matrix, const Transfor
             model.init_from(std::move(data));
         };
 
+        // The step follows the bed size exactly as Prepare's grid does (Bed_2D::calculate_grid_step: 10 mm up to a 600 mm bed, then 20, 50,
+        // 100), and the bold family is every 5th step.
+        const BoundingBox scaled_bb(Point(scale_(bb.min.x()), scale_(bb.min.y())), Point(scale_(bb.max.x()), scale_(bb.max.y())));
+        const double step = double(Bed_2D::calculate_grid_step(scaled_bb, scale_(1.0)));
         m_cad_grid_minor.reset();
         m_cad_grid_major.reset();
-        build_grid(10.0, m_cad_grid_minor);
-        build_grid(50.0, m_cad_grid_major);
+        build_grid(step, m_cad_grid_minor);
+        build_grid(5.0 * step, m_cad_grid_major);
     }
 
     if (!m_cad_grid_minor.is_initialized() || !m_cad_grid_major.is_initialized())
@@ -9975,26 +10081,33 @@ void GLCanvas3D::_render_cad_grid(const Transform3d& view_matrix, const Transfor
     shader->set_uniform("view_model_matrix", view_matrix);
     shader->set_uniform("projection_matrix", projection_matrix);
 
-    // White every 5 cm, grey every 1 cm — the SAME in both themes, deliberately. There is no
-    // "white bed" to vanish against: the plate is dark grey either way, DEFAULT_MODEL_COLOR
-    // {0.326,0.337,0.337} on light and DEFAULT_MODEL_COLOR_DARK {0.255,0.255,0.283} on dark
-    // (3DBed.cpp:185-186), a difference of 0.07. A per-theme palette here would be a branch
-    // that buys nothing and one more thing to keep in step.
-    //
-    // For contrast with what this replaces: the plate's own grid uses LINE_TOP_DARK_COLOR, a
-    // 0.43 grey, for BOTH its thin and its bold family — which is most of why the stock grid
-    // reads as a flat mesh with no scale to it.
-    const ColorRGBA minor_color(0.40f, 0.40f, 0.42f, 1.0f);
-    const ColorRGBA major_color(0.90f, 0.90f, 0.90f, 1.0f);
+    // The Prepare tab's colours, so the two tabs read the same: one colour per theme for both the 1 cm and the 5 cm family (the
+    // 5 cm lines are told apart by their width, as there), not the dimmer grey this used to draw for the 1 cm lines.
+    const ColorRGBA color = GUI_App::dark_mode() ? PartPlate::LINE_TOP_DARK_COLOR : PartPlate::LINE_TOP_COLOR;
+    const float scale = 1.0f;   // PartPlate::m_scale_factor, never set to anything else
 
-    glsafe(::glLineWidth(1.0f));
-    m_cad_grid_minor.set_color(minor_color);
+    // Thin lines for the minor family, thicker for the major one, the way Prepare draws them: glLineWidth where the profile honours it,
+    // the thick-line shader (a width in viewport units) where it does not (core profile ignores glLineWidth, which made both look alike).
+    glsafe(::glLineWidth(1.0f * scale));
+    m_cad_grid_minor.set_color(color);
     m_cad_grid_minor.render();
+    shader->stop_using();
 
-    glsafe(::glLineWidth(2.0f));
-    m_cad_grid_major.set_color(major_color);
+    const bool core = OpenGLManager::get_gl_info().is_core_profile();
+    GLShaderProgram* bold = core ? wxGetApp().get_shader("dashed_thick_lines") : shader;
+    if (bold == nullptr) { glsafe(::glDisable(GL_BLEND)); return; }
+    bold->start_using();
+    bold->set_uniform("view_model_matrix", view_matrix);
+    bold->set_uniform("projection_matrix", projection_matrix);
+    if (core) {
+        const std::array<int, 4>& vp = wxGetApp().plater()->get_camera().get_viewport();
+        bold->set_uniform("viewport_size", Vec2d(double(vp[2]), double(vp[3])));
+        bold->set_uniform("width", 0.25f);
+    } else
+        glsafe(::glLineWidth(2.0f * scale));
+    m_cad_grid_major.set_color(color);
     m_cad_grid_major.render();
-
+    bold->stop_using();
     glsafe(::glDisable(GL_BLEND));
 }
 
@@ -10434,7 +10547,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
 
     const bool realistic_mode = _is_realistic_view_enabled();
     const bool realistic_phong = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_PHONG);
-    const std::string shader_name = (m_studio_lighting || (realistic_mode && realistic_phong)) ? "phong" : "gouraud";
+    const std::string shader_name = (!m_design_canvas && (m_studio_lighting || (realistic_mode && realistic_phong))) ? "phong" : "gouraud";
     GLShaderProgram* shader = wxGetApp().get_shader(shader_name);
     if (shader == nullptr && shader_name != "gouraud")
         shader = wxGetApp().get_shader("gouraud");
@@ -10455,6 +10568,8 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         // the last canvas's choice.
         shader->set_uniform("lighting_model", studio ? 1 : 0);
         shader->set_uniform("translucent_gloss", realistic_mode);
+        // Design canvas: SolidWorks xDesign look (Gooch cool/warm). Set on every use, the program is shared.
+        shader->set_uniform("use_gooch", m_design_canvas);
         if (studio) {
             const Transform3d& view = wxGetApp().plater()->get_camera().get_view_matrix();
             shader->set_uniform("world_up_eye", Vec3f((view.matrix().block<3, 3>(0, 0) * Vec3d::UnitZ()).cast<float>()));
@@ -11363,7 +11478,7 @@ void GLCanvas3D::_render_imgui_select_plate_toolbar()
     const float y_offset = is_collapse_toolbar_on_left() ? (get_collapse_toolbar_height() + 5) : 0;
     // Make sure the window does not overlap the 3d navigator
     auto window_height_max = canvas_h - y_offset;
-    if (wxGetApp().show_3d_navigator()) {
+    if (wxGetApp().show_3d_navigator() && navigator_at_bottom_left()) {
         window_height_max -= (128 * f_scale + 5);
     }
     else { // ORCA spacing for canvas menu
@@ -11880,13 +11995,18 @@ void GLCanvas3D::_render_canvas_toolbar()
     ImVec2        margin   = ImVec2(m_canvas_toolbar_pos[0] > 0 ? 0.f : (CANVAS_TOOLBAR_MARGIN * sc), CANVAS_TOOLBAR_MARGIN * sc);
     ImVec2        spacing  = ImVec2(CANVAS_TOOLBAR_SPACING, CANVAS_TOOLBAR_SPACING) * sc;
     ImVec2        padding  = ImVec2(CANVAS_TOOLBAR_PADDING, CANVAS_TOOLBAR_PADDING) * sc;
-    Vec2i32       pos      = {
-        m_canvas_toolbar_pos[0]        + margin.x,
-        get_canvas_size().get_height() - margin.y
+    // The column stands beside the navigator, on its inner side, in the same corner.
+    const bool    at_right  = wxGetApp().navigator_right();
+    const bool    at_bottom = wxGetApp().navigator_bottom();
+    const float   tb_w      = btn_size.x + 2.f * padding.x;
+    const float   nav_w     = wxGetApp().show_3d_navigator() ? NAVIGATOR_SIZE * sc : CANVAS_TOOLBAR_MARGIN * sc;
+    Vec2i32       pos       = {
+        int(at_right ? float(get_canvas_size().get_width()) - tb_w - nav_w : m_navigator_left_inset + nav_w),
+        int(at_bottom ? float(get_canvas_size().get_height()) - margin.y : m_navigator_top_inset + margin.y)
     };
     bool          zoom_btn = wxGetApp().show_canvas_zoom_button();
 
-    imgui.set_next_window_pos(pos[0], pos[1], ImGuiCond_Always, 0, 1); // pivot bottom-left
+    imgui.set_next_window_pos(pos[0], pos[1], ImGuiCond_Always, 0, at_bottom ? 1 : 0); // pivot: the corner's own
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0    );
     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , {0,0});

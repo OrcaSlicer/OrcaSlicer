@@ -1,0 +1,45 @@
+{
+ "name": "a picked edge filleted through the card",
+ "steps": [
+  {
+   "mcp": "extrude",
+   "params": {
+    "width": 40,
+    "height": 30,
+    "distance": 20
+   }
+  },
+  {
+   "click_edge": {
+    "axis": "x",
+    "z": "max",
+    "y": "min"
+   }
+  },
+  {
+   "mark": true
+  },
+  {
+   "card": {
+    "open": "dressup",
+    "set": {
+     "size": 3
+    },
+    "confirm": true
+   }
+  },
+  {
+   "expect": {
+    "volume": 23922.8,
+    "features": 3,
+    "bodies": 1,
+    "undo_delta": 1
+   }
+  },
+  {
+   "expect": {
+    "error": false
+   }
+  }
+ ]
+}

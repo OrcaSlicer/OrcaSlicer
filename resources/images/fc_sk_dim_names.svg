@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64px" height="64px" viewBox="0 0 64 64">
+  <path d="M8 46 H56 M8 40 V52 M56 40 V52 M8 46 l7 -4 v8 z M56 46 l-7 -4 v8 z" fill="none" stroke="#d3d7cf" stroke-width="3" stroke-linejoin="round"/>
+  <text x="32" y="30" text-anchor="middle" font-family="DejaVu Sans, sans-serif" font-style="italic" font-weight="bold" font-size="26" fill="#2fa597">fx</text>
+</svg>
