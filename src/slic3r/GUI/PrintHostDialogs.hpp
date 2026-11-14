@@ -293,6 +293,7 @@ private:
     ::CheckBox*                      m_checkbox_leveling {nullptr};
     ::CheckBox*                      m_checkbox_timelapse {nullptr};
     ::CheckBox*                      m_checkbox_ifs {nullptr};
+    bool                             m_flow_calibration {false};
     bool                             m_leveling_before_print {true};
     bool                             m_time_lapse_video {false};
     bool                             m_use_material_station {false};
