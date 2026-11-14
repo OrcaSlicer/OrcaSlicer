@@ -343,3 +343,38 @@ test("The eyedropper stays hidden without a native sampler, even where the WebVi
   await page.locator("#eyedropperBtn").evaluate(element => element.click());
   assert.equal(await count(page, "sample_screen"), 0);
 });
+
+test("Solid adds co-extruded color blocks only where the caller allows them", options, async t => {
+  for (const coextruded of [false, true]) {
+    const {page, ready, send} = await open(t);
+    const payload = init(ready, true, true);
+    assert.equal(await send({...payload, options: {...payload.options, allow_coextruded: "yes"}}), false);
+    assert.equal(await send({...payload, options: {...payload.options, allow_coextruded: coextruded, max_gradient_colors: 7}}), true);
+    assert.equal(await page.locator("#modeSwitch").isChecked(), false);
+    assert.equal(await page.locator("#gradientCtrlBar").isVisible(), coextruded, "Solid shows its color bar only with co-extruded colors");
+    if (!coextruded) continue;
+    assert.equal(await page.locator("#gradientRemove").isVisible(), false, "a single solid color has nothing to remove");
+    await page.locator("#gradientAdd").click();
+    await page.locator("#gradientAdd").click();
+    const thumbs = await page.locator(".gradient-thumb").evaluateAll(elements => elements.map(element => {
+      const rect = element.getBoundingClientRect(), track = element.parentElement.getBoundingClientRect();
+      return Math.round((rect.left + rect.width / 2 - track.left) / track.width * 100);
+    }));
+    assert.deepEqual(thumbs, [17, 50, 83], "each color block's thumb sits in the middle of its block");
+    // A click on the track selects the color block under the pointer.
+    const box = await page.locator("#gradientStops").boundingBox();
+    await page.mouse.click(box.x + box.width * 0.05, box.y + box.height / 2);
+    assert.equal(await page.locator(".gradient-thumb").first().getAttribute("aria-pressed"), "true");
+    await page.locator("#hexInput").fill("112233");
+    const selection = await page.evaluate(() => ColorPickerDialog.exportSelection());
+    assert.equal(selection.type, "coextruded");
+    assert.equal(selection.colors.length, 3);
+    assert.equal(selection.colors[0], "#11223367");
+    await page.locator("label[for=modeSwitch]").click();
+    assert.deepEqual(await page.evaluate(() => ColorPickerDialog.exportSelection()), {...selection, type: "gradient"});
+    await page.locator("label[for=modeSwitch]").click();
+    assert.deepEqual(await page.evaluate(() => ColorPickerDialog.exportSelection()), selection, "the colors carry over and back");
+    await page.locator("#confirmBtn").click();
+    assert.deepEqual(await page.evaluate(() => messages.at(-1)), {command: "confirm", page_id: ready.page_id, selection});
+  }
+});
