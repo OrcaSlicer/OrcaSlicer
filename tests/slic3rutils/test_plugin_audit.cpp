@@ -7,6 +7,7 @@
 #include <libslic3r/Utils.hpp>
 #include <libslic3r/libslic3r.h>         // GCODEVIEWER_APP_KEY, SLIC3R_APP_KEY (via libslic3r_version.h)
 #include <slic3r/plugin/PluginAuditManager.hpp>
+#include <slic3r/plugin/PluginDescriptor.hpp>
 #include <slic3r/plugin/PluginFsUtils.hpp>
 #include <slic3r/plugin/PluginManager.hpp>
 #include <slic3r/plugin/PythonInterpreter.hpp>
@@ -655,6 +656,34 @@ const char* const AUDIT_PLUGIN_SOURCE = R"PY(# /// script
 # version = "1.0"
 # type = "script"
 # ///
+)PY";
+
+// A plugin that loads: one capability, registered by its package and named after the plugin's file, since two
+// loaded plugins can't offer a capability of one name.
+const char* const LOADABLE_PLUGIN_SOURCE = R"PY(# /// script
+# requires-python = ">=3.12"
+#
+# [tool.orcaslicer.plugin]
+# name = "Loadable Plugin"
+# description = "Plugin audit hook fixture"
+# author = "OrcaSlicer"
+# version = "1.0"
+# type = "script"
+# ///
+import os
+import orca
+
+class Echo(orca.script.ScriptPluginCapabilityBase):
+    def get_name(self):
+        return "Echo of " + os.path.splitext(os.path.basename(__file__))[0]
+
+    def execute(self, ctx):
+        return orca.ExecutionResult.success()
+
+@orca.plugin
+class EchoPackage(orca.base):
+    def register_capabilities(self):
+        orca.register_capability(Echo)
 )PY";
 
 // A third-party library, installed outside the stdlib and outside the plugin.
@@ -2471,27 +2500,39 @@ with open(os.path.join(DENIED_DIR, "token.txt"), "w") as f:
     CHECK(violation.reason == "denied path");
 }
 
-TEST_CASE("A plugin named after a script identity is refused before any of its code runs", "[audit][Python]")
+TEST_CASE("No plugin file name gives a script identity as its key", "[audit]")
 {
-    ScopedDataDir data{"plugin-reserved-key"};
+    for (const std::string identity : {kScriptIdentityPerson, kScriptIdentityAgent})
+        CHECK(make_local_plugin_key(identity) != identity);
+    // The words the identities are made of stay free for plugin files.
+    for (const char* stem : {"script", "mcp"})
+        CHECK_FALSE(is_script_identity(make_local_plugin_key(stem)));
+}
+
+TEST_CASE("A plugin whose file is named script or mcp loads as any other plugin", "[audit][Python]")
+{
+    ScopedDataDir data{"plugin-script-word-key"};
     if (!PluginManager::instance().initialize())
         SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
-    ScopedTemporaryDir outside{"orca-plugin-reserved-outside"};
-    const fs::path     marker = outside.path() / "ran.txt";
-    const fs::path     root   = data.plugins_dir() / "mcp";
-    fs::create_directories(root);
-    // The module writes a marker as it is imported: one means the plugin's code ran.
-    std::ofstream((root / "mcp.py").string(), std::ios::binary) << "open(r'" << marker.generic_string() << "', 'w').write('ran')\n";
-    PluginInstallState state;
-    state.installed_from    = "local";
-    state.installed_version = "1.0";
-    state.plugin_name       = "mcp";
-    REQUIRE(write_install_state(root, state));
+    const std::vector<std::string> names{"script", "mcp"};
+    for (const std::string& name : names) {
+        const fs::path root = data.plugins_dir() / name;
+        fs::create_directories(root);
+        std::ofstream((root / (name + ".py")).string(), std::ios::binary) << LOADABLE_PLUGIN_SOURCE;
+        PluginInstallState state;
+        state.installed_from    = "local";
+        state.installed_version = "1.0";
+        state.plugin_name       = name;
+        REQUIRE(write_install_state(root, state));
+    }
 
     PluginManager::instance().discover_plugins(/*async=*/false, /*clear=*/true);
-    PluginManager::instance().load_plugin("mcp");
+    for (const std::string& name : names)
+        PluginManager::instance().load_plugin(name);
     PluginManager::instance().wait_for_all_plugin_loads(std::chrono::seconds(30));
-    CHECK_FALSE(PluginManager::instance().is_plugin_loaded("mcp"));
-    CHECK_FALSE(fs::exists(marker));
+    for (const std::string& name : names) {
+        INFO(name);
+        CHECK(PluginManager::instance().is_plugin_loaded(name));
+    }
     PluginManager::instance().shutdown();
 }

@@ -1021,13 +1021,6 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
         fail(GUI::format(_u8L("Plugin manifest not found: %1%"), plugin_key));
         return;
     }
-    // Python scripts run under these identities; a plugin of the same key would pass for a script, so none of
-    // its code may run, not even while it loads.
-    if (is_script_identity(plugin_key)) {
-        // TRN %1% is a plugin's file name without extension, such as "script".
-        fail(GUI::format(_u8L("The plugin name %1% is reserved; rename the plugin file"), plugin_key));
-        return;
-    }
     // A local .py plugin's entry file may have been edited since the last scan: read it again, so the load
     // installs the dependencies it declares now and the Plugins dialog shows the version that loads. A wheel
     // is left as scanned: a load imports the copy extracted when it first loaded, so new metadata read from

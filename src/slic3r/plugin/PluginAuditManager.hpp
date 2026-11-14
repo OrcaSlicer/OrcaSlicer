@@ -24,10 +24,11 @@ inline constexpr const char* kThreadPermissionTarget = "thread";
 // The audit identities of a Python script a person (the Run Script panel, --run) or an agent
 // (run_script) starts. A script is judged as a plugin is, but has no install state to hold a grant: what
 // the implicit rules don't allow is denied without a prompt, unless scripts run unrestricted
-// (set_scripts_unrestricted). The identities are reserved: no plugin key may equal them, so a plugin is
-// never taken for a script.
-inline constexpr char kScriptIdentityPerson[] = "script";
-inline constexpr char kScriptIdentityAgent[]  = "mcp";
+// (set_scripts_unrestricted). No plugin has one of them as its key, so a plugin is never taken for a
+// script: a local plugin's key keeps only the letters, digits, '_', '-' and '.' of its file name
+// (make_local_plugin_key()), and a cloud plugin's is its UUID.
+inline constexpr char kScriptIdentityPerson[] = "(script)";
+inline constexpr char kScriptIdentityAgent[]  = "(mcp)";
 inline bool           is_script_identity(const std::string& key) { return key == kScriptIdentityPerson || key == kScriptIdentityAgent; }
 
 struct AuditDecision {

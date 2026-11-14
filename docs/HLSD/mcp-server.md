@@ -3599,7 +3599,7 @@ TOML says; a malformed block, two `script` blocks or a `dependencies` that isn't
 script's and a plugin's never write the folder at once. An install that fails makes the run `raised` before its
 code. The install isn't covered by the watcher; uv's 120 s timeout bounds it.
 
-**Identity.** A person's script runs under the audit identity `script`, an agent's under `mcp`
+**Identity.** A person's script runs under the audit identity `(script)`, an agent's under `(mcp)`
 (`kScriptIdentityPerson`, `kScriptIdentityAgent`); `JobRegistry::person_in()` tells them apart by the run's
 lineage, since the jobs of Action Replay, the panel, `--run` and a person's pick of a long command carry the
 person mark while they are unfinished (Threading). So a `run_script` that the panel's session calls through
@@ -3608,9 +3608,10 @@ person mark while they are unfinished (Threading). So a `run_script` that the pa
 one difference: a script has no install state to hold a grant, so it is never asked, and what the implicit
 rules don't allow is denied with a `PermissionError` that names the setting. The threads, pool tasks and window
 callbacks of a run carry its identity. A run owns what its calls leave behind, as a replay does
-(`begin_run_scope()`): auto-answer rules, a recording and a held press end with it. The identities are
-reserved: a plugin whose key equals one is refused before any of its code runs, so a plugin is never judged as
-a script. A plugin's `run_script` runs under the plugin's own identity and grants instead, with the same
+(`begin_run_scope()`): auto-answer rules, a recording and a held press end with it. No plugin has one of
+the identities as its key, so a plugin is never judged as a script: a local plugin's key keeps only the letters,
+digits, `_`, `-` and `.` of its file name (`make_local_plugin_key()`), and a cloud plugin's is its UUID. A
+plugin's `run_script` runs under the plugin's own identity and grants instead, with the same
 main-program environment, but its windows, callbacks and storage stay the plugin's.
 
 **The setting.** One switch, `python_scripts_unrestricted`, off by default, decides how a person's scripts and an
