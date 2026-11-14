@@ -90,8 +90,10 @@ orcaslicer_copy_test_dlls(${_TEST_NAME}_tests)
 
 if (WIN32)
     add_custom_command(TARGET ${_TEST_NAME}_tests POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
+        COMMAND ${CMAKE_COMMAND} "-DSOURCE=${CMAKE_PREFIX_PATH}/libpython"
+            "-DDESTINATION=$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/python"
+            "-DSTAMP=${CMAKE_CURRENT_BINARY_DIR}/python_runtime_$<CONFIG>.stamp"
+            -P "${CMAKE_SOURCE_DIR}/cmake/modules/StagePythonRuntime.cmake"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_PREFIX_PATH}/libpython/python${_bundled_python_abi}.dll"
             "${CMAKE_PREFIX_PATH}/libpython/vcruntime140.dll"
