@@ -66,14 +66,16 @@ official swatch retains its existing palette behavior.
 The Linux sidebar's Change extruder color menu uses this same custom editor and
 the filament swatch anchor, including alpha, ordered gradients, co-extruded colors and configuration syncing.
 
-The Solid/Gradient switch is unchanged. Co-extruded colors are edited in Solid mode:
-where the caller allows them, Solid shows its colors as blocks on the third row, with
+Co-extruded colors are edited in Solid mode: where the caller allows multi-color
+selections (`allow_gradient`), Solid shows its colors as blocks on the third row, with
 the same − and + buttons as a gradient. Two or more blocks are a co-extruded selection
-and one block is a plain solid color. Switching carries multiple colors over in order:
-blocks become a gradient, and a gradient becomes blocks where co-extruded colors are
-allowed (elsewhere Solid starts at the selected gradient color). A single solid color
-still starts a new gradient with its contrast color. Each block's thumb sits in its
-middle, and a click on the bar selects the block under the pointer.
+and one block is a plain solid color. Solid and Gradient each keep their own colors. The
+first switch to a mode converts the other mode's colors: several colors carry over in
+order, and a single solid color starts a new gradient with its contrast color. After that,
+switching only changes which list is edited, so it never overwrites the other mode's
+colors. Each block's thumb sits in its middle, and a click on the bar selects the block
+under the pointer. A solid palette color replaces only the selected color, in Solid and
+in Gradient alike.
 
 Gradients and co-extruded colors exceeding the configured color limit cannot be represented
 by this editor. A notice explains that the current selection is retained; the
@@ -139,8 +141,9 @@ editor recovery, ordered endpoint alpha, favorites, gettext keys, and live theme
 changes. These browser checks complement native contract/persistence tests; they
 do not establish the full native modal confirmation and favorites journey.
 
-Gradient, co-extruded and alpha capabilities are independent and default off. Unsupported
-gradients and co-extruded colors are rejected; disabled alpha normalizes the selected result to opaque.
+The multi-color capability (`allow_gradient`, which covers gradients and co-extruded colors) and
+the alpha capability are independent and default off. Unsupported gradients and co-extruded
+colors are rejected; disabled alpha normalizes the selected result to opaque.
 Favorites retain every capability independently of the current caller. The page
 stores alpha as a byte and only converts to percentage when displaying or editing
 opacity, so switching endpoints does not change alpha precision.
