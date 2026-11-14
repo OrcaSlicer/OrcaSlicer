@@ -36,6 +36,7 @@
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 
 

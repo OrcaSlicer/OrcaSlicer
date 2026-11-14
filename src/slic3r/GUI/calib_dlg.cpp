@@ -1,5 +1,6 @@
 #include "calib_dlg.hpp"
 #include "GUI_App.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include <algorithm>

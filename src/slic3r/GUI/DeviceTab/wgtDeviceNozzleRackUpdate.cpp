@@ -36,6 +36,7 @@
 #include "slic3r/GUI/DeviceCore/DevDefs.h"
 #include "libslic3r/CommonDefs.hpp"
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/DeviceCore/DevFirmware.h"
 
 #define WX_DIP_SIZE(x, y) wxSize(FromDIP(x), FromDIP(y))

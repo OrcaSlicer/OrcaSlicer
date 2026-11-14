@@ -39,14 +39,9 @@
 #include "Jobs/Job.hpp"
 #include "Jobs/Worker.hpp"
 #include "GUI_App.hpp"
-#include "Jobs/PrintJob.hpp"
-#include "Jobs/SendJob.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/PrintBase.hpp"
-
-#include "libslic3r/calib.hpp"
 #include "libslic3r/CutUtils.hpp"
-#include "libslic3r/FlushVolCalc.hpp"
 
 #define FILAMENT_SYSTEM_COLORS_NUM      16
 
@@ -60,6 +55,7 @@ class TextInput;
 
 namespace Slic3r {
 
+struct Calib_Params;
 struct PlateData;
 typedef std::vector<PlateData*> PlateDataPtrs;
 struct PublishedMaterialEntry;
@@ -114,6 +110,7 @@ class PartPlateList;
 class ObjectDataViewModelNode;
 class SyncNozzleAndAmsDialog;
 class FinishSyncAmsDialog;
+class PrintPrepareData;
 
 class Plater;
 enum class ActionButtonType : int;

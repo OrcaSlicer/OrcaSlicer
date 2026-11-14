@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <assert.h>
 #include "libslic3r/Preset.hpp"
+#include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/Config.hpp"
 #include <boost/log/trivial.hpp>
 #include "libslic3r/Technologies.hpp"
