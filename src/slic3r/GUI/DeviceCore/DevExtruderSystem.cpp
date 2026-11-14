@@ -290,6 +290,19 @@ namespace Slic3r
         }
     }
 
+    void ExtderSystemParser::ParseLoadedSlot(int loaded_slot, DevExtderSystem* system)
+    {
+        if (system->GetTotalExtderCount() != 1)
+        {
+            return;
+        }
+
+        nlohmann::json print_json;
+        print_json["ams"]["tray_now"] = std::to_string(loaded_slot >= 0 ? loaded_slot : VIRTUAL_TRAY_MAIN_ID);
+        ParseV1_0(print_json, system);
+        system->m_extders[MAIN_EXTRUDER_ID].m_ext_has_filament = loaded_slot >= 0;
+    }
+
     void ExtderSystemParser::ParseV2_0(const nlohmann::json& extruder_json, DevExtderSystem* system)
     {
         system->m_total_extder_count = DevUtil::get_flag_bits(extruder_json["state"].get<int>(), 0, 4);
