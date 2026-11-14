@@ -15520,16 +15520,6 @@ msgid "%1% modifier \"%2%\" of \"%3%\" (%4% in total) covers an entire perimeter
 msgstr "\"%3%\"의 %1% 수정자 \"%2%\"(총 %4%개)이(가) 둘레 전체를 덮고 있습니다"
 
 # AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "\"%2%\"의 수정자 \"%1%\"이(가) 재봉선에 영향을 주지 않았습니다(출력된 둘레의 중심선에 닿지 않았을 수 있습니다)"
-
-# AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "\"%2%\"의 수정자 \"%1%\"(총 %3%개)이(가) 재봉선에 영향을 주지 않았습니다(출력된 둘레의 중심선에 닿지 않았을 수 있습니다)"
-
-# AI Translated
 msgid "Seam placement may differ from expected."
 msgstr "재봉선 위치가 예상과 다를 수 있습니다."
 

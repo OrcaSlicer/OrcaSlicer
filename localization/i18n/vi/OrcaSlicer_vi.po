@@ -15981,16 +15981,6 @@ msgid "%1% modifier \"%2%\" of \"%3%\" (%4% in total) covers an entire perimeter
 msgstr "Modifier %1% \"%2%\" của \"%3%\" (tổng cộng %4%) bao phủ toàn bộ một chu vi"
 
 # AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "modifier \"%1%\" của \"%2%\" không có tác dụng lên đường nối (có thể nó không chạm tới đường tâm của chu vi được in)"
-
-# AI Translated
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "modifier \"%1%\" của \"%2%\" (tổng cộng %3%) không có tác dụng lên đường nối (có thể nó không chạm tới đường tâm của chu vi được in)"
-
-# AI Translated
 msgid "Seam placement may differ from expected."
 msgstr "Vị trí đường nối có thể khác với dự kiến."
 

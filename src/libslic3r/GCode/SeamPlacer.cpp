@@ -54,6 +54,8 @@
 
 #include "libslic3r/Utils.hpp"
 #include "PreciseSeam.hpp"
+#include "libslic3r/Feature/FuzzySkin/FuzzySkin.hpp"
+#include "libslic3r/PerimeterGenerator.hpp"
 
 //#define DEBUG_FILES
 
@@ -370,6 +372,10 @@ struct GlobalModelInfo {
 
   // Slice each modifier once; both consumers share structured regions and source provenance.
   PreciseSeam::ModifierRegionsCache precise_seam_slices;
+  // XY compensation that moved the object's contours and hole walls away from the model, positive towards air.
+  // Walls between regions of one object are compensated differently by slicing; that is not modelled.
+  double precise_seam_contour_compensation = 0.;
+  double precise_seam_hole_compensation = 0.;
 
   bool is_enforced(const Vec3f &position, float radius) const {
     if (enforcers.empty()) {
@@ -473,11 +479,16 @@ struct GlobalModelInfo {
 //Extract perimeter polygons of the given layer
 Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerRegion*> &corresponding_regions_out,
                                    std::vector<std::optional<bool>> &boundary_types_out,
+                                   std::vector<const Polygon*> &untextured_out,
                                    bool has_precise_seam_modifiers) {
   Polygons polygons;
   const auto boundary_type = [](const ExtrusionEntity *entity) -> std::optional<bool> {
     if (!entity->is_loop()) return std::nullopt;
     return (static_cast<const ExtrusionLoop*>(entity)->loop_role() & elrHole) != 0;
+  };
+  // The centerline of a loop before fuzzy skin, where the noise changed it.
+  const auto untextured = [](const ExtrusionEntity *entity) -> const Polygon* {
+    return entity->is_loop() ? static_cast<const ExtrusionLoop*>(entity)->untextured.get() : nullptr;
   };
   for (const LayerRegion *layer_region : layer->regions()) {
     for (const ExtrusionEntity *ex_entity : layer_region->perimeters.entities) {
@@ -494,6 +505,7 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
             polygons.emplace_back(std::move(p));
             corresponding_regions_out.push_back(layer_region);
             boundary_types_out.push_back(boundary_type(perimeter));
+            untextured_out.push_back(untextured(perimeter));
           }
         }
         if (polygons.size() == collection_begin) {
@@ -502,6 +514,7 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
           polygons.emplace_back(std::move(p));
           corresponding_regions_out.push_back(layer_region);
           boundary_types_out.push_back(boundary_type(ex_entity));
+          untextured_out.push_back(nullptr);
         }
       } else {
         Points p;
@@ -509,6 +522,7 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
         polygons.emplace_back(std::move(p));
         corresponding_regions_out.push_back(layer_region);
         boundary_types_out.push_back(boundary_type(ex_entity));
+        untextured_out.push_back(untextured(ex_entity));
       }
     }
   }
@@ -530,9 +544,168 @@ Polygons extract_perimeter_polygons(const Layer *layer, std::vector<const LayerR
     polygons.emplace_back(Points{ { 0, 0 } });
     corresponding_regions_out.push_back(nullptr);
     boundary_types_out.push_back(std::nullopt);
+    untextured_out.push_back(nullptr);
   }
 
   return polygons;
+}
+
+// Whether a Precise Seam modifier on this layer comes within `reach` of the box, or, without a box, whether the layer
+// has any modifier region at all.
+bool precise_seam_modifier_near(const GlobalModelInfo &global_model_info, const Layer *layer,
+                                std::optional<BoundingBox> box = std::nullopt, coord_t reach = 0) {
+  if (box)
+    box->offset(reach);
+  // Modifier cache indices exclude raft layers, unlike Layer::id().
+  const size_t layer_id = layer->id() - layer->object()->slicing_parameters().raft_layers();
+  for (const auto &[volume, slices] : global_model_info.precise_seam_slices)
+    if (layer_id < slices.size())
+      for (const PreciseSeam::ModifierRegion &region : slices[layer_id])
+        if (region.bounds.defined && (!box || box->overlap(region.bounds)))
+          return true;
+  return false;
+}
+
+// Layers where Precise Seam measures how deep the centerline lies below the model surface instead of taking half
+// the line width: the first layers with elephant foot compensation and every layer of Arachne perimeters.
+struct LayerShiftMeasurement {
+  std::unique_ptr<AABBTreeLines::LinesDistancer<Line>> outline; // Set on a measured layer with modifier regions.
+  double elephant_foot = 0.; // Compensation of this layer, mm.
+  bool arachne = false;
+  bool several_regions = false;
+  // Which kinds of noisy loops without their smooth centerline are measured; fuzzy skin keeps the nominal shift.
+  bool contours = false;
+  bool holes = false;
+  // How far a point of a fuzzy skin loop is expected to lie from its smooth centerline, scaled: an estimate from the
+  // settings (see fuzzy_skin_window()), not a measured largest distance.
+  coord_t fuzzy_window = 0;
+};
+
+// The largest |GetValue()| of the noise fuzzy skin scales by its thickness, assuming libnoise's coherent noise lies
+// within [-1, 1] as libnoise states (a premise, not checked here). Perlin and Billow add octaves weighted by powers of
+// the persistence (Billow folds each one into [-1, 1] and adds 0.5), RidgedMulti adds octaves of [0, 1] weighted by
+// powers of 1/2 (its default lacunarity is 2) and maps their sum s to 1.25 s - 1. Uniform, Voronoi (displacement 1,
+// no distance) and Ripple stay within [-1, 1].
+double fuzzy_skin_noise_bound(const FuzzySkinConfig &fuzzy) {
+  const int octaves = std::max(fuzzy.noise_octaves, 1);
+  const auto octave_sum = [octaves](double ratio) {
+    double sum = 0.;
+    double weight = 1.;
+    for (int octave = 0; octave < octaves; ++octave, weight *= ratio)
+      sum += weight;
+    return sum;
+  };
+  switch (fuzzy.noise_type) {
+  case NoiseType::Perlin: return octave_sum(std::abs(fuzzy.noise_persistence));
+  case NoiseType::Billow: return octave_sum(std::abs(fuzzy.noise_persistence)) + 0.5;
+  case NoiseType::RidgedMulti: return std::max(1., 1.25 * octave_sum(0.5) - 1.);
+  default: return 1.;
+  }
+}
+
+// The window within which a point of a fuzzy skin loop is looked for around its smooth centerline, in mm: an estimate
+// from the settings, not a proven bound. Regions without fuzzy skin, or with it disabled, make no noise. Regions
+// texture a loop one after another, each over the result of the previous ones, so the amplitudes of different noises
+// add up; regions differing only in which walls they texture make the same noise once. Arachne's combined mode moves
+// a point by half its change of width, which adds half the smallest width it keeps (as FuzzySkin.cpp works it out
+// from the layer height). The largest point distance on top is the farthest a chord cutting a convex corner passes
+// from it, and a micrometre the rounding.
+double fuzzy_skin_window(const Layer &layer, bool arachne) {
+  std::vector<FuzzySkinConfig> noises;
+  double amplitudes = 0.;
+  double point_distance = 0.;
+  for (const LayerRegion *region : layer.regions()) {
+    const PrintRegionConfig &config = region->region().config();
+    if (config.fuzzy_skin.value == FuzzySkinType::None || config.fuzzy_skin.value == FuzzySkinType::Disabled_fuzzy)
+      continue;
+    // The type is left out of the comparison, as FuzzySkin.cpp merges regions that differ only in it.
+    const FuzzySkinConfig fuzzy{FuzzySkinType::External, scaled<coord_t>(config.fuzzy_skin_thickness.value),
+                                scaled<coord_t>(config.fuzzy_skin_point_distance.value), false,
+                                config.fuzzy_skin_noise_type.value, config.fuzzy_skin_scale.value,
+                                config.fuzzy_skin_octaves.value, config.fuzzy_skin_persistence.value,
+                                config.fuzzy_skin_mode.value, config.fuzzy_skin_ripples_per_layer.value,
+                                config.fuzzy_skin_ripple_offset.value,
+                                config.fuzzy_skin_layers_between_ripple_offset.value, int(layer.id())};
+    point_distance = std::max(point_distance, config.fuzzy_skin_point_distance.value);
+    if (std::find(noises.begin(), noises.end(), fuzzy) != noises.end())
+      continue;
+    noises.push_back(fuzzy);
+    amplitudes += config.fuzzy_skin_thickness.value * fuzzy_skin_noise_bound(fuzzy);
+    if (arachne && fuzzy.mode == FuzzySkinMode::Combined && fuzzy.noise_type != NoiseType::Ripple)
+      amplitudes += 0.5 * layer.height * (1. - 0.25 * PI) * 1.05;
+  }
+  return noises.empty() ? 0. : amplitudes + point_distance + 0.001;
+}
+
+LayerShiftMeasurement layer_shift_measurement(const PrintObject *po, size_t layer_idx,
+                                              const GlobalModelInfo &global_model_info) {
+  LayerShiftMeasurement measurement;
+  const PrintObjectConfig &config = po->config();
+  const Layer *layer = po->get_layer(int(layer_idx));
+  // As PrintObject::slice_volumes() applies it: directly on the bed only, decreasing to zero over its layers.
+  const int foot_layers = config.elefant_foot_compensation_layers.value;
+  if (config.raft_layers.value == 0 && config.elefant_foot_compensation.value > 0. && int(layer_idx) < foot_layers)
+    measurement.elephant_foot = config.elefant_foot_compensation.value * (1. - double(layer_idx) / double(foot_layers));
+  // As LayerRegion::make_perimeters() chooses the generator.
+  measurement.arachne = config.wall_generator.value == PerimeterGeneratorType::Arachne && !po->print()->config().spiral_mode.value;
+  // Without a modifier region on the layer no loop is processed.
+  if (!precise_seam_modifier_near(global_model_info, layer))
+    return measurement;
+  measurement.fuzzy_window = coord_t(scale_(fuzzy_skin_window(*layer, measurement.arachne)));
+  // Only these layers are measured: skip the outline index elsewhere.
+  if (measurement.elephant_foot <= 0. && !measurement.arachne)
+    return measurement;
+  // Fuzzy skin moves the centerline off the smooth outline; measuring a noisy loop would pull some points back and
+  // leave others. Loops that keep their smooth centerline are measured on it.
+  measurement.contours = measurement.holes = true;
+  for (const LayerRegion *region : layer->regions()) {
+    const PrintRegionConfig &region_config = region->region().config();
+    FuzzySkinConfig fuzzy{};
+    fuzzy.type = region_config.fuzzy_skin.value;
+    fuzzy.fuzzy_first_layer = region_config.fuzzy_skin_first_layer.value;
+    measurement.contours = measurement.contours && !Feature::FuzzySkin::should_fuzzify(fuzzy, int(layer->id()), 0, true);
+    measurement.holes = measurement.holes && !Feature::FuzzySkin::should_fuzzify(fuzzy, int(layer->id()), 0, false);
+  }
+  measurement.outline = std::make_unique<AABBTreeLines::LinesDistancer<Line>>(to_lines(layer->lslices));
+  measurement.several_regions = layer->regions().size() > 1;
+  return measurement;
+}
+
+// The measured shift of one closed loop, or an empty profile where the constant shift applies.
+PreciseSeam::ShiftProfile measured_shift_profile(const Polygon &polygon, bool hole, double compensation,
+                                                 const LayerRegion *region, const LayerShiftMeasurement &measurement,
+                                                 const GlobalModelInfo &global_model_info, bool smooth) {
+  if (!measurement.outline || (!smooth && !(hole ? measurement.holes : measurement.contours)))
+    return {};
+  const Layer *layer = region->layer();
+  const PrintObject *object = layer->object();
+  const Flow flow = region->flow(FlowRole::frExternalPerimeter);
+  const double width = flow.width();
+  const double spacing = flow.spacing();
+  // With several regions, slicing stores the outline of an elephant foot layer before a negative contour
+  // compensation, which it then applies to the perimeters. (A negative hole value has no effect there at all.)
+  const double excluded = measurement.elephant_foot > 0. && measurement.several_regions && !hole && compensation < 0. ?
+      compensation : 0.;
+  // Arachne splits a wall into two lines narrower than its minimum bead width before it falls back to one; the
+  // classic generator prints narrow loops slightly thinner.
+  const double narrowest = measurement.arachne ? 0.5 * width : width - 0.25 * spacing;
+  // A single Arachne line may be up to about 1.6 spacings wide. Arachne keeps a precise outer wall deeper by
+  // (w - s) / 2 where it prints one line.
+  const double widest = measurement.arachne ? 2. * width : width;
+  // The slicing resolution, by which the outline may differ from the contour perimeters were built on, and the
+  // snapping radius.
+  const double tolerance = object->print()->config().resolution.value + 1000. * SCALING_FACTOR;
+  const PreciseSeam::ShiftMeasurement shift_measurement{
+      *measurement.outline, width, compensation, compensation - excluded,
+      0.5 * narrowest - excluded - tolerance,
+      0.5 * widest + 0.5 * (width - spacing) + measurement.elephant_foot - excluded + tolerance};
+  // Far from every modifier the shift cannot matter; skip the measurement. The largest shift is the deepest accepted
+  // depth less the compensation in the outline, or the nominal one; a negative compensation makes it deeper.
+  const double largest = std::max(shift_measurement.max_depth - shift_measurement.outline_compensation,
+                                  0.5 * width - compensation);
+  if (!precise_seam_modifier_near(global_model_info, layer, BoundingBox(polygon.points), coord_t(scale_(largest))))
+    return {};
+  return PreciseSeam::measure_shift_profile(polygon, hole, shift_measurement);
 }
 
 // Painted range of a loop along its length from its first vertex; `end` exceeds the loop length if the range
@@ -665,7 +838,9 @@ std::vector<PaintedInterval> exact_painted_intervals(const std::vector<Vec2d> &l
 void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const LayerRegion *region,
                                const GlobalModelInfo &global_model_info, PrintObjectSeamData::LayerSeams &result,
                                PreciseSeam::PreciseSeamWarnings* warnings = nullptr,
-                               std::optional<bool> boundary_hole = std::nullopt) {
+                               std::optional<bool> boundary_hole = std::nullopt,
+                               const LayerShiftMeasurement *shift_measurement = nullptr,
+                               const Polygon *untextured = nullptr) {
   if (orig_polygon.size() == 0) {
     return;
   }
@@ -681,10 +856,45 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
 
   std::optional<Point> seam_point;
   std::vector<PreciseSeam::WeakModifierSegment> weak_segments;
-  if (layer != nullptr && (!strong_volumes.empty() || !weak_volumes.empty())) {
+  // Closed loops only: the G-code of an open extrusion (thin wall) does not depend on where its seam is.
+  if (layer != nullptr && boundary_hole.has_value() && (!strong_volumes.empty() || !weak_volumes.empty())) {
+    // Modifiers act where they cross the model surface the user sees: the centerline lies half a line width
+    // inside the printed wall, which XY compensation moved away from the model.
+    const bool hole = *boundary_hole;
+    double compensation = hole ? global_model_info.precise_seam_hole_compensation
+                               : global_model_info.precise_seam_contour_compensation;
+    // With several regions on a layer slicing never shrinks a hole: it clips the regions by the compensated
+    // islands, and clipping cannot add material. A negative hole setting then has no effect.
+    if (hole && compensation > 0. && layer->regions().size() > 1)
+      compensation = 0.;
+    const coord_t shift = PreciseSeam::surface_shift(region->flow(FlowRole::frExternalPerimeter).width(), compensation);
+    // With fuzzy skin, modifiers are evaluated on the smooth centerline and the result is carried onto the noisy
+    // loop. Normalized as the loop is: no repeated points, counterclockwise.
+    Polygon smooth;
+    if (untextured != nullptr) {
+      smooth = *untextured;
+      smooth.points.erase(std::unique(smooth.points.begin(), smooth.points.end()), smooth.points.end());
+      while (smooth.size() > 1 && smooth.points.front() == smooth.points.back())
+        smooth.points.pop_back();
+      smooth.make_counter_clockwise();
+    }
+    const bool fuzzy = smooth.size() >= 3;
+    const Polygon &source = fuzzy ? smooth : polygon;
+    // Where the centerline is not at its nominal depth, the shift is measured against the layer outline.
+    PreciseSeam::ShiftProfile profile;
+    if (shift_measurement != nullptr)
+      profile = measured_shift_profile(source, hole, compensation, region, *shift_measurement, global_model_info, fuzzy);
     // Share validation, bounds and clipping line across all modifiers while the polygon is unchanged.
     // A strong insertion ends processing; otherwise weak reads the same preparation before inserting.
-    const PreciseSeam::PreparedPerimeter prepared(polygon);
+    // Built in place: the preparation borrows the polygons and is neither copied nor moved.
+    std::optional<PreciseSeam::PreparedPerimeter> preparation;
+    if (profile.empty())
+      preparation.emplace(source, shift, hole);
+    else
+      preparation.emplace(source, std::move(profile), hole);
+    if (fuzzy)
+      preparation->set_target(polygon, shift_measurement != nullptr ? shift_measurement->fuzzy_window : 0);
+    const PreciseSeam::PreparedPerimeter &prepared = *preparation;
     seam_point = PreciseSeam::insert_strong_seam_point(
         strong_volumes, polygon, prepared, layer, global_model_info.precise_seam_slices, warnings);
     if (!seam_point.has_value())
@@ -1639,14 +1849,19 @@ void SeamPlacer::gather_seam_candidates(const PrintObject *po, const SeamPlacerI
                         auto unscaled_z = layer->slice_z;
                         std::vector<const LayerRegion*> regions;
                         std::vector<std::optional<bool>> boundary_types;
+                        std::vector<const Polygon*> untextured;
                         //NOTE corresponding region ptr may be null, if the layer has zero perimeters
                         const bool has_precise_seam_modifiers = !global_model_info.precise_seam_strong_volumes.empty() ||
                                                                !global_model_info.precise_seam_weak_volumes.empty();
-                        Polygons polygons = extract_perimeter_polygons(layer, regions, boundary_types, has_precise_seam_modifiers);
+                        Polygons polygons = extract_perimeter_polygons(layer, regions, boundary_types, untextured, has_precise_seam_modifiers);
+                        // Built once per layer, only on layers with Precise Seam modifier regions.
+                        const LayerShiftMeasurement shift_measurement = has_precise_seam_modifiers ?
+                            layer_shift_measurement(po, layer_idx, global_model_info) : LayerShiftMeasurement{};
                         for (size_t poly_index = 0; poly_index < polygons.size(); ++poly_index) {
                           process_perimeter_polygon(polygons[poly_index], unscaled_z,
                                                     regions[poly_index], global_model_info, layer_seams,
-                                                    warnings, boundary_types[poly_index]);
+                                                    warnings, boundary_types[poly_index], &shift_measurement,
+                                                    untextured[poly_index]);
                         }
                         auto functor = SeamCandidateCoordinateFunctor { layer_seams.points };
                         seam_data.layers[layer_idx].points_tree =
@@ -2131,6 +2346,13 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
           global_model_info.precise_seam_slices[vol] = PreciseSeam::prepare_modifier_slices(po->slice_single_volume_regions(vol));
       for (const ModelVolume* vol : global_model_info.precise_seam_weak_volumes)
           global_model_info.precise_seam_slices[vol] = PreciseSeam::prepare_modifier_slices(po->slice_single_volume_regions(vol));
+      // Slicing skips XY compensation for multi-material painting with several filaments, as in
+      // PrintObject::slice_volumes(); a positive hole value enlarges holes, moving their walls into the material.
+      if (!global_model_info.precise_seam_slices.empty() &&
+          !(print.config().filament_diameter.size() > 1 && po->is_mm_painted())) {
+          global_model_info.precise_seam_contour_compensation = po->config().xy_contour_compensation.value;
+          global_model_info.precise_seam_hole_compensation = -po->config().xy_hole_compensation.value;
+      }
       // Register usage tracking before the parallel phase; workers only set its flags. Several print
       // objects of one model object share volumes, and try_emplace keeps what earlier ones recorded.
       for (const ModelVolume* vol : global_model_info.precise_seam_strong_volumes)
@@ -2217,6 +2439,13 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
               << " fragments discarded; first " << PreciseSeam::failed_fragment_log_limit
               << " logged (parallel processing order), " << (failed - PreciseSeam::failed_fragment_log_limit)
               << " omitted";
+      // Fuzzy skin degradations are log-only totals.
+      const size_t approximate = precise_seam_warnings.approximate_transfers.load(std::memory_order_relaxed);
+      const size_t reversed = precise_seam_warnings.reversed_zones.load(std::memory_order_relaxed);
+      if (approximate > 0 || reversed > 0)
+          BOOST_LOG_TRIVIAL(warning) << "[PreciseSeamFuzzySkin] " << approximate
+              << " points carried onto noisy loops without their surface line, " << reversed
+              << " weak zones reduced to one point after their boundaries reversed";
       // Recoveries are log-only: no user warning, but the same bounded detail and a total.
       const size_t recovered = precise_seam_warnings.recovered_fragments.load(std::memory_order_relaxed);
       if (recovered > PreciseSeam::failed_fragment_log_limit)
@@ -2290,10 +2519,10 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
       if (!no_effect.empty()) {
           const ModelVolume *first = no_effect.front();
           if (no_effect.size() == 1)
-              parts.push_back((boost::format(_u8L("modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"))
+              parts.push_back((boost::format(_u8L("modifier \"%1%\" of \"%2%\" had no effect on the seam"))
                   % first->name % first->get_object()->name).str());
           else
-              parts.push_back((boost::format(_u8L("modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"))
+              parts.push_back((boost::format(_u8L("modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam"))
                   % first->name % first->get_object()->name % no_effect.size()).str());
       }
       if (!parts.empty()) {

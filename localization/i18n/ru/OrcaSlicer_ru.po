@@ -14848,14 +14848,6 @@ msgstr "Модификатор «%2%» (%1%) модели «%3%» охватыв
 msgid "%1% modifier \"%2%\" of \"%3%\" (%4% in total) covers an entire perimeter"
 msgstr "Модификатор «%2%» (%1%) модели «%3%» (всего: %4%) охватывает периметр целиком"
 
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "модификатор «%1%» модели «%2%» не повлиял на шов (возможно, он не достигает осевой линии печатаемого периметра)"
-
-#, boost-format
-msgid "modifier \"%1%\" of \"%2%\" (%3% in total) had no effect on the seam (it might not reach the centerline of the printed perimeter)"
-msgstr "модификатор «%1%» модели «%2%» (всего: %3%) не повлиял на шов (возможно, он не достигает осевой линии печатаемого периметра)"
-
 msgid "Seam placement may differ from expected."
 msgstr "Размещение шва может отличаться от ожидаемого."
 
