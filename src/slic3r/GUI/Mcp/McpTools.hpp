@@ -70,7 +70,9 @@ void register_ui_tools(CommandCatalog& catalog);
 void register_replay_tools(CommandCatalog& catalog);
 void register_record_tools(CommandCatalog& catalog);
 void register_python_tools(CommandCatalog& catalog);
-void register_api_tools(CommandCatalog& catalog);
+// `design_index` ends search_tools' description: what it says of the Design commands (design_command_index(),
+// McpToolsCad.hpp) in a catalog that holds them, and nothing in one that does not.
+void register_api_tools(CommandCatalog& catalog, const std::string& design_index);
 
 // How run_replay_job() runs a replay beyond what the replay says.
 struct ReplayRunOptions

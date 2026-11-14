@@ -728,7 +728,9 @@ or discards the presets'.
 An agent calls into two catalogs by name: the commands (the typed tools, the Speed Dial's commands, the
 Design tab's and the operations plugins offer) and the Speed Dial's actions, which `run_action` runs.
 `search_tools {query}` finds a name in either, and a command runs by its key through `tools/call` and
-`call_tool`, with `search_tools` giving the schema of one `tools/list` does not show. A name that misses
+`call_tool`, with `search_tools` giving the schema of one `tools/list` does not show. Its description
+names the Design commands while the catalog holds them (see Design tab), so an agent knows of them before
+it searches. A name that misses
 is answered with the closest names of the catalog asked and nothing else, unless the catalog leaves that
 command out (`CommandCatalog::leave_out()`): then it says why. A catalog built with the CAD feature off
 leaves out the Design commands, and says that the feature was off when OrcaSlicer started and how a person
@@ -1344,7 +1346,17 @@ the dialogs, and their descriptions point at `generate_calibration_test`.
 
 The Design tab's sketches, features, reads and measurements, feature and body edits and its commit to the
 plate are commands of the catalog (`Mcp/McpToolsCad.cpp`) in the group `Design`, not listed, so agents that
-never open the Design tab pay nothing for them in `tools/list`. Those that open a tool are in the palette,
+never open the Design tab pay in `tools/list` for their names alone. The names end `search_tools`'
+description while the catalog holds the commands (`design_command_index()`): that they are the Design tab's
+CAD commands and what those cover, that one is looked up before it is called, and every key in the table's
+order, in two lists by what a call does, since `sketch_add` draws from its arguments and `sk_line_t` starts
+a tool for a person: the commands with a silent form, which run from their arguments, then those with an
+action only, which take none and act as their menu row does. The first list's lead says what its commands
+with an action as well do when a call gives no arguments: they run the menu row, unless `silent` is true, so
+`interference {}` opens the tool and `interference {silent: true}` returns the result. So an agent learns without a search that the
+commands exist and are CAD, and reads a command's description and schema only when it looks it up. The
+description stays within 4096 characters, the most a client is known to keep of one. Those that open a tool
+are in the palette,
 whose tiles for them the Speed Dial has while the Design tab is shown (see Speed Dial catalog).
 `register_all_commands()` adds them through `register_cad_commands()` only when the catalog is built with
 the CAD feature on (`CatalogOptions::cad`, which startup takes in the editor from the value in force: the

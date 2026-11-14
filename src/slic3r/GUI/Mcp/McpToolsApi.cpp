@@ -268,11 +268,12 @@ json search_commands(const CommandCatalog& catalog, const json& args)
             {"use", "call a listed command by its name; call_tool {tool, args} runs one that is not listed"}};
 }
 
-void register_api_tools(CommandCatalog& catalog)
+void register_api_tools(CommandCatalog& catalog, const std::string& design_index)
 {
     // Plugin operations resolve by name, beside the catalog's commands, without being listed.
     catalog.add_source(std::make_unique<PluginOperationSource>());
 
+    // Its description ends with `design_index`: the Design commands' names, in a catalog that holds them.
     catalog.add(inspect_tool(
         "api", "search_tools", L("Find tools, actions, settings and APIs"),
         "Find what does something, in one search, or look up one command. With query: the commands that match, best "
@@ -284,7 +285,7 @@ void register_api_tools(CommandCatalog& catalog)
         "/ set_settings) and python (the orca API for run_script). With tool: that command's description and input schema, "
         "and its examples when it has some (the Design commands do). With neither: every command's name. group keeps the "
         "names and the command matches to one group; the other catalogs' matches stay as they are. call_tool runs any "
-        "command, listed or not.",
+        "command, listed or not." + design_index,
         object_schema({{"tool", prop("string", "A command's name: its description and schema.")},
                        {"query", prop("string", "A few words saying what you want to do or find, e.g. \"brim\" or \"mesh normals\".")},
                        {"group", prop("string", "Only the commands of this group, in any case: core (the session, dialogs and "

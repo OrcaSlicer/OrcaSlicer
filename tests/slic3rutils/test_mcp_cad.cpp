@@ -774,6 +774,53 @@ TEST_CASE("no CAD command exists with the feature off", "[Mcp][CAD]")
     CHECK(design_commands(true) == 133);
 }
 
+TEST_CASE("the search_tools description names every Design command by how a call runs it", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog with = catalog_with_cad();
+    GUI::CommandCatalog       without;
+    GUI::NativeCommands::register_all_commands(without, {false});
+    without.seal();
+    const std::string told  = command_of(with, "search_tools").description;
+    const std::string plain = command_of(without, "search_tools").description;
+
+    // With the feature off the description says nothing of them; with it on, the index follows that text.
+    REQUIRE(told.size() > plain.size());
+    CHECK(told.compare(0, plain.size(), plain) == 0);
+    // The most a client is known to keep of a description.
+    CHECK(told.size() <= 4096);
+    const std::string index = told.substr(plain.size());
+    CHECK_THAT(index, ContainsSubstring("CAD"));
+    CHECK_THAT(index, ContainsSubstring("look one up with tool"));
+    // A command with both forms runs its menu row when it is given no arguments.
+    CHECK_THAT(index, ContainsSubstring("called with no arguments"));
+    CHECK_THAT(index, ContainsSubstring("silent"));
+
+    // The index has two lists, each from a colon to the next full stop, its names apart by ", ".
+    std::vector<std::vector<std::string>> lists;
+    for (std::size_t colon = index.find(": "); colon != std::string::npos; colon = index.find(": ", colon + 2)) {
+        const std::size_t stop = index.find('.', colon);
+        REQUIRE(stop != std::string::npos);
+        std::vector<std::string> names;
+        for (std::size_t at = colon + 2; at < stop;) {
+            const std::size_t comma = std::min(index.find(", ", at), stop);
+            names.push_back(index.substr(at, comma - at));
+            at = comma + 2;
+        }
+        lists.push_back(std::move(names));
+    }
+    REQUIRE(lists.size() == 2);
+
+    // A command that runs from arguments has properties; one that only acts as its menu row has none.
+    std::vector<std::string> from_arguments, menu_row;
+    for (const GUI::NativeCommand& c : with.commands())
+        if (c.group == "Design")
+            (c.input_schema.at("properties").empty() ? menu_row : from_arguments).push_back(c.key);
+    CHECK_FALSE(from_arguments.empty());
+    CHECK_FALSE(menu_row.empty());
+    CHECK(lists[0] == from_arguments);
+    CHECK(lists[1] == menu_row);
+}
+
 TEST_CASE("a CAD call is journaled without its generation and with its silent", "[Mcp][CAD]")
 {
     json                     seen;

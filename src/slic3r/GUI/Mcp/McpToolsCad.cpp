@@ -3777,6 +3777,22 @@ void leave_out_cad_commands(CommandCatalog& catalog)
             catalog.leave_out(t.id, kCadOffAtStartup);
 }
 
+std::string design_command_index()
+{
+    std::string from_arguments, menu_row;
+    for (const DesignTool& t : kDesignTools) {
+        if (t.action == nullptr && t.doc == nullptr)
+            continue;
+        std::string& list = t.doc != nullptr ? from_arguments : menu_row;
+        list += (list.empty() ? "" : ", ") + std::string(t.id);
+    }
+    return " The Design tab's CAD commands follow (sketches, solid and surface features, bodies, measurements); look one "
+           "up with tool before calling it. These run from their arguments, and one that has a menu row as well runs that "
+           "row when called with no arguments, unless silent is true: " +
+           from_arguments + ". These take no arguments and act as their row of the Design tab's right-click menu does: " +
+           menu_row + ".";
+}
+
 json cad_note(const CommandCatalog& catalog)
 {
     if (!wxGetApp().is_editor())

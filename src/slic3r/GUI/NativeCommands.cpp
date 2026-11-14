@@ -1749,9 +1749,15 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
 
     // The typed tools, family by family, in the order tools/list shows them: the app's state, the search and the generic
     // call first, then the project data, replays, Python and recordings, and the Speed Dial and the GUI-driving tools
-    // last. Between them the Design tab's commands, which no listing shows, only while the CAD feature is on.
+    // last. Between them the Design tab's commands, which no listing shows, only while the CAD feature is on; the
+    // search's description names them then.
+    std::string design_index;
+#ifdef SLIC3R_CAD
+    if (options.cad)
+        design_index = Mcp::design_command_index();
+#endif
     Mcp::register_app_tools(catalog);
-    Mcp::register_api_tools(catalog);
+    Mcp::register_api_tools(catalog, design_index);
     Mcp::register_project_tools(catalog);
     Mcp::register_config_tools(catalog);
     Mcp::register_scene_tools(catalog);
