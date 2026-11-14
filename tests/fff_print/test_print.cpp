@@ -1259,8 +1259,9 @@ TEST_CASE("export_gcode writes G-code without a result pointer", "[Print][export
     Slic3r::Test::init_print({cube(20)}, print, model);
     print.process();
 
-    SECTION("non-BBL printer") {}
-    SECTION("BBL printer") { print.is_BBL_printer() = true; }
+    const bool bbl_printer = GENERATE(false, true);
+    CAPTURE(bbl_printer);
+    print.is_BBL_printer() = bbl_printer;
 
     ScopedTemporaryFile temp(".gcode");
     REQUIRE_NOTHROW(print.export_gcode(temp.string(), nullptr, nullptr));
@@ -1274,13 +1275,16 @@ TEST_CASE("export_gcode writes G-code without a result pointer", "[Print][export
 TEST_CASE("Exporting a sliced print again gives the same G-code", "[Print][export_gcode][Regression]")
 {
     const int instances = GENERATE(1, 3);
-    CAPTURE(instances);
+    // Whether chaining reverses support or infill.
+    const bool support = GENERATE(false, true);
+    CAPTURE(instances, support);
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     TestMesh           mesh   = TestMesh::ipadstand;
-    SECTION("infill reversed by chaining") { config.set_deserialize_strict({{"sparse_infill_pattern", "gyroid"}}); }
-    SECTION("support reversed by chaining") {
+    if (support) {
         mesh = TestMesh::overhang;
         config.set_deserialize_strict({{"enable_support", true}, {"support_interface_pattern", "concentric"}});
+    } else {
+        config.set_deserialize_strict({{"sparse_infill_pattern", "gyroid"}});
     }
     Print print;
     Model model;
@@ -2726,8 +2730,9 @@ TEST_CASE("Belt G-code has no layer that prints nothing", "[Print][belt][GCode][
         { "layer_change_gcode",         "G92 E0\n" },
     });
     // Both export paths drop the empty layers and count the layers the same way.
-    SECTION("by layer")  { config.set_deserialize_strict({{ "print_sequence", "by layer" }}); }
-    SECTION("by object") { config.set_deserialize_strict({{ "print_sequence", "by object" }}); }
+    const std::string sequence = GENERATE(as<std::string>{}, "by layer", "by object");
+    CAPTURE(sequence);
+    config.set_deserialize_strict({{ "print_sequence", sequence }});
     Print print;
     Model model;
     TriangleMesh cube_a(its_make_cube(20., 20., 20.));
@@ -2782,10 +2787,11 @@ TEST_CASE("Belt G-code has no layer that prints nothing", "[Print][belt][GCode][
 TEST_CASE("Belt supports reach the belt under a leading overhang", "[Print][belt][Support][Regression]")
 {
     // default resolves to organic for tree support; tree_hybrid is the classic tree.
-    const char *support_type  = GENERATE("normal(auto)", "tree(auto)");
-    const char *support_style = GENERATE("default", "organic", "tree_hybrid");
-    if (std::string(support_type) == "normal(auto)" && std::string(support_style) != "default")
-        return;   // organic and tree_hybrid are tree styles
+    const auto [support_type, support_style] = GENERATE(table<const char *, const char *>({
+        { "normal(auto)", "default" },
+        { "tree(auto)",   "default" },
+        { "tree(auto)",   "organic" },
+        { "tree(auto)",   "tree_hybrid" } }));
     DYNAMIC_SECTION(support_type << " / " << support_style) {
         // A 20 mm cube with a 2 mm thick fin that leaves its top edge and reaches
         // 20 mm toward -Y, the end of the part that prints first, climbing at 45 deg

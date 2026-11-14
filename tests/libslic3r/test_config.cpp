@@ -1929,8 +1929,10 @@ TEST_CASE("An empty list applied by index replaces the target list", "[Config][R
     DynamicPrintConfig saved;
     saved.set_key_value("filament_ids", new ConfigOptionStrings());
     DynamicPrintConfig edited;
-    SECTION("target has entries") { edited.set_key_value("filament_ids", new ConfigOptionStrings({"GFA00"})); }
-    SECTION("target lacks the option") {}
+    const bool target_has_entries = GENERATE(false, true);
+    CAPTURE(target_has_entries);
+    if (target_has_entries)
+        edited.set_key_value("filament_ids", new ConfigOptionStrings({"GFA00"}));
 
     edited.apply_only(saved, {"filament_ids#0"});
     CHECK(edited.option<ConfigOptionStrings>("filament_ids")->values.empty());

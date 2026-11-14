@@ -2258,21 +2258,26 @@ TEST_CASE("a G-code template that states no instantiation is included, not loade
     InstallDirs dirs;
     write_full_vendor_tree(dirs.system, "Acme", "1.0.0");
     const fs::path start = dirs.system / "Acme" / "machine" / "start.json";
+    const auto check_included = [&dirs]() {
+        PresetBundle bundle;
+        bundle.load_vendor_configs_from_json(dirs.system.string(), "Acme", PresetBundle::LoadSystem,
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent);
+        CHECK(bundle.error_count() == 0);
+        const Preset* pr = bundle.printers.find_preset("Acme 0.4 nozzle", false);
+        REQUIRE(pr != nullptr);
+        CHECK(pr->config.opt_string("machine_start_gcode") == "G28 ; template");
+        CHECK(presets_for(bundle.printers, "Acme").size() == 1);
+    };
+
     SECTION("named as G-code") {
         std::ofstream(start.string()) << R"({"type":"machine","name":"Acme 0.4 template machine_start_gcode","from":"system",)"
                                       << R"("machine_start_gcode":"G28 ; template"})";
+        check_included();
     }
     SECTION("not named, so included by its name in the vendor index") {
         std::ofstream(start.string()) << R"({"type":"machine","from":"system","machine_start_gcode":"G28 ; template"})";
+        check_included();
     }
-    PresetBundle bundle;
-    bundle.load_vendor_configs_from_json(dirs.system.string(), "Acme", PresetBundle::LoadSystem,
-                                         ForwardCompatibilitySubstitutionRule::EnableSilent);
-    CHECK(bundle.error_count() == 0);
-    const Preset* pr = bundle.printers.find_preset("Acme 0.4 nozzle", false);
-    REQUIRE(pr != nullptr);
-    CHECK(pr->config.opt_string("machine_start_gcode") == "G28 ; template");
-    CHECK(presets_for(bundle.printers, "Acme").size() == 1);
 }
 
 TEST_CASE("a sub-file that fails to parse leaves the ones listed before it installed", "[VendorCache]")

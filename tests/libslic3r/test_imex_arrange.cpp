@@ -4,7 +4,9 @@
 #include <optional>
 #include <vector>
 
+#include "catch2/catch_message.hpp"
 #include "catch2/catch_test_macros.hpp"
+#include "catch2/generators/catch_generators.hpp"
 #include "catch2/matchers/catch_matchers.hpp"
 #include "catch2/matchers/catch_matchers_floating_point.hpp"
 #include "libslic3r/Arrange.hpp"
@@ -171,15 +173,15 @@ TEST_CASE("A plate in Primary uses the whole bed beside a parallel plate", "[IME
 
 TEST_CASE("A part too big for its primary zone is left unarranged", "[IMEXArrange][IMEX]")
 {
+    // Arranging one plate, the zone is the bed shape. Arranging all plates, it is fenced in.
+    const bool all_plates = GENERATE(false, true);
+    CAPTURE(all_plates);
     ImexArrangeInput input;
-    SECTION("arranging one plate, the zone is the bed shape")
-    {
-        input.beds = {kCopy};
-    }
-    SECTION("arranging all plates, the zone is fenced in")
-    {
+    if (all_plates) {
         input.beds        = {kCopy, std::nullopt};
         input.adds_plates = true;
+    } else {
+        input.beds = {kCopy};
     }
 
     // Narrower than the bed but wider than the zone.
