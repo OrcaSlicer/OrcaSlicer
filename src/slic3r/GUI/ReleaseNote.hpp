@@ -102,10 +102,14 @@ public:
     void RunScript(std::string script);
     void on_dpi_changed(const wxRect& suggested_rect) override;
     void update_version_info(wxString release_note, wxString version);
+    void set_channel_label(const wxString& label);
+    void set_release_url(const wxString& url);
+    void set_install_in_app(bool in_app);
     std::vector<std::string> splitWithStl(std::string str, std::string pattern);
 
     wxStaticBitmap*   m_brand{nullptr};
     Label *           m_text_up_info{nullptr};
+    Label *           m_text_channel{nullptr};
     wxWebView*        m_vebview_release_note{nullptr};
     wxSimplebook*     m_simplebook_release_note{nullptr};
     wxScrolledWindow* m_scrollwindows_release_note{nullptr};
@@ -113,11 +117,11 @@ public:
     Label *           m_staticText_release_note{nullptr};
     wxStaticBitmap*   m_bitmap_open_in_browser;
     Button*           m_button_skip_version;
-    CheckBox*         m_cb_stable_only;
     Button*           m_button_download;
     Button*           m_button_cancel;
     std::string       url_line;
     std::string       html_source;
+    wxString          m_release_url;
 };
 
 class SecondaryCheckDialog : public DPIFrame

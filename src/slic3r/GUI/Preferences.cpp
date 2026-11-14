@@ -2470,8 +2470,22 @@ void PreferencesDialog::create_items()
     //// ONLINE > Update & sync
     g_sizer->Add(create_item_title(_L("Update & sync")), 1, wxEXPAND);
 
-    auto item_stable_updates   = create_item_checkbox(_L("Check for stable updates only"), "", "check_stable_update_only");
-    g_sizer->Add(item_stable_updates);
+    // Ordered by risk: Stable, Pre-Release, Nightly. The stored value is the key, never the index.
+    const std::string channel_before = app_config->update_channel();
+    g_sizer->Add(create_item_combobox(
+        _L("Update channel"),
+        _L("Choose which releases Orca Slicer offers as updates."),
+        "update_channel",
+        {_L("Stable"), _L("Pre-Release"), _L("Nightly")},
+        {"stable", "prerelease", "nightly"},
+        [this, channel_before](std::string channel) {
+            // A skip names a version, not a channel: what was skipped on one channel must
+            // not silence another.
+            if (channel != channel_before) {
+                app_config->set("skip_version", "");
+                app_config->set_skip_artifact("");
+            }
+        }));
 
     auto item_user_sync        = create_item_checkbox(_L("Auto sync user presets (Printer/Filament/Process)"), "", "sync_user_preset");
     g_sizer->Add(item_user_sync);

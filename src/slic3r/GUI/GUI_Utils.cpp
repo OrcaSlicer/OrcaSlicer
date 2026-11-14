@@ -9,15 +9,23 @@
 
 #include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include "libslic3r/Utils.hpp"
 #include <boost/log/trivial.hpp>
+#if defined(__linux__)
+#include <linux/limits.h>
+#endif
+#include <stdlib.h>
+#include <libslic3r/UpdateChannel.hpp>
 #include <string>
 #include <functional>
 #include <wx/event.h>
 #include <wx/settings.h>
 #include <wx/panel.h>
+#include <wx/stdpaths.h>
 #include <wx/string.h>
 #include <wx/gdicmn.h>
 #include <boost/optional/optional.hpp>
@@ -32,6 +40,18 @@
 #include <cstring>
 #include <deque>
 #include <fstream>
+#include <cstdlib>
+
+#if defined(__linux__) || defined(__APPLE__)
+#include <limits.h>
+#include <unistd.h>
+#endif
+
+#ifdef __APPLE__
+#include <cstdint>
+#include <mach-o/dyld.h>
+#include <sys/statvfs.h>
+#endif
 
 #ifdef _WIN32
     #include <Windows.h>
@@ -231,6 +251,172 @@ void open_ms_store_product_page()
     family_name.resize(length > 0 ? length - 1 : 0); // drop the terminating null
     wxLaunchDefaultBrowser(wxString(L"ms-windows-store://pdp/?PFN=") + family_name.c_str());
 #endif
+}
+
+bool is_running_in_appimage()
+{
+#ifdef __linux__
+    // The AppImage runtime exports APPIMAGE and APPDIR to every child, so a program started
+    // from a terminal inside an AppImage inherits them. Only an executable under the mounted
+    // AppDir is the AppImage itself.
+    const char* appimage = std::getenv("APPIMAGE");
+    const char* appdir   = std::getenv("APPDIR");
+    if (appimage == nullptr || appimage[0] == '\0' || appdir == nullptr || appdir[0] == '\0')
+        return false;
+    char resolved[PATH_MAX];
+    if (::realpath(appdir, resolved) == nullptr)
+        return false;
+    const std::string prefix = std::string(resolved) + "/";
+    return app_exe_path().compare(0, prefix.size(), prefix) == 0;
+#else
+    return false;
+#endif
+}
+
+bool is_running_in_flatpak()
+{
+#ifdef __linux__
+    return ::access("/.flatpak-info", F_OK) == 0;
+#else
+    return false;
+#endif
+}
+
+namespace {
+
+// Directory part of a path, without a trailing separator.
+std::string parent_directory(const std::string& path)
+{
+    const auto separator = path.find_last_of("/\\");
+    return separator == std::string::npos ? std::string() : path.substr(0, separator);
+}
+
+// True when the executable sits in a CMake build tree rather than in an installation.
+// Updating one would replace the tree being worked on instead of a copy the user installed.
+// Linux is left out: there only an AppImage or a Flatpak can update itself at all, and a
+// Linux build tree already resolves to InstallFlavour::Other.
+#if defined(_WIN32) || defined(__APPLE__)
+bool inside_build_tree(const std::string& exe_path)
+{
+    boost::system::error_code ec;
+    boost::filesystem::path dir = boost::filesystem::path(exe_path).parent_path();
+    for (int depth = 0; depth < 5 && !dir.empty(); ++depth) {
+        if (boost::filesystem::exists(dir / "CMakeCache.txt", ec))
+            return true;
+        const boost::filesystem::path parent = dir.parent_path();
+        if (parent == dir)
+            break;
+        dir = parent;
+    }
+    return false;
+}
+#endif
+
+#ifdef __APPLE__
+// A bundle on a read-only volume (a mounted disk image or an App Translocation copy) cannot be replaced.
+bool on_read_only_volume(const std::string& path)
+{
+    struct statvfs fs;
+    return ::statvfs(path.c_str(), &fs) == 0 && (fs.f_flag & ST_RDONLY) != 0;
+}
+#endif
+
+} // namespace
+
+std::string app_exe_path()
+{
+#ifdef _WIN32
+    std::wstring buffer(MAX_PATH, L'\0');
+    for (;;) {
+        const DWORD length = ::GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+        if (length == 0)
+            return {};
+        if (length < buffer.size()) {
+            buffer.resize(length);
+            break;
+        }
+        buffer.resize(buffer.size() * 2);
+    }
+    return wxString(buffer.c_str()).ToUTF8().data();
+#elif defined __APPLE__
+    char     buffer[PATH_MAX];
+    uint32_t size = sizeof(buffer);
+    if (_NSGetExecutablePath(buffer, &size) != 0)
+        return {};
+    char resolved[PATH_MAX];
+    if (::realpath(buffer, resolved) != nullptr)
+        return resolved;
+    return buffer;
+#elif defined __linux__
+    char    buffer[PATH_MAX];
+    ssize_t length = ::readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+    if (length <= 0)
+        return {};
+    buffer[length] = '\0';
+    char resolved[PATH_MAX];
+    if (::realpath(buffer, resolved) != nullptr)
+        return resolved;
+    return buffer;
+#else
+    return {};
+#endif
+}
+
+Slic3r::InstallFlavour current_install_flavour()
+{
+#ifdef _WIN32
+    if (is_running_in_msix())
+        return Slic3r::InstallFlavour::Msix;
+    // A build tree is neither installer nor portable install, even though it lacks uninstall.exe.
+    if (inside_build_tree(app_exe_path()))
+        return Slic3r::InstallFlavour::Other;
+    // The NSIS installer puts uninstall.exe beside the executable; the portable build does not.
+    const std::string exe_dir = parent_directory(app_exe_path());
+    if (!exe_dir.empty()) {
+        const std::wstring uninstall = wxString::FromUTF8((exe_dir + "/uninstall.exe").c_str()).ToStdWstring();
+        if (::GetFileAttributesW(uninstall.c_str()) != INVALID_FILE_ATTRIBUTES)
+            return Slic3r::InstallFlavour::WindowsInstaller;
+    }
+    return Slic3r::InstallFlavour::WindowsPortable;
+#elif defined __APPLE__
+    if (app_exe_path().find(".app/Contents/MacOS/") != std::string::npos) {
+        if (inside_build_tree(app_exe_path()) || on_read_only_volume(app_install_root()))
+            return Slic3r::InstallFlavour::Other;
+        return Slic3r::InstallFlavour::MacOSBundle;
+    }
+    return Slic3r::InstallFlavour::Other;
+#elif defined __linux__
+    if (is_running_in_appimage())
+        return Slic3r::InstallFlavour::LinuxAppImage;
+    if (is_running_in_flatpak())
+        return Slic3r::InstallFlavour::Flatpak;
+    return Slic3r::InstallFlavour::Other;
+#else
+    return Slic3r::InstallFlavour::Other;
+#endif
+}
+
+std::string app_install_root()
+{
+    const std::string exe = app_exe_path();
+#if defined __APPLE__
+    const std::string suffix = ".app/Contents/MacOS/";
+    const auto        bundle = exe.find(suffix);
+    if (bundle != std::string::npos)
+        return exe.substr(0, bundle + 4); // include the ".app" extension
+#endif
+    return parent_directory(exe);
+}
+
+std::string update_cache_dir()
+{
+    // The cache holds a few hundred megabytes of download and nothing the user would miss,
+    // so it belongs in the OS cache directory rather than in the data directory.
+    const wxString          base = wxStandardPaths::Get().GetUserDir(wxStandardPaths::Dir_Cache);
+    boost::filesystem::path dir(base.ToUTF8().data());
+    dir /= "OrcaSlicer";
+    dir /= "updater";
+    return dir.string();
 }
 
 namespace {

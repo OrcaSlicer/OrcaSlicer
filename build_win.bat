@@ -226,26 +226,34 @@ if "%build_slicer%" == "ON" if "%install_slicer%" == "ON" if not "%slicer_target
     echo --install needs the executable, but --slicer-target names "%slicer_target%".
     exit /b 1
 )
-REM cpack runs the same install, so it has the same need.
+REM The installer packs the same installed tree, so it has the same need.
 if "%make_installer%" == "ON" if not "%slicer_target%" == "" if /I not "%slicer_target%" == "OrcaSlicer" (
     echo --installer needs the executable, but --slicer-target names "%slicer_target%".
     exit /b 1
 )
 
-REM cpack finds makensis on PATH or through the registry key the NSIS installer
-REM writes, so look in the same places, and before the build rather than after
-REM it. The value is read past its REG_SZ marker because the name column is
-REM localised and may hold spaces.
+REM makensis builds the installer, and NSIS installs itself wherever the user
+REM pointed it without adding itself to PATH, so the registry value the NSIS
+REM installer writes is looked in as well as PATH. This happens before the
+REM build rather than after it. The value is read past its REG_SZ marker
+REM because the name column is localised and may hold spaces.
 if not "%make_installer%" == "ON" goto :nsis_ready
-if "%dry_run%" == "ON" goto :nsis_ready
-where makensis >nul 2>nul && goto :nsis_ready
+if "%dry_run%" == "ON" (
+    REM Nothing runs under a dry run, so only name what would have been used.
+    set "nsis_exe=makensis"
+    goto :nsis_ready
+)
+set "nsis_exe="
+where makensis >nul 2>nul && set "nsis_exe=makensis"
+if defined nsis_exe goto :nsis_ready
 for %%v in (32 64) do (
     for /f "delims=" %%l in ('reg query "HKLM\SOFTWARE\NSIS" /ve /reg:%%v 2^>nul ^| findstr REG_SZ') do (
         set "nsis_line=%%l"
         set "nsis_line=!nsis_line:*REG_SZ=!"
-        for /f "tokens=*" %%d in ("!nsis_line!") do if exist "%%d\makensis.exe" goto :nsis_ready
+        for /f "tokens=*" %%d in ("!nsis_line!") do if exist "%%d\makensis.exe" set "nsis_exe=%%d\makensis.exe"
     )
 )
+if defined nsis_exe goto :nsis_ready
 echo NSIS was not found, and --installer needs it to build the installer.
 echo Install it with "winget install NSIS.NSIS", then run this again.
 exit /b 1
@@ -766,11 +774,43 @@ if "%build_slicer%" == "ON" (
         %error_check%
     )
 
-    REM cpack installs into its own staging tree, so this does not need -i.
-    REM Unlike CI it skips the preset cache, whose packaging step prunes the
-    REM checkout's preset JSONs.
+    REM makensis packages the tree "cmake --install" stages, so --install is not
+    REM needed. The stage is rebuilt from scratch: makensis packs every file it
+    REM finds there, so a leftover from an older build would ship.
     if "%make_installer%" == "ON" (
-        call :print_and_run cpack -G NSIS -C %build_type% --config "%build_dir%\CPackConfig.cmake" -B "%build_dir%"
+        for %%p in ("%build_dir%") do set "build_full=%%~fp"
+        set "installer_stage=!build_full!\installer-stage"
+        if exist "!installer_stage!" (
+            call :print_and_run rmdir /S /Q "!installer_stage!"
+            %error_check%
+        )
+        call :print_and_run cmake --install "%build_dir%" --prefix "!installer_stage!" --config %build_type%
+        %error_check%
+
+        REM version.inc is the only place the version lives.
+        set "orca_version="
+        for /f "tokens=3 delims=() " %%v in ('findstr /c:"SoftFever_VERSION " "%WP%\version.inc"') do set "orca_version=%%~v"
+        if not defined orca_version (
+            set "die_reason=Could not read SoftFever_VERSION from version.inc."
+            set rc=1
+            goto :die
+        )
+        set "installer_arch=_x64"
+        if /I "%arch%" == "ARM64" set "installer_arch=_arm64"
+        set "installer_name=OrcaSlicer_Windows_Installer_V!orca_version!!installer_arch!.exe"
+        set "installer_out=!build_full!\!installer_name!"
+
+        REM Release builds sign the payload, the uninstaller and the installer;
+        REM scripts\sign_windows.ps1 says which variables carry what. Without
+        REM them makensis builds an unsigned installer.
+        set "sign_arg="
+        if defined ORCA_SIGN_CERTFILE if defined ORCA_SIGN_KMS_KEY if defined ORCA_SIGN_JSIGN (
+            set "sign_shell=powershell"
+            where pwsh >nul 2>nul && set "sign_shell=pwsh"
+            set sign_arg="-DORCA_SIGN_CMD=!sign_shell! -NoProfile -ExecutionPolicy Bypass -File "%WP%\scripts\sign_windows.ps1" -Path"
+        )
+
+        call :print_and_run "!nsis_exe!" /V3 "-DSTAGE=!installer_stage!" "-DOUTFILE=!installer_out!" "-DAPP_VERSION=!orca_version!" !sign_arg! "%WP%\packaging\windows\orca-slicer.nsi"
         %error_check%
     )
 )
@@ -860,14 +900,12 @@ REM worked out the same way in either run.
     if "%build_slicer%" == "ON" if not "%using_ninja%" == "ON" echo   Solution      %build_full%\!solution!
     if "%pack_deps%" == "ON" if defined bundle echo   Bundle        !bundle!
     if "%make_installer%" == "ON" (
-        REM The file name carries the version, which only CMake knows, so name
-        REM the newest match, or the pattern when there is none yet.
-        set "installer="
-        for /f "delims=" %%f in ('dir /b /o-d "!build_full!\OrcaSlicer_Windows_Installer_*.exe" 2^>nul') do (
-            if not defined installer set "installer=!build_full!\%%f"
+        REM The installer block above names the file it built.
+        if defined installer_name (
+            echo   Installer     !build_full!\!installer_name!
+        ) else (
+            echo   Installer     !build_full!\OrcaSlicer_Windows_Installer_*.exe
         )
-        if not defined installer set "installer=!build_full!\OrcaSlicer_Windows_Installer_*.exe"
-        echo   Installer     !installer!
     )
 
     echo.

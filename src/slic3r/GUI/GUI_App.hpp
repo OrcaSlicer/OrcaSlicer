@@ -26,6 +26,7 @@
 #include "slic3r/Utils/CloudDeleteQueue.hpp"
 #include "slic3r/Utils/CloudProvider.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/UpdateChannel.hpp"
 
 #include <vector>
 #include <utility>
@@ -352,6 +353,13 @@ private:
 
     VersionInfo version_info;
     VersionInfo privacy_version_info;
+    // What the last successful check resolved, shown by EVT_SLIC3R_VERSION_ONLINE.
+    Slic3r::UpdateCandidate m_update_candidate;
+    // Identity of the artifact whose background download was started, so it starts once.
+    std::string m_prefetching_artifact;
+    // What the close event saw, because OnExit() runs after the Plater is gone.
+    bool m_closing_project_dirty { false };
+    bool m_closing_job_running { false };
     static std::string version_display;
     HMSQuery    *hms_query { nullptr };
     FilamentColorCodeQuery* m_filament_color_code_query{ nullptr };
@@ -607,16 +615,23 @@ public:
     bool            m_studio_active = true;
     std::chrono::system_clock::time_point  last_active_point;
 
-    void            check_update(bool show_tips, int by_user);
-    void            check_new_version(bool show_tips = false, int by_user = 0);
     void            check_new_version_sf(bool show_tips = false, int by_user = 0);
+    // Hands the resolved update to the helper: writes the handoff, extracts and spawns the
+    // helper, and closes the app. Falls back to the release page when that is not possible.
+    void            start_in_app_update();
+    // Starts the download the automatic check hands to the helper, without a dialog or a
+    // lock; the update installs from install_update_on_exit().
+    void            prefetch_update();
+    // Installs a verified download as the app quits, when no project or job is at risk.
+    void            install_update_on_exit();
+    // Cleans up after an install that happened while this build was being replaced.
+    void            finish_pending_update();
     // Offers to migrate user filament presets made against an older release that lost printers their parent
     // listed then. At startup it asks on every start that finds such presets, unless the user chose not to be
     // reminded; while the user presets sync with the cloud, it waits until they have been pulled. by_user also
     // reports when there is nothing to migrate.
     void            check_legacy_user_filament_presets(bool by_user);
     bool            process_network_msg(std::string dev_id, std::string msg);
-    void            request_new_version(int by_user);
     void            enter_force_upgrade();
     void            set_skip_version(bool skip = true);
     void            no_new_version();
