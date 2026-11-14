@@ -75,9 +75,6 @@ modules:
   # Config-opts mirror deps/wxWidgets/wxWidgets.cmake with FLATPAK=ON, DEP_WX_GTK3=ON
   - name: wxWidgets
     buildsystem: cmake-ninja
-    build-options:
-      env:
-        CMAKE_POLICY_VERSION_MINIMUM: "3.5"
     config-opts:
       - -DCMAKE_BUILD_TYPE=Release
       - -DwxBUILD_PRECOMP=ON
@@ -271,10 +268,10 @@ modules:
         sha256: 27b72ba2d5ff3d0a9814ad40d4cb88f8dc89a35491c0866d952473f8f9416b77
         dest: external-packages/Draco
 
-      # Assimp 5.4.3
+      # Assimp 6.0.5
       - type: file
-        url: https://github.com/assimp/assimp/archive/refs/tags/v5.4.3.tar.gz
-        sha256: 66dfbaee288f2bc43172440a55d0235dfc7bf885dda6435c038e8000e79582cb
+        url: https://github.com/assimp/assimp/archive/refs/tags/v6.0.5.zip
+        sha256: 89e477e89df739ecc7dd21874897ac2e70c8944eb1074fbdbbdbf4dd2de6a403
         dest: external-packages/Assimp
 
       # OpenSSL 3.5.9 (pinned so every platform ships the same OpenSSL; the

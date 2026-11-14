@@ -1,8 +1,8 @@
 if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "4.0")
-    set(CMAKE_POLICY_VERSION_MINIMUM 3.13 CACHE STRING "" FORCE)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.22 CACHE STRING "" FORCE)
 endif()
 
-cmake_minimum_required(VERSION 3.13)
+cmake_minimum_required(VERSION 3.22)
 
 if(POLICY CMP0177)
     cmake_policy(SET CMP0177 NEW)
