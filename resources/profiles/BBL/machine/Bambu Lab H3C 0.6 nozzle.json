@@ -15,9 +15,12 @@
 	"default_print_profile": "0.30mm Standard @BBL H3C 0.6 nozzle",
 	"hotend_heating_rate": [
 		"7.5",
+		"7.5",
 		"7.5"
 	],
 	"machine_max_acceleration_extruding": [
+		"25000",
+		"25000",
 		"25000",
 		"25000",
 		"25000",
@@ -27,9 +30,13 @@
 		"25000",
 		"25000",
 		"25000",
+		"25000",
+		"25000",
 		"25000"
 	],
 	"machine_max_acceleration_y": [
+		"25000",
+		"25000",
 		"25000",
 		"25000",
 		"25000",
@@ -39,9 +46,13 @@
 		"1000",
 		"1000",
 		"1000",
+		"1000",
+		"1000",
 		"1000"
 	],
 	"machine_max_speed_x": [
+		"1400",
+		"1400",
 		"1400",
 		"1400",
 		"1400",
@@ -51,9 +62,13 @@
 		"1400",
 		"1400",
 		"1400",
+		"1400",
+		"1400",
 		"1400"
 	],
 	"machine_max_speed_z": [
+		"35",
+		"35",
 		"35",
 		"35",
 		"35",
@@ -67,22 +82,126 @@
 	],
 	"retraction_length": [
 		"1.4",
+		"1.4",
 		"1.4"
 	],
 	"extruder_variant_list": [
-		"Direct Drive Standard,Direct Drive High Flow"
+		"Direct Drive Standard,Direct Drive High Flow,Direct Drive TPU285"
 	],
 	"printer_extruder_id": [
+		"1",
 		"1",
 		"1"
 	],
 	"printer_extruder_variant": [
 		"Direct Drive Standard",
-		"Direct Drive High Flow"
+		"Direct Drive High Flow",
+		"Direct Drive TPU285"
 	],
 	"deretract_speed_extruder_change": [
 		"30",
 		"30",
 		"30"
+	],
+	"default_nozzle_volume_type": [
+		"Standard"
+	],
+	"default_extruder_nozzle_stats": [
+		"Standard#8|TPU285#1"
+	],
+	"deretraction_speed": [
+		"30",
+		"30",
+		"30"
+	],
+	"hotend_cooling_rate": [
+		"2",
+		"2",
+		"2"
+	],
+	"long_retractions_when_cut": [
+		"0",
+		"0",
+		"0"
+	],
+	"nozzle_flush_dataset": [
+		"1",
+		"2",
+		"2"
+	],
+	"nozzle_volume": [
+		"125.9",
+		"125.9",
+		"125.9"
+	],
+	"retract_before_wipe": [
+		"0%",
+		"0%",
+		"0%"
+	],
+	"retract_length_toolchange": [
+		"2",
+		"2",
+		"2"
+	],
+	"retract_lift_above": [
+		"0",
+		"0",
+		"0"
+	],
+	"retract_lift_below": [
+		"339",
+		"339",
+		"339"
+	],
+	"retract_restart_extra": [
+		"0",
+		"0",
+		"0"
+	],
+	"retract_restart_extra_toolchange": [
+		"0",
+		"0",
+		"0"
+	],
+	"retract_when_changing_layer": [
+		"1",
+		"1",
+		"1"
+	],
+	"retraction_distances_when_cut": [
+		"18",
+		"18",
+		"18"
+	],
+	"retraction_minimum_travel": [
+		"1",
+		"1",
+		"1"
+	],
+	"retraction_speed": [
+		"30",
+		"30",
+		"30"
+	],
+	"wipe": [
+		"1",
+		"1",
+		"1"
+	],
+	"wipe_distance": [
+		"2",
+		"2",
+		"2"
+	],
+	"z_hop": [
+		"0.4",
+		"0.4",
+		"0.4"
+	],
+	"z_hop_types": [
+		"Auto Lift",
+		"Auto Lift",
+		"Auto Lift"
 	]
 }

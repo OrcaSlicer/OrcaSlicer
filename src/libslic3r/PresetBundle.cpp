@@ -4231,7 +4231,7 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
     }
 
     if (use_default_nozzle_volume_type) {
-        project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
+        reset_default_nozzle_volume_type();
     } else {
         // Orca: make sure `nozzle_volume_type` not shorter than `default_nozzle_volume_type`, otherwise we got array out of bound access
         // later in `Tab::switch_excluder`
@@ -5419,7 +5419,17 @@ bool PresetBundle::is_the_only_edited_filament(unsigned int filament_index)
 void PresetBundle::reset_default_nozzle_volume_type()
 {
     Preset& current_printer = this->printers.get_edited_preset();
-    this->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
+    auto &types = project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
+    types = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
+    const auto *defaults = current_printer.config.option<ConfigOptionStrings>("default_extruder_nozzle_stats");
+    if (defaults && !defaults->values.empty()) {
+        // Seed the same rack for GUI and headless preset loading.
+        current_printer.config.option<ConfigOptionStrings>("extruder_nozzle_stats", true)->values = defaults->values;
+        const auto stats = get_extruder_nozzle_stats(defaults->values);
+        for (size_t eid = 0; eid < types.size() && eid < stats.size(); ++eid)
+            if (stats[eid].size() > 1)
+                types[eid] = nvtHybrid;
+    }
 }
 
 int PresetBundle::get_printer_extruder_count() const

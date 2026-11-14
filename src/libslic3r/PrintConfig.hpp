@@ -624,7 +624,7 @@ enum NozzleVolumeType {
                      // with more than one sub-nozzle (extruder_max_nozzle_count > 1); matched as Standard for
                      // preset lookup and never emitted in profile variant strings
     nvtTPUHighFlow,  // physical variant, used on H2D/H2DP 0.4 nozzles only
-    // 4 is reserved: E3D High Flow is 5 in BambuStudio's slice_info and device numbering.
+    nvtTPU285 = 4, // dedicated 2.85 mm filament path; matches BambuStudio metadata.
     nvtE3DHighFlow = 5, // physical variant, E3D high-flow hotend on 0.4/0.6 nozzles
     nvtExtraHighFlow = 6, // Orca: physical variant with no BambuStudio or device counterpart; only profiles name it
     // Integer values are serialized as raw ints in 3mf plate metadata and device MQTT, so they MUST stay stable.
@@ -685,8 +685,6 @@ static std::set<NozzleVolumeType> get_valid_nozzle_volume_type() {
         // Hybrid is not a physical nozzle variant: presets never define it, so it must not
         // produce a variant string.
         if (t == nvtHybrid) continue;
-        // Skip the reserved gap between nvtTPUHighFlow (3) and nvtE3DHighFlow (5).
-        if (i > nvtTPUHighFlow && i < nvtE3DHighFlow) continue;
         type.insert(t);
     }
     return type;

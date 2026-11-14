@@ -144,7 +144,7 @@ DevAms::DevAms(const std::string& ams_id, int nozzle_id, int type)
     m_ams_id = ams_id;
     m_ext_id = nozzle_id;
     m_ams_type = (AmsType)type;
-    assert(EXT_SPOOL < type && m_ams_type <= AMS_LITE_MIXED);
+    assert(EXT_SPOOL < type && m_ams_type <= DevAmsType::ZMULTI_B);
 }
 
 DevAms::~DevAms()
@@ -169,6 +169,8 @@ static std::unordered_map<int, wxString> s_ams_display_formats = {
 
 wxString DevAms::GetDisplayName() const
 {
+    if (m_ams_type == DevAmsType::ZMULTI_A || m_ams_type == DevAmsType::ZMULTI_B)
+        return wxString::Format("AMS 3H-%d", m_ams_type == DevAmsType::ZMULTI_A ? 1 : 2);
     if (!m_display_name.empty())
     {
         return wxString::FromUTF8(m_display_name);
@@ -203,8 +205,25 @@ wxString DevAms::GetDisplayName() const
     return wxString::Format(ams_display_format, loc);
 }
 
+// Firmware tray-presence bits differ from legacy AMS command addresses.
+int DevAms::GetTrayBitIndex(int slot_id) const
+{
+    if (slot_id < 0 || slot_id >= GetSlotCount())
+        return -1;
+    const int ams_id = std::stoi(m_ams_id);
+    switch (m_ams_type) {
+    case DevAmsType::ZMULTI_A: return 28 + slot_id;
+    case DevAmsType::ZMULTI_B: return 37 + slot_id;
+    case N3S: return 16 + ams_id - 128;
+    case AMS_LITE_MIXED: return 24 + slot_id;
+    default: return ams_id * 4 + slot_id;
+    }
+}
+
 int DevAms::GetSlotCount() const
 {
+    if (m_ams_type == DevAmsType::ZMULTI_A || m_ams_type == DevAmsType::ZMULTI_B)
+        return 9;
     // GetAmsType() maps AMS_LITE_MIXED -> AMS_LITE, so N9 reports 4 slots like AMS-Lite.
     auto ams_type = GetAmsType();
     if (ams_type == AMS || ams_type == AMS_LITE || ams_type == N3F)
@@ -302,6 +321,11 @@ void DevFilaSystem::CollectAmsColors(std::vector<wxColour>& ams_colors) const
 
 int DevFilaSystem::GetExtruderIdByAmsId(const std::string& ams_id) const
 {
+    if (GetOwner()->printer_type == "N10")
+        for (const auto &tray : GetOwner()->vt_slot)
+            if (tray.id == ams_id)
+                return MAIN_EXTRUDER_ID;
+
     auto it = amsList.find(ams_id);
     if (it != amsList.end())
     {
@@ -332,6 +356,11 @@ std::map<int, DevAmsSlotId> DevFilaSystem::GetTrayIndexMap()
     std::map<int, DevAmsSlotId> tray_id_map;
     tray_id_map[VIRTUAL_TRAY_MAIN_ID]   = DevAmsSlotId{VIRTUAL_TRAY_MAIN_ID, 0};
     tray_id_map[VIRTUAL_TRAY_DEPUTY_ID] = DevAmsSlotId{VIRTUAL_TRAY_DEPUTY_ID, 0};
+    if (GetOwner()->printer_type == "N10")
+        for (const auto &tray : GetOwner()->vt_slot) {
+            const int id = std::stoi(tray.id);
+            tray_id_map[id] = DevAmsSlotId{id, 0};
+        }
 
     for (auto& [ams_id, ams_item] : GetAmsList()) {
         for (auto &[slot_id, slot_item] : ams_item->GetTrays()) {
@@ -344,6 +373,8 @@ std::map<int, DevAmsSlotId> DevFilaSystem::GetTrayIndexMap()
                         tray_index = ams_id_int;
                     } else if(ams_item->GetAmsType() == DevAms::AMS_LITE && ams_item->IsAmsLiteMixed()) {
                         tray_index = 24 + slot_id_int;
+                    } else if (ams_item->GetAmsType() == DevAmsType::ZMULTI_A || ams_item->GetAmsType() == DevAmsType::ZMULTI_B) {
+                        tray_index = ams_item->GetTrayBitIndex(slot_id_int);
                     } else {
                         tray_index = (ams_id_int * 4 + slot_id_int);
                     }
@@ -392,12 +423,12 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
         {
             if (jj["ams"].contains("ams_exist_bits"))
             {
-                obj->ams_exist_bits = stol(jj["ams"]["ams_exist_bits"].get<std::string>(), nullptr, 16);
+                obj->ams_exist_bits = std::stoull(jj["ams"]["ams_exist_bits"].get<std::string>(), nullptr, 16);
             }
 
             if (jj["ams"].contains("tray_exist_bits"))
             {
-                obj->tray_exist_bits = stol(jj["ams"]["tray_exist_bits"].get<std::string>(), nullptr, 16);
+                obj->tray_exist_bits = std::stoull(jj["ams"]["tray_exist_bits"].get<std::string>(), nullptr, 16);
             }
 
             if (jj["ams"].contains("cali_stat")) { system->m_ams_cali_stat = jj["ams"]["cali_stat"].get<int>(); }
@@ -415,15 +446,15 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
 
                 if (jj["ams"].contains("tray_read_done_bits"))
                 {
-                    obj->tray_read_done_bits = stol(jj["ams"]["tray_read_done_bits"].get<std::string>(), nullptr, 16);
+                    obj->tray_read_done_bits = std::stoull(jj["ams"]["tray_read_done_bits"].get<std::string>(), nullptr, 16);
                 }
                 if (jj["ams"].contains("tray_reading_bits"))
                 {
-                    obj->tray_reading_bits = stol(jj["ams"]["tray_reading_bits"].get<std::string>(), nullptr, 16);
+                    obj->tray_reading_bits = std::stoull(jj["ams"]["tray_reading_bits"].get<std::string>(), nullptr, 16);
                 }
                 if (jj["ams"].contains("tray_is_bbl_bits"))
                 {
-                    obj->tray_is_bbl_bits = stol(jj["ams"]["tray_is_bbl_bits"].get<std::string>(), nullptr, 16);
+                    obj->tray_is_bbl_bits = std::stoull(jj["ams"]["tray_is_bbl_bits"].get<std::string>(), nullptr, 16);
                 }
                 if (jj["ams"].contains("version"))
                 {
@@ -555,7 +586,10 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                         {
                             int ams_id_int = atoi(ams_id.c_str());
 
-                            if (type_id < 4)
+                            if (type_id == DevAmsType::ZMULTI_A || type_id == DevAmsType::ZMULTI_B) {
+                                curr_ams->m_exist = DevUtil::get_flag_bits(obj->ams_exist_bits, type_id == DevAmsType::ZMULTI_A ? 13 : 14);
+                            }
+                            else if (type_id < 4)
                             {
                                 curr_ams->m_exist = (obj->ams_exist_bits & (1 << ams_id_int)) != 0 ? true : false;
                             }
@@ -800,20 +834,8 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                     ams_id_int = atoi(ams_id.c_str());
                                     tray_id_int = atoi(curr_tray->id.c_str());
 
-                                    if (type_id < 4)
-                                    {
-                                        curr_tray->is_exists = (obj->tray_exist_bits & (1 << (ams_id_int * 4 + tray_id_int))) != 0 ? true : false;
-                                    }
-                                    else if (type_id == DevAms::AMS_LITE_MIXED)
-                                    {
-                                        // Mixed AMS-Lite (A2L / N9) trays occupy tray-exist bits 24..27.
-                                        curr_tray->is_exists = DevUtil::get_flag_bits(obj->tray_exist_bits, AMS_LITE_MIXED_TRAY_INDEX_OFFSET + tray_id_int);
-                                    }
-                                    else
-                                    {
-                                        curr_tray->is_exists = DevUtil::get_flag_bits(obj->tray_exist_bits, 16 + (ams_id_int - 128));
-                                    }
-
+                                    curr_tray->is_exists = DevUtil::get_flag_bits(
+                                        obj->tray_exist_bits, curr_ams->GetTrayBitIndex(tray_id_int));
                                 }
                             }
                             catch (...)

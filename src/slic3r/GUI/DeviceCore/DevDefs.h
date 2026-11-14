@@ -62,6 +62,8 @@ enum DevAmsType : int
     N3F = 3,            // N3F, AMS 2PRO
     N3S = 4,            // N3S, AMS HT
     AMS_LITE_MIXED = 5, // AMS-Lite for N9
+    ZMULTI_A = 6,       // H3C AMS 3H, nine slots
+    ZMULTI_B = 7,
 };
 
 enum DevFilamentStep
@@ -119,6 +121,7 @@ enum NozzleFlowType : int
     H_FLOW,
     U_FLOW, // TPU 1.75 High Flow
     E_FLOW, // E3D High Flow
+    T_FLOW, // dedicated 2.85 mm filament path
 };
 /* 0.2mm  0.4mm  0.6mm 0.8mm */
 enum NozzleDiameterType : int

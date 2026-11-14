@@ -93,7 +93,8 @@ bool AMSinfo::parse_ams_info(MachineObject *obj, DevAms *ams, bool remain_flag, 
     this->humidity_raw = ams->GetHumidityPercent();
     this->left_dray_time = ams->GetLeftDryTime();
     this->current_temperature = ams->GetCurrentTemperature();
-    this->ams_type = AMSModel(ams->GetAmsType());
+    this->ams_type = ams->GetAmsType() == DevAmsType::ZMULTI_A || ams->GetAmsType() == DevAmsType::ZMULTI_B
+                         ? AMSModel::GENERIC_AMS : AMSModel(ams->GetAmsType());
 
     nozzle_id = ams->GetExtruderId();
     switch_pos = ams->GetSwitcherPos(); // Orca: carry the switch inlet for inlet-aware panel placement
@@ -2214,7 +2215,7 @@ void AMSRoadUpPart::doRender(wxDC& dc)
         auto x = x_start;
         auto width = FromDIP(63);
         auto height = FromDIP(21);
-        for (int i = 0; i < 4; i++){
+        for (size_t i = 0; i < m_amsinfo.cans.size(); ++i) {
             dc.DrawLine((x), (0), (x), (height));
             x += width;
         }

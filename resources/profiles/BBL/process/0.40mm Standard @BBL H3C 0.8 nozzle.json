@@ -1,7 +1,7 @@
 {
 	"type": "process",
 	"name": "0.40mm Standard @BBL H3C 0.8 nozzle",
-	"inherits": "fdm_h3c_process",
+	"inherits": "fdm_h3c_tpu285_process",
 	"from": "system",
 	"setting_id": "GP274",
 	"instantiation": "true",
@@ -9,13 +9,16 @@
 	"bottom_color_penetration_layers": "3",
 	"bridge_speed": [
 		"30",
+		"30",
 		"30"
 	],
 	"default_acceleration": [
 		"20000",
+		"20000",
 		"20000"
 	],
 	"gap_infill_speed": [
+		"50",
 		"50",
 		"50"
 	],
@@ -23,17 +26,20 @@
 	"initial_layer_print_height": "0.4",
 	"initial_layer_speed": [
 		"50",
+		"50",
 		"50"
 	],
 	"inner_wall_line_width": "0.82",
 	"inner_wall_speed": [
 		"300",
-		"600"
+		"600",
+		"300"
 	],
 	"internal_solid_infill_line_width": "0.82",
 	"internal_solid_infill_speed": [
 		"250",
-		"600"
+		"600",
+		"250"
 	],
 	"ironing_flow": "25%",
 	"ironing_inset": "0.41",
@@ -44,7 +50,8 @@
 	"outer_wall_line_width": "0.82",
 	"outer_wall_speed": [
 		"200",
-		"500"
+		"500",
+		"200"
 	],
 	"prime_tower_brim_width": "3",
 	"prime_tower_flat_ironing": "1",
@@ -54,7 +61,8 @@
 	"sparse_infill_pattern": "grid",
 	"sparse_infill_speed": [
 		"350",
-		"600"
+		"600",
+		"350"
 	],
 	"support_bottom_z_distance": "0.2",
 	"support_line_width": "0.82",
@@ -67,40 +75,49 @@
 	"top_surface_pattern": "monotonic",
 	"top_surface_speed": [
 		"200",
+		"200",
 		"200"
 	],
 	"wall_loops": "2",
 	"initial_layer_infill_speed": [
 		"105",
+		"105",
 		"105"
 	],
 	"inner_wall_acceleration": [
+		"12000",
 		"12000",
 		"12000"
 	],
 	"outer_wall_acceleration": [
 		"7000",
+		"7000",
 		"7000"
 	],
 	"overhang_1_4_speed": [
+		"0",
 		"0",
 		"0"
 	],
 	"overhang_2_4_speed": [
 		"50",
+		"50",
 		"50"
 	],
 	"overhang_3_4_speed": [
+		"30",
 		"30",
 		"30"
 	],
 	"print_extruder_id": [
 		"1",
+		"1",
 		"1"
 	],
 	"print_extruder_variant": [
 		"Direct Drive Standard",
-		"Direct Drive High Flow"
+		"Direct Drive High Flow",
+		"Direct Drive TPU285"
 	],
 	"description": "It has a very big layer height, and results in very apparent layer lines, low printing quality and general printing time.",
 	"compatible_printers": [

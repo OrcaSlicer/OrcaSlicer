@@ -38,10 +38,10 @@ TEST_CASE("convert_to_nvt_type maps extruder variant strings to nozzle volume ty
     }
 }
 
-TEST_CASE("E3D High Flow is nozzle volume type 5, after the reserved 4", "[Config]")
+TEST_CASE("Physical nozzle types retain their serialized identifiers", "[Config]")
 {
     REQUIRE(int(nvtE3DHighFlow) == 5);
-    REQUIRE(get_valid_nozzle_volume_type() == std::set<NozzleVolumeType>{nvtStandard, nvtHighFlow, nvtTPUHighFlow, nvtE3DHighFlow, nvtExtraHighFlow});
+    REQUIRE(get_valid_nozzle_volume_type() == std::set<NozzleVolumeType>{nvtStandard, nvtHighFlow, nvtTPUHighFlow, nvtTPU285, nvtE3DHighFlow, nvtExtraHighFlow});
     REQUIRE(get_nozzle_volume_type_string(nvtE3DHighFlow) == "E3D High Flow");
     REQUIRE(get_extruder_variant_string(etDirectDrive, nvtE3DHighFlow) == "Direct Drive E3D High Flow");
     REQUIRE(get_extruder_variant_string(etBowden, nvtE3DHighFlow) == "Bowden E3D High Flow");

@@ -46,6 +46,8 @@ static NozzleVolumeType convert_to_nozzle_type(const std::string &str)
         return NozzleVolumeType::nvtHighFlow;
     else if (str[1] == 'U')
         return NozzleVolumeType::nvtTPUHighFlow;
+    else if (str[1] == 'T')
+        return NozzleVolumeType::nvtTPU285;
     else if (str[1] == 'B')
         return NozzleVolumeType::nvtE3DHighFlow;
     else

@@ -128,11 +128,11 @@ float string_to_float(const std::string& str_value) {
 
 int get_tray_id_by_ams_id_and_slot_id(int ams_id, int slot_id)
 {
-    if (ams_id == VIRTUAL_TRAY_MAIN_ID || ams_id == VIRTUAL_TRAY_DEPUTY_ID) {
+    if (ams_id >= 240 && ams_id <= 255)
         return ams_id;
-    } else {
-        return ams_id * 4 + slot_id;
-    }
+    if (ams_id == 32 || ams_id == 33)
+        return 28 + (ams_id - 32) * 9 + slot_id;
+    return ams_id * 4 + slot_id;
 }
 
 namespace {
@@ -404,6 +404,10 @@ static wxString _generate_nozzle_id(NozzleVolumeType nozzle_type, const std::str
         nozzle_id += "H";
         break;
     }
+    case NozzleVolumeType::nvtTPU285: {
+        nozzle_id += "T";
+        break;
+    }
     case NozzleVolumeType::nvtE3DHighFlow: {
         nozzle_id += "B";
         break;
@@ -429,6 +433,8 @@ NozzleVolumeType convert_to_nozzle_type(const std::string &str)
         res = NozzleVolumeType::nvtStandard;
     else if (str[1] == 'H')
         res = NozzleVolumeType::nvtHighFlow;
+    else if (str[1] == 'T')
+        res = NozzleVolumeType::nvtTPU285;
     else if (str[1] == 'B')
         res = NozzleVolumeType::nvtE3DHighFlow;
     return res;
@@ -4148,11 +4154,24 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                     if (!key_field_only) {
                         try {
                             if (jj.contains("vir_slot") && jj["vir_slot"].is_array()) {
+                                if (printer_type == "N10" && vt_slot.size() < 2)
+                                    vt_slot.emplace_back(std::to_string(VIRTUAL_TRAY_DEPUTY_ID));
 
                                 for (auto it = jj["vir_slot"].begin(); it != jj["vir_slot"].end(); it++) {
                                     auto vslot = parse_vt_tray(it.value().get<json>());
 
-                                    if (vslot.id == std::to_string(VIRTUAL_TRAY_MAIN_ID)) {
+                                    // The H3C reports one external input per PrintTool, not just
+                                    // the main/deputy inputs of dual-extruder machines.
+                                    if (printer_type == "N10" && vslot.id != std::to_string(VIRTUAL_TRAY_MAIN_ID) &&
+                                        vslot.id != std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
+                                        auto slot = std::find_if(vt_slot.begin(), vt_slot.end(),
+                                                                 [&](const DevAmsTray &tray) { return tray.id == vslot.id; });
+                                        if (slot == vt_slot.end())
+                                            vt_slot.push_back(vslot);
+                                        else
+                                            *slot = vslot;
+                                    }
+                                    else if (vslot.id == std::to_string(VIRTUAL_TRAY_MAIN_ID)) {
                                         auto it = std::next(vt_slot.begin(), 0);
                                         if (it != vt_slot.end()) {
                                             vt_slot[0] = vslot;
@@ -5309,16 +5328,10 @@ DevAmsTray MachineObject::parse_vt_tray(json vtray)
 
 bool MachineObject::contains_tray(const std::string &ams_id, const std::string &tray_id) const
 {
-    if (ams_id != VIRTUAL_AMS_MAIN_ID_STR && ams_id != VIRTUAL_AMS_DEPUTY_ID_STR) {
-
-        return m_fila_system->GetAmsTray(ams_id, tray_id) != nullptr;
-    } else {
-        for (const auto& tray : vt_slot) {
-            if (tray.id == ams_id) { return true; }
-        }
-    }
-
-    return false;
+    for (const auto &tray : vt_slot)
+        if (tray.id == ams_id)
+            return true;
+    return m_fila_system->GetAmsTray(ams_id, tray_id) != nullptr;
 }
 
 DevAmsTray MachineObject::get_tray(const std::string &ams_id, const std::string &tray_id) const
@@ -5328,15 +5341,11 @@ DevAmsTray MachineObject::get_tray(const std::string &ams_id, const std::string 
         return DevAmsTray(tray_id);
     }
 
-    if (ams_id != VIRTUAL_AMS_MAIN_ID_STR && ams_id != VIRTUAL_AMS_DEPUTY_ID_STR) {
-        auto tray = m_fila_system->GetAmsTray(ams_id, tray_id);
-        if (tray) { return *tray;};
-    }
-    else {
-        for (const auto &tray : vt_slot) {
-            if (tray.id == ams_id) { return tray; }
-        }
-    }
+    for (const auto &tray : vt_slot)
+        if (tray.id == ams_id)
+            return tray;
+    if (const auto *tray = m_fila_system->GetAmsTray(ams_id, tray_id))
+        return *tray;
 
     assert(0);/*use contains_tray() check first*/
     return DevAmsTray(tray_id);

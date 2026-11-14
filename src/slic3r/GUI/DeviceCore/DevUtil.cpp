@@ -109,8 +109,10 @@ uint32_t DevUtil::get_flag_bits_no_border(std::string str, int start_idx, int co
 }
 
 
-int DevUtil::get_flag_bits(int num, int start, int count, int base)
+int DevUtil::get_flag_bits(uint64_t num, int start, int count, int base)
 {
+    if (start < 0 || start >= 64 || count <= 0 || count > 32 || count > 64 - start)
+        return 0;
     try
     {
         unsigned long long mask = (1ULL << count) - 1;
@@ -121,7 +123,7 @@ int DevUtil::get_flag_bits(int num, int start, int count, int base)
         }
         else if (base == 16)
         {
-            value = static_cast<unsigned long long>(std::stoul(std::to_string(num), nullptr, 16));
+            value = static_cast<unsigned long long>(std::stoull(std::to_string(num), nullptr, 16));
         }
         else
         {

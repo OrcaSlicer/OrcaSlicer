@@ -44,6 +44,7 @@ NozzleFlowType DevNozzle::ToNozzleFlowType(const NozzleVolumeType& type)
         case NozzleVolumeType::nvtStandard:    return NozzleFlowType::S_FLOW;
         case NozzleVolumeType::nvtHighFlow:    return NozzleFlowType::H_FLOW;
         case NozzleVolumeType::nvtTPUHighFlow: return NozzleFlowType::U_FLOW;
+        case NozzleVolumeType::nvtTPU285: return NozzleFlowType::T_FLOW;
         case NozzleVolumeType::nvtE3DHighFlow: return NozzleFlowType::E_FLOW;
         default: return NozzleFlowType::NONE_FLOWTYPE;
     }
@@ -55,6 +56,7 @@ NozzleVolumeType DevNozzle::ToNozzleVolumeType(const NozzleFlowType& type)
         case NozzleFlowType::S_FLOW: return NozzleVolumeType::nvtStandard;
         case NozzleFlowType::H_FLOW: return NozzleVolumeType::nvtHighFlow;
         case NozzleFlowType::U_FLOW: return NozzleVolumeType::nvtTPUHighFlow;
+        case NozzleFlowType::T_FLOW: return NozzleVolumeType::nvtTPU285;
         case NozzleFlowType::E_FLOW: return NozzleVolumeType::nvtE3DHighFlow;
         default: {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << "nozzle flow type None convert to nozzle volume type Standard";
@@ -69,6 +71,7 @@ wxString DevNozzle::GetNozzleFlowTypeStr(NozzleFlowType type)
     case NozzleFlowType::H_FLOW: return _L("High Flow");
     case NozzleFlowType::S_FLOW: return _L("Standard");
     case NozzleFlowType::U_FLOW: return _L("TPU High Flow");
+    case NozzleFlowType::T_FLOW: return _L("TPU285");
     case NozzleFlowType::E_FLOW: return _L("E3D High Flow");
     default: break;
     }
@@ -84,6 +87,7 @@ std::string DevNozzle::GetNozzleFlowTypeString(NozzleFlowType type)
         case NozzleFlowType::H_FLOW: return "High Flow";
         case NozzleFlowType::S_FLOW: return "Standard";
         case NozzleFlowType::U_FLOW: return "TPU High Flow";
+        case NozzleFlowType::T_FLOW: return "TPU285";
         case NozzleFlowType::E_FLOW: return "E3D High Flow";
         default: return "Unknown";
     }
@@ -97,6 +101,7 @@ std::string DevNozzle::ToNozzleFlowString(const NozzleFlowType& type)
         case NozzleFlowType::S_FLOW: return "Standard";
         case NozzleFlowType::H_FLOW: return "High Flow";
         case NozzleFlowType::U_FLOW: return "TPU High Flow";
+        case NozzleFlowType::T_FLOW: return "TPU285";
         case NozzleFlowType::E_FLOW: return "E3D High Flow";
         default: return std::string();
     }
@@ -345,6 +350,10 @@ std::vector<MultiNozzleUtils::NozzleGroupInfo> DevNozzleSystem::GetNozzleGroups(
 
 bool DevNozzleSystem::IsRackMaximumInstalled() const
 {
+    // This six-slot stow check belongs to the H2C AB rack, not the H3C PrintTool rack.
+    if (m_owner->printer_type == "N10")
+        return false;
+
     auto ext_nozzle = GetExtNozzle(MAIN_EXTRUDER_ID);
     if (ext_nozzle.IsEmpty()) {
         return false;
@@ -433,6 +442,7 @@ static std::unordered_map<std::string, NozzleFlowType> _str2_nozzle_flow_type = 
     {"X", NozzleFlowType::S_FLOW},
     {"E", NozzleFlowType::H_FLOW}, // E3D high-flow
     {"U", NozzleFlowType::U_FLOW}, // TPU 1.75 high-flow -> nvtTPUHighFlow
+    {"T", NozzleFlowType::T_FLOW},
     {"B", NozzleFlowType::E_FLOW}, // E3D High Flow -> nvtE3DHighFlow
 };
 

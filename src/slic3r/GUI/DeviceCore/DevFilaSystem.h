@@ -225,6 +225,7 @@ public:
 
     // slots
     int   GetSlotCount() const;
+    int   GetTrayBitIndex(int slot_id) const;
     DevAmsTray* GetTray(const std::string& tray_id) const;
     const std::map<std::string, DevAmsTray*>& GetTrays() const { return m_trays; }
 

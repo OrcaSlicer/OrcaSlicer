@@ -687,62 +687,53 @@ void Tab::create_preset_tab()
     m_completed = true;
 }
 
-void Tab::parse_extruder_selection(int selection, int &extruder_id, NozzleVolumeType &nozzle_type)
+static std::vector<NozzleVolumeType> extruder_tab_flow_types(const PresetBundle &bundle, int extruder_id)
 {
-    auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
-    int  extruder_nums  = m_preset_bundle->get_printer_extruder_count();
-
-    int current_index = 0;
-
-    for (int i = 0; i < extruder_nums; ++i) {
-        NozzleVolumeType volume_type = NozzleVolumeType(nozzle_volumes->values[i]);
-
-        if (volume_type == NozzleVolumeType::nvtHybrid) {
-            if (selection == current_index) {
-                extruder_id = i;
-                nozzle_type = NozzleVolumeType::nvtStandard;
-                return;
-            } else if (selection == current_index + 1) {
-                extruder_id = i;
-                nozzle_type = NozzleVolumeType::nvtHighFlow;
-                return;
-            }
-            current_index += 2;
-        } else {
-            if (selection == current_index) {
-                extruder_id = i;
-                nozzle_type = volume_type;
-                return;
-            }
-            current_index += 1;
+    const auto *types = bundle.project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+    const auto type = types && extruder_id < int(types->values.size()) ?
+        NozzleVolumeType(types->values[extruder_id]) : nvtStandard;
+    if (type != nvtHybrid)
+        return {type};
+    const auto *stats = bundle.printers.get_edited_preset().config.option<ConfigOptionStrings>("extruder_nozzle_stats");
+    if (stats) {
+        const auto counts = get_extruder_nozzle_stats(stats->values);
+        if (extruder_id < int(counts.size())) {
+            std::vector<NozzleVolumeType> flows;
+            for (const auto &[flow, count] : counts[extruder_id])
+                if (count > 0 && flow != nvtHybrid)
+                    flows.push_back(flow);
+            if (!flows.empty())
+                return flows;
         }
     }
+    return {nvtStandard, nvtHighFlow};
+}
 
+void Tab::parse_extruder_selection(int selection, int &extruder_id, NozzleVolumeType &nozzle_type)
+{
+    int index = 0;
+    for (int eid = 0; eid < m_preset_bundle->get_printer_extruder_count(); ++eid)
+        for (NozzleVolumeType flow : extruder_tab_flow_types(*m_preset_bundle, eid))
+            if (index++ == selection) {
+                extruder_id = eid;
+                nozzle_type = flow;
+                return;
+            }
     extruder_id = 0;
-    nozzle_type = NozzleVolumeType::nvtStandard;
+    nozzle_type = nvtStandard;
 }
 
 int Tab::calculate_selection_index_for_extruder(int extruder_id, NozzleVolumeType nozzle_type)
 {
-    auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
-    int  extruder_nums  = m_preset_bundle->get_printer_extruder_count();
-
     int index = 0;
-
-    for (int i = 0; i < extruder_nums; ++i) {
-        if (i == extruder_id) {
-            NozzleVolumeType volume_type = NozzleVolumeType(nozzle_volumes->values[i]);
-            if (volume_type == NozzleVolumeType::nvtHybrid) {
-                return nozzle_type == NozzleVolumeType::nvtHighFlow ? index + 1 : index;
-            } else {
+    for (int eid = 0; eid < m_preset_bundle->get_printer_extruder_count(); ++eid) {
+        const auto flows = extruder_tab_flow_types(*m_preset_bundle, eid);
+        for (NozzleVolumeType flow : flows) {
+            if (eid == extruder_id && flow == nozzle_type)
                 return index;
-            }
+            ++index;
         }
-
-        NozzleVolumeType volume_type = NozzleVolumeType(nozzle_volumes->values[i]);
-        index += (volume_type == NozzleVolumeType::nvtHybrid) ? 2 : 1;
     }
-
     return 0;
 }
 
@@ -6497,7 +6488,7 @@ void TabPrinter::on_preset_loaded()
             }
         }
         if (use_default_nozzle_volume_type) {
-            m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
+            m_preset_bundle->reset_default_nozzle_volume_type();
         }
 
         // Changing printer model drops any Filament Track Switch context from the previous
@@ -9061,6 +9052,8 @@ static wxString short_nozzle_volume_name(const std::string &volume_name)
     if (volume_name == "High Flow")
         // TRN Short tag for the High Flow nozzle flow type.
         return _L_CONTEXT("HF", "Nozzle flow type");
+    if (volume_name == "TPU285")
+        return _L("TPU285");
     if (volume_name == "TPU High Flow")
         // TRN Short tag for the TPU High Flow nozzle flow type.
         return _L_CONTEXT("TPU HF", "Nozzle flow type");
@@ -9156,15 +9149,9 @@ std::vector<wxString> Tab::generate_extruder_options()
 
     for (int i = 0; i < extruder_nums; ++i) {
         wxString extruder_name = extruder_display_name(*m_preset_bundle, i, ToolHeadNameCase::TitleCase, true);
-        NozzleVolumeType volume_type = NozzleVolumeType(nozzle_volumes->values[i]);
-
-        if (volume_type == NozzleVolumeType::nvtHybrid) {
-            options.push_back(wxString::Format("%s %s", extruder_name, short_nozzle_volume_name(get_nozzle_volume_type_string(NozzleVolumeType::nvtStandard))));
-            options.push_back(wxString::Format("%s %s", extruder_name, short_nozzle_volume_name(get_nozzle_volume_type_string(NozzleVolumeType::nvtHighFlow))));
-        } else {
+        for (NozzleVolumeType flow : extruder_tab_flow_types(*m_preset_bundle, i))
             options.push_back(wxString::Format("%s %s", extruder_name,
-                                               short_nozzle_volume_name(get_nozzle_volume_type_string(volume_type))));
-        }
+                                               short_nozzle_volume_name(get_nozzle_volume_type_string(flow))));
     }
     return options;
 }

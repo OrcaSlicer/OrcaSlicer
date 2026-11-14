@@ -37,7 +37,7 @@ public:
 
 public:
     static int get_flag_bits(std::string str, int start, int count = 1);
-    static int get_flag_bits(int num, int start, int count = 1, int base = 10);
+    static int get_flag_bits(uint64_t num, int start, int count = 1, int base = 10);
     static uint32_t get_flag_bits_no_border(std::string str, int start_idx, int count = 1);
 
     // eg. get_hex_bits(16, 1, 10) = 1
