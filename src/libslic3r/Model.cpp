@@ -316,6 +316,10 @@ static void add_textured_mesh_to_model(Model& model, const TexturedMesh& tex_mes
     its_remove_degenerate_faces(its);
     its_compactify_vertices(its);
 
+    // Every triangle was degenerate, for instance all under a node scaled to zero. read_from_file() reports an empty file.
+    if (its.indices.empty())
+        return;
+
     model.add_object(object_name.c_str(), input_file.c_str(), TriangleMesh(std::move(its)));
 }
 
