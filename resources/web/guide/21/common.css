@@ -38,7 +38,7 @@
 	margin-left: auto;
 }
 
-.BlockBanner  a {
+.BlockBanner  h2 {
 	line-height: 30px;
 	height: 30px;
 	font-size: 17px;
@@ -125,6 +125,12 @@
 	animation: infoCard 0s forwards var(--card-animation-delay);
 }
 
+/* keyboard focus has no hover intent to wait for */
+.PrinterBlock:focus-visible .PrinterInfo {
+	opacity: 1;
+	box-shadow: 0 5px 10px rgba(0,0,0,.2);
+}
+
 @keyframes infoCard {100% {
 	opacity: 1;
 	box-shadow: 0 5px 10px rgba(0,0,0,.2);
@@ -140,7 +146,8 @@
 	text-align: center;
 }
 
-.PrinterBlock:hover .PrinterInfoMark {
+.PrinterBlock:hover .PrinterInfoMark,
+.PrinterBlock:focus-within .PrinterInfoMark {
 	opacity: 1;
 }
 
@@ -380,7 +387,27 @@ img.ModelThumbnail {
 	padding: 0 0 5px 20px;
 }
 
+#Sidebar .SidebarHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-right: 10px;
+	margin-bottom: 6px; /* clear of the first vendor's focus ring */
+}
+
+#Sidebar .SidebarClose {
+	padding: 2px 10px;
+	border-radius: 6px;
+}
+
+#SidebarVendors {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
 #Sidebar .SidebarItem {
+	display: block; /* ORCA a <button> is inline-block - stack the rows like the divs did */
 	width: 100%;
 	padding: 2px 10px 2px 20px;
 	color:var(--fg-color-text);
@@ -398,19 +425,18 @@ img.ModelThumbnail {
 }
 
 /* NOTICE POPUP */
-#NoticeMask {
+#NoticeBody::backdrop {
 	background-color: #000;
-	position: absolute;
-	top: 0px;
-	left: 0px;
-	right: 0px;
-	bottom: 0px;
 	opacity: 0.05;
-	display: none;
 }
 
-#NoticeBody {
-	display: none;
+#NoticeBody { /* a modal <dialog>: undo its UA box so it sits where the old div did */
+	max-width: none;
+	max-height: none;
+	padding: 0;
+	margin: 0;
+	right: auto;
+	bottom: auto;
 	width: 400px;
 	border-width: 1px;
 	border-style: solid;

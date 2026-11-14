@@ -2,7 +2,7 @@
 function OnInit()
 {
 	TranslatePage();
-	
+
 	SendInstallPluginCheck();
 }
 

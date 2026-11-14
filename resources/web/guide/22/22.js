@@ -1,7 +1,7 @@
 function OnInit()
 {
 	TranslatePage();
-	
+
 	RequestProfile();
 }
 

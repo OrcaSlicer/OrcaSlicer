@@ -20,6 +20,7 @@ body
 	height:20mm;
 	line-height: 20mm;
 	font-size: 6mm;
+	font-weight: normal; /* #Title is the <h1> itself on this page */
 	color: #009688;
 }
 

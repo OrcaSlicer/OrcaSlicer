@@ -61,8 +61,8 @@ function OnSelectMenu( nIndex )
 			$('#SystemFilamentBtn').removeClass('TitleUnselected');		
 			
 			$('#CustomFilamentBtn').addClass('TitleUnselected');
-			$('#CustomFilamentBtn').removeClass('TitleSelected');	
-			
+			$('#CustomFilamentBtn').removeClass('TitleSelected');
+
 			$('#SystemFilamentsArea').css('display','flex');
 			$('#CustomFilamentsArea').css('display','none');
 			break;
@@ -71,12 +71,15 @@ function OnSelectMenu( nIndex )
 			$('#CustomFilamentBtn').removeClass('TitleUnselected');
 			
 			$('#SystemFilamentBtn').addClass('TitleUnselected');
-			$('#SystemFilamentBtn').removeClass('TitleSelected');	
-			
+			$('#SystemFilamentBtn').removeClass('TitleSelected');
+
 			$('#CustomFilamentsArea').css('display','flex');
-			$('#SystemFilamentsArea').css('display','none');			
+			$('#SystemFilamentsArea').css('display','none');
 			break;
 	}
+
+	SetAriaState($('#SystemFilamentBtn'), 'aria-pressed', nIndex == 1);
+	SetAriaState($('#CustomFilamentBtn'), 'aria-pressed', nIndex == 2);
 }
 
 function RequestCustomFilaments()
@@ -107,9 +110,10 @@ function UpdateCustomFilaments( CFList )
 		
 		let F_id=pItem['id'];
 		let F_name=pItem['name'];
+		let F_attr=EscAttr(F_name);	//user named, keep it out of the markup
 		
 		let strAdd='<div class="CFilament_Item">'+
-			       '<a  class="CFilament_Name" title="'+F_name+'">'+F_name+'</a><img onClick="CFEdit(\''+F_id+'\')" class="CFilament_EditBtn" src="../../image/edit.svg" />'+
+			       '<a  class="CFilament_Name" title="'+F_attr+'">'+F_attr+'</a><button type="button" onClick="CFEdit(\''+F_id+'\')" aria-label="'+EscAttr(T('edit_filament_named','Edit filament %s',F_name))+'" class="CFilament_EditBtn"><img src="../../image/edit.svg" alt="" /></button>'+
 		           '</div>';
 		
 		strHtml+=strAdd;

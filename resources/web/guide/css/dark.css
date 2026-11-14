@@ -18,7 +18,8 @@ body
         background: #161817;
 }
 
-#Title div
+#Title h1,
+#Title button
 {
 	color: #009688;
 }
@@ -55,7 +56,7 @@ body
 }
 
 /*----Menu----*/
-#Title div.TitleUnselected
+#Title button.TitleUnselected
 {
 	color: #BEBEC0;
 }
