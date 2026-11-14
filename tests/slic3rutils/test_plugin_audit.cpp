@@ -33,13 +33,16 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
+#include <chrono>
 #include <clocale>
 #include <fstream>
 #include <functional>
+#include <future>
 #include <ios>
 #include <iterator>
 #include <locale>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -79,6 +82,487 @@ std::string read_text_file(const fs::path& path)
 }
 
 } // namespace
+
+namespace {
+
+AuditPromptRequest prompt_request(const std::string& plugin_key, AuditEventCategory category,
+                                  std::vector<std::string> targets)
+{
+    AuditPromptRequest request;
+    request.category    = category;
+    request.plugin_key  = plugin_key;
+    request.plugin_name = plugin_key;
+    request.event_name  = "open";
+    request.keys        = std::move(targets);
+    request.shown       = request.keys;
+    return request;
+}
+
+AuditPromptBucket bucket(AuditEventCategory category, std::vector<std::string> targets)
+{
+    return {category, std::move(targets)};
+}
+
+// A load-time declaration: one combined prompt over the buckets no earlier grant covers. A load
+// worker may be blocked on its answer.
+AuditPromptRequest declared_request(const std::string& plugin_key, std::vector<AuditPromptBucket> buckets)
+{
+    AuditPromptRequest request;
+    request.kind        = AuditPromptKind::DeclaredPermissions;
+    request.plugin_key  = plugin_key;
+    request.plugin_name = plugin_key;
+    request.buckets     = std::move(buckets);
+    return request;
+}
+
+// The informational denial shown for a create/delete event raised off the GUI thread. It has no
+// Yes/No choice and no worker waiting on it.
+AuditPromptRequest denied_request(const std::string& plugin_key, AuditEventCategory category,
+                                  std::vector<std::string> targets)
+{
+    AuditPromptRequest request;
+    request.kind        = AuditPromptKind::DeniedOperation;
+    request.category    = category;
+    request.plugin_key  = plugin_key;
+    request.plugin_name = plugin_key;
+    request.event_name  = category == AuditEventCategory::FsDelete ? "os.remove" : "open";
+    request.shown       = std::move(targets);
+    return request;
+}
+
+// A request plus the completion a blocked load worker waits on, and the future that worker holds.
+struct WaitingRequest
+{
+    AuditPromptRequest                     request;
+    std::shared_ptr<AuditPromptCompletion> completion;
+    std::future<bool>                      future;
+};
+
+WaitingRequest waiting(AuditPromptRequest request)
+{
+    auto              completion = std::make_shared<AuditPromptCompletion>();
+    std::future<bool> future     = completion->get_future();
+    request.completion           = completion;
+    return {std::move(request), std::move(completion), std::move(future)};
+}
+
+bool settled(std::future<bool>& future)
+{
+    return future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready;
+}
+
+} // namespace
+
+TEST_CASE("A runtime audit prompt is queued while another one is active", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/true) ==
+          AuditPromptQueue::Admission::ShowNow);
+    // Still inside the first dialog's modal loop: a GUI-thread event must queue, not nest.
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/b"}), /*may_show_now=*/true) ==
+          AuditPromptQueue::Admission::Queued);
+    // The request already on screen is not queued a second time.
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/true) ==
+          AuditPromptQueue::Admission::Duplicate);
+    CHECK(queue.pending_count() == 1);
+    CHECK_FALSE(queue.take_next().has_value());
+
+    queue.complete();
+    std::optional<AuditPromptRequest> next = queue.take_next();
+    REQUIRE(next.has_value());
+    CHECK(next->keys == std::vector<std::string>{"/b"});
+    CHECK_FALSE(queue.take_next().has_value());
+    CHECK_FALSE(queue.idle());
+
+    queue.complete();
+    CHECK(queue.idle());
+}
+
+TEST_CASE("Only exactly equivalent pending audit prompts are coalesced", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Duplicate);
+    // A different category, plugin, or target is a distinct grant and never merges.
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsReadWrite, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("other_plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/b"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.pending_count() == 4);
+}
+
+TEST_CASE("Queued audit prompts are handed out in arrival order", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/b"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+
+    std::optional<AuditPromptRequest> first = queue.take_next();
+    REQUIRE(first.has_value());
+    CHECK(first->keys == std::vector<std::string>{"/a"});
+    queue.complete();
+
+    std::optional<AuditPromptRequest> second = queue.take_next();
+    REQUIRE(second.has_value());
+    CHECK(second->keys == std::vector<std::string>{"/b"});
+    queue.complete();
+    CHECK(queue.idle());
+}
+
+TEST_CASE("Discarding drops queued audit prompts but leaves the active one", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/true) ==
+          AuditPromptQueue::Admission::ShowNow);
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/b"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+
+    queue.discard_all();
+    CHECK_FALSE(queue.has_pending());
+    queue.complete();
+    CHECK_FALSE(queue.take_next().has_value());
+    CHECK(queue.idle());
+}
+
+TEST_CASE("Unloading a plugin drops only that plugin's queued audit prompts", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    CHECK(queue.admit(prompt_request("unloaded", AuditEventCategory::FsRead, {"/a"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("kept", AuditEventCategory::FsRead, {"/b"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(prompt_request("unloaded", AuditEventCategory::FsRead, {"/c"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+
+    queue.discard_plugin("unloaded");
+
+    std::optional<AuditPromptRequest> next = queue.take_next();
+    REQUIRE(next.has_value());
+    CHECK(next->plugin_key == "kept");
+    queue.complete();
+    CHECK(queue.idle());
+}
+
+TEST_CASE("Runtime, declared, and informational audit prompts are serialized in arrival order", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    // A GUI-thread event arrives first and is on screen; the declaration and the informational
+    // denial that follow both have to wait for it, whatever their kind.
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/runtime"}), /*may_show_now=*/true) ==
+          AuditPromptQueue::Admission::ShowNow);
+    CHECK(queue.admit(declared_request("plugin", {bucket(AuditEventCategory::Http, {"https://api.example.com"})}),
+                      /*may_show_now=*/true) == AuditPromptQueue::Admission::Queued);
+    // A create/delete event falls back to its informational denial while a dialog is up.
+    CHECK(queue.admit_with_fallback(prompt_request("plugin", AuditEventCategory::FsDelete, {"/deleted"}),
+                                    denied_request("plugin", AuditEventCategory::FsDelete, {"/deleted"}),
+                                    /*may_show_now=*/true) == AuditPromptQueue::Admission::Queued);
+    CHECK(queue.pending_count() == 2);
+
+    // At most one prompt is on screen: nothing is handed out until the active dialog returns.
+    CHECK_FALSE(queue.take_next().has_value());
+
+    queue.complete();
+    std::optional<AuditPromptRequest> declared = queue.take_next();
+    REQUIRE(declared.has_value());
+    CHECK(declared->kind == AuditPromptKind::DeclaredPermissions);
+    REQUIRE(declared->buckets.size() == 1);
+    CHECK(declared->buckets.front().category == AuditEventCategory::Http);
+    const std::vector<std::string> declared_targets{"https://api.example.com"};
+    CHECK(declared->buckets.front().targets == declared_targets);
+    // The declaration's dialog is up now: the informational prompt still waits behind it.
+    CHECK_FALSE(queue.take_next().has_value());
+    CHECK(queue.pending_count() == 1);
+    queue.complete();
+
+    std::optional<AuditPromptRequest> denied = queue.take_next();
+    REQUIRE(denied.has_value());
+    CHECK(denied->kind == AuditPromptKind::DeniedOperation);
+    CHECK(denied->category == AuditEventCategory::FsDelete);
+    const std::vector<std::string> denied_targets{"/deleted"};
+    CHECK(denied->shown == denied_targets);
+    // An informational denial grants nothing and has no worker to release.
+    CHECK(denied->keys.empty());
+    CHECK(denied->completion == nullptr);
+    queue.complete();
+    CHECK(queue.idle());
+}
+
+TEST_CASE("Only exactly equivalent declared permission prompts are coalesced", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    const AuditPromptRequest declaration = declared_request("plugin", {bucket(AuditEventCategory::FsRead, {"/a"})});
+    CHECK(queue.admit(declaration, /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(declaration, /*may_show_now=*/false) == AuditPromptQueue::Admission::Duplicate);
+    // Same targets for another plugin is a different grant.
+    CHECK(queue.admit(declared_request("other_plugin", {bucket(AuditEventCategory::FsRead, {"/a"})}),
+                      /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+    // The same plugin asking for another category or another target is a different grant.
+    CHECK(queue.admit(declared_request("plugin", {bucket(AuditEventCategory::FsReadWrite, {"/a"})}),
+                      /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(declared_request("plugin", {bucket(AuditEventCategory::FsRead, {"/b"})}),
+                      /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+    CHECK(queue.pending_count() == 4);
+
+    // The declaration already on screen is not queued a second time either.
+    AuditPromptQueue shown;
+    CHECK(shown.admit(declaration, /*may_show_now=*/true) == AuditPromptQueue::Admission::ShowNow);
+    CHECK(shown.admit(declaration, /*may_show_now=*/true) == AuditPromptQueue::Admission::Duplicate);
+    CHECK(shown.pending_count() == 0);
+    CHECK_FALSE(shown.idle());
+}
+
+TEST_CASE("An informational denial never coalesces with a runtime prompt for the same operation", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    // A GUI-thread create is a real Yes/No prompt; the informational denial of a worker create
+    // must not be mistaken for a duplicate of it and dropped unseen.
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsCreate, {"/new"}), /*may_show_now=*/true) ==
+          AuditPromptQueue::Admission::ShowNow);
+    CHECK(queue.admit(denied_request("plugin", AuditEventCategory::FsCreate, {"/new"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.pending_count() == 1);
+
+    // Two informational denials of the same operation show nothing new the second time.
+    CHECK(queue.admit(denied_request("plugin", AuditEventCategory::FsCreate, {"/new"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Duplicate);
+    // Another target, another category, or another plugin is a separate denial to show.
+    CHECK(queue.admit(denied_request("plugin", AuditEventCategory::FsCreate, {"/other"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(denied_request("plugin", AuditEventCategory::FsDelete, {"/new"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(denied_request("other_plugin", AuditEventCategory::FsCreate, {"/new"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.pending_count() == 4);
+}
+
+TEST_CASE("A create/delete prompt falls back to an informational denial when another prompt is up", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    // Idle GUI thread: the immediate Yes/No prompt is shown, so a create can really be approved.
+    CHECK(queue.admit_with_fallback(prompt_request("plugin", AuditEventCategory::FsCreate, {"/new"}),
+                                    denied_request("plugin", AuditEventCategory::FsCreate, {"/new"}),
+                                    /*may_show_now=*/true) == AuditPromptQueue::Admission::ShowNow);
+    CHECK(queue.pending_count() == 0);
+
+    // Its dialog is up, so the same create cannot be shown as a second Yes/No prompt; it queues as
+    // the informational denial that matches what the user can actually do.
+    CHECK(queue.admit_with_fallback(prompt_request("plugin", AuditEventCategory::FsCreate, {"/new"}),
+                                    denied_request("plugin", AuditEventCategory::FsCreate, {"/new"}),
+                                    /*may_show_now=*/true) == AuditPromptQueue::Admission::Queued);
+    // The queued denial is not a duplicate of the active Yes/No prompt, and is not queued twice.
+    CHECK(queue.admit_with_fallback(prompt_request("plugin", AuditEventCategory::FsCreate, {"/new"}),
+                                    denied_request("plugin", AuditEventCategory::FsCreate, {"/new"}),
+                                    /*may_show_now=*/true) == AuditPromptQueue::Admission::Duplicate);
+    CHECK(queue.pending_count() == 1);
+
+    queue.complete();
+    std::optional<AuditPromptRequest> queued = queue.take_next();
+    REQUIRE(queued.has_value());
+    CHECK(queued->kind == AuditPromptKind::DeniedOperation);
+    CHECK(queued->category == AuditEventCategory::FsCreate);
+    const std::vector<std::string> expected{"/new"};
+    CHECK(queued->shown == expected);
+    CHECK(queued->keys.empty());
+    CHECK(queued->completion == nullptr);
+    queue.complete();
+    CHECK(queue.idle());
+
+    // A worker create also gets the informational denial while the queue is idle: it cannot
+    // authorize the operation, so showing a Yes/No prompt would promise a grant it cannot keep.
+    AuditPromptQueue worker;
+    CHECK(worker.admit_with_fallback(prompt_request("plugin", AuditEventCategory::FsDelete, {"/gone"}),
+                                     denied_request("plugin", AuditEventCategory::FsDelete, {"/gone"}),
+                                     /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+    std::optional<AuditPromptRequest> denial = worker.take_next();
+    REQUIRE(denial.has_value());
+    CHECK(denial->kind == AuditPromptKind::DeniedOperation);
+    worker.complete();
+    CHECK(worker.idle());
+}
+
+TEST_CASE("A synchronous audit prompt is shown only while the queue is idle", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    // Idle: the prompt is shown now, and nothing is left for a later GUI callback.
+    CHECK(queue.admit_synchronous(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"})) ==
+          AuditPromptQueue::Admission::ShowNow);
+    CHECK(queue.pending_count() == 0);
+    CHECK_FALSE(queue.take_next().has_value());
+    queue.complete();
+    CHECK(queue.idle());
+
+    // Another prompt is on screen: the synchronous caller is rejected, whether its request is
+    // equivalent to the active one or not, and no deferred copy is stored.
+    CHECK(queue.admit_synchronous(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"})) ==
+          AuditPromptQueue::Admission::ShowNow);
+    CHECK(queue.admit_synchronous(prompt_request("plugin", AuditEventCategory::FsRead, {"/a"})) ==
+          AuditPromptQueue::Admission::Rejected);
+    CHECK(queue.admit_synchronous(prompt_request("plugin", AuditEventCategory::FsRead, {"/b"})) ==
+          AuditPromptQueue::Admission::Rejected);
+    CHECK(queue.pending_count() == 0);
+    CHECK_FALSE(queue.take_next().has_value());
+    // The rejection did not cancel or otherwise disturb the active prompt.
+    CHECK_FALSE(queue.complete());
+    CHECK(queue.idle());
+
+    // A prompt already waiting counts as busy too: the rejection leaves the pending count and the
+    // queued request untouched, and nothing is deferred behind it.
+    CHECK(queue.admit(prompt_request("plugin", AuditEventCategory::FsRead, {"/queued"}), /*may_show_now=*/false) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit_synchronous(prompt_request("plugin", AuditEventCategory::FsRead, {"/rejected"})) ==
+          AuditPromptQueue::Admission::Rejected);
+    CHECK(queue.pending_count() == 1);
+
+    std::optional<AuditPromptRequest> queued = queue.take_next();
+    REQUIRE(queued.has_value());
+    const std::vector<std::string> expected{"/queued"};
+    CHECK(queued->keys == expected);
+    queue.complete();
+    CHECK(queue.idle());
+    CHECK_FALSE(queue.take_next().has_value());
+}
+
+TEST_CASE("Discarding all audit prompts denies every blocked waiter", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    WaitingRequest active = waiting(prompt_request("plugin", AuditEventCategory::FsRead, {"/active"}));
+    CHECK(queue.admit(active.request, /*may_show_now=*/true) == AuditPromptQueue::Admission::ShowNow);
+
+    WaitingRequest queued_runtime = waiting(prompt_request("plugin", AuditEventCategory::FsRead, {"/queued"}));
+    WaitingRequest queued_load =
+        waiting(declared_request("plugin", {bucket(AuditEventCategory::Http, {"https://api.example.com"})}));
+    CHECK(queue.admit(queued_runtime.request, /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(queued_load.request, /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+
+    queue.discard_all();
+    // A late Yes from the dialog that was still up at shutdown never becomes an approval.
+    active.completion->resolve(true);
+
+    REQUIRE(settled(active.future));
+    REQUIRE(settled(queued_runtime.future));
+    REQUIRE(settled(queued_load.future));
+    CHECK(active.future.get() == false);
+    CHECK(queued_runtime.future.get() == false);
+    CHECK(queued_load.future.get() == false);
+    CHECK_FALSE(queue.has_pending());
+
+    // The cancelled dialog stays on screen, so a new prompt queues instead of nesting under it.
+    CHECK_FALSE(queue.take_next().has_value());
+    CHECK(queue.admit(prompt_request("other", AuditEventCategory::FsRead, {"/new"}), /*may_show_now=*/true) ==
+          AuditPromptQueue::Admission::Queued);
+    CHECK(queue.complete());
+    CHECK_FALSE(queue.complete());
+    CHECK_FALSE(queue.idle());
+
+    std::optional<AuditPromptRequest> next = queue.take_next();
+    REQUIRE(next.has_value());
+    const std::vector<std::string> expected{"/new"};
+    CHECK(next->keys == expected);
+    queue.complete();
+    CHECK(queue.idle());
+}
+
+TEST_CASE("Unloading a plugin denies its blocked waiters and keeps other plugins' prompts", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    WaitingRequest unloaded = waiting(prompt_request("unloaded", AuditEventCategory::FsRead, {"/a"}));
+    WaitingRequest kept = waiting(declared_request("kept", {bucket(AuditEventCategory::FsRead, {"/b"})}));
+    CHECK(queue.admit(unloaded.request, /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+    CHECK(queue.admit(kept.request, /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+
+    queue.discard_plugin("absent");
+    CHECK(queue.pending_count() == 2);
+
+    queue.discard_plugin("unloaded");
+
+    REQUIRE(settled(unloaded.future));
+    CHECK(unloaded.future.get() == false);
+    // The surviving load waiter is not released by another plugin's unload.
+    CHECK_FALSE(settled(kept.future));
+    CHECK(queue.pending_count() == 1);
+
+    std::optional<AuditPromptRequest> next = queue.take_next();
+    REQUIRE(next.has_value());
+    CHECK(next->plugin_key == "kept");
+    CHECK(next->kind == AuditPromptKind::DeclaredPermissions);
+    CHECK(next->completion == kept.completion);
+    queue.complete();
+    kept.completion->resolve(true);
+    REQUIRE(settled(kept.future));
+    CHECK(kept.future.get() == true);
+    CHECK(queue.idle());
+}
+
+TEST_CASE("A committed answer is not cancelled by a discard that races it", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+    CHECK_FALSE(queue.begin_commit()); // nothing active to commit
+
+    WaitingRequest active = waiting(declared_request("plugin", {bucket(AuditEventCategory::FsRead, {"/a"})}));
+    CHECK(queue.admit(active.request, /*may_show_now=*/true) == AuditPromptQueue::Admission::ShowNow);
+
+    // The user answered and the GUI thread is about to write the sidecar. An unload racing that
+    // write must neither deny the worker nor forbid the grant it approved.
+    CHECK(queue.begin_commit());
+    queue.discard_plugin("plugin");
+    CHECK_FALSE(settled(active.future));
+    CHECK_FALSE(queue.complete());
+
+    // A shutdown that wins the race before the commit does deny the waiter and forbids the write.
+    WaitingRequest late = waiting(declared_request("other", {bucket(AuditEventCategory::FsRead, {"/b"})}));
+    CHECK(queue.admit(late.request, /*may_show_now=*/true) == AuditPromptQueue::Admission::ShowNow);
+    queue.discard_all();
+    CHECK_FALSE(queue.begin_commit());
+    REQUIRE(settled(late.future));
+    CHECK(late.future.get() == false);
+    CHECK(queue.complete());
+    CHECK(queue.idle());
+}
+
+TEST_CASE("Unloading a plugin cancels its active prompt but leaves it on screen", "[audit][Python]")
+{
+    AuditPromptQueue queue;
+
+    WaitingRequest unloaded = waiting(prompt_request("unloaded", AuditEventCategory::FsRead, {"/a"}));
+    WaitingRequest kept = waiting(declared_request("kept", {bucket(AuditEventCategory::FsRead, {"/b"})}));
+    CHECK(queue.admit(unloaded.request, /*may_show_now=*/true) == AuditPromptQueue::Admission::ShowNow);
+    CHECK(queue.admit(kept.request, /*may_show_now=*/false) == AuditPromptQueue::Admission::Queued);
+
+    queue.discard_plugin("unloaded");
+    // The dialog returns after the unload; the late answer must not approve the load worker.
+    unloaded.completion->resolve(true);
+
+    REQUIRE(settled(unloaded.future));
+    CHECK(unloaded.future.get() == false);
+    CHECK_FALSE(queue.take_next().has_value());
+    // complete() reports the cancellation, so the caller must not persist the accepted grant.
+    CHECK(queue.complete());
+    CHECK_FALSE(settled(kept.future));
+
+    std::optional<AuditPromptRequest> next = queue.take_next();
+    REQUIRE(next.has_value());
+    CHECK(next->plugin_key == "kept");
+    queue.complete();
+    CHECK(queue.idle());
+}
 
 TEST_CASE("Plugin audit denies host-managed filenames anywhere", "[audit]")
 {

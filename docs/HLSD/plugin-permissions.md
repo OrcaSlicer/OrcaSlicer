@@ -125,9 +125,11 @@ nested events of the same operation are not asked again.
 A plugin declares its needs from Python with `orca.request_permissions(...)` while
 `register_capabilities` runs. The bridge collects the declarations per plugin. After
 registration returns and before any capability instance is created, OrcaSlicer presents
-one combined prompt for the targets not already stored. Denying the request aborts the
-load. A readable sidecar with `full_access` accepts the declaration without a prompt and
-without adding a grant.
+one combined prompt for the targets not already stored. The request joins the same
+`AuditPromptQueue` as runtime prompts: a load worker waits for the answer, while a
+GUI-thread caller is rejected when another prompt is active instead of blocking the GUI.
+Denying the request aborts the load. A readable sidecar with `full_access` accepts the
+declaration without a prompt and without adding a grant.
 
 Network URLs passed to `request_permissions(network=...)` are normalized to
 `scheme://host` before prompting or storing, so one approval covers every path and port
@@ -138,16 +140,27 @@ sidecar show the absolute scope it covers.
 ### Runtime prompts
 
 An event that is not covered by a saved grant or an implicit rule is either put to the
-user or denied. If the caller is on the wx main thread, the modal runs inline. If it is
-not, as on the Script workflow, the plugin-load worker, or the slicing worker, the current
-event is denied and the outcome is reported asynchronously. For a category with a persistent
-grant list, a Yes/No prompt is posted to the main thread with `CallAfter`; if the user
-accepts, the grant is saved and a later matching attempt can succeed without another prompt.
-Create and delete do not support persistent grants: on the main thread they use the inline
-prompt described above, while off the main thread they are denied and only an informational
-denial is posted. That path offers no Yes/No choice and does not claim that the operation can
-be approved on a retry. Blocking a worker on a marshalled modal is avoided because the UI
-thread can itself be parked on the slicing worker.
+user or denied. If the caller is on the wx main thread and no audit prompt is active, the
+modal runs inline. Otherwise, as on the Script workflow, the plugin-load worker, or the
+slicing worker, the current event is denied and the prompt is queued for the GUI thread.
+`AuditPromptQueue` serializes every audit prompt -- runtime events, create/delete
+informational denials, and load-time declarations -- so at most one is shown at a time,
+including during a modal dialog's nested event loop. An event raised inside that loop is
+queued and denied instead of opening a second dialog; the queued prompt opens after the
+active dialog has closed.
+
+For a category with a persistent grant list, a Yes saves the grant and a later matching
+attempt can succeed without another prompt. Create and delete do not support persistent
+grants: they use the inline Yes/No prompt only when it can be shown immediately on the GUI
+thread, while a queued request for them is an OK-only informational denial with no Yes/No
+choice. Blocking a worker on a marshalled modal is avoided because the UI thread can itself
+be parked on the slicing worker. A load worker does block on its declared-permission answer:
+shutdown or plugin unload cancels queued requests and active requests whose accepted answer
+has not begun committing, releasing waiting workers with a denial. An admission that races
+that cancellation is discarded as soon as it becomes visible. A cancelled load stops being
+treated as a live plugin even while its worker is still unwinding. A cancellation observed before
+display suppresses the prompt; a dialog racing with cancellation may still appear or remain on
+screen, but its answer is ignored unless committing won the race.
 
 Runtime approvals store the target observed by the audit hook. A URL with a path, port or
 query is therefore an exact grant; a bare host remains usable for raw sockets. The
@@ -208,6 +221,14 @@ and a fresh sidecar is written, while the old bytes stay beside it for manual re
 Anything else at the sidecar path is left in place: a link or a directory, or a file
 that cannot be opened or read in full, since a read error can look like truncated
 contents.
+
+Declared permissions are added in one locked read-modify-write, including the `threading`
+boolean. A successful write notifies an open Plugins dialog so its Permissions tab
+refreshes; a failed write notifies nothing. If the sidecar was readable when the declaration
+was read but is absent when the answer is saved, the write is refused instead of recreating
+it: that is lost state, not a new install. Only a sidecar absent at both reads is seeded.
+Runtime grants use the same per-target helper, which takes the lock and re-reads the sidecar
+for every target.
 
 Each audit decision reads the current sidecar through
 `PluginManager::get_install_state`, so a grant persisted by a prompt applies to
@@ -313,8 +334,9 @@ never treated as an opt-out.
 
 - `src/slic3r/plugin/PluginAuditManager.hpp` / `.cpp` - `PluginAuditManager`,
   `install_hook`, `audit_plugin_event`, `decide_audited_event`, `request_permissions`,
-  `request_permission`, `check_path_access`, `network_permission_matches`,
-  `default_denied_filenames`, `default_denied_path_keywords`, `ScopedPluginAuditContext`.
+  `request_permission`, `AuditPromptQueue`, `check_path_access`,
+  `network_permission_matches`, `default_denied_filenames`, `default_denied_path_keywords`,
+  `ScopedPluginAuditContext`.
 - `src/slic3r/plugin/PluginFsUtils.hpp` / `.cpp` - `PluginPermissions`,
   `PluginInstallState`, `read_install_state`, `write_install_state`.
 - `src/slic3r/plugin/PythonPluginBridge.cpp` - `request_permissions` binding,
