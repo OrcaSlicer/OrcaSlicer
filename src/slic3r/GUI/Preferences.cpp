@@ -2543,7 +2543,7 @@ void PreferencesDialog::create_items()
 
     auto item_plugin_printer_agents = create_item_checkbox(
         _L("Use printer agents instead of print hosts"), _L(
-            "Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\nWhen disabled, OrcaSlicer uses the legacy print-host behavior."),
+            "Route print jobs for non-Bambu printers through printer plug-in agents instead of the classic print-host upload flow.\nWhen disabled, OrcaSlicer uses the legacy print-host behavior, except for printers whose profile selects the Snapmaker agent (Snapmaker U1), which always use it. To opt such a printer out, set its Printer Agent back to the default in Printer Settings."),
         "use_printer_agents");
     g_sizer->Add(item_plugin_printer_agents);
 

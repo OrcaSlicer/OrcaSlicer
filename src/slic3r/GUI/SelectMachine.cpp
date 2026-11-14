@@ -135,6 +135,7 @@
 #include "slic3r/Utils/NetworkAgent.hpp"
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 
 using json = nlohmann::json;
 
@@ -7089,6 +7090,47 @@ static wxString _get_tips(MachineObject* obj_)
     return tips;
 }
 
+// Orca: printer_preview_<printer_type> images exist only for Bambu Lab models. Any other printer, such as the
+// Snapmaker U1, shows the cover image its vendor profile ships, the one the sidebar shows; failing both, the
+// generic placeholder rather than a Bambu printer.
+static std::string _get_printer_preview_image(const MachineObject* obj)
+{
+    const bool    bambu         = obj->printer_agent_id.empty() || obj->printer_agent_id == BBL_PRINTER_AGENT_ID;
+    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+
+    // An agent printer is always the one the selected printer preset connects to, so its model id stands in when
+    // the device has not reported one yet
+    std::string printer_type = obj->printer_type;
+    if (printer_type.empty() && !bambu && preset_bundle)
+        printer_type = preset_bundle->printers.get_edited_preset().get_printer_type(preset_bundle);
+
+    std::string image;
+    const std::string preview = "printer_preview_" + printer_type;
+    for (const char* ext : {".svg", ".png"}) {
+        if (!printer_type.empty() && fs::exists(fs::path(resources_dir()) / "images" / (preview + ext))) {
+            image = preview;
+            break;
+        }
+    }
+
+    if (image.empty() && preset_bundle && !printer_type.empty()) {
+        for (const auto& vendor_profile : preset_bundle->vendors) {
+            for (const auto& vendor_model : vendor_profile.second.models) {
+                if (vendor_model.model_id != printer_type)
+                    continue;
+                fs::path cover = fs::path(resources_dir()) / "profiles" / vendor_profile.second.id / (vendor_model.name + "_cover.png");
+                if (fs::exists(cover))
+                    image = cover.make_preferred().string();
+            }
+        }
+    }
+
+    if (image.empty())
+        image = bambu ? "printer_preview_BL-P001" : "printer_placeholder";
+    BOOST_LOG_TRIVIAL(debug) << "SelectMachineDialog: printer image for model id '" << printer_type << "': " << image;
+    return image;
+}
+
 void PrinterInfoBox::SetPrinters(const std::vector<MachineObject*>& sorted_printers)
 {
     m_comboBox_printer->Clear();
@@ -7103,8 +7145,9 @@ void PrinterInfoBox::SetPrinters(const std::vector<MachineObject*>& sorted_print
         // update image
         try
         {
-            drop_item.icon = create_scaled_bitmap("printer_preview_" + obj->printer_type, this, 32);
-            drop_item.icon_textctrl = create_scaled_bitmap("printer_preview_" + obj->printer_type, this, 52);
+            const std::string preview = _get_printer_preview_image(obj);
+            drop_item.icon            = create_scaled_bitmap(preview, this, 32);
+            drop_item.icon_textctrl   = create_scaled_bitmap(preview, this, 52);
         }
         catch (const std::exception&)
         {

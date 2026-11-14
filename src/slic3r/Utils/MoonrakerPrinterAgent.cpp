@@ -539,6 +539,113 @@ bool MoonrakerPrinterAgent::accepts_3mf() const
     return use_3mf != nullptr && use_3mf->value;
 }
 
+bool MoonrakerPrinterAgent::send_websocket_request(const std::string&        method,
+                                                   const nlohmann::json&     params,
+                                                   std::chrono::milliseconds timeout,
+                                                   nlohmann::json&           result,
+                                                   std::string&              error)
+{
+    WsEndpoint endpoint;
+    if (!parse_ws_endpoint(device_info.base_url, endpoint)) {
+        error = "invalid websocket endpoint for " + device_info.base_url;
+        return false;
+    }
+    const std::string api_key  = device_info.api_key;
+    const int         id       = next_jsonrpc_id++;
+    const std::string request  = nlohmann::json{{"jsonrpc", "2.0"}, {"method", method}, {"params", params}, {"id", id}}.dump();
+    const auto        deadline = std::chrono::steady_clock::now() + timeout;
+
+    net::io_context ioc;
+    // Runs the exchange over a plain or TLS stream. Every step goes through run_until_done(), since synchronous Beast
+    // calls ignore the stream's deadline.
+    const auto exchange = [&](auto& ws) -> bool {
+        constexpr bool     secure = !std::is_same_v<std::decay_t<decltype(ws.next_layer())>, beast::tcp_stream>;
+        beast::tcp_stream& stream = beast::get_lowest_layer(ws);
+        const auto         fail   = [&](const std::string& step, const beast::error_code& ec) {
+            error = step + ": " + (ec == beast::error::timeout ? std::string("timed out") : ec.message());
+            return false;
+        };
+
+        tcp::resolver resolver{ioc};
+        if (const auto ec = connect_until_done(ioc, stream, resolver.resolve(endpoint.host, endpoint.port), std::chrono::seconds(5))) {
+            return fail("connect", ec);
+        }
+        // One deadline covers the handshakes, the request and the wait for its answer
+        stream.expires_at(deadline);
+        if constexpr (secure) {
+            // Server name indication carries a host name only, never an address
+            beast::error_code not_address;
+            net::ip::make_address(endpoint.host, not_address);
+            if (not_address && !SSL_set_tlsext_host_name(ws.next_layer().native_handle(), endpoint.host.c_str())) {
+                error = "TLS server name rejected";
+                return false;
+            }
+            if (const auto ec = run_until_done(ioc, [&](auto&& handler) { ws.next_layer().async_handshake(ssl::stream_base::client, handler); })) {
+                return fail("TLS handshake", ec);
+            }
+        }
+        ws.set_option(websocket::stream_base::decorator([&](websocket::request_type& req) {
+            req.set(http::field::user_agent, "OrcaSlicer");
+            if (!api_key.empty()) {
+                req.set("X-Api-Key", api_key);
+            }
+        }));
+        std::string host_header = endpoint.host;
+        if (!endpoint.port.empty() && endpoint.port != (secure ? "443" : "80")) {
+            host_header += ":" + endpoint.port;
+        }
+        if (const auto ec = run_until_done(ioc, [&](auto&& handler) { ws.async_handshake(host_header, endpoint.target, handler); })) {
+            return fail("websocket handshake", ec);
+        }
+        ws.text(true);
+        if (const auto ec = run_until_done(ioc, [&](auto&& handler) { ws.async_write(net::buffer(request), handler); })) {
+            return fail("send", ec);
+        }
+
+        // Moonraker pushes notifications to every connected client, so messages are skipped until the one answering this id
+        bool answered = false;
+        while (!answered) {
+            beast::flat_buffer buffer;
+            if (const auto ec = run_until_done(ioc, [&](auto&& handler) { ws.async_read(buffer, handler); })) {
+                return fail("waiting for the answer", ec);
+            }
+            const auto message = nlohmann::json::parse(beast::buffers_to_string(buffer.data()), nullptr, false);
+            if (!message.is_object() || !message.contains("id") || message["id"] != id) {
+                continue;
+            }
+            answered = true;
+            if (message.contains("error")) {
+                const auto& err = message["error"];
+                error = err.is_object() && err.contains("message") && err["message"].is_string() ? err["message"].get<std::string>() :
+                                                                                                    err.dump();
+            } else {
+                result = message.contains("result") ? message["result"] : nlohmann::json();
+            }
+        }
+
+        // The answer is in, so a close that fails or times out changes nothing
+        stream.expires_after(std::chrono::seconds(1));
+        run_until_done(ioc, [&](auto&& handler) { ws.async_close(websocket::close_code::normal, handler); });
+        return error.empty();
+    };
+
+    error.clear();
+    try {
+        if (endpoint.secure) {
+            // Unverified, like the agent's HTTP requests, so a printer's self-signed certificate is accepted
+            ssl::context ctx{ssl::context::tls_client};
+            ctx.set_verify_mode(ssl::verify_none);
+            websocket::stream<beast::ssl_stream<beast::tcp_stream>> ws{ioc, ctx};
+            return exchange(ws);
+        }
+        websocket::stream<beast::tcp_stream> ws{ioc};
+        return exchange(ws);
+    } catch (const std::exception& e) {
+        error = e.what();
+        return false;
+    }
+}
+
 int MoonrakerPrinterAgent::start_sdcard_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn)
 {
     (void) params;
@@ -2299,6 +2406,8 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
             payload["print"]["mc_remaining_time"] = remaining_minutes;
         }
     }
+
+    add_print_capabilities(payload["print"]);
 
     const auto now_ms = static_cast<uint64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());

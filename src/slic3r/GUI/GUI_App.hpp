@@ -430,6 +430,9 @@ public:
     // ORCA TODO: in the future, bbl presets should specify "bbl" printer agent id
     // then, all resolve and canonical would just be ORCA<->""
     std::string canonical_printer_agent_id(const std::string& picked_id);
+    // Whether print jobs go through printer agents instead of print hosts: the "use_printer_agents" preference, or a
+    // printer whose profile picks the Snapmaker agent (the U1), whose print options only work through its agent.
+    bool use_printer_agents() const;
 
     FilamentColorCodeQuery* get_filament_color_code_query();
     bool is_editor() const { return m_app_mode == EAppMode::Editor; }
