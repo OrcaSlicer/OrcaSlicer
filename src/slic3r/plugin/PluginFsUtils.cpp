@@ -1,5 +1,6 @@
 #include "PluginFsUtils.hpp"
 
+#include "libslic3r/PrinterAssetRef.hpp"
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/miniz_extension.hpp"
 
@@ -37,6 +38,7 @@
 #include <filesystem>
 #include <mutex>
 #include <string>
+#include <string_view>
 #include <system_error>
 #include "slic3r/plugin/PluginDescriptor.hpp"
 #include <utility>
@@ -1431,20 +1433,36 @@ boost::filesystem::path find_installed_plugin_entry(const boost::filesystem::pat
     return {};
 }
 
-std::vector<std::string> collect_resource_texture_files(const std::string& dir,
-                                                        const std::string& plugin_root,
-                                                        std::string& error)
+namespace {
+
+// What a resource directory listing reports when it cannot be used.
+struct ResourceDirMessages
+{
+    std::string not_set;
+    std::string not_resolved;
+    std::string not_directory;
+    std::string outside_root;
+    std::string unreadable;
+};
+
+// Validated non-recursive regular files with one of `extensions` (lowercase, with the dot) directly
+// inside `dir`, every one contained in `plugin_root`, at most `max_files`. A file whose name
+// `accepts_name` (when set) rejects is left out before the cap, so it cannot take a slot.
+std::vector<std::string> collect_contained_resource_files(const std::string&              dir,
+                                                          const std::string&              plugin_root,
+                                                          const std::vector<std::string>& extensions,
+                                                          size_t                          max_files,
+                                                          bool                          (*accepts_name)(std::string_view),
+                                                          const ResourceDirMessages&      messages,
+                                                          std::string&                    error)
 {
     namespace fs = boost::filesystem;
-
-    // Picker sanity bound, not a security control: the popup draws every entry in its grid.
-    constexpr size_t kMaxResourceTextureFiles = 64;
 
     std::vector<std::string> files;
     error.clear();
 
     if (dir.empty()) {
-        error = _u8L("Resource texture directory is not set");
+        error = messages.not_set;
         return files;
     }
     if (plugin_root.empty()) {
@@ -1455,12 +1473,12 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
     boost::system::error_code ec;
     const fs::path resolved_dir = fs::weakly_canonical(fs::path(dir), ec);
     if (ec) {
-        error = _u8L("Resource texture directory could not be resolved");
+        error = messages.not_resolved;
         return files;
     }
 
     if (!fs::is_directory(resolved_dir, ec) || ec) {
-        error = _u8L("Resource texture path is not a directory");
+        error = messages.not_directory;
         return files;
     }
 
@@ -1471,36 +1489,80 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
     }
 
     if (!is_inside_allowed_root(resolved_dir, resolved_root)) {
-        error = _u8L("Resource texture directory is outside the plugin folder");
+        error = messages.outside_root;
         return files;
     }
 
+    std::vector<fs::path> candidates;
     for (fs::directory_iterator it(resolved_dir, ec), end; it != end && !ec; it.increment(ec)) {
         const fs::path& path = it->path();
 
-        if (!fs::is_regular_file(path, ec) || ec)
-            continue;
-
         std::string ext = path.extension().string();
         boost::algorithm::to_lower(ext);
-        if (ext != ".png" && ext != ".jpg" && ext != ".jpeg" && ext != ".bmp")
+        if (std::find(extensions.begin(), extensions.end(), ext) == extensions.end())
             continue;
 
-        // Re-check per file: a symlink inside the pack must not resolve outside it.
-        if (!is_inside_allowed_root(path, resolved_root))
+        if (!fs::is_regular_file(path, ec) || ec) {
+            // E.g. a path past MAX_PATH on Windows, or a Windows device name such as con.png.
+            if (ec)
+                BOOST_LOG_TRIVIAL(warning) << "Skipping unreadable plugin resource file " << path.string() << ": " << ec.message();
             continue;
-
-        files.push_back(path.string());
-        if (files.size() >= kMaxResourceTextureFiles)
-            break;
+        }
+        candidates.push_back(path);
     }
 
     if (ec) {
-        error = _u8L("Resource texture directory could not be read");
+        error = messages.unreadable;
         return {};
     }
 
+    // Directory order differs between file systems (ext4 hashes it): sort, so the list and which
+    // files the cap keeps are the same everywhere.
+    std::sort(candidates.begin(), candidates.end());
+    for (const fs::path& path : candidates) {
+        if (accepts_name != nullptr && !accepts_name(path.filename().string()))
+            continue;
+        // Re-check per file: a symlink inside the pack must not resolve outside it.
+        if (!is_inside_allowed_root(path, resolved_root))
+            continue;
+        files.push_back(path.string());
+        if (files.size() >= max_files)
+            break;
+    }
     return files;
+}
+
+} // namespace
+
+std::vector<std::string> collect_resource_texture_files(const std::string& dir,
+                                                        const std::string& plugin_root,
+                                                        std::string& error)
+{
+    // Picker sanity bound, not a security control: the popup draws every entry in its grid.
+    constexpr size_t kMaxResourceTextureFiles = 64;
+
+    const ResourceDirMessages messages{_u8L("Resource texture directory is not set"),
+                                       _u8L("Resource texture directory could not be resolved"),
+                                       _u8L("Resource texture path is not a directory"),
+                                       _u8L("Resource texture directory is outside the plugin folder"),
+                                       _u8L("Resource texture directory could not be read")};
+    return collect_contained_resource_files(dir, plugin_root, {".png", ".jpg", ".jpeg", ".bmp"}, kMaxResourceTextureFiles,
+                                            nullptr, messages, error);
+}
+
+std::vector<std::string> collect_printer_asset_files(const std::string& dir, const std::string& plugin_root, std::string& error)
+{
+    // Menu sanity bound: the Bed Shape dialog lists every file of every pack.
+    constexpr size_t kMaxPrinterAssetFiles = 16;
+
+    const ResourceDirMessages messages{_u8L("Printer asset directory is not set"),
+                                       _u8L("Printer asset directory could not be resolved"),
+                                       _u8L("Printer asset path is not a directory"),
+                                       _u8L("Printer asset directory is outside the plugin folder"),
+                                       _u8L("Printer asset directory could not be read")};
+    // A name a reference cannot hold is not offered by the Bed Shape dialog, so it must not take a slot.
+    return collect_contained_resource_files(dir, plugin_root, {".stl", ".png", ".svg"}, kMaxPrinterAssetFiles,
+                                            &is_printer_asset_file_name, messages, error);
 }
 
 } // namespace Slic3r

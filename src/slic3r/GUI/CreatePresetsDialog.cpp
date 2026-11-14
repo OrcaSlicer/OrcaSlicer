@@ -3351,7 +3351,9 @@ bool CreatePrinterPresetDialog::save_printable_area_config(Preset *preset)
         assert(m_printer_name_to_preset.end() != itor);
         if (m_printer_name_to_preset.end() != itor) {
             std::shared_ptr<Preset> printer_preset = itor->second;
-            std::vector<std::string> keys = {"printable_area", "printable_height", "bed_custom_model", "bed_custom_texture"};
+            // The bed files may be printer asset pack references, so the packs and manifest come along.
+            std::vector<std::string> keys = {"printable_area", "printable_height", "bed_custom_model", "bed_custom_texture",
+                                             "printer_asset_plugins", "printer_plugins"};
             config.apply_only(printer_preset->config, keys, true);
         }
     }

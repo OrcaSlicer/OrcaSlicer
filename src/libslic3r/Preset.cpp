@@ -601,12 +601,67 @@ void Preset::normalize(DynamicPrintConfig &config)
     handle_legacy_sla(config);
 }
 
+// Append the references that are not present yet, keeping the order.
+static void append_plugin_refs(std::vector<std::string> &refs, const std::vector<std::string> &added)
+{
+    for (const std::string &ref : added)
+        if (std::find(refs.begin(), refs.end(), ref) == refs.end())
+            refs.push_back(ref);
+}
+
+// A printer preset written before the printer manifest key existed stores its plugin references under
+// the process preset's key, "plugins". That key is not a printer option, so loading would report and
+// strip the references; rename them here instead, before the validation below. A config holding both
+// keys is a printer preset's: a process preset's config has "plugins" and no "printer_plugins".
+// Returns true when they were moved, so the validation does not report the key it renamed.
+static bool migrate_legacy_printer_plugin_manifest(DynamicPrintConfig &config)
+{
+    const auto *legacy   = config.option<ConfigOptionStrings>("plugins");
+    auto       *manifest = config.option<ConfigOptionStrings>("printer_plugins");
+    if (legacy == nullptr || manifest == nullptr)
+        return false;
+    // Merge, not replace: a child preset's file holds only the references it added, while the parent's
+    // manifest already sits in the config this one was built from.
+    append_plugin_refs(manifest->values, legacy->values);
+    config.erase("plugins");
+    return true;
+}
+
+// A child preset's file may hold the plugin references it adds under the process preset's "plugins"
+// (written before the printer manifest key existed). That key is not a printer option, so a merge
+// against the parent drops it; the caller takes the values out before the merge and appends them after.
+static std::vector<std::string> take_legacy_printer_plugin_manifest(DynamicPrintConfig &config, Preset::Type type)
+{
+    if (type != Preset::TYPE_PRINTER)
+        return {};
+    auto *legacy = config.option<ConfigOptionStrings>("plugins");
+    if (legacy == nullptr)
+        return {};
+    std::vector<std::string> refs = std::move(legacy->values);
+    config.erase("plugins");
+    return refs;
+}
+
+// Merge, not replace: a child file holds only the references it added, while the parent's manifest
+// already sits in the config the child was built from.
+static void merge_legacy_printer_plugin_manifest(DynamicPrintConfig &config, const std::vector<std::string> &refs)
+{
+    if (refs.empty())
+        return;
+    if (auto *manifest = config.option<ConfigOptionStrings>("printer_plugins", true))
+        append_plugin_refs(manifest->values, refs);
+}
+
 std::string Preset::remove_invalid_keys(DynamicPrintConfig &config, const DynamicPrintConfig &default_config,
                                         const DynamicPrintConfig *added)
 {
+    const bool migrated_plugins = migrate_legacy_printer_plugin_manifest(config);
+
     std::string incorrect_keys;
     for (const std::string &key : (added != nullptr ? *added : config).keys())
         if (! default_config.has(key)) {
+            if (migrated_plugins && key == "plugins")
+                continue;
             if (incorrect_keys.empty())
                 incorrect_keys = key;
             else {
@@ -854,7 +909,10 @@ bool Preset::save(DynamicPrintConfig* parent_config)
     }
 
     std::ostringstream json;
-    to_save->save_to_json(json, bare_name, from_str, this->version.to_string());
+    // A diff holds only the options this preset changes, so the manifest is derived from the full config:
+    // it also holds the references the preset inherits from its parent.
+    const ConfigBase *manifest_source = parent_config != nullptr ? &this->config : nullptr;
+    to_save->save_to_json(json, bare_name, from_str, this->version.to_string(), false, manifest_source);
 
     InstanceLock instance_lock(user_presets_lock_path());
     boost::filesystem::create_directories(fs::path(this->file).parent_path());
@@ -885,8 +943,10 @@ void Preset::reload(Preset const &parent)
     try {
         InstanceLock instance_lock(user_presets_lock_path());
         ConfigSubstitutions                config_substitutions = config.load_from_json(file, substitution_rule, key_values, reason);
+        const std::vector<std::string>     legacy_plugin_refs   = take_legacy_printer_plugin_manifest(config, this->type);
         this->config = parent.config;
         this->config.apply(std::move(config));
+        merge_legacy_printer_plugin_manifest(this->config, legacy_plugin_refs);
     } catch (const std::exception &err) {
         BOOST_LOG_TRIVIAL(error) << boost::format("Failed loading the user-config file: %1%. Reason: %2%") % file % err.what();
     }
@@ -1603,7 +1663,7 @@ static std::vector<std::string> s_Preset_machine_limits_options {
 
 static std::vector<std::string> s_Preset_printer_options {
     "printer_technology",
-    "printable_area", "extruder_printable_area", "support_parallel_printheads", "parallel_printheads_count", "parallel_printheads_bed_exclude_areas", "bed_exclude_area","bed_custom_texture", "bed_custom_model", "build_plate_tilt_x", "build_plate_tilt_y", "belt_printer", "belt_printer_infinite_y",
+    "printable_area", "extruder_printable_area", "support_parallel_printheads", "parallel_printheads_count", "parallel_printheads_bed_exclude_areas", "bed_exclude_area","bed_custom_texture", "bed_custom_model", "printer_asset_plugins", "printer_plugins", "build_plate_tilt_x", "build_plate_tilt_y", "belt_printer", "belt_printer_infinite_y",
     "belt_slice_rotation", "belt_slice_rotation_angle",
     "gcode_remap_x", "gcode_remap_y", "gcode_remap_z",
     "belt_frame_tilt_decouple", "belt_frame_tilt_angle",
@@ -1924,11 +1984,13 @@ PresetCollection::UserPresetLoad PresetCollection::resolve_user_preset(
         }
         const Preset& default_preset = this->default_preset_for(config);
         if (inherit_preset) {
+            const std::vector<std::string> legacy_plugin_refs = take_legacy_printer_plugin_manifest(config, m_type);
             preset.config = inherit_preset->config;
             preset.filament_id = inherit_preset->filament_id;
             extend_parent_extruders_to_child(preset.config, config, m_type);
             extend_default_config_length(config, false, {});
             preset.config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
+            merge_legacy_printer_plugin_manifest(preset.config, legacy_plugin_refs);
             pad_printer_variant_vectors(preset.config);
         }
         else {
@@ -2331,11 +2393,13 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
             }
             const Preset& default_preset = this->default_preset_for(config);
             if (inherit_preset) {
+                const std::vector<std::string> legacy_plugin_refs = take_legacy_printer_plugin_manifest(config, m_type);
                 preset->config = inherit_preset->config;
                 preset->filament_id = inherit_preset->filament_id;
                 extend_parent_extruders_to_child(preset->config, config, m_type);
                 extend_default_config_length(config, false, {});
                 preset->config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
+                merge_legacy_printer_plugin_manifest(preset->config, legacy_plugin_refs);
             }
             else if (inherits_value.empty() && m_type == Preset::TYPE_FILAMENT &&
                      config.has("filament_extruder_variant")) {
@@ -2749,8 +2813,11 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
 
         extend_default_config_length(cloud_config, false, {});
 
-        if (inherit_preset)
+        if (inherit_preset) {
+            const std::vector<std::string> legacy_plugin_refs = take_legacy_printer_plugin_manifest(cloud_config, m_type);
             new_config.update_diff_values_to_child_config(cloud_config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
+            merge_legacy_printer_plugin_manifest(new_config, legacy_plugin_refs);
+        }
         else{
             new_config.apply(std::move(cloud_config));
             extend_default_config_length(new_config, true, default_preset.config);
@@ -3443,9 +3510,13 @@ std::map<std::string, std::vector<Preset const *>> PresetCollection::get_filamen
 }
 
 //BBS: add project embedded preset logic
+PresetCollection::BeforeSaveFn PresetCollection::s_before_save_fn;
+
 void PresetCollection::save_current_preset(const std::string &new_name, bool detach, bool save_to_project, Preset* _curr_preset)
 {
     Preset curr_preset = _curr_preset ? *_curr_preset : m_edited_preset;
+    if (s_before_save_fn)
+        s_before_save_fn(m_type, curr_preset.config, this->get_selected_preset().config);
     //BBS: add lock logic for sync preset in background
     std::string final_inherits;
     lock();

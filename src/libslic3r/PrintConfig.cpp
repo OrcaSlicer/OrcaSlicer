@@ -1099,6 +1099,24 @@ void PrintConfigDef::init_common_params()
     def->gui_type = ConfigOptionDef::GUIType::one_string;
     def->set_default_value(new ConfigOptionString());
 
+    // The printer asset packs whose files bed_custom_model / bed_custom_texture refer to
+    // ("orcacloud-asset/<plugin id>/<file>"), by capability name. Plugin-backed, so the packs land in
+    // the printer preset's manifest and a machine without them is offered the install.
+    def = this->add("printer_asset_plugins", coStrings);
+    def->label = L("Printer asset plugins");
+    def->tooltip = L("Resource printer asset plugins whose bed model or texture this printer uses.");
+    def->mode = comDevelop;
+    def->plugin_type = "resource-printer-asset";
+    def->set_default_value(new ConfigOptionStrings());
+
+    // A printer preset's plugin manifest. It is kept apart from the process preset's "plugins": the
+    // full print config applies the printer preset last, so a shared key would replace that manifest.
+    def = this->add("printer_plugins", coStrings);
+    def->label = L("Printer plugins used");
+    def->tooltip = L("Plugin capabilities referenced by this printer preset, stored as name;uuid;capability.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionStrings());
+
     def = this->add("elefant_foot_compensation", coFloat);
     def->label = L("Elephant foot compensation");
     def->category = L("Quality");

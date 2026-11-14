@@ -11,6 +11,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/PrintConfigConstants.hpp"
+#include "libslic3r/Preset.hpp"
 #include "libslic3r/LocalesUtils.hpp"
 
 #include "test_utils.hpp"
@@ -893,6 +894,46 @@ TEST_CASE_METHOD(PluginResolverFixture,
     CHECK(manifest == std::vector<std::string>{"x;;slicing-pipeline"});
 }
 
+TEST_CASE_METHOD(PluginResolverFixture,
+    "a printer preset config keeps its manifest in printer_plugins",
+    "[Config][plugins]") {
+    // The full print config applies the printer preset after the process preset, so a printer manifest
+    // stored in "plugins" would replace the process preset's.
+    std::unique_ptr<DynamicPrintConfig> printer(DynamicPrintConfig::new_from_defaults_keys(
+        {"printer_agent", "printer_plugins"}));
+    printer->option<ConfigOptionString>("printer_agent", true)->value = "agent";
+
+    printer->update_plugin_manifest();
+    CHECK(printer->option("plugins") == nullptr);
+    CHECK(printer->option<ConfigOptionStrings>("printer_plugins")->values == std::vector<std::string>{"agent;;printer-connection"});
+
+    // A full config holds both keys and keeps the combined manifest in "plugins".
+    std::unique_ptr<DynamicPrintConfig> full(DynamicPrintConfig::new_from_defaults_keys(
+        {"printer_agent", "printer_plugins", "plugins"}));
+    full->option<ConfigOptionString>("printer_agent", true)->value = "agent";
+    full->update_plugin_manifest();
+    CHECK(full->option<ConfigOptionStrings>("plugins")->values == std::vector<std::string>{"agent;;printer-connection"});
+    CHECK(full->option<ConfigOptionStrings>("printer_plugins")->values.empty());
+}
+
+TEST_CASE("update_plugin_manifest keeps the entry of a capability that is not loaded here", "[Config][plugins]") {
+    // Saving a preset on a machine that lacks one of its plugins must not drop that plugin from the
+    // manifest other machines read.
+    ConfigBase::set_resolve_capability_fn([](const std::string& name, const std::string& type) {
+        return name == "offline" || name == "gone" ? std::string() : name + ";;" + type;
+    });
+    std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "plugins"}));
+    config->option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = {"offline", "here", "gone"};
+    config->option<ConfigOptionStrings>("plugins", true)->values = {"Pack;3f2a6c1e;offline", "Other;9b1d;stale"};
+
+    config->update_plugin_manifest();
+    ConfigBase::set_resolve_capability_fn(nullptr);
+    // "gone" resolves nowhere and has no previous entry; the stale entry nobody references is dropped.
+    CHECK(config->option<ConfigOptionStrings>("plugins")->values ==
+          std::vector<std::string>{"Pack;3f2a6c1e;offline", "here;;slicing-pipeline"});
+}
+
 TEST_CASE("unresolved_plugin_capabilities reports exactly the values the manifest drops", "[Config][plugins]") {
     // GUI save entry points use this query to warn before a preset loses a plugin reference, so it
     // must match the serializer's notion of "unresolved" -- same options, same resolver calls.
@@ -928,6 +969,69 @@ TEST_CASE("unresolved_plugin_capabilities is empty without a resolver", "[Config
     CHECK(config->unresolved_plugin_capabilities().empty());
 }
 
+TEST_CASE("unresolved_plugin_capabilities skips a value whose manifest entry is kept", "[Config][plugins]") {
+    // A save on a machine without the plugin keeps the entry the manifest already holds, so no
+    // reference is lost and there is nothing to prompt about.
+    ConfigBase::set_resolve_capability_fn([](const std::string& name, const std::string& type) {
+        return name == "offline" ? std::string() : name + ";;" + type;
+    });
+    std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "plugins"}));
+    config->option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = {"offline"};
+    config->option<ConfigOptionStrings>("plugins", true)->values = {"Pack;3f2a6c1e;offline"};
+
+    const std::vector<UnresolvedPluginCapability> unresolved = config->unresolved_plugin_capabilities();
+    config->update_plugin_manifest();
+    const std::vector<std::string> manifest = config->option<ConfigOptionStrings>("plugins")->values;
+    ConfigBase::set_resolve_capability_fn(nullptr);
+
+    CHECK(unresolved.empty());
+    CHECK(manifest == std::vector<std::string>{"Pack;3f2a6c1e;offline"});
+}
+
+TEST_CASE("A printer preset keeps the printer_plugins entry of a capability not loaded here", "[Config][plugins]") {
+    ConfigBase::set_resolve_capability_fn([](const std::string& name, const std::string& type) {
+        return name == "gone" ? std::string() : name + ";;" + type;
+    });
+    std::unique_ptr<DynamicPrintConfig> config(DynamicPrintConfig::new_from_defaults_keys(
+        {"printer_agent", "printer_plugins"}));
+    config->option<ConfigOptionString>("printer_agent", true)->value = "gone";
+    config->option<ConfigOptionStrings>("printer_plugins", true)->values = {"Pack;3f2a6c1e;gone"};
+
+    const std::vector<UnresolvedPluginCapability> unresolved = config->unresolved_plugin_capabilities();
+    config->update_plugin_manifest();
+    const std::vector<std::string> manifest = config->option<ConfigOptionStrings>("printer_plugins")->values;
+    ConfigBase::set_resolve_capability_fn(nullptr);
+
+    CHECK(unresolved.empty());
+    CHECK(manifest == std::vector<std::string>{"Pack;3f2a6c1e;gone"});
+    CHECK(config->option("plugins") == nullptr);
+}
+
+TEST_CASE("Legacy printer plugin references move into printer_plugins on load", "[Config][plugins]") {
+    // A printer preset written before "printer_plugins" existed carries its references under the
+    // process preset's key, which is not a printer option; remove_invalid_keys would report and drop
+    // them, and the notice for a plugin this machine lacks would go with them.
+    std::unique_ptr<DynamicPrintConfig> defaults(DynamicPrintConfig::new_from_defaults_keys(Preset::printer_options()));
+    DynamicPrintConfig                  child(*defaults);
+    child.option<ConfigOptionStrings>("printer_plugins")->values = {"Parent Agent;1111;agent"};
+    child.set_key_value("plugins", new ConfigOptionStrings{"Child Agent;2222;agent"});
+
+    // Merged, not replaced: the child file holds only its own references, the parent's manifest is
+    // already in the config the child was built from.
+    CHECK(Preset::remove_invalid_keys(child, *defaults).empty());
+    CHECK(child.option("plugins") == nullptr);
+    CHECK(child.option<ConfigOptionStrings>("printer_plugins")->values ==
+          std::vector<std::string>{"Parent Agent;1111;agent", "Child Agent;2222;agent"});
+
+    // A process preset keeps its own manifest: "plugins" is one of its keys.
+    std::unique_ptr<DynamicPrintConfig> print_defaults(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "plugins"}));
+    DynamicPrintConfig print(*print_defaults);
+    print.option<ConfigOptionStrings>("plugins")->values = {"Pack;3333;pipeline"};
+    CHECK(Preset::remove_invalid_keys(print, *print_defaults).empty());
+    CHECK(print.option<ConfigOptionStrings>("plugins")->values == std::vector<std::string>{"Pack;3333;pipeline"});
+}
 TEST_CASE("H2C/A2L-era multi-nozzle and pre-heat config keys exist", "[config]") {
     // Foundation keys backing H2C 6-nozzle cluster grouping, the pre-heat/pre-cool time
     // model, and wipe-tower nozzle-change handling. Defaults must keep existing

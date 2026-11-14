@@ -38,6 +38,7 @@ add_executable(${_TEST_NAME}_tests
     test_parallel_resolve.cpp
     test_preset_bundle_loading.cpp
     test_preset_collection.cpp
+    test_printer_asset_ref.cpp
     test_preset_setting_id.cpp
     test_preset_diff.cpp
     test_publish_settings.cpp

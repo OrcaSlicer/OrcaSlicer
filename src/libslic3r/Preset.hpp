@@ -702,6 +702,11 @@ public:
     // All presets are marked as not modified and the new preset is activated.
     //BBS: add project embedded preset logic
     void            save_current_preset(const std::string &new_name, bool detach = false, bool save_to_project = false, Preset* _curr_preset = nullptr);
+    // Runs on the config save_current_preset is about to store, with the selected (saved) preset's
+    // config for context, so values derived from others stay in step whichever dialog saves. The GUI
+    // installs it (plugin_hooks::install); without one, configs are saved as they are.
+    using BeforeSaveFn = std::function<void(Preset::Type type, DynamicPrintConfig &config, const DynamicPrintConfig &selected)>;
+    static void     set_before_save_fn(BeforeSaveFn fn) { s_before_save_fn = std::move(fn); }
     // Insert a standalone user preset holding the full resolved config (no inheritance,
     // no vendor links): the libslic3r equivalent of "Detach from parent". Takes a
     // resolved config, clears parent/vendor/alias metadata, stamps filament_settings_id.
@@ -966,6 +971,8 @@ protected:
     void            set_custom_preset_alias(Preset &preset);
 
 private:
+    static BeforeSaveFn s_before_save_fn;
+
     // A preset file and its .info as read from disk, std::nullopt for one that is missing.
     struct PresetFilesOnDisk
     {

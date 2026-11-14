@@ -464,6 +464,50 @@ TEST_CASE("An exported G-code's settings load back as the settings it was sliced
     CHECK(bundle.project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")->value == PrimeVolumeMode::pvmFast);
 }
 
+TEST_CASE("A printer with no asset packs writes no plugin keys to the config block", "[GCode]")
+{
+    DynamicPrintConfig config = Test::multifilament_config(1);
+    // Both keys are present with their default empty list, as on a printer preset that uses no pack.
+    REQUIRE(config.option<ConfigOptionStrings>("printer_asset_plugins", true)->values.empty());
+    REQUIRE(config.option<ConfigOptionStrings>("printer_plugins", true)->values.empty());
+
+    const std::string gcode = Test::slice({Test::cube(20.)}, config);
+    REQUIRE(gcode.find("; CONFIG_BLOCK_START") != std::string::npos);
+    CHECK(gcode.find("; printer_asset_plugins =") == std::string::npos);
+    CHECK(gcode.find("; printer_plugins =") == std::string::npos);
+}
+
+TEST_CASE("A printer's asset packs and plugin manifest survive the config block round trip", "[GCode]")
+{
+    DynamicPrintConfig config = Test::multifilament_config(1);
+    config.option<ConfigOptionStrings>("printer_asset_plugins", true)->values = {"PEI Plate"};
+    config.option<ConfigOptionStrings>("printer_plugins", true)->values =
+        {"PackA;11111111-2222-3333-4444-555555555555;PEI Plate"};
+
+    const std::string gcode = Test::slice({Test::cube(20.)}, config);
+    // The selectable bed files refer to the pack by id, so the pack names have to travel with them.
+    CHECK(gcode.find("; printer_asset_plugins = " + config.opt_serialize("printer_asset_plugins")) != std::string::npos);
+    CHECK(gcode.find("; printer_plugins = " + config.opt_serialize("printer_plugins")) != std::string::npos);
+
+    ScopedTemporaryFile file(".gcode");
+    {
+        std::ofstream os(file.string(), std::ios::binary);
+        os << gcode;
+        REQUIRE(os.good());
+    }
+
+    PresetBundle bundle;
+    ConfigSubstitutions substitutions;
+    bundle.load_config_model(file.string(), bundle.config_from_gcode(file.string(), ForwardCompatibilitySubstitutionRule::Enable, substitutions));
+
+    const DynamicPrintConfig &printer = bundle.printers.get_edited_preset().config;
+    REQUIRE(printer.option<ConfigOptionStrings>("printer_asset_plugins") != nullptr);
+    CHECK(printer.option<ConfigOptionStrings>("printer_asset_plugins")->values == std::vector<std::string>{"PEI Plate"});
+    REQUIRE(printer.option<ConfigOptionStrings>("printer_plugins") != nullptr);
+    CHECK(printer.option<ConfigOptionStrings>("printer_plugins")->values ==
+          std::vector<std::string>{"PackA;11111111-2222-3333-4444-555555555555;PEI Plate"});
+}
+
 TEST_CASE("Z hop follows the lift settings of the filament printing", "[GCode]")
 {
     // One nozzle, two filaments. Filament 2 overrides one lift setting; filament 1 keeps the printer's default,
