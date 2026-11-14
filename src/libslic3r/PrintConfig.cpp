@@ -2206,7 +2206,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("brim_ears_outer_only", coBool);
     def->label = L("Brim ears outer only");
     def->category = L("Support");
-    def->tooltip = L("Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections.");
+    def->tooltip = L("Generate mouse ears only outside enclosed regions on the plate, including holes in other objects. Disable this option for an object to allow ears inside those regions.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
