@@ -6614,8 +6614,13 @@ void Sidebar::show_SEMM_buttons()
     bool is_multi  = single_or_bbl && is_multi_material;  // MULTI MATERIAL WITH SINGLE EXTRUDER
     bool is_fixed  = !is_single && !is_multi;             // MULTI EXTRUDER / TOOLCHANGER / IDEX WITH FIXED MATERIAL
 
+    // A toolchanger's list is fixed at one filament per toolhead; offer removing any surplus,
+    // since nothing else can take it out.
+    const int  toolheads = wxGetApp().preset_bundle->fixed_toolhead_filament_count();
+    const bool surplus   = toolheads > 0 && p->combos_filament.size() > size_t(toolheads);
+
     p->m_bpButton_add_filament->Show(single_or_bbl);
-    p->m_bpButton_del_filament->Show(is_multi);
+    p->m_bpButton_del_filament->Show(is_multi || surplus);
     p->m_flushing_volume_btn->Show(  is_multi);
 
     if (is_multi) {
