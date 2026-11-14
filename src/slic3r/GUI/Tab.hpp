@@ -657,6 +657,7 @@ public:
 	void update_mixed_filament_seq_state();
 	// Refreshes the "Filament nozzles" group from the current plate (decoupled printers only).
 	void update_filament_nozzles();
+	void clear_pages() override;
 
 protected:
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value) override;

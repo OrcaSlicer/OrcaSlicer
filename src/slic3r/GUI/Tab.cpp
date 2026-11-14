@@ -4182,9 +4182,17 @@ void TabPrintPlate::build()
         });
         auto* sizer = new wxBoxSizer(wxHORIZONTAL);
         sizer->Add(m_nozzle_panel, 1, wxEXPAND);
+        update_filament_nozzles();
         return sizer;
     };
     m_nozzle_group->append_line(nozzles_line);
+}
+
+void TabPrintPlate::clear_pages()
+{
+    TabPrintModel::clear_pages();
+    // Destroyed with the page's widgets; rebuilt by the line widget on the next activation.
+    m_nozzle_panel = nullptr;
 }
 
 void TabPrintPlate::update_filament_nozzles()
