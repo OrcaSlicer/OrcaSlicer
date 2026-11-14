@@ -196,7 +196,9 @@ nlohmann::json color_selection_to_json(const ColorSelection& selection)
     return {{"type", coextruded ? "coextruded" : "gradient"}, {"colors", std::move(colors)}};
 }
 
-std::optional<std::vector<ColorSelection>> color_favorites_from_json(const nlohmann::json& values)
+// Saving rejects the whole list on an invalid entry; loading (skip_invalid) drops just that entry so one
+// bad or unknown stored color does not discard the user's other favorites.
+std::optional<std::vector<ColorSelection>> color_favorites_from_json(const nlohmann::json& values, bool skip_invalid = false)
 {
     if (!values.is_array() || values.size() > 24)
         return std::nullopt;
@@ -205,8 +207,11 @@ std::optional<std::vector<ColorSelection>> color_favorites_from_json(const nlohm
     std::set<std::string> seen;
     for (const auto& value : values) {
         const auto selection = color_selection_from_json(value, COLOR_PICKER_ALL_CAPABILITIES);
-        if (!selection)
+        if (!selection) {
+            if (skip_invalid)
+                continue;
             return std::nullopt;
+        }
         if (seen.insert(color_selection_to_json(*selection).dump()).second)
             favorites.push_back(*selection);
     }
@@ -258,7 +263,7 @@ ColorPickerFavoritesState load_color_picker_favorites(AppConfig& config)
         if (config.get("color_picker", "version") != "1")
             return {{}, false};
         const auto values = nlohmann::json::parse(config.get("color_picker", "favorites"), nullptr, false);
-        const auto favorites = color_favorites_from_json(values);
+        const auto favorites = color_favorites_from_json(values, true);
         return {favorites ? *favorites : std::vector<ColorSelection>{}, true};
     }
 
