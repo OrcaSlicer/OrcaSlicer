@@ -14,7 +14,12 @@ wxDECLARE_EVENT(EVT_WEBVIEW_RECREATED, wxCommandEvent);
 class WebView
 {
 public:
-    static wxWebView *CreateWebView(wxWindow *parent, wxString const &url);
+    // `profile` empty -> the shared default backend store used by all trusted UI.
+    // `profile` non-empty -> a private store keyed by `profile`, so this view shares no
+    // cookies/storage/session with the shared store or any other profile. Views created
+    // with the same `profile` share one store, and therefore one live session. Used for
+    // plugin-supplied (untrusted) content.
+    static wxWebView *CreateWebView(wxWindow *parent, wxString const &url, wxString const &profile = wxEmptyString);
 #if wxUSE_WEBVIEW_EDGE
     static bool CheckWebViewRuntime();
     static bool DownloadAndInstallWebViewRuntime();

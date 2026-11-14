@@ -6,6 +6,8 @@
 #include <optional>
 #include <string>
 
+#include <wx/string.h>
+
 class wxWindow;
 
 namespace Slic3r { namespace GUI {
@@ -27,7 +29,8 @@ public:
               const std::string& html,
               MessageHandler     on_message,
               CloseHandler       on_close,
-              CloseHandler       on_destroyed);
+              CloseHandler       on_destroyed,
+              const wxString&    profile = wxEmptyString);
     ~DockPanel() override;
 
     // Main thread only.
