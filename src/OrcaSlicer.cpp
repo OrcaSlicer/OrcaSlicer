@@ -7422,6 +7422,21 @@ int CLI::run(int argc, char **argv)
         std::string nozzle_diameter_str;
         if (nozzle_diameter_option)
             nozzle_diameter_str = nozzle_diameter_option->serialize();
+
+        // The lookups above read profiles/BBL/machine_full, which is not part of the package. Without a model id the
+        // sliced file does not name its printer, so fall back to the machine model of profiles/BBL/machine.
+        if (printer_model_id.empty()) {
+            const std::string &model_name = printer_model.empty() ? current_printer_model : printer_model;
+            const std::string printer_model_path = resources_dir() + "/profiles/BBL/machine/" + model_name + ".json";
+            if (!model_name.empty() && boost::filesystem::exists(printer_model_path)) {
+                std::map<std::string, std::string> key_values;
+                load_key_values_from_json(printer_model_path, key_values);
+                if (key_values.find("model_id") != key_values.end()) {
+                    printer_model_id = key_values["model_id"];
+                    BOOST_LOG_TRIVIAL(info) << boost::format("load printer_model_id %1% from printer model %2%") % printer_model_id % model_name;
+                }
+            }
+        }
 #ifdef SLIC3R_GUI
         // A Bambu printer reads slice_info.config and knows only its own catalog ids. The GUI
         // gates the same translation on PresetBundle::is_bbl_vendor(); the CLI has no
