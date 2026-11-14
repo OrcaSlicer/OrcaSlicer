@@ -51,6 +51,7 @@
 #define SETTING_OPENGL_OUTLINE_PERSISTENT "opengl_outline_persistent"
 #define SETTING_OPENGL_OUTLINE_COLOR "opengl_outline_color"
 #define SETTING_OPENGL_SELECTION_OUTLINE_COLOR "opengl_selection_outline_color"
+#define SETTING_SPLIT_OBJECTS_AUTO_DROP_CHOICE "split_objects_auto_drop_choice"
 
 #define SETTING_PLUGIN_PAGES_VISIBLE_COUNT "plugin_pages_visible_count"
 #define PLUGIN_PAGES_VISIBLE_COUNT_MIN 1
