@@ -50,6 +50,16 @@ struct DevFilamentDryingPreset;
 class DevAmsTray
 {
 public:
+    // State of fetching the remaining filament of the slot, bits 5-7 of the "state" field of the tray.
+    enum class RemainFetchStatus : int
+    {
+        Done         = 0,
+        Refreshing   = 1,
+        CloudTimeout = 2,
+        CloudNoData  = 3,
+        Initializing = 4,
+    };
+
     DevAmsTray(std::string tray_id)
     {
         is_bbl = false;
@@ -85,6 +95,8 @@ public:
     bool            is_slot_placeholder = false;  // Orca: True for empty tray slots from pull-mode agents
     int             hold_count = 0;
     int             remain = 0;         // filament remain: 0 ~ 100
+    int             remain_g = -1;      // remaining weight in grams reported by the firmware; -1 if not provided
+    RemainFetchStatus remain_fetch_status = RemainFetchStatus::Done;
 
 public:
     // operators
@@ -112,6 +124,13 @@ public:
     static wxColour decode_color(const std::string& color);
 
     std::optional<DevFilamentDryingPreset> get_ams_drying_preset() const;
+
+    // Tolerance of the remaining weight, +-5%.
+    static double get_fila_remain_tolerance() { return 0.05; }
+
+    // Remaining weight in grams: the value reported by the firmware, or else the remaining percentage of the
+    // spool weight. Empty if it is not known or the spool is empty.
+    std::optional<int> get_filament_remain_weight() const;
 };
 
 /**
@@ -148,6 +167,13 @@ public:
     static constexpr AmsType AMS_LITE_MIXED = DevAmsType::AMS_LITE_MIXED;
 
 public:
+
+    // How precisely the AMS estimates the remaining filament, bits 30-31 of its "info" field.
+    enum class RemainEstimateVersion : int
+    {
+        Legacy   = 0, // coarse estimate
+        Accurate = 1, // precise estimate
+    };
 
     enum class DryCtrlMode : int
     {
@@ -215,6 +241,7 @@ public:
     void     SetAmsType(AmsType type) { m_ams_type = type; }
     // AMS-Lite-mixed (N9) is a variant of AMS-Lite: report AMS_LITE to generic callers so all
     // existing AMS_LITE handling applies. Mixed-specific code uses IsAmsLiteMixed().
+    RemainEstimateVersion GetRemainEstimateVersion() const { return m_remain_estimate_version; }
     AmsType  GetAmsType() const { return m_ams_type == AMS_LITE_MIXED ? AMS_LITE : m_ams_type; }
 
     // exist or not
@@ -268,6 +295,7 @@ public:
 
 private:
     AmsType       m_ams_type = AmsType::AMS;
+    RemainEstimateVersion m_remain_estimate_version = RemainEstimateVersion::Legacy;
     std::string   m_ams_id;
     std::string   m_display_name; // Orca: set by printer agents for their own units, replaces the type-based name
     int           m_ext_id;//extruder id
@@ -352,6 +380,9 @@ public:
     // Map a linear tray index -> {ams_id, slot_id}. Includes the two virtual (external-spool) trays,
     // N3S single-slot units, and the A2L/N9 AMS-Lite-mixed layout (trays 24-27).
     std::map<int, DevAmsSlotId> GetTrayIndexMap();
+
+    // The linear tray index of an AMS slot, or -1 if there is none.
+    int GetTrayIdByAmsSlotId(int ams_id, int slot_id);
 
     // extruder
     int  GetExtruderIdByAmsId(const std::string& ams_id) const;
