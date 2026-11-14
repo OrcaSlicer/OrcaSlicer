@@ -249,11 +249,12 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     //      servers that don't use it ignore the unknown form field.
     const std::string plateindex = upload_data.extended("plateindex");
 
-    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% to %3% (root=%4%, filename=%5%, plateindex=%6%, start_print=%7%)")
+    BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Uploading file %2% to %3% (root=%4%, path=%5%, filename=%6%, plateindex=%7%, start_print=%8%)")
         % name
         % upload_data.source_path
         % url
         % root
+        % upload_parent_path.string()
         % upload_filename.string()
         % (plateindex.empty() ? "-" : plateindex)
         % (want_start ? "true" : "false");
@@ -261,6 +262,7 @@ bool Moonraker::upload(PrintHostUpload upload_data, ProgressFn progress_fn, Erro
     auto http = Http::post(std::move(url));
     set_auth(http);
     http.form_add("root", root);
+    http.form_add("path", upload_parent_path.string());
     if (!plateindex.empty())
         http.form_add("plateindex", plateindex);
     http.form_add("print", want_start ? "true" : "false");
