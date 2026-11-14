@@ -371,11 +371,11 @@ which stays in, and face and edge ids passed with their `generation`, which the 
 `test_cad_slow_build.py` runs a long thread build (an M8 thread tapped 60 mm deep, about 8 s) and
 checks that while it builds `get_app_state` answers, a window screenshot succeeds, `list_widgets` lists
 the progress dialog and a screenshot of that dialog captures it, and another Design command is refused.
-`test_cad_failed_job.py` sweeps a coil whose every rebuild takes about 30 s (its turns sized from a
+`test_cad_failed_job.py` sweeps a coil whose every rebuild takes about a minute (its turns sized from a
 short calibration build), then a hole that misses it replies with a running job and fails after
 the reply budget: an export while it runs leaves it out and names it in `left_out_running`, the
 export after it has the rename made next and not the hole, and that replay runs to the same coil.
-It takes three to four minutes. `test_cad_examples.py` runs the examples `search_tools {tool}` gives for
+It takes four to eight minutes. `test_cad_examples.py` runs the examples `search_tools {tool}` gives for
 every Design command, and for `undo` and `redo`, each on a fresh design, and fails one whose call fails or
 whose result has `ok` false, an error, or is the person's form; `--tool NAME` runs one command's.
 

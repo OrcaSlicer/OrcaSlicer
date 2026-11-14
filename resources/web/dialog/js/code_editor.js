@@ -265,4 +265,4 @@ function runEditorAction(editor, action) {
   }
 }
 
-if (typeof module !== "undefined") module.exports = { runEditorAction, recordFieldKey, ownKeyRan, isEditorText };
+if (typeof module !== "undefined") module.exports = { runEditorAction, recordFieldKey, ownKeyRan, isEditorText, IS_MAC };

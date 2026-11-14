@@ -85,8 +85,7 @@ PAGE = r"""
 <button id="later" onclick="setTimeout(function () { var b = document.createElement('button'); b.id = 'made'; b.textContent = 'Made later'; document.body.appendChild(b); log('later ran'); }, 10)">Later</button>
 <button id="closer">Close through wx</button>
 <button id="closenow">Close at once</button>
-<button id="stallcancel" onclick="var t = Date.now(); while (Date.now() - t < 5000) {}">Cancel</button>
-<button id="slowshow" onclick="setTimeout(function () { var b = document.createElement('button'); b.textContent = 'Shown late'; b.onclick = function () { log('shown late clicked'); }; document.body.appendChild(b); }, 3500)">Slow show</button>
+<button id="stallcancel" onclick="var t = Date.now(); while (Date.now() - t < 10000) {}">Cancel</button>
 <button id="submit" onclick="orca.submit({name: document.getElementById('name').value, colour: document.getElementById('colour').value})">Submit</button>
 <button id="nothing">Nothing</button>
 <select id="extras" aria-label="Extras"><option>One</option></select>
@@ -167,9 +166,9 @@ CONFIG_UI = r"""
 <div id="ui"></div>
 <button id="reload" onclick="location.reload()">Reload</button>
 <button class="twin" onclick="note('twin 1')">Refresh</button> <button class="twin" onclick="note('twin 2')">Refresh</button>
-<button id="break" onclick="breakFor(3000)">Break</button>
+<button id="break" onclick="breakUntilSearched()">Break</button>
 <button id="mute" onclick="mute()">Mute</button>
-<button id="stall" onclick="stallSoon()">Stall soon</button>
+<button id="stall" onclick="stallOnRelease()">Stall on release</button>
 <pre id="log"></pre>
 <script>
   function render(config) {
@@ -190,12 +189,20 @@ CONFIG_UI = r"""
   }
   function note(s) { document.getElementById('log').textContent += s + '\n'; }
   document.addEventListener('pointerup', function () { note('frame up'); });
-  // For a while every page agent call here fails (it reads styles to walk the page), as on a page
-  // that breaks what the agent uses.
-  function breakFor(ms) {
-    var styles = window.getComputedStyle;
+  // Every page agent call here fails until the next search has (it reads styles to walk the page), as
+  // on a page that breaks what the agent uses. Broken until then rather than for a time, so the search
+  // meets it however slowly the machine runs.
+  function breakUntilSearched() {
+    var styles = window.getComputedStyle, agent = window.__orcaMcp, call = agent.call;
     window.getComputedStyle = function () { throw new Error('styles broken by the page'); };
-    setTimeout(function () { window.getComputedStyle = styles; }, ms);
+    agent.call = function (req) {
+      var reply = call.apply(this, arguments);
+      if (req.op === 'find') {
+        agent.call = call;
+        window.getComputedStyle = styles;
+      }
+      return reply;
+    };
   }
   // From then on the frame answers none of the page's relayed requests, as a frame that hangs on its
   // own does (a busy frame here shares the page's thread, so it would hold the page too). The bridge
@@ -203,9 +210,18 @@ CONFIG_UI = r"""
   function mute() {
     window.parent = {};
   }
-  // Busy for 4 s from 3 s on, time enough to leave a press here first.
-  function stallSoon() {
-    setTimeout(function () { var t = Date.now(); while (Date.now() - t < 4000) {} }, 3000);
+  // The next release that reaches the frame finds it busy until half a second past that release's own
+  // deadline, so the release is given up and, taken late, refused. Busy because it was asked rather than
+  // on a timer, so a press can be left here first and the release always meets a busy frame.
+  function stallOnRelease() {
+    var agent = window.__orcaMcp, call = agent.call;
+    agent.call = function (req) {
+      if (req.op === 'release') {
+        agent.call = call;
+        while (Date.now() < req.expires + 500) {}
+      }
+      return call.apply(this, arguments);
+    };
   }
   render(window.orca.getConfig() || {});
 </script>

@@ -2,7 +2,12 @@
 // stand-ins with the parts these functions touch.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { runEditorAction, recordFieldKey, ownKeyRan, isEditorText } = require("./code_editor.js");
+const { runEditorAction, recordFieldKey, ownKeyRan, isEditorText, IS_MAC } = require("./code_editor.js");
+
+// Undo pressed in a field: Cmd+Z on macOS, Ctrl+Z elsewhere, as the page reads it on the platform running the test.
+function undoPress(target) {
+  return { target, key: "z", ctrlKey: !IS_MAC, metaKey: IS_MAC, shiftKey: false, altKey: false };
+}
 
 function page() {
   const editorText = { tagName: "TEXTAREA" }; // Ace's hidden textarea, inside the editor
@@ -51,7 +56,7 @@ test("a forwarded action with the editor or a button focused acts on the script"
 test("a field's own undo key is recorded, so the same press forwarded by the host does nothing more", () => {
   const p = page();
   p.doc.activeElement = p.prompt;
-  recordFieldKey(p.editor, { target: p.prompt, key: "z", ctrlKey: true, metaKey: false, shiftKey: false, altKey: false });
+  recordFieldKey(p.editor, undoPress(p.prompt));
   runEditorAction(p.editor, "undo");
   assert.deepEqual(p.doc.ran, []);
   assert.deepEqual(p.editor.ran, []);
@@ -59,7 +64,7 @@ test("a field's own undo key is recorded, so the same press forwarded by the hos
 
 test("a key in the editor is left to the editor's own commands", () => {
   const p = page();
-  recordFieldKey(p.editor, { target: p.editorText, key: "z", ctrlKey: true, metaKey: false, shiftKey: false, altKey: false });
+  recordFieldKey(p.editor, undoPress(p.editorText));
   assert.deepEqual(p.editor.$orcaOwnAt, {});
 });
 

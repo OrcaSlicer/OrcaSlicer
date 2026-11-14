@@ -11,8 +11,8 @@ left_out_running; once it has failed, a rename made after it is in the export, t
 the replay runs into a new project to the same features and coil. The coil's turns are sized
 from a short calibration build, taking a build's time to grow with the cube of the turns, so the
 failing call outlives the budget on a faster or slower machine; a busy machine bends that curve, so
-when the hole still fails inside the budget the session is made again with a bigger coil. Takes four
-to five minutes. Exits 0 when every check passes.
+when the hole still fails inside the budget, or its job has ended by the time of the export, the
+session is made again with a bigger coil. Takes four to eight minutes. Exits 0 when every check passes.
 """
 
 import json
@@ -62,6 +62,10 @@ def main():
     print(f"12 turns built in {calibration:.1f} s; the test coil has {turns}", flush=True)
 
     # ---- The session to export ----
+    # The hole must reply running and still run at the export after its reply. One that fails inside the
+    # budget, or whose job has ended by the export, is made again with a bigger coil.
+    during = {}
+    running = False
     while True:
         client.call("export_replay", clear=True)
         client.call("new_project", discard_changes=True)
@@ -69,18 +73,38 @@ def main():
         start = time.time()
         try:
             started = cad(client, "hole", x=500, through=True)
-            break
         except orca_mcp.McpError as e:
             if turns >= 40 or "removed no material" not in str(e):
                 raise
             print(f"the hole failed inside the budget, in {time.time() - start:.1f} s; trying {min(40, turns + 4)} turns",
                   flush=True)
             turns = min(40, turns + 4)
+            continue
+        if started.get("status") != "running":
+            break
+        during = client.call("export_replay")
+        # Asked of the job itself, which needs no UI thread (the rebuild may hold it); a failed job's
+        # reply is its error. The export leaves this wait out with the hole.
+        try:
+            running = client.call("wait", **{"for": "job", "job": started["job"], "timeout_s": 0}).get("status") == "running"
+        except orca_mcp.McpError:
+            running = False
+        if during.get("left_out_running") or running or turns >= 40:
+            break
+        print(f"the hole's job had ended by the export, {time.time() - start:.1f} s after it began; trying {min(40, turns + 4)} turns",
+              flush=True)
+        try:
+            client.await_job(started)
+        except orca_mcp.McpError:
+            pass
+        turns = min(40, turns + 4)
     check("the missed hole replies with its running job", started.get("status") == "running",
           f"{started.get('status')} after {time.time() - start:.1f} s; the coil rebuilds too fast")
-    during = client.call("export_replay")
     check("an export while it runs leaves it out and names it",
-          during.get("left_out_running") == [{"tool": "hole", "job": started.get("job")}], during.get("left_out_running"))
+          during.get("left_out_running") == [{"tool": "hole", "job": started.get("job")}],
+          during.get("left_out_running") if running else
+          f"{during.get('left_out_running')}; at {turns} turns the hole still ends before the export, so this machine is too fast or "
+          "too loaded for the test")
     failure = None
     try:
         client.await_job(started)
@@ -100,8 +124,17 @@ def main():
     check("and leaves nothing out", "left_out_running" not in after, after.get("left_out_running"))
 
     # ---- The replay ----
+    # A replayed build can run slower than the live one on a loaded machine, past the two minutes a replay
+    # waits on a step's job by default, so the export is run with ten for each step.
+    with open(path) as f:
+        exported = json.load(f)
+    for step in exported["steps"]:
+        step["timeout_s"] = 600
+    run_path = os.path.join(out_dir, "run.json")
+    with open(run_path, "w") as f:
+        json.dump(exported, f, indent=1)
     client.call("new_project", discard_changes=True)
-    replay = client.await_job(client.call("run_replay", path=path, out_dir=out_dir), timeout=900)
+    replay = client.await_job(client.call("run_replay", path=run_path, out_dir=out_dir), timeout=1800)
     check("the exported session replays", replay.get("passed") is True,
           json.dumps([s for s in replay.get("steps", []) if not s.get("ok")][:1]))
     scene = cad(client, "describe_scene")["result"]
