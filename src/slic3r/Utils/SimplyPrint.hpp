@@ -16,7 +16,7 @@ class Http;
 class SimplyPrint : public PrintHost
 {
     std::string cred_file;
-    std::map<std::string, std::string> cred;
+    mutable std::map<std::string, std::string> cred;
 
     void load_oauth_credential();
 
