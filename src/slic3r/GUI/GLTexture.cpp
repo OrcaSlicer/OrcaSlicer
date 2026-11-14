@@ -753,7 +753,70 @@ void GLTexture::render_sub_texture(unsigned int tex_id, float left, float right,
     glsafe(::glDisable(GL_BLEND));
 }
 
-void GLTexture::copy_from_framebuffer(unsigned int& tex_id, std::array<unsigned int, 2>& tex_size, unsigned int width, unsigned int height, int filter)
+// How copy_from_framebuffer() gets the window's samples into the texture. Copying from the default framebuffer
+// resolves them, but copying from a multisampled framebuffer object fails, and VirtualGL draws the window into one
+// that it reports as framebuffer 0.
+enum class ECopyMethod : unsigned char { Unknown, Copy, Blit };
+
+// Resolves the bound read framebuffer into the texture, through framebuffer_id, created on first use. With check,
+// tells whether the blit worked.
+static bool blit_into_texture(unsigned int tex_id, unsigned int& framebuffer_id, unsigned int width, unsigned int height, bool check)
+{
+    GLint draw_framebuffer = 0;
+    glsafe(::glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &draw_framebuffer));
+    // Unlike a copy, a blit is clipped by the scissor test.
+    const GLboolean scissor_test = ::glIsEnabled(GL_SCISSOR_TEST);
+    if (framebuffer_id == 0)
+        glsafe(::glGenFramebuffers(1, &framebuffer_id));
+    glsafe(::glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer_id));
+    glsafe(::glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex_id, 0));
+    if (scissor_test)
+        glsafe(::glDisable(GL_SCISSOR_TEST));
+    ::glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+    bool blitted = true;
+    if (check) // read here, as glsafe() would assert on the error in Debug builds
+        blitted = ::glGetError() == GL_NO_ERROR;
+    else
+        glcheck();
+    if (scissor_test)
+        glsafe(::glEnable(GL_SCISSOR_TEST));
+    glsafe(::glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(draw_framebuffer)));
+    return blitted;
+}
+
+// Copies the window into the bound texture, tex_id, and tells how to copy it from now on, Unknown to check again
+// next time.
+static ECopyMethod first_copy(unsigned int tex_id, unsigned int& framebuffer_id, unsigned int width, unsigned int height)
+{
+    GLint sample_buffers = 0;
+    glsafe(::glGetIntegerv(GL_SAMPLE_BUFFERS, &sample_buffers));
+    if (sample_buffers == 0) {
+        glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+        return ECopyMethod::Copy;
+    }
+    while (::glGetError() != GL_NO_ERROR) {} // so the check below sees only this copy
+    ::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height);
+    const GLenum error = ::glGetError();
+    if (error == GL_NO_ERROR) {
+        BOOST_LOG_TRIVIAL(info) << "Copying from the multisampled window framebuffer resolves it";
+        return ECopyMethod::Copy;
+    }
+    // Any other error says nothing about the samples.
+    if (error != GL_INVALID_OPERATION)
+        return ECopyMethod::Unknown;
+    // The blit uses the core framebuffer functions.
+    if (OpenGLManager::get_framebuffers_type() == OpenGLManager::EFramebufferType::Arb &&
+        blit_into_texture(tex_id, framebuffer_id, width, height, true)) {
+        BOOST_LOG_TRIVIAL(info) << "Copying from the multisampled window framebuffer failed; resolving it with a blit instead";
+        return ECopyMethod::Blit;
+    }
+    // Nothing resolves the samples: keep the copy.
+    BOOST_LOG_TRIVIAL(warning) << "Neither a copy nor a blit resolves the multisampled window framebuffer";
+    return ECopyMethod::Copy;
+}
+
+void GLTexture::copy_from_framebuffer(unsigned int& tex_id, unsigned int& framebuffer_id, std::array<unsigned int, 2>& tex_size,
+                                      unsigned int width, unsigned int height, int filter)
 {
     if (tex_id == 0) {
         glsafe(::glGenTextures(1, &tex_id));
@@ -767,12 +830,18 @@ void GLTexture::copy_from_framebuffer(unsigned int& tex_id, std::array<unsigned 
         glsafe(::glBindTexture(GL_TEXTURE_2D, tex_id));
 
     if (tex_size[0] != width || tex_size[1] != height) {
-        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
+        // Sized like the window's colour buffer, as a resolve blit may need identical formats.
+        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr));
         tex_size = { width, height };
     }
 
-    // Copying from the default framebuffer resolves its multisampling.
-    glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+    static ECopyMethod method = ECopyMethod::Unknown;
+    if (method == ECopyMethod::Unknown)
+        method = first_copy(tex_id, framebuffer_id, width, height);
+    else if (method == ECopyMethod::Copy)
+        glsafe(::glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, width, height));
+    else
+        blit_into_texture(tex_id, framebuffer_id, width, height, false);
     glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
 }
 

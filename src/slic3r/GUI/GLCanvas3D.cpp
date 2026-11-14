@@ -1704,6 +1704,10 @@ GLCanvas3D::~GLCanvas3D()
             glsafe(::glDeleteTextures(1, &m_fxaa_texture_id));
             m_fxaa_texture_id = 0;
         }
+        if (m_fxaa_framebuffer_id != 0) {
+            glsafe(::glDeleteFramebuffers(1, &m_fxaa_framebuffer_id));
+            m_fxaa_framebuffer_id = 0;
+        }
         if (m_ssao_color_texture_id != 0) {
             glsafe(::glDeleteTextures(1, &m_ssao_color_texture_id));
             m_ssao_color_texture_id = 0;
@@ -8785,7 +8789,7 @@ void GLCanvas3D::_render_fxaa_pass(unsigned int width, unsigned int height)
     if (shader == nullptr)
         return;
 
-    GLTexture::copy_from_framebuffer(m_fxaa_texture_id, m_fxaa_texture_size, width, height, GL_LINEAR);
+    GLTexture::copy_from_framebuffer(m_fxaa_texture_id, m_fxaa_framebuffer_id, m_fxaa_texture_size, width, height, GL_LINEAR);
 
     glsafe(::glDisable(GL_DEPTH_TEST));
     glsafe(::glDisable(GL_BLEND));
