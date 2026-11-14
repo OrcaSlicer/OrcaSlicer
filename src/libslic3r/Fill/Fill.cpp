@@ -28,6 +28,7 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"
 #include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/calib.hpp"
 #include "ExtrusionEntity.hpp"
 #include "Fill.hpp"
 #include "libslic3r/Fill/FillBase.hpp"
@@ -1703,6 +1704,45 @@ int Layer::choose_ironing_extruder(const PrintRegionConfig &cfg,
     return cfg.top_surface_filament_id;
 }
 
+// Ironing flow calibration: the flow grows linearly from calib.start % at x_start to calib.end % at x_end,
+// and stays constant before and after.
+static void extrusion_entities_append_calib_ironing_paths(ExtrusionEntitiesPtr &dst, const Polylines &polylines, const Calib_Params &calib,
+	coord_t x_start, coord_t x_end, double height_per_percent, double nozzle_dmr)
+{
+	const double max_piece_x = scale_(0.5);
+	for (const Polyline &polyline : polylines) {
+		if (! polyline.is_valid())
+			continue;
+		Polyline piece;
+		double   piece_percent = 0.;
+		auto append_piece = [&]() {
+			const double height = height_per_percent * piece_percent;
+			const float  width  = Flow::rounded_rectangle_extrusion_width_from_spacing(float(nozzle_dmr), float(height));
+			extrusion_entities_append_paths(dst, Polylines{ std::move(piece) }, erIroning, nozzle_dmr * height, width, float(height));
+			piece.points.clear();
+		};
+		for (size_t i = 1; i < polyline.points.size(); ++ i) {
+			const Vec2d a        = polyline.points[i - 1].cast<double>();
+			const Vec2d b        = polyline.points[i].cast<double>();
+			const int   n_pieces = std::max(1, int(std::ceil(std::abs(b.x() - a.x()) / max_piece_x)));
+			for (int k = 0; k < n_pieces; ++ k) {
+				const Point  p0(Vec2d(a + (b - a) * (double(k) / n_pieces)));
+				const Point  p1(Vec2d(a + (b - a) * (double(k + 1) / n_pieces)));
+				const double t       = std::clamp((0.5 * double(p0.x() + p1.x()) - x_start) / double(x_end - x_start), 0., 1.);
+				const double percent = calib.start + (calib.end - calib.start) * t;
+				if (piece.points.empty() || percent != piece_percent) {
+					if (! piece.points.empty())
+						append_piece();
+					piece.points.push_back(p0);
+					piece_percent = percent;
+				}
+				piece.points.push_back(p1);
+			}
+		}
+		append_piece();
+	}
+}
+
 // Create ironing extrusions over top surfaces.
 void Layer::make_ironing()
 {
@@ -1767,6 +1807,12 @@ void Layer::make_ironing()
 
 	std::vector<IroningParams> by_extruder;
     double default_layer_height = this->object()->config().layer_height;
+
+    // ORCA: Ironing flow calibration, from 5 mm after the left edge to 5 mm before the right edge.
+    const Calib_Params &calib              = this->object()->print()->calib_params();
+    const bool          calib_ironing_flow = calib.mode == CalibMode::Calib_Ironing_Flow;
+    const coord_t       calib_x_start      = this->object()->bounding_box().min.x() + coord_t(scale_(5.));
+    const coord_t       calib_x_end        = this->object()->bounding_box().max.x() - coord_t(scale_(5.));
 
 	for (LayerRegion *layerm : m_regions)
 		if (! layerm->slices.empty()) {
@@ -1905,6 +1951,7 @@ void Layer::make_ironing()
 		double  extrusion_height = ironing_params.height * f->spacing / nozzle_dmr;
 		float  extrusion_width  = Flow::rounded_rectangle_extrusion_width_from_spacing(float(nozzle_dmr), float(extrusion_height));
 		double flow_mm3_per_mm = nozzle_dmr * extrusion_height;
+		double calib_height_per_percent = default_layer_height * 0.01 * f->spacing / nozzle_dmr;
         Surface surface_fill(stTop, ExPolygon());
         for (ExPolygon &expoly : ironing_areas) {
 			surface_fill.expolygon = std::move(expoly);
@@ -1919,6 +1966,16 @@ void Layer::make_ironing()
 		        ironing_params.layerm->fills.entities.push_back(eec = new ExtrusionEntityCollection());
 		        // Don't sort the ironing infill lines as they are monotonicly ordered.
 				eec->no_sort = true;
+				if (calib_ironing_flow) {
+					// Iron from left to right.
+					for (Polyline &polyline : polylines)
+						if (polyline.first_point().x() > polyline.last_point().x())
+							polyline.reverse();
+					std::sort(polylines.begin(), polylines.end(),
+						[](const Polyline &a, const Polyline &b) { return get_extents(a).min.x() < get_extents(b).min.x(); });
+					extrusion_entities_append_calib_ironing_paths(eec->entities, polylines, calib, calib_x_start, calib_x_end,
+						calib_height_per_percent, nozzle_dmr);
+				} else
 		        extrusion_entities_append_paths(
 		            eec->entities, std::move(polylines),
 		            erIroning,
