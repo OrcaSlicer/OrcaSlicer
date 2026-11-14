@@ -54,6 +54,37 @@ size_t layers_with_filament(const PrintObject &object, int filament_id)
     return count;
 }
 
+// Paints every facet of `volume` with filament 2.
+void paint_all(ModelVolume &volume)
+{
+    TriangleSelector selector(volume.mesh());
+    for (int i = 0; i < int(volume.mesh().its.indices.size()); ++i)
+        selector.set_facet(i, EnforcerBlockerType::Extruder2);
+    REQUIRE(volume.mmu_segmentation_facets.set(selector));
+}
+
+// Sparse infill filament of the regions painted with filament 2. `setup` runs after the model is painted.
+template<class Setup>
+int painted_sparse_infill_filament(const DynamicPrintConfig &base, Setup setup)
+{
+    DynamicPrintConfig config = base;
+    Print print;
+    Model model;
+    Test::init_print({TriangleMesh(its_make_cube(12, 12, 4))}, print, model, config);
+    ModelObject &object = *model.objects.front();
+    paint_all(*object.volumes.front());
+    setup(config, object, *object.volumes.front());
+    print.apply(model, config);
+
+    REQUIRE(print.objects().size() == 1);
+    int result = -1;
+    for (const auto &range : print.objects().front()->shared_regions()->layer_ranges)
+        for (const auto &painted : range.painted_regions)
+            if (painted.extruder_id == 2)
+                result = painted.region->config().sparse_infill_filament_id.value;
+    return result;
+}
+
 } // namespace
 
 TEST_CASE("Painted top and bottom surfaces color their paint penetration layers", "[MultiMaterialSegmentation]")
@@ -87,4 +118,41 @@ TEST_CASE("Painted top and bottom surfaces color their paint penetration layers"
 
     CHECK(layers_with_filament(object, 2) == expected_top);
     CHECK(layers_with_filament(object, 3) == expected_bottom);
+}
+
+TEST_CASE("Painted regions keep an explicitly chosen sparse infill filament", "[MultiMaterialSegmentation]")
+{
+    const DynamicPrintConfig base = Test::multifilament_config(3, {
+        {"layer_height", "0.2"},
+        {"initial_layer_print_height", "0.2"},
+        {"gcode_comments", "1"}, // Match init_print so the second apply changes only the model.
+    });
+    using Config = DynamicPrintConfig;
+
+    SECTION("Default follows the paint") {
+        CHECK(painted_sparse_infill_filament(base, [](Config &, ModelObject &, ModelVolume &) {}) == 2);
+    }
+    SECTION("A global choice is kept") {
+        CHECK(painted_sparse_infill_filament(base, [](Config &c, ModelObject &, ModelVolume &) {
+            c.set_key_value("sparse_infill_filament_id", new ConfigOptionInt(3)); }) == 3);
+    }
+    SECTION("An object choice is kept") {
+        CHECK(painted_sparse_infill_filament(base, [](Config &, ModelObject &o, ModelVolume &) {
+            o.config.set("sparse_infill_filament_id", 3); }) == 3);
+    }
+    SECTION("A part choice overrides the object choice") {
+        CHECK(painted_sparse_infill_filament(base, [](Config &, ModelObject &o, ModelVolume &v) {
+            o.config.set("sparse_infill_filament_id", 1);
+            v.config.set("sparse_infill_filament_id", 3); }) == 3);
+    }
+    SECTION("An object Default restores painting over a global choice") {
+        CHECK(painted_sparse_infill_filament(base, [](Config &c, ModelObject &o, ModelVolume &) {
+            c.set_key_value("sparse_infill_filament_id", new ConfigOptionInt(3));
+            o.config.set("sparse_infill_filament_id", 0); }) == 2);
+    }
+    SECTION("A part Default restores painting over an object choice") {
+        CHECK(painted_sparse_infill_filament(base, [](Config &, ModelObject &o, ModelVolume &v) {
+            o.config.set("sparse_infill_filament_id", 3);
+            v.config.set("sparse_infill_filament_id", 0); }) == 2);
+    }
 }
