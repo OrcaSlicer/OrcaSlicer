@@ -493,9 +493,8 @@ class ExtrusionQualityEstimator
     using CurledLines  = AABBTreeLines::LinesDistancer<CurledLine>;
     std::unordered_map<const PrintObject*, std::shared_ptr<const Boundaries>>  prev_layer_boundaries;
     std::unordered_map<const PrintObject*, std::shared_ptr<const CurledLines>> prev_curled_extrusions;
-    // The layers the trees above are built from, and the layers prepared last.
+    // The layers the trees above are built from.
     std::unordered_map<const PrintObject*, const Layer*>                      prev_layer_sources;
-    std::unordered_map<const PrintObject*, const Layer*>                      last_prepared_layers;
     std::vector<PrecomputedOverhangLayer>                                     precomputed_layers;
     const PrintObject                                                        *current_object;
 
@@ -518,18 +517,19 @@ public:
     // Takes the data computed ahead for the layer about to be generated, replacing the previous layer's.
     void set_precomputed_layers(std::vector<PrecomputedOverhangLayer> &&layers) { precomputed_layers = std::move(layers); }
 
-    // Measures the layer against the layer prepared before it.
+    // Measures the layer against the layer below it. Not against the layer prepared before it: process_layer() skips
+    // layers that need no overhang detection, e.g. where a height range modifier turns overhang speed off.
     void prepare_for_new_layer(const PrintObject * obj, const Layer *layer)
     {
         if (layer == nullptr) return;
         const PrintObject *object = obj;
-        const Layer *prev = std::exchange(last_prepared_layers[object], layer);
+        const Layer *prev = layer->lower_layer;
         prev_layer_sources[object] = prev;
         const PrecomputedOverhangLayer *precomputed = precomputed_for(object);
         if (prev == nullptr) {
             prev_layer_boundaries[object]  = nullptr;
             prev_curled_extrusions[object] = nullptr;
-        } else if (precomputed != nullptr && precomputed->layer == layer && layer->lower_layer == prev) {
+        } else if (precomputed != nullptr && precomputed->layer == layer) {
             prev_layer_boundaries[object]  = precomputed->lower_boundaries;
             prev_curled_extrusions[object] = precomputed->lower_curled_lines;
         } else {
