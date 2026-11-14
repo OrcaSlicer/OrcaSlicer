@@ -104,6 +104,7 @@
 #include "Notebook.hpp"
 
 #include "Widgets/ComboBox.hpp"
+#include "PlateFilamentNozzles.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/MultiNozzleSync.hpp"
 #include "Widgets/SwitchButton.hpp"
@@ -2573,13 +2574,16 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         const size_t num_extruder = boost::any_cast<size_t>(value);
         auto        *bundle       = wxGetApp().preset_bundle;
         Sidebar     &sidebar      = wxGetApp().plater()->sidebar();
+        // Orca: mapped printers own their filament count; shrinking the tool count must not
+        // delete project filaments.
+        const bool keep = decouples_filaments_from_tools(*m_config) && num_extruder <= bundle->num_physical_filaments();
         // A tool changer feeds filament N from nozzle N, so the extruder count sizes the physical
         // run only; mixed slots are virtual and keep the tail. Go one slot at a time through the
         // sidebar's own +/- calls: they insert ahead of the mixed tail and renumber filament ids,
         // painted facets, custom g-code and mixed components, which a bulk resize clamps away.
         // Both also refresh the print tab and export the selections, so nothing to do afterwards.
         size_t physical = bundle->num_physical_filaments();
-        while (physical != num_extruder) {
+        while (!keep && physical != num_extruder) {
             if (physical < num_extruder)
                 sidebar.add_custom_filament(Plater::get_next_color_for_filament());
             else
@@ -2589,6 +2593,8 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
                 break;   // the call declined, e.g. the total slot limit - do not spin
             physical = updated;
         }
+        if (keep)
+            wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
     }
 
     //Orca: disable purge_in_prime_tower if single_extruder_multi_material is disabled
@@ -3945,6 +3951,9 @@ void TabPrintModel::update_model_config()
             }
         }
     }
+    // Orca: the "Filament nozzles" rows are per plate; refresh them whenever the page loads a plate.
+    if (m_type == Preset::TYPE_PLATE)
+        static_cast<TabPrintPlate *>(this)->update_filament_nozzles();
 }
 
 void TabPrintModel::reset_model_config()
@@ -3995,6 +4004,7 @@ void TabPrintPlate::update_mixed_filament_seq_state()
 
     toggle_option("first_layer_sequence_choice", !has_mixed, -1, mixed_filament_order_reason);
     toggle_option("other_layers_sequence_choice", !has_mixed, -1, mixed_filament_order_reason);
+    update_filament_nozzles();
 }
 
 void TabPrintModel::on_value_change(const std::string& opt_id, const boost::any& value)
@@ -4158,6 +4168,42 @@ void TabPrintPlate::build()
         line.undo_to_sys = true;
     }
     optgroup->have_sys_config = [this] { m_back_to_sys = true; return true; };
+
+    // Orca: which tool each of the plate's filaments prints from, on decoupled printers.
+    m_nozzle_group = page->new_optgroup(L("Filament nozzles"));
+    Line nozzles_line{ "", "" };
+    nozzles_line.full_width = 1;
+    nozzles_line.widget = [this](wxWindow* parent) {
+        m_nozzle_panel = new PlateFilamentNozzlesPanel(parent, [this] {
+            m_nozzle_group->Show(m_nozzle_panel->IsShown());
+            if (m_page_view != nullptr) {
+                m_page_view->Layout();
+                m_page_view->GetParent()->Layout();
+            }
+        });
+        auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+        sizer->Add(m_nozzle_panel, 1, wxEXPAND);
+        return sizer;
+    };
+    m_nozzle_group->append_line(nozzles_line);
+}
+
+void TabPrintPlate::update_filament_nozzles()
+{
+    if (m_nozzle_panel == nullptr || m_nozzle_group == nullptr)
+        return;
+    // The plate whose config the page shows, not the canvas's current one: they differ while the
+    // selection is changing. The map is refreshed only when the object list re-selects, so the plate
+    // it names may have been deleted: find it by address in the plater's list before using it.
+    PartPlate* plate = nullptr;
+    if (!m_object_configs.empty()) {
+        const ObjectBase* named  = m_object_configs.begin()->first;
+        PartPlateList&    plates = wxGetApp().plater()->get_partplate_list();
+        for (int i = 0; i < plates.get_plate_count() && plate == nullptr; ++i)
+            if (static_cast<const ObjectBase*>(plates.get_plate(i)) == named)
+                plate = plates.get_plate(i);
+    }
+    m_nozzle_panel->update(plate);
 }
 
 void TabPrintPlate::reset_model_config()
@@ -4176,9 +4222,14 @@ void TabPrintPlate::reset_model_config()
         plate->set_first_layer_print_sequence({});
         plate->set_other_layers_print_sequence({});
         plate->set_spiral_vase_mode(false, true);
+        if (plate->get_filament_map_mode() == FilamentMapMode::fmmManual) {
+            plate->set_filament_map_mode(FilamentMapMode::fmmAutoForFlush);
+            plate->clear_filament_map();
+        }
         notify_changed(plate_item.first);
     }
     update_model_config();
+    update_filament_nozzles();
     wxGetApp().mainframe->on_config_changed(m_config);
 }
 
@@ -6138,6 +6189,8 @@ if (is_marlin_flavor)
             });
         };
         optgroup->append_single_option_line("manual_filament_change", "printer_multimaterial_setup#manual-filament-change");
+        optgroup->append_single_option_line("enable_filament_mapping", "printer_multimaterial_setup");
+        optgroup->append_single_option_line("filament_mapping_protocol", "printer_multimaterial_setup");
         optgroup->append_single_option_line("bed_temperature_formula", "printer_basic_information_advanced#bed-temperature-type");
 
         optgroup = page->new_optgroup(L("Wipe tower"), "param_tower");
@@ -6932,6 +6985,11 @@ void TabPrinter::toggle_options()
         const wxString tool_change_tower_reason = _L("Use multiple extruders with wipe tower Type 2 on a non-Bambu printer and disable single extruder multimaterial mode.");
         toggle_option("tool_change_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1, -1, tool_change_tower_reason);
         toggle_option("wait_for_temp_on_wipe_tower", !bSEMM && supports_wipe_tower_2 && extruders_count > 1, -1, tool_change_tower_reason);
+
+        // Orca: a native mapping protocol or a reported changer already maps filaments.
+        toggle_line("enable_filament_mapping", !is_BBL_printer && extruders_count > 1 && !bSEMM &&
+                                               filament_mapping_protocol_of(*m_config) == FilamentMappingProtocol::fmpNone &&
+                                               reported_changer_of(*m_config).empty());
     }
     if (m_active_page->title() == L("Extruder") && m_extruders_count > 0)
     {

@@ -34,6 +34,7 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/preprocessor/tuple/to_seq.hpp>
 #include <cstdint>
+#include <algorithm>
 #include <set>
 #include <optional>
 #include <boost/algorithm/string.hpp>
@@ -147,6 +148,15 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
 
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer)
 {
+    // Orca: a mixed filament's own column sits past the nozzles and would fall back to nozzle 1. It
+    // prints through its components' nozzles, which Print::validate requires to be of one diameter,
+    // so its diameter is its first component's.
+    if (filament_id >= 1 && size_t(filament_id - 1) < config.filament_is_mixed.size() && config.filament_is_mixed.values[filament_id - 1] &&
+        size_t(filament_id - 1) < config.filament_mixed_components.size()) {
+        for (unsigned int component : parse_mixed_components(config.filament_mixed_components.values[filament_id - 1]))
+            if (component >= 1 && (size_t(component - 1) >= config.filament_is_mixed.size() || !config.filament_is_mixed.values[component - 1]))
+                return nozzle_diameter_for_filament(config, int(component), is_bbl_printer);
+    }
     int extruder = filament_id;
     if (is_bbl_printer && config.nozzle_diameter.size() > 1 &&
         filament_id >= 1 && static_cast<size_t>(filament_id - 1) < config.filament_map.size())
@@ -154,6 +164,116 @@ double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, 
     return config.nozzle_diameter.get_at(extruder - 1);
 }
 
+// Orca: >= 2 nozzles and not single_extruder_multi_material.
+static bool one_filament_per_nozzle(const ConfigBase& printer_config)
+{
+    const ConfigOptionFloats* nozzle_diameter = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    if (nozzle_diameter == nullptr || nozzle_diameter->size() < 2)
+        return false;
+    const ConfigOption* semm = printer_config.option("single_extruder_multi_material");
+    return semm == nullptr || !semm->getBool();
+}
+
+bool printer_has_viewable_filaments(const ConfigBase& printer_config, const std::string& reported_changer)
+{
+    return one_filament_per_nozzle(printer_config) || !reported_changer.empty();
+}
+
+// Orca: the same test the CLI uses. Bambu printers assign filaments to nozzles through filament_map.
+static bool is_bambu_printer_model(const ConfigBase& printer_config)
+{
+    const ConfigOptionString* model = printer_config.option<ConfigOptionString>("printer_model");
+    return model != nullptr && boost::algorithm::starts_with(model->value, "Bambu Lab");
+}
+
+// Orca: the bool option is on and the printer holds one filament per nozzle and is not a Bambu.
+static bool mapping_option_enabled(const ConfigBase& printer_config, const char* key)
+{
+    const ConfigOption* opt = printer_config.option(key);
+    return opt != nullptr && opt->getBool() && one_filament_per_nozzle(printer_config) && !is_bambu_printer_model(printer_config);
+}
+
+FilamentMappingProtocol filament_mapping_protocol_of(const ConfigBase& printer_config)
+{
+    const ConfigOption* opt = printer_config.option("filament_mapping_protocol");
+    return opt == nullptr ? FilamentMappingProtocol::fmpNone : (FilamentMappingProtocol) opt->getInt();
+}
+
+std::string reported_changer_of(const ConfigBase& printer_config)
+{
+    const ConfigOption* opt = printer_config.option("device_changer");
+    return opt != nullptr ? opt->serialize() : std::string();
+}
+
+bool seed_printer_from_report(DynamicPrintConfig& printer_config, const std::string& reported_dialect, int reported_tool_count)
+{
+    bool changed = false;
+    if (!reported_dialect.empty() && reported_changer_of(printer_config) != reported_dialect) {
+        printer_config.set_key_value("device_changer", new ConfigOptionString(reported_dialect));
+        changed = true;
+    }
+    if (reported_tool_count > 0 && printer_config.opt_int("device_tool_count") != reported_tool_count) {
+        printer_config.set_key_value("device_tool_count", new ConfigOptionInt(reported_tool_count));
+        changed = true;
+    }
+    return changed;
+}
+
+bool decouples_filaments_from_tools(const ConfigBase& printer_config)
+{
+    return filament_mapping_protocol_of(printer_config) != FilamentMappingProtocol::fmpNone ||
+           !reported_changer_of(printer_config).empty() ||
+           mapping_option_enabled(printer_config, "enable_filament_mapping");
+}
+
+size_t filament_namespace_size(const ConfigBase& printer_config, size_t nozzle_count)
+{
+    if (const ConfigOption* probed = printer_config.option("device_tool_count"); probed != nullptr && probed->getInt() > 0)
+        return size_t(probed->getInt());
+    switch (filament_mapping_protocol_of(printer_config)) {
+    case FilamentMappingProtocol::fmpSnapmaker:
+        // extruder_map_table is 32 logical entries wide; the firmware merges them onto the heads.
+        return 32;
+    case FilamentMappingProtocol::fmpWonderMaker:
+        // Stock firmware only permutes its tools: no macro past T(tool_count-1).
+    case FilamentMappingProtocol::fmpNone:
+        break;
+    }
+    return nozzle_count;
+}
+
+size_t filament_capacity(const ConfigBase& printer_config, size_t nozzle_count)
+{
+    const size_t namespace_size = filament_namespace_size(printer_config, nozzle_count);
+    return reported_changer_of(printer_config).empty() ? std::min(namespace_size, nozzle_count) : namespace_size;
+}
+
+std::vector<int> non_bbl_identity_filament_extruder_map(size_t filament_count, size_t extruder_count, int master_extruder_id_0based)
+{
+    master_extruder_id_0based = std::max(0, master_extruder_id_0based);
+    std::vector<int> ret(filament_count, master_extruder_id_0based);
+    for (size_t i = 0; i < filament_count && i < extruder_count; ++i)
+        ret[i] = (int) i;
+    return ret;
+}
+
+std::vector<int> non_bbl_identity_filament_extruder_map(const ConfigBase& config, size_t filament_count)
+{
+    const ConfigOptionFloats* nozzle_diams       = config.option<ConfigOptionFloats>("nozzle_diameter");
+    const ConfigOptionInt*    master_extruder_id = config.option<ConfigOptionInt>("master_extruder_id");
+    return non_bbl_identity_filament_extruder_map(filament_count, nozzle_diams ? nozzle_diams->size() : 0,
+                                                  master_extruder_id ? master_extruder_id->value - 1 : 0);
+}
+
+void normalize_plate_filament_map(std::vector<int>& values, size_t filament_count, size_t nozzle_count)
+{
+    if (values.empty())
+        return;
+    if (values.size() < filament_count)
+        values.resize(filament_count, 1);
+    for (int& v : values)
+        v = std::clamp(v, 1, std::max((int) nozzle_count, 1));
+}
 
 // Orca: input shaping values types by flavor
 std::vector<std::string> get_shaper_type_values_for_flavor(GCodeFlavor flavor)
@@ -292,6 +412,12 @@ static t_config_enum_values s_keys_map_WipeTowerType {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(WipeTowerType)
 
+static t_config_enum_values s_keys_map_FilamentMappingProtocol {
+    { "none",       int(FilamentMappingProtocol::fmpNone) },
+    { "snapmaker",  int(FilamentMappingProtocol::fmpSnapmaker) },
+    { "wondermaker", int(FilamentMappingProtocol::fmpWonderMaker) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FilamentMappingProtocol)
 
 static t_config_enum_values s_keys_map_FuzzySkinMode {
     { "displacement",   int(FuzzySkinMode::Displacement) },
@@ -7160,6 +7286,48 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("enable_filament_mapping", coBool);
+    def->label = L("Decouple filaments from tools");
+    def->tooltip = L("Allow the project to hold more filament profiles than the printer has tools. "
+                     "A plate can use any of them, up to the number of tools. A filament keeps the "
+                     "tool of its own number; one numbered past the last tool prints from a free tool. "
+                     "Plate Settings lets you choose the tool, and so the nozzle, of each filament on "
+                     "the plate. Only for multi-tool printers without single-extruder multi-material.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("filament_mapping_protocol", coEnum);
+    def->label = L("Filament mapping protocol");
+    def->tooltip = L("The printer's native filament-to-tool mapping protocol. When set, OrcaSlicer "
+                     "slices in logical tool space and sends the mapping to the printer at print time "
+                     "instead of baking it into the G-code. This must match what the printer's firmware "
+                     "actually implements; the vendor profile normally sets this.");
+    def->enum_keys_map = &ConfigOptionEnum<FilamentMappingProtocol>::get_enum_values();
+    def->enum_values.emplace_back("none");
+    def->enum_values.emplace_back("snapmaker");
+    def->enum_values.emplace_back("wondermaker");
+    def->enum_labels.emplace_back(L("None"));
+    def->enum_labels.emplace_back(L("Snapmaker"));
+    def->enum_labels.emplace_back(L("WonderMaker"));
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionEnum<FilamentMappingProtocol>(FilamentMappingProtocol::fmpNone));
+
+    // Orca: written by the materials sync (highest registered T<n> + 1), not by the user.
+    def = this->add("device_tool_count", coInt);
+    def->label = L("Logical tools reported by the printer");
+    def->tooltip = L("How many logical tools (T0..Tn) the printer's firmware registers, as read from the printer "
+                     "by the materials sync. 0 until the printer has been synced. Bounds how many filaments one "
+                     "plate may address; the printer is re-read before every print.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionInt(0));
+
+    def = this->add("device_changer", coString);
+    def->label = L("Filament changer reported by the printer");
+    def->tooltip = L("The Klipper filament changer the materials sync found on the printer (AFC, Happy Hare). "
+                     "Written by the sync, not by hand; it chooses how the filament map is sent at print time.");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionString(""));
+
     def = this->add("wipe_tower_type", coEnum);
     def->label = L("Wipe tower type");
     def->tooltip = L("Choose the wipe tower implementation for multi-material prints. Type 1 is recommended for Bambu and Qidi printers with a filament cutter. Type 2 offers better compatibility with multi-tool and MMU printers and provide overall better compatibility.");
@@ -8283,6 +8451,12 @@ void PrintConfigDef::init_fff_params()
                                                     280.f,   0.f, 280.f, 280.f,
                                                     280.f, 280.f,   0.f, 280.f,
                                                     280.f, 280.f, 280.f,   0.f });
+
+    def = this->add("flush_volumes_synced", coBool);
+    def->label = L("Same flushing volumes for all extruders");
+    def->tooltip = L("Edit one flushing-volume matrix and apply it to every extruder. Off: each extruder keeps its own matrix.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("flush_multiplier", coFloats);
     def->label = L("Flush multiplier");
@@ -10473,6 +10647,35 @@ void DynamicPrintConfig::normalize_fdm_1()
     if (auto *opt_gcode_resolution = this->opt<ConfigOptionFloat>("resolution", false); opt_gcode_resolution)
         // Resolution will be above 1um.
         opt_gcode_resolution->value = std::max(opt_gcode_resolution->value, 0.001);
+
+    // The printer routes logical tools itself, so the slicer keeps no mapping of its own.
+    if (decouples_filaments_from_tools(*this)) {
+        const ConfigOptionStrings* colours = this->option<ConfigOptionStrings>("filament_colour");
+        const size_t filament_count = colours ? colours->size() : 0;
+        // Orca: must match what Print::update_filament_maps_to_config() writes back after slicing,
+        // or every apply sees a config diff.
+        const std::vector<int> extruder_of_filament = non_bbl_identity_filament_extruder_map(*this, filament_count);
+        // nozzle_volume_type is coEnums; reading it as ConfigOptionInts returns null.
+        const ConfigOptionEnumsGeneric* nozzle_volume_types = this->option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+        ConfigOptionInts* map  = this->option<ConfigOptionInts>("filament_map");
+        ConfigOptionInts* vmap = this->option<ConfigOptionInts>("filament_volume_map");
+        ConfigOptionInts* nmap = this->option<ConfigOptionInts>("filament_nozzle_map");
+        for (ConfigOptionInts* opt : {map, vmap, nmap})
+            if (opt != nullptr && filament_count > 0)
+                opt->values.resize(filament_count);
+        for (size_t i = 0; i < filament_count; ++i) {
+            const size_t extruder = (size_t) extruder_of_filament[i];
+            if (map)
+                map->values[i] = int(extruder) + 1;
+            if (vmap)
+                vmap->values[i] = (nozzle_volume_types && extruder < nozzle_volume_types->size()) ? nozzle_volume_types->values[extruder] : (int) nvtStandard;
+            if (nmap)
+                nmap->values[i] = int(extruder);
+        }
+        // Not fmmDefault: it is a GUI-only sentinel with no serialization entry.
+        if (auto* mode = this->option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode"))
+            mode->value = FilamentMapMode::fmmAutoForFlush;
+    }
 
     return;
 }
