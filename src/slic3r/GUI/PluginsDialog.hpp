@@ -234,7 +234,8 @@ public:
     void set_open_terminal_dlg_fn();
     void update_plugin_dialog_ui();
     // Main thread only. Refresh visible permissions after an external grant; hidden dialogs
-    // are refreshed by the normal open path instead.
+    // are refreshed by the normal open path instead. The web page merges the new state into
+    // the Permissions rows, with unsaved text taking precedence until it is saved or reverted.
     void refresh_permissions_if_visible();
 
 private:

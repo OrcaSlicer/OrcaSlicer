@@ -13,6 +13,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/catch_message.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
@@ -39,6 +40,25 @@ TriangleMesh two_tier_mesh()
     TriangleMesh mesh = lower;
     mesh.merge(column);
     mesh.merge(upper);
+    return mesh;
+}
+
+// A slab on a column overhangs it on one side. One layer higher, two wings leave the slab's other
+// two sides, so both wings are new overhangs on the same layer, next to the slab's overhang.
+TriangleMesh slab_with_two_wings_mesh()
+{
+    TriangleMesh column = make_cube(10, 10, 5.1);
+    TriangleMesh slab   = make_cube(14, 10, 5);
+    TriangleMesh front  = make_cube(4, 6.1, 4.8);
+    TriangleMesh back   = make_cube(4, 6.1, 4.8);
+    // Each part overlaps the one it joins rather than resting on it; a coplanar join slices ambiguously.
+    slab.translate(0.f, 0.f, 5.f);
+    front.translate(10.f, -6.f, 5.2f);
+    back.translate(10.f, 9.9f, 5.2f);
+    TriangleMesh mesh = column;
+    mesh.merge(slab);
+    mesh.merge(front);
+    mesh.merge(back);
     return mesh;
 }
 
@@ -272,4 +292,50 @@ TEST_CASE("Tree support top interface covers the whole overhang", "[TreeSupport]
     const double uncovered = area(diff_ex(overhang, covered)) / area(overhang);
     INFO("uncovered fraction " << uncovered);
     CHECK(uncovered < 0.02);
+}
+
+// Both wings join the cluster of the slab's overhang on the same layer, and each must still get its own support.
+TEST_CASE("Tree support reaches every overhang that joins a cluster on the same layer", "[TreeSupport][Regression]")
+{
+    const char *style = GENERATE("tree_hybrid", "organic");
+    CAPTURE(style);
+    Slic3r::Print print;
+    slice_with_tree_support(slab_with_two_wings_mesh(), print, style, 30, 0, 0, {
+        // The test print is centred on the origin, and tree support drops nodes off the bed.
+        { "printable_area",             "-100x-100,100x-100,100x100,-100x100" },
+        { "initial_layer_print_height", 0.2 },
+        // Overhangs join a cluster within one line width, and the default of 0 never joins them.
+        { "line_width",                 0.45 },
+    });
+    const PrintObject *object = print.objects().front();
+
+    // The slab is 10 mm deep and centred between the wings, which reach 6 mm past it on each side.
+    const BoundingBox top        = get_extents(object->layers().back()->lslices);
+    const coord_t     wing_depth = (top.size().y() - scaled<coord_t>(10.)) / 2;
+    REQUIRE(wing_depth > scaled<coord_t>(5.));
+    // Points more than 1 mm past the slab's edge are under a wing, not under the slab's own overhang.
+    const coord_t front_limit = top.min.y() + wing_depth - scaled<coord_t>(1.);
+    const coord_t back_limit  = top.max.y() - wing_depth + scaled<coord_t>(1.);
+
+    // The wings start at 5.2 mm, so their contact is in the support layers just below.
+    size_t under_front = 0;
+    size_t under_back  = 0;
+    for (const SupportLayer *layer : object->support_layers()) {
+        if (layer->print_z < 4. || layer->print_z > 5.2 + EPSILON)
+            continue;
+        Points points;
+        layer->support_fills.collect_points(points);
+        for (const Point &pt : points) {
+            if (pt.y() < front_limit)
+                ++under_front;
+            else if (pt.y() > back_limit)
+                ++under_back;
+        }
+    }
+    // The wings mirror each other, so each gets a similar amount. Branches spreading from the slab
+    // put a little under a wing even when the wing itself has no contact.
+    CAPTURE(under_front, under_back);
+    REQUIRE(under_back > 0);
+    REQUIRE(2 * under_front > under_back);
+    REQUIRE(2 * under_back > under_front);
 }

@@ -9,8 +9,11 @@
 #include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include <array>
+#include <cstddef>
 #include <wx/dataview.h>
+#include <climits>
 #include <map>
+#include <tuple>
 #include <vector>
 #include <wx/event.h>
 #include <wx/string.h>
@@ -29,6 +32,7 @@
 
 class ScalableButton;
 class wxStaticText;
+class CheckBox;
 
 namespace Slic3r {
 namespace GUI{
@@ -276,6 +280,9 @@ struct PresetItem
     wxString     option_name;
     wxString     old_value;
     wxString     new_value;
+    int          order{ INT_MAX };  // position on the settings pages; rows on no page sort last
+    int          extruder_id{ 0 };  // extruder of a per-extruder page row, else 0
+    bool         has_icon{ false }; // a value is too long to show, so the row has a compare button
 };
 
 
@@ -285,12 +292,11 @@ protected:
     wxPanel *     m_top_line;
     wxPanel *     m_panel_tab;
     wxPanel *     m_table_top;
-    wxPanel *     title_block_middle;
-    wxPanel *     title_block_right;
     wxStaticText *static_temp_title;
-    wxStaticText *static_oldv_title;
-    wxStaticText *static_newv_title;
+    wxStaticText *static_oldv_title { nullptr };
+    wxStaticText *static_newv_title { nullptr };
     wxBoxSizer *  m_sizer_bottom;
+    int           m_value_width { 0 };
 
     //DiffViewCtrl*           m_tree          { nullptr };
     Button*                 m_save_btn      { nullptr };
@@ -300,6 +306,9 @@ protected:
     wxStaticText*           m_action_line   { nullptr };
     wxStaticText*           m_info_line     { nullptr };
     wxScrolledWindow*       m_scrolledWindow{ nullptr };
+
+    int                     m_first_value_width { 0 };
+    int                     m_content_width     { 0 };
 
     bool                    m_has_long_strings  { false };
     int                     m_save_btn_id       { wxID_ANY };
@@ -333,6 +342,15 @@ public:
 
 private:
     std::vector<PresetItem> m_presetitems;
+    std::vector<std::tuple<::CheckBox *, std::string, int, int>> m_sync_checks; // checkbox, option, value position and column of each copy
+    std::vector<std::tuple<::CheckBox *, Preset::Type, std::string>> m_option_checks; // checkbox, preset type and option of each change
+    std::vector<std::pair<::CheckBox *, std::vector<::CheckBox *>>> m_all_checks; // a box ticking several changes or copies, and those
+    std::vector<std::vector<wxWindow *>> m_sync_columns; // the label column, then one per extruder; the header window first
+    size_t add_all_check(wxWindow *parent);
+    void   update_all_checks();
+    // The options of the changed rows of the type (any type for nullptr) whose box is ticked, or not. A row without
+    // a box is always selected.
+    std::vector<std::string> options_by_selection(const Preset::Type *type, bool selected) const;
     // preset names which are modified in SavePresetDialog and related types
     std::vector<PresetData>  names_and_types;
     //std::vector<std::pair<std::string, Preset::Type>>  names_and_types;
@@ -354,18 +372,23 @@ public:
 
     struct SyncExtruderParams
     {
-        DynamicConfig   *config;
-        int              from;
-        int              to;
-        bool             left_to_right;
-        NozzleVolumeType nozzle;
+        // Where an option's values are in each column, -1 for a column without one, and how many each holds.
+        struct Positions
+        {
+            int              stride;
+            std::vector<int> index;
+        };
+        DynamicConfig                    *config;    // the options to copy, with their values before the copy
+        std::vector<wxString>             titles;    // the source and targets, in extruder (or nozzle variant) order
+        int                               source;    // the source's column
+        std::map<std::string, Positions>  positions; // per option
     };
 
     // show unsaved changes when preset is switching
     UnsavedChangesDialog(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, bool no_transfer = false);
     // show unsaved changes for all another cases
     UnsavedChangesDialog(const wxString& caption, const wxString& header, const std::string& app_config_key, int act_buttons);
-    UnsavedChangesDialog(const wxString &caption, const wxString &header, DynamicConfig *config, int from, int to, bool left_to_right, NozzleVolumeType nozzle);
+    UnsavedChangesDialog(const wxString &caption, const wxString &header, Preset::Type type, SyncExtruderParams params);
     ~UnsavedChangesDialog() override = default;
 
     int ShowModal() override;
@@ -373,14 +396,17 @@ public:
     void        build(Preset::Type type, PresetCollection *dependent_presets, const std::string &new_selected_preset, const wxString &header = "");
     void update(Preset::Type type, PresetCollection* dependent_presets, const std::string& new_selected_preset, const wxString& header);
     void update_list(SyncExtruderParams *params = nullptr);
-    std::string subreplace(std::string resource_str, std::string sub_str, std::string new_str);
+    bool value_clips(const wxString &value) const;
     void        update_tree(Preset::Type type, PresetCollection *presets);
-    void        update_tree(Preset::Type type, DynamicConfig *config, int from, int to);
+    void        update_tree(Preset::Type type, DynamicConfig *config);
     void show_info_line(Action action, std::string preset_name = "");
     void update_config(Action action);
     void close(Action action);
     // save information about saved presets and their types to names_and_types and show SavePresetDialog to set the names for new presets
     bool save(PresetCollection* dependent_presets, bool show_save_preset_dialog = true);
+
+    // Option and variant column of each ticked copy in the extruder sync dialog.
+    std::vector<std::pair<std::string, int>> get_sync_selection() const;
 
     bool save_preset() const        { return m_exit_action == Action::Save;     }
     bool transfer_changes() const   { return m_exit_action == Action::Transfer; }
@@ -394,30 +420,10 @@ public:
     // short version of the previous function, for the case, when just one preset is modified
     std::string get_preset_name() { return names_and_types[0].name; }
 
-    std::vector<std::string> get_unselected_options(Preset::Type type) { /* return m_tree->options(type, false);*/return std::vector<std::string>();}
-    std::vector<std::string> get_selected_options  (Preset::Type type)  {
-        //return m_tree->options(type, true);
-         std::vector<std::string> tmp;
-        for (int i = 0; i < m_presetitems.size(); i++) {
-            if (m_presetitems[i].type == type) {
-                tmp.push_back(m_presetitems[i].opt_key);
-            }
-        }
-
-        return tmp;
-    }
-    std::vector<std::string> get_selected_options()                     {
-        //return m_tree->selected_options();
-
-        std::vector<std::string> tmp;
-        for (int i = 0; i < m_presetitems.size(); i++)
-        {
-           tmp.push_back(m_presetitems[i].opt_key);
-        }
-
-        return tmp;
-    }
-    bool                     has_unselected_options()                   { /*return m_tree->has_unselected_options();*/return false;}
+    std::vector<std::string> get_unselected_options(Preset::Type type)  { return options_by_selection(&type, false); }
+    std::vector<std::string> get_selected_options  (Preset::Type type)  { return options_by_selection(&type, true); }
+    std::vector<std::string> get_selected_options()                     { return options_by_selection(nullptr, true); }
+    bool                     has_unselected_options()                   { return !options_by_selection(nullptr, false).empty(); }
 
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;
