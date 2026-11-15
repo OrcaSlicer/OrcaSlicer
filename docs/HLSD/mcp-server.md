@@ -4102,10 +4102,11 @@ the MCP web fixture plugin's dialog, window, dock panel and configuration UI (si
 `--install DATADIR`), `tools/mcp/test_set_view_preview.py` the
 legend combo's semantics of `set_view {view_type}`, a canvas screenshot straight after a layer or
 view type change, and the preview refusals of `set_view`, `tools/mcp/test_set_window.py`
-`set_window` on the main window (sized twice, moved, placed over its display's work area, maximized and
-minimized, and restored from both, with a window screenshot of the size on Wayland), on the Plugins
-window by its ref and on Preferences by its `{label}` locator (on X11 with the main window kept under it
-in the X server's stacking order), `tools/mcp/test_speed_dial_open.py` the 3D view's keyboard focus after
+`set_window` on the main window (sized twice, moved, placed over its display's work area, maximized and,
+on X11, minimized and restored from both, with a window screenshot of the size on Wayland, and the checks
+a Wayland session can't run reported SKIP), on the Plugins window by its ref and on Preferences by its
+`{label}` locator (on X11 with the main window kept under it in the X server's stacking order),
+`tools/mcp/test_speed_dial_open.py` the 3D view's keyboard focus after
 a switch to Prepare, Preview or the Design tab, Space opening the Speed Dial there, and the dial without
 KWin's title bar, `tools/mcp/test_set_view_camera.py`
 `set_view`'s `look_at` and `zoom` after a queued fit (and its note while no 3D view draws), clamping,

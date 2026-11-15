@@ -7,12 +7,13 @@ entry() fills a manifest entry's defaults and refuses an unknown key, an unknown
 `exclusive` or `locks` without a `why`. manifest_problems() names a test the manifest leaves out and
 an entry whose file is gone, and the shipped sweep.json lists every test there is. order() puts the
 longest tests first, those without a time before them, and the exclusive ones apart. pick_next()
-passes over a test whose lock another holds. The commands launch with --cad when asked and
---headless on Linux only, fill {bin} and {datadir}, and run a replay into the test's own folder; a
-test's environment has its own session file and temporary folder. Two test files with one name are refused,
-a test whose run raises is recorded as an error, one that runs out of time is ended so that what it started
-ends too, --history takes a bare file name, and -j or --jobs takes a whole number from 1 up. Exits 0 when
-every check passes.
+passes over a test whose lock another holds. The commands launch with --cad when asked and fill {bin} and
+{datadir}; on Linux the app is an X11 client unless --wayland asks for a native Wayland one, --headless is
+added only when the run asks for it, and both flags are refused off Linux and together. A replay runs into
+the test's own folder; a test's environment has its own session file and temporary folder. Two test files
+with one name are refused, a test whose run raises is recorded as an error, one that runs out of time is
+ended so that what it started ends too, --history takes a bare file name, and -j or --jobs takes a whole
+number from 1 up. Exits 0 when every check passes.
 """
 
 import contextlib
@@ -82,10 +83,11 @@ def check_pick_next():
     ok("pick_next() passes over a test whose lock is held")
 
 
-def context(platform):
+def context(platform, headless=False, wayland=False):
     root = os.path.join(tempfile.gettempdir(), "orca-sweep-check")
     return RunContext(mcp_dir=MCP_DIR, binary=os.path.join(root, "bin", "orca-slicer"),
-                      run_dir=os.path.join(root, "run"), port=14101, python="python3", platform=platform)
+                      run_dir=os.path.join(root, "run"), port=14101, python="python3", platform=platform,
+                      headless=headless, wayland=wayland)
 
 
 def check_commands():
@@ -94,10 +96,21 @@ def check_commands():
     launch = run_sweep.launch_command(cad, ctx)
     assert launch[:8] == ["python3", os.path.join(MCP_DIR, "orca_mcp.py"), "launch", "--bin", ctx.binary,
                           "--datadir", ctx.datadir, "--port"], launch
-    assert launch[-4:] == ["--port", "14101", "--cad", "--headless"], launch
+    # An X11 client on the desktop by default: a Wayland compositor restores a minimized window only by
+    # activating the app and reports no position, so the checks that need either are reported skipped there.
+    assert launch[-3:] == ["--port", "14101", "--cad"], launch
+    assert run_sweep.launch_env(ctx, {"PATH": "p"}) == {"PATH": "p", "GDK_BACKEND": "x11"}
+    wayland = context("linux", wayland=True)
+    assert run_sweep.launch_command(cad, wayland)[-3:] == ["--port", "14101", "--cad"], wayland
+    assert run_sweep.launch_env(wayland, {"PATH": "p"}) == {"PATH": "p", "GDK_BACKEND": "wayland"}
+    # A headless launch is an X11 client on the compositor it starts, which its own launch sets.
+    headless = context("linux", headless=True)
+    assert run_sweep.launch_command(cad, headless)[-4:] == ["--port", "14101", "--cad", "--headless"], headless
+    assert run_sweep.launch_env(headless, {"PATH": "p"}) == {"PATH": "p"}
     assert run_sweep.test_command(cad, ctx) == ["python3", os.path.join(MCP_DIR, "orca_mcp.py"), "run-replay",
                                                 os.path.join(MCP_DIR, "tests", "cad_doc.json"), "--out", ctx.out_dir]
     assert "--headless" not in run_sweep.launch_command(cad, context("darwin"))
+    assert run_sweep.launch_env(context("darwin"), {"PATH": "p"}) == {"PATH": "p"}
 
     mac = context("darwin")
     bridge = entry({"path": "test_stdio_bridge.py", "args": ["--bin", "{bin}"]})
@@ -108,7 +121,8 @@ def check_commands():
     web = entry({"path": "test_web_ui.py", "setup": ["--install", "{datadir}"]})
     assert run_sweep.setup_command(web, mac) == ["python3", os.path.join(MCP_DIR, "test_web_ui.py"),
                                                  "--install", mac.datadir]
-    ok("the commands launch with --cad when asked and --headless on Linux only, and fill {bin} and {datadir}")
+    ok("the commands launch with --cad when asked and fill {bin} and {datadir}, as X11 clients unless --wayland, "
+       "with --headless only when the run asks for it")
 
 
 def check_env():
@@ -216,6 +230,28 @@ def check_jobs_option():
     ok("-j N and --jobs N set how many tests run at once, a whole number from 1 up")
 
 
+def check_display_options():
+    def parse(*flags):
+        return run_sweep.parse_args(list(flags))
+
+    for flags in ([], ["--headless"], ["--wayland"]):
+        assert run_sweep.option_problems(parse(*flags), "linux") == [], flags
+    assert run_sweep.option_problems(parse("--headless", "--wayland"), "linux"), "--headless --wayland"
+    for platform in ("darwin", "win32"):
+        for flags in (["--headless"], ["--wayland"]):
+            assert run_sweep.option_problems(parse(*flags), platform), (platform, flags)
+
+    session = {"DISPLAY": ":0", "WAYLAND_DISPLAY": "wayland-1"}
+    assert run_sweep.session_problems(parse(), session, "linux") == []
+    assert run_sweep.session_problems(parse("--wayland"), session, "linux") == []
+    assert run_sweep.session_problems(parse("--headless"), {}, "linux") == []
+    assert run_sweep.session_problems(parse(), {"WAYLAND_DISPLAY": "wayland-1"}, "linux"), "no DISPLAY"
+    assert run_sweep.session_problems(parse("--wayland"), {"DISPLAY": ":0"}, "linux"), "no WAYLAND_DISPLAY"
+    assert run_sweep.session_problems(parse(), {}, "darwin") == []
+    ok("--headless and --wayland are taken on Linux, refused elsewhere and together, and each backend needs "
+       "its display")
+
+
 def check_shipped_manifest():
     manifest = run_sweep.load_manifest(os.path.join(MCP_DIR, "sweep.json"))
     problems = run_sweep.manifest_problems(manifest, run_sweep.discover(MCP_DIR), MCP_DIR)
@@ -235,6 +271,7 @@ def main():
     check_timeout_ends_children()
     check_history_file()
     check_jobs_option()
+    check_display_options()
     check_shipped_manifest()
     return 0
 

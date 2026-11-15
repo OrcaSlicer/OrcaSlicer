@@ -18,7 +18,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from orca_mcp import OrcaMcp, find_binary  # noqa: E402
+from orca_mcp import OrcaMcp, app_env, find_binary  # noqa: E402
 
 FIXTURE = os.path.join(HERE, "tests", "plugins", "mcp_tools_fixture")
 PLUGIN = "mcp_tools_fixture"
@@ -118,7 +118,9 @@ def main():
     extra = sys.argv[1:]
     binary = find_binary(extra[extra.index("--bin") + 1] if "--bin" in extra else None)
     datadir = tempfile.mkdtemp(prefix="orca-plugin-tools-")
-    env = dict(os.environ, ORCA_MCP_SESSION=os.path.join(datadir, "session.json"), ORCA_MCP_TOKEN=TOKEN)
+    # The CA bundle too, so the certificate prompt never comes up: the --run launch below starts the
+    # binary itself, and with no endpoint there nothing could answer that prompt.
+    env = app_env(dict(os.environ, ORCA_MCP_SESSION=os.path.join(datadir, "session.json"), ORCA_MCP_TOKEN=TOKEN), datadir)
     try:
         # --- Over MCP: the plugin's operation and its tool calls, beside a plugin whose load fails. ---
         plugin_dir = install(datadir)

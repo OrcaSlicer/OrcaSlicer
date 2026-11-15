@@ -3,7 +3,7 @@
 at a time.
 
     tools/mcp/run_sweep.py [--bin PATH] [-j N] [--only NAME ...] [--skip NAME ...] [--out DIR] [--history FILE]
-                           [--list]
+                           [--headless] [--wayland] [--list]
 
 The tests are smoke_test.json, tests/*.json and test_*.py; sweep.json lists each with what it needs, and a test it
 does not list stops the run before anything starts. -j N (or --jobs N) runs N tests at once, as a build's -j runs N
@@ -11,6 +11,10 @@ compile jobs; it defaults to half the cores, up to six. Each test runs in a fold
 own datadir, port, session file ($ORCA_MCP_SESSION), temporary folder and empty working folder, so instances running
 side by side share nothing. The longest tests (by their last passing time in --history) start first. Tests that hold
 the same lock never overlap, and exclusive tests run after the rest, one at a time with nothing else running.
+On Linux the runner opens each app on the desktop as an X11 client, where a window manager un-minimizes a window on
+request and reports its position, which a Wayland compositor does not; --wayland runs them as native Wayland clients
+instead, as a Wayland session runs the app, and --headless runs them on a private compositor instead of on the
+desktop, as a machine without one needs.
 Exits 0 when every test passes and no OrcaSlicer crash report appeared.
 """
 
@@ -108,6 +112,8 @@ class RunContext:
     port: int
     python: str
     platform: str
+    headless: bool = False
+    wayland: bool = False
 
     @property
     def datadir(self):
@@ -142,7 +148,7 @@ def launch_command(e, ctx):
            ctx.datadir, "--port", str(ctx.port)]
     if e["cad"]:
         cmd.append("--cad")
-    if ctx.platform.startswith("linux"):
+    if ctx.headless:
         cmd.append("--headless")
     return cmd
 
@@ -160,6 +166,16 @@ def test_command(e, ctx):
 
 def test_env(e, ctx, base):
     return {**base, "ORCA_MCP_SESSION": ctx.session, "TMPDIR": ctx.tmp, "TMP": ctx.tmp, "TEMP": ctx.tmp, **e["env"]}
+
+
+def launch_env(ctx, env):
+    """The environment the launch runs with: the test's, with the display backend the run asked for. An
+    app left to pick its own on a Wayland desktop connects with Wayland, so the run's choice overrides
+    one an entry sets: an X11 client on the desktop, or a native Wayland one with --wayland. A headless
+    launch is an X11 client on the compositor it starts, which its own launch sets."""
+    if ctx.platform.startswith("linux") and not ctx.headless:
+        return {**env, "GDK_BACKEND": "wayland" if ctx.wayland else "x11"}
+    return env
 
 
 def run_step(cmd, timeout, **popen):
@@ -189,15 +205,15 @@ def run_test(name, e, ctx):
     shutil.rmtree(ctx.run_dir, ignore_errors=True)
     for d in (ctx.datadir, ctx.out_dir, ctx.tmp, ctx.cwd):
         os.makedirs(d)
-    env = test_env(e, ctx, os.environ)
+    base_env = test_env(e, ctx, os.environ)
     rec = {"name": name, "seconds": 0.0, "launch_seconds": None, "exit": None, "log": os.path.join(ctx.run_dir, "test.log")}
     start = time.monotonic()
     with open(rec["log"], "w", encoding="utf-8") as log:
-        def step(label, cmd, timeout):
+        def step(label, cmd, timeout, env=None):
             log.write(f"--- {label}: {shlex.join(cmd)}\n")
             log.flush()
-            return run_step(cmd, timeout, cwd=ctx.cwd, env=env, stdin=subprocess.DEVNULL, stdout=log,
-                            stderr=subprocess.STDOUT)
+            return run_step(cmd, timeout, cwd=ctx.cwd, env=base_env if env is None else env, stdin=subprocess.DEVNULL,
+                            stdout=log, stderr=subprocess.STDOUT)
 
         launch, failed = launch_command(e, ctx), "setup_failed"
         try:
@@ -207,7 +223,7 @@ def run_test(name, e, ctx):
                 return rec
             if launch:
                 failed, launched = "launch_failed", time.monotonic()
-                code = step("launch", launch, LAUNCH_TIMEOUT_S)
+                code = step("launch", launch, LAUNCH_TIMEOUT_S, launch_env(ctx, base_env))
                 rec["launch_seconds"] = round(time.monotonic() - launched, 1)
                 if code != 0:
                     rec["exit"] = failed
@@ -293,6 +309,30 @@ def jobs_count(value):
     return n
 
 
+def option_problems(a, platform):
+    """What --headless and --wayland can't do: both name a Linux display, and --headless runs the app as
+    an X11 client on the compositor it starts, so giving both asks for two things at once."""
+    if not (a.headless or a.wayland):
+        return []
+    if not platform.startswith("linux"):
+        return ["--headless and --wayland run only on Linux; elsewhere each app opens on the desktop"]
+    if a.headless and a.wayland:
+        return ["--headless runs each app as an X11 client on a private compositor, so it can't be given with --wayland"]
+    return []
+
+
+def session_problems(a, env, platform):
+    """What the display backend the run asked for needs of the session it runs in: a Wayland client a
+    WAYLAND_DISPLAY, and an X11 client a DISPLAY, which a headless run takes from its own compositor."""
+    if not platform.startswith("linux") or a.headless:
+        return []
+    if a.wayland and not env.get("WAYLAND_DISPLAY"):
+        return ["--wayland needs a Wayland session, and this one has no WAYLAND_DISPLAY"]
+    if not a.wayland and not env.get("DISPLAY"):
+        return ["no X display in this session; pass --headless to run each app on a private compositor"]
+    return []
+
+
 def parse_args(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--bin", help="orca-slicer binary (default: the one orca_mcp.py launch finds)")
@@ -304,6 +344,10 @@ def parse_args(argv=None):
     ap.add_argument("--out", help="folder for each test's run (default: a new orca-sweep-<time> one in the temporary folder)")
     ap.add_argument("--history", default=os.path.expanduser(os.path.join("~", ".cache", "orca-mcp", "sweep-times.json")),
                     help="each test's last passing time, which orders the next run (default: %(default)s)")
+    ap.add_argument("--headless", action="store_true",
+                    help="run each app on a private compositor instead of on the desktop (Linux)")
+    ap.add_argument("--wayland", action="store_true",
+                    help="run each app as a native Wayland client instead of as an X11 client (Linux)")
     ap.add_argument("--list", action="store_true", help="print the order the tests would run in and exit")
     return ap.parse_args(argv)
 
@@ -311,12 +355,15 @@ def parse_args(argv=None):
 def main(argv=None):
     a = parse_args(argv)
 
+    problems = option_problems(a, sys.platform)
     manifest = load_manifest(os.path.join(MCP_DIR, "sweep.json"))
     try:
-        problems = manifest_problems(manifest, discover(MCP_DIR), MCP_DIR)
+        problems += manifest_problems(manifest, discover(MCP_DIR), MCP_DIR)
     except ValueError as e:
-        problems = [str(e)]
+        problems.append(str(e))
     problems += [f"{n}: no such test" for n in (a.only or []) + a.skip if n not in manifest]
+    if not a.list:  # a listing launches nothing, so it needs no display
+        problems += session_problems(a, os.environ, sys.platform)
     if problems:
         print("\n".join(problems), file=sys.stderr)
         return 2
@@ -343,7 +390,7 @@ def main(argv=None):
 
     def run(name, port):
         ctx = RunContext(mcp_dir=MCP_DIR, binary=binary, run_dir=os.path.join(out, name), port=port,
-                         python=sys.executable, platform=sys.platform)
+                         python=sys.executable, platform=sys.platform, headless=a.headless, wayland=a.wayland)
         rec = guarded_run_test(name, manifest[name], ctx)
         with cond:
             results.append(rec)

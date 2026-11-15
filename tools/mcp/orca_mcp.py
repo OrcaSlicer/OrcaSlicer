@@ -495,6 +495,41 @@ def app_env(env, datadir, display_env=None):
     return env
 
 
+def answer_certificate_prompt(client):
+    """Presses Yes on the dialog that asks a person to accept the system certificate store, when it is
+    open, and leaves every other dialog to whoever drives the app. The app opens that one before its
+    window when it has to find a CA bundle itself, and the endpoint serves by then, so a launch nobody
+    watches answers it here. True when it pressed the button."""
+    try:
+        dialogs = client.call("get_app_state").get("dialogs") or []
+    except (McpError, OSError):
+        return False
+    for dialog in dialogs:
+        if "system certificate" in (dialog.get("message") or ""):
+            try:
+                client.call("answer_dialog", dialog={"title": dialog.get("title", "")}, button="yes")
+            except (McpError, OSError):
+                return False
+            return True
+    return False
+
+
+def wait_ready(client, timeout):
+    """True once the app is ready, answering the certificate prompt meanwhile: the app opens that dialog
+    before its window, so waiting for ready alone would time out with the dialog still up."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            if client.call("wait", **{"for": "ready", "timeout_s": 2}).get("satisfied"):
+                return True
+        except (McpError, OSError):
+            time.sleep(0.5)
+            continue
+        if answer_certificate_prompt(client):
+            print("answered the prompt to use the system SSL certificate", file=sys.stderr)
+    return False
+
+
 def launch(args):
     token = os.environ.get("ORCA_MCP_TOKEN") or base64.b16encode(os.urandom(32)).decode().lower()
     datadir = os.path.abspath(args.datadir or tempfile.mkdtemp(prefix="orca-mcp-"))
@@ -523,7 +558,7 @@ def launch(args):
     os.chmod(SESSION_FILE, 0o600)
 
     client = OrcaMcp(args.port, token)
-    if not client.ready(args.timeout):
+    if not wait_ready(client, args.timeout):
         sys.exit(f"OrcaSlicer did not become ready in {args.timeout} s; see {log.name}")
     url = f"http://127.0.0.1:{args.port}/mcp"
     print(json.dumps({**session, "url": url}, indent=2))

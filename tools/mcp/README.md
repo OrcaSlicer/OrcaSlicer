@@ -30,7 +30,9 @@ the same 1600×900. `--cad` starts the app with
 launch without them has the settings the datadir holds. The token comes from
 `ORCA_MCP_TOKEN` or is generated, and it reaches the app through the environment, not the command
 line. On Linux, `launch` also sets `SSL_CERT_FILE`, so a fresh datadir doesn't prompt for a CA
-bundle. On Windows, it gives the instance its own WebView2 profile in the datadir, apart from the one
+bundle, and if that prompt does come up anyway, as when the file it names is gone, `launch` answers it
+with Yes, as it waits for the app to be ready: an unattended launch has no person to answer it. On
+Windows, it gives the instance its own WebView2 profile in the datadir, apart from the one
 your own OrcaSlicer uses, and finds `build-clang\src\Release\orca-slicer.exe` as well; run the
 commands as `python tools/mcp/orca_mcp.py …`. On macOS, it finds the app bundle's binary under
 `build/arm64`, `build/x86_64`, `build/universal` or `build`: the bundle the CMake target builds in
@@ -581,7 +583,19 @@ share a lock never run at the same time, and exclusive tests run after the rest,
 nothing else running. A test that runs out of time is interrupted, as Ctrl-C would, so its own cleanup
 closes the apps it started (on Windows its process tree is ended), and a test the runner could not run is
 recorded as an error, so a run that leaves a test without a result never exits 0. `--only` and `--skip`
-pick tests by name, and `--list` prints the order and exits. An entry's keys:
+pick tests by name, and `--list` prints the order and exits.
+
+On Linux the runner opens each app on your desktop as an X11 client (`GDK_BACKEND=x11`), so a sweep
+leaves its windows on your screen while it runs, and a window manager un-minimizes a window on request
+and reports its position. `--wayland` runs them as native Wayland clients instead, as a Wayland session
+does: the compositor then owns positions, minimization and activation, so a check that needs a window
+moved, or a minimized one brought back, is reported SKIP and does not fail its test. `--headless` runs
+them on a private compositor instead, as `orca_mcp.py launch --headless` does, which is what a machine
+without a desktop needs. Each flag is Linux-only, and `--headless` can't be combined with `--wayland`,
+since the app on the compositor it starts is an X11 client. Without either flag the run needs an X
+display, and `--wayland` needs a Wayland session; `--list` needs neither.
+
+An entry's keys:
 
 - `path`: the test, relative to `tools/mcp`.
 - `launch`: `app` (the default; the runner launches and stops the app), `own` (the test starts its own)

@@ -9,11 +9,13 @@ The main window is sized twice, the second time from the normal state, and on Wa
 is the size the reply gives. Where positions are known it is moved, then placed over its display's work area
 by position and size. It is maximized, given a size while maximized (which restores it first),
 minimized and restored, after which the 3D view still captures, and minimized while maximized, from which
-state normal and a size both bring it back to normal. A request that contradicts itself is
+state normal and a size both bring it back to normal; on Wayland those checks are skipped, as a compositor
+brings a minimized window back only by activating the app. A request that contradicts itself is
 refused before anything changes. The Plugins window is sized and moved by its ref, which fails, pointing to
 list_windows, once the window has closed. Preferences, a modal dialog, is sized as "dialog" and moved by its
 {label} locator, and never minimized; on X11 the main window, minimized, restored and raised while it is
-open, stays under it in the X server's stacking order. Exits 0 when every check passes.
+open, stays under it in the X server's stacking order. A check that this window system or display can't run
+here is reported SKIP, with why, and doesn't fail the test: it exits 0 when no check fails.
 """
 
 import ctypes
@@ -89,9 +91,14 @@ def x11_stacking(display):
 def main():
     client, session = orca_mcp.session_client()
     checks = []
+    skipped = []
 
     def check(name, ok, detail=""):
         checks.append((name, bool(ok), detail))
+
+    def skip(name, why):
+        """A check this window system or display can't run here, which doesn't fail the test."""
+        skipped.append((name, why))
 
     def windows():
         return client.call("list_windows").get("items", [])
@@ -146,7 +153,7 @@ def main():
 
     # 2. Position.
     if wayland:
-        print("NOTE position: skipped, as Wayland neither reports nor accepts positions")
+        skip("position: the window is moved and placed over its work area", "Wayland takes no position")
         window = client.call("get_app_state").get("window", {})
         check("position: get_app_state reports none on Wayland", "position" not in window, window)
     else:
@@ -171,36 +178,45 @@ def main():
     check("a size while maximized: the window is restored", resized.get("state") == "normal", resized)
     check("a size while maximized: and given the size", resized.get("size") == [1300, 850], resized)
 
-    # 5. Minimize and restore, neither waiting for a 3D frame a minimized window never draws.
-    start = time.time()
-    minimized = client.call("set_window", state="minimized")
-    took = time.time() - start
-    check("minimize: returns within 5 s", took < 5, f"{took:.1f} s: {minimized}")
-    check("minimize: the reply says minimized", minimized.get("state") == "minimized", minimized)
-    restored = client.call("set_window", state="normal")
-    check("restore: the reply says normal", restored.get("state") == "normal", restored)
-    try:
-        shot = client.call("screenshot", target="canvas", include_image=False)
-        check("restore: the 3D view captures", shot.get("width", 0) > 0, shot)
-    except orca_mcp.McpError as e:
-        check("restore: the 3D view captures", False, str(e))
+    # 5. Minimize and restore, neither waiting for a 3D frame a minimized window never draws. A minimized
+    # window comes back on request on X11, where a window manager un-maps and maps it; a Wayland compositor
+    # brings it back only by activating the app, which it allows only while the app may take the focus, so a
+    # person restores it from the taskbar there and the checks that need it back are skipped.
+    if wayland:
+        why = ("a Wayland compositor brings a minimized window back only by activating it, which it grants only "
+               "while the app may take the focus")
+        skip("minimize and restore", why)
+        skip("a window minimized while maximized", why)
+    else:
+        start = time.time()
+        minimized = client.call("set_window", state="minimized")
+        took = time.time() - start
+        check("minimize: returns within 5 s", took < 5, f"{took:.1f} s: {minimized}")
+        check("minimize: the reply says minimized", minimized.get("state") == "minimized", minimized)
+        restored = client.call("set_window", state="normal")
+        check("restore: the reply says normal", restored.get("state") == "normal", restored)
+        try:
+            shot = client.call("screenshot", target="canvas", include_image=False)
+            check("restore: the 3D view captures", shot.get("width", 0) > 0, shot)
+        except orca_mcp.McpError as e:
+            check("restore: the 3D view captures", False, str(e))
 
-    # 5b. A window minimized while maximized comes back to normal, not to maximized: through state normal,
-    # and through a size, which restores it first.
-    client.call("set_window", state="maximized")
-    client.call("set_window", state="minimized")
-    normal = client.call("set_window", state="normal")
-    check("maximized, minimized, then normal: the reply says normal", normal.get("state") == "normal", normal)
-    check("without a note that the window manager kept the request waiting", "note" not in normal, normal)
-    # On macOS the window comes back from the Dock zoomed and is un-zoomed once it is back, so it must not
-    # turn maximized again after the reply.
-    time.sleep(1)
-    check("and list_windows still reads it normal a second later", main_entry().get("state") == "normal", main_entry())
-    client.call("set_window", state="maximized")
-    client.call("set_window", state="minimized")
-    sized = client.call("set_window", size=[1350, 880])
-    check("maximized, minimized, then a size: the reply says normal", sized.get("state") == "normal", sized)
-    check("and has the size", sized.get("size") == [1350, 880], sized)
+        # 5b. A window minimized while maximized comes back to normal, not to maximized: through state normal,
+        # and through a size, which restores it first.
+        client.call("set_window", state="maximized")
+        client.call("set_window", state="minimized")
+        normal = client.call("set_window", state="normal")
+        check("maximized, minimized, then normal: the reply says normal", normal.get("state") == "normal", normal)
+        check("without a note that the window manager kept the request waiting", "note" not in normal, normal)
+        # On macOS the window comes back from the Dock zoomed and is un-zoomed once it is back, so it must not
+        # turn maximized again after the reply.
+        time.sleep(1)
+        check("and list_windows still reads it normal a second later", main_entry().get("state") == "normal", main_entry())
+        client.call("set_window", state="maximized")
+        client.call("set_window", state="minimized")
+        sized = client.call("set_window", size=[1350, 880])
+        check("maximized, minimized, then a size: the reply says normal", sized.get("state") == "normal", sized)
+        check("and has the size", sized.get("size") == [1350, 880], sized)
 
     # 6. A contradiction is refused before anything changes.
     before = main_entry()
@@ -258,17 +274,24 @@ def main():
         error = refusal(target="dialog", state="minimized")
         check("dialog: a modal dialog never minimizes", error is not None, error)
         # The main window restored and raised behind the dialog stays under it, as X11 captures read the
-        # screen: a window manager keeps a dialog above its window, and with none the app does.
-        client.call("set_window", state="minimized")
-        client.call("set_window", state="normal")
-        client.call("set_window", **{"raise": True})
-        order = None if wayland else x11_stacking(session.get("display") or os.environ.get("DISPLAY"))
-        if order is None:
-            print("NOTE dialog stacking: skipped, as the X server's stacking order can't be read here")
+        # screen: a window manager keeps a dialog above its window, and with none the app does. Wayland has
+        # no stacking order to read, and a minimized window there comes back only by activation.
+        if wayland:
+            skip("dialog: the main window, restored and raised, stays under it",
+                 "a Wayland session has no X server stacking order to read")
         else:
-            title = main_entry().get("title")
-            check("dialog: the main window, restored and raised, stays under it",
-                  title in order and "Preferences" in order and order.index(title) < order.index("Preferences"), order)
+            client.call("set_window", state="minimized")
+            client.call("set_window", state="normal")
+            client.call("set_window", **{"raise": True})
+            order = x11_stacking(session.get("display") or os.environ.get("DISPLAY"))
+            if order is None:
+                skip("dialog: the main window, restored and raised, stays under it",
+                     "the X server's stacking order can't be read here")
+            else:
+                title = main_entry().get("title")
+                check("dialog: the main window, restored and raised, stays under it",
+                      title in order and "Preferences" in order and order.index(title) < order.index("Preferences"),
+                      order)
         client.call("answer_dialog", dialog={"title": "Preferences"}, button="close")
         client.await_job(prefs)
         check("Preferences closes", find("Preferences") is None, windows())
@@ -294,7 +317,10 @@ def main():
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:
         print(("PASS " if ok else "FAIL ") + name + ("" if ok or detail == "" else f": {detail}"))
-    print(f"{len(checks) - len(failed)}/{len(checks)} checks passed")
+    for name, why in skipped:
+        print(f"SKIP {name}: {why}")
+    print(f"{len(checks) - len(failed)}/{len(checks)} checks passed" +
+          (f", {len(skipped)} skipped" if skipped else ""))
     return 1 if failed else 0
 
 
