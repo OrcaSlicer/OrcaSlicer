@@ -1,0 +1,43 @@
+// New Project's question about the project's unsaved changes keeps the plate's layer G-code whatever the answer:
+// Cancel leaves it on the project, and Save writes it to the project's file before the new project starts. Run on
+// a live app:
+//   python3 tools/mcp/orca_mcp.py run-replay tools/mcp/tests/new_project_keeps_layer_gcode.json --out <dir>
+{
+  "orca_replay": 1,
+  "name": "new project keeps layer G-code",
+  "vars": {"cube": "${replay_dir}/../../../resources/handy_models/OrcaCube_v2.drc"},
+  "steps": [
+    {"tool": "wait", "args": {"for": "ready"}},
+    {"tool": "new_project", "args": {"discard_changes": true, "preset_changes": "discard"}},
+    {"tool": "set_view", "args": {"tab": "prepare"}},
+    {"tool": "open_files", "args": {"paths": ["${vars.cube}"]}, "expect": {"/added": {"eq": 1}}},
+    {"tool": "transform", "args": {"object": 0, "size": [20, 20, 20]}},
+    {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
+    {"tool": "set_custom_gcode_at_layer", "args": {"add": [{"layer": 26, "type": "pause"}]},
+     "expect": {"/layer_gcode/0/type": {"eq": "pause"}, "/layer_gcode/1": {"exists": false}}},
+
+    // ---- Cancel: the project keeps its object and its layer G-code ----
+    {"tool": "run_action", "args": {"id": "orca_command:new_project:orca"}, "await": false, "save_as": "cancelled"},
+    {"tool": "wait", "args": {"for": "dialog"}},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "- Save"}, "button": "cancel"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.cancelled}"}},
+    {"tool": "list_plates", "expect": {"/items/0/objects": {"eq": 1},
+                                       "/items/0/layer_gcode/0/type": {"eq": "pause"},
+                                       "/items/0/layer_gcode/1": {"exists": false}}},
+
+    // ---- Save: the project's file gets the layer G-code, and the new project starts empty ----
+    {"tool": "save_project", "args": {"path": "${out_dir}/kept.3mf", "overwrite": true}},
+    {"tool": "transform", "args": {"object": 0, "translate": [5, 0, 0]}},
+    {"tool": "run_action", "args": {"id": "orca_command:new_project:orca"}, "await": false, "save_as": "saved"},
+    {"tool": "wait", "args": {"for": "dialog"}},
+    {"tool": "answer_dialog", "args": {"dialog": {"title": "- Save"}, "button": "yes"}},
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.saved}"}},
+    {"tool": "list_plates", "expect": {"/items/0/objects": {"eq": 0}, "/items/0/layer_gcode": {"eq": []}}},
+    {"tool": "open_files", "args": {"paths": ["${out_dir}/kept.3mf"], "discard_changes": true}},
+    {"tool": "list_plates", "expect": {"/items/0/objects": {"eq": 1},
+                                       "/items/0/layer_gcode/0/type": {"eq": "pause"},
+                                       "/items/0/layer_gcode/1": {"exists": false}}},
+
+    {"tool": "new_project", "args": {"discard_changes": true}}
+  ]
+}

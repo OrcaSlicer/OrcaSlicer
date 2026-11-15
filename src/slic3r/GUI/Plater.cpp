@@ -16540,9 +16540,6 @@ SLAPrint&       Plater::sla_print()         { return p->sla_print; }
 
 int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_name, bool reload_presets, bool tell_plugins)
 {
-    model().calib_pa_pattern.reset(nullptr);
-    model().plates_custom_gcodes.clear();
-
     bool transfer_preset_changes = false;
     // BBS: save confirm
     auto check = [this,&transfer_preset_changes](bool yes_or_no) {
@@ -16563,6 +16560,10 @@ int Plater::new_project(bool skip_confirm, bool silent, const wxString& project_
     int result;
     if (!skip_confirm && (result = close_with_confirm(check)) == wxID_CANCEL)
         return wxID_CANCEL;
+
+    // Only once the question has let the current project go: Cancel keeps them, and Save writes them to its file.
+    model().calib_pa_pattern.reset(nullptr);
+    model().plates_custom_gcodes.clear();
 
     m_only_gcode = false;
     m_exported_file = false;
