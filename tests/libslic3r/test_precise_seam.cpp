@@ -24,6 +24,8 @@
 #include <vector>
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Polyline.hpp"
+#include "libslic3r/PerimeterGenerator.hpp"
+#include "libslic3r/PrintConfig.hpp"
 
 using namespace Slic3r;
 
@@ -1835,6 +1837,48 @@ TEST_CASE("A transfer is exact, approximate or fails", "[PreciseSeam][Fuzzy]")
     CHECK(collinear.outcome == Outcome::Exact);
     CHECK(collinear.position.edge == 2);
     check_point(collinear.position.point, mm(9.9, 0.05));
+}
+
+namespace {
+// Fuzzy skin settings of one region: classic noise, displacement mode, thickness and point distance in mm.
+FuzzySkinConfig fuzzy_region(FuzzySkinType type, double thickness, double point_distance, int layer_id = 1,
+                             bool first_layer = false)
+{
+    return {type, scaled<coord_t>(thickness), scaled<coord_t>(point_distance), first_layer, NoiseType::Classic, 1., 1,
+            0.5, FuzzySkinMode::Displacement, 1, 0., 1, layer_id};
+}
+
+// The window of contours or holes: the sum of the noises' amplitudes, the largest point distance and 1 um rounding.
+double window_of(const std::vector<FuzzySkinConfig> &regions, bool contour)
+{
+    return PreciseSeam::detail::fuzzy_skin_window(regions, 0.2, false, contour);
+}
+} // namespace
+
+TEST_CASE("The fuzzy skin window counts only the regions that texture the kind of loop", "[PreciseSeam][Fuzzy]")
+{
+    using Catch::Matchers::WithinAbs;
+    // An outer-walls region texturing contours and a holes region with a thicker noise: each kind sees its own.
+    const std::vector<FuzzySkinConfig> split{fuzzy_region(FuzzySkinType::External, 0.2, 0.3),
+                                             fuzzy_region(FuzzySkinType::Hole, 0.8, 0.5)};
+    CHECK_THAT(window_of(split, true), WithinAbs(0.2 + 0.3 + 0.001, 1e-9));
+    CHECK_THAT(window_of(split, false), WithinAbs(0.8 + 0.5 + 0.001, 1e-9));
+    // A region texturing all external walls adds its noise to the holes region's on holes only.
+    const std::vector<FuzzySkinConfig> all{fuzzy_region(FuzzySkinType::All, 0.2, 0.3),
+                                           fuzzy_region(FuzzySkinType::Hole, 0.6, 0.5)};
+    CHECK_THAT(window_of(all, true), WithinAbs(0.2 + 0.3 + 0.001, 1e-9));
+    CHECK_THAT(window_of(all, false), WithinAbs(0.2 + 0.6 + 0.5 + 0.001, 1e-9));
+    // Regions differing only in which walls they texture make one noise.
+    const std::vector<FuzzySkinConfig> same{fuzzy_region(FuzzySkinType::External, 0.3, 0.4),
+                                            fuzzy_region(FuzzySkinType::All, 0.3, 0.4)};
+    CHECK_THAT(window_of(same, true), WithinAbs(0.3 + 0.4 + 0.001, 1e-9));
+    CHECK_THAT(window_of(same, false), WithinAbs(0.3 + 0.4 + 0.001, 1e-9));
+    // No noise: fuzzy skin off or disabled, or the first layer without fuzzy skin there.
+    CHECK(window_of({fuzzy_region(FuzzySkinType::None, 0.3, 0.4), fuzzy_region(FuzzySkinType::Disabled_fuzzy, 0.3, 0.4)},
+                    true) == 0.);
+    CHECK(window_of({fuzzy_region(FuzzySkinType::External, 0.3, 0.4, 0)}, true) == 0.);
+    CHECK_THAT(window_of({fuzzy_region(FuzzySkinType::External, 0.3, 0.4, 0, true)}, true),
+               WithinAbs(0.3 + 0.4 + 0.001, 1e-9));
 }
 
 TEST_CASE("Segments keep the surface points their ends were carried from", "[PreciseSeam][Fuzzy]")

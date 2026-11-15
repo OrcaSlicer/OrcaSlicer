@@ -284,10 +284,11 @@ repeated points, counterclockwise).
   intersected with the edges of the noisy loop within a window of the smooth
   point, and the crossing nearest to it is taken; an edge lying along the line
   gives its point nearest to the smooth point. The window is an estimate from the
-  settings, not a measured distance or a proven bound. Regions texture a loop one
-  after another, each over the result of the previous ones, so it adds up the
-  amplitudes of the layer's different noises (regions that differ only in which
-  walls they texture make one noise; regions with fuzzy skin disabled make none).
+  settings, not a measured distance or a proven bound, computed separately for
+  contours and holes: only the regions that texture the loop's kind count, as
+  FuzzySkin.cpp decides it. Regions texture a loop one after another, each over the
+  result of the previous ones, so it adds up the amplitudes of their different
+  noises (regions that differ only in which walls they texture make one noise).
   An amplitude is the thickness times the largest value of its noise module:
   Perlin, Billow and RidgedMulti add octaves and can exceed one. These bounds rest
   on the range libnoise states for its coherent noise, from -1 to 1.

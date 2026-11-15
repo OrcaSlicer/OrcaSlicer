@@ -55,6 +55,7 @@
 
 #include "libslic3r/Utils.hpp"
 #include "PreciseSeam.hpp"
+#include "PreciseSeamInternal.hpp"
 #include "libslic3r/Feature/FuzzySkin/FuzzySkin.hpp"
 #include "libslic3r/PerimeterGenerator.hpp"
 
@@ -574,66 +575,11 @@ struct LayerShiftMeasurement {
   // Which kinds of noisy loops without their smooth centerline are measured; fuzzy skin keeps the nominal shift.
   bool contours = false;
   bool holes = false;
-  // How far a point of a fuzzy skin loop is expected to lie from its smooth centerline, scaled: an estimate from the
-  // settings (see fuzzy_skin_window()), not a measured largest distance.
-  coord_t fuzzy_window = 0;
+  // How far a point of a fuzzy skin contour or hole is expected to lie from its smooth centerline, scaled: an estimate
+  // from the settings (see PreciseSeam::detail::fuzzy_skin_window()), not a measured largest distance.
+  coord_t fuzzy_window_contours = 0;
+  coord_t fuzzy_window_holes = 0;
 };
-
-// The largest |GetValue()| of the noise fuzzy skin scales by its thickness, assuming libnoise's coherent noise lies
-// within [-1, 1] as libnoise states (a premise, not checked here). Perlin and Billow add octaves weighted by powers of
-// the persistence (Billow folds each one into [-1, 1] and adds 0.5), RidgedMulti adds octaves of [0, 1] weighted by
-// powers of 1/2 (its default lacunarity is 2) and maps their sum s to 1.25 s - 1. Uniform, Voronoi (displacement 1,
-// no distance) and Ripple stay within [-1, 1].
-double fuzzy_skin_noise_bound(const FuzzySkinConfig &fuzzy) {
-  const int octaves = std::max(fuzzy.noise_octaves, 1);
-  const auto octave_sum = [octaves](double ratio) {
-    double sum = 0.;
-    double weight = 1.;
-    for (int octave = 0; octave < octaves; ++octave, weight *= ratio)
-      sum += weight;
-    return sum;
-  };
-  switch (fuzzy.noise_type) {
-  case NoiseType::Perlin: return octave_sum(std::abs(fuzzy.noise_persistence));
-  case NoiseType::Billow: return octave_sum(std::abs(fuzzy.noise_persistence)) + 0.5;
-  case NoiseType::RidgedMulti: return std::max(1., 1.25 * octave_sum(0.5) - 1.);
-  default: return 1.;
-  }
-}
-
-// The window within which a point of a fuzzy skin loop is looked for around its smooth centerline, in mm: an estimate
-// from the settings, not a proven bound. Regions without fuzzy skin, or with it disabled, make no noise. Regions
-// texture a loop one after another, each over the result of the previous ones, so the amplitudes of different noises
-// add up; regions differing only in which walls they texture make the same noise once. Arachne's combined mode moves
-// a point by half its change of width, which adds half the smallest width it keeps (as FuzzySkin.cpp works it out
-// from the layer height). The largest point distance on top is the farthest a chord cutting a convex corner passes
-// from it, and a micrometre the rounding.
-double fuzzy_skin_window(const Layer &layer, bool arachne) {
-  std::vector<FuzzySkinConfig> noises;
-  double amplitudes = 0.;
-  double point_distance = 0.;
-  for (const LayerRegion *region : layer.regions()) {
-    const PrintRegionConfig &config = region->region().config();
-    if (config.fuzzy_skin.value == FuzzySkinType::None || config.fuzzy_skin.value == FuzzySkinType::Disabled_fuzzy)
-      continue;
-    // The type is left out of the comparison, as FuzzySkin.cpp merges regions that differ only in it.
-    const FuzzySkinConfig fuzzy{FuzzySkinType::External, scaled<coord_t>(config.fuzzy_skin_thickness.value),
-                                scaled<coord_t>(config.fuzzy_skin_point_distance.value), false,
-                                config.fuzzy_skin_noise_type.value, config.fuzzy_skin_scale.value,
-                                config.fuzzy_skin_octaves.value, config.fuzzy_skin_persistence.value,
-                                config.fuzzy_skin_mode.value, config.fuzzy_skin_ripples_per_layer.value,
-                                config.fuzzy_skin_ripple_offset.value,
-                                config.fuzzy_skin_layers_between_ripple_offset.value, int(layer.id())};
-    point_distance = std::max(point_distance, config.fuzzy_skin_point_distance.value);
-    if (std::find(noises.begin(), noises.end(), fuzzy) != noises.end())
-      continue;
-    noises.push_back(fuzzy);
-    amplitudes += config.fuzzy_skin_thickness.value * fuzzy_skin_noise_bound(fuzzy);
-    if (arachne && fuzzy.mode == FuzzySkinMode::Combined && fuzzy.noise_type != NoiseType::Ripple)
-      amplitudes += 0.5 * layer.height * (1. - 0.25 * PI) * 1.05;
-  }
-  return noises.empty() ? 0. : amplitudes + point_distance + 0.001;
-}
 
 LayerShiftMeasurement layer_shift_measurement(const PrintObject *po, size_t layer_idx,
                                               const GlobalModelInfo &global_model_info) {
@@ -649,18 +595,30 @@ LayerShiftMeasurement layer_shift_measurement(const PrintObject *po, size_t laye
   // Without a modifier region on the layer no loop is processed.
   if (!precise_seam_modifier_near(global_model_info, layer))
     return measurement;
-  measurement.fuzzy_window = coord_t(scale_(fuzzy_skin_window(*layer, measurement.arachne)));
+  // The fuzzy skin settings of every region, as FuzzySkin.cpp reads them.
+  std::vector<FuzzySkinConfig> fuzzy_regions;
+  for (const LayerRegion *region : layer->regions()) {
+    const PrintRegionConfig &region_config = region->region().config();
+    fuzzy_regions.push_back({region_config.fuzzy_skin.value, scaled<coord_t>(region_config.fuzzy_skin_thickness.value),
+                             scaled<coord_t>(region_config.fuzzy_skin_point_distance.value),
+                             region_config.fuzzy_skin_first_layer.value, region_config.fuzzy_skin_noise_type.value,
+                             region_config.fuzzy_skin_scale.value, region_config.fuzzy_skin_octaves.value,
+                             region_config.fuzzy_skin_persistence.value, region_config.fuzzy_skin_mode.value,
+                             region_config.fuzzy_skin_ripples_per_layer.value,
+                             region_config.fuzzy_skin_ripple_offset.value,
+                             region_config.fuzzy_skin_layers_between_ripple_offset.value, int(layer->id())});
+  }
+  measurement.fuzzy_window_contours = coord_t(
+      scale_(PreciseSeam::detail::fuzzy_skin_window(fuzzy_regions, layer->height, measurement.arachne, true)));
+  measurement.fuzzy_window_holes = coord_t(
+      scale_(PreciseSeam::detail::fuzzy_skin_window(fuzzy_regions, layer->height, measurement.arachne, false)));
   // Only these layers are measured: skip the outline index elsewhere.
   if (measurement.elephant_foot <= 0. && !measurement.arachne)
     return measurement;
   // Fuzzy skin moves the centerline off the smooth outline; measuring a noisy loop would pull some points back and
   // leave others. Loops that keep their smooth centerline are measured on it.
   measurement.contours = measurement.holes = true;
-  for (const LayerRegion *region : layer->regions()) {
-    const PrintRegionConfig &region_config = region->region().config();
-    FuzzySkinConfig fuzzy{};
-    fuzzy.type = region_config.fuzzy_skin.value;
-    fuzzy.fuzzy_first_layer = region_config.fuzzy_skin_first_layer.value;
+  for (const FuzzySkinConfig &fuzzy : fuzzy_regions) {
     measurement.contours = measurement.contours && !Feature::FuzzySkin::should_fuzzify(fuzzy, int(layer->id()), 0, true);
     measurement.holes = measurement.holes && !Feature::FuzzySkin::should_fuzzify(fuzzy, int(layer->id()), 0, false);
   }
@@ -698,9 +656,10 @@ PreciseSeam::ShiftProfile measured_shift_profile(const Polygon &polygon, bool ho
       0.5 * narrowest - excluded - tolerance,
       0.5 * widest + 0.5 * (width - spacing) + measurement.elephant_foot - excluded + tolerance};
   // Far from every modifier the shift cannot matter; skip the measurement. The largest shift is the deepest accepted
-  // depth less the compensation in the outline, or the nominal one; a negative compensation makes it deeper.
-  const double largest = std::max(shift_measurement.max_depth - shift_measurement.outline_compensation,
-                                  0.5 * width - compensation);
+  // depth less the compensation in the outline, or the nominal one; a negative compensation makes it deeper. A
+  // compensation beyond the whole depth leaves no shift (the surface is the centerline), not a negative reach.
+  const double largest = std::max(std::max(shift_measurement.max_depth - shift_measurement.outline_compensation,
+                                           0.5 * width - compensation), 0.);
   if (!precise_seam_modifier_near(global_model_info, layer, BoundingBox(polygon.points), coord_t(scale_(largest))))
     return {};
   return PreciseSeam::measure_shift_profile(polygon, hole, shift_measurement);
@@ -891,7 +850,9 @@ void process_perimeter_polygon(const Polygon &orig_polygon, float z_coord, const
     else
       preparation.emplace(source, std::move(profile), hole);
     if (fuzzy)
-      preparation->set_target(polygon, shift_measurement != nullptr ? shift_measurement->fuzzy_window : 0);
+      preparation->set_target(polygon, shift_measurement == nullptr ? 0 :
+                                       hole ? shift_measurement->fuzzy_window_holes :
+                                              shift_measurement->fuzzy_window_contours);
     const PreciseSeam::PreparedPerimeter &prepared = *preparation;
     seam_point = PreciseSeam::insert_strong_seam_point(
         strong_volumes, polygon, prepared, layer, global_model_info.precise_seam_slices, warnings);

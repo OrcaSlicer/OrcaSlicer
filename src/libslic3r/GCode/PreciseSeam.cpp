@@ -12,6 +12,9 @@
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/PerimeterGenerator.hpp"
+#include "libslic3r/Feature/FuzzySkin/FuzzySkin.hpp"
 #include <algorithm>
 #include <atomic>
 #include <memory>
@@ -730,6 +733,59 @@ Transfer transfer_point(const AABBTreeLines::LinesDistancer<Line> &target, const
     const Vec2d a = lines[index].a.cast<double>();
     const Vec2d ab = lines[index].b.cast<double>() - a;
     return {TransferOutcome::Approximate, position(index, std::clamp((nearest - a).dot(ab) / ab.squaredNorm(), 0., 1.), nearest)};
+}
+
+// The largest |GetValue()| of the noise fuzzy skin scales by its thickness, assuming libnoise's coherent noise lies
+// within [-1, 1] as libnoise states (a premise, not checked here). Perlin and Billow add octaves weighted by powers of
+// the persistence (Billow folds each one into [-1, 1] and adds 0.5), RidgedMulti adds octaves of [0, 1] weighted by
+// powers of 1/2 (its default lacunarity is 2) and maps their sum s to 1.25 s - 1. Uniform, Voronoi (displacement 1,
+// no distance) and Ripple stay within [-1, 1].
+static double fuzzy_skin_noise_bound(const FuzzySkinConfig &fuzzy)
+{
+    const int octaves = std::max(fuzzy.noise_octaves, 1);
+    const auto octave_sum = [octaves](double ratio) {
+        double sum = 0.;
+        double weight = 1.;
+        for (int octave = 0; octave < octaves; ++octave, weight *= ratio)
+            sum += weight;
+        return sum;
+    };
+    switch (fuzzy.noise_type) {
+    case NoiseType::Perlin: return octave_sum(std::abs(fuzzy.noise_persistence));
+    case NoiseType::Billow: return octave_sum(std::abs(fuzzy.noise_persistence)) + 0.5;
+    case NoiseType::RidgedMulti: return std::max(1., 1.25 * octave_sum(0.5) - 1.);
+    default: return 1.;
+    }
+}
+
+// An estimate from the settings, not a proven bound. As FuzzySkin.cpp textures an external loop, only regions that
+// texture its kind make noise on it. They texture the loop one after another, each over the result of the previous
+// ones, so the amplitudes of different noises add up; regions differing only in which walls they texture make the same
+// noise once. Arachne's combined mode moves a point by half its change of width, which adds half the smallest width it
+// keeps (as FuzzySkin.cpp works it out from the layer height). The largest point distance on top is the farthest a
+// chord cutting a convex corner passes from it, and a micrometre the rounding.
+double fuzzy_skin_window(const std::vector<FuzzySkinConfig> &regions, double layer_height, bool arachne, bool contour)
+{
+    std::vector<FuzzySkinConfig> noises;
+    double amplitudes = 0.;
+    double point_distance = 0.;
+    for (const FuzzySkinConfig &region : regions) {
+        if (!Feature::FuzzySkin::should_fuzzify(region, region.layer_id, 0, contour))
+            continue;
+        point_distance = std::max(point_distance, unscaled(region.point_distance));
+        // The type and the first layer flag are left out of the comparison, as FuzzySkin.cpp merges regions that
+        // differ only in them.
+        FuzzySkinConfig noise = region;
+        noise.type = FuzzySkinType::External;
+        noise.fuzzy_first_layer = false;
+        if (std::find(noises.begin(), noises.end(), noise) != noises.end())
+            continue;
+        noises.push_back(noise);
+        amplitudes += unscaled(region.thickness) * fuzzy_skin_noise_bound(region);
+        if (arachne && region.mode == FuzzySkinMode::Combined && region.noise_type != NoiseType::Ripple)
+            amplitudes += 0.5 * layer_height * (1. - 0.25 * PI) * 1.05;
+    }
+    return noises.empty() ? 0. : amplitudes + point_distance + 0.001;
 }
 } // namespace detail
 
