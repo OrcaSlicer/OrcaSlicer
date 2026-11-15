@@ -267,7 +267,7 @@ Model Model::read_from_step(const std::string&                                  
     
     // The callback may have changed the name preference after inspecting the CAD document.
     status = step_file.mesh(&model, is_cb_cancel, is_split_compound, linear_deflection, angle_deflection,
-                           step_file.keep_original_names());
+                           step_file.keep_original_names(), bool(options & LoadStrategy::ImportColors));
 
 _finished:
 
@@ -356,7 +356,7 @@ Model Model::read_from_file(const std::string&                                  
     bool is_cb_cancel = false;
     std::string message;
     if (boost::algorithm::iends_with(input_file, ".stl"))
-        result = load_stl(input_file.c_str(), &model, nullptr, stlFn);
+        result = load_stl(input_file.c_str(), &model, nullptr, stlFn, 80, bool(options & LoadStrategy::ImportColors));
     else if (boost::algorithm::iends_with(input_file, ".oltp"))
         result = load_stl(input_file.c_str(), &model, nullptr, stlFn,256);
     else if (boost::algorithm::iends_with(input_file, ".obj")) {

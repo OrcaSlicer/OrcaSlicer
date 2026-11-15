@@ -4,7 +4,9 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <cstring>
+#include <memory>
 #include <map>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/matx.hpp>
@@ -375,6 +377,23 @@ bool face_colors_to_painting(
     if (mesh.vertices.empty() || mesh.indices.empty() || mesh.precomputed_face_colors.empty())
         return false;
 
+    // CAD colours are exact and belong to whole bodies, so a multi-part import keeps them as the palette
+    // instead of repairing, smoothing and re-clustering the merged mesh, which blends a small body into a
+    // large neighbour. Too many distinct colours for the requested count fall through to clustering.
+    if (!mesh.parts.empty() && mesh.precomputed_face_colors.size() == mesh.indices.size()) {
+        const std::set<std::array<std::size_t,3>> distinct(mesh.precomputed_face_colors.begin(), mesh.precomputed_face_colors.end());
+        const size_t limit = settings.target_colors_num == 0 ? 32 : settings.target_colors_num;
+        if (distinct.size() <= limit) {
+            painted.vertices      = mesh.vertices;
+            painted.indices       = mesh.indices;
+            painted.face_colors   = mesh.precomputed_face_colors;
+            painted.cluster_colors.assign(distinct.begin(), distinct.end());
+            if (progress)
+                progress(100, "Completed");
+            return true;
+        }
+    }
+
     // Build tex2color::TriMesh from input geometry
     tex2color::TriMesh input_mesh;
     input_mesh.vertices.resize(mesh.vertices.size());
@@ -613,6 +632,102 @@ bool apply_painted_mesh_to_volume(
 
     volume.mmu_segmentation_facets.set(selector);
     return true;
+}
+
+std::shared_ptr<TexturedMesh> make_face_color_mesh(const std::vector<VolumeFaceColors>& volumes)
+{
+    auto mesh = std::make_shared<TexturedMesh>();
+    for (const VolumeFaceColors& entry : volumes) {
+        if (entry.object == nullptr || entry.volume_idx < 0 || entry.volume_idx >= int(entry.object->volumes.size()))
+            continue;
+        const ModelVolume&          volume = *entry.object->volumes[entry.volume_idx];
+        const indexed_triangle_set& its    = volume.mesh().its;
+
+        std::map<std::uint32_t, size_t> counts;
+        for (std::uint32_t c : entry.colors)
+            if (c != 0)
+                ++counts[c];
+        if (counts.empty())
+            continue;
+        const std::uint32_t common = std::max_element(counts.begin(), counts.end(),
+            [](const auto& a, const auto& b) { return a.second < b.second; })->first;
+        // Importing the mesh may drop or reorder faces, which leaves the colours with no faces to match;
+        // the volume then takes its most common colour.
+        const bool matched = entry.colors.size() == its.indices.size();
+
+        Transform3d matrix = volume.get_matrix();
+        if (!entry.object->instances.empty())
+            matrix = entry.object->instances.front()->get_matrix() * matrix;
+
+        const int first_vertex = int(mesh->vertices.size());
+        for (const Vec3f& v : its.vertices) {
+            const Vec3f p = (matrix * v.cast<double>()).cast<float>();
+            mesh->vertices.push_back({ p.x(), p.y(), p.z() });
+        }
+        for (size_t f = 0; f < its.indices.size(); ++f) {
+            const Vec3i32& tri = its.indices[f];
+            mesh->indices.push_back({ first_vertex + tri[0], first_vertex + tri[1], first_vertex + tri[2] });
+            const std::uint32_t c = matched && entry.colors[f] != 0 ? entry.colors[f] : common;
+            mesh->precomputed_face_colors.push_back({ (c >> 16) & 0xFF, (c >> 8) & 0xFF, c & 0xFF });
+        }
+        mesh->parts.push_back({ entry.object->id(), entry.volume_idx, its.indices.size() });
+    }
+    return mesh->parts.empty() ? nullptr : mesh;
+}
+
+int apply_face_colors_to_volume(
+    const std::vector<std::array<std::size_t,3>>& face_colors,
+    const PaintedMesh& palette,
+    const std::vector<FilamentMatch>& matches,
+    ModelVolume& volume)
+{
+    std::vector<int> cluster_filament(palette.cluster_colors.size(), -1);
+    for (const auto& m : matches)
+        if (m.cluster_index >= 0 && m.cluster_index < (int)cluster_filament.size())
+            cluster_filament[m.cluster_index] = m.filament_index;
+
+    // CAD files use few colours, so each distinct one is resolved once.
+    std::map<std::array<std::size_t,3>, int> filament_of_color;
+    auto filament_for = [&](const std::array<std::size_t,3>& color) {
+        auto it = filament_of_color.find(color);
+        if (it != filament_of_color.end())
+            return it->second;
+        int    filament = -1;
+        double best     = 1e9;
+        for (size_t ci = 0; ci < palette.cluster_colors.size(); ++ci) {
+            const auto& c = palette.cluster_colors[ci];
+            const double de = compute_delta_e(color, { c[0] / 255.f, c[1] / 255.f, c[2] / 255.f, 1.f });
+            if (de < best) {
+                best     = de;
+                filament = cluster_filament[ci];
+            }
+        }
+        return filament_of_color.emplace(color, filament).first->second;
+    };
+
+    const size_t     face_count = std::min(face_colors.size(), volume.mesh().its.indices.size());
+    std::vector<int> face_filament(face_count);
+    std::map<int, size_t> votes;
+    for (size_t fi = 0; fi < face_count; ++fi)
+        ++votes[face_filament[fi] = filament_for(face_colors[fi])];
+    if (votes.empty())
+        return -1;
+    const int base = std::max_element(votes.begin(), votes.end(),
+                                      [](const auto& a, const auto& b) { return a.second < b.second; })->first;
+
+    if (votes.size() > 1) {
+        TriangleSelector selector(volume.mesh());
+        for (size_t fi = 0; fi < face_count; ++fi) {
+            if (face_filament[fi] < 0 || face_filament[fi] == base)
+                continue;
+            const auto state = static_cast<EnforcerBlockerType>(
+                static_cast<int>(EnforcerBlockerType::Extruder1) + face_filament[fi]);
+            if (state <= EnforcerBlockerType::ExtruderMax)
+                selector.set_facet(static_cast<int>(fi), state);
+        }
+        volume.mmu_segmentation_facets.set(selector);
+    }
+    return base;
 }
 
 bool decode_texture_to_pixels(

@@ -3553,9 +3553,12 @@ void TextureImportDialog::do_auto_match()
         // For clusters with poor match (CIEDE2000 ΔE > 5), create virtual filaments.
         constexpr double NEW_FILAMENT_THRESHOLD = 5.0;
         std::map<std::array<std::size_t, 3>, int> virtual_color_index;
+        // A multi-part CAD import suggests the nearest project filament for every colour, so it adds none
+        // the user did not ask for; a filament can still be added from a row's menu.
+        const bool suggest_existing_only = !m_textured_mesh.parts.empty();
 
         for (auto& m : m_current_matches) {
-            if (m.delta_e <= NEW_FILAMENT_THRESHOLD)
+            if (m.delta_e <= NEW_FILAMENT_THRESHOLD || suggest_existing_only)
                 continue;
 
             auto it = virtual_color_index.find(m.cluster_color);
