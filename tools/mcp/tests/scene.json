@@ -13,7 +13,7 @@
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
     {"tool": "new_project", "args": {"discard_changes": true}},
-    {"tool": "set_window", "args": {"size": [1920, 1200]}},
+    {"tool": "set_window", "args": {"size": [1600, 900]}},
     {"tool": "set_view", "args": {"tab": "prepare"}},
 
     // ---- An instance: a scale that grows it drops it onto the bed; size keeps the proportions ----

@@ -12,7 +12,8 @@ mcp/server.json, or whose server.json is not JSON or names no port, naming the f
 answers (HTTP 401, a reply that is not JSON), also chaining the cause. call_command(), against a
 stubbed call(), fails at once on a dialog, follows a running job, prefixes its errors with the
 command's name, chaining the original, and returns the command's whole reply. seed_datadir() keeps a fresh
-datadir's login in its own token file and leaves a reused datadir's where it is. ORCA_MCP_CALL_LOG gets a line
+datadir's login in its own token file, opens its main window 1600 x 900 at the top left of the work area, and leaves
+a reused datadir's conf as it is. ORCA_MCP_CALL_LOG gets a line
 per call, and reply_budget_s() reads ORCA_MCP_REPLY_BUDGET_MS as the app does. Exits 0 when every check passes.
 The folders the checks make are removed when they end.
 """
@@ -284,10 +285,16 @@ def read_conf(datadir):
 
 def check_seed_datadir():
     fresh = scratch("orca-seed-")
-    orca_mcp.seed_datadir(fresh, orca_mcp.DEFAULT_PRINTER)
+    with mock.patch.object(orca_mcp, "work_area_origin", return_value=(12, 34)):
+        orca_mcp.seed_datadir(fresh, orca_mcp.DEFAULT_PRINTER)
     app = read_conf(fresh)["app"]
     assert app.get("use_encrypted_token_file") is True, app
     ok("seed_datadir() keeps a fresh datadir's login in its own token file, not the system's secret store")
+    assert orca_mcp.WINDOW_SIZE == (1600, 900), orca_mcp.WINDOW_SIZE
+    assert app.get("window_mainframe") == "12; 34; 1600; 900; 0", app
+    x, y = orca_mcp.work_area_origin()
+    assert isinstance(x, int) and isinstance(y, int) and x >= 0 and y >= 0, (x, y)
+    ok("seed_datadir() opens a fresh datadir's main window 1600 x 900 at the top left of the work area")
 
     reused = scratch("orca-seed-reused-")
     orca_mcp.write_conf(os.path.join(reused, "OrcaSlicer.conf"), {"app": {"use_encrypted_token_file": False}})

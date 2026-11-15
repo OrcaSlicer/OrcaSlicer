@@ -10,7 +10,7 @@
   "name": "web dialogs through the GUI tools",
   "steps": [
     {"tool": "wait", "args": {"for": "ready"}},
-    {"tool": "set_window", "args": {"size": [1920, 1200]}},
+    {"tool": "set_window", "args": {"size": [1600, 900]}},
     {"tool": "set_view", "args": {"tab": "prepare"}},
 
     // ---- The preset bundle dialog, closed by its page's own button ----

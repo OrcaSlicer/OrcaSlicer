@@ -288,8 +288,8 @@ def main():
     flat = client.call("set_window", width=1500, height=950)
     check("flat form: width and height are read as size", flat.get("size") == [1500, 950], flat)
 
-    # 12. Clean-up.
-    client.call("set_window", size=[1920, 1200])
+    # 12. Clean-up: the size a fresh launch gives.
+    client.call("set_window", size=list(orca_mcp.WINDOW_SIZE))
 
     failed = [c for c in checks if not c[1]]
     for name, ok, detail in checks:

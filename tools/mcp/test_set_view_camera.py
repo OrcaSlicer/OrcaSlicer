@@ -46,7 +46,7 @@ def main():
     def close(a, b, tolerance):
         return isinstance(a, (int, float)) and abs(a - b) <= tolerance
 
-    client.call("set_window", size=[1920, 1200])
+    client.call("set_window", size=[1600, 900])
     client.call("new_project", discard_changes=True)
 
     # 1. Prepare, straight after new_project: the fit it queued runs first, then look_at and zoom.
@@ -141,13 +141,13 @@ def main():
     # 9. A fit after the window was sized on the Home tab, where no 3D view draws, fits the canvas's new size:
     # the same fit straight after keeps its zoom.
     set_view(tab="home")
-    client.call("set_window", size=[1600, 1000])
+    client.call("set_window", size=[1400, 800])
     first = set_view(tab="prepare", camera="fit_objects")
     second = set_view(camera="fit_objects")
     zoom = first.get("camera_state", {}).get("zoom")
     check("resized on home: a fit on prepare uses the new size",
           zoom is not None and close(second.get("camera_state", {}).get("zoom"), zoom, 1e-3), (first, second))
-    client.call("set_window", size=[1920, 1200])
+    client.call("set_window", size=[1600, 900])
 
     # 10. On a tab with no 3D view, the fit new_project queues waits for the view to draw: get_app_state has no
     # camera, a zoom given then is applied with a note that the fit is still queued, and the fit replaces it

@@ -20,7 +20,10 @@ an `OrcaSlicer.conf` that has a finished setup wizard and one printer and filame
 Carbon 0.4 by default), with update checks and daily tips turned off, and with the Orca Cloud login kept
 in a token file in the datadir (`use_encrypted_token_file`) instead of the system's secret store, so the
 instance starts signed out and never reads your login: on macOS that read would stop a newly built app at
-a keychain prompt. `--cad` starts the app with
+a keychain prompt. A seeded datadir's main window opens 1600×900 at the top left of the screen's work area
+(on macOS below the menu bar), so it fits on a 1920×1080 screen, instances started side by side stay on
+screen, and the tests' views and screenshots all have one size; the tests that size the window ask for
+the same 1600×900. `--cad` starts the app with
 `--cad`, which turns the Design (CAD) tab on for that run, and with it its commands, and
 `--unrestricted-scripts` starts it with `--unrestricted-scripts`, which lets Python scripts
 (`run_script`) run unrestricted for that run. Neither writes the datadir's `OrcaSlicer.conf`, and a later

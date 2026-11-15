@@ -9,7 +9,7 @@
   "orca_replay": 1,
   "name": "every gizmo",
   "vars": {
-    "window_size": [1920, 1200],
+    "window_size": [1600, 900],
     "svg": "${replay_dir}/fixtures/star.svg",
     "heightmap": "${replay_dir}/fixtures/heightmap.png"
   },

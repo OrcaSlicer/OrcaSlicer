@@ -46,6 +46,10 @@ PROTOCOL = "2025-11-25"
 
 # A finished setup with one printer, so a fresh datadir opens straight into the main window.
 DEFAULT_PRINTER = ("BBL", "Bambu Lab X1 Carbon", "0.4", "Bambu PLA Basic @BBL X1C")
+# A fresh datadir's main window: at the top left of the screen's work area, small enough for a 1920 x 1080
+# screen to show all of it, so instances started side by side stay on screen and a view or screenshot taken in
+# one has the same size in another.
+WINDOW_SIZE = (1600, 900)
 
 
 def reply_budget_s():
@@ -276,22 +280,45 @@ def write_conf(conf, data):
         f.write("\n")
 
 
+def work_area_origin():
+    """The top-left corner of the main display's work area, the part windows may cover: on macOS below the
+    menu bar and right of a Dock on the left, read from AppKit; (0, 0) where that cannot be read and on the
+    other systems, whose taskbar or panel usually sits at the bottom, and whose private displays have none."""
+    if sys.platform != "darwin":
+        return 0, 0
+    # AppKit measures from the bottom left; the first screen is the one with the menu bar.
+    script = ('ObjC.import("AppKit"); var s = $.NSScreen.screens.objectAtIndex(0), f = s.frame, v = s.visibleFrame;'
+              'JSON.stringify([v.origin.x - f.origin.x, f.origin.y + f.size.height - v.origin.y - v.size.height])')
+    try:
+        out = subprocess.run(["osascript", "-l", "JavaScript", "-e", script], capture_output=True, text=True,
+                             timeout=10).stdout
+        x, y = json.loads(out)
+        return round(x), round(y)
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError):
+        return 0, 0
+
+
 def seed_datadir(datadir, printer):
     """Seed a fresh datadir's OrcaSlicer.conf. A datadir that has one keeps it.
 
     A fresh datadir keeps the Orca Cloud login in its own token file (use_encrypted_token_file), not in the
     system's secret store, so the instance starts signed out and never reads the person's login: on macOS
-    that read stops a newly built app at a keychain prompt that only a person can answer."""
+    that read stops a newly built app at a keychain prompt that only a person can answer. Its main window
+    opens WINDOW_SIZE at the top left of the work area: the app trims a saved window to the work area, so one
+    placed over the macOS menu bar would open that much shorter."""
     vendor, model, nozzle, filament = printer
     os.makedirs(datadir, exist_ok=True)
     conf = os.path.join(datadir, "OrcaSlicer.conf")
     if os.path.exists(conf):
         return
+    x, y = work_area_origin()
+    width, height = WINDOW_SIZE
     write_conf(conf, {"firstguide": {"finish": True},
                       "models": [{"model": model, "nozzle_diameter": nozzle, "vendor": vendor}],
                       "filaments": [filament],
                       "presets": {"machine": f"{model} {nozzle} nozzle"},
-                      "app": {"check_for_updates": False, "show_daily_tips": False, "use_encrypted_token_file": True}})
+                      "app": {"check_for_updates": False, "show_daily_tips": False, "use_encrypted_token_file": True,
+                              "window_mainframe": f"{x}; {y}; {width}; {height}; 0"}})
 
 
 # The headless compositors --headless tries, in order, by the binary each needs.
