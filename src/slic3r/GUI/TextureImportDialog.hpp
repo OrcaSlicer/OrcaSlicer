@@ -86,6 +86,8 @@ struct FilamentMappingRow {
     wxPanel*                   target_panel  = nullptr;
 };
 
+struct TextureMixPool;
+
 class FilamentSelectPopup;
 class AutoMixSelectPopup;
 // Lightweight 3D preview panel using wxGLCanvas.
@@ -260,6 +262,15 @@ private:
     void dismiss_auto_mix_popup();
     void set_auto_mix_mode(TextureAutoMixMode mode);
     void apply_auto_standard_mix(TextureAutoMixMode mode);
+    std::string preferred_mix_family() const;
+    // Physical filaments and family that resolve_mix_color() mixes from.
+    void build_mix_pool(TextureMixPool& pool) const;
+    // Mixed recipe for one color from the pool. Returns the reused or created mixed
+    // slot, or the single physical component, or -1 when there is no usable recipe.
+    // When the recipe needs a new mixed slot and allow_create is false, returns -1
+    // with needs_slot set.
+    int  resolve_mix_color(const TextureMixPool& pool, const std::array<std::size_t, 3>& color,
+                           bool allow_create, bool& created, bool& needs_slot);
     void reset_auto_mix();
     void update_auto_mix_reset_visibility();
     bool add_decomposed_mixed_filament(size_t row_index);
