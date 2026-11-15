@@ -338,6 +338,8 @@ TEST_CASE("Tree support infill keeps a wall around it when the wall count is aut
     // Default leaves tree branches and trunks hollow; only the normal support of Tree Hybrid gets infill with it.
     if (std::string(pattern) == "rectilinear" || std::string(style) == "tree_hybrid")
         REQUIRE(infilled > 0);
+    else
+        CHECK(infilled == 0);
 }
 
 // With Support wall loops at 0, support thick enough may still be printed as infill alone, as auto did
