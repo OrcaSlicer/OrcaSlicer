@@ -32,7 +32,14 @@ struct CoreTiming
     // How long a call waits for a worker job it started before cancelling it, and how often it looks.
     std::chrono::milliseconds worker_timeout{std::chrono::minutes(30)};
     std::chrono::milliseconds worker_poll{50};
+    // Above zero, the longest any command's reply budget runs: for tests that need a call to outlive its
+    // budget without waiting out the command's own (ORCA_MCP_REPLY_BUDGET_MS). Zero leaves each budget as is.
+    std::chrono::milliseconds reply_budget_cap{0};
 };
+
+// The reply budget cap that ORCA_MCP_REPLY_BUDGET_MS's `value` sets: a whole positive number of milliseconds,
+// written as digits alone; anything else, or no value, is zero (no cap).
+std::chrono::milliseconds reply_budget_cap_from(const char* value);
 
 // The app's UI job worker (arrange, orient, fill bed, the Text, SVG and texture gizmos' jobs), which a
 // call can start as a person's click does. Both run on the UI thread; without them nothing is busy.

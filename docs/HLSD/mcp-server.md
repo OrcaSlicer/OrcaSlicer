@@ -291,7 +291,10 @@ keeps the last 64 results, plus finished jobs whose parent (a running replay) ma
 them, up to 1024 in all. The request thread waits up to `NativeCommand::budget_ms` (45 s, under
 Codex's 60 s tool timeout); after that the reply is `{status: "running", job, tool, note}` and the
 job keeps going until `wait {for: "job"}` (at most 50 s per call) returns its result. The server
-never retries a mutating call, and every envelope tells the model not to either.
+never retries a mutating call, and every envelope tells the model not to either. The environment
+variable `ORCA_MCP_REPLY_BUDGET_MS`, read when the runtime starts and logged when set, caps every
+command's budget at that many milliseconds; it only lowers a budget, never raises one, and exists for
+tests that need a call to outlive its budget without waiting 45 s for it.
 
 **blocked_by_dialog.** A handler that opens a modal blocks in its nested loop, so every 1.5 s the
 request thread posts a probe closure, which runs inside a wx dialog's loop and returns the
@@ -4074,8 +4077,8 @@ the app on Linux on the XWayland of a private headless compositor (KWin, else mu
 tested yet), which gives it the GPU's OpenGL and a window manager, or, on a machine without a desktop,
 on a private Xvfb display (with `-noreset`, and the pointer parked in a corner so no tooltip lands in
 a screenshot); on macOS and Windows it opens the app on the desktop. It runs
-`tools/mcp/smoke_test.json`. `tools/mcp/tests/replay_basic.json`
-checks `--run` headless, `tools/mcp/tests/gizmos.json` every gizmo through the GUI tools,
+`tools/mcp/smoke_test.json`, which `--run` also runs headless. `tools/mcp/tests/gizmos.json`
+checks every gizmo through the GUI tools,
 `tools/mcp/tests/multicolor.json` object and part filaments and the project scope, `tools/mcp/tests/presets.json` saving,
 reading and comparing presets, explaining settings, per-variant entries, `changed`, reverting keys, answering the
 unsaved-changes prompts of a preset switch and a new project, deleting presets, exporting and importing
@@ -4091,9 +4094,8 @@ their paths, `tools/mcp/tests/rows.json` object list
 rows, checklist rows, the object settings table and the print button's popup,
 `tools/mcp/tests/recording.json` a recording with clicks, a dialog and a slice, stopped and encoded,
 and one a replay ends, `tools/mcp/tests/plate_icons.json` plate icons (lock, settings, arrange, the plate menu, move to
-front), `tools/mcp/tests/webview_modal.json` JavaScript in the preset bundle dialog and the setup
-wizard, `tools/mcp/test_webview_modal.py` the web views `run_javascript` is refused in and a page that
-closes its dialog, `tools/mcp/tests/web_dialogs.json` the preset bundle dialog, the colour picker
+front), `tools/mcp/test_webview_modal.py` JavaScript in modal dialogs' web views, the ones
+`run_javascript` is refused in and a page that closes its dialog, `tools/mcp/tests/web_dialogs.json` the preset bundle dialog, the colour picker
 (hex field and spectrum) and the setup wizard's first steps through the GUI tools alone,
 `tools/mcp/test_web_ui.py` every page control kind, action, refusal, locator, timeout and close of
 the MCP web fixture plugin's dialog, window, dock panel and configuration UI (side-loaded with

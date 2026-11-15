@@ -12,7 +12,8 @@ mcp/server.json, or whose server.json is not JSON or names no port, naming the f
 answers (HTTP 401, a reply that is not JSON), also chaining the cause. call_command(), against a
 stubbed call(), fails at once on a dialog, follows a running job, prefixes its errors with the
 command's name, chaining the original, and returns the command's whole reply. seed_datadir() keeps a fresh
-datadir's login in its own token file and leaves a reused datadir's where it is. Exits 0 when every check passes.
+datadir's login in its own token file and leaves a reused datadir's where it is. ORCA_MCP_CALL_LOG gets a line
+per call, and reply_budget_s() reads ORCA_MCP_REPLY_BUDGET_MS as the app does. Exits 0 when every check passes.
 The folders the checks make are removed when they end.
 """
 
@@ -245,6 +246,36 @@ def check_call_command():
     ok("call_command() starts every error with the command's name, with the original as its cause")
 
 
+def check_call_log():
+    log = os.path.join(scratch("orca-attach-log-"), "calls.jsonl")
+    reply = json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"content": [{"type": "text", "text": "{}"}]}}).encode()
+    with mock.patch.dict(os.environ, {"ORCA_MCP_CALL_LOG": log}):
+        with Listener(200, reply) as port:
+            OrcaMcp(port, "t").call("get_app_state")
+        with open(log, encoding="utf-8") as f:
+            lines = [json.loads(line) for line in f]
+        assert len(lines) == 1, lines
+        assert lines[0]["tool"] == "get_app_state" and lines[0]["ok"] is True and lines[0]["ms"] >= 0, lines
+        with Listener(500, b"boom") as port:
+            raises(lambda: OrcaMcp(port, "t").call("get_app_state"), "HTTP 500")
+        with open(log, encoding="utf-8") as f:
+            lines = [json.loads(line) for line in f]
+        assert len(lines) == 2 and lines[1]["ok"] is False, lines
+    ok("ORCA_MCP_CALL_LOG gets one line per call with its tool, time and whether it succeeded")
+
+
+def check_reply_budget():
+    for value, budget in ((None, 45.0), ("2000", 2.0), ("90000", 45.0), ("0", 45.0), ("-5", 45.0), ("1.5", 45.0),
+                          (" 2000", 45.0), ("abc", 45.0)):
+        env = {} if value is None else {"ORCA_MCP_REPLY_BUDGET_MS": value}
+        with mock.patch.dict(os.environ, env):
+            if value is None:
+                os.environ.pop("ORCA_MCP_REPLY_BUDGET_MS", None)
+            got = orca_mcp.reply_budget_s()
+        assert got == budget, f"{value!r}: {got} != {budget}"
+    ok("reply_budget_s() is 45 s, or less where ORCA_MCP_REPLY_BUDGET_MS caps it, read as the app reads it")
+
+
 def read_conf(datadir):
     with open(os.path.join(datadir, "OrcaSlicer.conf"), encoding="utf-8") as f:
         text = f.read()
@@ -275,6 +306,8 @@ def main():
         check_symlinked_binary()
         check_from_datadir()
         check_call_command()
+        check_call_log()
+        check_reply_budget()
     return 0
 
 

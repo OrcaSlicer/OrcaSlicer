@@ -6,13 +6,16 @@
 
 A coil swept along a helix makes every rebuild of the design slow, so a hole that misses it, which
 the kernel refuses only after the rebuild and takes back with another, replies with a running job
-past the 45 s budget and then fails. An export while it runs leaves it out and names it in
-left_out_running; once it has failed, a rename made after it is in the export, the hole is not, and
-the replay runs into a new project to the same features and coil. The coil's turns are sized
-from a short calibration build, taking a build's time to grow with the cube of the turns, so the
-failing call outlives the budget on a faster or slower machine; a busy machine bends that curve, so
-when the hole still fails inside the budget, or its job has ended by the time of the export, the
-session is made again with a bigger coil. Takes four to eight minutes. Exits 0 when every check passes.
+past the reply budget and then fails. The budget is 45 s, or the cap ORCA_MCP_REPLY_BUDGET_MS sets
+when the app and this script have it (the sweep sets 4 s), and the coil is sized for it. An export
+while it runs leaves it out and names it in left_out_running; once it has failed, a rename made after it is in the export, the hole is not, and
+the replay runs into a new project to the same features and coil. The session's first coil, of 12
+turns, times a build, and the coil's turns are sized from it, taking a build's time to grow with the
+cube of the turns, so the failing call outlives the budget on a faster or slower machine; the session
+is made again only when the sized coil has more turns. A busy machine bends that curve, so when the
+hole still fails inside the budget, or its job has ended by the time of the export, the session is
+made again with a bigger coil. Takes four to eight minutes with the full budget, under a
+minute with a 4 s one. Exits 0 when every check passes.
 """
 
 import json
@@ -25,9 +28,9 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import orca_mcp  # noqa: E402
 
-# The coil's build time to aim for. The missed hole takes about as long as the build, so this is well
-# past the reply budget.
-REBUILD_S = 60.0
+# The coil's build time to aim for. The missed hole takes about as long as the build, so this is past the
+# reply budget by a third of it and by at least 4 s: the hole is still running at the export after its reply.
+REBUILD_S = max(orca_mcp.reply_budget_s() * 4 / 3, orca_mcp.reply_budget_s() + 4)
 
 
 def cad(client, tool, **args):
@@ -56,20 +59,25 @@ def main():
     def check(name, ok, detail=""):
         checks.append((name, bool(ok), detail))
 
-    client.call("new_project", discard_changes=True)
-    calibration = coil(client, 12)
-    turns = max(12, min(40, round(12 * (REBUILD_S / max(calibration, 0.5)) ** (1 / 3))))
-    print(f"12 turns built in {calibration:.1f} s; the test coil has {turns}", flush=True)
-
     # ---- The session to export ----
-    # The hole must reply running and still run at the export after its reply. One that fails inside the
-    # budget, or whose job has ended by the export, is made again with a bigger coil.
+    # Its first coil, of 12 turns, times the build; the session is made again only when the coil it
+    # sizes has more turns. The hole must reply running and still run at the export after its reply.
+    # One that fails inside the budget, or whose job has ended by the export, is made again with a
+    # bigger coil.
+    client.call("export_replay", clear=True)
+    client.call("new_project", discard_changes=True)
+    built = 12
+    calibration = coil(client, built)
+    turns = max(built, min(40, round(built * (REBUILD_S / max(calibration, 0.5)) ** (1 / 3))))
+    print(f"{built} turns built in {calibration:.1f} s; the test coil has {turns}", flush=True)
     during = {}
     running = False
     while True:
-        client.call("export_replay", clear=True)
-        client.call("new_project", discard_changes=True)
-        coil(client, turns)
+        if turns != built:
+            client.call("export_replay", clear=True)
+            client.call("new_project", discard_changes=True)
+            coil(client, turns)
+            built = turns
         start = time.time()
         try:
             started = cad(client, "hole", x=500, through=True)

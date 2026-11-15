@@ -14,11 +14,12 @@ left); what a verb drew is graded on the geometry sketch_describe reads back, or
 the feature describe_feature reads. Every action goes through the MCP UI tools, and the Design commands only read.
 Exits 0 when every check holds.
 
-The rungs: kinds right-clicks empty space, a line, a circle, a point and two picked lines, and
-checks that the menu's header names each, and that a right-click while a line's first point is
-down abandons the point and opens nothing. vocabulary checks for those five selections that the
-menu lists exactly the label paths the table gives, greys exactly the rows with nothing to offer,
-and that the five offer different verbs. author draws a 120 x 80 rectangle with the corner
+The rungs: vocabulary right-clicks empty space, a line, a circle, a point and a line and a circle
+picked together, and checks for each that the menu's header names it, that the menu lists exactly
+the label paths the table gives and greys exactly the rows with nothing to offer, and that the five
+offer different verbs; that the Line and Circle tools, armed with nothing anchored, hand the
+right-click on to the offer; and that a right-click while a line's first point is down abandons the
+point and opens nothing. author draws a 120 x 80 rectangle with the corner
 rectangle chosen from the menu, and no_shortcut one with the centre rectangle, which has no key,
 and checks it is centred on its click. curves draws each keyless creation verb (polyline, oblique
 and rounded rectangle, 2- and 3-point circle, centre and tangent arc, arc slot, elliptical arc,
@@ -138,17 +139,20 @@ def choose(offer, X, Y, verb):
 
 # ---------------------------------------------------------------- fixtures
 
-def keep_as_drawn():
+def keep_as_drawn(expect=None):
     """Close the value fields the last gesture left open, keeping the geometry as drawn; returns how
     many Esc presses that took.
 
     Esc means keep-as-drawn only while a field is open: with none open it drops the armed tool,
     and from Select it leaves the sketch. So Esc is pressed only on a field that is there. The
     fields come one after another (a rectangle queues Width, then Height, the next opened as the
-    previous one closes), and one that has not opened yet looks like one that never will, so this
-    stops only when no field has shown for a while."""
+    previous one closes), and one that has not opened yet looks like one that never will, so with
+    `expect` None this stops only when no field has shown for a while. A caller that knows how
+    many fields its gesture opens passes that number as `expect`: those are waited for, and any
+    field still open after them is closed without waiting for another."""
     for n in range(8):
-        if until(gui.value_field, timeout=0.7) is None:
+        waits = expect is None or n < expect
+        if (until(gui.value_field, timeout=0.7) if waits else gui.value_field()) is None:
             return n
         key("Escape")
         until(lambda: gui.value_field() is None)
@@ -207,7 +211,7 @@ def poly_click(pt):
     polyline opens a Length field after every segment, and the canvas takes no click while one is
     open."""
     gui.click_mm(*pt)
-    keep_as_drawn()
+    keep_as_drawn(expect=1)
 
 
 def draw_line_at(x0, y0, x1, y1, length):
@@ -220,7 +224,7 @@ def draw_line_at(x0, y0, x1, y1, length):
     gui.click_mm(x0, y0)
     gui.click_mm(x1, y1)
     gui.values(int(length), 0)
-    keep_as_drawn()
+    keep_as_drawn(expect=0)
     return ents("line")[-1]
 
 
@@ -238,93 +242,36 @@ def safe_box():
 
 # ---------------------------------------------------------------- rungs
 
-def rung_kinds():
-    """O1: the offer reads what was right-clicked, one kind of element at a time."""
-    gui.enter_sketch("l")
-    x0, x1, y0, y1, cx, cy = safe_box()
-    W, H = x1 - x0, y1 - y0
-
-    # Empty space first. A right-click on a draw tool does one of two jobs, depending on whether
-    # an anchor is down: with none it opens the offer, so the offer is reachable from any armed
-    # tool.
-    hi = y1 - H * 0.12
-    o = gui.offer(cx, hi)
-    gui.check("kinds: Line armed, nothing anchored: a right-click opens the offer", o.header is not None,
-              f"menu {o}")
-    gui.check("kinds: on empty space it offers for nothing selected", o.header == HEADER["SkNone"],
-              f"header {o.header!r}")
-    names = {v["name"] for v in gui.verbs()}
-    leaves = [p.split(">")[-1] for p in o.items if p not in o.disabled]
-    gui.check("kinds: the sketch vocabulary is the one offered", leaves and all(n in names for n in leaves),
-              f"items not named for a sketch verb: {[n for n in leaves if n not in names]}")
-
-    # With an anchor down, the same gesture abandons the anchor instead and offers nothing.
-    key("l")
-    gui.click_mm(cx, hi)
-    o = gui.offer(cx + W * 0.1, hi)
-    gui.check("kinds: with an anchor down, a right-click abandons it and opens no offer",
-              o.header is None and not o.items, f"menu {o}")
-    o = gui.offer(cx, hi)
-    gui.check("kinds: and the offer is back on the next right-click", o.header is not None, f"menu {o}")
-    key("Escape")
-
-    # A line.
-    ax, ay = x0 + W * 0.15, cy
-    bx = x0 + W * 0.55
-    first = draw_line_at(ax, ay, bx, ay, 40)
-    o = gui.offer(*mid(first))
-    gui.check("kinds: on a line it offers for a line", o.header == HEADER["SkLine"], f"header {o.header!r}")
-
-    # A circle: every curve takes the same vocabulary, which the header calls a curve.
-    key("c")
-    ccx, ccy = x0 + W * 0.30, cy + H * 0.25
-    gui.click_mm(ccx, ccy)
-    gui.click_mm(ccx + W * 0.10, ccy)
-    gui.values(20)
-    circ = ents("circle")
-    gui.check("kinds: one circle drawn to right-click on", len(circ) == 1, f"{len(circ)} circles")
-    if not circ:
-        raise AssertionError("no circle to right-click on")
-    r = circ[0]["radius"]
-    o = gui.offer(circ[0]["center"][0] + r, circ[0]["center"][1])
-    gui.check("kinds: on a circle it offers for a curve", o.header == HEADER["SkArc"], f"header {o.header!r}")
-
-    # A point.
-    key("p")
-    pxx, pyy = x0 + W * 0.80, cy + H * 0.25
-    gui.click_mm(pxx, pyy)
-    o = gui.offer(pxx, pyy)
-    gui.check("kinds: on a point it offers for a point", o.header == HEADER["SkPoint"], f"header {o.header!r}")
-
-    # Two lines picked: the pair vocabulary (angle, equal, parallel) is about pairs of curves. The
-    # second line's Length label sits above it, toward the first line, so the two lie a third of
-    # the region apart, which keeps that label off the first line.
-    y2 = ay - H * 0.32
-    second = draw_line_at(ax, y2, bx, y2, 40)
-    # One Esc drops the armed tool to Select, so the clicks below pick instead of draw; from a draw
-    # tool with no anchor down that is all it does. Each click lands where it takes its line and
-    # nothing else: clear of the Length labels, whose reach is in pixels, and of the other shapes.
-    key("Escape")
-    gui.click_mm(*gui.clear_pick(first))
-    gui.click_mm(*gui.clear_pick(second), modifiers=["shift"])
-    d = gui.sketch()
-    gui.check("kinds: two entities picked", len(d["selection"]) == 2,
-              f"selection {d['selection']} (tool {d['tool']}, pending {d['pending']}, editing {d['editing']})")
-    o = gui.offer(*mid(first))
-    d = gui.sketch()
-    gui.check("kinds: with two picked it offers for the pair", o.header == HEADER["Sk2Ent"],
-              f"header {o.header!r} (tool {d['tool']}, pending {d['pending']}, editing {d['editing']})")
-    leave()
-
-
 def rung_vocabulary():
-    """O2: the menu lists exactly what the offer table says applies, selection by selection.
+    """O1 and O2: the offer reads what was right-clicked, and the menu lists exactly what the offer
+    table says applies, selection by selection.
 
     Five selections, not one: a menu that is the same whatever was clicked would pass any single
     comparison, and only the five against their own tables tell those apart."""
     gui.enter_sketch("l")
     x0, x1, y0, y1, cx, cy = safe_box()
     W, H = x1 - x0, y1 - y0
+
+    # A right-click on a draw tool does one of two jobs, depending on whether an anchor is down:
+    # with none it opens the offer, so the offer is reachable from any armed tool; with one it
+    # abandons the anchor instead and offers nothing.
+    hi = y1 - H * 0.12
+    o = gui.offer(cx, hi)
+    gui.check("vocabulary: Line armed, nothing anchored: a right-click on empty space offers for nothing selected",
+              o.header == HEADER["SkNone"], f"menu {o}")
+    names = {v["name"] for v in gui.verbs()}
+    leaves = [p.split(">")[-1] for p in o.items if p not in o.disabled]
+    gui.check("vocabulary: the sketch vocabulary is the one offered", leaves and all(n in names for n in leaves),
+              f"items not named for a sketch verb: {[n for n in leaves if n not in names]}")
+    key("l")
+    gui.click_mm(cx, hi)
+    o = gui.offer(cx + W * 0.1, hi)
+    gui.check("vocabulary: with an anchor down, a right-click abandons it and opens no offer",
+              o.header is None and not o.items, f"menu {o}")
+    o = gui.offer(cx, hi)
+    gui.check("vocabulary: and the offer is back on the next right-click", o.header is not None, f"menu {o}")
+    key("Escape")
+
     ax, ay = x0 + W * 0.15, cy
     bx = x0 + W * 0.55
     line = draw_line_at(ax, ay, bx, ay, 40)
@@ -338,6 +285,10 @@ def rung_vocabulary():
     if len(circ) != 1:
         raise AssertionError(f"{len(circ)} circles drawn, expected one to right-click on")
     circ = circ[0]
+    # Each draw tool takes the right-click first and hands it back when nothing is anchored.
+    o = gui.offer(circ["center"][0] + circ["radius"], circ["center"][1])
+    gui.check("vocabulary: Circle armed, nothing anchored: a right-click on the circle offers for a curve",
+              o.header == HEADER["SkArc"], f"header {o.header!r} (tool {gui.sketch()['tool']})")
 
     key("p")
     pxx, pyy = x0 + W * 0.80, cy + H * 0.25
@@ -353,7 +304,7 @@ def rung_vocabulary():
         if name == "Sk2Ent":
             # sk_angdist accepts the pair and nothing else, so it is offered from this selection
             # alone.
-            keep_as_drawn()
+            keep_as_drawn(expect=0)
             key("Escape")
             # Each click lands where it takes its entity and nothing else (clear_pick): clear of
             # the line's Length label and the circle's radius label, and of the circle's radius
@@ -977,7 +928,7 @@ def rung_coverage():
               f"{len(dead)} with no GUI route: {sorted(dead)}")
 
 
-RUNGS = {"kinds": rung_kinds, "vocabulary": rung_vocabulary,
+RUNGS = {"vocabulary": rung_vocabulary,
          "author": rung_author, "no_shortcut": rung_no_shortcut,
          "curves": rung_curves, "transforms": rung_transforms,
          "art": rung_art, "coverage": rung_coverage}

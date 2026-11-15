@@ -205,6 +205,12 @@ def fit_homography(pairs):
 
 # ---------------------------------------------------------------- what a click can take
 
+def _project(H, X, Y):
+    """The point (X, Y) through the homography H (a row-major 3x3, as fit_homography() returns)."""
+    w = H[6] * X + H[7] * Y + H[8]
+    return ((H[0] * X + H[1] * Y + H[2]) / w, (H[3] * X + H[4] * Y + H[5]) / w)
+
+
 def _handles(e):
     """The plane points of a sketch_describe entity that a click takes before the entity: a line's
     ends, a circle's centre and its radius grip on the +X side (DesignSketchTool::build_handles),
@@ -262,6 +268,8 @@ class CadGui:
         self._H = None     # plane -> canvas pixel
         self._size = None  # (w, h) of the canvas _H maps onto
         self.gl_per_px = 1.0  # the canvas's GL pixels per click pixel, from reset_view()'s camera_state
+        self.full_calibrations = 0  # the maps calibrate() fitted from five probes, not reused
+        self._maps = {}  # _view_key() -> (_H, safe) fitted on that view
 
     # ------------------------------------------------------------ results
 
@@ -571,10 +579,10 @@ class CadGui:
         the sketch. A click that misses lands on the bed or the background and leaves the plane
         choice waiting for the next. Along that diagonal only the XY square can be hit: the XZ and
         YZ squares are seen edge-on, along the axes. The click that picks the plane also pops the
-        tool offer, which the reply lists and nothing shows. calibrate() then resets the view in
-        the sketch and measures it."""
+        tool offer, which the reply lists and nothing shows. calibrate() then squares the view on
+        the sketch, in the camera show_design() set, and measures it."""
         self._open_sketch()
-        self.calibrate()
+        self.calibrate(aimed=True)
         if tool_key:
             self.keys(tool_key, target=CANVAS)
         return self.sketch()
@@ -623,20 +631,37 @@ class CadGui:
 
     # ------------------------------------------------------------ plane and pixels
 
-    def calibrate(self):
-        """Reset the view, place Points in the open sketch, fit the plane-to-pixel map to them,
-        then undo them.
+    def calibrate(self, aimed=False):
+        """Put the open sketch in the view reset_view() sets and find its plane-to-pixel map:
+        reuse the one fitted on that view before, or place Points, fit the map to them and undo
+        them.
 
-        Redone for every sketch entered or reopened, on the view reset_view() sets, so the map is
-        the same whatever came before and every click lands where the test means it to. Four
-        probes at fixed shares of the canvas fit the map; a fifth checks it (PROBE_LAYOUTS). A
-        probe that snapped onto geometry already in the sketch shows as a probe off its click,
-        and the probes are then placed again in the next layout, whose band lies elsewhere. In an
-        empty sketch there is nothing to snap onto, so a probe off its click means the clicks did
-        not land where the view puts them, a fault in the app or the harness, and it raises at
-        once. The sketch is left as it was, in Select."""
-        self.reset_view()
+        Done for every sketch entered or reopened, on the view reset_view() sets, so the map is
+        the same whatever came before and every click lands where the test means it to. `aimed`
+        says the camera is the one show_design() has just set, as enter_sketch() leaves it, so N
+        alone squares it to the sketch's plane; otherwise reset_view() sets the camera first.
+
+        A map is reused while the canvas's size and the camera are the ones it was fitted on
+        (_view_key()), which fix how the plane projects, and one probe confirms it (_check_map()):
+        what the key cannot show, another plane seen through the same camera or a probe snapped
+        onto the sketch's geometry, puts that probe off the map, and the map is fitted afresh.
+
+        A fit takes four probes at fixed shares of the canvas, and a fifth checks it
+        (PROBE_LAYOUTS). A probe that snapped onto geometry already in the sketch shows as a probe
+        off its click, and the probes are then placed again in the next layout, whose band lies
+        elsewhere. In an empty sketch there is nothing to snap onto, so a probe off its click
+        means the clicks did not land where the view puts them, a fault in the app or the
+        harness, and it raises at once. The sketch is left as it was, in Select."""
+        if aimed:
+            self.keys("n", target=CANVAS)
+        else:
+            self.reset_view()
         _, _, w, h = self._canvas(self.widgets()).rect
+        key = self._view_key(w, h)
+        if key in self._maps and self._check_map(self._maps[key][0], w, h):
+            H, self.safe = self._maps[key]
+            self._H, self._size = list(H), (w, h)
+            return
         snapped = []
         for layout in PROBE_LAYOUTS:
             probes = [(round(w * fx), round(h * fy)) for fx, fy in layout]
@@ -657,6 +682,9 @@ class CadGui:
                 xs, ys = [e["p"][0] for e in new[:4]], [e["p"][1] for e in new[:4]]
                 self.safe = (min(xs), max(xs), min(ys), max(ys))
                 self._size = (w, h)
+                self.full_calibrations += 1
+                # A copy: _follow_canvas() replaces _H in Constrain mode, and the stored map stays the fitted one.
+                self._maps[key] = (list(self._H), self.safe)
                 return
             if not start["entities"]:
                 raise RuntimeError("calibration probes are off their clicks in an empty sketch, where nothing "
@@ -665,6 +693,22 @@ class CadGui:
             snapped.append(", ".join(off))
         raise RuntimeError("calibration probes are off their clicks in every layout, so they snapped onto "
                            "the sketch: " + "; ".join(snapped))
+
+    def _view_key(self, w, h):
+        """What a plane-to-pixel map stands on besides the sketch's plane: the canvas's size and
+        the Design camera get_app_state reports."""
+        camera = self.client.call("get_app_state").get("camera") or {}
+        return (w, h, json.dumps(camera, sort_keys=True))
+
+    def _check_map(self, H, w, h):
+        """Whether the map H holds on the open sketch: a Point clicked where a fit's fifth probe
+        goes lands within 0.5 px of where H puts it. The probe is undone either way."""
+        fx, fy = PROBE_LAYOUTS[0][4]
+        probe = (round(w * fx), round(h * fy))
+        start, new = self._place_probes([probe])
+        self._undo_probes(start, 1)
+        u, v = _project(H, *new[0]["p"])
+        return abs(u - probe[0]) <= 0.5 and abs(v - probe[1]) <= 0.5
 
     def _place_probes(self, probes):
         """Click a Point at each of `probes` (pixels) in the open sketch; returns sketch_describe
@@ -710,9 +754,7 @@ class CadGui:
 
     def px(self, X, Y):
         """Plane millimetres -> canvas pixels."""
-        h = self._H
-        w = h[6] * X + h[7] * Y + h[8]
-        return ((h[0] * X + h[1] * Y + h[2]) / w, (h[3] * X + h[4] * Y + h[5]) / w)
+        return _project(self._H, X, Y)
 
     def unpx(self, u, v):
         """Canvas pixels -> plane millimetres (the homography inverted)."""

@@ -26,6 +26,8 @@ feature_undo undo inside a sketch and across its commit, from the keyboard. roun
 the File menu, its file pickers answered by auto_answer_dialogs rules with the path (skipped on
 Linux, where a GTK picker can't take one). scale draws on top of a sketch holding 1204 entities,
 which it loads with one sketch_add command while a tool is armed; the call says why.
+calibration_cache checks the harness itself: a sketch's plane-to-pixel map is reused in the view it
+was fitted on, fitted again on a resized canvas, and still lands clicks where they are meant.
 selfcheck-recovery runs only when named: it raises with the mouse button held, the offer menu
 asked for and a tool armed, to show that the rungs after it start clean.
 """
@@ -113,6 +115,38 @@ def rung_line():
     if e:
         a = math.degrees(math.atan2(e[0]["p1"][1] - e[0]["p0"][1], e[0]["p1"][0] - e[0]["p0"][0])) % 360.0
         gui.check("line: angle the typed 30 deg", near(a, 30.0, 1e-9), f"angle {a:.9f} deg")
+    gui.cancel()
+
+
+def rung_calibration_cache():
+    """A sketch entered again in the view its map was fitted on reuses the map, a sketch on a resized
+    canvas is fitted again, and a line drawn through a reused map comes out as typed."""
+    gui.enter_sketch()
+    n = gui.full_calibrations
+    gui.cancel()
+    gui.enter_sketch()
+    gui.check("calibration_cache: the same view reuses its map", gui.full_calibrations == n,
+              f"{gui.full_calibrations - n} more fit(s)")
+    gui.cancel()
+    width, height = gui.client.call("get_app_state")["window"]["size"]
+    # Shorter, not narrower: the ribbon's Cancel needs the width start() gave the window.
+    gui.client.call("set_window", size=[width, height - 120])
+    try:
+        gui.enter_sketch()
+        gui.check("calibration_cache: a resized canvas is fitted again", gui.full_calibrations == n + 1,
+                  f"{gui.full_calibrations - n} more fit(s)")
+        gui.cancel()
+    finally:
+        gui.client.call("set_window", size=[width, height])
+    gui.enter_sketch("l")
+    reused = gui.full_calibrations == n + 1
+    gui.click_mm(-20, 0)
+    gui.click_mm(15, 0)
+    gui.values(40, 0)
+    e = [x for x in gui.sketch()["entities"] if x["type"] == "line"]
+    gui.check("calibration_cache: back at its size, the view reuses its map and a line drawn through it is the typed 40",
+              reused and len(e) == 1 and near(e[0]["length"], 40.0),
+              f"reused {reused}, lengths {[x['length'] for x in e]}")
     gui.cancel()
 
 
@@ -760,7 +794,6 @@ def rung_dimension():
 
 def rung_constrain():
     """Equal length on two adjacent sides of a rectangle, in Constrain mode."""
-    gui.new_design()
     gui.enter_sketch("r")
     draw_rect_undimensioned()
     a, b = corner_pair(gui.sketch()["entities"])
@@ -788,7 +821,6 @@ def rung_constrain():
 
 
 def rung_perpendicular():
-    gui.new_design()
     gui.enter_sketch("l")
     two_lines()
     d0 = gui.sketch()
@@ -810,7 +842,6 @@ def rung_perpendicular():
 
 
 def rung_parallel():
-    gui.new_design()
     gui.enter_sketch("l")
     two_lines()
     d0 = gui.sketch()
@@ -830,7 +861,6 @@ def rung_parallel():
 
 def rung_live_constrain():
     """A constraint applied in the open sketch: no K, no commit, no tree pick."""
-    gui.new_design()
     gui.enter_sketch("l")
     two_lines()
     d0 = gui.sketch()
@@ -860,7 +890,6 @@ def rung_badge():
     removes that one constraint. A badge is small and sits where a person aims at the geometry, so a
     click that deleted would lose a constraint to a slip of the pointer. The badge clicked is the
     Horizontal of the rectangle's first side, found by its place in that side's stack."""
-    gui.new_design()
     gui.enter_sketch("r")
     draw_rect_undimensioned()
     side = gui.sketch()["entities"][0]
@@ -894,7 +923,6 @@ def rung_badge():
 
 
 def rung_vertical():
-    gui.new_design()
     gui.enter_sketch("l")
     gui.click_mm(-20, -35)
     gui.click_mm(5, 30)
@@ -916,7 +944,6 @@ def rung_vertical():
 def rung_equal_radius_button():
     """The Equal radius button itself; equal_radius covers the shared Equal length button on
     circles."""
-    gui.new_design()
     gui.enter_sketch("c")
     two_circles()
     cs = [e for e in gui.sketch()["entities"] if e["type"] == "circle"]
@@ -935,7 +962,6 @@ def rung_equal_radius_button():
 
 
 def rung_concentric():
-    gui.new_design()
     gui.enter_sketch("c")
     gui.click_mm(-30, -10)
     gui.click_mm(-14, -10)
@@ -965,7 +991,6 @@ def rung_concentric():
 
 
 def rung_tangent():
-    gui.new_design()
     gui.enter_sketch("c")
     gui.click_mm(0, 0)
     gui.click_mm(20, 0)
@@ -998,7 +1023,6 @@ def rung_tangent():
 
 
 def rung_midpoint():
-    gui.new_design()
     gui.enter_sketch("l")
     gui.click_mm(-50, -20)
     gui.click_mm(40, 26)
@@ -1030,7 +1054,6 @@ def rung_midpoint():
 def rung_symmetric_line_axis():
     """Symmetric about a picked axis line: two entities and the axis, the only button that takes a
     third pick."""
-    gui.new_design()
     gui.enter_sketch("l")
     gui.click_mm(0, -40)
     gui.click_mm(0, 40)  # the axis: a real line on x = 0
@@ -1064,7 +1087,6 @@ def rung_symmetric_line_axis():
 
 
 def rung_symmetric_h():
-    gui.new_design()
     gui.enter_sketch("p")
     gui.click_mm(20, -34)
     key("p")
@@ -1088,7 +1110,6 @@ def rung_symmetric_h():
 
 
 def rung_radius():
-    gui.new_design()
     gui.enter_sketch("c")
     gui.click_mm(0, 0)
     gui.click_mm(31, 0)
@@ -1114,7 +1135,6 @@ def rung_radius():
 def rung_diameter():
     """A typed Diameter is a diameter, not a radius: Diameter wired to the Radius handler would give
     r = 30 for a typed 30, and nothing about the sketch would look wrong."""
-    gui.new_design()
     gui.enter_sketch("c")
     gui.click_mm(0, 0)
     gui.click_mm(19, 0)
@@ -1135,7 +1155,6 @@ def rung_fix():
     """Fix anchors a point, and the anchor is what the solver moves around. Fix alone is
     unfalsifiable, since nothing moves; a second constraint that would otherwise move the fixed
     point shows which end travels."""
-    gui.new_design()
     gui.enter_sketch("p")
     gui.click_mm(-25, 0)
     key("p")
@@ -1164,7 +1183,6 @@ def rung_fix():
 
 def rung_distance_y():
     """Vertical distance, which is not the straight-line one either."""
-    gui.new_design()
     gui.enter_sketch("p")
     gui.click_mm(-22, -18)
     key("p")
@@ -1189,7 +1207,6 @@ def rung_equal_radius():
     """The shared Equal length button on two circles means equal radius. The circles carry no
     typed radius: a typed radius is a driving Radius constraint, and equal radii on two circles
     driven to 15 and 25 cannot hold."""
-    gui.new_design()
     gui.enter_sketch("c")
     two_circles()
     cs = [e for e in gui.sketch()["entities"] if e["type"] == "circle"]
@@ -1214,7 +1231,6 @@ def rung_equal_radius():
 def rung_collinear():
     """Two offset lines brought onto one infinite line. Oblique on purpose: axis-aligned lines pick
     up an inferred Horizontal as they are drawn."""
-    gui.new_design()
     gui.enter_sketch("l")
     gui.click_mm(-60, -14)
     gui.click_mm(-12, -6)
@@ -1249,7 +1265,6 @@ def rung_collinear():
 def rung_distance_xy():
     """Horizontal distance: accepting the value its field opens with moves nothing, and a typed one
     drives the gap."""
-    gui.new_design()
     gui.enter_sketch("p")
     gui.click_mm(-30, -20)
     key("p")
@@ -1298,7 +1313,6 @@ def rung_distance_xy():
 
 def rung_coincident_points():
     """Coincident on two points joins them: the simplest use of the button."""
-    gui.new_design()
     gui.enter_sketch("p")
     gui.click_mm(-30, -20)
     key("p")
@@ -1324,7 +1338,6 @@ def rung_coincident_points():
 
 def rung_symmetric_axis():
     """Symmetric about the sketch's vertical axis, with two picks and no axis line drawn."""
-    gui.new_design()
     gui.enter_sketch("p")
     gui.click_mm(-40, 15)
     key("p")
@@ -1351,7 +1364,6 @@ def rung_type_guards():
     """A button that cannot apply to what is picked stores no constraint."""
     # Horizontal on a lone point: the point has no direction to make horizontal. A constraint
     # stored anyway would be listed in the panel and never act.
-    gui.new_design()
     gui.enter_sketch("p")
     gui.click_mm(-30, -20)
     d = gui.constrain()
@@ -1465,7 +1477,6 @@ def rung_roundtrip():
     if sys.platform.startswith("linux"):
         gui.skip("roundtrip", "a GTK file picker can't take a path from MCP")
         return
-    gui.new_design()
     gui.enter_sketch("r")
     draw_rect(120, 80, -60, -40)
     key("r")
@@ -1610,7 +1621,8 @@ def selfcheck_recovery():
     raise RuntimeError(f"left a tool armed, the mouse button down and the offer asked for ({offer[:1]})")
 
 
-RUNGS = {"rect": rung_rect, "circle": rung_circle, "line": rung_line, "arc": rung_arc,
+RUNGS = {"rect": rung_rect, "circle": rung_circle, "line": rung_line, "calibration_cache": rung_calibration_cache,
+         "arc": rung_arc,
          "slot": rung_slot, "polygon": rung_polygon, "ellipse": rung_ellipse,
          "point": rung_point, "spline": rung_spline, "voids": rung_voids,
          "fillet": rung_fillet, "chamfer": rung_chamfer, "offset": rung_offset,

@@ -20,6 +20,9 @@ Standard library only. Two halves:
 
 ``launch`` records the instance (port, token, pid, datadir) in a session file
 (``$ORCA_MCP_SESSION`` or ``~/.cache/orca-mcp/session.json``) that the other commands read.
+
+With ``$ORCA_MCP_CALL_LOG`` set to a file, every tool call appends one JSON line to it,
+``{"tool", "ms", "ok"}``, to show where a test spends its time.
 """
 
 import argparse
@@ -43,6 +46,14 @@ PROTOCOL = "2025-11-25"
 
 # A finished setup with one printer, so a fresh datadir opens straight into the main window.
 DEFAULT_PRINTER = ("BBL", "Bambu Lab X1 Carbon", "0.4", "Bambu PLA Basic @BBL X1C")
+
+
+def reply_budget_s():
+    """The reply budget, in seconds, of an app started with this process's environment: the commands' 45 s, or
+    less where ORCA_MCP_REPLY_BUDGET_MS caps it, read as McpCore.cpp's reply_budget_cap_from() reads it (digits
+    alone, above 0)."""
+    cap = os.environ.get("ORCA_MCP_REPLY_BUDGET_MS", "")
+    return min(45.0, int(cap) / 1000) if cap.isascii() and cap.isdigit() and int(cap) > 0 else 45.0
 
 
 class McpError(RuntimeError):
@@ -149,7 +160,17 @@ class OrcaMcp:
         return self.request("tools/list")["tools"]
 
     def call_raw(self, tool, args=None, timeout=None):
-        return self.request("tools/call", {"name": tool, "arguments": args or {}}, timeout=timeout)
+        start, result = time.monotonic(), None
+        try:
+            result = self.request("tools/call", {"name": tool, "arguments": args or {}}, timeout=timeout)
+            return result
+        finally:
+            # Read on each call, so a test can turn the log on after the module is imported.
+            log = os.environ.get("ORCA_MCP_CALL_LOG")
+            if log:
+                ok = result is not None and not result.get("isError")
+                with open(log, "a", encoding="utf-8") as f:
+                    f.write(json.dumps({"tool": tool, "ms": round((time.monotonic() - start) * 1000), "ok": ok}) + "\n")
 
     def call(self, tool, /, _timeout=None, **args):
         """Call a tool and return its JSON result; raise McpError when the tool reports an error.

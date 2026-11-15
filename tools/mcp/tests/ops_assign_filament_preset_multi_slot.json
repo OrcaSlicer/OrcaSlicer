@@ -302,8 +302,8 @@
     {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}},
     {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
     {"tool": "answer_dialog", "args": {"button": "Transfer"}, "optional": true},
-    // A second prompt, if one opens, is counted here and answered so the call can end.
-    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 3}},
+    // A second prompt, if one opens, holds the call past this wait; it is counted here and answered so the call can end.
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.api5}", "timeout_s": 3}, "optional": true},
     {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.api5}", "timeout_s": 30}, "optional": true},
     {"tool": "wait", "args": {"for": "idle"}},
@@ -313,8 +313,8 @@
     {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}},
     {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
     {"tool": "answer_dialog", "args": {"button": "Discard"}, "optional": true},
-    // A second prompt, if one opens, is counted here and answered so the call can end.
-    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 3}},
+    // A second prompt, if one opens, holds the call past this wait; it is counted here and answered so the call can end.
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.api6}", "timeout_s": 3}, "optional": true},
     {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.api6}", "timeout_s": 30}, "optional": true},
     {"tool": "wait", "args": {"for": "idle"}},
@@ -324,8 +324,8 @@
     {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}},
     {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
     {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
-    // A second prompt, if one opens, is counted here and answered so the call can end.
-    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 3}},
+    // A second prompt, if one opens, holds the call past this wait; it is counted here and answered so the call can end.
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.api7}", "timeout_s": 3}, "optional": true},
     {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.api7}", "timeout_s": 30}, "optional": true},
     {"tool": "wait", "args": {"for": "idle"}},
@@ -336,8 +336,8 @@
     {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}},
     {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
     {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
-    // A second prompt, if one opens, is counted here and answered so the call can end.
-    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 3}},
+    // A second prompt, if one opens, holds the call past this wait; it is counted here and answered so the call can end.
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.api8}", "timeout_s": 3}, "optional": true},
     {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.api8}", "timeout_s": 30}, "optional": true},
     {"tool": "wait", "args": {"for": "idle"}},
@@ -347,8 +347,8 @@
     {"tool": "wait", "args": {"for": "dialog", "timeout_s": 10}},
     {"tool": "run_script", "args": {"filename": "${replay_dir}/fixtures/ops_presets.py", "code": "import ops_presets\nresult = ops_presets.probe()"}},
     {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
-    // A second prompt, if one opens, is counted here and answered so the call can end.
-    {"tool": "wait", "args": {"for": "dialog", "timeout_s": 3}},
+    // A second prompt, if one opens, holds the call past this wait; it is counted here and answered so the call can end.
+    {"tool": "wait", "args": {"for": "job", "job": "${jobs.api9}", "timeout_s": 3}, "optional": true},
     {"tool": "answer_dialog", "args": {"button": "cancel"}, "optional": true},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.api9}", "timeout_s": 30}, "optional": true},
     {"tool": "wait", "args": {"for": "idle"}},

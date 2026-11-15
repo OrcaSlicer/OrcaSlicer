@@ -58,7 +58,10 @@ def main():
     client, session = orca_mcp.session_client()
     failed = []
 
+    # `detail` may be a callable, called only when the check fails, so a passing check makes no round trip for it.
     def check(name, ok, detail=""):
+        if not ok and callable(detail):
+            detail = detail()
         print(("PASS " if ok else "FAIL ") + name + ("" if ok or detail == "" else f": {detail}"), flush=True)
         if not ok:
             failed.append(name)
@@ -148,7 +151,7 @@ def main():
     call("auto_answer_dialogs", rules=[])
 
     # ---- What a page is listed as ----
-    check("the fixture dialog opens", open_fixture(), dialogs())
+    check("the fixture dialog opens", open_fixture(), lambda: dialogs())
     t = tree(target="dialog")
     for needle in ['heading "Fixture"', 'text "Name"', 'spin "Count" = "3"', 'choice "Colour" = "Green"', "[options: Red | Green | Blue]",
                    'checkbox "I agree"', 'checkbox "Fancy"', 'radio "Small"', 'slider "Level" = "20"', 'text "Notes" = "editable"',
@@ -214,10 +217,10 @@ def main():
     ups = page_log().count("pad up")
     call("mouse_gesture", target={"web": "Pad"}, action="down", x=5, y=5)
     call("click", target={"web": "Card two"})
-    check("a click ends a press a down left", page_log().count("pad up") == ups + 1, page_log())
+    check("a click ends a press a down left", page_log().count("pad up") == ups + 1, lambda: page_log())
     call("mouse_gesture", target={"web": "Pad"}, action="down", x=5, y=5)
     r = call("click", target={"web": "Disabled"})
-    check("so does a click the page refuses", "disabled" in r.get("error", "") and page_log().count("pad up") == ups + 2, [r, page_log()])
+    check("so does a click the page refuses", "disabled" in r.get("error", "") and page_log().count("pad up") == ups + 2, lambda: [r, page_log()])
     # Left and Right on a selection collapse it to its start and its end.
     caret = []
     for keys in ("Left", "Right"):
@@ -251,7 +254,8 @@ def main():
     check("a locator with several matches asks for index", "2 page elements match" in r.get("error", ""), r)
     r = call("click", target={"css": ".card", "index": 1})
     check("index picks among the matches", r.get("clicked") == "Card two", r)
-    r = call("click", target={"web": "Nope"})
+    # A locator waits up to its timeout, at most 3 s, for a match to show; nothing will show here.
+    r = call("click", target={"web": "Nope"}, timeout_s=1)
     check("a locator that matches nothing says so", "No page element matches" in r.get("error", ""), r)
     r = call("click", target={"web": "Some bold text in one paragraph."})
     check("a locator reaches a text label, through the block it is in", r.get("kind") == "label", r)
@@ -279,30 +283,30 @@ def main():
     view = ref_of(tree(target="dialog", query="webview"), "webview")
     r = call("click", target=view)
     check("click on a web view itself points to its page's elements", "That is a web view" in r.get("error", ""), r)
-    check("and ends a press a down left", page_log().count("pad up") == ups + 1, page_log())
+    check("and ends a press a down left", page_log().count("pad up") == ups + 1, lambda: page_log())
     r = call("set_widget_value", target=view, value="x")
     check("so does set_widget_value", "That is a web view" in r.get("error", ""), r)
     call("mouse_gesture", target={"web": "Pad"}, action="down", x=5, y=5)
     r = call("answer_dialog", button="Under")
     check("answer_dialog refuses a page button something covers", "covered" in r.get("error", ""), r)
-    check("and ends a press a down left too", page_log().count("pad up") == ups + 2, page_log())
+    check("and ends a press a down left too", page_log().count("pad up") == ups + 2, lambda: page_log())
     call("mouse_gesture", target={"web": "Pad"}, action="down", x=5, y=5)
-    r = call("mouse_gesture", target={"web": "Nope"}, action="up")
+    r = call("mouse_gesture", target={"web": "Nope"}, action="up", timeout_s=1)
     check("so does an up whose target can't be found", "No page element matches" in r.get("error", "") and page_log().count("pad up") == ups + 3,
-          [r, page_log()])
+          lambda: [r, page_log()])
     # A release names the press it ends, so one for an earlier press leaves the page's newer one held
     # (ids count from 1, and this down is far from the first).
     call("mouse_gesture", target={"web": "Pad"}, action="down", x=5, y=5)
     r = call("run_javascript", code="JSON.stringify(window.__orcaMcp.call({op: 'release', press: 1}))")
-    check("a release naming an earlier press leaves the newer one held", page_log().count("pad up") == ups + 3, [r, page_log()])
+    check("a release naming an earlier press leaves the newer one held", page_log().count("pad up") == ups + 3, lambda: [r, page_log()])
     call("click", target={"web": "Card one"})
-    check("which the next click releases", page_log().count("pad up") == ups + 4, page_log())
+    check("which the next click releases", page_log().count("pad up") == ups + 4, lambda: page_log())
     # A down whose reply never comes may still have pressed, so it is on record and the next click
     # releases it (the slow pad's handler outlasts the 1 s the down waits).
     r = call("mouse_gesture", target={"web": "Slow pad"}, action="down", timeout_s=1)
     check("a down the page answers too late has no outcome", "error" in r, r)
     call("click", target={"web": "Card one"})
-    check("and the next click releases its press all the same", wait_for(lambda: "slow pad up" in page_log(), 3), page_log())
+    check("and the next click releases its press all the same", wait_for(lambda: "slow pad up" in page_log(), 3), lambda: page_log())
     r = call("run_javascript", code="window.__orcaMcp.call({op: 'snapshot', expires: Date.now() - 1})")
     check("the page refuses a request past its deadline", isinstance(r.get("result"), dict) and r["result"].get("code") == "expired", r)
 
@@ -316,7 +320,7 @@ def main():
     r = call("click", target=ok, timeout_s=1)
     check("a click queued behind a busy page has an unknown outcome", "outcome is unknown" in r.get("error", ""), r)
     check("and the page refuses it once free", wait_for(lambda: page_log() != "", 3) and page_log().splitlines().count("ok") == before,
-          page_log())
+          lambda: page_log())
 
     # ---- Changing pages and stale refs ----
     r = call("click", target={"web": "Later"})
@@ -342,7 +346,7 @@ def main():
     r = call("click", target={"web": "Token link"})
     check("a navigated url shows a credential parameter's value as REDACTED", r.get("navigated") is True and
           r.get("url", "").endswith("#orca-token=REDACTED&view=2"), r)
-    check("and the snapshot shows no secret either", "fixture-secret" not in tree(target="dialog"), tree(target="dialog", query="webview"))
+    check("and the snapshot shows no secret either", "fixture-secret" not in tree(target="dialog"), lambda: tree(target="dialog", query="webview"))
 
     name = ref_of(tree(target="dialog"), 'text "Name"')
     r = call("run_javascript", code="el.value", target=name)
@@ -400,7 +404,7 @@ def main():
     call("press_keys", keys="Tab")
     check("Tab reaches the control in a disabled fieldset's legend", re.search(r'checkbox "Unlock".*\[focused\]', tree(target="dialog")))
     call("press_keys", keys="Tab")
-    check("then skips a control the fieldset disables", re.search(r'spin "Fixed number".*\[focused\]', tree(target="dialog")), tree(target="dialog", query="Fixed"))
+    check("then skips a control the fieldset disables", re.search(r'spin "Fixed number".*\[focused\]', tree(target="dialog")), lambda: tree(target="dialog", query="Fixed"))
     r = call("click", target={"web": "Unlock"})
     check("a control in a disabled fieldset's legend takes a click", r.get("checked") is True, r)
     call("press_keys", target={"web": "Fixed number"}, keys="Up")
@@ -414,8 +418,8 @@ def main():
     call("set_widget_value", target={"web": "Needed"}, value="here")
     call("press_keys", target={"web": "Needed"}, keys="Return")
     call("run_javascript", code="HTMLFormElement.prototype.requestSubmit = window.__requestSubmit; 1")
-    check("a form with an empty required field is not submitted", not invalid_submitted, page_log())
-    check("and is once it is filled in", "f3 submitted" in page_log(), page_log())
+    check("a form with an empty required field is not submitted", not invalid_submitted, lambda: page_log())
+    check("and is once it is filled in", "f3 submitted" in page_log(), lambda: page_log())
     r = call("press_keys", target={"css": "#name"}, text="\U0001F600")
     typed = call("run_javascript", code="el.value", target=name).get("result") or ""
     check("a character outside the BMP is typed whole", typed.endswith("\U0001F600"), r)
@@ -460,7 +464,7 @@ def main():
     # ---- answer_dialog ----
     r = call("answer_dialog", button="OK")
     check("answer_dialog presses a page button by label", r.get("web") is True and r.get("pressed") is True, r)
-    check("and the page saw the press", wait_for(lambda: page_log().splitlines().count("ok") == before + 1, 3), page_log())
+    check("and the page saw the press", wait_for(lambda: page_log().splitlines().count("ok") == before + 1, 3), lambda: page_log())
     r = call("answer_dialog", button="apply")
     check("answer_dialog refuses ok-like answers the page has no button for", "page has no button" in r.get("error", ""), r)
     # A page that listed its buttons and then stops answering still gets that refusal: it answers the first
@@ -517,9 +521,9 @@ def main():
     r = call("auto_answer_dialogs", rules=[{"match": "requesting permission to create a thread", "button": "no"}])
     check("a rule registered while the prompt is open answers it", r.get("answered_open_dialog", {}).get("button") == "no" and
           any(rule.get("uses") == 1 for rule in r.get("rules", [])), r)
-    check("and the prompt is gone again", wait_for(lambda: prompt() is None, 5), dialogs())
+    check("and the prompt is gone again", wait_for(lambda: prompt() is None, 5), lambda: dialogs())
     check("and the press held on a page ended first", wait_for(lambda: page_log(held_log).count("pad up") == ups + 1, 3),
-          page_log(held_log))
+          lambda: page_log(held_log))
     call("auto_answer_dialogs", rules=[])
 
     # ---- The Home page, a modeless page window and the web budget ----
@@ -535,7 +539,7 @@ def main():
     check("a modeless page takes input", r.get("clicked") == "Card one", r)
 
     # ---- A modal over it: the page behind takes no input; closing through orca.submit ----
-    check("the fixture dialog opens over the window", open_fixture(), dialogs())
+    check("the fixture dialog opens over the window", open_fixture(), lambda: dialogs())
     t = tree()
     check("the pages behind the modal are not read", t.count("behind a modal dialog") >= 2, t[:2000])
     r = call("click", target={"web": "Card one"})
@@ -552,7 +556,7 @@ def main():
     # ---- An auto-answer registered before the dialog opens ----
     call("auto_answer_dialogs", rules=[{"match": "^MCP web fixture$", "button": "Submit"}])
     client.call("run_action", id=DIALOG)
-    check("an auto-answer rule answers the web dialog on its page", wait_for(lambda: dialogs() == [], 15), dialogs())
+    check("an auto-answer rule answers the web dialog on its page", wait_for(lambda: dialogs() == [], 15), lambda: dialogs())
     rules = client.call("get_app_state").get("auto_answer_rules", [])
     check("and counts its use", any(rule.get("uses", 0) >= 1 for rule in rules), rules)
     call("auto_answer_dialogs", rules=[])
@@ -560,25 +564,25 @@ def main():
     # ---- Closing a web dialog whose page is busy, or that closes before its click's reply ----
     # The page stays busy to 10 s and its Cancel handler runs as long, so ending before 8 s, which leaves a
     # loaded machine room past the 3 s, shows the call did not wait on either.
-    check("the fixture dialog opens to be cancelled", open_fixture(), dialogs())
+    check("the fixture dialog opens to be cancelled", open_fixture(), lambda: dialogs())
     stall("press", past=7)
     start = time.time()
     r = call("answer_dialog", button="cancel")
     elapsed = time.time() - start
     check("cancel ends a web dialog whose page is busy, after the 3 s", r.get("closed") is True and elapsed < 8, [r, round(elapsed, 2)])
-    check("the busy dialog is gone", wait_for(lambda: dialogs() == [], 8), dialogs())
+    check("the busy dialog is gone", wait_for(lambda: dialogs() == [], 8), lambda: dialogs())
     # The page's own Cancel, whose handler outlasts the 3 s: still running when cancel ends the dialog.
-    check("the fixture dialog opens for its stalling Cancel", open_fixture(), dialogs())
+    check("the fixture dialog opens for its stalling Cancel", open_fixture(), lambda: dialogs())
     start = time.time()
     r = call("answer_dialog", button="cancel")
     elapsed = time.time() - start
     check("cancel ends the dialog natively while the page's Cancel handler still runs", r.get("closed") is True and elapsed < 8,
           [r, round(elapsed, 2)])
-    check("the stalled dialog is gone", wait_for(lambda: dialogs() == [], 8), dialogs())
-    check("the fixture dialog opens to close at once", open_fixture(), dialogs())
+    check("the stalled dialog is gone", wait_for(lambda: dialogs() == [], 8), lambda: dialogs())
+    check("the fixture dialog opens to close at once", open_fixture(), lambda: dialogs())
     r = call("click", target={"web": "Close at once"})
     check("a page that closes its dialog before the click's reply replies closed", r.get("closed") is True and "error" not in r, r)
-    check("that dialog is gone", wait_for(lambda: dialogs() == []), dialogs())
+    check("that dialog is gone", wait_for(lambda: dialogs() == []), lambda: dialogs())
 
     # ---- A dock panel, beside the 3D view ----
     client.call("run_action", id="orca_command:go_to_tab:orca", args={"tab": "prepare"})
@@ -588,7 +592,7 @@ def main():
     r = call("click", target={"web": "Ping"})
     check("its page, whose CSP forbids eval, takes a click", r.get("clicked") == "Ping", r)
     ping = ref_of(tree(query="Ping"), 'button "Ping"')
-    check("and saw it", wait_for(lambda: 'label "ping"' in tree(query="ping"), 3), tree(query="ping"))
+    check("and saw it", wait_for(lambda: 'label "ping"' in tree(query="ping"), 3), lambda: tree(query="ping"))
     # Whether the port's script channel is held to the page's CSP varies (WebView2's is not).
     r = call("run_javascript", code="1", target=ping)
     check("run_javascript there runs, or names the page's Content-Security-Policy",
@@ -599,13 +603,13 @@ def main():
     window_pad = {"web": "Pad", "within": "MCP web fixture window"}
     call("mouse_gesture", target=window_pad, action="down", x=5, y=5)
     call("click", target={"web": "Ping"})
-    check("a click on another page ends a press held on the first", page_log(window_log).count("pad up") == ups + 1, page_log(window_log))
+    check("a click on another page ends a press held on the first", page_log(window_log).count("pad up") == ups + 1, lambda: page_log(window_log))
     call("mouse_gesture", target=window_pad, action="down", x=5, y=5)
     call("mouse_gesture", target={"web": "Ping"}, action="up", x=3, y=3)
-    check("so does an up on another page", page_log(window_log).count("pad up") == ups + 2, page_log(window_log))
+    check("so does an up on another page", page_log(window_log).count("pad up") == ups + 2, lambda: page_log(window_log))
     call("mouse_gesture", target=window_pad, action="down", x=5, y=5)
     r = call("click", target={"label": "Filament", "class": "Label"})
-    check("and a click on a widget", page_log(window_log).count("pad up") == ups + 3, [r, page_log(window_log)])
+    check("and a click on a widget", page_log(window_log).count("pad up") == ups + 3, lambda: [r, page_log(window_log)])
     # A release the page can't take while it is busy is asked again by the next gesture; the one it
     # takes late has passed its deadline and is not run. The gestures are widget clicks, which wait on no
     # page.
@@ -616,7 +620,7 @@ def main():
     missed = page_log(window_log).count("pad up")  # runs once the page is free, after the late release
     call("click", target=filament)
     check("a release a busy page missed is asked again", missed == ups + 3 and page_log(window_log).count("pad up") == ups + 4,
-          [missed, page_log(window_log)])
+          lambda: [missed, page_log(window_log)])
     # A down on another page meanwhile keeps both presses on record, and the busy page holds up none of
     # the other releases: it stalls on the releases the dock pad's down and the widget click after it ask
     # for. (The dock pad by ref, which is resolved without asking the busy page.)
@@ -629,11 +633,11 @@ def main():
     r = call("mouse_gesture", target=dock, action="down", x=5, y=5)
     call("click", target=filament)
     check("a press is released beside a busy page's, whose release goes unanswered",
-          r.get("done") == "down" and dock_ups() == docked + 1, [r, docked, tree(query="dock up")])
+          r.get("done") == "down" and dock_ups() == docked + 1, lambda: [r, docked, tree(query="dock up")])
     missed = page_log(window_log).count("pad up")
     call("click", target=filament)
     check("and the busy page's press stays on record until it answers",
-          missed == ups + 4 and page_log(window_log).count("pad up") == ups + 5, [missed, page_log(window_log)])
+          missed == ups + 4 and page_log(window_log).count("pad up") == ups + 5, lambda: [missed, page_log(window_log)])
     # An up the busy page takes too late is past its deadline and not run, so its press stays on
     # record and the next gesture releases it. (By ref, which is resolved without asking the page.)
     pad_ref = ref_of(tree(query="Pad"), 'canvas "Pad"')
@@ -643,13 +647,13 @@ def main():
     missed = page_log(window_log).count("pad up")
     call("click", target=filament)
     check("an up the page takes too late leaves its press for the next gesture",
-          "error" in r and missed == ups + 5 and page_log(window_log).count("pad up") == ups + 6, [r, missed, page_log(window_log)])
+          "error" in r and missed == ups + 5 and page_log(window_log).count("pad up") == ups + 6, lambda: [r, missed, page_log(window_log)])
     # A replay's press on a page ends with the replay, as a widget's does.
     pressing = {"orca_replay": 1, "name": "press", "steps": [
         {"tool": "mouse_gesture", "args": {"target": {"web": "Pad", "within": "MCP web fixture window"}, "action": "down", "x": 5, "y": 5}}]}
     res = client.await_job(client.call("run_replay", replay=pressing, out_dir=os.path.join(session["datadir"], "press_replay")))
     check("a replay's press on a page ends with the replay",
-          res.get("passed") is True and wait_for(lambda: page_log(window_log).count("pad up") == ups + 7, 3), [res, page_log(window_log)])
+          res.get("passed") is True and wait_for(lambda: page_log(window_log).count("pad up") == ups + 7, 3), lambda: [res, page_log(window_log)])
     # Even when the page is busy as the replay ends: the release, which has no deadline, waits for the page,
     # busy for 3 s from when the release reaches it.
     pressing["steps"].append({"tool": "run_javascript", "args": {
@@ -657,13 +661,13 @@ def main():
         "code": hook_code("release", before="var t = Date.now(); while (Date.now() - t < 3000) {}")}})
     res = client.await_job(client.call("run_replay", replay=pressing, out_dir=os.path.join(session["datadir"], "press_busy_replay")))
     check("a replay's press ends with the replay while its page is busy",
-          res.get("passed") is True and wait_for(lambda: page_log(window_log).count("pad up") == ups + 8, 8), [res, page_log(window_log)])
+          res.get("passed") is True and wait_for(lambda: page_log(window_log).count("pad up") == ups + 8, 8), lambda: [res, page_log(window_log)])
     # An auto-answer rule's press is a click too, so a press held on a page ends first.
     call("mouse_gesture", target=window_pad, action="down", x=5, y=5)
     call("auto_answer_dialogs", rules=[{"match": "^MCP web fixture$", "button": "Submit"}])
     client.call("run_action", id=DIALOG)
     check("an auto-answer rule's press ends a press held on a page",
-          wait_for(lambda: dialogs() == [], 15) and wait_for(lambda: page_log(window_log).count("pad up") == ups + 9, 3), page_log(window_log))
+          wait_for(lambda: dialogs() == [], 15) and wait_for(lambda: page_log(window_log).count("pad up") == ups + 9, 3), lambda: page_log(window_log))
     call("auto_answer_dialogs", rules=[])
     # A page that does not answer may hold another match, so a locator is refused until it does.
     def pings():
@@ -723,7 +727,7 @@ def main():
     check("its dialog capability is selected", r.get("clicked") == "MCP web fixture dialog", r)
     r = call("click", target={"web": "Config", "kind": "tab", **plugins})
     check("the Config tab opens", r.get("checked") is True, r)
-    check("the configuration frame's controls are listed", wait_for(lambda: 'spin "Speed"' in tree(query="Speed"), 15), tree(query="Config"))
+    check("the configuration frame's controls are listed", wait_for(lambda: 'spin "Speed"' in tree(query="Speed"), 15), lambda: tree(query="Config"))
     r = call("set_widget_value", target={"web": "Speed", **plugins}, value=speed)
     check("set_widget_value reaches into the frame", r.get("value") == str(speed), r)
     r = call("set_widget_value", target={"web": "Enabled", **plugins}, value=True)
@@ -753,13 +757,13 @@ def main():
     r = call("mouse_gesture", target={"css": "#save", **plugins}, action="down")
     call("click", target={"web": "Config", "kind": "tab", **plugins})
     check("a click on the page ends a press held in its configuration frame",
-          r.get("done") == "down" and wait_for(lambda: frame_ups() == before + 1, 3), [r, before, tree(query="frame up")])
+          r.get("done") == "down" and wait_for(lambda: frame_ups() == before + 1, 3), lambda: [r, before, tree(query="frame up")])
     for action, name in (("up", "an up"), ("move", "a move")):
         before = frame_ups()
         call("mouse_gesture", target={"css": "#save", **plugins}, action="down")
         r = call("mouse_gesture", target={"web": "Config", "kind": "tab", **plugins}, action=action)
         check(f"so does {name} on the page", r.get("done") == action and wait_for(lambda: frame_ups() == before + 1, 3),
-              [r, before, tree(query="frame up")])
+              lambda: [r, before, tree(query="frame up")])
     # A frame too busy to take its release keeps the press on record; the release it takes late is past
     # its deadline and not run, and the next gesture asks again. The frame stalls on the release itself.
     # (Widget clicks: the busy frame holds its page too.)
@@ -770,7 +774,7 @@ def main():
     missed = frame_ups()
     call("click", target={"label": "Filament", "class": "Label"})
     check("a release a busy frame missed is asked again", missed == before and wait_for(lambda: frame_ups() == before + 1, 3),
-          [before, missed, tree(query="frame up")])
+          lambda: [before, missed, tree(query="frame up")])
     # Two unnamed Refresh buttons in the frame and the dialog page's own: the journal's index counts
     # them all, as a replay searches the page with its frame.
     refreshes = plugins_lines('button "Refresh"')
@@ -836,7 +840,7 @@ def main():
 
     # ---- Orca's setup wizard: a ref from before its page navigated is stale ----
     client.call("run_action", id="orca_command:help_setup_wizard:orca")
-    check("the setup wizard opens", wait_for(lambda: 'button "Next"' in tree(target="dialog"), 90), tree(target="dialog")[:1500])
+    check("the setup wizard opens", wait_for(lambda: 'button "Next"' in tree(target="dialog"), 90), lambda: tree(target="dialog")[:1500])
     next_ref = ref_of(tree(target="dialog"), 'button "Next"')
     r = call("click", target=next_ref)
     check("Next navigates to the printer page", r.get("navigated") is True and "/guide/21/" in r.get("url", ""), r)

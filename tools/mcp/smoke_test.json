@@ -1,6 +1,6 @@
-// Smoke test of the MCP server's main paths: an auto-answered prompt, settings, slicing, export, a
-// dialog opened by an action and answered by the replay, and screenshots. Run against a running
-// instance with
+// Smoke test of the MCP server's main paths: an auto-answered prompt, a setting changed and read
+// back, slicing, export, a dialog opened by an action and answered by the replay, and screenshots of
+// the dialog, the preview and the main window. Run against a running instance with
 //   tools/mcp/orca_mcp.py run-replay tools/mcp/smoke_test.json --out /tmp/smoke
 // or headless with
 //   orca-slicer --run tools/mcp/smoke_test.json --outputdir /tmp/smoke
@@ -17,6 +17,7 @@
     {"tool": "new_project", "args": {"silent": true}},
     {"tool": "open_files", "args": {"paths": ["${vars.model}"]}, "expect": {"/added": {"eq": 1}}},
     {"tool": "set_settings", "args": {"scope": "process", "values": {"wall_loops": 3}}},
+    {"tool": "get_settings", "args": {"scope": "process", "keys": ["wall_loops"]}, "expect": {"/items/0/value": {"eq": "3"}}},
     {"tool": "slice", "expect": {"/status": {"eq": "done"}, "/plates/0/outcome": {"eq": "ok"}}},
     {"tool": "export", "args": {"format": "gcode", "path": "${out_dir}/benchy.gcode", "overwrite": true}},
 
@@ -29,6 +30,7 @@
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.prefs}"}},
 
     {"tool": "set_view", "args": {"tab": "preview", "camera": "iso"}},
-    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/preview.png", "overwrite": true, "include_image": false}}
+    {"tool": "screenshot", "args": {"target": "canvas", "save_path": "${out_dir}/preview.png", "overwrite": true, "include_image": false}},
+    {"tool": "screenshot", "args": {"target": "main", "save_path": "${out_dir}/window.png", "overwrite": true, "include_image": false}}
   ]
 }

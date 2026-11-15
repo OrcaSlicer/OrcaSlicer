@@ -1,3 +1,4 @@
+#include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 
@@ -322,6 +323,51 @@ TEST_CASE("a job outlives its reply and wait() returns its result", "[Mcp]")
     auto result = h.jobs.wait(job, 3000ms);
     REQUIRE(result.has_value());
     CHECK(result->data["done"] == true);
+}
+
+TEST_CASE("reply_budget_cap_from reads a positive whole number of milliseconds and nothing else", "[Mcp]")
+{
+    CHECK(reply_budget_cap_from("2000") == 2000ms);
+    for (const char* junk : {static_cast<const char*>(nullptr), "", "0", "-5", "12x", "abc", "1.5", " 2000",
+                             "99999999999999999999"}) {
+        INFO((junk ? junk : "nullptr"));
+        CHECK(reply_budget_cap_from(junk) == 0ms);
+    }
+}
+
+TEST_CASE("a capped reply budget replies with the running job once the cap is spent", "[Mcp]")
+{
+    std::atomic<bool> release{false};
+    Harness           h;
+    SetOnExit         release_on_exit{release};
+    h.timing.reply_budget_cap = 1000ms;
+    const auto held = [&](const json&, ToolContext&) {
+        while (!release)
+            std::this_thread::sleep_for(5ms);
+        return ToolResult::ok({{"done", true}});
+    };
+    h.registry.add(tool("long", GuardClass::Mutate, held)); // the default 45 s budget
+    NativeCommand at_once = tool("at_once", GuardClass::Mutate, held);
+    at_once.budget_ms     = 0;
+    h.registry.add(at_once);
+    h.start();
+
+    auto start = std::chrono::steady_clock::now();
+    const ToolResult capped = h.call("long");
+    CHECK(std::chrono::steady_clock::now() - start < 5s);
+    CHECK(capped.data["status"] == "running");
+    REQUIRE(capped.data.contains("job"));
+    release = true;
+    REQUIRE(h.jobs.wait(capped.data["job"], 3000ms).has_value());
+
+    // A budget under the cap is the command's own.
+    release = false;
+    start   = std::chrono::steady_clock::now();
+    const ToolResult own = h.call("at_once");
+    CHECK(std::chrono::steady_clock::now() - start < 500ms);
+    CHECK(own.data["status"] == "running");
+    release = true;
+    CHECK(h.jobs.wait(own.data["job"], 3000ms).has_value());
 }
 
 TEST_CASE("blocked_by_dialog is reported after the soft budget when the probe sees a modal", "[Mcp]")

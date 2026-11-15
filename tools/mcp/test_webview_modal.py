@@ -5,10 +5,10 @@
     tools/mcp/test_webview_modal.py
 
 Scripts run in the web view of the topmost modal dialog, whichever dialog it is (the preset bundle
-dialog, the export bundle dialog above it, the Flushing volumes dialog); the Home tab's web view
-behind a modal is refused, so is the bundle dialog's own web view once the export bundle dialog is
-above it. A page that closes its dialog replies closed at once, not after the timeout. Without a
-modal, the Home tab's web view still takes scripts. Exits 0 when every check passes.
+dialog, by default and by locator, the export bundle dialog above it, the Flushing volumes dialog);
+the Home tab's web view behind a modal is refused, so is the bundle dialog's own web view once the
+export bundle dialog is above it. A page that closes its dialog replies closed at once, not after the
+timeout. Without a modal, the Home tab's web view still takes scripts. Exits 0 when every check passes.
 """
 
 import os
@@ -66,6 +66,9 @@ def main():
     message = refusal(code="1", target=home)
     check("a web view behind the modal is refused", "modal dialog is open" in message, message)
     check("the bundle dialog's page takes a script", client.call("run_javascript", code="document.title")["result"] == "Preset Bundle")
+    found = client.call("run_javascript", code="!!document.getElementById('close_btn')",
+                        target={"class": "webview", "within": "Preset Bundle"})["result"]
+    check("and takes one by locator", found is True, found)
 
     # ---- A bundle dialog under the export bundle dialog ----
     client.call("run_javascript", code="SendWXMessage(JSON.stringify({command: 'export_page'}))")

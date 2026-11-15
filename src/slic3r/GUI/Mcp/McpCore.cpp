@@ -9,9 +9,11 @@
 #include "slic3r/GUI/CommandTypes.hpp"
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <exception>
 #include <functional>
 #include <memory>
@@ -191,6 +193,19 @@ ToolResult invoke(const NativeCommand& def, const nlohmann::json& args, ToolCont
 }
 
 } // namespace
+
+std::chrono::milliseconds reply_budget_cap_from(const char* value)
+{
+    if (value == nullptr)
+        return std::chrono::milliseconds(0);
+    const char* end = value + std::strlen(value);
+    long long   ms  = 0;
+    // from_chars takes digits alone: no sign, space or fraction.
+    const auto [stop, error] = std::from_chars(value, end, ms);
+    if (error != std::errc() || stop != end || ms <= 0)
+        return std::chrono::milliseconds(0);
+    return std::chrono::milliseconds(ms);
+}
 
 McpCore::McpCore(const CommandCatalog& catalog, UiInvoker& ui, JobRegistry& jobs, Journal* journal, CoreTiming timing, WorkerHooks worker,
                  CallObserver* observer)
@@ -412,7 +427,10 @@ ToolResult McpCore::run(const NativeCommand& def, const nlohmann::json& args, co
     struct SlotGuard { McpCore* core; ~SlotGuard() { core->release_slot(); } } slot_guard{this};
 
     const auto start    = std::chrono::steady_clock::now();
-    const auto deadline = start + std::chrono::milliseconds(def.budget_ms);
+    auto       budget   = std::chrono::milliseconds(def.budget_ms);
+    if (m_timing.reply_budget_cap > std::chrono::milliseconds(0))
+        budget = std::min(budget, m_timing.reply_budget_cap);
+    const auto deadline = start + budget;
     auto       next_probe = start + m_timing.soft_budget;
     for (;;) {
         const auto now  = std::chrono::steady_clock::now();

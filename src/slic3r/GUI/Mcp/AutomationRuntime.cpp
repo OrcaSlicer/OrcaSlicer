@@ -22,6 +22,7 @@
 #include "slic3r/plugin/PluginManager.hpp"
 
 #include <boost/log/trivial.hpp>
+#include <boost/nowide/cstdlib.hpp>
 
 #include <wx/app.h>
 #include <wx/event.h>
@@ -152,7 +153,12 @@ bool AutomationRuntime::start(std::string& err)
                                                 });
         // A plugin's calls are refused from the moment it unloads, before end_plugin_scope() comes.
         m_jobs.set_owner_liveness([](const std::string& plugin) { return PluginManager::instance().is_plugin_loaded(plugin); });
-        m_core       = std::make_unique<McpCore>(NativeCommands::instance(), *m_invoker, m_jobs, &m_journal, CoreTiming{},
+        CoreTiming timing;
+        timing.reply_budget_cap = reply_budget_cap_from(boost::nowide::getenv("ORCA_MCP_REPLY_BUDGET_MS"));
+        if (timing.reply_budget_cap.count() > 0)
+            BOOST_LOG_TRIVIAL(info) << "MCP reply budget capped at " << timing.reply_budget_cap.count()
+                                    << " ms by ORCA_MCP_REPLY_BUDGET_MS";
+        m_core       = std::make_unique<McpCore>(NativeCommands::instance(), *m_invoker, m_jobs, &m_journal, timing,
                                                  ui_job_worker_hooks(), m_recorder.get());
         // A command reaches the runtime through its call's context (ToolContext::runtime()).
         m_core->set_runtime(this);

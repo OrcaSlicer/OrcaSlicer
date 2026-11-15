@@ -8,8 +8,8 @@ list_widgets lists; the click's reply may not arrive, since the server closes wi
 do: on Windows it kills the process.
 
 - exit_with_job_running: a run_script whose code sleeps in 0.2 s steps for 120 s replies running once its reply budget
-  is spent, and the app is closed. It passes when the process is gone within 20 s with exit code 0 and no line of the
-  log under <datadir>/log contains "did not return".
+  is spent, 4 s with ORCA_MCP_REPLY_BUDGET_MS set for the app, and the app is closed. It passes when the process is
+  gone within 20 s with exit code 0 and no line of the log under <datadir>/log contains "did not return".
 - exit_with_recording: a run_script whose code starts a recording through orca.host.tools into a temporary folder and
   then sleeps as above; 3 s later the app is closed. It passes as the first does, and when the recording's file is a
   finished one: the writer puts the header down at once and patches the Segment's size and the Duration only as it
@@ -52,6 +52,8 @@ sys.path.insert(0, HERE)
 from orca_mcp import DEFAULT_PRINTER, McpError, OrcaMcp, app_env, find_binary, seed_datadir, write_conf  # noqa: E402
 
 PORT = 13694
+# The checks whose run must outlive its reply budget cap it, so the reply comes in 4 s rather than 45 s.
+BUDGET_CAP = {"ORCA_MCP_REPLY_BUDGET_MS": "4000"}
 TOKEN = "runtime-lifecycle-test-token"
 EXIT_LIMIT_S = 20     # from the click on Quit until the process is gone
 # exit_with_stuck_call's limit from the click on Quit: its exit holds the runtime deleter's 10 s drain by design, and
@@ -156,15 +158,15 @@ class Instance:
     """A private OrcaSlicer on a fresh data folder, started as this script's child, its working folder that data folder,
     which holds no .py file to shadow a module run_script needs. On leaving, an app still running is closed as a person
     closes it when the server on PORT is its own, then killed if it outlives its exit watchdog, and the folder is
-    removed."""
+    removed. `env` adds variables to the app's environment."""
 
-    def __init__(self, binary, *args, serve=True):
+    def __init__(self, binary, *args, serve=True, env=None):
         self.datadir = tempfile.mkdtemp(prefix="orca-lifecycle-")
         seed(self.datadir)
-        env = app_env(dict(os.environ, ORCA_MCP_TOKEN=TOKEN), self.datadir)
+        child_env = app_env(dict(os.environ, ORCA_MCP_TOKEN=TOKEN, **(env or {})), self.datadir)
         cmd = [binary, "--datadir", self.datadir, *(["--mcp", "--mcp-port", str(PORT)] if serve else []), *args]
         with open(os.path.join(self.datadir, "mcp-launch.log"), "w") as out:
-            self.proc = subprocess.Popen(cmd, env=env, cwd=self.datadir, stdout=out, stderr=subprocess.STDOUT)
+            self.proc = subprocess.Popen(cmd, env=child_env, cwd=self.datadir, stdout=out, stderr=subprocess.STDOUT)
         self.orca = OrcaMcp(PORT, TOKEN)
         self.serves_here = False
         try:
@@ -328,7 +330,7 @@ def unfinished_recording(path):
 
 def exit_with_job_running(binary):
     name = "exit_with_job_running"
-    with Instance(binary) as app:
+    with Instance(binary, env=BUDGET_CAP) as app:
         if app.not_ready:
             return check(name, [app.not_ready], "")
         reply = call(app.orca, "run_script", code=SLEEPER)
@@ -443,7 +445,7 @@ def server_off_and_on_during_a_call(binary):
 
 def exit_with_stuck_call(binary):
     name = "exit_with_stuck_call"
-    with Instance(binary) as app:
+    with Instance(binary, env=BUDGET_CAP) as app:
         if app.not_ready:
             return check(name, [app.not_ready], "")
         reply = call(app.orca, "run_script", code=STUCK_SLEEPER)

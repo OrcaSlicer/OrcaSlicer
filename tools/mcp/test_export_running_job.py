@@ -4,12 +4,14 @@
     tools/mcp/orca_mcp.py launch
     tools/mcp/test_export_running_job.py
 
-A run_replay whose one step waits 48 s replies with its running job after the 45 s budget. An export
+A run_replay whose one step waits 3 s past the reply budget replies with its running job once the budget is spent:
+45 s, or the cap ORCA_MCP_REPLY_BUDGET_MS sets when the app and this script have it (the sweep sets 4 s). An export
 while it runs leaves it out and names it in left_out_running; an export after it succeeded has it as
 an await:false step that the later wait refers to, and that replay runs. A call blocked on a
 dialog stays in the replay while the dialog is open, since the steps after it answer the dialog.
 A job that fails after its reply is dropped; no tool fails that late on demand, so the unit tests
-in test_mcp_results.cpp cover it. Takes about two minutes. Exits 0 when every check passes.
+in test_mcp_results.cpp cover it. Takes about two minutes with the full budget, 20 s with a 4 s one. Exits 0 when
+every check passes.
 """
 
 import json
@@ -37,7 +39,8 @@ def main():
 
     # ---- A job past the reply budget, exported while it runs and after it ends ----
     start = time.time()
-    slow = {"orca_replay": 1, "name": "slow", "steps": [{"tool": "wait", "args": {"for": "dialog", "timeout_s": 48}}]}
+    slow = {"orca_replay": 1, "name": "slow",
+            "steps": [{"tool": "wait", "args": {"for": "dialog", "timeout_s": orca_mcp.reply_budget_s() + 3}}]}
     started = client.call("run_replay", _timeout=120, replay=slow, out_dir=os.path.join(work, "slow"))
     check("the slow replay replies with its running job", started.get("status") == "running",
           f"{started.get('status')} after {time.time() - start:.1f} s")

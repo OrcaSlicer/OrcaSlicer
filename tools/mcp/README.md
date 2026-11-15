@@ -79,7 +79,8 @@ info, pngs = orca.images("screenshot", target="canvas")
 `call()` returns the tool's JSON result and raises `McpError` when the tool reports an error.
 `call_with_text()` also returns the text blocks after the JSON one, such as `list_widgets`'s tree.
 `images()` also returns the PNG bytes of the image blocks. `call_raw()` returns the MCP result
-unchanged.
+unchanged. With `ORCA_MCP_CALL_LOG` set to a file, every call appends a JSON line with its tool, its
+time in milliseconds and whether it succeeded, which shows where a test spends its time.
 
 To drive an OrcaSlicer that is already running with the MCP server on (`--mcp`, or "MCP server"
 under AI features in Preferences), attach to it through its datadir instead of a port and token:
@@ -147,7 +148,7 @@ file. The run leaves `result.json` and the screenshots in the `--outputdir` fold
 `<replay name>.out` beside the replay. Files that a step or a script saves without a path go to the
 `--outputdir` folder too, or without it to `<datadir>/automation/out`. A `--run` launch is never handed to a window that is already open, whatever
 the single-instance preference says, and it is refused with an action or `--downward-check`, which start
-no GUI. `tests/replay_basic.json` is the smallest such check: load, change a setting, slice and capture.
+no GUI.
 
 `test_command_line.py [--bin PATH] [CHECK ...]` checks that command line, starting the built app as its own
 child on fresh data folders: that the options it does not have are refused before any GUI starts, `--run`'s exit
@@ -161,8 +162,8 @@ folders. The app is closed with the File menu's Quit while a job runs, while a r
 stop interrupts is still running, where the app keeps the runtime rather than free it under the call and logs that
 a call did not return; a `--run` with the endpoint never opened exits on its own; the server, switched off and
 on in Preferences during a call, serves on the port it had; and with the server switched off and nothing else
-driving the GUI, the log says the GUI instruments went off. It prints one line per check and takes about three
-minutes.
+driving the GUI, the log says the GUI instruments went off. It prints one line per check and takes about a minute:
+the run that outlives its reply budget runs with the budget capped at 4 s (`ORCA_MCP_REPLY_BUDGET_MS`).
 
 `test_plugin_tools.py` checks a plugin's calls into the tools in the running app: it side-loads
 `tests/plugins/mcp_tools_fixture` into a fresh data folder and launches twice: over MCP, with the Design tab
@@ -389,11 +390,12 @@ which stays in, and face and edge ids passed with their `generation`, which the 
 `test_cad_slow_build.py` runs a long thread build (an M8 thread tapped 60 mm deep, about 8 s) and
 checks that while it builds `get_app_state` answers, a window screenshot succeeds, `list_widgets` lists
 the progress dialog and a screenshot of that dialog captures it, and another Design command is refused.
-`test_cad_failed_job.py` sweeps a coil whose every rebuild takes about a minute (its turns sized from a
-short calibration build), then a hole that misses it replies with a running job and fails after
+`test_cad_failed_job.py` sweeps a coil whose every rebuild outlasts the reply budget (its turns sized from the
+session's first build), then a hole that misses it replies with a running job and fails after
 the reply budget: an export while it runs leaves it out and names it in `left_out_running`, the
 export after it has the rename made next and not the hole, and that replay runs to the same coil.
-It takes four to eight minutes. `test_cad_examples.py` runs the examples `search_tools {tool}` gives for
+It takes four to eight minutes, or under a minute with the reply budget capped at 4 s by
+`ORCA_MCP_REPLY_BUDGET_MS=4000` for the app and the test, as the sweep runs it. `test_cad_examples.py` runs the examples `search_tools {tool}` gives for
 every Design command, and for `undo` and `redo`, each on a fresh design, and fails one whose call fails or
 whose result has `ok` false, an error, or is the person's form; `--tool NAME` runs one command's.
 
@@ -404,7 +406,8 @@ and `auto_answer_dialogs`), and the Design commands only read the result back (`
 grade against is read from `scripts/CAD/tool_atlas.json`, the Design table the app's own is generated from,
 for the selection `describe_scene` names. Buttons and rows are found by label, and canvas positions come from
 a calibration that maps the open sketch's plane to canvas pixels, so nothing in them is tuned to a window
-size, screen scaling or theme. The sketch tool's pick budgets and badge layout are in the canvas's GL pixels,
+size, screen scaling or theme. A map fitted from five probe points is reused, once one probe confirms it,
+while the canvas size and the camera stay the ones it was fitted on. The sketch tool's pick budgets and badge layout are in the canvas's GL pixels,
 which `cad_gui.py` turns into click pixels by the canvas scale that `set_view`'s `camera_state` gives (`zoom`
 over `click_px_per_mm`). What they share is in `cad_gui.py` beside them. `test_cad_sketching.py` draws each
 sketch tool's primitive with clicks on the canvas and types its exact values into the canvas's value field,
@@ -460,11 +463,10 @@ drop-down list. On Linux run it with `--headless`: under Xvfb those popups close
 Plate Settings opened and cancelled, arrange of a second plate's two cubes (the reply waits for the
 job), the plate menu from a right click, and move to front.
 
-`tests/webview_modal.json` runs JavaScript in the web views of modal dialogs, the preset bundle dialog
-and the setup wizard, by default and by locator, and closes the bundle dialog from its page's own
-button. `test_webview_modal.py` checks what that replay cannot: `run_javascript` is refused in the Home tab's
-web view behind a modal and in a dialog under the topmost, the Flushing volumes dialog's page takes
-them as any topmost dialog's does, and a page that closes its dialog replies `closed` at once.
+`test_webview_modal.py` runs JavaScript in the web views of modal dialogs: the preset bundle dialog's
+page takes it by default and by locator, `run_javascript` is refused in the Home tab's web view behind a
+modal and in a dialog under the topmost, the Flushing volumes dialog's page takes it as any topmost
+dialog's does, and a page that closes its dialog replies `closed` at once.
 
 Web pages are driven like widgets: `list_widgets` lists each shown page's elements under its web view
 with `d` refs, and `click`, `set_widget_value`, `press_keys`, `mouse_gesture` and `answer_dialog` act on them, by
@@ -551,10 +553,41 @@ that the exported session replays. `test_worker_admission.py` starts a long arra
 that changes, canvas keys and toolbar clicks are refused while it runs, reads answer, and `cancel_job`
 stops it. `test_export_running_job.py` exports while a call's job runs past
 its reply budget (left out, named in `left_out_running`), after it ends (an `await: false` step that
-replays) and while a dialog holds its call (kept); it takes about two minutes.
+replays) and while a dialog holds its call (kept); it takes about 100 s, or about 20 s with the reply budget
+capped at 4 s by `ORCA_MCP_REPLY_BUDGET_MS=4000` for the app and the test, as the sweep runs it.
 `test_send_gcode.py` starts an OctoPrint-compatible stub host and sends a sliced cube to it with the
 Speed Dial's `send_gcode`, the Send dialog answered with `set_widget_value` and `answer_dialog`: the command
 is refused for a Bambu network printer and one without a print host, an upload the stub accepts
 reads uploading at 99 until the stub answers and then completed in `get_app_state.uploads`, its exported
 replay uploads again, and one the stub refuses with HTTP 500 never reads completed and ends as an
 error whose dialog `answer_dialog` closes.
+
+## The sweep
+
+`run_sweep.py` runs every test above, `smoke_test.json`, `tests/*.json` and `test_*.py`, each on a
+freshly launched app, several at a time: `-j N` (or `--jobs N`) runs N at once, as a build's `-j` does,
+and defaults to half the cores, up to six. It exits 0 when all of them pass and no OrcaSlicer crash
+report appeared (macOS). `sweep.json` lists each test
+with what it needs, and a test file it does not list stops the run before anything starts, so a new
+test is never skipped by accident. Each test runs in a folder of its own under `--out` (by default a
+new `orca-sweep-<time>` folder in the temporary folder), with its own datadir, port (from 14100 up),
+session file (`ORCA_MCP_SESSION`), temporary folder (`TMPDIR`, `TMP`, `TEMP`) and empty working
+folder, and leaves `test.log` there and `results.jsonl` beside them. The longest tests start first,
+by each one's last passing time in `--history` (`~/.cache/orca-mcp/sweep-times.json`). Tests that
+share a lock never run at the same time, and exclusive tests run after the rest, one at a time with
+nothing else running. A test that runs out of time is interrupted, as Ctrl-C would, so its own cleanup
+closes the apps it started (on Windows its process tree is ended), and a test the runner could not run is
+recorded as an error, so a run that leaves a test without a result never exits 0. `--only` and `--skip`
+pick tests by name, and `--list` prints the order and exits. An entry's keys:
+
+- `path`: the test, relative to `tools/mcp`.
+- `launch`: `app` (the default; the runner launches and stops the app), `own` (the test starts its own)
+  or `none` (no app).
+- `cad`: launch with the Design tab on.
+- `setup`: arguments for a run of the test's own file before the launch; `args`: the test's arguments.
+  Both fill in `{bin}` and `{datadir}`.
+- `env`: variables for the launch and the test.
+- `exclusive`, `locks`, and `why`, which each of them needs: what the test shares with others.
+- `timeout_s`: how long the test may run (900 by default).
+
+`test_run_sweep.py` checks the runner without the app, and that `sweep.json` lists every test there is.
