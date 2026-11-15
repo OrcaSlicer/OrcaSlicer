@@ -3432,7 +3432,9 @@ void TextureImportDialog::apply_auto_standard_mix(TextureAutoMixMode mode)
                 continue;
             if (texture_normalize_color_hex(entry.color_hex) != normalized)
                 continue;
-            if (texture_entry_is_pla_basic(entry))
+            // A printer that cannot take more filaments has to mix from the ones it has, whatever
+            // their preset. Elsewhere only a PLA Basic counts and the base color is added instead.
+            if (texture_entry_is_pla_basic(entry) || !Sidebar::should_show_SEMM_buttons())
                 return entry.dialog_index;
         }
 
