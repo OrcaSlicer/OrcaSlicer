@@ -18,7 +18,7 @@ child processes.
   given --outputdir D, and without it in <datadir>/automation/out, while <datadir>/mcp/out does not exist.
 - run_refused_without_gui: --run s.py beside --export-3mf out.3mf model.stl, and beside --downward-check, each exit
   with CLI_INVALID_PARAMS within 10 s, stderr says "--run cannot be combined with" the other option, and the data
-  folder holds only OrcaSlicer.conf.
+  folder holds only OrcaSlicer.conf and the refusal's result.json.
 - mcp_port_opens_endpoint: --mcp-port P alone, with mcp_enabled false in the conf, serves on P; --mcp-port 0 alone,
   with mcp_port 13694 in the conf, serves on 13694. A server counts as this app's when its discovery file names the
   app's pid.
@@ -130,9 +130,9 @@ class Work:
         self.apps.append(app)
         return app
 
-    def only_conf_in_datadir(self):
-        """What the data folder holds besides OrcaSlicer.conf, as a problem, or None."""
-        extra = sorted(set(os.listdir(self.datadir)) - {"OrcaSlicer.conf"})
+    def only_conf_in_datadir(self, also=()):
+        """What the data folder holds besides OrcaSlicer.conf and `also`, as a problem, or None."""
+        extra = sorted(set(os.listdir(self.datadir)) - {"OrcaSlicer.conf", *also})
         return f"the data folder gained {extra}, so the GUI started" if extra else None
 
     def __enter__(self):
@@ -322,7 +322,9 @@ def run_refused_without_gui(binary):
                 problems.append(f"--run s.py {other}: exit code {code}")
             if f"--run cannot be combined with {other}" not in app.stderr():
                 problems.append(f"--run s.py {other}: stderr says {app.stderr().strip()[:200]!r}")
-            if (gui := work.only_conf_in_datadir()) is not None:
+            # A refused command line records its reason in result.json, which goes to the folder it runs
+            # in: the data folder here. A GUI would leave more than that.
+            if (gui := work.only_conf_in_datadir({"result.json"})) is not None:
                 problems.append(f"--run s.py {other}: {gui}")
     check("run_refused_without_gui", problems, "each exits CLI_INVALID_PARAMS naming --run, with no GUI")
 

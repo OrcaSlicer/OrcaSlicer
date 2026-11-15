@@ -1681,12 +1681,15 @@ json click_data_view_row(wxDataViewCtrl& ctrl, const ListRow& row, const std::st
     ctrl.EnsureVisible(row.item, col); // expands the branches above it and scrolls to it
     scroll_into_view(&ctrl);
     const wxRect cell = ctrl.GetItemRect(row.item, col);
-    if (cell.IsEmpty())
+    // A row the list ends with can be only partly shown, its rect reaching past the list's edge: a click at
+    // the middle of that rect is a click outside the list, which its owner ignores.
+    const wxRect shown = cell.IsEmpty() ? wxRect() : cell.Intersect(ctrl.GetClientRect());
+    if (shown.IsEmpty())
         throw ToolFailure("\"" + row.path.back() + "\" can't be scrolled into the list's view; make the window taller with set_window size");
     // The pointer stays on the cell for the click: the object list acts on the cell under it (Printable
     // toggles printability, Editing resets the row's settings).
     wxMouseState pointer;
-    pointer.SetPosition(ctrl.ClientToScreen(wxPoint(cell.x + cell.width / 2, cell.y + cell.height / 2)));
+    pointer.SetPosition(ctrl.ClientToScreen(wxPoint(shown.x + shown.width / 2, shown.y + shown.height / 2)));
     SyntheticInput::set_mouse(pointer);
 
     // A right click selects an unselected row only; Ctrl toggles a row in the selection, Shift selects
