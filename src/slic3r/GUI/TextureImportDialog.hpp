@@ -70,6 +70,11 @@ struct TextureFilamentEntry {
     std::vector<int>          mixed_ratios;
 };
 
+// Coarse family type (PLA / PETG / ABS / ...). Empty if unknown or mixed
+// components disagree, so callers can skip cross-material pairing.
+std::string texture_entry_family_type(const TextureFilamentEntry& entry,
+                                      const std::vector<TextureFilamentEntry>& entries);
+
 struct TextureNewMixedFilament {
     int                       dialog_index{-1};
     std::string               color_hex;
@@ -263,7 +268,7 @@ private:
     void set_auto_mix_mode(TextureAutoMixMode mode);
     void apply_auto_standard_mix(TextureAutoMixMode mode);
     std::string preferred_mix_family() const;
-    // Physical filaments and family that resolve_mix_color() mixes from.
+    // Physical filaments and family that apply_mix_from_existing_filaments() mixes from.
     void build_mix_pool(TextureMixPool& pool) const;
     // Mixed recipe for one color from the pool. Returns the reused or created mixed
     // slot, or the single physical component, or -1 when there is no usable recipe.

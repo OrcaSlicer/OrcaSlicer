@@ -432,7 +432,6 @@ static bool texture_entry_official_basic(const TextureFilamentEntry& entry)
     return false;
 }
 
-// Ported from Bambu Studio: filament family helpers used by the mix pool below.
 static std::string texture_entry_live_display_name(const TextureFilamentEntry& entry)
 {
     if (entry.kind == TextureFilamentKind::ExistingPhysical) {
@@ -519,8 +518,8 @@ static std::string texture_filament_preset_name_of(const TextureFilamentEntry& e
 // "PLA Basic" are not used here. Empty type, preset parse failure, and broken
 // mixed slots (mismatched components) return empty so callers skip them from
 // the auto-match vote.
-static std::string texture_entry_family_type(const TextureFilamentEntry& entry,
-                                             const std::vector<TextureFilamentEntry>& entries)
+std::string texture_entry_family_type(const TextureFilamentEntry& entry,
+                                            const std::vector<TextureFilamentEntry>& entries)
 {
     auto type_of_slot = [](const TextureFilamentEntry& e) -> std::string {
         const std::string preset = texture_filament_preset_name_of(e);
@@ -771,7 +770,7 @@ public:
 
         auto* decompose_label = new wxStaticText(this, wxID_ANY, _L("Decompose Color"));
         auto* add_label = new wxStaticText(this, wxID_ANY, _L("+ Add Material"));
-        add_label->Show(Sidebar::should_show_SEMM_buttons()); // only SEMM printer can add more filaments
+        add_label->Show(Sidebar::should_show_SEMM_buttons()); // ORCA: only SEMM printers can add more filaments
         wxFont af = add_label->GetFont();
         af.SetPointSize(10);
         add_label->SetFont(af);
@@ -2912,7 +2911,7 @@ int TextureImportDialog::add_virtual_filament(const std::array<float, 4>& rgba, 
         m_filament_entries.size() != m_filament_colors_rgba.size()) {
         return -1;
     }
-    // Only SEMM printer can add more filaments (as ObjColorDialog did, #14275).
+    // ORCA: only SEMM printers can add more filaments (as ObjColorDialog did, #14275)
     if (!Sidebar::should_show_SEMM_buttons() || !can_add_virtual_filament()) {
         // Mark that this do_auto_match() run hit the filament cap and had to
         // drop at least one cluster. The mapping itself still falls back via
@@ -3293,7 +3292,6 @@ void TextureImportDialog::set_auto_mix_mode(TextureAutoMixMode mode)
     apply_auto_standard_mix(mode);
 }
 
-// Ported from Bambu Studio: mixed recipes built from the filaments the project already has.
 std::string TextureImportDialog::preferred_mix_family() const
 {
     // Same family vote as auto-match, so enabling mixing never switches to a family
@@ -3301,9 +3299,9 @@ std::string TextureImportDialog::preferred_mix_family() const
     return pick_auto_match_filament_type(m_filament_entries, m_existing_filament_count);
 }
 
-// Orca: Bambu Studio's pool also carries its official mixing kit (PLA Palette CMYKW), which Orca
-// does not have, so only the "mix from the project's own filaments" half is ported.
 struct TextureMixPool {
+    bool                                                kit_complete = false;
+    std::vector<int>                                    kit_dialog_indices;
     std::string                                         family;
     std::vector<int>                                    allowed_dialog_indices;
     std::vector<Slic3r::ColorDecomposePhysicalFilament> family_filaments;
@@ -3333,14 +3331,42 @@ static int find_texture_mixed_by_recipe(const std::vector<TextureFilamentEntry>&
 
 void TextureImportDialog::build_mix_pool(TextureMixPool& pool) const
 {
-    pool.family = preferred_mix_family();
+#if 0 // ORCA: official mixing kits (PLA Palette CMYKW) are not ported
+    const std::vector<OfficialMixingKitGroup> kit_groups = collect_official_mixing_kit_groups();
+    const OfficialMixingKitGroup* kit_group = find_complete_official_mixing_kit(kit_groups);
+    pool.kit_complete = kit_group != nullptr;
+    pool.kit_dialog_indices.clear();
+    if (kit_group) {
+        for (int cfg_idx : kit_group->config_indices) {
+            const auto entry = std::find_if(m_filament_entries.begin(), m_filament_entries.end(),
+                [cfg_idx](const TextureFilamentEntry& e) {
+                    return e.kind == TextureFilamentKind::ExistingPhysical && e.project_config_index == size_t(cfg_idx);
+                });
+            if (entry == m_filament_entries.end()) {
+                pool.kit_complete = false;
+                pool.kit_dialog_indices.clear();
+                break;
+            }
+            pool.kit_dialog_indices.push_back(entry->dialog_index);
+        }
+    }
+#else
+    pool.kit_complete = false;
+    pool.kit_dialog_indices.clear();
+#endif
+    pool.family = pool.kit_complete ? std::string(kDecomposePlaShortType) : preferred_mix_family();
     pool.allowed_dialog_indices.clear();
     pool.family_filaments.clear();
     for (const auto& entry : m_filament_entries) {
         if (entry.kind != TextureFilamentKind::ExistingPhysical)
             continue;
-        if (texture_entry_family_type(entry, m_filament_entries) != pool.family)
+        if (pool.kit_complete) {
+            if (std::find(pool.kit_dialog_indices.begin(), pool.kit_dialog_indices.end(), entry.dialog_index)
+                == pool.kit_dialog_indices.end())
+                continue;
+        } else if (texture_entry_family_type(entry, m_filament_entries) != pool.family) {
             continue;
+        }
         pool.allowed_dialog_indices.push_back(entry.dialog_index);
         Slic3r::ColorDecomposePhysicalFilament filament;
         filament.color_hex = entry.color_hex;
@@ -3363,14 +3389,31 @@ int TextureImportDialog::resolve_mix_color(const TextureMixPool& pool,
     target_rgb.g = (unsigned char)color[1];
     target_rgb.b = (unsigned char)color[2];
 
-    const Slic3r::ColorDecomposeRecipeResult recipe =
-        Slic3r::recommend_from_physical_filaments(target_rgb, pool.family_filaments, pool.family);
+    Slic3r::ColorDecomposeRecipeResult recipe;
+#if 0 // ORCA: official mixing kits (PLA Palette CMYKW) are not ported
+    if (pool.kit_complete)
+        recipe = Slic3r::lookup_standard_recipe(target_rgb, Slic3r::ColorDecomposeRecipeMode::CMYKW,
+                                                kDecomposePlaPaletteType);
+    else
+#endif
+        recipe = Slic3r::recommend_from_physical_filaments(target_rgb, pool.family_filaments, pool.family);
 
     std::vector<int> component_dialog_indices;
     std::vector<int> ratios;
     if (recipe.valid) {
         for (const auto& comp : recipe.components) {
             int dialog_idx = -1;
+#if 0 // ORCA: official mixing kits (PLA Palette CMYKW) are not ported
+            if (pool.kit_complete) {
+                const std::vector<DecomposeOfficialComponent> official_components = pla_palette_cmykw_official_components();
+                const std::string color_hex = decompose_normalize_color_hex(comp.color_hex);
+                const auto component = std::find_if(official_components.begin(), official_components.end(),
+                    [&](const DecomposeOfficialComponent& official) { return official.color_hex == color_hex; });
+                const size_t component_idx = size_t(component - official_components.begin());
+                if (component != official_components.end() && component_idx < pool.kit_dialog_indices.size())
+                    dialog_idx = pool.kit_dialog_indices[component_idx];
+            } else
+#endif
             if (comp.filament_index >= 1) {
                 dialog_idx = (int)comp.filament_index - 1;
                 if (dialog_idx < 0 || dialog_idx >= (int)m_filament_entries.size() ||
@@ -3432,8 +3475,8 @@ void TextureImportDialog::apply_auto_standard_mix(TextureAutoMixMode mode)
                 continue;
             if (texture_normalize_color_hex(entry.color_hex) != normalized)
                 continue;
-            // A printer that cannot take more filaments has to mix from the ones it has, whatever
-            // their preset. Elsewhere only a PLA Basic counts and the base color is added instead.
+            // ORCA: a printer that cannot take more filaments has to mix from the ones it has,
+            // whatever their preset. Elsewhere only a PLA Basic counts and the base color is added.
             if (texture_entry_is_pla_basic(entry) || !Sidebar::should_show_SEMM_buttons())
                 return entry.dialog_index;
         }
@@ -3662,7 +3705,7 @@ bool TextureImportDialog::add_decomposed_mixed_filament(size_t row_index)
 
     const std::string mixed_hex = texture_normalize_color_hex(
         result.matched_color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
-    // Reuse an identical mix, from the project or made earlier in this dialog, instead of
+    // ORCA: reuse an identical mix, from the project or made earlier in this dialog, instead of
     // adding the same recipe to the list again.
     int mixed_idx = find_texture_mixed_by_recipe(m_filament_entries, component_dialog_indices, ratios);
     if (mixed_idx < 0)
@@ -3839,18 +3882,18 @@ void TextureImportDialog::do_auto_match()
         return -1;
     };
 
-    // A printer that cannot take more filaments (tool changer, IDEX) can still print mixed ones,
-    // so there a color without a close match is mixed from the filaments already on its toolheads.
+    // ORCA: a printer that cannot take more filaments (tool changer, IDEX) can still print mixed
+    // ones, so there a color without a close match is mixed from the filaments already loaded.
     const bool mix_only = !Sidebar::should_show_SEMM_buttons();
     TextureMixPool mix_pool;
     if (mix_only)
         build_mix_pool(mix_pool);
 
-    auto get_or_add_virtual_filament = [this, &previous_virtual_by_cluster, &find_virtual_filament_by_color, mix_only, &mix_pool](
+    auto get_or_add_virtual_filament = [this, &previous_virtual_by_cluster, &find_virtual_filament_by_color, mix_only, &mix_pool]( // ORCA: mix_only, mix_pool
         const std::array<std::size_t, 3>& color) -> int {
+        // ORCA: the same recipe Decompose Color offers for this color. -1 (nothing to mix from,
+        // or no free slot) lets the caller fall back to the closest filament.
         if (mix_only) {
-            // Same recipe Decompose Color offers for this color; -1 (nothing to mix from, or no
-            // free slot) lets the caller fall back to the closest filament.
             bool created = false, needs_slot = false;
             return resolve_mix_color(mix_pool, color, can_add_virtual_filament(), created, needs_slot);
         }
