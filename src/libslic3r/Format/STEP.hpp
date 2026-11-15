@@ -12,6 +12,7 @@
 #include <boost/filesystem.hpp>
 #include <Message_ProgressIndicator.hxx>
 #include <atomic>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <iostream>
@@ -48,6 +49,10 @@ struct NamedSolid
     // The name is the CAD body label rather than a generated or product name.
     const bool         original_name;
     int tri_face_cout = 0;
+    // CAD colour as 0xFFRRGGBB, 0 when the document gives the body none.
+    uint32_t           solid_color = 0;
+    // Faces carrying a colour of their own, keyed by the face of `solid` that the mesher walks.
+    NCollection_DataMap<TopoDS_Shape, uint32_t, TopTools_ShapeMapHasher> face_colors;
 };
 
 //BBS: Load an step file into a provided model.
@@ -128,7 +133,9 @@ public:
                      bool isSplitCompound,
                      double linear_deflection = 0.003,
                      double angle_deflection = 0.5,
-                     bool keep_original_names = false);
+                     bool keep_original_names = false,
+                     // Hand the CAD colours to Model::texture_mesh so the texture-to-colour importer can map them to filaments.
+                     bool import_colors = false);
 
     std::atomic<bool> m_stop_mesh{false};
     void update_process(int load_stage, int current, int total, bool& cancel);
