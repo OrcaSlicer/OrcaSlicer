@@ -5190,8 +5190,9 @@ BoundingBoxf3 PartPlate::get_build_volume(bool use_share)
     auto  eps=Slic3r::BuildVolume::SceneEpsilon;
 	Vec3d up_point;
 	Vec3d low_point;
-	if (use_share && !m_extruder_areas.empty()) {
-		Polygon bed_poly = get_shared_poly(m_extruder_areas);
+	// Extruder areas that share nothing leave the whole plate to place on.
+	const Polygon bed_poly = use_share && !m_extruder_areas.empty() ? get_shared_poly(m_extruder_areas, m_shape) : Polygon();
+	if (!bed_poly.points.empty()) {
 		BoundingBox bbox = bed_poly.bounding_box();
 
 		up_point = Vec3d(unscale_(bbox.max.x()) + eps,  unscale_(bbox.max.y()) + eps, m_origin.z() + m_height + eps);
@@ -5208,7 +5209,7 @@ BoundingBoxf3 PartPlate::get_build_volume(bool use_share)
 
 Polygon PartPlate::get_shared_printable_polygon() const
 {
-	return m_extruder_areas.empty() ? Polygon::new_scale(m_shape) : get_shared_poly(m_extruder_areas);
+	return m_extruder_areas.empty() ? Polygon::new_scale(m_shape) : get_shared_poly(m_extruder_areas, m_shape);
 }
 
 
@@ -6340,6 +6341,9 @@ void PartPlateList::set_default_wipe_tower_pos_for_plate(int plate_idx, bool ini
     // prime tower is validated against the real outline — pull it onto the bed before storing.
     {
         Polygons bed{part_plate->get_shared_printable_polygon()};
+        // Without an area every extruder reaches the tower cannot be printed, but it still stays on the plate.
+        if (bed.front().points.empty())
+            bed.front() = Polygon::new_scale(part_plate->get_shape());
         bed.front().translate(Point(-scaled(plate_origin.x()), -scaled(plate_origin.y()))); // into the frame x/y live in
         const BoundingBox tower(Point::new_scale(x, y),
                                 Point::new_scale(x + wipe_tower_size(0), y + wipe_tower_size(1)));
