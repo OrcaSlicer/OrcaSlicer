@@ -3660,7 +3660,11 @@ bool TextureImportDialog::add_decomposed_mixed_filament(size_t row_index)
 
     const std::string mixed_hex = texture_normalize_color_hex(
         result.matched_color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString());
-    int mixed_idx = add_virtual_mixed_filament(mixed_hex, component_dialog_indices, ratios);
+    // Reuse an identical mix, from the project or made earlier in this dialog, instead of
+    // adding the same recipe to the list again.
+    int mixed_idx = find_texture_mixed_by_recipe(m_filament_entries, component_dialog_indices, ratios);
+    if (mixed_idx < 0)
+        mixed_idx = add_virtual_mixed_filament(mixed_hex, component_dialog_indices, ratios);
     if (mixed_idx < 0)
         return false;
 
@@ -3843,11 +3847,10 @@ void TextureImportDialog::do_auto_match()
     auto get_or_add_virtual_filament = [this, &previous_virtual_by_cluster, &find_virtual_filament_by_color, mix_only, &mix_pool](
         const std::array<std::size_t, 3>& color) -> int {
         if (mix_only) {
-            // Offer the mix, then take whichever filament is closest. A mix that loses to a real
-            // filament stays unused and compact_used_virtual_filaments() drops it.
+            // Same recipe Decompose Color offers for this color; -1 (nothing to mix from, or no
+            // free slot) lets the caller fall back to the closest filament.
             bool created = false, needs_slot = false;
-            resolve_mix_color(mix_pool, color, can_add_virtual_filament(), created, needs_slot);
-            return find_closest_filament_index(color);
+            return resolve_mix_color(mix_pool, color, can_add_virtual_filament(), created, needs_slot);
         }
 
         auto previous_it = previous_virtual_by_cluster.find(color);
