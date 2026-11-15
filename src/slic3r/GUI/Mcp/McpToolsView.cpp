@@ -666,13 +666,13 @@ void register_view_tools(CommandCatalog& catalog)
 #endif
 
     catalog.add(reaching({"show_layer_range"}, mutate_tool(
-        "ui", "set_view", L("Point the view"),
+        "ui", "set_view", L("Set up the view"),
         "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: Prepare's, the "
         "preview or the assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the "
         "default view, or fit to bed / objects / selection, then look_at, the point it looks at, an orbit to look from "
         "between the named directions, and the zoom), the preview's color scheme (picked as in the legend's combo, which "
         "shows every feature type again), legend rows, time estimate and layers (1-based, or up to a height). Only the given "
-        "fields change. On the Design tab the camera points its view (default is its Home view; no fit_bed). The reply "
+        "fields change, but a preview field given without tab or canvas shows the Preview tab. On the Design tab the camera points its view (default is its Home view; no fit_bed). The reply "
         "echoes them; preview layers as [first, last, count] with z, the heights of first and last; with any camera field, "
         "camera_state, the camera it leaves as get_app_state.camera gives it, and adjusted: [\"zoom\"] when the zoom was "
         "held to its limits.",

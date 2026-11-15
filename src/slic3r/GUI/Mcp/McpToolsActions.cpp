@@ -198,7 +198,8 @@ void register_action_tools(CommandCatalog& catalog)
         "auto_answer_dialogs before the call. An export_gcode with a path completes when the file is written; an action "
         "that starts a background job (obj_arrange, obj_orient) when the job ends. An action that does nothing (no object "
         "selected) is an error. Some commands add what they did to the reply (the obj_order_by_* order, the object "
-        "obj_assemble made).",
+        "obj_assemble made). A command's action runs that command, as call_tool {tool: its name} does; the other actions "
+        "(plates, recent projects, plugin scripts and pages, settings) run only here.",
         object_schema({{"id", prop("string", "Action id from search_actions, or the name inside it.")},
                        {"args", {{"type", "object"}, {"description", "The command's arguments, as its input_schema gives them."}}}},
                       {"id"}),

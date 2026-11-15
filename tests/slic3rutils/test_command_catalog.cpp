@@ -216,7 +216,7 @@ TEST_CASE("no typed tool is in the palette", "[CommandCatalog]")
         "open_preferences", "open_wiki", "open_youtube", "plate_add", "plate_delete", "plate_duplicate", "plate_goto",
         "plate_rename", "plate_toggle_lock", "preset_bundle", "redo", "refresh_plugins", "reset_window_layout", "save_project",
         "save_project_as", "select_all", "send_gcode", "slice_all", "slice_and_preview", "start_recording", "stop_recording",
-        "sync_ams", "sync_presets", "take_screenshot", "toggle_developer_mode", "toggle_run_script", "undo", "view_bottom",
+        "sync_ams", "sync_presets", "take_screenshot", "toggle_developer_mode", "toggle_run_script_panel", "undo", "view_bottom",
         "view_default", "view_fit_bed", "view_front", "view_iso", "view_left", "view_rear", "view_right",
         "view_toggle_perspective", "view_top"};
     REQUIRE(tiles.size() == 129);

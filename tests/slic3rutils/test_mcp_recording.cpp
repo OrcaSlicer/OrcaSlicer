@@ -1052,7 +1052,7 @@ TEST_CASE("a burst of quick steps never pushes out the replay still running", "[
     const auto   t0 = CaptionBoard::Clock::now();
     board.call_started(1, "Run a replay", "long.json", t0);
     for (uint64_t id = 2; id <= 101; ++id) {
-        board.call_started(id, "Mouse gesture on the 3D view", "drag", t0 + 10ms * id);
+        board.call_started(id, "Mouse gesture on a 3D view or page element", "drag", t0 + 10ms * id);
         board.call_ended(id, true, "", t0 + 10ms * id + 5ms);
     }
     REQUIRE(board.current(t0 + 1100ms).has_value());
@@ -1242,7 +1242,7 @@ TEST_CASE("remembered recording settings come back, and a bad value keeps its de
     save_recording_settings(config, s);
     CHECK(load_recording_settings(config) == s);
 
-    config.set("recording", "quality", "200");
+    config.set("recording", "jpeg_quality", "200");
     config.set("recording", "crf", "x");
     config.set("recording", "codec", "vp9");
     config.set("recording", "speed", "warp");
@@ -1260,7 +1260,7 @@ TEST_CASE("start_recording's encode arguments override the settings, a preset be
 {
     RecordingSettings s;
     // The tool's other arguments are left to it.
-    const json args_given{{"encode_preset", "compatible"}, {"crf", 18}, {"encode", true}, {"quality", 60}, {"silent", true}};
+    const json args_given{{"encode_preset", "compatible"}, {"crf", 18}, {"encode", true}, {"jpeg_quality", 60}, {"silent", true}};
     CHECK(apply_recording_overrides(s, args_given).empty());
     CHECK(s.codec == "h264");
     CHECK(s.profile == "high");

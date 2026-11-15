@@ -395,7 +395,7 @@ TEST_CASE("Native command catalog has the Run Script panel and Action Replay com
     const Slic3r::GUI::NativeCommand* replay = Slic3r::GUI::NativeCommands::find("open_action_replay");
     REQUIRE(replay != nullptr);
     CHECK(std::string(replay->title) == "Action Replay");
-    const Slic3r::GUI::NativeCommand* panel = Slic3r::GUI::NativeCommands::find("toggle_run_script");
+    const Slic3r::GUI::NativeCommand* panel = Slic3r::GUI::NativeCommands::find("toggle_run_script_panel");
     REQUIRE(panel != nullptr);
     CHECK(panel->group == replay->group);
     CHECK(panel->input.empty());

@@ -433,7 +433,7 @@ std::set<std::pair<int, std::string>> shown_notifications(Plater& plater)
 // plate's Arrange icon or Fill bed starts. UI thread.
 ArrangeStart start_arrange(Plater& plater, const json& args)
 {
-    const bool fill = args.contains("fill");
+    const bool fill = args.contains("fill_object");
     // Fill bed selects its object first, so it needs what every tool that selects needs. An arrangement
     // runs from whatever view and with whatever gizmo is open, as the toolbar's Arrange does.
     GLCanvas3D&            canvas  = fill ? require_prepare_scene(plater) : shown_prepare_canvas(plater);
@@ -441,14 +441,14 @@ ArrangeStart start_arrange(Plater& plater, const json& args)
     const ModelObjectPtrs& objects = plater.model().objects;
     ArrangeStart           start;
     if (fill && args.contains("plates"))
-        throw ToolFailure("fill fills the object's own plate; leave plates out");
+        throw ToolFailure("fill_object fills the object's own plate; leave plates out");
     if (!fill && args.contains("fill_with"))
-        throw ToolFailure("fill_with goes with fill");
+        throw ToolFailure("fill_with goes with fill_object");
     if (const std::optional<Ops::Refusal> refusal = Ops::arrange_refusal({}))
         throw refused(*refusal);
     int plate = -1; // every unlocked plate
     if (fill) {
-        start.fill_object = arg_int(args, "fill", 0);
+        start.fill_object = arg_int(args, "fill_object", 0);
         if (start.fill_object >= int(objects.size()))
             throw ToolFailure("object index out of range");
         select_rows(objects[size_t(start.fill_object)], nullptr);
@@ -975,7 +975,8 @@ void register_scene_tools(CommandCatalog& catalog)
         "The project as the Objects panel lists it. plates: each {index, name, objects}, with the objects that have an "
         "instance on it; outside: the objects with an instance on no plate. An object with instances on two plates is "
         "listed under both, each time with that plate's instances. An object has its filament, auto_drop, bounding box "
-        "(instance 0), brim ear count and the settings it overrides; its instances (offset, rotation in degrees, scale, "
+        "(instance 0), brim ear count and overrides, the keys of the settings it overrides (get_settings scope object "
+        "reads them); its instances (offset, rotation in degrees, scale, "
         "mirrored, bbox); its parts, one or more: parts, negative parts, modifiers, support blockers and enforcers and "
         "precise seams (type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets "
         "one; position, bbox and scaled_volume in mm3 on the bed, measured on instance 0; rotation_deg and scale in the "
@@ -1000,7 +1001,8 @@ void register_scene_tools(CommandCatalog& catalog)
         "ui", "select_objects", L("Select objects"),
         "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, "
         "instances ([[object, instance], ...]) or parts ([[object, part], ...]); add keeps the current selection; all / "
-        "none select everything or nothing. The reply is the selection as get_app_state.selection gives it.",
+        "none select everything or nothing, whatever else is given. The reply is the selection as get_app_state.selection "
+        "gives it.",
         object_schema({{"objects", array_prop({{"type", "integer"}}, "Object indices.")},
                        {"instances", array_prop({{"type", "array"}}, "[[object, instance], ...]")},
                        {"parts", array_prop({{"type", "array"}}, "[[object, part], ...]")},
@@ -1111,8 +1113,10 @@ void register_scene_tools(CommandCatalog& catalog)
         "Change one instance's placement, or one part's with part. translate is in mm, position where it goes (mm, as "
         "the Move panel shows it, whatever mode says), rotate in degrees about X/Y/Z, "
         "scale a factor (one number or [x, y, z]), size [x, y, z] mm along the object's or part's own axes, plate moves "
-        "the instance onto that plate at the same place. mode \"relative\" (default) adds to the current placement, "
-        "\"absolute\" sets it. An instance is dropped back onto the bed unless drop_to_bed is false. A part moves as the "
+        "the instance onto that plate at the same place. mode \"relative\" (default) adds to the current placement (a scale "
+        "multiplies it), \"absolute\" sets it. An instance is dropped back onto the bed, unless its object's auto_drop is "
+        "off; drop_to_bed false lets it sink into the bed, but an object of one part left above the bed still drops. A part "
+        "moves as the "
         "Object manipulation panel moves it: translate and rotate along the bed's axes, measured on instance 0, scale and "
         "size along its own axes; every instance shows the change, and Auto Drop may lower the object afterwards. One "
         "undo step. Reply: the instance's offset, scale and plate, or the part's size along its own axes and its "
@@ -1180,8 +1184,8 @@ void register_scene_tools(CommandCatalog& catalog)
     catalog.add(reaching({"start_arrange"}, mutate_tool(
         "api", "arrange", L("Arrange objects or fill the bed"),
         "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or "
-        "\"current\") as its Arrange icon does. With fill, fill that object's plate with more of it instead, as Fill bed "
-        "with instances (or copies, by fill_with) does. spacing, rotate, align_y and multi_material are the Arrange options "
+        "\"current\") as its Arrange icon does. With fill_object, fill that object's plate with more of it instead, as Fill "
+        "bed with instances (or copies, by fill_with) does (reply: added, how many). spacing, rotate, align_y and multi_material are the Arrange options "
         "panel's settings: the values given stay in the panel, so later arranges use them too. Waits for the arrangement "
         "(a longer one replies with a job). Reply: the settings in force, instances left off every plate, plates the "
         "all-plates arrange skipped and the job's notifications. An arrange may reorder objects, so list_objects again. "
@@ -1191,7 +1195,7 @@ void register_scene_tools(CommandCatalog& catalog)
                        {"rotate", prop("boolean", "Auto rotate for arrangement.")},
                        {"align_y", prop("boolean", "Align to Y axis (off while rotate is on).")},
                        {"multi_material", prop("boolean", "Allow multiple materials on same plate.")},
-                       {"fill", {{"type", "integer"}, {"minimum", 0}, {"description", "Instead of arranging, fill this object's plate with more of it."}}},
+                       {"fill_object", {{"type", "integer"}, {"minimum", 0}, {"description", "An object index: instead of arranging, fill that object's plate with more of it."}}},
                        {"fill_with", enum_prop({"instances", "copies"}, "Default instances.")},
                        {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 1800}, {"description", "Cancel it after this long (default 300)."}}}}),
         [](const json& args, ToolContext& ctx) {
@@ -1235,7 +1239,7 @@ void register_scene_tools(CommandCatalog& catalog)
         "slot i+1 with m, g and the grams of model_g, support_g, flush_g and tower_g. Other changes are refused until it "
         "finishes; cancel_job stops it.",
         object_schema({{"plates", {{"type", {"string", "integer"}}, {"description", "\"current\" (default), \"all\", or a plate index."}}},
-                       {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 7200}, {"description", "Give up after this long (default 1800)."}}}}),
+                       {"timeout_s", {{"type", "integer"}, {"minimum", 10}, {"maximum", 7200}, {"description", "Stop waiting after this long (default 1800): the call fails, and the slice goes on unless cancel_job stops it."}}}}),
         [](const json& args, ToolContext& ctx) {
             const json plates_arg = args.value("plates", json("current"));
             auto       ticket     = std::make_shared<SliceTicket>();
@@ -1355,7 +1359,8 @@ void register_scene_tools(CommandCatalog& catalog)
         "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button does, or a "
         "background job an MCP call started (an arrange, orient or fill bed). Its job then reports cancelled; a background "
         "job keeps other changes out until it has really stopped. With job, only that job is stopped: the running "
-        "operation, a run_script run or an encode_recording. Allowed while an operation holds the project.",
+        "operation, a run_script run or an encode_recording. Allowed while an operation holds the project. Reply: "
+        "was_running, and job when one was stopped.",
         object_schema({{"job", prop("string", "The operation's job to cancel, e.g. \"j12\".")}}),
         [](const json& args, ToolContext& ctx) {
             AutomationRuntime& runtime = ctx.runtime();

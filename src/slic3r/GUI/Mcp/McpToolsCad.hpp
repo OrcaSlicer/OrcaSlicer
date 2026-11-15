@@ -78,9 +78,17 @@ void leave_out_cad_commands(CommandCatalog& catalog);
 // What search_tools' description says of the Design commands, which tools/list does not show, so that an agent
 // learns without a search that they exist and are CAD: what they cover, that one is looked up before it is
 // called, and every key in the table's order, in two lists by what a call does: the entries with a tool block,
-// which run from their arguments, then those with an action only, which take none and do what their menu row
-// does. It starts with a space, to follow the description's last sentence.
+// which run from their arguments (one with an action too runs its menu row when a call gives none, which the
+// first list's lead says), then those with an action only, which take none and do what their menu row does. It
+// starts with a space, to follow the description's last sentence.
 std::string design_command_index();
+
+// The entities a sketch command acts on: those `params` lists in "entities", else `selection`, else, where the
+// command says so (`all_if_empty`), every one of the sketch's `entity_count`: what was pointed at wins, as in
+// the menu, which never acts on the whole sketch unasked. Only an empty list, the schema's default, reads as left
+// out: anything else that is given names what it holds, a null nothing.
+std::vector<int> sketch_target_indices(const nlohmann::json& params, const std::vector<int>& selection, int entity_count,
+                                       bool all_if_empty);
 
 // The input schema of a tool block: an object whose properties are the block's params, a type written "a|b"
 // as the list of both, min, exclusive_min and max as minimum, exclusiveMinimum and maximum, enum and default

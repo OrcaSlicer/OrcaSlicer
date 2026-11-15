@@ -136,7 +136,7 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
         return out;
     };
     const Names path{"path"}, output{"path", "overwrite"}, all{"all"}, size{"size"};
-    const Names recording{"target", "fps",   "max_dim", "quality", "max_seconds", "captions",  "pointer", "encode",
+    const Names recording{"target", "fps",   "max_dim", "jpeg_quality", "max_seconds", "captions",  "pointer", "encode",
                           "encode_preset", "codec", "crf", "speed", "profile", "keep_raw_video_file", "save_path", "overwrite",
                           "silent"};
     REQUIRE(names("go_to_layer") == Names{"percent"});
@@ -157,8 +157,11 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
                             "add_primitive_disc", "add_primitive_torus"})
         REQUIRE(names(key) == size);
     REQUIRE(names("plate_goto") == Names{"plate"});
-    REQUIRE(names("filament_delete") == Names{"slot"});
+    REQUIRE(names("filament_delete") == Names{"filament_slot"});
     REQUIRE(names("start_recording") == recording);
+    // The object arrange fills a plate with is named as an object, not as a count.
+    CHECK(names("arrange").count("fill_object") == 1);
+    CHECK(names("arrange").count("fill") == 0);
 
     // Of the tiles, only the two values of the second phase are required; every other tile does its person's
     // form when it is given no arguments.
@@ -166,6 +169,18 @@ TEST_CASE("the commands that replace a dialog take the arguments the table gives
         INFO(c->key);
         CHECK(c->input_schema.contains("required") == (c->key == "go_to_layer" || c->key == "go_to_tab"));
     }
+}
+
+TEST_CASE("the view, window and gesture tools are titled by all they do", "[Mcp][Scene]")
+{
+    const auto title = [](const char* key) {
+        const NativeCommand* c = NativeCommands::find(key);
+        return c != nullptr ? c->title : std::string();
+    };
+    CHECK(title("set_view") == "Set up the view");
+    CHECK(title("set_window") == "Size, move or raise a window");
+    CHECK(title("mouse_gesture") == "Mouse gesture on a 3D view or page element");
+    CHECK(title("pick_gizmo_file") == "Load or save the open gizmo's SVG or texture file");
 }
 
 // The app opens on Home, so a slice or arrange an agent starts at once updates its progress

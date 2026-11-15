@@ -128,7 +128,7 @@ void register_record_tools(CommandCatalog& catalog)
         object_schema({{"target", enum_prop({"main", "canvas"}, "main (default): the main window and its dialogs; canvas: the 3D view shown.")},
                        {"fps", int_prop(1, 30, "Frames per second at most (default 10).")},
                        {"max_dim", int_prop(320, 3840, "Long edge of the video in pixels (default 1920).")},
-                       {"quality", int_prop(30, 95, "JPEG quality of the frames (default 80).")},
+                       {"jpeg_quality", int_prop(30, 95, "JPEG quality of the frames (default 80).")},
                        {"max_seconds", int_prop(1, 3600, "The recording ends on its own after this long (default 3600).")},
                        {"captions", prop("boolean", "Caption the tool call acting on the app (default false).")},
                        {"pointer", prop("boolean", "Highlight the pointer and show its clicks (default false).")},
@@ -151,7 +151,7 @@ void register_record_tools(CommandCatalog& catalog)
             o.target      = arg_string(args, "target", "main");
             o.fps         = arg_int(args, "fps", 10);
             o.max_dim     = arg_int(args, "max_dim", 1920);
-            o.quality     = arg_int(args, "quality", 80);
+            o.quality     = arg_int(args, "jpeg_quality", 80);
             o.max_seconds = arg_int(args, "max_seconds", 3600);
             o.captions    = arg_bool(args, "captions", false);
             o.pointer     = arg_bool(args, "pointer", false);
@@ -229,15 +229,16 @@ void register_record_tools(CommandCatalog& catalog)
         L("Start Recording"), L("Commands"), "recording_start", NativeCommands::start_person_recording));
 
     // The Speed Dial's Stop Recording too: with no arguments it stops as the tile does.
-    catalog.add(NativeCommands::with_person_form(record_tool({}, "stop_recording", {},
-                        "Stop the running recording and return its file once it is written: seconds, frames captured and "
+    NativeCommand stop = NativeCommands::with_person_form(record_tool({}, "stop_recording", {},
+                        "Stop the running recording. Call it with silent: true for the report: it waits for the file and "
+                        "returns it with its seconds, frames captured and "
                         "written, frames dropped when encoding fell behind, failed when they could not be encoded, or "
                         "skipped when the window could not be captured, "
                         "the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, the replay or script that started it ended, a "
                         "write error) is reported once by the next stop_recording. For a recording started with encode, it then "
                         "starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns "
                         "encode_recording's result, whose raw_video_file_deleted says whether the .mkv was deleted. "
-                        "This is the call with silent: true. Called with no arguments, it stops "
+                        "Called with no arguments, it stops "
                         "the recording as the Stop Recording command does, whoever started it: without waiting for its "
                         "file, it shows the person a notification naming it and replies with its path; the next "
                         "stop_recording with silent: true reports it as ended stopped_in_app.",
@@ -263,7 +264,12 @@ void register_record_tools(CommandCatalog& catalog)
                             return ToolResult::ok(report);
                         }),
         // The person's stop opens nothing: like the silent one, it stops a recording behind a dialog.
-        L("Stop Recording"), L("Commands"), "recording_stop", NativeCommands::stop_recording_in_app, /*person_form_behind_dialogs=*/true));
+        L("Stop Recording"), L("Commands"), "recording_stop", NativeCommands::stop_recording_in_app, /*person_form_behind_dialogs=*/true);
+    // It has no other argument, and neither form asks: silent picks the form that waits and reports.
+    stop.input_schema["properties"]["silent"]["description"] =
+        "true waits for the file and returns the report, and the encode job when the recording has one; a call with no "
+        "arguments stops as the Stop Recording command does.";
+    catalog.add(stop);
 
     NativeCommand encode = record_tool(
         "ui", "encode_recording", L("Encode a recording"),

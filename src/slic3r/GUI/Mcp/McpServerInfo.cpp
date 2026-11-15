@@ -45,7 +45,7 @@ const char* kInstructions =
     "Driving the GUI itself, for what those do not reach or to see what a person sees:\n"
     "- run_action runs every Speed Dial command (search_actions finds them): prefer it to GUI clicks.\n"
     "- list_widgets lists widgets, menus, 3D toolbar items, gizmos, ImGui items and web page elements with refs; click "
-    "/ set_widget_value / press_keys / mouse_gesture act on refs from the latest list_widgets call, or on locators, which "
+    "/ set_widget_value / press_keys / mouse_gesture act on its refs, good across later listings, or on locators, which "
     "its description lists.\n"
     "- list_windows lists the open windows, modal or not, with refs: a window's ref as screenshot's target captures "
     "that window, as list_widgets's target lists it alone, and as set_window's target sizes, moves or raises it.\n"

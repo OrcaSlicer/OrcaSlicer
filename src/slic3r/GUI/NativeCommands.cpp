@@ -480,7 +480,7 @@ AppActionRunResult NativeCommands::start_person_recording()
         return {AppActionRunResult::Level::Error, format_wxstr(_L("The recording could not start: %1%"), e.what()), false};
     }
     nlohmann::json reply = Mcp::encode_arguments(settings, Mcp::path_to_utf8(options.path));
-    reply["quality"]     = settings.quality;
+    reply["jpeg_quality"] = settings.quality;
     reply["captions"]    = settings.captions;
     reply["pointer"]     = settings.pointer;
     reply["encode"]      = settings.encode;
@@ -601,8 +601,8 @@ void describe_commands(std::vector<NativeCommand>& commands)
                  "as undo's."},
         {"open_action_replay", "Open the Action Replay window, where a person opens a replay file (an orca_replay), reads its steps "
                                "and replays them. Agents run replays with the run_replay tool instead."},
-        {"toggle_run_script", "Show or hide the Run Script panel, where a person writes and runs Python scripts cell by cell. Agents "
-                              "run Python with the run_script tool instead."},
+        {"toggle_run_script_panel", "Show or hide the Run Script panel, where a person writes and runs Python scripts cell by cell. "
+                                    "Agents run Python with the run_script tool instead."},
         {"take_screenshot", "Save a PNG of the main window in the folder Start Recording saves in (the person's Downloads unless "
                             "they chose another) and show the person a notification naming it; the reply has its path. Agents use "
                             "the screenshot tool, which returns the image."},
@@ -613,8 +613,9 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"mode_advanced", "Switch the settings view to Advanced mode."},
         {"mode_expert", "Switch the settings view to Expert mode."},
         {"toggle_developer_mode", "Turn Developer mode on or off."},
-        {"export_gcode", "Export the current plate's G-code. With a path, exports there without a dialog once the plate is sliced, in the "
-                         "background, and the call returns when the file is written; with no arguments, it opens the export dialog."},
+        {"export_gcode", "Export the current plate's G-code. With a path, exports the sliced plate there without a dialog, in the "
+                         "background, and the call returns when the file is written; a plate that is not sliced is refused "
+                         "(slice first). With no arguments, it opens the export dialog."},
         {"export_stl", "Export all objects as one STL. With a path, writes there without a dialog."},
         {"export_3mf", "Export the model as a .3mf without slicing data. With a path, writes there without a dialog."},
         {"export_sliced_file", "Export the current plate's sliced file (.gcode.3mf). With a path, writes there without a dialog."},
@@ -671,6 +672,8 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"obj_order_by_height", "Order the current plate's objects by height, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending."},
         {"obj_order_by_size", "Order the current plate's objects by size (bounding box volume), which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending."},
         {"add_primitive_svg", "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the part is created in the background (wait for idle), and the SVG gizmo opens on it."},
+        {"add_primitive_text", "Add a text: a part on the selected object, or a new object when nothing is selected. It is created "
+                               "in the background (wait for idle), and the Text gizmo opens on it."},
         // Shapes: a size skips the Primitive size dialog.
         {"add_primitive_cube", "Add a cube object to the current plate; fails while an object is selected. With a size, skips the size dialog."},
         {"add_primitive_cylinder", "Add a cylinder object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn."},
@@ -678,6 +681,11 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"add_primitive_cone", "Add a cone object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn."},
         {"add_primitive_disc", "Add a disc object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn."},
         {"add_primitive_torus", "Add a torus object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn."},
+        // The two handy models of several files, which the menu arranges once they are loaded.
+        {"add_handy_orca_cube", "Add the Orca Cube and its plug to the current plate, then arrange the objects as the toolbar's "
+                                "Arrange does, which moves the others too."},
+        {"add_handy_orcasliced_combo", "Add the OrcaSliced Combo (the OrcaSliced model, the Orca Cube and its plug) to the current "
+                                       "plate, then arrange the objects as the toolbar's Arrange does, which moves the others too."},
         {"plate_add", "Add a plate."},
         {"plate_duplicate", "Duplicate the current plate."},
         {"plate_delete", "Delete the current plate."},
@@ -693,7 +701,9 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"help_migrate_filament_presets", "Migrate legacy user filament presets."},
         {"help_troubleshoot", "Open the troubleshooting center."},
         {"help_network_test", "Open the network test dialog."},
-        {"help_benchmark_3d_scene", "Benchmark rendering of the current 3D scene."},
+        {"help_benchmark_3d_scene", "Time the 3D views on a test model. It asks first (Start or Cancel), then replaces the project "
+                                    "with the OrcaSliced Combo as New Project does, which may ask about unsaved changes, slices it "
+                                    "and shows the results."},
         {"help_tip_of_the_day", "Show a tip of the day."},
         {"help_check_updates", "Check for a newer OrcaSlicer."},
         {"help_about", "Show the About dialog."},
@@ -701,7 +711,8 @@ void describe_commands(std::vector<NativeCommand>& commands)
         {"open_youtube", "Open the OrcaSlicer YouTube channel in the browser."},
         {"open_plugins", "Open the plugins dialog."},
         {"refresh_plugins", "Reload plugins."},
-        {"install_plugin", "Open the plugin hub to install a plugin."},
+        {"install_plugin", "Open the plugin hub's page in the default web browser, where a person picks a plugin to install; "
+                           "nothing opens in OrcaSlicer."},
         {"install_local_plugin", "Install a plugin from a .py or .whl file, as the Plugins dialog's Install local plugin does. With a "
                                  "path, installs that file without a dialog. Replacing a plugin installed already asks first "
                                  "(answer with answer_dialog); the message names the plugin installed, or why it was not."},
@@ -743,9 +754,13 @@ void describe_commands(std::vector<NativeCommand>& commands)
             c.description = "Open the " + c.title +
                             " dialog; the generate_calibration_test tool runs the same test with typed parameters and no dialog.";
         } else if (c.key.rfind("view_", 0) == 0) {
-            c.description = "Point the 3D camera: " + c.title + ".";
+            // A named direction, which set_view's camera takes by the same name. The command points the view of
+            // Prepare, Preview or the assemble view; the Design view is set_view's alone.
+            const std::string direction = c.key.substr(5);
+            c.description = "Turn the 3D camera of Prepare, Preview or the assemble view to the " + direction +
+                            " view, as set_view {camera: \"" + direction + "\"} does there.";
         } else if (c.key.rfind("add_primitive_", 0) == 0 || c.key.rfind("add_handy_", 0) == 0) {
-            c.description = "Add a " + c.title + " object to the current plate.";
+            c.description = "Add the " + c.title + " model to the current plate.";
         }
     }
 }
@@ -842,7 +857,9 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         },
         "tab")
         .input_schema = Mcp::object_schema(
-        {{"tab", Mcp::prop("string", "The tab's id: home, prepare, preview, monitor, project, calibration, or a plugin page's id.")}},
+        {{"tab", Mcp::prop("string", "The tab's id: home, prepare, preview, monitor (the Device tab, which set_view calls device), "
+                                     "monitor_web (the web Device page, where the app shows one), multi_device, project, "
+                                     "calibration, design, or a plugin page's id.")}},
         {"tab"});
 
     add_with_icon("load_project", L("Load Project"), L("Commands"), "menu_open", [](const json& args) {
@@ -922,7 +939,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
                 {"tool": "undo", "args": {"history": "design"}},
                 {"tool": "redo", "args": {"history": "design"}}]}])json");
 #endif
-    add_with_icon("toggle_run_script", L("Run Script"), L("Commands"), "media_play", [](const json&) {
+    add_with_icon("toggle_run_script_panel", L("Run Script"), L("Commands"), "media_play", [](const json&) {
         if (wxGetApp().mainframe != nullptr)
             wxGetApp().run_script_panel().toggle();
         return AppActionRunResult{AppActionRunResult::Level::Succeeded};
@@ -958,7 +975,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     }).input_schema = Mcp::object_schema(
         {{"tab", Mcp::enum_prop(preferences_tab_names, "The tab to show.")},
-         {"key", Mcp::prop("string", "A preference on that tab, e.g. auto_arrange on behaviour: its control is scrolled into view and focused.")}});
+         {"key", Mcp::prop("string", "With tab: a preference on that tab, e.g. auto_arrange on behaviour: its control is scrolled into view and focused.")}});
 
     // ---- Screenshots and recordings ---- (the MCP screenshot and recording tools' defaults, for the person)
     add_with_icon("take_screenshot", L("Take Screenshot"), L("Commands"), "screenshot", [](const json&) {
@@ -1513,8 +1530,8 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             return AppActionRunResult{AppActionRunResult::Level::Info, _L("The only filament slot cannot be deleted.")};
         // Without a slot, the last physical one, as the - button.
         size_t slot = physical;
-        if (args.contains("slot")) {
-            slot = args.at("slot").get<size_t>();
+        if (args.contains("filament_slot")) {
+            slot = args.at("filament_slot").get<size_t>();
             if (slot < 1 || slot > bundle.filament_presets.size())
                 return AppActionRunResult{AppActionRunResult::Level::Error,
                                           format_wxstr(_L("Filament slot must be 1 to %1%."), bundle.filament_presets.size())};
@@ -1526,9 +1543,9 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         plater->sidebar().update_filaments_counter();
         return AppActionRunResult{AppActionRunResult::Level::Succeeded, format_wxstr(_L("Deleted filament slot %1%."), slot)};
     }).input_schema = Mcp::object_schema(
-        {{"slot", {{"type", "integer"},
-                   {"minimum", 1},
-                   {"description", "The 1-based filament slot. Default: the last physical slot, as the - button."}}}});
+        {{"filament_slot", {{"type", "integer"},
+                            {"minimum", 1},
+                            {"description", "The 1-based filament slot. Default: the last physical slot, as the - button."}}}});
 
     // ---- Presets / cloud ----
     add_with_icon("preset_bundle", L("Open Preset Bundle"), L("Presets"), "menu_edit_preset", [](const json&) {

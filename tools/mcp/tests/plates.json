@@ -31,8 +31,8 @@
      "expect": {"/level": {"eq": "success"}, "/message": {"eq": "Added filament slot 2."}}},
     {"tool": "run_action", "args": {"id": "orca_command:filament_add:orca"}, "expect": {"/message": {"eq": "Added filament slot 3."}}},
     // A slot past the last is refused; slot 2 by number.
-    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "args": {"slot": 4}}, "optional": true},
-    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "args": {"slot": 2}}, "expect": {"/message": {"eq": "Deleted filament slot 2."}}},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "args": {"filament_slot": 4}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "args": {"filament_slot": 2}}, "expect": {"/message": {"eq": "Deleted filament slot 2."}}},
     {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_is_mixed"]}, "expect": {"/items/0/value": {"eq": "0,0"}}},
 
     // ---- A cube on each of two plates ----
@@ -122,7 +122,7 @@
     {"tool": "answer_dialog", "args": {"button": "OK"}},
     {"tool": "wait", "args": {"for": "job", "job": "${jobs.mix}"}},
     {"tool": "get_settings", "args": {"scope": "project", "keys": ["filament_is_mixed"]}, "expect": {"/items/0/value": {"eq": "0,0,1"}}},
-    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "args": {"slot": 3}}, "optional": true},
+    {"tool": "run_action", "args": {"id": "orca_command:filament_delete:orca", "args": {"filament_slot": 3}}, "optional": true},
     {"tool": "set_settings", "args": {"scope": "plate", "plate": 0, "values": {"first_layer_print_sequence": [2, 1]}}, "optional": true},
     {"tool": "list_plates", "expect": {"/items/0/first_layer_print_sequence": {"eq": null}}},
     {"tool": "run_action", "args": {"id": "orca_command:filament_add:orca"}, "expect": {"/message": {"eq": "Added filament slot 3."}}},

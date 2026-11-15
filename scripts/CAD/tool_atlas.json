@@ -1519,7 +1519,7 @@
         "access": "change",
         "ok_false": true,
         "summary": "Move and/or rotate a body (B-rep transform).",
-        "details": "copy=true keeps the source and appends the transformed copy as a new body.",
+        "details": "copy=true keeps the source and appends the transformed copy as a new body. The rotation is angle about the axis (axis_x, axis_y, axis_z) through the pivot, a world point that defaults to the world origin.",
         "params": [
           {"name": "body", "type": "integer", "default": -1, "description": "target body; omit for the last body"},
           {"name": "dx", "type": "number", "unit": "mm", "default": 0},
@@ -3364,8 +3364,8 @@
         "details": "Returns ordered world contours, each flagged closed/open.",
         "params": [
           {"name": "body", "type": "integer", "default": 0},
-          {"name": "plane", "type": "string", "default": "XY", "enum": ["XY", "XZ", "YZ"]},
-          {"name": "offset", "type": "number", "unit": "mm", "default": 0}
+          {"name": "plane", "type": "string", "default": "XY", "enum": ["XY", "XZ", "YZ"], "description": "the base plane through the world origin, not through modeling_origin as the other commands' planes are"},
+          {"name": "offset", "type": "number", "unit": "mm", "default": 0, "description": "along the plane's normal, from the world origin"}
         ],
         "examples": [
           {
@@ -4282,9 +4282,9 @@
       "gui": false,
       "tool": {
         "access": "sketch",
-        "ok_false": true,
+        "ok_false": false,
         "summary": "Toggle construction on sketch entities.",
-        "details": "Reply: changed.",
+        "details": "Reply: changed, how many, and ok, false when none did.",
         "params": [
           {"name": "entities", "type": "array", "default": [], "description": "entity indices; omit for the selection"}
         ],

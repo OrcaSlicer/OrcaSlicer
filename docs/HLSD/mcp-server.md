@@ -851,13 +851,13 @@ camera looks.
 `arrange` runs what the GUI runs: with `plates: "all"`, `set_prepare_state(PREPARE_STATE_DEFAULT)` and
 `Plater::arrange()`, as the toolbar does; with a plate index or `"current"`, `select_plate()`,
 `PREPARE_STATE_MENU` and `arrange()`, as the plate's Arrange icon does, without its
-`last_arrange_job_is_finished()` flag, which a cancelled job never clears; with `fill`, the object's
+`last_arrange_job_is_finished()` flag, which a cancelled job never clears; with `fill_object`, the object's
 row selected and `fill_bed_with_instances()` or `fill_bed_with_copies()`, which fill the object's own
 plate. Each takes one "Arrange" undo snapshot. An arrangement shows the Prepare view first and runs
 with a gizmo open, as the toolbar's does (`Ops::start_arrange()`, which the `obj_arrange` command
 calls too), and is refused while another job runs. Fill bed selects the object's row, so it refuses
 the assemble view and an open gizmo as the tools that select do. The tool also refuses a locked or
-empty plate given by index, `fill` with `plates`, and an object Fill bed refuses
+empty plate given by index, `fill_object` with `plates`, and an object Fill bed refuses
 (`can_increase_instances()`).
 `spacing`, `rotate`, `align_y` and `multi_material` go into the current print mode's
 `GLCanvas3D::ArrangeSettings`, which both jobs read, by the panel's rules (`apply_arrange_args()`:
@@ -1949,7 +1949,7 @@ name without one.
 buttons show, for printers that take several filaments through one extruder, and not on a G-code file;
 elsewhere, and at the slot limit or with one slot left, they return Info. A new slot goes after the
 physical slots, so mixed filaments move up by one with the objects on them; the message names the new
-slot. `filament_delete` takes a 1-based `slot`, the last physical one without it, and remaps the objects on
+slot. `filament_delete` takes a 1-based `filament_slot`, the last physical one without it, and remaps the objects on
 it as the GUI does. A mixed filament is refused (an Error): it is deleted from the mixed filament list.
 
 `import_configs` with a path imports presets as the Import Configs dialog does, through
@@ -3732,7 +3732,7 @@ matrix arrays need and which the bundled Python lacks unless a file run's PEP 72
 ### Run Script panel
 
 File › Run Script (the Global shortcut Ctrl+Shift+T, ⌘⇧T on macOS) and the Speed Dial command
-`toggle_run_script` show or hide the Run Script panel (`RunScriptPanel`, page `resources/web/dialog/RunScript/`),
+`toggle_run_script_panel` show or hide the Run Script panel (`RunScriptPanel`, page `resources/web/dialog/RunScript/`),
 a dock pane of the Plater under the 3D view and the sidebar, where a person edits a `.py` file in `# %%` cells and
 runs a cell, the whole file or a console line in a live session. Showing it selects Prepare when the current tab is
 neither Prepare nor Preview; the menu item's check mark is whether it is on screen.

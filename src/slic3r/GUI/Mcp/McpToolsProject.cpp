@@ -395,12 +395,15 @@ void register_project_tools(CommandCatalog& catalog)
     catalog.add(reaching({"open_project", "import_models"}, mutate_tool(
         "api", "open_files", L("Open files"),
         "Open model files (STL, 3MF, STEP, OBJ, AMF, SVG...), a project (.3mf) or G-code by absolute path, without a file "
-        "dialog. Models are added to the current project. A .3mf opens as a project, replacing the current one, unless as "
-        "is \"geometry\"; when the current project has unsaved changes that fails, changing nothing, unless "
-        "discard_changes. Importing can open a dialog (STEP mesh options, for instance); the reply is then "
-        "blocked_by_dialog.",
+        "dialog. Models are added to the current project. A .3mf given alone opens as a project, replacing the current "
+        "one, unless as is \"geometry\"; when the current project has unsaved changes that fails, changing nothing, unless "
+        "discard_changes. Given with other paths, a .3mf adds its models only. A G-code given alone replaces the project "
+        "too, to show its toolpaths: with unsaved changes the app asks first (blocked_by_dialog), whatever discard_changes "
+        "says. Importing can open a dialog (STEP mesh options, for instance); the reply is then blocked_by_dialog.",
         object_schema({{"paths", array_prop({{"type", "string"}}, "Absolute paths.")},
-                       {"as", enum_prop({"auto", "geometry", "project"}, "How to open .3mf files. Default auto (= project).")},
+                       {"as", enum_prop({"auto", "geometry", "project"}, "How a .3mf given alone opens: as a project (auto, the "
+                                                                         "default, and project) or adding its models only "
+                                                                         "(geometry).")},
                        {"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail when a .3mf "
                                                            "replaces it.")}},
                       {"paths"}),
@@ -457,8 +460,9 @@ void register_project_tools(CommandCatalog& catalog)
         "if there are any: the reply is then blocked_by_dialog, and answer_dialog answers it. With arguments, or silent: "
         "true, it asks nothing: it fails, changing nothing, when the current project has unsaved changes, unless "
         "discard_changes. The presets' unsaved changes carry over to the new project unless preset_changes is \"discard\", as "
-        "New Project's prompt offers. Reply: objects, names, plates; when presets had or have unsaved changes, discarded "
-        "and modified list per preset the keys dropped and the keys still unsaved.",
+        "New Project's prompt offers. Reply, with arguments: objects, names, plates; when presets had or have unsaved "
+        "changes, discarded and modified list per preset the keys dropped and the keys still unsaved. With no arguments "
+        "the reply is ran and level, also once a prompt is answered, whatever the answer: Cancel keeps the project.",
         object_schema({{"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail; for the "
                                                            "presets', see preset_changes.")},
                        {"preset_changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep "
@@ -527,7 +531,7 @@ void register_project_tools(CommandCatalog& catalog)
              {"top_surface_pattern", enum_prop({"archimedeanchords", "monotonic"}, "flow_ratio (default archimedeanchords).")},
              {"auto_scale", prop("boolean", "temperature, vfa: scale the model to the nozzle (default true).")},
              {"auto_adjust", prop("boolean", "vfa: lower the layer height, else the end speed, to stay within the filament's "
-                                             "maximum volumetric speed (default true).")},
+                                             "maximum volumetric speed (default true); only with auto_scale.")},
              {"discard_changes", prop("boolean", "Drop the project's unsaved changes rather than fail; for the presets', "
                                                  "see preset_changes.")},
              {"preset_changes", enum_prop({"keep", "discard"}, "The presets' unsaved changes, not the project's: keep them for the "
@@ -640,12 +644,15 @@ void register_project_tools(CommandCatalog& catalog)
         }));
 
     // The Speed Dial's Save Project too: with no arguments it saves as the tile does.
-    catalog.add(NativeCommands::with_person_form(reaching({"save_project_as"}, mutate_tool(
+    NativeCommand save = NativeCommands::with_person_form(reaching({"save_project_as"}, mutate_tool(
         {}, "save_project", {},
-        "Save the project. Called with no arguments, it saves as Save Project does: to the project's file, or, when it has "
-        "none, through a file dialog (blocked_by_dialog; a native picker needs auto_answer_dialogs registered first). With "
-        "path, it saves a .3mf there without a dialog, and the file becomes the project's. A save that writes nothing (a "
-        "dialog cancelled, the file not written) fails with project_not_saved, and a file already there stays as it was.",
+        "Save the project. Called with no arguments, it saves as Save Project does: to the project's file (reply: ran, "
+        "level), or, when it has none, through a file dialog (blocked_by_dialog; a native picker needs auto_answer_dialogs "
+        "registered first). With path, it saves a .3mf there without the file dialog, and the file becomes the project's "
+        "(reply: path, bytes); a name ending in .gcode.3mf is refused (export writes that). Either way the save can still "
+        "open a dialog (blocked_by_dialog): a warning when settings name a plugin OrcaSlicer cannot identify, or an error "
+        "when the file cannot be written. A save that writes nothing, its file dialog or that warning cancelled or the "
+        "write failed, fails with project_not_saved, and a file already there stays as it was.",
         object_schema({{"path", prop("string", "Absolute .3mf path.")}, {"overwrite", prop("boolean", "Replace an existing file.")}}, {"path"}),
         [](const json& args, ToolContext& ctx) {
             std::string err;
@@ -669,19 +676,25 @@ void register_project_tools(CommandCatalog& catalog)
             if (Plater* plater = wxGetApp().plater())
                 return NativeCommands::project_save_result(plater->save_project(false));
             return AppActionRunResult{AppActionRunResult::Level::Succeeded};
-        }));
+        });
+    // Any argument makes path required, and a call with path skips the file dialog: silent has nothing to add here.
+    save.input_schema["properties"]["silent"]["description"] =
+        "Goes with path, which any argument makes required, and adds nothing to it: a call with path skips the file dialog already.";
+    catalog.add(save);
 
     catalog.add(reaching({"start_gcode_export", "export_sliced_3mf", "export_model_3mf", "export_stl"}, mutate_tool(
         "api", "export", L("Export"),
         "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the "
-        "background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf. 3mf: "
-        "the model without slicing data. stl: all objects as one STL. Without format, the path's extension (.gcode, "
-        ".gcode.3mf, .3mf, .stl) says which.",
+        "background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf (slice "
+        "first: a plate that is not sliced is written without G-code). 3mf: the model without slicing data. stl: all "
+        "objects as one STL. Both hold every plate's objects. Without format, the path's extension (.gcode, .gcode.3mf, "
+        ".3mf, .stl) says which. Reply: path and bytes; for gcode, path and export (ok, or superseded with a note when the "
+        "project changed while it was written).",
         object_schema({{"format", enum_prop({"gcode", "sliced_3mf", "3mf", "stl"}, "What to write; default from the path's extension.")},
                        {"path", prop("string", "Absolute output path.")},
                        {"plates", {{"type", {"string", "integer"}},
-                                   {"description", "\"current\" (default), a plate index, which is selected first, or \"all\" "
-                                                   "(sliced_3mf only)."}}},
+                                   {"description", "\"current\" (default), a plate index, which is selected first and is the plate "
+                                                   "gcode and sliced_3mf write, or \"all\" (sliced_3mf only)."}}},
                        {"overwrite", prop("boolean", "Replace an existing file.")}},
                       {"path"}),
         [](const json& args, ToolContext& ctx) {

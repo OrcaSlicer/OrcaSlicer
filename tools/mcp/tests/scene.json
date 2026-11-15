@@ -110,18 +110,18 @@
     // ---- Fill bed fills the object's own plate, in one undo step ----
     // The shapes were added on the current plate, plate 1; the cube goes back to plate 0.
     {"tool": "transform", "args": {"object": 1, "plate": 0}, "expect": {"/plate": {"eq": 0}}},
-    {"tool": "arrange", "args": {"fill": 2}, "expect": {"/added": {"gt": 0}, "/plate": {"eq": 1}, "/off_plate": {"empty": true}}},
+    {"tool": "arrange", "args": {"fill_object": 2}, "expect": {"/added": {"gt": 0}, "/plate": {"eq": 1}, "/off_plate": {"empty": true}}},
     // The new instances are listed on the plate they fill.
     {"tool": "list_objects", "expect": {"/plates/1/objects/0/instances/1": {"exists": true}, "/outside": {"empty": true}}},
     {"tool": "run_action", "args": {"id": "orca_command:undo:orca"}},
     {"tool": "list_objects", "expect": {"/plates/1/objects/0/instances/1": {"exists": false}, "/outside": {"empty": true}}},
-    // refused: a locked plate, a plate that does not exist, fill with plates
+    // refused: a locked plate, a plate that does not exist, fill_object with plates
     {"tool": "run_action", "args": {"id": "orca_command:plate_goto:orca", "args": {"plate": 1}}},
     {"tool": "run_action", "args": {"id": "orca_command:plate_toggle_lock:orca"}},
     {"tool": "arrange", "args": {"plates": 1}, "optional": true},
     {"tool": "run_action", "args": {"id": "orca_command:plate_toggle_lock:orca"}},
     {"tool": "arrange", "args": {"plates": 7}, "optional": true},
-    {"tool": "arrange", "args": {"fill": 0, "plates": 0}, "optional": true},
+    {"tool": "arrange", "args": {"fill_object": 0, "plates": 0}, "optional": true},
     {"tool": "list_objects", "expect": {"/plates/1": {"exists": true}, "/plates/2": {"exists": false}, "/plates/1/objects/0/instances/0/index": {"eq": 0},
                                         "/plates/1/objects/0/instances/1": {"exists": false}}},
 
@@ -331,7 +331,7 @@
                                         "/plates/1/objects/3/instances/0/mirrored": {"eq": true}}},
     {"tool": "run_action", "args": {"id": "orca_command:obj_order_by_name:orca", "args": {"all": true}},
      "expect": {"/descending": {"eq": false}, "/order/0/name": {"eq": "Assembly"}, "/order/4/plate": {"eq": 1}}},
-    {"tool": "arrange", "args": {"fill": 1}, "expect": {"/added": {"gt": 0}, "/plate": {"eq": 1}, "/off_plate": {"empty": true}}},
+    {"tool": "arrange", "args": {"fill_object": 1}, "expect": {"/added": {"gt": 0}, "/plate": {"eq": 1}, "/off_plate": {"empty": true}}},
     {"tool": "slice", "args": {"plates": 1}, "expect": {"/plates/0/outcome": {"eq": "ok"}}},
     {"tool": "set_view", "args": {"tab": "prepare"}},
     {"tool": "screenshot","args": {"target": "canvas", "save_path": "${out_dir}/scene.png", "overwrite": true, "include_image": false}}

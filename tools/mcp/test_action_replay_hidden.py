@@ -67,7 +67,7 @@ def main():
     client.call("set_view", tab="prepare")
     nodes_before = webview_nodes()
     prepare_eval = eval_outcome()
-    client.call("run_action", id="orca_command:toggle_run_script:orca")
+    client.call("run_action", id="orca_command:toggle_run_script_panel:orca")
     time.sleep(1.0)  # let its web view load
     check("list_widgets lists no node of the Run Script panel", webview_nodes() == nodes_before, f"{nodes_before} / {webview_nodes()}")
     check("run_javascript without a target behaves as before the panel", eval_outcome() == prepare_eval, f"{prepare_eval} / {eval_outcome()}")
@@ -76,7 +76,7 @@ def main():
     check("a window screenshot works with the panel shown", client.call("screenshot", target="main").get("path"))
     python = client.await_job(client.call("run_script", code="print('agent run')"))
     check("an agent's run_script finishes while the panel is shown", python.get("status") == "finished", python)
-    client.call("run_action", id="orca_command:toggle_run_script:orca")  # hidden again
+    client.call("run_action", id="orca_command:toggle_run_script_panel:orca")  # hidden again
 
     out = tempfile.mkdtemp(prefix="orca-runner-")
     smoke = client.await_job(client.call("run_replay", path=os.path.join(HERE, "smoke_test.json"), out_dir=out))

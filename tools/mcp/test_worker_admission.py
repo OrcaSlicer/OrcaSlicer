@@ -57,7 +57,7 @@ def main():
         c.call("select_objects", none=True)
         c.call("run_action", id="orca_command:add_primitive_cube:orca", args={"size": size})
     for o in range(3):
-        c.call("arrange", fill=o, spacing=0, rotate=False)
+        c.call("arrange", fill_object=o, spacing=0, rotate=False)
 
     for name, (tool, args) in STARTERS.items():
         if name == "click" and c.call("list_widgets", query="Arrange options", include_menus=False).get("nodes", 0) == 0:

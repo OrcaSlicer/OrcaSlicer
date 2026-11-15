@@ -85,7 +85,7 @@ RecordingSettings load_recording_settings(const AppConfig& config)
         } catch (const std::exception&) {
         }
     };
-    number("quality", kMinQuality, kMaxQuality, s.quality);
+    number("jpeg_quality", kMinQuality, kMaxQuality, s.quality);
     number("crf", 0, kMaxCrf, s.crf);
     s.captions = config.get(kSection, "captions") == "true";
     s.pointer  = config.get(kSection, "pointer") == "true";
@@ -104,7 +104,7 @@ RecordingSettings load_recording_settings(const AppConfig& config)
 
 void save_recording_settings(AppConfig& config, const RecordingSettings& settings)
 {
-    config.set(kSection, "quality", std::to_string(settings.quality));
+    config.set(kSection, "jpeg_quality", std::to_string(settings.quality));
     config.set(kSection, "captions", settings.captions);
     config.set(kSection, "pointer", settings.pointer);
     config.set(kSection, "encode", settings.encode);

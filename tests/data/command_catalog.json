@@ -88,7 +88,7 @@
     "additionalProperties": false,
     "properties": {
      "tab": {
-      "description": "The tab's id: home, prepare, preview, monitor, project, calibration, or a plugin page's id.",
+      "description": "The tab's id: home, prepare, preview, monitor (the Device tab, which set_view calls device), monitor_web (the web Device page, where the app shows one), multi_device, project, calibration, design, or a plugin page's id.",
       "type": "string"
      }
     },
@@ -371,7 +371,7 @@
     "properties": {},
     "type": "object"
    },
-   "key": "toggle_run_script",
+   "key": "toggle_run_script_panel",
    "listed": false,
    "open_world": false,
    "operations": [],
@@ -410,7 +410,7 @@
     "additionalProperties": false,
     "properties": {
      "key": {
-      "description": "A preference on that tab, e.g. auto_arrange on behaviour: its control is scrolled into view and focused.",
+      "description": "With tab: a preference on that tab, e.g. auto_arrange on behaviour: its control is scrolled into view and focused.",
       "type": "string"
      },
      "tab": {
@@ -538,7 +538,7 @@
   },
   {
    "completion": "deferred",
-   "description": "Export the current plate's G-code. With a path, exports there without a dialog once the plate is sliced, in the background, and the call returns when the file is written; with no arguments, it opens the export dialog.",
+   "description": "Export the current plate's G-code. With a path, exports the sliced plate there without a dialog, in the background, and the call returns when the file is written; a plate that is not sliced is refused (slice first). With no arguments, it opens the export dialog.",
    "destructive": false,
    "group": "Slice & Export",
    "guard": "mutate",
@@ -895,7 +895,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Point the 3D camera: View: Top.",
+   "description": "Turn the 3D camera of Prepare, Preview or the assemble view to the top view, as set_view {camera: \"top\"} does there.",
    "destructive": false,
    "group": "View",
    "guard": "mutate",
@@ -915,7 +915,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Point the 3D camera: View: Bottom.",
+   "description": "Turn the 3D camera of Prepare, Preview or the assemble view to the bottom view, as set_view {camera: \"bottom\"} does there.",
    "destructive": false,
    "group": "View",
    "guard": "mutate",
@@ -935,7 +935,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Point the 3D camera: View: Front.",
+   "description": "Turn the 3D camera of Prepare, Preview or the assemble view to the front view, as set_view {camera: \"front\"} does there.",
    "destructive": false,
    "group": "View",
    "guard": "mutate",
@@ -955,7 +955,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Point the 3D camera: View: Rear.",
+   "description": "Turn the 3D camera of Prepare, Preview or the assemble view to the rear view, as set_view {camera: \"rear\"} does there.",
    "destructive": false,
    "group": "View",
    "guard": "mutate",
@@ -975,7 +975,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Point the 3D camera: View: Left.",
+   "description": "Turn the 3D camera of Prepare, Preview or the assemble view to the left view, as set_view {camera: \"left\"} does there.",
    "destructive": false,
    "group": "View",
    "guard": "mutate",
@@ -995,7 +995,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Point the 3D camera: View: Right.",
+   "description": "Turn the 3D camera of Prepare, Preview or the assemble view to the right view, as set_view {camera: \"right\"} does there.",
    "destructive": false,
    "group": "View",
    "guard": "mutate",
@@ -1015,7 +1015,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Point the 3D camera: View: Isometric.",
+   "description": "Turn the 3D camera of Prepare, Preview or the assemble view to the iso view, as set_view {camera: \"iso\"} does there.",
    "destructive": false,
    "group": "View",
    "guard": "mutate",
@@ -1918,7 +1918,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a Text object to the current plate.",
+   "description": "Add a text: a part on the selected object, or a new object when nothing is selected. It is created in the background (wait for idle), and the Text gizmo opens on it.",
    "destructive": false,
    "group": "Add Primitive",
    "guard": "mutate",
@@ -1963,7 +1963,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a Orca Cube object to the current plate.",
+   "description": "Add the Orca Cube and its plug to the current plate, then arrange the objects as the toolbar's Arrange does, which moves the others too.",
    "destructive": false,
    "group": "Add Handy models",
    "guard": "mutate",
@@ -1983,7 +1983,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a OrcaSliced Combo object to the current plate.",
+   "description": "Add the OrcaSliced Combo (the OrcaSliced model, the Orca Cube and its plug) to the current plate, then arrange the objects as the toolbar's Arrange does, which moves the others too.",
    "destructive": false,
    "group": "Add Handy models",
    "guard": "mutate",
@@ -2003,7 +2003,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a Orca Badge object to the current plate.",
+   "description": "Add the Orca Badge model to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
    "guard": "mutate",
@@ -2023,7 +2023,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a Orca Tolerance Test object to the current plate.",
+   "description": "Add the Orca Tolerance Test model to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
    "guard": "mutate",
@@ -2043,7 +2043,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a 3DBenchy object to the current plate.",
+   "description": "Add the 3DBenchy model to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
    "guard": "mutate",
@@ -2063,7 +2063,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a Cali Cat object to the current plate.",
+   "description": "Add the Cali Cat model to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
    "guard": "mutate",
@@ -2083,7 +2083,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a Autodesk FDM Test object to the current plate.",
+   "description": "Add the Autodesk FDM Test model to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
    "guard": "mutate",
@@ -2103,7 +2103,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a Voron Cube object to the current plate.",
+   "description": "Add the Voron Cube model to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
    "guard": "mutate",
@@ -2123,7 +2123,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a Stanford Bunny object to the current plate.",
+   "description": "Add the Stanford Bunny model to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
    "guard": "mutate",
@@ -2143,7 +2143,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add a Orca String Hell object to the current plate.",
+   "description": "Add the Orca String Hell model to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
    "guard": "mutate",
@@ -2341,7 +2341,7 @@
    "input_schema": {
     "additionalProperties": false,
     "properties": {
-     "slot": {
+     "filament_slot": {
       "description": "The 1-based filament slot. Default: the last physical slot, as the - button.",
       "minimum": 1,
       "type": "integer"
@@ -2710,7 +2710,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Benchmark rendering of the current 3D scene.",
+   "description": "Time the 3D views on a test model. It asks first (Start or Cancel), then replaces the project with the OrcaSliced Combo as New Project does, which may ask about unsaved changes, slices it and shows the results.",
    "destructive": false,
    "group": "Help",
    "guard": "mutate",
@@ -2870,7 +2870,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Open the plugin hub to install a plugin.",
+   "description": "Open the plugin hub's page in the default web browser, where a person picks a plugin to install; nothing opens in OrcaSlicer.",
    "destructive": false,
    "group": "Plugins",
    "guard": "mutate",
@@ -2935,7 +2935,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Block until a condition holds or timeout_s passes (max 50). for: \"ready\" (startup finished), \"idle\" (no dialog, no running job, nothing slicing or arranging, no gizmo working in the background; a run_script run counts only through the calls it makes), \"dialog\" / \"no_dialog\", or \"job\" with a job id an earlier call returned, whose result is then the reply. On timeout the reply is {satisfied: false}: call it again.",
+   "description": "Block until a condition holds or timeout_s passes (max 50). for: \"ready\" (startup finished), \"idle\" (no dialog, no running job, nothing slicing or arranging, no gizmo working in the background; a run_script run counts only through the calls it makes), \"dialog\" / \"no_dialog\", or \"job\" with a job id an earlier call returned, whose result is then the reply. On timeout the reply is {satisfied: false}, or for a job {status: \"running\", job, note}: call it again.",
    "destructive": false,
    "group": "core",
    "guard": "inspect",
@@ -3087,7 +3087,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Open model files (STL, 3MF, STEP, OBJ, AMF, SVG...), a project (.3mf) or G-code by absolute path, without a file dialog. Models are added to the current project. A .3mf opens as a project, replacing the current one, unless as is \"geometry\"; when the current project has unsaved changes that fails, changing nothing, unless discard_changes. Importing can open a dialog (STEP mesh options, for instance); the reply is then blocked_by_dialog.",
+   "description": "Open model files (STL, 3MF, STEP, OBJ, AMF, SVG...), a project (.3mf) or G-code by absolute path, without a file dialog. Models are added to the current project. A .3mf given alone opens as a project, replacing the current one, unless as is \"geometry\"; when the current project has unsaved changes that fails, changing nothing, unless discard_changes. Given with other paths, a .3mf adds its models only. A G-code given alone replaces the project too, to show its toolpaths: with unsaved changes the app asks first (blocked_by_dialog), whatever discard_changes says. Importing can open a dialog (STEP mesh options, for instance); the reply is then blocked_by_dialog.",
    "destructive": false,
    "group": "api",
    "guard": "mutate",
@@ -3097,7 +3097,7 @@
     "additionalProperties": false,
     "properties": {
      "as": {
-      "description": "How to open .3mf files. Default auto (= project).",
+      "description": "How a .3mf given alone opens: as a project (auto, the default, and project) or adding its models only (geometry).",
       "enum": [
        "auto",
        "geometry",
@@ -3134,7 +3134,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Start a new, empty project. Called with no arguments, it asks as New Project does, about the unsaved changes if there are any: the reply is then blocked_by_dialog, and answer_dialog answers it. With arguments, or silent: true, it asks nothing: it fails, changing nothing, when the current project has unsaved changes, unless discard_changes. The presets' unsaved changes carry over to the new project unless preset_changes is \"discard\", as New Project's prompt offers. Reply: objects, names, plates; when presets had or have unsaved changes, discarded and modified list per preset the keys dropped and the keys still unsaved.",
+   "description": "Start a new, empty project. Called with no arguments, it asks as New Project does, about the unsaved changes if there are any: the reply is then blocked_by_dialog, and answer_dialog answers it. With arguments, or silent: true, it asks nothing: it fails, changing nothing, when the current project has unsaved changes, unless discard_changes. The presets' unsaved changes carry over to the new project unless preset_changes is \"discard\", as New Project's prompt offers. Reply, with arguments: objects, names, plates; when presets had or have unsaved changes, discarded and modified list per preset the keys dropped and the keys still unsaved. With no arguments the reply is ran and level, also once a prompt is answered, whatever the answer: Cancel keeps the project.",
    "destructive": false,
    "group": "Commands",
    "guard": "mutate",
@@ -3194,7 +3194,7 @@
       "type": "array"
      },
      "auto_adjust": {
-      "description": "vfa: lower the layer height, else the end speed, to stay within the filament's maximum volumetric speed (default true).",
+      "description": "vfa: lower the layer height, else the end speed, to stay within the filament's maximum volumetric speed (default true); only with auto_scale.",
       "type": "boolean"
      },
      "auto_scale": {
@@ -3323,7 +3323,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Save the project. Called with no arguments, it saves as Save Project does: to the project's file, or, when it has none, through a file dialog (blocked_by_dialog; a native picker needs auto_answer_dialogs registered first). With path, it saves a .3mf there without a dialog, and the file becomes the project's. A save that writes nothing (a dialog cancelled, the file not written) fails with project_not_saved, and a file already there stays as it was.",
+   "description": "Save the project. Called with no arguments, it saves as Save Project does: to the project's file (reply: ran, level), or, when it has none, through a file dialog (blocked_by_dialog; a native picker needs auto_answer_dialogs registered first). With path, it saves a .3mf there without the file dialog, and the file becomes the project's (reply: path, bytes); a name ending in .gcode.3mf is refused (export writes that). Either way the save can still open a dialog (blocked_by_dialog): a warning when settings name a plugin OrcaSlicer cannot identify, or an error when the file cannot be written. A save that writes nothing, its file dialog or that warning cancelled or the write failed, fails with project_not_saved, and a file already there stays as it was.",
    "destructive": false,
    "group": "Commands",
    "guard": "mutate",
@@ -3344,7 +3344,7 @@
       "type": "string"
      },
      "silent": {
-      "description": "true runs the command without asking, with the defaults of what the call leaves out. A call with no arguments does what a person's pick does.",
+      "description": "Goes with path, which any argument makes required, and adds nothing to it: a call with path skips the file dialog already.",
       "enum": [
        true
       ],
@@ -3369,7 +3369,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf. 3mf: the model without slicing data. stl: all objects as one STL. Without format, the path's extension (.gcode, .gcode.3mf, .3mf, .stl) says which.",
+   "description": "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf (slice first: a plate that is not sliced is written without G-code). 3mf: the model without slicing data. stl: all objects as one STL. Both hold every plate's objects. Without format, the path's extension (.gcode, .gcode.3mf, .3mf, .stl) says which. Reply: path and bytes; for gcode, path and export (ok, or superseded with a note when the project changed while it was written).",
    "destructive": false,
    "group": "api",
    "guard": "mutate",
@@ -3397,7 +3397,7 @@
       "type": "string"
      },
      "plates": {
-      "description": "\"current\" (default), a plate index, which is selected first, or \"all\" (sliced_3mf only).",
+      "description": "\"current\" (default), a plate index, which is selected first and is the plate gcode and sliced_3mf write, or \"all\" (sliced_3mf only).",
       "type": [
        "string",
        "integer"
@@ -3423,7 +3423,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Printer, process or filament presets with flags: system or user, selected (and modified), compatible with the selected printer, and for filaments the slots using them. Only compatible, visible presets unless asked: a fresh install hides most system filaments and printers (visible: false), and select_preset takes those too.",
+   "description": "Printer, process or filament presets, each with its name, alias (the name its selector shows, when another), system, user, project (kept inside the project), inherits, selected (and modified), compatible: false or visible: false when so, and for a filament the slots using it (filament_slots). Only compatible, visible presets unless asked: a fresh install hides most system filaments and printers, and select_preset takes a hidden one too.",
    "destructive": false,
    "group": "api",
    "guard": "inspect",
@@ -3451,7 +3451,7 @@
       "type": "integer"
      },
      "query": {
-      "description": "Case-insensitive part of the name.",
+      "description": "Case-insensitive part of the name or alias.",
       "type": "string"
      },
      "type": {
@@ -3478,7 +3478,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Select a printer, process or filament preset by the name its selector shows (or its internal name), as a person would. A hidden one (list_presets include_hidden) is shown in the selectors first, until the app restarts. With unsaved changes the Transfer-or-discard prompt opens (blocked_by_dialog) unless preset_changes answers it. A filament is assigned to filament_slot (1-based, default 1). Reply: selected, shown (a hidden preset it showed); when presets had or have unsaved changes, discarded and modified list per preset the keys dropped and the keys still unsaved.",
+   "description": "Select a printer, process or filament preset by the name its selector shows (or its internal name), as a person would. A hidden one (list_presets include_hidden) is shown in the selectors first, until the app restarts; one the selector leaves out as incompatible with the printer is refused. With unsaved changes the Transfer-or-discard prompt opens (blocked_by_dialog) unless preset_changes answers it. A filament is assigned to filament_slot (1-based, default 1); with several slots the filament tab keeps the preset and the changes it has, so nothing is asked. Reply: selected, shown (a hidden preset it showed); when presets had or have unsaved changes, discarded and modified list per preset the keys dropped and the keys still unsaved.",
    "destructive": false,
    "group": "api",
    "guard": "mutate",
@@ -3497,7 +3497,7 @@
       "type": "string"
      },
      "preset_changes": {
-      "description": "Unsaved changes of the presets the switch replaces: move them to the new preset or drop them, as the prompt's buttons do. Omitted: the prompt opens.",
+      "description": "Unsaved changes of the presets the switch replaces: move them to the new preset or drop them, as the prompt's buttons do; transfer is refused where the prompt does not offer it (a printer's changes, a filament of another type). Omitted: the prompt opens.",
       "enum": [
        "transfer",
        "discard"
@@ -3533,7 +3533,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Save the printer, process or filament preset being edited, with its unsaved changes, as a preset called name, which is then selected: what the tab's Save button does through its dialog. A filament is filament_slot's (default 1), and every slot using the old preset takes the new one. Replacing another existing preset needs overwrite (pass it in replays and scripts meant to be rerun). Reply: saved, user, project, inherits, filament_slots. A temperature warning or an unsaved-changes prompt makes it blocked_by_dialog. To keep only some edits, set_settings {reset_all: true, values} first.",
+   "description": "Save the printer, process or filament preset being edited, with its unsaved changes, as a preset called name, which is then selected: what the tab's Save button does through its dialog. A filament is filament_slot's (default 1), and every slot using the old preset takes the new one. Replacing another existing preset needs overwrite (pass it in replays and scripts meant to be rerun). Reply: saved, selected, user, project, inherits, filament_slots. A temperature warning or an unsaved-changes prompt makes it blocked_by_dialog. To keep only some edits, set_settings {reset_all: true, values} first.",
    "destructive": false,
    "group": "api",
    "guard": "mutate",
@@ -3552,7 +3552,7 @@
       "type": "integer"
      },
      "inside_project": {
-      "description": "Keep it inside the project, not as a user preset. Default: where the edited preset is.",
+      "description": "Keep it inside the project, not as a user preset. Default: where the edited preset is. A preset of that name stays where it is.",
       "type": "boolean"
      },
      "name": {
@@ -3588,7 +3588,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Delete a user preset or one inside the project, its file and its cloud copy, as the tab's Delete does, without asking. A selected preset is replaced as the tab does (its parent or the next preset). Another filament is deleted without changing the selection, and slots using it take the selected one; another process is selected, deleted and the selection restored; a printer must be selected first. Refused: system presets, presets others inherit from, another preset while the edited one of its type has unsaved changes. Deleting a selected printer or process can ask about other presets' unsaved changes (blocked_by_dialog). Reply: deleted, selected, filaments (per slot), attached, and discarded/modified as select_preset's.",
+   "description": "Delete a user preset or one inside the project, its file and its cloud copy, as the tab's Delete does, without asking. A selected preset is replaced as the tab does (its parent or the next preset). Another filament is deleted without changing the selection, and slots using it take the selected one; another process is selected, deleted and the selection restored; a printer must be selected first, and the physical printers that use only it are deleted with it. Refused: system, default and bundle presets, presets others inherit from, another preset while the edited one of its type has unsaved changes. Deleting a selected printer or process can ask about other presets' unsaved changes (blocked_by_dialog). Reply: deleted, selected, filaments (per slot), attached, and discarded/modified as select_preset's.",
    "destructive": true,
    "group": "api",
    "guard": "mutate",
@@ -3598,7 +3598,7 @@
     "additionalProperties": false,
     "properties": {
      "delete_attached": {
-      "description": "A custom printer: also delete the process and filament presets made for it alone, which the GUI deletes with it.",
+      "description": "A custom printer with process or filament presets made for it alone is refused without this: they are deleted with it, as the GUI deletes them.",
       "type": "boolean"
      },
      "name": {
@@ -3630,7 +3630,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Read settings: each item has its value, as OrcaSlicer writes it, and meta: label, description (what the setting does, when to change it), where (its settings page and group), type, unit, range, allowed values and mode. Choose them by keys; by query, a few words matched in keys, labels and descriptions, best matches first; by where, a page or group (an unknown one lists them all); or by none of these, for the whole scope, paged and, in a preset scope, without meta. Keys the scope lacks are listed in unknown_keys, and scope_of gives the scope of those another scope has.\n- No scope: keys and query look through the process, filament and printer settings, and each item names its scope, the one set_settings takes; anything else reads the process.\n- process, filament, printer: the preset being edited, or with preset a saved one; compare lists only the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what each entry is for) and active (the entry each extruder prints with).\n- object, part: the overrides that object or part carries, each with effective (the value it prints with) and source (part, object, process or default); an object's item lists in parts the parts and modifiers that override the key inside their own volume.\n- project: the plate type, slot colours, flushing volumes, purge mode, prime tower position per plate, mixed slots and, with several extruders, the filament grouping; meta.offered lists the choices this printer has.\n- plate: a plate's curr_bed_type, print_sequence, spiral_mode, first_layer_print_sequence, other_layers_print_sequence, name and locked, each with value (the plate's own, null where it follows the global setting or Auto) and effective.\n- preferences: the named keys of the app configuration (the Preferences dialog's settings, keys as its controls are named), as stored; it lists none unasked.",
+   "description": "Read settings: each item has its value, as OrcaSlicer writes it, and meta: label, description (what the setting does, when to change it), where (its settings page and group), type, unit, range, allowed values and mode. Choose them by keys; by query, a few words matched in keys, labels and descriptions, best matches first; by where, a page or \"Page > Group\" (an unknown one is refused with the list of them); or by none of these, for the whole scope, paged and, in a preset scope, without meta. Keys the scope lacks are listed in unknown_keys, and scope_of gives the scope of those another scope has.\n- No scope: keys and query look through the process, filament and printer settings, and each item names its scope, the one set_settings takes; anything else reads the process.\n- process, filament, printer: the preset being edited, or with preset a saved one; compare lists only the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what each entry is for) and active (the entry each extruder prints with).\n- object, part: listed whole, the overrides that object or part carries; keys, query and where read any process setting there. Each has effective (the value it prints with) and source (part, object, process or default); an object's item lists in parts the parts and modifiers that override the key inside their own volume.\n- project: the plate type, slot colours, flushing volumes, purge mode, prime tower position per plate, mixed slots and, with several extruders, the filament grouping; meta.offered lists the choices this printer has.\n- plate: a plate's curr_bed_type, print_sequence, spiral_mode, first_layer_print_sequence, other_layers_print_sequence, name and locked, each with value (the plate's own, null where it follows the global setting or Auto) and effective.\n- preferences: the named keys of the app configuration (the Preferences dialog's settings, keys as its controls are named), as stored; it lists none unasked.",
    "destructive": false,
    "group": "api",
    "guard": "inspect",
@@ -3644,7 +3644,7 @@
       "type": "string"
      },
      "filament_slot": {
-      "description": "Filament slot, 1-based.",
+      "description": "Filament scope: the slot whose preset is read, 1-based (default 1), with its unsaved changes when the filament tab is editing it.",
       "minimum": 1,
       "type": "integer"
      },
@@ -3722,7 +3722,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Change settings of one scope (default the process) as typing them into its settings tab would. Values are strings in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as [x, y]). All are parsed strictly first and applied together, so nothing changes if one is invalid, and a key of another scope is refused with that scope named. Reply: applied, and changed, every setting the call changed, including those the app adjusted in turn. One undo step. Spiral vase and a few others confirm their adjustments in a dialog (blocked_by_dialog).\n- process, filament, printer: null takes a key back to its saved value, or with reset_to parent to the parent's; reset_all first discards every unsaved change, as the tab's undo button does (reply: reverted). A per-variant value (get_settings meta.variants) takes one value for the entries in use (meta.active), {index, value} for one entry, or an array of all.\n- object, part: overrides of the keys the object list offers there; null removes one. extruder is the object's or part's filament (1-based; 0 or null for Default), set as the Change Filament menu does.\n- project, as the sidebar's controls write them: curr_bed_type, filament_colour (#RRGGBB per slot), flush_multiplier, flush_volumes_matrix, prime_volume_mode, and wipe_tower_x/y (mm from the plate's origin, one per plate). flush_volumes_matrix is per nozzle, slots x slots from row to column, in config order over every slot, before the multiplier; mixed slots' entries are left as they are, and a colour change can recalculate it, so set it last.\n- plate, which it selects and writes as the Plate Settings dialog's OK does: curr_bed_type, print_sequence (\"by layer\", \"by object\"), spiral_mode (true asks for confirmation), first_layer_print_sequence (every slot once, e.g. [2, 1]), other_layers_print_sequence ([{from: layer >= 2, to, order}], to omitted for the last layer), name and locked; null returns a value to the global setting or Auto.",
+   "description": "Change settings of one scope (default the process) as typing them into its settings tab would. Values are strings in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as [x, y]). All are parsed strictly first and applied together, so nothing changes if one is invalid, and a key of another scope is refused with that scope named. Reply: applied, and changed, every setting the call changed, including those the app adjusted in turn. An object's, part's or plate's change is one undo step; a preset's is not in the undo history. Spiral vase and a few others confirm their adjustments in a dialog (blocked_by_dialog).\n- process, filament, printer: null takes a key back to its saved value, or with reset_to parent to the parent's; reset_all first discards every unsaved change, as the tab's undo button does (reply: reverted). A per-variant value (get_settings meta.variants) takes one value for the entries in use (meta.active), {index, value} for one entry, or an array of all.\n- object, part: overrides of the keys the object list offers there; null removes one. extruder is the object's or part's filament (1-based; 0 or null for Default), set as the Change Filament menu does.\n- project, as the sidebar's controls write them: curr_bed_type, filament_colour (#RRGGBB per slot), flush_multiplier, flush_volumes_matrix, prime_volume_mode, and wipe_tower_x/y (mm from the plate's origin, one per plate). flush_volumes_matrix is per nozzle, slots x slots from row to column, in config order over every slot, before the multiplier; a mixed slot's entries must be given as they are, and a colour change can recalculate it, so set it last.\n- plate, which it selects and writes as the Plate Settings dialog's OK does: curr_bed_type, print_sequence (\"by layer\", \"by object\"), spiral_mode (true asks for confirmation), first_layer_print_sequence (every slot once, e.g. [2, 1]), other_layers_print_sequence ([{from: layer >= 2, to, order}], to omitted for the last layer), name and locked; null returns a value to the global setting or Auto.",
    "destructive": false,
    "group": "api",
    "guard": "mutate",
@@ -3732,7 +3732,7 @@
     "additionalProperties": false,
     "properties": {
      "filament_slot": {
-      "description": "Filament slot, 1-based.",
+      "description": "Filament scope: the slot whose preset is changed, 1-based (default 1). The filament tab switches to it, which can ask about the unsaved changes it holds (blocked_by_dialog).",
       "minimum": 1,
       "type": "integer"
      },
@@ -3836,7 +3836,7 @@
   },
   {
    "completion": "immediate",
-   "description": "The project as the Objects panel lists it. plates: each {index, name, objects}, with the objects that have an instance on it; outside: the objects with an instance on no plate. An object with instances on two plates is listed under both, each time with that plate's instances. An object has its filament, auto_drop, bounding box (instance 0), brim ear count and the settings it overrides; its instances (offset, rotation in degrees, scale, mirrored, bbox); its parts, one or more: parts, negative parts, modifiers, support blockers and enforcers and precise seams (type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets one; position, bbox and scaled_volume in mm3 on the bed, measured on instance 0; rotation_deg and scale in the object's frame; mirrored; triangle count; mesh_volume, the unscaled mesh's mm3; painted facets: supports and seam enforcers/blockers, fuzzy_skin, mmu per filament, texture per layer; a text part's text and font, an SVG part's file); its height range modifiers when it has any (layer_config_ranges: [{min_z, max_z, values}], as set_height_ranges takes them) and its variable layer height profile when it has one (layer_height_profile: {points, min_height, max_height}). A bbox is {min, max, size} in mm of model parts only, so unlike the panel's Size it leaves out modifiers. An object's index numbers it in the project and a part's in its object, whatever the plate: they are what select_objects, transform, mouse_gesture targets and the object/part settings scopes take. Each object and part also has an id, which stays with it when a delete, split or assemble shifts the indices: pass it as object_id / part_id to transform, add_part, set_settings, set_height_ranges and set_variable_layer_height (object_ids, part_ids and instance_object_ids to select_objects), and a call whose index names another one now is refused instead of acting on it. limit and offset page the objects and total counts them, each once.",
+   "description": "The project as the Objects panel lists it. plates: each {index, name, objects}, with the objects that have an instance on it; outside: the objects with an instance on no plate. An object with instances on two plates is listed under both, each time with that plate's instances. An object has its filament, auto_drop, bounding box (instance 0), brim ear count and overrides, the keys of the settings it overrides (get_settings scope object reads them); its instances (offset, rotation in degrees, scale, mirrored, bbox); its parts, one or more: parts, negative parts, modifiers, support blockers and enforcers and precise seams (type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets one; position, bbox and scaled_volume in mm3 on the bed, measured on instance 0; rotation_deg and scale in the object's frame; mirrored; triangle count; mesh_volume, the unscaled mesh's mm3; painted facets: supports and seam enforcers/blockers, fuzzy_skin, mmu per filament, texture per layer; a text part's text and font, an SVG part's file); its height range modifiers when it has any (layer_config_ranges: [{min_z, max_z, values}], as set_height_ranges takes them) and its variable layer height profile when it has one (layer_height_profile: {points, min_height, max_height}). A bbox is {min, max, size} in mm of model parts only, so unlike the panel's Size it leaves out modifiers. An object's index numbers it in the project and a part's in its object, whatever the plate: they are what select_objects, transform, mouse_gesture targets and the object/part settings scopes take. Each object and part also has an id, which stays with it when a delete, split or assemble shifts the indices: pass it as object_id / part_id to transform, add_part, set_settings, set_height_ranges and set_variable_layer_height (object_ids, part_ids and instance_object_ids to select_objects), and a call whose index names another one now is refused instead of acting on it. limit and offset page the objects and total counts them, each once.",
    "destructive": false,
    "group": "api",
    "guard": "inspect",
@@ -3876,7 +3876,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, instances ([[object, instance], ...]) or parts ([[object, part], ...]); add keeps the current selection; all / none select everything or nothing. The reply is the selection as get_app_state.selection gives it.",
+   "description": "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, instances ([[object, instance], ...]) or parts ([[object, part], ...]); add keeps the current selection; all / none select everything or nothing, whatever else is given. The reply is the selection as get_app_state.selection gives it.",
    "destructive": false,
    "group": "ui",
    "guard": "mutate",
@@ -3951,7 +3951,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Change one instance's placement, or one part's with part. translate is in mm, position where it goes (mm, as the Move panel shows it, whatever mode says), rotate in degrees about X/Y/Z, scale a factor (one number or [x, y, z]), size [x, y, z] mm along the object's or part's own axes, plate moves the instance onto that plate at the same place. mode \"relative\" (default) adds to the current placement, \"absolute\" sets it. An instance is dropped back onto the bed unless drop_to_bed is false. A part moves as the Object manipulation panel moves it: translate and rotate along the bed's axes, measured on instance 0, scale and size along its own axes; every instance shows the change, and Auto Drop may lower the object afterwards. One undo step. Reply: the instance's offset, scale and plate, or the part's size along its own axes and its list_objects entry (part_info).",
+   "description": "Change one instance's placement, or one part's with part. translate is in mm, position where it goes (mm, as the Move panel shows it, whatever mode says), rotate in degrees about X/Y/Z, scale a factor (one number or [x, y, z]), size [x, y, z] mm along the object's or part's own axes, plate moves the instance onto that plate at the same place. mode \"relative\" (default) adds to the current placement (a scale multiplies it), \"absolute\" sets it. An instance is dropped back onto the bed, unless its object's auto_drop is off; drop_to_bed false lets it sink into the bed, but an object of one part left above the bed still drops. A part moves as the Object manipulation panel moves it: translate and rotate along the bed's axes, measured on instance 0, scale and size along its own axes; every instance shows the change, and Auto Drop may lower the object afterwards. One undo step. Reply: the instance's offset, scale and plate, or the part's size along its own axes and its list_objects entry (part_info).",
    "destructive": false,
    "group": "api",
    "guard": "mutate",
@@ -4132,7 +4132,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or \"current\") as its Arrange icon does. With fill, fill that object's plate with more of it instead, as Fill bed with instances (or copies, by fill_with) does. spacing, rotate, align_y and multi_material are the Arrange options panel's settings: the values given stay in the panel, so later arranges use them too. Waits for the arrangement (a longer one replies with a job). Reply: the settings in force, instances left off every plate, plates the all-plates arrange skipped and the job's notifications. An arrange may reorder objects, so list_objects again. One undo step.",
+   "description": "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or \"current\") as its Arrange icon does. With fill_object, fill that object's plate with more of it instead, as Fill bed with instances (or copies, by fill_with) does (reply: added, how many). spacing, rotate, align_y and multi_material are the Arrange options panel's settings: the values given stay in the panel, so later arranges use them too. Waits for the arrangement (a longer one replies with a job). Reply: the settings in force, instances left off every plate, plates the all-plates arrange skipped and the job's notifications. An arrange may reorder objects, so list_objects again. One undo step.",
    "destructive": false,
    "group": "api",
    "guard": "mutate",
@@ -4145,8 +4145,8 @@
       "description": "Align to Y axis (off while rotate is on).",
       "type": "boolean"
      },
-     "fill": {
-      "description": "Instead of arranging, fill this object's plate with more of it.",
+     "fill_object": {
+      "description": "An object index: instead of arranging, fill that object's plate with more of it.",
       "minimum": 0,
       "type": "integer"
      },
@@ -4215,7 +4215,7 @@
       ]
      },
      "timeout_s": {
-      "description": "Give up after this long (default 1800).",
+      "description": "Stop waiting after this long (default 1800): the call fails, and the slice goes on unless cancel_job stops it.",
       "maximum": 7200,
       "minimum": 10,
       "type": "integer"
@@ -4234,7 +4234,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button does, or a background job an MCP call started (an arrange, orient or fill bed). Its job then reports cancelled; a background job keeps other changes out until it has really stopped. With job, only that job is stopped: the running operation, a run_script run or an encode_recording. Allowed while an operation holds the project.",
+   "description": "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button does, or a background job an MCP call started (an arrange, orient or fill bed). Its job then reports cancelled; a background job keeps other changes out until it has really stopped. With job, only that job is stopped: the running operation, a run_script run or an encode_recording. Allowed while an operation holds the project. Reply: was_running, and job when one was stopped.",
    "destructive": false,
    "group": "core",
    "guard": "recover",
@@ -4382,7 +4382,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Add or remove pauses, custom G-code, custom templates and filament changes at the start of a layer, as the Preview layer slider's menu does; they are saved per plate in the project. They go on the plate's sliced layers, so the plate needs an up-to-date slice, or must be the one the Preview still shows after an earlier edit; the call selects it and shows the Preview. Applies clear, then remove, then add, all checked first. One code per layer: a custom code or filament change where there is one replaces it. Not undoable, as in the slider. A change invalidates the plate's slice: slice again before exporting. Reply: the plate's codes as list_plates' layer_gcode lists them, each with z and layer.",
+   "description": "Add or remove pauses, custom G-code, custom templates and filament changes at the start of a layer, as the Preview layer slider's menu does; they are saved per plate in the project. They go on the plate's sliced layers, so the plate needs an up-to-date slice, or must be the one the Preview still shows after an earlier edit; the call selects it and shows the Preview. Applies clear, then remove, then add, all checked first. One code per layer: adding where a code of the same type is replaces it, and where another type is, is refused (remove it first). Not undoable, as in the slider. A change invalidates the plate's slice: slice again before exporting. Reply: the plate's codes as list_plates' layer_gcode lists them, each with z and layer.",
    "destructive": false,
    "group": "api",
    "guard": "mutate",
@@ -4570,7 +4570,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: Prepare's, the preview or the assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the default view, or fit to bed / objects / selection, then look_at, the point it looks at, an orbit to look from between the named directions, and the zoom), the preview's color scheme (picked as in the legend's combo, which shows every feature type again), legend rows, time estimate and layers (1-based, or up to a height). Only the given fields change. On the Design tab the camera points its view (default is its Home view; no fit_bed). The reply echoes them; preview layers as [first, last, count] with z, the heights of first and last; with any camera field, camera_state, the camera it leaves as get_app_state.camera gives it, and adjusted: [\"zoom\"] when the zoom was held to its limits.",
+   "description": "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: Prepare's, the preview or the assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the default view, or fit to bed / objects / selection, then look_at, the point it looks at, an orbit to look from between the named directions, and the zoom), the preview's color scheme (picked as in the legend's combo, which shows every feature type again), legend rows, time estimate and layers (1-based, or up to a height). Only the given fields change, but a preview field given without tab or canvas shows the Preview tab. On the Design tab the camera points its view (default is its Home view; no fit_bed). The reply echoes them; preview layers as [first, last, count] with z, the heights of first and last; with any camera field, camera_state, the camera it leaves as get_app_state.camera gives it, and adjusted: [\"zoom\"] when the zoom was held to its limits.",
    "destructive": false,
    "group": "ui",
    "guard": "mutate",
@@ -4702,11 +4702,11 @@
     "show_layer_range"
    ],
    "read_only": false,
-   "title": "Point the view"
+   "title": "Set up the view"
   },
   {
    "completion": "immediate",
-   "description": "Replay a list of tool calls in order and report each step: {orca_replay:1, name, vars, steps:[{tool, args, expect, optional, await, save_as, timeout_s}]}, JSON with comments. Strings may use ${replay_dir}, ${out_dir}, ${env:NAME}, ${vars.NAME} and ${jobs.NAME}. A step that returns a job is awaited unless await:false, which stores the job under save_as so later steps can answer the dialog it opened. expect maps a JSON pointer into the step's result to matchers (eq ne gt ge lt le contains regex exists empty); the first failed step or expectation stops the run unless the step is optional. Writes result.json to out_dir (default: <replay name>.out next to a replay file). auto_answer_dialogs rules a replay registers end with it. export_replay turns this session into one.",
+   "description": "Replay a list of tool calls in order and report each step: {orca_replay:1, name, vars, steps:[{tool, args, expect, optional, await, save_as, timeout_s}]}, JSON with comments. Strings may use ${replay_dir}, ${out_dir}, ${env:NAME}, ${vars.NAME} and ${jobs.NAME}. A step that returns a job is awaited unless await:false, which stores the job under save_as so later steps can answer the dialog it opened. expect maps a JSON pointer into the step's result to matchers (eq ne gt ge lt le contains regex exists empty); the first failed step or expectation stops the run unless the step is optional. Writes result.json to out_dir (default: the replay file's name with .out, beside it; for an inline replay, replay-<timestamp> in the session's output folder). Reply: passed, steps, failed_step, out_dir and result_file. auto_answer_dialogs rules a replay registers end with it. export_replay turns this session into one.",
    "destructive": false,
    "group": "core",
    "guard": "mutate",
@@ -4746,7 +4746,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Turn the calls this session made into a replay that run_replay runs: mutating calls, wait and screenshot, in order, with refs replaced by locators, job replies replayed with await:false, and screenshot paths moved under ${out_dir}. Calls that failed, at once or as a job later, are left out; so is a call whose job is still running (unless it waits on a dialog), which left_out_running lists as {tool, job}. Reply: the replay, which with path is also written there. clear:true starts a new recording afterwards.",
+   "description": "Turn the calls this session made into a replay that run_replay runs: mutating calls, wait, screenshot and the recording tools, in order, with refs replaced by locators, job replies replayed with await:false, and screenshot and recording paths moved under ${out_dir}. Calls that failed, at once or as a job later, are left out (a run_script that raised or timed out replied, so it stays); so is a call whose job is still running (unless it waits on a dialog), which left_out_running lists as {tool, job}. Reply: the replay, which with path is also written there. clear:true then forgets the calls made so far.",
    "destructive": false,
    "group": "core",
    "guard": "inspect",
@@ -4783,7 +4783,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin API (search_python_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args), from the code and from the threads and pool tasks it starts while the run lasts. Mesh and matrix arrays need numpy, which search_python_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. The code's own file access is held to OrcaSlicer's folders (its data and resources folders, and for a file run the file's folder, read only), and it starts no programs or threads and reaches no network: such an access raises PermissionError, unless a person has let Python scripts run unrestricted in Preferences (get_app_state.python.scripts_unrestricted); the tools it calls work as they do for you. Recorded by export_replay as one step with its code, which a replay runs again against the project as it is then.",
+   "description": "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin API (search_python_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args). Mesh and matrix arrays need numpy, which search_python_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. The code's own file access is held to OrcaSlicer's folders (its data folder, and read only its resources folder and, for a file run, the file's folder), and it starts no programs or threads and reaches no network: such an access raises PermissionError, unless a person has let Python scripts run unrestricted in Preferences (get_app_state.python.scripts_unrestricted), when the threads and pool tasks it starts call the tools too while the run lasts; the tools it calls work as they do for you. Recorded by export_replay as one step with its code, which a replay runs again against the project as it is then.",
    "destructive": false,
    "group": "core",
    "guard": "mutate",
@@ -4801,7 +4801,7 @@
       "type": "string"
      },
      "filename": {
-      "description": "The name tracebacks show for the code (default <run_script>). An existing file's path makes it a file run, as `python file.py` runs it: __file__, sys.argv, imports from its folder and its PEP 723 dependencies; any other name only names it.",
+      "description": "The name tracebacks show for the code (default <run_script>). An existing file's path makes it a file run, as `python file.py` runs it: __file__, sys.argv, imports from its folder and its PEP 723 dependencies; any other name only names it. What runs is still `code`: pass the file's text there.",
       "type": "string"
      },
      "timeout_s": {
@@ -4907,6 +4907,12 @@
       "minimum": 1,
       "type": "integer"
      },
+     "jpeg_quality": {
+      "description": "JPEG quality of the frames (default 80).",
+      "maximum": 95,
+      "minimum": 30,
+      "type": "integer"
+     },
      "keep_raw_video_file": {
       "description": "With encode: keep the .mkv beside the MP4 (default false: the encode deletes it once the MP4 is written).",
       "type": "boolean"
@@ -4940,12 +4946,6 @@
        "main10"
       ],
       "type": "string"
-     },
-     "quality": {
-      "description": "JPEG quality of the frames (default 80).",
-      "maximum": 95,
-      "minimum": 30,
-      "type": "integer"
      },
      "save_path": {
       "description": "Absolute .mkv path; default the session's output folder.",
@@ -4993,7 +4993,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Stop the running recording and return its file once it is written: seconds, frames captured and written, frames dropped when encoding fell behind, failed when they could not be encoded, or skipped when the window could not be captured, the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, the replay or script that started it ended, a write error) is reported once by the next stop_recording. For a recording started with encode, it then starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns encode_recording's result, whose raw_video_file_deleted says whether the .mkv was deleted. This is the call with silent: true. Called with no arguments, it stops the recording as the Stop Recording command does, whoever started it: without waiting for its file, it shows the person a notification naming it and replies with its path; the next stop_recording with silent: true reports it as ended stopped_in_app.",
+   "description": "Stop the running recording. Call it with silent: true for the report: it waits for the file and returns it with its seconds, frames captured and written, frames dropped when encoding fell behind, failed when they could not be encoded, or skipped when the window could not be captured, the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, the replay or script that started it ended, a write error) is reported once by the next stop_recording. For a recording started with encode, it then starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns encode_recording's result, whose raw_video_file_deleted says whether the .mkv was deleted. Called with no arguments, it stops the recording as the Stop Recording command does, whoever started it: without waiting for its file, it shows the person a notification naming it and replies with its path; the next stop_recording with silent: true reports it as ended stopped_in_app.",
    "destructive": false,
    "group": "Commands",
    "guard": "inspect",
@@ -5003,7 +5003,7 @@
     "additionalProperties": false,
     "properties": {
      "silent": {
-      "description": "true runs the command without asking, with the defaults of what the call leaves out. A call with no arguments does what a person's pick does.",
+      "description": "true waits for the file and returns the report, and the encode job when the recording has one; a call with no arguments stops as the Stop Recording command does.",
       "enum": [
        true
       ],
@@ -8386,7 +8386,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Move and/or rotate a body (B-rep transform). copy=true keeps the source and appends the transformed copy as a new body. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
+   "description": "Move and/or rotate a body (B-rep transform). copy=true keeps the source and appends the transformed copy as a new body. The rotation is angle about the axis (axis_x, axis_y, axis_z) through the pivot, a world point that defaults to the world origin. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
     {
@@ -9518,7 +9518,7 @@
    ],
    "group": "Design",
    "guard": "mutate",
-   "idempotent": false,
+   "idempotent": true,
    "in_palette": false,
    "input_schema": {
     "properties": {
@@ -9581,7 +9581,7 @@
    ],
    "group": "Design",
    "guard": "mutate",
-   "idempotent": false,
+   "idempotent": true,
    "in_palette": true,
    "input_schema": {
     "properties": {
@@ -9647,7 +9647,7 @@
    ],
    "group": "Design",
    "guard": "mutate",
-   "idempotent": false,
+   "idempotent": true,
    "in_palette": true,
    "input_schema": {
     "properties": {
@@ -10965,7 +10965,7 @@
    ],
    "group": "Design",
    "guard": "mutate",
-   "idempotent": false,
+   "idempotent": true,
    "in_palette": false,
    "input_schema": {
     "properties": {
@@ -11043,7 +11043,7 @@
    ],
    "group": "Design",
    "guard": "mutate",
-   "idempotent": false,
+   "idempotent": true,
    "in_palette": false,
    "input_schema": {
     "properties": {
@@ -11144,7 +11144,7 @@
    ],
    "group": "Design",
    "guard": "mutate",
-   "idempotent": false,
+   "idempotent": true,
    "in_palette": false,
    "input_schema": {
     "properties": {
@@ -11319,7 +11319,7 @@
    ],
    "group": "Design",
    "guard": "mutate",
-   "idempotent": false,
+   "idempotent": true,
    "in_palette": false,
    "input_schema": {
     "properties": {
@@ -11334,11 +11334,12 @@
      },
      "offset": {
       "default": 0,
-      "description": "In mm.",
+      "description": "along the plane's normal, from the world origin (mm)",
       "type": "number"
      },
      "plane": {
       "default": "XY",
+      "description": "the base plane through the world origin, not through modeling_origin as the other commands' planes are",
       "enum": [
        "XY",
        "XZ",
@@ -11418,7 +11419,7 @@
    ],
    "group": "Design",
    "guard": "mutate",
-   "idempotent": false,
+   "idempotent": true,
    "in_palette": false,
    "input_schema": {
     "properties": {
@@ -11528,7 +11529,7 @@
    ],
    "group": "Design",
    "guard": "mutate",
-   "idempotent": false,
+   "idempotent": true,
    "in_palette": false,
    "input_schema": {
     "properties": {
@@ -11618,7 +11619,7 @@
    ],
    "group": "Design",
    "guard": "mutate",
-   "idempotent": false,
+   "idempotent": true,
    "in_palette": false,
    "input_schema": {
     "properties": {
@@ -11708,7 +11709,7 @@
    ],
    "group": "Design",
    "guard": "mutate",
-   "idempotent": false,
+   "idempotent": true,
    "in_palette": false,
    "input_schema": {
     "properties": {
@@ -13789,7 +13790,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Toggle construction on sketch entities. Reply: changed. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
+   "description": "Toggle construction on sketch entities. Reply: changed, how many, and ok, false when none did.",
    "destructive": false,
    "examples": [
     {
@@ -15057,7 +15058,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Run one action by the id search_actions returned (orca_command:view_front:orca, or the name inside it, view_front), with args, the command's arguments, when it takes some (its input_schema). A command that asks in a dialog asks when it is given no args, as a person's pick does, and runs without asking when given them: an absolute path skips a file dialog, and an output needs {\"path\": ..., \"overwrite\": true} to replace a file. Go to layer and Go to tab need their value ({\"percent\": 50}, {\"tab\": \"preview\"}). Actions that open a dialog return blocked_by_dialog; answer it with answer_dialog, or, for a native one it can't press (a file picker), register auto_answer_dialogs before the call. An export_gcode with a path completes when the file is written; an action that starts a background job (obj_arrange, obj_orient) when the job ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the reply (the obj_order_by_* order, the object obj_assemble made).",
+   "description": "Run one action by the id search_actions returned (orca_command:view_front:orca, or the name inside it, view_front), with args, the command's arguments, when it takes some (its input_schema). A command that asks in a dialog asks when it is given no args, as a person's pick does, and runs without asking when given them: an absolute path skips a file dialog, and an output needs {\"path\": ..., \"overwrite\": true} to replace a file. Go to layer and Go to tab need their value ({\"percent\": 50}, {\"tab\": \"preview\"}). Actions that open a dialog return blocked_by_dialog; answer it with answer_dialog, or, for a native one it can't press (a file picker), register auto_answer_dialogs before the call. An export_gcode with a path completes when the file is written; an action that starts a background job (obj_arrange, obj_orient) when the job ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the reply (the obj_order_by_* order, the object obj_assemble made). A command's action runs that command, as call_tool {tool: its name} does; the other actions (plates, recent projects, plugin scripts and pages, settings) run only here.",
    "destructive": false,
    "group": "ui",
    "guard": "mutate",
@@ -15171,7 +15172,7 @@
    "open_world": false,
    "operations": [],
    "read_only": false,
-   "title": "Size or move a window"
+   "title": "Size, move or raise a window"
   },
   {
    "completion": "immediate",
@@ -15228,7 +15229,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Click a GUI element as a person would. Menu items, buttons, checkboxes, toggles, radio buttons, toolbar items and gizmos are activated the way their owners expect: a gizmo opens and a second click closes it (Text on an object without text creates a text part: created). Other widgets and ImGui items get a mouse click once scrolled into view; with x/y, at that point of a 3D canvas or custom-drawn widget, in logical pixels from its top left. A row is selected as a click on its cell selects it (ctrl adds, shift extends; in the object list the named column acts, as Printable toggles), double activates it and a right click opens its menu; a drop-down list's row is picked. A plate icon does what it does in the Prepare view: lock replies locked, arrange and orient reply done once their job ends, settings and filament_map list the dialog they open (dialogs). Modifiers reach the 3D canvas, the object list and handlers that read them. A menu the click opens is never shown: the reply lists it as popup_menu, or popup_item runs one of its items (ran). A click that opens a dialog replies blocked_by_dialog.\nA web page's element gets the pointer and mouse events of a click at its centre (or x/y) once scrolled into view, refused when something else covers that point. The reply reads back checked, and has closed when the click closed its dialog (with dialogs, those still open under it, which still need an answer), navigated (with url) when it changed the page, or dialogs when it opened another. Otherwise page says what changed on the page within 300 ms: changed (false when its lines are as before), the list_widgets lines added and removed, partial when a plugin configuration frame could not be compared, and posted, how many messages the page sent OrcaSlicer.",
+   "description": "Click a GUI element as a person would. Menu items, buttons, checkboxes, toggles, radio buttons, toolbar items and gizmos are activated the way their owners expect: a gizmo opens and a second click closes it (Text on an object without text creates a text part: created). Other widgets and ImGui items get a mouse click once scrolled into view; with x/y, at that point of a 3D canvas or custom-drawn widget, in logical pixels from its top left. A row is selected as a click on its cell selects it (ctrl adds, shift extends; in the object list the named column acts, as Printable toggles), double activates it and a right click opens its menu; a drop-down list's row is picked. A plate icon does what it does in the Prepare view: lock replies locked, arrange and orient reply done once their job ends, settings and filament_map list the dialog they open (dialogs). A button, checkbox, toggle or radio button is activated so by a plain left click only: with modifiers, double or another button it gets a mouse click, which a native control ignores. A menu item runs whatever those options are, a toolbar item takes a left or a right click, and a gizmo a single left one. Modifiers reach the 3D canvas, the object list and handlers that read them. To click a point of the model, drag, scroll or hold a press, use mouse_gesture. A menu the click opens is never shown: the reply lists it as popup_menu, or popup_item runs one of its items (ran). A click that opens a dialog replies blocked_by_dialog.\nA web page's element gets the pointer and mouse events of a click at its centre (or x/y) once scrolled into view, refused when something else covers that point. The reply reads back checked, and has closed when the click closed its dialog (with dialogs, those still open under it, which still need an answer), navigated (with url) when it changed the page, or dialogs when it opened another. Otherwise page says what changed on the page within 300 ms: changed (false when its lines are as before), the list_widgets lines added and removed, partial when a plugin configuration frame could not be compared, and posted, how many messages the page sent OrcaSlicer.",
    "destructive": false,
    "group": "ui",
    "guard": "recover",
@@ -15251,7 +15252,7 @@
       "type": "boolean"
      },
      "modifiers": {
-      "description": "Modifier keys held during the click, as in press_keys: ctrl and cmd are both Command on macOS and Ctrl elsewhere; rawctrl is the macOS Control key.",
+      "description": "Modifier keys held during the input, as in press_keys: ctrl and cmd are both Command on macOS and Ctrl elsewhere; rawctrl is the macOS Control key.",
       "items": {
        "enum": [
         "ctrl",
@@ -15269,7 +15270,7 @@
       "type": "string"
      },
      "target": {
-      "description": "A ref from the latest list_widgets call (\"w12\") or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; list_widgets's description lists every kind.",
+      "description": "A ref list_widgets gave (\"w12\"), which later listings leave good (one refused as stale or unknown needs a new listing), or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; list_widgets's description lists every kind.",
       "type": [
        "string",
        "object"
@@ -15318,7 +15319,7 @@
       "type": "boolean"
      },
      "target": {
-      "description": "A ref from the latest list_widgets call (\"w12\") or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; list_widgets's description lists every kind.",
+      "description": "A ref list_widgets gave (\"w12\"), which later listings leave good (one refused as stale or unknown needs a new listing), or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; list_widgets's description lists every kind.",
       "type": [
        "string",
        "object"
@@ -15364,7 +15365,7 @@
     "additionalProperties": false,
     "properties": {
      "keys": {
-      "description": "Key chord.",
+      "description": "One chord: a key, after any modifiers joined by +. Keys: one character, Enter, Esc, Tab, Space, Backspace, Delete, Insert, Home, End, PageUp, PageDown, Left, Right, Up, Down, F1 to F24. Modifiers: Ctrl, Cmd, RawCtrl, Shift, Alt. With text, the chord goes first.",
       "type": "string"
      },
      "popup_item": {
@@ -15372,7 +15373,7 @@
       "type": "string"
      },
      "target": {
-      "description": "A ref from the latest list_widgets call (\"w12\") or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; list_widgets's description lists every kind.",
+      "description": "A ref list_widgets gave (\"w12\"), which later listings leave good (one refused as stale or unknown needs a new listing), or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; list_widgets's description lists every kind.",
       "type": [
        "string",
        "object"
@@ -15400,7 +15401,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Make a mouse gesture on a 3D canvas as a person would: move, down, up, click, drag or wheel. It starts at `at`, a point of the model, which is projected through the camera and by default checked to land on that part (check \"point\" only projects it), or at x/y, logical pixels from the canvas's top left. A drag goes through `waypoints` to `to`, `steps` moves per leg: on an object it moves the object, in a painting gizmo it paints from a press on the object being painted (waypoints zigzagging over an area paint all of it), and elsewhere it turns or pans the camera as this install's mouse settings say, so turn the camera with set_view camera or orbit instead. A wheel turns delta notches; positive zooms in or scrolls a panel up. Modifiers are held as keys for the gesture (shift for Measure's point picking, alt for erasing). A down keeps its button and modifiers held, so moves drag, until an up or another gesture. Grabbers are set through the gizmo's panel fields or transform, not dragged. A menu a right click opens is listed as popup_menu, or popup_item (with click or up) runs one of its items. The reply's camera_moved says the gesture moved the camera, so earlier screenshots and pixels no longer match the view.\nWith target, the gesture is on a web page's element instead (a canvas such as the colour picker's spectrum, a slider, a sortable or scrolled list): x/y, to and waypoints are logical pixels from its top left, a drag keeps the pointer captured where the page asks for it, and a wheel scrolls what is under the pointer unless the page takes it; page says what the gesture changed there, as for click.",
+   "description": "Make a mouse gesture on a 3D canvas as a person would: move, down, up, click, drag or wheel. It starts at `at`, a point of the model, which is projected through the camera and by default checked to land on that part (check \"point\" only projects it), or at x/y, logical pixels from the canvas's top left. A drag goes through `waypoints` to `to`, `steps` moves per leg: on an object it moves the object, in a painting gizmo it paints from a press on the object being painted (waypoints zigzagging over an area paint all of it), and elsewhere it turns or pans the camera as this install's mouse settings say, so turn the camera with set_view camera or orbit instead. A wheel turns delta notches; positive zooms in (out with the Reverse mouse zoom preference on) or scrolls a panel up. Modifiers are held as keys for the gesture (shift picks points in Measure and erases in a painting gizmo). A down keeps its button and modifiers held, so moves drag, until an up or another gesture. Grabbers are set through the gizmo's panel fields or transform, not dragged. A menu a right click opens is listed as popup_menu, or popup_item (with click or up) runs one of its items. The reply's camera_moved says the gesture moved the camera, so earlier screenshots and pixels no longer match the view.\nWith target, the gesture is on a web page's element instead (a canvas such as the colour picker's spectrum, a slider, a sortable or scrolled list): x/y, to and waypoints are logical pixels from its top left, a drag keeps the pointer captured where the page asks for it, and a wheel scrolls what is under the pointer unless the page takes it; page says what the gesture changed there, as for click.",
    "destructive": false,
    "group": "ui",
    "guard": "recover",
@@ -15499,7 +15500,7 @@
       "type": "string"
      },
      "delta": {
-      "description": "Wheel notches.",
+      "description": "Wheel notches (default 1 on a canvas; a page element needs it given).",
       "type": "integer"
      },
      "double": {
@@ -15507,7 +15508,7 @@
       "type": "boolean"
      },
      "modifiers": {
-      "description": "Modifier keys held during the click, as in press_keys: ctrl and cmd are both Command on macOS and Ctrl elsewhere; rawctrl is the macOS Control key.",
+      "description": "Modifier keys held during the input, as in press_keys: ctrl and cmd are both Command on macOS and Ctrl elsewhere; rawctrl is the macOS Control key.",
       "items": {
        "enum": [
         "ctrl",
@@ -15582,7 +15583,7 @@
    "open_world": false,
    "operations": [],
    "read_only": false,
-   "title": "Mouse gesture on the 3D view"
+   "title": "Mouse gesture on a 3D view or page element"
   },
   {
    "completion": "immediate",
@@ -15624,11 +15625,11 @@
    "open_world": false,
    "operations": [],
    "read_only": false,
-   "title": "Pick a file for the open gizmo"
+   "title": "Load or save the open gizmo's SVG or texture file"
   },
   {
    "completion": "immediate",
-   "description": "Press a button of the topmost modal dialog: yes, no, ok, cancel, close, apply, a button's label, or a numeric id. A disabled button (enabled: false) is refused, the dialog's message showing what it still needs, and so is one on a page the dialog does not show, except a hidden cancel or close, which ends the dialog. The label of an option of a selector made of buttons (Orca's radio groups, tab bars and multi-switches, shown as (*) / ( ) in the message) selects that option and leaves the dialog open; set other radio buttons and switches with click or set_widget_value true, and notebook tabs with click. dialog.title, text the dialog's title contains, makes sure which dialog that is; it must be the topmost. Reply: closed: true when it closed, and dialogs, those still open. A native message box (native: true) is pressed through the OS, by one of the buttons get_app_state.dialogs lists for it; a file or folder picker can't be answered here, nor any native dialog on macOS (its buttons list is empty): register auto_answer_dialogs before opening them. A web dialog's buttons are on its page: a label is pressed there, waiting up to 3 s for it to show, so the page's own handler runs. With no such page button, or a page busy for those 3 s, cancel and close end the dialog, and ok, yes, no and apply are refused rather than skip the page's commit; page_buttons then lists the page's buttons.",
+   "description": "Press a button of the topmost modal dialog: yes, no, ok, cancel, close, apply, a button's label, or a numeric id. A disabled button (enabled: false) is refused, the dialog's message showing what it still needs, and so is one on a page the dialog does not show, except a hidden cancel or close, which ends the dialog. On a dialog that is neither native nor a web dialog, a standard name or id it has no button for ends it with that answer too, without a handler running (pressed: false). The label of an option of a selector made of buttons (Orca's radio groups, tab bars and multi-switches, shown as (*) / ( ) in the message) selects that option and leaves the dialog open; set other radio buttons and switches with click or set_widget_value true, and notebook tabs with click. dialog.title, text the dialog's title contains, makes sure which dialog that is; it must be the topmost. Reply: dialog, button, pressed, and id, the wx id pressed or ended with, or web: true for a button on a web dialog's page, with what the page did as click reports it; closed: true when it closed, and dialogs, those still open. A native message box (native: true) is pressed through the OS, by one of the buttons get_app_state.dialogs lists for it; a file or folder picker can't be answered here, nor any native dialog on macOS (its buttons list is empty): register auto_answer_dialogs before opening them. A web dialog's buttons are on its page: a label is pressed there, waiting up to 3 s for it to show, so the page's own handler runs. With no such page button, or a page busy for those 3 s, cancel and close end the dialog, and ok, yes, no and apply are refused rather than skip the page's commit; page_buttons then lists the page's buttons.",
    "destructive": false,
    "group": "core",
    "guard": "recover",
@@ -15667,7 +15668,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Answer modal dialogs automatically when their title or message matches a rule's regex (case-insensitive). get_app_state.auto_answer_rules lists the rules in force. Called from a replay or script, the rules last until it ends; otherwise they replace the ones this session set before, and an empty list clears them. A native dialog returns the rule's button at once and never shows. A file or folder picker takes button ok with an absolute path and returns it without showing (on Linux such a rule cancels it); without a path a picker can only be cancelled, and a multi-select picker takes no path. A wx dialog has the button pressed as answer_dialog does, so its handler runs. A matching dialog already open is answered too (answered_open_dialog), so a prompt that shows around the same time, such as the restore prompt after startup, is caught either way. A web dialog is matched by its title: a button that names one of its shown wx buttons (by label, standard name or id) is pressed as for a wx dialog, any other on its page once it shows there, for up to 10 s after the page loads; past that, cancel and close end the dialog and any other button gives up.",
+   "description": "Answer modal dialogs automatically when their title or message matches a rule's regex (case-insensitive). get_app_state.auto_answer_rules lists the rules in force. Called from a replay or script, the rules join those it set before and last until it ends, and a plugin's likewise until it unloads; an MCP client's replace the ones MCP clients set before and last until the MCP server stops, and an empty list clears them. Reply: scope (run, plugin or session), rules (uses counts a rule's answers) and answered_open_dialog. A native dialog returns the rule's button at once and never shows. A file or folder picker takes button ok with an absolute path and returns it without showing (on Linux such a rule cancels it); without a path a picker can only be cancelled, and a multi-select picker takes no path. A wx dialog is answered as answer_dialog does. A matching dialog already open is answered too (answered_open_dialog), so a prompt that shows around the same time, such as the restore prompt after startup, is caught either way. A web dialog is matched by its title: a button that names one of its shown wx buttons (by label, standard name or id) is pressed as for a wx dialog, any other on its page once it shows there, for up to 10 s after the page loads; past that, cancel and close end the dialog and any other button gives up.",
    "destructive": false,
    "group": "core",
    "guard": "recover",
@@ -15731,11 +15732,11 @@
     "additionalProperties": false,
     "properties": {
      "code": {
-      "description": "JavaScript to run.",
+      "description": "JavaScript statements, run through eval: the last expression's value is the result. No top-level return or await; a Promise or a DOM node comes back as {}.",
       "type": "string"
      },
      "target": {
-      "description": "A ref from the latest list_widgets call (\"w12\") or a locator, such as {label: \"OK\", within: \"Preferences\"} or {menu: \"File>Export>Export G-code\"}; list_widgets's description lists every kind.",
+      "description": "A web view (its ref; list_widgets lists it as kind webview) or an element of its page (its ref or a {web} / {css} locator), which the code gets as `el`. Default: the topmost dialog's web view, else the only one shown.",
       "type": [
        "string",
        "object"

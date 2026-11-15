@@ -231,7 +231,7 @@ RecordingDialog::RecordingDialog(wxWindow* parent, const Mcp::RecordingSettings&
                 wxTOP | wxBOTTOM, FromDIP(4));
     m_quality = new SpinInput(this, wxEmptyString, "", wxDefaultPosition, wxSize(FromDIP(140), -1), wxSP_ARROW_KEYS, 30, 95,
                               settings.quality);
-    m_quality->SetName("quality");
+    m_quality->SetName("jpeg_quality");
     auto* quality = new wxBoxSizer(wxVERTICAL);
     quality->Add(field_label(_L("JPEG quality")), 0, wxBOTTOM, FromDIP(4));
     quality->Add(m_quality, 0);

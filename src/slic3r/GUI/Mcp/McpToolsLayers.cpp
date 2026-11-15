@@ -642,8 +642,9 @@ void register_layer_tools(CommandCatalog& catalog)
         "Add or remove pauses, custom G-code, custom templates and filament changes at the start of a layer, as the Preview "
         "layer slider's menu does; they are saved per plate in the project. They go on the plate's sliced layers, so the "
         "plate needs an up-to-date slice, or must be the one the Preview still shows after an earlier edit; the call selects "
-        "it and shows the Preview. Applies clear, then remove, then add, all checked first. One code per layer: a custom "
-        "code or filament change where there is one replaces it. Not undoable, as in the slider. A change invalidates the "
+        "it and shows the Preview. Applies clear, then remove, then add, all checked first. One code per layer: adding "
+        "where a code of the same type is replaces it, and where another type is, is refused (remove it first). Not "
+        "undoable, as in the slider. A change invalidates the "
         "plate's slice: slice again before exporting. Reply: the plate's codes as list_plates' layer_gcode lists them, "
         "each with z and layer.",
         object_schema({{"plate", {{"type", "integer"}, {"minimum", 0}, {"description", "Default: the current plate."}}},

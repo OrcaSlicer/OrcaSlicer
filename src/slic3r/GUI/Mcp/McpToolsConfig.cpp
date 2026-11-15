@@ -1835,11 +1835,12 @@ void register_config_tools(CommandCatalog& catalog)
 
     catalog.add(inspect_tool(
         "api", "list_presets", L("List presets"),
-        "Printer, process or filament presets with flags: system or user, selected (and modified), compatible with the "
-        "selected printer, and for filaments the slots using them. Only compatible, visible presets unless asked: a fresh "
-        "install hides most system filaments and printers (visible: false), and select_preset takes those too.",
+        "Printer, process or filament presets, each with its name, alias (the name its selector shows, when another), "
+        "system, user, project (kept inside the project), inherits, selected (and modified), compatible: false or "
+        "visible: false when so, and for a filament the slots using it (filament_slots). Only compatible, visible presets "
+        "unless asked: a fresh install hides most system filaments and printers, and select_preset takes a hidden one too.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
-                       {"query", prop("string", "Case-insensitive part of the name.")},
+                       {"query", prop("string", "Case-insensitive part of the name or alias.")},
                        {"include_incompatible", prop("boolean", "Also list presets incompatible with the printer.")},
                        {"include_hidden", prop("boolean", "Also list hidden presets.")},
                        {"limit", {{"type", "integer"}, {"minimum", 1}, {"maximum", 500}, {"description", "Default 100."}}},
@@ -1850,9 +1851,11 @@ void register_config_tools(CommandCatalog& catalog)
     catalog.add(reaching({"resolve_preset", "select_preset", "assign_filament_preset"}, mutate_tool(
         "api", "select_preset", L("Select a preset"),
         "Select a printer, process or filament preset by the name its selector shows (or its internal name), as a person "
-        "would. A hidden one (list_presets include_hidden) is shown in the selectors first, until the app restarts. With "
-        "unsaved changes the Transfer-or-discard prompt opens (blocked_by_dialog) unless preset_changes answers it. A "
-        "filament is assigned to filament_slot (1-based, default 1). Reply: selected, shown (a hidden preset it showed); "
+        "would. A hidden one (list_presets include_hidden) is shown in the selectors first, until the app restarts; one "
+        "the selector leaves out as incompatible with the printer is refused. With unsaved changes the Transfer-or-discard prompt opens "
+        "(blocked_by_dialog) unless preset_changes answers it. A filament is assigned to filament_slot (1-based, default "
+        "1); with several slots the filament tab keeps the preset and the changes it has, so nothing is asked. Reply: "
+        "selected, shown (a hidden preset it showed); "
         "when presets had or have unsaved changes, discarded and modified list per preset the keys dropped and the keys "
         "still unsaved.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
@@ -1860,7 +1863,9 @@ void register_config_tools(CommandCatalog& catalog)
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}},
                        {"preset_changes", enum_prop({"transfer", "discard"}, "Unsaved changes of the presets the switch replaces: move "
                                                                        "them to the new preset or drop them, as the prompt's "
-                                                                       "buttons do. Omitted: the prompt opens.")}},
+                                                                       "buttons do; transfer is refused where the prompt does "
+                                                                       "not offer it (a printer's changes, a filament of "
+                                                                       "another type). Omitted: the prompt opens.")}},
                       {"type", "name"}),
         [](const json& args, ToolContext& ctx) {
             const Preset::Type type    = preset_type(arg_string(args, "type"));
@@ -1913,14 +1918,15 @@ void register_config_tools(CommandCatalog& catalog)
         "Save the printer, process or filament preset being edited, with its unsaved changes, as a preset called name, "
         "which is then selected: what the tab's Save button does through its dialog. A filament is filament_slot's "
         "(default 1), and every slot using the old preset takes the new one. Replacing another existing preset needs "
-        "overwrite (pass it in replays and scripts meant to be rerun). Reply: saved, user, project, inherits, filament_slots. A "
+        "overwrite (pass it in replays and scripts meant to be rerun). Reply: saved, selected, user, project, inherits, "
+        "filament_slots. A "
         "temperature warning or an unsaved-changes prompt makes it blocked_by_dialog. To keep only some edits, set_settings "
         "{reset_all: true, values} first.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
                        {"name", prop("string", "Name to save under.")},
                        {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}},
                        {"inside_project", prop("boolean", "Keep it inside the project, not as a user preset. Default: where the "
-                                                          "edited preset is.")},
+                                                          "edited preset is. A preset of that name stays where it is.")},
                        {"detach", prop("boolean", "Copy inherited values and drop the parent (Developer mode).")},
                        {"overwrite", prop("boolean", "Replace another preset of that name.")}},
                       {"type", "name"}),
@@ -1973,14 +1979,16 @@ void register_config_tools(CommandCatalog& catalog)
         "Delete a user preset or one inside the project, its file and its cloud copy, as the tab's Delete does, without "
         "asking. A selected preset is replaced as the tab does (its parent or the next preset). Another filament is deleted "
         "without changing the selection, and slots using it take the selected one; another process is selected, deleted "
-        "and the selection restored; a printer must be selected first. Refused: system presets, presets others inherit from, "
-        "another preset while the edited one of its type has unsaved changes. Deleting a selected printer or process can "
+        "and the selection restored; a printer must be selected first, and the physical printers that use only it are "
+        "deleted with it. Refused: system, default and bundle presets, presets others inherit from, another preset while "
+        "the edited one of its type has unsaved changes. Deleting a selected printer or process can "
         "ask about other presets' unsaved changes (blocked_by_dialog). Reply: deleted, selected, filaments (per slot), "
         "attached, and discarded/modified as select_preset's.",
         object_schema({{"type", enum_prop({"printer", "process", "filament"}, "Preset category.")},
                        {"name", prop("string", "Preset name as list_presets shows it.")},
-                       {"delete_attached", prop("boolean", "A custom printer: also delete the process and filament presets made "
-                                                           "for it alone, which the GUI deletes with it.")}},
+                       {"delete_attached", prop("boolean", "A custom printer with process or filament presets made for it alone is "
+                                                           "refused without this: they are deleted with it, as the GUI "
+                                                           "deletes them.")}},
                       {"type", "name"}),
         [](const json& args, ToolContext& ctx) {
             const std::string  type_name = arg_string(args, "type");
@@ -2048,7 +2056,8 @@ void register_config_tools(CommandCatalog& catalog)
         "Read settings: each item has its value, as OrcaSlicer writes it, and meta: label, description (what the setting "
         "does, when to change it), where (its settings page and group), type, unit, range, allowed values and mode. Choose "
         "them by keys; by query, a few words matched in keys, labels and descriptions, best matches first; by where, a page "
-        "or group (an unknown one lists them all); or by none of these, for the whole scope, paged and, in a preset scope, "
+        "or \"Page > Group\" (an unknown one is refused with the list of them); or by none of these, for the whole scope, "
+        "paged and, in a preset scope, "
         "without meta. Keys the scope lacks are listed in unknown_keys, and scope_of gives the scope of those another "
         "scope has.\n"
         "- No scope: keys and query look through the process, filament and printer settings, and each item names its "
@@ -2056,7 +2065,8 @@ void register_config_tools(CommandCatalog& catalog)
         "- process, filament, printer: the preset being edited, or with preset a saved one; compare lists only "
         "the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what "
         "each entry is for) and active (the entry each extruder prints with).\n"
-        "- object, part: the overrides that object or part carries, each with effective (the value it prints with) and "
+        "- object, part: listed whole, the overrides that object or part carries; keys, query and where read any process "
+        "setting there. Each has effective (the value it prints with) and "
         "source (part, object, process or default); an object's item lists in parts the parts and modifiers that override "
         "the key inside their own volume.\n"
         "- project: the plate type, slot colours, flushing volumes, purge mode, prime tower position per plate, mixed slots "
@@ -2075,7 +2085,9 @@ void register_config_tools(CommandCatalog& catalog)
                        {"object", {{"type", "integer"}, {"minimum", 0}, {"description", "Object index (object/part scope)."}}},
                        {"part", {{"type", "integer"}, {"minimum", 0}, {"description", "Part index (part scope)."}}},
                        {"plate", plate_prop},
-                       {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}},
+                       {"filament_slot", {{"type", "integer"}, {"minimum", 1},
+                                          {"description", "Filament scope: the slot whose preset is read, 1-based (default 1), with "
+                                                          "its unsaved changes when the filament tab is editing it."}}},
                        {"preset", prop("string", "Preset scopes: read this saved preset (a name from list_presets) instead of the "
                                                  "one being edited.")},
                        {"compare", prop("string", "Preset scopes: a preset name, \":saved\" (the unsaved changes) or \":parent\" "
@@ -2097,8 +2109,8 @@ void register_config_tools(CommandCatalog& catalog)
         "in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as [x, y]). All are "
         "parsed strictly first and applied together, so nothing changes if one is invalid, and a key of another scope is "
         "refused with that scope named. Reply: applied, and changed, every setting the call changed, including those the "
-        "app adjusted in turn. One undo step. Spiral vase and a few others confirm their adjustments in a dialog "
-        "(blocked_by_dialog).\n"
+        "app adjusted in turn. An object's, part's or plate's change is one undo step; a preset's is not in the undo "
+        "history. Spiral vase and a few others confirm their adjustments in a dialog (blocked_by_dialog).\n"
         "- process, filament, printer: null takes a key back to its saved value, or with reset_to parent to the "
         "parent's; reset_all first discards every unsaved change, as the tab's undo button does (reply: reverted). A "
         "per-variant value (get_settings meta.variants) takes one value for the entries in use (meta.active), {index, "
@@ -2108,8 +2120,8 @@ void register_config_tools(CommandCatalog& catalog)
         "- project, as the sidebar's controls write them: curr_bed_type, filament_colour (#RRGGBB per slot), "
         "flush_multiplier, flush_volumes_matrix, prime_volume_mode, and wipe_tower_x/y (mm from the plate's origin, one per "
         "plate). flush_volumes_matrix is per nozzle, slots x slots from row to column, in config order over every slot, "
-        "before the multiplier; mixed slots' entries are left as they are, and a colour change can recalculate it, so set "
-        "it last.\n"
+        "before the multiplier; a mixed slot's entries must be given as they are, and a colour change can recalculate it, "
+        "so set it last.\n"
         "- plate, which it selects and writes as the Plate Settings dialog's OK does: curr_bed_type, print_sequence (\"by "
         "layer\", \"by object\"), spiral_mode (true asks for confirmation), first_layer_print_sequence (every slot once, "
         "e.g. [2, 1]), other_layers_print_sequence ([{from: layer >= 2, to, order}], to omitted for the last layer), name "
@@ -2124,7 +2136,10 @@ void register_config_tools(CommandCatalog& catalog)
                        {"object_id", expected_id_prop("object")},
                        {"part_id", expected_id_prop("part")},
                        {"plate", plate_prop},
-                       {"filament_slot", {{"type", "integer"}, {"minimum", 1}, {"description", "Filament slot, 1-based."}}}}),
+                       {"filament_slot", {{"type", "integer"}, {"minimum", 1},
+                                          {"description", "Filament scope: the slot whose preset is changed, 1-based (default 1). "
+                                                          "The filament tab switches to it, which can ask about the unsaved "
+                                                          "changes it holds (blocked_by_dialog)."}}}}),
         [](const json& args, ToolContext& ctx) {
             // A preference's control carries its effects (theme, language, network, this server's own port), which
             // writing the key would skip.

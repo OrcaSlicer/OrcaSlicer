@@ -117,8 +117,9 @@ void register_replay_tools(CommandCatalog& catalog)
         "${vars.NAME} and ${jobs.NAME}. A step that returns a job is awaited unless await:false, which stores the job under "
         "save_as so later steps can answer the dialog it opened. expect maps a JSON pointer into the step's result to "
         "matchers (eq ne gt ge lt le contains regex exists empty); the first failed step or expectation stops the run unless "
-        "the step is optional. Writes result.json to out_dir (default: <replay name>.out next to a replay file). "
-        "auto_answer_dialogs rules a replay registers end with it. export_replay turns this session into one.",
+        "the step is optional. Writes result.json to out_dir (default: the replay file's name with .out, beside it; for an "
+        "inline replay, replay-<timestamp> in the session's output folder). Reply: passed, steps, failed_step, out_dir and "
+        "result_file. auto_answer_dialogs rules a replay registers end with it. export_replay turns this session into one.",
         object_schema({{"path", prop("string", "Absolute path of a replay file.")},
                        {"replay", {{"type", json::array({"object", "string"})},
                                    {"description", "The replay itself, as an object or as its JSON text, instead of path."}}},
@@ -175,11 +176,13 @@ void register_replay_tools(CommandCatalog& catalog)
 
     NativeCommand exp = inspect_tool(
         "core", "export_replay", L("Export this session as a replay"),
-        "Turn the calls this session made into a replay that run_replay runs: mutating calls, wait and screenshot, in order, "
-        "with refs replaced by locators, job replies replayed with await:false, and screenshot paths moved under ${out_dir}. "
-        "Calls that failed, at once or as a job later, are left out; so is a call whose job is still running (unless it "
+        "Turn the calls this session made into a replay that run_replay runs: mutating calls, wait, screenshot and the "
+        "recording tools, in order, with refs replaced by locators, job replies replayed with await:false, and screenshot "
+        "and recording paths moved under ${out_dir}. "
+        "Calls that failed, at once or as a job later, are left out (a run_script that raised or timed out replied, so it "
+        "stays); so is a call whose job is still running (unless it "
         "waits on a dialog), which left_out_running lists as {tool, job}. "
-        "Reply: the replay, which with path is also written there. clear:true starts a new recording afterwards.",
+        "Reply: the replay, which with path is also written there. clear:true then forgets the calls made so far.",
         object_schema({{"name", prop("string", "Replay name.")},
                        {"path", prop("string", "Absolute .json path to write.")},
                        {"overwrite", prop("boolean", "Replace an existing file.")},
@@ -207,7 +210,7 @@ void register_replay_tools(CommandCatalog& catalog)
             return ToolResult::ok(std::move(out));
         });
     exp.read_only = false;
-    // clear empties the recording, so a second call exports less.
+    // clear empties the journal, so a second call exports less.
     exp.idempotent = false;
     catalog.add(exp);
 }

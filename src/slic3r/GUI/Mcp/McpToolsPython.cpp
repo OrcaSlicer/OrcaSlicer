@@ -340,17 +340,18 @@ void register_python_tools(CommandCatalog& catalog)
         "core", "run_script", L("Run a Python script"),
         "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin "
         "API (search_python_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset "
-        "API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args), from the code "
-        "and from the threads and pool tasks it starts while the run lasts. Mesh and matrix arrays need numpy, which "
+        "API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args). Mesh and "
+        "matrix arrays need numpy, which "
         "search_python_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker "
         "thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon "
         "threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` "
         "to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | "
         "timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. The code's "
-        "own file access is held to OrcaSlicer's folders (its data and resources folders, and for a file run the file's "
-        "folder, read only), and it starts no programs or threads and reaches no network: such an access raises "
+        "own file access is held to OrcaSlicer's folders (its data folder, and read only its resources folder and, for a "
+        "file run, the file's folder), and it starts no programs or threads and reaches no network: such an access raises "
         "PermissionError, unless a person has let Python scripts run unrestricted in Preferences "
-        "(get_app_state.python.scripts_unrestricted); the tools it calls work as they do for you. Recorded "
+        "(get_app_state.python.scripts_unrestricted), when the threads and pool tasks it starts call the tools too while "
+        "the run lasts; the tools it calls work as they do for you. Recorded "
         "by export_replay as one step with its code, which a replay runs again against the project as it is then.",
         object_schema({{"code", prop("string", "Python source, run as a module body.")},
                        {"args", {{"type", "object"}, {"description", "Bound to the name `args` in the code."}}},
@@ -358,7 +359,8 @@ void register_python_tools(CommandCatalog& catalog)
                                       {"description", "The run is stopped as timed_out after this many seconds (default 300)."}}},
                        {"filename", prop("string", "The name tracebacks show for the code (default <run_script>). An existing file's "
                                                    "path makes it a file run, as `python file.py` runs it: __file__, sys.argv, imports "
-                                                   "from its folder and its PEP 723 dependencies; any other name only names it.")}},
+                                                   "from its folder and its PEP 723 dependencies; any other name only names it. "
+                                                   "What runs is still `code`: pass the file's text there.")}},
                       {"code"}),
         [](const json& args, ToolContext& ctx) {
             AutomationRuntime& runtime = ctx.runtime();

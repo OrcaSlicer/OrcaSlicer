@@ -284,7 +284,8 @@ void register_app_tools(CommandCatalog& catalog)
         "Block until a condition holds or timeout_s passes (max 50). for: \"ready\" (startup finished), \"idle\" (no dialog, "
         "no running job, nothing slicing or arranging, no gizmo working in the background; a run_script run counts only "
         "through the calls it makes), \"dialog\" / \"no_dialog\", or \"job\" with a job id an earlier call returned, whose "
-        "result is then the reply. On timeout the reply is {satisfied: false}: call it again.",
+        "result is then the reply. On timeout the reply is {satisfied: false}, or for a job {status: \"running\", job, "
+        "note}: call it again.",
         object_schema({{"for", enum_prop({"ready", "idle", "dialog", "no_dialog", "job"}, "What to wait for; default job when job "
                                                                                           "is given, else idle.")},
                        {"job", prop("string", "Job id, for \"job\".")},

@@ -759,6 +759,51 @@ TEST_CASE("a Design command with a person's form says which mode it runs in", "[
                ContainsSubstring("opens nothing"));
 }
 
+TEST_CASE("an empty entities list names the selection, as leaving it out does", "[Mcp][CAD]")
+{
+    using nlohmann::json;
+    const std::vector<int> selection{2, 4};
+    const std::vector<int> none, listed{1, 3}, every{0, 1, 2};
+    const json             left_out = json::object(), empty{{"entities", json::array()}}, list{{"entities", {1, 3}}};
+    // all_if_empty is what sketch_offset and sketch_mirror pass, and sketch_delete and sketch_construction do not.
+    const bool all_if_empty = GENERATE(false, true);
+    CAPTURE(all_if_empty);
+
+    // A list names its entities, whatever is selected.
+    CHECK(GUI::Mcp::sketch_target_indices(list, selection, 6, all_if_empty) == listed);
+    CHECK(GUI::Mcp::sketch_target_indices(list, none, 6, all_if_empty) == listed);
+    // The schema gives [] as the default, so it reads as left out: the selection.
+    CHECK(GUI::Mcp::sketch_target_indices(left_out, selection, 6, all_if_empty) == selection);
+    CHECK(GUI::Mcp::sketch_target_indices(empty, selection, 6, all_if_empty) == selection);
+    // With nothing selected, only a command that says so takes every entity.
+    CHECK(GUI::Mcp::sketch_target_indices(left_out, none, 3, all_if_empty) == (all_if_empty ? every : none));
+    CHECK(GUI::Mcp::sketch_target_indices(empty, none, 3, all_if_empty) == (all_if_empty ? every : none));
+    // Only an empty list is read so: anything else that is given names what it holds, a null nothing.
+    CHECK(GUI::Mcp::sketch_target_indices({{"entities", nullptr}}, selection, 6, all_if_empty).empty());
+}
+
+TEST_CASE("a Design command that only reads is marked idempotent", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = catalog_with_cad();
+    std::size_t               reads   = 0;
+    for (const GUI::NativeCommand& c : catalog.commands())
+        if (c.group == "Design" && c.read_only) {
+            INFO(c.key);
+            CHECK(c.idempotent);
+            ++reads;
+        }
+    CHECK(reads > 0);
+}
+
+TEST_CASE("a sketch command that rebuilds nothing promises no rejected rebuild", "[Mcp][CAD]")
+{
+    const GUI::CommandCatalog catalog = catalog_with_cad();
+    // It toggles flags on the open sketch's entities: its reply says how many changed, and has no error.
+    const std::string& description = command_of(catalog, "sketch_construction").description;
+    CHECK_THAT(description, !ContainsSubstring("rebuild"));
+    CHECK_THAT(description, ContainsSubstring("changed"));
+}
+
 TEST_CASE("no CAD command exists with the feature off", "[Mcp][CAD]")
 {
     const auto design_commands = [](bool cad) {

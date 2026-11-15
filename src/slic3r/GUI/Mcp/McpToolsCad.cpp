@@ -1661,20 +1661,10 @@ json action_set_feature(DesignPanel* panel, const json& params)
                 {"generation", doc.topo_generation}, {"error", doc.error}};
 }
 
-// Which entities a verb acts on: an explicit "entities" array, else the current selection,
-// else — only where the verb says so — everything. Same precedence the menu uses: what you
-// pointed at wins, and the menu never silently acts on the whole sketch.
+// Which entities a verb acts on in the open sketch (sketch_target_indices()).
 std::vector<int> sketch_targets(const json& params, DesignSketchTool& t, bool all_if_empty)
 {
-    std::vector<int> out;
-    if (params.contains("entities")) {
-        for (const auto& v : params.at("entities")) out.push_back(v.get<int>());
-        return out;
-    }
-    out = t.selection();
-    if (out.empty() && all_if_empty)
-        for (int i = 0; i < int(t.entities().size()); ++i) out.push_back(i);
-    return out;
+    return sketch_target_indices(params, t.selection(), int(t.entities().size()), all_if_empty);
 }
 
 // The open sketch's degrees of freedom, as a reply's dof. The sketch tool keeps -1 while it has no
@@ -3563,6 +3553,8 @@ NativeCommand design_command(const DesignTool& t)
         description += ' ' + details;
     if (t.ok_false) description += std::string(" ") + kFailureNote;
     c.read_only   = t.access == CadAccess::Read;
+    // A read answers the same however often it is asked, as the listed read-only tools say of themselves.
+    c.idempotent  = c.read_only;
     c.description = std::move(description);
     c.examples    = doc.at("examples");
     return c;
@@ -3775,6 +3767,21 @@ void leave_out_cad_commands(CommandCatalog& catalog)
     for (const DesignTool& t : kDesignTools)
         if (t.action != nullptr || t.doc != nullptr)
             catalog.leave_out(t.id, kCadOffAtStartup);
+}
+
+std::vector<int> sketch_target_indices(const json& params, const std::vector<int>& selection, int entity_count, bool all_if_empty)
+{
+    std::vector<int> out;
+    // An empty list names nothing, so it reads as left out, as the schema's default [] says and as
+    // entity_picks() reads it. Anything else that is given names what it holds.
+    if (const auto given = params.find("entities"); given != params.end() && !(given->is_array() && given->empty())) {
+        for (const auto& v : *given) out.push_back(v.get<int>());
+        return out;
+    }
+    out = selection;
+    if (out.empty() && all_if_empty)
+        for (int i = 0; i < entity_count; ++i) out.push_back(i);
+    return out;
 }
 
 std::string design_command_index()

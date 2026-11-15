@@ -540,18 +540,19 @@ static const DesignTool kDesignTools[] = {
      "\":false}"},
     {"body_transform", L_CONTEXT("Move", "Design"), 5, "Shift+Y", "key:S+Y", L("Transform needs a body — add or import one first"), 0x000021feu, 1, 0, false, false, nullptr, "design_move", L("Move and/or rotate an existing body"), false, CadAccess::Change, true,
      "{\"summary\":\"Move and/or rotate a body (B-rep transform).\",\"details\":\"copy=true keeps the source "
-     "and appends the transformed copy as a new body.\",\"params\":[{\"name\":\"body\",\"type\":\"integer\",\"defa"
-     "ult\":-1,\"description\":\"target body; omit for the last body\"},{\"name\":\"dx\",\"type\":\"number\",\"unit\""
-     ":\"mm\",\"default\":0},{\"name\":\"dy\",\"type\":\"number\",\"unit\":\"mm\",\"default\":0},{\"name\":\"dz\",\"type\":\"nu"
-     "mber\",\"unit\":\"mm\",\"default\":0},{\"name\":\"axis_x\",\"type\":\"number\",\"default\":0},{\"name\":\"axis_y\",\"t"
-     "ype\":\"number\",\"default\":0},{\"name\":\"axis_z\",\"type\":\"number\",\"default\":1},{\"name\":\"pivot_x\",\"type"
-     "\":\"number\",\"unit\":\"mm\",\"default\":0},{\"name\":\"pivot_y\",\"type\":\"number\",\"unit\":\"mm\",\"default\":0},{"
-     "\"name\":\"pivot_z\",\"type\":\"number\",\"unit\":\"mm\",\"default\":0},{\"name\":\"angle\",\"type\":\"number\",\"unit\""
-     ":\"deg\",\"default\":0},{\"name\":\"copy\",\"type\":\"boolean\",\"default\":false}],\"examples\":[{\"title\":\"A pl"
-     "ate moved 30 mm along X\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20}"
-     "},{\"tool\":\"body_transform\",\"args\":{\"dx\":30}}]},{\"title\":\"A copy of a plate 10 mm above it\",\"call"
-     "s\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20}},{\"tool\":\"body_transform\",\"ar"
-     "gs\":{\"copy\":true,\"dz\":10}}]}],\"ids\":false}"},
+     "and appends the transformed copy as a new body. The rotation is angle about the axis (axis_x, ax"
+     "is_y, axis_z) through the pivot, a world point that defaults to the world origin.\",\"params\":[{\"n"
+     "ame\":\"body\",\"type\":\"integer\",\"default\":-1,\"description\":\"target body; omit for the last body\"},{"
+     "\"name\":\"dx\",\"type\":\"number\",\"unit\":\"mm\",\"default\":0},{\"name\":\"dy\",\"type\":\"number\",\"unit\":\"mm\",\"d"
+     "efault\":0},{\"name\":\"dz\",\"type\":\"number\",\"unit\":\"mm\",\"default\":0},{\"name\":\"axis_x\",\"type\":\"number"
+     "\",\"default\":0},{\"name\":\"axis_y\",\"type\":\"number\",\"default\":0},{\"name\":\"axis_z\",\"type\":\"number\",\"d"
+     "efault\":1},{\"name\":\"pivot_x\",\"type\":\"number\",\"unit\":\"mm\",\"default\":0},{\"name\":\"pivot_y\",\"type\":\""
+     "number\",\"unit\":\"mm\",\"default\":0},{\"name\":\"pivot_z\",\"type\":\"number\",\"unit\":\"mm\",\"default\":0},{\"na"
+     "me\":\"angle\",\"type\":\"number\",\"unit\":\"deg\",\"default\":0},{\"name\":\"copy\",\"type\":\"boolean\",\"default\":"
+     "false}],\"examples\":[{\"title\":\"A plate moved 30 mm along X\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"d"
+     "istance\":5,\"height\":20,\"width\":20}},{\"tool\":\"body_transform\",\"args\":{\"dx\":30}}]},{\"title\":\"A cop"
+     "y of a plate 10 mm above it\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\""
+     ":20}},{\"tool\":\"body_transform\",\"args\":{\"copy\":true,\"dz\":10}}]}],\"ids\":false}"},
     {"mate", L_CONTEXT("Mate", "Design"), 5, nullptr, "fly:placement#2", L("Mate needs two coordinate systems — create them first"), 0x00001202u, 2, 0, false, false, nullptr, "design_c_coincident", L("Assembly: align two coordinate systems (fastened, planar, revolute, slider, cylindrical)"), false, CadAccess::Change, true,
      "{\"summary\":\"Mate two bodies: transform the moving body (cs_b) so its connector lands on the fixe"
      "d one (cs_a).\",\"details\":\"kind: 0=Fastened, 1=Planar, 2=Revolute, 3=Slider, 4=Cylindrical.\",\"par"
@@ -890,15 +891,16 @@ static const DesignTool kDesignTools[] = {
     {"slice_body", L_CONTEXT("Slice body", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Read, false,
      "{\"summary\":\"Cross-section of a body by a base plane at an offset (sections-as-evidence).\",\"detai"
      "ls\":\"Returns ordered world contours, each flagged closed/open.\",\"params\":[{\"name\":\"body\",\"type\":"
-     "\"integer\",\"default\":0},{\"name\":\"plane\",\"type\":\"string\",\"default\":\"XY\",\"enum\":[\"XY\",\"XZ\",\"YZ\"]},{"
-     "\"name\":\"offset\",\"type\":\"number\",\"unit\":\"mm\",\"default\":0}],\"examples\":[{\"title\":\"A plate's cross-"
-     "section halfway up\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20}},{\"t"
-     "ool\":\"slice_body\",\"args\":{\"body\":0,\"offset\":2.5,\"plane\":\"XY\"}}]},{\"title\":\"The two contours thro"
-     "ugh a plate with a bore\",\"calls\":[{\"tool\":\"sketch_begin\",\"args\":{\"plane\":\"XY\"}},{\"tool\":\"sketch_"
-     "add\",\"args\":{\"rect\":[-15,-10,15,10]}},{\"tool\":\"sketch_add\",\"args\":{\"entities\":[{\"center\":[0,0],\""
-     "radius\":4,\"type\":\"circle\"}]}},{\"tool\":\"sketch_commit\",\"args\":{}},{\"tool\":\"extrude\",\"args\":{\"dist"
-     "ance\":5,\"sketch\":0}},{\"tool\":\"slice_body\",\"args\":{\"body\":0,\"offset\":2.5,\"plane\":\"XY\"}}]}],\"ids\":"
-     "true}"},
+     "\"integer\",\"default\":0},{\"name\":\"plane\",\"type\":\"string\",\"default\":\"XY\",\"enum\":[\"XY\",\"XZ\",\"YZ\"],\"d"
+     "escription\":\"the base plane through the world origin, not through modeling_origin as the other c"
+     "ommands' planes are\"},{\"name\":\"offset\",\"type\":\"number\",\"unit\":\"mm\",\"default\":0,\"description\":\"al"
+     "ong the plane's normal, from the world origin\"}],\"examples\":[{\"title\":\"A plate's cross-section h"
+     "alfway up\",\"calls\":[{\"tool\":\"extrude\",\"args\":{\"distance\":5,\"height\":20,\"width\":20}},{\"tool\":\"sli"
+     "ce_body\",\"args\":{\"body\":0,\"offset\":2.5,\"plane\":\"XY\"}}]},{\"title\":\"The two contours through a pla"
+     "te with a bore\",\"calls\":[{\"tool\":\"sketch_begin\",\"args\":{\"plane\":\"XY\"}},{\"tool\":\"sketch_add\",\"arg"
+     "s\":{\"rect\":[-15,-10,15,10]}},{\"tool\":\"sketch_add\",\"args\":{\"entities\":[{\"center\":[0,0],\"radius\":4"
+     ",\"type\":\"circle\"}]}},{\"tool\":\"sketch_commit\",\"args\":{}},{\"tool\":\"extrude\",\"args\":{\"distance\":5,\""
+     "sketch\":0}},{\"tool\":\"slice_body\",\"args\":{\"body\":0,\"offset\":2.5,\"plane\":\"XY\"}}]}],\"ids\":true}"},
     {"validate_against", L_CONTEXT("Validate against", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Read, false,
      "{\"summary\":\"Compare a body with a reference: volume, bbox, centroid and surface deviation (the R"
      "E acceptance metric).\",\"details\":\"The reference is {step:path|body:id}; the surface deviation is"
@@ -1199,13 +1201,14 @@ static const DesignTool kDesignTools[] = {
      "entities\":[2]}}]},{\"title\":\"Delete the selected sides\",\"calls\":[{\"tool\":\"sketch_begin\",\"args\":{\""
      "plane\":\"XY\"}},{\"tool\":\"sketch_add\",\"args\":{\"rect\":[-15,-10,15,10]}},{\"tool\":\"sketch_select\",\"arg"
      "s\":{\"entities\":[1,3]}},{\"tool\":\"sketch_delete\",\"args\":{}}]}],\"ids\":false}"},
-    {"sketch_construction", L_CONTEXT("Sketch construction", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Sketch, true,
-     "{\"summary\":\"Toggle construction on sketch entities.\",\"details\":\"Reply: changed.\",\"params\":[{\"nam"
-     "e\":\"entities\",\"type\":\"array\",\"default\":[],\"description\":\"entity indices; omit for the selection\""
-     "}],\"examples\":[{\"title\":\"A centre line across a rectangle, made construction so it splits no loo"
-     "p\",\"calls\":[{\"tool\":\"sketch_begin\",\"args\":{\"plane\":\"XY\"}},{\"tool\":\"sketch_add\",\"args\":{\"rect\":[-"
-     "15,-10,15,10]}},{\"tool\":\"sketch_add\",\"args\":{\"entities\":[{\"p0\":[0,-10],\"p1\":[0,10],\"type\":\"line\""
-     "}]}},{\"tool\":\"sketch_construction\",\"args\":{\"entities\":[4]}}]}],\"ids\":false}"},
+    {"sketch_construction", L_CONTEXT("Sketch construction", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Sketch, false,
+     "{\"summary\":\"Toggle construction on sketch entities.\",\"details\":\"Reply: changed, how many, and ok"
+     ", false when none did.\",\"params\":[{\"name\":\"entities\",\"type\":\"array\",\"default\":[],\"description\":\""
+     "entity indices; omit for the selection\"}],\"examples\":[{\"title\":\"A centre line across a rectangle"
+     ", made construction so it splits no loop\",\"calls\":[{\"tool\":\"sketch_begin\",\"args\":{\"plane\":\"XY\"}}"
+     ",{\"tool\":\"sketch_add\",\"args\":{\"rect\":[-15,-10,15,10]}},{\"tool\":\"sketch_add\",\"args\":{\"entities\":["
+     "{\"p0\":[0,-10],\"p1\":[0,10],\"type\":\"line\"}]}},{\"tool\":\"sketch_construction\",\"args\":{\"entities\":[4]"
+     "}}]}],\"ids\":false}"},
     {"sketch_offset", L_CONTEXT("Sketch offset", "Design"), -1, nullptr, nullptr, nullptr, 0x00000000u, 0, 0, false, false, nullptr, nullptr, nullptr, false, CadAccess::Sketch, false,
      "{\"summary\":\"Add an offset copy of sketch lines, arcs and circles.\",\"details\":\"Reply: first_index"
      ", added, dof.\",\"params\":[{\"name\":\"distance\",\"type\":\"number\",\"unit\":\"mm\",\"description\":\"signed of"
