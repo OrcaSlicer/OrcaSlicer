@@ -204,6 +204,9 @@ private:
     void     escape();
     void update_action_bar();   // show the ✓/✗ bar iff a tool or mode is active
     void update_confirm_button();   // grey the ✓ to confirm_enabled()
+    // Lay the panel out again when the toolbar's height is not the one its scrollbar now asks for.
+    void fit_toolbar_height();
+    int  m_toolbar_fitted_y{-1};   // the height fit_toolbar_height() laid the panel out for, while the toolbar lacks it
 
     void on_shape_changed();
     void on_add_sketch();

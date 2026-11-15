@@ -422,6 +422,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_toolbar = new wxScrolledWindow(this, wxID_ANY);
     m_toolbar->SetScrollRate(15, 0);
     m_toolbar->ShowScrollbars(wxSHOW_SB_DEFAULT, wxSHOW_SB_NEVER);
+    // A resize can show or hide the horizontal scrollbar, which changes the height the bar asks for;
+    // the scrollbar settles in the resize's own handling, so the height is checked after it.
+    m_toolbar->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+        e.Skip();
+        CallAfter([this] { fit_toolbar_height(); });
+    });
     // Theme-aware tool ribbon: dark uses Orca's elevated surface (#36363C / hover
     // #4D4D54); light maps onto the app's light chrome so the strip follows the theme.
     m_toolbar->SetBackgroundColour(dp_ribbon_bg());
@@ -4503,6 +4509,7 @@ void DesignPanel::set_ui_mode(UiMode m)
     s->Show(m_tb_relations, m == UiMode::Sketch || m == UiMode::Constrain, true);
     m_toolbar->Layout();
     m_toolbar->FitInside();   // refresh the horizontal scroll range for the new group widths
+    fit_toolbar_height();
     set_active_tool_btn(nullptr);   // no tool selected right after a mode switch
     // The sketch the session works on: one reopened for editing goes by its own name, a new one by
     // the number its commit will give it (feature_name()).
@@ -12370,6 +12377,32 @@ void DesignPanel::update_action_bar()
     }
     m_toolbar->Layout();
     m_toolbar->FitInside();   // refresh scroll range when the action bar shows/hides
+    fit_toolbar_height();
+}
+
+// A window's best size counts the room its scrollbars take from the client area, so the toolbar asks
+// for its scrollbar's height on top of its buttons' while the scrollbar shows (where scrollbars are not
+// overlaid: macOS with a mouse, Windows). Whether it shows follows the bar's width and its groups'
+// widths, and those change after the panel's layout has read the height: the first layout reads it
+// while the bar still has its default width, with the scrollbar up. Laid out again, the panel gives
+// the bar the height it asks for now, and the canvas below it moves to where a later layout puts it.
+// The layout resizes the bar, which brings this check back: until the bar has the height it asks for,
+// the panel is laid out once for each height asked, so a height the layout cannot give ends there
+// instead of laying out again and again. A hidden panel is left alone: it is laid out when it is
+// shown, and the resize that brings comes back here.
+void DesignPanel::fit_toolbar_height()
+{
+    if (m_toolbar == nullptr || !IsShownOnScreen())
+        return;
+    const int want = m_toolbar->GetEffectiveMinSize().y;
+    if (m_toolbar->GetSize().y == want) {
+        m_toolbar_fitted_y = -1;
+        return;
+    }
+    if (want == m_toolbar_fitted_y)
+        return;
+    m_toolbar_fitted_y = want;
+    Layout();
 }
 
 void DesignPanel::do_undo_redo(bool redo)

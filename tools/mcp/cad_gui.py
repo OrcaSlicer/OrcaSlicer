@@ -471,9 +471,10 @@ class CadGui:
     # ------------------------------------------------------------ session
 
     def start(self):
-        """Check the UI is English, clear the auto-answer rules an earlier run left, make the window
-        wide enough for the sketch ribbon, show the Design tab in reset_view()'s view and start an
-        empty design."""
+        """Check the UI is English, clear the auto-answer rules an earlier run left, check the Design
+        tab lays its canvas out on its first showing (in a fresh instance) as on a later one, make the
+        window wide enough for the sketch ribbon, show the Design tab in reset_view()'s view and start
+        an empty design."""
         if not self.client.call("get_app_state").get("design_tab"):
             print("the Design tab is off: launch the app with tools/mcp/orca_mcp.py launch --cad")
             sys.exit(2)
@@ -485,6 +486,15 @@ class CadGui:
         # A run killed before it cleared its auto-answer rules leaves them in force, and they would
         # answer this run's dialogs and pickers; an empty list clears the rules a client set.
         self.client.call("auto_answer_dialogs", rules=[])
+        # A canvas laid out under a ribbon of the wrong height moves when the tab is shown again, and a
+        # click aimed through a map fitted before the move misses by that much.
+        self.client.call("set_view", tab="design")
+        first = self._canvas(self.widgets()).rect
+        self.client.call("set_view", tab="prepare")
+        self.client.call("set_view", tab="design")
+        again = self._canvas(self.widgets()).rect
+        self.check("the Design tab's first showing lays out its canvas as a later one does", first == again,
+                   f"{first}, then {again}")
         # The ribbon shows its sketch buttons only while a sketch is open, so one is opened to see
         # where Cancel, the last of them, lands. It sits after a stretch spacer, so once the window
         # is wider than the ribbon it moves in from the canvas's right edge (the window's).
