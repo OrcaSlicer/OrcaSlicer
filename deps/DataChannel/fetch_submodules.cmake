@@ -1,0 +1,52 @@
+# Fills libdatachannel's submodule folders from source archives kept in the download cache
+# (see DataChannel.cmake). Runs as the patch step, inside the extracted source tree.
+# Arguments: -DLIST=<file that sets _submodules> -DDL=<download dir> -DSRC=<source dir>
+#   _submodules entries: "<path in tree>,<archive URL>,<sha256>"
+include("${LIST}")
+foreach (_entry IN LISTS _submodules)
+    string(REPLACE "," ";" _entry "${_entry}")
+    list(GET _entry 0 _path)
+    list(GET _entry 1 _url)
+    list(GET _entry 2 _sha)
+    get_filename_component(_name "${_path}" NAME)
+    get_filename_component(_file "${_url}" NAME)
+    set(_archive "${DL}/${_name}-${_file}")
+
+    # Download once, then reuse the cached archive while its hash still matches.
+    set(_have "")
+    if (EXISTS "${_archive}")
+        file(SHA256 "${_archive}" _have)
+    endif ()
+    if (NOT _have STREQUAL _sha)
+        message(STATUS "Downloading ${_url}")
+        file(DOWNLOAD "${_url}" "${_archive}" EXPECTED_HASH SHA256=${_sha} STATUS _status)
+        list(GET _status 0 _rc)
+        if (NOT _rc EQUAL 0)
+            message(FATAL_ERROR "Downloading ${_url} failed: ${_status}")
+        endif ()
+    endif ()
+
+    # The archive holds one top-level folder (<repo>-<commit>); move it to the submodule path.
+    set(_tmp "${SRC}/${_path}.extract")
+    file(REMOVE_RECURSE "${_tmp}")
+    file(MAKE_DIRECTORY "${_tmp}")
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf "${_archive}" WORKING_DIRECTORY "${_tmp}" RESULT_VARIABLE _rc)
+    if (NOT _rc EQUAL 0)
+        message(FATAL_ERROR "Extracting ${_archive} failed")
+    endif ()
+    file(GLOB _top LIST_DIRECTORIES true "${_tmp}/*")
+    list(LENGTH _top _n)
+    if (NOT _n EQUAL 1)
+        message(FATAL_ERROR "${_archive} should hold one top-level folder, found: ${_top}")
+    endif ()
+    file(REMOVE_RECURSE "${SRC}/${_path}")
+    # A rename can be refused on Windows while a scanner still holds the new files; copy then.
+    execute_process(COMMAND ${CMAKE_COMMAND} -E rename "${_top}" "${SRC}/${_path}" RESULT_VARIABLE _rc)
+    if (NOT _rc EQUAL 0)
+        execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory "${_top}" "${SRC}/${_path}" RESULT_VARIABLE _rc)
+        if (NOT _rc EQUAL 0)
+            message(FATAL_ERROR "Moving ${_name} into ${SRC}/${_path} failed")
+        endif ()
+    endif ()
+    file(REMOVE_RECURSE "${_tmp}")
+endforeach ()
