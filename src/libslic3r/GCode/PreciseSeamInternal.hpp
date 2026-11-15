@@ -12,6 +12,8 @@
 #include <optional>
 #include <vector>
 
+namespace Slic3r { struct FuzzySkinConfig; }
+
 namespace Slic3r::PreciseSeam::detail {
 
 // Binding intermediates retain source edge identity until segment assembly.
@@ -95,6 +97,10 @@ struct Transfer {
 // PreparedPerimeter::set_target() requires of the loop.
 Transfer transfer_point(const AABBTreeLines::LinesDistancer<Line> &target, const Point &point, const Point &surface,
                         double window);
+
+// The transfer window of the external fuzzy skin loops of one kind (contours or holes) on a layer, in mm, from the
+// fuzzy skin settings of its regions; each setting carries the layer id. Zero where no region textures these loops.
+double fuzzy_skin_window(const std::vector<FuzzySkinConfig> &regions, double layer_height, bool arachne, bool contour);
 
 struct FragmentBindingFailure {
     size_t pair_index = 0;
