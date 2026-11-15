@@ -1285,8 +1285,8 @@ double ironing_flow_calib_mark_step(double min_flow, double max_flow, double len
     return 0.;
 }
 
-indexed_triangle_set ironing_flow_calib_mesh(double min_flow, double max_flow, double length, const std::string &name,
-                                             double nozzle_diameter, double base_z, double ruler_z, double top_z)
+IroningFlowCalibMeshes ironing_flow_calib_meshes(double min_flow, double max_flow, double length, const std::string &name,
+                                                 double nozzle_diameter, double base_z, double marks_z, double top_z)
 {
     constexpr double side         = 5.;
     constexpr double depth        = 15.;
@@ -1332,14 +1332,11 @@ indexed_triangle_set ironing_flow_calib_mesh(double min_flow, double max_flow, d
         append(marks, to_polygons(name_text));
     }
 
-    const ExPolygon band  = rectangle(0., 0., total_length, depth);
-    Polygons        ruler = to_polygons(band);
-    append(ruler, std::move(marks));
-
-    indexed_triangle_set its = ironing_flow_prism({rectangle(0., -front, total_length, depth)}, 0., base_z);
-    its_merge(its, ironing_flow_prism(union_ex(ruler), base_z, ruler_z));
-    its_merge(its, ironing_flow_prism({band}, ruler_z, top_z));
-    return its;
+    IroningFlowCalibMeshes meshes;
+    meshes.plate = ironing_flow_prism({rectangle(0., -front, total_length, depth)}, 0., base_z);
+    its_merge(meshes.plate, ironing_flow_prism({rectangle(0., 0., total_length, depth)}, base_z, top_z));
+    meshes.marks = ironing_flow_prism(union_ex(marks), base_z, marks_z);
+    return meshes;
 }
 
 } // namespace Slic3r

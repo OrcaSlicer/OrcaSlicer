@@ -222,23 +222,32 @@ TEST_CASE("Ironing flow marks use the smallest step that keeps them 10 mm apart"
     CHECK_THAT(ironing_flow_calib_mark_step(min_flow, max_flow, length), Catch::Matchers::WithinAbs(step, 1e-9));
 }
 
-TEST_CASE("Ironing flow test mesh is a closed plate with the band and its side strips", "[Calib]")
+TEST_CASE("Ironing flow test meshes are a closed plate with the band and closed marks on top of it", "[Calib]")
 {
     // The text needs the font in resources/fonts.
     const std::string previous = resources_dir();
     set_resources_dir(boost::filesystem::path(PROFILES_DIR).parent_path().string());
 
-    const double length = 100.;
-    const double top_z  = 0.68;
-    const indexed_triangle_set its = ironing_flow_calib_mesh(10., 60., length, "Generic PLA", 0.4, 0.32, 0.56, top_z);
+    const double length  = 100.;
+    const double base_z  = 0.32;
+    const double marks_z = 0.56;
+    const double top_z   = 0.68;
+    const IroningFlowCalibMeshes meshes = ironing_flow_calib_meshes(10., 60., length, "Generic PLA", 0.4, base_z, marks_z, top_z);
     set_resources_dir(previous);
 
-    const BoundingBoxf3 bb = bounding_box(its);
+    const BoundingBoxf3 plate = bounding_box(meshes.plate);
     // The band plus 5 mm at each end.
-    CHECK_THAT(bb.size().x(), Catch::Matchers::WithinAbs(length + 10., 1e-3));
-    CHECK_THAT(bb.min.z(), Catch::Matchers::WithinAbs(0., 1e-6));
-    CHECK_THAT(bb.max.z(), Catch::Matchers::WithinAbs(top_z, 1e-6));
-    // The marks and the name lie in front of the band.
-    CHECK(bb.min.y() < -10.);
-    CHECK(its_num_open_edges(its) == 0);
+    CHECK_THAT(plate.size().x(), Catch::Matchers::WithinAbs(length + 10., 1e-3));
+    CHECK_THAT(plate.min.z(), Catch::Matchers::WithinAbs(0., 1e-6));
+    CHECK_THAT(plate.max.z(), Catch::Matchers::WithinAbs(top_z, 1e-6));
+    CHECK(its_num_open_edges(meshes.plate) == 0);
+
+    // The marks and the name lie on the plate, in front of the band.
+    const BoundingBoxf3 marks = bounding_box(meshes.marks);
+    CHECK_THAT(marks.min.z(), Catch::Matchers::WithinAbs(base_z, 1e-6));
+    CHECK_THAT(marks.max.z(), Catch::Matchers::WithinAbs(marks_z, 1e-6));
+    CHECK(marks.max.y() <= 1e-6);
+    CHECK(marks.min.y() < -10.);
+    CHECK(marks.min.y() > plate.min.y());
+    CHECK(its_num_open_edges(meshes.marks) == 0);
 }

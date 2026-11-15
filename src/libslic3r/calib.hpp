@@ -467,9 +467,14 @@ private:
 // 10 mm apart, or 0 if none does.
 double ironing_flow_calib_mark_step(double min_flow, double max_flow, double length);
 
-// Ironing flow calibration plate: the ironed band with the marks and their flows in front of it, and the filament
-// name in front of the marks.
-indexed_triangle_set ironing_flow_calib_mesh(double min_flow, double max_flow, double length, const std::string &name,
-                                             double nozzle_diameter, double base_z, double ruler_z, double top_z);
+// Ironing flow calibration test: a plate with the ironed band on top, and the marks with their flows in front of
+// the band and the filament name in front of the marks, separate so that they can print in another filament.
+struct IroningFlowCalibMeshes
+{
+    indexed_triangle_set plate;
+    indexed_triangle_set marks;
+};
+IroningFlowCalibMeshes ironing_flow_calib_meshes(double min_flow, double max_flow, double length, const std::string &name,
+                                                 double nozzle_diameter, double base_z, double marks_z, double top_z);
 
 } // namespace Slic3r
