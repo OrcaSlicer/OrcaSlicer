@@ -80,6 +80,10 @@ AppActionRunResult start_person_recording();
 // Stops the running recording, whoever started it, without waiting for its file, and shows the person a
 // notification naming it; the reply has its path.
 AppActionRunResult stop_recording_in_app();
+// What the person's forms of save_project and save_project_as answer for Plater::save_project()'s `answer`.
+// A save that wrote nothing (a dialog cancelled, the file not written) did nothing: the person, who answered
+// or read its dialog, is shown nothing more, and automation gets Ops::project_not_saved().
+AppActionRunResult project_save_result(int answer);
 
 // What a command's result replies to an automated call: {"ran": key, "level", "message"?} with the fields
 // of its `reply`. It is an error for a Busy or Error level and for a command that did nothing; an operation's

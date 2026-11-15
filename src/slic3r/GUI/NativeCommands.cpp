@@ -90,6 +90,7 @@
 #include <vector>
 #include <wx/app.h>
 #include <wx/dataview.h>
+#include <wx/defs.h>
 #include <wx/filedlg.h>
 #include <wx/gdicmn.h>
 #include <wx/image.h>
@@ -863,10 +864,8 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         Plater* plater = wxGetApp().plater();
         if (plater == nullptr)
             return AppActionRunResult{};
-        if (Mcp::person_form(args)) {
-            plater->save_project(true);
-            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
-        }
+        if (Mcp::person_form(args))
+            return project_save_result(plater->save_project(true));
         AppActionRunResult fail;
         const auto         path = path_argument(args, true, fail);
         if (!path)
@@ -1998,6 +1997,15 @@ void NativeCommands::notify_result(const AppActionRunResult& result)
                                                                           NotificationManager::NotificationLevel::ErrorNotificationLevel :
                                                                           NotificationManager::NotificationLevel::RegularNotificationLevel,
                                                                       into_u8(result.message));
+}
+
+AppActionRunResult NativeCommands::project_save_result(int answer)
+{
+    if (answer == wxID_YES)
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
+    AppActionRunResult not_saved{AppActionRunResult::Level::Info, {}, false};
+    not_saved.refusal = std::make_shared<const Ops::Refusal>(Ops::project_not_saved());
+    return not_saved;
 }
 
 bool NativeCommands::recording_active()

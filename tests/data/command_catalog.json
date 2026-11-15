@@ -3323,7 +3323,7 @@
   },
   {
    "completion": "immediate",
-   "description": "Save the project. Called with no arguments, it saves as Save Project does: to the project's file, or, when it has none, through a file dialog (blocked_by_dialog; a native picker needs auto_answer_dialogs registered first). With path, it saves a .3mf there without a dialog, and the file becomes the project's.",
+   "description": "Save the project. Called with no arguments, it saves as Save Project does: to the project's file, or, when it has none, through a file dialog (blocked_by_dialog; a native picker needs auto_answer_dialogs registered first). With path, it saves a .3mf there without a dialog, and the file becomes the project's. A save that writes nothing (a dialog cancelled, the file not written) fails with project_not_saved, and a file already there stays as it was.",
    "destructive": false,
    "group": "Commands",
    "guard": "mutate",

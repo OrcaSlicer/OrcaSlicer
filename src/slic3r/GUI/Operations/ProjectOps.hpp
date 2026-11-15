@@ -70,8 +70,12 @@ struct SaveProjectAsArgs
 };
 // Saves the project to the path, which becomes the project's file. A name ending in .gcode.3mf is a
 // sliced file's, and a project file holds no G-code, so it is refused.
-// Refuses: sliced_file_name, project_not_saved.
+// Refuses: sliced_file_name, project_not_saved (project_not_saved()).
 Outcome<Done> save_project_as(const SaveProjectAsArgs& args);
+// The refusal of a save that wrote nothing (project_not_saved): a dialog it opened was cancelled, such as the
+// warning about settings that name an unknown plugin, or the file could not be written. Whatever the file
+// held before stays.
+Refusal project_not_saved();
 
 // What keeps the number of instances of the object selected in the Prepare view from being set
 // (no_object_selected, cut_object, unprintable_instance, job_running), or none: the reasons the

@@ -15,9 +15,7 @@
 #include "libslic3r/Utils.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
-#include <boost/system/error_code.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -26,6 +24,7 @@
 #include <string>
 #include <vector>
 
+#include <wx/defs.h>
 #include <wx/string.h>
 #include <wx/thread.h>
 
@@ -104,12 +103,12 @@ Outcome<Done> save_project_as(const SaveProjectAsArgs& args)
     if (boost::algorithm::iends_with(args.path.string(), ".gcode.3mf"))
         return Refusal{RefusalKind::Precondition, "sliced_file_name",
                        L("A project is saved without G-code, so its file name cannot end in .gcode.3mf. Export the sliced file instead.")};
-    the_plater().save_project(/*saveAs=*/true, from_path(args.path));
-    boost::system::error_code ec;
-    if (!boost::filesystem::exists(args.path, ec))
-        return Refusal{RefusalKind::Failed, "project_not_saved", L("The project was not saved.")};
+    if (the_plater().save_project(/*saveAs=*/true, from_path(args.path)) != wxID_YES)
+        return project_not_saved();
     return Done{};
 }
+
+Refusal project_not_saved() { return Refusal{RefusalKind::Failed, "project_not_saved", L("The project was not saved.")}; }
 
 std::optional<Refusal> instance_count_refusal()
 {

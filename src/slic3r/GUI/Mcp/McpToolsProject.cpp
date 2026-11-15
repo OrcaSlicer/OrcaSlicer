@@ -644,7 +644,8 @@ void register_project_tools(CommandCatalog& catalog)
         {}, "save_project", {},
         "Save the project. Called with no arguments, it saves as Save Project does: to the project's file, or, when it has "
         "none, through a file dialog (blocked_by_dialog; a native picker needs auto_answer_dialogs registered first). With "
-        "path, it saves a .3mf there without a dialog, and the file becomes the project's.",
+        "path, it saves a .3mf there without a dialog, and the file becomes the project's. A save that writes nothing (a "
+        "dialog cancelled, the file not written) fails with project_not_saved, and a file already there stays as it was.",
         object_schema({{"path", prop("string", "Absolute .3mf path.")}, {"overwrite", prop("boolean", "Replace an existing file.")}}, {"path"}),
         [](const json& args, ToolContext& ctx) {
             std::string err;
@@ -666,7 +667,7 @@ void register_project_tools(CommandCatalog& catalog)
         })),
         L("Save Project"), L("Commands"), "menu_save", [] {
             if (Plater* plater = wxGetApp().plater())
-                plater->save_project(false);
+                return NativeCommands::project_save_result(plater->save_project(false));
             return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }));
 
