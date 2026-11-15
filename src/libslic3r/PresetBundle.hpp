@@ -383,6 +383,8 @@ public:
     bool use_bbl_network();
     // Whether using bbl's device tab
     bool use_bbl_device_tab();
+    // Orca: the printer turned off the Device tab that shows its device user interface.
+    bool device_tab_disabled();
 
     bool backup_user_folder() const;
     // Writes the user preset folder into a zip archive at zip_path, its entries under "user/".
