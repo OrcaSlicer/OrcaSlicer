@@ -18,6 +18,7 @@
 <script type="text/javascript" src="../include/i18n.js"></script>		
 	
 <script type="text/javascript" src="js/home.js"></script>
+<script type="text/javascript" src="js/home-calibration-button.js"></script>
 </head>
 <body class="thin-scroll" onLoad="OnInit()">
 <div id="LeftBoard">
@@ -126,8 +127,99 @@
 				<div class="MenuDesc">3mf</div>
 			</div>
 		</div>		
+		<div class="MenuItem" id="cali_menu_trigger" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-controls="cali_context_menu" onClick="OnClickCalibration()">
+			<div class="MenuIcon"><img src="../../images/calib_sf.svg"></div>
+			<div>
+				<div class="TextS1" data-i18n="new_calibration">New Calibration</div>
+				<div class="MenuDesc" data-i18n="tune_your_printer">Tune your printer</div>
+			</div>
+		</div>
 	</div>
-	
+
+		<!-- Two contiguous blocks, per-filament first then per-printer, so results of the same kind
+	     stay together. Inside each block the rows keep the order recommended by
+	     https://www.orcaslicer.com/wiki/guides/calibration_guide
+	     Each row carries its own CalibKind ordinal in onClick, so the grouping is presentational
+	     only and cannot affect dispatch. -->
+	<div id="cali_context_menu" role="menu" aria-labelledby="cali_menu_trigger">
+		<div class="CaliMenuTitle" data-i18n="recommended_test_order">Recommended Test Order</div>
+		<div class="CaliGroupHeader" data-i18n="per_filament">Per filament</div>
+		<div class="CaliItem" role="menuitem" tabindex="0" onClick="OnSelectCalibrationTest(0)">
+			<div class="CaliItemIcon"><img src="../../images/param_temperature.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName"><span data-i18n="cali_temperature">Temperature</span></div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel" data-i18n="when_label">When:</span> <span class="CaliWhenText" data-i18n="cali_temperature_when">Corners blob or detail is stringy</span></div>
+				<div class="CaliItemOrder"><span class="CaliOrderLabel" data-i18n="order_label">Order:</span> <span class="CaliWhenText" data-i18n="cali_temperature_order">First test for a new filament.</span></div>
+			</div>
+		</div>
+		<div class="CaliItem" role="menuitem" tabindex="0" onClick="OnSelectCalibrationTest(1)">
+			<div class="CaliItemIcon"><img src="../../images/param_volumetric_speed.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName"><span data-i18n="cali_max_volumetric_speed">Max volumetric speed</span></div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel" data-i18n="when_label">When:</span> <span class="CaliWhenText" data-i18n="cali_max_volumetric_speed_when">Parts are under-extruded or the nozzle clogs</span></div>
+				<div class="CaliItemOrder"><span class="CaliOrderLabel" data-i18n="order_label">Order:</span> <span class="CaliWhenList"><span class="CaliWhenItem" data-i18n="cali_max_volumetric_speed_order">After temperature.</span> <span class="CaliWhenItem" data-i18n="cali_max_volumetric_speed_order_2">Before changing flow speed.</span></span></div>
+			</div>
+		</div>
+		<div class="CaliItem" role="menuitem" tabindex="0" onClick="OnSelectCalibrationTest(2)">
+			<div class="CaliItemIcon"><img src="../../images/param_flow_ratio_and_pressure_advance.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName"><span data-i18n="cali_pressure_advance">Pressure advance</span></div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel" data-i18n="when_label">When:</span> <span class="CaliWhenText" data-i18n="cali_pressure_advance_when">After changing extruder, filament or temps</span></div>
+				<div class="CaliItemOrder"><span class="CaliOrderLabel" data-i18n="order_label">Order:</span> <span class="CaliWhenText" data-i18n="cali_pressure_advance_order">After temperature, before flow ratio.</span></div>
+			</div>
+		</div>
+		<div class="CaliItem" role="menuitem" tabindex="0" onClick="OnSelectCalibrationTest(3)">
+			<div class="CaliItemIcon"><img src="../../images/param_flow_ratio_and_pressure_advance.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName"><span data-i18n="cali_flow_ratio">Flow ratio</span></div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel" data-i18n="when_label">When:</span> <span class="CaliWhenText" data-i18n="cali_flow_ratio_when">For thin or inconsistent extrusion</span></div>
+				<div class="CaliItemOrder"><span class="CaliOrderLabel" data-i18n="order_label">Order:</span> <span class="CaliWhenText" data-i18n="cali_flow_ratio_order">After pressure advance.</span></div>
+			</div>
+		</div>
+		<div class="CaliItem" role="menuitem" tabindex="0" onClick="OnSelectCalibrationTest(4)">
+			<div class="CaliItemIcon"><img src="../../images/param_retraction.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName"><span data-i18n="cali_retraction">Retraction</span> <span class="CaliItemTag" data-i18n="tag_optional">Optional</span></div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel" data-i18n="when_label">When:</span> <span class="CaliWhenText" data-i18n="cali_retraction_when">Stringing issues</span></div>
+				<div class="CaliItemOrder"><span class="CaliOrderLabel" data-i18n="order_label">Order:</span> <span class="CaliWhenText" data-i18n="cali_retraction_order">After pressure advance and flow ratio.</span></div>
+			</div>
+		</div>
+		<div class="CaliGroupHeader CaliGroupHeaderSep" data-i18n="per_printer">Per printer</div>
+		<div class="CaliItem" role="menuitem" tabindex="0" onClick="OnSelectCalibrationTest(5)">
+			<div class="CaliItemIcon"><img src="../../images/param_precision.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName"><span data-i18n="cali_cornering">Cornering</span> <span class="CaliItemTag" data-i18n="tag_optional">Optional</span> <span class="CaliItemTag" data-i18n="tag_advanced">Advanced</span></div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel" data-i18n="when_label">When:</span> <span class="CaliWhenList"><span class="CaliWhenItem" data-i18n="cali_cornering_when">Corners look rounded or wavy.</span> <span class="CaliWhenItem" data-i18n="cali_cornering_when_2">You want to push print speed.</span></span></div>
+				<div class="CaliItemOrder"><span class="CaliOrderLabel" data-i18n="order_label">Order:</span> <span class="CaliWhenText" data-i18n="cali_cornering_order">First of the advanced tests, after the filament tests.</span></div>
+			</div>
+		</div>
+		<div class="CaliItem" role="menuitem" tabindex="0" onClick="OnSelectCalibrationTest(6)">
+			<div class="CaliItemIcon"><img src="../../images/param_resonance_avoidance.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName"><span data-i18n="cali_input_shaping_frequency">Input shaping frequency</span> <span class="CaliItemTag" data-i18n="tag_optional">Optional</span> <span class="CaliItemTag" data-i18n="tag_advanced">Advanced</span></div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel" data-i18n="when_label">When:</span> <span class="CaliWhenList"><span class="CaliWhenItem" data-i18n="cali_input_shaping_frequency_when">Once per printer</span> <span class="CaliWhenItem" data-i18n="when_use_auto_input_shaping">Use automatic input shaping instead if your printer supports it.</span></span></div>
+				<div class="CaliItemOrder"><span class="CaliOrderLabel" data-i18n="order_label">Order:</span> <span class="CaliWhenText" data-i18n="cali_input_shaping_frequency_order">After the filament tests.</span></div>
+			</div>
+		</div>
+		<div class="CaliItem" role="menuitem" tabindex="0" onClick="OnSelectCalibrationTest(7)">
+			<div class="CaliItemIcon"><img src="../../images/param_resonance_avoidance.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName"><span data-i18n="cali_input_shaping_damping">Input shaping damping</span> <span class="CaliItemTag" data-i18n="tag_optional">Optional</span> <span class="CaliItemTag" data-i18n="tag_advanced">Advanced</span></div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel" data-i18n="when_label">When:</span> <span class="CaliWhenText" data-i18n="cali_input_shaping_damping_when">Ringing is still visible in prints</span></div>
+				<div class="CaliItemOrder"><span class="CaliOrderLabel" data-i18n="order_label">Order:</span> <span class="CaliWhenText" data-i18n="cali_input_shaping_damping_order">After the frequency is set.</span></div>
+			</div>
+		</div>
+		<div class="CaliItem" role="menuitem" tabindex="0" onClick="OnSelectCalibrationTest(8)">
+			<div class="CaliItemIcon"><img src="../../images/param_speed.svg"></div>
+			<div class="CaliItemText">
+				<div class="CaliItemName"><span data-i18n="cali_vfa">VFA</span> <span class="CaliItemTag" data-i18n="tag_optional">Optional</span> <span class="CaliItemTag" data-i18n="tag_advanced">Advanced</span></div>
+				<div class="CaliItemWhen"><span class="CaliWhenLabel" data-i18n="when_label">When:</span> <span class="CaliWhenText" data-i18n="cali_vfa_when">Fast prints look rough on the surface</span></div>
+				<div class="CaliItemOrder"><span class="CaliOrderLabel" data-i18n="order_label">Order:</span> <span class="CaliWhenText" data-i18n="cali_vfa_order">After input shaping.</span></div>
+			</div>
+		</div>
+		<div class="CaliMenuFooter" role="menuitem" tabindex="0" data-i18n="calibration_guide" onClick="OnClickCalibrationGuide()">Calibration guide</div>
+	</div>
+
 	<div id="DebugText"></div>	
 	<div id="RecentFileArea">
 		<div id="RecentTitleBlock">
