@@ -99,7 +99,7 @@ def main():
     for label, tab in pages:
         check(f"{label}: the tab is shown", switch_to(label, tab))
         focused = [line.strip() for line in tree().splitlines() if "[focused]" in line]
-        check(f"{label}: its 3D view holds the keyboard focus", focused and "canvas (wxGLCanvas)" in focused[0], focused)
+        check(f"{label}: its 3D view holds the keyboard focus", focused and "name=OrcaSceneCanvas" in focused[0], focused)
         client.call("press_keys", keys="Space")
         opened = wait_for(dial, 10)
         check(f"{label}: Space opens the Speed Dial", opened)

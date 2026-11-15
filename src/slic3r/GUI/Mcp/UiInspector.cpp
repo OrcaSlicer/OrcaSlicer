@@ -913,6 +913,8 @@ private:
 // arrives. A synthesized press reaches a background app as it is, and the canvas taking the focus on the press
 // makes Windows move the focus away and back: the kill-focus handler then drops the ImGui item being pressed and
 // releases the held modifiers, and the click is lost.
+// A key sent to the canvas gets it first too (UiInspector::key()), since a real one reaches only the window
+// holding the focus.
 void focus_for_press(GLCanvas3D& canvas)
 {
     wxGLCanvas* glc = canvas.get_wxglcanvas();
@@ -2326,6 +2328,7 @@ void UiInspector::add_imgui_items(GLCanvas3D& canvas, int depth, std::vector<UiN
             node.label = labels[std::size_t(e.item)];
             node.name  = name == node.label ? std::string() : name;
             node.value = imgui_value(item);
+            node.focused = item.focused;
             if (item.flags & ImGuiItemStatusFlags_Checkable)
                 node.checked = (item.flags & ImGuiItemStatusFlags_Checked) ? 1 : 0;
             if ((node.cls == "slider" || node.cls == "drag") && (item.flags & ImGuiItemStatusFlags_Inputable) == 0)
@@ -3540,6 +3543,12 @@ json UiInspector::key(const UiTarget* t, const std::string& chord_text, const st
         for (GLCanvas3D* c : ui_canvases())
             if (c->get_wxglcanvas() == target)
                 canvas = c;
+    // The panels' shortcut handling reads the focus as the place keys are typed (the Design tab leaves
+    // them to a focused text field), and a real key comes from there. Without this, a key for the 3D
+    // view would be judged by wherever the focus was left, such as the field of a dialog that closed
+    // while the app was behind another.
+    if (canvas != nullptr)
+        focus_for_press(*canvas);
 
     auto deliver = [&](int key_code, int modifiers, wxChar uni) {
         auto make = [&](wxEventType type) {

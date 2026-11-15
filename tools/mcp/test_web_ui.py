@@ -254,7 +254,8 @@ def main():
     check("a locator with several matches asks for index", "2 page elements match" in r.get("error", ""), r)
     r = call("click", target={"css": ".card", "index": 1})
     check("index picks among the matches", r.get("clicked") == "Card two", r)
-    # A locator waits up to its timeout, at most 3 s, for a match to show; nothing will show here.
+    # A locator waits for a match to show until 2 s before its timeout, but at least 3 s or all of a shorter
+    # timeout, as here; nothing will show.
     r = call("click", target={"web": "Nope"}, timeout_s=1)
     check("a locator that matches nothing says so", "No page element matches" in r.get("error", ""), r)
     r = call("click", target={"web": "Some bold text in one paragraph."})

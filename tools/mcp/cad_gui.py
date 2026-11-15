@@ -68,9 +68,11 @@ BADGE_PICK_PX = 0.6 * BADGE_CELL_PX
 # One line of list_widgets' tree. rect is (x, y, w, h) in logical pixels, from the main window's
 # client area for a window's widgets and from the canvas's top left for its ImGui items, or None.
 # parent is the index of the parent node in the list widgets() returns, or None at the top.
-Widget = collections.namedtuple("Widget", "ref kind label value name rect depth parent")
-# The canvas's open value field: its title (such as "Length"), the value it opened with, its ref.
-ValueField = collections.namedtuple("ValueField", "title prefill ref")
+# focused: the line is marked [focused], the window or ImGui text field that typed keys go to.
+Widget = collections.namedtuple("Widget", "ref kind label value name rect depth parent focused")
+# The canvas's open value field: its title (such as "Length"), the value it opened with, its ref,
+# and whether it holds the keyboard yet.
+ValueField = collections.namedtuple("ValueField", "title prefill ref focused")
 # A right click's offer menu. items are label paths ("Create>Rectangle>Corner rectangle"); the
 # header, the disabled first item naming the selection ("Sketch — nothing selected"), is left out
 # of items and disabled.
@@ -148,7 +150,8 @@ def parse_widgets(text):
             name, rest = rest[6:end], rest[end:]
         while stack and out[stack[-1]].depth >= depth:
             stack.pop()
-        out.append(Widget(ref, kind, label, value, name, rect, depth, stack[-1] if stack else None))
+        out.append(Widget(ref, kind, label, value, name, rect, depth, stack[-1] if stack else None,
+                          " [focused]" in rest))
         stack.append(len(out) - 1)
     return out
 
@@ -424,8 +427,17 @@ class CadGui:
         for w in ws:
             if w.kind == "imgui" and w.name == "sketchvalue_in" and inside(w.parent):
                 title = next((t.label for t in ws if t.parent == w.parent and t.kind == "text"), "")
-                return ValueField(title, w.value, w.ref)
+                return ValueField(title, w.value, w.ref, w.focused)
         return None
+
+    def typing_field(self):
+        """The canvas's open value field once it takes keys, or None.
+
+        The field is listed from the frame that first draws it and takes the keyboard on the next,
+        as a person sees it and then its cursor, and keys sent before then are lost. So whatever
+        types into the field or commits it with Return waits for this, not for value_field()."""
+        field = self.value_field()
+        return field if field is not None and field.focused else None
 
     # ------------------------------------------------------------ input
 
@@ -864,9 +876,11 @@ class CadGui:
 
         The field opens pre-filled and selected, and the canvas holds the keyboard, so the digits go
         in with no click and no target, as a person types them."""
-        field = until(self.value_field)
+        field = until(self.typing_field)
         if field is None:
-            raise AssertionError(f"no value field open to take {v}")
+            shown = self.value_field()
+            raise AssertionError(f"no value field open to take {v}" if shown is None else
+                                 f"the {shown.title} field never took the keyboard to take {v}")
         self.text(str(v))
         self.keys("Return")
 

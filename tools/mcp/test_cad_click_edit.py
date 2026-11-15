@@ -107,6 +107,10 @@ def type_into_open_field(rung, value, what, measure, opened_by="by itself"):
                      f"none opened to type {value} into"):
         return False
     title, prefill = field.title, field.prefill
+    # Typed before the field takes the keyboard, a frame after it shows, the digits would be lost.
+    if not gui.check(f"{rung}: {title} took the keyboard with no click into it", until(gui.typing_field) is not None,
+                     "it never showed focused"):
+        return False
 
     def shown():
         f = gui.value_field()

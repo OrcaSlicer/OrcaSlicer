@@ -628,8 +628,18 @@ void ImGuiWrapper::new_frame()
 ImDrawData* ImGuiWrapper::end_frame()
 {
     // The frame becomes its owner's latest, and that owner's last one the buffers the next frame fills.
-    if (m_item_recording && m_frame_owner != nullptr)
+    if (m_item_recording && m_frame_owner != nullptr) {
+        // A field that asks for the keyboard takes it a frame after the one that first draws it, and
+        // keys sent before then are dropped, so automation waits for this mark before typing. An
+        // InputText active in this frame asks for text input in the next (text_input_active() reads
+        // that request once the frame is over); the text state alone outlives the edit, and stays
+        // on a slider that was typed into once.
+        const ImGuiContext& g = *ImGui::GetCurrentContext();
+        if (g.WantTextInputNextFrame == 1 && g.ActiveId != 0 && g.InputTextState.ID == g.ActiveId)
+            for (RecordedItem& item : m_frame.items)
+                item.focused = item.id == g.ActiveId;
         std::swap(m_recorded[m_frame_owner], m_frame);
+    }
     m_frame.items.clear();
     m_frame.texts.clear();
     m_last_string_id = 0;

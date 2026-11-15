@@ -675,9 +675,11 @@ def draw_rect_undimensioned():
 def accept_shown_value():
     """Return on the value field a button opened, with nothing typed: it commits the value the
     field opened with."""
-    field = until(gui.value_field)
-    if field is None:
+    if until(gui.value_field) is None:
         raise AssertionError("the button opened no value field")
+    field = until(gui.typing_field)
+    if field is None:
+        raise AssertionError(f"the {gui.value_field().title} field never took the keyboard")
     gui.keys("Return")
     if not until(lambda: gui.value_field() is None):
         raise AssertionError(f"Return left the {field.title} field open")

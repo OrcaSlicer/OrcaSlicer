@@ -2100,7 +2100,11 @@ rejects for its arguments never runs and changes nothing), the end of the replay
 the closing of the endpoint for a client's press, or the runtime's stop. A client's gesture that
 reaches the UI thread after its endpoint closed is refused. Keys without a target go to the
 focused window inside the topmost modal, else that modal, else the focused window, else the 3D view
-shown.
+shown. A key or a button press for a 3D view gives it the focus first (`focus_for_press()`), as a
+real key comes from the window holding the focus and a real press activates the window under the
+pointer. The panels' shortcut handling reads the focus (the Design tab leaves keys to a focused text
+field), and the focus can be left in the field of a dialog that closed while the app was behind
+another.
 
 A key is delivered as a real key press is on every port: `wxEVT_CHAR_HOOK` goes to the target first
 and travels up through its parents (`wxKeyEvent` propagates it) to the top-level window, or stops
@@ -2391,8 +2395,12 @@ The 3D canvases draw their panels with ImGui, which has no widgets to walk. ImGu
 hooks (`IMGUI_ENABLE_TEST_ENGINE`) report every item a frame adds while
 `ImGuiContext::TestEngineHookItems` is set, which `ImGuiWrapper` does only while the GUI instruments
 are on; otherwise ImGui skips each hook with one branch. `ImGuiWrapper` keeps the items of each canvas's
-last frame: id, label, window, rectangle and status flags, and whether the item lies outside the
-visible part of its window. The hooks reach the recorder through `ImGuiContext::TestEngine`, so they
+last frame: id, label, window, rectangle and status flags, whether the item lies outside the
+visible part of its window, and whether it is the text field ImGui feeds keys to as the frame ends
+(the active item, while `InputTextState` is its), which `list_widgets` marks `[focused]` as it does
+the focused window. A field that asks for the keyboard (`SetKeyboardFocusHere()`) takes it a frame
+after the one that first draws it, and keys sent before then are lost, so a client types into it
+once it shows focused. The hooks reach the recorder through `ImGuiContext::TestEngine`, so they
 work without the app. Orca's copy of ImGui adds two hooks upstream lacks: `ItemValue`, through which
 sliders, drags, inputs, combos and radio buttons report their kind, the value they show and whether
 they take typed input (`ImGuiItemStatusFlags_Inputable`, upstream's flag), and `Text`, through which
@@ -2763,9 +2771,12 @@ A locator `{web, kind, css, within, index}` matches the label exactly, else case
 part of it (a card listed by all of its text); a text line only when no element matches. `css` is
 matched through shadow roots and frames. Without `within`, a locator looks in the topmost dialog's
 pages while a modal shows one, else in every shown page; `index` picks among the matches of all of
-them. It waits up to 3 s for a match, since pages fill in after they load and a dialog's page loads
-after the click that opened it has returned. A match while another candidate page has not answered
-is refused, since that page may hold more matches and neither uniqueness nor `index` is then known;
+them. It waits for a match up to 2 s short of the call's `timeout_s` (8 s of the default 10), but
+at least 3 s or the whole of a shorter timeout, since pages fill in after they load and a dialog's
+page loads after the click that opened it has returned, later still on a slow or busy machine. The
+last search has what is left: 2 s once the timeout is 5 s or more. A
+match while another candidate page has not answered is refused, since that page may hold more
+matches and neither uniqueness nor `index` is then known;
 `within` or a ref narrows the search. The journal records the page's own locator for the
 element acted on (its id, else its label and kind, else a CSS path), with `within` and an `index`
 among the matches of every candidate page and its configuration frames, as a replay searches them

@@ -18,14 +18,17 @@
     {"tool": "run_action", "args": {"id": "orca_command:add_primitive_cube:orca"}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "set_view", "args": {"camera": "iso"}},
+    // Every click on the cube goes to a point on its top, in the cube's own coordinates, away from the
+    // diagonal its two triangles share. The middle of the top is on that edge, and from the iso view the
+    // ray to it runs along the edge, where rounding can let the surface check's ray slip between them.
 
     // ---- A right click on the cube lists the object menu; nothing is shown ----
-    {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 0, "spot": "top"}},
+    {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 0, "point": [6, -6, 12.8]}},
      "expect": {"/popup_menu/items": {"contains": "Add Modifier>Cylinder"}, "/popup_menu/checked": {"contains": "Printable"}}},
     {"tool": "get_app_state", "expect": {"/dialogs": {"empty": true}}},
 
     // ---- The same click runs an item: a modifier through the GUI's own command, one undo step ----
-    {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 0, "spot": "top"}, "popup_item": "add modifier>cylinder"},
+    {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 0, "point": [6, -6, 12.8]}, "popup_item": "add modifier>cylinder"},
      "expect": {"/ran": {"eq": "Add Modifier>Cylinder"}}},
     {"tool": "wait", "args": {"for": "idle"}},
     {"tool": "list_objects", "expect": {"/plates/0/objects/0/parts/1/type": {"eq": "modifier"}}},
@@ -60,11 +63,11 @@
 
     // ---- Two objects selected: the multi-selection menu, built for each click and freed after it ----
     {"tool": "select_objects", "args": {"all": true}},
-    {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 0, "spot": "top"}},
+    {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 0, "point": [6, -6, 12.8]}},
      "expect": {"/popup_menu/items": {"contains": "Align/Distribute>Align left (-X)"}}},
-    {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 0, "spot": "top"}},
+    {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 0, "point": [6, -6, 12.8]}},
      "expect": {"/popup_menu/items": {"contains": "Delete"}}},
-    {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 0, "spot": "top"}, "popup_item": "Delete"},
+    {"tool": "mouse_gesture", "args": {"action": "click", "button": "right", "at": {"object": 0, "point": [6, -6, 12.8]}, "popup_item": "Delete"},
      "expect": {"/ran": {"eq": "Delete"}}},
     {"tool": "get_app_state", "expect": {"/objects": {"eq": 0}, "/closed_menus": {"empty": true}}}
   ]

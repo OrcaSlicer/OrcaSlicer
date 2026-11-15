@@ -52,7 +52,7 @@
     "test_cad_slow_build": {"path": "test_cad_slow_build.py", "cad": true},
     "test_cancel_pending_slice": {"path": "test_cancel_pending_slice.py"},
     "test_command_line": {"path": "test_command_line.py", "launch": "own", "args": ["--bin", "{bin}"], "locks": ["port-13694"], "why": "both serve on the fixed port 13694"},
-    "test_export_running_job": {"path": "test_export_running_job.py", "env": {"ORCA_MCP_REPLY_BUDGET_MS": "4000"}},
+    "test_export_running_job": {"path": "test_export_running_job.py", "env": {"ORCA_MCP_REPLY_BUDGET_MS": "10000"}},
     "test_list_windows": {"path": "test_list_windows.py"},
     "test_operation_routes": {"path": "test_operation_routes.py"},
     "test_orca_mcp_attach": {"path": "test_orca_mcp_attach.py", "launch": "none"},

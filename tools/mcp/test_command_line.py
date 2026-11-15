@@ -1,5 +1,6 @@
 """Checks OrcaSlicer's command line: the options it refuses, what --run does with its file and its folders, where --run
-is refused, what --mcp-port opens, the two flags that hold for one run, and a run beside a window already open.
+is refused, what --mcp-port opens, the two flags that hold for one run, a run beside a window already open, and a
+window on another data folder.
 
 Each check starts the built app as this script's child, on a fresh data folder with a short path under the temporary
 folder, seeded as orca_mcp.py launch seeds one, with preset sync off and the update check sent to the loopback's
@@ -31,6 +32,12 @@ child processes.
 - run_beside_open_window: with single_instance true in the conf and a first window serving on the same data folder,
   --run r.json runs in a second process, exits 0 and writes its result.json, and the first window has loaded no
   object; then, with that window closed, two --run r.json processes started together on that folder both exit 0.
+- window_per_data_folder: with single_instance true in both confs and a first window serving on one data folder, a
+  start on that folder with a model exits -1, having handed its command line over, and the first window loads the
+  model (on Linux, which hands it over on the session bus a headless run may lack, only the exit code is checked);
+  on Windows so does a start on the folder spelled in upper case, on its 8.3 short name where the volume keeps one,
+  from the exe's path in upper case, and from the exe's own folder by a relative path, the first window then holding
+  one object per hand-over; a window started on a second data folder serves beside the first.
 
 Prints one line per check and exits 1 when one fails. Checks named on the command line run alone, in that order. Run it
 as python tools/mcp/test_command_line.py [--bin PATH] [CHECK ...].
@@ -50,13 +57,15 @@ sys.path.insert(0, HERE)
 from orca_mcp import DEFAULT_PRINTER, McpError, OrcaMcp, app_env, find_binary, seed_datadir, write_conf  # noqa: E402
 
 PORT = 13694        # the port the checks that serve listen on, and the conf's mcp_port where one is seeded
-GIVEN_PORT = 13693  # the port --mcp-port gives in mcp_port_opens_endpoint
+GIVEN_PORT = 13693  # the port --mcp-port gives in mcp_port_opens_endpoint and to window_per_data_folder's second window
 TOKEN = "command-line-test-token"
 REFUSE_LIMIT_S = 10    # a refused command line ends before any GUI starts
 RUN_LIMIT_S = 120      # from the start of a --run until the process is gone, a first start's profile copy included
 READY_LIMIT_S = 120
 EXIT_LIMIT_S = 45      # from the click on Quit, past the app's 30 s exit watchdog
 INVALID_PARAMS = (-2, 254)  # CLI_INVALID_PARAMS as Windows and POSIX report it
+HANDED_OVER = (-1, 255)     # a start that handed its command line to a window, as Windows and POSIX report it
+MODEL = os.path.join(HERE, "..", "..", "resources", "handy_models", "OrcaCube_v2.drc")
 DROPPED = (McpError, OSError, http.client.HTTPException)
 
 REPLAY = {"orca_replay": 1, "name": "the app's state", "steps": [{"tool": "get_app_state"}]}
@@ -446,9 +455,60 @@ def run_beside_open_window(binary):
           "the run beside an open window exited 0 there and loaded nothing into it; two together both exited 0")
 
 
+def short_path(path):
+    """The 8.3 spelling Windows gives an existing path, or None where the volume keeps no short names."""
+    import ctypes
+    buffer = ctypes.create_unicode_buffer(1024)
+    length = ctypes.windll.kernel32.GetShortPathNameW(path, buffer, len(buffer))
+    return buffer.value if 0 < length < len(buffer) and buffer.value.lower() != path.lower() else None
+
+
+def window_per_data_folder(binary):
+    problems = []
+    with Work(single_instance=True) as first_work, Work(single_instance=True) as second_work:
+        first = first_work.start(binary, "--mcp", "--mcp-port", str(PORT), name="first")
+        if (why := first.serve(PORT)):
+            return check("window_per_data_folder", [f"the first window: {why}"], "")
+        # Each start hands the first window its command line, whichever way it spells the exe and the folder.
+        starts = [("the first window's data folder", binary, first_work.datadir)]
+        if os.name == "nt":
+            starts += [("the folder in upper case", binary, first_work.datadir.upper()),
+                       ("the exe's path in upper case", binary.upper(), first_work.datadir),
+                       ("the exe by a relative path", os.path.join(".", os.path.basename(binary)), first_work.datadir)]
+            if (short := short_path(first_work.datadir)):
+                starts.append(("the folder's 8.3 name", binary, short))
+        for n, (what, exe, folder) in enumerate(starts, 1):
+            # A relative exe is found from the folder of the process that starts it. With a folder part, as
+            # .\orca-slicer.exe, it is not looked for on PATH, which may hold an installed OrcaSlicer's alias.
+            here = os.getcwd()
+            os.chdir(os.path.dirname(os.path.abspath(binary)))
+            try:
+                app = App(exe, folder, first_work.root, f"same{n}", (MODEL,))
+            finally:
+                os.chdir(here)
+            first_work.apps.append(app)
+            code = app.wait(RUN_LIMIT_S)
+            if code not in HANDED_OVER:
+                problems.append(f"a start with a model on {what}: exit code {code}")
+                break
+            if sys.platform != "linux":
+                deadline = time.monotonic() + 30
+                while (objects := first.orca.call("get_app_state").get("objects")) != n and time.monotonic() < deadline:
+                    time.sleep(0.5)
+                if objects != n:
+                    problems.append(f"the first window has {objects} objects after a start on {what} handed it a model")
+                    break
+        second = second_work.start(binary, "--mcp", "--mcp-port", str(GIVEN_PORT), name="second")
+        if (why := second.serve(GIVEN_PORT)):
+            problems.append(f"the window on the second data folder: {why}")
+    check("window_per_data_folder", problems,
+          "starts on the first window's data folder, however spelled, handed it the model; a window on a second one "
+          "served beside it")
+
+
 CHECKS = {f.__name__: f for f in (refused_options, run_invalid_file, run_replay_folders, run_script_output_folder,
                                   run_refused_without_gui, mcp_port_opens_endpoint, unrestricted_scripts_flag, cad_flag,
-                                  run_beside_open_window)}
+                                  run_beside_open_window, window_per_data_folder)}
 
 
 def main():

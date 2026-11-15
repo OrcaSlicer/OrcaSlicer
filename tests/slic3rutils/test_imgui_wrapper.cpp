@@ -506,6 +506,58 @@ TEST_CASE("fields report their kind, shown value and whether they take typing", 
     check("##combo", "combo", "Local", false);
 }
 
+TEST_CASE("a text field is recorded as focused from the frame it takes the keyboard", "[ImGuiWrapper]")
+{
+    RecordedFrames f;
+    char       other[16] = "x", value[16] = "12.5";
+    const auto draw      = [&](bool ask) {
+        ImGui::InputText("##other", other, sizeof(other));
+        if (ask)
+            ImGui::SetKeyboardFocusHere();
+        ImGui::InputText("##value", value, sizeof(value));
+    };
+    f.frame([&] { draw(false); });
+    f.frame([&] { draw(true); });
+    REQUIRE(f.labelled("##value").has_value());
+    CHECK_FALSE(f.labelled("##value")->focused); // SetKeyboardFocusHere() applies in the next frame
+
+    f.frame([&] { draw(false); });
+    CHECK(f.labelled("##value")->focused);
+    CHECK_FALSE(f.labelled("##other")->focused);
+}
+
+TEST_CASE("a slider held by the mouse is not a focused text field, even once typed into", "[ImGuiWrapper][Regression]")
+{
+    RecordedFrames f;
+    float      value = 0.f;
+    ImVec2     centre;
+    const ImVec2 outside(600.f, 500.f); // past the 400 x 300 window
+    // Moves the mouse to pos with the left button down or up, and draws the slider in two frames.
+    const auto mouse = [&](const ImVec2& pos, bool down) {
+        ImGui::GetIO().MousePos     = pos;
+        ImGui::GetIO().MouseDown[0] = down;
+        for (int i = 0; i < 2; ++i)
+            f.frame([&] {
+                ImGui::SliderFloat("##slider", &value, 0.f, 1.f);
+                centre = ImVec2((ImGui::GetItemRectMin().x + ImGui::GetItemRectMax().x) / 2,
+                                (ImGui::GetItemRectMin().y + ImGui::GetItemRectMax().y) / 2);
+            });
+    };
+    mouse(outside, false);
+    ImGui::GetIO().KeyCtrl = true; // Ctrl+click types a value
+    mouse(centre, true);
+    ImGui::GetIO().KeyCtrl = false;
+    mouse(centre, false);
+    REQUIRE(f.labelled("##slider").has_value());
+    CHECK(f.labelled("##slider")->focused);
+
+    mouse(outside, true); // a click elsewhere closes the field
+    mouse(outside, false);
+    mouse(centre, true);
+    REQUIRE(ImGui::GetInputTextState(ImGui::GetActiveID()) != nullptr);
+    CHECK_FALSE(f.labelled("##slider")->focused);
+}
+
 TEST_CASE("text is recorded apart from the items", "[ImGuiWrapper]")
 {
     RecordedFrames f;

@@ -75,6 +75,7 @@ public:
         float       x = 0.f, y = 0.f, w = 0.f, h = 0.f;
         int         flags   = 0;     // ImGuiItemStatusFlags
         bool        clipped = false; // outside the visible part of its window when drawn
+        bool        focused = false; // the text field typed keys went to when the frame ended
     };
     // Text a frame draws with ImGui::Text() and the like; never an item.
     struct RecordedText

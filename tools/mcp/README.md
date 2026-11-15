@@ -558,8 +558,8 @@ that the exported session replays. `test_worker_admission.py` starts a long arra
 that changes, canvas keys and toolbar clicks are refused while it runs, reads answer, and `cancel_job`
 stops it. `test_export_running_job.py` exports while a call's job runs past
 its reply budget (left out, named in `left_out_running`), after it ends (an `await: false` step that
-replays) and while a dialog holds its call (kept); it takes about 100 s, or about 20 s with the reply budget
-capped at 4 s by `ORCA_MCP_REPLY_BUDGET_MS=4000` for the app and the test, as the sweep runs it.
+replays) and while a dialog holds its call (kept); it takes about 100 s, or about 45 s with the reply budget
+capped at 10 s by `ORCA_MCP_REPLY_BUDGET_MS=10000` for the app and the test, as the sweep runs it.
 `test_send_gcode.py` starts an OctoPrint-compatible stub host and sends a sliced cube to it with the
 Speed Dial's `send_gcode`, the Send dialog answered with `set_widget_value` and `answer_dialog`: the command
 is refused for a Bambu network printer and one without a print host, an upload the stub accepts

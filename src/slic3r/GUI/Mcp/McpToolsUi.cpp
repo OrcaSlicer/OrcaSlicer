@@ -504,10 +504,13 @@ WebTarget resolve_web(AutomationRuntime& runtime, ToolContext& ctx, const json& 
     // What a page or a configuration frame holds is unknown when it did not answer in time or its
     // agent failed the search; a page whose script could not run at all holds nothing reachable.
     std::size_t unknown_pages = 0, unknown_frames = 0, failed = 0;
-    // Up to 3 s for a match to show, as pages fill in after they load and a dialog's page loads after
-    // the click that opened it has returned.
+    // A match has until 2 s before the call's timeout to show, but at least 3 s or all of a shorter
+    // timeout, as pages fill in after they load and a dialog's page loads after the click that opened
+    // it has returned, later still on a slow or busy machine. The last search has what is left: 2 s
+    // once the timeout is 5 s or more.
     const auto deadline = std::chrono::steady_clock::now() + timeout;
-    const auto show_end = std::chrono::steady_clock::now() + std::min(timeout, std::chrono::seconds(3));
+    const auto show_end = std::chrono::steady_clock::now() +
+                          std::max(timeout - std::chrono::seconds(2), std::min(timeout, std::chrono::seconds(3)));
     for (;;) {
         webs.clear();
         withins.clear();
@@ -1403,7 +1406,8 @@ void register_ui_tools(CommandCatalog& catalog)
             "- a web page's element: {web: \"Next\", kind?: \"button\", css?: \"#AcceptBtn\", within?, index?}, by the label "
             "list_widgets lists (exactly, else ignoring case, else a part of it), its kind, a CSS selector (the id a line "
             "shows as name: name=#save is {css: \"#save\"}), or together. Without within it looks in the topmost dialog's "
-            "pages while one is open, else in every shown page, and it waits up to 3 s for its element.",
+            "pages while one is open, else in every shown page, and an action on it waits for its element up to 2 s short of "
+            "the action's timeout_s (8 s by default), but at least 3 s or the whole of a shorter timeout_s.",
             object_schema({{"target", prop("string", "all (default), main, dialog (the topmost modal), popup, or a window's ref (list_windows).")},
                            {"query", prop("string", "Case-insensitive text to look for in labels, values, names and classes.")},
                            {"max_nodes", {{"type", "integer"}, {"minimum", 1}, {"maximum", 5000}, {"description", "Default 400."}}},
