@@ -464,8 +464,17 @@ namespace Slic3r {
     }
     bool ElegooLink::test(wxString &curl_msg) const{
         switch (classify_printer_model(m_printerModel)) {
-        case ElegooPrinterType::Other:
-            return OctoPrint::test(curl_msg);
+        case ElegooPrinterType::Other: {
+            if (OctoPrint::test(curl_msg))
+                return true;
+            // A custom preset can have any printer_model, so an SDCP printer may land here too.
+            // If that check fails as well, keep the OctoPrint error for the user.
+            wxString sdcp_msg;
+            if (!elegoo_test(sdcp_msg))
+                return false;
+            curl_msg = sdcp_msg;
+            return true;
+        }
         case ElegooPrinterType::CC2:
             return elegoo_cc2_test(curl_msg);
         case ElegooPrinterType::CC:
@@ -623,8 +632,11 @@ namespace Slic3r {
     {
         const auto printer_type = classify_printer_model(m_printerModel);
 
-        if (printer_type == ElegooPrinterType::Other)
-            return OctoPrint::upload_inner_with_resolved_ip(std::move(upload_data), prorgess_fn, error_fn, info_fn, resolved_addr);
+        if (printer_type == ElegooPrinterType::Other) {
+            wxString octoprint_msg = GUI::from_u8(resolved_addr.to_string());
+            if (OctoPrint::test_with_resolved_ip(octoprint_msg))
+                return OctoPrint::upload_inner_with_resolved_ip(std::move(upload_data), prorgess_fn, error_fn, info_fn, resolved_addr);
+        }
 
         info_fn(L"resolve", boost::nowide::widen(resolved_addr.to_string()));
 
@@ -658,8 +670,11 @@ namespace Slic3r {
     {
         const auto printer_type = classify_printer_model(m_printerModel);
 
-        if (printer_type == ElegooPrinterType::Other)
-            return OctoPrint::upload_inner_with_host(std::move(upload_data), prorgess_fn, error_fn, info_fn);
+        if (printer_type == ElegooPrinterType::Other) {
+            wxString octoprint_msg;
+            if (OctoPrint::test(octoprint_msg))
+                return OctoPrint::upload_inner_with_host(std::move(upload_data), prorgess_fn, error_fn, info_fn);
+        }
 
         if (printer_type == ElegooPrinterType::CC2) {
             wxString cc2_msg;
