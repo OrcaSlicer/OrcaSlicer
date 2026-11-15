@@ -38,6 +38,7 @@
 #include <vector>
 
 #include "AABBTreeIndirect.hpp"
+#include "BoundingBox.hpp"
 #include "MeshBoolean.hpp"
 #include "Model.hpp"
 #include "PNGReadWrite.hpp"
@@ -814,9 +815,9 @@ Vec2f project_planar(const Vec3f &position, const Vec3f &normal)
 
 namespace {
 // Wrapped around patch_axis, centered at patch_center. u is the arc length (mm) around the axis at
-// this point's own radius, v is the distance along the axis, measured *against* it - a reasonable
-// approximation for roughly cylindrical selections, not an exact fit for arbitrary geometry.
-Vec2f project_cylindrical(const Vec3f &position, const Vec3f &patch_center, const Vec3f &patch_axis)
+// the fixed object radius, v is the distance along the axis, measured *against* it.
+Vec2f project_cylindrical(const Vec3f &position, const Vec3f &patch_center, const Vec3f &patch_axis,
+                          float cylinder_radius)
 {
     Vec3f up = patch_axis;
     up       = (up.norm() > 1e-8f) ? Vec3f(up.normalized()) : Vec3f::UnitZ();
@@ -831,8 +832,8 @@ Vec2f project_cylindrical(const Vec3f &position, const Vec3f &patch_center, cons
     const float along_axis = rel.dot(up);
     const float x          = rel.dot(right);
     const float y          = rel.dot(fwd);
-    const float radius     = std::sqrt(x * x + y * y);
     const float angle      = std::atan2(y, x);
+    const float radius     = (cylinder_radius > 1e-8f) ? cylinder_radius : 1e-8f;
 
     // Negated, like every other projection's v: v = 0 is the texture's top row, so v has to grow
     // *down* the axis for the top of the image to sit at the top of the model.
@@ -2273,7 +2274,8 @@ bool project_uv_projective(const std::array<float, 12> &m, const Vec3f &position
 
 float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisplacementLayer &layer,
                           const Vec3f &position, const Vec3f &normal,
-                          const Vec3f &patch_center, const Vec3f &patch_axis, const Vec2f *lscm_uv)
+                          const Vec3f &patch_center, const Vec3f &patch_axis, float cylinder_radius,
+                          const Vec2f *lscm_uv)
 {
     if (texture.empty())
         return 0.f;
@@ -2302,7 +2304,7 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
 
     switch (layer.projection_method) {
     case TextureProjectionMethod::Cylindrical:
-        return sample_at(project_cylindrical(position, patch_center, patch_axis));
+        return sample_at(project_cylindrical(position, patch_center, patch_axis, cylinder_radius));
     case TextureProjectionMethod::Spherical:
         return sample_at(project_spherical(position, patch_center));
     case TextureProjectionMethod::ViewProjected:
@@ -2348,7 +2350,7 @@ float sample_layer_height(const DecodedHeightTexture &texture, const TextureDisp
 
 bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDisplacementLayer &layer,
                         const Vec3f &position, const Vec3f &normal, Vec3f &out, const Vec3f &patch_center,
-                        const Vec3f &patch_axis, const Vec2f *lscm_uv)
+                        const Vec3f &patch_axis, float cylinder_radius, const Vec2f *lscm_uv)
 {
     if (!texture.has_color())
         return false;
@@ -2386,7 +2388,7 @@ bool sample_layer_color(const DecodedHeightTexture &texture, const TextureDispla
 
     switch (layer.projection_method) {
     case TextureProjectionMethod::Cylindrical: {
-        const Vec2f p = project_cylindrical(position, patch_center, patch_axis);
+        const Vec2f p = project_cylindrical(position, patch_center, patch_axis, cylinder_radius);
         if (!covered(p))
             return false;
         out = sample_at(p);
@@ -2725,9 +2727,11 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
                                                    BakeStageRecorder                           *debug,
                                                    TextureBakeStats                            *stats,
                                                    const std::vector<Vec2f>                    *model_uv,
-                                                   float                                        resting_drop)
+                                                   float                                        resting_drop,
+                                                   const TextureDisplacementCylindricalFrame   &cyl_frame)
 {
-    HeightFieldSampler combined = make_combined_displacement_sampler(mesh, layers, facets_data, model_uv);
+    HeightFieldSampler combined = make_combined_displacement_sampler(mesh, layers, facets_data, model_uv,
+                                                                     &cyl_frame);
     if (!combined)
         return mesh; // nothing decodable to displace with
 
@@ -2900,7 +2904,8 @@ indexed_triangle_set build_texture_displacement_v2(const indexed_triangle_set   
     // part of it (half a tile in the neighbour's colour, a tile edge that wanders).
     const bool              want_color = color != nullptr && color->out_triangle != nullptr && bool(color->quantize);
     const ColorFieldSampler color_sampler =
-        want_color ? make_combined_color_sampler(mesh, layers, facets_data, color->quantize, color->quantize_pure, model_uv) :
+        want_color ? make_combined_color_sampler(mesh, layers, facets_data, color->quantize, color->quantize_pure, model_uv,
+                                                 &cyl_frame) :
                      ColorFieldSampler{};
     //
     // The *palette* index, not the printed filament. The decimation treats any edge whose two faces
@@ -3035,7 +3040,8 @@ static indexed_triangle_set build_texture_displacement_in_place(
     BakeStageRecorder                           *debug,
     TextureBakeStats                            *stats,
     const std::vector<Vec2f>                    *model_uv,
-    float                                        resting_drop)
+    float                                        resting_drop,
+    const TextureDisplacementCylindricalFrame   &cyl_frame)
 {
     // The classic path moves the vertices the mesh already has, so there is no budget to report on.
     (void) stats;
@@ -3072,7 +3078,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
 
     if (options.pipeline_v2)
         return build_texture_displacement_v2(mesh, layers, facets_data, options, progress, color, flip_normals,
-                                             debug, stats, model_uv, resting_drop);
+                                             debug, stats, model_uv, resting_drop, cyl_frame);
 
     // Layers are combined in slot order, like stacked layers in an image editor: each one folds its
     // own displacement into the running total via its blend mode (see TextureBlendMode).
@@ -3224,11 +3230,17 @@ static indexed_triangle_set build_texture_displacement_in_place(
             }
         const bool pin_boundary = !options.displace_border;
 
-        // Only the Cylindrical/Spherical methods need the centroid and axis; Triplanar blends each
-        // vertex's own normal and LSCM solves the patch globally. average_normal is also the fallback
-        // normal the colour pass below uses for a degenerate triangle.
+        // Spherical wraps around the painted-patch centroid/axis. Cylindrical uses the volume AABB
+        // frame computed once for this bake. average_normal is the colour fallback for a degenerate
+        // triangle, so the shared patch helper still runs for that even on a Cylindrical layer.
         Vec3f average_normal, patch_centroid, patch_axis;
         texture_displacement_patch_frame(patch, vertex_normals, patch_centroid, patch_axis, average_normal);
+        float cylinder_radius = 0.f;
+        if (layer->projection_method == TextureProjectionMethod::Cylindrical) {
+            patch_centroid   = cyl_frame.center;
+            patch_axis       = cyl_frame.axis;
+            cylinder_radius  = cyl_frame.radius;
+        }
 
         // A real unwrap of the whole patch, computed once here rather than per vertex - it is a
         // per-chart solve over the whole patch, not a per-point formula. Cached, so repeating this
@@ -3300,7 +3312,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
 
                     Vec3f rgb;
                     if (sample_layer_color(tex, *layer, centroid, n, rgb, patch_centroid, patch_axis,
-                                           have_uv ? &uv : nullptr)) {
+                                           cylinder_radius, have_uv ? &uv : nullptr)) {
                         sum[S]      += area2 * rgb;
                         sum_area[S] += area2;
                     }
@@ -3367,7 +3379,7 @@ static indexed_triangle_set build_texture_displacement_in_place(
                 const size_t vi      = size_t(layer_vertices[k]);
                 const Vec2f *lscm_uv = patch_uvs.empty() ? nullptr : &patch_uvs[vi];
                 const float  h       = sample_layer_height(height, *layer, mesh.vertices[vi], vertex_normals[vi],
-                                                            patch_centroid, patch_axis, lscm_uv);
+                                                            patch_centroid, patch_axis, cylinder_radius, lscm_uv);
                 // midlevel is the height that means "stay put", so anything below it displaces
                 // *inwards* - see TextureDisplacementLayer::midlevel. At the default of 0 this is
                 // exactly the old outward-only behaviour.
@@ -3512,9 +3524,10 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
     // texture's anchor (see texture_displacement_bake_frame()).
     const Transform3d frame = texture_anchor != nullptr ? texture_displacement_bake_frame(volume_to_world, *texture_anchor) :
                                                           texture_displacement_bake_frame(volume_to_world);
+    const TextureDisplacementCylindricalFrame cyl_frame = texture_displacement_cylindrical_frame(base_mesh, frame);
     if (frame.matrix().isApprox(Transform3d::Identity().matrix()))
         return build_texture_displacement_in_place(base_mesh, layers, facets_data, options, progress, color,
-                                                   false, debug, stats, model_uv, resting_drop);
+                                                   false, debug, stats, model_uv, resting_drop, cyl_frame);
 
     const Transform3d to_local = frame.inverse();
     // A mirroring placement leaves the positions correct but every winding-derived normal pointing
@@ -3531,7 +3544,8 @@ indexed_triangle_set build_texture_displacement(const indexed_triangle_set      
     // The UV channel rides along untouched: a uv is a coordinate in the texture, not on the model, so
     // the frame the mesh is measured in does not reach it.
     indexed_triangle_set out = build_texture_displacement_in_place(world, layers, facets_data, options, progress,
-                                                                   color, mirrored, debug, stats, model_uv, resting_drop);
+                                                                   color, mirrored, debug, stats, model_uv, resting_drop,
+                                                                   cyl_frame);
     // Everything the bake recorded is in world millimetres, like `out` itself. The debug view draws in
     // the volume's local frame, so the stages are brought back the same way the result is.
     if (debug != nullptr)
@@ -3576,6 +3590,34 @@ void texture_displacement_patch_frame(const indexed_triangle_set &patch, const s
     const Vec3f an = average_normal.cwiseAbs();
     axis = (an.x() <= an.y() && an.x() <= an.z()) ? Vec3f::UnitX() :
            (an.y() <= an.x() && an.y() <= an.z()) ? Vec3f::UnitY() : Vec3f::UnitZ();
+}
+
+// Approach follows BumpMesh (CNCKitchen/stlTexturizer, (c) 2026 CNCKitchen / Stefan Hermann, AGPL-3.0), reimplemented.
+TextureDisplacementCylindricalFrame texture_displacement_cylindrical_frame(
+    const indexed_triangle_set &volume_mesh, const Transform3d &bake_frame)
+{
+    TextureDisplacementCylindricalFrame out;
+    if (volume_mesh.vertices.empty()) {
+        out.radius = 1e-6f;
+        return out;
+    }
+
+    const BoundingBoxf3 bb          = bounding_box(volume_mesh);
+    const Vec3d         center_local = bb.center();
+    const Vec3d         half         = 0.5 * bb.size();
+
+    out.center = (bake_frame * center_local).cast<float>();
+
+    const Vec3d axis_w = bake_frame.linear() * Vec3d::UnitZ();
+    const double axis_n = axis_w.norm();
+    out.axis = (axis_n > 1e-8) ? Vec3f((axis_w / axis_n).cast<float>()) : Vec3f::UnitZ();
+
+    const Vec3d rx = bake_frame.linear() * Vec3d(half.x(), 0., 0.);
+    const Vec3d ry = bake_frame.linear() * Vec3d(0., half.y(), 0.);
+    out.radius     = float(std::max(rx.norm(), ry.norm()));
+    if (out.radius < 1e-6f)
+        out.radius = 1e-6f;
+    return out;
 }
 
 Transform3d texture_displacement_bake_frame(const Transform3d &volume_to_world, const Vec3d &anchor)
@@ -3726,8 +3768,9 @@ struct PatchRegion {
 struct PreparedLayer {
     DecodedHeightTexture     tex;
     TextureDisplacementLayer layer;  // a copy of the params (depth/tiling/rotation/offset/blend/...)
-    Vec3f                    center; // patch centroid, for Cylindrical/Spherical
+    Vec3f                    center; // Spherical: patch centroid. Cylindrical: object AABB center.
     Vec3f                    axis;   // cylinder axis, for Cylindrical
+    float                    radius; // Cylindrical: fixed object AABB radius. Unused otherwise.
     // Unwrap layers only; null when the unwrap failed, in which case sampling falls through to the
     // layer's analytic fallback exactly as build_texture_displacement()'s classic path does.
     std::shared_ptr<const LscmLookup> lscm;
@@ -3758,7 +3801,8 @@ struct PreparedLayer {
 // where a layer is placed. `need_color` additionally drops layers that cannot contribute colour.
 std::shared_ptr<std::vector<PreparedLayer>> prepare_sampleable_layers(
     const indexed_triangle_set &base_mesh, const std::vector<TextureDisplacementLayer> &layers,
-    const TextureDisplacementFacetsData &facets_data, bool need_color, const std::vector<Vec2f> *model_uv)
+    const TextureDisplacementFacetsData &facets_data, bool need_color, const std::vector<Vec2f> *model_uv,
+    const TextureDisplacementCylindricalFrame &cyl_frame)
 {
     auto prepared = std::make_shared<std::vector<PreparedLayer>>();
 
@@ -3800,10 +3844,15 @@ std::shared_ptr<std::vector<PreparedLayer>> prepare_sampleable_layers(
         if (patch.indices.empty())
             continue;
 
-        // Patch centroid + cylinder axis, shared with build_texture_displacement() so a
-        // Cylindrical/Spherical layer's detach criterion matches the geometry the bake will produce.
+        // Spherical: painted-patch centroid. Cylindrical: the volume AABB frame the bake uses.
         Vec3f centroid, axis, average_normal;
         texture_displacement_patch_frame(patch, vertex_normals, centroid, axis, average_normal);
+        float radius = 0.f;
+        if (layer->projection_method == TextureProjectionMethod::Cylindrical) {
+            centroid = cyl_frame.center;
+            axis     = cyl_frame.axis;
+            radius   = cyl_frame.radius;
+        }
 
         std::shared_ptr<const LscmLookup> lscm;
         if (model_uv_layer || layer->projection_method == TextureProjectionMethod::LSCM) {
@@ -3831,7 +3880,7 @@ std::shared_ptr<std::vector<PreparedLayer>> prepare_sampleable_layers(
             region   = std::move(r);
         }
 
-        prepared->push_back({ tex, *layer, centroid, axis, std::move(lscm), std::move(region) });
+        prepared->push_back({ tex, *layer, centroid, axis, radius, std::move(lscm), std::move(region) });
     }
     return prepared;
 }
@@ -3842,11 +3891,14 @@ ColorFieldSampler make_combined_color_sampler(const indexed_triangle_set        
                                               const TextureDisplacementFacetsData         &facets_data,
                                               ColorQuantizeFn                              quantize,
                                               ColorQuantizeFn                              quantize_pure,
-                                              const std::vector<Vec2f>                    *model_uv)
+                                              const std::vector<Vec2f>                    *model_uv,
+                                              const TextureDisplacementCylindricalFrame   *cylindrical)
 {
     if (!quantize)
         return nullptr;
-    auto prepared = prepare_sampleable_layers(base_mesh, layers, facets_data, /* need_color */ true, model_uv);
+    const TextureDisplacementCylindricalFrame cyl =
+        cylindrical ? *cylindrical : texture_displacement_cylindrical_frame(base_mesh);
+    auto prepared = prepare_sampleable_layers(base_mesh, layers, facets_data, /* need_color */ true, model_uv, cyl);
     if (prepared->empty())
         return nullptr;
     // Per layer: a flat-colour image is matched against the filaments alone, when that quantizer
@@ -3867,7 +3919,7 @@ ColorFieldSampler make_combined_color_sampler(const indexed_triangle_set        
             if (!p.lscm_uv(pos, uv, lscm_uv))
                 continue;
             Vec3f rgb;
-            if (sample_layer_color(p.tex, p.layer, pos, normal, rgb, p.center, p.axis, lscm_uv))
+            if (sample_layer_color(p.tex, p.layer, pos, normal, rgb, p.center, p.axis, p.radius, lscm_uv))
                 if (const int idx = ((*pure)[i] ? quantize_pure : quantize)(rgb); idx >= 0)
                     result = idx;
         }
@@ -3878,9 +3930,12 @@ ColorFieldSampler make_combined_color_sampler(const indexed_triangle_set        
 HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set                  &base_mesh,
                                                       const std::vector<TextureDisplacementLayer> &layers,
                                                       const TextureDisplacementFacetsData         &facets_data,
-                                                      const std::vector<Vec2f>                    *model_uv)
+                                                      const std::vector<Vec2f>                    *model_uv,
+                                                      const TextureDisplacementCylindricalFrame   *cylindrical)
 {
-    auto prepared = prepare_sampleable_layers(base_mesh, layers, facets_data, /* need_color */ false, model_uv);
+    const TextureDisplacementCylindricalFrame cyl =
+        cylindrical ? *cylindrical : texture_displacement_cylindrical_frame(base_mesh);
+    auto prepared = prepare_sampleable_layers(base_mesh, layers, facets_data, /* need_color */ false, model_uv, cyl);
     if (prepared->empty())
         return nullptr;
 
@@ -3892,7 +3947,7 @@ HeightFieldSampler make_combined_displacement_sampler(const indexed_triangle_set
             const Vec2f *lscm_uv = nullptr;
             if (!p.lscm_uv(pos, uv, lscm_uv))
                 continue; // off this unwrap layer's patch: no uv, so no contribution
-            const float h        = sample_layer_height(p.tex, p.layer, pos, normal, p.center, p.axis, lscm_uv);
+            const float h        = sample_layer_height(p.tex, p.layer, pos, normal, p.center, p.axis, p.radius, lscm_uv);
             const float sign     = p.layer.invert ? -1.f : 1.f;
             const float signed_h = (h - p.layer.midlevel) * p.layer.depth_mm * sign;
             // The first (lowest) sampleable layer folds additively; the rest use their own blend mode -

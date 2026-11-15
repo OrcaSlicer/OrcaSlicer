@@ -64,6 +64,7 @@ uniform vec2       island_delta_tr;
 uniform int        projection_mode;
 uniform vec3       patch_center;
 uniform vec3       patch_axis;
+uniform float      cylinder_radius;
 
 varying vec3  clipping_planes_dots;
 varying vec4  model_pos;
@@ -98,7 +99,7 @@ vec2 projection_raw(vec3 p, vec3 n)
         vec3  rel = p - patch_center;
         float x   = dot(rel, right);
         float y   = dot(rel, fwd);
-        return vec2(atan(y, x) * sqrt(x * x + y * y), -dot(rel, up));
+        return vec2(atan(y, x) * max(cylinder_radius, 1e-8), -dot(rel, up));
     }
     if (projection_mode == 2) {                 // Spherical: (longitude, latitude) * radius
         vec3  rel    = p - patch_center;
@@ -137,6 +138,7 @@ void projection_axes(vec3 p, vec3 n, out vec3 t, out vec3 b, out vec2 units_per_
         float r   = length(xy);
         t = (r > 1e-6) ? (fwd * xy.x - right * xy.y) / r : right; // circumferential: u runs along it
         b = -up;                                                  // v is the distance *against* the axis
+        units_per_mm.x = max(cylinder_radius, 1e-8) / max(r, 1e-6);
         return;
     }
     if (projection_mode == 2) {

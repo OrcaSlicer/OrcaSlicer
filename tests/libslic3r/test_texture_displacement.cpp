@@ -1958,9 +1958,9 @@ TEST_CASE("Per-corner LSCM UVs give each triangle its own island's placement", "
 static constexpr int   RAMP_N      = 64;   // the ramp texture's size, in texels
 static constexpr float RAMP_TILING = 40.f; // mm per tile
 static constexpr float CUBE_HALF   = 5.f;  // half extent of the cube the probes walk over
-// How far a probe steps off a face centre. Short on purpose: the cylindrical and spherical u is an
-// arc length (angle * radius), so a long step also changes the radius, and that term swamps the
-// angular one. It is symmetric about the face centre, so at a short step it cancels between the two
+// How far a probe steps off a face centre. Short on purpose: spherical u is an arc length at this
+// point's own radius, so a long step also changes that radius, and that term swamps the angular
+// one. It is symmetric about the face centre, so at a short step it cancels between the two
 // readings a check compares.
 static constexpr float RAMP_STEP   = 1.f;
 // What one step's worth of travel is in ramp rows: 2 * RAMP_STEP mm of separation, RAMP_N texels per
@@ -1993,13 +1993,31 @@ static TextureDisplacementLayer ramp_layer(TextureProjectionMethod method)
     return layer;
 }
 
+// sample_layer_height() grew a fixed cylinder radius. The overload without it (base) uses each
+// point's own radius; calling that one keeps this file buildable there. The int overload is the
+// better match once the radius parameter exists.
+template <typename Tex, typename Layer>
+auto sample_height_dispatch(int, const Tex &tex, const Layer &layer, const Vec3f &p, const Vec3f &n,
+                            const Vec3f &center, const Vec3f &axis, float radius, const Vec2f *uv)
+    -> decltype(sample_layer_height(tex, layer, p, n, center, axis, radius, uv))
+{
+    return sample_layer_height(tex, layer, p, n, center, axis, radius, uv);
+}
+
+template <typename Tex, typename Layer>
+float sample_height_dispatch(long, const Tex &tex, const Layer &layer, const Vec3f &p, const Vec3f &n,
+                             const Vec3f &center, const Vec3f &axis, float, const Vec2f *uv)
+{
+    return sample_layer_height(tex, layer, p, n, center, axis, uv);
+}
+
 // Which row (or column) of `ramp` the layer reads at `p`. Fractional, because a point between two
 // texels reads the ramp between them; only the direction it moves in matters here.
 static double ramp_index(const DecodedHeightTexture &ramp, const TextureDisplacementLayer &layer, const Vec3f &p,
                          const Vec3f &n, const Vec3f &center = Vec3f(Vec3f::Zero()),
-                         const Vec3f &axis = Vec3f(Vec3f::UnitZ()))
+                         const Vec3f &axis = Vec3f(Vec3f::UnitZ()), float cylinder_radius = CUBE_HALF)
 {
-    return (double(sample_layer_height(ramp, layer, p, n, center, axis, nullptr)) * 255.0 - 3.0) / 4.0;
+    return (double(sample_height_dispatch(0, ramp, layer, p, n, center, axis, cylinder_radius, nullptr)) * 255.0 - 3.0) / 4.0;
 }
 
 // How a viewer standing outside the model sees a face: their right, and their up. Up is world +Z on
@@ -2259,17 +2277,16 @@ TEST_CASE("baking an asymmetric image puts the top of the image at the top of th
     }
 }
 
-TEST_CASE("The Cylindrical/Spherical patch frame is the bake's own, so a preview can share it", "[TextureDisplacement]")
+TEST_CASE("The Spherical patch frame is the painted-patch centroid, so a preview can share it", "[TextureDisplacement]")
 {
-    // The fast preview reconstructs these two projections in the fragment shader and needs the very
-    // centroid and axis the bake wraps around - a patch-only normal average would sometimes quantize
-    // to a different world axis and wrap the texture the other way round.
+    // Before: this case was named for Cylindrical/Spherical together and asserted center.x()==10 on a
+    // cube +X face (the wall centroid) and only axis.x()==0. That locked Cylindrical to the wrap that
+    // fans a real cylinder. Cylindrical now uses texture_displacement_cylindrical_frame(); this test
+    // keeps the centroid contract Spherical still uses.
     const indexed_triangle_set cube    = its_make_cube(10., 10., 10.);
     const std::vector<Vec3f>   normals = texture_displacement_vertex_normals(cube);
     REQUIRE(normals.size() == cube.vertices.size());
 
-    // Just the +X face: its average normal is +X, so the cylinder axis must be a world axis
-    // perpendicular to it, and the centroid must sit on that face.
     indexed_triangle_set face;
     face.vertices = cube.vertices;
     for (const stl_triangle_vertex_indices &t : cube.indices) {
@@ -2282,11 +2299,10 @@ TEST_CASE("The Cylindrical/Spherical patch frame is the bake's own, so a preview
 
     Vec3f center, axis, average_normal;
     texture_displacement_patch_frame(face, normals, center, axis, average_normal);
-    CHECK_THAT(center.x(), WithinAbs(10., 1e-4));
-    CHECK_THAT(std::abs(axis.x()), WithinAbs(0., 1e-4)); // never the face's own normal direction
+    CHECK_THAT(center.x(), WithinAbs(10., 1e-4)); // still the +X face centroid
+    CHECK_THAT(std::abs(axis.x()), WithinAbs(0., 1e-4));
     CHECK_THAT(axis.norm(), WithinAbs(1., 1e-4));
 
-    // An empty patch must not divide by zero; it falls back to +Z.
     texture_displacement_patch_frame(indexed_triangle_set{}, normals, center, axis, average_normal);
     CHECK_THAT(center.norm(), WithinAbs(0., 1e-6));
     CHECK_THAT(axis.z(), WithinAbs(1., 1e-6));
@@ -3535,4 +3551,395 @@ TEST_CASE("an unpainted part of the source carries no paint onto the rebuilt mes
         else if (x > 0.6f * size)
             CHECK(state[t] == uint8_t(EnforcerBlockerType::NONE));
     }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Cylindrical wrap: object Z through the volume AABB center, u = atan2 * fixed R.
+//
+// Observed through build_texture_displacement(), the bake the gizmo runs. On the base commit a
+// full tube still happens to wrap its own axis (the radial normals cancel). A +X patch does not:
+// its frame is the patch centroid and a world axis, and a 45 degree turn is not a world axis.
+
+static constexpr int   CYL_SIDES  = 36;
+static constexpr float CYL_RADIUS = 20.f;
+static constexpr float CYL_HEIGHT = 60.f;
+static constexpr int   CYL_RINGS  = 5;
+static constexpr int   RAMP_TEX   = 64;
+// 0 and CYL_HEIGHT are the ends. 26/30/34 sit inside one 12.5 mm tile around the AABB center.
+static constexpr float CYL_Z[CYL_RINGS] = { 0.f, 26.f, 30.f, 34.f, CYL_HEIGHT };
+
+// Open tube, so every vertex normal is radial and the plate clamp cannot eat the relief.
+// i == 0 sits on +Y, which is angle 0 of the right-handed cylinder frame (u = 0).
+static indexed_triangle_set make_open_tube()
+{
+    indexed_triangle_set mesh;
+    mesh.vertices.reserve(size_t(CYL_SIDES * CYL_RINGS));
+    for (int j = 0; j < CYL_RINGS; ++j) {
+        const float z = CYL_Z[j];
+        for (int i = 0; i < CYL_SIDES; ++i) {
+            const float a = float(2.0 * PI * i / CYL_SIDES);
+            mesh.vertices.emplace_back(-CYL_RADIUS * std::sin(a), CYL_RADIUS * std::cos(a), z);
+        }
+    }
+    for (int j = 0; j < CYL_RINGS - 1; ++j)
+        for (int i = 0; i < CYL_SIDES; ++i) {
+            const int i1 = (i + 1) % CYL_SIDES;
+            const int a  = j * CYL_SIDES + i;
+            const int b  = j * CYL_SIDES + i1;
+            const int c  = (j + 1) * CYL_SIDES + i;
+            const int d  = (j + 1) * CYL_SIDES + i1;
+            mesh.indices.emplace_back(a, b, d);
+            mesh.indices.emplace_back(a, d, c);
+        }
+    return mesh;
+}
+
+static int tube_vertex(int around, int ring)
+{
+    return ring * CYL_SIDES + around;
+}
+
+static std::shared_ptr<std::vector<unsigned char>> make_axis_ramp_png(bool by_row)
+{
+    std::vector<uint8_t> pixels(size_t(RAMP_TEX) * size_t(RAMP_TEX));
+    for (int y = 0; y < RAMP_TEX; ++y)
+        for (int x = 0; x < RAMP_TEX; ++x)
+            pixels[size_t(y) * size_t(RAMP_TEX) + size_t(x)] = uint8_t(3 + 4 * (by_row ? y : x));
+    const boost::filesystem::path tmp_path = boost::filesystem::temp_directory_path()
+        / boost::filesystem::unique_path("texdisp_test_%%%%%%%%.png");
+    REQUIRE(Slic3r::png::write_gray_to_file(tmp_path.string(), RAMP_TEX, RAMP_TEX, pixels));
+
+    std::vector<unsigned char> bytes;
+    {
+        std::ifstream ifs(tmp_path.string(), std::ios::binary);
+        bytes.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    }
+    boost::system::error_code ec;
+    boost::filesystem::remove(tmp_path, ec);
+    REQUIRE_FALSE(bytes.empty());
+    return std::make_shared<std::vector<unsigned char>>(std::move(bytes));
+}
+
+static TextureDisplacementLayer cylindrical_layer(std::shared_ptr<std::vector<unsigned char>> image, float tiling,
+                                                   float depth, bool tile)
+{
+    TextureDisplacementLayer layer;
+    layer.slot              = 0;
+    layer.projection_method = TextureProjectionMethod::Cylindrical;
+    layer.image_data        = std::move(image);
+    layer.depth_mm          = depth;
+    layer.tiling_scale      = tiling;
+    layer.offset            = Vec2f(0.5f, 0.5f);
+    layer.tile_enabled      = tile;
+    return layer;
+}
+
+static double baked_relief(const indexed_triangle_set &orig, const indexed_triangle_set &baked,
+                           const std::vector<Vec3f> &normals, int around, int ring)
+{
+    const size_t i = size_t(tube_vertex(around, ring));
+    return double((baked.vertices[i] - orig.vertices[i]).dot(normals[i]));
+}
+
+// Ramp column (or row) recovered from the relief. Pixel x stores 3 + 4x, so this is the continuous
+// texel coordinate the bake sampled.
+static double baked_index(const indexed_triangle_set &orig, const indexed_triangle_set &baked,
+                          const std::vector<Vec3f> &normals, int around, int ring, float depth)
+{
+    return (baked_relief(orig, baked, normals, around, ring) / double(depth) * 255.0 - 3.0) / 4.0;
+}
+
+// One 10 degree step. du = R * dtheta, reported in ramp texels at `tiling` mm per tile.
+static double expected_du_columns(float tiling)
+{
+    const double dtheta = 2.0 * PI / double(CYL_SIDES);
+    return double(RAMP_TEX) * double(CYL_RADIUS) * dtheta / double(tiling);
+}
+
+// Column indices repeat every tile. A step that crosses that boundary is reported as
+// RAMP_TEX - du; the arc length is the shorter of the two.
+static double unwrapped_columns(double delta)
+{
+    const double wrapped = std::fmod(std::abs(delta), double(RAMP_TEX));
+    return std::min(wrapped, double(RAMP_TEX) - wrapped);
+}
+
+// Present only once texture_displacement_cylindrical_frame() exists. The behavior tests below do
+// not call it, so this file still builds on the base commit.
+template <class Mesh>
+auto check_cylindrical_frame_literals(const Mesh &mesh, int)
+    -> decltype(texture_displacement_cylindrical_frame(mesh), void())
+{
+    const auto cyl = texture_displacement_cylindrical_frame(mesh);
+    CHECK_THAT(double(cyl.center.x()), WithinAbs(0.0, 1e-3));
+    CHECK_THAT(double(cyl.center.y()), WithinAbs(0.0, 1e-3));
+    CHECK_THAT(double(cyl.center.z()), WithinAbs(30.0, 1e-3));
+    CHECK_THAT(double(cyl.axis.z()), WithinAbs(1.0, 1e-4));
+    CHECK_THAT(double(cyl.radius), WithinAbs(20.0, 1e-3));
+
+    // 90 degrees about X sends object Z to world -Y. The anchor is the volume origin the preview
+    // uses, so the two bake-frame overloads are the preview frame and the bake frame.
+    const Transform3d rot(Eigen::AngleAxisd(0.5 * PI, Vec3d::UnitX()));
+    const Vec3d       anchor(40.0, 5.0, 0.0);
+    const Transform3d vol = Eigen::Translation3d(anchor) * rot;
+    const auto        bake =
+        texture_displacement_cylindrical_frame(mesh, texture_displacement_bake_frame(vol, anchor));
+    const auto preview = texture_displacement_cylindrical_frame(mesh, texture_displacement_bake_frame(vol));
+    CHECK_THAT(double(bake.axis.x()), WithinAbs(0.0, 1e-4));
+    CHECK_THAT(double(bake.axis.y()), WithinAbs(-1.0, 1e-4));
+    CHECK_THAT(double(bake.axis.z()), WithinAbs(0.0, 1e-4));
+    // The anchor is the bake frame's origin, so it cancels out of the center.
+    CHECK_THAT(double(bake.center.x()), WithinAbs(0.0, 1e-3));
+    CHECK_THAT(double(bake.center.y()), WithinAbs(-30.0, 1e-3));
+    CHECK_THAT(double(bake.center.z()), WithinAbs(0.0, 1e-3));
+    CHECK_THAT(double(bake.radius), WithinAbs(20.0, 1e-3));
+    CHECK_THAT(double(preview.center.x()), WithinAbs(double(bake.center.x()), 1e-4));
+    CHECK_THAT(double(preview.center.y()), WithinAbs(double(bake.center.y()), 1e-4));
+    CHECK_THAT(double(preview.center.z()), WithinAbs(double(bake.center.z()), 1e-4));
+    CHECK_THAT(double(preview.axis.y()), WithinAbs(double(bake.axis.y()), 1e-4));
+    CHECK_THAT(double(preview.radius), WithinAbs(double(bake.radius), 1e-4));
+}
+
+template <class Mesh>
+void check_cylindrical_frame_literals(const Mesh &, long)
+{
+}
+
+static TriangleSelector::TriangleSplittingData paint_tube_plus_x(const indexed_triangle_set &mesh)
+{
+    const TriangleMesh tm(mesh);
+    TriangleSelector   selector(tm);
+    for (int f = 0; f < int(mesh.indices.size()); ++f) {
+        const stl_triangle_vertex_indices &t = mesh.indices[size_t(f)];
+        const Vec3f n = (mesh.vertices[size_t(t[1])] - mesh.vertices[size_t(t[0])])
+                            .cross(mesh.vertices[size_t(t[2])] - mesh.vertices[size_t(t[0])]);
+        if (n.norm() > 1e-8f && n.normalized().x() > 0.5f)
+            selector.set_facet(f, EnforcerBlockerType::ENFORCER);
+    }
+    return selector.serialize();
+}
+
+TEST_CASE("Cylindrical Z steps change only v", "[TextureDisplacement]")
+{
+    const indexed_triangle_set tube    = make_open_tube();
+    const std::vector<Vec3f>   normals = texture_displacement_vertex_normals(tube);
+    check_cylindrical_frame_literals(tube, 0);
+
+    TextureDisplacementFacetsData facets{};
+    facets[0] = paint_whole_mesh(tube);
+    const float depth = 1.f;
+
+    const indexed_triangle_set baked_u =
+        build_texture_displacement(tube, { cylindrical_layer(make_axis_ramp_png(false), 40.f, depth, true) }, facets,
+                                   classic_options());
+    REQUIRE(baked_u.vertices.size() == tube.vertices.size());
+    const double u_low  = baked_index(tube, baked_u, normals, 0, 0, depth);
+    const double u_high = baked_index(tube, baked_u, normals, 0, CYL_RINGS - 1, depth);
+    INFO("u-column at object z=0 " << u_low << ", at object z=60 " << u_high);
+    CHECK_THAT(u_high, WithinAbs(u_low, 1e-3));
+
+    const indexed_triangle_set baked_v =
+        build_texture_displacement(tube, { cylindrical_layer(make_axis_ramp_png(true), 200.f, depth, true) }, facets,
+                                   classic_options());
+    const double v_low  = baked_index(tube, baked_v, normals, 0, 0, depth);
+    const double v_high = baked_index(tube, baked_v, normals, 0, CYL_RINGS - 1, depth);
+    const double expected_dv = double(RAMP_TEX) * 60.0 / 200.0;
+    INFO("v-row at object z=0 " << v_low << ", at object z=60 " << v_high << ", expected |delta| " << expected_dv);
+    CHECK_THAT(std::abs(v_high - v_low), WithinAbs(expected_dv, 0.05));
+    const double v_mid  = baked_index(tube, baked_v, normals, 0, 1, depth);
+    const double v_side = baked_index(tube, baked_v, normals, 1, 1, depth);
+    CHECK_THAT(v_side, WithinAbs(v_mid, 1e-3));
+
+    // The +X patch used to take its own centroid and the world axis least aligned with +X, which is
+    // Y. Object Z then changes u. The whole-tube column at the same vertex is the object frame.
+    TextureDisplacementFacetsData side{};
+    side[0] = paint_tube_plus_x(tube);
+    const indexed_triangle_set side_u =
+        build_texture_displacement(tube, { cylindrical_layer(make_axis_ramp_png(false), 40.f, depth, true) }, side,
+                                   classic_options());
+    const double side_low  = baked_index(tube, side_u, normals, 27, 0, depth);
+    const double side_high = baked_index(tube, side_u, normals, 27, CYL_RINGS - 1, depth);
+    const double full_at   = baked_index(tube, baked_u, normals, 27, 0, depth);
+    INFO("side-patch u at object z=0 " << side_low << ", at object z=60 " << side_high << ", full paint " << full_at);
+    CHECK_THAT(side_low, WithinAbs(full_at, 1e-3));
+    CHECK_THAT(side_high, WithinAbs(side_low, 1e-3));
+
+    const indexed_triangle_set side_v =
+        build_texture_displacement(tube, { cylindrical_layer(make_axis_ramp_png(true), 200.f, depth, true) }, side,
+                                   classic_options());
+    const double side_v_low  = baked_index(tube, side_v, normals, 27, 0, depth);
+    const double side_v_high = baked_index(tube, side_v, normals, 27, CYL_RINGS - 1, depth);
+    INFO("side-patch v at object z=0 " << side_v_low << ", at object z=60 " << side_v_high);
+    CHECK_THAT(std::abs(side_v_high - side_v_low), WithinAbs(expected_dv, 0.05));
+}
+
+TEST_CASE("Cylindrical angle steps give du = R * dtheta on a full paint and a +X patch", "[TextureDisplacement]")
+{
+    const indexed_triangle_set tube    = make_open_tube();
+    const std::vector<Vec3f>   normals = texture_displacement_vertex_normals(tube);
+    const float  depth    = 1.f;
+    const float  tiling   = 40.f;
+    const double expected = expected_du_columns(tiling);
+    const TextureDisplacementLayer layer = cylindrical_layer(make_axis_ramp_png(false), tiling, depth, true);
+
+    TextureDisplacementFacetsData full{};
+    full[0] = paint_whole_mesh(tube);
+    const indexed_triangle_set baked_full = build_texture_displacement(tube, { layer }, full, classic_options());
+    REQUIRE(baked_full.vertices.size() == tube.vertices.size());
+    const double u0 = baked_index(tube, baked_full, normals, 0, 1, depth);
+    const double u1 = baked_index(tube, baked_full, normals, 1, 1, depth);
+    INFO("full-paint column at +Y " << u0 << ", one step around " << u1 << ", expected |delta| " << expected);
+    CHECK_THAT(std::abs(u1 - u0), WithinAbs(expected, 0.05));
+
+    TextureDisplacementFacetsData side{};
+    side[0] = paint_tube_plus_x(tube);
+    const indexed_triangle_set baked_side = build_texture_displacement(tube, { layer }, side, classic_options());
+    REQUIRE(baked_side.vertices.size() == tube.vertices.size());
+    // i == 27 is +X (270 deg). i == 28 is one step further, still inside the +X patch.
+    const double s0 = baked_index(tube, baked_side, normals, 27, 1, depth);
+    const double s1 = baked_index(tube, baked_side, normals, 28, 1, depth);
+    const double f0 = baked_index(tube, baked_full, normals, 27, 1, depth);
+    const double f1 = baked_index(tube, baked_full, normals, 28, 1, depth);
+    INFO("side du " << (s1 - s0) << ", full du " << (f1 - f0) << ", expected " << expected);
+    CHECK_THAT(std::abs(s1 - s0), WithinAbs(expected, 0.05));
+    CHECK_THAT(std::abs(f1 - f0), WithinAbs(expected, 0.05));
+    CHECK_THAT(s0, WithinAbs(f0, 1e-3));
+}
+
+TEST_CASE("Cylindrical Tile off is one straight stamp", "[TextureDisplacement]")
+{
+    const indexed_triangle_set tube    = make_open_tube();
+    const std::vector<Vec3f>   normals = texture_displacement_vertex_normals(tube);
+    const float depth = 0.4f;
+    // 12.5 mm tile centered on angle 0 (+Y). One 10 deg step is about 3.49 mm (inside the stamp).
+    // Three steps is about 10.47 mm (outside it). The band has to be the same on every ring.
+    const TextureDisplacementLayer layer =
+        cylindrical_layer(make_flat_gray_png(255, 8, 8), 12.5f, depth, false);
+    TextureDisplacementFacetsData facets{};
+    facets[0] = paint_whole_mesh(tube);
+    const indexed_triangle_set baked = build_texture_displacement(tube, { layer }, facets, classic_options());
+    REQUIRE(baked.vertices.size() == tube.vertices.size());
+
+    for (int ring = 1; ring <= 3; ++ring) {
+        const double on_axis  = baked_relief(tube, baked, normals, 0, ring);
+        const double one_step = baked_relief(tube, baked, normals, 1, ring);
+        const double outside  = baked_relief(tube, baked, normals, 3, ring);
+        const double plus_x   = baked_relief(tube, baked, normals, 27, ring);
+        INFO("ring " << ring << " +Y " << on_axis << " step " << one_step << " outside " << outside
+                     << " +X " << plus_x);
+        CHECK_THAT(on_axis, WithinAbs(double(depth), 1e-3));
+        CHECK_THAT(one_step, WithinAbs(double(depth), 1e-3));
+        CHECK_THAT(outside, WithinAbs(0.0, 1e-4));
+        CHECK_THAT(plus_x, WithinAbs(0.0, 1e-4));
+    }
+    // The single tile is 12.5 mm along v as well, so the tube ends are outside the stamp.
+    CHECK_THAT(baked_relief(tube, baked, normals, 0, 0), WithinAbs(0.0, 1e-4));
+    CHECK_THAT(baked_relief(tube, baked, normals, 0, CYL_RINGS - 1), WithinAbs(0.0, 1e-4));
+
+    // Painting only the +X side must not move the stamp onto that patch. +X is a quarter turn from
+    // angle 0, outside the one tile.
+    TextureDisplacementFacetsData side{};
+    side[0] = paint_tube_plus_x(tube);
+    const indexed_triangle_set side_baked = build_texture_displacement(tube, { layer }, side, classic_options());
+    const double side_plus_x = baked_relief(tube, side_baked, normals, 27, 2);
+    INFO("side-patch +X relief " << side_plus_x);
+    CHECK_THAT(side_plus_x, WithinAbs(0.0, 1e-4));
+}
+
+TEST_CASE("Cylindrical preview frame equals the bake frame", "[TextureDisplacement]")
+{
+    const indexed_triangle_set tube = make_open_tube();
+    check_cylindrical_frame_literals(tube, 0);
+
+    const std::vector<Vec3f> normals = texture_displacement_vertex_normals(tube);
+    const float depth = 1.f;
+    const TextureDisplacementLayer layer = cylindrical_layer(make_axis_ramp_png(false), 40.f, depth, true);
+    TextureDisplacementFacetsData facets{};
+    facets[0] = paint_whole_mesh(tube);
+    const indexed_triangle_set upright = build_texture_displacement(tube, { layer }, facets, classic_options());
+
+    // Same object, rotated 90 deg about X and shifted. Object-space relief must match the upright
+    // bake: both paths wrap the object's own Z through the anchor the preview uses.
+    const Transform3d rot(Eigen::AngleAxisd(0.5 * PI, Vec3d::UnitX()));
+    const Vec3d       anchor(40.0, 5.0, 0.0);
+    const Transform3d vol = Eigen::Translation3d(anchor) * rot;
+    const indexed_triangle_set turned =
+        build_texture_displacement(tube, { layer }, facets, classic_options(), {}, nullptr, vol, nullptr, nullptr,
+                                   nullptr, &anchor);
+    REQUIRE(upright.vertices.size() == tube.vertices.size());
+    REQUIRE(turned.vertices.size() == tube.vertices.size());
+
+    const double expected = expected_du_columns(40.f);
+    const double upright_du = std::abs(baked_index(tube, upright, normals, 1, 1, depth) -
+                                       baked_index(tube, upright, normals, 0, 1, depth));
+    const double turned_du = std::abs(baked_index(tube, turned, normals, 1, 1, depth) -
+                                      baked_index(tube, turned, normals, 0, 1, depth));
+    INFO("upright du " << upright_du << ", rotated du " << turned_du << ", expected " << expected);
+    CHECK_THAT(upright_du, WithinAbs(expected, 0.05));
+    CHECK_THAT(turned_du, WithinAbs(upright_du, 1e-3));
+    CHECK_THAT(baked_index(tube, turned, normals, 0, CYL_RINGS - 1, depth),
+               WithinAbs(baked_index(tube, turned, normals, 0, 0, depth), 1e-3));
+
+    // The +X patch's preview frame is the same object frame, so its step matches the full bake.
+    TextureDisplacementFacetsData side{};
+    side[0] = paint_tube_plus_x(tube);
+    const indexed_triangle_set turned_side =
+        build_texture_displacement(tube, { layer }, side, classic_options(), {}, nullptr, vol, nullptr, nullptr,
+                                   nullptr, &anchor);
+    const double side_du = unwrapped_columns(baked_index(tube, turned_side, normals, 28, 1, depth) -
+                                             baked_index(tube, turned_side, normals, 27, 1, depth));
+    INFO("rotated side du " << side_du << ", rotated full du " << turned_du);
+    CHECK_THAT(side_du, WithinAbs(expected, 0.05));
+    CHECK_THAT(baked_index(tube, turned_side, normals, 27, 1, depth),
+               WithinAbs(baked_index(tube, turned, normals, 27, 1, depth), 1e-3));
+}
+
+TEST_CASE("a rotated instance still wraps the object's own Z axis", "[TextureDisplacement]")
+{
+    const indexed_triangle_set tube    = make_open_tube();
+    const std::vector<Vec3f>   normals = texture_displacement_vertex_normals(tube);
+    const float depth = 1.f;
+    const TextureDisplacementLayer layer = cylindrical_layer(make_axis_ramp_png(false), 40.f, depth, true);
+    TextureDisplacementFacetsData facets{};
+    facets[0] = paint_whole_mesh(tube);
+
+    const Transform3d rot(Eigen::AngleAxisd(0.5 * PI, Vec3d::UnitX()));
+    const Vec3d       anchor(40.0, 5.0, 0.0);
+    const Transform3d vol = Eigen::Translation3d(anchor) * rot;
+    const indexed_triangle_set baked =
+        build_texture_displacement(tube, { layer }, facets, classic_options(), {}, nullptr, vol, nullptr, nullptr,
+                                   nullptr, &anchor);
+    REQUIRE(baked.vertices.size() == tube.vertices.size());
+
+    const double low  = baked_index(tube, baked, normals, 0, 0, depth);
+    const double high = baked_index(tube, baked, normals, 0, CYL_RINGS - 1, depth);
+    INFO("rotated u-column at object z=0 " << low << ", at object z=60 " << high);
+    CHECK_THAT(high, WithinAbs(low, 1e-3));
+    const double du = std::abs(baked_index(tube, baked, normals, 1, 1, depth) -
+                               baked_index(tube, baked, normals, 0, 1, depth));
+    INFO("rotated du " << du << ", expected " << expected_du_columns(40.f));
+    CHECK_THAT(du, WithinAbs(expected_du_columns(40.f), 0.05));
+
+    // 45 degrees about X sends object Z to (0, -1, 1), which is not a world axis. The old picker
+    // only returns X, Y, or Z, so this +X patch used to wrap the wrong direction.
+    const Transform3d rot45(Eigen::AngleAxisd(0.25 * PI, Vec3d::UnitX()));
+    const Transform3d vol45 = Eigen::Translation3d(anchor) * rot45;
+    TextureDisplacementFacetsData side{};
+    side[0] = paint_tube_plus_x(tube);
+    const indexed_triangle_set diag =
+        build_texture_displacement(tube, { layer }, side, classic_options(), {}, nullptr, vol45, nullptr, nullptr,
+                                   nullptr, &anchor);
+    // Column 27 is the object's +X generator. A rotation about X leaves it on world +X, and the
+    // angle reference is world Z (abs(axis dot Z) = cos(45 deg) < 0.9), so the atan2 branch cut
+    // lies on that generator. The two ends can land on opposite sides of +/- pi, and one full
+    // turn is not a whole number of tiles. Column 26 is 10 deg off the cut and still on the
+    // painted +X side.
+    const double d_low  = baked_index(tube, diag, normals, 26, 0, depth);
+    const double d_high = baked_index(tube, diag, normals, 26, CYL_RINGS - 1, depth);
+    INFO("45 deg side u at object z=0 " << d_low << ", at object z=60 " << d_high);
+    CHECK_THAT(d_high, WithinAbs(d_low, 1e-3));
+    const double d_du = unwrapped_columns(baked_index(tube, diag, normals, 26, 2, depth) -
+                                          baked_index(tube, diag, normals, 25, 2, depth));
+    INFO("45 deg side du " << d_du << ", expected " << expected_du_columns(40.f));
+    CHECK_THAT(d_du, WithinAbs(expected_du_columns(40.f), 0.05));
 }
