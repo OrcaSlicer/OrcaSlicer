@@ -52,8 +52,7 @@ DragCanvas::~DragCanvas()
     }
     m_dragshape_list.clear();
 
-    if (m_drag_image)
-        delete m_drag_image;
+    delete m_drag_image;
 }
 
 void DragCanvas::set_shape_list(const std::vector<std::string>& colors, const std::vector<int>& order)

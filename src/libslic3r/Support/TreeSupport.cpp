@@ -782,7 +782,7 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
 
     // for small overhang removal
     struct OverhangCluster {
-        std::map<int, const ExPolygon*> layer_overhangs;
+        std::map<int, ExPolygons> layer_overhangs;
         ExPolygons merged_poly;
         BoundingBox merged_bbox;
         int min_layer = 1e7;
@@ -795,7 +795,11 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
             push_back(expoly, layer_nr);
         }
         void push_back(const ExPolygon* expoly, int layer_nr) {
-            layer_overhangs.emplace(layer_nr, expoly);
+            auto it = layer_overhangs.find(layer_nr);
+            if (it == layer_overhangs.end())
+                layer_overhangs.emplace(layer_nr, ExPolygons{*expoly});
+            else
+                layer_overhangs[layer_nr].emplace_back(*expoly);
             auto dilate1 = offset_ex(*expoly, offset);
             if (!dilate1.empty())
                 merged_poly = union_ex(merged_poly, dilate1);
@@ -810,14 +814,14 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
             if (layer_nr < 1) return false;
             auto it = layer_overhangs.find(layer_nr - 1);
             if (it == layer_overhangs.end()) return false;
-            const ExPolygon* overhang = it->second;
+            const ExPolygons &overhangs = it->second;
 
             this->offset = offset;
             auto dilate1 = offset_ex(region, offset);
             BoundingBox bbox = get_extents(dilate1);
             if (!merged_bbox.overlap(bbox))
                 return false;
-            return overlaps({ *overhang }, dilate1);
+            return overlaps(overhangs, dilate1);
         }
         // it's basically the combination of push_back and intersects, but saves an offset_ex
         bool push_back_if_intersects(const ExPolygon& region, int layer_nr, coordf_t offset) {
@@ -828,7 +832,7 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                 if (layer_nr < 1) break;
                 auto it = layer_overhangs.find(layer_nr - 1);
                 if (it == layer_overhangs.end()) break;
-                const ExPolygon* overhang = it->second;
+                const ExPolygons &overhangs = it->second;
 
                 this->offset = offset;
                 dilate1 = offset_ex(region, offset);
@@ -836,10 +840,14 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                 bbox = get_extents(dilate1);
                 if (!merged_bbox.overlap(bbox))
                     break;
-                is_intersect = overlaps({ *overhang }, dilate1);
+                is_intersect = overlaps(overhangs, dilate1);
             } while (0);
             if (is_intersect) {
-                layer_overhangs.emplace(layer_nr, &region);
+                auto it = layer_overhangs.find(layer_nr);
+                if (it == layer_overhangs.end())
+                    layer_overhangs.emplace(layer_nr, ExPolygons{region});
+                else
+                    layer_overhangs[layer_nr].emplace_back(region);
                 merged_poly = union_ex(merged_poly, dilate1);
                 min_layer = std::min(min_layer, layer_nr);
                 max_layer = std::max(max_layer, layer_nr);
@@ -1209,9 +1217,9 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
         if (cluster.is_small_overhang) continue;
         // collect overhangs that's not small overhangs
         for (auto it = cluster.layer_overhangs.begin(); it != cluster.layer_overhangs.end(); it++) {
-            int  layer_nr   = it->first;
-            auto p_overhang = it->second;
-            m_object->get_layer(layer_nr)->loverhangs.emplace_back(*p_overhang);
+            Layer *layer = m_object->get_layer(it->first);
+            for (const ExPolygon &overhang : it->second)
+                layer->loverhangs.emplace_back(overhang);
         }
     }
 
@@ -2272,6 +2280,19 @@ void TreeSupport::draw_circles()
                 //Draw the support areas and add the roofs appropriately to the support roof instead of normal areas.
                 ts_layer->lslices.reserve(curr_layer_nodes.size());
                 ExPolygons area_poly;  // the polygon node area which will be printed as normal support
+                // Every node sampled from an overhang carries a copy of it, so a roof list would get the same
+                // overhang once per node. Merge each overhang into each list only once.
+                std::vector<std::pair<const ExPolygons*, const ExPolygon*>> merged_overhangs;
+                auto append_overhang_once = [&merged_overhangs, this](ExPolygons &dst, const ExPolygon &overhang) {
+                    for (const auto &[list, merged] : merged_overhangs)
+                        if (list == &dst && *merged == overhang)
+                            return;
+                    merged_overhangs.emplace_back(&dst, &overhang);
+                    if (overhang.contour.size() > 100 || overhang.holes.size() > 1)
+                        dst.emplace_back(overhang);
+                    else
+                        append(dst, offset_ex({ overhang }, scale_(m_ts_data->m_xy_distance)));
+                };
                 for (const SupportNode* p_node : curr_layer_nodes)
                 {
                     if (print->canceled())
@@ -2279,6 +2300,7 @@ void TreeSupport::draw_circles()
 
                     const SupportNode& node = *p_node;
                     ExPolygons area;
+                    bool merge_overhang = false;
                     // Generate directly from overhang polygon if one of the following is true:
                     // 1) node is a normal part of hybrid support
                     // 2) node is virtual
@@ -2327,40 +2349,39 @@ void TreeSupport::draw_circles()
 
                         // merge overhang to get a smoother interface surface
                         // Do not merge when buildplate_only is on, because some underneath nodes may have been deleted.
-                        if (top_interface_layers > 0 && node.support_roof_layers_below > 0 && !on_buildplate_only && !node.is_sharp_tail) {
-                            ExPolygons overhang_expanded;
-                            if (node.overhang.contour.size() > 100 || node.overhang.holes.size()>1)
-                                overhang_expanded.emplace_back(node.overhang);
-                            else {
-                                overhang_expanded = offset_ex({ node.overhang }, scale_(m_ts_data->m_xy_distance));
-                            }
-                            append(area, overhang_expanded);
-                        }
+                        merge_overhang = top_interface_layers > 0 && node.support_roof_layers_below > 0 && !on_buildplate_only && !node.is_sharp_tail;
                     }
 
                     // Use the Pythagorean theorem to compare movement magnitude (dx² + dy²) without a square root.
-                    if (node.is_processed && node.movement.cast<double>().squaredNorm() > max_move_sq)
+                    if (node.is_processed && node.movement.cast<double>().squaredNorm() > max_move_sq) {
                         append(extra_wall_areas, area);
+                        if (merge_overhang)
+                            append_overhang_once(extra_wall_areas, node.overhang);
+                    }
 
+                    ExPolygons *dst;
                     if (obj_layer_nr>0 && node.distance_to_top < 0)
-                        append(roof_gap_areas, area);
+                        dst = &roof_gap_areas;
                     else if (obj_layer_nr > 0 && node.support_roof_layers_below == 1 &&
                              node.is_sharp_tail == false)
                     {
-                        append(roof_1st_layer, area);
+                        dst = &roof_1st_layer;
                         max_layers_above_roof1 = std::max(max_layers_above_roof1, node.dist_mm_to_top);
                     }
                     else if (obj_layer_nr > 0 && node.support_roof_layers_below > 1 &&
                              node.is_sharp_tail == false)
                     {
-                        append(node.support_roof_layers_below <= top_base_interface_layers ? roof_base_areas : roof_areas, area);
+                        dst = node.support_roof_layers_below <= top_base_interface_layers ? &roof_base_areas : &roof_areas;
                         max_layers_above_roof = std::max(max_layers_above_roof, node.dist_mm_to_top);
                     }
                     else
                     {
-                        append(base_areas, area);
+                        dst = &base_areas;
                         max_layers_above_base = std::max(max_layers_above_base, node.dist_mm_to_top);
                     }
+                    append(*dst, std::move(area));
+                    if (merge_overhang)
+                        append_overhang_once(*dst, node.overhang);
 
                 }
 
@@ -2384,7 +2405,8 @@ void TreeSupport::draw_circles()
                 roof_1st_layer = intersection_ex(roof_1st_layer, m_machine_border);
 
                 ExPolygons roofs; append(roofs, roof_1st_layer); append(roofs, roof_areas);append(roofs, roof_gap_areas);
-                base_areas = diff_ex(base_areas, ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs, get_extents(base_areas)));
+                const BoundingBox base_bbox = get_extents(base_areas);
+                base_areas = diff_ex(union_overlapping_ex(std::move(base_areas)), ClipperUtils::clip_clipper_polygons_with_subject_bbox(roofs, base_bbox));
                 base_areas = intersection_ex(base_areas, m_machine_border);
 
                 // Belt floor: clip tree support polygons by the belt surface plane.

@@ -331,12 +331,16 @@ static void ws_close(net::io_context& ioc, websocket::stream<beast::tcp_stream>&
     run_until_done(ioc, [&](auto&& handler) { ws.async_close(websocket::close_code::normal, handler); });
 }
 
-// K1-family firmware stores gcodes under /usr/data and uses a stricter WebSocket
-// protocol (TEXT frames, heartbeat acks). The /info model is the literal name on
-// K1-family, including the *_CFS-C bundle variants. Add verified model IDs here.
-static bool is_k1_family(const std::string& model)
+// Add a model by its /info value once its firmware is known to keep gcodes under /usr/data; every other model uses /mnt/UDISK.
+static bool stores_gcode_in_usr_data(const std::string& model)
 {
-    static const std::unordered_set<std::string> k1_models = {
+    static const std::unordered_set<std::string> usr_data_models = {
+        "F001", // Ender-3 V3 series
+        "F002", // Ender-3 V3 Plus
+        "F003", // CR-10 SE
+        "F004", // Ender-5 Max
+        "F005", // Ender-3 V3 KE
+        "F016", // K2 SE
         "K1",
         "K1 Max",
         "K1 Max_CFS-C",
@@ -346,7 +350,7 @@ static bool is_k1_family(const std::string& model)
         "K1C_CFS-C",
         "K1_CFS-C",
     };
-    return k1_models.count(model) > 0;
+    return usr_data_models.count(model) > 0;
 }
 
 void CrealityPrint::query_model() const
@@ -520,7 +524,7 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
         // Runs before the WebSocket opens and its reply deadline starts, since it can query the
         // printer over HTTP. It also fills m_model.
         const bool        multi_color = supports_multi_color_print();
-        const std::string data_root   = is_k1_family(m_model) ? "/usr/data" : "/mnt/UDISK";
+        const std::string data_root   = stores_gcode_in_usr_data(m_model) ? "/usr/data" : "/mnt/UDISK";
         const std::string gcode_path  = data_root + "/printer_data/gcodes/" + filename;
 
         net::io_context ioc;
