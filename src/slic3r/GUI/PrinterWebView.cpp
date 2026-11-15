@@ -238,7 +238,10 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
     m_url_loaded = false;
     m_handler = create_printer_webview_handler(*this);
 
-    if (this->IsShown()) {
+    // Orca: IsShownOnScreen(), not IsShown(): the idle prebuild builds this view inside the hidden
+    // Device tab, and a new panel counts as shown, so the page and its camera stream would start
+    // before the tab is opened. Show() loads the deferred page.
+    if (this->IsShownOnScreen()) {
         //ORCA: m_url_deferred will be cleared on load success
         //m_url_deferred.clear();
         m_browser->LoadURL(url);
