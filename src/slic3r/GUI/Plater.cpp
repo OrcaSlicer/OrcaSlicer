@@ -82,6 +82,7 @@
 #include "slic3r/GUI/Printer/PrinterFileSystem.h"
 #include "slic3r/GUI/GUI_Geometry.hpp"
 #include "slic3r/GUI/Widgets/DialogButtons.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include "slic3r/GUI/PrintOptionsDialog.hpp"
 #include "slic3r/GUI/CalibrationPanel.hpp"
 #include "slic3r/GUI/CalibrationWizard.hpp"
@@ -117,6 +118,7 @@
 #include <wx/anybutton.h>
 #include <wx/dcclient.h>
 #include <wx/dcbuffer.h>
+#include <wx/dcgraph.h>
 #include <wx/chartype.h>
 #include <wx/busycursor.h>
 #include <wx/app.h>
@@ -4624,9 +4626,19 @@ void Sidebar::update_mixed_filament_list()
                 wxBufferedPaintDC dc(content_panel);
                 wxSize sz = content_panel->GetClientSize();
 
-                dc.SetBrush(wxBrush(mc_bg));
-                dc.SetPen(wxPen(mc_border, 1));
-                dc.DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
+                dc.SetBackground(wxBrush(StaticBox::GetParentBackgroundColor(content_panel->GetParent())));
+                dc.Clear();
+                if (sz.GetWidth() < 2 || sz.GetHeight() < 2)
+                    return;
+                {
+                    wxGCDC gdc(dc);
+                    wxDC* border_dc = gdc.IsOk() ? static_cast<wxDC*>(&gdc) : &dc;
+                    const int border_width = 1;
+                    border_dc->SetBrush(wxBrush(mc_bg));
+                    border_dc->SetPen(wxPen(mc_border, border_width));
+                    border_dc->DrawRoundedRectangle(0, 0, sz.GetWidth(), sz.GetHeight(),
+                                                    content_panel->FromDIP(StaticBox::InputCornerRadius) - border_width);
+                }
 
                 dc.SetFont(::Label::Body_13);
                 int x = cp_pad;
