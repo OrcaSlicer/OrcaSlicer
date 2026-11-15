@@ -131,7 +131,7 @@ AppActionRunResult object_op(Plater* plater, bool (*ok)(Plater*), void (*op)(Pla
     if (!ok(plater))
         return {AppActionRunResult::Level::Info, _L("Select an object first."), false};
     op(plater);
-    return {AppActionRunResult::Level::Success};
+    return {AppActionRunResult::Level::Succeeded};
 }
 
 // What a command answers when its operation refuses: the refusal in the UI's language, shown at
@@ -153,7 +153,7 @@ AppActionRunResult arrange_all(Plater* plater)
         return {AppActionRunResult::Level::Info, _L("Open the 3D view first."), false};
     if (const Ops::Outcome<Ops::Done> started = Ops::start_arrange({}); !started)
         return refused(started.refusal(), AppActionRunResult::Level::Info);
-    return {AppActionRunResult::Level::Success};
+    return {AppActionRunResult::Level::Succeeded};
 }
 
 // Orient as the toolbar runs it, with the guards arrange has.
@@ -169,7 +169,7 @@ AppActionRunResult orient_all(Plater* plater)
     // A plate's Auto Rotate icon leaves the plate-only state behind.
     plater->set_prepare_state(Job::PREPARE_STATE_DEFAULT);
     plater->orient();
-    return {AppActionRunResult::Level::Success};
+    return {AppActionRunResult::Level::Succeeded};
 }
 
 // How many undo and how many redo items the project's active history lists, as the canvas's Undo and Redo lists
@@ -205,7 +205,7 @@ AppActionRunResult project_undo_redo(bool redo, bool agent)
     if (agent && (plater == nullptr || project_history_items(*plater) == before))
         throw ToolFailure(redo ? "Nothing was redone in the project's history (nothing to put back, or a background job is running)"
                                : "Nothing was undone in the project's history (nothing to take back, or a background job is running)");
-    return {AppActionRunResult::Level::Success, {}, true, json{{"history", "project"}}.dump()};
+    return {AppActionRunResult::Level::Succeeded, {}, true, json{{"history", "project"}}.dump()};
 }
 
 // An automated call of Undo, or Redo, on the history args.history names: "design", the Design tab's, or
@@ -224,7 +224,7 @@ AppActionRunResult undo_redo(const json& args, bool redo)
     if (history == "design") {
 #ifdef SLIC3R_CAD
         json reply{{"history", "design"}, {"result", Mcp::cad_undo_redo(redo)}};
-        return {AppActionRunResult::Level::Success, {}, true, reply.dump()};
+        return {AppActionRunResult::Level::Succeeded, {}, true, reply.dump()};
 #else
         throw ToolFailure("The CAD feature is off: this build of OrcaSlicer has no Design tab");
 #endif
@@ -251,7 +251,7 @@ AppActionRunResult picked_undo_redo(const json& args, bool redo)
         if (design == nullptr || !design->menu_can_undo_redo(redo))
             return greyed;
         design->menu_undo_redo(redo);
-        return {AppActionRunResult::Level::Success, {}, true, json{{"history", "design"}}.dump()};
+        return {AppActionRunResult::Level::Succeeded, {}, true, json{{"history", "design"}}.dump()};
     }
 #else
     // A build without CAD has no Design tab, so no history of it to take back.
@@ -291,7 +291,7 @@ wxDataViewItemArray selected_rows(const ObjectList& list, int types)
 
 AppActionRunResult with_reply(const nlohmann::json& reply)
 {
-    AppActionRunResult r{AppActionRunResult::Level::Success};
+    AppActionRunResult r{AppActionRunResult::Level::Succeeded};
     r.reply = reply.dump();
     return r;
 }
@@ -333,7 +333,7 @@ AppActionRunResult go_to_layer(double pct)
     range.last = int(std::lround(pct / 100.0 * double(count.value() - 1))) + 1;
     if (const Ops::Outcome<Ops::ShownLayers> shown = Ops::show_layer_range(range); !shown)
         return refused(shown.refusal(), AppActionRunResult::Level::Info);
-    return {AppActionRunResult::Level::Success};
+    return {AppActionRunResult::Level::Succeeded};
 }
 
 // The file `args` names ({"path", "overwrite"?}), checked for reading (`output` false) or for writing, where
@@ -374,7 +374,7 @@ Plater* app_plater()
 const char* level_name(AppActionRunResult::Level level)
 {
     switch (level) {
-    case AppActionRunResult::Level::Success: return "success";
+    case AppActionRunResult::Level::Succeeded: return "success";
     case AppActionRunResult::Level::Error: return "error";
     case AppActionRunResult::Level::Busy: return "busy";
     default: return "info";
@@ -384,7 +384,7 @@ const char* level_name(AppActionRunResult::Level level)
 // What a command that wrote `path` answers, or its operation's refusal.
 AppActionRunResult written(const Ops::Outcome<Ops::Done>& outcome, const boost::filesystem::path& path)
 {
-    return outcome ? AppActionRunResult{AppActionRunResult::Level::Success, from_u8(path.string())} : refused(outcome.refusal());
+    return outcome ? AppActionRunResult{AppActionRunResult::Level::Succeeded, from_u8(path.string())} : refused(outcome.refusal());
 }
 
 // A screenshot or recording saved into the MCP output folder, which a person would not find by themselves: a
@@ -484,7 +484,7 @@ AppActionRunResult NativeCommands::start_person_recording()
     reply["pointer"]     = settings.pointer;
     reply["encode"]      = settings.encode;
     // TRN "Stop Recording" is the command that ends the recording.
-    return {AppActionRunResult::Level::Success, _L("Recording started. Stop Recording saves it."), true, reply.dump()};
+    return {AppActionRunResult::Level::Succeeded, _L("Recording started. Stop Recording saves it."), true, reply.dump()};
 }
 
 AppActionRunResult NativeCommands::stop_recording_in_app()
@@ -500,7 +500,7 @@ AppActionRunResult NativeCommands::stop_recording_in_app()
     const boost::filesystem::path path = Mcp::path_from_utf8(state["path"].get<std::string>());
     notify_saved(_L("Recording saved"), path);
     runtime->recorder().end(kStoppedInApp);
-    return AppActionRunResult{AppActionRunResult::Level::Success, {}, true, path_reply(path)};
+    return AppActionRunResult{AppActionRunResult::Level::Succeeded, {}, true, path_reply(path)};
 }
 
 namespace {
@@ -510,7 +510,7 @@ AppActionRunResult view_command(Plater* plater, const std::string& dir)
 {
     if (plater)
         plater->select_view(dir);
-    return {AppActionRunResult::Level::Success};
+    return {AppActionRunResult::Level::Succeeded};
 }
 
 // Calibration wizards. Routes through MainFrame::run_calibration, the same entry point as the
@@ -522,7 +522,7 @@ AppActionRunResult calib_command(CalibKind kind)
         return {AppActionRunResult::Level::Info, _L("Open the 3D view first.")};
     ensure_3d_view(wxGetApp().plater());
     mf->run_calibration(kind);
-    return {AppActionRunResult::Level::Success};
+    return {AppActionRunResult::Level::Succeeded};
 }
 
 // Imports the preset file at `path` (Ops::import_presets()) and words what came of it: the message lists
@@ -547,7 +547,7 @@ AppActionRunResult import_preset_file(const boost::filesystem::path& path, bool 
     add(_L("Replaced presets: %1%."), imported.value().replaced);
     // TRN %1% is a comma-separated list of preset names.
     add(_L("Kept the existing presets: %1%."), imported.value().kept);
-    return {AppActionRunResult::Level::Success, message};
+    return {AppActionRunResult::Level::Succeeded, message};
 }
 
 // Thin AppAction wrapper for one catalog entry: identity and presentation come from the catalog,
@@ -571,7 +571,7 @@ struct CommandAction : AppAction
         this->automation_description  = c.description;
         this->input_schema            = c.input_schema;
         this->command                 = c.key;
-        this->completes_in_background = c.completion == CommandCompletion::Export;
+        this->completes_in_background = c.completion == CommandCompletion::Deferred;
     }
 };
 
@@ -791,7 +791,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
     add_with_icon("slice_and_preview", L("Slice and Preview"), L("Slice & Export"), "media_play", [](const json&) {
         if (wxGetApp().plater() != nullptr)
             Ops::start_slice({});
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("slice_all", L("Slice All Plates"), L("Slice & Export"), "media_play", [](const json&) {
         if (wxGetApp().plater() != nullptr) {
@@ -799,7 +799,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             slice.all_plates = true;
             Ops::start_slice(slice);
         }
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
 
     // Go to layer and Go to tab have one form, which needs its value: the palette collects it in its second
@@ -809,7 +809,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         [](const json& args) {
             Plater* plater = wxGetApp().plater();
             if (plater == nullptr)
-                return AppActionRunResult{AppActionRunResult::Level::Success};
+                return AppActionRunResult{AppActionRunResult::Level::Succeeded};
             plater->select_view_3D("Preview", false);
             if (MainFrame* mf = wxGetApp().mainframe; mf)
                 mf->select_tab(TAB_ID_PREVIEW);
@@ -837,7 +837,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             if (mf->m_tabpanel->GetSelectedPageName() != from_u8(tab))
                 // TRN %1% is the id of the tab that could not be opened, such as "monitor".
                 return AppActionRunResult{AppActionRunResult::Level::Error, format_wxstr(_L("The \"%1%\" tab could not be opened."), tab), false};
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         },
         "tab")
         .input_schema = Mcp::object_schema(
@@ -850,14 +850,14 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             return AppActionRunResult{};
         if (Mcp::person_form(args)) {
             plater->load_project();
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         AppActionRunResult fail;
         const auto         path = path_argument(args, false, fail);
         if (!path)
             return fail;
         plater->load_project(from_path(*path));
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     }).input_schema = Mcp::object_schema({{"path", input_file("a .3mf project")}});
     add_with_icon("save_project_as", L("Save Project As"), L("Commands"), "menu_save", [](const json& args) {
         Plater* plater = wxGetApp().plater();
@@ -865,7 +865,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             return AppActionRunResult{};
         if (Mcp::person_form(args)) {
             plater->save_project(true);
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         AppActionRunResult fail;
         const auto         path = path_argument(args, true, fail);
@@ -926,12 +926,12 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
     add_with_icon("toggle_run_script", L("Run Script"), L("Commands"), "media_play", [](const json&) {
         if (wxGetApp().mainframe != nullptr)
             wxGetApp().run_script_panel().toggle();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("open_action_replay", L("Action Replay"), L("Commands"), "loop", [](const json&) {
         if (MainFrame* mf = wxGetApp().mainframe)
             mf->show_action_replay();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     // The tabs of the Preferences dialog, by the names open_preferences takes.
     static const std::pair<const char*, PreferencesTab> preferences_tabs[] = {{"general", PreferencesTab::General},
@@ -947,7 +947,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
     add_with_icon("open_preferences", L("Preferences"), L("Commands"), "cog", [](const json& args) {
         if (Mcp::person_form(args)) {
             wxGetApp().open_preferences();
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         // The tab to show, and the preference whose control is scrolled into view and focused.
         const std::string tab = args.value("tab", std::string());
@@ -956,7 +956,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             return AppActionRunResult{AppActionRunResult::Level::Error,
                                       from_u8("tab is required: general, files, behaviour, control, graphics, online or developer")};
         wxGetApp().open_preferences(it->second, args.value("key", std::string()));
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     }).input_schema = Mcp::object_schema(
         {{"tab", Mcp::enum_prop(preferences_tab_names, "The tab to show.")},
          {"key", Mcp::prop("string", "A preference on that tab, e.g. auto_arrange on behaviour: its control is scrolled into view and focused.")}});
@@ -976,21 +976,21 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         if (!cap->image.SaveFile(from_path(path), wxBITMAP_TYPE_PNG))
             return AppActionRunResult{AppActionRunResult::Level::Error, _L("The screenshot could not be saved."), false};
         notify_saved(_L("Screenshot saved"), path);
-        return AppActionRunResult{AppActionRunResult::Level::Success, {}, true, path_reply(path)};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded, {}, true, path_reply(path)};
     });
 
     // ---- Mode ----
     add_with_icon("mode_simple", L("Mode: Simple"), L("Mode"), "advanced", [](const json&) {
         wxGetApp().set_mode(comSimple);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("mode_advanced", L("Mode: Advanced"), L("Mode"), "advanced", [](const json&) {
         wxGetApp().set_mode(comAdvanced);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("mode_expert", L("Mode: Expert"), L("Mode"), "advanced", [](const json&) {
         wxGetApp().set_mode(comExpert);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     // Mirrors Preferences > Developer > Developer mode: flip the flag, persist, refresh the UI.
     add_with_icon("toggle_developer_mode", L("Toggle Developer Mode"), L("Mode"), "advanced", [](const json&) {
@@ -999,7 +999,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         app.app_config->set_bool("developer_mode", on);
         app.app_config->save();
         app.update_mode();
-        return AppActionRunResult{AppActionRunResult::Level::Success, on ? _L("Developer mode enabled.") : _L("Developer mode disabled.")};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded, on ? _L("Developer mode enabled.") : _L("Developer mode disabled.")};
     });
 
     // ---- Export pipeline ----
@@ -1012,7 +1012,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
                      return AppActionRunResult{};
                  if (Mcp::person_form(args)) {
                      plater->export_gcode(false);
-                     return AppActionRunResult{AppActionRunResult::Level::Success};
+                     return AppActionRunResult{AppActionRunResult::Level::Succeeded};
                  }
                  AppActionRunResult fail;
                  const auto         path = path_argument(args, true, fail);
@@ -1024,7 +1024,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
                      return refused(started.refusal());
                  return AppActionRunResult{AppActionRunResult::Level::Info, from_u8(path->string())};
              },
-             CommandCompletion::Export))
+             CommandCompletion::Deferred))
         .icon = "custom-gcode_gcode";
     add_with_icon("export_stl", L("Export STL"), L("Slice & Export"), "save", [](const json& args) {
         Plater* plater = wxGetApp().plater();
@@ -1032,7 +1032,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             return AppActionRunResult{};
         if (Mcp::person_form(args)) {
             plater->export_stl();
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         AppActionRunResult fail;
         const auto         path = path_argument(args, true, fail);
@@ -1046,7 +1046,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             return AppActionRunResult{};
         if (Mcp::person_form(args)) {
             plater->export_core_3mf();
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         AppActionRunResult fail;
         const auto         path = path_argument(args, true, fail);
@@ -1061,7 +1061,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
                 return AppActionRunResult{};
             if (Mcp::person_form(args)) {
                 plater->export_gcode_3mf(all);
-                return AppActionRunResult{AppActionRunResult::Level::Success};
+                return AppActionRunResult{AppActionRunResult::Level::Succeeded};
             }
             AppActionRunResult fail;
             const auto         path = path_argument(args, true, fail);
@@ -1086,7 +1086,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             return AppActionRunResult{};
         if (const Ops::Outcome<Ops::Done> sent = Ops::send_gcode_to_host(); !sent)
             return refused(sent.refusal());
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
 
     // ---- Calibration ----
@@ -1131,23 +1131,23 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             if (GLCanvas3D* canvas = plater->get_current_canvas3D())
                 canvas->zoom_to_bed();
         }
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("view_fit_bed", L("Fit Bed to View"), L("View"), [](const json&) {
         if (Plater* plater = wxGetApp().plater())
             if (GLCanvas3D* canvas = plater->get_current_canvas3D())
                 canvas->zoom_to_bed();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("view_toggle_perspective", L("Toggle Perspective"), L("View"), [](const json&) {
         if (Plater* plater = wxGetApp().plater())
             plater->get_camera().select_next_type();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("reset_window_layout", L("Reset Window Layout"), L("View"), "toolbar_reset", [](const json&) {
         if (Plater* plater = wxGetApp().plater())
             plater->reset_window_layout();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
 
     // ---- Object ----
@@ -1164,12 +1164,12 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             return AppActionRunResult{};
         ensure_3d_view(plater);
         plater->select_all();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("deselect_all", L("Deselect All"), L("Object"), [](const json&) {
         if (Plater* plater = wxGetApp().plater())
             plater->deselect_all();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("obj_mirror_x", L("Mirror X"), L("Object"), "menu_mirror_x", [](const json&) {
         return object_op(wxGetApp().plater(), [](Plater* p) { return p->can_mirror(); }, [](Plater* p) { p->mirror(Axis::X); });
@@ -1225,7 +1225,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             const wxString why = list->set_volume_type(type, true, /*show_errors=*/false);
             if (!why.empty())
                 return AppActionRunResult{AppActionRunResult::Level::Error, why};
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         });
     };
     add_type("obj_type_part", L("Change Type to Part"), ModelVolumeType::MODEL_PART);
@@ -1251,7 +1251,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         else if (!list->rename_item(rows.front(), from_u8(name)))
             return AppActionRunResult{AppActionRunResult::Level::Error,
                                       _L("Invalid name, the following characters are not allowed:") + " <>:/\\|?*\""};
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     }).input_schema = Mcp::object_schema({{"name", Mcp::prop("string", "The new name, in place of the Rename dialog.")}});
     add_with_icon("obj_set_instances", L("Set Number of Instances"), L("Object"), "instance_add", [](const json& args) {
         Plater*     plater = wxGetApp().plater();
@@ -1269,7 +1269,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             if (const std::optional<Ops::Refusal> refusal = Ops::instance_count_refusal())
                 return refused_count(*refusal);
             plater->set_number_of_copies();
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         const Ops::Outcome<Ops::InstanceCount> set = Ops::set_instance_count({args.at("count").get<int>()});
         if (!set)
@@ -1347,7 +1347,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
                 return AppActionRunResult{AppActionRunResult::Level::Error,
                                           from_u8(std::string("The size is ") + size_help + ", each above 0.")};
             list->load_generic_subobject(type_name, ModelVolumeType::INVALID, true, size);
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }).input_schema = Mcp::object_schema({{"size", Mcp::array_prop({{"type", "number"}}, std::string("The size, ") + size_help +
                                                                                             ", each above 0, in place of the size dialog.")}});
     };
@@ -1365,7 +1365,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
                 canvas->clear_popup_menu_position();
             MenuFactory::add_text_volume(ModelVolumeType::INVALID);
         }
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("add_primitive_svg", L("SVG"), L("Add Primitive"), "menu_obj_svg", [](const json& args) {
         Plater* plater = wxGetApp().plater();
@@ -1377,7 +1377,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             canvas->clear_popup_menu_position();
         if (Mcp::person_form(args)) {
             MenuFactory::add_svg_volume(ModelVolumeType::INVALID);
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         // What the dialog path does once a file is picked: a new object with nothing selected, else
         // a part of the selected object.
@@ -1388,7 +1388,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         auto* svg = canvas != nullptr ? dynamic_cast<GLGizmoSVG*>(canvas->get_gizmos_manager().get_gizmo(GLGizmosManager::Svg)) : nullptr;
         if (svg == nullptr || !svg->create_volume(into_u8(from_path(*path)), ModelVolumeType::MODEL_PART))
             return AppActionRunResult{AppActionRunResult::Level::Error, _L("The SVG file could not be added.")};
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     }).input_schema = Mcp::object_schema({{"path", input_file("an .svg file")}});
 
     // ---- Add Handy models ---- (the Add > Add Handy models submenu)
@@ -1399,7 +1399,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
                 if (Plater* plater = wxGetApp().plater())
                     ensure_3d_view(plater);
                 MenuFactory::load_handy_model(i);
-                return AppActionRunResult{AppActionRunResult::Level::Success};
+                return AppActionRunResult{AppActionRunResult::Level::Succeeded};
             });
     }
 
@@ -1411,7 +1411,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         if (!plater->can_add_plate())
             return AppActionRunResult{AppActionRunResult::Level::Info, _L("Cannot add another plate (maximum reached).")};
         plater->add_plate();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("plate_duplicate", L("Duplicate Plate"), L("Plate"), "menu_copy", [](const json&) {
         Plater* plater = wxGetApp().plater();
@@ -1420,7 +1420,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         if (!plater->can_add_plate())
             return AppActionRunResult{AppActionRunResult::Level::Info, _L("Cannot duplicate a plate (maximum reached).")};
         plater->duplicate_plate();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("plate_delete", L("Delete Plate"), L("Plate"), "delete", [](const json&) {
         Plater* plater = wxGetApp().plater();
@@ -1429,7 +1429,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         if (!plater->can_delete_plate())
             return AppActionRunResult{AppActionRunResult::Level::Info, _L("Cannot delete the only plate.")};
         plater->delete_plate();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("plate_rename", L("Rename Plate"), L("Plate"), "plate_name_edit", [](const json&) {
         Plater* plater = wxGetApp().plater();
@@ -1440,7 +1440,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         dlg.set_plate_name(from_u8(curr->get_plate_name()));
         if (dlg.ShowModal() == wxID_YES)
             plater->rename_plate(plater->get_partplate_list().get_curr_plate_index(), dlg.get_plate_name().ToUTF8().data());
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("plate_toggle_lock", L("Toggle Plate Lock"), L("Plate"), "lock_normal", [](const json&) {
         Plater* plater = wxGetApp().plater();
@@ -1451,7 +1451,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         lock.locked = !plates.is_locked(plates.get_curr_plate_index());
         if (const Ops::Outcome<Ops::PlateLocked> locked = Ops::set_plate_locked(lock); !locked)
             return refused(locked.refusal());
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("plate_goto", L("Go to Plate"), L("Plate"), "go_next_plate", [](const json& args) {
         Plater* plater = wxGetApp().plater();
@@ -1465,7 +1465,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         plate.plate = args.value("plate", plate.plate);
         if (const Ops::Outcome<Ops::Done> selected = Ops::select_plate(plate); !selected)
             return refused(selected.refusal());
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     }).input_schema = Mcp::object_schema({{"plate", Mcp::prop("integer", "The plate's 0-based index. Default 0.")}});
 
     // ---- Printer / device connection ----
@@ -1474,7 +1474,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         DeviceManager* dev = wxGetApp().getDeviceManager();
         if (dev && dev->get_selected_machine() && plater) {
             plater->sidebar().sync_ams_list();
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         return AppActionRunResult{AppActionRunResult::Level::Info, _L("Connect a printer to synchronize the AMS filament list.")};
     });
@@ -1502,7 +1502,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         const size_t slot = bundle.num_physical_filaments() + 1;
         plater->sidebar().add_filament();
         plater->sidebar().update_filaments_counter();
-        return AppActionRunResult{AppActionRunResult::Level::Success, format_wxstr(_L("Added filament slot %1%."), slot)};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded, format_wxstr(_L("Added filament slot %1%."), slot)};
     });
     add_with_icon("filament_delete", L("Delete Filament Slot"), L("Filament"), "delete_filament", [filament_slots_unavailable](const json& args) {
         Plater* plater = wxGetApp().plater();
@@ -1525,7 +1525,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         }
         plater->sidebar().delete_filament(slot - 1);
         plater->sidebar().update_filaments_counter();
-        return AppActionRunResult{AppActionRunResult::Level::Success, format_wxstr(_L("Deleted filament slot %1%."), slot)};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded, format_wxstr(_L("Deleted filament slot %1%."), slot)};
     }).input_schema = Mcp::object_schema(
         {{"slot", {{"type", "integer"},
                    {"minimum", 1},
@@ -1534,13 +1534,13 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
     // ---- Presets / cloud ----
     add_with_icon("preset_bundle", L("Open Preset Bundle"), L("Presets"), "menu_edit_preset", [](const json&) {
         wxGetApp().open_presetbundledialog();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("sync_presets", L("Sync Presets"), L("Presets"), "printer_sync_ok", [](const json&) {
         if (!wxGetApp().is_user_login())
             return AppActionRunResult{AppActionRunResult::Level::Info, _L("Sign in to sync presets.")};
         wxGetApp().restart_sync_user_preset();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
 
     // ---- Import ----
@@ -1554,7 +1554,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
 #else
             plater->add_file();
 #endif
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         AppActionRunResult fail;
         const auto         path = path_argument(args, false, fail);
@@ -1564,12 +1564,12 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         models.paths = {*path};
         if (const Ops::Outcome<Ops::ImportModelsResult> imported = Ops::import_models(models); !imported)
             return refused(imported.refusal());
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     }).input_schema = Mcp::object_schema({{"path", input_file("a model file")}});
     add_with_icon("import_zip_archive", L("Import ZIP Archive"), L("Import"), "menu_open", [](const json&) {
         if (Plater* plater = wxGetApp().plater())
             plater->import_zip_archive();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("import_configs", L("Import Configs"), L("Import"), "menu_open", [](const json& args) {
         MainFrame* mf = wxGetApp().mainframe;
@@ -1577,7 +1577,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             return AppActionRunResult{};
         if (Mcp::person_form(args)) {
             mf->load_config_file();
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         AppActionRunResult fail;
         const auto         path = path_argument(args, false, fail);
@@ -1588,7 +1588,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         if (is_gcode_file(file)) {
             if (!mf->load_config_file(file))
                 return AppActionRunResult{AppActionRunResult::Level::Error, _L("The configuration was not loaded.")};
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         for (const char* ext : {".json", ".zip", ".orca_printer", ".orca_filament", ".orca_bundle"})
             if (boost::iends_with(file, ext))
@@ -1608,35 +1608,35 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             return AppActionRunResult{};
         if (Mcp::person_form(args)) {
             plater->export_stl(false, false, true);
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         AppActionRunResult fail;
         const auto         dir = dir_argument(args, fail);
         if (!dir)
             return fail;
         plater->export_stl(false, false, true, FT_STL, from_path(*dir));
-        return AppActionRunResult{AppActionRunResult::Level::Success, from_u8(dir->string())};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded, from_u8(dir->string())};
     }).input_schema = output_dir;
     add_with_icon("export_drc_single", L("Export All Objects as DRC (one file)"), L("Export"), "save", [](const json&) {
         if (Plater* plater = wxGetApp().plater())
             plater->export_stl(false, false, false, FT_DRC);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("export_drc_multi", L("Export All Objects as DRCs"), L("Export"), "save", [](const json&) {
         if (Plater* plater = wxGetApp().plater())
             plater->export_stl(false, false, true, FT_DRC);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("export_toolpaths_obj", L("Export Toolpaths as OBJ"), L("Export"), "custom-gcode_gcode", [](const json&) {
         if (Plater* plater = wxGetApp().plater())
             plater->export_toolpaths_to_obj();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("export_config", L("Export Preset Bundle"), L("Export"), "save", [](const json& args) {
         if (Mcp::person_form(args)) {
             if (MainFrame* mf = wxGetApp().mainframe)
                 mf->export_config();
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }
         AppActionRunResult fail;
         const auto         dir = dir_argument(args, fail);
@@ -1646,38 +1646,38 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         ExportConfigsDialog dlg(nullptr, from_path(*dir));
         if (dlg.ShowModal() != wxID_OK)
             return AppActionRunResult{AppActionRunResult::Level::Error, _L("Nothing was exported.")};
-        return AppActionRunResult{AppActionRunResult::Level::Success, from_path(*dir)};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded, from_path(*dir)};
     }).input_schema = output_dir;
 
     // ---- Help ---- (mirrors the top-bar Help menu, plus the wiki/YouTube links)
     add("help_keyboard_shortcuts", L("Keyboard Shortcuts"), L("Help"), [](const json&) {
         wxGetApp().keyboard_shortcuts(ShortcutContext::Global);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("help_setup_wizard", L("Setup Wizard"), L("Help"), [](const json&) {
         wxGetApp().ShowUserGuide();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("help_open_config_folder", L("Show Configuration Folder"), L("Help"), "open_project", [](const json&) {
         Slic3r::GUI::desktop_open_datadir_folder();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("help_migrate_filament_presets", L("Migrate Filament Presets"), L("Help"), [](const json&) {
         wxGetApp().check_legacy_user_filament_presets(true);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("help_troubleshoot", L("Troubleshoot Center"), L("Help"), [](const json&) {
         wxGetApp().troubleshoot();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("help_network_test", L("Open Network Test"), L("Help"), [](const json&) {
         NetworkTestDialog dlg(wxGetApp().mainframe);
         dlg.ShowModal();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("help_benchmark_3d_scene", L("Benchmark 3D Scene"), L("Help"), [](const json&) {
         run_scene_benchmark();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("help_tip_of_the_day", L("Show Tip of the Day"), L("Help"), "info", [](const json&) {
         if (Plater* plater = wxGetApp().plater()) {
@@ -1685,37 +1685,37 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             if (GLCanvas3D* canvas = plater->get_current_canvas3D())
                 canvas->set_as_dirty();
         }
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("help_check_updates", L("Check for Updates"), L("Help"), "refresh", [](const json&) {
         wxGetApp().check_new_version_sf(true, 1);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("help_about", L("About OrcaSlicer"), L("Help"), "OrcaSlicer_gradient_circle", [](const json&) {
         Slic3r::GUI::about();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add_with_icon("open_wiki", L("Open Wiki"), L("Help"), "link_wiki_img", [](const json&) {
         wxLaunchDefaultBrowser("https://www.orcaslicer.com/wiki/", wxBROWSER_NEW_WINDOW);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("open_youtube", L("Open YouTube Channel"), L("Help"), [](const json&) {
         wxLaunchDefaultBrowser("https://www.youtube.com/@OfficialOrcaSlicer/videos", wxBROWSER_NEW_WINDOW);
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
 
     // ---- Plugins ----
     add("open_plugins", L("Open Plugins"), L("Plugins"), [](const json&) {
         wxGetApp().open_plugins_dialog();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("refresh_plugins", L("Refresh Plugins"), L("Plugins"), [](const json&) {
         wxGetApp().refresh_plugins();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("install_plugin", L("Install Plugin"), L("Plugins"), [](const json&) {
         open_plugin_hub();
-        return AppActionRunResult{AppActionRunResult::Level::Success};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded};
     });
     add("install_local_plugin", L("Install Local Plugin"), L("Plugins"), [](const json& args) {
         MainFrame* mf = wxGetApp().mainframe;
@@ -1726,7 +1726,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
             wxFileDialog dialog(mf, _L("Select plugin package"), wxEmptyString, wxEmptyString, _L("Plugin files (*.py;*.whl)|*.py;*.whl"),
                                 wxFD_OPEN | wxFD_FILE_MUST_EXIST);
             if (dialog.ShowModal() != wxID_OK)
-                return AppActionRunResult{AppActionRunResult::Level::Success};
+                return AppActionRunResult{AppActionRunResult::Level::Succeeded};
             package = into_path(dialog.GetPath());
         } else {
             AppActionRunResult fail;
@@ -1740,7 +1740,7 @@ void NativeCommands::register_all_commands(CommandCatalog& catalog, [[maybe_unus
         wxGetApp().update_plugins_dialog();
         if (message.IsEmpty()) // the overwrite prompt was cancelled
             return AppActionRunResult{AppActionRunResult::Level::Info, _L("The plugin was not installed."), false};
-        return AppActionRunResult{installed ? AppActionRunResult::Level::Success : AppActionRunResult::Level::Error, message};
+        return AppActionRunResult{installed ? AppActionRunResult::Level::Succeeded : AppActionRunResult::Level::Error, message};
     }).input_schema = Mcp::object_schema({{"path", input_file("a .py or .whl plugin package")}});
 
     describe_commands(out);
@@ -1847,7 +1847,7 @@ NativeCommand NativeCommands::ui_command(std::string key, std::string title, std
             return reply;
         }
         // An export given its file holds the project from before it starts, and the call waits for the file.
-        const bool         exports = completion == CommandCompletion::Export && !Mcp::person_form(args);
+        const bool         exports = completion == CommandCompletion::Deferred && !Mcp::person_form(args);
         AppActionRunResult result;
         Ops::ExportTicket  ticket; // empty without a plater
         ctx.run_ui([&]() -> json {
@@ -1973,7 +1973,7 @@ AppActionRunResult NativeCommands::run(const NativeCommand& command, const json&
             return *reply.notice;
         if (reply.is_error)
             return failed(reply.message);
-        return {AppActionRunResult::Level::Success};
+        return {AppActionRunResult::Level::Succeeded};
     } catch (const ToolFailure& failure) {
         return failed(failure.what());
     } catch (const std::exception& e) {

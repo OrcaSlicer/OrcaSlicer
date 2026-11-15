@@ -116,10 +116,10 @@ const char* guard_name(GuardClass guard)
 const char* completion_name(CommandCompletion completion)
 {
     switch (completion) {
-    case CommandCompletion::None: return "none";
-    case CommandCompletion::Export: return "export";
+    case CommandCompletion::Immediate: return "immediate";
+    case CommandCompletion::Deferred: return "deferred";
     }
-    return "none";
+    return "immediate";
 }
 
 } // namespace

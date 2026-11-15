@@ -1731,7 +1731,7 @@ menu, file pickers answered by path rules) and read the result back with `read` 
 recent projects, plugin scripts and pages, and, on request, settings. Built-in commands are
 `NativeCommand`s, added by `register_all_commands()` (`NativeCommands.cpp`). Beside what the palette
 shows, each has what automation reads: `description` (English, for agents), `input_schema` (the JSON
-Schema of its arguments) and `completion` (`Export` when the effect finishes in the background after the
+Schema of its arguments) and `completion` (`Deferred` when the effect finishes in the background after the
 command returns). `describe_commands()` fills the descriptions from one table, with a key-prefix rule for
 calibration dialogs (pointing at `generate_calibration_test`), camera views and primitives;
 `CommandAction` copies them, the schema and the command's key into the `AppAction`.
@@ -1793,7 +1793,7 @@ Two helpers wrap the function a command's author writes and place it on the thre
   carries that result as its `notice`. Called by automation, it runs in one `ctx.run_ui()` closure, then
   `settle()`, and `from_run_result()` makes the reply: `{ran, level, message?}` with the fields of the
   result's `reply`; an error for an Error or Busy level and for a command that did nothing, worded from an
-  operation's refusal in English with `{code, names?}` as details. With `CommandCompletion::Export` and
+  operation's refusal in English with `{code, names?}` as details. With `CommandCompletion::Deferred` and
   arguments, the closure first holds the project as an operation (`ctx.begin_operation()`), takes the
   plater's export ticket around `fn`, and the call waits for the file (`await_gcode_export()`).
 - `long_command(key, title, group, schema, fn, inline_call)`: `fn(args, ctx)` runs where its call does,
@@ -1885,7 +1885,7 @@ turns a bad or missing path into an Error result.
 | `import_file` | `path`: model file | `Ops::import_models()`: the file's geometry (a project file's settings are not loaded), as one undo step |
 | `import_configs` | `path`: `.json`, `.zip`, `.orca_printer`, `.orca_filament`, `.orca_bundle`; `.gcode`; `on_conflict` | `Ops::import_presets()`; for G-code `MainFrame::load_config_file(path)` |
 | `save_project_as` | `path`: output `.3mf`, `overwrite` | `Ops::save_project_as()` |
-| `export_gcode` | `path`: output `.gcode`, `overwrite` | `Ops::start_gcode_export()`; completion `Export` |
+| `export_gcode` | `path`: output `.gcode`, `overwrite` | `Ops::start_gcode_export()`; completion `Deferred` |
 | `export_sliced_file`, `export_all_sliced_file` | `path`: output `.gcode.3mf`, `overwrite` | `Ops::export_sliced_3mf()` |
 | `export_stl` | `path`: output `.stl`, `overwrite` | `Ops::export_stl()` |
 | `export_3mf` | `path`: output `.3mf`, `overwrite` | `Ops::export_model_3mf()` |
@@ -1979,7 +1979,7 @@ Most features need only a Speed Dial command:
    (`Mcp::person_form(args)`); with them, it resolves them (`path_argument()` for a file) and calls an entry
    point that shows no dialog. It must not prompt; it returns an Error result instead.
 3. If the effect finishes in the background after the function returns, pass
-   `CommandCompletion::Export` to `ui_command()` so that a call given the file waits for it.
+   `CommandCompletion::Deferred` to `ui_command()` so that a call given the file waits for it.
 
 The command then appears in the palette, in `search_actions` and `run_action`, and in replays.
 

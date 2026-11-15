@@ -486,7 +486,7 @@ void register_project_tools(CommandCatalog& catalog)
         L("New Project"), L("Commands"), "menu_open", [] {
             if (Plater* plater = wxGetApp().plater())
                 plater->new_project();
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }));
 
     catalog.add(mutate_tool(
@@ -667,7 +667,7 @@ void register_project_tools(CommandCatalog& catalog)
         L("Save Project"), L("Commands"), "menu_save", [] {
             if (Plater* plater = wxGetApp().plater())
                 plater->save_project(false);
-            return AppActionRunResult{AppActionRunResult::Level::Success};
+            return AppActionRunResult{AppActionRunResult::Level::Succeeded};
         }));
 
     catalog.add(reaching({"start_gcode_export", "export_sliced_3mf", "export_model_3mf", "export_stl"}, mutate_tool(

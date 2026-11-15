@@ -1,7 +1,7 @@
 {
  "commands": [
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Slice the current plate and show the Preview tab. Returns at once; use the slice tool to wait for the result.",
    "destructive": false,
    "group": "Slice & Export",
@@ -23,7 +23,7 @@
    "title": "Slice and Preview"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Slice every plate and show the Preview tab. Returns at once; use the slice tool to wait for results.",
    "destructive": false,
    "group": "Slice & Export",
@@ -45,7 +45,7 @@
    "title": "Slice All Plates"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Show the Preview tab at a layer chosen as a percentage of the layer range; an error while the Preview has no layers (slice first).",
    "destructive": false,
    "group": "Commands",
@@ -77,7 +77,7 @@
    "title": "Go to layer (percent)"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Switch to a main window tab.",
    "destructive": false,
    "group": "Commands",
@@ -105,7 +105,7 @@
    "title": "Go to tab..."
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open a project. With a path, opens that file without a dialog (asks first if the current project has unsaved changes).",
    "destructive": false,
    "group": "Commands",
@@ -130,7 +130,7 @@
    "title": "Load Project"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Save the project as a .3mf file. With a path, saves there without a dialog; a name ending in .gcode.3mf is refused (export_sliced_file writes that).",
    "destructive": false,
    "group": "Commands",
@@ -161,7 +161,7 @@
    "title": "Save Project As"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Take back the last change of a history, as Edit > Undo does. history design is the Design tab's: the last feature added, edited, deleted, moved, shown or hidden, or renamed, or variable changed, or in a sketch session the last drawn shape; project is the project's. Without history, the Design tab's while it is shown, else the project's. Reply: history and, for the Design tab's, result: scope (design or sketch), undo_depth, redo_depth, features, bodies and generation; entities in a sketch.",
    "destructive": false,
    "examples": [
@@ -254,7 +254,7 @@
    "title": "Undo"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Put back what undo took back, until the next change, as Edit > Redo does, in the history undo takes. Reply as undo's.",
    "destructive": false,
    "examples": [
@@ -359,7 +359,7 @@
    "title": "Redo"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Show or hide the Run Script panel, where a person writes and runs Python scripts cell by cell. Agents run Python with the run_script tool instead.",
    "destructive": false,
    "group": "Commands",
@@ -379,7 +379,7 @@
    "title": "Run Script"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the Action Replay window, where a person opens a replay file (an orca_replay), reads its steps and replays them. Agents run replays with the run_replay tool instead.",
    "destructive": false,
    "group": "Commands",
@@ -399,7 +399,7 @@
    "title": "Action Replay"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the Preferences dialog on a tab, scrolled to one preference when given (shown on its own tab). Its controls are named after their preference keys: set_widget_value {\"target\": {\"name\": key, \"within\": \"Preferences\"}} changes one through the dialog; get_settings scope preferences reads them.",
    "destructive": false,
    "group": "Commands",
@@ -437,7 +437,7 @@
    "title": "Preferences"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Save a PNG of the main window in the folder Start Recording saves in (the person's Downloads unless they chose another) and show the person a notification naming it; the reply has its path. Agents use the screenshot tool, which returns the image.",
    "destructive": false,
    "group": "Commands",
@@ -457,7 +457,7 @@
    "title": "Take Screenshot"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Switch the settings view to Simple mode.",
    "destructive": false,
    "group": "Mode",
@@ -477,7 +477,7 @@
    "title": "Mode: Simple"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Switch the settings view to Advanced mode.",
    "destructive": false,
    "group": "Mode",
@@ -497,7 +497,7 @@
    "title": "Mode: Advanced"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Switch the settings view to Expert mode.",
    "destructive": false,
    "group": "Mode",
@@ -517,7 +517,7 @@
    "title": "Mode: Expert"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Turn Developer mode on or off.",
    "destructive": false,
    "group": "Mode",
@@ -537,7 +537,7 @@
    "title": "Toggle Developer Mode"
   },
   {
-   "completion": "export",
+   "completion": "deferred",
    "description": "Export the current plate's G-code. With a path, exports there without a dialog once the plate is sliced, in the background, and the call returns when the file is written; with no arguments, it opens the export dialog.",
    "destructive": false,
    "group": "Slice & Export",
@@ -568,7 +568,7 @@
    "title": "Export G-code"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Export all objects as one STL. With a path, writes there without a dialog.",
    "destructive": false,
    "group": "Slice & Export",
@@ -599,7 +599,7 @@
    "title": "Export STL"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Export the model as a .3mf without slicing data. With a path, writes there without a dialog.",
    "destructive": false,
    "group": "Slice & Export",
@@ -630,7 +630,7 @@
    "title": "Export 3MF"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Export the current plate's sliced file (.gcode.3mf). With a path, writes there without a dialog.",
    "destructive": false,
    "group": "Slice & Export",
@@ -661,7 +661,7 @@
    "title": "Export Sliced File"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Export every plate's sliced file into one .gcode.3mf. With a path, writes there without a dialog.",
    "destructive": false,
    "group": "Slice & Export",
@@ -692,7 +692,7 @@
    "title": "Export All Sliced Files"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the Send G-code to printer host dialog for the current plate, as the Print button does for a printer with a print host (OctoPrint, Moonraker, PrusaLink, Duet...). Set the file name with set_widget_value and press Upload or Upload and Print with answer_dialog; the plate is sliced if needed, then uploaded in the background: get_app_state.uploads shows the row's state, and a failed upload also opens an error dialog. A replay uploads again. Fails for a printer without a print host, or one that prints through the Bambu network or printer agents.",
    "destructive": false,
    "group": "Slice & Export",
@@ -714,7 +714,7 @@
    "title": "Send G-code to printer host"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the Temperature Calibration dialog; the generate_calibration_test tool runs the same test with typed parameters and no dialog.",
    "destructive": false,
    "group": "Calibration",
@@ -734,7 +734,7 @@
    "title": "Temperature Calibration"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the Max Volumetric Speed Calibration dialog; the generate_calibration_test tool runs the same test with typed parameters and no dialog.",
    "destructive": false,
    "group": "Calibration",
@@ -754,7 +754,7 @@
    "title": "Max Volumetric Speed Calibration"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the Pressure Advance Calibration dialog; the generate_calibration_test tool runs the same test with typed parameters and no dialog.",
    "destructive": false,
    "group": "Calibration",
@@ -774,7 +774,7 @@
    "title": "Pressure Advance Calibration"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the Flow Ratio Calibration dialog; the generate_calibration_test tool runs the same test with typed parameters and no dialog.",
    "destructive": false,
    "group": "Calibration",
@@ -794,7 +794,7 @@
    "title": "Flow Ratio Calibration"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the Retraction Calibration dialog; the generate_calibration_test tool runs the same test with typed parameters and no dialog.",
    "destructive": false,
    "group": "Calibration",
@@ -814,7 +814,7 @@
    "title": "Retraction Calibration"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the Cornering Calibration dialog; the generate_calibration_test tool runs the same test with typed parameters and no dialog.",
    "destructive": false,
    "group": "Calibration",
@@ -834,7 +834,7 @@
    "title": "Cornering Calibration"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the Input Shaping Frequency Calibration dialog; the generate_calibration_test tool runs the same test with typed parameters and no dialog.",
    "destructive": false,
    "group": "Calibration",
@@ -854,7 +854,7 @@
    "title": "Input Shaping Frequency Calibration"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the Input Shaping Damping Calibration dialog; the generate_calibration_test tool runs the same test with typed parameters and no dialog.",
    "destructive": false,
    "group": "Calibration",
@@ -874,7 +874,7 @@
    "title": "Input Shaping Damping Calibration"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the VFA Calibration dialog; the generate_calibration_test tool runs the same test with typed parameters and no dialog.",
    "destructive": false,
    "group": "Calibration",
@@ -894,7 +894,7 @@
    "title": "VFA Calibration"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Point the 3D camera: View: Top.",
    "destructive": false,
    "group": "View",
@@ -914,7 +914,7 @@
    "title": "View: Top"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Point the 3D camera: View: Bottom.",
    "destructive": false,
    "group": "View",
@@ -934,7 +934,7 @@
    "title": "View: Bottom"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Point the 3D camera: View: Front.",
    "destructive": false,
    "group": "View",
@@ -954,7 +954,7 @@
    "title": "View: Front"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Point the 3D camera: View: Rear.",
    "destructive": false,
    "group": "View",
@@ -974,7 +974,7 @@
    "title": "View: Rear"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Point the 3D camera: View: Left.",
    "destructive": false,
    "group": "View",
@@ -994,7 +994,7 @@
    "title": "View: Left"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Point the 3D camera: View: Right.",
    "destructive": false,
    "group": "View",
@@ -1014,7 +1014,7 @@
    "title": "View: Right"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Point the 3D camera: View: Isometric.",
    "destructive": false,
    "group": "View",
@@ -1034,7 +1034,7 @@
    "title": "View: Isometric"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Reset the 3D camera to the default view and fit the plate.",
    "destructive": false,
    "group": "View",
@@ -1054,7 +1054,7 @@
    "title": "View: Default"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Fit the build plate in the 3D view.",
    "destructive": false,
    "group": "View",
@@ -1074,7 +1074,7 @@
    "title": "Fit Bed to View"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Switch the 3D camera between perspective and orthographic.",
    "destructive": false,
    "group": "View",
@@ -1094,7 +1094,7 @@
    "title": "Toggle Perspective"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Restore the default window layout.",
    "destructive": false,
    "group": "View",
@@ -1114,7 +1114,7 @@
    "title": "Reset Window Layout"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete the selected objects or parts.",
    "destructive": false,
    "group": "Object",
@@ -1134,7 +1134,7 @@
    "title": "Delete Selected"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete all objects.",
    "destructive": false,
    "group": "Object",
@@ -1154,7 +1154,7 @@
    "title": "Delete All Objects"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Select all objects in the 3D view.",
    "destructive": false,
    "group": "Object",
@@ -1174,7 +1174,7 @@
    "title": "Select All Objects"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Clear the selection.",
    "destructive": false,
    "group": "Object",
@@ -1194,7 +1194,7 @@
    "title": "Deselect All"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Mirror the selection along X.",
    "destructive": false,
    "group": "Object",
@@ -1214,7 +1214,7 @@
    "title": "Mirror X"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Mirror the selection along Y.",
    "destructive": false,
    "group": "Object",
@@ -1234,7 +1234,7 @@
    "title": "Mirror Y"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Mirror the selection along Z.",
    "destructive": false,
    "group": "Object",
@@ -1254,7 +1254,7 @@
    "title": "Mirror Z"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Split the selected object into separate objects.",
    "destructive": false,
    "group": "Object",
@@ -1274,7 +1274,7 @@
    "title": "Split to Objects"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Split the selected object into parts.",
    "destructive": false,
    "group": "Object",
@@ -1294,7 +1294,7 @@
    "title": "Split to Parts"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Center the selection on its plate.",
    "destructive": false,
    "group": "Object",
@@ -1314,7 +1314,7 @@
    "title": "Center Selected on Plate"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Drop the selection onto the bed.",
    "destructive": false,
    "group": "Object",
@@ -1334,7 +1334,7 @@
    "title": "Drop to Bed"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Scale the selection to fit the print volume.",
    "destructive": false,
    "group": "Object",
@@ -1354,7 +1354,7 @@
    "title": "Scale to Fit Print Volume"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add an instance of the selected object.",
    "destructive": false,
    "group": "Object",
@@ -1374,7 +1374,7 @@
    "title": "Increase Instances"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Remove an instance of the selected object.",
    "destructive": false,
    "group": "Object",
@@ -1394,7 +1394,7 @@
    "title": "Decrease Instances"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Arrange all objects on the unlocked plates with the saved Arrange options, as the toolbar does; the call returns when the arrangement is done. The arrange tool also takes options, one plate or fill bed.",
    "destructive": false,
    "group": "Object",
@@ -1416,7 +1416,7 @@
    "title": "Auto-Arrange"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Auto-orient the selection, or every object when nothing is selected; the call returns when it is done.",
    "destructive": false,
    "group": "Object",
@@ -1436,7 +1436,7 @@
    "title": "Auto-Orient"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Make the selected parts (select_objects {parts} first) solid parts, as Change Type does. Parts are listed by type, so part indices change.",
    "destructive": false,
    "group": "Object",
@@ -1456,7 +1456,7 @@
    "title": "Change Type to Part"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Make the selected parts negative parts, as Change Type does; not the object's last solid part. Parts are listed by type, so part indices change.",
    "destructive": false,
    "group": "Object",
@@ -1476,7 +1476,7 @@
    "title": "Change Type to Negative Part"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Make the selected parts modifiers, as Change Type does; not the object's last solid part. Parts are listed by type, so part indices change.",
    "destructive": false,
    "group": "Object",
@@ -1496,7 +1496,7 @@
    "title": "Change Type to Modifier"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Make the selected parts support blockers, as Change Type does; not the object's last solid part, nor a text or SVG part. Parts are listed by type, so part indices change.",
    "destructive": false,
    "group": "Object",
@@ -1516,7 +1516,7 @@
    "title": "Change Type to Support Blocker"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Make the selected parts support enforcers, as Change Type does; not the object's last solid part, nor a text or SVG part. Parts are listed by type, so part indices change.",
    "destructive": false,
    "group": "Object",
@@ -1536,7 +1536,7 @@
    "title": "Change Type to Support Enforcer"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Make the selected parts Center precise seams (seams keep their subtype), as Change Type does; not the object's last solid part, nor a text or SVG part. Parts are listed by type, so part indices change.",
    "destructive": false,
    "group": "Object",
@@ -1556,7 +1556,7 @@
    "title": "Change Type to Precise Seam"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Rename the selected object or part (select one). With a name, skips the Rename dialog; an empty name, or one with characters a file name cannot hold, is refused.",
    "destructive": false,
    "group": "Object",
@@ -1581,7 +1581,7 @@
    "title": "Rename"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Give the selected object this many instances, in one undo step. With a count, skips the dialog. New instances overlap; arrange afterwards. The reply has object and instances.",
    "destructive": false,
    "group": "Object",
@@ -1609,7 +1609,7 @@
    "title": "Set Number of Instances"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Assemble two or more selected objects into one object of parts named Assembly. They are removed and it is added last, so object indices change; the reply has its index (object) and name.",
    "destructive": false,
    "group": "Object",
@@ -1629,7 +1629,7 @@
    "title": "Assemble"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Make each instance of the selected object a separate object (select_objects {objects: [n]}); with some of its instances selected, only those. New objects are added last; the reply lists the objects the instances are in now (objects).",
    "destructive": false,
    "group": "Object",
@@ -1649,7 +1649,7 @@
    "title": "Set as Individual Objects"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Order the current plate's objects by name, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.",
    "destructive": false,
    "group": "Object",
@@ -1674,7 +1674,7 @@
    "title": "Order by Name"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Order the current plate's objects by filament, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.",
    "destructive": false,
    "group": "Object",
@@ -1699,7 +1699,7 @@
    "title": "Order by Filament"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Order the current plate's objects by height, which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.",
    "destructive": false,
    "group": "Object",
@@ -1724,7 +1724,7 @@
    "title": "Order by Height"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Order the current plate's objects by size (bounding box volume), which sets the object list and print order, as the plate menu's Order By does. Choosing the order they already have reverses it. Object indices change; the reply lists the new order (order: [{object, name, plate}]) and descending.",
    "destructive": false,
    "group": "Object",
@@ -1749,7 +1749,7 @@
    "title": "Order by Size"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a cube object to the current plate; fails while an object is selected. With a size, skips the size dialog.",
    "destructive": false,
    "group": "Add Primitive",
@@ -1777,7 +1777,7 @@
    "title": "Cube"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a cylinder object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn.",
    "destructive": false,
    "group": "Add Primitive",
@@ -1805,7 +1805,7 @@
    "title": "Cylinder"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a sphere object to the current plate; fails while an object is selected. With a size, skips the size dialog.",
    "destructive": false,
    "group": "Add Primitive",
@@ -1833,7 +1833,7 @@
    "title": "Sphere"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a cone object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn.",
    "destructive": false,
    "group": "Add Primitive",
@@ -1861,7 +1861,7 @@
    "title": "Cone"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a disc object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn.",
    "destructive": false,
    "group": "Add Primitive",
@@ -1889,7 +1889,7 @@
    "title": "Disc"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a torus object to the current plate; fails while an object is selected. With a size, skips the size dialog. The shape may then be turned toward the part-cooling fan, so the size is along its own axes before that turn.",
    "destructive": false,
    "group": "Add Primitive",
@@ -1917,7 +1917,7 @@
    "title": "Torus"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a Text object to the current plate.",
    "destructive": false,
    "group": "Add Primitive",
@@ -1937,7 +1937,7 @@
    "title": "Text"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add an SVG as a new object, or as a part of the selected object. With a path, uses that file without a dialog; the part is created in the background (wait for idle), and the SVG gizmo opens on it.",
    "destructive": false,
    "group": "Add Primitive",
@@ -1962,7 +1962,7 @@
    "title": "SVG"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a Orca Cube object to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
@@ -1982,7 +1982,7 @@
    "title": "Orca Cube"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a OrcaSliced Combo object to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
@@ -2002,7 +2002,7 @@
    "title": "OrcaSliced Combo"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a Orca Badge object to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
@@ -2022,7 +2022,7 @@
    "title": "Orca Badge"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a Orca Tolerance Test object to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
@@ -2042,7 +2042,7 @@
    "title": "Orca Tolerance Test"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a 3DBenchy object to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
@@ -2062,7 +2062,7 @@
    "title": "3DBenchy"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a Cali Cat object to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
@@ -2082,7 +2082,7 @@
    "title": "Cali Cat"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a Autodesk FDM Test object to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
@@ -2102,7 +2102,7 @@
    "title": "Autodesk FDM Test"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a Voron Cube object to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
@@ -2122,7 +2122,7 @@
    "title": "Voron Cube"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a Stanford Bunny object to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
@@ -2142,7 +2142,7 @@
    "title": "Stanford Bunny"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a Orca String Hell object to the current plate.",
    "destructive": false,
    "group": "Add Handy models",
@@ -2162,7 +2162,7 @@
    "title": "Orca String Hell"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a plate.",
    "destructive": false,
    "group": "Plate",
@@ -2182,7 +2182,7 @@
    "title": "Add Plate"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Duplicate the current plate.",
    "destructive": false,
    "group": "Plate",
@@ -2202,7 +2202,7 @@
    "title": "Duplicate Plate"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete the current plate.",
    "destructive": false,
    "group": "Plate",
@@ -2222,7 +2222,7 @@
    "title": "Delete Plate"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Rename the current plate (opens a dialog).",
    "destructive": false,
    "group": "Plate",
@@ -2242,7 +2242,7 @@
    "title": "Rename Plate"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Lock or unlock the current plate.",
    "destructive": false,
    "group": "Plate",
@@ -2264,7 +2264,7 @@
    "title": "Toggle Plate Lock"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Make a plate the current one; an index the project lacks is an error.",
    "destructive": false,
    "group": "Plate",
@@ -2291,7 +2291,7 @@
    "title": "Go to Plate"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Synchronize the filament list from the connected printer's AMS.",
    "destructive": false,
    "group": "Printer",
@@ -2311,7 +2311,7 @@
    "title": "Synchronize Filament List from AMS"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a filament slot, as the + button above the filament list does; the message names the new slot. It takes the next colour and the last slot's preset (change them with select_preset filament_slot and set_settings scope project filament_colour). It goes after the physical slots: mixed filaments move up by one, and objects on them follow.",
    "destructive": false,
    "group": "Filament",
@@ -2331,7 +2331,7 @@
    "title": "Add Filament Slot"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete a filament slot, as its Delete menu item does; objects on it move to another slot. A mixed filament (project scope filament_is_mixed) is refused.",
    "destructive": false,
    "group": "Filament",
@@ -2357,7 +2357,7 @@
    "title": "Delete Filament Slot"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the preset bundle manager.",
    "destructive": false,
    "group": "Presets",
@@ -2377,7 +2377,7 @@
    "title": "Open Preset Bundle"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Synchronize user presets with the cloud account.",
    "destructive": false,
    "group": "Presets",
@@ -2397,7 +2397,7 @@
    "title": "Sync Presets"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Import models (3MF/STL/STEP/SVG/OBJ/AMF). With a path, adds that file's geometry without a dialog, as one undo step; a project file's settings are not loaded (load_project opens a project).",
    "destructive": false,
    "group": "Import",
@@ -2424,7 +2424,7 @@
    "title": "Import 3MF/STL/STEP/SVG/OBJ/AMF"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Import models from a ZIP archive (opens a file dialog).",
    "destructive": false,
    "group": "Import",
@@ -2444,7 +2444,7 @@
    "title": "Import ZIP Archive"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Import presets. With a path, imports a preset .json, a .zip of them or an .orca_printer, .orca_filament or .orca_bundle without a dialog, and the message names the presets imported, replaced and kept; a .gcode loads the settings it was sliced with.",
    "destructive": false,
    "group": "Import",
@@ -2479,7 +2479,7 @@
    "title": "Import Configs"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Export each object as its own STL. With a directory, writes there without a dialog.",
    "destructive": false,
    "group": "Export",
@@ -2504,7 +2504,7 @@
    "title": "Export All Objects as STLs"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Export all objects as one Draco (.drc) file.",
    "destructive": false,
    "group": "Export",
@@ -2524,7 +2524,7 @@
    "title": "Export All Objects as DRC (one file)"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Export each object as its own Draco (.drc) file.",
    "destructive": false,
    "group": "Export",
@@ -2544,7 +2544,7 @@
    "title": "Export All Objects as DRCs"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Export the sliced toolpaths as an OBJ.",
    "destructive": false,
    "group": "Export",
@@ -2564,7 +2564,7 @@
    "title": "Export Toolpaths as OBJ"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Export presets as a bundle or ZIP archives. Opens a dialog: click the label of the kind to export, check its rows (each named after a printer preset or a filament), press OK, then answer the result message. With a directory, OK writes there instead of asking for a folder.",
    "destructive": false,
    "group": "Export",
@@ -2589,7 +2589,7 @@
    "title": "Export Preset Bundle"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Show the keyboard shortcuts dialog.",
    "destructive": false,
    "group": "Help",
@@ -2609,7 +2609,7 @@
    "title": "Keyboard Shortcuts"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the setup wizard.",
    "destructive": false,
    "group": "Help",
@@ -2629,7 +2629,7 @@
    "title": "Setup Wizard"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the configuration folder in the file manager.",
    "destructive": false,
    "group": "Help",
@@ -2649,7 +2649,7 @@
    "title": "Show Configuration Folder"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Migrate legacy user filament presets.",
    "destructive": false,
    "group": "Help",
@@ -2669,7 +2669,7 @@
    "title": "Migrate Filament Presets"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the troubleshooting center.",
    "destructive": false,
    "group": "Help",
@@ -2689,7 +2689,7 @@
    "title": "Troubleshoot Center"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the network test dialog.",
    "destructive": false,
    "group": "Help",
@@ -2709,7 +2709,7 @@
    "title": "Open Network Test"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Benchmark rendering of the current 3D scene.",
    "destructive": false,
    "group": "Help",
@@ -2729,7 +2729,7 @@
    "title": "Benchmark 3D Scene"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Show a tip of the day.",
    "destructive": false,
    "group": "Help",
@@ -2749,7 +2749,7 @@
    "title": "Show Tip of the Day"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Check for a newer OrcaSlicer.",
    "destructive": false,
    "group": "Help",
@@ -2769,7 +2769,7 @@
    "title": "Check for Updates"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Show the About dialog.",
    "destructive": false,
    "group": "Help",
@@ -2789,7 +2789,7 @@
    "title": "About OrcaSlicer"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the OrcaSlicer wiki in the browser.",
    "destructive": false,
    "group": "Help",
@@ -2809,7 +2809,7 @@
    "title": "Open Wiki"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the OrcaSlicer YouTube channel in the browser.",
    "destructive": false,
    "group": "Help",
@@ -2829,7 +2829,7 @@
    "title": "Open YouTube Channel"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the plugins dialog.",
    "destructive": false,
    "group": "Plugins",
@@ -2849,7 +2849,7 @@
    "title": "Open Plugins"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Reload plugins.",
    "destructive": false,
    "group": "Plugins",
@@ -2869,7 +2869,7 @@
    "title": "Refresh Plugins"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open the plugin hub to install a plugin.",
    "destructive": false,
    "group": "Plugins",
@@ -2889,7 +2889,7 @@
    "title": "Install Plugin"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Install a plugin from a .py or .whl file, as the Plugins dialog's Install local plugin does. With a path, installs that file without a dialog. Replacing a plugin installed already asks first (answer with answer_dialog); the message names the plugin installed, or why it was not.",
    "destructive": false,
    "group": "Plugins",
@@ -2914,7 +2914,7 @@
    "title": "Install Local Plugin"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Snapshot of OrcaSlicer. Call it first and whenever you are unsure what the app is doing. The app: version, platform and display backend, whether it is ready, the main window, the displays (each one's work area x, y, width and height, as set_window takes positions, its scale and whether it is primary), the MCP endpoint (mcp), python (available: Python runs in this build; scripts_unrestricted: a script's own file, network, process and thread access is not held to OrcaSlicer's folders, which only a person turns on, in Preferences > AI features > Python scripts or for one run with --unrestricted-scripts), design_tab (the Design tab is on, and call_tool runs its commands, search_tools' group Design) and, when they do not run, cad_note, how a person turns the CAD feature on. The project: current tab and mode, printer technology, name, path and unsaved changes, selected printer/process/filament presets, plates (count, current), object count, the selection (objects, the instances [[object, instance]] they are selected in and, when parts rather than whole instances are selected, parts [[object, part]], in the indices select_objects takes; wipe_tower when a prime tower is selected; canvas is the 3D view it belongs to), slicing state, the Preview's view type, time mode and layer range (1-based, with their Z), and the camera of the 3D view shown (camera: type, look_at, position, zoom, click_px_per_mm, elevation and azimuth, as set_view replies with it). What is going on: open modal dialogs, each with its title, buttons (enabled: false when disabled) and a message that reads it as shown: its text and its controls row by row, fields [value], choices [value ▾], checkboxes [x] / [ ] / [-], radio and selector options (*) / ( ), list rows \"- row | cells\", secrets [******], \" (disabled)\" after a disabled control; menus closed unseen (a menu a call opened that no reply listed), auto_answer_dialogs rules in force, notifications, print host uploads (state, progress, error), the open gizmo, running jobs and a running recording.",
    "destructive": false,
    "group": "core",
@@ -2934,7 +2934,7 @@
    "title": "Get app state"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Block until a condition holds or timeout_s passes (max 50). for: \"ready\" (startup finished), \"idle\" (no dialog, no running job, nothing slicing or arranging, no gizmo working in the background; a run_script run counts only through the calls it makes), \"dialog\" / \"no_dialog\", or \"job\" with a job id an earlier call returned, whose result is then the reply. On timeout the reply is {satisfied: false}: call it again.",
    "destructive": false,
    "group": "core",
@@ -2976,7 +2976,7 @@
    "title": "Wait for a condition"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "The last lines of OrcaSlicer's current log file, optionally only those at or above a level.",
    "destructive": false,
    "group": "core",
@@ -3015,7 +3015,7 @@
    "title": "Read the log"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Find what does something, in one search, or look up one command. With query: the commands that match, best first, each with its group, the first sentence of its description and listed, whether the tool list shows it; one that is not listed (a Speed Dial command, a Design tab command, or an operation a plugin offers, plugin.<plugin>.<name>) comes with its input schema, and its description when that says more, which nothing else shows. Beside them, the best few matches of each other catalog, with its total and how to use it: actions (the Speed Dial's plates, recent projects and plugin scripts and pages, for run_action), settings (get_settings / set_settings) and python (the orca API for run_script). With tool: that command's description and input schema, and its examples when it has some (the Design commands do). With neither: every command's name. group keeps the names and the command matches to one group; the other catalogs' matches stay as they are. call_tool runs any command, listed or not.",
    "destructive": false,
    "group": "api",
@@ -3054,7 +3054,7 @@
    "title": "Find tools, actions, settings and APIs"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Call any command by name with its arguments: a tool, or one the tool list does not show, a Speed Dial command, a Design tab command or an operation a plugin offers (see search_tools). It runs and is recorded as that command's own call, with its guards and reply budget.",
    "destructive": false,
    "group": "api",
@@ -3086,7 +3086,7 @@
    "title": "Call a tool or plugin operation"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open model files (STL, 3MF, STEP, OBJ, AMF, SVG...), a project (.3mf) or G-code by absolute path, without a file dialog. Models are added to the current project. A .3mf opens as a project, replacing the current one, unless as is \"geometry\"; when the current project has unsaved changes that fails, changing nothing, unless discard_changes. Importing can open a dialog (STEP mesh options, for instance); the reply is then blocked_by_dialog.",
    "destructive": false,
    "group": "api",
@@ -3133,7 +3133,7 @@
    "title": "Open files"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Start a new, empty project. Called with no arguments, it asks as New Project does, about the unsaved changes if there are any: the reply is then blocked_by_dialog, and answer_dialog answers it. With arguments, or silent: true, it asks nothing: it fails, changing nothing, when the current project has unsaved changes, unless discard_changes. The presets' unsaved changes carry over to the new project unless preset_changes is \"discard\", as New Project's prompt offers. Reply: objects, names, plates; when presets had or have unsaved changes, discarded and modified list per preset the keys dropped and the keys still unsaved.",
    "destructive": false,
    "group": "Commands",
@@ -3175,7 +3175,7 @@
    "title": "New Project"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Generate a Calibration menu test as its dialog's OK does: a new project named after the test with the test model, and the process, filament and printer presets changed as the test needs (presets_changed). The test prints with filament slot 1, so the filament tab is pointed at slot 1's preset. Omitted parameters take the dialog's defaults (pressure advance's by the printer's extruder type); temperatures are clamped to 155-500 °C and rounded down to 5 °C. Fails, changing nothing, when the project has unsaved changes (pass discard_changes) or presets do (pass preset_changes). Reply: test, project, params (the values used, which the journal records), objects, names, plates, presets_changed, result_keys (where the measured value belongs), warnings, adjusted (vfa), and discarded and modified as new_project. Then slice and export. To save a measured value: new_project {discard_changes, preset_changes: \"discard\"}, set_settings the value, save_preset.",
    "destructive": false,
    "group": "api",
@@ -3322,7 +3322,7 @@
    "title": "Generate a calibration test"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Save the project. Called with no arguments, it saves as Save Project does: to the project's file, or, when it has none, through a file dialog (blocked_by_dialog; a native picker needs auto_answer_dialogs registered first). With path, it saves a .3mf there without a dialog, and the file becomes the project's.",
    "destructive": false,
    "group": "Commands",
@@ -3368,7 +3368,7 @@
    "title": "Save Project"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Write the project to a file without a dialog. gcode: the plate's G-code (slice first; it is written in the background, and the call returns once it is). sliced_3mf: the sliced plate, or all plates, as .gcode.3mf. 3mf: the model without slicing data. stl: all objects as one STL. Without format, the path's extension (.gcode, .gcode.3mf, .3mf, .stl) says which.",
    "destructive": false,
    "group": "api",
@@ -3422,7 +3422,7 @@
    "title": "Export"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Printer, process or filament presets with flags: system or user, selected (and modified), compatible with the selected printer, and for filaments the slots using them. Only compatible, visible presets unless asked: a fresh install hides most system filaments and printers (visible: false), and select_preset takes those too.",
    "destructive": false,
    "group": "api",
@@ -3477,7 +3477,7 @@
    "title": "List presets"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Select a printer, process or filament preset by the name its selector shows (or its internal name), as a person would. A hidden one (list_presets include_hidden) is shown in the selectors first, until the app restarts. With unsaved changes the Transfer-or-discard prompt opens (blocked_by_dialog) unless preset_changes answers it. A filament is assigned to filament_slot (1-based, default 1). Reply: selected, shown (a hidden preset it showed); when presets had or have unsaved changes, discarded and modified list per preset the keys dropped and the keys still unsaved.",
    "destructive": false,
    "group": "api",
@@ -3532,7 +3532,7 @@
    "title": "Select a preset"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Save the printer, process or filament preset being edited, with its unsaved changes, as a preset called name, which is then selected: what the tab's Save button does through its dialog. A filament is filament_slot's (default 1), and every slot using the old preset takes the new one. Replacing another existing preset needs overwrite (pass it in replays and scripts meant to be rerun). Reply: saved, user, project, inherits, filament_slots. A temperature warning or an unsaved-changes prompt makes it blocked_by_dialog. To keep only some edits, set_settings {reset_all: true, values} first.",
    "destructive": false,
    "group": "api",
@@ -3587,7 +3587,7 @@
    "title": "Save a preset"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete a user preset or one inside the project, its file and its cloud copy, as the tab's Delete does, without asking. A selected preset is replaced as the tab does (its parent or the next preset). Another filament is deleted without changing the selection, and slots using it take the selected one; another process is selected, deleted and the selection restored; a printer must be selected first. Refused: system presets, presets others inherit from, another preset while the edited one of its type has unsaved changes. Deleting a selected printer or process can ask about other presets' unsaved changes (blocked_by_dialog). Reply: deleted, selected, filaments (per slot), attached, and discarded/modified as select_preset's.",
    "destructive": true,
    "group": "api",
@@ -3629,7 +3629,7 @@
    "title": "Delete a preset"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Read settings: each item has its value, as OrcaSlicer writes it, and meta: label, description (what the setting does, when to change it), where (its settings page and group), type, unit, range, allowed values and mode. Choose them by keys; by query, a few words matched in keys, labels and descriptions, best matches first; by where, a page or group (an unknown one lists them all); or by none of these, for the whole scope, paged and, in a preset scope, without meta. Keys the scope lacks are listed in unknown_keys, and scope_of gives the scope of those another scope has.\n- No scope: keys and query look through the process, filament and printer settings, and each item names its scope, the one set_settings takes; anything else reads the process.\n- process, filament, printer: the preset being edited, or with preset a saved one; compare lists only the keys that differ from another preset (value and other). A per-variant value lists in meta its variants (what each entry is for) and active (the entry each extruder prints with).\n- object, part: the overrides that object or part carries, each with effective (the value it prints with) and source (part, object, process or default); an object's item lists in parts the parts and modifiers that override the key inside their own volume.\n- project: the plate type, slot colours, flushing volumes, purge mode, prime tower position per plate, mixed slots and, with several extruders, the filament grouping; meta.offered lists the choices this printer has.\n- plate: a plate's curr_bed_type, print_sequence, spiral_mode, first_layer_print_sequence, other_layers_print_sequence, name and locked, each with value (the plate's own, null where it follows the global setting or Auto) and effective.\n- preferences: the named keys of the app configuration (the Preferences dialog's settings, keys as its controls are named), as stored; it lists none unasked.",
    "destructive": false,
    "group": "api",
@@ -3721,7 +3721,7 @@
    "title": "Read settings"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Change settings of one scope (default the process) as typing them into its settings tab would. Values are strings in OrcaSlicer's format (\"15%\", \"0.2\", \"1,2\") or JSON numbers, booleans and arrays (a point as [x, y]). All are parsed strictly first and applied together, so nothing changes if one is invalid, and a key of another scope is refused with that scope named. Reply: applied, and changed, every setting the call changed, including those the app adjusted in turn. One undo step. Spiral vase and a few others confirm their adjustments in a dialog (blocked_by_dialog).\n- process, filament, printer: null takes a key back to its saved value, or with reset_to parent to the parent's; reset_all first discards every unsaved change, as the tab's undo button does (reply: reverted). A per-variant value (get_settings meta.variants) takes one value for the entries in use (meta.active), {index, value} for one entry, or an array of all.\n- object, part: overrides of the keys the object list offers there; null removes one. extruder is the object's or part's filament (1-based; 0 or null for Default), set as the Change Filament menu does.\n- project, as the sidebar's controls write them: curr_bed_type, filament_colour (#RRGGBB per slot), flush_multiplier, flush_volumes_matrix, prime_volume_mode, and wipe_tower_x/y (mm from the plate's origin, one per plate). flush_volumes_matrix is per nozzle, slots x slots from row to column, in config order over every slot, before the multiplier; mixed slots' entries are left as they are, and a colour change can recalculate it, so set it last.\n- plate, which it selects and writes as the Plate Settings dialog's OK does: curr_bed_type, print_sequence (\"by layer\", \"by object\"), spiral_mode (true asks for confirmation), first_layer_print_sequence (every slot once, e.g. [2, 1]), other_layers_print_sequence ([{from: layer >= 2, to, order}], to omitted for the last layer), name and locked; null returns a value to the global setting or Auto.",
    "destructive": false,
    "group": "api",
@@ -3804,7 +3804,7 @@
    "title": "Change settings"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Plates with name, locked, current, objects (how many are on it; list_objects lists them), and the settings they print with: curr_bed_type, print_sequence, spiral_mode, first_layer_print_sequence and other_layers_print_sequence (null: Auto); overrides lists those the plate sets itself (set_settings scope plate). Also sliced (an up-to-date slice), wipe_tower [x, y] and layer_gcode: the plate's pauses, custom G-code, templates and filament changes, each {z, layer, type, filament, color, gcode}; layer is the Preview slider's number, given while the plate's slice is up to date.",
    "destructive": false,
    "group": "api",
@@ -3835,7 +3835,7 @@
    "title": "List plates"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "The project as the Objects panel lists it. plates: each {index, name, objects}, with the objects that have an instance on it; outside: the objects with an instance on no plate. An object with instances on two plates is listed under both, each time with that plate's instances. An object has its filament, auto_drop, bounding box (instance 0), brim ear count and the settings it overrides; its instances (offset, rotation in degrees, scale, mirrored, bbox); its parts, one or more: parts, negative parts, modifiers, support blockers and enforcers and precise seams (type, with subtype for a precise seam; filament: a part's own or its object's, a modifier's only when it sets one; position, bbox and scaled_volume in mm3 on the bed, measured on instance 0; rotation_deg and scale in the object's frame; mirrored; triangle count; mesh_volume, the unscaled mesh's mm3; painted facets: supports and seam enforcers/blockers, fuzzy_skin, mmu per filament, texture per layer; a text part's text and font, an SVG part's file); its height range modifiers when it has any (layer_config_ranges: [{min_z, max_z, values}], as set_height_ranges takes them) and its variable layer height profile when it has one (layer_height_profile: {points, min_height, max_height}). A bbox is {min, max, size} in mm of model parts only, so unlike the panel's Size it leaves out modifiers. An object's index numbers it in the project and a part's in its object, whatever the plate: they are what select_objects, transform, mouse_gesture targets and the object/part settings scopes take. Each object and part also has an id, which stays with it when a delete, split or assemble shifts the indices: pass it as object_id / part_id to transform, add_part, set_settings, set_height_ranges and set_variable_layer_height (object_ids, part_ids and instance_object_ids to select_objects), and a call whose index names another one now is refused instead of acting on it. limit and offset page the objects and total counts them, each once.",
    "destructive": false,
    "group": "api",
@@ -3875,7 +3875,7 @@
    "title": "List objects"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Select objects, instances or parts in the 3D view (the assemble view while it is shown, else Prepare, switching to it), as clicking them would. Give objects, instances ([[object, instance], ...]) or parts ([[object, part], ...]); add keeps the current selection; all / none select everything or nothing. The reply is the selection as get_app_state.selection gives it.",
    "destructive": false,
    "group": "ui",
@@ -3950,7 +3950,7 @@
    "title": "Select objects"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Change one instance's placement, or one part's with part. translate is in mm, position where it goes (mm, as the Move panel shows it, whatever mode says), rotate in degrees about X/Y/Z, scale a factor (one number or [x, y, z]), size [x, y, z] mm along the object's or part's own axes, plate moves the instance onto that plate at the same place. mode \"relative\" (default) adds to the current placement, \"absolute\" sets it. An instance is dropped back onto the bed unless drop_to_bed is false. A part moves as the Object manipulation panel moves it: translate and rotate along the bed's axes, measured on instance 0, scale and size along its own axes; every instance shows the change, and Auto Drop may lower the object afterwards. One undo step. Reply: the instance's offset, scale and plate, or the part's size along its own axes and its list_objects entry (part_info).",
    "destructive": false,
    "group": "api",
@@ -4054,7 +4054,7 @@
    "title": "Move, rotate or scale an instance or a part"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a part, negative part, modifier, support blocker or enforcer, or precise seam to an object, as its context menu's Add items do: a primitive shape at a size, or a model file as Load... adds it. The part lands where the menu puts it (a shape beside the object, a file at its coordinates relative to the object's first part) unless position is given. Like the menu, adding a shape folds the instance's rotation and scale into the object's parts (the instance's scale then reads 1). Refused for an object with several instances: add parts first. A STEP file may ask for mesh options (blocked_by_dialog). The new part is selected; one undo step. Reply: its index, which is not always the last (parts are ordered by type), the object's part count and the part's list_objects entry (part_info).",
    "destructive": false,
    "group": "api",
@@ -4131,7 +4131,7 @@
    "title": "Add a part or modifier to an object"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Arrange the objects of every unlocked plate as the toolbar's Arrange does, or of one plate (plates: an index or \"current\") as its Arrange icon does. With fill, fill that object's plate with more of it instead, as Fill bed with instances (or copies, by fill_with) does. spacing, rotate, align_y and multi_material are the Arrange options panel's settings: the values given stay in the panel, so later arranges use them too. Waits for the arrangement (a longer one replies with a job). Reply: the settings in force, instances left off every plate, plates the all-plates arrange skipped and the job's notifications. An arrange may reorder objects, so list_objects again. One undo step.",
    "destructive": false,
    "group": "api",
@@ -4197,7 +4197,7 @@
    "title": "Arrange objects or fill the bed"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Slice the current plate, all plates, or one plate by index, the way the toolbar's Slice button does, and wait for the result (or reply with a job id when it takes longer than the reply budget). Each requested plate reports ok, error, cancelled, empty or skipped; the whole operation is superseded when someone else started a slice or edited the project while it ran. An ok plate has time_s (silent_time_s when the printer estimates it), filament_m and filament_g including flush, filament_cost, layers, max_z, filament_changes, and filaments[i] for slot i+1 with m, g and the grams of model_g, support_g, flush_g and tower_g. Other changes are refused until it finishes; cancel_job stops it.",
    "destructive": false,
    "group": "api",
@@ -4233,7 +4233,7 @@
    "title": "Slice"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Stop the running operation: a slice or G-code export, as the slicing progress's cancel button does, or a background job an MCP call started (an arrange, orient or fill bed). Its job then reports cancelled; a background job keeps other changes out until it has really stopped. With job, only that job is stopped: the running operation, a run_script run or an encode_recording. Allowed while an operation holds the project.",
    "destructive": false,
    "group": "core",
@@ -4258,7 +4258,7 @@
    "title": "Cancel a job"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Replace an object's height range modifiers (Height Range Modifier in the object list): Z ranges in mm, each printed with its own layer_height, filament and process settings, starting from the object's layer height and filament. Ranges may touch but not overlap; [] removes them all. One undo step; the object is selected. Reply: the object's height and its ranges as list_objects shows them, and warnings, such as a variable layer height profile deciding the layer heights instead.",
    "destructive": false,
    "group": "api",
@@ -4321,7 +4321,7 @@
    "title": "Set height range modifiers"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Run the Variable layer height panel's Adaptive, Smooth or Reset on an object, without opening the panel: adaptive computes layer heights from the object's shape (inside a height range, the range's layer_height), smooth smooths its profile (or the one its height ranges give), reset goes back to its layer height and ranges. One undo step; the object is selected. Reply: the object's height, its layer_height_profile {points, min_height, max_height} as list_objects shows it (absent after reset), and warnings.",
    "destructive": false,
    "group": "api",
@@ -4381,7 +4381,7 @@
    "title": "Set a variable layer height profile"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add or remove pauses, custom G-code, custom templates and filament changes at the start of a layer, as the Preview layer slider's menu does; they are saved per plate in the project. They go on the plate's sliced layers, so the plate needs an up-to-date slice, or must be the one the Preview still shows after an earlier edit; the call selects it and shows the Preview. Applies clear, then remove, then add, all checked first. One code per layer: a custom code or filament change where there is one replaces it. Not undoable, as in the slider. A change invalidates the plate's slice: slice again before exporting. Reply: the plate's codes as list_plates' layer_gcode lists them, each with z and layer.",
    "destructive": false,
    "group": "api",
@@ -4473,7 +4473,7 @@
    "title": "Set custom G-code at a layer"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Capture what OrcaSlicer shows and return it as an image, downscaled to max_dim on the long edge (default 1280), plus the full-size PNG written to save_path (or the session's output folder). target: \"main\" (the main window), \"canvas\" (the visible 3D view exactly as rendered: scene, toolpaths, toolbars, ImGui panels; on the Design tab its view), \"dialog\" (the topmost modal dialog), or a ref: a window's from list_windows (one that is not modal, say), or a widget's from list_widgets, cropped to that widget (a page element's ref captures its whole web view). The result says when parts may differ from the screen (approximate). Point the view first with set_view.",
    "destructive": false,
    "group": "ui",
@@ -4519,7 +4519,7 @@
    "title": "Take a screenshot"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "What the Preview shows for a sliced plate. summary: the slice reply's, plus prepare and travel time and travel distance. features: seconds, share of the print time and grams per feature type (the Line Type legend), and travel. layers: per layer (1-based, as set_view's layer) Z, height, seconds and grams, paged; layer_features adds each feature type's seconds. objects: grams per object instance, with its list_objects index when its name is unique. view, for the plate the Preview shows: view type, time mode, layer range, which legend rows are visible, and each view type's colour range for what the legend shows. Times are normal-mode estimates. A G-code file opened for viewing reads the same.",
    "destructive": false,
    "group": "api",
@@ -4569,7 +4569,7 @@
    "title": "Get slice statistics"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Set up what the window shows, for screenshots and GUI work: the main tab, the 3D view (canvas: Prepare's, the preview or the assemble view, which has its own gizmos), the camera of the 3D view shown (a named direction, the default view, or fit to bed / objects / selection, then look_at, the point it looks at, an orbit to look from between the named directions, and the zoom), the preview's color scheme (picked as in the legend's combo, which shows every feature type again), legend rows, time estimate and layers (1-based, or up to a height). Only the given fields change. On the Design tab the camera points its view (default is its Home view; no fit_bed). The reply echoes them; preview layers as [first, last, count] with z, the heights of first and last; with any camera field, camera_state, the camera it leaves as get_app_state.camera gives it, and adjusted: [\"zoom\"] when the zoom was held to its limits.",
    "destructive": false,
    "group": "ui",
@@ -4705,7 +4705,7 @@
    "title": "Point the view"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Replay a list of tool calls in order and report each step: {orca_replay:1, name, vars, steps:[{tool, args, expect, optional, await, save_as, timeout_s}]}, JSON with comments. Strings may use ${replay_dir}, ${out_dir}, ${env:NAME}, ${vars.NAME} and ${jobs.NAME}. A step that returns a job is awaited unless await:false, which stores the job under save_as so later steps can answer the dialog it opened. expect maps a JSON pointer into the step's result to matchers (eq ne gt ge lt le contains regex exists empty); the first failed step or expectation stops the run unless the step is optional. Writes result.json to out_dir (default: <replay name>.out next to a replay file). auto_answer_dialogs rules a replay registers end with it. export_replay turns this session into one.",
    "destructive": false,
    "group": "core",
@@ -4745,7 +4745,7 @@
    "title": "Run a replay"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Turn the calls this session made into a replay that run_replay runs: mutating calls, wait and screenshot, in order, with refs replaced by locators, job replies replayed with await:false, and screenshot paths moved under ${out_dir}. Calls that failed, at once or as a job later, are left out; so is a call whose job is still running (unless it waits on a dialog), which left_out_running lists as {tool, job}. Reply: the replay, which with path is also written there. clear:true starts a new recording afterwards.",
    "destructive": false,
    "group": "core",
@@ -4782,7 +4782,7 @@
    "title": "Export this session as a replay"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Run Python code inside OrcaSlicer as its main program (__name__ == \"__main__\") against orca.host, the whole plugin API (search_python_api searches it): read objects, meshes and settings, compute, use orca.host.ui and the preset API, and call these same tools, with their guards and undo, through orca.host.tools.call(name, args), from the code and from the threads and pool tasks it starts while the run lasts. Mesh and matrix arrays need numpy, which search_python_api says is installed or not; a file run's PEP 723 block can install it. The code runs on a worker thread, where calls documented as UI thread only raise RuntimeError. The run ends once its code and the non-daemon threads and pool tasks it started are done; its windows close with it. `args` holds the args you pass; set `result` to a JSON value to return it; print() output comes back as output. Reply: {status: finished | raised | cancelled | timed_out, result, output, traceback?, message?}; a script that raised changed what it changed before. The code's own file access is held to OrcaSlicer's folders (its data and resources folders, and for a file run the file's folder, read only), and it starts no programs or threads and reaches no network: such an access raises PermissionError, unless a person has let Python scripts run unrestricted in Preferences (get_app_state.python.scripts_unrestricted); the tools it calls work as they do for you. Recorded by export_replay as one step with its code, which a replay runs again against the project as it is then.",
    "destructive": false,
    "group": "core",
@@ -4824,7 +4824,7 @@
    "title": "Run a Python script"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Search orca, the Python API of run_script scripts and plugins, in the running build: orca.host (the project's model and meshes, presets and their editors, slicing data, orca.host.ui windows and dialogs, orca.host.tools calling these tools) and the classes, events and pages plugins build on. Each entry has its kind, signature (a class's constructors) and documentation. A query ranks them, best match first; without one, the whole package is listed with each entry's first sentence. Page with offset. numpy says whether numpy is installed, which mesh and matrix arrays need.",
    "destructive": false,
    "group": "core",
@@ -4859,7 +4859,7 @@
    "title": "Search the Python API"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Record a video of OrcaSlicer until stop_recording: the main window with any modal dialog on it (target main), or the 3D view shown (canvas). Frames are MJPEG in a Matroska (.mkv) file with their real timestamps. With captions, the tool call acting on the app shows as a caption at the bottom (secret setting values never show); with pointer, the pointer is highlighted, its clicks rippling. Capture takes at most about a third of the UI thread, so the frame rate drops where capturing is slow. One recording at a time: one a replay or script starts ends with it, a client's when the server is turned off. With encode, the stop_recording that reports it also encodes it to an MP4 beside it, as the Start Recording command does, and the .mkv is deleted once the MP4 is written unless keep_raw_video_file; encode_recording makes an MP4 of any recording later. Called with no arguments, it opens the Start Recording dialog instead, as the Start Recording command does (blocked_by_dialog): its controls are named after their settings for set_widget_value, answer_dialog \"Start recording\" starts the person's recording, which neither the end of a replay or script nor the server turning off ends, and the dialog remembers the settings; silent: true starts one here at once with the defaults.",
    "destructive": false,
    "group": "Commands",
@@ -4992,7 +4992,7 @@
    "title": "Start Recording"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Stop the running recording and return its file once it is written: seconds, frames captured and written, frames dropped when encoding fell behind, failed when they could not be encoded, or skipped when the window could not be captured, the size, the mean UI-thread time a capture took (capture_ms), and why it ended. A recording that ended on its own (max_seconds, the replay or script that started it ended, a write error) is reported once by the next stop_recording. For a recording started with encode, it then starts the MP4 encode and returns it under encode: a job, whose wait {for: \"job\"} returns encode_recording's result, whose raw_video_file_deleted says whether the .mkv was deleted. This is the call with silent: true. Called with no arguments, it stops the recording as the Stop Recording command does, whoever started it: without waiting for its file, it shows the person a notification naming it and replies with its path; the next stop_recording with silent: true reports it as ended stopped_in_app.",
    "destructive": false,
    "group": "Commands",
@@ -5020,7 +5020,7 @@
    "title": "Stop Recording"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Encode a recording into an H.265 (or H.264) MP4 with the system ffmpeg (ORCA_FFMPEG, else ffmpeg on PATH; it needs libx265 or libx264), keeping its timing. Takes this session's last finished recording unless path names one, and writes beside it unless save_path says where. A long encode returns a job: wait for it, or cancel_job {job} stops it. Once the MP4 is written, it deletes the .mkv if this session recorded it, unless keep_raw_video_file; any other .mkv is kept. raw_video_file_deleted in the reply says which.",
    "destructive": false,
    "group": "ui",
@@ -5096,7 +5096,7 @@
    "title": "Encode a recording"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Sketch on the selected flat face or plane, or click one next. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
@@ -5116,7 +5116,7 @@
    "title": "Sketch"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Extrude a committed sketch, one of its loops, a face or a drawn profile into a body. A committed sketch, or one loop of it, extrudes as the Extrude card does; push/pull grows a planar face of a body; a profile drawn here is an explicit closed `profile` (list of [x,y]) or a centred width x height rectangle on `plane`. End conditions match Onshape. Reply: extrude_index, the index of its sketch (-1 for a face), the boolean and body used, end, frame.",
    "destructive": false,
    "examples": [
@@ -5347,7 +5347,7 @@
    "title": "Extrude"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Revolve a committed sketch as the Revolve card does, or a profile drawn here, about an axis. A sketch turns about a line of it or a plane axis; a profile drawn here is an explicit `profile` offset from the axis, or a width x height rectangle with one edge on the axis, centred along it, so a full turn is a cylinder width long of radius height. Reply: revolve_index, the index of its sketch, the boolean, body and axis used, frame.",
    "destructive": false,
    "examples": [
@@ -5534,7 +5534,7 @@
    "title": "Revolve"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Sweep a committed sketch's closed profile along a path, a sketch or a helix, as the Sweep card does. Draw the profile across the path's start (a helix's start and tangent are in its reply); along a helix the profile keeps its angle to the helix axis. Long sweeps take seconds and the reply may be a job. Reply: sweep_index, bodies, boolean, body.",
    "destructive": false,
    "examples": [
@@ -5710,7 +5710,7 @@
    "title": "Sweep"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Loft a solid through two or more committed sketches, in order, as the Loft card does. Each sketch is on its own plane (sketch on datum planes). Lofts take seconds and the reply may be a job. Reply: loft_index, bodies, boolean, body.",
    "destructive": false,
    "examples": [
@@ -5846,7 +5846,7 @@
    "title": "Loft"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Offset a face of a body by a wall thickness, producing a new thin solid body. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -5938,7 +5938,7 @@
    "title": "Thicken"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Grow a thin rib wall (stiffener) from an open Line sketch entity, fused to a body. The wall is centred on the line in the sketch plane, thickness wide, and grows depth along the sketch plane's normal. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -6068,7 +6068,7 @@
    "title": "Rib"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Combine two bodies: union | subtract (tool from target) | intersect. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -6204,7 +6204,7 @@
    "title": "Join"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Cut the tool body out of the target. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
@@ -6224,7 +6224,7 @@
    "title": "Subtract"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Keep only where the two bodies overlap. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
@@ -6244,7 +6244,7 @@
    "title": "Intersect"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Extrude a sketch wire with no end caps -> an open sheet body. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -6372,7 +6372,7 @@
    "title": "Surface Extrude"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Revolve a sketch wire with no caps -> an open sheet body. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -6513,7 +6513,7 @@
    "title": "Surface Revolve"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Skin two or more profile sketches with no end caps -> an open sheet body. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -6637,7 +6637,7 @@
    "title": "Surface Loft"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Fill a sketch's closed boundary with one smooth face -> a sheet body. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -6751,7 +6751,7 @@
    "title": "Surface Fill"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Thicken a whole sheet body into a solid. A sheet of several faces whose free rims close into planar loops (the walls of a box with no lids) is capped at them and grows inward, into the closed shape that makes, whatever flip says; one whose rim can't be capped is refused. A single face or a closed shell is offset face by face along each face's normal, the one query_topology gives, or against it with flip; a closed shell can fail to thicken this way. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -6882,7 +6882,7 @@
    "title": "Thicken Surface"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Drill a circular hole at (x,y) or `at` on a plane. Reply: hole_index, body, x and y in the frame, off_plane with at, frame.",
    "destructive": false,
    "examples": [
@@ -7019,7 +7019,7 @@
    "title": "Hole"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Cut a thread as the Thread card does, along a cylindrical face or a circular edge, or on a plane. On a face a bore is tapped, a boss threaded; on a plane the thread goes at (x,y) or `at`. Without designation, a face or edge takes the nearest standard size, ISO metric and UTS alike. Long threads take seconds and the reply may be a job. Reply: thread_index, designation (null when custom), internal, diameter, pitch, depth, length, body, x, y, frame.",
    "destructive": false,
    "examples": [
@@ -7261,7 +7261,7 @@
    "title": "Thread"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Hollow a body to a wall thickness (inward); optionally leave one face open. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -7362,7 +7362,7 @@
    "title": "Shell"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Trim the body with a plane — drag the offset arrow; keep one half or both. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
@@ -7382,7 +7382,7 @@
    "title": "Cut"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Split a body with a plane, as the Cut card does, moved by offset and turned over by flip; or along the plane of a face. The upper piece is on the plane's normal side; keeping both makes two bodies, the lower one right after the upper. Reply: split_index, bodies, body, upper_body and lower_body (the pieces kept), frame (a plane's, after offset and flip).",
    "destructive": false,
    "examples": [
@@ -7536,7 +7536,7 @@
    "title": "Split"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Round measured edges of a body (edge ids from query_topology on that body). A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -7674,7 +7674,7 @@
    "title": "Fillet"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Chamfer measured edges of a body (edge ids from query_topology on that body). A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -7772,7 +7772,7 @@
    "title": "Chamfer"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Taper a body face by an angle about its base (pull direction +Z). A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -7864,7 +7864,7 @@
    "title": "Draft"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Offset a sheet body by a signed distance -> another sheet body. A positive offset moves each face along its normal, the one query_topology gives, and a negative one against it, so the side depends on how the sheet was made: an extruded circle's normal points inward. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -7990,7 +7990,7 @@
    "title": "Surface Offset"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Replicate a body: linear (count along a plane axis at spacing) or circular (count over an angle about the plane normal). A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -8121,7 +8121,7 @@
    "title": "Linear pattern"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Repeat the body around an axis — set the count and sweep. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
@@ -8141,7 +8141,7 @@
    "title": "Circular pattern"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Mirror a body about a base plane. mode=new creates a mirrored copy; mode=add fuses the mirror back into the source. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -8272,7 +8272,7 @@
    "title": "Mirror"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Replicate a body along a sketch curve. `count` copies are placed at equal-parameter points on the entity, each translated by (P_i - P_0). A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -8385,7 +8385,7 @@
    "title": "Pattern on Curve"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Move and/or rotate a body (B-rep transform). copy=true keeps the source and appends the transformed copy as a new body. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -8514,7 +8514,7 @@
    "title": "Move"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Mate two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a). kind: 0=Fastened, 1=Planar, 2=Revolute, 3=Slider, 4=Cylindrical. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -8669,7 +8669,7 @@
    "title": "Mate"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a datum plane as the Plane card does, to sketch or build on as {\"datum\": plane_index}. Offset from a base plane or a face, at an angle about an edge, midway between two faces, tangent to a cylindrical face, through two edges, or coincident with a base plane or a face. Not the `plane` param of other Design commands. Reply: plane_index, name, frame.",
    "destructive": false,
    "examples": [
@@ -8875,7 +8875,7 @@
    "title": "Plane"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Create a datum axis (reference line): two points, face normal, cylinder centreline, plane intersection, or along edge. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -9065,7 +9065,7 @@
    "title": "Axis"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Create a datum coordinate system (origin + orthonormal axes). PointWorld aligns to world; FaceAndDirection uses a face for Z and an edge/hint for X. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -9174,7 +9174,7 @@
    "title": "Coordinate system"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Create a helical curve, a sweep path for springs, coils and augers. It starts on the plane's x axis at `radius` from its origin. pitch = axial rise per turn. left_handed flips the winding. taper_deg != 0 gives a conical helix. Reply: helix_index, frame, start and tangent (world), to draw a sweep's profile across the curve there.",
    "destructive": false,
    "examples": [
@@ -9271,7 +9271,7 @@
    "title": "Helix"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Project edges of a solid onto a sketch plane, producing a new sketch feature. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -9396,7 +9396,7 @@
    "title": "Project"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Measure two refs, on one body or two: distance, closest points, angle and the gap between parallel faces. distance is between their representative points (a face's centroid, an edge's middle, an axis's middle); min_distance comes with closest_a and closest_b; angle_deg when both have a direction; parallel_gap across two parallel planar faces.",
    "destructive": false,
    "examples": [
@@ -9555,7 +9555,7 @@
    "title": "Measure"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Volume / surface area / centre of mass / inertia tensor of a body.",
    "destructive": false,
    "examples": [
@@ -9612,7 +9612,7 @@
    "title": "Volume and area"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Solid bodies that overlap, as {body_a, body_b, volume}. Read-only; bodies that merely touch enclose no volume and are not reported.",
    "destructive": false,
    "examples": [
@@ -9679,7 +9679,7 @@
    "title": "Interference"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Bind a feature's numeric field to an expression over the design variables, or unbind it with an empty expr. Unbound, the field keeps its value. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -9799,7 +9799,7 @@
    "title": "Edit"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Give this feature a name you will recognise in the tree (a body takes its name from the feature that makes it). It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
@@ -9819,7 +9819,7 @@
    "title": "Rename…"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Remove faces from a solid, healing the gap via OCCT defeaturing. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -9912,7 +9912,7 @@
    "title": "Delete Face"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Set the selected body's display color. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
@@ -9932,7 +9932,7 @@
    "title": "Color"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Frame the selection in the view, keeping the view direction. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
@@ -9952,7 +9952,7 @@
    "title": "Zoom to selection"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete what is selected. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
@@ -9972,7 +9972,7 @@
    "title": "Delete"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete this whole body — removes the feature it was made from. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
@@ -9992,7 +9992,7 @@
    "title": "Delete Body"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Line — click start, then end. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10012,7 +10012,7 @@
    "title": "Line"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Click points; click the first point to close the loop, right-click to end it open. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10032,7 +10032,7 @@
    "title": "Polyline"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Rectangle — click two opposite corners. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10052,7 +10052,7 @@
    "title": "Corner rectangle"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Click center, then a corner. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10072,7 +10072,7 @@
    "title": "Center rectangle"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Click two corners of one edge, then a point for the width. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10092,7 +10092,7 @@
    "title": "Oblique rectangle"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Click two opposite corners, then a point for the corner radius. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10112,7 +10112,7 @@
    "title": "Rounded rectangle"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Circle — click center, then radius. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10132,7 +10132,7 @@
    "title": "Center circle"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Click two ends of the diameter. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10152,7 +10152,7 @@
    "title": "2-point circle"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Click three points on the circle. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10172,7 +10172,7 @@
    "title": "3-point circle"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Arc — click start, end, then a point. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10192,7 +10192,7 @@
    "title": "3-point arc"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Click start (on the last entity) then end. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10212,7 +10212,7 @@
    "title": "Tangent arc"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Click center, then start, then a point for the end angle. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10232,7 +10232,7 @@
    "title": "Center-point arc"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Slot — two centerline ends, then the width. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10252,7 +10252,7 @@
    "title": "Slot"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Click center, start, end, then a point for the width. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10272,7 +10272,7 @@
    "title": "Arc slot"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Ellipse — center, major end, minor point. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10292,7 +10292,7 @@
    "title": "Ellipse"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Click center, major-axis end, minor point, then arc start and end. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10312,7 +10312,7 @@
    "title": "Elliptical arc"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Spline — click control points. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10332,7 +10332,7 @@
    "title": "Spline"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Triangle — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10352,7 +10352,7 @@
    "title": "Triangle"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Square — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10372,7 +10372,7 @@
    "title": "Square"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Pentagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10392,7 +10392,7 @@
    "title": "Pentagon"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Hexagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10412,7 +10412,7 @@
    "title": "Hexagon"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Octagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10432,7 +10432,7 @@
    "title": "Octagon"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Dodecagon — click center, then a vertex. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10452,7 +10452,7 @@
    "title": "Dodecagon"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Measure the polygon to its corners (inscribed). It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10472,7 +10472,7 @@
    "title": "Inscribed"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Measure the polygon to its flats (circumscribed). It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10492,7 +10492,7 @@
    "title": "Circumscribed"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Point — click to place. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10512,7 +10512,7 @@
    "title": "Point"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Type text; it becomes a Text feature on this sketch's plane, editable later. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10532,7 +10532,7 @@
    "title": "Text"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Import an SVG outline into this sketch as editable lines. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10552,7 +10552,7 @@
    "title": "SVG"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Offset — pick an entity, drag the distance. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10572,7 +10572,7 @@
    "title": "Offset"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Trim — click a segment to trim it. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10592,7 +10592,7 @@
    "title": "Trim"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Fillet — pick two lines, set the radius. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10612,7 +10612,7 @@
    "title": "Fillet"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Chamfer — pick two lines, set the distance. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10632,7 +10632,7 @@
    "title": "Chamfer"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Pick entities, drag the spacing handle, click the count; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10652,7 +10652,7 @@
    "title": "Linear array"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Pick entities, drag the sweep handle, click the count; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10672,7 +10672,7 @@
    "title": "Polar array"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Mirror — pick axis, then entities. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10692,7 +10692,7 @@
    "title": "Mirror"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Pick entities, then drag the handle or click the distance; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10712,7 +10712,7 @@
    "title": "Move"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Pick entities, then drag around the pivot or click the angle; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10732,7 +10732,7 @@
    "title": "Rotate"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Pick entities, then drag the handle or click the factor; click empty to apply. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10752,7 +10752,7 @@
    "title": "Scale"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Dimension — click 2 points or an entity. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10772,7 +10772,7 @@
    "title": "Dimension"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Constrain the selected sketch entities to each other. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10792,7 +10792,7 @@
    "title": "Constrain"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add dimensions and relations (coincident, tangent, parallel...) to the selected sketch. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only outside a sketch (sketch_commit or sketch_cancel ends one; while the tab constrains a sketch, its Confirm or Cancel button ends that).",
    "destructive": false,
    "group": "Design",
@@ -10812,7 +10812,7 @@
    "title": "Constrain sketch"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Toggle construction: geometry that guides but is never built. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10832,7 +10832,7 @@
    "title": "Construction"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Extend — click a line/arc to extend it. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10852,7 +10852,7 @@
    "title": "Extend"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete the selected sketch entities. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10872,7 +10872,7 @@
    "title": "Delete"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Type the length of this line. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10892,7 +10892,7 @@
    "title": "Length…"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Type the radius of this arc, or the diameter of this circle. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10912,7 +10912,7 @@
    "title": "Radius / diameter…"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Type the angle between two lines, or the distance between the two picks. It takes no arguments and does what the Design tab's right-click menu row does, as a person's pick does: open a tool, start a sketch tool, act at once, or tell the person why it cannot. The reply's status is what the tab's status line shows then. It runs only in an open sketch (sketch_begin opens one).",
    "destructive": false,
    "group": "Design",
@@ -10932,7 +10932,7 @@
    "title": "Angle / distance…"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "The Design document: features, variables with their values, bodies, undo_depth / redo_depth and generation. A feature's bound lists the fields an expression drives; a body gives bbox, source_feature, visible, color and moved (by the Move gizmo). selection is what the right-click menu would be built for: its kind, the selection_kind a tool's opening reply gives, and its id (none, face_planar, body_solid, sk_line and the like).",
    "destructive": false,
    "examples": [
@@ -10985,7 +10985,7 @@
    "title": "Describe scene"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "One feature as its card shows it: params, the editable ones with their ranges, expr, refs, used_by and bodies_made. expr holds its bindings, and refs the feature and body indices and face and edge ids it uses; a sketch adds its plane, entities and constraints (angles in degrees). Imported Text or SVG art shows its regions (a count), region_loops (how many closed loops each region has, its outer loop plus its holes; counts, not the loops' geometry) and region_areas (each region's filled area in mm² as placed, its outer loop less its holes).",
    "destructive": false,
    "examples": [
@@ -11070,7 +11070,7 @@
    "title": "Describe feature"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "A body's faces and edges, with their kinds and geometry, narrowed by face and edge filters. Faces give kind, area, centroid, normal, and a cylinder's, cone's, sphere's or torus's numbers; edges give kind, length, ends, a circle's centre and radius. Face filters (kinds, direction, at_extreme) and edge filters (edge_kinds, direction, convex) narrow their own list; when filters are given, a list none of its filters names is empty, or with adjacency holds the neighbours of the other list. Reply: face_count and edge_count of the body, faces_total and edges_total after filtering, next_offset while a page has more, generation.",
    "destructive": false,
    "examples": [
@@ -11235,7 +11235,7 @@
    "title": "Query topology"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Cross-section of a body by a base plane at an offset (sections-as-evidence). Returns ordered world contours, each flagged closed/open.",
    "destructive": false,
    "examples": [
@@ -11357,7 +11357,7 @@
    "title": "Slice body"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Compare a body with a reference: volume, bbox, centroid and surface deviation (the RE acceptance metric). The reference is {step:path|body:id}; the surface deviation is max/mean/rms in mm.",
    "destructive": false,
    "examples": [
@@ -11448,7 +11448,7 @@
    "title": "Validate against"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "The open sketch, or a committed one: entities, constraint count and its loops. The loops are closed_loops {index, entities, holes, area}, open_ends, defects, buildable. The open sketch adds dof, the armed tool, the selection (entity indices) and selected_constraint, the index of the constraint picked by its badge or the Constraints list, null for none; a committed one adds its name and plane.",
    "destructive": false,
    "examples": [
@@ -11556,7 +11556,7 @@
    "title": "Sketch describe"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "The open sketch's loops (closed_loops, open_ends, defects, buildable) and dof.",
    "destructive": false,
    "examples": [
@@ -11643,7 +11643,7 @@
    "title": "Sketch validate"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "The constraints of the open sketch, or of a committed one: index, type, refs and value. A ref is {entity, role} for a point and {entity} for a whole entity; value is mm, or degrees for an angle. Reply: scope (live or committed), items, and dof and solve_ok for the open sketch.",
    "destructive": false,
    "examples": [
@@ -11736,7 +11736,7 @@
    "title": "Sketch constraints"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Import a STEP file as native B-rep bodies (the reference part to measure). A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -11782,7 +11782,7 @@
    "title": "Import step"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Convert a triangle mesh (STL/OBJ) into an editable B-rep body. Reports whether the result is a real solid or an open shell, and why. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -11836,7 +11836,7 @@
    "title": "Import mesh"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Drill a hole with optional counterbore (style=1) or countersink (style=2) at (x,y) or `at` on a plane. Reply as hole.",
    "destructive": false,
    "examples": [
@@ -12014,7 +12014,7 @@
    "title": "Hole styled"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Drill a standard clearance hole (ISO 273 / ANSI) at (x,y) or `at` on a plane. style: 0=simple, 1=counterbore, 2=countersink. Reply as hole.",
    "destructive": false,
    "examples": [
@@ -12162,7 +12162,7 @@
    "title": "Hole standard"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Build a cubic-Bezier G1 bridge (BSpline) between two sketch-entity endpoints within a sketch feature. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -12278,7 +12278,7 @@
    "title": "Bridge"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Set a design variable to an expression, or remove it with an empty expr. Feature fields bound with edit_feature follow it. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -12366,7 +12366,7 @@
    "title": "Set variable"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Change a feature's editable fields as its card's Confirm does when editing: one undo step and a rebuild. A field an expression drives is refused. Reply: changed {field: [old, new]}.",
    "destructive": false,
    "examples": [
@@ -12456,7 +12456,7 @@
    "title": "Set feature"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete a feature as its tree row's Delete does; deleting a sketch also deletes the features built on it. One undo step. Later indices shift. Reply: removed (how many features went), features, bodies.",
    "destructive": false,
    "examples": [
@@ -12555,7 +12555,7 @@
    "title": "Feature delete"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Move a feature one place up or down the history, as Move up / Move down do. A feature cannot come before one it uses. One undo step. Reply: feature (its new index), from.",
    "destructive": false,
    "examples": [
@@ -12626,7 +12626,7 @@
    "title": "Feature move"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Show or hide (suppress) a feature as its row's eye does. A hidden feature is left out of the rebuild and bodies may renumber. One undo step, none when it already was. Reply: enabled, changed, bodies.",
    "destructive": false,
    "examples": [
@@ -12725,7 +12725,7 @@
    "title": "Feature set enabled"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Rename a feature as F2 on its row does. Its own undo step. Reply: name, changed.",
    "destructive": false,
    "examples": [
@@ -12784,7 +12784,7 @@
    "title": "Feature rename"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Rename, colour or show/hide a body, as its Bodies row and the Color button do; give one or more. Not in the undo history. The name and colour are saved with the project and the name names its committed object; visibility is view state, and commit leaves hidden bodies out. Reply: name, color, visible.",
    "destructive": false,
    "examples": [
@@ -12907,7 +12907,7 @@
    "title": "Body set"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete a body as its row's Delete does: the feature that made it goes, which can take other features and bodies with it. One undo step. Reply: deleted_feature {index, type, name}, removed, features, bodies.",
    "destructive": false,
    "examples": [
@@ -12985,7 +12985,7 @@
    "title": "Body delete"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Commit to Plate: send the visible bodies to Prepare at their Move-gizmo positions and show Prepare. It is one Prepare undo step. A lone body is sent even when hidden. A body named in the Bodies list or with body_set names its object or part. Reply: objects (list_objects index after replace, name, parts: how many), bodies_sent, bodies_hidden, replaced.",
    "destructive": false,
    "examples": [
@@ -13087,7 +13087,7 @@
    "title": "Commit"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "New Design: erase every feature, body and variable and the Design undo history. Committed objects stay on the plate. Reply: cleared {features, bodies, variables}.",
    "destructive": false,
    "examples": [
@@ -13147,7 +13147,7 @@
    "title": "New design"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Export STEP: write every body to a file as native B-rep, at its Move-gizmo position. Reply: path, bytes, bodies, moved_bodies.",
    "destructive": false,
    "examples": [
@@ -13206,7 +13206,7 @@
    "title": "Export step"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Open a sketch session on a plane, as picking a plane or face for Sketch does. Sketch points are [x, y] in that plane's frame (mm), from its origin: modeling_origin for a base plane. Reply: frame.",
    "destructive": false,
    "examples": [
@@ -13306,7 +13306,7 @@
    "title": "Sketch begin"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Commit the open sketch as a Sketch feature, as the sketch's Confirm does, and leave sketch mode. An empty sketch is refused and stays open. Reply: sketch_index, name, features (the new count) and its loops (closed_loops with the index extrude's loop takes, open_ends, defects, buildable).",
    "destructive": false,
    "examples": [
@@ -13374,7 +13374,7 @@
    "title": "Sketch commit"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Discard the open sketch and leave sketch mode.",
    "destructive": false,
    "examples": [
@@ -13427,7 +13427,7 @@
    "title": "Sketch cancel"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add entities or shapes to the open sketch: `entities` (a list), or one item's fields beside `type`, or `rect`. Entities: line {p0, p1}, circle {center, radius}, arc {center, radius, start_angle, end_angle}, point {p}. Shapes, built as their drawing tools build them: polygon {center, sides, radius (to a vertex) or across_flats, angle (of that vertex, or of the first edge's midpoint)}, slot {c0, c1, width}, ellipse {center, radius (semi-major), rminor, rotation}, ellipse_arc {the ellipse's fields, start_angle, end_angle: parametric, counter-clockwise}, spline {ctrl: 2 or more poles}. Each item of entities may carry its own construction: true; the top-level construction applies only to rect and to the single-type form. Points are [x, y] in the sketch plane (mm); angles are radians, or degrees as start_angle_deg and the like. A polygon is lines; its side count is not kept once committed. Reply: first_index, added, shapes [{first, count}] per item, entities, dof.",
    "destructive": false,
    "examples": [
@@ -13592,7 +13592,7 @@
    "title": "Sketch add"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Select sketch entities by index; an empty list clears the selection. Reply: selected.",
    "destructive": false,
    "examples": [
@@ -13691,7 +13691,7 @@
    "title": "Sketch select"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete sketch entities. Reply: removed, entities.",
    "destructive": false,
    "examples": [
@@ -13788,7 +13788,7 @@
    "title": "Sketch delete"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Toggle construction on sketch entities. Reply: changed. A rejected rebuild is reported in the reply: ok is false or error is not empty.",
    "destructive": false,
    "examples": [
@@ -13868,7 +13868,7 @@
    "title": "Sketch construction"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add an offset copy of sketch lines, arcs and circles. Reply: first_index, added, dof.",
    "destructive": false,
    "examples": [
@@ -13970,7 +13970,7 @@
    "title": "Sketch offset"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a mirrored copy of sketch entities about the line through axis_a and axis_b. Reply: first_index, added, dof.",
    "destructive": false,
    "examples": [
@@ -14057,7 +14057,7 @@
    "title": "Sketch mirror"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Weld sketch endpoints that nearly meet and constrain them coincident, so loops are closed by construction. Reply: welded and the loops.",
    "destructive": false,
    "examples": [
@@ -14150,7 +14150,7 @@
    "title": "Sketch heal"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Set the dimension of the selected sketch entities, as the value field does. A line's length, a circle's diameter, an arc's radius, or the angle or distance between two. Select them with sketch_select first. Reply: kind, before, value, dof and the loops.",
    "destructive": false,
    "examples": [
@@ -14260,7 +14260,7 @@
    "title": "Sketch set value"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Round the corner of two lines of the open sketch, as the Fillet tool does. Both lines are cut back and joined by an arc of `radius`, bound coincident and tangent to them; constraints the sharp corner held are released. Reply: entity (the arc), lines, released_constraints, entities, constraints, dof, solve_ok.",
    "destructive": false,
    "examples": [
@@ -14331,7 +14331,7 @@
    "title": "Sketch fillet"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Bevel the corner of two lines of the open sketch, as the Chamfer tool does. Both lines are cut back by `distance` from the corner and joined by a line bound coincident to them. Reply: entity (the new line), lines, released_constraints, entities, constraints, dof, solve_ok.",
    "destructive": false,
    "examples": [
@@ -14402,7 +14402,7 @@
    "title": "Sketch chamfer"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Trim or extend the open sketch's entity nearest `at`, as a Trim or Extend click there does. Trim: a line or an arc is cut back from its end nearer `at` to the first crossing with another entity beyond `at`; a circle loses the part between the crossings either side of `at` and becomes an arc. With extend, as an Extend click: the line's or arc's end nearer `at` runs out to the next entity. The entity's constraints are released. Reply: entity, geometry (its new fields), released_constraints, entities, dof.",
    "destructive": false,
    "examples": [
@@ -14544,7 +14544,7 @@
    "title": "Sketch trim"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Move, rotate, scale or array entities of the open sketch, as the transform tools' Confirm does. move {dx, dy}, rotate {angle, pivot} and scale {scale, pivot} change the entities and release the constraints that no longer hold. array {dx, dy, count} adds copies stepped by dx, dy; polar_array {pivot, angle, count} adds copies every angle/count about pivot (angle is the whole sweep, default 360 degrees). count includes the original, and each copy is bound to its source (equal length and parallel, or its radius). pivot defaults to the entities' centroid. Angles are radians, or degrees as angle_deg. Reply: moved and released_constraints, or first_index, added and bound; pivot; entities, dof.",
    "destructive": false,
    "examples": [
@@ -14739,7 +14739,7 @@
    "title": "Sketch transform"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Add a constraint to the open sketch, as a CONSTRAIN bar button does (sketch_set_value is the value field, V). With `entities`, else the selection, the button's own rules choose the points, and a value it would ask for is `value` or the current one. With `refs` the references are taken as written, in sketch_constraints' form: {entity, role} for a point (role p0, p1 or center; entity also \"origin\") and {entity} for a whole entity (also \"x_axis\", \"y_axis\"). distance, lock_x, lock_y, point_on_line and point_on_object have no button and take refs. A constraint the sketch cannot solve with is rolled back and the call fails. Reply: added (indices), items, constraints, dof, solve_ok.",
    "destructive": false,
    "examples": [
@@ -14947,7 +14947,7 @@
    "title": "Sketch constrain"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Delete a constraint of the open sketch, as its row's delete button does; the constraints after it move down one index. Reply: removed, constraints, dof, solve_ok.",
    "destructive": false,
    "examples": [
@@ -15013,7 +15013,7 @@
    "title": "Sketch unconstrain"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Search everything the Speed Dial can run: built-in commands (slice, export, views, object operations, plates, calibration wizards, help), recent projects, plugin scripts and pages. Each entry has an id for run_action, a description, the command's key for a built-in command, and, when it takes arguments, their input_schema. A query ranks them, best match first, as search_tools does; without one they are listed by group and title. include_settings also lists settings (each jumps to that setting in the sidebar; use get_settings / set_settings to read or change values).",
    "destructive": false,
    "group": "ui",
@@ -15056,7 +15056,7 @@
    "title": "Search Speed Dial actions"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Run one action by the id search_actions returned (orca_command:view_front:orca, or the name inside it, view_front), with args, the command's arguments, when it takes some (its input_schema). A command that asks in a dialog asks when it is given no args, as a person's pick does, and runs without asking when given them: an absolute path skips a file dialog, and an output needs {\"path\": ..., \"overwrite\": true} to replace a file. Go to layer and Go to tab need their value ({\"percent\": 50}, {\"tab\": \"preview\"}). Actions that open a dialog return blocked_by_dialog; answer it with answer_dialog, or, for a native one it can't press (a file picker), register auto_answer_dialogs before the call. An export_gcode with a path completes when the file is written; an action that starts a background job (obj_arrange, obj_orient) when the job ends. An action that does nothing (no object selected) is an error. Some commands add what they did to the reply (the obj_order_by_* order, the object obj_assemble made).",
    "destructive": false,
    "group": "ui",
@@ -15088,7 +15088,7 @@
    "title": "Run a Speed Dial action"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "List OrcaSlicer's open windows: the main window, then the windows that don't block the app (Plugins, an object's settings, a dock panel floating on its own), then the modal dialogs in the order they opened, the topmost last. A window's ref goes to screenshot as target to capture that window, to list_widgets as target to list it alone, and to press_keys as target; its title is the within of locators for its widgets.\nReply: each window's title, kind (main, window, dialog, or panel: a dock panel floating on its own), modal, ref, web (it shows a web page), x and y on screen (not on Wayland, which doesn't say), width and height, state (normal, maximized or minimized) and resizable (it has a resize border); set_window changes them.\nA native dialog (a message box, a file picker) has native: true and no ref: answer_dialog answers it. hidden: true marks the person's own windows (Action Replay, the Run Script panel and their prompts, the Python scripts setting), which no tool reaches and screenshots leave out.",
    "destructive": false,
    "group": "ui",
@@ -15119,7 +15119,7 @@
    "title": "List the windows"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Size, move, maximize, minimize or raise a window: the main window (default), the topmost modal dialog, or one list_windows lists, also while a modal dialog is open. Size the main window before set_view fits the camera and before start_recording, as a recording keeps its first frame's size. size and position are in the units list_windows reports, whose x/y and width/height are read as position and size too. A size or position restores a maximized or minimized window first. A window takes only the states its title bar offers; a modal dialog never minimizes. A refused call changes nothing. Replies once the window holds still and the 3D view has drawn at its new size (3 s at most): title, kind, ref, size, position, state, resizable, scale (screenshot pixels per window unit), display (its work area), active with raise, and adjusted with a note: what the OS or a size limit changed.",
    "destructive": false,
    "group": "ui",
@@ -15174,7 +15174,7 @@
    "title": "Size or move a window"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Describe what is on screen as an indented tree, one element per line with a ref to pass to click, set_widget_value, press_keys and run_javascript (a page element's to mouse_gesture too): the widgets of every shown window, the rows of lists, trees and tables, each shown popup after the window it opened from, the main menus, the 3D canvas's toolbar items and gizmos, each ImGui panel drawn in the last frame with its items and text, and the elements of each shown web page (dialogs, the setup wizard, sign-in, plugin windows) under its web view. With a modal dialog open, only the topmost dialog's pages are read. Refs go stale when their element goes away: call list_widgets again then. Prefer run_action and the typed tools when one fits.\nA locator names an element without a ref, in any session (export_replay records them); index (0-based) picks one of several matches:\n- a widget: {label, class, name, within, index}, within being its window's title; a notebook page: {tab: \"General\", within}\n- a setting's field: {option: \"layer_height\"}\n- {menu: \"File>Export>Export G-code\"}, {gltoolbar: \"arrange\"}, {gizmo: \"Move\"}\n- an ImGui item: {imgui: \"label\", imgui_name?: \"name\", window?, canvas?, index?}, by its label, its name or both\n- a row of a list, tree, table or drop-down list: {row: \"Plate 1>Cube>Cylinder\", column?, within?, index?}, by its last labels; column names the cell to act on\n- a plate or one of its icons in the Prepare view: {plate_icon: \"lock\", plate: 0}, the icon being plate, delete, orient, arrange, lock, settings, name, move_to_front, filament_map or imex_mode\n- a web page's element: {web: \"Next\", kind?: \"button\", css?: \"#AcceptBtn\", within?, index?}, by the label list_widgets lists (exactly, else ignoring case, else a part of it), its kind, a CSS selector (the id a line shows as name: name=#save is {css: \"#save\"}), or together. Without within it looks in the topmost dialog's pages while one is open, else in every shown page, and it waits up to 3 s for its element.",
    "destructive": false,
    "group": "ui",
@@ -15227,7 +15227,7 @@
    "title": "List the widgets"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Click a GUI element as a person would. Menu items, buttons, checkboxes, toggles, radio buttons, toolbar items and gizmos are activated the way their owners expect: a gizmo opens and a second click closes it (Text on an object without text creates a text part: created). Other widgets and ImGui items get a mouse click once scrolled into view; with x/y, at that point of a 3D canvas or custom-drawn widget, in logical pixels from its top left. A row is selected as a click on its cell selects it (ctrl adds, shift extends; in the object list the named column acts, as Printable toggles), double activates it and a right click opens its menu; a drop-down list's row is picked. A plate icon does what it does in the Prepare view: lock replies locked, arrange and orient reply done once their job ends, settings and filament_map list the dialog they open (dialogs). Modifiers reach the 3D canvas, the object list and handlers that read them. A menu the click opens is never shown: the reply lists it as popup_menu, or popup_item runs one of its items (ran). A click that opens a dialog replies blocked_by_dialog.\nA web page's element gets the pointer and mouse events of a click at its centre (or x/y) once scrolled into view, refused when something else covers that point. The reply reads back checked, and has closed when the click closed its dialog (with dialogs, those still open under it, which still need an answer), navigated (with url) when it changed the page, or dialogs when it opened another. Otherwise page says what changed on the page within 300 ms: changed (false when its lines are as before), the list_widgets lines added and removed, partial when a plugin configuration frame could not be compared, and posted, how many messages the page sent OrcaSlicer.",
    "destructive": false,
    "group": "ui",
@@ -15303,7 +15303,7 @@
    "title": "Click an element"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Set a widget's value and send the events a person's edit would. Widgets: text fields (submit, the default, also presses Enter and leaves the field, which is when Orca's setting fields commit), spin controls, sliders, choice, combo and list boxes (by option text or index), checkboxes, toggles and a row's checkbox (true or false), and a radio button (an Orca radio box too) or a selector's option, as the dialog message shows them (*) / ( ) (true selects it; false on the selected one is refused, as only selecting another unselects it). ImGui items, by their kind, with the value read back: a field is typed into (a slider through the number field beside it, multiline text with \\n), a combo's option is picked by its text or 0-based index, and a checkbox, radio or toggle is clicked when it differs. A web page's fields, as typing would leave them: text, number, range, colour and date fields and editable text get the value with input and change events (submit then leaves the field; press_keys Return presses Enter), a select its option by text, value or index, and a checkbox or radio is clicked when it differs; the value is read back and page says what changed, as for click. File fields can't be set. For settings, set_settings is more reliable.",
    "destructive": false,
    "group": "ui",
@@ -15353,7 +15353,7 @@
    "title": "Set a widget's value"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Send a key chord (\"Ctrl+S\", \"Escape\", \"Return\", \"Delete\", \"Shift+Tab\", \"Left\", \"F5\") and/or type text to a target or, without one, to the focused window (the topmost dialog while one is open, the shown 3D view when nothing has focus). As with a real key press, the shortcut handling of the target's panels and window sees the keys first. Typing reaches ImGui fields and key handlers; fill a widget's text field with set_widget_value. A menu the keys open is listed as popup_menu, or popup_item runs one of its items. Keys for a web page (its element, or without a target the focused web view or the topmost dialog's only page) go to the page's focused element with the browser's default actions: typing, Backspace/Delete, Enter (submits a form, activates a button), Space, Tab moving the focus, arrows stepping a select, range or radio group; page says what they changed, as for click.",
    "destructive": false,
    "group": "ui",
@@ -15399,7 +15399,7 @@
    "title": "Press keys"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Make a mouse gesture on a 3D canvas as a person would: move, down, up, click, drag or wheel. It starts at `at`, a point of the model, which is projected through the camera and by default checked to land on that part (check \"point\" only projects it), or at x/y, logical pixels from the canvas's top left. A drag goes through `waypoints` to `to`, `steps` moves per leg: on an object it moves the object, in a painting gizmo it paints from a press on the object being painted (waypoints zigzagging over an area paint all of it), and elsewhere it turns or pans the camera as this install's mouse settings say, so turn the camera with set_view camera or orbit instead. A wheel turns delta notches; positive zooms in or scrolls a panel up. Modifiers are held as keys for the gesture (shift for Measure's point picking, alt for erasing). A down keeps its button and modifiers held, so moves drag, until an up or another gesture. Grabbers are set through the gizmo's panel fields or transform, not dragged. A menu a right click opens is listed as popup_menu, or popup_item (with click or up) runs one of its items. The reply's camera_moved says the gesture moved the camera, so earlier screenshots and pixels no longer match the view.\nWith target, the gesture is on a web page's element instead (a canvas such as the colour picker's spectrum, a slider, a sortable or scrolled list): x/y, to and waypoints are logical pixels from its top left, a drag keeps the pointer captured where the page asks for it, and a wheel scrolls what is under the pointer unless the page takes it; page says what the gesture changed there, as for click.",
    "destructive": false,
    "group": "ui",
@@ -15585,7 +15585,7 @@
    "title": "Mouse gesture on the 3D view"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Do what a file picker inside the open gizmo does, with a path instead of its dialog: svg_change loads another SVG file into the SVG part being edited, svg_save_as writes that part's SVG to a new file (an existing one only with overwrite), texture_import imports a height-map image into the texture library and puts it on Texture Displacement's active layer. To add an SVG part, use run_action add_primitive_svg with a path. Gizmos open with click {target: {gizmo: name}}, and their panels take set_widget_value / click on the ImGui items list_widgets lists.",
    "destructive": false,
    "group": "ui",
@@ -15627,7 +15627,7 @@
    "title": "Pick a file for the open gizmo"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Press a button of the topmost modal dialog: yes, no, ok, cancel, close, apply, a button's label, or a numeric id. A disabled button (enabled: false) is refused, the dialog's message showing what it still needs, and so is one on a page the dialog does not show, except a hidden cancel or close, which ends the dialog. The label of an option of a selector made of buttons (Orca's radio groups, tab bars and multi-switches, shown as (*) / ( ) in the message) selects that option and leaves the dialog open; set other radio buttons and switches with click or set_widget_value true, and notebook tabs with click. dialog.title, text the dialog's title contains, makes sure which dialog that is; it must be the topmost. Reply: closed: true when it closed, and dialogs, those still open. A native message box (native: true) is pressed through the OS, by one of the buttons get_app_state.dialogs lists for it; a file or folder picker can't be answered here, nor any native dialog on macOS (its buttons list is empty): register auto_answer_dialogs before opening them. A web dialog's buttons are on its page: a label is pressed there, waiting up to 3 s for it to show, so the page's own handler runs. With no such page button, or a page busy for those 3 s, cancel and close end the dialog, and ok, yes, no and apply are refused rather than skip the page's commit; page_buttons then lists the page's buttons.",
    "destructive": false,
    "group": "core",
@@ -15666,7 +15666,7 @@
    "title": "Answer a dialog"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Answer modal dialogs automatically when their title or message matches a rule's regex (case-insensitive). get_app_state.auto_answer_rules lists the rules in force. Called from a replay or script, the rules last until it ends; otherwise they replace the ones this session set before, and an empty list clears them. A native dialog returns the rule's button at once and never shows. A file or folder picker takes button ok with an absolute path and returns it without showing (on Linux such a rule cancels it); without a path a picker can only be cancelled, and a multi-select picker takes no path. A wx dialog has the button pressed as answer_dialog does, so its handler runs. A matching dialog already open is answered too (answered_open_dialog), so a prompt that shows around the same time, such as the restore prompt after startup, is caught either way. A web dialog is matched by its title: a button that names one of its shown wx buttons (by label, standard name or id) is pressed as for a wx dialog, any other on its page once it shows there, for up to 10 s after the page loads; past that, cancel and close end the dialog and any other button gives up.",
    "destructive": false,
    "group": "core",
@@ -15720,7 +15720,7 @@
    "title": "Answer dialogs automatically"
   },
   {
-   "completion": "none",
+   "completion": "immediate",
    "description": "Evaluate JavaScript in one of OrcaSlicer's web views (Home, the device page, dialogs, plugin windows). Prefer list_widgets and the input tools (click, set_widget_value, press_keys, mouse_gesture), which see and drive pages as they do widgets. The code runs in the target's page: a web view's (kind webview in list_widgets), or a page element's, with the element as `el`; without a target, in the topmost dialog's web view, else in the only shown one. While a modal dialog is open, only its pages run code. Reply: result, the value of the last expression (JSON values come back parsed), and url; closed: true when the code closed its dialog, navigated: true when it changed the page, dialogs when it opened another. Messages the page posts to OrcaSlicer reach it once the code has returned. It runs through eval, which a page whose Content-Security-Policy forbids it may refuse (list_widgets and the input tools still work there).",
    "destructive": false,
    "group": "ui",

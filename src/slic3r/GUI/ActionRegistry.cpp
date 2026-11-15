@@ -182,7 +182,7 @@ AppActionRunResult script_outcome_to_action_result(const ScriptCompletion& compl
     const ExecutionResult& result   = completion.result;
     const bool             skipped  = result.status == PluginResult::Skipped;
     const wxString         fallback = skipped ? _L("Script plugin skipped.") : _L("Script plugin finished.");
-    return {skipped ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Success,
+    return {skipped ? AppActionRunResult::Level::Info : AppActionRunResult::Level::Succeeded,
             result.message.empty() ? fallback : from_u8(result.message)};
 }
 
@@ -315,7 +315,7 @@ struct PluginPageAction : AppAction
         MainFrame* mf = wxGetApp().mainframe;
         if (mf)
             mf->plugin_pages().select_page({PluginCapabilityType::Pages, capability, plugin_key});
-        return {AppActionRunResult::Level::Success};
+        return {AppActionRunResult::Level::Succeeded};
     }
 };
 
@@ -431,7 +431,7 @@ struct SettingAction : AppAction
     AppActionRunResult run(const nlohmann::json& /*args*/) const override
     {
         wxGetApp().sidebar().jump_to_option(opt_key, type, category);
-        return {AppActionRunResult::Level::Success};
+        return {AppActionRunResult::Level::Succeeded};
     }
 };
 
@@ -506,7 +506,7 @@ struct RecentProjectAction : AppAction
     {
         if (MainFrame* mf = wxGetApp().mainframe; mf)
             mf->open_recent_project(size_t(-1), wxString::FromUTF8(file_path));
-        return {AppActionRunResult::Level::Success};
+        return {AppActionRunResult::Level::Succeeded};
     }
 };
 

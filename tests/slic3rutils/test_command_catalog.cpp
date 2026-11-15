@@ -262,7 +262,7 @@ TEST_CASE("a merged command's call with no arguments is the person's form", "[Co
     });
     const NativeCommand merged = NativeCommands::with_person_form(tool, "K", "Commands", "menu_save", [&person_calls] {
         ++person_calls;
-        return AppActionRunResult{AppActionRunResult::Level::Success, "Asked"};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded, "Asked"};
     });
     CHECK(merged.in_palette);
     CHECK(merged.title == "K");
@@ -290,7 +290,7 @@ TEST_CASE("an agent's call of a person's form is checked as a mutate call, a per
     tool.guard        = GuardClass::Inspect; // as the recording tools run, behind dialogs
     const auto person = [&person_calls] {
         ++person_calls;
-        return AppActionRunResult{AppActionRunResult::Level::Success, "Asked"};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded, "Asked"};
     };
     const NativeCommand opens = NativeCommands::with_person_form(tool, "K", "Commands", "", person);
     const NativeCommand quiet = NativeCommands::with_person_form(tool, "K", "Commands", "", person, /*person_form_behind_dialogs=*/true);
@@ -484,13 +484,13 @@ TEST_CASE("a person's pick runs the function in place", "[CommandCatalog]")
     int                 calls = 0;
     const NativeCommand c     = NativeCommands::ui_command("k", "K", "Commands", no_arguments(), [&calls](const json&) {
         ++calls;
-        return AppActionRunResult{AppActionRunResult::Level::Success, "Done"};
+        return AppActionRunResult{AppActionRunResult::Level::Succeeded, "Done"};
     });
     Mcp::PersonContext    person;
     const ToolResult      result = c.run(json::object(), person);
     CHECK(calls == 1);
     REQUIRE(result.notice != nullptr);
-    CHECK(result.notice->level == AppActionRunResult::Level::Success);
+    CHECK(result.notice->level == AppActionRunResult::Level::Succeeded);
     CHECK(result.notice->message == "Done");
 }
 
@@ -550,8 +550,8 @@ TEST_CASE("a person's submit refuses an unknown command, and starts no job witho
 TEST_CASE("an Export command called with arguments takes the project, and with none does not", "[CommandCatalog]")
 {
     const auto fails = [](const json&) { return AppActionRunResult{AppActionRunResult::Level::Error, "Nothing to export", false}; };
-    const NativeCommand exporting = NativeCommands::ui_command("k", "K", "Commands", no_arguments(), fails, CommandCompletion::Export);
-    CHECK(exporting.completion == CommandCompletion::Export);
+    const NativeCommand exporting = NativeCommands::ui_command("k", "K", "Commands", no_arguments(), fails, CommandCompletion::Deferred);
+    CHECK(exporting.completion == CommandCompletion::Deferred);
 
     TestContext           given;
     const ToolResult      refused = exporting.run({{"path", "a.gcode"}}, given);
@@ -635,7 +635,7 @@ TEST_CASE("a person's undo shows nothing where the Edit menu's is greyed, an age
 TEST_CASE("a command's result reads as run_action's did", "[CommandCatalog]")
 {
     using Level = AppActionRunResult::Level;
-    const ToolResult done = NativeCommands::from_run_result("k", {Level::Success, "Done"});
+    const ToolResult done = NativeCommands::from_run_result("k", {Level::Succeeded, "Done"});
     CHECK_FALSE(done.is_error);
     CHECK(done.data == json{{"ran", "k"}, {"level", "success"}, {"message", "Done"}});
     CHECK(NativeCommands::from_run_result("k", {Level::Busy, "Wait"}).is_error);
@@ -644,7 +644,7 @@ TEST_CASE("a command's result reads as run_action's did", "[CommandCatalog]")
     CHECK(NativeCommands::from_run_result("k", {Level::Info, "Select an object first.", false}).is_error);
 
     // What a command adds to its reply joins the reply's fields.
-    const ToolResult ordered = NativeCommands::from_run_result("k", {Level::Success, {}, true, R"({"descending": true})"});
+    const ToolResult ordered = NativeCommands::from_run_result("k", {Level::Succeeded, {}, true, R"({"descending": true})"});
     CHECK(ordered.data == json{{"ran", "k"}, {"level", "success"}, {"descending", true}});
 
     Ops::Refusal why;

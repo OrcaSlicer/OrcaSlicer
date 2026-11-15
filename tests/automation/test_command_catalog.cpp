@@ -143,7 +143,7 @@ TEST_CASE("a reference entry has the command's fields, and its examples only whe
     c.description   = "Exports it.";
     c.input_schema  = {{"type", "object"}, {"properties", {{"path", {{"type", "string"}}}}}};
     c.guard         = GuardClass::Recover;
-    c.completion    = CommandCompletion::Export;
+    c.completion    = CommandCompletion::Deferred;
     c.operations    = {"export_gcode"};
     c.open_world    = true;
     const json entry = Slic3r::GUI::command_reference(c);
@@ -164,7 +164,7 @@ TEST_CASE("a reference entry has the command's fields, and its examples only whe
 
     const json call{{"tool", "export_it"}, {"args", {{"path", "a"}}}};
     c.guard          = GuardClass::Inspect;
-    c.completion     = CommandCompletion::None;
+    c.completion     = CommandCompletion::Immediate;
     c.examples       = json::array({json{{"title", "Export"}, {"calls", json::array({call})}}});
     const json other = Slic3r::GUI::command_reference(c);
     CHECK(other["guard"] == "inspect");

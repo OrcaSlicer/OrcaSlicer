@@ -33,7 +33,8 @@ struct Refusal;
 
 struct AppActionRunResult
 {
-    enum class Level { Success, Info, Error, Busy };
+    // Succeeded: X11/X.h defines Success as a macro, which would rewrite an enumerator of that name.
+    enum class Level { Succeeded, Info, Error, Busy };
 
     Level level = Level::Info;
     wxString message; // empty = "nothing worth showing"

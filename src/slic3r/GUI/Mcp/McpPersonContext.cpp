@@ -34,7 +34,7 @@ AppActionRunResult ended_notice(const ToolResult& result, const std::string& tit
     if (result.is_error)
         return {AppActionRunResult::Level::Error, from_u8(result.message), false};
     // TRN %1% is the title of a command a person started, which ran on in the background.
-    return {AppActionRunResult::Level::Success, format_wxstr(_L("Finished: %1%"), from_u8(title))};
+    return {AppActionRunResult::Level::Succeeded, format_wxstr(_L("Finished: %1%"), from_u8(title))};
 }
 
 } // namespace

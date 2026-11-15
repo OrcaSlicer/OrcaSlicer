@@ -2714,7 +2714,7 @@ TEST_CASE("the send command is a Slice & Export command that takes no arguments"
     CHECK(send->title == "Send G-code to printer host");
     CHECK(send->group == "Slice & Export");
     CHECK(send->input_schema.at("properties").empty());
-    CHECK(send->completion == CommandCompletion::None);
+    CHECK(send->completion == CommandCompletion::Immediate);
     CHECK(send->description.find("get_app_state.uploads") != std::string::npos);
 }
 

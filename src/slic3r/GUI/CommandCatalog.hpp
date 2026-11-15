@@ -19,9 +19,10 @@ namespace Slic3r { namespace GUI {
 // group is. Their tiles are the Speed Dial's only while the Design tab is shown.
 inline constexpr const char* kDesignGroup = "Design";
 
-// Commands whose effect finishes after they return. Export: the G-code export runs in the background
-// process, so a call that gives the file waits for it.
-enum class CommandCompletion { None, Export };
+// When a command's effect finishes. Immediate: it has finished by the time the call returns. Deferred: it
+// lands later, when the background work it starts (a G-code export today) is done, and a call that gave the
+// file waits for it.
+enum class CommandCompletion { Immediate, Deferred };
 
 // A command's function: the arguments match `input_schema`; the context is the call's, a person's pick
 // (ToolContext::person()) or an automated call.
@@ -44,7 +45,7 @@ struct NativeCommand
     std::string input;
     std::string icon;  // tile pictogram: an SVG base name under resources/images, or "" for a blank tile
     std::string       description; // English, for agents; not shown in the palette
-    CommandCompletion completion = CommandCompletion::None;
+    CommandCompletion completion = CommandCompletion::Immediate;
     // The command's function. With no arguments it does what a person's pick does; with arguments that a
     // dialog would otherwise ask for, it runs without asking.
     CommandFn      run;

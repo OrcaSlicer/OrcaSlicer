@@ -55,7 +55,7 @@ std::vector<const NativeCommand*> palette_commands(const CommandCatalog& catalog
 // no arguments, an Export command does its person's form and waits for nothing.
 NativeCommand ui_command(std::string key, std::string title, std::string group, nlohmann::json schema,
                          std::function<AppActionRunResult(const nlohmann::json& args)> fn,
-                         CommandCompletion completion = CommandCompletion::None);
+                         CommandCompletion completion = CommandCompletion::Immediate);
 
 // A command whose function runs where its call does: on the job's thread for an automated call. Picked by a
 // person it is started as a job (ToolContext::submit()) and returns at once, unless `inline_call` says it
