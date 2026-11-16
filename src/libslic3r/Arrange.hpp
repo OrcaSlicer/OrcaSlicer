@@ -208,6 +208,10 @@ void update_arrange_params(ArrangeParams& params, const DynamicPrintConfig* prin
 
 void update_selected_items_inflation(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, ArrangeParams& params);
 
+// The area, in mm², a copy of item takes once update_selected_items_inflation() grows it. With
+// no object distance set, that is the auto spacing. Fill bed counts the copies that fit by it.
+double get_inflated_item_area(const ArrangePolygon& item, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
+
 void update_unselected_items_inflation(ArrangePolygons& unselected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);
 
 void update_selected_items_axis_align(ArrangePolygons& selected, const DynamicPrintConfig* print_cfg, const ArrangeParams& params);

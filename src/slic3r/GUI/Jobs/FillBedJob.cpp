@@ -171,9 +171,9 @@ void FillBedJob::prepare()
 
     double sc = scaled<double>(1.) * scaled(1.);
 
-    auto polys = offset_ex(m_selected.front().poly, params.min_obj_distance / 2);
-    ExPolygon poly = polys.empty() ? m_selected.front().poly : polys.front();
-    double poly_area = poly.area() / sc;
+    // Count each copy with the room the arrange keeps around it, the auto spacing when Spacing is 0.
+    // Counted bare, a copy asks for far more items than fit, and past 100 they go on a grid unarranged.
+    double poly_area = get_inflated_item_area(m_selected.front(), m_plater->config(), params);
     const ArrangePolygon &fill_template = m_selected.front();
     double unsel_area = std::accumulate(m_unselected.begin(),
                                         m_unselected.end(), 0.,
