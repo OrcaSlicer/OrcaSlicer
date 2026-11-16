@@ -498,6 +498,7 @@ public:
 
 	DynamicPrintConfig*	get_config() { return m_config; }
     PresetCollection *  get_presets() { return m_presets; }
+    const std::vector<PageShp>& pages() const { return m_pages; }
     TabPresetComboBox *  get_combo_box() { return m_presets_choice; }
 
 	virtual void    on_value_change(const std::string& opt_key, const boost::any& value);
@@ -536,7 +537,8 @@ public:
     void        sync_excluder();
 	void        parse_extruder_selection(int selection, int &extruder_id, NozzleVolumeType &nozzle_type);
     int         calculate_selection_index_for_extruder(int extruder_id, NozzleVolumeType nozzle_type);
-	bool        get_extruder_sync_enable_state(int extruder_id);
+	std::vector<int> get_extruder_sync_targets(int extruder_id);
+	bool        extruder_sync_enabled();
 	int         get_current_active_extruder();
 
 	std::vector<wxString>  generate_extruder_options();

@@ -815,6 +815,26 @@ bool Model::add_default_instances()
     return true;
 }
 
+void Model::set_assembly_pos(ModelObject *model_object, const std::vector<const ModelObject*> &ignore)
+{
+    for (ModelInstance *instance : model_object->instances)
+        if (!instance->is_assemble_initialized())
+            instance->set_assemble_transformation(instance->get_transformation());
+
+    const BoundingBoxf3 box = model_object->bounding_box_in_assembly_view();
+    if (!box.defined)
+        return;
+    BoundingBoxf3 others;
+    for (const ModelObject *o : this->objects)
+        if (o != model_object && std::find(ignore.begin(), ignore.end(), o) == ignore.end())
+            others.merge(o->bounding_box_in_assembly_view());
+
+    const Vec2d target = others.defined ? Vec2d(others.max.x() + 10. + 0.5 * box.size().x(), others.center().y()) : Vec2d::Zero();
+    const Vec3d shift(target.x() - box.center().x(), target.y() - box.center().y(), 0.);
+    for (ModelInstance *instance : model_object->instances)
+        instance->set_assemble_offset(instance->get_assemble_offset() + shift);
+}
+
 // this returns the bounding box of the *transformed* instances
 BoundingBoxf3 Model::bounding_box_approx() const
 {
@@ -896,6 +916,67 @@ void Model::duplicate_objects_grid(size_t x, size_t y, coordf_t dist)
             ModelInstance* instance = object->add_instance();
             instance->set_offset(Vec3d(ext_size(0) * (double)(x_copy - 1), ext_size(1) * (double)(y_copy - 1), 0.0));
         }
+    }
+}
+
+void Model::rotate_and_center_objects(double angle_z)
+{
+    // The common center of the placed objects, taken before anything changes. Objects without instances lie in the
+    // file's coordinates and turn around its origin.
+    BoundingBoxf3 placed_bb;
+    for (const ModelObject *object : this->objects)
+        for (size_t i = 0; i < object->instances.size(); ++i)
+            placed_bb.merge(object->instance_bounding_box(i));
+    const Vec3d center = placed_bb.defined ? Vec3d(placed_bb.center().x(), placed_bb.center().y(), 0.) : Vec3d::Zero();
+
+    if (angle_z != 0.) {
+        const Transform3d turn          = Geometry::rotation_transform(angle_z * Vec3d::UnitZ());
+        const Matrix3d    rotation      = turn.linear();
+        const Transform3d around_center = Geometry::translation_transform(center) * turn * Geometry::translation_transform(-center);
+        for (ModelObject *object : this->objects) {
+            // The volumes are shared by all instances, so they can take the rotation only if it commutes with the
+            // linear part (rotation, scale, mirror) of every instance; otherwise the instances take it.
+            // The tolerance only absorbs rounding: the instances' path is exact, so doubtful cases go there.
+            const auto commutes_with_turn = [&rotation](const ModelInstance *instance) {
+                const Matrix3d linear   = instance->get_matrix_no_offset().linear();
+                const double   residual = (linear * rotation - rotation * linear).cwiseAbs().maxCoeff();
+                return residual <= 1e-9 * std::max(1., linear.cwiseAbs().maxCoeff());
+            };
+            const bool commutes = std::all_of(object->instances.begin(), object->instances.end(), commutes_with_turn);
+            if (commutes) {
+                // Each volume turns around the object's origin together with its offset, so a multi-part object keeps
+                // its shape.
+                for (ModelVolume *volume : object->volumes)
+                    volume->set_transformation(turn * volume->get_matrix());
+                for (ModelInstance *instance : object->instances)
+                    instance->set_offset(center + rotation * (instance->get_offset() - center));
+            } else {
+                for (ModelInstance *instance : object->instances)
+                    instance->set_transformation(Geometry::Transformation(around_center * instance->get_matrix()));
+            }
+            object->invalidate_bounding_box();
+        }
+    }
+
+    for (ModelObject *object : this->objects) {
+        const BoundingBoxf3 bb = object->full_raw_mesh_bounding_box();
+        if (!bb.defined)
+            continue;
+        Vec3d shift = -bb.center();
+        if (object->instances.empty()) {
+            // Not placed yet: the shift is recorded for the parts merging and export, as center_around_origin() does.
+            // Z stays for the multi-part check, and the object is centered in full when it is placed.
+            shift.z() = 0.;
+            object->translate(shift);
+            object->origin_translation += shift;
+        } else {
+            object->translate(shift);
+            // The instances take the opposite shift, so the object stays where it is. origin_translation records only
+            // centering the instances do not compensate, so it does not change.
+            for (ModelInstance *instance : object->instances)
+                instance->set_offset(instance->get_offset() - instance->get_matrix_no_offset().linear() * shift);
+        }
+        object->invalidate_bounding_box();
     }
 }
 
@@ -1248,24 +1329,6 @@ bool Model::is_fuzzy_skin_painted() const
     return std::any_of(this->objects.cbegin(), this->objects.cend(), [](const ModelObject *mo) { return mo->is_fuzzy_skin_painted(); });
 }
 
-static void add_cut_volume(TriangleMesh& mesh, ModelObject* object, const ModelVolume* src_volume, const Transform3d& cut_matrix, const std::string& suffix = {}, ModelVolumeType type = ModelVolumeType::MODEL_PART)
-{
-    if (mesh.empty())
-        return;
-
-    mesh.transform(cut_matrix);
-    ModelVolume* vol = object->add_volume(mesh);
-    vol->set_type(type);
-
-    vol->name = src_volume->name + suffix;
-    // Don't copy the config's ID.
-    vol->config.assign_config(src_volume->config);
-    assert(vol->config.id().valid());
-    assert(vol->config.id() != src_volume->config.id());
-    vol->set_material(src_volume->material_id(), *src_volume->material());
-    vol->cut_info = src_volume->cut_info;
-}
-
 ModelObject::~ModelObject()
 {
     this->clear_volumes();
@@ -1357,8 +1420,15 @@ ModelObject& ModelObject::assign_copy(ModelObject &&rhs)
 void ModelObject::assign_new_unique_ids_recursive()
 {
     this->set_new_unique_id();
-    for (ModelVolume *model_volume : this->volumes)
+    std::vector<ObjectID> old_volume_ids;
+    for (ModelVolume *model_volume : this->volumes) {
+        old_volume_ids.push_back(model_volume->id());
         model_volume->assign_new_unique_ids_recursive();
+    }
+    for (ModelVolume *model_volume : this->volumes)
+        if (model_volume->is_painted_modifier())
+            if (auto it = std::find(old_volume_ids.begin(), old_volume_ids.end(), model_volume->painted_modifier_host); it != old_volume_ids.end())
+                model_volume->painted_modifier_host = this->volumes[it - old_volume_ids.begin()]->id();
     for (ModelInstance *model_instance : this->instances)
         model_instance->assign_new_unique_ids_recursive();
     this->layer_height_profile.set_new_unique_id();
@@ -1471,6 +1541,57 @@ ModelVolume* ModelObject::add_volume_with_shared_mesh(const ModelVolume &other, 
     return v;
 }
 
+ModelVolume* ModelObject::add_painted_modifier(const ModelVolume &host)
+{
+    assert(host.is_model_part());
+    ModelVolume *v = this->add_volume_with_shared_mesh(host, ModelVolumeType::PAINTED_MODIFIER);
+    v->m_convex_hull = host.m_convex_hull;
+    v->set_transformation(host.get_transformation());
+    v->painted_modifier_host = host.id();
+    return v;
+}
+
+const ModelVolume* ModelObject::painted_modifier_host(const ModelVolume &painted_modifier) const
+{
+    assert(painted_modifier.is_painted_modifier());
+    for (const ModelVolume *v : this->volumes)
+        if (v->is_model_part() && v->id() == painted_modifier.painted_modifier_host)
+            return v;
+    return nullptr;
+}
+
+bool ModelObject::sync_painted_modifiers()
+{
+    bool changed = false;
+    for (ModelVolume *v : this->volumes) {
+        if (! v->is_painted_modifier())
+            continue;
+        const ModelVolume *host = this->painted_modifier_host(*v);
+        if (host == nullptr)
+            continue;
+        if (v->mesh_ptr() != host->mesh_ptr()) {
+            const indexed_triangle_set &its_old = v->mesh().its;
+            const indexed_triangle_set &its_new = host->mesh().its;
+            if (! v->painted_modifier_facets.empty() && (its_old.vertices != its_new.vertices || its_old.indices != its_new.indices))
+                v->painted_modifier_facets.set_data(TriangleSelector::remap_painting(its_old, v->painted_modifier_facets.get_data(), its_new,
+                                                                                     v->get_matrix().inverse() * host->get_matrix(), {}));
+            v->m_mesh        = host->m_mesh;
+            v->m_convex_hull = host->m_convex_hull;
+            changed          = true;
+        }
+        if (! host->get_matrix().isApprox(v->get_matrix())) {
+            v->set_transformation(host->get_transformation());
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+bool ModelObject::has_painted_modifiers() const
+{
+    return std::any_of(this->volumes.cbegin(), this->volumes.cend(), [](const ModelVolume *mv) { return mv->is_painted_modifier(); });
+}
+
 void ModelObject::delete_volume(size_t idx)
 {
     ModelVolumePtrs::iterator i = this->volumes.begin() + idx;
@@ -1551,9 +1672,11 @@ bool ModelObject::hides_imported_parts() const
 
 void ModelObject::sort_volumes(bool full_sort)
 {
+    // Painted modifiers share the group of modifiers, so that the user may order them together.
+    auto sort_type = [](const ModelVolume *v) { return v->is_painted_modifier() ? ModelVolumeType::PARAMETER_MODIFIER : v->type(); };
     // sort volumes inside the object to order "Model Part, Negative Volume, Modifier, Support Blocker and Support Enforcer. "
     if (full_sort)
-        std::stable_sort(volumes.begin(), volumes.end(), [](ModelVolume* vl, ModelVolume* vr) {
+        std::stable_sort(volumes.begin(), volumes.end(), [&sort_type](ModelVolume* vl, ModelVolume* vr) {
             // Special handling for Precise Seam modifiers: group-based sorting with user order preservation
             if (vl->is_precise_seam() && vr->is_precise_seam()) {
                 // Strong (center/left/right) always before weak (enforced/blocked/neutral)
@@ -1568,13 +1691,13 @@ void ModelObject::sort_volumes(bool full_sort)
             }
 
             // For non-Precise-Seam or mixed types: use standard enum-based ordering
-            return vl->type() < vr->type();
+            return sort_type(vl) < sort_type(vr);
         });
     // sort have to controll "place" of the support blockers/enforcers. But one of the model parts have to be on the first place.
     else
-        std::stable_sort(volumes.begin(), volumes.end(), [](ModelVolume* vl, ModelVolume* vr) {
-            ModelVolumeType vl_type = vl->type() > ModelVolumeType::PARAMETER_MODIFIER ? vl->type() : ModelVolumeType::PARAMETER_MODIFIER;
-            ModelVolumeType vr_type = vr->type() > ModelVolumeType::PARAMETER_MODIFIER ? vr->type() : ModelVolumeType::PARAMETER_MODIFIER;
+        std::stable_sort(volumes.begin(), volumes.end(), [&sort_type](ModelVolume* vl, ModelVolume* vr) {
+            ModelVolumeType vl_type = sort_type(vl) > ModelVolumeType::PARAMETER_MODIFIER ? sort_type(vl) : ModelVolumeType::PARAMETER_MODIFIER;
+            ModelVolumeType vr_type = sort_type(vr) > ModelVolumeType::PARAMETER_MODIFIER ? sort_type(vr) : ModelVolumeType::PARAMETER_MODIFIER;
 
             // Apply same Precise Seam grouping logic for partial sort
             if (vl->is_precise_seam() && vr->is_precise_seam()) {
@@ -1831,6 +1954,17 @@ BoundingBoxf3 ModelObject::instance_bounding_box(const ModelInstance &instance, 
     return bb;
 }
 
+BoundingBoxf3 ModelObject::bounding_box_in_assembly_view() const
+{
+    // The cached raw box keeps this cheap: placing an object measures every other object in the model.
+    BoundingBoxf3 bb;
+    const BoundingBoxf3 &raw_bbox = this->raw_mesh_bounding_box();
+    if (raw_bbox.defined)
+        for (const ModelInstance *instance : this->instances)
+            bb.merge(raw_bbox.transformed(instance->get_assemble_transformation().get_matrix()));
+    return bb;
+}
+
 
 //BBS: add convex bounding box
 BoundingBoxf3 ModelObject::instance_convex_hull_bounding_box(size_t instance_idx, bool dont_translate) const
@@ -2053,18 +2187,24 @@ void ModelObject::convert_units(ModelObjectPtrs& new_objects, ConversionType con
     new_object->input_file.clear();
 
     int vol_idx = 0;
+    std::map<ObjectID, ObjectID> new_volume_ids;
     for (ModelVolume* volume : volumes) {
         if (!volume->mesh().empty()) {
             TriangleMesh mesh(volume->mesh());
 
             ModelVolume* vol = new_object->add_volume(mesh);
+            new_volume_ids[volume->id()] = vol->id();
             vol->name = volume->name;
             vol->set_type(volume->type());
             // Don't copy the config's ID.
             vol->config.assign_config(volume->config);
             assert(vol->config.id().valid());
             assert(vol->config.id() != volume->config.id());
-            vol->set_material(volume->material_id(), *volume->material());
+            // The clone is detached while it is rebuilt; point it at the source model so set_material_id()
+            // can record the entry, and detach it again.
+            new_object->set_model(this->get_model());
+            vol->set_material_id(volume->material_id());
+            new_object->set_model(nullptr);
             vol->source.input_file = volume->source.input_file;
             vol->source.object_idx = (int)new_objects.size();
             vol->source.volume_idx = vol_idx;
@@ -2076,6 +2216,9 @@ void ModelObject::convert_units(ModelObjectPtrs& new_objects, ConversionType con
             vol->seam_facets.assign(volume->seam_facets);
             vol->mmu_segmentation_facets.assign(volume->mmu_segmentation_facets);
             vol->fuzzy_skin_facets.assign(volume->fuzzy_skin_facets);
+            vol->painted_modifier_facets.assign(volume->painted_modifier_facets);
+            vol->painted_modifier_depth = volume->painted_modifier_depth;
+            vol->painted_modifier_host  = volume->painted_modifier_host;
 
             // Perform conversion only if the target "imperial" state is different from the current one.
             // This check supports conversion of "mixed" set of volumes, each with different "imperial" state.
@@ -2095,6 +2238,11 @@ void ModelObject::convert_units(ModelObjectPtrs& new_objects, ConversionType con
         }
         vol_idx ++;
     }
+    for (ModelVolume *vol : new_object->volumes)
+        if (vol->is_painted_modifier())
+            if (auto it = new_volume_ids.find(vol->painted_modifier_host); it != new_volume_ids.end())
+                vol->painted_modifier_host = it->second;
+    new_object->sync_painted_modifiers();
     new_object->invalidate_bounding_box();
 
     new_objects.push_back(new_object);
@@ -2188,6 +2336,7 @@ void ModelVolume::reset_extra_facets()
     this->seam_facets.reset();
     this->mmu_segmentation_facets.reset();
     this->fuzzy_skin_facets.reset();
+    this->painted_modifier_facets.reset();
     // Texture-displacement paint data has no remap-across-topology-change support yet (see
     // build_texture_displacement()'s documented limitation), so it must be dropped here rather
     // than left referring to a mesh that no longer matches it.
@@ -2201,13 +2350,14 @@ void ModelVolume::reset_extra_facets()
 
 std::optional<TriangleSelector::SavedPainting> ModelVolume::save_painting() const
 {
-    if (is_any_painted() && is_model_part() && !mesh().empty()) {
+    if (is_any_painted() && (is_model_part() || is_painted_modifier()) && !mesh().empty()) {
         TriangleSelector::SavedPainting sp;
-        sp.mesh      = mesh();
-        sp.supported = supported_facets.get_data();
-        sp.seam      = seam_facets.get_data();
-        sp.mmu       = mmu_segmentation_facets.get_data();
-        sp.fuzzy     = fuzzy_skin_facets.get_data();
+        sp.mesh             = mesh();
+        sp.supported        = supported_facets.get_data();
+        sp.seam             = seam_facets.get_data();
+        sp.mmu              = mmu_segmentation_facets.get_data();
+        sp.fuzzy            = fuzzy_skin_facets.get_data();
+        sp.painted_modifier = painted_modifier_facets.get_data();
         return sp;
     }
 
@@ -2240,6 +2390,7 @@ void ModelVolume::restore_painting(const std::optional<TriangleSelector::SavedPa
     remap_one(saved->seam,      seam_facets);
     remap_one(saved->mmu,       mmu_segmentation_facets);
     remap_one(saved->fuzzy,     fuzzy_skin_facets);
+    remap_one(saved->painted_modifier, painted_modifier_facets);
 }
 
 static void invalidate_translations(ModelObject* object, const ModelInstance* src_instance)
@@ -2717,13 +2868,6 @@ ModelMaterial* ModelVolume::material() const
     return this->object->get_model()->get_material(m_material_id);
 }
 
-void ModelVolume::set_material(t_model_material_id material_id, const ModelMaterial &material)
-{
-    m_material_id = material_id;
-    if (! material_id.empty())
-        this->object->get_model()->add_material(material_id, material);
-}
-
 // Extract the current extruder ID based on this ModelVolume's config and the parent ModelObject's config.
 int ModelVolume::extruder_id() const
 {
@@ -2971,6 +3115,8 @@ ModelVolumeType ModelVolume::type_from_string(const std::string &s)
 		return ModelVolumeType::PRECISE_SEAM_BLOCKED;
     if (s == "precise_seam_neutral")
 		return ModelVolumeType::PRECISE_SEAM_NEUTRAL;
+    if (s == "painted_modifier")
+		return ModelVolumeType::PAINTED_MODIFIER;
     //assert(s == "0");
     // Default value if invalud type string received.
 	return ModelVolumeType::MODEL_PART;
@@ -2991,6 +3137,7 @@ std::string ModelVolume::type_to_string(const ModelVolumeType t)
 	case ModelVolumeType::PRECISE_SEAM_ENFORCED: return "precise_seam_enforced";
 	case ModelVolumeType::PRECISE_SEAM_BLOCKED:  return "precise_seam_blocked";
 	case ModelVolumeType::PRECISE_SEAM_NEUTRAL:  return "precise_seam_neutral";
+	case ModelVolumeType::PAINTED_MODIFIER:      return "painted_modifier";
     default:
         assert(false);
         return "normal_part";
@@ -3115,6 +3262,7 @@ void ModelVolume::assign_new_unique_ids_recursive()
     seam_facets.set_new_unique_id();
     mmu_segmentation_facets.set_new_unique_id();
     fuzzy_skin_facets.set_new_unique_id();
+    painted_modifier_facets.set_new_unique_id();
     // As set_new_unique_id() already does: the undo/redo stack stores FacetsAnnotation contents keyed
     // by ObjectID, so a clone left sharing these ids with its source can be handed the source's mask
     // on an undo - after which a paint mask and the mesh it was recorded against no longer match.
@@ -4333,6 +4481,15 @@ bool model_fuzzy_skin_data_changed(const ModelObject &mo, const ModelObject &mo_
     return model_property_changed(mo, mo_new,
         [](const ModelVolumeType t) { return t == ModelVolumeType::MODEL_PART; },
         [](const ModelVolume &mv_old, const ModelVolume &mv_new){ return mv_old.fuzzy_skin_facets.timestamp_matches(mv_new.fuzzy_skin_facets); });
+}
+
+bool model_painted_modifier_data_changed(const ModelObject &mo, const ModelObject &mo_new)
+{
+    return model_property_changed(mo, mo_new,
+        [](const ModelVolumeType t) { return t == ModelVolumeType::PAINTED_MODIFIER; },
+        [](const ModelVolume &mv_old, const ModelVolume &mv_new) {
+            return mv_old.painted_modifier_facets.timestamp_matches(mv_new.painted_modifier_facets) && mv_old.painted_modifier_depth == mv_new.painted_modifier_depth;
+        });
 }
 
 bool model_brim_points_data_changed(const ModelObject& mo, const ModelObject& mo_new)

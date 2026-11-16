@@ -55,9 +55,15 @@ using tcp           = net::ip::tcp;
 using namespace std::chrono_literals;
 
 enum class Behavior {
+    HangsUp,               // Closes every connection without answering
     SilentBeforeHandshake, // Never answers the websocket upgrade
     Silent,                // Completes the websocket upgrade, then never reads or sends
     Answers,               // Sends a heartbeat, and the CFS slots once the heartbeat is acknowledged
+    ReportsNoCfs,          // Sends a status reporting no CFS connected, then never sends the CFS slots
+    ReportsCfs,            // Sends a status reporting a CFS connected, then the CFS slots
+    ReportsCfsSlowly,      // Sends a status reporting a CFS connected, then the CFS slots 1.5 s later
+    StreamsCfs,            // Sends a status reporting a CFS connected every 50 ms and never sends the CFS slots
+    StreamsCfsThenSlots,   // Sends 25 statuses reporting a CFS connected 50 ms apart, then the CFS slots
 };
 
 struct Message
@@ -97,6 +103,12 @@ public:
         return m_messages;
     }
 
+    int http_requests()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_http_requests;
+    }
+
     // Hangs up every connection that is waiting.
     void release()
     {
@@ -125,7 +137,7 @@ private:
         http::request<http::string_body> request;
         beast::error_code ec;
         http::read(socket, buffer, request, ec);
-        if (ec)
+        if (ec || m_behavior == Behavior::HangsUp)
             return;
         if (!websocket::is_upgrade(request)) {
             serve_http(socket, request);
@@ -157,15 +169,43 @@ private:
                 std::lock_guard<std::mutex> lock(m_mutex);
                 m_messages.push_back({ws.got_text(), payload});
             }
-            if (first)
+            const std::string slots = R"({"boxsInfo":{"materialBoxs":[]}})";
+            if (first && m_behavior == Behavior::ReportsNoCfs) {
+                ws.write(net::buffer(std::string(R"({"cfsConnect":0,"nozzleTemp":"25.000000"})")), ec);
+                wait_for_release();
+                return;
+            }
+            if (first && (m_behavior == Behavior::StreamsCfs || m_behavior == Behavior::StreamsCfsThenSlots)) {
+                const bool forever = m_behavior == Behavior::StreamsCfs;
+                for (int count = 0; !ec && !released() && (forever || count < 25); ++count) {
+                    ws.write(net::buffer(std::string(R"({"cfsConnect":1,"nozzleTemp":"25.000000"})")), ec);
+                    std::this_thread::sleep_for(50ms);
+                }
+                if (forever) {
+                    wait_for_release();
+                    return;
+                }
+                ws.write(net::buffer(slots), ec);
+                continue;
+            }
+            if (first && (m_behavior == Behavior::ReportsCfs || m_behavior == Behavior::ReportsCfsSlowly)) {
+                ws.write(net::buffer(std::string(R"({"cfsConnect":1,"nozzleTemp":"25.000000"})")), ec);
+                if (m_behavior == Behavior::ReportsCfsSlowly)
+                    std::this_thread::sleep_for(1500ms);
+                ws.write(net::buffer(slots), ec);
+            } else if (first)
                 ws.write(net::buffer(std::string(R"({"ModeCode":"heart_beat"})")), ec);
             else if (payload == "ok")
-                ws.write(net::buffer(std::string(R"({"boxsInfo":{"materialBoxs":[]}})")), ec);
+                ws.write(net::buffer(slots), ec);
         }
     }
 
     void serve_http(tcp::socket& socket, const http::request<http::string_body>& request)
     {
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            ++m_http_requests;
+        }
         http::response<http::string_body> response{http::status::ok, request.version()};
         response.keep_alive(false);
         // The upload only needs a success status.
@@ -173,6 +213,12 @@ private:
         response.prepare_payload();
         beast::error_code ec;
         http::write(socket, response, ec);
+    }
+
+    bool released()
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        return m_released;
     }
 
     void wait_for_release()
@@ -191,6 +237,7 @@ private:
     std::mutex m_mutex;
     std::condition_variable m_changed;
     std::vector<Message> m_messages;
+    int m_http_requests = 0;
     bool m_released = false;
 };
 
@@ -201,20 +248,27 @@ public:
     using CrealityPrint::ws_settings;
 };
 
-std::unique_ptr<TestHost> make_host(const FakeCrealityPrinter& printer, std::chrono::milliseconds deadline)
+DynamicPrintConfig host_config(const std::string& url)
 {
     DynamicPrintConfig config;
-    config.set_key_value("print_host", new ConfigOptionString(printer.base_url()));
+    config.set_key_value("print_host", new ConfigOptionString(url));
     config.set_key_value("print_host_webui", new ConfigOptionString(""));
     config.set_key_value("printhost_cafile", new ConfigOptionString(""));
     config.set_key_value("printhost_port", new ConfigOptionString(""));
     config.set_key_value("printhost_apikey", new ConfigOptionString(""));
     config.set_key_value("printhost_ssl_ignore_revoke", new ConfigOptionBool(false));
-    auto host                 = std::make_unique<TestHost>(&config);
-    host->ws_settings.port    = printer.port();
-    host->ws_settings.connect = deadline;
-    host->ws_settings.reply   = deadline;
-    host->ws_settings.close   = deadline;
+    return config;
+}
+
+std::unique_ptr<TestHost> make_host(const FakeCrealityPrinter& printer, std::chrono::milliseconds deadline)
+{
+    DynamicPrintConfig config     = host_config(printer.base_url());
+    auto host                     = std::make_unique<TestHost>(&config);
+    host->ws_settings.port        = printer.port();
+    host->ws_settings.connect     = deadline;
+    host->ws_settings.reply       = deadline;
+    host->ws_settings.slots_reply = deadline;
+    host->ws_settings.close       = deadline;
     return host;
 }
 
@@ -259,6 +313,75 @@ TEST_CASE("Querying the CFS slots gives a silent printer no more than its deadli
     CHECK(reply.empty());
 }
 
+TEST_CASE("The CFS slot query has a shorter default deadline than a command", "[CrealityPrint]")
+{
+    DynamicPrintConfig config = host_config("http://127.0.0.1");
+    const TestHost     host(&config);
+
+    CHECK(host.ws_settings.slots_reply < host.ws_settings.reply);
+}
+
+TEST_CASE("Querying the CFS slots waits on a silent printer for the slot deadline, not the command one", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::Silent, "F008");
+    const auto host         = make_host(printer, 200ms);
+    host->ws_settings.reply = 30s;
+    std::string reply;
+
+    CHECK(finishes_within(printer, 2s, [&] { reply = host->query_boxes_info(); }));
+    CHECK(reply.empty());
+}
+
+TEST_CASE("Querying the CFS slots stops at a status reporting no CFS connected", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::ReportsNoCfs, "K1C");
+    const auto host               = make_host(printer, 200ms);
+    host->ws_settings.slots_reply = 30s;
+    std::string reply;
+
+    CHECK(finishes_within(printer, 2s, [&] { reply = host->query_boxes_info(); }));
+    CHECK(reply.empty());
+}
+
+TEST_CASE("Querying the CFS slots waits past a status reporting a CFS connected", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::ReportsCfs, "K1C");
+    const auto host = make_host(printer, 5s);
+    bool no_cfs     = true;
+
+    CHECK(host->query_boxes_info(&no_cfs) == R"({"boxsInfo":{"materialBoxs":[]}})");
+    CHECK_FALSE(no_cfs);
+}
+
+TEST_CASE("A status reporting a CFS connected never shortens the CFS slot deadline", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::ReportsCfsSlowly, "K1C");
+    const auto host               = make_host(printer, 200ms);
+    host->ws_settings.slots_reply = 5s;
+
+    CHECK(host->query_boxes_info() == R"({"boxsInfo":{"materialBoxs":[]}})");
+}
+
+TEST_CASE("Querying the CFS slots keeps reading while the printer streams status updates", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::StreamsCfsThenSlots, "K1C");
+    const auto host         = make_host(printer, 1s);
+    host->ws_settings.reply = 5s;
+
+    CHECK(host->query_boxes_info() == R"({"boxsInfo":{"materialBoxs":[]}})");
+}
+
+TEST_CASE("Querying the CFS slots gives a printer reporting a CFS connected no more than the command deadline", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::StreamsCfs, "K1C");
+    const auto host         = make_host(printer, 200ms);
+    host->ws_settings.reply = 400ms;
+    std::string reply;
+
+    CHECK(finishes_within(printer, 2s, [&] { reply = host->query_boxes_info(); }));
+    CHECK(reply.empty());
+}
+
 TEST_CASE("Querying the CFS slots acknowledges heartbeats in text frames", "[CrealityPrint]")
 {
     FakeCrealityPrinter printer(Behavior::Answers, "F008");
@@ -271,6 +394,81 @@ TEST_CASE("Querying the CFS slots acknowledges heartbeats in text frames", "[Cre
     CHECK(nlohmann::json::parse(messages[0].payload) == nlohmann::json{{"method", "get"}, {"params", {{"boxsInfo", 1}}}});
     CHECK(messages[1].text);
     CHECK(messages[1].payload == "ok");
+}
+
+TEST_CASE("Reading a CFS-capable printer gives its name and CFS slots", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::Answers, "F008");
+    const auto host = make_host(printer, 5s);
+
+    const CrealityPrinterInfo info = host->read_printer_info();
+    CHECK(info.reachable);
+    CHECK(info.multi_color);
+    CHECK_FALSE(info.no_cfs);
+    CHECK(info.model_name == "K2 Plus");
+    CHECK(info.boxes_json == R"({"boxsInfo":{"materialBoxs":[]}})");
+}
+
+TEST_CASE("Reading a CFS-capable printer that reports no CFS connected flags it", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::ReportsNoCfs, "K1C");
+    const auto host               = make_host(printer, 200ms);
+    host->ws_settings.slots_reply = 30s;
+    CrealityPrinterInfo info;
+
+    CHECK(finishes_within(printer, 2s, [&] { info = host->read_printer_info(); }));
+    CHECK(info.multi_color);
+    CHECK(info.no_cfs);
+    CHECK(info.boxes_json.empty());
+}
+
+TEST_CASE("Reading a printer without CFS support does not query the slots", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::Answers, "F001");
+    const auto host = make_host(printer, 5s);
+
+    const CrealityPrinterInfo info = host->read_printer_info();
+    CHECK(info.reachable);
+    CHECK_FALSE(info.multi_color);
+    CHECK(info.model_name == "unknown (F001)");
+    CHECK(info.boxes_json.empty());
+    CHECK(printer.messages().empty());
+}
+
+TEST_CASE("Reading a printer that names no model asks for its info once", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::Answers, "");
+    const auto host = make_host(printer, 5s);
+
+    const CrealityPrinterInfo info = host->read_printer_info();
+    CHECK(info.reachable);
+    CHECK(info.model_name == "unknown");
+    CHECK(printer.http_requests() == 1);
+}
+
+TEST_CASE("Reading a CFS-capable printer that never answers the slot query gives no slots within the deadlines", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::Silent, "K1C");
+    const auto host = make_host(printer, 200ms);
+    CrealityPrinterInfo info;
+
+    CHECK(finishes_within(printer, 2s, [&] { info = host->read_printer_info(); }));
+    CHECK(info.reachable);
+    CHECK(info.multi_color);
+    CHECK_FALSE(info.no_cfs);
+    CHECK(info.model_name == "K1C");
+    CHECK(info.boxes_json.empty());
+}
+
+TEST_CASE("Reading a printer that hangs up reports it unreachable", "[CrealityPrint]")
+{
+    FakeCrealityPrinter printer(Behavior::HangsUp, "K1C");
+    const auto host = make_host(printer, 5s);
+
+    const CrealityPrinterInfo info = host->read_printer_info();
+    CHECK_FALSE(info.reachable);
+    CHECK_FALSE(info.multi_color);
+    CHECK(info.boxes_json.empty());
 }
 
 TEST_CASE("Starting a print gives a silent printer no more than its deadlines", "[CrealityPrint]")
@@ -297,13 +495,15 @@ TEST_CASE("Starting a print gives a silent printer no more than its deadlines", 
 
 TEST_CASE("Starting a print sends each command with the G-code path in a text frame", "[CrealityPrint]")
 {
-    // F008 is a multi-color model and F001 a plain one. K1-family models keep their G-code under /usr/data.
+    // F008 is a multi-color model and F018 a plain one. K1C, F005 (Ender-3 V3 KE) and F016 (K2 SE) keep their G-code under /usr/data.
     // Only a mapping onto CFS slots starts a multi-color print; a printer that listed no slots starts plainly.
     const std::map<std::string, std::string> cfs_mapping = {{"enableSelfTest", "0"}, {"colorMatch_0", "T1A\tPLA\t#FF0000\t1\t0"}};
     const auto [model, extended_info, commands, gcode] = GENERATE_REF(table<std::string, std::map<std::string, std::string>, std::vector<std::string>, std::string>({
         {"F008", cfs_mapping, {"colorMatch", "multiColorPrint"}, "/mnt/UDISK/printer_data/gcodes/test.gcode"},
         {"F008", {}, {"opGcodeFile"}, "printprt:/mnt/UDISK/printer_data/gcodes/test.gcode"},
-        {"F001", {}, {"opGcodeFile"}, "printprt:/mnt/UDISK/printer_data/gcodes/test.gcode"},
+        {"F018", {}, {"opGcodeFile"}, "printprt:/mnt/UDISK/printer_data/gcodes/test.gcode"},
+        {"F005", {}, {"opGcodeFile"}, "printprt:/usr/data/printer_data/gcodes/test.gcode"},
+        {"F016", cfs_mapping, {"colorMatch", "multiColorPrint"}, "/usr/data/printer_data/gcodes/test.gcode"},
         {"K1C", cfs_mapping, {"colorMatch", "multiColorPrint"}, "/usr/data/printer_data/gcodes/test.gcode"},
         {"K1C", {}, {"opGcodeFile"}, "printprt:/usr/data/printer_data/gcodes/test.gcode"},
     }));
