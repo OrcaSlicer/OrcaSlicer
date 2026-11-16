@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <atomic>
 #include <future>
 #include <map>
 #include <memory>
@@ -152,19 +153,25 @@ std::string http_post(const std::string& url, const std::vector<std::pair<std::s
     Http http = Http::post(url);
     for (const auto& h : headers) http.header(h.first, h.second);
     http.header("Content-Type", "application/json");
-    http.set_post_body(body).timeout_connect(20).timeout_max(600);
+    http.tls_verify(true).set_post_body(body).timeout_connect(20).timeout_max(600);   // the API key and the chat go over this: verify the server
     auto prom = std::make_shared<std::promise<std::pair<bool, std::string>>>();
     auto fut  = prom->get_future();
-    http.on_complete([prom](std::string b, unsigned) { prom->set_value({true, std::move(b)}); })
-        .on_error([prom](std::string b, std::string e, unsigned status) {
-            // Providers put the useful sentence in the body ({"error":{"message":...}}).
-            const json j = json::parse(b, nullptr, false);
-            std::string msg;
-            if (j.is_object() && j.contains("error")) msg = j["error"].is_object() ? j["error"].value("message", j["error"].dump()) : j["error"].dump();
-            prom->set_value({false, "HTTP " + std::to_string(status) + ": " + (msg.empty() ? e : msg)});
-        });
+    // Http calls neither handler on cancel, so the canceller settles the promise too; whichever comes first wins.
+    auto once   = std::make_shared<std::atomic<bool>>(false);
+    auto settle = [prom, once](bool ok, std::string s) { if (!once->exchange(true)) prom->set_value({ok, std::move(s)}); };
+    auto fail   = [settle](const std::string& b, const std::string& e, unsigned status) {
+        // Providers put the useful sentence in the body ({"error":{"message":...}}).
+        const json j = json::parse(b, nullptr, false);
+        std::string msg;
+        if (j.is_object() && j.contains("error")) msg = j["error"].is_object() ? j["error"].value("message", j["error"].dump()) : j["error"].dump();
+        settle(false, "HTTP " + std::to_string(status) + ": " + (msg.empty() ? e : msg));
+    };
+    http.on_complete([settle, fail](std::string b, unsigned status) {
+            if (status >= 200 && status < 300) settle(true, std::move(b)); else fail(b, "", status);   // a 3xx is no answer either
+        })
+        .on_error([fail](std::string b, std::string e, unsigned status) { fail(b, e, status); });
     Http::Ptr running = http.perform();
-    set_canceller([running]() { running->cancel(); });
+    set_canceller([running, settle]() { running->cancel(); settle(false, "stopped"); });
     auto r = fut.get();
     set_canceller({});
     if (!r.first) err = r.second;
@@ -231,12 +238,14 @@ bool llm_agent_is_api(const std::string& a) { return a == "anthropic" || a == "o
 
 std::string llm_api_key(const std::string& provider)
 {
-    for (const char* v : {"ORCA_LLM_API_KEY", provider == "anthropic" ? "ANTHROPIC_API_KEY" : provider == "openai" ? "OPENAI_API_KEY" : "ORCA_LLM_UNSET"})
-        if (const char* e = std::getenv(v); e && *e) return e;
+    // The key the user saved for this provider comes first; the environment is only a fallback, so an OPENAI_API_KEY never
+    // reaches another provider just because the agent points elsewhere.
     wxSecretStore store = wxSecretStore::GetDefault();
     wxString      user;
     wxSecretValue value;
     if (store.IsOk() && store.Load(wxString::FromUTF8(kService) + " " + provider, user, value)) return std::string(value.GetAsString().ToUTF8());
+    for (const char* v : {"ORCA_LLM_API_KEY", provider == "anthropic" ? "ANTHROPIC_API_KEY" : provider == "openai" ? "OPENAI_API_KEY" : "ORCA_LLM_UNSET"})
+        if (const char* e = std::getenv(v); e && *e) return e;
     return {};
 }
 

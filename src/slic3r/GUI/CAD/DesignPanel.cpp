@@ -8054,6 +8054,7 @@ void DesignPanel::on_sys_color_changed()
     refresh_tree();   // the rows carry their own text colours
     refresh_pinned();
     rebuild_constraint_list();
+    if (m_llm_panel) m_llm_panel->on_sys_color_changed();
     Refresh();
 }
 

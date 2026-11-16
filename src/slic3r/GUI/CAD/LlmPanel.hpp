@@ -18,11 +18,13 @@
 #include <wx/webview.h>
 #include <wx/string.h>
 
-class wxButton;
-class wxCheckBox;
 class wxPanel;
 class wxStaticText;
 class wxTextCtrl;
+class wxBoxSizer;
+class Button;      // Orca's own widgets (Widgets/), not the plain wx ones
+class CheckBox;
+class TextInput;
 
 namespace Slic3r { namespace GUI {
 
@@ -35,6 +37,7 @@ public:
     ~LlmPanel() override;
 
     void focus_input();
+    void on_sys_color_changed();   // theme switch: the colours the panel set itself, and the chat page
     // The chat as JSON for the project file (empty when the user chose not to save it), and the way back in.
     void set_chat_sink(std::function<void(const std::string&)> sink) { m_chat_sink = std::move(sink); }
     void load_chat(const std::string& json);
@@ -59,19 +62,20 @@ private:
     wxWebView*    m_web    = nullptr;
     bool          m_render_pending = false;
     wxTextCtrl*   m_input  = nullptr;
-    wxButton*     m_send   = nullptr;
-    wxButton*     m_stop   = nullptr;
-    wxButton*     m_new    = nullptr;
-    wxButton*     m_attach = nullptr;
-    wxCheckBox*   m_view   = nullptr;
+    TextInput*    m_input_box = nullptr;   // m_input lives inside it
+    Button*       m_send   = nullptr;
+    Button*       m_stop   = nullptr;
+    Button*       m_new    = nullptr;
+    Button*       m_attach = nullptr;
+    CheckBox*     m_view   = nullptr;
     wxStaticText* m_files_lbl = nullptr;
     std::vector<std::string> m_files;   // attached files for the next message
     wxStaticText* m_status = nullptr;
     wxStaticText* m_agent_lbl = nullptr;   // header: "opencode · model"
     wxStaticText* m_setup_lbl = nullptr;   // header: why the agent is not ready
-    wxButton*     m_gear      = nullptr;
+    Button*       m_gear      = nullptr;
     wxPanel*      m_settings  = nullptr;   // the settings section (hidden until the Settings button)
-    wxCheckBox*   m_raw       = nullptr;   // show the raw tool call under each action
+    CheckBox*     m_raw       = nullptr;   // show the raw tool call under each action
     wxPanel*      m_examples  = nullptr;   // empty state: click-to-fill prompts
     wxPanel*      m_result    = nullptr;   // end of turn: "N edits" + Undo this turn
     wxStaticText* m_result_lbl = nullptr;
@@ -80,7 +84,7 @@ private:
     std::vector<Line> m_hist;            // what the log shows, so it can be saved and restored
     wxColour      m_fg;                  // body text colour of a reply
     bool          m_nosave = false;      // this project keeps no chat; stored in the 3MF as the text "off"
-    wxCheckBox*   m_nosave_cb = nullptr;
+    CheckBox*     m_nosave_cb = nullptr;
     std::string   m_chat_json;           // last chat handed to / received from the project
     std::function<void(const std::string&)> m_chat_sink;
 

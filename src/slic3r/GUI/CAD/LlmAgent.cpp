@@ -215,8 +215,17 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
             } else {
             nlohmann::json j = {{"mcpServers", {{"orca-cad", {{"command", "python3"}, {"args", {bridge, sock}}}}}}};
             std::ofstream(cfg.string()) << j.dump();
+            // Only the CAD tools and Read of the attachment folders: no shell, no writes, no web, whatever the user's own Claude Code
+            // settings allow (--disallowedTools wins over any allow rule, --permission-mode default over a bypassPermissions setting).
+            // It starts in a private empty directory so a .claude/settings.json left in the shared temp folder is never picked up.
+            start_dir = tmp.string() + ".cc";
+            fs::create_directories(start_dir);
+            std::string allowed = "mcp__orca-cad";
+            for (const std::string& d : read_dirs) allowed += ",Read(/" + d + "/**)";   // d is absolute, so "//d/**" is an absolute path rule
             args = {"-p", prompt, "--output-format", "stream-json", "--verbose",
-                                             "--mcp-config", cfg.string(), "--strict-mcp-config", "--allowedTools", "mcp__orca-cad,Read",
+                                             "--mcp-config", cfg.string(), "--strict-mcp-config", "--allowedTools", allowed,
+                                             "--disallowedTools", "Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch,Task,TodoWrite",
+                                             "--permission-mode", "default",
                                              "--append-system-prompt", kSystemPrompt};
             for (const std::string& d : read_dirs) { args.push_back("--add-dir"); args.push_back(d); }
             if (!session_id.empty()) { args.push_back("--resume"); args.push_back(session_id); }
@@ -305,7 +314,7 @@ std::shared_ptr<LlmAgentRun> llm_agent_start(const std::string& prompt, const st
             err = e.what();
         }
         boost::system::error_code ec;
-        fs::remove(cfg, ec); fs::remove(errf, ec); fs::remove_all(tmp.string() + ".oc", ec);
+        fs::remove(cfg, ec); fs::remove(errf, ec); fs::remove_all(tmp.string() + ".oc", ec); fs::remove_all(tmp.string() + ".cc", ec);
         g_busy = false;
         post([done, ok, err]() { done(ok, err); });
     }).detach();

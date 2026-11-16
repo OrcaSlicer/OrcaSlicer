@@ -8,6 +8,11 @@
 #include <regex>
 #include "slic3r/GUI/Widgets/WebView.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/MsgDialog.hpp"
 #include <md4c/src/md4c.h>
 #include "md4c/src/md4c-html.h"
 #include <wx/webview.h>
@@ -76,6 +81,26 @@ bool is_read_only(const std::string& n)
         if (n.rfind(p, 0) == 0) return true;
     return false;
 }
+// Orca's CheckBox has no label of its own: the sizer holds the box and a label that toggles it.
+wxBoxSizer* check_row(wxWindow* parent, CheckBox*& cb, const wxString& label, const wxString& tip)
+{
+    cb = new CheckBox(parent);
+    auto* lbl = new wxStaticText(parent, wxID_ANY, label);
+    cb->SetToolTip(tip);
+    lbl->SetToolTip(tip);
+    CheckBox* c = cb;
+    lbl->Bind(wxEVT_LEFT_UP, [c](wxMouseEvent&) {
+        c->SetValue(!c->GetValue());
+        wxCommandEvent e(wxEVT_TOGGLEBUTTON, c->GetId());
+        e.SetEventObject(c);
+        e.SetInt(c->GetValue() ? 1 : 0);
+        c->GetEventHandler()->ProcessEvent(e);
+    });
+    auto* sz = new wxBoxSizer(wxHORIZONTAL);
+    sz->Add(cb, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, parent->FromDIP(4));
+    sz->Add(lbl, 0, wxALIGN_CENTER_VERTICAL);
+    return sz;
+}
 } // namespace
 
 LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::function<void(size_t)> drop_undo_to, std::function<void()> undo_turn)
@@ -85,28 +110,28 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
     , m_drop_undo_to(std::move(drop_undo_to))
     , m_undo_turn(std::move(undo_turn))
 {
+    SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));   // Orca's own widgets are drawn for the standard panel background
     m_log = new wxTextCtrl(this, wxID_ANY, wxString(), wxDefaultPosition, wxSize(FromDIP(320), FromDIP(200)),
                            wxTE_MULTILINE | wxTE_READONLY | wxTE_RICH2 | wxTE_WORDWRAP | wxBORDER_SIMPLE);
-    m_input = new wxTextCtrl(this, wxID_ANY, wxString(), wxDefaultPosition, wxSize(-1, FromDIP(64)),
-                             wxTE_MULTILINE | wxTE_PROCESS_ENTER | wxTE_WORDWRAP);
+    m_input_box = new ::TextInput(this, wxString(), "", "", wxDefaultPosition, wxSize(-1, FromDIP(64)), wxTE_MULTILINE | wxTE_PROCESS_ENTER | wxTE_WORDWRAP);
+    m_input     = m_input_box->GetTextCtrl();
     m_input->SetHint(_L("Ask the assistant to build or change the design. Enter sends, Shift+Enter adds a line."));
-    m_send = new wxButton(this, wxID_ANY, _L("Send"));
-    m_stop = new wxButton(this, wxID_ANY, _L("Stop"));
-    m_new  = new wxButton(this, wxID_ANY, _L("New chat"));
+    m_send = new Button(this, _L("Send"));
+    m_stop = new Button(this, _L("Stop"));
+    m_new  = new Button(this, _L("New chat"));
     m_status = new wxStaticText(this, wxID_ANY, wxString());
     m_stop->Hide();
-    m_attach = new wxButton(this, wxID_ANY, _L("Attach"));
+    m_attach = new Button(this, _L("Attach"));
     m_attach->SetToolTip(_L("Attach images, PDFs, text or CAD files (STEP, SolidWorks, Fusion...). You can also drop files here or paste an image."));
-    m_view = new wxCheckBox(this, wxID_ANY, _L("Look at the viewport"));
+    wxBoxSizer* view_row = check_row(this, m_view, _L("Look at the viewport"), _L("Send a screenshot of the viewport with the next message"));
     m_files_lbl = new wxStaticText(this, wxID_ANY, wxString());
     m_agent_lbl = new wxStaticText(this, wxID_ANY, wxString());
     m_agent_lbl->SetFont(m_agent_lbl->GetFont().Bold());
     m_setup_lbl = new wxStaticText(this, wxID_ANY, wxString());
     m_setup_lbl->SetForegroundColour(wxColour(190, 40, 40));
-    m_gear = new wxButton(this, wxID_ANY, _L("Settings"));
+    m_gear = new Button(this, _L("Settings"));
     m_gear->SetToolTip(_L("Agent, model, API key and the other assistant settings"));
-    m_raw = new wxCheckBox(this, wxID_ANY, _L("Raw calls"));
-    m_raw->SetToolTip(_L("Show the exact tool call under each action"));
+    wxBoxSizer* raw_row = check_row(this, m_raw, _L("Raw calls"), _L("Show the exact tool call under each action"));
     // Empty state: three prompts that work, one click to fill the box.
     m_examples = new wxPanel(this);
     auto* ex = new wxBoxSizer(wxVERTICAL);
@@ -114,7 +139,7 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
     for (const wxString& t : {_L("Make a 20 mm cube and fillet the top edges by 2 mm"),
                               _L("What is the volume and the bounding box of this part?"),
                               _L("Add a 6 mm hole through the centre of the top face")}) {
-        auto* b = new wxButton(m_examples, wxID_ANY, t, wxDefaultPosition, wxDefaultSize, wxBU_LEFT);
+        auto* b = new Button(m_examples, t);
         b->Bind(wxEVT_BUTTON, [this, t](wxCommandEvent&) { m_input->SetValue(t); m_input->SetFocus(); m_input->SetInsertionPointEnd(); });
         ex->Add(b, 0, wxEXPAND | wxBOTTOM, FromDIP(4));
     }
@@ -123,7 +148,7 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
     m_result = new wxPanel(this);
     auto* rs = new wxBoxSizer(wxHORIZONTAL);
     m_result_lbl = new wxStaticText(m_result, wxID_ANY, wxString());
-    auto* undo = new wxButton(m_result, wxID_ANY, _L("Undo this turn"));
+    auto* undo = new Button(m_result, _L("Undo this turn"));
     rs->Add(m_result_lbl, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
     rs->Add(undo, 0);
     m_result->SetSizer(rs);
@@ -136,7 +161,7 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
     row->Add(m_stop, 0, wxRIGHT, FromDIP(6));
     row->Add(m_send, 0);
     auto* head = new wxBoxSizer(wxHORIZONTAL);
-    head->Add(m_raw, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+    head->Add(raw_row, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
     head->Add(m_gear, 0);
     auto* col = new wxBoxSizer(wxVERTICAL);
     col->Add(m_agent_lbl, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(6));
@@ -158,10 +183,10 @@ LlmPanel::LlmPanel(wxWindow* parent, std::function<size_t()> undo_depth, std::fu
     }
     col->Add(m_log, m_web ? 0 : 1, wxEXPAND | wxALL, m_web ? 0 : FromDIP(6));
     col->Add(m_result, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
-    col->Add(m_input, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
+    col->Add(m_input_box, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(6));
     auto* att = new wxBoxSizer(wxHORIZONTAL);
     att->Add(m_attach, 0, wxRIGHT, FromDIP(6));
-    att->Add(m_view, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+    att->Add(view_row, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
     att->Add(m_files_lbl, 1, wxALIGN_CENTER_VERTICAL);
     col->Add(att, 0, wxEXPAND | wxALL, FromDIP(6));
     col->Add(row, 0, wxEXPAND | wxALL, FromDIP(6));
@@ -231,7 +256,7 @@ void LlmPanel::build_settings()
     static const std::vector<std::pair<const char*, const char*>> agents = {
         {"claude", "Claude Code"}, {"opencode", "opencode"}, {"agy", "Antigravity (agy)"},
         {"anthropic", "Anthropic API"}, {"openai", "OpenAI-compatible API"}, {"ollama", "Ollama (local)"}};
-    auto* agent = new wxChoice(m_settings, wxID_ANY);
+    auto* agent = new ComboBox(m_settings, wxID_ANY, wxString(), wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_READONLY);
     int sel = 0;
     for (size_t i = 0; i < agents.size(); ++i) {
         agent->Append(wxString::FromUTF8(agents[i].second));
@@ -239,16 +264,16 @@ void LlmPanel::build_settings()
     }
     agent->SetSelection(sel);
     row(_L("Agent"), agent, _L("Claude Code runs with only the orca-cad tools and file reading. opencode and agy run with their own private config: every tool is denied except the orca-cad tools and reading files (no shell). The API agents run the tool loop inside this app."));
-    agent->Bind(wxEVT_CHOICE, [this, agent](wxCommandEvent&) {
+    agent->Bind(wxEVT_COMBOBOX, [this, agent](wxCommandEvent&) {
         const int i = agent->GetSelection();
         if (i >= 0 && i < int(agents.size()) && wxGetApp().app_config) wxGetApp().app_config->set("llm_agent", agents[size_t(i)].first);
         refresh_header();
     });
     auto text = [&](const wxString& label, const char* key, const wxString& tip) {
-        auto* t = new wxTextCtrl(m_settings, wxID_ANY, cfg ? wxString::FromUTF8(cfg->get(key)) : wxString());
+        auto* t = new ::TextInput(m_settings, cfg ? wxString::FromUTF8(cfg->get(key)) : wxString());
         row(label, t, tip);
-        t->Bind(wxEVT_TEXT, [this, t, key](wxCommandEvent&) {
-            if (wxGetApp().app_config) wxGetApp().app_config->set(key, std::string(t->GetValue().ToUTF8()));
+        t->GetTextCtrl()->Bind(wxEVT_TEXT, [this, t, key](wxCommandEvent&) {
+            if (wxGetApp().app_config) wxGetApp().app_config->set(key, std::string(t->GetTextCtrl()->GetValue().ToUTF8()));
             refresh_header();
         });
     };
@@ -257,39 +282,40 @@ void LlmPanel::build_settings()
     text(_L("API URL"), "llm_api_url", _L("API agents only. Empty = the provider's own (Anthropic, OpenAI) or http://localhost:11434/v1 for Ollama. Any OpenAI-compatible server works: set its /v1 address."));
     text(_L("Extra arguments"), "llm_cli_args", _L("Appended to the agent's command line, split on spaces."));
     text(_L("Loopback TCP port"), "llm_mcp_port", _L("0 or empty: off. Otherwise the app's control socket also listens on 127.0.0.1:<port>, for MCP clients that cannot open a Unix socket. Every request must carry the token in <config folder>/mcp_tcp_token (or ORCA_CAD_MCP_TOKEN). Needs a restart. The assistant itself does not use it."));
-    auto* sugg = new wxCheckBox(m_settings, wxID_ANY, _L("Show suggestions"));
+    CheckBox* sugg = nullptr;
+    wxBoxSizer* sugg_row = check_row(m_settings, sugg, _L("Show suggestions"), _L("The example prompts shown in an empty chat. Switch them off once you know what to ask."));
     sugg->SetValue(!(cfg && cfg->get("llm_hide_suggestions") == "1"));
-    sugg->SetToolTip(_L("The example prompts shown in an empty chat. Switch them off once you know what to ask."));
-    sugg->Bind(wxEVT_CHECKBOX, [this, sugg](wxCommandEvent&) {
+    sugg->Bind(wxEVT_TOGGLEBUTTON, [this, sugg](wxCommandEvent&) {
         if (wxGetApp().app_config) wxGetApp().app_config->set("llm_hide_suggestions", sugg->GetValue() ? "0" : "1");
         show_examples(m_hist.empty());
     });
-    auto* nosave = new wxCheckBox(m_settings, wxID_ANY, _L("Do not save the chat in this project"));
+    CheckBox* nosave = nullptr;
+    wxBoxSizer* nosave_row = check_row(m_settings, nosave, _L("Do not save the chat in this project"),
+        _L("By default the chat is saved inside the project (.3mf) so it comes back when you reopen it. Tick this to keep this project's chat out of its saved file. The choice belongs to the project."));
     m_nosave_cb = nosave;
-    nosave->SetToolTip(_L("By default the chat is saved inside the project (.3mf) so it comes back when you reopen it. Tick this to keep this project's chat out of its saved file. The choice belongs to the project."));
-    nosave->Bind(wxEVT_CHECKBOX, [this, nosave](wxCommandEvent&) { m_nosave = nosave->GetValue(); save_chat(); });
-    auto* key = new wxButton(m_settings, wxID_ANY, _L("API key..."));
+    nosave->Bind(wxEVT_TOGGLEBUTTON, [this, nosave](wxCommandEvent&) { m_nosave = nosave->GetValue(); save_chat(); });
+    auto* key = new Button(m_settings, _L("API key..."));
     key->SetToolTip(_L("API agents only. Stored in the system keyring, never in the settings file. The ANTHROPIC_API_KEY / OPENAI_API_KEY / ORCA_LLM_API_KEY environment variables also work."));
     key->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         const std::string a = wxGetApp().app_config ? wxGetApp().app_config->get("llm_agent") : std::string();
         if (!llm_agent_is_api(a)) {
-            wxMessageBox(_L("Choose an API agent (Anthropic, OpenAI-compatible or Ollama) first."), _L("API key"), wxOK | wxICON_INFORMATION, this);
+            MessageDialog(this, _L("Choose an API agent (Anthropic, OpenAI-compatible or Ollama) first."), _L("API key"), wxOK | wxICON_INFORMATION).ShowModal();
             return;
         }
         wxPasswordEntryDialog dlg(this, _L("API key for the selected provider. It is kept in the system keyring. Leave empty to remove the stored key."), _L("API key"));
         if (dlg.ShowModal() != wxID_OK) return;
         const bool ok = llm_api_key_save(a, std::string(dlg.GetValue().ToUTF8()));
-        wxMessageBox(ok ? _L("Saved in the system keyring.") : _L("The system keyring is not available; use the ANTHROPIC_API_KEY or OPENAI_API_KEY environment variable instead."),
-                     _L("API key"), wxOK | (ok ? wxICON_INFORMATION : wxICON_WARNING), this);
+        MessageDialog(this, ok ? _L("Saved in the system keyring.") : _L("The system keyring is not available; use the ANTHROPIC_API_KEY or OPENAI_API_KEY environment variable instead."),
+                      _L("API key"), wxOK | (ok ? wxICON_INFORMATION : wxICON_WARNING)).ShowModal();
         refresh_header();
     });
-    auto* test = new wxButton(m_settings, wxID_ANY, _L("Test the agent"));
+    auto* test = new Button(m_settings, _L("Test the agent"));
     test->SetToolTip(_L("Starts the agent against this app's MCP and asks it to read the open document."));
     test->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         llm_agent_run("Use the orca-cad MCP tools: call inspect_design once, then reply with one short sentence saying how many bodies the open document has.",
                       [this](bool ok, const std::string& reply) {
-            wxMessageBox(wxString::FromUTF8(reply.empty() ? std::string("(no output)") : reply), ok ? _L("Agent test: OK") : _L("Agent test: failed"),
-                         wxOK | (ok ? wxICON_INFORMATION : wxICON_ERROR), this);
+            MessageDialog(this, wxString::FromUTF8(reply.empty() ? std::string("(no output)") : reply), ok ? _L("Agent test: OK") : _L("Agent test: failed"),
+                          wxOK | (ok ? wxICON_INFORMATION : wxICON_ERROR)).ShowModal();
         });
     });
     const std::string sock = mcp_socket_path();
@@ -299,8 +325,8 @@ void LlmPanel::build_settings()
     btns->Add(test, 0);
     auto* col = new wxBoxSizer(wxVERTICAL);
     col->Add(grid, 0, wxEXPAND | wxALL, FromDIP(6));
-    col->Add(nosave, 0, wxLEFT | wxRIGHT, FromDIP(6));
-    col->Add(sugg, 0, wxLEFT | wxRIGHT, FromDIP(6));
+    col->Add(nosave_row, 0, wxLEFT | wxRIGHT, FromDIP(6));
+    col->Add(sugg_row, 0, wxLEFT | wxRIGHT, FromDIP(6));
     col->Add(btns, 0, wxALL, FromDIP(6));
     col->Add(note, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(6));
     m_settings->SetSizer(col);
@@ -390,6 +416,20 @@ void LlmPanel::render()
 }
 
 void LlmPanel::focus_input() { m_input->SetFocus(); }
+
+// A theme switch: the reply colour was taken once at construction, so take it again (and move the saved lines that carry it),
+// give the native controls the app's dark pass, and redraw the chat page, which is built from the current colours.
+void LlmPanel::on_sys_color_changed()
+{
+    const wxColour now = StateColor::darkModeColorFor(wxColour("#262E30"));
+    for (Line& l : m_hist)
+        if (wxColour(l.rgb) == m_fg) l.rgb = now.GetRGB();
+    m_fg = now;
+    SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
+    wxGetApp().UpdateDarkUIWin(this);
+    render();
+    Refresh();
+}
 
 void LlmPanel::append(const wxString& text, const wxColour& colour, bool bold)
 {

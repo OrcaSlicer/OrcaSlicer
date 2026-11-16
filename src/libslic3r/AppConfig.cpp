@@ -412,7 +412,7 @@ void AppConfig::set_defaults()
         set_bool("show_3d_navigator", true);
 
     if (get("navigator_corner").empty())
-        set("navigator_corner", "top_right");
+        set("navigator_corner", "bottom_left");
 
     if (get("design_attached_follow_move").empty())
         set_bool("design_attached_follow_move", true);
