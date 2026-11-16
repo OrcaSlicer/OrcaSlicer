@@ -8,9 +8,12 @@ setting: it changes nothing in the model, the slice or the project file, and it 
 plate thumbnails.
 
 The user controls it from the section button of the canvas toolbar in the bottom left corner of
-the 3D view. The button opens a panel above it with a slider for the depth of the cut, a "Set
-viewing angle" button that turns the plane to face the camera at the same depth, and a button that
-resets the depth to zero. The panel is an ordinary overlay window, not a popup, so the scene keeps
+the 3D view. The button opens a panel above it with a slider and a box for the depth of the cut in
+percent, which the mouse wheel over them also moves by 1%, a "Set viewing angle" button that turns
+the plane to face the camera at the same depth, a "Follow
+camera" checkbox that keeps it facing the camera, and a button that resets the depth to zero.
+Opening the panel while the section is off switches it on at 50%. The panel is an ordinary overlay
+window, not a popup, so the scene keeps
 taking clicks and drags while it is open; the button or Esc closes it again. Esc closes the panel
 before it closes a gizmo or clears the selection. The button is highlighted
 while a section cuts the scene and has shortcuts of its own: the mouse wheel over it moves the
@@ -29,7 +32,9 @@ tab keep their own. The section itself is two values.
 - **Normal**, taken from the camera direction the first time the section is switched on, and
   again whenever the user sets the viewing angle. The plane keeps that orientation while the
   camera orbits and while the section is off, so the cut face can be seen from any side and
-  bringing the depth back to 0 does not lose the angle.
+  bringing the depth back to 0 does not lose the angle. With "Follow camera" on, the normal is
+  instead taken from the camera at the start of each frame, before anything draws or picks, so the
+  plane turns around the center of the sphere and always faces the viewer.
 
 The ratio in use when the section is switched off is kept, and the right click on the button
 brings the section back at that ratio, which restores the same cut. Whether the panel is open is
@@ -55,8 +60,12 @@ closes the open gizmo, so neither tab ever shows a stale cut.
   uniform serves the gouraud, phong and X-ray passes and the colour picking pass.
 - **Cut faces.** Clipping only discards fragments, which would leave the cut volumes hollow.
   `_render_section_view_caps()` draws their cut faces with one `MeshClipper` per model part the
-  plane passes through. A clipper recomputes its face only when the plane or the volume moves.
-  Modifiers, the wipe tower and SLA auxiliaries get no face.
+  plane passes through. A clipper recomputes its face only when the plane or the volume moves,
+  which with "Follow camera" on means every frame the camera moves.
+  Each face is drawn unlit in its part's render colour, so it follows the part's selection and
+  disabled states. The lit faces of a part show between about a third of that colour and most of
+  it, so the cut face is darkened below that range, or lifted above it on a dark part, to read as
+  the inside. Modifiers, the wipe tower and SLA auxiliaries get no face.
 - **Toolpaths.** libvgcode takes the plane through `Viewer::set_clipping_plane()`. It draws each
   extrusion as only the faces of a diamond-section prism that turn towards the camera, so
   discarding the fragments on the clipped side would leave open shells. Instead, the segment
@@ -71,6 +80,8 @@ closes the open gizmo, so neither tab ever shows a stale cut.
   Preview shells are drawn by another shader and are not clipped.
 - **Picking.** `get_raycaster_clipping_plane()` returns the same plane, so hover, selection and
   the perspective pan anchor ignore what the user cannot see.
+- **Center of mass markers.** Drawn without the depth test, they would show through the cut, so
+  each is cut away whole by its centre, as the option markers are.
 
 ## Gizmos
 

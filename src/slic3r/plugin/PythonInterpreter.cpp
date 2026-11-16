@@ -21,6 +21,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/dll/runtime_symbol_info.hpp>
 #include <boost/nowide/convert.hpp>
+#include <boost/system/error_code.hpp>
 #include <cstring>
 #include <ctime>
 #include <iomanip>
@@ -456,8 +457,10 @@ std::string PythonInterpreter::bundled_uv_path()
 {
     namespace fs = boost::filesystem;
 
+    // The error_code overloads treat an uninspectable path (e.g. an unrecognized Windows volume) as absent.
+    boost::system::error_code ec;
     const fs::path configured_uv = ORCA_BUNDLED_UV_EXECUTABLE;
-    if (!configured_uv.empty() && fs::exists(configured_uv) && fs::is_regular_file(configured_uv))
+    if (!configured_uv.empty() && fs::is_regular_file(configured_uv, ec))
         return configured_uv.string();
 
     // <binary dir>/tools/uv covers the macOS bundle (Contents/MacOS/tools/uv)
@@ -470,7 +473,7 @@ std::string PythonInterpreter::bundled_uv_path()
     };
 
     for (const fs::path& candidate : candidates) {
-        if (fs::exists(candidate) && fs::is_regular_file(candidate))
+        if (fs::is_regular_file(candidate, ec))
             return candidate.string();
     }
 
@@ -600,6 +603,14 @@ bool PythonInterpreter::initialize()
             BOOST_LOG_TRIVIAL(warning) << "Failed to set the Python bytecode cache to " << pycache_prefix << ": "
                                        << (status.err_msg ? status.err_msg : "unknown error");
 
+        // Looked up before the interpreter exists: a throw after scoped_interpreter is created would
+        // leave it running and make the next initialize() attempt fail with "already running".
+        const std::string uv_path = bundled_uv_path();
+        if (!uv_path.empty())
+            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable found at: " << uv_path;
+        else
+            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable not found";
+
         // Use pybind11's scoped_interpreter which properly initializes
         // pybind11 internals for multi-threaded use — raw Py_InitializeFromConfig
         // does not set up thread state tracking that pybind11 requires.
@@ -654,12 +665,6 @@ bool PythonInterpreter::initialize()
             else
                 BOOST_LOG_TRIVIAL(warning) << path_error;
         }
-
-        const std::string uv_path = bundled_uv_path();
-        if (!uv_path.empty())
-            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable found at: " << uv_path;
-        else
-            BOOST_LOG_TRIVIAL(info) << "Bundled uv executable not found";
 
         PluginAuditManager::instance().install_hook();
 
@@ -759,6 +764,18 @@ int PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds timeout
                 .count();
         };
 
+        // A hook thread an earlier call gave up on may still be running the hooks. Py_Finalize must
+        // not start under it: stopped there, it unwinds through the lambda below and releases
+        // Python objects without the GIL. It is waited for and counted like this call's own.
+        constexpr const char *hook_thread_name = "orca-threading-atexit";
+        for (const pybind11::handle thread : threading.attr("enumerate")()) {
+            if (thread.attr("name").cast<std::string>() != hook_thread_name)
+                continue;
+            thread.attr("join")(seconds_left());
+            if (thread.attr("is_alive")().cast<bool>())
+                return 1;
+        }
+
         // An idle concurrent.futures worker only ends once the hooks registered with
         // threading._register_atexit() tell it to, which Py_Finalize does before it joins the
         // threads. They run first here, on a daemon thread: a hook joins its workers without a
@@ -770,7 +787,7 @@ int PythonInterpreter::join_non_daemon_threads(std::chrono::milliseconds timeout
                                                  for (pybind11::ssize_t i = calls.size(); i-- > 0;)
                                                      calls[i]();
                                              }),
-                                             pybind11::arg("name") = "orca-threading-atexit", pybind11::arg("daemon") = true);
+                                             pybind11::arg("name") = hook_thread_name, pybind11::arg("daemon") = true);
             hooks.attr("start")();
             hooks.attr("join")(seconds_left());
         }

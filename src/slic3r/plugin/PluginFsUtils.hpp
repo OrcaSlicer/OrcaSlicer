@@ -4,6 +4,7 @@
 
 #include <boost/filesystem/path.hpp>
 
+#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
@@ -25,10 +26,18 @@ struct PluginPermissions
     std::vector<std::string> network_http;
     std::vector<std::string> network_socket;
     std::vector<std::string> process;
-    std::vector<std::string> threading;
+    // Thread creation is a yes/no grant. Newer sidecars store a boolean; older ones stored an
+    // array (empty when denied, nonempty when granted), and nonempty strings are accepted by the
+    // same migration rule. The reader never rewrites; the next normal write emits a boolean.
+    bool threading = false;
     // Grants for audit events that expose no target, keyed "<category>:<event>" (e.g.
     // "Socket:socket.__new__"). Matched verbatim; the filesystem wildcard does not apply.
     std::vector<std::string> events;
+    // Turns auditing off for the whole plugin: every audited event is allowed without a grant or
+    // prompt, except the unconditional denied paths (the install-state sidecar, the app config,
+    // the cloud refresh token), which stay blocked. Stored as a JSON boolean; a missing or
+    // non-boolean value reads as false. This is a Python audit-hook policy, not an OS sandbox.
+    bool full_access = false;
 };
 
 struct PluginInstallState {
@@ -107,10 +116,29 @@ std::vector<std::string> collect_resource_texture_files(const std::string& dir,
                                                         const std::string& plugin_root,
                                                         std::string& error);
 
+// Process-wide mutex serializing every in-process read and read-modify-write of a plugin's
+// .install_state.json sidecar. Hold it across the read and the matching write so two writers
+// cannot overwrite each other's grants, and around standalone reads so a reader cannot observe a
+// state while another thread is replacing it. It is not a file lock: another OrcaSlicer process
+// writing the same sidecar is not serialized.
+//
+// Lock order: install-state mutex -> PluginManager::m_mutex. Code that already holds the manager
+// lock must not acquire this one.
+std::mutex& install_state_mutex();
+
 // Canonical writer: emits the .install_state.json schema for the given state.
+// The file is replaced strictly atomically: the payload is written to a uniquely named temporary
+// in the sidecar's own directory, flushed and closed with the stream state checked, then moved
+// over the target with the platform replace primitive (POSIX rename(2), Windows MoveFileExW with
+// MOVEFILE_REPLACE_EXISTING). There is no in-place fallback. On any failure the temporary is
+// removed and the original sidecar is left untouched; the function returns false.
+// A full read-modify-write caller must hold install_state_mutex() across its read and this write.
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginInstallState& state);
 
-// Builds a PluginInstallState from the descriptor and delegates to the canonical writer.
+// Builds a PluginInstallState from the descriptor and delegates to the canonical writer. This
+// overload reads the sidecar itself, so callers must hold install_state_mutex(). An existing
+// sidecar that cannot be read is never replaced: the write fails and leaves it untouched. A
+// missing sidecar is a new plugin, so the metadata is seeded and written.
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry, bool enabled,
                          const std::vector<std::pair<std::string, bool>>& capabilities);
 // Convenience overload: write(dir, entry, /*enabled=*/true, /*capabilities=*/{}).
@@ -122,10 +150,32 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
 // that creates a sidecar on demand.
 void seed_install_metadata(PluginInstallState& state, const PluginDescriptor& entry);
 
+// Outcome of a sidecar read. Callers that may write a sidecar must distinguish Absent from
+// Unreadable: a missing file is a new install whose metadata may be seeded, while an existing file
+// that cannot be parsed -- or that cannot be examined because of a filesystem error -- holds state
+// that must not be replaced. Only Absent and Readable are safe to overwrite.
+enum class InstallStateReadStatus {
+    Absent,    // no entry at the sidecar path
+    Readable,  // parsed successfully into `out`
+    Unreadable // the path exists but is not a regular readable file, or its contents are malformed
+};
+
+// Reads the sidecar and reports why it failed. `out` is only assigned on Readable. When `malformed`
+// is given, it is set to whether the result is Unreadable because the sidecar is a regular file
+// (not a link) that reads in full but does not parse as a JSON object, as opposed to a path that
+// cannot be examined, opened or read in full. Reading such a file again cannot recover it, so a
+// plugin load sets it aside (see plugin_loader::load); every other caller treats it as Unreadable.
+// Caller must hold install_state_mutex(); see the note on read_install_state below.
+InstallStateReadStatus read_install_state_status(const boost::filesystem::path& plugin_dir, PluginInstallState& out,
+                                                 bool* malformed = nullptr);
+
 // Reads install state back into the descriptor; plugin_key is always derived. Returns whether the
 // sidecar was present and valid.
+// Caller must hold install_state_mutex(); it is not recursive, so a caller already holding the
+// lock must call this raw overload, not PluginManager::get_install_state().
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry);
 // Full read of the sidecar; returns false if there is no/invalid sidecar.
+// Caller must hold install_state_mutex(); see the note above.
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out);
 
 } // namespace Slic3r

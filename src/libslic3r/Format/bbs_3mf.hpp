@@ -8,6 +8,7 @@
 #include "libslic3r/ProjectTask.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <set>
@@ -140,12 +141,8 @@ struct PlateData
     std::vector<MultiNozzleUtils::NozzleInfo> nozzles_info;
     std::optional<MultiNozzleUtils::LayeredNozzleGroupResult> nozzle_group_result;
 
-    // Hexadecimal number,
-    // the 0th digit corresponds to extruder 1
-    // the 1th digit corresponds to extruder 2
-    // ...  and so on.
-    // 0 means can be print on this extruder, 1 means cannot
-    std::vector<int>          limit_filament_maps;
+    // Per filament, bit i is set when extruder i + 1 can't print it.
+    std::vector<uint64_t>     limit_filament_maps;
 
     std::vector<GCodeProcessorResult::SliceWarning> warnings;
 
@@ -168,6 +165,7 @@ inline constexpr const char *ORCA_PUBLISHED_TAG          = "orca_published";
 inline constexpr const char *ORCA_PUBLISHED_KEYS_TAG     = "orca_published_keys";
 inline constexpr const char *ORCA_PUBLISHED_MATERIAL_TAG = "orca_published_material_keys";
 inline constexpr const char *ORCA_PUBLISHED_CONFIG_TAG   = "orca_published_config";
+inline constexpr const char *ORCA_PUBLISHED_LAYOUT_TAG   = "orca_published_extruder_layout";
 
 // Published files are produced with "1". The importer and the GUI loader both gate on this
 // exact value, so a "0"/"false"/unknown value is rejected consistently.

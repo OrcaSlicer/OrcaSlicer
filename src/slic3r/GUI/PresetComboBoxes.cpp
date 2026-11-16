@@ -314,6 +314,11 @@ int PresetComboBox::update_ams_color()
     auto color_pack = static_cast<ConfigOptionStrings *>(cfg->option("filament_multi_colour")->clone()); // multi color (all colors in all kinds of filament)
     auto color_type = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour_type")->clone()); // color type
 
+    // The slot can lie past the colour arrays (see sync_colour_config()).
+    if (m_filament_idx >= color_head->values.size()) color_head->values.resize(m_filament_idx + 1);
+    if (m_filament_idx >= color_pack->values.size()) color_pack->values.resize(m_filament_idx + 1);
+    if (m_filament_idx >= color_type->values.size()) color_type->values.resize(m_filament_idx + 1);
+
     color_head->values[m_filament_idx] = color;
     color_type->values[m_filament_idx] = ctype;
     std::string color_str = ""; // Translate multi color info to config storage format
@@ -1070,16 +1075,15 @@ bool PlaterPresetComboBox::switch_to_tab()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
-        const std::string& selected_preset = GetString(GetSelection()).ToUTF8().data();
-        if (!boost::algorithm::starts_with(selected_preset, Preset::suffix_modified()))
+        // Reload the editor only when it has a different preset open than this slot.
+        const std::string& slot_preset_name = wxGetApp().preset_bundle->filament_presets[m_filament_idx];
+        if (slot_preset_name != wxGetApp().preset_bundle->filaments.get_selected_preset_name())
         {
-            const std::string& preset_name = wxGetApp().preset_bundle->filaments.get_preset_name_by_alias(selected_preset);
-            if (wxGetApp().get_tab(m_type)->select_preset(preset_name))
-                wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
-            else {
+            if (!wxGetApp().get_tab(m_type)->select_preset(slot_preset_name))
                 return false;
-            }
         }
+        // Bind the editor to this slot even when its preset is already open.
+        wxGetApp().get_tab(m_type)->get_combo_box()->set_filament_idx(m_filament_idx);
     }
 
     /*
@@ -1181,12 +1185,12 @@ void PlaterPresetComboBox::update()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
+        // The slot can lie past the colour arrays: it still lists its presets, with a blank swatch.
         std::vector<wxBitmap *> bitmaps = get_extruder_color_icons(true);
-        if (m_filament_idx < bitmaps.size()) {
+        if (m_filament_idx < bitmaps.size())
             clr_picker->SetBitmap(*bitmaps[m_filament_idx]);
-        } else {
-            return;
-        }
+        else
+            clr_picker->SetBitmap(*get_extruder_color_icon("#F0F0F0FF", std::to_string(m_filament_idx + 1), lround(2 * m_em_unit), lround(2 * m_em_unit)));
 #ifdef __WXOSX__
         clr_picker->SetLabel(clr_picker->GetLabel()); // Let setBezelStyle: be called
         clr_picker->Refresh();

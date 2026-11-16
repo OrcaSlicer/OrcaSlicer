@@ -784,7 +784,7 @@ std::string OptionsGroup::pick_plugin(const ConfigOptionDef& opt)
         return {};
 
     // Only the bare capability name is stored; the full "name;uuid;capability" reference is derived when
-    // the preset is serialized (see ConfigBase::save_plugin_collection). Resolve here to reject bad picks.
+    // the preset is serialized (see ConfigBase::collect_plugin_manifest). Resolve here to reject bad picks.
     Slic3r::PluginDescriptor descriptor;
     if (!manager.try_get_plugin_descriptor(selection.plugin_key, descriptor) || descriptor.name.empty())
         return {};

@@ -1974,7 +1974,7 @@ bool GLGizmoTextureDisplacement::render_painted_colors(bool whole_stack)
     shader->set_uniform("volume_mirrored", trafo_matrix.matrix().determinant() < 0.);
     shader->set_uniform("slope.actived", m_parent.is_using_slope());
     shader->set_uniform("slope.volume_world_normal_matrix", Matrix3f(normal_matrix.cast<float>()));
-    shader->set_uniform("slope.normal_z", float(-std::cos(Geometry::deg2rad(m_highlight_by_angle_threshold_deg))));
+    shader->set_uniform("slope.normal_z", float(-std::cos(Geometry::deg2rad(get_highlight_angle_limit_deg()))));
     shader->set_uniform("slope.up_direction", get_tilt_up_direction());
     shader->set_uniform("show_wireframe", false);
     // Pulled forward and without depth writes, as the tint is (see render_paint_overlay()). The tint is
@@ -2582,10 +2582,6 @@ void GLGizmoTextureDisplacement::update_uv_editor()
 {
     Plater         *plater    = wxGetApp().plater();
     UVEditorCanvas *uv_canvas = plater->get_uv_editor_canvas();
-    if (uv_canvas == nullptr)
-        return;
-    // Wired on every call rather than with the first unwrap: Unwrap itself is one of the pane's commands.
-    uv_canvas->set_command_callback([this](UVEditorCanvas::Command cmd, float value) { on_uv_command(int(cmd), value); });
 
     const ModelVolume        *mv    = texture_volume();
     TextureDisplacementLayer *layer = active_layer();
@@ -2600,6 +2596,15 @@ void GLGizmoTextureDisplacement::update_uv_editor()
         plater->show_uv_editor(false);
         return;
     }
+    if (uv_canvas == nullptr) {
+        // The pane does not exist yet: show_uv_editor() builds it after this frame. Run again right
+        // after that - both are queued on the plater, so they run in this order.
+        plater->show_uv_editor(true);
+        plater->CallAfter([this]() { update_uv_editor(); });
+        return;
+    }
+    // Wired on every call rather than with the first unwrap: Unwrap itself is one of the pane's commands.
+    uv_canvas->set_command_callback([this](UVEditorCanvas::Command cmd, float value) { on_uv_command(int(cmd), value); });
 
     // A vertex/edge edit committing (or an undo reverting one) changes the per-vertex UV overrides
     // without going through the Unwrap button. Detect that and force a re-solve, so the pane's geometry

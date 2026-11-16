@@ -45,20 +45,20 @@ Two consequences follow from deriving rather than storing:
 ## Geometry kernel and dependency surface
 
 The kernel is OCCT, which OrcaSlicer **already** links — `Format/STEP.cpp` and `Format/svg.cpp`
-use it upstream. The Design tab adds no third-party dependency; it
-widens the existing OCCT build by one module flag in `deps/OCCT/OCCT.cmake`:
+use it upstream. The Design tab adds no third-party dependency; it adds three toolkits to the
+list `deps/OCCT/OCCT.cmake` builds:
 
 ```cmake
--DBUILD_MODULE_ModelingAlgorithms=${SLIC3R_CAD}
+if (SLIC3R_CAD)
+    list(APPEND _occt_toolkits TKFillet TKOffset TKBool)
+endif ()
 ```
 
-Most of that module's toolkits are built either way, because `DataExchange`, which the STEP
-importer uses, depends on them. With the flag on, OCCT also builds `TKFillet` (used through
-`BRepFilletAPI`), `TKOffset` (`BRepOffsetAPI`), and `TKFeat`, `TKHelix`, `TKXMesh` and
-`TKExpress`, which nothing here references but which the module flag builds anyway, because
-OCCT's module flags are all-or-nothing. On macOS and Linux OCCT links statically, so an
-unreferenced toolkit costs build time and no shipped bytes. On Windows OCCT builds shared and
-only the linked toolkits ship, so the tab adds the `TKFillet`, `TKOffset` and `TKBool` DLLs.
+`deps/OCCT/OCCT.cmake` turns every OCCT module off and builds only the toolkits libslic3r links
+(`BUILD_ADDITIONAL_TOOLKITS`), plus their dependencies. The tab's toolkits are `TKFillet` (used
+through `BRepFilletAPI`), `TKOffset` (`BRepOffsetAPI`) and `TKBool`, which they need. On macOS
+and Linux OCCT links statically. On Windows OCCT builds shared and only the linked toolkits
+ship, so the tab adds the `TKFillet`, `TKOffset` and `TKBool` DLLs.
 
 On Windows the packaging step asserts that every linked OCCT toolkit has a shipped DLL and
 fails the configure with the name of any that is missing, because the alternative failure — a
@@ -79,8 +79,8 @@ upstream-sync burden, paid deliberately to keep `deps/` unchanged.
 
 ## The SLIC3R_CAD gate
 
-`SLIC3R_CAD` (default ON) compiles the tab and selects the OCCT module flag above. With it OFF
-the tab is not built and the deps prefix matches upstream exactly. The gate is cheap because
+`SLIC3R_CAD` (default ON) compiles the tab and adds the three OCCT toolkits above. With it OFF
+the tab is not built and the deps prefix has none of the tab's toolkits. The gate is cheap because
 the hooks the Design tab adds to shared GUI code — chiefly the `m_design_sketch_tool` member
 and the render, mouse and key hooks in `GLCanvas3D` — are null-guarded on the path they extend,
 so removing the tab removes behaviour rather than requiring the host code to be rewritten.
@@ -266,6 +266,16 @@ Feature tree and Bodies list do between themselves. `Esc`, a click on empty spac
 empty rubber band all let go of it, whichever list or pick made it — except while a body Move is
 open, which holds the selection until it ends (see the interaction contract).
 
+In a sketch, a constraint is selected the same way, from its badge on the canvas or its row in
+the Constraints card: either selects both, draws the badge in the selection colour and bolder, and
+lights the entities the constraint binds. Delete removes the selected constraint, as do its row's
+Delete button and menu. A click on a badge only selects it. A badge is small and sits where a
+person aims at the geometry and its value labels, so a click that deleted would cost a constraint
+for a slip of the pointer, with nothing on screen to say so. For the same reason a value label
+drawn over a badge takes the click and opens its field. The selected constraint and the picked
+geometry are one selection, so picking either drops the other, and `Esc` lets go of both.
+Zoom to selection on a constraint's row frames the entities it binds.
+
 Zoom to selection, on a Feature tree or Bodies row and in its right-click menu, frames one thing
 along the current view direction, as the canvas's Fit button frames the selection. On a body it
 frames the body whole, hidden or not, from its display mesh: the viewport never selects a hidden
@@ -287,14 +297,17 @@ The tab is a page of Orca's main window and answers to the same settings as Prep
 - **Scale.** Sizes are in DIP, and a DPI change reaches `DesignPanel::msw_rescale`, which
   re-rasterises every icon (button faces, flyout rows, card headers, the feature and body lists'
   row icons).
-- **Sidebar icons.** Every clickable icon in the sidebar shows a hover chip. The card-header and
-  constraint-row buttons are Orca's self-painted `Button`, because a native button cannot take a
-  hover background on macOS. The Feature tree and Bodies lists are a custom-drawn
+- **Sidebar icons.** Every clickable icon in the sidebar shows a hover chip. The card-header
+  buttons are Orca's self-painted `Button`, because a native button cannot take a hover
+  background on macOS. The Feature tree, Bodies and Constraints lists are a custom-drawn
   `DesignRowList` rather than a `wxTreeCtrl`, so each row carries its own actions — Zoom to
   selection, Edit, Show/hide and Delete on a feature, Zoom to selection, Move, Show/hide and
-  Delete on a body, and only Show/hide on the Origin and Bed rows, a separate non-selectable list
-  above the features — and the eye shows whether that row is hidden. A feature with nothing to
-  frame keeps a blank cell where Zoom to selection would be, so every icon stays in its column.
+  Delete on a body, Zoom to selection and Delete on a constraint, whose row starts with its
+  type's icon from the Constrain toolbar, and only Show/hide on the Origin and Bed rows, a
+  separate non-selectable list above the features — and the eye shows whether that row is
+  hidden. A feature with nothing to frame keeps a blank cell where Zoom to selection would be, so
+  every icon stays in its column. The Constraints list draws its rows rather than holding a
+  window each, so a sketch of thousands of constraints lists them all.
 - **Plates.** This is the one thing the tab does not follow. The canvas has a bed of its own at
   the printer bed's home position, whichever plate Prepare has current, and a new document's
   modeling origin is that bed's centre. A bed that followed the current plate would slide out

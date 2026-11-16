@@ -1,0 +1,158 @@
+{
+	"type": "machine",
+	"name": "fdm_klipper_common",
+	"inherits": "fdm_machine_common",
+	"from": "system",
+	"instantiation": "false",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printer_variant": "0.4",
+	"printable_area": [
+		"0x0",
+		"230x0",
+		"230x230",
+		"0x230"
+	],
+	"auxiliary_fan": "0",
+	"bed_exclude_area": [
+		"0x0"
+	],
+	"extruder_colour": [
+		"#018001"
+	],
+	"machine_max_acceleration_e": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_extruding": [
+		"10000",
+		"10000"
+	],
+	"machine_max_acceleration_retracting": [
+		"10000",
+		"10000"
+	],
+	"machine_max_acceleration_travel": [
+		"10000",
+		"10000"
+	],
+	"machine_max_acceleration_x": [
+		"10000",
+		"10000"
+	],
+	"machine_max_acceleration_y": [
+		"10000",
+		"10000"
+	],
+	"machine_max_acceleration_z": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_e": [
+		"60",
+		"60"
+	],
+	"machine_max_speed_x": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_y": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_z": [
+		"20",
+		"20"
+	],
+	"machine_max_jerk_e": [
+		"2.5",
+		"2.5"
+	],
+	"machine_max_jerk_x": [
+		"9",
+		"9"
+	],
+	"machine_max_jerk_y": [
+		"9",
+		"9"
+	],
+	"machine_max_jerk_z": [
+		"3",
+		"3"
+	],
+	"machine_min_extruding_rate": [
+		"0",
+		"0"
+	],
+	"machine_min_travel_rate": [
+		"0",
+		"0"
+	],
+	"retract_lift_below": [
+		"264"
+	],
+	"extruder_clearance_height_to_lid": "34",
+	"nozzle_volume": "90",
+	"printer_structure": "i3",
+	"best_object_pos": "0.5x0.5",
+	"retraction_minimum_travel": [
+		"0.8"
+	],
+	"retract_before_wipe": [
+		"0%"
+	],
+	"wipe_distance": [
+		"1.2"
+	],
+	"retraction_length": [
+		"0.8"
+	],
+	"retract_length_toolchange": [
+		"2"
+	],
+	"z_hop": [
+		"0.4"
+	],
+	"retraction_speed": [
+		"60"
+	],
+	"deretraction_speed": [
+		"30"
+	],
+	"z_hop_types": [
+		"Auto Lift"
+	],
+	"thumbnails": [
+		"32x32/PNG",
+		"300x300/PNG"
+	],
+	"thumbnails_format": "PNG",
+	"nozzle_type": "brass",
+	"single_extruder_multi_material": "1",
+	"machine_end_gcode": ";PRINT_END\nG90 ;Absolute positionning\nM83 ; extruder relative mode\nG92 E0 ; zero the extruder\nG1 E-1.5 F1800\nG2 I1 J0 Z{max_layer_z+0.5} F3000 ; lower z a little\nG90\nG1 X10 Y{print_bed_max[1]*0.8} Z{min(max_layer_z+50, printable_height)} E-5 F{travel_speed*60} ; Move print head up\nM106 S0 ;Turn-off fan\nM104 S0 ;Turn-off hotend\nM140 S0 ;Turn-off bed\nM84 X Y E ;Disable all steppers but Z",
+	"layer_change_gcode": ";LAYER:{layer_num+1}\n",
+	"change_filament_gcode": "M600",
+	"machine_pause_gcode": "M600",
+	"gcode_flavor": "klipper",
+	"extruder_offset": [
+		"-1x-2"
+	],
+	"printable_height": "265",
+	"cooling_tube_length": "5",
+	"enable_filament_ramming": "1",
+	"max_layer_height": [
+		"0.28"
+	],
+	"min_layer_height": [
+		"0.08"
+	],
+	"scan_first_layer": "0",
+	"extruder_clearance_radius": "47",
+	"extruder_clearance_height_to_rod": "34",
+	"printer_technology": "FFF",
+	"machine_start_gcode": "M400 ; wait for buffer to clear\n;[printer_model]\n;initial_filament:{filament_type[initial_extruder]}\n;curr_bed_type={curr_bed_type}\nM220 S100 ;Set the feed speed to 100%\nM221 S100 ;Set the flow rate to 100%\nM104 S140\nM190 S[bed_temperature_initial_layer_single]\nG90\nG28 ;home\nG1 Z10 F300\nG1 X{print_bed_max[0]*0.5-50} Y0.5 F6000\nG1 Z0.4 F300\nM109 S[nozzle_temperature_initial_layer]\nG92 E0 ;Reset Extruder\nG1 X{print_bed_max[0]*0.5+50} E30 F400 ;Draw the first line\nG1 Z0.6 F120.0 ;Move to side a little\nG1 X{print_bed_max[0]*0.5+47} F3000\nG92 E0 ;Reset Extruder\n;LAYER_COUNT:[total_layer_count]\n;LAYER:0\n",
+	"default_filament_profile": [
+		"Generic PLA @System"
+	]
+}
