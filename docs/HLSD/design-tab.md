@@ -397,25 +397,26 @@ for a checked-in header, not documentation.
 
 ## Automation surface
 
-The document is automated through the app's MCP server, on every platform, with the Design tab's
-commands, one per command entry of its table, in the command catalog's group `Design`: `search_tools {group:
-"Design"}` lists them, `search_tools {tool}` gives one's arguments, how its failure shows and runnable
-examples, and `call_tool {tool, args}` runs one. They are named in Fusion 360's vocabulary, with a prefix
-for where each works (`sketch_`, `surface_`, `construct_`, `feature_`, `body_`, and none for the model), and
-one argument for a variant: `type` for which kind of thing it makes, `operation` for what the result does to
-the bodies already there. A person picks the same commands from the Speed Dial: while the Design tab is shown
-with the CAD feature on, it has a tile for each entry with an action of the mode the tab is in, a folded row's
-included, the sketch's tools in a sketch and the model's outside one, titled as the right-click menu names it
-and with its icon, and on any other tab, or once the feature is turned off, none; a pinned Design tile stays
-pinned while it is not shown, and takes no place on the favourites bar meanwhile. A folded row's tile runs its
-command with the row's arguments. A call whose arguments are exactly those that choose a row (none for an
-entry's own row) does what the menu's row does, only in the mode the row belongs to, and replies
-`{"result": {"interactive": true, ...}}` with what the tab shows then (its busy reason and status line);
-with other arguments, or `silent: true`, the commands (`Mcp/McpToolsCad.*`) describe the design, read
-topology, measure, and run the same verbs the offer does — they re-implement nothing, so a scripted
-action and a clicked one cannot diverge. Where a GUI action is bound to a selection, a card or a dialog,
-its work is split into a function both callers share, and the command calls that function with explicit
-arguments instead of driving the widgets.
+The document is automated through the app's MCP server, on every platform, with the Design tab's commands, one
+per command entry of its table, in the command catalog's group `Design`: `search_tools {group: "Design"}`
+lists them, `search_tools {tool}` gives one's arguments, how its failure shows and runnable examples, and
+`call_tool {tool, args}` runs one. They are named in the industry's terminology, as popular CAD programs such
+as Fusion 360, Onshape and SolidWorks use it, with a prefix for where each works (`sketch_`, `surface_`,
+`construct_`, `feature_`, `body_`, and none for the model), and one argument for a variant: `type` for which
+kind of thing it makes, `operation` for what the result does to the bodies already there. A person picks the
+same commands from the Speed Dial: while the Design tab is shown with the CAD feature on, it has a tile for
+each entry with an action of the mode the tab is in, a folded row's included, the sketch's tools in a sketch
+and the model's outside one, titled as the right-click menu names it and with its icon, and on any other tab,
+or once the feature is turned off, none; a pinned Design tile stays pinned while it is not shown, and takes no
+place on the favourites bar meanwhile. A folded row's tile runs its command with the row's arguments. A call
+whose arguments are exactly those that choose a row (none for an entry's own row) does what the menu's row
+does, only in the mode the row belongs to, and replies `{"result": {"interactive": true, ...}}` with what the
+tab shows then (its busy reason and status line); with other arguments, or `silent: true`, the commands
+(`Mcp/McpToolsCad.*`) describe the design, read topology, measure, and run the same verbs the offer does —
+they re-implement nothing, so a scripted action and a clicked one cannot diverge. Where a GUI action is bound
+to a selection, a card or a dialog, its work is split into a function both callers share, and the command
+calls that function with explicit arguments instead of driving the widgets. The command set, what each command
+does and takes and which menu rows call it, is in [design-commands.md](design-commands.md).
 
 An agent's call needs the MCP server on (`--mcp`, or Preferences), and every command, a person's tile included,
 needs the CAD feature on (Preferences > Features, or `--cad` for one run). The catalog holds them only when the

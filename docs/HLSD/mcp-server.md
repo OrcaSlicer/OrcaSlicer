@@ -1346,53 +1346,48 @@ the dialogs, and their descriptions point at `generate_calibration_test`.
 
 The Design tab's sketches, features, reads and measurements, feature and body edits and its commit to the
 plate are commands of the catalog (`Mcp/McpToolsCad.cpp`) in the group `Design`, not listed, so agents that
-never open the Design tab pay in `tools/list` for their names alone. The names end `search_tools`'
+never open the Design tab pay in `tools/list` for their names alone. The command set itself, how the commands
+are named and what each takes, is in [design-commands.md](design-commands.md). The names end `search_tools`'
 description while the catalog holds the commands (`design_command_index()`): that they are the Design tab's
 CAD commands and what those cover, that one is looked up before it is called, that a command whose schema has
-`silent` does what its menu row does when called with no arguments unless `silent` is true, so
-`interference {}` with a body selected opens the tool and `interference {silent: true}` returns the result,
-and then every key under its heading, in the table's order: Document, Sketch, Solid, Surface, Construct,
-Inspect, Bodies, History, and Menu rows, the commands that take no arguments and do what their row of the right-click menu
-does. The headings are the generator's (`SECTIONS` in `gen_offer_table.py`, `kDesignSections` in the
-header), and a command's is its entry's `section`. So an agent learns without a search that the commands
-exist, that they are CAD and where each works, and reads a command's description and schema only when it
-looks it up. The description stays within 4096 characters, the most a client is known to keep of one. The
-commands that open a tool are in the palette, whose tiles for them the Speed Dial has while the Design tab
-is shown (see Speed Dial catalog).
-`register_all_commands()` adds them through `register_cad_commands()` only when the catalog is built with
-the CAD feature on (`CatalogOptions::cad`, which startup takes in the editor from the value in force: the
-`enable_cad_feature` preference, or `--cad` for the run). With
-it off the catalog holds none, and records that it leaves them out (`leave_out_cad_commands()`), a folded
-row's id among them, which names a tile:
-`call_tool {tool: "hole"}` is an unknown command whose error says the feature was off when OrcaSlicer
-started and how a person turns it on, and `get_app_state` carries
-`cad_note`, how a person turns the feature on (`cad_note()`, in the editor while the catalog holds no Design
-command or the feature is off). The catalog is sealed at startup and the main window makes the Design
-page only then, so turning the feature on or off takes effect after a restart, but for the Speed Dial's
-Design tiles, which go as soon as it is turned off (see Speed Dial catalog); a window rebuilt for a
-language change in between makes the page by the new preference, while the catalog keeps the commands it
-started with.
+`silent` does what its menu row does when called with no arguments unless `silent` is true, so `interference
+{}` with a body selected opens the tool and `interference {silent: true}` returns the result, and then every
+key under its heading, in the table's order: Document, Sketch, Solid, Surface, Construct, Inspect, Bodies,
+History, and Menu rows, the commands that take no arguments and do what their row of the right-click menu
+does. The headings are the generator's (`SECTIONS` in `gen_offer_table.py`, `kDesignSections` in the header),
+and a command's is its entry's `section`. So an agent learns without a search that the commands exist, that
+they are CAD and where each works, and reads a command's description and schema only when it looks it up. The
+description stays within 4096 characters, the most a client is known to keep of one. The commands that open a
+tool are in the palette, whose tiles for them the Speed Dial has while the Design tab is shown (see Speed Dial
+catalog). `register_all_commands()` adds them through `register_cad_commands()` only when the catalog is built
+with the CAD feature on (`CatalogOptions::cad`, which startup takes in the editor from the value in force: the
+`enable_cad_feature` preference, or `--cad` for the run). With it off the catalog holds none, and records that
+it leaves them out (`leave_out_cad_commands()`), a folded row's id among them, which names a tile: `call_tool
+{tool: "hole"}` is an unknown command whose error says the feature was off when OrcaSlicer started and how a
+person turns it on, and `get_app_state` carries `cad_note`, how a person turns the feature on (`cad_note()`,
+in the editor while the catalog holds no Design command or the feature is off). The catalog is sealed at
+startup and the main window makes the Design page only then, so turning the feature on or off takes effect
+after a restart, but for the Speed Dial's Design tiles, which go as soon as it is turned off (see Speed Dial
+catalog); a window rebuilt for a language change in between makes the page by the new preference, while the
+catalog keeps the commands it started with.
 
-The commands are named in one vocabulary, so that a client that knows a mainstream CAD program can guess a
-command, the argument that picks its variant and its values. Fusion 360's word names the command (Split
-Body is `split`, Patch `surface_patch`, Blend Curve `sketch_blend_curve`, Finish Sketch `sketch_finish`,
-Suppress `feature_suppress`, Align `align`); where Fusion has no such command, Onshape's (`helix`), then
-SolidWorks' (`sketch_repair`, `body_compare`). Three nouns the app shows everywhere are the app's: variable,
-body and feature. The body boolean is `boolean`, the app's name for the tool and Onshape's, since Fusion's
-Combine reads wrongly for a cut. No prefix means the 3D model, as Fusion's Solid tab does: the commands that
-build and change the model's bodies (`extrude`, `fillet`, `mirror`, `pattern`, `boolean`, `split`) and the
-two that take any geometry (`measure`, `interference`). A prefix marks another place: `sketch_` the sketch,
-with the same verbs there (`sketch_fillet`, `sketch_mirror`, `sketch_pattern`); `surface_` the commands that
-make sheet bodies; `construct_` reference planes, axes and coordinate systems; `feature_` one entry of the
-history; `body_` one body as an object, named and coloured, deleted, placed, described and measured, and
-`body_transform`, since bare `transform` is Prepare's. A name is whole words, never an abbreviation.
+The commands' names, their variant arguments and those arguments' values use the industry's terminology, as
+popular CAD programs such as Fusion 360, Onshape and SolidWorks use it, so that people and agents who know one
+of them learn the commands quickly. Three nouns are the app's own, as it shows them everywhere: variable, body
+and feature. No prefix means the 3D model: the commands that build and change the model's bodies (`extrude`,
+`fillet`, `mirror`, `pattern`, `boolean`, `split`) and the two that take any geometry (`measure`,
+`interference`). A prefix marks another place: `sketch_` the sketch, with the same verbs there
+(`sketch_fillet`, `sketch_mirror`, `sketch_pattern`); `surface_` the commands that make sheet bodies;
+`construct_` reference planes, axes and coordinate systems; `feature_` one entry of the history; `body_` one
+body as an object, named and coloured, deleted, placed, described and measured, and `body_transform`, since
+bare `transform` is Prepare's. A name is whole words, never an abbreviation.
 
 One command does one operation: a menu row and the argument command for its job are one command, and a row
 that only picks a variant is a way of calling its command. One argument picks the variant. `type` says which
 kind of thing the command makes, or which way it makes it: a shape (`sketch_draw`, where a shape drawn more
-than one way names the way in Fusion's words, `rectangle_3_point`), a pattern's layout, a hole's kind, how a
-plane is defined. `operation` says what the result does to the bodies already there, in the same four words
-in every command that has it, Fusion's and the Extrude card's: `new_body`, `join`, `cut` and `intersect`
+than one way names the way, `rectangle_3_point`), a pattern's layout, a hole's kind, how a plane is defined.
+`operation` says what the result does to the bodies already there, in the same four words in every command
+that has it, the Extrude card's: `new_body`, `join`, `cut` and `intersect`
 (`extrude`, `revolve`, `sweep` and `loft`; `boolean`'s `join`, `cut` and `intersect`; `mirror`'s
 `new_body` and `join`), with `extrude`'s `auto`, which joins the body the profile touches. `extrude`'s has no
 default in its schema: left out, it is `auto` with a sketch or a face and `new_body` without one; `boolean`'s
