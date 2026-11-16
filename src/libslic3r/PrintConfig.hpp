@@ -1430,6 +1430,12 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionInt,  interlocking_depth))
     ((ConfigOptionInt,  interlocking_boundary_avoidance))
 
+    // Slow down (or speed up) by the height of the object. Per object, so that it can be set for the objects that need it.
+    ((ConfigOptionBool,                automatic_height_slowdown))
+    ((ConfigOptionInt,                 height_slowdown_initial_layers))
+    ((ConfigOptionPercent,             height_slowdown_start_speed))
+    ((ConfigOptionPercent,             height_slowdown_end_speed))
+
     // Orca: internal use only
     ((ConfigOptionBool,  calib_flowrate_topinfill_special_order)) // ORCA: special flag for flow rate calibration
 
@@ -2155,10 +2161,6 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionFloats,             grab_length))
     ((ConfigOptionBool,                gcode_comments))
     ((ConfigOptionInt,                 slow_down_layers))
-    ((ConfigOptionBool,                automatic_height_slowdown))
-    ((ConfigOptionInt,                 height_slowdown_initial_layers))
-    ((ConfigOptionPercent,             height_slowdown_start_speed))
-    ((ConfigOptionPercent,             height_slowdown_end_speed))
     ((ConfigOptionInts,                support_material_interface_fan_speed))
     ((ConfigOptionInts,                internal_bridge_fan_speed)) // ORCA: Add support for separate internal bridge fan speed control
     ((ConfigOptionInts,                ironing_fan_speed))
