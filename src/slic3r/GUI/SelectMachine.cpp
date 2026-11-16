@@ -6720,7 +6720,7 @@ void PrintOption::insert_extra_widget(wxWindow* widget)
     wxSizer* sizer = GetSizer();
     if (!sizer || !widget) return;
     widget->Reparent(this);
-    sizer->Insert(1, widget, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(4));
+    sizer->Insert(2, widget, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(8)); // ORCA Show widgets after label. only used for timelapse > folder icon
     Layout();
 }
 
