@@ -746,9 +746,6 @@ public:
         m_enable_arc_fitting(enable_arc_fitting),
         m_filpar(filament_parameters)
         {
-            // ORCA: This class is only used by BBL printers, so set the parameter appropriately.
-            // This fixes an issue where the wipe tower was using BBL tags resulting in statistics for purging in the purge tower not being displayed.
-            GCodeProcessor::s_IsBBLPrinter = true;
             // adds tag for analyzer:
             std::ostringstream str;
             str << ";" << GCodeProcessor::reserved_tag(GCodeProcessor::ETags::Height) << Slic3r::float_to_string_decimal_point(m_layer_height, 6) << "\n"; // don't rely on GCodeAnalyzer knowing the layer height - it knows nothing at priming
@@ -1301,7 +1298,10 @@ public:
 
 	WipeTowerWriter& flush_planner_queue()
 	{
-		m_gcode += flush_planner_queue_command(m_gcode_flavor);
+		// Only called at toolchange boundaries; format_line_M104 syncs temperature changes itself.
+		// On Klipper M400 here only stalls the toolhead over the tower.
+		if (m_gcode_flavor != gcfKlipper)
+			m_gcode += flush_planner_queue_command(m_gcode_flavor);
 		return *this;
 	}
 

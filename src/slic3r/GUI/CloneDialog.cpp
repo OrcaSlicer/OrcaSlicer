@@ -76,7 +76,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
     // Keep pointer to OK button so we can trigger it manually on Enter.
     Button *ok_btn = dlg_btns->GetOK();
 
-    dlg_btns->GetFIRST()->SetToolTip(_L("Fill bed with copies"));
+    dlg_btns->GetFIRST()->SetToolTip(_L("Fill bed with instances"));
     dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         m_plater->fill_bed_with_instances();
         EndModal(wxID_OK);

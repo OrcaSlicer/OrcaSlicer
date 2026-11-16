@@ -314,6 +314,11 @@ int PresetComboBox::update_ams_color()
     auto color_pack = static_cast<ConfigOptionStrings *>(cfg->option("filament_multi_colour")->clone()); // multi color (all colors in all kinds of filament)
     auto color_type = static_cast<ConfigOptionStrings*>(cfg->option("filament_colour_type")->clone()); // color type
 
+    // The slot can lie past the colour arrays (see sync_colour_config()).
+    if (m_filament_idx >= color_head->values.size()) color_head->values.resize(m_filament_idx + 1);
+    if (m_filament_idx >= color_pack->values.size()) color_pack->values.resize(m_filament_idx + 1);
+    if (m_filament_idx >= color_type->values.size()) color_type->values.resize(m_filament_idx + 1);
+
     color_head->values[m_filament_idx] = color;
     color_type->values[m_filament_idx] = ctype;
     std::string color_str = ""; // Translate multi color info to config storage format
@@ -1180,12 +1185,12 @@ void PlaterPresetComboBox::update()
     const Preset* selected_filament_preset = nullptr;
     if (m_type == Preset::TYPE_FILAMENT)
     {
+        // The slot can lie past the colour arrays: it still lists its presets, with a blank swatch.
         std::vector<wxBitmap *> bitmaps = get_extruder_color_icons(true);
-        if (m_filament_idx < bitmaps.size()) {
+        if (m_filament_idx < bitmaps.size())
             clr_picker->SetBitmap(*bitmaps[m_filament_idx]);
-        } else {
-            return;
-        }
+        else
+            clr_picker->SetBitmap(*get_extruder_color_icon("#F0F0F0FF", std::to_string(m_filament_idx + 1), lround(2 * m_em_unit), lround(2 * m_em_unit)));
 #ifdef __WXOSX__
         clr_picker->SetLabel(clr_picker->GetLabel()); // Let setBezelStyle: be called
         clr_picker->Refresh();

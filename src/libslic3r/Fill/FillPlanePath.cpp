@@ -146,6 +146,7 @@ void FillPlanePath::_fill_surface_single(
 
     if (polyline.size() >= 2) {
         polylines = intersection_pl(std::move(polylines), expolygon);
+        join_cut_outlines(polylines, params);
         if (!polylines.empty()) {
             Polylines chained;
             if (params.dont_connect() || params.density > 0.5) {
