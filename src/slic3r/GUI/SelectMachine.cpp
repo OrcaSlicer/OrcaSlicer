@@ -6830,10 +6830,10 @@ void PrintOptionItem::doRender(wxDC& dc)
     /*selected*/
     auto selected_left = selected * PRINT_OPT_WIDTH + FromDIP(4);
     if (m_enable) {
-        ScalableBitmap bmp = wxGetApp().dark_mode() ? m_selected_bk_dark : m_selected_bk;
+        const ScalableBitmap bmp = wxGetApp().dark_mode() ? m_selected_bk_dark : m_selected_bk;
         dc.DrawBitmap(bmp.bmp(), selected_left, (size.y - bmp.GetBmpHeight()) / 2);
     } else {
-        ScalableBitmap bmp = wxGetApp().dark_mode() ? m_selected_disabled_bk_dark : m_selected_disabled_bk;
+        const ScalableBitmap bmp = wxGetApp().dark_mode() ? m_selected_disabled_bk_dark : m_selected_disabled_bk;
         dc.DrawBitmap(bmp.bmp(), selected_left, (size.y - bmp.GetBmpHeight()) / 2);
     }
 
