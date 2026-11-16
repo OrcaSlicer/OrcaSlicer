@@ -4346,14 +4346,10 @@ bool GCodeProcessor::get_last_z_from_gcode(const std::string& gcode_str, double&
     return is_z_changed;
 }
 
-//BBS: does the g-code move the toolhead?
-// Custom g-code inserted by a profile often carries no motion at all: a timelapse block whose
-// template conditionals are compiled out, a layer progress marker, a label id block. Motion is
-// recognised line by line, the way the position trackers above read the same blocks.
+//BBS: custom g-code is often inert (a timelapse block compiled out by its conditionals, a marker).
 bool GCodeProcessor::gcode_moves_toolhead(const std::string& gcode_str)
 {
-    // A G0 to G3 word carrying an axis word moves the toolhead. An arc moves in XY through its
-    // center offsets, so I/J/K count as motion even without X/Y. G10 (a polyline) is not a G1.
+    // A G0 to G3 word with an axis word moves the toolhead; an arc moves through I/J/K, G10 is not a G1.
     auto line_moves = [](std::string_view line) {
         size_t first = line.find_first_not_of(" \t");
         if (first == std::string_view::npos)
@@ -4363,8 +4359,6 @@ bool GCodeProcessor::gcode_moves_toolhead(const std::string& gcode_str)
             line.remove_suffix(line.size() - comment);
         if (line.size() < 4 || line[0] != 'G' || line[1] < '0' || line[1] > '3' || (line[2] != ' ' && line[2] != '\t'))
             return false;
-        // the axis words are space separated; the word right after the G word follows the
-        // separator that made this a G word at all, so the scan starts at it
         for (size_t i = 2; i + 1 < line.size(); ++i) {
             if (line[i] != ' ' && line[i] != '\t')
                 continue;

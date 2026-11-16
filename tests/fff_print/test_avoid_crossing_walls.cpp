@@ -24,25 +24,18 @@ using namespace Slic3r;
 using namespace Test;
 
 // "Avoid crossing walls" plans the travel moves of a layer inside a region built from that
-// layer's contours, so a travel that has to reach the far side of an opening is routed around
-// it. The planning is switched off for a travel whose start position the writer does not trust,
-// which is right after custom G-code that moved the toolhead. A machine's timelapse block is
-// inserted at every layer change, and it is inert most of the time (no photo taken), so it must
-// not be treated as a move.
+// layer's contours, and it is switched off for a travel whose start position the writer distrusts.
 
 namespace {
 
-// One travel move chain: the points it visits. A planned path has several legs, a straight
-// (unplanned) travel has two.
+// One travel move chain: a planned path has several legs, a straight travel has two.
 struct TravelRun {
     std::vector<Vec2d> points;
-    // False for the travel that leaves the print's start position, which is not part of the
-    // object's region model.
+    // False for the travel leaving the print's start position, which has no region model.
     bool after_extrusion = false;
 };
 
-// The travel moves of a G-code, in order, as point chains. A move with an E word extrudes or
-// wipes and ends the current chain; a move without XY is a lift, which leaves it open.
+// The travel moves of a G-code, in order. A move with an E word ends the chain, a lift does not.
 std::vector<TravelRun> travel_runs(const std::string & gcode)
 {
     std::vector<TravelRun> runs;
@@ -172,8 +165,7 @@ DynamicPrintConfig opening_config(const std::string & time_lapse_gcode)
         // The setting under test, with the detour length left unlimited as it is by default.
         {"reduce_crossing_wall",                "1" },
         {"max_travel_detour_distance",          "0" },
-        // Scattered seams make the first point of a layer land opposite to the last point of
-        // the layer below, so the travel at the layer change has to cross the opening.
+        // Scattered seams put the first point of a layer opposite to the last of the one below.
         {"seam_position",                       "random" },
         {"z_hop",                               "0" },
         {"retract_when_changing_layer",         "1" },
@@ -185,8 +177,8 @@ DynamicPrintConfig opening_config(const std::string & time_lapse_gcode)
     return config;
 }
 
-// Slice a 20 x 20 mm cube with a 10 x 10 mm opening through it, walls only, on a machine that
-// inserts the timelapse G-code at every layer change.
+// Slice a 20 x 20 mm cube with a 10 mm opening, walls only, on a machine inserting timelapse
+// g-code at every layer change.
 struct OpeningSlice {
     std::vector<TravelRun> runs;
     Vec2d                  centre;
@@ -206,8 +198,7 @@ OpeningSlice slice_cube_with_opening(const std::string & time_lapse_gcode)
     return { travel_runs(gcode), centre };
 }
 
-// The middle of the 10 x 10 mm opening, kept well clear of the walls and of the rim a planned
-// path is allowed to follow.
+// The middle of the opening, clear of the walls and of the rim a planned path may follow.
 constexpr double OPENING_HALF = 2.0;
 
 } // namespace
@@ -224,9 +215,8 @@ TEST_CASE("Inert G-code at a layer change keeps travels from crossing walls", "[
 
 TEST_CASE("G-code that moves the toolhead at a layer change keeps the conservative travel", "[AvoidCrossingWalls][GCode][Compatibility]")
 {
-    // The same block with the photo move a machine performs when a timelapse is recorded. The
-    // toolhead is then somewhere the slice does not track, so the first travel of the layer
-    // stays a straight line - the straight moves over the opening are the evidence.
+    // The block with the photo move a machine performs when a timelapse is recorded: the position
+    // is not tracked, so the first travel of the layer stays straight.
     const OpeningSlice slice =
         slice_cube_with_opening("; take a photo\nG1 X0 Y0 F18000\nM400 P300\nG1 X0 F18000\n");
     REQUIRE(slice.runs.size() > 5);
