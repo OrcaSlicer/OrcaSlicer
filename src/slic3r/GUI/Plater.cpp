@@ -6417,7 +6417,9 @@ void Sidebar::on_bed_type_change(BedType bed_type)
  *   build_filament_ams_list() [THIS FUNCTION] - aggregates into DynamicPrintConfig maps
  *
  * Data Sources:
- * - obj->vt_slot: Virtual trays for external/manual filament loading (when ams_support_virtual_tray is true)
+ * - obj->vt_slot: Virtual trays for external/manual filament loading (when ams_support_virtual_tray is true).
+ *   A non-Bambu slot that carries no reported filament data is topology for the Device tab only and
+ *   is not returned here.
  * - obj->GetFilaSystem()->GetAmsList(): Map of AMS units, each containing multiple DevAmsTray slots
  *
  * Return Value:
@@ -6499,6 +6501,14 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": skip vt_slot index %1% id %2% expected %3%") % index % vt_id % expected_id;
                     continue;
                 }
+                // Non-Bambu extruders always get an external position (see
+                // ensure_external_virtual_tray_slots), even when the agent reports no spool. Such a
+                // topology placeholder belongs to the Device tab only. Decide by the reported tray
+                // state rather than the placeholder marker alone, so a loaded or otherwise described
+                // external spool is never dropped: it enters sidebar sync as an "Ext" filament after
+                // the AMS entries. Empty AMS slots still come through the AMS loop below.
+                if (!vt_tray.is_exists && vt_tray.setting_id.empty() && vt_tray.m_fila_type.empty())
+                    continue;
             }
             // Only Bambu encodes the main/right slot with the left/right key offset.
             const bool use_bambu_main_offset = is_bbl_vendor && &vt_tray == &obj->vt_slot.front();
@@ -6534,7 +6544,8 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
     auto list = obj->GetFilaSystem()->GetAmsList();
     for (auto ams : list) {
         int ams_id   = std::stoi(ams.first);
-        int extruder = ams.second->GetExtruderId() ? 0 : 0x10000; // Main (first) extruder at right
+        // Only Bambu's left/right grouping uses the main-extruder key offset.
+        int extruder = is_bbl_vendor && !ams.second->GetExtruderId() ? 0x10000 : 0;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": AMS unit %1% extruder %2% trays %3%")
             % ams_id % ams.second->GetExtruderId() % ams.second->GetTrays().size();
         // Bambu units are four slots wide; a generic unit reports its own lane count and its trays

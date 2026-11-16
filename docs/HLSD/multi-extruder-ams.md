@@ -114,6 +114,14 @@ extruder id, so sparse or out-of-order reports do not shift a spool onto another
 placeholder represents the slot's existence, not a claim that the printer reported a loaded spool.
 Bambu keeps its fixed 255/254 virtual-tray pair and does not use generic slot synthesis.
 
+The sidebar's device-filament sync list is not the full device topology: a non-Bambu external
+position is included only when the device reports filament data for it (a loaded flag, preset id, or
+filament type). A synthetic external position stays in `vt_slot` for the Device tab but is omitted
+from the sidebar list, as is a reported external position that carries no spool data. Empty AMS
+placeholders remain in the list so tray order and sync mapping stay aligned with the AMS units.
+An agent that reports no external-spool state therefore shows no external sidebar entry; the
+position is still available on the Device tab.
+
 ## Mapping
 
 Several subsystems relate AMS units, trays, and extruders, and more than one place derives a tray
