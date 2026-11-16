@@ -306,14 +306,28 @@ int sss_mode_for_extruder(const std::vector<int>& families, size_t extruder_idx,
     return family;
 }
 
+// The longest piece of a line in the BVH of the preview. A diagonal line has a box much larger than
+// itself, which overlaps many others: limiting diagonal pieces to 4 mm shrinks the empty volume of
+// the boxes up to 20 times, while lines along an axis run up to 20 mm.
+float max_segment_length(const Vec3f& delta)
+{
+    const float len_sq = delta.squaredNorm();
+    const float diag_factor = len_sq > 1e-6f ? std::clamp(2.0f * std::abs(delta.x() * delta.y()) / len_sq, 0.0f, 1.0f) : 0.0f;
+    return 20.0f + (4.0f - 20.0f) * diag_factor;
+}
+
 // The options the rasterized preview draws as points, which the path tracer draws as double cones.
 constexpr std::array<libvgcode::EOptionType, 7> PREVIEW_MARKER_OPTIONS = {
     libvgcode::EOptionType::Seams,       libvgcode::EOptionType::Retractions,  libvgcode::EOptionType::Unretractions,
     libvgcode::EOptionType::ToolChanges, libvgcode::EOptionType::ColorChanges, libvgcode::EOptionType::PausePrints,
     libvgcode::EOptionType::CustomGCodes };
-// The opacity the triangles of a marker carry: the shader draws them opaque and, as the rasterizer
-// does, a little in front of the toolpaths they sit in.
-constexpr float PREVIEW_MARKER_OPACITY = 2.0f;
+// The opacity the triangles of a marker, travel or wipe carry: 2 plus how much nearer, in mm, the
+// shader takes their hits than they are, the offset toward the eye the rasterizer gives them. They
+// are opaque and cast no shadow.
+float preview_overlay_opacity(const libvgcode::PathVertex& v)
+{
+    return 2.0f + (v.is_option() ? 0.1f : v.is_wipe() ? 0.05f : 0.0f);
+}
 
 } // namespace
 
@@ -709,14 +723,7 @@ void PathTraceRenderer::extract_preview_toolpaths(
             if (curr_len_sq < 1e-8f)
                 continue;
             const float curr_len = std::sqrt(curr_len_sq);
-
-            // Adaptive diagonal sub-splitting: 45-degree infill lines suffer severe AABB inflation,
-            // causing large overlapping bounding boxes in the BVH. Limiting diagonal span length to 4-5mm
-            // collapses empty AABB volume by up to 20x while leaving axis-aligned segments at up to 20mm.
-            const float diag_factor = (curr_len_sq > 1e-6f)
-                ? std::clamp(2.0f * std::abs(delta.x() * delta.y()) / curr_len_sq, 0.0f, 1.0f)
-                : 0.0f;
-            const float seg_max_len = 20.0f + (4.0f - 20.0f) * diag_factor;
+            const float seg_max_len = max_segment_length(delta);
 
             if (!segments.empty() && curr_len < seg_max_len) {
                 ToolpathSegment& prev = segments.back();
@@ -1003,7 +1010,7 @@ void PathTraceRenderer::extract_preview_toolpaths(
                     job.source_tri_role.push_back(0.35f);
                     job.source_tri_facet.push_back(4.0f); // 4.0 for a marker
                     job.source_tri_delta_angle.push_back(0.0f);
-                    job.source_tri_opacity.push_back(PREVIEW_MARKER_OPACITY);
+                    job.source_tri_opacity.push_back(preview_overlay_opacity(v));
                 };
 
                 constexpr int sides = 16;
@@ -1016,6 +1023,67 @@ void PathTraceRenderer::extract_preview_toolpaths(
                     add_tri(bot, p1, p0);
                 }
             }
+        }
+
+        // The travels and wipes the legend shows, as the rasterized preview draws them: a line between
+        // two moves of the same kind, a diamond of libvgcode's default radius in section, reaching
+        // half of it past its ends, in the color libvgcode gives the move. They shade and stay out of
+        // the shadows as the markers do.
+        const bool travels_visible = m_canvas.m_gcode_viewer.is_option_visible(libvgcode::EOptionType::Travels);
+        const bool wipes_visible = m_canvas.m_gcode_viewer.is_option_visible(libvgcode::EOptionType::Wipes);
+        for (size_t i = 0; (travels_visible || wipes_visible) && i + 1 < total_vertices; ++i) {
+            const libvgcode::PathVertex& curr = m_canvas.m_gcode_viewer.get_gcode_vertex_at(i);
+            const libvgcode::PathVertex& next = m_canvas.m_gcode_viewer.get_gcode_vertex_at(i + 1);
+            if (curr.type != next.type || !((travels_visible && next.is_travel()) || (wipes_visible && next.is_wipe())))
+                continue;
+            const Vec3f p0{curr.position[0], curr.position[1], curr.position[2]};
+            const Vec3f p1{next.position[0], next.position[1], next.position[2]};
+            const Vec3f delta = p1 - p0;
+            const float len = delta.norm();
+            if (len < 1e-5f)
+                continue;
+            const float half = 0.5f * (next.is_travel() ? libvgcode::DEFAULT_TRAVELS_RADIUS_MM : libvgcode::DEFAULT_WIPES_RADIUS_MM);
+            const Vec3f dir = delta / len;
+            Vec3f right = dir.cross(Vec3f::UnitZ());
+            right = right.norm() > 1e-4f ? right.normalized() : Vec3f::UnitX();
+            const Vec3f wr = right * half;
+            const Vec3f wu = right.cross(dir) * half;
+            const libvgcode::Color color = m_canvas.m_gcode_viewer.get_gcode_vertex_color(next);
+            const Vec4f albedo = to_linear_albedo(float(color[0]) / 255.0f, float(color[1]) / 255.0f, float(color[2]) / 255.0f, 1.0f);
+            const float tag_z = std::max(p0.z(), p1.z());
+
+            const auto add_tri = [&](const Vec3f& pA, const Vec3f& pB, const Vec3f& pC) {
+                PathTraceTriangle tri;
+                tri.a = pA; tri.b = pB; tri.c = pC;
+                tri.albedo = albedo;
+                job.preview_triangles.push_back(std::move(tri));
+                job.source_tri_vertex_id.push_back(i + 1);
+                job.source_tri_tag_z.push_back(tag_z);
+                job.source_tri_height.push_back(2.0f * half);
+                job.source_tri_role.push_back(0.35f);
+                job.source_tri_facet.push_back(4.0f); // shaded as a marker
+                job.source_tri_delta_angle.push_back(0.0f);
+                job.source_tri_opacity.push_back(preview_overlay_opacity(next));
+            };
+            const auto add_quad = [&](const Vec3f& p00, const Vec3f& p10, const Vec3f& p11, const Vec3f& p01) {
+                add_tri(p00, p10, p11);
+                add_tri(p00, p11, p01);
+            };
+
+            // Long lines in pieces, which keep the boxes of the BVH small, as for the extrusions.
+            const Vec3f start = p0 - dir * half;
+            const Vec3f end = p1 + dir * half;
+            const int pieces = std::min(64, int(std::ceil((len + 2.0f * half) / max_segment_length(delta))));
+            for (int p = 0; p < pieces; ++p) {
+                const Vec3f a = start + (end - start) * (float(p) / float(pieces));
+                const Vec3f b = start + (end - start) * (float(p + 1) / float(pieces));
+                add_quad(a + wr, b + wr, b + wu, a + wu);
+                add_quad(a + wu, b + wu, b - wr, a - wr);
+                add_quad(a - wr, b - wr, b - wu, a - wu);
+                add_quad(a - wu, b - wu, b + wr, a + wr);
+            }
+            add_quad(start + wr, start + wu, start - wr, start - wu);
+            add_quad(end + wu, end + wr, end - wu, end - wr);
         }
     }
 
@@ -1499,17 +1567,17 @@ void PathTraceRenderer::update_scene_colors(const std::vector<ColorRGBA>& extrud
             if (v_id == SIZE_MAX)
                 continue;
             const libvgcode::PathVertex& v = m_canvas.m_gcode_viewer.get_gcode_vertex_at(v_id);
-            if (v.is_option()) {
-                const ColorRGBA opt_col = m_canvas.m_gcode_viewer.get_option_color(libvgcode::move_type_to_option(v.type));
-                const Vec4f lin_opt = to_linear_albedo(opt_col.r(), opt_col.g(), opt_col.b(), 1.0f);
-                m_gpu_scene.shadings[i].albedo = {lin_opt.x(), lin_opt.y(), lin_opt.z(), 1.0f};
-                if (m_gpu_scene.triangles[i].c[3] != PREVIEW_MARKER_OPACITY) {
-                    m_gpu_scene.triangles[i].c[3] = PREVIEW_MARKER_OPACITY;
+            const libvgcode::Color c = m_canvas.m_gcode_viewer.get_gcode_vertex_color(v);
+            if (v.is_option() || v.is_travel() || v.is_wipe()) {
+                const Vec4f lin = to_linear_albedo(float(c[0]) / 255.0f, float(c[1]) / 255.0f, float(c[2]) / 255.0f, 1.0f);
+                m_gpu_scene.shadings[i].albedo = {lin.x(), lin.y(), lin.z(), 1.0f};
+                const float overlay_opacity = preview_overlay_opacity(v);
+                if (m_gpu_scene.triangles[i].c[3] != overlay_opacity) {
+                    m_gpu_scene.triangles[i].c[3] = overlay_opacity;
                     any_opacity_changed = true;
                 }
                 continue;
             }
-            const libvgcode::Color c = m_canvas.m_gcode_viewer.get_gcode_vertex_color(v);
             const uint8_t a = m_canvas.m_gcode_viewer.get_gcode_vertex_alpha(v);
             const float opacity = float(a) / 255.0f;
             const Vec3f albedo_rgb = {float(c[0]) / 255.0f, float(c[1]) / 255.0f, float(c[2]) / 255.0f};
@@ -1750,6 +1818,8 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
             combine_geom(size_t(m_canvas.m_gcode_viewer.is_extrusion_role_visible(libvgcode::EGCodeExtrusionRole(r))));
         for (const libvgcode::EOptionType option : PREVIEW_MARKER_OPTIONS)
             combine_geom(size_t(m_canvas.m_gcode_viewer.is_option_visible(option)));
+        combine_geom(size_t(m_canvas.m_gcode_viewer.is_option_visible(libvgcode::EOptionType::Travels)));
+        combine_geom(size_t(m_canvas.m_gcode_viewer.is_option_visible(libvgcode::EOptionType::Wipes)));
         if (m_canvas.m_gcode_viewer.has_data() && m_canvas.m_gcode_viewer.get_vertices_count() > 0) {
             const libvgcode::Interval& visible_range = m_canvas.m_gcode_viewer.get_gcode_view_visible_range();
             const libvgcode::Interval& full_range    = m_canvas.m_gcode_viewer.get_gcode_view_full_range();
@@ -1759,11 +1829,13 @@ bool PathTraceRenderer::render(const Camera& source_camera, const Size& canvas_s
             const uint32_t max_v = uint32_t(visible_range[1]);
             // The moves hide what the sliders hide, as in the rasterized preview. The top of the visible
             // layers also culls the boxes of the BVH, but only where each layer lies above the one before:
-            // a print by object starts every object at the bed again.
+            // a print by object starts every object at the bed again. Nor while the travels show, whose
+            // z hops rise above it.
             preview_move_min = int(min_v);
             preview_move_max = int(max_v);
             const std::vector<double> layer_zs = m_canvas.m_gcode_viewer.get_layers_zs();
-            if (!layer_zs.empty() && std::is_sorted(layer_zs.begin(), layer_zs.end())) {
+            if (!layer_zs.empty() && std::is_sorted(layer_zs.begin(), layer_zs.end()) &&
+                !m_canvas.m_gcode_viewer.is_option_visible(libvgcode::EOptionType::Travels)) {
                 const auto& layers_range = m_canvas.m_gcode_viewer.get_layers_z_range();
                 const size_t max_idx = std::min<size_t>(std::max(layers_range[0], layers_range[1]), layer_zs.size() - 1);
                 if (max_idx + 1 < layer_zs.size())

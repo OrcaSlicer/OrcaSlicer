@@ -168,11 +168,11 @@ const float EDGE_TOLERANCE = 2e-4;
 const uint NO_HIT = 0xFFFFFFFFu;
 
 const float OPAQUE_OPACITY = 0.96;
-// The triangles of the markers of the preview carry an opacity of 2. A closest hit takes them as if
-// they were this much nearer, in mm, as the rasterizer moves them toward the eye so that they show
-// on the toolpaths they sit in.
-const float MARKER_OPACITY = 1.5;
-const float MARKER_BIAS = 0.1;
+// The triangles of the markers, travels and wipes of the preview carry an opacity of 2 plus how much
+// nearer, in mm, a closest hit takes them than they are, at most OVERLAY_MAX_BIAS: the rasterizer
+// moves the markers and wipes toward the eye, so that they show on the toolpaths they sit in.
+const float OVERLAY_OPACITY = 1.5;
+const float OVERLAY_MAX_BIAS = 0.1;
 // Index of refraction of PLA, PETG, ABS and their kin.
 const float IOR = 1.5;
 // The opacity of a filament color is that of this thickness of filament, in mm.
@@ -234,8 +234,8 @@ bool g_interactive = false;
 // Distances along the current ray between which the section view keeps geometry.
 float g_clip_near = 0.0;
 float g_clip_far = FLT_BIG;
-// How far behind the closest hit so far the boxes of the BVH may begin: a marker there may still be
-// nearer by its bias.
+// How far behind the closest hit so far the boxes of the BVH may begin: a marker or a wipe there may
+// still be nearer by its bias.
 float g_hit_slack = 0.0;
 
 uint g_pixel_seed = 0u;
@@ -640,7 +640,7 @@ void closest_leaf_test(uint i, Ray local_ray, float loc_scale, uint inst_idx, in
     if (t_local < ray_epsilon)
         return;
     float t_world = t_local / loc_scale;
-    float t_rank = opacity > MARKER_OPACITY ? max(t_world - MARKER_BIAS, 0.5 * t_world) : t_world;
+    float t_rank = opacity > OVERLAY_OPACITY ? max(t_world - (opacity - 2.0), 0.5 * t_world) : t_world;
     if (t_rank >= hit.distance)
         return;
     if (g_has_clipping && tri.tag_z > -1.5 && (t_world < g_clip_near || t_world > g_clip_far))
@@ -666,8 +666,8 @@ bool shadow_leaf_test(uint i, Ray local_ray, float loc_scale)
     if (triangle_hidden(tri))
         return false;
     float opacity = tri.opacity;
-    // The markers of the preview cast no shadow.
-    if (opacity < 0.01 || opacity > MARKER_OPACITY)
+    // The markers, travels and wipes of the preview cast no shadow.
+    if (opacity < 0.01 || opacity > OVERLAY_OPACITY)
         return false;
     bool opaque = opacity >= OPAQUE_OPACITY;
     vec2 bary;
@@ -805,7 +805,7 @@ void traverse_scene(int mode, Ray ray, inout Hit hit)
     if (instance_count <= 0)
         return;
     setup_clip_interval(ray);
-    g_hit_slack = mode == TRAVERSE_CLOSEST && is_preview_canvas ? MARKER_BIAS : 0.0;
+    g_hit_slack = mode == TRAVERSE_CLOSEST && is_preview_canvas ? OVERLAY_MAX_BIAS : 0.0;
     vec3 inv_dir = 1.0 / safe_ray_dir3(ray.direction);
     vec3 origin_inv = ray.origin * inv_dir;
 
@@ -1377,7 +1377,7 @@ void trace_path(Ray ray, out vec3 radiance, out float coverage, out vec3 bed_ter
         }
 
         if (marker) {
-            // The markers of the preview stay readable: half lit, half self-illuminated, never shadowed.
+            // The markers, travels and wipes of the preview stay readable: half lit, half self-illuminated, never shadowed.
             float e = sky_irradiance(ns) + 0.70 * max(dot(ns, key_base), 0.0) + 0.22 * max(dot(ns, fill_dir), 0.0);
             contribute(throughput * albedo * (0.35 + 0.65 * max(0.20, e)), depth);
             done = true;
