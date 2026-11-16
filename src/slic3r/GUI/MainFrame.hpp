@@ -91,6 +91,7 @@ class Retraction_Test_Dlg;
 class Input_Shaping_Freq_Test_Dlg;
 class Input_Shaping_Damp_Test_Dlg;
 class Cornering_Test_Dlg;
+class IroningFlow_Test_Dlg;
 template <class Panel> class LazyPage;
 class Plater;
 #ifdef SLIC3R_CAD
@@ -151,7 +152,8 @@ enum class CalibKind : int
     Cornering, 
     InputShapingFreq, 
     InputShapingDamp,
-    VFA
+    VFA,
+    IroningFlow
 };
 
 class MainFrame : public DPIFrame

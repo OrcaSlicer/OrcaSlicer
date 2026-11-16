@@ -13,6 +13,12 @@
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Utils.hpp"
+#include <boost/filesystem/path.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <catch2/catch_message.hpp>
+#include <tuple>
 
 using namespace Slic3r;
 
@@ -113,3 +119,48 @@ TEST_CASE("PA pattern resets the extruder after the final layer in absolute E mo
     REQUIRE(state.max_e > 1.);
     REQUIRE_THAT(state.final_e, Catch::Matchers::WithinAbs(0., 1e-9));
 }
+
+TEST_CASE("Ironing flow marks use the smallest step that keeps them 10 mm apart", "[Calib]")
+{
+    // min flow, max flow, band length, expected step (0 when even 20% marks are closer than 10 mm)
+    const auto [min_flow, max_flow, length, step] = GENERATE(table<double, double, double, double>({
+        {10., 60., 100., 5.},
+        {0., 10., 100., 1.},
+        {0., 100., 100., 10.},
+        {0., 100., 50., 20.},
+        {0., 100., 40., 0.},
+    }));
+    CAPTURE(min_flow, max_flow, length);
+    CHECK_THAT(ironing_flow_calib_mark_step(min_flow, max_flow, length), Catch::Matchers::WithinAbs(step, 1e-9));
+}
+
+TEST_CASE("Ironing flow test meshes are a closed plate with the band and closed marks on top of it", "[Calib]")
+{
+    // The text needs the font in resources/fonts.
+    const std::string previous = resources_dir();
+    set_resources_dir(boost::filesystem::path(PROFILES_DIR).parent_path().string());
+
+    const double length  = 100.;
+    const double base_z  = 0.32;
+    const double marks_z = 0.56;
+    const double top_z   = 0.68;
+    const IroningFlowCalibMeshes meshes = ironing_flow_calib_meshes(10., 60., length, "Generic PLA", 0.4, base_z, marks_z, top_z);
+    set_resources_dir(previous);
+
+    const BoundingBoxf3 plate = bounding_box(meshes.plate);
+    // The band plus 5 mm at each end.
+    CHECK_THAT(plate.size().x(), Catch::Matchers::WithinAbs(length + 10., 1e-3));
+    CHECK_THAT(plate.min.z(), Catch::Matchers::WithinAbs(0., 1e-6));
+    CHECK_THAT(plate.max.z(), Catch::Matchers::WithinAbs(top_z, 1e-6));
+    CHECK(its_num_open_edges(meshes.plate) == 0);
+
+    // The marks and the name lie on the plate, in front of the band.
+    const BoundingBoxf3 marks = bounding_box(meshes.marks);
+    CHECK_THAT(marks.min.z(), Catch::Matchers::WithinAbs(base_z, 1e-6));
+    CHECK_THAT(marks.max.z(), Catch::Matchers::WithinAbs(marks_z, 1e-6));
+    CHECK(marks.max.y() <= 1e-6);
+    CHECK(marks.min.y() < -10.);
+    CHECK(marks.min.y() > plate.min.y());
+    CHECK(its_num_open_edges(meshes.marks) == 0);
+}
+

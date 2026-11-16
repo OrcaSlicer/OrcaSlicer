@@ -13,6 +13,7 @@
 #include "PrintConfig.hpp"
 #include "BoundingBox.hpp"
 #include "CustomGCode.hpp"
+#include "TriangleMesh.hpp"
 
 namespace Slic3r {
 
@@ -33,7 +34,8 @@ enum class CalibMode : int {
     Calib_Retraction_tower,
     Calib_Input_shaping_freq,
     Calib_Input_shaping_damp,
-    Calib_Cornering
+    Calib_Cornering,
+    Calib_Ironing_Flow
 };
 
 enum class CalibState { Start = 0, Preset, Calibration, CoarseSave, FineCalibration, Save, Finish };
@@ -394,5 +396,19 @@ private:
     const double m_glyph_padding_horizontal{1};
     const double m_glyph_padding_vertical{1};
 };
+
+// Flow step between the ironing flow calibration marks: 1, 2, 5, 10 or 20 %, the first that keeps them at least
+// 10 mm apart, or 0 if none does.
+double ironing_flow_calib_mark_step(double min_flow, double max_flow, double length);
+
+// Ironing flow calibration test: a plate with the ironed band on top, and the marks with their flows in front of
+// the band and the filament name in front of the marks, separate so that they can print in another filament.
+struct IroningFlowCalibMeshes
+{
+    indexed_triangle_set plate;
+    indexed_triangle_set marks;
+};
+IroningFlowCalibMeshes ironing_flow_calib_meshes(double min_flow, double max_flow, double length, const std::string &name,
+                                                 double nozzle_diameter, double base_z, double marks_z, double top_z);
 
 } // namespace Slic3r
