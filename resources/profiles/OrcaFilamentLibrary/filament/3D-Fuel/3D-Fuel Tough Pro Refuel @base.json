@@ -1,0 +1,78 @@
+{
+	"type": "filament",
+	"name": "3D-Fuel Tough Pro Refuel @base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"filament_id": "OF61FBgV",
+	"instantiation": "false",
+	"filament_vendor": [
+		"3D-Fuel"
+	],
+	"filament_type": [
+		"PLA"
+	 ],
+    "filament_density": [
+        "1.26"
+    ],
+    "filament_cost": [
+        "32.95"
+    ],
+    "nozzle_temperature": [
+        "240"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "240"
+    ],
+    "nozzle_temperature_range_low": [
+        "220"
+    ],
+    "nozzle_temperature_range_high": [
+        "250"
+    ],
+    "cool_plate_temp": [
+        "0"
+    ],
+    "cool_plate_temp_initial_layer": [
+        "0"
+    ],
+    "eng_plate_temp": [
+        "60"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "60"
+    ],
+    "hot_plate_temp": [
+        "70"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "70"
+    ],
+    "textured_plate_temp": [
+        "70"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "70"
+    ],
+    "supertack_plate_temp": [
+        "70"
+    ],
+    "supertack_plate_temp_initial_layer": [
+        "70"
+    ],
+    "filament_flow_ratio": [
+        "0.98"
+    ],
+    "filament_max_volumetric_speed": [
+        "12"
+    ],
+    "fan_min_speed": [
+        "10"
+    ],
+    "fan_max_speed": [
+        "100"
+    ],
+    "temperature_vitrification": [
+        "185"
+    ]
+}
+

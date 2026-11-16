@@ -216,6 +216,12 @@ static Vec2d derived_offset(const DynamicPrintConfig &config, const Vec3d &plate
     return print.get_imex_slice_offset();
 }
 
+static void check_zero(const Vec2d &offset)
+{
+    CHECK_THAT(offset.x(), WithinAbs(0.0, 1e-12));
+    CHECK_THAT(offset.y(), WithinAbs(0.0, 1e-12));
+}
+
 // Slice one 20mm cube. Note what is NOT here: no offset is handed to the Print. Whatever shift
 // the G-code comes out with, the Print derived on its own from `config`.
 static std::string slice_cube(const DynamicPrintConfig &config, const Vec3d &plate_origin = Vec3d::Zero())
@@ -287,8 +293,6 @@ TEST_CASE("The derived IMEX slice offset is zero unless firmware-managed zones a
     REQUIRE_THAT(fresh.get_imex_slice_offset().x(), WithinAbs(0.0, 1e-12));
     REQUIRE_THAT(fresh.get_imex_slice_offset().y(), WithinAbs(0.0, 1e-12));
 
-    Vec2d offset = Vec2d::Zero();
-
     SECTION("an ordinary printer with no IMEX configuration at all") {
         DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
         config.set_deserialize_strict({
@@ -296,20 +300,20 @@ TEST_CASE("The derived IMEX slice offset is zero unless firmware-managed zones a
             { "layer_height",               "0.2" },
             { "initial_layer_print_height", "0.2" },
         });
-        offset = derived_offset(config);
+        check_zero(derived_offset(config));
     }
     SECTION("an IMEX printer in a parallel mode, but firmware-managed zones off") {
-        offset = derived_offset(imex_config(false));
+        check_zero(derived_offset(imex_config(false)));
     }
     SECTION("firmware-managed zones on, but the plate is in Primary mode") {
         DynamicPrintConfig config = imex_config(true);
         config.set_deserialize_strict({ { "imex_parallel_mode", "primary" } });
-        offset = derived_offset(config);
+        check_zero(derived_offset(config));
     }
     SECTION("firmware-managed zones on, but the plate has no mode at all") {
         DynamicPrintConfig config = imex_config(true);
         config.set_deserialize_strict({ { "imex_parallel_mode", "" } });
-        offset = derived_offset(config);
+        check_zero(derived_offset(config));
     }
     // A plate can name a mode this printer does not define -- a mode renamed or deleted after
     // the plate was set to it, or a project opened against a different printer preset. The
@@ -318,7 +322,7 @@ TEST_CASE("The derived IMEX slice offset is zero unless firmware-managed zones a
     SECTION("firmware-managed zones on, but the plate's mode is not one this printer defines") {
         DynamicPrintConfig config = imex_config(true);
         config.set_deserialize_strict({ { "imex_parallel_mode", "renamed-since" } });
-        offset = derived_offset(config);
+        check_zero(derived_offset(config));
     }
     // The layout hangs off the primary tool's cell. `imex_tools_per_gantry` 1 on a single
     // gantry is a one-cell grid: there is nothing to divide, so there is nothing to shift by.
@@ -326,11 +330,8 @@ TEST_CASE("The derived IMEX slice offset is zero unless firmware-managed zones a
         DynamicPrintConfig config = imex_config(true);
         config.set_deserialize_strict({ { "imex_tools_per_gantry",  "1" },
                                         { "imex_mode_active_tools", "0:P;0:P" } });
-        offset = derived_offset(config);
+        check_zero(derived_offset(config));
     }
-
-    CHECK_THAT(offset.x(), WithinAbs(0.0, 1e-12));
-    CHECK_THAT(offset.y(), WithinAbs(0.0, 1e-12));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -416,9 +417,7 @@ TEST_CASE("Turning on firmware-managed zones changes nothing on a non-IMEX print
     };
 
     // Nothing to apply in the first place.
-    const Vec2d offset = derived_offset(ordinary_printer(true));
-    CHECK_THAT(offset.x(), WithinAbs(0.0, 1e-12));
-    CHECK_THAT(offset.y(), WithinAbs(0.0, 1e-12));
+    check_zero(derived_offset(ordinary_printer(true)));
 
     // ...and the toolpaths bear that out: same plate, same place. Infill, skirt, brim and the
     // prime tower are all off in this config, so the perimeters carry the whole extent.

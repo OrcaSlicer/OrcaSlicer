@@ -238,7 +238,7 @@ bool Http::priv::ca_file_supported(::CURL *curl)
 
 	if (curl == nullptr) { return res; }
 
-#if LIBCURL_VERSION_MAJOR >= 7 && LIBCURL_VERSION_MINOR >= 48
+#if LIBCURL_VERSION_NUM >= 0x073000 // 7.48.0: CURLINFO_TLS_SSL_PTR
 	::curl_tlssessioninfo *tls;
 	if (::curl_easy_getinfo(curl, CURLINFO_TLS_SSL_PTR, &tls) == CURLE_OK) {
 		if (tls->backend == CURLSSLBACKEND_SCHANNEL || tls->backend == CURLSSLBACKEND_DARWINSSL) {
@@ -457,14 +457,14 @@ void Http::priv::http_perform()
 	::curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headers_cb);
 
 	::curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-#if LIBCURL_VERSION_MAJOR >= 7 && LIBCURL_VERSION_MINOR >= 32
+#if LIBCURL_VERSION_NUM >= 0x072000 // 7.32.0: CURLOPT_XFERINFOFUNCTION
 	::curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, xfercb);
 	::curl_easy_setopt(curl, CURLOPT_XFERINFODATA, static_cast<void*>(this));
 #ifndef _WIN32
 	(void)xfercb_legacy;   // prevent unused function warning
 #endif
 #else
-	::curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, xfercb);
+	::curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, xfercb_legacy);
 	::curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, static_cast<void*>(this));
 #endif
 

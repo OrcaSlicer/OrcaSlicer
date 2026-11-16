@@ -97,7 +97,7 @@ public:
     void    check_nozzle_recommended_temperature_range(DynamicPrintConfig *config, unsigned int variant_index);
     void    check_nozzle_temperature_range(DynamicPrintConfig* config, unsigned int variant_index);
     void    check_nozzle_temperature_initial_layer_range(DynamicPrintConfig* config, unsigned int variant_index);
-    void    check_adaptive_pressure_advance_model(DynamicPrintConfig* config);
+    void    check_adaptive_pressure_advance_model(DynamicPrintConfig* config, unsigned int variant_index);
     void    check_filament_max_volumetric_speed(DynamicPrintConfig *config);
     void    check_filament_ironing_spacing(DynamicPrintConfig *config);
     void    check_chamber_temperature(DynamicPrintConfig* config);

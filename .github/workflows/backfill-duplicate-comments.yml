@@ -4,10 +4,20 @@ description: Triggers duplicate detection for old issues that don't have duplica
 on:
   workflow_dispatch:
     inputs:
-      days_back:
-        description: 'How many days back to look for old issues'
+      min_issue_number:
+        description: 'Lowest issue number to process'
         required: false
-        default: '90'
+        default: '1'
+        type: string
+      max_issue_number:
+        description: 'Only process issues below this number (empty for no upper bound); the previous run logs the value to continue from'
+        required: false
+        default: ''
+        type: string
+      limit:
+        description: 'Maximum number of dedupe runs to start, one every 30 seconds'
+        required: false
+        default: '100'
         type: string
       dry_run:
         description: 'Dry run mode (true to only log what would be done)'
@@ -21,7 +31,8 @@ on:
 jobs:
   backfill-duplicate-comments:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Dispatches are spaced 30 seconds apart, so a large limit runs for hours
+    timeout-minutes: 360
     permissions:
       contents: read
       issues: read
@@ -40,5 +51,7 @@ jobs:
         run: bun run scripts/backfill-duplicate-comments.ts
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DAYS_BACK: ${{ inputs.days_back }}
+          MIN_ISSUE_NUMBER: ${{ inputs.min_issue_number }}
+          MAX_ISSUE_NUMBER: ${{ inputs.max_issue_number }}
+          LIMIT: ${{ inputs.limit }}
           DRY_RUN: ${{ inputs.dry_run }}

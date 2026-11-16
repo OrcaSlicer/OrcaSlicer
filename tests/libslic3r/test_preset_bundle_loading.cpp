@@ -977,29 +977,74 @@ TEST_CASE("Selected printer uses its default or saved bed type", "[Preset][Bundl
     app_config.set("curr_bed_type", std::to_string(static_cast<int>(btPTE)));
     PresetBundle::PresetPreferences preferred_selection;
     BedType expected_bed_type;
+    const auto check_bed_type = [&]() {
+        bundle.load_selections(app_config, preferred_selection);
+        bundle.export_selections(app_config);
+
+        CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == expected_bed_type);
+        CHECK(app_config.get_printer_setting("Test Printer", "curr_bed_type") == std::to_string(static_cast<int>(expected_bed_type)));
+    };
 
     SECTION("New printer uses its symbolic default") {
         expected_bed_type = btEP;
         preferred_selection = {"TEST-MODEL", "0.4"};
+        check_bed_type();
     }
     SECTION("Re-enabled printer uses its saved selection") {
         expected_bed_type = btPC;
         preferred_selection = {"TEST-MODEL", "0.4"};
         app_config.set_printer_setting("Test Printer", "curr_bed_type",
                                        std::to_string(static_cast<int>(expected_bed_type)));
+        check_bed_type();
     }
     SECTION("Existing printer keeps its saved selection after presets reload") {
         expected_bed_type = btPCT;
         app_config.set("presets", PRESET_PRINTER_NAME, "Test Printer");
         app_config.set_printer_setting("Test Printer", "curr_bed_type",
                                        std::to_string(static_cast<int>(expected_bed_type)));
+        check_bed_type();
     }
+}
 
-    bundle.load_selections(app_config, preferred_selection);
-    bundle.export_selections(app_config);
+TEST_CASE("Installed slot filaments keep their slots when selections reload", "[Preset][Bundle]")
+{
+    VendorProfile vendor("TestVendor");
+    // A printer and two system filaments, as the vendor profiles load them.
+    auto add_presets = [&vendor](PresetBundle& bundle) {
+        add_inmemory_preset(bundle.printers, "Test Printer");
+        for (const char* name : {"Filament A", "Filament B"}) {
+            Preset& filament   = add_inmemory_preset(bundle.filaments, name);
+            filament.is_system = true;
+            filament.vendor    = &vendor;
+        }
+    };
 
-    CHECK(bundle.project_config.opt_enum<BedType>("curr_bed_type") == expected_bed_type);
-    CHECK(app_config.get_printer_setting("Test Printer", "curr_bed_type") == std::to_string(static_cast<int>(expected_bed_type)));
+    // Only A is installed, and the printer's slots hold A and B, as an AMS sync leaves them.
+    AppConfig app_config;
+    app_config.set(AppConfig::SECTION_FILAMENTS, "Filament A", "true");
+    app_config.set("presets", PRESET_PRINTER_NAME, "Test Printer");
+    app_config.set_printer_setting("Test Printer", PRESET_FILAMENT_NAME, "Filament A");
+    app_config.set_printer_setting("Test Printer", "filament_01", "Filament B");
+    const std::vector<std::string> slots{"Filament A", "Filament B"};
+
+    PresetBundle uninstalled;
+    add_presets(uninstalled);
+    uninstalled.load_selections(app_config);
+    CHECK(uninstalled.filament_presets == std::vector<std::string>{"Filament A", "Filament A"});
+
+    PresetBundle synced;
+    add_presets(synced);
+    synced.load_selections(app_config);
+    synced.filament_presets = slots;
+    synced.install_slot_filaments(app_config);
+    CHECK(app_config.get(AppConfig::SECTION_FILAMENTS, "Filament B") == "true");
+    synced.export_selections(app_config);
+
+    // A restart knows only what the config holds.
+    PresetBundle restarted;
+    add_presets(restarted);
+    restarted.load_selections(app_config);
+    CHECK(restarted.filament_presets == slots);
 }
 
 TEST_CASE("A directory of user presets loads with each one resolved against its parent", "[Preset][Bundle]")
@@ -1030,6 +1075,63 @@ TEST_CASE("A directory of user presets loads with each one resolved against its 
         CHECK(child->loaded);
         REQUIRE(child->config.option<ConfigOptionFloat>("layer_height") != nullptr);
         CHECK_THAT(child->config.opt_float("layer_height"), Catch::Matchers::WithinAbs(0.24, 1e-9));
+    }
+}
+
+TEST_CASE("A user printer with more extruders than its parent keeps every extruder's values on load", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    PresetCollection   printers(Preset::TYPE_PRINTER, Preset::printer_options(),
+                                static_cast<const PrintRegionConfig &>(FullPrintConfig::defaults()));
+
+    // A system printer with four extruders.
+    Preset &parent = add_inmemory_preset(printers, "Parent Printer");
+    parent.config.set_key_value("single_extruder_multi_material", new ConfigOptionBool(false));
+    parent.config.set_deserialize_strict("nozzle_diameter", "0.4,0.4,0.4,0.4");
+    parent.config.set_num_extruders(4);
+    parent.config.set_deserialize_strict("retract_length_toolchange", "10,10,10,10");
+    parent.config.set_deserialize_strict("nozzle_volume", "107,107,107,107");
+    parent.is_system = true;
+
+    const auto check_child = [&printers]() {
+        const Preset *child = printers.find_preset("User Printer");
+        REQUIRE(child != nullptr);
+        CHECK(child->config.opt_serialize("retract_length_toolchange") == "1,2,3,4,5");
+        CHECK(child->config.opt_serialize("nozzle_volume") == "107,107,107,107,143");
+    };
+
+    // A user printer adding a fifth extruder. The four it shares with the parent leave
+    // nozzle_volume unset, as a saved user preset does for values equal to its parent's.
+    PresetsConfigSubstitutions substitutions;
+    SECTION("from its file") {
+        const fs::path file = temp_dir.path() / PRESET_PRINTER_NAME / "User Printer.json";
+        fs::create_directories(file.parent_path());
+        std::ofstream(file.string()) << R"({
+            "type": "machine", "name": "User Printer", "from": "User", "version": "1.0.0",
+            "inherits": "Parent Printer", "printer_settings_id": "User Printer",
+            "nozzle_diameter": ["0.4", "0.4", "0.4", "0.4", "0.4"],
+            "extruder_variant_list": ["Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard"],
+            "printer_extruder_id": ["1", "2", "3", "4", "5"],
+            "printer_extruder_variant": ["Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard", "Direct Drive Standard"],
+            "retract_length_toolchange": ["1", "2", "3", "4", "5"],
+            "nozzle_volume": ["nil", "nil", "nil", "nil", "143"]
+        })";
+        printers.load_presets(temp_dir.path().string(), PRESET_PRINTER_NAME, substitutions,
+                              ForwardCompatibilitySubstitutionRule::Disable);
+        check_child();
+    }
+    SECTION("from the cloud") {
+        const std::map<std::string, std::string> values = {
+            {BBL_JSON_KEY_VERSION, "1.0.0"}, {BBL_JSON_KEY_SETTING_ID, "child-id"}, {BBL_JSON_KEY_USER_ID, "user"},
+            {BBL_JSON_KEY_INHERITS, "Parent Printer"}, {"printer_settings_id", "User Printer"},
+            {"nozzle_diameter", "0.4,0.4,0.4,0.4,0.4"},
+            {"extruder_variant_list", "Direct Drive Standard;Direct Drive Standard;Direct Drive Standard;Direct Drive Standard;Direct Drive Standard"},
+            {"printer_extruder_id", "1,2,3,4,5"},
+            {"printer_extruder_variant", "Direct Drive Standard;Direct Drive Standard;Direct Drive Standard;Direct Drive Standard;Direct Drive Standard"},
+            {"retract_length_toolchange", "1,2,3,4,5"},
+            {"nozzle_volume", "nil,nil,nil,nil,143"}};
+        REQUIRE(printers.load_user_preset("User Printer", values, substitutions, ForwardCompatibilitySubstitutionRule::Disable));
+        check_child();
     }
 }
 
@@ -1795,37 +1897,50 @@ TEST_CASE("Every printer variant has a compatible default material", "[Preset][V
 
     CHECK_FALSE(bundle.has_errors());
     bool expected_errors = true;
+    const auto check_errors = [&]() {
+        CHECK(bundle.check_printer_default_materials() == expected_errors);
+        CHECK(bundle.has_errors() == expected_errors);
+    };
 
     SECTION("A model default for one nozzle does not cover another nozzle") {
         model.default_materials = {"Acme PLA @0.4"};
+        check_errors();
     }
     SECTION("An empty default list leaves every variant uncovered") {
         model.default_materials.clear();
+        check_errors();
     }
     SECTION("An unknown filament cannot be a default") {
         model.default_materials = {"Missing PLA"};
+        check_errors();
     }
     SECTION("An unknown name is an error even when a compatible default covers the variant") {
         model.default_materials.insert(model.default_materials.begin(), "Missing PLA");
+        check_errors();
     }
     SECTION("An unknown default_filament_profile name is an error") {
         bundle.printers.find_preset("Acme Printer 0.6", false, true)
             ->config.option<ConfigOptionStrings>("default_filament_profile", true)->values = {"Missing PLA"};
+        check_errors();
     }
     SECTION("A known default_filament_profile name is not an error") {
         bundle.printers.find_preset("Acme Printer 0.6", false, true)
             ->config.option<ConfigOptionStrings>("default_filament_profile", true)->values = {"Acme PLA @0.6"};
         expected_errors = false;
+        check_errors();
     }
     SECTION("A short alias does not resolve as an installed default") {
         model.default_materials = {"Acme PLA"};
+        check_errors();
     }
     SECTION("A user filament cannot satisfy a shipped default") {
         bundle.filaments.find_preset("Acme PLA @0.6", false, true)->is_system = false;
+        check_errors();
     }
     SECTION("One compatible default per variant is sufficient") {
         model.default_materials.insert(model.default_materials.begin(), "Acme PLA @0.2");
         expected_errors = false;
+        check_errors();
     }
     SECTION("Compatibility conditions apply to each nozzle") {
         model.default_materials = {"Acme PLA @0.4"};
@@ -1835,6 +1950,7 @@ TEST_CASE("Every printer variant has a compatible default material", "[Preset][V
         filament->vendor = &library;
         filament->config.option<ConfigOptionStrings>("compatible_printers")->values.clear();
         filament->config.option<ConfigOptionString>("compatible_printers_condition")->value = "nozzle_diameter[0] == 0.4";
+        check_errors();
     }
     SECTION("Library defaults respect printer exclusions") {
         model.default_materials = {"Acme PLA @0.4"};
@@ -1845,15 +1961,14 @@ TEST_CASE("Every printer variant has a compatible default material", "[Preset][V
         filament->config.option<ConfigOptionStrings>("compatible_printers")->values.clear();
         CHECK_FALSE(bundle.check_printer_default_materials());
         filament->m_excluded_from.insert("Acme Printer 0.6");
+        check_errors();
     }
     SECTION("User printers do not need model defaults") {
         model.default_materials = {"Acme PLA @0.4"};
         bundle.printers.find_preset("Acme Printer 0.6", false, true)->is_system = false;
         expected_errors = false;
+        check_errors();
     }
-
-    CHECK(bundle.check_printer_default_materials() == expected_errors);
-    CHECK(bundle.has_errors() == expected_errors);
 }
 
 // Under a shared override key, the last preset merged into the full config overwrote the others', so an
@@ -5691,6 +5806,97 @@ TEST_CASE("An empty AMS slot between loaded single-colour slots keeps every slot
         CHECK(multi[i] == colours[i]);
 }
 
+// A user preset carries its system parent's filament_id, so a slot holding one for the filament a
+// tray reports keeps it through a sync; a slot whose tray holds another filament takes that filament.
+TEST_CASE("Syncing the AMS keeps a slot's user preset for the tray's filament", "[Preset][Bundle][AMS]")
+{
+    PresetBundle bundle;
+    auto add_filament = [&](const std::string &name, const std::string &inherits, const std::string &filament_id, bool is_system) {
+        Preset &preset     = add_inmemory_preset(bundle.filaments, name, inherits);
+        preset.is_system   = is_system;
+        preset.filament_id = filament_id;
+    };
+    add_filament("System PLA", "", "GFA00", true);
+    add_filament("System PETG", "", "GFG00", true);
+    add_filament("My PLA", "System PLA", "GFA00", false);
+    bundle.set_num_filaments(2u, std::string("#111111"));
+
+    auto add_tray = [&](int slot, const std::string &filament_id, const std::string &type, const std::string &colour) {
+        DynamicPrintConfig config;
+        config.set_key_value("filament_id", new ConfigOptionStrings{filament_id});
+        config.set_key_value("filament_colour", new ConfigOptionStrings{colour});
+        config.set_key_value("filament_colour_type", new ConfigOptionStrings{"1"});
+        config.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
+        config.set_key_value("ams_id", new ConfigOptionStrings{"0"});
+        config.set_key_value("slot_id", new ConfigOptionStrings{std::to_string(slot)});
+        config.set_key_value("filament_type", new ConfigOptionStrings{type});
+        bundle.filament_ams_list.emplace(slot, std::move(config));
+    };
+    std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+    MergeFilamentInfo merge_info;
+
+    SECTION("overriding the project, with an empty tray among the loaded ones") {
+        bundle.filament_presets = {"My PLA", "My PLA"};
+        add_tray(0, "GFA00", "PLA", "#FF0000");
+        add_tray(1, "GFG00", "PETG", "#00FF00");
+        add_tray(2, "", "", "");
+        std::map<int, AMSMapInfo> maps;
+        REQUIRE(bundle.sync_ams_list(unknowns, false, maps, true, merge_info) == 2);
+        CHECK(bundle.filament_presets == std::vector<std::string>{"My PLA", "System PETG"});
+    }
+
+    // Slots pair with trays through the map, not by position: slot 1 holds the PLA in tray 0.
+    // Tray 2 is an unmapped backup spool of the same PLA and colour, so it is not appended.
+    SECTION("mapping project slots to trays") {
+        bundle.filament_presets = {"System PETG", "My PLA"};
+        add_tray(0, "GFA00", "PLA", "#FF0000");
+        add_tray(1, "GFG00", "PETG", "#00FF00");
+        add_tray(2, "GFA00", "PLA", "#FF0000");
+        std::map<int, AMSMapInfo> maps{{0, {"0", "1"}}, {1, {"0", "0"}}};
+        REQUIRE(bundle.sync_ams_list(unknowns, true, maps, true, merge_info) == 2);
+        CHECK(bundle.filament_presets == std::vector<std::string>{"System PETG", "My PLA"});
+    }
+}
+
+// A spool the printer cannot name is published as a tray that exists, shows its colour, and is
+// flagged a placeholder because it resolved to no preset. An overwrite sync must treat it like an
+// empty slot: keep the project filament there and leave every other slot's colour in place.
+TEST_CASE("An unnamed spool between loaded AMS slots keeps the project filament in an overwrite sync", "[Preset][Bundle][AMS]")
+{
+    PresetBundle bundle;
+    bundle.set_num_filaments(4u, std::string("#111111"));
+    auto add_ams_slot = [&](int slot, const std::string& id, const std::string& type, const std::string& colour, bool placeholder) {
+        DynamicPrintConfig config;
+        config.set_key_value("filament_id", new ConfigOptionStrings{id});
+        config.set_key_value("filament_colour", new ConfigOptionStrings{colour});
+        config.set_key_value("filament_colour_type", new ConfigOptionStrings{"1"});
+        config.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
+        config.set_key_value("ams_id", new ConfigOptionStrings{"0"});
+        config.set_key_value("slot_id", new ConfigOptionStrings{std::to_string(slot)});
+        config.set_key_value("filament_type", new ConfigOptionStrings{type});
+        config.set_key_value("filament_exist", new ConfigOptionBools{!colour.empty()});
+        config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{placeholder});
+        bundle.filament_ams_list.emplace(slot, std::move(config));
+    };
+    add_ams_slot(0, "", "", "#592D31", true);            // unknown RFID tag: colour only
+    add_ams_slot(1, "CFS-PETG", "PETG", "#FF1E1E", false);
+    add_ams_slot(2, "", "", "", true);                   // empty slot
+    add_ams_slot(3, "CFS-PETG", "PETG", "#FFFFFF", false);
+    const std::vector<std::string> before = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+    REQUIRE(before.size() == 4);
+    std::vector<std::pair<DynamicPrintConfig *,std::string>> unknowns;
+    std::map<int, AMSMapInfo> maps;
+    MergeFilamentInfo merge_info;
+    REQUIRE(bundle.sync_ams_list(unknowns, false, maps, true, merge_info, false) == 4);
+
+    const auto& colours = bundle.project_config.option<ConfigOptionStrings>("filament_colour")->values;
+    REQUIRE(colours.size() == 4);
+    CHECK(colours[0] == before[0]);
+    CHECK(colours[1] == "#FF1E1E");
+    CHECK(colours[2] == before[2]);
+    CHECK(colours[3] == "#FFFFFF");
+}
+
 TEST_CASE("Loading incomplete mixed metadata normalizes slots before adding a filament", "[Preset][Bundle][FilamentMixer]")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
@@ -6907,8 +7113,9 @@ struct ScopedResourcesDir
     ~ScopedResourcesDir() { set_resources_dir(previous); }
 };
 
-// An "Acme" vendor under root whose "Acme Printer" inherits extruder_clearance_dist_to_rod from an
-// abstract base, with the printer in a nested sub_path so the name cannot be derived from the file.
+// An "Acme" vendor under root whose "Acme Printer", formerly "Acme Classic", inherits
+// extruder_clearance_dist_to_rod from an abstract base, with the printer in a nested sub_path so the
+// name cannot be derived from the file.
 void write_acme_printer_vendor(const fs::path &root, double dist_to_rod)
 {
     const fs::path machine_dir = root / "Acme" / "machine";
@@ -6924,8 +7131,8 @@ void write_acme_printer_vendor(const fs::path &root, double dist_to_rod)
         << R"({"type":"machine","name":"fdm_acme_common","from":"system","instantiation":"false",)"
         << R"("extruder_clearance_dist_to_rod":")" << dist_to_rod << R"("})";
     std::ofstream((machine_dir / "nested" / "printer.json").string())
-        << R"({"type":"machine","name":"Acme Printer","from":"system","instantiation":"true","inherits":"fdm_acme_common",)"
-        << R"("printer_model":"Acme One","printer_variant":"0.4"})";
+        << R"({"type":"machine","name":"Acme Printer","renamed_from":"Acme Classic","from":"system","instantiation":"true",)"
+        << R"("inherits":"fdm_acme_common","printer_model":"Acme One","printer_variant":"0.4"})";
 }
 
 std::string read_file(const fs::path &file)
@@ -7851,6 +8058,66 @@ TEST_CASE("A multi-toolhead project saved without filament self indices loads ev
     CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values == colors);
 }
 
+TEST_CASE("A project with fewer filaments than tools fills every filament slot", "[Preset][Bundle][Regression]")
+{
+    const size_t tool_count = 4;
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.opt<ConfigOptionStrings>("filament_colour")->values = { "#FF0000", "#00FF00" };
+    config.opt<ConfigOptionFloats>("nozzle_diameter")->values = std::vector<double>(tool_count, 0.4);
+    config.option<ConfigOptionBool>("single_extruder_multi_material")->value = false;
+    Preset::normalize(config);
+
+    PresetBundle bundle;
+    bundle.load_config_model("test.3mf", std::move(config));
+
+    const auto &colors = bundle.project_config.opt<ConfigOptionStrings>("filament_colour")->values;
+    REQUIRE(bundle.filament_presets.size() == tool_count);
+    REQUIRE(colors.size() == tool_count);
+    CHECK(colors[0] == "#FF0000");
+    CHECK(colors[1] == "#00FF00");
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_colour_type")->values.size() == tool_count);
+    CHECK(bundle.project_config.opt<ConfigOptionStrings>("filament_multi_colour")->values.size() == tool_count);
+    CHECK(bundle.project_config.opt<ConfigOptionInts>("filament_map")->values.size() == tool_count);
+
+    const size_t head_count = bundle.project_config.opt<ConfigOptionFloats>("flush_multiplier")->values.size();
+    CHECK(bundle.project_config.opt<ConfigOptionFloats>("flush_volumes_matrix")->values.size() == colors.size() * colors.size() * head_count);
+
+    SECTION("an overwriting sync with two empty tools keeps those slots") {
+        Preset &filament = add_inmemory_preset(bundle.filaments, "Test PLA");
+        filament.filament_id = "GFSL00";
+        filament.config.option<ConfigOptionStrings>("filament_type", true)->values = { "PLA" };
+
+        auto tray = [](const std::string &filament_id, const std::string &color, const std::string &slot_id, bool placeholder) {
+            DynamicPrintConfig tray_config;
+            tray_config.set_key_value("filament_id", new ConfigOptionStrings{ filament_id });
+            tray_config.set_key_value("filament_colour", new ConfigOptionStrings{ color });
+            tray_config.set_key_value("filament_colour_type", new ConfigOptionStrings{ "1" });
+            tray_config.set_key_value("filament_multi_colour", new ConfigOptionStrings{ color });
+            tray_config.set_key_value("filament_type", new ConfigOptionStrings{ "PLA" });
+            tray_config.set_key_value("ams_id", new ConfigOptionStrings{ "0" });
+            tray_config.set_key_value("slot_id", new ConfigOptionStrings{ slot_id });
+            tray_config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{ placeholder });
+            return tray_config;
+        };
+        bundle.filament_ams_list.emplace(0, tray(filament.filament_id, "#123456", "0", false));
+        bundle.filament_ams_list.emplace(1, tray(filament.filament_id, "#654321", "1", false));
+        bundle.filament_ams_list.emplace(2, tray("", "", "2", true));
+        bundle.filament_ams_list.emplace(3, tray("", "", "3", true));
+
+        std::vector<std::pair<DynamicPrintConfig *, std::string>> unknowns;
+        std::map<int, AMSMapInfo> maps;
+        MergeFilamentInfo merge_info;
+        const std::string kept_color = colors[2];
+        CHECK(bundle.sync_ams_list(unknowns, false, maps, false, merge_info) == tool_count);
+
+        REQUIRE(colors.size() == tool_count);
+        CHECK(colors[0] == "#123456");
+        CHECK(colors[1] == "#654321");
+        CHECK(colors[2] == kept_color);
+        CHECK(colors[3] == kept_color);
+    }
+}
+
 TEST_CASE("A system preset resolves by name from the bundled profiles", "[Preset][Bundle]")
 {
     ScopedTemporaryDir temp_dir;
@@ -7905,6 +8172,37 @@ TEST_CASE("A system preset resolves from a vendor shipped as its preset cache al
     std::string        error;
     REQUIRE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Acme Printer",
                                          ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK_THAT(config.opt_float("extruder_clearance_dist_to_rod"), Catch::Matchers::WithinAbs(33., 1e-6));
+}
+
+TEST_CASE("A system preset resolves by a name it was renamed from", "[Preset][Bundle]")
+{
+    ScopedTemporaryDir temp_dir;
+    ScopedDataDir      data(temp_dir.path() / "data");
+    ScopedResourcesDir resources(temp_dir.path() / "resources");
+    const fs::path     profiles = temp_dir.path() / "resources" / "profiles";
+    write_acme_printer_vendor(profiles, 33.);
+
+    // From the profile JSONs, or from a vendor shipped as its preset cache alone.
+    const bool cache_only = GENERATE(false, true);
+    CAPTURE(cache_only);
+    if (cache_only) {
+        PresetBundle writer;
+        writer.set_generate_vendor_caches(true);
+        writer.load_vendor_configs_from_json(profiles.string(), "Acme", PresetBundle::LoadSystem,
+                                             ForwardCompatibilitySubstitutionRule::EnableSilent);
+        REQUIRE(fs::exists(profiles / "Acme.opc"));
+        fs::remove(profiles / "Acme.json");
+        fs::remove_all(profiles / "Acme");
+    }
+
+    CHECK(PresetBundle::find_preset_vendor("Acme Classic", Preset::TYPE_PRINTER) == "Acme");
+    PresetBundle       bundle;
+    DynamicPrintConfig config;
+    std::string        error;
+    REQUIRE(bundle.resolve_system_preset(config, Preset::TYPE_PRINTER, "Acme Classic",
+                                         ForwardCompatibilitySubstitutionRule::EnableSilent, error));
+    CHECK(config.opt_string("printer_model") == "Acme One");
     CHECK_THAT(config.opt_float("extruder_clearance_dist_to_rod"), Catch::Matchers::WithinAbs(33., 1e-6));
 }
 
@@ -8617,16 +8915,20 @@ TEST_CASE("Migrating a user filament leaves a file another instance changed afte
         filaments.legacy_user_filament_presets({ { k1_parent, { "Creality K1C 0.4 nozzle" } } });
     REQUIRE(legacy_presets.size() == 1);
     CHECK(legacy_presets[0].inherits == k1_parent);
+    const auto check_file_left_alone = [&]() {
+        const std::string edited = read_file(file);
+        CHECK_FALSE(PresetCollection::write_legacy_user_filament_preset(legacy_presets[0]));
+        CHECK(read_file(file) == edited);
+    };
 
     SECTION("to set its own printers") {
         write_user_filament(temp_dir.path(), "My PETG", k1_parent, R"(,"compatible_printers":["Creality K1C 0.8 nozzle"])");
+        check_file_left_alone();
     }
     SECTION("to inherit another parent") {
         write_user_filament(temp_dir.path(), "My PETG", "Generic PETG @System");
+        check_file_left_alone();
     }
-    const std::string edited = read_file(file);
-    CHECK_FALSE(PresetCollection::write_legacy_user_filament_preset(legacy_presets[0]));
-    CHECK(read_file(file) == edited);
 }
 
 TEST_CASE("Migrating user filaments backs up and writes nothing while it can not take the user presets lock", "[Preset][Bundle]")
@@ -8697,8 +8999,10 @@ TEST_CASE("Migrating the selected user filament keeps a printer list edit pendin
 
     std::vector<std::string> expected_edited = migrated;
     bool                     expected_dirty  = false;
-    SECTION("an unedited list follows the saved one") {}
-    SECTION("an edited list stays as edited") {
+    // An unedited list follows the saved one, an edited list stays as edited.
+    const bool edited = GENERATE(false, true);
+    CAPTURE(edited);
+    if (edited) {
         edited_printers() = { "Creality K1C 0.8 nozzle" };
         expected_edited   = edited_printers();
         expected_dirty    = true;
