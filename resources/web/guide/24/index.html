@@ -8,7 +8,6 @@
 <link rel="stylesheet" type="text/css" href="../css/common.css" />
 <link rel="stylesheet" type="text/css" href="../21/common.css" /> <!-- ORCA use common sources for setup guide and standalone dialog -->
 <link rel="stylesheet" type="text/css" href="24.css" />
-<link rel="stylesheet" type="text/css" href="../css/dark.css" />	
 <!-- <script type="text/javascript" src="test.js"></script> -->
 <script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
 <script type="text/javascript" src="../js/json2.js"></script>	
@@ -87,15 +86,17 @@
 	<div class="ButtonStyleRegular ButtonTypeChoice" id="PreBtn" onclick="CancelSelect()" data-i18n="cancel">Cancel</div>
 </div>
 	
-<div id="NoticeMask"></div>
-<div id="NoticeBody">
-	<div id="NoticeBar" data-i18n="error">Error</div>
-	<div id="NoticeContent">
-	<div id="NoticeText" data-i18n="printer_required">At least one printer must be selected.</div>
-	<div id="NoticeBtns">
-		<div class="ButtonStyleConfirm ButtonTypeChoice" onClick="ShowNotice(0)" data-i18n="ok">OK</div>
+<div id="NoticeMask">
+	<div id="NoticeBody">
+		<div id="NoticeBar" data-i18n="error">Error</div>
+		<div id="NoticeContent">
+		<div id="NoticeText" data-i18n="printer_required">At least one printer must be selected.</div>
+		<div id="NoticeBtns">
+			<div class="ButtonStyleConfirm ButtonTypeChoice" onClick="ShowNotice(0)" data-i18n="ok">OK</div>
+		</div>
 	</div>
-	</div>
+</div>
+
 </div>	
 
 </body>

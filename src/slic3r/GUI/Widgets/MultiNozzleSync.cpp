@@ -12,6 +12,8 @@
 #include "Label.hpp"
 #include "ComboBox.hpp"
 #include "StaticBox.hpp"
+#include "WebViewHostDialog.hpp"
+#include "WebView.hpp"
 #include <nlohmann/json.hpp>
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/LocalesUtils.hpp"
@@ -671,6 +673,9 @@ NozzleListTable::NozzleListTable(wxWindow* parent) : wxPanel(parent,wxID_ANY,wxD
 {
     m_web_view = wxWebView::New(this, wxID_ANY, wxEmptyString, wxDefaultPosition,wxDefaultSize,wxString::FromAscii(wxWebViewBackendDefault),wxNO_BORDER);
     m_web_view->AddScriptMessageHandler("nozzleListTable");
+    m_web_view->AddUserScript(wxString::FromUTF8(WebViewHostDialog::theme_user_script()));
+    // This view is not in g_webviews, so it is re-themed in place instead of reloaded on a theme change.
+    WebView::RegisterThemeTarget(m_web_view, [] { return WebViewHostDialog::theme_apply_script(); });
     m_web_view->EnableContextMenu(false);
     fs::path filepath = fs::path(resources_dir()) / "web/flush/NozzleListTable.html";
     wxString url = file_url_from_path(filepath);
@@ -735,14 +740,12 @@ NozzleListTable::NozzleListTable(wxWindow* parent) : wxPanel(parent,wxID_ANY,wxD
 wxString NozzleListTable::BuildTableObjStr()
 {
     json obj;
-    obj["darkmode"] = wxGetApp().dark_mode();
     obj["data"] = json::array();
     for(size_t idx = 0; idx < m_nozzle_options.size(); ++idx){
         const auto& option = m_nozzle_options[idx];
         json json_opt;
         json_opt["diameter"] = option.diameter;
         json_opt["is_selected"] = idx == m_selected_idx;
-        json_opt["darkmode"] = wxGetApp().dark_mode();
 
         json extruders = json::object();
         for (const auto& [extruderId, nozzleInfo] : option.extruder_nozzle_stats) {

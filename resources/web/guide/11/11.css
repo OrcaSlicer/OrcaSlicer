@@ -3,7 +3,7 @@
 {
 	display: flex;
 	flex-direction: column;
-	justify-content:flex-start;
+	justify-content:center;
 	align-items:center;
 	align-content: center;
 }
@@ -23,9 +23,10 @@
 
 #RegionList
 {
-	border: 3px solid #C7C7C7;
+	border: 1px solid var(--main-color);
 	width: 400px;
 	cursor: pointer;
+	margin-bottom: 20px; /* ORCA for making it visually centered because title uses a fixed height */
 }
 
 .RegionItem
@@ -38,20 +39,19 @@
 
 .RegionItem:hover
 {
-	background-color: #ECECEC;
+	background-color:  var(--button-bg-hover);
 }
 
 
 .RegionSelected
 {
-	background-color:#009688;
-	color: #fff;
+	background-color: var(--main-color);
+	color:  var(--fg-light-fixed);
 }
 
 .RegionSelected:hover
 {
-	background-color:#009688;
-	color: #fff;	
+	background-color: var(--main-color-hover);
 }
 
 

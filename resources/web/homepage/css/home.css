@@ -457,8 +457,8 @@ body
 
 .BtnItemSelected
 {
-	background-color: var(--focus-bg-item); /*ORCA color with %25 opacity*/
-	border-color: var(--focus-bg-item);		/*ORCA color*/
+	background-color: var(--checked-bg); /*ORCA color with %25 opacity*/
+	border-color: var(--checked-bg);		/*ORCA color*/
 	font-weight: 700;
 	color:var(--fg-color-text);
 }
@@ -559,7 +559,7 @@ body.cloud-mode #LeftBoard
 .MenuItem:hover
 {
 	border-color: var(--main-color);		/*ORCA color*/
-	background-color: var(--focus-bg-box); /*ORCA color with %25 opacity*/
+	background-color: var(--focus-bg); /*ORCA color with %25 opacity*/
 }
 
 .MenuIcon
@@ -701,7 +701,7 @@ body.cloud-mode #LeftBoard
 }
 
 .FileItem:hover .FileImg {
-	background-color: var(--focus-bg-box); 
+	background-color: var(--focus-bg); 
 	box-shadow: inset 0 0 1px 1px var(--main-color) ;
 }
 
@@ -871,6 +871,7 @@ body.cloud-mode #LeftBoard
 .FileActionsReveal,
 .FileActionsRemove {
 	position: relative; /* Allows mouse events for child elements and blocks parent evemts*/
+	box-sizing: unset; /* fix for small sized button that came with hit box trick */
 	border: 4px solid var(--bg-color-sidebar); /* increases hitbox size */
 	border-radius: 17px; /* 13 + 4 */
 }

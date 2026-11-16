@@ -10,6 +10,8 @@
 #include <chrono>
 #include <cstddef>
 #include <exception>
+#include <functional>
+#include <string>
 #include <thread>
 
 #include <wx/setup.h>
@@ -269,6 +271,8 @@ class FakeWebView : public wxWebView
 wxDEFINE_EVENT(EVT_WEBVIEW_RECREATED, wxCommandEvent);
 
 static std::vector<wxWebView*> g_webviews;
+// Raw views that follow the app theme but cannot be reloaded; each entry re-themes in place.
+static std::vector<std::pair<wxWeakRef<wxWebView>, std::function<std::string()>>> g_theme_targets;
 // Webviews waiting for their script handler while another one is added; adding it yields, so a
 // view can be destroyed while it waits.
 static std::vector<wxWeakRef<wxWebView>> g_delay_webviews;
@@ -535,12 +539,28 @@ void WebView::RecreateAll()
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), dark ? "dark" : "light", language_code.mb_str()));
 #endif
-        // A host-themed WebViewHostDialog re-themes in place (no reload). If it handles
-        // the event, skip the reload; legacy pages fall through and reload as before
-        // (their own dark.css swap re-themes them on reload).
+        // Host-themed views update in place; others reload and pick up the new theme
+        // from the user agent set above.
         wxCommandEvent evt(EVT_WEBVIEW_RECREATED);
         evt.SetEventObject(webView);
         if (!webView->GetEventHandler()->ProcessEvent(evt))
             webView->Reload();
     }
+
+    for (auto it = g_theme_targets.begin(); it != g_theme_targets.end();) {
+        wxWebView *view = it->first.get();
+        if (!view) {
+            it = g_theme_targets.erase(it);
+            continue;
+        }
+        view->RunScript(wxString::FromUTF8(it->second()));
+        ++it;
+    }
+}
+
+void WebView::RegisterThemeTarget(wxWebView * webView, std::function<std::string()> apply_script)
+{
+    if (!webView)
+        return;
+    g_theme_targets.emplace_back(wxWeakRef<wxWebView>(webView), std::move(apply_script));
 }

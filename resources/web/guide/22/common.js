@@ -39,7 +39,7 @@ function SortUI()
 	{
 		let sModel=ModelList[n];	
 		/* ORCA use label tag to allow checkbox to toggle when user ckicked to text */
-		HtmlMode+='<label><input type="checkbox" mode="'+sModel['model']+'"  nozzle="'+sModel['nozzle_selected']+'"   onChange="MachineClick()" /><span>'+sModel['model']+'</span></label>';
+		HtmlMode+='<label class="CheckBoxContainer"><input class = "CheckBoxCtrl" type="checkbox" mode="'+sModel['model']+'"  nozzle="'+sModel['nozzle_selected']+'"   onChange="MachineClick()" /><span class="CheckBoxLabel">'+sModel['model']+'</span></label>';
 	}
 	
 	$('#MachineList .CValues').append(HtmlMode);	
@@ -122,7 +122,7 @@ function SortUI()
 		    if(!TypeHtmlArray.hasOwnProperty(LowType))
 		    {
 				/* ORCA use label tag to allow checkbox to toggle when user ckicked to text */
-			    let HtmlType='<label><input type="checkbox" filatype="'+fType+'" onChange="FilaClick()"   /><span>'+fType+'</span></label>';
+			    let HtmlType='<label class="CheckBoxContainer"><input type="checkbox" class="CheckBoxCtrl" filatype="'+fType+'" onChange="FilaClick()"   /><span class="CheckBoxLabel">'+fType+'</span></label>';
 			
 				TypeHtmlArray[LowType]=HtmlType;
 		    }
@@ -132,7 +132,7 @@ function SortUI()
 			if(!VendorHtmlArray.hasOwnProperty(lowVendor))
 		    {
 				/* ORCA use label tag to allow checkbox to toggle when user ckicked to text */
-			    let HtmlVendor='<label><input type="checkbox" vendor="'+fVendor+'"  onChange="VendorClick()" /><span>'+fVendor+'</span></label>';
+			    let HtmlVendor='<label class="CheckBoxContainer"><input type="checkbox" class="CheckBoxCtrl" vendor="'+fVendor+'"  onChange="VendorClick()" /><span class="CheckBoxLabel">'+fVendor+'</span></label>';
 				
 				VendorHtmlArray[lowVendor]=HtmlVendor;
 		    }
@@ -142,7 +142,7 @@ function SortUI()
 	        if(pFila.length==0)
 		    {
 				/* ORCA use label tag to allow checkbox to toggle when user ckicked to text */
-			    let HtmlFila='<label class="MItem"><input type="checkbox" onChange="UpdateStats()" vendor="'+fVendor+'"  filatype="'+fType+'" filalist="'+fWholeName+';'+'"  model="'+fModel+'" name="'+fShortName+'" /><span>'+fShortName+'</span></label>';
+			    let HtmlFila='<label class="MItem CheckBoxContainer"><input type="checkbox" class="CheckBoxCtrl" onChange="UpdateStats()" vendor="'+fVendor+'"  filatype="'+fType+'" filalist="'+fWholeName+';'+'"  model="'+fModel+'" name="'+fShortName+'" /><span class="CheckBoxLabel">'+fShortName+'</span></label>';
 			
 			    $("#ItemBlockArea").append(HtmlFila);
 		    } 
@@ -406,16 +406,8 @@ function SelectAllFilament( nShow )
 	UpdateStats();
 }
 
-function ShowNotice( nShow )
-{
-	if(nShow==0) {
-		$("#NoticeMask").hide();
-		$("#NoticeBody").hide();
-	}
-	else {
-		$("#NoticeMask").show();
-		$("#NoticeBody").show();
-	}
+function ShowNotice(nShow) {
+  	$("#NoticeMask").toggleClass("visible", nShow != 0);
 }
 
 function ChooseDefaultFilament()

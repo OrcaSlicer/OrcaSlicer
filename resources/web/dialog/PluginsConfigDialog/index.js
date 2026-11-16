@@ -118,7 +118,7 @@ function RenderCapabilities() {
   for (const capability of capabilities) {
     const item = document.createElement("button");
     item.type = "button";
-    item.className = "config-cap";
+    item.className = "SideTabBtn";
     item.dataset.pluginKey = String(capability.plugin_key || "");
     item.dataset.capabilityName = String(capability.name || "");
     item.dataset.capabilityType = String(capability.type_key || "");
@@ -129,12 +129,12 @@ function RenderCapabilities() {
     item.setAttribute("aria-selected", isSelected ? "true" : "false");
 
     const label = document.createElement("span");
-    label.className = "config-cap-name";
+    label.className = "SideTabLabel";
     label.textContent = String(capability.name || "");
     item.appendChild(label);
 
     const type = document.createElement("span");
-    type.className = "config-cap-type";
+    type.className = "SideTabDesc";
     type.textContent = String(capability.type || "");
     item.appendChild(type);
 
@@ -143,7 +143,7 @@ function RenderCapabilities() {
 }
 
 function OnConfigSidebarClick(event) {
-  const item = event.target.closest(".config-cap");
+  const item = event.target.closest(".SideTabBtn");
   if (!item)
     return;
 
@@ -287,7 +287,7 @@ function SetConfigValidation(message) {
   const save = document.getElementById("configSaveBtn");
   if (node) {
     node.textContent = message;
-    node.classList.toggle("invalid", message !== "");
+    node.classList.toggle("error-text", message !== "");
   }
   // Invalid JSON is never saved: Save is the only way to persist. The native side re-validates.
   if (save)

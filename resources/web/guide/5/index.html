@@ -6,7 +6,6 @@
 <title>引导_P1</title>
 <link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />	
-<link rel="stylesheet" type="text/css" href="../css/dark.css" />		
 <link rel="stylesheet" type="text/css" href="5.css" />
 <script type="text/javascript" src="../../include/jquery-3.6.0.min.js"></script>
 <script type="text/javascript" src="../js/json2.js"></script>	
@@ -30,10 +29,9 @@
         <div><span class="TextPoint">●</span>&nbsp;&nbsp;<a tid="t67" class="trans" ></a></div>
 		<div><span class="TextPoint">●</span>&nbsp;&nbsp;<a tid="t68" class="trans" ></a></div> -->
     </div>
-	
-	
+
 	<!-- ORCA use label tag to allow checkbox to toggle when user clicked to text -->
-	<label id="CheckArea"><input id="InstallCheck" onClick="SendInstallPluginCheck()" type="checkbox"><a class="TextS1" data-i18n="install_bambu_plugin">Install Bambu Network plug-in</a></label>
+	<label id="CheckArea" class="CheckBoxContainer"><input id="InstallCheck" onClick="SendInstallPluginCheck()" type="checkbox" class="CheckBoxCtrl"><a class="CheckBoxLabel" data-i18n="install_bambu_plugin">Install Bambu Network plug-in</a></label>
 	<div id="RestartText"></div>
 	
 </div>
