@@ -278,6 +278,113 @@ TEST_CASE("Only one wall on the first layer needs a bottom shell", "[Perimeters]
 
 namespace {
 
+// A 40x40x5 base with a 10x10x10 post in each corner. The inner walls of the base's top layer run along the
+// ledge between two posts, so every vertex of a loop sits inside the posts, which keep rising, while the side
+// between two posts runs over the top surface.
+Print &base_with_corner_posts(Print &print, Model &model, const DynamicPrintConfig &config)
+{
+    ModelObject *object = model.add_object();
+    object->name = "base_with_corner_posts.stl";
+    object->add_volume(make_cube(40., 40., 5.), ModelVolumeType::MODEL_PART, false);
+    for (const double x : { 0., 30. })
+        for (const double y : { 0., 30. }) {
+            TriangleMesh post = make_cube(10., 10., 10.);
+            post.translate(float(x), float(y), 0.f);
+            object->add_volume(std::move(post), ModelVolumeType::MODEL_PART, false);
+        }
+    object->add_instance();
+    object->ensure_on_bed();
+
+    print.auto_assign_extruders(object);
+    print.apply(model, config);
+    print.validate();
+    print.set_status_silent();
+    print.process();
+    return print;
+}
+
+const Layer *layer_at(const Print &print, double print_z)
+{
+    for (const Layer *layer : print.objects().front()->layers())
+        if (std::abs(layer->print_z - print_z) < 1e-4)
+            return layer;
+    return nullptr;
+}
+
+// Length of the top surface fill on a layer.
+double top_fill_length(const Layer &layer)
+{
+    double len = 0.;
+    for (const LayerRegion *region : layer.regions())
+        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+            if (is_top_surface(entity->role()))
+                len += entity->length();
+    return unscale<double>(len);
+}
+
+// Length of the inner-wall centerline lying inside the top surface fill on a layer.
+double inner_wall_over_top_fill(const Layer &layer)
+{
+    double over = 0.;
+    for (const LayerRegion *region : layer.regions()) {
+        Polygons top_fill;
+        for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+            if (is_top_surface(entity->role()))
+                append(top_fill, entity->polygons_covered_by_width());
+        if (top_fill.empty())
+            continue;
+        for (const ExtrusionEntity *entity : region->perimeters.flatten().entities)
+            if (is_internal_perimeter(entity->role()))
+                over += total_length(intersection_pl(entity->as_polylines(), top_fill));
+    }
+    return unscale<double>(over);
+}
+
+// Length of the inner walls on a layer.
+double inner_wall_length(const Layer &layer)
+{
+    double len = 0.;
+    for (const LayerRegion *region : layer.regions())
+        for (const ExtrusionEntity *entity : region->perimeters.flatten().entities)
+            if (is_internal_perimeter(entity->role()))
+                len += entity->length();
+    return unscale<double>(len);
+}
+
+} // namespace
+
+// A wall runs over the top surface wherever any part of it is over that surface, which a per-vertex test does
+// not see when the wall crosses the top between two vertices that both sit over the geometry that keeps
+// rising. The inner walls of a base between its corner posts are exactly that: the top fill covers them, so
+// the perimeter generator has to give them up rather than print the fill over them.
+TEST_CASE("Only one wall on top surfaces keeps the top fill off inner walls that cross it between their vertices", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    DynamicPrintConfig config = base_config(wall_generator);
+    config.set_deserialize_strict({
+        { "only_one_wall_top",     true },
+        { "top_surface_expansion", 2.0 },
+    });
+    Print print;
+    Model model;
+    base_with_corner_posts(print, model, config);
+
+    const Layer *ledge = layer_at(print, ledge_z);
+    REQUIRE(ledge != nullptr);
+    // The ledge layer has a top fill to keep clear, and the layer below still has the inner walls, so the
+    // check below is about which walls survive the ledge and not about the shape lacking either.
+    REQUIRE(top_fill_length(*ledge) > 0.);
+    const Layer *below = layer_at(print, ledge_z - 0.2);
+    REQUIRE(below != nullptr);
+    REQUIRE(inner_wall_length(*below) > 0.);
+
+    CHECK(inner_wall_over_top_fill(*ledge) < 1.0);
+}
+
+namespace {
+
 // The last layer of the tab, whose top surface shares an island with the tube walls rising past it.
 const double tab_top_z = 5.0;
 
