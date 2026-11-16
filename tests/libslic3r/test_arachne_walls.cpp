@@ -468,8 +468,8 @@ TEST_CASE("Arachne toolpaths stay inside a nearly straight notched strip", "[Ara
 // A sliver whose apex lies metres away gives a Voronoi diagram that rotating the input cannot repair.
 // The skeletal graph built from such a diagram has edges without twins, so it must not be used.
 TEST_CASE("Arachne generates no toolpaths from an unrepairable Voronoi diagram", "[Arachne][Regression]") {
-    const Polygon sliver = GENERATE(Polygon{{7085722, -9761944}, {7086662, -16961944}, {8169022, -8295690726}},
-                                    Polygon{{8805310, -23391484}, {8008853, 6064690973}, {8534015, -23391518}});
+    const Polygon sliver = GENERATE(Polygon{{7085722, -9761944}, {7086662, -16961944}, {8169022, static_cast<coord_t>(-8295690726)}},
+                                    Polygon{{8805310, -23391484}, {8008853, static_cast<coord_t>(6064690973)}, {8534015, -23391518}});
     CAPTURE(sliver.points);
     const Polygons outline{sliver};
 
