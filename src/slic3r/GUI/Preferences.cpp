@@ -1,6 +1,7 @@
 #include "Preferences.hpp"
 #include <wx/msgdlg.h>
 #include "slic3r/GUI/CAD/McpControl.hpp"
+#include "slic3r/plugin/host/PluginPages.hpp"
 #include "CloudProvider.hpp"
 #include "ColorPickerDialog.hpp"
 #include "OptionsGroup.hpp"

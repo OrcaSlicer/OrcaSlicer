@@ -22,6 +22,7 @@
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
 #include "slic3r/GUI/GLModel.hpp"
 #include <vector>
