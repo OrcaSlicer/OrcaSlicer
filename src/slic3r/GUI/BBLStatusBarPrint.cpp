@@ -109,7 +109,7 @@ BBLStatusBarPrint::BBLStatusBarPrint(wxWindow *parent, int id)
     m_prog->SetMinSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(8)));
     m_prog->SetMaxSize(wxSize(m_self->FromDIP(520), m_self->FromDIP(8)));
 #ifdef __WXGTK__
-    SetGaugeColor(m_prog, 
+    GUI::SetGaugeColor(m_prog, 
         StateColor::darkModeColorFor(wxColour("#009688")).GetAsString(), 
         StateColor::darkModeColorFor(wxColour("#D9D9D9")).GetAsString()
     );

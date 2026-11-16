@@ -49,7 +49,7 @@ BBLStatusBarSend::BBLStatusBarSend(wxWindow *parent, int id)
     m_prog = new wxGauge(m_self, wxID_ANY, 100, wxDefaultPosition, wxSize(-1, m_self->FromDIP(8)), wxGA_HORIZONTAL);
     m_prog->SetMinSize(wxSize(m_self->FromDIP(300),m_self->FromDIP(8)));
 #ifdef __WXGTK__
-    SetGaugeColor(m_prog, 
+    GUI::SetGaugeColor(m_prog, 
         StateColor::darkModeColorFor(wxColour("#009688")).GetAsString(), 
         StateColor::darkModeColorFor(wxColour("#D9D9D9")).GetAsString()
     );
