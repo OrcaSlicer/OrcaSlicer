@@ -49,7 +49,7 @@ msgid "Left extruder"
 msgstr "왼쪽 압출기"
 
 msgid "left extruder"
-msgstr "왼쪽 익스트루더"
+msgstr "왼쪽 압출기"
 
 msgid "Right Extruder"
 msgstr "오른쪽 압출기"
@@ -58,7 +58,7 @@ msgid "Right extruder"
 msgstr "오른쪽 압출기"
 
 msgid "right extruder"
-msgstr "오른쪽 익스트루더"
+msgstr "오른쪽 압출기"
 
 # AI Translated
 msgid "Main Nozzle"
