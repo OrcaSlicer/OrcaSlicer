@@ -694,44 +694,46 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                             //                                        L"Ъ", L"ъ", L"Ж", L"ж", L"Э", L"э", L"Б", L"б", L"Ю", L"ю", L"№"};
                             
                             // Orca: AI generated table
-                            std::wstring const in_keyboard_layout[]{
-                                L"ФΑㅁشちԱაשฤओش", L"фаㅁشちաაשฟोش", // A a
-                                L"ИΒㅠلابこԻბנฺऑذ", L"иβㅠلابこիბנิॉذ", // B b
-                                L"СΨㅊؤそՑცבฉणز", L"сψㅊؤそցცבแणز", // C c
-                                L"ВΔㅇيしԴდגฏअي", L"вδㅇيしդდגกअي", // D d
-                                L"УΕㄸثいԵეקฎआث", L"уεㄷثいեეקำआث", // E e
-                                L"АΦㄹبはՖფכโइب", L"аφㄹبはֆფכดइب", // F f
-                                L"ПΓㅎلきԳგעฌउل", L"пγㅎلきգგעเउل", // G g
-                                L"РΗㅗاくՀჰי็अا", L"рηㅗاくհჰי้अا", // H h
-                                L"ШΙㅑهにԻიןณईه", L"шιㅑهにիიןรईه", // I i
-                                L"ОΞㅓتまՃჯח๋अت", L"оξㅓتまճჯח่अت", // J j
-                                L"ЛΚㅏنのԿკלษकن", L"лκㅏنのկკלาकن", // K k
-                                L"ДΛㅣمりԼლךศतम", L"дλㅣمりլლךสतम", // L l
-                                L"ЬΜㅡةもՄმצ؟सپ", L"ьμㅡةもմმצทसپ", // M m
-                                L"ТΝㅜىみՆնמ์लد", L"тνㅜىみննמืलد", // N n
-                                L"ЩЎΟㅒخらՈოםฯऐخ", L"щўοㅐخらոოםนऐخ", // O o
-                                L"ЗΠㅖحせՉპפญएح", L"зπㅔحせչპפยएح", // P p
-                                L"Й:ㅃضたՔქ/๐औض", L"й;ㅂضたքქ/ๆऔض", // Q q
-                                L"КΡㄲقすՐრרฑईق", L"кρㄱقすրრרพईق", // R r
-                                L"ЫІΣㄴسとՍსדฆएس", L"ыіσㄴسとսსดหएس", // S s
-                                L"ЕΤㅆفかՏտאธऊف", L"еτㅅفかտտאะऊف", // T t
-                                L"ГΘㅕعなՒუו๊ऊع", L"гθㅕعなւუוีऊع", // U u
-                                L"МΩㅍرひՎვהฮअر", L"мωㅍرひվვהอअر", // V v
-                                L"ЦΣㅉصてԾწऐص", L"цςㅈصてծწไऐص", // W w
-                                L"ЧΧㅌءさԽხס)अط", L"чχㅌءさխხסปअط", // X x
-                                L"НΥㅛغんՅყטํऐغ", L"нυㅛغんյყטัऐغ", // Y y
-                                L"ЯΖㅋئつՁზזऐظ", L"яζㅋئつձზזผऐظ", // Z z
-                                L"ЁҐّろ՜%ऐ×", L"ёґذろ՝_ऐ÷", // ~
-                                L"Х<ほ«ฐढ", L"хجほ»บडج", // { [
-                                L"ЪЇ>へ»ฅञ", L"ъїدへ«ลणچ", // } ]
-                                L"Ж¨れซछ", L"ж΄كれวचک", // : ;
-                                L"ЭЄطけठ", L"эєطけงटگ", // " ' 
-                                L"Бوねฒष", L"бوねม", // < ,
-                                L"Юزるฬ", L"юزるใ", // > .
+                            // It works best with Cyrillic, Greek, and Armenian layouts.
+                            // For other world-wide layouts that do not support capitals letters, there may be limitations in the definition.
+                            static std::wstring const in_keyboard_layout[]{
+                                L"ФΑԱㅁちაשฤओش", L"фаաฟो", // A a
+                                L"ИΒԻㅠلاこბנฺऑبذ", L"иβիิॉ", // B b
+                                L"СΨՑㅊそცבฉणزؤ", L"сψցแ", // C c
+                                L"ВΔԴㅇしდגฏअي", L"вδդก", // D d
+                                L"УΕԵㄸいეקฎआث", L"уεำ", // E e
+                                L"АΦՖㄹはფכโइب", L"аφֆดइ", // F f
+                                L"ПΓԳㅎきგעฌउل", L"пγգเ", // G g
+                                L"РΗՀㅗくჰי็ا", L"рηհ้", // H h
+                                L"ШΙԻㅑにიןณईه", L"шιիร", // I i
+                                L"ОΞՃㅓまჯח๋ت", L"оξճ่", // J j
+                                L"ЛΚԿㅏのკלษकن", L"лκկา", // K k
+                                L"ДΛԼㅣりლךศतमم", L"дλլส", // L l
+                                L"ЬΜՄㅡもმצ؟सپة", L"ьμմท", // M m
+                                L"ТΝՆㅜみնמ์लدى", L"тνնื", // N n
+                                L"ЩЎΟՈㅒらოםฯऐخ", L"щўοոน", // O o
+                                L"ЗΠՉㅖせპפญएح", L"зπչㅔย", // P p
+                                L"ЙՔㅃたქ๐औض", L"йքㅂๆ", // Q q
+                                L"КΡՐㄲすრרฑईق", L"кρրㄱพ", // R r
+                                L"ЫІΣՍㄴとსדฆس", L"ыіσսดห", // S s
+                                L"ЕΤՏㅆかאธऊف", L"еτտㅅะ", // T t
+                                L"ГΘՒㅕなუו๊ऊع", L"гθւี", // U u
+                                L"МΩՎㅍひვהฮر", L"мωվอ", // V v
+                                L"ЦΣԾㅉてწص", L"цςծㅈไ", // W w
+                                L"ЧΧԽㅌさხס)طء", L"чχխป", // X x
+                                L"НΥՅㅛんყטํغ", L"нυյั", // Y y
+                                L"ЯΖՁㅋつზזظئ", L"яζձผ", // Z z
+                                L"ЁҐّろ՜×", L"ёґ÷ذ", // ~ `
+                                L"Х<ほฐढ", L"хบडج", // { [
+                                L"ЪЇ>へฅञ", L"ъїลणدچ", // } ]
+                                L"Жれซछ", L"жวचکك", // : ;
+                                L"ЭЄけठط", L"эєงटگ", // " ' 
+                                L"Бねฒषو", L"бม", // < ,
+                                L"Юるฬ", L"юใ", // > .
                                 L"№" // #
                             };
                             
-                            std::string const out_symbol{"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz~`{[}]:;\"'<,>.#"};
+                            static std::string const out_symbol{"AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz~`{[}]:;\"'<,>.#"};
                             for (int i = 0; i < out_symbol.size(); i++) {
                                 std::wstring kb = in_keyboard_layout[i];
                                 std::string out_string(out_symbol.substr(i, 1));
@@ -781,13 +783,14 @@ void Field::get_value_by_opt_type(wxString& str, const bool check_value/* = true
                 v    = "";
 
                 // split into separate commands
-                std::string const a_zone    = u8"[A]?[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?[%]?[;]?";
-                std::string const d_zone    = u8"[Dd][+\\-]?[\\d.]+(?:[:][\\d.]*|[%])?[;]?";
-                std::string const xy_zone   = u8"(?:[X][_]?[Y]?|[x][_]?[y]?|[Yy])[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?(?:[&@%\'\"c]?[m]{0,2})?[;]?";
-                std::string const z_zone    = u8"[\\^~\\\\/NnZz$LlUuQq#JjCOo|]?[+\\-]?[\\d.]*(?:[:]?[\\d.]+)?[@&%#\'\"c]?[m]{0,2}";
-                std::string const r_zone    = u8"(?:[!*]?|(?:[!]?[*][\\d]+)?|[*][\\d]+[!]?)?";
-                std::string const ps_sparse = u8"[BT][!]?|[#][\\d.]+[!]?|(?:" + a_zone + "|" + d_zone + "|" + xy_zone + ")+" + r_zone + z_zone + "[BT]?" + r_zone;
-                std::string const ps_solid  = u8"[#][\\d.]+[!]?|(?:" + a_zone + "|" + xy_zone + ")+" + r_zone + z_zone + r_zone;
+                std::string const a_zone    = u8"[A]?[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?[%]?";
+                std::string const d_zone    = u8"[Dd][+\\-]?[\\d.]+(?:[:][\\d.]*|[%])?";
+                std::string const xy_zone   = u8"(?:[X][_]?[Y]?|[x][_]?[y]?|[Yy])[+\\-_]?[\\d.]+(?:[:]?[\\d.]+)?(?:[&@%\'\"c]?[m]{0,2})?";
+                std::string const z_zone    = u8"[BbTt]|[\\^~\\\\/NnZz$LlUuQq#JjCOo|]+[+\\-]?[\\d.]*(?:[:]?[\\d.]+)?[@&%#\'\"c]?[m]{0,2}";
+                std::string const r_zone    = u8"\\*?\\d*";
+                std::string const rz_zone   = u8"(?:(?:" + z_zone + u8")[;]?(?:" + r_zone + u8")?|(?:" + r_zone + u8")[;]?(?:" + z_zone + u8")|" + r_zone + u8")?!?";
+                std::string const ps_sparse = u8"[BT][!]?|[#][\\d.]+[!]?|(?:(?:" + a_zone + u8"|" + d_zone + u8"|" + xy_zone + u8")+[;]?)+" + rz_zone;
+                std::string const ps_solid  = u8"[#][\\d.]+[!]?|(?:(?:" + a_zone + u8"|" + xy_zone + u8")+[;]?)+" + rz_zone;
                 std::string ps = (m_opt.opt_key == "sparse_infill_rotate_template") ? ps_sparse : ps_solid;
 
                 while (std::regex_search(ustr, match, std::regex(ps))) {

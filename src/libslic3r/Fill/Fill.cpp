@@ -117,7 +117,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
     static const std::string replace12       = "$1$2"; 
     static const std::regex  del("[\\s,]+");
     static const std::regex  hex("(^|\\D)0+([xX])");
-    static const std::regex  metalang_sign("[+\\-%AXYxyDd_*@&\'\"cm\\" + search_string + "]");
+    static const std::regex  metalang_sign("[+\\-%AXYxyDd_*@&BbTt\'\"cm\\" + search_string + "]");
     static const std::regex  semicolon(";");
 
     std::string template_string2 = std::regex_replace(template_string, semicolon, std::string()); // remove the easy-reading separators
@@ -138,6 +138,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
         size_t const tk_size{tk.size()};
         
         int    repeats         = 0;                     // metacommand repeats counter
+        bool   cyclic_repeats  = false;
         int    divider_steps   = 0;                     // the number of steps of the divisor
         
         double angle_start     = 0.;                    // the initial position of the angle for the current range
@@ -150,7 +151,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
         double density_start   = (fixed_infill_density / 100.) / fixed_multiline; // the initial position of the density in internal scale 0...1 without multiline factor
         double density_add     = 0.;                    // additive for the density step
         double density_lin     = 0.;                    // additive for the linear density step
-        int density_adapt      = 0;                     // flag for restoring the normal density representation when miltiline changing
+        int    density_adapt   = 0;                     // flag for restoring the normal density representation when miltiline changing
         
         double multiline_start = fixed_multiline;       // the initial position of the miltiline for the current range
         double multiline_add   = 0.;                    // additive for the miltiline step
@@ -159,6 +160,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
         const double print_z_offset = object->slicing_parameters().object_print_z_min;
         double start_fill_z = object->get_layer(0)->bottom_z();
         double limit_fill_z = start_fill_z;
+        double fill_z       = 0.;
         size_t fill_form    = std::string::npos;
         bool is_negative    = false;
         // Vector of stop marks. "1" is the one-time running command, "2" is the dumb command
@@ -167,16 +169,35 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
 
         line_width = line_width ? line_width : object->config().line_width;
 
+        auto update_values = [&](bool is_repeats) {
+            angle_start     += angle_add;
+            shift_start     += rotate_point_CW(fixed_infill_angle, shift_add) + rotate_point_CW(fixed_infill_angle + angle_start, shift_dir);
+            density_start   += density_add;
+            multiline_start += multiline_add;
+
+            if (!is_repeats) {
+                angle_add     = 0.;
+                shift_add     = Vec2d(0., 0.);
+                shift_dir     = Vec2d(0., 0.);
+                density_add   = 0.;
+                density_lin   = 0.;
+                multiline_add = 0.;
+            }
+        };
+
         for (int i = 0; i <= layer_id; i++) {
-            double fill_z = object->get_layer(i)->print_z;
+            fill_z = object->get_layer(i)->print_z;
             if (limit_fill_z <= object->get_layer(i)->bottom_z() + EPSILON) {
                 if (repeats-- > 0) { // if repeats >0 then restore parameters for new iteration
-                    if (divider_steps)
+                    if (cyclic_repeats)
+                        update_values(true);
+                    if (divider_steps) {
+                        start_fill_z = limit_fill_z;
                         limit_fill_z = get_layer_z(object, i + divider_steps);
-                    else {
+                    } else {
                         double next_fill_z = limit_fill_z - start_fill_z;
                         start_fill_z       = limit_fill_z;
-                        limit_fill_z += next_fill_z;
+                        limit_fill_z      += next_fill_z;
                     }
                 } else {
                     start_fill_z = limit_fill_z;
@@ -184,26 +205,13 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                     
                     bool more_loop = false; // dumb metacommand flag
                     do {
-                        if (t >= tk_size) // reset index
+                        if (t >= tk_size)   // reset index
                             t = 0;
 
-                        char* cs = &tk[t][0];           // current metacommand
+                        char* cs = &tk[t][0]; // current metacommand
+                        update_values(false);
 
-                        angle_start += angle_add;
-                        angle_add   = 0.;
-                        
-                        shift_start += rotate_point_CW(fixed_infill_angle, shift_add) + rotate_point_CW(fixed_infill_angle + angle_start, shift_dir);
-                        shift_add   = Vec2d(0., 0.);
-                        shift_dir   = Vec2d(0., 0.);
-
-                        density_start += density_add;
-                        density_add   = 0.;
-                        density_lin   = 0.;
-                            
-                        multiline_start += multiline_add;
-                        multiline_add  = 0.;
-
-                        if (stop[t] < 2) {  // validate only non-dumb commands
+                        if (stop[t] < 2) {    // validate only non-dumb commands
                             is_negative   = false;
 
                             density_adapt = 0;
@@ -416,11 +424,20 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                             }
 
                             double height_value(0.);
+                            cyclic_repeats = false;
 
                             if (cs[0] == 'B') {
-                                divider_steps = object->print()->default_region_config().bottom_shell_layers.value;
+                                repeats = object->print()->default_region_config().bottom_shell_layers.value;
+                                cyclic_repeats = true;
                                 cs++;
                             } else if (cs[0] == 'T') {
+                                repeats = object->print()->default_region_config().top_shell_layers.value;
+                                cyclic_repeats = true;
+                                cs++;
+                            } else if (cs[0] == 'b') {
+                                divider_steps = object->print()->default_region_config().bottom_shell_layers.value;
+                                cs++;
+                            } else if (cs[0] == 't') {
                                 divider_steps = object->print()->default_region_config().top_shell_layers.value;
                                 cs++;
                             } else {
@@ -480,7 +497,7 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
 
                             if (cs[0] == '*') { // [R-zone] overall cycles - post [Z-zone]
                                 cs++;
-                                repeats += strtol(cs, &cs, 0);
+                                repeats = strtol(cs, &cs, 0);
                             }
 
                             // Calculate the altitude when specifying the exact number of layers.
@@ -500,65 +517,64 @@ static InfillParams calculate_infill_position_rad(const PrintObject* object,
                     } while (((t < tk_size) || std::any_of(stop.begin(), stop.end(), [](int v) { return v == 0; })) && more_loop); // if this is a set of dumb or one-time running instruction which never reaprated twice
                 }
             }
-
-            double negvalue = std::min(std::max(((is_negative && fill_form) ? (limit_fill_z - fill_z) : (fill_z - start_fill_z)) / (limit_fill_z - start_fill_z), 0.), 1.);
-            
-            switch (fill_form) {
-            case 0:  break;                                                                        // \-joint, linear like /, but rounding up for some parameters
-            case 1:  break;                                                                        // /-joint, linear
-            case 2:  {                                                                             // ^-joint, pseudorandom, disperse at middle line
-                std::mt19937_64 rng(layer_id);
-                negvalue += double(rng()) / double(std::mt19937_64::max()) - .5; break;}
-            case 3:  {                                                                             // ~-joint, random, fill the whole range
-                std::mt19937_64 rng(layer_id);
-                negvalue  = double(rng()) / double(std::mt19937_64::max()); break;}
-            case 4:  negvalue -= sin(negvalue * PI * 2.) / (PI * 2.); break;                       // N-joint, sinus, vertical start
-            case 5:  negvalue -= sin(negvalue * PI * 2.) / (PI * 4.); break;                       // n-joint, sinus, vertical start, lazy
-            case 6:  negvalue += sin(negvalue * PI * 2.) / (PI * 2.); break;                       // Z-joint, sinus, horizontal start
-            case 7:  negvalue += sin(negvalue * PI * 2.) / (PI * 4.); break;                       // z-joint, sinus, horizontal start, lazy
-            case 8:  negvalue  = asin(negvalue * 2. - 1.) / PI + .5; break;                        // $-joint, arcsin
-            case 9:  negvalue  = sin(negvalue * M_PI_2); break;                                    // L-joint, quarter of circle, horizontal start
-            case 10: negvalue  = 1. - cos(negvalue * M_PI_2); break;                               // l-joint, quarter of circle, vertical start
-            case 11: negvalue  = 1. - pow(1. - negvalue, 2); break;                                // U-joint, squared, x2
-            case 12: negvalue  = pow(1 - negvalue, 2); break;                                      // u-joint, squared, x2 inverse
-            case 13: negvalue  = 1. - pow(1. - negvalue, 3); break;                                // Q-joint, cubic, x3
-            case 14: negvalue  = pow(1. - negvalue, 3); break;                                     // q-joint, cubic, x3 inverse
-            case 15: negvalue  = is_negative ? 0. : 1.; break;                                     // #-joint, vertical at the end of range
-            case 16: negvalue  = 0.5; break;                                                       // J-joint, like #-joint but placed at middle angle (former |-joint)
-            case 17: negvalue  = is_negative != (negvalue > 0.5) ? 0. : 1.; break;                 // j-joint, vertical separated at the start and end of range
-            case 18: negvalue  = is_negative ? 1 - sqrt(1 - pow(negvalue * 2 - 1, 2)) : 
-                                               sqrt(1 - pow(negvalue * 2 - 1, 2)); break;          // C-joint, half of circle
-            case 19: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // O-joint, vertical cosine wave
-            case 20: negvalue  = .5 * sin(negvalue * PI * 2.) + .5; break;                         // O-joint, vertical sine wave
-            case 21: negvalue  = 0.5; break;                                                       // |-joint, copy of J-joint (is used for compatibility)
-            default: negvalue  = 1.;
-            }
-
-            params.angle = angle_start + angle_add * negvalue;
-            params.shift = (shift_start + (rotate_point_CW(fixed_infill_angle, shift_add) + rotate_point_CW(fixed_infill_angle + params.angle, shift_dir)) * negvalue) / SCALING_FACTOR;
-            if (density_lin) {
-                double _ns     = 1. / density_start;
-                double _ne     = 1. / (density_start + density_lin);
-                params.density = 1. / (_ns - (_ns - _ne) * negvalue) + density_add * negvalue;
-            } else 
-                params.density = density_start + density_add * negvalue;
-
-            // Adapt density if changed multiline number at next command
-            double multiline_param; 
-            if (fill_form)
-                multiline_param = round(multiline_start + multiline_add * negvalue);
-            else
-                multiline_param = is_negative ? floor(multiline_start + multiline_add * negvalue) : ceil(multiline_start + multiline_add * negvalue);
-
-            params.multiline = std::max(multiline_param, 1.); // store new value
-            if (density_adapt == 1)
-                params.density *= round(multiline_start) / multiline_param;
-            else if (density_adapt) // == 2
-                params.density /= multiline_start;
         }
+        
+        double negvalue = std::min(std::max(((is_negative && fill_form) ? (limit_fill_z - fill_z) : (fill_z - start_fill_z)) / (limit_fill_z - start_fill_z), 0.), 1.);
+        switch (fill_form) {
+        case 0:  break;                                                                        // \-joint, linear like /, but rounding up for some parameters
+        case 1:  break;                                                                        // /-joint, linear
+        case 2:  {                                                                             // ^-joint, pseudorandom, disperse at middle line
+            std::mt19937_64 rng(layer_id);
+            negvalue += double(rng()) / double(std::mt19937_64::max()) - .5; break;}
+        case 3:  {                                                                             // ~-joint, random, fill the whole range
+            std::mt19937_64 rng(layer_id);
+            negvalue  = double(rng()) / double(std::mt19937_64::max()); break;}
+        case 4:  negvalue -= sin(negvalue * PI * 2.) / (PI * 2.); break;                       // N-joint, sinus, vertical start
+        case 5:  negvalue -= sin(negvalue * PI * 2.) / (PI * 4.); break;                       // n-joint, sinus, vertical start, lazy
+        case 6:  negvalue += sin(negvalue * PI * 2.) / (PI * 2.); break;                       // Z-joint, sinus, horizontal start
+        case 7:  negvalue += sin(negvalue * PI * 2.) / (PI * 4.); break;                       // z-joint, sinus, horizontal start, lazy
+        case 8:  negvalue  = asin(negvalue * 2. - 1.) / PI + .5; break;                        // $-joint, arcsin
+        case 9:  negvalue  = sin(negvalue * M_PI_2); break;                                    // L-joint, quarter of circle, horizontal start
+        case 10: negvalue  = 1. - cos(negvalue * M_PI_2); break;                               // l-joint, quarter of circle, vertical start
+        case 11: negvalue  = 1. - pow(1. - negvalue, 2); break;                                // U-joint, squared, x2
+        case 12: negvalue  = pow(1 - negvalue, 2); break;                                      // u-joint, squared, x2 inverse
+        case 13: negvalue  = 1. - pow(1. - negvalue, 3); break;                                // Q-joint, cubic, x3
+        case 14: negvalue  = pow(1. - negvalue, 3); break;                                     // q-joint, cubic, x3 inverse
+        case 15: negvalue  = is_negative ? 0. : 1.; break;                                     // #-joint, vertical at the end of range
+        case 16: negvalue  = 0.5; break;                                                       // J-joint, like #-joint but placed at middle angle (former |-joint)
+        case 17: negvalue  = is_negative != (negvalue > 0.5) ? 0. : 1.; break;                 // j-joint, vertical separated at the start and end of range
+        case 18: negvalue  = is_negative ? 1 - sqrt(1 - pow(negvalue * 2 - 1, 2)) : 
+                                           sqrt(1 - pow(negvalue * 2 - 1, 2)); break;          // C-joint, half of circle
+        case 19: negvalue  = (is_negative ? -.5 : .5) * cos(negvalue * PI * 2.) + .5; break;   // O-joint, vertical cosine wave
+        case 20: negvalue  = .5 * sin(negvalue * PI * 2.) + .5; break;                         // O-joint, vertical sine wave
+        case 21: negvalue  = 0.5; break;                                                       // |-joint, copy of J-joint (is used for compatibility)
+        default: negvalue  = 1.;
+        }
+
+        params.angle = angle_start + angle_add * negvalue;
+        params.shift = (shift_start + (rotate_point_CW(fixed_infill_angle, shift_add) + rotate_point_CW(fixed_infill_angle + params.angle, shift_dir)) * negvalue) / SCALING_FACTOR;
+        if (density_lin) {
+            double _ns     = 1. / density_start;
+            double _ne     = 1. / (density_start + density_lin);
+            params.density = 1. / (_ns - (_ns - _ne) * negvalue) + density_add * negvalue;
+        } else 
+            params.density = density_start + density_add * negvalue;
+
+        // Adapt density if changed multiline number at next command
+        double multiline_param; 
+        if (fill_form)
+            multiline_param = round(multiline_start + multiline_add * negvalue);
+        else
+            multiline_param = is_negative ? floor(multiline_start + multiline_add * negvalue) : ceil(multiline_start + multiline_add * negvalue);
+
+        params.multiline = std::max(multiline_param, 1.); // store new value
+        if (density_adapt == 1)
+            params.density *= round(multiline_start) / multiline_param;
+        else if (density_adapt) // == 2
+            params.density /= multiline_start;
         // Make sure that the resulting density is within the range of EPSILON to 100%.
         // Values outside this range will be produced within these limits.
-        params.density   = std::min(std::max(params.density * params.multiline * 100., EPSILON), 100.);
+        params.density = std::min(std::max(params.density * params.multiline * 100., EPSILON), 100.);
     } else {
         ConfigOptionFloats rotate_angles;
         // use multichar separators
