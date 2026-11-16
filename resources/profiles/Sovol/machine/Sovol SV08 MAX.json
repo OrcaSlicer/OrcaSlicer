@@ -2,7 +2,7 @@
 	"type": "machine_model",
 	"name": "Sovol SV08 MAX",
 	"model_id": "Sovol-SV08 MAX",
-	"nozzle_diameter": "0.4;0.6;0.8",
+	"nozzle_diameter": "0.2;0.4;0.6;0.8;1.0",
 	"machine_tech": "FFF",
 	"family": "Sovol",
 	"bed_model": "sovol_sv08_max_buildplate_model.stl",

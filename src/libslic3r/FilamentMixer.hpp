@@ -132,6 +132,10 @@ std::vector<unsigned int> expand_mixed_filaments(
     const std::vector<unsigned char> &is_mixed,
     const std::vector<std::string>  &comp_strs);
 
+// Like expand_mixed_filaments(), for 1-based filament ids as models and the GUI number them, with
+// the mixed slots read from `config`. Ids below 1 are dropped. Result is sorted and deduplicated.
+std::vector<int> expand_mixed_filament_ids(const std::vector<int> &filament_ids, const ConfigBase &config);
+
 // Remap mixed filament component references after a physical filament is deleted.
 // del_1based: the 1-based index of the deleted physical filament.
 // For each mixed slot:

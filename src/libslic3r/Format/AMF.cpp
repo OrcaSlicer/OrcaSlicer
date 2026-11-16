@@ -2,11 +2,13 @@
 #include <algorithm>
 #include <cstdio>
 #include <exception>
+#include <functional>
 #include <boost/algorithm/string/predicate.hpp>
 #include <limits>
 #include <miniz.h>
 #include <string.h>
 #include <map>
+#include <set>
 #include <string>
 #include <expat.h>
 
@@ -20,6 +22,7 @@
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "AMF.hpp"
+#include "ProjectStrategy.hpp"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -67,11 +70,15 @@ namespace Slic3r
 
 struct AMFParserContext
 {
-    AMFParserContext(XML_Parser parser, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model) :
+    AMFParserContext(XML_Parser parser, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, LoadStrategy options,
+                     const char* source_path) :
         m_parser(parser),
         m_model(*model),
         m_config(config),
-        m_config_substitutions(config_substitutions)
+        m_config_substitutions(config_substitutions),
+        m_assemble_parts((options & LoadStrategy::AssembleParts) && !(options & LoadStrategy::LoadConfig)),
+        m_keep_original_names(options & LoadStrategy::KeepOriginalNames),
+        m_fallback_name(boost::filesystem::path(source_path).filename().string())
     {
         m_path.reserve(12);
     }
@@ -96,7 +103,8 @@ struct AMFParserContext
 
     void startElement(const char *name, const char **atts);
     void endElement(const char *name);
-    void endDocument();
+    bool endDocument();
+    bool assemble_constellations();
     void characters(const XML_Char *s, int len);
 
     static void XMLCALL startElement(void *userData, const char *name, const char **atts)
@@ -246,6 +254,10 @@ struct AMFParserContext
     ModelObject             *m_object { nullptr };
     // Map from obect name to object idx & instances.
     std::map<std::string, Object> m_object_instances_map;
+    // Preserve XML membership and occurrence order only for explicit assembly import.
+    std::vector<std::vector<std::pair<std::string, Instance>>> m_constellations;
+    // XML ids of m_constellations, so a group can be referenced from another group.
+    std::vector<std::string> m_constellation_ids;
     // Vertices parsed for the current m_object.
     std::vector<Vec3f>       m_object_vertices;
     // Current volume allocated for an amf/object/mesh/volume subtree.
@@ -266,6 +278,9 @@ struct AMFParserContext
     ConfigSubstitutionContext *m_config_substitutions { nullptr };
     //BBS: add units logic
     bool                     m_use_inches { false };
+    bool                     m_assemble_parts { false };
+    bool                     m_keep_original_names { false };
+    std::string              m_fallback_name;
 
 private:
     AMFParserContext& operator=(AMFParserContext&);
@@ -306,6 +321,11 @@ void AMFParserContext::startElement(const char *name, const char **atts)
                 node_type_new = NODE_TYPE_OBJECT;
             }
         } else if (strcmp(name, "constellation") == 0) {
+            if (m_assemble_parts) {
+                m_constellations.emplace_back();
+                const char *constellation_id = get_attribute(atts, "id");
+                m_constellation_ids.emplace_back(constellation_id == nullptr ? "" : constellation_id);
+            }
             node_type_new = NODE_TYPE_CONSTELLATION;
         }/*else if (strcmp(name, "custom_gcodes_per_height") == 0) {
             node_type_new = NODE_TYPE_CUSTOM_GCODE;
@@ -333,8 +353,14 @@ void AMFParserContext::startElement(const char *name, const char **atts)
                 if (object_id == nullptr)
                     this->stop();
                 else {
-                    m_object_instances_map[object_id].instances.push_back(AMFParserContext::Instance());
-                    m_instance = &m_object_instances_map[object_id].instances.back();
+                    if (m_assemble_parts) {
+                        auto &occurrences = m_constellations.back();
+                        occurrences.emplace_back(object_id, Instance());
+                        m_instance = &occurrences.back().second;
+                    } else {
+                        m_object_instances_map[object_id].instances.push_back(Instance());
+                        m_instance = &m_object_instances_map[object_id].instances.back();
+                    }
                     node_type_new = NODE_TYPE_INSTANCE;
                 }
             }
@@ -858,8 +884,178 @@ void AMFParserContext::endElement(const char * /* name */)
     m_path.pop_back();
 }
 
-void AMFParserContext::endDocument()
+bool AMFParserContext::assemble_constellations()
 {
+    auto object_index = [this](const std::string &target) {
+        auto definition = m_object_instances_map.find(target);
+        return definition == m_object_instances_map.end() ? -1 : definition->second.idx;
+    };
+    // Malformed ids are skipped as Orca always did: an objectid names an object first, then the first group with that id.
+    std::map<std::string, size_t> constellation_index;
+    for (size_t index = 0; index < m_constellation_ids.size(); ++index) {
+        const std::string &id = m_constellation_ids[index];
+        if (id.empty())
+            continue;
+        if (object_index(id) >= 0)
+            BOOST_LOG_TRIVIAL(warning) << "AMF constellation id " << id << " equals an object id; references resolve to the object";
+        else if (!constellation_index.emplace(id, index).second)
+            BOOST_LOG_TRIVIAL(error) << "Duplicate AMF constellation id " << id << "; only the first group can be referenced";
+    }
+    auto group_index = [&constellation_index](const std::string &target) {
+        auto group = constellation_index.find(target);
+        return group == constellation_index.end() ? -1 : int(group->second);
+    };
+
+    // A group referenced from another group is flattened into it and is not an assembly of its own.
+    std::set<size_t> nested;
+    for (const auto &constellation : m_constellations)
+        for (const auto &occurrence : constellation) {
+            if (object_index(occurrence.first) >= 0)
+                continue;
+            if (const int group = group_index(occurrence.first); group >= 0)
+                nested.insert(size_t(group));
+            else
+                BOOST_LOG_TRIVIAL(error) << "Undefined object " << occurrence.first << " referenced in constellation";
+        }
+
+    auto instance_matrix = [](const Instance &source) {
+        Geometry::Transformation transformation;
+        transformation.set_offset(Vec3d(source.deltax_set ? source.deltax : 0., source.deltay_set ? source.deltay : 0.,
+                                        source.deltaz_set ? source.deltaz : 0.));
+        transformation.set_rotation(Vec3d(source.rx_set ? source.rx : 0., source.ry_set ? source.ry : 0.,
+                                          source.rz_set ? source.rz : 0.));
+        transformation.set_scaling_factor(Vec3d(source.scalex_set ? source.scalex : 1., source.scaley_set ? source.scaley : 1.,
+                                                source.scalez_set ? source.scalez : 1.));
+        transformation.set_mirror(Vec3d(source.mirrorx_set ? source.mirrorx : 1., source.mirrory_set ? source.mirrory : 1.,
+                                        source.mirrorz_set ? source.mirrorz : 1.));
+        return transformation.get_matrix();
+    };
+    // Nesting and expansion limits keep a small malformed file from exhausting the stack or the time.
+    constexpr size_t max_depth = 256;
+    constexpr size_t max_expanded = 100000;
+    // One depth-first pass rejects cycles, so the expansion below always terminates.
+    std::vector<int> state(m_constellations.size(), 0); // 0 new, 1 on the current path, 2 done
+    std::function<bool(size_t, size_t)> acyclic = [&](size_t group, size_t depth) {
+        if (depth > max_depth)
+            return false;
+        state[group] = 1;
+        for (const auto &occurrence : m_constellations[group]) {
+            const int child = object_index(occurrence.first) >= 0 ? -1 : group_index(occurrence.first);
+            if (child < 0)
+                continue;
+            if (state[child] == 1 || (state[child] == 0 && !acyclic(size_t(child), depth + 1)))
+                return false;
+        }
+        state[group] = 2;
+        return true;
+    };
+    for (size_t group = 0; group < m_constellations.size(); ++group)
+        if (state[group] == 0 && !acyclic(group, 0)) {
+            BOOST_LOG_TRIVIAL(error) << "Cyclic or too deeply nested AMF constellation references";
+            return false;
+        }
+
+    struct Placement
+    {
+        int         index;
+        Transform3d matrix;
+        bool        printable;
+        // Some occurrence on the path sets a transform; the legacy loader creates instances only then.
+        bool        placed;
+    };
+    // Every expanded occurrence counts, so groups that reach no body cannot multiply the work unnoticed.
+    size_t expanded = 0;
+    // Nested placements multiply down to the object definitions of the top-level group.
+    // The cycle check skips groups it already visited, so the expansion bounds its own depth too.
+    std::function<bool(size_t, const Transform3d &, bool, bool, size_t, std::vector<Placement> &)> flatten =
+        [&](size_t group, const Transform3d &parent, bool parent_printable, bool parent_placed, size_t depth,
+            std::vector<Placement> &out) {
+            if (depth > max_depth)
+                return false;
+            for (const auto &occurrence : m_constellations[group]) {
+                if (++expanded > max_expanded)
+                    return false;
+                const Transform3d matrix    = parent * instance_matrix(occurrence.second);
+                const bool        printable = parent_printable && occurrence.second.printable;
+                const bool        placed    = parent_placed || occurrence.second.anything_set();
+                if (const int index = object_index(occurrence.first); index >= 0)
+                    out.push_back({index, matrix, printable, placed});
+                else if (const int group = group_index(occurrence.first);
+                         group >= 0 && !flatten(size_t(group), matrix, printable, placed, depth + 1, out))
+                    return false;
+            }
+            return true;
+        };
+
+    std::set<int> referenced;
+    std::vector<std::vector<Placement>> groups;
+    for (size_t group = 0; group < m_constellations.size(); ++group) {
+        if (nested.count(group) != 0)
+            continue;
+        std::vector<Placement> placements;
+        if (!flatten(group, Transform3d::Identity(), true, false, 0, placements)) {
+            BOOST_LOG_TRIVIAL(error) << "Too many AMF constellation placements";
+            return false;
+        }
+        for (const Placement &placement : placements)
+            referenced.insert(placement.index);
+        groups.emplace_back(std::move(placements));
+    }
+
+    Model prepared;
+    int assemblies = 0;
+    for (const std::vector<Placement> &placements : groups) {
+        if (placements.empty())
+            continue;
+        Model group;
+        const bool printable = placements.front().printable;
+        bool mixed_printable = false;
+        bool placed          = false;
+        for (const Placement &placement : placements) {
+            ModelObject *object = group.add_object(*m_model.objects[placement.index]);
+            // Match the GUI's filename fallback before merging discards the source objects.
+            if (object->name.empty())
+                object->name = m_fallback_name;
+            for (ModelVolume* volume : object->volumes)
+                if (volume->name.empty())
+                    volume->name = object->name;
+            object->clear_instances();
+            ModelInstance *instance = object->add_instance();
+            // An identity occurrence is still an explicit instance, including its printability.
+            instance->set_transformation(Geometry::Transformation(placement.matrix));
+            instance->printable = placement.printable;
+            mixed_printable = mixed_printable || placement.printable != printable;
+            placed          = placed || placement.placed;
+        }
+        if (!mixed_printable && group.objects.size() > 1) {
+            group.convert_multipart_object(0, m_keep_original_names);
+            // An assembly is named after its file like other single-file imports; later groups get a suffix.
+            ++assemblies;
+            group.objects.front()->name = m_fallback_name + (assemblies > 1 ? "_" + std::to_string(assemblies) : std::string());
+            group.objects.front()->add_instance()->printable = printable;
+        }
+        // Without any placement in the file the GUI centres the object on the bed, as for legacy AMF objects.
+        // An excluded group keeps its identity instance: dropping it would make the part printable.
+        if (!placed && printable && group.objects.size() == 1)
+            group.objects.front()->clear_instances();
+        // Mixed printability cannot be expressed by one instance; preserve separate occurrences.
+        for (const ModelObject *object : group.objects)
+            prepared.add_object(*object);
+    }
+    // Unreferenced definitions remain independent, in their original XML order.
+    for (size_t index = 0; index < m_model.objects.size(); ++index)
+        if (referenced.count(static_cast<int>(index)) == 0)
+            prepared.add_object(*m_model.objects[index]);
+    m_model.clear_objects();
+    for (const ModelObject *object : prepared.objects)
+        m_model.add_object(*object);
+    return true;
+}
+
+bool AMFParserContext::endDocument()
+{
+    if (m_assemble_parts)
+        return assemble_constellations();
     for (const auto &object : m_object_instances_map) {
         if (object.second.idx == -1) {
             BOOST_LOG_TRIVIAL(error) << "Undefined object " << object.first.c_str() << " referenced in constellation";
@@ -888,11 +1084,12 @@ void AMFParserContext::endDocument()
             }
         }
     }
+    return true;
 }
 
 // Load an AMF file into a provided model.
 //BBS: add inches check logic
-bool load_amf_file(const char *path, DynamicPrintConfig *config, ConfigSubstitutionContext *config_substitutions, Model *model, bool *use_inches)
+bool load_amf_file(const char *path, DynamicPrintConfig *config, ConfigSubstitutionContext *config_substitutions, Model *model, bool *use_inches, LoadStrategy options)
 {
     if ((path == nullptr) || (model == nullptr))
         return false;
@@ -909,7 +1106,7 @@ bool load_amf_file(const char *path, DynamicPrintConfig *config, ConfigSubstitut
         return false;
     }
 
-    AMFParserContext ctx(parser, config, config_substitutions, model);
+    AMFParserContext ctx(parser, config, config_substitutions, model, options, path);
     XML_SetUserData(parser, (void*)&ctx);
     XML_SetElementHandler(parser, AMFParserContext::startElement, AMFParserContext::endElement);
     XML_SetCharacterDataHandler(parser, AMFParserContext::characters);
@@ -937,7 +1134,7 @@ bool load_amf_file(const char *path, DynamicPrintConfig *config, ConfigSubstitut
     ::fclose(pFile);
 
     if (result)
-        ctx.endDocument();
+        result = ctx.endDocument();
     if (use_inches) {
         *use_inches = ctx.m_use_inches;
     }
@@ -955,7 +1152,7 @@ bool load_amf_file(const char *path, DynamicPrintConfig *config, ConfigSubstitut
 }
 
 //BBS: add inches logic
-bool extract_model_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, bool* use_inches)
+bool extract_model_from_archive(mz_zip_archive& archive, const mz_zip_archive_file_stat& stat, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, bool* use_inches, LoadStrategy options, const char* source_path)
 {
     if (stat.m_uncomp_size == 0)
     {
@@ -971,7 +1168,7 @@ bool extract_model_from_archive(mz_zip_archive& archive, const mz_zip_archive_fi
         return false;
     }
 
-    AMFParserContext ctx(parser, config, config_substitutions, model);
+    AMFParserContext ctx(parser, config, config_substitutions, model, options, source_path);
     XML_SetUserData(parser, (void*)&ctx);
     XML_SetElementHandler(parser, AMFParserContext::startElement, AMFParserContext::endElement);
     XML_SetCharacterDataHandler(parser, AMFParserContext::characters);
@@ -1017,7 +1214,8 @@ bool extract_model_from_archive(mz_zip_archive& archive, const mz_zip_archive_fi
         return false;
     }
 
-    ctx.endDocument();
+    if (!ctx.endDocument())
+        return false;
     if (use_inches) {
         *use_inches = ctx.m_use_inches;
     }
@@ -1033,7 +1231,7 @@ bool extract_model_from_archive(mz_zip_archive& archive, const mz_zip_archive_fi
 }
 
 // Load an AMF archive into a provided model.
-bool load_amf_archive(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, bool* use_inches)
+bool load_amf_archive(const char* path, DynamicPrintConfig* config, ConfigSubstitutionContext* config_substitutions, Model* model, bool* use_inches, LoadStrategy options)
 {
     if ((path == nullptr) || (model == nullptr))
         return false;
@@ -1059,7 +1257,7 @@ bool load_amf_archive(const char* path, DynamicPrintConfig* config, ConfigSubsti
             {
                 try
                 {
-                    if (!extract_model_from_archive(archive, stat, config, config_substitutions, model, use_inches))
+                    if (!extract_model_from_archive(archive, stat, config, config_substitutions, model, use_inches, options, path))
                     {
                         close_zip_reader(&archive);
                         BOOST_LOG_TRIVIAL(error) << "Archive does not contain a valid model";
@@ -1102,7 +1300,7 @@ bool load_amf_archive(const char* path, DynamicPrintConfig* config, ConfigSubsti
 // Load an AMF file into a provided model.
 // If config is not a null pointer, updates it if the amf file/archive contains config data
 //BBS: refine the amf logic
-bool load_amf(const char *path, DynamicPrintConfig *config, ConfigSubstitutionContext *config_substitutions, Model *model, bool* use_inches)
+bool load_amf(const char *path, DynamicPrintConfig *config, ConfigSubstitutionContext *config_substitutions, Model *model, bool* use_inches, LoadStrategy options)
 {
     CNumericLocalesSetter locales_setter; // use "C" locales and point as a decimal separator
 
@@ -1116,7 +1314,8 @@ bool load_amf(const char *path, DynamicPrintConfig *config, ConfigSubstitutionCo
         file.read(zip_mask.data(), 2);
         file.close();
 
-        return (zip_mask == "PK") ? load_amf_archive(path, config, config_substitutions, model, use_inches) : load_amf_file(path, config, config_substitutions, model, use_inches);
+        return (zip_mask == "PK") ? load_amf_archive(path, config, config_substitutions, model, use_inches, options) :
+                                    load_amf_file(path, config, config_substitutions, model, use_inches, options);
     }
     else
         return false;

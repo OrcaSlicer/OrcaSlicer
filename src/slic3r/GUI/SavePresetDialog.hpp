@@ -58,7 +58,6 @@ class SavePresetDialog : public DPIDialog
         Item(Preset::Type type, const std::string& suffix, wxBoxSizer* sizer, SavePresetDialog* parent);
 
         void            update_valid_bmp();
-        void accept();
         virtual void DoSetSize(int x, int y, int width, int height, int sizeFlags = wxSIZE_AUTO);
 
         bool            is_valid()      const { return m_valid_type != NoValid; }

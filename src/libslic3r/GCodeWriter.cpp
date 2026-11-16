@@ -906,12 +906,12 @@ std::string GCodeWriter::lazy_lift(LiftType lift_type, bool spiral_vase)
     double target_lift = 0;
     {
         //BBS
-        int extruder_id = filament()->extruder_id();
-        int filament_id = filament()->id();
-        double above = this->config.retract_lift_above.get_at(extruder_id);
-        double below = this->config.retract_lift_below.get_at(extruder_id);
+        // The filament's column, like Extruder::z_hop(): a filament can override the printer's lift limits.
+        const int config_index = filament()->config_index();
+        double above = this->config.retract_lift_above.get_at(config_index);
+        double below = this->config.retract_lift_below.get_at(config_index);
         if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
-            target_lift = this->config.z_hop.get_at(filament_id);
+            target_lift = this->config.z_hop.get_at(config_index);
     }
     // BBS
     if (m_lifted == 0 && m_to_lift == 0 && target_lift > 0) {
@@ -939,12 +939,12 @@ std::string GCodeWriter::eager_lift(const LiftType type) {
     double target_lift = 0;
     {
         //BBS
-        int extruder_id = filament()->extruder_id();
-        int filament_id = filament()->id();
-        double above = this->config.retract_lift_above.get_at(extruder_id);
-        double below = this->config.retract_lift_below.get_at(extruder_id);
+        // The filament's column, like Extruder::z_hop(): a filament can override the printer's lift limits.
+        const int config_index = filament()->config_index();
+        double above = this->config.retract_lift_above.get_at(config_index);
+        double below = this->config.retract_lift_below.get_at(config_index);
         if (m_pos.z() >= above && (m_pos.z() <= below || below == 0.))
-            target_lift = this->config.z_hop.get_at(filament_id);
+            target_lift = this->config.z_hop.get_at(config_index);
     }
 
     // BBS: spiral lift only safe with known position
@@ -1104,28 +1104,35 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
         this->set_current_position_clear(true);
         return this->travel_to_xy(to_2d(point));
     }
-    else {
-        /*  In all the other cases, we perform an actual XYZ move and cancel
-            the lift. */
-        m_lifted = 0;
-    }
+    // A lifted nozzle that has to end lower travels at the lifted height and descends at the
+    // target, so it never sinks while crossing the print.
+    const bool descend_after_xy = m_lifted > EPSILON && point(2) < m_pos(2) - EPSILON && this->is_current_position_clear() &&
+        (to_2d(point) - to_2d(m_pos)).norm() > EPSILON;
+    /*  In all the other cases, we move to the target Z and cancel the lift: in a single XYZ move,
+        or XY first and then Z after a filament change or when coming down from a lift. */
+    m_lifted = 0;
 
     //BBS: take plate offset into consider
     Vec3d point_on_plate = { dest_point(0) - m_x_offset, dest_point(1) - m_y_offset, dest_point(2) };
     std::string out_string;
     GCodeG1Formatter w(config.high_precision_gcode.value);
-    if (has_axis_remap()) {
+    if (has_axis_remap() && !descend_after_xy) {
         // Remap may couple XY with Z; emit full XYZ in machine coordinates.
         w.emit_xyz(apply_axis_remap(point_on_plate));
         w.emit_f(final_travel_speed * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         out_string = w.string();
-    } else if (!this->is_current_position_clear())
+    } else if (!this->is_current_position_clear() || descend_after_xy)
     {
-        //force to move xy first then z after filament change
-        w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
+        //force to move xy first then z after filament change, or when coming down from a lift
+        if (has_axis_remap())
+            w.emit_xyz(apply_axis_remap(Vec3d(point_on_plate.x(), point_on_plate.y(), m_pos(2))));
+        else
+            w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
         w.emit_f(final_travel_speed * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
+        // The Z move happens at the target, so it is emitted and timed from there.
+        m_pos = Vec3d(dest_point.x(), dest_point.y(), m_pos(2));
         out_string = w.string() + _travel_to_z(point_on_plate.z(), comment);
     } else {
         GCodeG1Formatter w(config.high_precision_gcode.value);

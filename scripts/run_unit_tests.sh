@@ -24,7 +24,7 @@ BUILD_CONFIG="${2:-}"
 # Install it with the uv staged beside that runtime -- the tool the app installs plugin
 # dependencies with -- straight into the interpreter's own site-packages: no pip needed
 # in the runtime, no PYTHONPATH. Re-checked every run because a rebuild of the test
-# target re-copies the runtime; needs network whenever it installs. Pinned so a numpy
+# target can re-copy the runtime; needs network whenever it installs. Pinned so a numpy
 # release cannot change results on its own.
 NUMPY_VERSION="2.5.3"
 

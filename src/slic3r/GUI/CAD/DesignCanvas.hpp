@@ -364,9 +364,14 @@ public:
     int  selected_constrain_axis() const;  // third pick slot (Symmetric axis), -1 if unset
     bool pick0_point(Vec2d& out) const;   // plane-coords of the slot-0 pick (trim/extend)
     void update_constrain_entities(const std::vector<SketchEntity>& ents);
-    // Constraint manager (C3.4): highlight the entities referenced by a selected
-    // constraint (yellow tint in Constrain mode); empty clears the highlight.
-    void set_constraint_highlight(std::vector<int> entities);
+    // Constraint manager (C3.4): the selected constraint, an index into the constraints on show
+    // (the live session's, or in Constrain mode the feature's), -1 for none; its badge and the
+    // entities it binds are highlighted (DesignSketchTool::selected_constraint). The callback
+    // runs on every change, whether a badge click or select_sketch_constraint made it.
+    int           selected_sketch_constraint() const;
+    void          select_sketch_constraint(int con);
+    void          set_on_sketch_constraint_selected(std::function<void(int con)> cb);
+    BoundingBoxf3 sketch_constraint_box(int con) const;   // what zooming to the constraint frames
     // Constraint glyph badges (C3.4b): the feature's constraints, drawn as iconic
     // marks near their entities in Constrain mode; empty clears them.
     void set_constraint_glyphs(std::vector<SketchEntityConstraintDef> cons);

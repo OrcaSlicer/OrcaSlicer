@@ -342,19 +342,6 @@ void SavePresetDialog::Item::update_valid_bmp()
     m_valid_bmp->SetBitmap(create_scaled_bitmap(bmp_name, m_parent));
 }
 
-void SavePresetDialog::Item::accept()
-{
-    if (m_valid_type == Warning) {
-        auto    it               = m_presets->find_preset(m_preset_name, false);
-        Preset &current_preset   = *it;
-        if (!current_preset.setting_id.empty()) {
-            BOOST_LOG_TRIVIAL(info) << "delete preset = " << current_preset.name << ", setting_id = " << current_preset.setting_id;
-            wxGetApp().delete_preset_from_cloud(current_preset.setting_id, current_preset.file);
-        }
-        m_presets->delete_preset(m_preset_name);
-    }
-}
-
 void SavePresetDialog::Item::DoSetSize(int x, int y, int width, int height, int sizeFlags /*= wxSIZE_AUTO*/)
 {
     wxWindow::DoSetSize(x, y, width, height, sizeFlags);
@@ -435,10 +422,8 @@ void SavePresetDialog::input_name_from_other(std::string new_preset_name) {
 }
 
 void SavePresetDialog::confirm_from_other() {
-    for (Item *item : m_items) {
-        item->accept();
+    for (Item *item : m_items)
         if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(item->preset_name());
-    }
 }
 
 // BBS: add project relate
@@ -568,10 +553,8 @@ void SavePresetDialog::update_physical_printers(const std::string &preset_name)
 
 void SavePresetDialog::accept(wxCommandEvent &event)
 {
-    for (Item *item : m_items) {
-        item->accept();
+    for (Item *item : m_items)
         if (item->type() == Preset::TYPE_PRINTER) update_physical_printers(item->preset_name());
-    }
 
     EndModal(wxID_OK);
 }

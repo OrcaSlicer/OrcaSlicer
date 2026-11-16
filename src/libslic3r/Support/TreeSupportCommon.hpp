@@ -710,7 +710,8 @@ inline SupportGeneratorLayer& layer_allocate(
     return layer_initialize(layer, slicing_params, config, layer_idx);
 }
 
-// Used by generate_initial_areas() in parallel by multiple layers.
+// Adds top contact and interface areas to the support layers. add_roof() may be called from several threads,
+// add_roof_unguarded() only while no other thread is adding roofs.
 class InterfacePlacer {
 public:
     InterfacePlacer(
@@ -736,28 +737,10 @@ public:
     SupportGeneratorLayersPtr&  top_contacts_mutable() { return this->top_contacts; }
 
 public:
-    // Insert the contact layer and some of the interface and base interface layers below.
-    void add_roofs(std::vector<Polygons> &&new_roofs, const size_t insert_layer_idx)
-    {
-        if (! new_roofs.empty()) {
-            std::lock_guard<std::mutex> lock(m_mutex_layer_storage);
-            for (size_t idx = 0; idx < new_roofs.size(); ++ idx)
-                if (! new_roofs[idx].empty())
-                    add_roof_unguarded(std::move(new_roofs[idx]), insert_layer_idx - idx, idx);
-        }
-    }
-
     void add_roof(Polygons &&new_roof, const size_t insert_layer_idx, const size_t dtt_tip)
     {
         std::lock_guard<std::mutex> lock(m_mutex_layer_storage);
         add_roof_unguarded(std::move(new_roof), insert_layer_idx, dtt_tip);
-    }
-
-    // called by sample_overhang_area()
-    void add_roof_build_plate(Polygons &&overhang_areas, size_t dtt_roof)
-    {
-        std::lock_guard<std::mutex> lock(m_mutex_layer_storage);
-        this->add_roof_unguarded(std::move(overhang_areas), 0, std::min(dtt_roof, this->support_parameters.num_top_interface_layers));
     }
 
     void add_roof_unguarded(Polygons &&new_roofs, const size_t insert_layer_idx, const size_t dtt_roof)
