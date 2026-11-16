@@ -82,7 +82,21 @@ jobs:
           }
           Add-Content -LiteralPath $env:GITHUB_PATH -Value $dst
 
-      - name: load cached deps
+      # Load cached deps: self-hosted uses local cache first, GitHub-hosted uses cloud
+      - name: load cached deps (self-hosted local)
+        if: ${{ vars.SELF_HOSTED }}
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/${{ inputs.cache-path }}
+          key: ${{ inputs.cache-key }}
+          restore-keys: |
+            ${{ inputs.cache-prefix }}${github.base_ref}-
+            ${{ inputs.cache-prefix }}main-
+            ${{ inputs.cache-prefix }}
+          enableCrossOsArchive: true
+
+      - name: load cached deps (GitHub-hosted cloud)
+        if: ${{ !vars.SELF_HOSTED }}
         uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/${{ inputs.cache-path }}

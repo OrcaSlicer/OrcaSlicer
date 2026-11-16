@@ -81,14 +81,32 @@ jobs:
           }
           Add-Content -LiteralPath $env:GITHUB_PATH -Value $dst
 
-      - name: load cached deps
-        id: cache_deps
-        if: ${{ !(runner.os == 'macOS' && inputs.macos-combine-only) }}
+      # Load cached deps: self-hosted uses local cache first, GitHub-hosted uses cloud
+      - name: load cached deps (self-hosted local)
+        id: cache_deps_local
+        if: ${{ vars.SELF_HOSTED && !(runner.os == 'macOS' && inputs.macos-combine-only) }}
         uses: actions/cache@v6
         with:
           path: ${{ github.workspace }}/${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
-          restore-keys: ${{ inputs.cache-prefix }}
+          restore-keys: |
+            ${{ inputs.cache-prefix }}${github.base_ref}-
+            ${{ inputs.cache-prefix }}main-
+            ${{ inputs.cache-prefix }}
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
+
+      - name: load cached deps (GitHub-hosted cloud)
+        id: cache_deps
+        if: ${{ !vars.SELF_HOSTED && !(runner.os == 'macOS' && inputs.macos-combine-only) }}
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/${{ inputs.cache-path }}
+          key: ${{ inputs.cache-key }}
+          restore-keys: |
+            ${{ inputs.cache-prefix }}${github.base_ref}-
+            ${{ inputs.cache-prefix }}main-
+            ${{ inputs.cache-prefix }}
           fail-on-cache-miss: true
 
       - uses: lukka/get-cmake@latest
@@ -126,9 +144,23 @@ jobs:
           # ccache -s runs as its own step; no summary table per job.
           job-summary: ''
 
-      - name: Restore compiler cache
+      # Restore compiler cache: self-hosted uses local cache first
+      - name: Restore compiler cache (self-hosted local)
+        id: ccache_restore_local
+        if: ${{ steps.ccache.outcome == 'success' && vars.SELF_HOSTED }}
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ env.CCACHE_ENTRY }}
+          restore-keys: |
+            ccache-${{ env.CCACHE_LEG }}-${{ github.base_ref }}-
+            ccache-${{ env.CCACHE_LEG }}-main-
+            ccache-${{ env.CCACHE_LEG }}-
+          enableCrossOsArchive: true
+
+      - name: Restore compiler cache (GitHub-hosted cloud)
         id: ccache_restore
-        if: ${{ steps.ccache.outcome == 'success' }}
+        if: ${{ steps.ccache.outcome == 'success' && !vars.SELF_HOSTED }}
         uses: actions/cache/restore@v6
         with:
           path: ${{ github.workspace }}/.ccache
@@ -872,9 +904,18 @@ jobs:
       # leaves the previous entry in place. A cancelled or failed build saves
       # too, since what it compiled is still valid; a restore that did not
       # finish does not, since the directory may be a truncated copy.
-      - name: Save compiler cache
+      - name: Save compiler cache (self-hosted local)
+        id: ccache_save_local
+        if: ${{ always() && vars.SELF_HOSTED && steps.ccache_restore_local.outcome == 'success' && github.event_name != 'pull_request' }}
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ github.workspace }}/.ccache
+          key: ${{ env.CCACHE_ENTRY }}
+          enableCrossOsArchive: true
+
+      - name: Save compiler cache (GitHub-hosted cloud)
         id: ccache_save
-        if: ${{ always() && steps.ccache_restore.outcome == 'success' && github.event_name != 'pull_request' }}
+        if: ${{ always() && !vars.SELF_HOSTED && steps.ccache_restore.outcome == 'success' && github.event_name != 'pull_request' }}
         uses: actions/cache/save@v6
         with:
           path: ${{ github.workspace }}/.ccache
