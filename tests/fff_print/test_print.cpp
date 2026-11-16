@@ -1959,14 +1959,14 @@ void place_cubes_by_filament(const std::vector<std::vector<ConfigBase::SetDeseri
     init_print(std::move(meshes), print, model, config, &overrides, /*arrange=*/false);
 }
 
-// How many times the nozzle drops back down by more than half a 10 mm cube: once before each object, or group of
-// objects, printed after the first.
+// How many times the nozzle drops back down from the top of a 10 mm cube: once before each object, or group of
+// objects, printed after the first. The default start G-code lifts the nozzle to 5 mm, a smaller drop.
 size_t returns_to_bed(const std::string &gcode)
 {
     size_t drops = 0;
     GCodeReader reader;
     reader.parse_buffer(gcode, [&drops](GCodeReader &self, const GCodeReader::GCodeLine &line) {
-        if (line.has_z() && line.z() < self.z() - 5.f)
+        if (line.has_z() && line.z() < self.z() - 8.f)
             ++drops;
     });
     return drops;
