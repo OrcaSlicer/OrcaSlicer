@@ -125,7 +125,7 @@ jobs:
             $deps = (Split-Path "${{ github.workspace }}/${{ inputs.cache-path }}").Replace('\', '/')
             # -l compiles with Visual Studio's clang-cl and -x builds with Ninja; --msvc --msbuild is cl under the Visual Studio generator.
             $flags = if ("${{ inputs.compiler }}" -eq "clang") { "-l", "-x" } else { "--msvc", "--msbuild" }
-            .\build_win.bat -d --arch ${{ inputs.arch }} --deps-dir $deps @flags
+            .\build_win.bat -d --arch ${{ inputs.arch }} --deps-dir $deps @flags -t dep_OCCT  # TEST: OCCT only
         shell: pwsh
 
       - name: Build on Mac ${{ inputs.arch }}

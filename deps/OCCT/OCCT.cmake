@@ -5,10 +5,11 @@
 set(_occt_compiler_args "")
 set(_occt_pch ON)
 if (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    if ("${DEPS_ARCH}" STREQUAL "arm64" OR NOT CMAKE_GENERATOR MATCHES "Visual Studio")
+    # TEST: arm64 keeps clang-cl, without precompiled headers.
+    if (NOT "${DEPS_ARCH}" STREQUAL "arm64" AND NOT CMAKE_GENERATOR MATCHES "Visual Studio")
         set(_occt_compiler_args -DCMAKE_C_COMPILER:STRING=cl -DCMAKE_CXX_COMPILER:STRING=cl)
     endif ()
-    if (CMAKE_GENERATOR MATCHES "Visual Studio")
+    if ("${DEPS_ARCH}" STREQUAL "arm64" OR CMAKE_GENERATOR MATCHES "Visual Studio")
         set(_occt_pch OFF)
     endif ()
 endif ()

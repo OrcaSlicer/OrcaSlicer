@@ -211,6 +211,11 @@ function(orcaslicer_add_cmake_project projectname)
       set(_build_j "-j${NPROC}")
     endif ()
 
+    # TEST: keep going after OCCT compile errors, to list every failing file.
+    if (projectname STREQUAL "OCCT" AND NOT _dep_msvc_gen)
+        list(APPEND _build_j -k 0)
+    endif ()
+
     set(_source_dir_arg "")
     if (P_ARGS_SOURCE_DIR)
         set(_source_dir_arg SOURCE_DIR ${P_ARGS_SOURCE_DIR})

@@ -111,7 +111,7 @@ jobs:
     needs: build_script_changes
     # Runs unless the lookup ran and found nothing: skipped off pull requests,
     # and failed lookups run the suites rather than skip them.
-    if: ${{ !cancelled() && (needs.build_script_changes.result != 'success' || needs.build_script_changes.outputs.changed == 'true') }}
+    if: false  # TEST: Windows arm64 deps only
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -144,7 +144,7 @@ jobs:
           && '[{"arch":"","os":"orca-lnx-server"}]'
           || '[{"arch":"","os":"ubuntu-24.04"},{"arch":"aarch64","os":"ubuntu-24.04-arm"}]') }}
     # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: false  # TEST: Windows arm64 deps only
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ matrix.os }}
@@ -163,7 +163,7 @@ jobs:
           && '[{"arch":"x64","os":"orca-win-server","compiler":"clang"}]'
           || (github.event_name == 'pull_request'
             && '[{"arch":"x64","os":"windows-latest","compiler":"clang"}]'
-            || '[{"arch":"x64","os":"windows-latest","compiler":"clang"},{"arch":"arm64","os":"windows-11-vs2026-arm","compiler":"clang"}]')) }}
+            || '[{"arch":"arm64","os":"windows-11-vs2026-arm","compiler":"clang"}]')) }}
     needs: check_build_script
     # id-token lets release builds sign through Google Cloud Workload Identity Federation (see
     # "Configure code signing" in build_orca.yml); the rest is what the build already used.
@@ -190,7 +190,7 @@ jobs:
       matrix:
         arch: ${{ fromJSON(github.event_name == 'pull_request' && '["arm64"]' || '["arm64", "x86_64"]') }}
     # Don't run scheduled builds on forks:
-    if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: false  # TEST: Windows arm64 deps only
     uses: ./.github/workflows/build_check_cache.yml
     with:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-15' }}
@@ -306,6 +306,6 @@ jobs:
   flatpak:
     name: Flatpak
     # Don't run scheduled builds on forks; skip entirely on self-hosted runners
-    if: ${{ !cancelled() && !vars.SELF_HOSTED && github.event_name != 'pull_request' && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: false  # TEST: Windows arm64 deps only
     uses: ./.github/workflows/build_flatpak.yml
     secrets: inherit
