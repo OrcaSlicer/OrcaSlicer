@@ -229,6 +229,10 @@ constexpr bool CheckBuildNumber(DWORD buildNumber)
 
 void InitDarkMode()
 {
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-function-type-mismatch"
+#endif
 	auto RtlGetNtVersionNumbers = reinterpret_cast<fnRtlGetNtVersionNumbers>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetNtVersionNumbers"));
 	if (RtlGetNtVersionNumbers)
 	{
@@ -259,6 +263,9 @@ void InitDarkMode()
 
 				_GetDpiForWindow = reinterpret_cast<fnGetDpiForWindow>(GetProcAddress(GetModuleHandleW(L"user32.dll"), "GetDpiForWindow"));
                 _GetDpiForSystem = reinterpret_cast<fnGetDpiForSystem>(GetProcAddress(GetModuleHandleW(L"user32.dll"), "GetDpiForSystem"));
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 				if (_OpenNcThemeData &&
 					_RefreshImmersiveColorPolicyState &&

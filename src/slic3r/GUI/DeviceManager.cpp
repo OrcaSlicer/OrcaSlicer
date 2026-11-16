@@ -1216,7 +1216,7 @@ void MachineObject::parse_home_flag(int flag)
         is_support_pa_calibration = ((flag >> 16) & 0x1) != 0;
         if (this->is_series_p()) { is_support_pa_calibration = false; } // todo: Temp modification due to incorrect machine push message for P
     }
-        
+
     if (time(nullptr) - xcam_prompt_sound_hold_start > HOLD_TIME_3SEC) {
         xcam_allow_prompt_sound = ((flag >> 17) & 0x1) != 0;
     }

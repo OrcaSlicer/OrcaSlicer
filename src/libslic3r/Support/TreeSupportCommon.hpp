@@ -71,7 +71,7 @@ struct TreeSupportMeshGroupSettings {
             external_perimeter_width = std::max<coordf_t>(external_perimeter_width, region.flow(print_object, frExternalPerimeter, config.layer_height).width());
         }
 
-        this->layer_height              = scaled<coord_t>(config.layer_height.value);
+        this->layer_height              = scaled<coord_t>(slicing_params.use_extruder_layer_heights ? slicing_params.layer_height : config.layer_height.value);
         this->resolution                = scaled<coord_t>(print_config.resolution.value);
         // Arache feature
         this->min_feature_size          = scaled<coord_t>(config.min_feature_size.value);
@@ -95,6 +95,18 @@ struct TreeSupportMeshGroupSettings {
         this->support_roof_layers       = config.support_interface_top_layers.value;
         this->support_floor_enable      = bottom_interface_layers > 0;
         this->support_floor_layers      = bottom_interface_layers;
+        if (slicing_params.use_extruder_layer_heights) {
+            const SupportParameters params(print_object);
+            this->support_line_width = params.support_material_flow.scaled_width();
+            this->support_roof_line_width = params.support_material_interface_flow.scaled_width();
+            const auto grid_layers = [&](size_t interfaces, size_t bases) {
+                return coord_t(std::ceil((interfaces * params.support_material_interface_flow.height() +
+                    bases * params.support_material_flow.height()) / slicing_params.layer_height - EPSILON));
+            };
+            this->support_roof_layers = grid_layers(params.num_top_interface_layers_only(), params.num_top_base_interface_layers);
+            this->support_floor_layers = grid_layers(params.num_bottom_interface_layers_only(), params.num_bottom_base_interface_layers);
+            this->support_bottom_height = this->support_floor_layers * this->layer_height;
+        }
         this->support_roof_pattern      = config.support_interface_pattern;
         this->support_pattern           = config.support_base_pattern;
         this->support_line_spacing      = scaled<coord_t>(config.support_base_pattern_spacing.value);
@@ -737,6 +749,8 @@ public:
     SupportGeneratorLayersPtr&  top_contacts_mutable() { return this->top_contacts; }
 
 public:
+    size_t top_layers() const { return size_t(config.settings.support_roof_layers); }
+
     void add_roof(Polygons &&new_roof, const size_t insert_layer_idx, const size_t dtt_tip)
     {
         std::lock_guard<std::mutex> lock(m_mutex_layer_storage);
@@ -746,19 +760,32 @@ public:
     void add_roof_unguarded(Polygons &&new_roofs, const size_t insert_layer_idx, const size_t dtt_roof)
     {
         assert(support_parameters.has_top_contacts);
-        assert(dtt_roof <= support_parameters.num_top_interface_layers);
+        assert(dtt_roof <= top_layers());
         // ORCA: Reserve one top interface layer but only when top base-interface layers exist.
         // This prevents all interface layers from being classified as base-interface layers
         // and preserves correct top contact and interface behavior.
         size_t interface_threshold = support_parameters.num_top_interface_layers_only();
         if (interface_threshold > 0 && support_parameters.num_top_base_interface_layers > 0)
             --interface_threshold;
+        if (slicing_parameters.use_extruder_layer_heights) {
+            const double depth = support_parameters.num_top_interface_layers_only() *
+                support_parameters.support_material_interface_flow.height();
+            const size_t count = size_t(std::ceil(depth / slicing_parameters.layer_height - EPSILON));
+            interface_threshold = count > 0 ? count - 1 : 0;
+        }
+        // A contact is one deposited interface layer, which may span several
+        // branch-grid slices. Keep its entire depth in the contact category so
+        // deposition scheduling can recombine even a single-layer interface.
+        const size_t contact_layers = slicing_parameters.use_extruder_layer_heights ?
+            size_t(std::ceil(support_parameters.support_material_interface_flow.height() /
+                             slicing_parameters.layer_height - EPSILON)) : 1;
+        const bool contact = dtt_roof < contact_layers;
         SupportGeneratorLayersPtr &layers =
-            dtt_roof == 0 ? this->top_contacts :
+            contact ? this->top_contacts :
             dtt_roof <= interface_threshold ? this->top_interfaces : this->top_base_interfaces;
         SupportGeneratorLayer*& l = layers[insert_layer_idx];
         if (l == nullptr)
-            l = &layer_allocate_unguarded(layer_storage, dtt_roof == 0 ? SupporLayerType::TopContact : SupporLayerType::TopInterface, 
+            l = &layer_allocate_unguarded(layer_storage, contact ? SupporLayerType::TopContact : SupporLayerType::TopInterface,
                     slicing_parameters, config, insert_layer_idx);
         // will be unioned in finalize_interface_and_support_areas()
         append(l->polygons, std::move(new_roofs));

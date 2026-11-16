@@ -13,6 +13,7 @@
 #include "LocalesUtils.hpp"
 #include "libslic3r.h"
 #include <algorithm>
+#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <cstdlib>
@@ -1544,6 +1545,13 @@ std::string GCodeWriter::unretract(float extra_retract)
     return gcode;
 }
 
+
+void GCodeWriter::set_lifted_z(double nominal_z)
+{
+    assert(nominal_z <= m_pos.z());
+    m_lifted = m_pos.z() - nominal_z;
+    m_to_lift = 0.;
+}
 
 std::string GCodeWriter::unlift()
 {

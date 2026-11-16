@@ -36,7 +36,7 @@ public:
 	// First-layer outline of a cone-wall tower in tower-local (scaled) coordinates: body box
 	// unioned with the cone's base ellipse — the model first_layer_wipe_tower_corners uses,
 	// and generate_support_cone_wall stays within it. Brim not included.
-	static Polygon cone_base_polygon(double width, double depth, double height, double angle_deg);
+	static Polygon cone_base_polygon(double width, double depth, double height, double angle_deg, double reference_height = 0.);
 	static std::vector<std::vector<float>> extract_wipe_volumes(const ConfigBase& config);
 	// Estimated total flush volume of a SEMM print with the given number of filaments,
 	// used to reserve wipe tower space before the tower is generated.
@@ -72,7 +72,7 @@ public:
 
 
 	// Set the extruder properties.
-    void set_extruder(size_t idx, const PrintConfig& config);
+    void set_extruder(size_t idx, const PrintConfig& config, double default_layer_height = 0.2);
 
 	// Appends into internal structure m_plan containing info about the future wipe tower
 	// to be used before building begins. The entries must be added ordered in z.
@@ -80,6 +80,8 @@ public:
 
 	// Iterates through prepared m_plan, generates ToolChangeResults and appends them to "result"
 	void generate(std::vector<std::vector<WipeTower::ToolChangeResult>> &result);
+
+    bool has_independent_tool_layers() const { return m_independent_tool_layers; }
 
     float get_depth() const { return m_wipe_tower_depth; }
 	std::vector<std::pair<float, float>> get_z_and_depth_pairs() const;
@@ -118,6 +120,7 @@ public:
 		m_layer_height			= layer_height;
 		m_depth_traversed  = 0.f;
         m_current_layer_finished = false;
+        m_toolchange_index = 0;
         m_prev_layer_had_interface = m_current_layer_has_interface;
 
 		
@@ -134,7 +137,8 @@ public:
         } else
             ++ m_num_layer_changes;
 		
-		// Calculate extrusion flow from desired line width, nozzle diameter, filament diameter and layer_height:
+		// Flow and line width follow the current nozzle (needed for mixed diameters).
+		apply_perimeter_width_for(m_current_tool);
 		m_extrusion_flow = extrusion_flow(layer_height);
 	}
 
@@ -208,6 +212,8 @@ public:
         float               tower_interface_purge_length = 0.f;
         // Tallest layer this filament's nozzle can lay down; caps the sparse layer combination.
         float               max_layer_height = 0.f;
+        float               layer_height = 0.f;
+        bool                has_custom_layer_height = false;
     };
 
 private:
@@ -222,7 +228,6 @@ private:
     float filament_area() const {
         return m_filpar[0].filament_area; // all extruders are assumed to have the same filament diameter at this point
     }
-
 
 	bool   m_semm               = true; // Are we using a single extruder multimaterial printer?
 	bool   m_enable_filament_ramming = true;
@@ -277,6 +282,18 @@ private:
     float           m_bridging                  = 0.f;
     bool            m_sparse_layers_skipped     = false;
     bool            m_sparse_layers_combined    = false;
+    bool m_independent_tool_layers = false;
+    bool m_is_tool_region = false;
+    float m_region_y = 0.f;
+    float m_shared_depth = 0.f;
+    float m_shared_height = 0.f;
+    float m_region_wall_clearance = 0.f;
+    bool m_shared_brim = false;
+    bool m_skip_ramming = false;
+    size_t m_toolchange_index = 0;
+    void generate_tool_regions(std::vector<std::vector<WipeTower::ToolChangeResult>> &result);
+    Polygon generate_region_wall(WipeTowerWriter2 &writer, float feedrate, bool first_layer);
+
     bool            m_set_extruder_trimpot      = false;
     bool            m_adhesion                  = true;
     GCodeFlavor     m_gcode_flavor;
@@ -320,7 +337,7 @@ private:
     float wipe_line_width() const { return m_perimeter_width * m_extra_flow; }
 
     // Whether toolchange_Unload() rams this (old) tool out.
-    bool tool_ramming_enabled(size_t tool) const { return (m_semm && m_enable_filament_ramming) || m_filpar[tool].multitool_ramming; }
+    bool tool_ramming_enabled(size_t tool) const { return !m_skip_ramming && ((m_semm && m_enable_filament_ramming) || m_filpar[tool].multitool_ramming); }
     // Whether the wipe restarts at the box boundary on a fresh row below the quantized
     // ram band after ramming this (old) tool out (multi-tool gap wall; SEMM keeps the
     // stock continue-from-ram-end behavior).
@@ -354,6 +371,18 @@ private:
 		return layer_height * ( m_perimeter_width - layer_height * (1.f-float(M_PI)/4.f)) / filament_area();
 	}
 
+    // Wipe-tower line width for a given nozzle (not whichever was registered last).
+    float perimeter_width_for(size_t tool) const {
+        if (tool >= m_filpar.size())
+            return m_perimeter_width;
+        return m_filpar[tool].nozzle_diameter * Width_To_Nozzle_Ratio;
+    }
+
+    void apply_perimeter_width_for(size_t tool) {
+        m_perimeter_width = perimeter_width_for(tool);
+        if (m_layer_height > 0.f)
+            m_extrusion_flow = extrusion_flow(m_layer_height);
+    }
 
 	// Calculates depth for all layers and propagates them downwards
 	void plan_tower();
@@ -366,6 +395,8 @@ private:
 		struct ToolChange {
             size_t old_tool;
             size_t new_tool;
+            bool ramming_only = false;
+            bool skip_ramming = false;
 			float required_depth;
             float ramming_depth;
             float first_wipe_line;
@@ -445,13 +476,13 @@ private:
 		bool infill_cone, 
 		float spacing);
 
-    Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box);
+    Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box, bool shared = false);
 
     void compute_wall_skip_points();
 
     // Computes the depth reserved for a toolchange (shared by plan_toolchange() and the
     // rib-wall square-tower replanning in generate()).
-    WipeTowerInfo::ToolChange set_toolchange(size_t old_tool, size_t new_tool, float layer_height, float wipe_volume, bool first_layer_plan);
+    WipeTowerInfo::ToolChange set_toolchange(size_t old_tool, size_t new_tool, float layer_height, float wipe_volume, bool first_layer_plan, bool skip_ramming = false, bool ramming_only = false);
 };
 
 

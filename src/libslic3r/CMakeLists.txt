@@ -436,6 +436,9 @@ set(lisbslic3r_sources
     PrintConfig.hpp
     Print.cpp
     Print.hpp
+    AdaptiveLayerMerge.cpp
+    AdaptiveLayerMerge.hpp
+    PrintObjectLayerHeight.cpp
     PrintObject.cpp
     PrintObjectSlice.cpp
     PrintRegion.cpp

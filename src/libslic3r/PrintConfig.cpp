@@ -148,7 +148,11 @@ size_t get_extruder_index(const GCodeConfig& config, unsigned int filament_id)
 double nozzle_diameter_for_filament(const PrintConfig& config, int filament_id, bool is_bbl_printer)
 {
     int extruder = filament_id;
-    if (is_bbl_printer && config.nozzle_diameter.size() > 1 &&
+    const bool explicit_layer_heights = std::any_of(config.extruder_layer_height.values.begin(), config.extruder_layer_height.values.end(),
+                                                    [](double height) { return height > 0.; });
+    const bool manual_layers = explicit_layer_heights &&
+        (config.filament_map_mode == fmmManual || config.filament_map_mode == fmmNozzleManual);
+    if ((is_bbl_printer || manual_layers) && config.nozzle_diameter.size() > 1 &&
         filament_id >= 1 && static_cast<size_t>(filament_id - 1) < config.filament_map.size())
         extruder = config.filament_map.get_at(filament_id - 1);
     return config.nozzle_diameter.get_at(extruder - 1);
@@ -1138,6 +1142,15 @@ void PrintConfigDef::init_common_params()
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(INITIAL_LAYER_HEIGHT));
+
+    def = this->add("extruder_layer_height", coFloats);
+    def->label = L("Extruder layer height");
+    def->category = L("Quality");
+    def->tooltip = L("Layer height for each physical extruder. Zero uses the normal layer height. Filaments use the height of their assigned extruder. The first layer uses the initial layer height.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloats{0.});
 
     def = this->add("printable_height", coFloat);
     def->label = L("Printable height");

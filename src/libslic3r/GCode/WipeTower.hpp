@@ -112,6 +112,12 @@ public:
 
 	struct ToolChangeResult
 	{
+        // Independent tool columns may need several foundation layers during one
+        // visit. Each segment carries its own deposition Z and local placement.
+        std::vector<ToolChangeResult> segments;
+        Vec2f column_offset = Vec2f::Zero();
+        bool independent_column = false;
+
 		// Print heigh of this tool change.
 		float					print_z;
 		float 					layer_height;

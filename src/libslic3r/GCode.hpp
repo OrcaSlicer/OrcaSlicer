@@ -161,7 +161,8 @@ private:
     WipeTowerIntegration& operator=(const WipeTowerIntegration&);
     std::string append_tcr(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
     Polyline generate_path_to_wipe_tower(const Point &start_pos, const Point &end_pos, const BoundingBox &avoid_polygon, const Polygons &bed_polygons) const;
-    std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id, double z = -1.) const;
+    std::string append_tcr2(GCode &gcodegen, const WipeTower::ToolChangeResult &tcr, int new_extruder_id,
+                           double z = -1., std::optional<double> object_z = std::nullopt) const;
     std::string travel_to_tower_gap(GCode &gcodegen, const Point &route_start, const Point &start_wipe_pos) const;
     Vec2f transform_wt2_pt(const Vec2f &pt) const;
     // The current tower layer's z in the G-code frame, where a joined layer prints its purges.
@@ -186,6 +187,7 @@ private:
     int                                                          m_tool_change_idx;
     double                                                       m_last_wipe_tower_print_z;
     bool                                                         m_layer_joined = false;
+    mutable double m_highest_tool_column_z = 0.;
 
     // BBS
     Vec3d                                                        m_plate_origin;
