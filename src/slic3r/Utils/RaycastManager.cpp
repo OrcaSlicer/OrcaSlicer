@@ -1,9 +1,22 @@
 #include "RaycastManager.hpp"
+#include "libslic3r/Model.hpp"
+#include "libslic3r/AABBMesh.hpp"
+#include <cstddef>
+#include "libslic3r/Point.hpp"
+#include <algorithm>
+#include <optional>
+#include <array>
+#include <iterator>
+#include <memory>
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include "slic3r/GUI/3DScene.hpp"
 #include <utility>
+#include <vector>
 
 #include "slic3r/GUI/GLCanvas3D.hpp"
-#include "slic3r/GUI/Camera.hpp"
 #include "slic3r/GUI/CameraUtils.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/MeshUtils.hpp"
 
 using namespace Slic3r::GUI;
 

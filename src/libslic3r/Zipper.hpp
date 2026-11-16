@@ -1,9 +1,11 @@
 #ifndef ZIPPER_HPP
 #define ZIPPER_HPP
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <memory>
+#include <type_traits>
 
 namespace Slic3r {
 

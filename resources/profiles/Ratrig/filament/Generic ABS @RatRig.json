@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @RatRig",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "RatRig Generic ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "0BepsauXBs5bxPYO",
 	"filament_id": "OFY9muEs",

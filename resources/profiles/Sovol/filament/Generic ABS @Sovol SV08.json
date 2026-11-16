@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Sovol SV08",
-	"inherits": "Generic ABS @System",
 	"renamed_from": "Sovol SV08 ABS",
+	"inherits": "Generic ABS @System",
 	"from": "system",
 	"setting_id": "aZx3ePr3Id1jPJG9",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],

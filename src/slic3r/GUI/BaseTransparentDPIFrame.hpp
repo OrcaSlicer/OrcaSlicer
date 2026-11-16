@@ -3,13 +3,21 @@
 
 #include <future>
 #include <thread>
-#include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
+#include <wx/gdicmn.h>
+#include <wx/string.h>
+#include <wx/sizer.h>
 #include <wx/timer.h>
+
+class wxBoxSizer;
+class wxSizer;
+class wxTimer;
+class wxTimerEvent;
+class wxWindow;
+namespace Slic3r::GUI { struct IntEvent; }
 
 class Button;
 class Label;
-class CheckBox;
 namespace Slic3r { namespace GUI {
 class CapsuleButton;
 

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA-CF @InfiMech",
-	"inherits": "fdm_filament_pa",
 	"renamed_from": "InfiMech Generic PA-CF",
+	"inherits": "fdm_filament_pa",
 	"from": "system",
 	"setting_id": "IRYJpvGGjpF4ofY1",
 	"filament_id": "OFQLcbps",

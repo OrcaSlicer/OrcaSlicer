@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA @Z-Bolt 0.8 nozzle",
-	"inherits": "Generic PA @Z-Bolt Base",
 	"renamed_from": "Z-Bolt PA @0.8 nozzle",
+	"inherits": "Generic PA @Z-Bolt Base",
 	"from": "system",
 	"setting_id": "WZc4C1f6cPG8HZR3",
 	"filament_id": "OFg8ndtj",

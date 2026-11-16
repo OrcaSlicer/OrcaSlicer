@@ -6,16 +6,20 @@
 
 #include <boost/asio/ip/address.hpp>
 
+#include <vector>
 #include <wx/dialog.h>
+#include <wx/event.h>
 #include <wx/string.h>
 
-#include "libslic3r/PrintConfig.hpp"
+class wxWindow;
+namespace Slic3r { enum PrinterTechnology : unsigned char; }
+namespace boost::asio::ip { class address; }
+
 
 class wxListView;
 class wxStaticText;
 class wxTimer;
 class wxTimerEvent;
-class address;
 
 namespace Slic3r {
 

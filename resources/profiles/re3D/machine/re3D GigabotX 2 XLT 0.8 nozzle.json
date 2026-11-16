@@ -2,6 +2,7 @@
 	"type": "machine",
 	"name": "re3D GigabotX 2 XLT 0.8 nozzle",
 	"inherits": "fgf_re3D_common",
+	"setting_id": "66tcU44A7VD232wV",
 	"instantiation": "true",
 	"machine_tech": "FGF",
 	"model_id": "re3D GBX2 XLT",
@@ -28,6 +29,5 @@
 		"re3D rPETG @0.8 nozzle"
 	],
 	"default_print_profile": "0.6 Standard",
-	"printer_settings_id": "re3d_gbx_xlt_08",
-	"setting_id": "66tcU44A7VD232wV"
+	"printer_settings_id": "re3d_gbx_xlt_08"
 }

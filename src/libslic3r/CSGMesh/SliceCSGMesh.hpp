@@ -3,8 +3,16 @@
 
 #include "CSGMesh.hpp"
 
+#include <cstddef>
+#include <functional>
+#include <cassert>
 #include <stack>
+#include <vector>
+#include <utility>
 
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Execution/Execution.hpp"
 #include "libslic3r/TriangleMeshSlicer.hpp"
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Execution/ExecutionTBB.hpp"

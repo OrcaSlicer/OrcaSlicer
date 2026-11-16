@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Flashforge G3U",
-	"inherits": "Generic PLA @Flashforge",
 	"renamed_from": "Flashforge Generic PLA @G3U;Flashforge Generic PLA G3U",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "8ZlELnZzCa3UsztB",
 	"filament_id": "OFDSrzZ8",
@@ -24,8 +24,6 @@
 	],
 	"compatible_printers": [
 		"Flashforge Guider 3 Ultra 0.4 Nozzle",
-		"Flashforge Guider 3 Ultra 0.6 Nozzle",
-		"Flashforge Guider 3 Ultra 0.8 Nozzle",
 		"Flashforge Guider 2s 0.4 nozzle"
 	],
 	"compatible_printers_condition": "",
@@ -95,9 +93,6 @@
 		"1"
 	],
 	"filament_is_support": [
-		"0"
-	],
-	"filament_load_time": [
 		"0"
 	],
 	"filament_loading_speed": [
@@ -171,9 +166,6 @@
 	],
 	"filament_type": [
 		"PLA"
-	],
-	"filament_unload_time": [
-		"0"
 	],
 	"filament_unloading_speed": [
 		"35"

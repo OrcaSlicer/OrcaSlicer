@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA BigNozzle @RatRig",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "RatRig BigNozzle PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "WEI4QiKyANQOK7dG",
 	"filament_id": "OFqFRiLb",

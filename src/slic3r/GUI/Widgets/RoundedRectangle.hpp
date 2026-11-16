@@ -2,6 +2,9 @@
 #define slic3r_GUI_ROUNDEDRECTANGLE_hpp_
 
 #include "../wxExtensions.hpp"
+#include <wx/colour.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 
 class RoundedRectangle : public wxWindow
 {

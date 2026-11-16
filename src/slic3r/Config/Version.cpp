@@ -1,9 +1,21 @@
 #include "Version.hpp"
 
+#include <boost/filesystem/path.hpp>
+#include <boost/optional/optional.hpp>
+#include <algorithm>
+#include <boost/filesystem/directory.hpp>
 #include <cctype>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/nowide/fstream.hpp>
+#include "libslic3r/Semver.hpp"
+#include <cstring>
+#include <string>
+#include <cstddef>
+#include <vector>
+#include <stdexcept>
+#include <utility>
+#include "libslic3r/Exception.hpp"
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/Config.hpp"

@@ -4,6 +4,15 @@
 #include "MainFrame.hpp"
 
 #include "Widgets/DialogButtons.hpp"
+#include <wx/string.h>
+#include <wx/arrstr.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <cstddef>
 
 namespace Slic3r { namespace GUI {
 

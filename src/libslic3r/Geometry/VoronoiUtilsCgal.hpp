@@ -4,8 +4,6 @@
 #include <boost/polygon/polygon.hpp>
 #include <iterator>
 
-#include "Voronoi.hpp"
-#include "../Arachne/utils/PolygonsSegmentIndex.hpp"
 
 namespace Slic3r::Geometry {
 class VoronoiDiagram;

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @FlyingBear",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "FlyingBear Generic PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "D5Zk6ykY8TX3gs0Z",
 	"filament_id": "OFYPdQJh",

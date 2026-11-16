@@ -13,8 +13,6 @@
 	"top_surface_speed": "100",
 	"default_acceleration": "5000",
 	"outer_wall_acceleration": "2500",
-	"smooth_coefficient": "150",
-	"overhang_totally_speed": "50",
 	"compatible_printers": [
 		"Z-Bolt S300 0.6 nozzle",
 		"Z-Bolt S300 Dual 0.6 nozzle",

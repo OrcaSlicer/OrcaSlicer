@@ -1,4 +1,5 @@
 #include "DevLamp.h"
+#include <string>
 
 static Slic3r::DevLamp::LIGHT_EFFECT _light_effect_parse(std::string effect_str)
 {

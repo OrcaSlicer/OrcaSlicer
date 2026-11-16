@@ -6,9 +6,19 @@
 	"setting_id": "Eb9Y2xbVDpjuptrv",
 	"instantiation": "true",
 	"nozzle_temperature": [
+		"240",
+		"240",
+		"240",
+		"240",
+		"240",
 		"240"
 	],
 	"nozzle_temperature_initial_layer": [
+		"240",
+		"240",
+		"240",
+		"240",
+		"240",
 		"240"
 	],
 	"compatible_printers": []

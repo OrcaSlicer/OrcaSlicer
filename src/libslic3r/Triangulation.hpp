@@ -1,6 +1,8 @@
 #ifndef libslic3r_Triangulation_hpp_
 #define libslic3r_Triangulation_hpp_
 
+#include <utility>
+#include <cstdint>
 #include <vector>
 #include <set>
 #include <libslic3r/Point.hpp>

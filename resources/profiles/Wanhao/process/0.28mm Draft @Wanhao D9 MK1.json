@@ -1,0 +1,17 @@
+{
+	"type": "process",
+	"name": "0.28mm Draft @Wanhao D9 MK1",
+	"inherits": "fdm_process_wanhao_d9_mk1_common",
+	"from": "system",
+	"setting_id": "omfIWwVnQVVxPrtb",
+	"instantiation": "true",
+	"layer_height": "0.28",
+	"initial_layer_print_height": "0.34",
+	"top_shell_layers": "3",
+	"bottom_shell_layers": "3",
+	"compatible_printers": [
+		"Wanhao D9-300 MK1 0.4 nozzle",
+		"Wanhao D9-400 MK1 0.4 nozzle",
+		"Wanhao D9-500 MK1 0.4 nozzle"
+	]
+}

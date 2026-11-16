@@ -5,10 +5,13 @@
 	"from": "system",
 	"setting_id": "2r0kwhklE24Hp94O",
 	"filament_id": "OFFFg2Pf",
+	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"
 	],

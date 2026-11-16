@@ -1,11 +1,14 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Sovol SV06 Plus ACE",
-	"inherits": "Generic PLA @System",
 	"renamed_from": "Sovol SV06 Plus ACE PLA",
+	"inherits": "Generic PLA @System",
 	"from": "system",
 	"setting_id": "yzv5Kwe3OivHxNUI",
 	"instantiation": "true",
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
 	"filament_flow_ratio": [
 		"0.98"
 	],

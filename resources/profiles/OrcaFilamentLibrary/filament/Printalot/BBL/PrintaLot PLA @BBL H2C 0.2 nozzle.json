@@ -1,0 +1,64 @@
+{
+	"type": "filament",
+	"name": "PrintaLot PLA @BBL H2C 0.2 nozzle",
+	"inherits": "PrintaLot PLA @base",
+	"from": "system",
+	"setting_id": "qvKpCo5YQQ98h5LH",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"75",
+		"75"
+	],
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"filament_change_length": [
+		"4"
+	],
+	"filament_change_length_nc": [
+		"4"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"filament_max_volumetric_speed": [
+		"1.6",
+		"1.6"
+	],
+	"filament_pre_cooling_temperature_nc": [
+		"180",
+		"180"
+	],
+	"filament_preheat_temperature_delta": [
+		"20",
+		"20"
+	],
+	"filament_prime_volume": [
+		"30"
+	],
+	"filament_prime_volume_nc": [
+		"30"
+	],
+	"filament_ramming_travel_time_nc": [
+		"1",
+		"1"
+	],
+	"filament_retract_length_nc": [
+		"18",
+		"18"
+	],
+	"long_retractions_when_ec": [
+		"1",
+		"1"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2C 0.2 nozzle"
+	]
+}

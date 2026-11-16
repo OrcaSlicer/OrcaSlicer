@@ -2,6 +2,29 @@
 
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/SpinInput.hpp"
+#include <wx/string.h>
+#include "slic3r/GUI/Widgets/CheckBox.hpp"
+#include "slic3r/GUI/Widgets/ProgressBar.hpp"
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <wx/colour.h>
+#include "slic3r/GUI/Widgets/DialogButtons.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include "slic3r/GUI/Selection.hpp"
+#include <wx/utils.h>
+#include "slic3r/GUI/Jobs/Job.hpp"
+#include "libslic3r/AppConfig.hpp"
+#include "slic3r/GUI/GLCanvas3D.hpp"
+#include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Plater.hpp"
+
+class wxWindow;
 
 namespace Slic3r { namespace GUI {
 
@@ -53,7 +76,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
     // Keep pointer to OK button so we can trigger it manually on Enter.
     Button *ok_btn = dlg_btns->GetOK();
 
-    dlg_btns->GetFIRST()->SetToolTip(_L("Fill bed with copies"));
+    dlg_btns->GetFIRST()->SetToolTip(_L("Fill bed with instances"));
     dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
         m_plater->fill_bed_with_instances();
         EndModal(wxID_OK);

@@ -7,6 +7,7 @@
 	"extruder_clearance_height_to_lid": "140",
 	"extruder_clearance_height_to_rod": "36",
 	"extruder_clearance_radius": "65",
+	"default_filament_profile": "Generic PLA @E3NG v1.2S",
 	"machine_max_acceleration_e": [
 		"7500",
 		"7500"
@@ -40,12 +41,12 @@
 		"25"
 	],
 	"machine_max_speed_x": [
-		"400",
-		"400"
+		"600",
+		"600"
 	],
 	"machine_max_speed_y": [
-		"400",
-		"400"
+		"600",
+		"600"
 	],
 	"machine_max_speed_z": [
 		"12",

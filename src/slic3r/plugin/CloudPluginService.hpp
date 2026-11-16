@@ -1,6 +1,5 @@
 #pragma once
 
-#include "PluginDescriptor.hpp"
 
 #include <boost/filesystem/path.hpp>
 
@@ -8,6 +7,9 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+namespace Slic3r { struct PluginChangelog; }
+namespace Slic3r { struct PluginDescriptor; }
 
 namespace Slic3r {
 

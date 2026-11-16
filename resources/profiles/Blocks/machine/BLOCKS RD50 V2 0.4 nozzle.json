@@ -34,5 +34,9 @@
 	"printable_height": "500",
 	"upward_compatible_machine": [
 		"BLOCKS RD50 V2"
+	],
+	"printer_variant": "0.4",
+	"default_filament_profile": [
+		"Blocks PLA @Blocks_RD50_V2"
 	]
 }

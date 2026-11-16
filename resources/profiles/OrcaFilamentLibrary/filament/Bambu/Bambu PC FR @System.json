@@ -6,6 +6,11 @@
 	"setting_id": "m7TaVFWJZUqzf0rP",
 	"instantiation": "true",
 	"fan_max_speed": [
+		"40",
+		"40",
+		"40",
+		"40",
+		"40",
 		"40"
 	],
 	"slow_down_layer_time": [

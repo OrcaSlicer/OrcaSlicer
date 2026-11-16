@@ -1,0 +1,31 @@
+{
+    "type": "filament",
+    "name": "PolyLite ABS @BBL A1",
+    "inherits": "PolyLite ABS @base",
+    "from": "system",
+    "setting_id": "GFSB60_06",
+    "instantiation": "true",
+    "fan_max_speed": [
+        "20"
+    ],
+    "hot_plate_temp": [
+        "100"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "100"
+    ],
+    "reduce_fan_stop_start_freq": [
+        "0"
+    ],
+    "textured_plate_temp": [
+        "100"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "100"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.4 nozzle",
+        "Bambu Lab A1 0.6 nozzle",
+        "Bambu Lab A1 0.8 nozzle"
+    ]
+}

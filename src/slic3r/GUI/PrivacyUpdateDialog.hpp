@@ -5,6 +5,11 @@
 #include "Widgets/Button.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/WebView.hpp"
+#include <wx/event.h>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <string>
+#include <wx/sizer.h>
 #include <wx/webview.h>
 #include <wx/progdlg.h>
 #include <wx/simplebook.h>

@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "OFY0F5qA",
-	"setting_id": "IIFtCkVvHoLtxPxj",
 	"name": "Volumic PETG Ultra carbone (Performance)",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
+	"from": "system",
+	"setting_id": "IIFtCkVvHoLtxPxj",
+	"filament_id": "OFY0F5qA",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.00"
 	],

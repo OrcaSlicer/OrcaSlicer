@@ -2,9 +2,15 @@
 #define __BBL_PRINTER_AGENT_HPP__
 
 #include "IPrinterAgent.hpp"
-#include "ICloudServiceAgent.hpp"
+#include "bambu_networking.hpp"
+#include <functional>
 #include <string>
 #include <memory>
+#include <nlohmann/json.hpp>
+#include <set>
+#include <vector>
+
+namespace Slic3r { class ICloudServiceAgent; }
 
 namespace Slic3r {
 
@@ -28,7 +34,13 @@ public:
 
     // Communication
     int send_message(std::string dev_id, std::string json_str, int qos, int flag) override;
-    int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl) override;
+    int command_ams_refresh_rfid(std::string dev_id, int ams_id, int slot_id, int sequence_id, bool lan_mode) override;
+    int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode) override;
+    int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode) override;
+    int command_axis_control(std::string dev_id, std::string axis, double unit, double input_val, int speed,
+                              bool is_core_xy, bool supports_mqtt_axis_control, int sequence_id, bool lan_mode) override;
+    std::string default_lan_username() const override { return "bblp"; }
+    int connect_printer(const PrinterConnectionParams& params) override;
     int disconnect_printer() override;
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag) override;
 
@@ -90,6 +102,9 @@ public:
     // scripts/update_bambu_filament_ids.py). An id without a map row is returned as it is.
     std::string to_orca_filament_id(const std::string& printer_filament_id) const override;
     std::string from_orca_filament_id(const std::string& orca_filament_id) const override;
+    // The same translation for Bambu-keyed data (filaments_color_codes.json) read while another
+    // agent, or none, is live.
+    static std::string bambu_filament_id(const std::string& orca_filament_id);
 
     // Rewrite every string under "tray_info_idx", "filament_id" or "filamentId", at any depth,
     // in a JSON document (an MQTT payload or PrintParams::ams_mapping_info). Text that does not
@@ -98,8 +113,18 @@ public:
     static std::string to_orca_payload(std::string json_text);
     static std::string from_orca_payload(std::string json_text);
 
+    // The plug-in checks LAN MQTT and FTPS certificates against <cert folder>/printer.cer. A printer
+    // behind a proxy with its own CA (the "HTTPS CA File" of the connect dialog) needs that CA there
+    // too. Writes out_dir/printer.cer as bundled_dir/printer.cer plus the certificates of every file
+    // in extra_cas that holds only CA certificates, copies the other files of bundled_dir, and
+    // returns out_dir. Files are replaced in one step, and only when their content changes.
+    // Returns bundled_dir when no extra CA is usable or out_dir cannot be written.
+    static std::string cert_dir_with_cas(const std::string& bundled_dir, const std::string& out_dir, const std::set<std::string>& extra_cas);
+    // Sets the CA file the plug-in's cert folder trusts for dev_id; an empty ca_file removes it.
+    static void trust_ca_file(const std::string& dev_id, const std::string& ca_file);
+
 private:
-    std::shared_ptr<ICloudServiceAgent> m_cloud_agent;
+    int publish(const std::string& dev_id, const nlohmann::json& j, bool lan_mode);
 };
 
 } // namespace Slic3r

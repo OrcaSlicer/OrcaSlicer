@@ -11,6 +11,8 @@
 #include "slic3r/GUI/Widgets/PopupWindow.hpp"
 
 #include "slic3r/GUI/wxExtensions.hpp"
+#include <string>
+#include <wx/sizer.h>
 
 //Previous defintions
 class wxGrid;

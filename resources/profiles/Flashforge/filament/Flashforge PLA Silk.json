@@ -5,10 +5,10 @@
 	"from": "system",
 	"setting_id": "vZb7BvbyVWkZv3rR",
 	"filament_id": "OFgjgN35",
+	"instantiation": "true",
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA Silk"
 	],

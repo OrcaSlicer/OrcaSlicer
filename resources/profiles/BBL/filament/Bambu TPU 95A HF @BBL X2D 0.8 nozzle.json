@@ -1,0 +1,101 @@
+{
+    "type": "filament",
+    "name": "Bambu TPU 95A HF @BBL X2D 0.8 nozzle",
+    "inherits": "Bambu TPU 95A HF @base",
+    "from": "system",
+    "setting_id": "GFSU00_33",
+    "instantiation": "true",
+    "eng_plate_temp": [
+        "35"
+    ],
+    "eng_plate_temp_initial_layer": [
+        "35"
+    ],
+    "filament_cooling_before_tower": [
+        "10",
+        "10",
+        "10",
+        "10"
+    ],
+    "filament_dev_ams_drying_temperature": [
+        "65",
+        "75",
+        "45",
+        "45"
+    ],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "18",
+        "12",
+        "18"
+    ],
+    "filament_extruder_compatibility": [
+        "8"
+    ],
+    "filament_flow_ratio": [
+        "1",
+        "1",
+        "1",
+        "1"
+    ],
+    "filament_flush_temp_fast": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_max_volumetric_speed": [
+        "12",
+        "12",
+        "12",
+        "12"
+    ],
+    "filament_printable": [
+        "1"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "filament_retraction_length": [
+        "0.8",
+        "0.8",
+        "0.8",
+        "0.8"
+    ],
+    "filament_tower_interface_print_temp": [
+        "230"
+    ],
+    "first_x_layer_fan_speed": [
+        "40"
+    ],
+    "include": [
+        "fdm_filament_template_direct_bowden"
+    ],
+    "nozzle_temperature": [
+        "230",
+        "230",
+        "230",
+        "230"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "230",
+        "230",
+        "230",
+        "230"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0",
+        "0",
+        "0"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X2D 0.8 nozzle"
+    ],
+    "filament_start_gcode": [
+        "; filament start gcode\n"
+    ]
+}

@@ -1,12 +1,22 @@
 #include "MultiNozzleUtils.hpp"
+#include "PrintConfig.hpp"
+#include "Config.hpp"
 #include "Utils.hpp"
 #include "ProjectTask.hpp" // Slic3r::FilamentInfo (StaticNozzleGroupResult / load_nozzle_infos_with_compatibility)
 #include <algorithm>
+#include <cstddef>
+#include <exception>
 #include <iomanip>
+#include <map>
+#include <set>
+#include <optional>
 #include <sstream>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <utility>
 
 // Multi-nozzle support.
 

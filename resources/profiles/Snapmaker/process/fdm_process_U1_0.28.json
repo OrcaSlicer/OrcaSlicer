@@ -17,5 +17,7 @@
 	"internal_solid_infill_speed": "200",
 	"gap_infill_speed": "200",
 	"support_threshold_angle": "40",
-	"top_shell_layers": "4"
+	"top_shell_layers": "4",
+	"top_color_penetration_layers": "4",
+	"bottom_color_penetration_layers": "3"
 }

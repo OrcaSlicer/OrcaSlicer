@@ -12,7 +12,20 @@
 	"filament_density": [
 		"1.09"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_flow_ratio": [
+		"0.96",
+		"0.96",
+		"0.96",
+		"0.96",
+		"0.96",
 		"0.96"
 	],
 	"filament_type": [
@@ -20,12 +33,6 @@
 	],
 	"filament_vendor": [
 		"Bambu Lab"
-	],
-	"nozzle_temperature": [
-		"280"
-	],
-	"nozzle_temperature_initial_layer": [
-		"280"
 	],
 	"overhang_fan_speed": [
 		"40"

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Creality K2-all",
-	"inherits": "Generic ASA @Creality",
 	"renamed_from": "Creality Generic ASA @K2-all;Creality Generic ASA K2-all",
+	"inherits": "Generic ASA @Creality",
 	"from": "system",
 	"setting_id": "XJKLmHYbW2ReKSKs",
 	"instantiation": "true",

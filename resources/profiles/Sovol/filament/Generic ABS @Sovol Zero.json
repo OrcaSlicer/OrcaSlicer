@@ -1,10 +1,11 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Sovol Zero",
-	"inherits": "Generic ABS @System",
 	"renamed_from": "Sovol Zero ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "g6sSyyIFYJUzlXsp",
+	"filament_id": "OFY9muEs",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"
@@ -73,6 +74,39 @@
 		"0"
 	],
 	"compatible_printers": [
-		"Sovol Zero 0.4 nozzle"
+		"Sovol Zero 0.2 nozzle",
+		"Sovol Zero 0.4 nozzle",
+		"Sovol Zero 0.6 nozzle",
+		"Sovol Zero 0.8 nozzle",
+		"Sovol Zero 1.0 nozzle",
+		"Sovol Zero 0.2 Hardened Steel nozzle",
+		"Sovol Zero 0.4 Hardened Steel nozzle",
+		"Sovol Zero 0.6 Hardened Steel nozzle",
+		"Sovol Zero 0.8 Hardened Steel nozzle",
+		"Sovol Zero 1.0 Hardened Steel nozzle"
+	],
+	"cool_plate_temp": [
+		"80"
+	],
+	"eng_plate_temp": [
+		"80"
+	],
+	"textured_plate_temp": [
+		"80"
+	],
+	"cool_plate_temp_initial_layer": [
+		"80"
+	],
+	"eng_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_plate_temp_initial_layer": [
+		"80"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_density": [
+		"1.10"
 	]
 }

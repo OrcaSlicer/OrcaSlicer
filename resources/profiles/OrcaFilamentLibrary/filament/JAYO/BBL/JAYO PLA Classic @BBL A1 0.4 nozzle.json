@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "JAYO PLA Classic @BBL A1 0.4 nozzle",
+	"inherits": "JAYO PLA Classic @base",
+	"from": "system",
+	"setting_id": "amKVKH8dJNln2WY0",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Bambu Lab A1 0.4 nozzle"
+	]
+}

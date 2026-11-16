@@ -1,10 +1,22 @@
 #ifndef SLA_BOOSTADAPTER_HPP
 #define SLA_BOOSTADAPTER_HPP
 
+#include <boost/geometry/core/tag.hpp>
+#include <boost/geometry/core/tags.hpp>
+#include <boost/geometry/core/coordinate_type.hpp>
+#include "libslic3r/libslic3r.h"
+#include <boost/geometry/core/coordinate_system.hpp>
+#include <boost/geometry/core/cs.hpp>
+#include <boost/geometry/core/coordinate_dimension.hpp>
+#include <cstddef>
+#include <boost/geometry/core/access.hpp>
+#include <boost/geometry/core/point_type.hpp>
+#include <boost/range/value_type.hpp>
 #include <libslic3r/Point.hpp>
 #include <libslic3r/BoundingBox.hpp>
 
 #include <boost/geometry.hpp>
+#include <vector>
 
 namespace boost {
 namespace geometry {

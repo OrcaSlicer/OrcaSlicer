@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "PlastAR PLA @System",
+	"inherits": "PlastAR PLA @base",
+	"from": "system",
+	"setting_id": "BuWjJYav1gbWZacL",
+	"instantiation": "true",
+	"compatible_printers": []
+}

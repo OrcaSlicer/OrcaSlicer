@@ -1,4 +1,5 @@
 #include "CalibrationWizard.hpp"
+#include "CalibUtils.hpp"
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
@@ -7,6 +8,34 @@
 #include "../../libslic3r/calib.hpp"
 #include "Tabbook.hpp"
 #include "CaliHistoryDialog.hpp"
+#include <wx/event.h>
+#include <wx/string.h>
+#include <map>
+#include "libslic3r/Preset.hpp"
+#include <utility>
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/libslic3r.h"
+#include <wx/gdicmn.h>
+#include <wx/panel.h>
+#include <wx/colour.h>
+#include <wx/scrolwin.h>
+#include <functional>
+#include <boost/log/trivial.hpp>
+#include <string>
+#include "libslic3r/Config.hpp"
+#include "slic3r/GUI/CalibrationWizardPresetPage.hpp"
+#include <vector>
+#include "slic3r/GUI/ReleaseNote.hpp"
+#include <cassert>
+#include "slic3r/GUI/CalibrationWizardStartPage.hpp"
+#include "slic3r/GUI/CalibrationWizardCaliPage.hpp"
+#include "slic3r/GUI/CalibrationWizardSavePage.hpp"
+#include "slic3r/GUI/DeviceCore/DevCalib.h"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <wx/arrstr.h>
+#include <algorithm>
+#include "slic3r/GUI/GUI.hpp"
+#include "libslic3r/ParameterUtils.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -81,7 +110,7 @@ CalibrationWizard::CalibrationWizard(wxWindow* parent, CalibMode mode, wxWindowI
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
     m_scrolledWindow = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHSCROLL | wxVSCROLL);
-    m_scrolledWindow->SetScrollRate(5, 5);
+    m_scrolledWindow->SetScrollRate(5, FromDIP(20));
     m_scrolledWindow->SetBackgroundColour(*wxWHITE);
 
     wxBoxSizer* padding_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -128,6 +157,15 @@ CalibrationWizard::CalibrationWizard(wxWindow* parent, CalibMode mode, wxWindowI
 CalibrationWizard::~CalibrationWizard()
 {
     ;
+}
+
+void CalibrationWizard::add_page_step(CalibrationWizardPageStep*& step, std::function<CalibrationWizardPage*()> make)
+{
+    add_build_step([this, &step, make = std::move(make)] {
+        step = new CalibrationWizardPageStep(make());
+        m_all_pages_sizer->Add(step->page, 1, wxEXPAND | wxALL, FromDIP(25));
+        step->page->Hide();
+    });
 }
 
 void CalibrationWizard::on_cali_job_finished(wxCommandEvent& event)
@@ -397,7 +435,7 @@ void CalibrationWizard::cache_preset_info(MachineObject *obj, float nozzle_dia, 
         if (obj->is_multi_extruders()) {
             int ams_id, slot_id, tray_id;
             get_tray_ams_and_slot_id(curr_obj, result.tray_id, ams_id, slot_id, tray_id);
-            result.extruder_id = preset_page->get_extruder_id(ams_id);
+            result.extruder_id = preset_page->get_extruder_id_by_tray_id(result.tray_id);
             result.nozzle_diameter  = preset_page->get_nozzle_diameter(result.extruder_id);
         }
         else {
@@ -520,33 +558,28 @@ void PressureAdvanceWizard::on_cali_job_finished(wxString evt_data)
 
 void PressureAdvanceWizard::create_pages()
 {
-    start_step  = new CalibrationWizardPageStep(new CalibrationPAStartPage(m_scrolledWindow));
-    preset_step = new CalibrationWizardPageStep(new CalibrationPresetPage(m_scrolledWindow, m_mode, false));
-    cali_step   = new CalibrationWizardPageStep(new CalibrationCaliPage(m_scrolledWindow, m_mode));
-    save_step   = new CalibrationWizardPageStep(new CalibrationPASavePage(m_scrolledWindow));
+    add_page_step(start_step, [this] { return new CalibrationPAStartPage(m_scrolledWindow); });
+    add_page_step(preset_step, [this] { return new CalibrationPresetPage(m_scrolledWindow, m_mode, false); });
+    add_page_step(cali_step, [this] { return new CalibrationCaliPage(m_scrolledWindow, m_mode); });
+    add_page_step(save_step, [this] { return new CalibrationPASavePage(m_scrolledWindow); });
 
-    m_all_pages_sizer->Add(start_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(preset_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(cali_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(save_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
+    add_build_step([this] {
+        m_page_steps.push_back(start_step);
+        m_page_steps.push_back(preset_step);
+        m_page_steps.push_back(cali_step);
+        m_page_steps.push_back(save_step);
 
+        for (int i = 0; i < m_page_steps.size() -1; i++) {
+            m_page_steps[i]->chain(m_page_steps[i+1]);
+        }
 
-    m_page_steps.push_back(start_step);
-    m_page_steps.push_back(preset_step);
-    m_page_steps.push_back(cali_step);
-    m_page_steps.push_back(save_step);
+        for (int i = 0; i < m_page_steps.size(); i++) {
+            m_page_steps[i]->page->Bind(EVT_CALI_ACTION, &PressureAdvanceWizard::on_cali_action, this);
+        }
 
-    for (int i = 0; i < m_page_steps.size() -1; i++) {
-        m_page_steps[i]->chain(m_page_steps[i+1]);
-    }
-
-    for (int i = 0; i < m_page_steps.size(); i++) {
-        m_page_steps[i]->page->Hide();
-        m_page_steps[i]->page->Bind(EVT_CALI_ACTION, &PressureAdvanceWizard::on_cali_action, this);
-    }
-
-    if (!m_page_steps.empty())
-        show_step(m_page_steps.front());
+        if (!m_page_steps.empty())
+            show_step(m_page_steps.front());
+    });
 }
 
 void PressureAdvanceWizard::on_cali_action(wxCommandEvent& evt)
@@ -720,7 +753,7 @@ void PressureAdvanceWizard::on_cali_start()
 
             X1CCalibInfos::X1CCalibInfo calib_info;
             get_tray_ams_and_slot_id(curr_obj, item.first, calib_info.ams_id, calib_info.slot_id, calib_info.tray_id);
-            calib_info.extruder_id          = preset_page->get_extruder_id(calib_info.ams_id);
+            calib_info.extruder_id          = preset_page->get_extruder_id_by_tray_id(item.first);
             calib_info.extruder_type        = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type   = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
             calib_info.nozzle_diameter      = preset_page->get_nozzle_diameter(calib_info.extruder_id);
@@ -759,7 +792,7 @@ void PressureAdvanceWizard::on_cali_start()
             CalibInfo calib_info;
             calib_info.dev_id            = curr_obj->get_dev_id();
             get_tray_ams_and_slot_id(curr_obj, selected_filaments.begin()->first, calib_info.ams_id, calib_info.slot_id, selected_tray_id);
-            calib_info.extruder_id       = preset_page->get_extruder_id(calib_info.ams_id);
+            calib_info.extruder_id       = preset_page->get_extruder_id_by_tray_id(selected_filaments.begin()->first);
             calib_info.extruder_type     = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
             calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
@@ -844,7 +877,7 @@ void PressureAdvanceWizard::on_cali_start()
             calib_info.dev_id = curr_obj->get_dev_id();
             get_tray_ams_and_slot_id(curr_obj, item.first, calib_info.ams_id, calib_info.slot_id, selected_tray_id);
             calib_info.index              = preset_page->get_index_by_tray_id(item.first);
-            calib_info.extruder_id        = preset_page->get_extruder_id(calib_info.ams_id);
+            calib_info.extruder_id        = preset_page->get_extruder_id_by_tray_id(item.first);
             calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
             calib_info.extruder_type      = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
@@ -940,7 +973,7 @@ bool PressureAdvanceWizard::can_save_cali_result(const std::vector<PACalibResult
     }
 
     if (curr_obj->get_printer_series() != PrinterSeries::SERIES_X1 && curr_obj->pa_calib_tab.size() >= MAX_PA_HISTORY_RESULTS_NUMS) {
-        MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold %d historical results per nozzle. This result will not be saved."), MAX_PA_HISTORY_RESULTS_NUMS),
+        MessageDialog msg_dlg(nullptr, wxString::Format(_L_PLURAL("This machine type can only hold %d historical result per nozzle. This result will not be saved.", "This machine type can only hold %d historical results per nozzle. This result will not be saved.", MAX_PA_HISTORY_RESULTS_NUMS), MAX_PA_HISTORY_RESULTS_NUMS),
                               wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return false;
@@ -1053,59 +1086,46 @@ FlowRateWizard::FlowRateWizard(wxWindow* parent, wxWindowID id, const wxPoint& p
 
 void FlowRateWizard::create_pages()
 {
-    start_step = new CalibrationWizardPageStep(new CalibrationFlowRateStartPage(m_scrolledWindow));
-    preset_step = new CalibrationWizardPageStep(new CalibrationPresetPage(m_scrolledWindow, m_mode, false));
+    add_page_step(start_step, [this] { return new CalibrationFlowRateStartPage(m_scrolledWindow); });
+    add_page_step(preset_step, [this] { return new CalibrationPresetPage(m_scrolledWindow, m_mode, false); });
 
     // manual
-    cali_coarse_step = new CalibrationWizardPageStep(new CalibrationCaliPage(m_scrolledWindow, m_mode, CaliPageType::CALI_PAGE_CALI));
-    coarse_save_step = new CalibrationWizardPageStep(new CalibrationFlowCoarseSavePage(m_scrolledWindow));
-    cali_fine_step = new CalibrationWizardPageStep(new CalibrationCaliPage(m_scrolledWindow, m_mode, CaliPageType::CALI_PAGE_FINE_CALI));
-    fine_save_step = new CalibrationWizardPageStep(new CalibrationFlowFineSavePage(m_scrolledWindow));
+    add_page_step(cali_coarse_step, [this] { return new CalibrationCaliPage(m_scrolledWindow, m_mode, CaliPageType::CALI_PAGE_CALI); });
+    add_page_step(coarse_save_step, [this] { return new CalibrationFlowCoarseSavePage(m_scrolledWindow); });
+    add_page_step(cali_fine_step, [this] { return new CalibrationCaliPage(m_scrolledWindow, m_mode, CaliPageType::CALI_PAGE_FINE_CALI); });
+    add_page_step(fine_save_step, [this] { return new CalibrationFlowFineSavePage(m_scrolledWindow); });
 
     // auto
-    cali_step = new CalibrationWizardPageStep(new CalibrationCaliPage(m_scrolledWindow, m_mode));
-    save_step = new CalibrationWizardPageStep(new CalibrationFlowX1SavePage(m_scrolledWindow));
+    add_page_step(cali_step, [this] { return new CalibrationCaliPage(m_scrolledWindow, m_mode); });
+    add_page_step(save_step, [this] { return new CalibrationFlowX1SavePage(m_scrolledWindow); });
 
-    m_all_pages_sizer->Add(start_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(preset_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(cali_coarse_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(coarse_save_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(cali_fine_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(fine_save_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
+    add_build_step([this] {
+        m_page_steps.push_back(start_step);
+        m_page_steps.push_back(preset_step);
+        m_page_steps.push_back(cali_coarse_step);
+        m_page_steps.push_back(coarse_save_step);
+        m_page_steps.push_back(cali_fine_step);
+        m_page_steps.push_back(fine_save_step);
 
-    m_all_pages_sizer->Add(cali_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
-    m_all_pages_sizer->Add(save_step->page, 1, wxEXPAND | wxALL, FromDIP(25));
+        //m_page_steps.push_back(cali_step);
+        //m_page_steps.push_back(save_step);
 
-    m_page_steps.push_back(start_step);
-    m_page_steps.push_back(preset_step);
-    m_page_steps.push_back(cali_coarse_step);
-    m_page_steps.push_back(coarse_save_step);
-    m_page_steps.push_back(cali_fine_step);
-    m_page_steps.push_back(fine_save_step);
+        for (int i = 0; i < m_page_steps.size() - 1; i++) {
+            m_page_steps[i]->chain(m_page_steps[i + 1]);
+        }
 
-    //m_page_steps.push_back(cali_step);
-    //m_page_steps.push_back(save_step);
+        for (int i = 0; i < m_page_steps.size(); i++) {
+            m_page_steps[i]->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
+        }
 
-    for (int i = 0; i < m_page_steps.size() - 1; i++) {
-        m_page_steps[i]->chain(m_page_steps[i + 1]);
-    }
+        cali_step->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
+        save_step->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
 
-    // hide all pages
-    cali_step->page->Hide();
-    save_step->page->Hide();
-    for (int i = 0; i < m_page_steps.size(); i++) {
-        m_page_steps[i]->page->Hide();
-        m_page_steps[i]->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
-    }
+        if (!m_page_steps.empty())
+            show_step(m_page_steps.front());
 
-
-    cali_step->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
-    save_step->page->Bind(EVT_CALI_ACTION, &FlowRateWizard::on_cali_action, this);
-
-    if (!m_page_steps.empty())
-        show_step(m_page_steps.front());
-
-    set_cali_method(CalibrationMethod::CALI_METHOD_MANUAL);
+        set_cali_method(CalibrationMethod::CALI_METHOD_MANUAL);
+    });
 }
 
 void FlowRateWizard::on_cali_action(wxCommandEvent& evt)
@@ -1232,7 +1252,7 @@ void FlowRateWizard::on_cali_start(CaliPresetStage stage, float cali_value, Flow
             X1CCalibInfos::X1CCalibInfo calib_info;
             calib_info.tray_id          = item.first;
             get_tray_ams_and_slot_id(curr_obj, item.first, calib_info.ams_id, calib_info.slot_id, calib_info.tray_id);
-            calib_info.extruder_id      = preset_page->get_extruder_id(calib_info.ams_id);
+            calib_info.extruder_id      = preset_page->get_extruder_id_by_tray_id(item.first);
             calib_info.extruder_type    = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
             calib_info.nozzle_diameter  = preset_page->get_nozzle_diameter(calib_info.extruder_id);
@@ -1288,7 +1308,15 @@ void FlowRateWizard::on_cali_start(CaliPresetStage stage, float cali_value, Flow
             int selected_tray_id  = 0;
             get_tray_ams_and_slot_id(curr_obj, selected_filaments.begin()->first, calib_info.ams_id, calib_info.slot_id, selected_tray_id);
             calib_info.select_ams         = std::to_string(selected_tray_id);
-            calib_info.extruder_id = preset_page->get_extruder_id(calib_info.ams_id);
+            calib_info.extruder_id = preset_page->get_extruder_id_by_tray_id(selected_filaments.begin()->first);
+            if (from_page == FlowRatioCaliSource::FROM_COARSE_PAGE) {
+                // The fine pass must run on the extruder the coarse pass used. The cache records it;
+                // the preset page's selection may have changed or been reset since.
+                const auto cached = get_cached_selected_filament_for_multi_extruder(curr_obj);
+                const auto it     = cached.find(selected_filaments.begin()->first);
+                if (it != cached.end())
+                    calib_info.extruder_id = it->second.extruder_id;
+            }
             calib_info.extruder_type      = preset_page->get_extruder_type(calib_info.extruder_id);
             calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
             calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);
@@ -1704,7 +1732,7 @@ void MaxVolumetricSpeedWizard::on_cali_start()
         int selected_tray_id = 0;
         get_tray_ams_and_slot_id(curr_obj, selected_filaments.begin()->first, calib_info.ams_id, calib_info.slot_id, selected_tray_id);
         calib_info.select_ams     = std::to_string(selected_tray_id);
-        calib_info.extruder_id        = preset_page->get_extruder_id(calib_info.ams_id);
+        calib_info.extruder_id        = preset_page->get_extruder_id_by_tray_id(selected_filaments.begin()->first);
         calib_info.extruder_type      = preset_page->get_extruder_type(calib_info.extruder_id);
         calib_info.nozzle_volume_type = preset_page->get_nozzle_volume_type(calib_info.extruder_id);
         calib_info.nozzle_diameter    = preset_page->get_nozzle_diameter(calib_info.extruder_id);

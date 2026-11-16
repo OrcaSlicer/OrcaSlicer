@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PVA @Anycubic",
-	"inherits": "fdm_filament_pva",
 	"renamed_from": "Anycubic Generic PVA",
+	"inherits": "fdm_filament_pva",
 	"from": "system",
 	"setting_id": "ae5ljmDsW7uauLz8",
 	"filament_id": "OFDvXujf",

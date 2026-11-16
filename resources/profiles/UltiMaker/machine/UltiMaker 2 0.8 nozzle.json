@@ -1,0 +1,23 @@
+{
+  "type": "machine",
+  "name": "UltiMaker 2 0.8 nozzle",
+  "inherits": "UltiMaker 2 0.4 nozzle",
+  "from": "system",
+  "setting_id": "ratwIj4y2pWpLaWJ",
+  "instantiation": "true",
+  "printer_model": "UltiMaker 2",
+  "default_print_profile": "0.20mm Standard @UltiMaker 2 0.8 nozzle",
+  "nozzle_diameter": [
+    "0.8"
+  ],
+  "max_layer_height": [
+    "0.6"
+  ],
+  "min_layer_height": [
+    "0.16"
+  ],
+  "default_filament_profile": [
+    "Generic PLA @UltiMaker 2 0.8 nozzle"
+  ],
+  "printer_variant": "0.8"
+}

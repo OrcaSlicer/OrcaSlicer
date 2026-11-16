@@ -1,11 +1,24 @@
 #include "BuildVolume.hpp"
+#include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "Polygon.hpp"
+#include "Geometry/Circle.hpp"
+#include "ExtrusionEntity.hpp"
 #include "TriangleMesh.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "GCode/GCodeProcessor.hpp"
 #include "Point.hpp"
+#include "libslic3r.h"
 
+#include <algorithm>
 #include <boost/log/trivial.hpp>
+#include <vector>
+#include <cassert>
+#include <cstdlib>
+#include <limits>
+#include <utility>
+#include <cstddef>
+#include <string_view>
 
 namespace Slic3r {
 

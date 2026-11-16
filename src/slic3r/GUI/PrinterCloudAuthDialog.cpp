@@ -1,8 +1,19 @@
 #include "PrinterCloudAuthDialog.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <boost/log/trivial.hpp>
+#include <wx/log.h>
+#include <wx/gdicmn.h>
+#include <wx/settings.h>
+#include <cstddef>
+#include "slic3r/GUI/GUI.hpp"
+#include <exception>
+#include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/toolbar.h>
 #include <wx/textdlg.h>
 
+#include <wx/webview.h>
 #include <wx/wx.h>
 #include <wx/fileconf.h>
 #include <wx/file.h>
@@ -13,10 +24,14 @@
 
 #include <nlohmann/json.hpp>
 #include "MainFrame.hpp"
+#include "PrintHost.hpp"
 #include <boost/dll.hpp>
 
 #include <sstream>
 #include <slic3r/GUI/Widgets/WebView.hpp>
+
+using json = nlohmann::json;
+
 //------------------------------------------
 //          PrinterCloundAuthDialog
 //------------------------------------------

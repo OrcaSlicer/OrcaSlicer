@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @FlyingBear",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "FlyingBear Generic PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "g7zPgD6P3bbwm5gv",
 	"filament_id": "OFDSrzZ8",

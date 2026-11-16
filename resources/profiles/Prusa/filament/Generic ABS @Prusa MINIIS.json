@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Prusa MINIIS",
-	"inherits": "Generic ABS @Prusa base",
 	"renamed_from": "Prusa Generic ABS @MINIIS;Prusa Generic ABS MINIIS",
+	"inherits": "Generic ABS @Prusa base",
 	"from": "system",
 	"setting_id": "ZqiVOVIYGAbB1SPk",
 	"instantiation": "true",

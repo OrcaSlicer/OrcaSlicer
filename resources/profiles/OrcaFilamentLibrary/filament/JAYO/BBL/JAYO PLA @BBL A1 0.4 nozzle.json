@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "JAYO PLA @BBL A1 0.4 nozzle",
+	"inherits": "JAYO PLA @base",
+	"from": "system",
+	"setting_id": "6VnENC38MC1HwyQA",
+	"instantiation": "true",
+	"nozzle_temperature_range_low": [
+		"190"
+	],
+	"compatible_printers": [
+		"Bambu Lab A1 0.4 nozzle"
+	]
+}

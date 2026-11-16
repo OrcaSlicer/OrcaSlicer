@@ -5,6 +5,7 @@
 #include "Range.hpp"
 
 #include <algorithm>
+#include "../include/Types.hpp"
 
 namespace libvgcode {
 

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @OrcaArena 0.2 nozzle",
-	"inherits": "Generic ABS @OrcaArena base",
 	"renamed_from": "OrcaArena Generic ABS @0.2 nozzle;OrcaArena Generic ABS 0.2 nozzle",
+	"inherits": "Generic ABS @OrcaArena base",
 	"from": "system",
 	"setting_id": "mzx0hG9Xe9fIrkrW",
 	"instantiation": "true",

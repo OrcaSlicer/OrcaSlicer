@@ -1,12 +1,21 @@
 #ifndef slic3r_GUI_BackgroundSlicingProcess_hpp_
 #define slic3r_GUI_BackgroundSlicingProcess_hpp_
 
+#include <exception>
+#include <cassert>
+#include <cstddef>
+#include "libslic3r/Config.hpp"
+#include "libslic3r/Polygon.hpp"
+#include <memory>
+#include <functional>
 #include <string>
 #include <condition_variable>
 #include <mutex>
 
 #include <boost/thread.hpp>
 
+#include <utility>
+#include <vector>
 #include <wx/event.h>
 
 #include "libslic3r/PrintBase.hpp"
@@ -14,7 +23,11 @@
 #include "libslic3r/Format/SL1.hpp"
 #include "slic3r/Utils/PrintHost.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
-#include "PartPlate.hpp"
+
+namespace Slic3r { class Polygon; }
+namespace Slic3r { class Print; }
+namespace Slic3r::GUI { class PartPlate; }
+namespace Slic3r::GUI { class Plater; }
 
 namespace boost { namespace filesystem { class path; } }
 
@@ -54,8 +67,12 @@ public:
 	bool		error() 	const { return m_status == Error; }
 	// Unhandled error produced by stdlib or a Win32 structured exception, or unhandled Slic3r's own critical exception.
 	bool 		critical_error() const;
-	// Critical errors does invalidate plater except CopyFileError.
+	// A critical error that leaves the sliced data unusable. A failed export (export_failed()) is critical too,
+	// but leaves the sliced data usable.
 	bool        invalidate_plater() const;
+	// Exporting or uploading the G-code failed (a copy, a post-processing script or plugin: an ExportError);
+	// the slice itself is intact.
+	bool        export_failed() const;
 	// Only valid if error()
 	void 		rethrow_exception() const { assert(this->error()); assert(m_exception); std::rethrow_exception(m_exception); }
 	// Produce a human readable message to be displayed by a notification or a message box.
@@ -153,7 +170,7 @@ public:
 	// Set print host upload job data to be enqueued to the PrintHostJobQueue
 	// after current print slicing is complete
 	void schedule_upload(Slic3r::PrintHostJob upload_job);
-	// Clear m_export_path.
+	// Clear m_export_path and drop a scheduled upload that was not handed to the print host job queue.
 	void reset_export();
 	// Once the G-code export is scheduled, the apply() methods will do nothing.
 	bool is_export_scheduled() const { return ! m_export_path.empty(); }
@@ -245,6 +262,8 @@ private:
 	// but once set, it cannot be re-set.
 	std::string 				m_export_path;
 	bool 						m_export_path_on_removable_media = false;
+	// Read from the preferences when the export is scheduled, as the background thread may not read them.
+	bool 						m_export_statistics = false;
 	// Print host upload job to schedule after slicing is complete, used by schedule_upload(),
 	// empty by default (ie. no upload to schedule)
 	PrintHostJob                m_upload_job;

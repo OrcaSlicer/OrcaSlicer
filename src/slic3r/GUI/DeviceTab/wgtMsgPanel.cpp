@@ -1,12 +1,17 @@
 #include "wgtMsgPanel.h"
 
-#include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
 #include "slic3r/GUI/Widgets/StateColor.hpp"
-#include "slic3r/GUI/wxExtensions.hpp"
 
+#include <wx/colour.h>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/hyperlink.h>
 #include <wx/sizer.h>
+#include <wx/string.h>
+#include <wx/utils.h>
 
 namespace Slic3r::GUI
 {
@@ -55,7 +60,7 @@ void wgtMsgPanelItem::CreateGui()
     text_sizer->Add(m_text_label, 0, wxALIGN_CENTER_VERTICAL);
 
     if (!m_wiki_url.IsEmpty()) {
-        m_wiki_link = new wxHyperlinkCtrl(this, wxID_ANY, "Wiki->", m_wiki_url);
+        m_wiki_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Wiki->"), m_wiki_url);
         m_wiki_link->SetNormalColour(m_colour);
         m_wiki_link->SetHoverColour(wxColour(0, 0, 200));
         m_wiki_link->SetVisitedColour(*wxBLUE);

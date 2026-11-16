@@ -2,6 +2,11 @@
 #define slic3r_IntersectionPoints_hpp_
 
 #include "ExPolygon.hpp"
+#include <cstdint>
+#include "libslic3r/Point.hpp"
+#include <vector>
+#include "libslic3r/Line.hpp"
+#include "libslic3r/Polygon.hpp"
 
 namespace Slic3r {
 

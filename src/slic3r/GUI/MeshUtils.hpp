@@ -11,9 +11,20 @@
 
 #include "slic3r/GUI/GLModel.hpp"
 
+#include <array>
+#include <cassert>
 #include <cfloat>
+#include "libslic3r/AnyPtr.hpp"
+#include "libslic3r/libslic3r.h"
+#include <iterator>
+#include "libslic3r/Color.hpp"
+#include <cstddef>
+#include "libslic3r/CSGMesh/CSGMesh.hpp"
+#include "libslic3r/ExPolygon.hpp"
 #include <optional>
 #include <memory>
+#include <vector>
+#include <utility>
 
 namespace Slic3r {
 namespace GUI {

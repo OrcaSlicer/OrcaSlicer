@@ -14,6 +14,7 @@
 // boost::format may convert to string, see slic3r/GUI/I18N.hpp for a "cook" function to convert wxString to UTF8.
 
 #include <boost/format.hpp>
+#include <string>
 
 namespace Slic3r {
 

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Chuanying",
-	"inherits": "fdm_filament_abs",
 	"renamed_from": "Chuanying Generic ABS",
+	"inherits": "fdm_filament_abs",
 	"from": "system",
 	"setting_id": "iOgVkaYF0sixbb9x",
 	"filament_id": "OFY9muEs",

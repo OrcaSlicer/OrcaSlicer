@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "YNIWSLXvW6kSPRFG",
 	"name": "QIDI PETG-CF @Qidi X-Plus 5 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG-CF@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "YNIWSLXvW6kSPRFG",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],

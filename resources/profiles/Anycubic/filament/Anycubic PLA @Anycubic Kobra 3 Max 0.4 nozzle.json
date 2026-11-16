@@ -120,9 +120,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"42"
-	],
 	"filament_loading_speed": [
 		"28"
 	],
@@ -203,9 +200,6 @@
 	],
 	"filament_type": [
 		"PLA"
-	],
-	"filament_unload_time": [
-		"0"
 	],
 	"filament_unloading_speed": [
 		"90"

@@ -1,7 +1,21 @@
 #include "SurfaceDrag.hpp"
 
+#include <cmath>
+#include <cassert>
+#include "libslic3r/BoundingBox.hpp"
+#include <algorithm>
+#include <functional>
+#include "libslic3r/Geometry.hpp"
+#include <cstddef>
+#include <Eigen/Geometry>
+#include <Eigen/Core>
 #include <libslic3r/Model.hpp> // ModelVolume
 #include <libslic3r/Emboss.hpp>
+#include "libslic3r/Point.hpp"
+#include <optional>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/3DScene.hpp"
 
 #include "slic3r/Utils/RaycastManager.hpp"
 
@@ -11,6 +25,9 @@
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "Gizmos/GizmoObjectManipulation.hpp"
+#include "libslic3r/EmbossShape.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
 
 
 using namespace Slic3r;

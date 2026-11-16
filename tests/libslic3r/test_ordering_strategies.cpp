@@ -1,13 +1,26 @@
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/catch_all.hpp>
+#include <vector>
+#include <cstddef>
+#include <math.h>
+#include "libslic3r/libslic3r.h"
+#include <cmath>
+#include <cstdint>
+#include <limits>
 
 #define SLIC3R_TEST_HARNESS
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/GCode/OrderingStrategies.hpp"
+#include "libslic3r/ShortestPath.hpp"
 #include "libslic3r/Geometry.hpp"
 
 #include <algorithm>
 #include <unordered_set>
+#include <numeric>
+#include <random>
+#include <catch2/catch_approx.hpp>
 
 using namespace Slic3r;
 
@@ -294,4 +307,61 @@ TEST_CASE("snake_core handles three points", "[Snake]") {
     auto p2 = snake_core(pts);
 
     REQUIRE(is_permutation(p2, 3));
+}
+
+// The shortest cycle through the points, trying every order.
+static double shortest_cycle_length(const Points& centers)
+{
+    std::vector<size_t> path(centers.size());
+    std::iota(path.begin(), path.end(), 0);
+    double best = std::numeric_limits<double>::max();
+    do {
+        best = std::min(best, tsp_cycle_path_length(path, centers));
+    } while (std::next_permutation(path.begin() + 1, path.end()));
+    return best;
+}
+
+static Points random_centers(unsigned seed, size_t count)
+{
+    std::mt19937 rng(seed);
+    std::uniform_real_distribution<> coordinate(0., 200.);
+    Points centers;
+    for (size_t i = 0; i < count; ++i) {
+        // One draw per statement, as the evaluation order of function arguments is unspecified.
+        const double x = coordinate(rng);
+        const double y = coordinate(rng);
+        centers.emplace_back(Point::new_scale(x, y));
+    }
+    return centers;
+}
+
+TEST_CASE("tsp_exact_cycle finds the shortest cycle", "[TSPPostProcessing]") {
+    const size_t count = GENERATE(4, 5, 6, 8);
+    for (unsigned seed = 1; seed <= 10; ++seed) {
+        const Points centers = random_centers(seed, count);
+        const std::vector<size_t> path = tsp_exact_cycle(centers);
+        REQUIRE(is_permutation(path, count));
+        CHECK(euclidean_path_length(path, centers) <= shortest_cycle_length(centers) + SCALED_EPSILON);
+    }
+}
+
+TEST_CASE("Default ordering tours up to ten points along the shortest cycle", "[TSPPostProcessing]") {
+    const bool  from_start = GENERATE(false, true);
+    const Point start      = Point::new_scale(-20., -20.);
+    for (unsigned seed = 1; seed <= 5; ++seed) {
+        const Points centers = random_centers(seed, 9);
+        const std::vector<size_t> path = chain_points_with_postprocessing(centers, from_start ? &start : nullptr);
+        REQUIRE(is_permutation(path, centers.size()));
+        CHECK(euclidean_path_length(path, centers) <= shortest_cycle_length(centers) + SCALED_EPSILON);
+    }
+}
+
+TEST_CASE("Default ordering of many points is never longer than the greedy cycle", "[TSPPostProcessing]") {
+    for (unsigned seed = 1; seed <= 10; ++seed) {
+        const Points centers = random_centers(seed, 150);
+        const std::vector<size_t> path = chain_points_with_postprocessing(centers, nullptr);
+        REQUIRE(is_permutation(path, centers.size()));
+        CHECK(euclidean_path_length(path, centers) <= euclidean_path_length(chain_points(centers, nullptr), centers) + SCALED_EPSILON);
+        CHECK_FALSE(has_crossings(path, centers));
+    }
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include "slic3r/plugin/PythonPluginInterface.hpp"
 #include "libslic3r/Print.hpp"      // SlicingPipelineStepPlugin, Print, PrintObject
+#include "libslic3r/PrintConfig.hpp"
 #include <pybind11/pybind11.h>
 #include <map>
 #include <string>

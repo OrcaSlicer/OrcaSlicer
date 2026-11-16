@@ -1,0 +1,13 @@
+{
+	"type": "filament",
+	"name": "AnkerMake PLA+ Metallic @Anker",
+	"inherits": "AnkerMake PLA+ Metallic @Anker base",
+	"from": "system",
+	"setting_id": "jlbAMNNaEacdUASZ",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Anker M5 0.4 nozzle",
+		"Anker M5 All-Metal 0.4 nozzle",
+		"Anker M5C 0.4 nozzle"
+	]
+}

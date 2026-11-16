@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @CoLiDo DIY 4.0",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "CoLiDo Generic PLA @CoLiDo DIY 4.0;CoLiDo Generic PLA CoLiDo DIY 4.0",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "POF6nKughZF8OsBF",
 	"filament_id": "OFDSrzZ8",

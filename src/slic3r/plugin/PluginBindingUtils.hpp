@@ -1,8 +1,11 @@
 #pragma once
+#include "libslic3r/libslic3r.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include "libslic3r/Config.hpp"   // ConfigBase
 #include "libslic3r/Point.hpp"    // Point/Point3 packing asserts, Vec3d, Transform3d
+#include <pybind11/pytypes.h>
+#include <pybind11/cast.h>
 #include <string>
 #include <utility>
 #include <vector>

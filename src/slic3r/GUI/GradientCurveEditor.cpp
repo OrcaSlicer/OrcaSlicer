@@ -7,11 +7,20 @@
 
 #include <algorithm>
 #include <cmath>
+#include "libslic3r/FilamentMixer.hpp"
+#include <cstddef>
 #include <limits>
 
+#include <wx/colour.h>
+#include <vector>
+#include <utility>
 #include <wx/dcbuffer.h>
 #include <wx/dcclient.h>
 #include <wx/dcgraph.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+#include <wx/gdicmn.h>
+#include <wx/geometry.h>
 #include <wx/settings.h>
 
 namespace Slic3r {
@@ -353,7 +362,7 @@ void GradientCurveEditor::on_paint(wxPaintEvent& /*evt*/)
     }
 
     const MixedGradientTheme theme{bg, grid_color, axis_color, label_muted, label_strong, outline_color, point_fill};
-    draw_mixed_gradient_plot(raw_dc, GetClientSize(), curves, anchors, theme);
+    draw_mixed_gradient_plot(raw_dc, GetClientSize(), curves, anchors, theme, kGradientMinRatio);
 }
 
 void GradientCurveEditor::on_left_down(wxMouseEvent& evt)

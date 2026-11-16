@@ -1,19 +1,20 @@
 #ifndef slic3r_ShortestPath_hpp_
 #define slic3r_ShortestPath_hpp_
 
-#include "libslic3r.h"
-#include "ExtrusionEntity.hpp"
+#include "Polyline.hpp"
 #include "Point.hpp"
 
+#include <cstddef>
+#include <memory>
 #include <utility>
 #include <vector>
+#include "ExPolygon.hpp"
+
+namespace Slic3r { class ExtrusionEntity; }
+namespace Slic3r { class ExtrusionPath; }
+namespace Slic3r { class Line; }
 
 namespace Slic3r {
-
-	namespace ClipperLib {
-		class PolyNode;
-		using PolyNodes = std::vector<PolyNode*, PointsAllocator<PolyNode*>>;
-	}
 
 std::vector<size_t> 				 chain_points(const Points &points, const Point *start_near = nullptr);
 // Variant with post-processing (crossing removal + 2-opt) for object ordering.
@@ -22,8 +23,14 @@ std::vector<size_t> 				 chain_expolygons(const ExPolygons &input_exploy);
 
 std::vector<std::pair<size_t, bool>> chain_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near = nullptr);
 void                                 reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const std::vector<std::pair<size_t, bool>> &chain);
+// From start_near, the greedy chain is refined by 2-opt and or-opt moves, which shortens the travel at some extra cost.
 void                                 chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point &start_near);
+// The greedy chain only.
 void                                 chain_and_reorder_extrusion_entities(std::vector<ExtrusionEntity*> &entities, const Point *start_near = nullptr);
+// Refined as above. Each entity the chain reverses is replaced by a reversed clone that reversed_clones owns, so the
+// originals stay unchanged.
+void                                 chain_and_reorder_extrusion_entities(std::vector<const ExtrusionEntity*> &entities, const Point &start_near,
+                                                                          std::vector<std::unique_ptr<ExtrusionEntity>> &reversed_clones);
 
 std::vector<std::pair<size_t, bool>> chain_extrusion_paths(std::vector<ExtrusionPath> &extrusion_paths, const Point *start_near = nullptr);
 void                                 reorder_extrusion_paths(std::vector<ExtrusionPath> &extrusion_paths, std::vector<std::pair<size_t, bool>> &chain);
@@ -45,7 +52,6 @@ template<typename T> inline void reorder_by_shortest_traverse(std::vector<T> &po
     for (size_t i:order) polylines_out.emplace_back(std::move(Temp[i]));
 }
 
-ClipperLib::PolyNodes				 chain_clipper_polynodes(const Points &points, const ClipperLib::PolyNodes &items);
 
 // Chain instances of print objects by an approximate shortest path.
 // Returns pairs of PrintObject idx and instance of that PrintObject.

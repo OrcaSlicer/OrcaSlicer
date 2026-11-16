@@ -1,12 +1,17 @@
 #ifndef slic3r_Semver_hpp_
 #define slic3r_Semver_hpp_
 
+#include <boost/optional/optional.hpp>
+#include <boost/none.hpp>
+#include <limits>
+#include <cstdlib>
 #include <string>
 #include <cstring>
 #include <ostream>
 #include <stdexcept>
 #include <boost/optional.hpp>
 #include <boost/format.hpp>
+#include <utility>
 
 #include "semver/semver.h"
 

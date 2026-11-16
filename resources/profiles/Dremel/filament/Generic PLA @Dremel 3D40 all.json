@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Dremel 3D40 all",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Dremel Generic PLA @3D40 all;Dremel Generic PLA 3D40 all",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "VUOtsWfy46cvAyBT",
 	"filament_id": "OFDSrzZ8",

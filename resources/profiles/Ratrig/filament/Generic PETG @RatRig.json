@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @RatRig",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "RatRig Generic PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "6p3FfhhSIAOQGEzT",
 	"filament_id": "OFYPdQJh",

@@ -1,9 +1,24 @@
+#include "slic3r/GUI/AuxiliaryDataViewModel.hpp"
+#include <string>
+#include "libslic3r/Utils.hpp"
+#include <wx/arrstr.h>
 #include <wx/button.h>
 #include "GUI_AuxiliaryList.hpp"
 #include "I18N.hpp"
 #include "wxExtensions.hpp"
 
 #include <boost/filesystem.hpp>
+#include <wx/gdicmn.h>
+#include <wx/dvrenderers.h>
+#include <wx/dataview.h>
+#include <wx/sizer.h>
+#include <wx/panel.h>
+#include <wx/event.h>
+#include <wx/utils.h>
+#include <wx/string.h>
+#include <wx/filedlg.h>
+#include <wx/dataobj.h>
+#include <wx/dnd.h>
 
 #include "GUI_App.hpp"
 #include "Plater.hpp"

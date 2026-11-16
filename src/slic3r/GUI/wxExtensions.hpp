@@ -1,10 +1,17 @@
 #ifndef slic3r_GUI_wxExtensions_hpp_
 #define slic3r_GUI_wxExtensions_hpp_
 
+#include <string>
+#include <wx/anybutton.h>
+#include <cstddef>
 #include <wx/checklst.h>
+#include <wx/colour.h>
 #include <wx/combo.h>
 #include <wx/dataview.h>
 #include <wx/button.h>
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <wx/rtti.h>
 #include <wx/sizer.h>
 #include <wx/menu.h>
 #include <wx/bmpcbox.h>
@@ -13,10 +20,10 @@
 #include <wx/scrolwin.h>
 #include <wx/spinctrl.h>
 #include <wx/artprov.h>
-#include <wx/colordlg.h>
 
 #include <vector>
 #include <functional>
+#include <wx/string.h>
 #include "BitmapCache.hpp"
 #include "Widgets/PopupWindow.hpp"
 
@@ -80,7 +87,6 @@ wxBitmap * get_extruder_color_icon(std::string color, std::string label, int ico
 wxBitmap * get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height,
                                    const std::vector<wxColour> *ramp = nullptr);
 std::vector<std::vector<std::string>> read_color_pack(std::vector<std::string> color_pack);
-wxColourData show_sys_picker_dialog(wxWindow *parent, const wxColourData &clr_data);
 
 namespace Slic3r {
 namespace GUI {

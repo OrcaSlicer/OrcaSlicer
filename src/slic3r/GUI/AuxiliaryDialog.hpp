@@ -6,7 +6,8 @@
 #include <wx/collpane.h>
 
 #include "GUI_Utils.hpp"
-#include "wxExtensions.hpp"
+
+class wxWindow;
 
 class AuxiliaryList;
 

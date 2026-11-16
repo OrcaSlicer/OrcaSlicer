@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "MJMg6nee4l28n2mK",
 	"name": "Generic PETG @Elegoo",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Generic PETG @base",
+	"from": "system",
+	"setting_id": "MJMg6nee4l28n2mK",
+	"instantiation": "true",
 	"cool_plate_temp": [
 		"60"
 	],

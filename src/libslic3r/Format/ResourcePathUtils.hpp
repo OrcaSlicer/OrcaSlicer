@@ -2,6 +2,9 @@
 #define slic3r_Format_ResourcePathUtils_hpp_
 
 #include <algorithm>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/directory.hpp>
 #include <cctype>
 #include <cstddef>
 #include <string>

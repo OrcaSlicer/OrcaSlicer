@@ -5,6 +5,16 @@
 	"from": "system",
 	"setting_id": "gkXHi7QQxtxIy9V9",
 	"instantiation": "true",
+	"print_extruder_id": [
+		"1",
+		"1",
+		"1"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow"
+	],
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",
 	"layer_height": "0.15"

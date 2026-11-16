@@ -1,9 +1,12 @@
 #ifndef SLIC3R_GUI_BITMAP_CACHE_HPP
 #define SLIC3R_GUI_BITMAP_CACHE_HPP
 
+#include <cstddef>
 #include <map>
+#include <string>
 #include <vector>
 
+#include <wx/colour.h>
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP
     #include <wx/wx.h>

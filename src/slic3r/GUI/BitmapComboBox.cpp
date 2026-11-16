@@ -5,6 +5,8 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 
+#include <wx/bmpcbox.h>
+#include <wx/gdicmn.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
@@ -42,8 +44,6 @@
     #include <pango-1.0/pango/pango-layout.h>
     #include <gtk/gtk.h>
 #endif
-
-using Slic3r::GUI::format_wxstr;
 
 #define BORDER_W 10
 

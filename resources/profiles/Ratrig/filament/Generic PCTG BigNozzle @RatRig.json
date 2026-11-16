@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PCTG BigNozzle @RatRig",
-	"inherits": "fdm_filament_pctg",
 	"renamed_from": "RatRig BigNozzle PCTG",
+	"inherits": "fdm_filament_pctg",
 	"from": "system",
 	"setting_id": "HPaol79uY9NdhasQ",
 	"filament_id": "OFXW4CDh",

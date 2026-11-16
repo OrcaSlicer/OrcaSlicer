@@ -1,5 +1,4 @@
 #include "TriangulateWall.hpp"
-#include "MTUtils.hpp"
 
 namespace Slic3r {
 

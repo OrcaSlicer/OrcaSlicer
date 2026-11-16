@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Elegoo PETG PRO @System",
+	"renamed_from": "Elegoo PETG PRO;Elegoo PETG Pro @System",
 	"inherits": "Elegoo PETG PRO @base",
 	"from": "system",
 	"setting_id": "fdfCAYQEoYa9DN6I",
@@ -17,6 +18,5 @@
 	"filament_max_volumetric_speed": [
 		"5"
 	],
-	"compatible_printers": [],
-	"renamed_from": "Elegoo PETG PRO;Elegoo PETG Pro @System"
+	"compatible_printers": []
 }

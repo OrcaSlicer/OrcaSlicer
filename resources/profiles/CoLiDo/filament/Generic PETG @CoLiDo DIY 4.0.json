@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @CoLiDo DIY 4.0",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "CoLiDo Generic PETG @CoLiDo DIY 4.0;CoLiDo Generic PETG CoLiDo DIY 4.0",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "FV2MjDSWlg3kolp3",
 	"filament_id": "OFYPdQJh",

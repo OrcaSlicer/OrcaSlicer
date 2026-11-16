@@ -163,7 +163,7 @@ M109 S240 T0 ; set nozzle temperature and wait for it to be reached
 ; CP TOOLCHANGE END
 M104 S240 T1 ; preheat T1 time: 30s	lead 30.0s
 ; CP TOOLCHANGE START
-M104 S200 T0 ; set nozzle temperature ;cooldown
+M104 S0 T0 ; set nozzle temperature ;cooldown
 T1 ; change extruder
 M109 S240 T1 ; set nozzle temperature and wait for it to be reached
 ; CP TOOLCHANGE END

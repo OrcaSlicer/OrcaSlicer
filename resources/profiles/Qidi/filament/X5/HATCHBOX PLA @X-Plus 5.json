@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "OFeelsSM",
 	"name": "HATCHBOX PLA@X-Plus 5-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_x5_common",
+	"from": "system",
+	"filament_id": "OFeelsSM",
+	"instantiation": "false",
 	"filament_adhesiveness_category": [
 		"100"
 	],

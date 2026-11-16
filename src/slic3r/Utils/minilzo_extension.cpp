@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <exception>
 #include <stdio.h>
 #include <stdlib.h>

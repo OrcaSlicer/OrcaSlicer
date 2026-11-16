@@ -1,8 +1,31 @@
+#include "libslic3r/Optimize/Optimizer.hpp"
+#include "libslic3r/SLA/SupportTree.hpp"
+#include "libslic3r/SLA/IndexedMesh.hpp"
+#include "libslic3r/SLA/SupportTreeBuilder.hpp"
+#include "libslic3r/SLA/SupportPoint.hpp"
+#include <array>
+#include <functional>
+#include <cstddef>
+#include "libslic3r/SLA/Concurrency.hpp"
+#include "libslic3r/libslic3r.h"
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/SLA/Clustering.hpp"
+#include <Eigen/Core>
+#include <cassert>
+#include <iterator>
 #include <libslic3r/SLA/SupportTreeBuildsteps.hpp>
 
 #include <libslic3r/SLA/SpatIndex.hpp>
 #include <libslic3r/Optimize/NLoptOptimizer.hpp>
 #include <boost/log/trivial.hpp>
+#include <string>
+#include <mutex>
+#include <optional>
+#include <vector>
+#include <set>
 
 namespace Slic3r {
 namespace sla {

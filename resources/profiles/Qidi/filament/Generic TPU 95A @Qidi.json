@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic TPU 95A @Qidi",
-	"inherits": "fdm_filament_tpu",
 	"renamed_from": "Qidi Generic TPU 95A",
+	"inherits": "fdm_filament_tpu",
 	"from": "system",
 	"setting_id": "nXjylLuhXqtlLGEv",
 	"filament_id": "OFjiXpyf",

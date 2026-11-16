@@ -1,0 +1,15 @@
+{
+	"type": "machine_model",
+	"name": "Qidi X-Smart 5",
+	"model_id": "Qidi-XSmart-5",
+	"nozzle_diameter": "0.4;0.2;0.6;0.8",
+	"machine_tech": "FFF",
+	"family": "Qidi",
+	"bed_model": "qidi_xsmart5_buildplate_model.stl",
+	"hotend_model": "qidi_xseries_gen3_hotend.stl",
+	"default_bed_type": "Cool Plate",
+	"image_bed_type": "N",
+	"not_support_bed_type": "Engineering Plate;Supertack Plate",
+	"default_materials": "Generic ABS @Qidi X-Smart 5 0.4 nozzle;Generic PLA @Qidi X-Smart 5 0.4 nozzle;QIDI ABS Odorless @Qidi X-Smart 5 0.4 nozzle;QIDI ABS Rapido @Qidi X-Smart 5 0.4 nozzle;QIDI PLA Rapido @Qidi X-Smart 5 0.2 nozzle;QIDI PLA Rapido @Qidi X-Smart 5 0.4 nozzle;QIDI PLA Rapido @Qidi X-Smart 5 0.6 nozzle;QIDI PLA Rapido @Qidi X-Smart 5 0.8 nozzle;QIDI PLA Rapido Matte @Qidi X-Smart 5 0.4 nozzle;QIDI PLA-CF @Qidi X-Smart 5 0.4 nozzle;Generic PLA Silk @Qidi X-Smart 5 0.4 nozzle;QIDI PLA Silk @Qidi X-Smart 5 0.4 nozzle;QIDI ASA @Qidi X-Smart 5 0.4 nozzle;QIDI PETG Basic @Qidi X-Smart 5 0.4 nozzle;QIDI PETG Rapido @Qidi X-Smart 5 0.4 nozzle;QIDI PETG Tough @Qidi X-Smart 5 0.4 nozzle;QIDI PETG Translucent @Qidi X-Smart 5 0.4 nozzle;QIDI PLA Basic @Qidi X-Smart 5 0.4 nozzle;QIDI PLA Matte Basic @Qidi X-Smart 5 0.4 nozzle;Generic PETG @Qidi X-Smart 5 0.4 nozzle",
+	"bed_texture": "qidi_xsmart5_buildplate_texture.svg"
+}

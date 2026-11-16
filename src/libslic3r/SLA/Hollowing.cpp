@@ -1,8 +1,25 @@
+#include "libslic3r/SLA/JobController.hpp"
+#include <cassert>
+#include <Eigen/Geometry>
+#include "libslic3r/libslic3r.h"
+#include <cmath>
+#include <array>
+#include "libslic3r/Point.hpp"
+#include <cstddef>
+#include <cstdlib>
+#include "libslic3r/ExPolygon.hpp"
+#include <algorithm>
+#include "libslic3r/SLA/Concurrency.hpp"
 #include <functional>
+#include <limits>
+#include <mutex>
 #include <numeric>
 #include <optional>
 
+#ifdef SLIC3R_HAS_OPENVDB
+#include <openvdb/openvdb.h>
 #include <libslic3r/OpenVDBUtils.hpp>
+#endif
 #include <libslic3r/TriangleMesh.hpp>
 #include <libslic3r/TriangleMeshSlicer.hpp>
 #include <libslic3r/SLA/Hollowing.hpp>
@@ -13,8 +30,11 @@
 
 #include <boost/log/trivial.hpp>
 
-#include <libslic3r/MTUtils.hpp>
 #include <libslic3r/I18N.hpp>
+#include <utility>
+#include <vector>
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/SLA/Pad.hpp"
 
 //! macro used to mark string used at localization,
 //! return same string
@@ -25,8 +45,10 @@ namespace sla {
 
 struct Interior {
     indexed_triangle_set mesh;
+#ifdef SLIC3R_HAS_OPENVDB
     openvdb::FloatGrid::Ptr gridptr;
     mutable std::optional<openvdb::FloatGrid::ConstAccessor> accessor;
+#endif
 
     double closing_distance = 0.;
     double thickness = 0.;
@@ -38,8 +60,10 @@ struct Interior {
     void reset_accessor() const  // This resets the accessor and its cache
     // Not a thread safe call!
     {
+#ifdef SLIC3R_HAS_OPENVDB
         if (gridptr)
             accessor = gridptr->getConstAccessor();
+#endif
     }
 };
 
@@ -64,6 +88,13 @@ static InteriorPtr generate_interior_verbose(const TriangleMesh & mesh,
                                              double voxel_scale,
                                              double closing_dist)
 {
+#ifndef SLIC3R_HAS_OPENVDB
+    // Built with SLIC3R_OPENVDB=OFF: hollowing is unavailable. Callers treat
+    // an empty InteriorPtr as "no interior" and skip the hollowing step.
+    (void) mesh; (void) ctl; (void) min_thickness; (void) voxel_scale; (void) closing_dist;
+    BOOST_LOG_TRIVIAL(warning) << "Hollowing skipped: OrcaSlicer was built without OpenVDB";
+    return {};
+#else
     double offset = voxel_scale * min_thickness;
     double D = voxel_scale * closing_dist;
     float  out_range = 0.1f * float(offset);
@@ -107,6 +138,7 @@ static InteriorPtr generate_interior_verbose(const TriangleMesh & mesh,
     interior->nb_out = narrowb;
 
     return interior;
+#endif // SLIC3R_HAS_OPENVDB
 }
 
 InteriorPtr generate_interior(const TriangleMesh &   mesh,
@@ -314,8 +346,10 @@ void hollow_mesh(TriangleMesh &mesh, const Interior &interior, int flags)
 {
     if (mesh.empty() || interior.mesh.empty()) return;
 
+#ifdef SLIC3R_HAS_OPENVDB
     if (flags & hfRemoveInsideTriangles && interior.gridptr)
         remove_inside_triangles(mesh, interior);
+#endif
 
     mesh.merge(TriangleMesh{interior.mesh});
 }
@@ -325,6 +359,12 @@ void hollow_mesh(TriangleMesh &mesh, const Interior &interior, int flags)
 // the model surface.
 static double get_distance_raw(const Vec3f &p, const Interior &interior)
 {
+#ifndef SLIC3R_HAS_OPENVDB
+    // No Interior can be created without OpenVDB (generate_interior returns
+    // null), so this is unreachable; report "far outside" to be safe.
+    (void) p; (void) interior;
+    return std::numeric_limits<double>::max();
+#else
     assert(interior.gridptr);
 
     if (!interior.accessor) interior.reset_accessor();
@@ -334,6 +374,7 @@ static double get_distance_raw(const Vec3f &p, const Interior &interior)
         {v.x(), v.y(), v.z()});
 
     return interior.accessor->getValue(grididx) ;
+#endif // SLIC3R_HAS_OPENVDB
 }
 
 struct TriangleBubble { Vec3f center; double R; };

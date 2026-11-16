@@ -3,6 +3,8 @@
 
 #include "ScriptPluginCapability.hpp"
 #include "../../PyPluginTrampoline.hpp"
+#include "slic3r/plugin/PythonPluginInterface.hpp"
+#include <pybind11/pybind11.h>
 
 namespace Slic3r {
 class PyScriptPluginCapabilityTrampoline : public PyPluginCommonTrampoline<ScriptPluginCapability>

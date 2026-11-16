@@ -7,7 +7,21 @@
 #include "slic3r/GUI/MeshUtils.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "libslic3r/Measure.hpp"
-#include "libslic3r/Model.hpp"
+#include "libslic3r/Color.hpp"
+#include <string>
+#include <array>
+#include "libslic3r/Point.hpp"
+#include "slic3r/GUI/SceneRaycaster.hpp"
+#include <optional>
+#include <map>
+#include <memory>
+#include <vector>
+#include <wx/event.h>
+#include <utility>
+#include <wx/string.h>
+
+namespace Slic3r { class GLVolume; }
+namespace Slic3r::GUI { class GLCanvas3D; }
 
 namespace Slic3r {
 
@@ -82,11 +96,7 @@ protected:
         POINT,
         EDGE,
         CIRCLE,
-        CIRCLE_1,
-        CIRCLE_2,
         PLANE,
-        PLANE_1,
-        PLANE_2,
         SPHERE_1,
         SPHERE_2,
     };
@@ -165,12 +175,13 @@ protected:
     struct CircleGLModel
     {
         PickingModel circle;
-        Measure::SurfaceFeature *last_circle_feature{nullptr};
+        std::optional<Measure::SurfaceFeature> last_circle_feature;
         float                    inv_zoom{0};
     };
     CircleGLModel  m_curr_circle;
     CircleGLModel  m_feature_circle_first;
     CircleGLModel  m_feature_circle_second;
+    // GripperType::UNDEFINE builds the circle without a gripper, for the selected circles.
     void           init_circle_glmodel(GripperType gripper_type, const Measure::SurfaceFeature &feature, CircleGLModel &circle_gl_model, float inv_zoom);
 
     struct PlaneGLModel {
@@ -180,6 +191,7 @@ protected:
     PlaneGLModel m_curr_plane;
     PlaneGLModel m_feature_plane_first;
     PlaneGLModel m_feature_plane_second;
+    // GripperType::UNDEFINE builds the plane without a gripper, for the selected planes.
     void  init_plane_glmodel(GripperType gripper_type, const Measure::SurfaceFeature &feature, PlaneGLModel &plane_gl_model);
 
     struct Dimensioning
@@ -207,12 +219,10 @@ protected:
     std::optional<Vec3d> m_curr_point_on_feature_position;
 
     // These hold information to decide whether recalculation is necessary:
-    float m_last_inv_zoom{ 0.0f };
     std::optional<Measure::SurfaceFeature> m_last_circle_feature;
     int m_last_plane_idx{ -1 };
 
     bool m_mouse_left_down{ false }; // for detection left_up of this gizmo
-    bool m_mouse_left_down_mesh_deal{false};//for pick mesh
 
     KeyAutoRepeatFilter m_shift_kar_filter;
 
@@ -228,6 +238,9 @@ protected:
     void restore_scene_raycasters_state();
 
     void render_dimensioning();
+    // Builds the dimension labels on a frame that reused the cached scene and so skipped on_render().
+    void render_dimensioning_if_scene_reused();
+    bool m_rendered_this_frame{ false };
 
 #if ENABLE_MEASURE_GIZMO_DEBUG
     void render_debug_dialog();
@@ -255,6 +268,9 @@ protected:
     bool on_init() override;
     std::string on_get_name() const override;
     bool on_is_activable() const override;
+    // The hover is resolved inside on_render(), against the mesh and against the grippers of the
+    // selected features, which sit off the mesh.
+    bool render_follows_cursor() const override;
     void on_render() override;
     void on_set_state() override;
 
@@ -272,7 +288,13 @@ protected:
     void update_measurement_result();
 
     void reset_all_pick();
-    void reset_gripper_pick(GripperType id,bool is_all = false);
+    void reset_gripper_pick(GripperType id);
+    void reset_hover_gripper_pick();
+    // Returns true when a click can select a live selection sphere under the cursor, or else the hovered feature
+    // and, in point selection, the point on it. The hovered feature needs no gripper hit, since its highlight can be thinner than its hover band.
+    bool can_pick() const;
+    // Records the volume of a newly selected feature, as the first or the second selection.
+    void record_hit_volume(const SelectedFeatures::Item &item, bool is_second);
     void register_single_mesh_pick();
     //void update_single_mesh_pick(GLVolume* v);
 

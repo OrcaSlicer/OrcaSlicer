@@ -1,6 +1,9 @@
 #ifndef slic3r_GUI_Utils_Serial_hpp_
 #define slic3r_GUI_Utils_Serial_hpp_
 
+#include <utility>
+#include <boost/asio/serial_port.hpp>
+#include <boost/asio/io_context.hpp>
 #include <vector>
 #include <string>
 #include <boost/system/error_code.hpp>
@@ -39,8 +42,8 @@ extern std::vector<SerialPortInfo> 	scan_serial_ports_extended();
 class Serial : public boost::asio::serial_port
 {
 public:
-	Serial(boost::asio::io_service &io_service);
-	Serial(boost::asio::io_service &io_service, const std::string &name, unsigned baud_rate);
+	Serial(boost::asio::io_context &io_service);
+	Serial(boost::asio::io_context &io_service, const std::string &name, unsigned baud_rate);
 	Serial(const Serial &) = delete;
 	Serial &operator=(const Serial &) = delete;
 	~Serial();

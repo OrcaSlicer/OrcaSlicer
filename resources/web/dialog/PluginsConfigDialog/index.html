@@ -16,29 +16,31 @@
       <h1 id="pagePresetName" class="page-title"></h1>
     </header>
 
-    <div id="configEmpty" class="detail-empty">This preset does not use any plugin capabilities</div>
+    <div id="configEmpty" class="detail-empty" data-i18n="no_capabilities">This preset does not use any plugin capabilities</div>
 
     <div id="configLayout" class="config-layout" hidden>
       <div id="configSidebar" class="config-sidebar thin-scroll" role="listbox"
-        aria-label="Capabilities used by this preset"></div>
+        aria-label="Capabilities used by this preset" data-i18n-aria-label="capabilities_label"></div>
       <div class="config-view">
         <div id="configError" class="config-error" role="status" aria-live="polite" hidden></div>
         <div id="configEditor" class="config-editor" hidden>
           <textarea id="configText" class="config-textarea thin-scroll" spellcheck="false"
-            autocomplete="off" autocapitalize="off" aria-label="Capability configuration (JSON)"></textarea>
+            autocomplete="off" autocapitalize="off" aria-label="Capability configuration (JSON)"
+            data-i18n-aria-label="config_json_label"></textarea>
         </div>
         <!-- Custom capability UI. Sandboxed without allow-same-origin, so the plugin's HTML runs in
              an opaque origin and reaches the host only through the injected window.orca bridge. -->
-        <iframe id="configCustom" class="config-custom" title="Plugin configuration"
+        <iframe id="configCustom" class="config-custom" title="Plugin configuration" data-i18n-title="config_frame_title"
           sandbox="allow-scripts" referrerpolicy="no-referrer" hidden></iframe>
         <div id="configFooter" class="config-view-footer" hidden>
           <span id="configValidation" class="config-validation" role="status" aria-live="polite"></span>
           <div class="config-actions">
             <button id="configRestoreBtn" class="ButtonStyleRegular ButtonTypeChoice" type="button"
-              title="Discard this preset's override and use the global configuration again">
+              title="Discard this preset's override and use the global configuration again"
+              data-i18n-title="restore_title" data-i18n="restore_defaults">
               Restore defaults
             </button>
-            <button id="configSaveBtn" class="ButtonStyleConfirm ButtonTypeChoice" type="button">Save</button>
+            <button id="configSaveBtn" class="ButtonStyleConfirm ButtonTypeChoice" type="button" data-i18n="save">Save</button>
           </div>
         </div>
       </div>
@@ -48,6 +50,7 @@
       <span id="statusText" class="status-text"></span>
     </footer>
   </main>
+  <script src="../../include/i18n.js"></script>
   <script src="../js/plugin-config-ui.js"></script>
   <script src="index.js"></script>
 </body>

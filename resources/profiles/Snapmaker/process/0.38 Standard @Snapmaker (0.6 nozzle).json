@@ -26,6 +26,7 @@
 	"layer_height": "0.38",
 	"wall_loops": "2",
 	"top_shell_layers": "3",
+	"top_color_penetration_layers": "3",
 	"bridge_speed": "30",
 	"line_width": "0.82",
 	"outer_wall_line_width": "0.82",
@@ -46,5 +47,6 @@
 	"support_interface_speed": "35",
 	"support_speed": "100",
 	"overhang_1_4_speed": "0",
-	"overhang_2_4_speed": "50"
+	"overhang_2_4_speed": "50",
+	"bottom_color_penetration_layers": "3"
 }

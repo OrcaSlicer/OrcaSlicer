@@ -2,6 +2,14 @@
 #define slic3r_GUI_CalibrationWizardStartPage_hpp_
 
 #include "CalibrationWizardPage.hpp"
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include "libslic3r/calib.hpp"
+#include <wx/sizer.h>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/string.h>
+#include <string>
+#include "slic3r/GUI/DeviceManager.hpp"
 
 namespace Slic3r { namespace GUI {
 

@@ -3,10 +3,12 @@
 #ifndef slic3r_Slicing_hpp_
 #define slic3r_Slicing_hpp_
 
+#include <cassert>
 #include <cstring>
 #include <map>
 #include <set>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "libslic3r.h"
@@ -111,6 +113,13 @@ struct SlicingParameters
      coordf_t     object_print_z_uncompensated_max { 0 };
      // Scaling factor for compensating shrinkage in Z-axis.
      coordf_t    object_shrinkage_compensation_z { 0 };
+
+    // Belt printer: floor plane parameters for support clipping.
+    // Belt contact surface in slicing coords: Z = bb_min_z + sf*Y + slicing_z_shift.
+    // cutoff = (print_z - belt_floor_z_shift - floor_offset) / shear_factor
+    double      belt_floor_shear_factor { 0.0 };  // shear factor (e.g. cot(45deg))
+    int         belt_floor_from_axis { 1 };        // which axis the shear is from (0=X, 1=Y)
+    double      belt_floor_z_shift { 0.0 };        // bb_min_z + max(0, -min_z_after_shear)
 };
 static_assert(IsTriviallyCopyable<SlicingParameters>::value, "SlicingParameters class is not POD (and it should be - see constructor).");
 
@@ -125,8 +134,7 @@ inline bool equal_layering(const SlicingParameters &sp1, const SlicingParameters
             sp1.interface_raft_layer_height         == sp2.interface_raft_layer_height          &&
             sp1.contact_raft_layer_height           == sp2.contact_raft_layer_height            &&
             sp1.layer_height                        == sp2.layer_height                         &&
-            sp1.min_layer_height                    == sp2.min_layer_height                     &&
-            sp1.max_layer_height                    == sp2.max_layer_height                     &&
+            // Orca: min/max_layer_height only bound a variable layer height, whose profiles Print::validate() compares separately.
 //            sp1.max_suport_layer_height             == sp2.max_suport_layer_height              &&
             sp1.first_print_layer_height            == sp2.first_print_layer_height             &&
             sp1.first_object_layer_height           == sp2.first_object_layer_height            &&
@@ -153,6 +161,20 @@ typedef std::map<t_layer_height_range, ModelConfig> t_layer_config_ranges;
 std::vector<coordf_t> layer_height_profile_from_ranges(
     const SlicingParameters     &slicing_params,
     const t_layer_config_ranges &layer_config_ranges);
+
+// Orca: fit a layer height profile onto an object of another height, so that both objects are sliced
+// at the same Z over the height they share. The profile is cut at object_height, or its last
+// layer height is carried up to it.
+std::vector<coordf_t> layer_height_profile_fit_to_height(
+    const std::vector<coordf_t> &layer_height_profile,
+    coordf_t                     object_height);
+
+// Orca: one profile for several objects, taking the finest of their layer heights at every Z, up to
+// the top of the tallest one, with one entry per layer. The entry at the top of a profile only
+// closes it, so each profile counts with its last layer height before it, and above that top the
+// layer height is eased back up rather than released at once.
+std::vector<coordf_t> layer_height_profile_merge_finest(
+    const std::vector<std::vector<coordf_t>> &layer_height_profiles);
 
 std::vector<double> layer_height_profile_adaptive(
     const SlicingParameters& slicing_params,

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic HIPS @Flashforge G3U 0.6 Nozzle",
-	"inherits": "Generic ABS @Flashforge",
 	"renamed_from": "Flashforge Generic HIPS @G3U 0.6 Nozzle;Flashforge Generic HIPS G3U 0.6 Nozzle",
+	"inherits": "Generic ABS @Flashforge",
 	"from": "system",
 	"setting_id": "wsAmSziSQ4UEHucg",
 	"filament_id": "OFsFon5l",

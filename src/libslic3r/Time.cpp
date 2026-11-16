@@ -1,6 +1,10 @@
 #include "Time.hpp"
 
 #include <iomanip>
+#include <ostream>
+#include <istream>
+#include <ios>
+#include <locale>
 #include <sstream>
 #include <chrono>
 #include <cassert>
@@ -8,6 +12,8 @@
 #include <cstdio>
 #include <cctype>
 #include <cstring>
+#include <string>
+#include <time.h>
 
 #ifdef _MSC_VER
 #include <map>

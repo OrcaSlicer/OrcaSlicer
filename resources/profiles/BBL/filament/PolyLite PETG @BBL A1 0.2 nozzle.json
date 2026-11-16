@@ -1,0 +1,29 @@
+{
+    "type": "filament",
+    "name": "PolyLite PETG @BBL A1 0.2 nozzle",
+    "inherits": "PolyLite PETG @base",
+    "from": "system",
+    "setting_id": "GFSG60_07",
+    "instantiation": "true",
+    "filament_max_volumetric_speed": [
+        "1"
+    ],
+    "hot_plate_temp": [
+        "80"
+    ],
+    "hot_plate_temp_initial_layer": [
+        "80"
+    ],
+    "nozzle_temperature_range_high": [
+        "270"
+    ],
+    "textured_plate_temp": [
+        "80"
+    ],
+    "textured_plate_temp_initial_layer": [
+        "80"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.2 nozzle"
+    ]
+}

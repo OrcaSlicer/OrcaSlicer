@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "FusRock PET-CF @G3U 0.6 Nozzle",
-	"inherits": "Generic PETG @Flashforge",
 	"renamed_from": "FusRock Generic PET-CF @G3U 0.6 Nozzle;FusRock Generic PET-CF G3U 0.6 Nozzle",
+	"inherits": "Generic PETG @Flashforge",
 	"from": "system",
 	"setting_id": "Gyw0XH6UtYQqtgx9",
 	"filament_id": "OFDu1qE7",

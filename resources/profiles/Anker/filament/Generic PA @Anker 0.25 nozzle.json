@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA @Anker 0.25 nozzle",
-	"inherits": "Generic PA @Anker base",
 	"renamed_from": "Anker Generic PA 0.25 nozzle",
+	"inherits": "Generic PA @Anker base",
 	"from": "system",
 	"setting_id": "Zlv65wLA94PbevRG",
 	"instantiation": "true",

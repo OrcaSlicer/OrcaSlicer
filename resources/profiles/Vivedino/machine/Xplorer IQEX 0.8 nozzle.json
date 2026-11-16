@@ -1,0 +1,399 @@
+{
+	"type": "machine",
+	"name": "Xplorer IQEX 0.8 nozzle",
+	"inherits": "Xplorer common",
+	"from": "system",
+	"setting_id": "e048HgBDJy6XnaaO",
+	"instantiation": "true",
+	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\n{if layer_num != 0}\nG92 E0\n{endif}\n{if layer_num <= 0}\nG91\nG1 Z+10 F1200\nG90\n{endif}",
+	"change_filament_gcode": ";CHANGE_FILAMENT - Start\n;Layer#=[layer_num] - Z=[layer_z]\n{if layer_z >first_layer_height}\nG91\nG1 Z+2 F1200\nG90\n{endif}\n{if layer_num != -1 || next_extruder != 0}\n  Tool{next_extruder}\n{endif}\n; <----\nG1 Z[layer_z] F1200\n{if layer_num == -1 || layer_num == 0}\n  M109 S[first_layer_temperature[next_extruder]] T[next_extruder]\n{else}\n  M104 S[temperature[next_extruder]] T[next_extruder]\n{endif}\n; ---->\nM83\n;Layer#=[layer_num] - Z=[layer_z]\nLOG_EXTR\n;CHANGE_FILAMENT - End",
+	"default_nozzle_volume_type": [
+		"High Flow",
+		"High Flow",
+		"High Flow",
+		"High Flow"
+	],
+	"default_print_profile": "0.40mm Standard @Xplorer 0.8",
+	"deretraction_speed": [
+		"120",
+		"120",
+		"120",
+		"120"
+	],
+	"extruder_colour": [
+		"#FCE94F",
+		"#729FCF",
+		"#AD7FA8",
+		"#F57900"
+	],
+	"extruder_offset": [
+		"0x0",
+		"0x0",
+		"0x0",
+		"0x0"
+	],
+	"extruder_type": [
+		"Direct Drive",
+		"Direct Drive",
+		"Direct Drive",
+		"Direct Drive"
+	],
+	"extruder_variant_list": [
+		"Direct Drive High Flow",
+		"Direct Drive High Flow",
+		"Direct Drive High Flow",
+		"Direct Drive High Flow"
+	],
+	"imex_gantry_count": "2",
+	"imex_mode_active_tools": [
+		"0:P",
+		"0:P,1:C",
+		"0:P,1:M",
+		"0:P,1:C,2:C,3:C",
+		"0:P,1:C,2:M,3:M",
+		"0:P,1:S,2:C,3:C",
+		"0:P,1:S,2:M,3:M"
+	],
+	"imex_mode_gcodes": [
+		"SET_PRINT_MODE MODE=PRIMARY",
+		"SET_PRINT_MODE MODE=COPY01",
+		"SET_PRINT_MODE MODE=MIRROR01",
+		"SET_PRINT_MODE MODE=COPY0123",
+		"SET_PRINT_MODE MODE=MIRROR0123",
+		"SET_PRINT_MODE MODE=MULTICOLOR_COPY01",
+		"SET_PRINT_MODE MODE=MULTICOLOR_MIRROR01"
+	],
+	"imex_mode_names": [
+		"primary",
+		"copy",
+		"mirror",
+		"iq-copy",
+		"iq-mirror",
+		"mc-copy",
+		"mc-mirror"
+	],
+	"imex_nozzle_clearance_x": "40",
+	"imex_tool_layout": "rear-left",
+	"is_imex": "1",
+	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]\nLOG_RESUME\nLOG_EXTR",
+	"long_retractions_when_cut": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"machine_max_acceleration_e": [
+		"6000",
+		"5000",
+		"6000",
+		"5000",
+		"6000",
+		"5000",
+		"6000",
+		"5000"
+	],
+	"machine_max_acceleration_extruding": [
+		"5000",
+		"2500",
+		"5000",
+		"2500",
+		"5000",
+		"2500",
+		"5000",
+		"2500"
+	],
+	"machine_max_acceleration_retracting": [
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_travel": [
+		"5000",
+		"2500",
+		"5000",
+		"2500",
+		"5000",
+		"2500",
+		"5000",
+		"2500"
+	],
+	"machine_max_acceleration_x": [
+		"5000",
+		"2500",
+		"5000",
+		"2500",
+		"5000",
+		"2500",
+		"5000",
+		"2500"
+	],
+	"machine_max_acceleration_y": [
+		"5000",
+		"2500",
+		"5000",
+		"2500",
+		"5000",
+		"2500",
+		"5000",
+		"2500"
+	],
+	"machine_max_acceleration_z": [
+		"100",
+		"50",
+		"100",
+		"50",
+		"100",
+		"50",
+		"100",
+		"50"
+	],
+	"machine_max_jerk_e": [
+		"2.5",
+		"1.25",
+		"2.5",
+		"1.25",
+		"2.5",
+		"1.25",
+		"2.5",
+		"1.25"
+	],
+	"machine_max_jerk_x": [
+		"5",
+		"2.5",
+		"5",
+		"2.5",
+		"5",
+		"2.5",
+		"5",
+		"2.5"
+	],
+	"machine_max_jerk_y": [
+		"5",
+		"2.5",
+		"5",
+		"2.5",
+		"5",
+		"2.5",
+		"5",
+		"2.5"
+	],
+	"machine_max_jerk_z": [
+		"0.4",
+		"0.2",
+		"0.4",
+		"0.2",
+		"0.4",
+		"0.2",
+		"0.4",
+		"0.2"
+	],
+	"machine_max_junction_deviation": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"machine_max_speed_e": [
+		"120",
+		"60",
+		"120",
+		"60",
+		"120",
+		"60",
+		"120",
+		"60"
+	],
+	"machine_max_speed_x": [
+		"300",
+		"150",
+		"300",
+		"150",
+		"300",
+		"150",
+		"300",
+		"150"
+	],
+	"machine_max_speed_y": [
+		"300",
+		"150",
+		"300",
+		"150",
+		"300",
+		"150",
+		"300",
+		"150"
+	],
+	"machine_max_speed_z": [
+		"40",
+		"20",
+		"40",
+		"20",
+		"40",
+		"20",
+		"40",
+		"20"
+	],
+	"machine_start_gcode": "M104 S{first_layer_temperature[0]} T0\nM104 S{first_layer_temperature[1]} T1\nM104 S{first_layer_temperature[2]} T2\nM104 S{first_layer_temperature[3]} T3\nM140 S[first_layer_bed_temperature] ; set bed temp\nM190 S[first_layer_bed_temperature] ; wait for bed temp\nM109 S{first_layer_temperature[0]} T0\nM109 S{first_layer_temperature[1]} T1\nM109 S{first_layer_temperature[2]} T2\nM109 S{first_layer_temperature[3]} T3\nstart_print\nG1 F5000\n{if first_layer_temperature[3] !=0 }\nTool3\nbrush_Tool3\n{endif}\n{if first_layer_temperature[2] !=0 }\nTool2\nbrush_Tool2\n{endif}\n{if first_layer_temperature[1] !=0 }\nTool1\nbrush_Tool1\n{endif}\n{if first_layer_temperature[0] !=0 }\nTool0\nbrush_Tool0\n{endif}\n{if first_layer_temperature[3] !=0 }\nTool3\nG1 Y280 X407.0 Z0.38 F5000.0 \nG1 Y175 X407.0 Z0.38 F1500.0 E15 \nG1 Y175 X407.4 Z0.38 F5000.0 \nG1 Y280 X407.4 Z0.38 F1500.0 E30\nG92 E0\nG1 Z2 F2000\n{endif}\n{if first_layer_temperature[2] !=0 }\nTool2\nG1 Y280 X12.0 Z0.38 F5000.0 \nG1 Y175 X12.0 Z0.38 F1500.0 E15 \nG1 Y175 X12.4 Z0.38 F5000.0 \nG1 Y280 X12.4 Z0.38 F1500.0 E30\nG92 E0\nG1 Z2 F2000\n{endif}\n{if first_layer_temperature[1] !=0 }\nTool1\nG1 Y280 X408.0 Z0.38 F5000.0 \nG1 Y175 X408.0 Z0.38 F1500.0 E15 \nG1 Y175 X408.4 Z0.38 F5000.0 \nG1 Y280 X408.4 Z0.38 F1500.0 E30\nG92 E0\nG1 Z2 F2000\n{endif}\nG1 F5000\n{if first_layer_temperature[0] !=0 }\nTool0\nG1 Y280 X11.0 Z0.38 F5000.0 \nG1 Y175 X11.0 Z0.38 F1500.0 E15 \nG1 Y175 X11.4 Z0.38 F5000.0 \nG1 Y280 X11.4 Z0.38 F1500.0 E30\nG92 E0\nG1 Z2 F2000\n{endif}\nG1 F5000\nM400\nSKEW_PROFILE LOAD=SKEW1\nG28 X\nG28 Y\nTool{initial_extruder}\nSTART_PRINTING_MODE\n\n",
+	"max_layer_height": [
+		"0.64",
+		"0.64",
+		"0.64",
+		"0.64"
+	],
+	"min_layer_height": [
+		"0.2",
+		"0.2",
+		"0.2",
+		"0.2"
+	],
+	"nozzle_diameter": [
+		"0.8",
+		"0.8",
+		"0.8",
+		"0.8"
+	],
+	"nozzle_type": [
+		"hardened_steel",
+		"hardened_steel",
+		"hardened_steel",
+		"hardened_steel"
+	],
+	"nozzle_volume": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"printable_area": [
+		"10x0",
+		"410x0",
+		"410x342.5",
+		"10x342.5"
+	],
+	"printable_height": "401",
+	"printer_extruder_id": [
+		"1",
+		"2",
+		"3",
+		"4"
+	],
+	"printer_extruder_variant": [
+		"Direct Drive High Flow",
+		"Direct Drive High Flow",
+		"Direct Drive High Flow",
+		"Direct Drive High Flow"
+	],
+	"printer_model": "Xplorer IQEX",
+	"printer_variant": "0.8",
+	"retract_before_wipe": [
+		"70%",
+		"70%",
+		"70%",
+		"70%"
+	],
+	"retract_length_toolchange": [
+		"2",
+		"2",
+		"2",
+		"2"
+	],
+	"retract_lift_above": [
+		"0.2",
+		"0.2",
+		"0.2",
+		"0.2"
+	],
+	"retract_lift_below": [
+		"400",
+		"400",
+		"400",
+		"400"
+	],
+	"retract_lift_enforce": [
+		"All Surfaces",
+		"All Surfaces",
+		"All Surfaces",
+		"All Surfaces"
+	],
+	"retract_restart_extra": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"retract_restart_extra_toolchange": [
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"retract_when_changing_layer": [
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"retraction_distances_when_cut": [
+		"18",
+		"18",
+		"18",
+		"18"
+	],
+	"retraction_length": [
+		"1.35",
+		"1.35",
+		"1.35",
+		"1.35"
+	],
+	"retraction_minimum_travel": [
+		"2",
+		"2",
+		"2",
+		"2"
+	],
+	"retraction_speed": [
+		"120",
+		"120",
+		"120",
+		"120"
+	],
+	"travel_slope": [
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"wipe": [
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"wipe_distance": [
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"z_hop": [
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"z_hop_types": [
+		"Normal Lift",
+		"Normal Lift",
+		"Normal Lift",
+		"Normal Lift"
+	]
+}

@@ -18,12 +18,15 @@ rem               into (resources\profiles). Pruning it deletes the checkout's
 rem               own preset JSONs, which is a packaging step - not something a
 rem               build should do to a working tree by surprise. CI passes it.
 rem
-rem Shipping deletes, so it is a CI packaging step. A vendor's own <vendor>.json
+rem Shipping deletes (scripts\prune_cached_presets.ps1 does them, in one run for
+rem all targets), so it is a CI packaging step. A vendor's own <vendor>.json
 rem goes along with its preset JSONs: the cache carries the vendor profile and
 rem the version it was built at, so discovery, version checks and installing all
 rem read it there. Only a vendor that has a cache is pruned, so non-vendor JSONs
 rem (blacklist.json) are left alone, as are the vendor directories themselves -
-rem thumbnails, covers and bed models still live there.
+rem thumbnails, covers and bed models still live there. Only the preset files
+rem the vendor profile lists are deleted: data files beside them (BBL's
+rem filaments_color_codes.json, cli_config.json, ...) are read at runtime.
 rem
 rem   set CONFIG=<cfg> to pin the build config for multi-config generators
 rem   (default: the config of the tool already in the build tree, else Release)
@@ -92,13 +95,24 @@ del /q "%PROFILES%\*.cache" 2>nul
 "%TOOL%" --path "%PROFILES%" --log_level 2
 if errorlevel 1 exit /b %errorlevel%
 
+set "TARGETS="
 :next_target
-if "%~1"=="" exit /b 0
+if "%~1"=="" goto :prune
 call :ship "%~1"
 if errorlevel 1 exit /b 1
 shift
 goto :next_target
 
+rem One run for every target: the vendor profiles are read before any pruning,
+rem so a target that is the source does not take the preset lists away from the
+rem targets after it, and one process does all the deleting.
+:prune
+if not defined TARGETS exit /b 0
+powershell -NoProfile -ExecutionPolicy Bypass -File "%REPO_ROOT%\scripts\prune_cached_presets.ps1" -Profiles "%PROFILES%" %TARGETS%
+exit /b %errorlevel%
+
+rem Check a target and queue it for pruning; install the caches into it unless
+rem it is the source, which only gets pruned.
 :ship
 set "TARGET=%~1"
 if not exist "%TARGET%\" (
@@ -106,31 +120,15 @@ if not exist "%TARGET%\" (
     exit /b 1
 )
 for %%d in ("%TARGET%") do set "TARGET=%%~fd"
+rem A trailing backslash would escape the closing quote on the PowerShell command line.
+if "%TARGET:~-1%"=="\" set "TARGET=%TARGET:~0,-1%"
 if /i "%TARGET%"=="%PROFILES%" if not defined PRUNE_SOURCE (
     echo %TARGET%: skipped - this is where the caches were generated.
     echo   Pass --prune-source to prune it; that deletes this checkout's preset JSONs.
     exit /b 0
 )
 if /i not "%TARGET%"=="%PROFILES%" copy /y "%PROFILES%\*.opc" "%TARGET%\" >nul
-
-set /a SHIPPED=0
-set /a PRUNED=0
-for %%c in ("%PROFILES%\*.opc") do (
-    set /a SHIPPED+=1
-    set "VENDOR=%%~nc"
-    if exist "%TARGET%\!VENDOR!.json" (
-        del /q "%TARGET%\!VENDOR!.json"
-        set /a PRUNED+=1
-    )
-    if exist "%TARGET%\!VENDOR!\" (
-        for /f %%n in ('dir /s /b "%TARGET%\!VENDOR!\*.json" 2^>nul ^| find /c /v ""') do set /a PRUNED+=%%n
-        del /s /q "%TARGET%\!VENDOR!\*.json" >nul 2>&1
-        rem Deepest first, so a directory the delete above emptied goes too; rd
-        rem refuses the ones still holding covers or meshes.
-        for /f "delims=" %%d in ('dir /s /b /ad "%TARGET%\!VENDOR!" 2^>nul ^| sort /r') do rd "%%d" 2>nul
-    )
-)
-echo %TARGET%: !SHIPPED! caches, dropped !PRUNED! preset JSONs
+set TARGETS=%TARGETS% "%TARGET%"
 exit /b 0
 
 :find_tool

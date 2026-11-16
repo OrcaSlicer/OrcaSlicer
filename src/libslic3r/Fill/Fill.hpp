@@ -1,9 +1,11 @@
 #ifndef slic3r_Fill_hpp_
 #define slic3r_Fill_hpp_
 
+#include <cstddef>
 #include <memory.h>
 #include <float.h>
 #include <stdint.h>
+#include <string>
 
 #include "../libslic3r.h"
 #include "../PrintConfig.hpp"

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PA-CF @Qidi",
-	"inherits": "fdm_filament_pa",
 	"renamed_from": "Qidi Generic PA-CF",
+	"inherits": "fdm_filament_pa",
 	"from": "system",
 	"setting_id": "qLuGt33iENH6QTjv",
 	"filament_id": "OFQLcbps",

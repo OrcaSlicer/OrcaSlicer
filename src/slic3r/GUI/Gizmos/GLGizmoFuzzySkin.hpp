@@ -4,6 +4,13 @@
 #include "GLGizmoPainterBase.hpp"
 
 #include "slic3r/GUI/I18N.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <string>
+#include <wx/string.h>
+#include "libslic3r/TriangleSelector.hpp"
+#include <map>
+#include <vector>
+#include <utility>
 
 namespace Slic3r::GUI {
 

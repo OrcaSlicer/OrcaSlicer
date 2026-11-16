@@ -14,9 +14,16 @@
 #include "slic3r/GUI/Widgets/StaticBox.hpp"
 #include "slic3r/GUI/Widgets/AnimaController.hpp"
 
+#include <wx/event.h>
+#include <wx/gdicmn.h>
+#include <string>
+#include <vector>
+#include <unordered_map>
 #include <wx/panel.h>
 #include <wx/simplebook.h>
 #include <memory>
+#include <wx/string.h>
+#include <wx/sizer.h>
 
 // Previous definitions
 class Button;

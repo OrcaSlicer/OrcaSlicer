@@ -4,6 +4,14 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/I18N.hpp"
 #include "slic3r/Utils/Http.hpp"
+#include <wx/event.h>
+#include <functional>
+#include <boost/log/trivial.hpp>
+#include <boost/filesystem/operations.hpp>
+#include "libslic3r/Utils.hpp"
+#include <exception>
+
+namespace fs = boost::filesystem;
 
 namespace Slic3r {
 namespace GUI {

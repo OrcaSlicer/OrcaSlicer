@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @OrcaArena",
-	"inherits": "Generic ASA @OrcaArena base",
 	"renamed_from": "OrcaArena Generic ASA",
+	"inherits": "Generic ASA @OrcaArena base",
 	"from": "system",
 	"setting_id": "V2Z1rxHqIqIuwP5O",
 	"instantiation": "true",

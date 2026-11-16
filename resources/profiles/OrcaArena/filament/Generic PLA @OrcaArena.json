@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @OrcaArena",
-	"inherits": "Generic PLA @OrcaArena base",
 	"renamed_from": "OrcaArena Generic PLA",
+	"inherits": "Generic PLA @OrcaArena base",
 	"from": "system",
 	"setting_id": "TfkkCc6rILxDiZhR",
 	"instantiation": "true",

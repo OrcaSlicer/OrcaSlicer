@@ -10,6 +10,10 @@
 #include "Label.hpp"
 
 #include "slic3r/GUI/GUI_App.hpp"
+#include <wx/panel.h>
+#include <vector>
+#include <wx/string.h>
+#include <wx/event.h>
 
 namespace Slic3r { namespace GUI {
 

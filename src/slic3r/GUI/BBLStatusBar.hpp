@@ -8,7 +8,6 @@
 #include <memory>
 #include <string>
 #include <functional>
-#include <string>
 
 #include "Jobs/ProgressIndicator.hpp"
 
@@ -72,10 +71,6 @@ private:
     bool m_busy = false;
     CancelFn m_cancel_cb;
 };
-
-namespace GUI {
-    using Slic3r::BBLStatusBar;
-}
 
 }
 

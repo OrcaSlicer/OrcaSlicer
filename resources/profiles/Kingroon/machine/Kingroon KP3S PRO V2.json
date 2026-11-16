@@ -6,7 +6,7 @@
 	"machine_tech": "FFF",
 	"family": "Kingroon",
 	"bed_model": "kp3s_bed.stl",
-	"bed_texture": "Kingroon_buildplate.png",
+	"bed_texture": "Kingroon_buildplate.svg",
 	"hotend_model": "",
 	"default_materials": "Generic ABS @System;Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
 }

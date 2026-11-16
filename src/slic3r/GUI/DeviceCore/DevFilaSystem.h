@@ -1,6 +1,6 @@
 #pragma once
 #include "libslic3r/CommonDefs.hpp"
-#include "slic3r/Utils/json_diff.hpp"
+#include <nlohmann/json.hpp>
 
 #include "DevDefs.h"
 #include "DevFilaAmsSetting.h"
@@ -9,12 +9,12 @@
 
 #include <map>
 #include <set>
+#include <string>
 #include <vector>
 #include <optional>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
-#include <vector>
 #include <wx/string.h>
 #include <wx/colour.h>
 
@@ -269,6 +269,7 @@ public:
 private:
     AmsType       m_ams_type = AmsType::AMS;
     std::string   m_ams_id;
+    std::string   m_display_name; // Orca: set by printer agents for their own units, replaces the type-based name
     int           m_ext_id;//extruder id
     // Orca: pull-mode / multi-vendor agent model — keeps the legacy single m_ext_id for existing
     // consumers and carries the switch-aware binding alongside it. Without a Filament Track Switch
@@ -414,9 +415,9 @@ private:
 class DevFilaSystemParser
 {
 public:
-    static void ParseV1_0(const json& print_json, MachineObject* obj, DevFilaSystem* system, bool key_field_only);
+    static void ParseV1_0(const nlohmann::json& print_json, MachineObject* obj, DevFilaSystem* system, bool key_field_only);
 
-    static void ParseAgentFilament(const json& data, MachineObject* obj, DevFilaSystem* system);
+    static void ParseAgentFilament(const nlohmann::json& data, MachineObject* obj, DevFilaSystem* system);
 };
 
 struct DevFilamentDryingPreset

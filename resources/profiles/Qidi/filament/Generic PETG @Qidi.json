@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Qidi",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "Qidi Generic PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "zRfo4sbJ3auEJtiC",
 	"filament_id": "OFYPdQJh",

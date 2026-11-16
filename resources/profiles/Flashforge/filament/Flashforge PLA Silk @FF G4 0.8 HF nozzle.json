@@ -5,10 +5,10 @@
 	"from": "system",
 	"setting_id": "8j9kaYy3ghkF81Cu",
 	"filament_id": "OFgjgN35",
+	"instantiation": "true",
 	"filament_vendor": [
 		"Flashforge"
 	],
-	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
 	],

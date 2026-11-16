@@ -3,7 +3,16 @@
 
 #include "libslic3r/BoundingBox.hpp"
 #include "3DScene.hpp"
+#include <Eigen/Geometry>
+#include <algorithm>
 #include <array>
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include <string>
+#include <cassert>
+#include "libslic3r/Technologies.hpp"
+#include <cstdlib>
+#include "libslic3r/libslic3r.h"
 
 namespace Slic3r {
 namespace GUI {

@@ -1,29 +1,54 @@
 #include "SL1.hpp"
-#include "GCode/ThumbnailData.hpp"
+#include "libslic3r/ExPolygon.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Utils.hpp"
 #include "libslic3r/Time.hpp"
 
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <algorithm>
+#include <array>
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem.hpp>
 
 #include "libslic3r/Zipper.hpp"
 #include "libslic3r/SLAPrint.hpp"
 
+#include <cstdint>
+#include <cstddef>
+#include <miniz.h>
+#include <functional>
+#include <cctype>
+#include <mutex>
+#include <cmath>
+#include <map>
+#include <cassert>
+#include <memory>
+#include <exception>
 #include <sstream>
 
 #include "libslic3r/Exception.hpp"
 #include "libslic3r/SlicesToTriangleMesh.hpp"
 #include "libslic3r/MarchingSquares.hpp"
 #include "libslic3r/ClipperUtils.hpp"
-#include "libslic3r/MTUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLA/RasterBase.hpp"
 #include "libslic3r/miniz_extension.hpp"
 #include "libslic3r/PNGReadWrite.hpp"
 #include "libslic3r/LocalesUtils.hpp"
+#include "libslic3r_version.h"
 
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/algorithm/string.hpp>
+#include <vector>
+#include <string>
+#include <utility>
+#include <string_view>
+#include "libslic3r/SLA/Pad.hpp"
 
 namespace marchsq {
 

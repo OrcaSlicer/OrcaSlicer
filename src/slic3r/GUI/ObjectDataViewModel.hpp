@@ -2,9 +2,18 @@
 #define slic3r_GUI_ObjectDataViewModel_hpp_
 
 #include <boost/log/trivial.hpp>
+#include <utility>
+#include <cstddef>
+#include <string>
+#include <cassert>
+#include <tuple>
 #include <wx/dataview.h>
 #include <vector>
 #include <map>
+#include <wx/dynarray.h>
+#include <wx/string.h>
+#include <wx/variant.h>
+#include <wx/event.h>
 
 #include "ExtraRenderers.hpp"
 

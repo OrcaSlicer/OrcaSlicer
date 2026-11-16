@@ -5,7 +5,7 @@ const vm = require("vm"), assert = require("assert"), fs = require("fs");
 const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(__dirname + "/fuzzy-search.js", "utf8"), ctx);
-const { FoldChar, Norm, EscapeRegExp, FuzzyRanges, WholeWordRanges } = ctx;
+const { FoldChar, Norm, NormText, EscapeRegExp, FuzzyRanges, WholeWordRanges, FuzzyRangesNorm } = ctx;
 
 // FoldChar / Norm: accents fold, case only folds when case-insensitive.
 assert.equal(FoldChar("é"), "e");
@@ -33,5 +33,19 @@ assert.deepEqual(WholeWordRanges("a.b", "a", false), [[0, 1]]);      // '.' is a
 // EscapeRegExp: regex metachars in the query are treated literally by whole-word.
 assert.equal(EscapeRegExp("a.b*"), "a\\.b\\*");
 assert.deepEqual(WholeWordRanges("c++ tool", "c", false), [[0, 1]]); // '+' would be a regex error unescaped
+
+// FuzzyRangesNorm: prefers the most-contiguous (smallest-span) occurrence over greedy-leftmost, so a
+// stray earlier character does not steal the highlight from a later tight word.
+assert.deepEqual(FuzzyRangesNorm(NormText("Auto-Orient", false), NormText("orient", false)), [[5, 11]]);
+// A contiguous run inside a larger word is also preferred over a scattered greedy pick.
+assert.deepEqual(FuzzyRangesNorm(NormText("AutoOriented", false), NormText("orient", false)), [[4, 10]]);
+assert.equal(FuzzyRangesNorm(NormText("Measure", false), NormText("xyz", false)), null); // no subsequence
+
+// NormText stays 1:1 with the original even when NFD expands (Hangul syllables) or drops (combining
+// diacritics, U+0130) a code unit, so highlight ranges remain aligned to the original string.
+assert.equal(NormText("각x", false).length, "각x".length);
+assert.equal(NormText("e\u0301x", false).length, "e\u0301x".length);
+assert.equal(NormText("\u0130x", false).length, "\u0130x".length);
+assert.equal(FuzzyRangesNorm(NormText("각abcdeXfgh", false), NormText("X", false))[0][0], 6);
 
 console.log("ok");

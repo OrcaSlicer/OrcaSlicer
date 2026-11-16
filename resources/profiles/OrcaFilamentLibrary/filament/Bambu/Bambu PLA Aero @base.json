@@ -10,15 +10,33 @@
 		"30"
 	],
 	"filament_cost": [
-		"44.99"
+		"41.99"
 	],
 	"filament_density": [
 		"1.21"
 	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
+	],
 	"filament_flow_ratio": [
+		"0.6",
+		"0.6",
+		"0.6",
+		"0.6",
+		"0.6",
 		"0.6"
 	],
 	"filament_max_volumetric_speed": [
+		"6",
+		"6",
+		"6",
+		"6",
+		"6",
 		"6"
 	],
 	"filament_multitool_ramming_flow": [
@@ -29,9 +47,6 @@
 	],
 	"filament_vendor": [
 		"Bambu Lab"
-	],
-	"filament_scarf_seam_type": [
-		"none"
 	],
 	"nozzle_temperature_range_low": [
 		"210"

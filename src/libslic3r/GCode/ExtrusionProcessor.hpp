@@ -15,12 +15,18 @@
 #include "../ClipperUtils.hpp"
 #include "../Flow.hpp"
 #include "../Config.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/ExPolygon.hpp"
 
+#include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <limits>
+#include <memory>
 #include <numeric>
 #include <unordered_map>
 #include <utility>
@@ -35,16 +41,27 @@ template<int Dim> struct ExtendedPoint
     float curvature;
 };
 
-template<bool SCALED_INPUT, bool ADD_INTERSECTIONS, bool PREV_LAYER_BOUNDARY_OFFSET, bool SIGNED_DISTANCE, typename POINTS, typename L>
+// A KNOWN_DISTANCES functor that knows no distances, so every input point is queried.
+struct NoKnownDistances
+{
+    template<typename P> const double *operator()(const P &) const { return nullptr; }
+};
+
+template<bool SCALED_INPUT, bool ADD_INTERSECTIONS, bool PREV_LAYER_BOUNDARY_OFFSET, bool SIGNED_DISTANCE, bool CURVATURE = true,
+         typename POINTS, typename L, typename KNOWN_DISTANCES = NoKnownDistances>
 std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&                           input_points,
                                                               const AABBTreeLines::LinesDistancer<L>& unscaled_prev_layer,
                                                               float                                   flow_width,
                                                               float                                   max_line_length = -1.0f,
                                                               float                                   min_distance    = -1.0f,
-                                                              // Maps an overhang distance onto the speed it will be printed at. Interior sampling
-                                                              // needs it to tell which of the points it could add would change the G-code, and is
-                                                              // skipped without it.
-                                                              const std::function<float(float)>&      distance_to_speed = {})
+                                                              // Speed an overhang distance prints at. Without it, interior sampling
+                                                              // is skipped and every line over 4mm is split.
+                                                              const std::function<float(float)>&      distance_to_speed = {},
+                                                              // Overlap (1 - distance / flow_width) at or below which the overhang
+                                                              // fan switches on; negative when the fan does not depend on overlap.
+                                                              float                                   fan_overlap_threshold = -1.0f,
+                                                              // Returns an input point's signed distance if already known, else nullptr.
+                                                              const KNOWN_DISTANCES&                  known_distance = KNOWN_DISTANCES{})
 {
     bool   looped     = input_points.front() == input_points.back();
     std::function<size_t(size_t,size_t)> get_prev_index = [](size_t idx, size_t count) {
@@ -89,21 +106,26 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
     float boundary_offset = PREV_LAYER_BOUNDARY_OFFSET ? 0.5 * flow_width : 0.0f;
     auto  maybe_unscale   = [](const P& p) -> Vec { return SCALED_INPUT ? unscaled(p) : p.template cast<double>(); };
 
+    using Distance = typename AABBTreeLines::LinesDistancer<L>::Floating;
+    auto input_distance = [&unscaled_prev_layer, &known_distance](const P &input, const Vec &position) -> Distance {
+        if (const double *known = known_distance(input))
+            return Distance(*known);
+        auto [distance, nearest_line, x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(
+            position.template cast<AABBScalar>());
+        return distance;
+    };
+
     std::vector<ExtendedPoint<L::Dim>> points;
     points.reserve(input_points.size() * (ADD_INTERSECTIONS ? 1.5 : 1));
 
     {
         ExtendedPoint<L::Dim> start_point{maybe_unscale(input_points.front())};
-        auto [distance, nearest_line, x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(
-            start_point.position.template cast<AABBScalar>());
-        start_point.distance = distance + boundary_offset;
+        start_point.distance = input_distance(input_points.front(), start_point.position) + boundary_offset;
         points.push_back(start_point);
     }
     for (size_t i = 1; i < input_points.size(); i++) {
         ExtendedPoint<L::Dim> next_point{maybe_unscale(input_points[i])};
-        auto [distance, nearest_line,
-              x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(next_point.position.template cast<AABBScalar>());
-        next_point.distance = distance + boundary_offset;
+        next_point.distance = input_distance(input_points[i], next_point.position) + boundary_offset;
 
         // Intersection handling
         if (ADD_INTERSECTIONS &&
@@ -125,29 +147,43 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
         points.push_back(next_point);
     }
 
+    // ORCA: How an overhang distance prints, which is what the passes below compare. A segment is printed at the lower
+    // of the speeds at its two ends, and with the overhang fan on if the overlap at either end turns it on. A point
+    // added to a path can therefore only change the G-code where it prints at a different speed or fan state from the
+    // points either side of it, and the passes below add points there and nowhere else.
+    const float width_inv = 1.f / flow_width;
+    // Whether an overhang distance turns the overhang fan on. The overlap test check_overhang_fan applies in GCode.cpp.
+    auto fan_on = [fan_overlap_threshold, width_inv](float distance) {
+        return fan_overlap_threshold >= 0.f && 1.f - distance * width_inv <= fan_overlap_threshold;
+    };
+    // Whether two overhang distances are interchangeable ie have the same speed (beyond a 1mm/sec threshold that gcode.cpp filters out on) 
+    // and the same fan state.
+    auto same_speed_and_fan = [&distance_to_speed, &fan_on](float a, float b) {
+        return std::abs(distance_to_speed(a) - distance_to_speed(b)) <= 1.f && fan_on(a) == fan_on(b);
+    };
+    // Whether the first overhang distance prints slower than the second, beyond the 1mm/sec gcode.cpp tolerance, or turns the overhang
+    // fan on where the second does not. Against a supported point (overhang distance 0) it tells whether an end is
+    // affected by the overhang.
+    auto slower_or_cooled = [&distance_to_speed, &fan_on](float a, float b) {
+        return distance_to_speed(a) < distance_to_speed(b) - 1.f || (fan_on(a) && !fan_on(b));
+    };
+
     // ORCA: Interior sampling
-    // The passes below infer the support under a span from its endpoints alone, so an interior that is supported
-    // differently from both ends is invisible to them: the outer perimeter of an overhang whose ends are caged by
-    // full height walls reads as supported along its whole length. Probe the interior, keep the samples the
-    // endpoint interpolation fails to predict, and bisect either side of each one, so a span that is only partly
-    // unsupported gets points where its support actually changes instead of one reading spread across all of it.
-    if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && min_distance > 0 && distance_to_speed) {
+    // The passes below infer the support under a span from its endpoints alone, so a part that is supported
+    // differently from both ends is invisible to them. The outer perimeter of an overhang whose ends are supported by
+    // reads as supported along its whole length. Probe the interior, keep the samples the endpoint interpolation fails to predict, 
+    // and bisect either side of each one, so a span that is only partly unsupported gets points where its support actually changes 
+    // instead of one reading being spread across all of it.
+    // Skipped where there is nothing to find: min_distance <= 0 when no overhang can slow this path down, and
+    // fan_overlap_threshold < 0 when no overhang switches the fan on. It also needs distance_to_speed to tell which of
+    // the points it could add would change the G-code.
+    if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && distance_to_speed && (min_distance > 0 || fan_overlap_threshold >= 0.f)) {
         // Probe at least this densely before treating matching samples as evidence that a span is uniform. The
         // segmentation pass below only splits lines of 2mm or more, and every pass here drops points closer
-        // together than min_spacing, so finer discovery would not produce a more precise speed transition.
+        // together than min_spacing, so finer discovery would not produce a more precise transition.
         const double max_probe_spacing = std::max(2., 4. * min_spacing);
         // A backstop for that length test, which on a non-finite length would never be met.
         constexpr int max_bisection_depth = 10;
-        // Whether two readings are interchangeable. A segment is printed at the lower of the speeds its ends
-        // read, so a sample that agrees on speed with what is already known cannot change the G-code, whatever
-        // its distance says. The distances themselves are far too coarse a stand-in for this: the speed sections
-        // interpolate, so readings a small fraction of min_distance apart can still be tens of mm/s apart.
-        // The tolerance matches the one GCode.cpp applies when it decides a path has a variable speed at all.
-        auto same_speed = [&distance_to_speed](float a, float b) {
-            return std::abs(distance_to_speed(a) - distance_to_speed(b)) <= 1.f;
-        };
-        // Whether the first reading is printed slower than the second, once they are known to differ.
-        auto prints_slower = [&distance_to_speed](float a, float b) { return distance_to_speed(a) < distance_to_speed(b); };
 
         // Part of a segment still to bisect: its positions along the segment and bisections left.
         struct Subspan { double t0, t1; int depth; };
@@ -185,8 +221,8 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
             if (!interior.empty()) {
                 std::sort(interior.begin(), interior.end(),
                           [](const std::pair<double, float>& l, const std::pair<double, float>& r) { return l.first < r.first; });
-                // Coarse probing keeps every sample it took until this pass can see which ones bracket a speed
-                // transition. Matching samples cannot be discarded during discovery: one may be the last
+                // Coarse probing keeps every sample it took until this pass can see which ones bracket a speed or
+                // fan transition. Matching samples cannot be discarded during discovery: one may be the last
                 // supported point before a narrow unsupported pocket found by a later probe.
                 size_t kept = 0;
                 for (size_t i = 0; i < interior.size(); ++i) {
@@ -195,15 +231,15 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
                     const bool  at_end    = i + 1 == interior.size();      // And nothing follows the last sample but the segment's end
                     const float before    = at_start ? curr.distance : interior[kept - 1].second;
                     const float after     = at_end ? next.distance : interior[i + 1].second;
-                    // A sample is worth a point in the path only where it prints at a different speed from the
-                    // readings either side of it. Differing from one of the segment's own ends is not enough on
-                    // its own where the sample is the faster of the two: the segmentation pass below already
-                    // ends the slowdown an end reads, at a distance taken from how far out that end is rather
-                    // than from wherever bisection happened to stop, and a point here would leave the span
-                    // beside the end too short for that pass to run at all. Support an end cannot account for,
-                    // where the interior is the slower reading, is exactly what this pass is here to find.
-                    const bool worth_before = !same_speed(sample, before) && (!at_start || prints_slower(sample, before));
-                    const bool worth_after  = !same_speed(sample, after) && (!at_end || prints_slower(sample, after));
+                    // A sample is worth a point in the path only where it prints differently, in speed or fan state,
+                    // from the points either side of it. Differing from one of the segment's own ends is not enough on
+                    // its own where the sample is not the slower or cooled of the two: the segmentation pass below
+                    // already confines the slowdown and cooling at an end, at a distance taken from how far out that
+                    // end is rather than from wherever bisection happened to stop, and a point here would leave the
+                    // span beside the end too short for that pass to run at all. Support an end cannot account for,
+                    // where the interior is the slower or cooled of the two, is exactly what this pass is here to find.
+                    const bool worth_before = !same_speed_and_fan(sample, before) && (!at_start || slower_or_cooled(sample, before));
+                    const bool worth_after  = !same_speed_and_fan(sample, after) && (!at_end || slower_or_cooled(sample, after));
                     if (worth_before || worth_after)
                         interior[kept++] = interior[i];
                 }
@@ -238,52 +274,60 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
             if ((curr.distance > -boundary_offset && curr.distance < boundary_offset + 2.0f) ||
                 (next.distance > -boundary_offset && next.distance < boundary_offset + 2.0f)) {
                 double line_len = (next.position - curr.position).norm();
-                
-                // ORCA: Segment path to smaller lines by adding additional points only if the path has an overhang that
-                // will trigger a slowdown and the path is also reasonably large, i.e. 2mm in length or more
-                // If there is no overhang in the start/end point, dont segment it.
-                // Ignore this check if the control of segmentation for overhangs is disabled (min_distance=-1)
-                if ((min_distance > 0 && ((std::abs(curr.distance) > min_distance) || (std::abs(next.distance) > min_distance)) && line_len >= 2.f) ||
-                    (min_distance <= 0 && line_len > 4.0f)) {
+
+                // ORCA: A line prints as slow as its slower end and is cooled if either end is, so an overhang at one
+                // end would otherwise slow down or cool the whole line. Split the line so that only the part beside
+                // that end prints that way, if the line is reasonably long (2mm or more) and at least one end prints
+                // slower or cooled compared with a supported point (overhang distance 0). Deciding on how the end
+                // prints, rather than on its overhang distance against min_distance, also catches an end whose overhang
+                // distance is exactly where the slowdown begins, such as an outline crossing at half a line width.
+                // Without distance_to_speed, split every line over 4mm.
+                const bool split_line = distance_to_speed ?
+                    line_len >= 2.f && (slower_or_cooled(curr.distance, 0.f) || slower_or_cooled(next.distance, 0.f)) :
+                    line_len > 4.0f;
+                if (split_line) {
+                    // Each end's piece is that end's overhang distance plus 1.5 line widths (3 * boundary_offset) long:
+                    // a0 ends the piece beside curr, a1 starts the piece beside next.
                     double a0 = std::clamp((curr.distance + 3 * boundary_offset) / line_len, 0.0, 1.0);
                     double a1 = std::clamp(1.0f - (next.distance + 3 * boundary_offset) / line_len, 0.0, 1.0);
                     double t0 = std::min(a0, a1);
                     double t1 = std::max(a0, a1);
 
-                    if (t0 < 1.0) {
-                        Vec p0                          = curr.position + t0 * (next.position - curr.position);
-                        auto [p0_dist, p0_near_l, p0_x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(
-                            p0.template cast<AABBScalar>());
-                        ExtendedPoint<L::Dim> new_p{};
-                        new_p.position = p0;
-                        new_p.distance = float(p0_dist + boundary_offset);
-                        // ORCA: only create a new point in the path if the new point overhang distance will be used to generate a speed change
-                        // or if this option is disabled (min_distance<=0)
-                        if( (std::abs(p0_dist) > min_distance) || (min_distance<=0)){
-                            // ORCA: also filter out points that are introduced to the start of the path when their distance from the start point is
-                            // not meaningful
-                            if ((p0 - curr.position).norm() > min_spacing && (next.position - p0).norm() > min_spacing) {
-                                new_points.push_back(new_p);
-                            }
-                        }
+                    // Up to two cut points, in order along the line. Each takes its own overhang distance, so every
+                    // piece prints by the overhang distances at its own two ends. t0 >= 1 or t1 <= 0 falls on the
+                    // line's own end, so there is no cut. A cut closer than min_spacing to either end of the line is
+                    // not meaningful and is filtered out (#6714).
+                    ExtendedPoint<L::Dim> cut[2]{};
+                    bool                  keep[2] = {false, false};
+                    for (int k = 0; k < 2; ++k) {
+                        const double t = k == 0 ? t0 : t1;
+                        if (k == 0 ? t >= 1.0 : t <= 0.0)
+                            continue;
+                        const Vec p                  = curr.position + t * (next.position - curr.position);
+                        auto [p_dist, p_near_l, p_x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(
+                            p.template cast<AABBScalar>());
+                        cut[k].position = p;
+                        cut[k].distance = float(p_dist + boundary_offset);
+                        keep[k] = (p - curr.position).norm() > min_spacing && (next.position - p).norm() > min_spacing;
                     }
-                    if (t1 > 0.0) {
-                        Vec p1                          = curr.position + t1 * (next.position - curr.position);
-                        auto [p1_dist, p1_near_l, p1_x] = unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(
-                            p1.template cast<AABBScalar>());
-                        ExtendedPoint<L::Dim> new_p{};
-                        new_p.position = p1;
-                        new_p.distance = float(p1_dist + boundary_offset);
-                        // ORCA: only create a new point in the path if the new point overhang distance will be used to generate a speed change
-                        // or if this option is disabled (min_distance<=0)
-                        if( (std::abs(p1_dist) > min_distance) || (min_distance<=0)){
-                            // ORCA: filter out points that are introduced to the end of the path when their distance from the end point is
-                            // not meaningful
-                            if ((p1 - curr.position).norm() > min_spacing && (next.position - p1).norm() > min_spacing) {
-                                new_points.push_back(new_p);
-                            }
-                        }
+                    if (distance_to_speed) {
+                        // Only keep a cut that changes the G-code: one that prints differently from at least one of the
+                        // points either side of it, which are the line's ends or the other cut where that is kept. A cut
+                        // that prints like both would only split a move into two identical ones.
+                        if (keep[0])
+                            keep[0] = !same_speed_and_fan(cut[0].distance, curr.distance) ||
+                                      !same_speed_and_fan(cut[0].distance, keep[1] ? cut[1].distance : next.distance);
+                        if (keep[1])
+                            keep[1] = !same_speed_and_fan(cut[1].distance, keep[0] ? cut[0].distance : curr.distance) ||
+                                      !same_speed_and_fan(cut[1].distance, next.distance);
+                        // Two cuts closer together than min_spacing would leave a micro segment between them, so only the
+                        // first is kept.
+                        if (keep[0] && keep[1] && (cut[1].position - cut[0].position).norm() <= min_spacing)
+                            keep[1] = false;
                     }
+                    for (int k = 0; k < 2; ++k)
+                        if (keep[k])
+                            new_points.push_back(cut[k]);
                 }
             }
             new_points.push_back(next);
@@ -321,6 +365,9 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
         }
         points = std::move(new_points);
     }
+
+    if constexpr (!CURVATURE)
+        return points;
 
     // Curvature calculation
     float accumulated_distance = 0;
@@ -390,6 +437,49 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
     return points;
 }
 
+struct Point3Hash
+{
+    size_t operator()(const Vec3crd &pt) const noexcept { return size_t(((89 * 31 + int64_t(pt.x())) * 31 + pt.y()) * 31 + pt.z()); }
+};
+
+// The trees of the layer below an object layer, and the signed distances from the layer's perimeter and bridge
+// vertices to that layer's outline, computed for ExtrusionQualityEstimator ahead of the G-code generator.
+struct PrecomputedOverhangLayer
+{
+    const PrintObject                                               *object{nullptr};
+    const Layer                                                     *layer{nullptr};
+    std::shared_ptr<const AABBTreeLines::LinesDistancer<Linef3>>     lower_boundaries;
+    std::shared_ptr<const AABBTreeLines::LinesDistancer<CurledLine>> lower_curled_lines;
+    std::unordered_map<Point3, double, Point3Hash>                   distances;
+};
+
+// `layer` must have a layer below it; leave out `curled_lines` only when no region of `layer` slows down for curled
+// perimeters.
+inline PrecomputedOverhangLayer precompute_overhang_layer(const PrintObject *object, const Layer &layer, bool curled_lines = true)
+{
+    PrecomputedOverhangLayer out{object, &layer,
+                                 std::make_shared<const AABBTreeLines::LinesDistancer<Linef3>>(to_unscaled_linesf3(layer.lower_layer->lslices)),
+                                 curled_lines ? std::make_shared<const AABBTreeLines::LinesDistancer<CurledLine>>(layer.lower_layer->curled_lines) :
+                                                nullptr,
+                                 {}};
+    const AABBTreeLines::LinesDistancer<Linef3> &lower = *out.lower_boundaries;
+    auto add_path = [&out, &lower](const ExtrusionPath &path) {
+        if (!is_bridge(path.role()) && !is_perimeter(path.role()))
+            return;
+        for (const Point3 &point : path.polyline.points)
+            if (auto [it, inserted] = out.distances.try_emplace(point, 0.); inserted) {
+                const Eigen::Matrix<double, 3, 1, Eigen::DontAlign> position = unscaled(point);
+                auto [distance, nearest_line, x] = lower.distance_from_lines_extra<true>(position.cast<double>());
+                it->second = distance;
+            }
+    };
+    for (const LayerRegion *region : layer.regions()) {
+        for_each_extrusion_path(region->perimeters, add_path);
+        for_each_extrusion_path(region->fills, add_path);
+    }
+    return out;
+}
+
 struct ProcessedPoint
 {
     Point3 p;
@@ -399,23 +489,53 @@ struct ProcessedPoint
 
 class ExtrusionQualityEstimator
 {
-    std::unordered_map<const PrintObject*, AABBTreeLines::LinesDistancer<Linef3>>      prev_layer_boundaries;
-    std::unordered_map<const PrintObject*, AABBTreeLines::LinesDistancer<Linef3>>      next_layer_boundaries;
-    std::unordered_map<const PrintObject *, AABBTreeLines::LinesDistancer<CurledLine>> prev_curled_extrusions;
-    std::unordered_map<const PrintObject *, AABBTreeLines::LinesDistancer<CurledLine>> next_curled_extrusions;
-    const PrintObject                                                            *current_object;
+    using Boundaries   = AABBTreeLines::LinesDistancer<Linef3>;
+    using CurledLines  = AABBTreeLines::LinesDistancer<CurledLine>;
+    std::unordered_map<const PrintObject*, std::shared_ptr<const Boundaries>>  prev_layer_boundaries;
+    std::unordered_map<const PrintObject*, std::shared_ptr<const CurledLines>> prev_curled_extrusions;
+    // The layers the trees above are built from, and the layers prepared last.
+    std::unordered_map<const PrintObject*, const Layer*>                      prev_layer_sources;
+    std::unordered_map<const PrintObject*, const Layer*>                      last_prepared_layers;
+    std::vector<PrecomputedOverhangLayer>                                     precomputed_layers;
+    const PrintObject                                                        *current_object;
+
+    const PrecomputedOverhangLayer *precomputed_for(const PrintObject *object) const
+    {
+        auto it = std::find_if(precomputed_layers.begin(), precomputed_layers.end(),
+                               [object](const PrecomputedOverhangLayer &layer) { return layer.object == object; });
+        return it == precomputed_layers.end() ? nullptr : &*it;
+    }
+
+    template<typename T> static const T &or_empty(const std::shared_ptr<const T> &tree)
+    {
+        static const T empty;
+        return tree ? *tree : empty;
+    }
 
 public:
     void set_current_object(const PrintObject *object) { current_object = object; }
 
+    // Takes the data computed ahead for the layer about to be generated, replacing the previous layer's.
+    void set_precomputed_layers(std::vector<PrecomputedOverhangLayer> &&layers) { precomputed_layers = std::move(layers); }
+
+    // Measures the layer against the layer prepared before it.
     void prepare_for_new_layer(const PrintObject * obj, const Layer *layer)
     {
         if (layer == nullptr) return;
         const PrintObject *object = obj;
-        prev_layer_boundaries[object] = next_layer_boundaries[object];
-        next_layer_boundaries[object]  = AABBTreeLines::LinesDistancer<Linef3>{to_unscaled_linesf3(layer->lslices)};
-        prev_curled_extrusions[object] = next_curled_extrusions[object];
-        next_curled_extrusions[object] = AABBTreeLines::LinesDistancer<CurledLine>{layer->curled_lines};
+        const Layer *prev = std::exchange(last_prepared_layers[object], layer);
+        prev_layer_sources[object] = prev;
+        const PrecomputedOverhangLayer *precomputed = precomputed_for(object);
+        if (prev == nullptr) {
+            prev_layer_boundaries[object]  = nullptr;
+            prev_curled_extrusions[object] = nullptr;
+        } else if (precomputed != nullptr && precomputed->layer == layer && layer->lower_layer == prev) {
+            prev_layer_boundaries[object]  = precomputed->lower_boundaries;
+            prev_curled_extrusions[object] = precomputed->lower_curled_lines;
+        } else {
+            prev_layer_boundaries[object]  = std::make_shared<const Boundaries>(to_unscaled_linesf3(prev->lslices));
+            prev_curled_extrusions[object] = std::make_shared<const CurledLines>(prev->curled_lines);
+        }
     }
 
     std::vector<ProcessedPoint> estimate_extrusion_quality(const ExtrusionPath                &path,
@@ -423,7 +543,10 @@ public:
                                                            const ConfigOptionFloatsOrPercents &speeds,
                                                            float                               ext_perimeter_speed,
                                                            float                               original_speed,
-                                                           bool								   slowdown_for_curled_edges)
+                                                           bool								   slowdown_for_curled_edges,
+                                                           // Overlap at or below which the overhang fan switches on; negative when the fan
+                                                           // does not depend on overlap.
+                                                           float                               fan_overlap_threshold = -1.0f)
     {
         size_t                               speed_sections_count = std::min(overlaps.values.size(), speeds.values.size());
         std::vector<std::pair<float, float>> speed_sections;
@@ -463,7 +586,8 @@ public:
             }
         }
 
-        // If a meaningful (i.e. needing slowdown) overhang distance was not found, then we shouldn't split the lines
+        // If no overhang distance slows this path down, -1 turns interior sampling off unless the overhang fan can switch.
+        // Lines are only split where an end prints slower or cooled, so here only a fan switch splits them.
         if (!found)
             smallest_distance_with_lower_speed=-1.f;
 
@@ -487,9 +611,32 @@ public:
             return round(final_speed);
         };
 
+        // ORCA: The speed sections are built from ext_perimeter_speed, which can be above the speed this path prints at
+        // (original_speed, e.g. held down by resonance avoidance). Every segment is capped at original_speed below, so
+        // overhang distances whose speeds differ only above it print the same and must not count as a speed change when
+        // the path is split.
+        auto effective_speed = [&calculate_speed, original_speed](float distance) {
+            return std::min(calculate_speed(distance), original_speed);
+        };
+
+        // Precomputed distances hold only if they were measured against the layer prev_layer_boundaries is built from.
+        const std::unordered_map<Point3, double, Point3Hash> *known = nullptr;
+        if (const PrecomputedOverhangLayer *precomputed = precomputed_for(current_object);
+            precomputed != nullptr && precomputed->layer->lower_layer == prev_layer_sources[current_object])
+            known = &precomputed->distances;
+        const Boundaries  &prev_boundaries = or_empty(prev_layer_boundaries[current_object]);
+        const CurledLines &prev_curled     = or_empty(prev_curled_extrusions[current_object]);
+        auto known_distance = [known](const Point3 &point) -> const double * {
+            if (known == nullptr)
+                return nullptr;
+            auto it = known->find(point);
+            return it == known->end() ? nullptr : &it->second;
+        };
+
         std::vector<ExtendedPoint<3>> extended_points =
-            estimate_points_properties<true, true, true, true>(path.polyline.points, prev_layer_boundaries[current_object], path.width, -1,
-                                                               smallest_distance_with_lower_speed, calculate_speed);
+            estimate_points_properties<true, true, true, true, false>(path.polyline.points, prev_boundaries, path.width, -1,
+                                                               smallest_distance_with_lower_speed, effective_speed, fan_overlap_threshold,
+                                                               known_distance);
         const auto width_inv = 1.0f / path.width;
         std::vector<ProcessedPoint> processed_points;
         processed_points.reserve(extended_points.size());
@@ -503,7 +650,7 @@ public:
             	const double dist_limit = 10.0 * path.width;
 				{
                     Vec3d middle       = 0.5 * (curr.position + next.position);
-                    auto  line_indices = prev_curled_extrusions[current_object].all_lines_in_radius(Point::new_scale(middle),
+                    auto  line_indices = prev_curled.all_lines_in_radius(Point::new_scale(middle),
                                                                                                     scale_(dist_limit));
                     if (!line_indices.empty()) {
                         double len = (next.position - curr.position).norm();
@@ -524,7 +671,7 @@ public:
 
                             double projected_lengths_sum = 0;
                             for (size_t idx : line_indices) {
-                                const CurledLine& line   = prev_curled_extrusions[current_object].get_line(idx);
+                                const CurledLine& line   = prev_curled.get_line(idx);
                                 Lines             inside = intersection_ln({{line.a, line.b}}, {box_of_influence});
                             	if (inside.empty())
                                 	continue;
@@ -537,7 +684,7 @@ public:
                         }
                     
                     	for (size_t idx : line_indices) {
-                        	const CurledLine &line                 = prev_curled_extrusions[current_object].get_line(idx);
+                        	const CurledLine &line                 = prev_curled.get_line(idx);
                         	float             distance_from_curled = unscaled(line_alg::distance_to(line, Point::new_scale(middle)));
                         	float             dist                 = path.width * (1.0 - (distance_from_curled / dist_limit)) *
                                      (1.0 - (distance_from_curled / dist_limit)) *

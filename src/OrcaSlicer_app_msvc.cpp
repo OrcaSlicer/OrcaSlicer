@@ -35,6 +35,7 @@ extern "C"
 #include <boost/algorithm/string/classification.hpp>
 
 #include <stdio.h>
+#include <boost/algorithm/string/constants.hpp>
 
 #ifdef SLIC3R_GUI
 class OpenGLVersionCheck

@@ -1,0 +1,26 @@
+{
+    "type": "filament",
+    "name": "Overture PLA @BBL A1 0.2 nozzle",
+    "inherits": "Overture PLA @base",
+    "from": "system",
+    "setting_id": "GFSL04_08",
+    "instantiation": "true",
+    "fan_cooling_layer_time": [
+        "80"
+    ],
+    "fan_max_speed": [
+        "80"
+    ],
+    "fan_min_speed": [
+        "60"
+    ],
+    "filament_max_volumetric_speed": [
+        "1.6"
+    ],
+    "slow_down_layer_time": [
+        "8"
+    ],
+    "compatible_printers": [
+        "Bambu Lab A1 0.2 nozzle"
+    ]
+}

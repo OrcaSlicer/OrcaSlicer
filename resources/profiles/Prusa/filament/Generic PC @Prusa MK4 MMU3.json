@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "Generic PC @Prusa MK4 MMU3",
+	"inherits": "Generic PC @Prusa",
+	"from": "system",
+	"setting_id": "qMawlK9QPI7DcF8I",
+	"instantiation": "true",
+	"include": [
+		"fdm_filament_template_nextruder_pet"
+	],
+	"compatible_printers": [
+		"Prusa MK4 MMU3 0.4 nozzle",
+		"Prusa MK4 MMU3 0.6 nozzle",
+		"Prusa MK4 MMU3 HF0.4 nozzle"
+	]
+}

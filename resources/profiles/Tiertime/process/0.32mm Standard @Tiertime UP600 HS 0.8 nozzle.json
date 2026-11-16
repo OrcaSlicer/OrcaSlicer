@@ -7,8 +7,6 @@
 	"instantiation": "true",
 	"description": "It has a balanced layer height for good quality and reasonable printing time.",
 	"elefant_foot_compensation": "0.15",
-	"smooth_coefficient": "150",
-	"overhang_totally_speed": "50",
 	"compatible_printers": [
 		"Tiertime UP600 HS 0.8 nozzle"
 	]

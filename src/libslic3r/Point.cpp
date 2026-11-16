@@ -5,7 +5,14 @@
 #include "Polyline.hpp"
 #include "Int128.hpp"
 #include "BoundingBox.hpp"
+#include <Eigen/Core>
+#include "libslic3r.h"
 #include <algorithm>
+#include <vector>
+#include <cstring>
+#include <cmath>
+#include <cstddef>
+#include <ostream>
 
 namespace Slic3r {
 

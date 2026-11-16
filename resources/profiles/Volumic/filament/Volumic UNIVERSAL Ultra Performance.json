@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "OFkGp50Y",
-	"setting_id": "rxVkBvMZYgHOoFW6",
 	"name": "Volumic UNIVERSAL Ultra (Performance)",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "rxVkBvMZYgHOoFW6",
+	"filament_id": "OFkGp50Y",
+	"instantiation": "true",
 	"filament_type": [
 		"UNIV"
 	],

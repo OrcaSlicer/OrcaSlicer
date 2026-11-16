@@ -1,10 +1,11 @@
-#include "../libslic3r.h"
 #include "../Model.hpp"
 #include "../TriangleMesh.hpp"
 
 #include "STL.hpp"
 
+#include <cstring>
 #include <string>
+#include <utility>
 
 #ifdef _WIN32
 #define DIR_SEPARATOR '\\'

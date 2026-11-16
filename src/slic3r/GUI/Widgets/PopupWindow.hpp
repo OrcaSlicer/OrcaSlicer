@@ -14,6 +14,9 @@ public:
     PopupWindow(wxWindow *parent, int style = wxBORDER_NONE) { Create(parent, style); }
 
     bool Create(wxWindow *parent, int flags = wxBORDER_NONE);
+#ifdef __WXGTK__
+    bool Show(bool show = true) override;
+#endif
 #ifdef __WXMSW__
     void BindUnfocusEvent();
 #endif

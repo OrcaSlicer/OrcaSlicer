@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Xplorer Dual Gantry",
+	"model_id": "XplorerDualGantry",
+	"nozzle_diameter": "0.4;0.6;0.8",
+	"machine_tech": "FFF",
+	"family": "Vivedino",
+	"bed_model": "Xplorer_buildplate_model.stl",
+	"bed_texture": "Xplorer_bed_texture_dualgantry.svg",
+	"hotend_model": "",
+	"default_materials": "Generic ABS @System;Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic ASA @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
+}

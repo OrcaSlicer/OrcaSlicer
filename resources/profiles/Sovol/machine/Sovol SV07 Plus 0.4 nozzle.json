@@ -20,6 +20,7 @@
 	"nozzle_type": "undefine",
 	"auxiliary_fan": "0",
 	"machine_max_acceleration_e": [
+		"20000",
 		"20000"
 	],
 	"machine_max_acceleration_extruding": [

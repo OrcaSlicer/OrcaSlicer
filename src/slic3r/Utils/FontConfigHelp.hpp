@@ -1,6 +1,7 @@
 #ifndef slic3r_FontConfigHelp_hpp_
 #define slic3r_FontConfigHelp_hpp_
 
+#include <string>
 #ifdef __linux__
 #define EXIST_FONT_CONFIG_INCLUDE
 #endif

@@ -3,10 +3,12 @@
 
 #include <boost/log/trivial.hpp>
 #include <cassert>
+#include <string>
 #include <utility>
 #include <cstddef>
 
 #include "LimitedBeadingStrategy.hpp"
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Arachne/BeadingStrategy/BeadingStrategy.hpp"
 

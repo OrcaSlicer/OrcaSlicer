@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Anker",
-	"inherits": "Generic ASA @Anker base",
 	"renamed_from": "Anker Generic ASA",
+	"inherits": "Generic ASA @Anker base",
 	"from": "system",
 	"setting_id": "aDADuxiEKt2dVKOJ",
 	"instantiation": "true",

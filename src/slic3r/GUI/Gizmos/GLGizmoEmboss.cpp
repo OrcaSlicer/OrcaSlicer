@@ -1,6 +1,9 @@
 #include "GLGizmoEmboss.hpp"
+#include "EmbossStyleManager.hpp"
 #include "slic3r/GUI/GLCanvas3D.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/ImGuiWrapper.hpp"
+#include "slic3r/GUI/Shortcuts.hpp"
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/Gizmos/GizmoObjectManipulation.hpp"
 #include "slic3r/GUI/MainFrame.hpp" // to update title when add text
@@ -12,7 +15,6 @@
 #include "slic3r/GUI/CameraUtils.hpp"
 #include "slic3r/GUI/Jobs/EmbossJob.hpp"
 #include "slic3r/GUI/Jobs/CreateFontNameImageJob.hpp"
-#include "slic3r/GUI/Jobs/NotificationProgressIndicator.hpp"
 #include "slic3r/Utils/WxFontUtils.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
 #include "GLGizmoUtils.hpp"
@@ -22,12 +24,55 @@
 
 #include "libslic3r/Model.hpp"
 #include "libslic3r/Preset.hpp"
-#include "libslic3r/ClipperUtils.hpp" // union_ex
 #include "libslic3r/AppConfig.hpp"    // store/load font list
-#include "libslic3r/Format/OBJ.hpp" // load obj file for default object
-#include "libslic3r/BuildVolume.hpp"
 
 #include "imgui/imgui_stdlib.h" // using std::string for inputs
+#include <string>
+#include "libslic3r/Point.hpp"
+#include <memory>
+#include "slic3r/GUI/TextLines.hpp"
+#include <atomic>
+#include <imgui.h>
+#include "libslic3r/Emboss.hpp"
+#include "libslic3r/TextConfiguration.hpp"
+#include "libslic3r/EmbossShape.hpp"
+#include "slic3r/GUI/IconManager.hpp"
+#include <cstddef>
+#include <vector>
+#include <wx/fontenc.h>
+#include "slic3r/GUI/Gizmos/GLGizmoBase.hpp"
+#include <utility>
+#include <cassert>
+#include <optional>
+#include "libslic3r/libslic3r.h"
+#include "slic3r/GUI/SurfaceDrag.hpp"
+#include <Eigen/Geometry>
+#include "slic3r/GUI/Selection.hpp"
+#include "slic3r/GUI/3DScene.hpp"
+#include "libslic3r/Color.hpp"
+#include <algorithm>
+#include <wx/gdicmn.h>
+#include "libslic3r/Utils.hpp"
+#include <wx/settings.h>
+#include <cmath>
+#include <string_view>
+#include "libslic3r/Config.hpp"
+#include <wx/dataview.h>
+#include <limits>
+#include <wx/intl.h>
+#include <math.h>
+#include <boost/container_hash/hash.hpp>
+#include <cstdint>
+#include <boost/nowide/convert.hpp>
+#include "libslic3r/Polygon.hpp"
+#include <sstream>
+#include <boost/filesystem/path.hpp>
+#include <ios>
+#include <exception>
+#include <boost/filesystem/operations.hpp>
+#include "slic3r/GUI/Jobs/Worker.hpp"
+#include <cfloat>
+#include <wx/string.h>
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
@@ -473,6 +518,46 @@ bool check(ModelVolumeType volume_type) {
            volume_type == ModelVolumeType::NEGATIVE_VOLUME ||
            volume_type == ModelVolumeType::PARAMETER_MODIFIER;
 }
+
+// Text of a new text volume
+const char *const default_text = L("Embossed text");
+
+// Whether the loaded font of the style manager has a glyph for every character of the text
+bool can_write(StyleManager &style_manager, const std::string &text)
+{
+    bool exist_unknown = false;
+    create_range_text(text, *style_manager.get_font_file_with_cache().font_file,
+                      style_manager.get_font_prop().collection_number.value_or(0), &exist_unknown);
+    return !exist_unknown;
+}
+
+bool can_write(const EmbossStyle &style, const std::string &text)
+{
+    StyleManager style_manager(nullptr, {});
+    return style_manager.load_style(StyleManager::Style{style}) && can_write(style_manager, text);
+}
+
+// The default styles use system fonts, which can lack the script of the translated default text, e.g. with
+// a Chinese UI on an English system. Then put first a style with a bundled font that can write it. Only
+// registered faces are used: a text volume can be edited again only when its font is found by face name.
+void add_style_for_default_text(EmbossStyles &styles)
+{
+    const std::string text = _u8L(default_text);
+    // the untranslated text is Latin, which the system fonts have
+    if (text == default_text || can_write(styles.front(), text))
+        return;
+
+    for (const char *face_name : {"HarmonyOS Sans SC", "NanumGothic", "Sarabun"}) {
+        wxFont wx_font = *wxNORMAL_FONT;
+        if (!wx_font.SetFaceName(face_name))
+            continue;
+        EmbossStyle style = WxFontUtils::create_emboss_style(wx_font, _u8L("Default font"));
+        if (can_write(style, text)) {
+            styles.insert(styles.begin(), std::move(style));
+            return;
+        }
+    }
+}
 }
 
 bool GLGizmoEmboss::init_create(ModelVolumeType volume_type)
@@ -497,8 +582,10 @@ bool GLGizmoEmboss::init_create(ModelVolumeType volume_type)
 
     m_style_manager.discard_style_changes();
 
-    // set default text
-    m_text = _u8L("Embossed text");
+    // set default text, in English when the active font cannot write its translation
+    m_text = _u8L(default_text);
+    if (m_style_manager.is_active_font() && !can_write(m_style_manager, m_text))
+        m_text = default_text;
     return true;
 }
 
@@ -727,7 +814,7 @@ bool GLGizmoEmboss::on_init()
     m_rotate_gizmo.set_highlight_color(gray_color);
 
     // NOTE: It has special handling in GLGizmosManager::handle_shortcut
-    m_shortcut_key = WXK_CONTROL_T;
+    m_shortcut = Shortcut::GizmoEmboss;
 
     m_shortcuts = {
         {_L("Drag"),        _L("Position on surface")}
@@ -854,9 +941,9 @@ void GLGizmoEmboss::on_render_input_window(float x, float y, float bottom_limit)
 
     // Not known situation when could happend this is only for sure
     if (!m_is_unknown_font && !m_style_manager.is_active_font())
-        create_notification_not_valid_font("No active font in style. Select correct one.");
+        create_notification_not_valid_font(_u8L("No active font in style. Select correct one."));
     else if (!m_is_unknown_font && !m_style_manager.get_wx_font().IsOk())
-        create_notification_not_valid_font("WxFont is not loaded properly.");
+        create_notification_not_valid_font(_u8L("WxFont is not loaded properly."));
 
     double screen_scale = wxDisplay(wxGetApp().plater()).GetScaleFactor();
 
@@ -1026,29 +1113,28 @@ EmbossStyles GLGizmoEmboss::create_default_styles()
         }),styles.end()
     );
 
-    // exist some valid style?
-    if (!styles.empty())
-        return styles;
-
     // No valid style in defult list
     // at least one style must contain loadable font
-    wxFont wx_font;
-    for (const wxString &face : facenames) {
-        wx_font = wxFont(face);
-        if (WxFontUtils::create_font_file(wx_font) != nullptr)
-            break;
-        wx_font = wxFont(); // NotOk
-    }
+    if (styles.empty()) {
+        wxFont wx_font;
+        for (const wxString &face : facenames) {
+            wx_font = wxFont(face);
+            if (WxFontUtils::create_font_file(wx_font) != nullptr)
+                break;
+            wx_font = wxFont(); // NotOk
+        }
 
-    if (wx_font.IsOk()) {
-        // use first alphabetic sorted installed font
-        styles.push_back(WxFontUtils::create_emboss_style(wx_font, _u8L("First font")));
-    } else {
-        // On current OS is not installed any correct TTF font
-        // use font packed with Slic3r
-        std::string font_path = Slic3r::resources_dir() + "/fonts/NotoSans-Regular.ttf";
-        styles.push_back(EmbossStyle{_u8L("Default font"), font_path, EmbossStyle::Type::file_path});
+        if (wx_font.IsOk()) {
+            // use first alphabetic sorted installed font
+            styles.push_back(WxFontUtils::create_emboss_style(wx_font, _u8L("First font")));
+        } else {
+            // On current OS is not installed any correct TTF font
+            // use font packed with OrcaSlicer
+            std::string font_path = Slic3r::resources_dir() + "/fonts/HarmonyOS_Sans_SC_Regular.ttf";
+            styles.push_back(EmbossStyle{_u8L("Default font"), font_path, EmbossStyle::Type::file_path});
+        }
     }
+    add_style_for_default_text(styles);
     return styles;
 }
 
@@ -1535,6 +1621,14 @@ void GLGizmoEmboss::draw_window(float x, float y)
  }
 
 #include "imgui/imgui_internal.h" // scroll bar existence
+#include "libslic3r/CutUtils.hpp"
+#include "libslic3r/ObjectID.hpp"
+#include "slic3r/GUI/GUI_Geometry.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmoRotate.hpp"
+#include "slic3r/GUI/Gizmos/GLGizmosManager.hpp"
+#include "slic3r/Utils/RaycastManager.hpp"
+
+namespace Slic3r::GUI { struct Camera; }
 
 void GLGizmoEmboss::draw_text_input()
 {
@@ -1999,7 +2093,7 @@ void GLGizmoEmboss::draw_model_type()
         if ((is_volume_move_inside || is_volume_move_outside))
             process();
 
-        // inspiration in ObjectList::change_part_type()
+        // inspiration in ObjectList::set_volume_type()
         // how to view correct side panel with objects
         ObjectList *obj_list = app.obj_list();
         wxDataViewItemArray sel = obj_list->reorder_volumes_and_get_selection(
@@ -2548,12 +2642,14 @@ bool GLGizmoEmboss::rev_input(const std::string &name, T &value, const T *defaul
     const std::string &undo_tooltip, T step, T step_fast, const char *format, ImGuiInputTextFlags flags) const
 {
     // draw offseted input
-    auto draw_offseted_input = [&offset = m_gui_cfg->input_offset, &width = m_gui_cfg->input_width,
+    auto draw_offseted_input = [this, &offset = m_gui_cfg->input_offset, &width = m_gui_cfg->input_width,
                                 &name, &value, &step, &step_fast, format, flags](){
         ImGui::SameLine(offset);
         ImGui::SetNextItemWidth(width);
-        return imgui_input(("##" + name).c_str(),
+        bool changed = imgui_input(("##" + name).c_str(),
             &value, step, step_fast, format, flags);
+        m_imgui->request_frames_while_held(); // ORCA auto-repeat of the +/- buttons
+        return changed;
     };
     return revertible(name, value, default_value, undo_tooltip, 
                       0.0f, draw_offseted_input);

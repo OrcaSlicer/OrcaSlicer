@@ -14,7 +14,6 @@
 		"0x0"
 	],
 	"gcode_flavor": "klipper",
-	"silent_mode": "0",
 	"machine_max_acceleration_e": [
 		"5000"
 	],
@@ -110,7 +109,6 @@
 	"wipe": [
 		"1"
 	],
-	"z_lift_type": "NormalLift",
 	"default_print_profile": "0.20mm Standard @Flashforge AD5M",
 	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
 	"machine_start_gcode": "",

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Compiles Objects/unicodectype.c without optimisation. VS 2026's ARM64 code
+     generator needs about 27 GB for _PyUnicode_ToNumeric, a switch with 1951
+     cases. CPython has the same workaround (python/cpython#153668). -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Update="..\Objects\unicodectype.c">
+      <Optimization>Disabled</Optimization>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+    </ClCompile>
+  </ItemGroup>
+</Project>

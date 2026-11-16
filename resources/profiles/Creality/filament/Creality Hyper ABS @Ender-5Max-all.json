@@ -43,7 +43,6 @@
 	],
 	"filament_flow_ratio": "0.92",
 	"filament_is_support": "0",
-	"filament_load_time": "0",
 	"filament_loading_speed": "28",
 	"filament_loading_speed_start": "3",
 	"filament_max_volumetric_speed": [
@@ -73,7 +72,6 @@
 	"filament_type": [
 		"ABS"
 	],
-	"filament_unload_time": "0",
 	"filament_unloading_speed": "90",
 	"filament_unloading_speed_start": "100",
 	"filament_vendor": [

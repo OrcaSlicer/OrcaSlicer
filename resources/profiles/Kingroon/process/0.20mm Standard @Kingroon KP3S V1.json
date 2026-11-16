@@ -24,7 +24,6 @@
 	"overhang_reverse": "1",
 	"overhang_reverse_internal_only": "1",
 	"overhang_reverse_threshold": "0%",
-	"overhang_speed_classic": "1",
 	"seam_gap": "0.1",
 	"seam_position": "back",
 	"slow_down_layers": "2",

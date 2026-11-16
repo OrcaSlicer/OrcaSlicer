@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ASA @Qidi",
-	"inherits": "fdm_filament_asa",
 	"renamed_from": "Qidi Generic ASA",
+	"inherits": "fdm_filament_asa",
 	"from": "system",
 	"setting_id": "IO7E03K3t2sySCAM",
 	"filament_id": "OFLPAxz3",

@@ -1,10 +1,13 @@
 #ifndef slic3r_ExPolygonCollection_hpp_
 #define slic3r_ExPolygonCollection_hpp_
 
+#include "Point.hpp"
+#include "Polygon.hpp"
 #include "libslic3r.h"
 #include "ExPolygon.hpp"
 #include "Line.hpp"
 #include "Polyline.hpp"
+#include <vector>
 
 namespace Slic3r {
 

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG-CF @Arena X1C",
-	"inherits": "Generic PETG-CF @OrcaArena base",
 	"renamed_from": "OrcaArena Generic PETG-CF @Arena X1C;OrcaArena Generic PETG-CF Arena X1C",
+	"inherits": "Generic PETG-CF @OrcaArena base",
 	"from": "system",
 	"setting_id": "MeIL8qLFZytjvYrF",
 	"instantiation": "true",

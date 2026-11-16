@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @Qidi X-Max 3 0.2 nozzle",
-	"inherits": "Generic PLA @Qidi",
 	"renamed_from": "Qidi Generic PLA @Qidi X-Max 3 0.2 nozzle;Qidi Generic PLA Qidi X-Max 3 0.2 nozzle",
+	"inherits": "Generic PLA @Qidi",
 	"from": "system",
 	"setting_id": "VhP4JYzAah2X1Kr3",
 	"filament_id": "OFDSrzZ8",

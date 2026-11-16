@@ -1,6 +1,10 @@
 #ifndef slic3r_2DBed_hpp_
 #define slic3r_2DBed_hpp_
 
+#include <wx/panel.h>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Line.hpp"
+#include <vector>
 #include <wx/wx.h>
 #include "libslic3r/Config.hpp"
 #include "libslic3r/ExPolygon.hpp"

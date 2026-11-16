@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @OrcaArena",
-	"inherits": "Generic PC @OrcaArena base",
 	"renamed_from": "OrcaArena Generic PC",
+	"inherits": "Generic PC @OrcaArena base",
 	"from": "system",
 	"setting_id": "He4O4h8oEFsySDIJ",
 	"instantiation": "true",

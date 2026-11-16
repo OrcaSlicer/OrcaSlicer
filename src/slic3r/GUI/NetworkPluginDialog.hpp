@@ -6,7 +6,11 @@
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/Button.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
+#include <string>
+#include <vector>
 #include <wx/collpane.h>
+#include <wx/string.h>
+#include <wx/event.h>
 
 namespace Slic3r {
 namespace GUI {

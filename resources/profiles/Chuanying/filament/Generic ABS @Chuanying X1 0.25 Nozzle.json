@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic ABS @Chuanying X1 0.25 Nozzle",
-	"inherits": "Generic ABS @Chuanying",
 	"renamed_from": "Chuanying ABS @Chuanying X1 0.25 Nozzle;Chuanying ABS Chuanying X1 0.25 Nozzle",
+	"inherits": "Generic ABS @Chuanying",
 	"from": "system",
 	"setting_id": "uHqfv6eUDzoxEkEj",
 	"instantiation": "true",

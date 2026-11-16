@@ -8,7 +8,7 @@
 	"printer_model": "Creality CR-6 SE",
 	"printer_structure": "i3",
 	"default_filament_profile": [
-		"Generic PLA @Creality"
+		"Generic PLA @CR-6 SE-all"
 	],
 	"default_print_profile": "0.20mm Standard @Creality CR-6 0.4",
 	"nozzle_diameter": [

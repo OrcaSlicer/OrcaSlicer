@@ -1,0 +1,12 @@
+{
+	"type": "process",
+	"name": "0.32mm Fine 0.8 nozzle @Meltingplot CHX 350",
+	"inherits": "fdm_process_meltingplot_chx_large_nozzle",
+	"from": "system",
+	"setting_id": "HSqTmgZq9mxKpWzq",
+	"instantiation": "true",
+	"layer_height": "0.32",
+	"compatible_printers": [
+		"Meltingplot CHX 350 0.8 nozzle"
+	]
+}

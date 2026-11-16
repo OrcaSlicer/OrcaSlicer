@@ -1,9 +1,20 @@
 #include "PluginPickerDialog.hpp"
 
+#include <vector>
+#include "slic3r/plugin/PluginDescriptor.hpp"
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <utility>
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/arrstr.h>
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include <cstddef>
 #include <wx/button.h>
 #include <wx/choice.h>
+#include <wx/gdicmn.h>
+#include <wx/event.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
+#include <wx/string.h>
 #include <wx/valgen.h>
 
 #include "GUI.hpp"

@@ -5,6 +5,8 @@
 
 #include <wx/tglbtn.h>
 
+class wxWindow;
+
 namespace Slic3r {
 namespace GUI {
 
@@ -19,6 +21,10 @@ public:
     bool Disable() {
         return wxBitmapToggleButton::Disable();
     }
+
+#ifdef __WXMSW__
+    bool MSWCommand(WXUINT param, WXWORD id) override;
+#endif
 
 private:
     void update();

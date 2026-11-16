@@ -1,6 +1,8 @@
 #ifndef slic3r_GUI_PrinterCloudAuthDialog_hpp_
 #define slic3r_GUI_PrinterCloudAuthDialog_hpp_
 
+#include <wx/setup.h>
+#include <string>
 #include <wx/wx.h>
 #include <wx/font.h>
 #include <wx/colour.h>
@@ -9,6 +11,11 @@
 #include <wx/dialog.h>
 #include "wx/webview.h"
 
+class wxWebView;
+class wxWebViewEvent;
+class wxWindow;
+namespace Slic3r { class PrintHost; }
+
 #if wxUSE_WEBVIEW_IE
 #include "wx/msw/webview_ie.h"
 #endif
@@ -16,8 +23,6 @@
 #include "wx/msw/webview_edge.h"
 #endif
 
-#include "GUI_Utils.hpp"
-#include "PrintHost.hpp"
 
 namespace Slic3r { namespace GUI {
 

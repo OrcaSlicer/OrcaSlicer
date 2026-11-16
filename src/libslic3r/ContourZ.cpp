@@ -2,14 +2,21 @@
 #include "ExtrusionEntity.hpp"
 #include "ExtrusionEntityCollection.hpp"
 #include "Layer.hpp"
+#include "Line.hpp"
 #include "Point.hpp"
 #include "Print.hpp"
 #include "SLA/IndexedMesh.hpp"
 #include "libslic3r.h"
+#include <Eigen/Core>
 #include <cfloat>
 #include <cmath>
 #include <initializer_list>
+#include <math.h>
 #include <string>
+#include <utility>
+#include "Config.hpp"
+#include "Polyline.hpp"
+#include "PrintConfig.hpp"
 
 namespace Slic3r {
 

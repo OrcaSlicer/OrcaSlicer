@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Generic Belt Printer",
+	"model_id": "my_belt_01",
+	"nozzle_diameter": "0.4;0.2;0.6;0.8",
+	"machine_tech": "FFF",
+	"family": "MyPrinter",
+	"bed_model": "Custom_350_bed.stl",
+	"bed_texture": "orcaslicer_bed_texture.svg",
+	"hotend_model": "",
+	"default_materials": "Generic PLA @System;Generic PLA-CF @System;Generic PETG @System;Generic TPU @System;Generic PC @System;Generic PVA @System;Generic PA @System;Generic PA-CF @System"
+}

@@ -68,21 +68,27 @@
 		"96x96"
 	],
 	"machine_max_jerk_e": [
+		"4",
 		"4"
 	],
 	"machine_max_jerk_x": [
+		"9",
 		"9"
 	],
 	"machine_max_jerk_y": [
+		"9",
 		"9"
 	],
 	"machine_max_jerk_z": [
+		"4",
 		"4"
 	],
 	"machine_max_acceleration_retracting": [
+		"20000",
 		"20000"
 	],
 	"machine_max_speed_z": [
+		"20",
 		"20"
 	],
 	"retract_lift_below": [

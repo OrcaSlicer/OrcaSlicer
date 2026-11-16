@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @Comgrow",
-	"inherits": "fdm_filament_pet",
 	"renamed_from": "Comgrow Generic PETG",
+	"inherits": "fdm_filament_pet",
 	"from": "system",
 	"setting_id": "xi0S7KdXD7lwr3H8",
 	"filament_id": "OFYPdQJh",

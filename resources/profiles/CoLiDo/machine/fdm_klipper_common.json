@@ -117,14 +117,13 @@
 		"30"
 	],
 	"z_hop_types": "Normal Lift",
-	"silent_mode": "0",
 	"single_extruder_multi_material": "1",
 	"change_filament_gcode": "",
 	"wipe": [
 		"1"
 	],
 	"default_filament_profile": [
-		"My Generic ABS"
+		"Generic ABS @CoLiDo X16"
 	],
 	"default_print_profile": "0.20mm Standard @MyKlipper",
 	"bed_exclude_area": [

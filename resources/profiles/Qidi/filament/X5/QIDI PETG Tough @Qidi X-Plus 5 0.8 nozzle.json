@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "DsoxBXKOjsENLEZf",
 	"name": "QIDI PETG Tough @Qidi X-Plus 5 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG Tough@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "DsoxBXKOjsENLEZf",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],

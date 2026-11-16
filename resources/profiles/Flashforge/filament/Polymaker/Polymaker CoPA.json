@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Polymaker CoPA",
-	"inherits": "Generic PLA @Flashforge",
 	"renamed_from": "Polymaker Generic CoPA",
+	"inherits": "Generic PLA @Flashforge",
 	"from": "system",
 	"setting_id": "5Dt1APJ8qd5pzmzK",
 	"filament_id": "OFQyyO0l",
@@ -95,9 +95,6 @@
 	"filament_is_support": [
 		"0"
 	],
-	"filament_load_time": [
-		"0"
-	],
 	"filament_loading_speed": [
 		"28"
 	],
@@ -169,9 +166,6 @@
 	],
 	"filament_type": [
 		"PA"
-	],
-	"filament_unload_time": [
-		"0"
 	],
 	"filament_unloading_speed": [
 		"30"

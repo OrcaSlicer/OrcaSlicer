@@ -6,6 +6,14 @@
 #include "libslic3r/SLA/Rotfinder.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "slic3r/GUI/I18N.hpp"
+#include <functional>
+#include "libslic3r/Point.hpp"
+#include <string>
+#include <cstddef>
+#include <optional>
+#include <vector>
+#include <exception>
+#include <iterator>
 
 namespace Slic3r {
 

@@ -3,9 +3,13 @@
 
 #include "CSGMesh.hpp"
 
+#include "libslic3r/Point.hpp"
+#include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/SLA/Hollowing.hpp"
 #include "libslic3r/MeshSplitImpl.hpp"
+#include <utility>
+#include <memory>
 
 namespace Slic3r { namespace csg {
 

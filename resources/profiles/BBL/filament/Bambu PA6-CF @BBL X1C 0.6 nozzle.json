@@ -1,0 +1,59 @@
+{
+    "type": "filament",
+    "name": "Bambu PA6-CF @BBL X1C 0.6 nozzle",
+    "inherits": "Bambu PA6-CF @base",
+    "from": "system",
+    "setting_id": "GFSN05_13",
+    "instantiation": "true",
+    "filament_flow_ratio": [
+        "0.96",
+        "0.96"
+    ],
+    "filament_max_volumetric_speed": [
+        "8",
+        "10"
+    ],
+    "filament_retraction_length": [
+        "nil",
+        "0.6"
+    ],
+    "filament_z_hop": [
+        "nil",
+        "1"
+    ],
+    "filament_ramming_travel_time": [
+        "0",
+        "0"
+    ],
+    "include": [
+        "fdm_filament_template_direct_dual"
+    ],
+    "long_retractions_when_ec": [
+        "0",
+        "0"
+    ],
+    "nozzle_temperature": [
+        "275",
+        "275"
+    ],
+    "nozzle_temperature_initial_layer": [
+        "275",
+        "275"
+    ],
+    "retraction_distances_when_ec": [
+        "0",
+        "0"
+    ],
+    "slow_down_min_speed": [
+        "20",
+        "20"
+    ],
+    "compatible_printers": [
+        "Bambu Lab X1 Carbon 0.6 nozzle",
+        "Bambu Lab X1 Carbon 0.8 nozzle",
+        "Bambu Lab P1P 0.6 nozzle",
+        "Bambu Lab P1P 0.8 nozzle",
+        "Bambu Lab P1S 0.6 nozzle",
+        "Bambu Lab P1S 0.8 nozzle"
+    ]
+}

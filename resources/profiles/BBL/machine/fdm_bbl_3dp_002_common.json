@@ -9,6 +9,7 @@
 		"0.4"
 	],
 	"printer_variant": "0.4",
+	"use_3mf": "1",
 	"best_object_pos": "0.3x0.5",
 	"bed_exclude_area": [],
 	"bed_temperature_formula": "by_highest_temp",
@@ -59,6 +60,10 @@
 	"grab_length": [
 		"0",
 		"0"
+	],
+	"extruder_max_nozzle_count": [
+		"1",
+		"1"
 	],
 	"head_wrap_detect_zone": [],
 	"hotend_cooling_rate": [
@@ -251,12 +256,6 @@
 		"2",
 		"1",
 		"2"
-	],
-	"nozzle_type": [
-		"hardened_steel",
-		"hardened_steel",
-		"hardened_steel",
-		"hardened_steel"
 	],
 	"nozzle_volume": [
 		"92",

@@ -22,13 +22,17 @@ fi
 # shellcheck source=/dev/null
 source "${POLICY_FILE}"
 
-while getopts ":ihR:" opt; do
+while getopts ":ichR:" opt; do
   case ${opt} in
     i )
         export BUILD_IMAGE="1"
         ;;
-    h ) echo "Usage: ./build_linux_image.sh [-i][-R config]"
+    c )
+        SHIP_PRESET_CACHES="1"
+        ;;
+    h ) echo "Usage: ./build_linux_image.sh [-i][-c][-R config]"
         echo "   -i: Generate Appimage (optional)"
+        echo "   -c: Ship the system preset caches, deleting the preset JSONs they replace"
         echo "   -R: Specify from which config to obtain the binary: Release, RelWithDebInfo, or Debug"
         exit 1
         ;;
@@ -118,9 +122,13 @@ bundle_dependency_closure() {
     # (scripts/check_appimage_libs.sh).
     local -a search_dirs=("$dst_dir")
 
-    while [ ${#queue[@]} -gt 0 ]; do
-        target="${queue[0]}"
-        queue=("${queue[@]:1}")
+    # Walked with a read index rather than by reslicing the array: "${queue[@]:1}" rebuilds the whole
+    # queue on every pop, so draining it costs O(n^2). At the ~5k entries this bundle reaches that was
+    # ~22 s of the image build spent copying an array around.
+    local head=0
+    while [ "$head" -lt ${#queue[@]} ]; do
+        target="${queue[$head]}"
+        head=$((head + 1))
 
         if [ ! -e "$target" ] || ! appimage_is_elf_file "$target"; then
             continue
@@ -181,6 +189,12 @@ echo -n "[9/9] Generating Linux app..."
     fi
 
     cp -Rf ../resources "$APPDIR/resources"
+    # Before the AppImage is packed from this tree, so it ships the caches without a repack.
+    if [ -n "$SHIP_PRESET_CACHES" ]; then
+        # Caches copied in with resources may be stale; the script ships a fresh set.
+        rm -f "$APPDIR/resources/profiles"/*.opc
+        "${REPO_ROOT}/scripts/build_preset_cache.sh" -b . -c "$CONFIG" "$APPDIR/resources/profiles"
+    fi
 
     ORIGINAL_BINARY_LOCATION=""
     if [ -f "src/${CONFIG}/@SLIC3R_APP_CMD@" ]; then
@@ -299,10 +313,11 @@ else
 fi
 
 has_host_runtime_library() {
-    local lib_name path
+    local lib_name="\$1"
+    local path
 
     if command -v ldconfig >/dev/null 2>&1; then
-        if ldconfig -p 2>/dev/null | grep -Fq " \$lib_name"; then
+        if ldconfig -p 2>/dev/null | grep -Fq "\$lib_name ("; then
             return 0
         fi
     fi
@@ -339,7 +354,7 @@ TARGET_BIN="\$1"
 
 if target_missing_runtime_library "\$TARGET_BIN" "libOpenGL.so.0" || ! has_host_runtime_library "libOpenGL.so.0"; then
     echo "Error: missing host OpenGL runtime library libOpenGL.so.0." >&2
-    echo "On Ubuntu/Pop!_OS/Debian, install: libopengl0 and libglu1-mesa" >&2
+    echo "On Ubuntu/Pop!_OS/Debian, install: libopengl0" >&2
     echo "On Arch/CachyOS, install: libglvnd" >&2
     exit 1
 fi
@@ -424,7 +439,8 @@ if [ "\$XDG_SESSION_TYPE" = "wayland" ] && [ "\$ZINK_DISABLE_OVERRIDE" != "1" ];
                 export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
                 export MESA_LOADER_DRIVER_OVERRIDE=zink
                 export GALLIUM_DRIVER=zink
-                export WEBKIT_DISABLE_DMABUF_RENDERER=1
+                # WebKit's NVIDIA DMABUF workaround is applied by the binary itself,
+                # gated on the runtime WebKitGTK version (src/OrcaSlicer.cpp).
             fi
         fi
     fi

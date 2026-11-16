@@ -1,0 +1,13 @@
+{
+	"type": "filament",
+	"name": "Blocks PVA @Blocks_RF50",
+	"inherits": "Blocks PVA @base",
+	"from": "system",
+	"setting_id": "q6pKqHY7Iz4OZaAC",
+	"instantiation": "true",
+	"compatible_printers": [
+		"BLOCKS RF50 0.4 nozzle",
+		"BLOCKS RF50 0.6 nozzle",
+		"BLOCKS RF50 0.8 nozzle"
+	]
+}

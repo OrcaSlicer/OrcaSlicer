@@ -1,0 +1,93 @@
+{
+	"type": "filament",
+	"name": "BETA ABS @base",
+	"inherits": "fdm_filament_abs",
+	"from": "system",
+	"filament_id": "OFjUXn67",
+	"instantiation": "false",
+	"description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",
+	"filament_cost": [
+		"24.99"
+	],
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_vendor": [
+		"BETA"
+	],
+	"impact_strength_z": [
+		"7.4"
+	],
+	"activate_air_filtration": [
+		"1"
+	],
+	"close_additional_fan_first_x_layers": [
+		"3"
+	],
+	"eng_plate_temp": [
+		"90"
+	],
+	"eng_plate_temp_initial_layer": [
+		"90"
+	],
+	"filament_max_volumetric_speed": [
+		"28.6"
+	],
+	"hot_plate_temp": [
+		"90"
+	],
+	"hot_plate_temp_initial_layer": [
+		"90"
+	],
+	"nozzle_temperature": [
+		"270"
+	],
+	"retraction_distances_when_ec": [
+		"0"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"temperature_vitrification": [
+		"100"
+	],
+	"textured_plate_temp": [
+		"90"
+	],
+	"textured_plate_temp_initial_layer": [
+		"90"
+	],
+	"filament_start_gcode": [
+		"; Filament gcode\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	],
+	"volumetric_speed_coefficients": [
+		"0 0 0 0 0 0"
+	],
+	"filament_adhesiveness_category": [
+		"200"
+	],
+	"filament_dev_ams_drying_time": [
+		"12",
+		"8.0",
+		"12",
+		"8.0"
+	],
+	"filament_dev_ams_drying_heat_distortion_temperature": [
+		"90"
+	],
+	"filament_dev_drying_cooling_temperature": [
+		"75"
+	],
+	"filament_dev_ams_drying_temperature": [
+		"65",
+		"80",
+		"65",
+		"75"
+	],
+	"filament_dev_drying_softening_temperature": [
+		"80"
+	]
+}

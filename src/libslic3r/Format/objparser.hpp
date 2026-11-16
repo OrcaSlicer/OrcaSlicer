@@ -6,6 +6,7 @@
 #include <array>
 #include <unordered_map>
 #include <istream>
+#include <memory>
 
 namespace ObjParser {
 
@@ -92,6 +93,7 @@ inline bool operator==(const ObjSmoothingGroup &v1, const ObjSmoothingGroup &v2)
 }
 #define OBJ_VERTEX_COLOR_ALPHA 6
 #define OBJ_VERTEX_LENGTH   7  // x, y, z, color_x,color_y,color_z,color_w
+#define OBJ_TEXCOORD_LENGTH 2  // u, v
 #define ONE_FACE_SIZE 4//ONE_FACE format: f 8/4/6 7/3/6 6/2/6 -1/-1/-1
 struct ObjData {
 	// Version of the data structure for load / store in the private binary format.
@@ -100,7 +102,7 @@ struct ObjData {
 	// x, y, z, color_x,color_y,color_z,color_w
 	std::vector<float>				coordinates;
     bool                            has_vertex_color{false};
-	// u, v, w
+	// u, v
 	std::vector<float>				textureCoordinates;
 	// x, y, z
 	std::vector<float>				normals;

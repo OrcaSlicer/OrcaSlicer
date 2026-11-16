@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA-CF @Tiertime",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Tiertime Generic PLA-CF",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "SSHFL8Wbk46BaTYF",
 	"filament_id": "OFWbdGsC",

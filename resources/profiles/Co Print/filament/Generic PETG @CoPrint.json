@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PETG @CoPrint",
-	"inherits": "Generic PLA @CoPrint",
 	"renamed_from": "CoPrint Generic PETG",
+	"inherits": "Generic PLA @CoPrint",
 	"from": "system",
 	"setting_id": "99zIrGIXC9RUGDlM",
 	"filament_id": "OFYPdQJh",

@@ -1,12 +1,35 @@
 #include "ExtrusionCalibration.hpp"
 #include "GUI_App.hpp"
-#include "GUI.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/Preset.hpp"
 #include <algorithm>
 #include "I18N.hpp"
 #include <boost/log/trivial.hpp>
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/wxExtensions.hpp"
+#include "slic3r/GUI/Widgets/Label.hpp"
+#include "slic3r/GUI/Widgets/ComboBox.hpp"
+#include "libslic3r/Config.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "slic3r/GUI/Widgets/TextInput.hpp"
+#include "slic3r/GUI/Widgets/Button.hpp"
+#include <cstddef>
+#include <wx/dcclient.h>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <wx/arrstr.h>
+#include <vector>
+#include <cstdlib>
 #include <wx/dcgraph.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include <wx/string.h>
+#include <wx/sizer.h>
+#include <wx/stattext.h>
+#include <wx/event.h>
+#include <wx/textctrl.h>
 #include "CalibUtils.hpp"
 
 namespace Slic3r { namespace GUI {

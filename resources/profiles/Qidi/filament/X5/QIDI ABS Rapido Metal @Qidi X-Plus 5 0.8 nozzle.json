@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "4AA9wGDNebbTHf4X",
 	"name": "QIDI ABS Rapido Metal @Qidi X-Plus 5 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ABS Rapido Metal@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "4AA9wGDNebbTHf4X",
+	"instantiation": "true",
 	"nozzle_temperature": [
 		"250"
 	],

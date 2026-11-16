@@ -6,12 +6,34 @@
 #include "../ExPolygon.hpp"
 #include "../Geometry.hpp"
 #include "../ClipperUtils.hpp"
-#include "../SVG.hpp"
+#include "libslic3r/Line.hpp"
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Utils.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/BoundingBox.hpp"
+#include "libslic3r/Flow.hpp"
+#include "libslic3r/Surface.hpp"
+#include "libslic3r/Config.hpp"
 #include "AvoidCrossingPerimeters.hpp"
 
+#include <cstddef>
+#include <boost/container_hash/hash.hpp>
+#include <cassert>
+#include <limits>
+#include <algorithm>
+#include <iterator>
+#include <cmath>
+#include <math.h>
 #include <numeric>
 #include <unordered_set>
 #include <boost/range/adaptor/reversed.hpp>
+#include <vector>
+#include <utility>
+#include "libslic3r/Extruder.hpp"
+#include "libslic3r/GCodeWriter.hpp"
+#include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/SurfaceCollection.hpp"
 
 namespace Slic3r {
 

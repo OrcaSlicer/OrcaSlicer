@@ -8,10 +8,18 @@
 #include "../DeviceManager.hpp"
 #include "slic3r/GUI/Event.hpp"
 #include "slic3r/GUI/AmsMappingPopup.hpp"
+#include <wx/anybutton.h>
+#include <wx/checklst.h>
+#include <wx/gdicmn.h>
+#include <map>
+#include "slic3r/GUI/Widgets/AMSItem.hpp"
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include <wx/colour.h>
 #include <wx/simplebook.h>
 #include <wx/hyperlink.h>
 #include <wx/animate.h>
 #include <wx/dynarray.h>
+#include <wx/string.h>
 
 
 namespace Slic3r {  namespace GUI {

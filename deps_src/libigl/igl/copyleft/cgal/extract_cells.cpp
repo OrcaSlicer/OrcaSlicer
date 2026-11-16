@@ -23,8 +23,8 @@
 #include "../../vertex_triangle_adjacency.h"
 
 #include <CGAL/AABB_tree.h>
-#include <CGAL/AABB_traits.h>
-#include <CGAL/AABB_triangle_primitive.h>
+#include <CGAL/AABB_traits_3.h>
+#include <CGAL/AABB_triangle_primitive_3.h>
 #include <CGAL/intersections.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 
@@ -156,9 +156,9 @@ IGL_INLINE size_t igl::copyleft::cgal::extract_cells(
   std::vector<VectorXI> Is(num_components);
   std::vector<
     CGAL::AABB_tree<
-      CGAL::AABB_traits<
+      CGAL::AABB_traits_3<
         Kernel,
-        CGAL::AABB_triangle_primitive<
+        CGAL::AABB_triangle_primitive_3<
           Kernel, std::vector<
             Kernel::Triangle_3 >::iterator > > > > trees(num_components);
   std::vector< std::vector<Kernel::Triangle_3 > >

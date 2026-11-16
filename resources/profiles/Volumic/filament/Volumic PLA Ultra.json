@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "OFXuGxvQ",
-	"setting_id": "3BeQ60i4cOs3BfZn",
 	"name": "Volumic PLA Ultra",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "3BeQ60i4cOs3BfZn",
+	"filament_id": "OFXuGxvQ",
+	"instantiation": "true",
 	"filament_flow_ratio": [
 		"1.00"
 	],

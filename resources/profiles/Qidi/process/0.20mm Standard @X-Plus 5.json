@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "ug7kxxCLKKE7MoJW",
 	"name": "0.20mm Standard @X-Plus 5",
-	"from": "system",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "ug7kxxCLKKE7MoJW",
 	"instantiation": "true",
 	"bridge_flow": "1",
 	"default_acceleration": [

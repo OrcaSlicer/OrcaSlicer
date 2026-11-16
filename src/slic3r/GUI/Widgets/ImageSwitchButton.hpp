@@ -3,11 +3,17 @@
 
 #include "../wxExtensions.hpp"
 #include "StateColor.hpp"
-#include "StateHandler.hpp"
-#include "Button.hpp"
 
 
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/dc.h>
+#include <wx/gdicmn.h>
 #include <wx/tglbtn.h>
+
+class wxDC;
+class wxWindow;
 
 class ImageSwitchButton : public StaticBox
 {

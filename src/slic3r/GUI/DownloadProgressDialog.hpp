@@ -1,14 +1,17 @@
 #ifndef slic3r_DownloadProgressDialog_hpp_
 #define slic3r_DownloadProgressDialog_hpp_
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 
 #include "GUI_Utils.hpp"
 #include <wx/dialog.h>
+#include <wx/event.h>
 #include <wx/font.h>
 #include <wx/bitmap.h>
 #include <wx/msgdlg.h>
+#include <wx/panel.h>
 #include <wx/richmsgdlg.h>
 #include <wx/textctrl.h>
 #include <wx/statline.h>

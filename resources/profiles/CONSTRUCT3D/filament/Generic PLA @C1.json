@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @C1",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "C1 Generic PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "mCKOBqN6Y92a9nHV",
 	"filament_id": "OFDSrzZ8",

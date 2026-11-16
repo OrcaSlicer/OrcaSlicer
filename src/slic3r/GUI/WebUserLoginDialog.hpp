@@ -1,4 +1,9 @@
 #pragma once
+#include <wx/setup.h>
+#include <memory>
+#include <wx/string.h>
+#include <string>
+#include <wx/event.h>
 #ifndef slic3r_ZWebUserLogin_HEAD_
 #define slic3r_ZWebUserLogin_HEAD_
 

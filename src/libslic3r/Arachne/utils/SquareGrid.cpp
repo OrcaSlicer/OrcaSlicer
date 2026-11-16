@@ -4,7 +4,11 @@
 #include "SquareGrid.hpp"
 
 #include <cassert>
+#include <cstdint>
+#include <utility>
+#include <functional>
 
+#include "libslic3r/libslic3r.h"
 #include "libslic3r/Point.hpp"
 
 using namespace Slic3r::Arachne;

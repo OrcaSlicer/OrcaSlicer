@@ -2,6 +2,10 @@
 #define slic3r_InstanceCheck_hpp_
 
 #include "Event.hpp"
+#include <vector>
+#include <boost/filesystem/path.hpp>
+#include <cassert>
+#include <wx/event.h>
 
 #if _WIN32
 #include <windows.h>
@@ -10,6 +14,7 @@
 #include <string>
 
 #include <boost/filesystem.hpp>
+#include <cstddef>
 
 #if __linux__
 #include <boost/thread.hpp>

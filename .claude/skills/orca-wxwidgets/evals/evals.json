@@ -1,0 +1,204 @@
+{
+  "skill_name": "orca-wxwidgets",
+  "evals": [
+    {
+      "id": 1,
+      "name": "report-issue-dialog",
+      "prompt": "In the OrcaSlicer repo, add a new dialog that opens from the Help menu called 'Report Issue'. It needs a dropdown to pick the issue type (Bug / Feature request / Question), a multiline text box for the description, a checkbox 'Include system info', and OK/Cancel buttons at the bottom. It has to look correct in dark mode and on high-DPI screens.",
+      "files": [],
+      "assertions": [
+        "The dialog class derives from DPIDialog and overrides on_dpi_changed(const wxRect&) with a body that rescales its custom widgets (Rescale()/msw_rescale) and re-lays out (Layout/Fit/Refresh or equivalent)",
+        "The dropdown is Orca's custom ComboBox (::ComboBox from Widgets/ComboBox.hpp), not wxComboBox/wxChoice",
+        "The checkbox is Orca's custom ::CheckBox (constructed without a label) paired with a separate wxStaticText/Label for the text",
+        "The bottom row is DialogButtons constructed with untranslated labels such as {\"OK\", \"Cancel\"} (not _L(\"OK\")), and handlers end the dialog with EndModal(wxID_OK/wxID_CANCEL), not Destroy()",
+        "The multiline description is a raw wxTextCtrl created with wxTE_MULTILINE, not TextInput (TextInput::DoSetSize keeps the inner control at its single-line height), explicitly made dark-safe (UpdateDarkUI/UpdateDlgDarkUI or StateColor::darkModeColorFor colours), and its text is read via GetValue()",
+        "Every hard-coded pixel size/padding goes through FromDIP(n) (or em_unit multiples); no raw pixel literals in sizes/borders",
+        "All user-visible strings are wrapped in _L(...)",
+        "The top-level sizer is installed with SetSizerAndFit (or SetSizer followed by SetSizeHints)",
+        "wxGetApp().UpdateDlgDarkUI(this) is called as the last step of the constructor, after all children exist",
+        "The new .cpp/.hpp are added to SLIC3R_GUI_SOURCES in src/slic3r/CMakeLists.txt",
+        "A Help-menu item is added in MainFrame's menu construction (append_menu_item or equivalent) that opens the dialog with ShowModal()"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "new-print-setting",
+      "prompt": "Add a new print setting to OrcaSlicer: 'seam_transition_gap', a float in mm, default 0.1, range 0-2, shown on the Quality page in the Seam group with a proper tooltip. It should be saved with process presets and searchable.",
+      "files": [],
+      "assertions": [
+        "A ConfigOptionDef is added in PrintConfig.cpp via this->add(\"seam_transition_gap\", coFloat) with label, tooltip, sidetext \"mm\", min 0, max 2, a mode, and default ConfigOptionFloat(0.1)",
+        "label/tooltip/sidetext in PrintConfig.cpp use the L(\"...\") extraction marker, not _L/_u8L",
+        "A ((ConfigOptionFloat, seam_transition_gap)) entry is added to the matching PRINT_CONFIG_CLASS_DEFINE block in PrintConfig.hpp",
+        "The key is appended to s_Preset_print_options in Preset.cpp",
+        "TabPrint::build() gets optgroup->append_single_option_line(\"seam_transition_gap\", ...) inside the Quality page's Seam option group",
+        "The answer states that search indexing comes automatically from get_option/append_single_option_line (no manual search registration)",
+        "Slicing invalidation is handled: the key is added to PrintObject::invalidate_state_by_config_options (or Print::invalidate_state_by_config_options) under an appropriate step"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "macos-hover-popup-dismiss",
+      "prompt": "OrcaSlicer bug in a feature branch: the sidebar's filament-sync button now opens a small hover menu (code below). On macOS the menu appears and then disappears before the user can click either item — moving the mouse from the button down into the menu closes it, and sometimes it closes while the cursor is already over it. It works on Windows. Find the causes and fix the code.\n\n```cpp\n// Widgets/FilamentSyncMenu.hpp/.cpp (new, opened when the cursor enters the sidebar's sync button)\nclass FilamentSyncMenu : public PopupWindow\n{\npublic:\n    explicit FilamentSyncMenu(wxWindow* parent) : PopupWindow(parent, wxBORDER_NONE)\n    {\n        auto* sizer = new wxBoxSizer(wxVERTICAL);\n        auto* colours = new Button(this, _L(\"Sync colours only\"));\n        auto* all     = new Button(this, _L(\"Sync colours and types\"));\n        colours->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { Dismiss(); wxGetApp().sidebar().sync_ams_list(); });\n        all->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { Dismiss(); wxGetApp().sidebar().sync_ams_list(true); });\n        sizer->Add(colours, 0, wxEXPAND | wxALL, FromDIP(4));\n        sizer->Add(all, 0, wxEXPAND | wxALL, FromDIP(4));\n        SetSizerAndFit(sizer);\n\n        m_timer.SetOwner(this);\n        Bind(wxEVT_TIMER, [this](wxTimerEvent&) { Dismiss(); });\n        Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent&) { m_timer.StartOnce(300); });\n        Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent&) { m_timer.Stop(); });\n    }\n\n    void popup_under(wxWindow* btn)\n    {\n        wxPoint pos = btn->ClientToScreen(wxPoint(0, 0));\n        Position(pos, {0, btn->GetSize().y + FromDIP(6)});\n        Popup();\n    }\n\nprivate:\n    wxTimer m_timer;\n};\n\n// Sidebar constructor:\nm_sync_menu = new FilamentSyncMenu(ams_btn);\nams_btn->Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) { m_sync_menu->popup_under(ams_btn); e.Skip(); });\n```",
+      "files": [],
+      "assertions": [
+        "Identifies the opener-to-popup gap as a cause: the FromDIP(6) offset leaves a dead zone, and crossing it from the button into the menu ends the hover (LEAVE / hover-timer path) and dismisses the menu on macOS",
+        "Identifies that on macOS ENTER/LEAVE events around a wxPopupTransientWindow arrive spuriously or out of order (capture handling), so the hover timer must not trust them: re-verify the real cursor position with GetClientRect().Contains(ScreenToClient(wxGetMousePosition())) (or equivalent geometry) before starting/stopping the timer or dismissing",
+        "Fix anchors the menu flush with (or slightly overlapping) the button instead of leaving a gap, at least on macOS",
+        "Adds wxPU_CONTAINS_CONTROLS to the PopupWindow style because the menu hosts interactive Button children",
+        "Guards against calling Popup() again while the menu is already shown (re-entering the button) and/or debounces reopening right after a dismissal",
+        "The fix is gated to macOS where needed (#ifdef __WXOSX__/__APPLE__) or argued harmless elsewhere, and does not rely on unexplained SetFocus/CallAfter/Raise hacks"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "dark-mode-icons",
+      "prompt": "Users report that a couple of the AMS status icons in OrcaSlicer are nearly invisible when dark mode is on, but fine in light mode. What's going on and how do we fix it properly?",
+      "files": [],
+      "assertions": [
+        "Explains that BitmapCache::load_svg recolors dark-mode icons by literal substitution of a fixed palette (e.g. #262E30 -> #EFEFF0) and off-palette colors pass through unchanged",
+        "Offers the asset fix: re-author the SVG fills in palette colors (e.g. near-black line art as #262E30)",
+        "Offers the variant fix: a *_dark asset selected by name from wxGetApp().dark_mode()",
+        "States that name-selected variants must be re-picked/reloaded on a runtime theme switch (on_sys_color_changed / sys_color_changed / msw_rescale path)",
+        "Investigates the actual AMS icon code/assets (e.g. checks both branches of a dark_mode() ternary for a copy-paste _light/_light bug, or inspects the SVG fills)"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "custom-painted-drag-widget",
+      "prompt": "In OrcaSlicer, add a small owner-drawn widget for the filament area of the sidebar: a horizontal strip of colour swatches (one per filament) where the user can click-and-drag across swatches to select a contiguous range. Hovered swatches should highlight, it must emit an event with the selected range when the drag ends, and it must look right with high-DPI and dark mode. Write the widget.",
+      "files": [],
+      "assertions": [
+        "Paints only inside a wxEVT_PAINT handler using wxAutoBufferedPaintDC/wxBufferedPaintDC/wxPaintDC with SetBackgroundStyle(wxBG_STYLE_PAINT); never draws through wxClientDC; triggers repaint with Refresh()/RefreshRect()",
+        "CaptureMouse() on press is guarded (if (!HasCapture())) and ReleaseMouse() is guarded (if (HasCapture()))",
+        "Handles wxEVT_MOUSE_CAPTURE_LOST by ending the gesture: drag state reset and repaint, no recapture (cancelling rather than committing the selection is what the wx contract asks for)",
+        "Ensures capture cannot leak: release on every end-of-drag path regardless of drag flags (and/or in the destructor), mentioning the macOS consequence (UI unclickable) or the wx contract",
+        "Sizes use FromDIP (or em_unit) and the widget reports a size via DoGetBestSize/DoGetBestClientSize or SetMinSize, rescaled on DPI change (Rescale/msw_rescale/wxEVT_DPI_CHANGED)",
+        "Colours go through StateColor / StateColor::darkModeColorFor or are re-derived from wxGetApp().dark_mode() and re-applied on theme change (sys_color_changed/on_sys_color_changed)",
+        "Defines a custom event with wxDECLARE_EVENT/wxDEFINE_EVENT (e.g. a wxCommandEvent carrying the range) and uses Bind(), not a new static event table",
+        "Hover handling uses event-relative coordinates (evt.GetPosition()), not wxGetMousePosition(), and only refreshes when the hovered index actually changes"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "worker-thread-progress",
+      "prompt": "In OrcaSlicer, we're adding a non-modal 'Firmware download' dialog. A network library calls our progress callback (int percent, std::string status) on its own worker thread, and a completion callback (bool ok, std::string error) at the end. The dialog shows a progress bar and status text and has a Cancel button; the user may also close the dialog at any time while the download continues. Implement the dialog and the callback wiring.",
+      "files": [],
+      "assertions": [
+        "No wx/GUI calls are made on the worker thread; callbacks marshal to the main thread via CallAfter (wxGetApp().CallAfter / window CallAfter) or wxQueueEvent",
+        "Deferred lambdas capture data by value (copies of percent/status strings), not references to worker-owned data",
+        "Deferred work re-checks the dialog's liveness inside the lambda (shared_ptr<atomic<bool>> alive flag, wxWeakRef, or registry lookup) because the dialog can be closed before the callback runs",
+        "If events are used across threads, they are heap-allocated/owned (wxQueueEvent with new/Clone, or wxThreadEvent) — not wxPostEvent/AddPendingEvent with wxString payload from the worker",
+        "Closing the dialog cancels or detaches the download callbacks and the non-modal dialog is destroyed with Destroy() (not delete), with any wxTimer stopped first",
+        "Uses Orca UI conventions: DPIDialog base, Orca ProgressBar or custom widgets, DialogButtons/Button for Cancel, _L strings, FromDIP sizes, UpdateDlgDarkUI",
+        "Strings crossing to the GUI are converted with from_u8() (UTF-8 std::string -> wxString), not implicit/ToStdString conversions"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "scrolled-dynamic-layout",
+      "prompt": "OrcaSlicer bug on Linux: in a settings dialog, a wxScrolledWindow holds a list of rows that the user can add with a '+' button. After adding rows, the scrollbar doesn't appear/update and new rows are cut off; when the dialog first opens on GTK it's sometimes collapsed to a tiny size; and some German labels in the rows are clipped. Explain the causes and give the correct wx code patterns to fix all three.",
+      "files": [],
+      "assertions": [
+        "For the scroll issue: after adding rows, call FitInside() on the scrolled window (or SetVirtualSize/Layout so the virtual size updates), with SetScrollRate set so scrollbars are enabled",
+        "Explains that changing children doesn't change the scrolled window's size, so automatic layout doesn't run — Layout() (and FitInside) must be called explicitly after adding content",
+        "For the collapsed dialog: uses SetSizerAndFit on the top-level dialog or SetSizer + sizer->SetSizeHints(dialog) so the min size is set (GTK needs the min-size hint), and avoids an unconditional Fit() in on_dpi_changed/refresh paths",
+        "For clipped labels: avoids fixed widths/heights on wxStaticText (use -1 / best size) and re-Wrap()s after SetLabel or uses Label with LB_AUTO_WRAP; mentions translations being longer",
+        "Mentions InvalidateBestSize()/Layout() of the containing hierarchy (or parent->Layout()) after dynamic content changes, and/or Freeze()/Thaw() around bulk row creation",
+        "Notes GTK specifics: Linux builds wx against GTK3 by default (deps/CMakeLists.txt DEP_WX_GTK3 ON) and/or the first GTK size pass can run with a bogus tiny client width, so wrap/height calculations need a guard"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "keyboard-shortcut",
+      "prompt": "Add a global keyboard shortcut Ctrl+Shift+E (Cmd+Shift+E on macOS) to OrcaSlicer that exports the current plate's G-code (same as the existing export action). It must work on all three platforms and show up wherever OrcaSlicer documents shortcuts.",
+      "files": [],
+      "assertions": [
+        "Explains that wxACCEL_CTRL / 'Ctrl' in menu accelerator strings maps to Cmd on macOS (and WXK_RAW_CONTROL / wxACCEL_RAW_CTRL is the real Control key)",
+        "Registers the shortcut through Orca's shortcut registry (Shortcut enum + shortcut_table in src/slic3r/GUI/Shortcuts.cpp, Global context dispatched from MainFrame's wxEVT_CHAR_HOOK) and/or the menu item whose accelerator text is derived from it, dispatching to the existing export handler",
+        "Checks for conflicts with existing shortcuts (registry defaults, GLCanvas3D/ObjectList contexts, menu items) before choosing the binding",
+        "The shortcut appears in KBShortcutsDialog by virtue of the registry (or is explicitly added there), and the answer checks/handles a conflict with an existing default chord",
+        "Accounts for platform differences in Orca's menus: native wxMenuBar on macOS vs BBLTopbar/custom menus on Windows/Linux, so the shortcut works where no native menubar exists"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "webview-dialog",
+      "prompt": "Add a dialog to OrcaSlicer that shows a local HTML page from resources/web/ in a WebView. The page has a 'Done' button that posts a JS message; when it arrives the dialog must close and return a result to the caller. It must work on Windows (Edge), macOS (WKWebView) and Linux (WebKitGTK).",
+      "files": [],
+      "assertions": [
+        "Creates the browser through Orca's WebView wrapper (WebView::CreateWebView in Widgets/WebView.hpp), not wxWebView::New directly",
+        "Receives messages via wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED using the 'wx' handler the wrapper registers (window.wx.postMessage / postMessage), without adding a duplicate script message handler (which throws an uncatchable NSException on WKWebView)",
+        "Closing/ending the dialog from the script-message handler is deferred with CallAfter (not done synchronously inside the WebView callback stack)",
+        "Builds the local page URL from Orca's resources dir (resources_dir()/from_u8 + file:// URL or wxFileName::FileNameToURL), handling paths portably",
+        "Accounts for asynchronous backend creation (Edge): no script runs/calls before the page is loaded (wxEVT_WEBVIEW_LOADED) or the wrapper's deferral",
+        "Dialog follows Orca conventions: DPIDialog base, on_dpi_changed, UpdateDlgDarkUI/dark-mode handling, EndModal with a result id"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "macos-frozen-ui",
+      "prompt": "On macOS, sometimes after dragging the handle of the new ratio bar widget inside a dialog in OrcaSlicer, the whole app stops responding to mouse clicks — even the window's close button — but Cmd+S still saves, timers keep running and the 3D view still repaints. Windows is fine. What is going on, how do we confirm it, and how should widget code like this be written?",
+      "files": [],
+      "assertions": [
+        "Identifies a leaked wx mouse capture (CaptureMouse without matching ReleaseMouse) as the cause, explicitly not a deadlock/hang",
+        "Explains why only the mouse is dead: on macOS wx routes all mouse events to the capturing window while key events are unaffected",
+        "Explains why macOS differs: wxEVT_MOUSE_CAPTURE_LOST is not delivered on macOS (wxOSX never generates it; the docs' @onlyfor{wxmsw} is stale, wxGTK sends it too) so nothing ever unwinds the leaked capture",
+        "Fix: guard CaptureMouse with !HasCapture() and ReleaseMouse with HasCapture(), release on every exit path (mouse-up independent of drag flags, capture-lost handler, before the dialog closes/destructor)",
+        "Handles wxEVT_MOUSE_CAPTURE_LOST (required by the wx contract wherever it can fire) without recapturing",
+        "Gives a way to confirm/locate it (e.g. sampling the process / checking GetCapture(), or auditing every CaptureMouse call site)"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "review-planted-wx-defects",
+      "prompt": "Review this proposed OrcaSlicer change before it is merged: the patch at .claude/skills/orca-wxwidgets/evals/files/filament-notes.patch adds a non-modal 'Filament notes' dialog (src/slic3r/GUI/FilamentNotesDialog.hpp/.cpp). It is not applied to the tree; read it from that path and use the repository for context. Report every correctness, cross-platform (Windows/macOS/Linux GTK, X11 and Wayland), threading, lifetime, DPI, dark-mode and wxWidgets API-misuse problem you find, each with its consequence and the fix. Do not report style nits.",
+      "files": [
+        "files/filament-notes.patch"
+      ],
+      "assertions": [
+        "D1: Flags FromDIP() called on the SwatchPreview object inside its own base-class initializer (before wxPanel is constructed) as invalid/UB, and fixes it (parent->FromDIP / static wxWindow::FromDIP(sz, parent) / SetMinSize after construction)",
+        "D2: Flags the mouse-capture handling: CaptureMouse unguarded, ReleaseMouse gated on m_dragging rather than HasCapture(), and no wxEVT_MOUSE_CAPTURE_LOST handler — with the consequence (leaked capture freezes mouse input on macOS; wx's capture asserts are compiled out in Orca, so elsewhere the misuse fails silently) and the guarded pattern",
+        "D3: Flags hit-testing with ScreenToClient(wxGetMousePosition()) in the motion handler (unreliable on Wayland, stale vs the event) and fixes with e.GetPosition()",
+        "D4: Flags drawing the hover outline through wxClientDC outside the paint handler (no effect on macOS or GTK3 Wayland; on MSW and X11 it races and is overwritten by the next paint) and fixes by storing m_hover and Refresh()/RefreshRect() + drawing in the paint handler",
+        "D5: Flags the hard-coded wxColour(\"#009688\") pen as not dark-mode aware (should go through StateColor::darkModeColorFor or a dark-mode branch, re-derived on theme change)",
+        "D6: Flags SetValue() inside the wxEVT_TEXT handler (SetValue emits wxEVT_TEXT again: recursion/re-entrancy and caret reset) and fixes with ChangeValue() (plus an insertion-point restore or guard)",
+        "D7: Flags the wxEVT_KILL_FOCUS handler that does not call e.Skip() (breaks native focus handling of the text control)",
+        "D8: Flags that the wxStaticBoxSizer's child wxTextCtrl is created with the dialog as parent instead of box->GetStaticBox()",
+        "D9: Flags the raw pixel size wxSize(400, 160) (needs FromDIP)",
+        "D10: Flags m_notes->GetValue().ToStdString() as lossy for non-ASCII text and fixes with into_u8()/ToUTF8()",
+        "D11: Flags `delete this` in the wxEVT_CLOSE_WINDOW handler and fixes with Destroy() (deferred deletion after pending events)",
+        "D12: Flags SetSizer()+Layout() on the top-level dialog without SetSizerAndFit/SetSizeHints/Fit (no initial size / min size; GTK collapse) per the project rule",
+        "D13: Flags m_status->SetLabel() called on the worker thread (GUI call off the main thread)",
+        "D14: Flags the worker's wxPostEvent(this, evt) with a wxString payload: posting a wxString-carrying event from a worker thread is unsafe (use wxQueueEvent with a heap event / CallAfter), and `this` may be destroyed because the destructor detaches the thread — needs an alive flag/join/cancellation",
+        "D15: Flags that wxEVT_MENU is bound on m_more_btn although PopupMenu() is called on the dialog (menu events go to the invoking window and propagate up, never to a child), and that Bind runs on every popup (accumulating handlers); fix: bind on the dialog once or use GetPopupMenuSelectionFromUser",
+        "D16: Flags the heap wxTimer that is never stopped or deleted (leak; a pending tick can fire into the destroyed dialog) and fixes with Stop()+delete in the destructor or a by-value member",
+        "D17: Flags that start_sync() move-assigns m_sync_thread while the previous std::thread is still joinable (never joined or detached; a finished thread stays joinable), so the second sync ('Reload from cloud', live once the D15 routing is fixed) calls std::terminate; fix: no reassigned thread member (a detached worker per request behind the D14 alive flag) or detach/join the previous thread before reassigning, and/or refuse a reload while a sync is in flight",
+        "D18: Flags that SwatchPreview never releases the capture if it is destroyed while holding it (no guarded ReleaseMouse() in its destructor or on the dialog's close path): e.g. Esc, which DPIDialog maps to Close(), pressed with the button held on the strip destroys the panel while it is still on wx's capture stack (the 'Destroying window before releasing mouse capture' assert, or in Orca's assert-free build a dangling capture that freezes or crashes mouse input, notably on macOS); fix: drop the capture, or if (HasCapture()) ReleaseMouse() in the destructor / before close",
+        "Does not report false defects about correct code (e.g. DialogButtons' untranslated labels, wxBG_STYLE_PAINT + wxAutoBufferedPaintDC, Bind with lambdas)"
+      ]
+    },
+    {
+      "id": 12,
+      "name": "review-subtle-wx-defects",
+      "prompt": "Review this proposed OrcaSlicer change before it is merged: the patch at .claude/skills/orca-wxwidgets/evals/files/preset-note.patch adds a sidebar 'note chip' widget and a modal 'Preset note' editor dialog (src/slic3r/GUI/PresetNoteDialog.hpp/.cpp). It is not applied to the tree; read it from that path and use the repository and the wxWidgets source for context. Report every correctness, cross-platform, i18n, DPI, dark-mode, lifetime and wxWidgets/Orca API-misuse problem you find, each with its consequence and the fix. Do not report style nits.",
+      "files": [
+        "files/preset-note.patch"
+      ],
+      "assertions": [
+        "P1: Flags the StateColor built with the Normal entry first: colorForStates returns the first matching entry and Normal (mask 0) matches every state, so the Hovered/Pressed colours never show; fix: list Pressed, Hovered, then Normal last",
+        "P2: Flags the wxEVT_SIZE lambda taking wxSizeEvent by value: Skip() on the copy does not reach the original, so the event counts as handled and default/base size handling stops; fix: take the event by reference",
+        "P3: Flags that the capture-lost handler routes through on_left_up and therefore fires EVT_NOTE_CHIP_CLICKED (commits a click) when capture is lost; per the wx contract capture loss must cancel the operation: reset m_pressed/visual state without emitting the event and without recapturing",
+        "P4: Flags _(\"Preset note\") as never extracted for translation (Orca's xgettext keywords are L/_L/_u8L/..., not _), fix: _L",
+        "P5: Flags wxBitmapBundle::FromSVGFile as unavailable in Orca's wx build (NanoSVG off / no wxHAS_SVG — does not compile) and replaces it with Orca's ScalableBitmap/create_scaled_bitmap/ScalableButton icon loading by name",
+        "P6: Flags Bind(wxEVT_TEXT_ENTER, ..., m_input->GetId()) on the dialog as never firing: TextInput re-dispatches TEXT_ENTER only to the wrapper (ProcessEventLocally, no propagation to parents) and the inner control's handler does not Skip; fix: bind on m_input (the wrapper) or on GetTextCtrl()",
+        "P7: Flags RichMessageDialog::SetYesNoLabels as having no effect in Orca (labels are stored but never applied to the buttons), fix: MsgDialog::SetButtonLabel(wxID_YES/wxID_NO, ...) or a dialog with custom buttons",
+        "P8: Flags EndModal(wxCANCEL): wxCANCEL is a style flag, not the return code wxID_CANCEL, so ShowModal returns the wrong value; fix: EndModal(wxID_CANCEL)",
+        "P9: Flags that restore_original() runs only in the Cancel button handler: ESC (DPIDialog's char hook -> Close()) and the close box end the dialog with wxID_CANCEL without running the custom Button's handler, so the draft is not cleared; fix: do cleanup on every non-OK exit (after ShowModal returns, or in a close/EndModal path)",
+        "P10: Flags m_preview->SetLabel(...) followed by Wrap(FromDIP(360)) on every update: in wx 3.3.2 Wrap() is a no-op when the width equals the last wrap width, so updated labels stay unwrapped; fix: Wrap(-1) then Wrap(w), or wxST_WRAP / Orca Label with LB_AUTO_WRAP",
+        "P11 (not a defect): Does not claim that m_options->Enable(...) leaves the ::CheckBox or its wxStaticText label looking enabled: ::CheckBox is a native wxBitmapToggleButton, so the ancestor's disable greys it on every port without calling its Enable() override (MSW: NotifyWindowOnEnableChange -> DoEnable -> EnableWindow, and the owner-drawn button paints its SetBitmapDisabled art; GTK3: native insensitivity, and the button's wxGtkImage draws a greyed copy of its current bitmap while !IsEnabled(); macOS: setEnabled:NO, and AppKit dims the image), and wxStaticText greys natively. Suggesting pin->Enable() to get the designed disabled art on GTK is at most a nit",
+        "P12: Flags that the patch registers neither new file: they are not in SLIC3R_GUI_SOURCES in src/slic3r/CMakeLists.txt (never compiled), and PresetNoteDialog.cpp is not in localization/i18n/list.txt (run_gettext scans only the listed files, so its _L strings never reach OrcaSlicer.pot); fix: add both entries",
+        "Does not report false defects about correct code: the weak_ptr-guarded CallAfter is not a use-after-free (alive is checked before `this` is used), GetSizer()->SetSizeHints(this) in on_dpi_changed is fine, DialogButtons' untranslated labels are correct"
+      ]
+    }
+  ]
+}

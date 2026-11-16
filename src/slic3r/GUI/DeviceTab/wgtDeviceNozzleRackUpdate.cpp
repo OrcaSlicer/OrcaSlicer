@@ -18,6 +18,25 @@
 
 #include "slic3r/GUI/Widgets/Button.hpp"
 #include "slic3r/GUI/Widgets/Label.hpp"
+#include <wx/colour.h>
+#include <wx/event.h>
+#include <memory>
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/toplevel.h>
+#include <wx/panel.h>
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include <string>
+#include <vector>
+#include "slic3r/GUI/Widgets/AnimaController.hpp"
+#include "slic3r/GUI/Monitor.hpp"
+#include <wx/frame.h>
+#include <wx/window.h>
+#include "slic3r/GUI/DeviceCore/DevDefs.h"
+#include "libslic3r/CommonDefs.hpp"
+#include "libslic3r/Preset.hpp"
+#include "slic3r/GUI/DeviceCore/DevFirmware.h"
 
 #define WX_DIP_SIZE(x, y) wxSize(FromDIP(x), FromDIP(y))
 
@@ -344,7 +363,8 @@ void wgtDeviceNozzleRackHotendUpdate::OnStatusIconClick(wxMouseEvent& event)
 
             if (dlg.ShowModal() == wxID_OK) 
             {
-                wxGetApp().mainframe->m_monitor->jump_to_Upgrade();
+                if (MonitorPanel* monitor = MonitorPanel::if_built())
+                    monitor->jump_to_Upgrade();
 
                 wxCommandEvent evt(wxEVT_NOZZLE_JUMP_UPGRADE, GetId());
                 evt.SetEventObject(this);

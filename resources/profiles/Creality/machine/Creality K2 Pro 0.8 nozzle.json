@@ -181,7 +181,6 @@
 	"printer_technology": "FFF",
 	"printhost_authorization_type": "key",
 	"printhost_ssl_ignore_revoke": "0",
-	"silent_mode": "0",
 	"time_cost": "0",
 	"use_firmware_retraction": "0",
 	"use_relative_e_distances": "1",

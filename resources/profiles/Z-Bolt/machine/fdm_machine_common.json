@@ -19,7 +19,6 @@
 		"0x0"
 	],
 	"gcode_flavor": "marlin",
-	"silent_mode": "0",
 	"machine_max_acceleration_e": [
 		"5000"
 	],
@@ -111,7 +110,6 @@
 	"wipe": [
 		"1"
 	],
-	"z_lift_type": "NormalLift",
 	"default_print_profile": "",
 	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n_BEFORE_LAYER_CHANGE",
 	"layer_change_gcode": "_AFTER_LAYER_CHANGE Z={layer_z}",

@@ -6,6 +6,7 @@
 #include "Polygon.hpp"
 #include "Polyline.hpp"
 #include "ExPolygon.hpp"
+#include <ostream>
 #include <sstream>
 #include <vector>
 

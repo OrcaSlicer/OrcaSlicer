@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @FF Adventurer A5 0.25 nozzle",
+	"inherits": "Generic PETG @FF AD5M 0.25 Nozzle",
+	"from": "system",
+	"setting_id": "KSKX6BHNQgmOEShO",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"1.2"
+	],
+	"filament_settings_id": [
+		"Generic PETG @FF Adventurer A5 0.25 nozzle"
+	],
+	"compatible_printers": [
+		"Flashforge Adventurer A5 0.25 nozzle"
+	]
+}

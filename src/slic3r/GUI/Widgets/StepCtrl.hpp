@@ -2,6 +2,18 @@
 #define slic3r_GUI_StepCtrlBase_hpp_
 
 #include "StaticBox.hpp"
+#include <wx/anybutton.h>
+#include <wx/event.h>
+#include "slic3r/GUI/Widgets/StateColor.hpp"
+#include <vector>
+#include <wx/string.h>
+#include <wx/gdicmn.h>
+#include <wx/checklst.h>
+#include "slic3r/GUI/wxExtensions.hpp"
+#include <wx/dc.h>
+
+class wxDC;
+class wxWindow;
 
 wxDECLARE_EVENT( EVT_STEP_CHANGING, wxCommandEvent );
 wxDECLARE_EVENT( EVT_STEP_CHANGED, wxCommandEvent );

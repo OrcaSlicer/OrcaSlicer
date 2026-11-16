@@ -1,0 +1,83 @@
+{
+	"type": "filament",
+	"name": "Generic PLA-CF @BBL base",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"instantiation": "false",
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"close_additional_fan_first_x_layers": [
+		"3"
+	],
+	"cool_plate_temp": [
+		"45"
+	],
+	"cool_plate_temp_initial_layer": [
+		"45"
+	],
+	"filament_adhesiveness_category": [
+		"100"
+	],
+	"filament_dev_ams_drying_ams_limitations": [
+		"1",
+		"0"
+	],
+	"filament_dev_ams_drying_heat_distortion_temperature": [
+		"45"
+	],
+	"filament_dev_ams_drying_temperature": [
+		"45",
+		"45",
+		"45",
+		"45"
+	],
+	"filament_dev_ams_drying_time": [
+		"12",
+		"12",
+		"12",
+		"12"
+	],
+	"filament_dev_chamber_drying_bed_temperature": [
+		"70"
+	],
+	"filament_dev_drying_cooling_temperature": [
+		"45"
+	],
+	"filament_dev_drying_softening_temperature": [
+		"50"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n\n"
+	],
+	"filament_flow_ratio": [
+		"0.95"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n{if  (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200\n{elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150\n{elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50\n{endif}\n\n{if activate_air_filtration[current_extruder] && support_air_filtration}\nM106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} \n{endif}"
+	],
+	"filament_type": [
+		"PLA-CF"
+	],
+	"required_nozzle_HRC": [
+		"40"
+	],
+	"retraction_distances_when_ec": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"7"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"supertack_plate_temp": [
+		"50"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"50"
+	],
+	"volumetric_speed_coefficients": [
+		"0 0 0 0 0 0"
+	]
+}

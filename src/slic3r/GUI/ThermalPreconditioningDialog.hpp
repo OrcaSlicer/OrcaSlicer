@@ -1,11 +1,21 @@
 #pragma once
 
+#include <string>
+#include <wx/string.h>
+#include <wx/event.h>
+#include <wx/timer.h>
 #include <wx/wx.h>
 #include <wx/dialog.h>
 #include <wx/stattext.h>
 #include <wx/button.h>
 #include <wx/sizer.h>
 #include <wx/statbmp.h>
+
+class wxButton;
+class wxStaticText;
+class wxTimer;
+class wxTimerEvent;
+class wxWindow;
 
 
 namespace Slic3r {

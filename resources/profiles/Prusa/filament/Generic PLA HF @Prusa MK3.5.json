@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA HF @Prusa MK3.5",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "Prusa Generic PLA HF @MK3.5;Prusa Generic PLA HF MK3.5",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "4N82rUxi9Bbm2Cdd",
 	"filament_id": "OFZr862X",

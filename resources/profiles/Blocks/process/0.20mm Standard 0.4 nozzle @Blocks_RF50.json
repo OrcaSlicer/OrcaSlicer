@@ -25,7 +25,7 @@
 	"top_solid_infill_flow_ratio": "0.97",
 	"bottom_solid_infill_flow_ratio": "1.08",
 	"seam_position": "aligned",
-	"sparse_infill_patter": "grid",
+	"sparse_infill_pattern": "grid",
 	"initial_layer_speed": "60",
 	"initial_layer_infill_speed": "80",
 	"initial_travel_speed": "100%",
@@ -41,7 +41,6 @@
 	"support_speed": "300",
 	"detect_overhang_wall": "1",
 	"enable_overhang_speed": "1",
-	"overhang_speed_classic": "0",
 	"overhang_1_4_speed": "0",
 	"overhang_2_4_speed": "50",
 	"overhang_3_4_speed": "30",
@@ -62,5 +61,7 @@
 	"accel_to_decel_enable": "1",
 	"accel_to_decel_factor": "50%",
 	"elefant_foot_compensation": "0.25",
-	"elefant_foot_compensation_layers": "1"
+	"elefant_foot_compensation_layers": "1",
+	"skirt_loops": "2",
+	"skirt_type": "perobject"
 }

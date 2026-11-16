@@ -3,9 +3,13 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <functional>
+#include <string>
+#include <exception>
+#include <wx/event.h>
 #include "Job.hpp"
 
-namespace fs = boost::filesystem;
+class wxWindow;
 
 namespace Slic3r {
 namespace GUI {

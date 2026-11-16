@@ -1,9 +1,9 @@
 {
 	"type": "process",
-	"setting_id": "4xhjCaz0oSdj4dmz",
 	"name": "Full performance VS30 - 0.30mm",
-	"from": "system",
 	"inherits": "fdm_process_volumic_common",
+	"from": "system",
+	"setting_id": "4xhjCaz0oSdj4dmz",
 	"instantiation": "true",
 	"layer_height": "0.3",
 	"initial_layer_print_height": "0.3",

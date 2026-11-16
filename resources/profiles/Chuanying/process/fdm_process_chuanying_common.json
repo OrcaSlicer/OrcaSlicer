@@ -17,7 +17,6 @@
 	"outer_wall_acceleration": "5000",
 	"wall_infill_order": "inner wall/outer wall/infill",
 	"line_width": "0.42",
-	"internal_bridge_support_thickness": "0.8",
 	"initial_layer_acceleration": "500",
 	"travel_acceleration": "10000",
 	"inner_wall_acceleration": "5000",

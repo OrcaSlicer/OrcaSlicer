@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "X9TOBuOKBbJIoF7y",
 	"name": "QIDI ASA @Qidi X-Plus 5 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ASA@X-Plus 5-Series",
+	"from": "system",
+	"setting_id": "X9TOBuOKBbJIoF7y",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"13"
 	],

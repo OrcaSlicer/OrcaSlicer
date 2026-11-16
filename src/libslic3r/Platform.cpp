@@ -2,6 +2,11 @@
 
 #include <boost/log/trivial.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <string>
+#include <cassert>
 
 #if defined(__APPLE__)
 #include <sys/types.h>

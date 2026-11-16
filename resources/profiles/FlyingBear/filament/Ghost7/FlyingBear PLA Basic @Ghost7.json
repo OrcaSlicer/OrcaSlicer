@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "FlyingBear PLA Basic @Ghost7",
-	"inherits": "fdm_filament_pla @Ghost7",
 	"renamed_from": "FlyingBear PLA @Ghost7",
+	"inherits": "fdm_filament_pla @Ghost7",
 	"from": "system",
 	"setting_id": "3JBTG6IDrBCnvIhf",
 	"filament_id": "OF3fwO8b",

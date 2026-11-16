@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PPA-CF @Tiertime",
-	"inherits": "fdm_filament_ppa",
 	"renamed_from": "Tiertime Generic PPA-CF",
+	"inherits": "fdm_filament_ppa",
 	"from": "system",
 	"setting_id": "C3VjtPXIQ9CikaQH",
 	"filament_id": "OF8tPByX",

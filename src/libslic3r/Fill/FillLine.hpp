@@ -3,7 +3,12 @@
 
 #include "../libslic3r.h"
 
+#include "libslic3r/ExPolygon.hpp"
 #include "FillBase.hpp"
+#include <utility>
+#include "libslic3r/Point.hpp"
+#include "libslic3r/Polyline.hpp"
+#include "libslic3r/Line.hpp"
 
 namespace Slic3r {
 

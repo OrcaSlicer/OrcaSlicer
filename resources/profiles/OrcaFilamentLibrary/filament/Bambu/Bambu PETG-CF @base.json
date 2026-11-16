@@ -24,16 +24,26 @@
 		"0"
 	],
 	"filament_cost": [
-		"34.99"
+		"31.99"
 	],
 	"filament_density": [
 		"1.25"
 	],
-	"filament_flow_ratio": [
-		"0.95"
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Extra High Flow",
+		"Bowden Standard",
+		"Bowden High Flow",
+		"Bowden Extra High Flow"
 	],
-	"filament_max_volumetric_speed": [
-		"12"
+	"filament_flow_ratio": [
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95",
+		"0.95"
 	],
 	"filament_type": [
 		"PETG-CF"
@@ -64,9 +74,6 @@
 	],
 	"slow_down_layer_time": [
 		"6"
-	],
-	"temperature_vitrification": [
-		"70"
 	],
 	"textured_plate_temp": [
 		"70"

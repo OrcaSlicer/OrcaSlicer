@@ -29,8 +29,8 @@ IGL_INLINE void igl::copyleft::cgal::point_mesh_squared_distance(
   using namespace std;
   typedef CGAL::Triangle_3<Kernel> Triangle_3; 
   typedef typename std::vector<Triangle_3>::iterator Iterator;
-  typedef CGAL::AABB_triangle_primitive<Kernel, Iterator> Primitive;
-  typedef CGAL::AABB_traits<Kernel, Primitive> AABB_triangle_traits;
+  typedef CGAL::AABB_triangle_primitive_3<Kernel, Iterator> Primitive;
+  typedef CGAL::AABB_traits_3<Kernel, Primitive> AABB_triangle_traits;
   typedef CGAL::AABB_tree<AABB_triangle_traits> Tree;
   Tree tree;
   vector<Triangle_3> T;
@@ -43,8 +43,8 @@ IGL_INLINE void igl::copyleft::cgal::point_mesh_squared_distance_precompute(
   const Eigen::MatrixBase<DerivedV> & V,
   const Eigen::MatrixBase<DerivedF> & F,
   CGAL::AABB_tree<
-    CGAL::AABB_traits<Kernel, 
-      CGAL::AABB_triangle_primitive<Kernel, 
+    CGAL::AABB_traits_3<Kernel, 
+      CGAL::AABB_triangle_primitive_3<Kernel, 
         typename std::vector<CGAL::Triangle_3<Kernel> >::iterator
       >
     >
@@ -90,8 +90,8 @@ template <
 IGL_INLINE void igl::copyleft::cgal::point_mesh_squared_distance(
   const Eigen::MatrixBase<DerivedP> & P,
   const CGAL::AABB_tree<
-    CGAL::AABB_traits<Kernel, 
-      CGAL::AABB_triangle_primitive<Kernel, 
+    CGAL::AABB_traits_3<Kernel, 
+      CGAL::AABB_triangle_primitive_3<Kernel, 
         typename std::vector<CGAL::Triangle_3<Kernel> >::iterator
       >
     >
@@ -103,8 +103,8 @@ IGL_INLINE void igl::copyleft::cgal::point_mesh_squared_distance(
 {
   typedef CGAL::Triangle_3<Kernel> Triangle_3; 
   typedef typename std::vector<Triangle_3>::iterator Iterator;
-  typedef CGAL::AABB_triangle_primitive<Kernel, Iterator> Primitive;
-  typedef CGAL::AABB_traits<Kernel, Primitive> AABB_triangle_traits;
+  typedef CGAL::AABB_triangle_primitive_3<Kernel, Iterator> Primitive;
+  typedef CGAL::AABB_traits_3<Kernel, Primitive> AABB_triangle_traits;
   typedef CGAL::AABB_tree<AABB_triangle_traits> Tree;
   typedef typename Tree::Point_and_primitive_id Point_and_primitive_id;
   typedef CGAL::Point_3<Kernel>    Point_3;
@@ -134,7 +134,7 @@ IGL_INLINE void igl::copyleft::cgal::point_mesh_squared_distance(
 template void igl::copyleft::cgal::point_mesh_squared_distance<CGAL::Epeck, Eigen::Matrix<CGAL::Epeck::FT, -1, 3, 0, -1, 3>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<CGAL::Epeck::FT, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>>(Eigen::MatrixBase<Eigen::Matrix<CGAL::Epeck::FT, -1, 3, 0, -1, 3>> const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1>> const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>> const&, Eigen::PlainObjectBase<Eigen::Matrix<CGAL::Epeck::FT, -1, 1, 0, -1, 1>>&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1>>&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1>>&);
 template void igl::copyleft::cgal::point_mesh_squared_distance<CGAL::Epeck,   Eigen::Matrix<CGAL::Epeck::FT, -1, 3, 0, -1, 3>,   Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1,   -1>, Eigen::Matrix<CGAL::Epeck::FT, -1, 1, 0, -1, 1>,   Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>   >(Eigen::MatrixBase<Eigen::Matrix<CGAL::Epeck::FT, -1, 3,   0, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0,   -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1>   > const&,   Eigen::PlainObjectBase<Eigen::Matrix<CGAL::Epeck::FT, -1, 1,   0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&,   Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
 template void igl::copyleft::cgal::point_mesh_squared_distance<CGAL::Epeck, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >&);
-template void igl::copyleft::cgal::point_mesh_squared_distance<CGAL::Simple_cartesian<double>, Eigen::Matrix<double, -1, 3, 1, -1, 3>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 3, 1, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, CGAL::AABB_tree<CGAL::AABB_traits<CGAL::Simple_cartesian<double>, CGAL::AABB_triangle_primitive<CGAL::Simple_cartesian<double>, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > >::iterator, CGAL::Boolean_tag<false> >, CGAL::Default> > const&, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> >&);
-template void igl::copyleft::cgal::point_mesh_squared_distance_precompute<CGAL::Simple_cartesian<double>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, CGAL::AABB_tree<CGAL::AABB_traits<CGAL::Simple_cartesian<double>, CGAL::AABB_triangle_primitive<CGAL::Simple_cartesian<double>, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > >::iterator, CGAL::Boolean_tag<false> >, CGAL::Default> >&, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > >&);
-template void igl::copyleft::cgal::point_mesh_squared_distance_precompute<CGAL::Simple_cartesian<double>, Eigen::Matrix<double, -1, 3, 1, -1, 3>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, CGAL::AABB_tree<CGAL::AABB_traits<CGAL::Simple_cartesian<double>, CGAL::AABB_triangle_primitive<CGAL::Simple_cartesian<double>, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > >::iterator, CGAL::Boolean_tag<false> >, CGAL::Default> >&, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > >&);
+template void igl::copyleft::cgal::point_mesh_squared_distance<CGAL::Simple_cartesian<double>, Eigen::Matrix<double, -1, 3, 1, -1, 3>, Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<int, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 3, 1, -1, 3> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, CGAL::AABB_tree<CGAL::AABB_traits_3<CGAL::Simple_cartesian<double>, CGAL::AABB_triangle_primitive_3<CGAL::Simple_cartesian<double>, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > >::iterator, CGAL::Boolean_tag<false> >, CGAL::Default> > const&, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> >&);
+template void igl::copyleft::cgal::point_mesh_squared_distance_precompute<CGAL::Simple_cartesian<double>, Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, CGAL::AABB_tree<CGAL::AABB_traits_3<CGAL::Simple_cartesian<double>, CGAL::AABB_triangle_primitive_3<CGAL::Simple_cartesian<double>, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > >::iterator, CGAL::Boolean_tag<false> >, CGAL::Default> >&, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > >&);
+template void igl::copyleft::cgal::point_mesh_squared_distance_precompute<CGAL::Simple_cartesian<double>, Eigen::Matrix<double, -1, 3, 1, -1, 3>, Eigen::Matrix<int, -1, -1, 0, -1, -1> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, 3, 1, -1, 3> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, CGAL::AABB_tree<CGAL::AABB_traits_3<CGAL::Simple_cartesian<double>, CGAL::AABB_triangle_primitive_3<CGAL::Simple_cartesian<double>, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > >::iterator, CGAL::Boolean_tag<false> >, CGAL::Default> >&, std::vector<CGAL::Triangle_3<CGAL::Simple_cartesian<double> >, std::allocator<CGAL::Triangle_3<CGAL::Simple_cartesian<double> > > >&);
 #endif

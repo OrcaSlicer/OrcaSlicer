@@ -1,11 +1,34 @@
 #include "wxExtensions.hpp"
 
+#include <functional>
+#include <algorithm>
+#include "slic3r/GUI/BitmapCache.hpp"
+#include "libslic3r/Exception.hpp"
+#include <cstddef>
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/Widgets/PopupWindow.hpp"
 #include <stdexcept>
 #include <cmath>
 
+#include <wx/event.h>
+#include <wx/checklst.h>
+#include <string>
+#include <wx/gdicmn.h>
+#include <wx/dataview.h>
+#include <vector>
+#include <wx/dcclient.h>
+#include <wx/dcmemory.h>
+#include <wx/colour.h>
+#include <wx/dialog.h>
+#include <wx/anybutton.h>
+#include <wx/object.h>
+#include <wx/popupwin.h>
+#include <wx/panel.h>
 #include <wx/sizer.h>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/log/trivial.hpp>
+#include <wx/utils.h>
+#include <wx/string.h>
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
@@ -13,13 +36,14 @@
 #include "I18N.hpp"
 #include "GUI_Utils.hpp"
 #include "Plater.hpp"
-#include "../Utils/MacDarkMode.hpp"
 #include "BitmapComboBox.hpp"
 #include "Widgets/StaticBox.hpp"
 #include "Widgets/Label.hpp"
 #include "../Utils/WxFontUtils.hpp"
 #include "FilamentBitmapUtils.hpp"
 #include "../Utils/ColorSpaceConvert.hpp"
+#include "libslic3r_version.h"
+#include <map>
 #ifndef __linux__
 // msw_menuitem_bitmaps is used for MSW and OSX
 static std::map<int, std::string> msw_menuitem_bitmaps;
@@ -429,9 +453,16 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
                                 const bool menu_bitmap/* = false*/,
                                 const bool resize/* = false*/,
                                 const bool bitmap2/* = false*/,
-                                const vector<std::string>& array_new_color/* = vector<std::string>*/)//used for semi transparent material)
+                                const std::vector<std::string>& array_new_color/* = vector<std::string>*/)//used for semi transparent material)
 {
     static Slic3r::GUI::BitmapCache cache;
+
+    // An empty name means the caller's icon lookup failed
+    if (bmp_name_in.empty() || bmp_name_in == ".png") {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": empty bitmap name";
+        return wxNullBitmap;
+    }
+
     if (bitmap2) {
         return create_scaled_bitmap2(bmp_name_in, cache, win, px_cnt, grayscale, resize, array_new_color);
     }
@@ -470,7 +501,7 @@ wxBitmap create_scaled_bitmap(  const std::string& bmp_name_in,
 
 wxBitmap create_scaled_bitmap2(const std::string& bmp_name_in, Slic3r::GUI::BitmapCache& cache, wxWindow* win/* = nullptr*/ ,
     const int px_cnt/* = 16*/, const bool grayscale/* = false*/ , const bool resize/* = false*/ ,
-    const vector<std::string>& array_new_color/* = vector<std::string>()*/) // color witch will used instead of orange
+    const std::vector<std::string>& array_new_color/* = vector<std::string>()*/) // color witch will used instead of orange
 {
     unsigned int width = 0;
     // win may be nullptr; see create_scaled_bitmap() above.
@@ -599,43 +630,6 @@ std::vector<std::vector<std::string>> read_color_pack(std::vector<std::string> c
     return color_info;
 }
 
-wxColourData show_sys_picker_dialog(wxWindow *parent, const wxColourData &clr_data)
-{
-    wxColourData data = clr_data;
-    data.SetChooseFull(true);
-
-    // Load custom colors from config (support both "r,g,b,a" and "#RRGGBB" formats)
-    std::vector<std::string> colors = Slic3r::GUI::wxGetApp().app_config->get_custom_color_from_config();
-    for (int i = 0; i < (int)colors.size(); i++) {
-        wxColour c;
-        if (colors[i].find(',') != std::string::npos)
-            c = string_to_wxColor(colors[i]);
-        else
-            c = wxColour(colors[i]);
-        if (c.IsOk())
-            data.SetCustomColour(i, c);
-    }
-
-    wxColourDialog dialog(parent, &data);
-    dialog.SetTitle(_L("Please choose the filament colour"));
-
-    if (dialog.ShowModal() == wxID_OK) {
-        data = dialog.GetColourData();
-
-        // Save custom colors to config (use RGBA string format for consistency)
-        std::vector<std::string> colors;
-        colors.resize(CUSTOM_COLOR_COUNT);
-        for (int i = 0; i < CUSTOM_COLOR_COUNT; i++) {
-            wxColour custom_clr = data.GetCustomColour(i);
-            if (custom_clr.IsOk())
-                colors[i] = color_to_string(custom_clr);
-        }
-        Slic3r::GUI::wxGetApp().app_config->save_custom_color_to_config(colors);
-    }
-
-    return data;
-}
-
 wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradient, std::string label, int icon_width, int icon_height,
                                   const std::vector<wxColour> *ramp){
 
@@ -648,7 +642,7 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
         static const char hex_digits[] = "0123456789ABCDEF";
         bitmap_key = "grad_";
         for (const wxColour &c : *ramp)
-            for (unsigned char v : {c.Red(), c.Green(), c.Blue()}) {
+            for (unsigned char v : {c.Red(), c.Green(), c.Blue(), c.Alpha()}) {
                 bitmap_key += hex_digits[v >> 4];
                 bitmap_key += hex_digits[v & 0x0F];
             }
@@ -658,6 +652,7 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
             bitmap_key += color + "_";
         }
     }
+    bitmap_key += is_gradient ? "gradient-" : "segmented-";
     bitmap_key += "h" + std::to_string(icon_height) + "-w" + std::to_string(icon_width) + "-i" + label;
 
     wxBitmap *bitmap = bmp_cache.find(bitmap_key);
@@ -717,7 +712,7 @@ wxBitmap *get_extruder_color_icon(std::vector<std::string> colors, bool is_gradi
             int text_y = (icon_height - size.y) / 2;
 
             // Draw very thin border with lighter color and fewer directions
-            dc.SetTextForeground(wxColor("262E30")); // Semi-transparent dark gray
+            dc.SetTextForeground(wxColour("#262E30")); // Dark outline
             dc.DrawText(label, text_x - 1, text_y);     // Left
             dc.DrawText(label, text_x + 1, text_y);     // Right
             dc.DrawText(label, text_x, text_y - 1);     // Up
@@ -756,9 +751,11 @@ wxBitmap *get_extruder_color_icon(std::string color, std::string label, int icon
         // Slic3r::GUI::BitmapCache::parse_color(color, rgb);
         // there is no neede to scale created solid bitmap
         wxColor clr(color);
-        bitmap = bmp_cache.insert(bitmap_key, wxBitmap(icon_width, icon_height));
+        const bool alpha = clr.Alpha() < 255;
+        const wxBitmap base = alpha ? Slic3r::GUI::create_filament_bitmap({clr}, wxSize(icon_width, icon_height))
+                                    : wxBitmap(icon_width, icon_height, 24);
+        bitmap = bmp_cache.insert(bitmap_key, base);
 #ifdef __WXOSX__
-        bitmap->UseAlpha();
         wxMemoryDC dc(*bitmap);
 #elif defined(__WXMSW__)
         wxClientDC cdc(win);
@@ -770,16 +767,11 @@ wxBitmap *get_extruder_color_icon(std::string color, std::string label, int icon
 #endif
         dc.SetFont(::Label::Body_12);
         Slic3r::GUI::WxFontUtils::get_suitable_font_size(icon_height - 2, dc);
-        if (clr.Alpha() == 0) {
-            int             size        = icon_height * 2;
-            static wxBitmap transparent = *Slic3r::GUI::BitmapCache().load_svg("transparent", size, size);
-            if (transparent.GetHeight() != size) transparent = *Slic3r::GUI::BitmapCache().load_svg("transparent", size, size);
-            wxPoint pt(0, 0);
-            while (pt.x < icon_width) {
-                dc.DrawBitmap(transparent, pt);
-                pt.x += size;
-            }
-            clr.SetRGB(0xffffff); // for text color
+        if (alpha) {
+            // Choose text contrast from the color composited over the checkerboard's average shade.
+            const int opacity = clr.Alpha();
+            auto composite = [opacity](unsigned char channel) { return (channel * opacity + 236 * (255 - opacity) + 127) / 255; };
+            clr = wxColour(composite(clr.Red()), composite(clr.Green()), composite(clr.Blue()));
             dc.SetBrush(*wxTRANSPARENT_BRUSH);
         } else {
             dc.SetBackground(wxBrush(clr));
@@ -1222,7 +1214,7 @@ ImageTransientPopup::ImageTransientPopup( wxWindow *parent, bool scrolled, wxBit
         m_panel->SetSize(300, 300);
 
         // And also actually enable them.
-        m_panel->SetScrollRate(10, 10);
+        m_panel->SetScrollRate(10, FromDIP(20));
     }
     else
     {

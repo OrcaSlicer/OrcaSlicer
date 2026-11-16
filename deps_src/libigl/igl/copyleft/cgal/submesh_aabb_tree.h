@@ -14,8 +14,8 @@
 #include <vector>
 
 #include <CGAL/AABB_tree.h>
-#include <CGAL/AABB_traits.h>
-#include <CGAL/AABB_triangle_primitive.h>
+#include <CGAL/AABB_traits_3.h>
+#include <CGAL/AABB_triangle_primitive_3.h>
 #include <CGAL/intersections.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 
@@ -44,9 +44,9 @@ namespace igl
         const Eigen::MatrixBase<DerivedF>& F,
         const Eigen::MatrixBase<DerivedI>& I,
         CGAL::AABB_tree<
-          CGAL::AABB_traits<
+          CGAL::AABB_traits_3<
             Kernel, 
-            CGAL::AABB_triangle_primitive<
+            CGAL::AABB_triangle_primitive_3<
               Kernel, typename std::vector<
                 typename Kernel::Triangle_3 >::iterator > > > & tree,
         std::vector<typename Kernel::Triangle_3 > & triangles,

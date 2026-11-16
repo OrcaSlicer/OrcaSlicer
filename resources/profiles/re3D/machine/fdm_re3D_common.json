@@ -1,9 +1,11 @@
 {
+	"type": "machine",
+	"name": "fdm_re3D_common",
+	"inherits": "fdm_machine_common",
+	"instantiation": "false",
 	"bed_exclude_area": [
 		"0x0"
 	],
-	"instantiation": "false",
-	"type": "machine",
 	"deretraction_speed": [
 		"30",
 		"30"
@@ -16,13 +18,11 @@
 	"extruders_count": [
 		"2"
 	],
-	"inherits": "fdm_machine_common",
 	"machine_end_gcode": "G92 E0\nTURN_OFF_HEATERS\nG28 X Y\nM18\nM107",
 	"machine_start_gcode": "M83  ; Use relative extrusion distances\nG28  ; Home all axes\nM140 S{first_layer_bed_temperature[initial_tool]}  ; Start heating bed\nM190 S{first_layer_bed_temperature[initial_tool]}  ; Wait for bed to reach temperature\n\nT{initial_tool}\n\n\n; ---------------------------\n; HEAT THE USED TOOL\n; ---------------------------\n{if is_extruder_used[initial_tool]}\nM104 T{initial_tool} S{first_layer_temperature[initial_tool]}  ; Preheat active extruder to first layer temperature\nM109 T{initial_tool} S{first_layer_temperature[initial_tool]}  ; Wait for active extruder to reach temperature\n{endif}\n\nG1 F18000\nG4 S0\nG92 E0",
 	"machine_tool_change_time": [
 		"90"
 	],
-	"name": "fdm_re3D_common",
 	"printer_technology": "FFF",
 	"retract_before_wipe": [
 		"70%",

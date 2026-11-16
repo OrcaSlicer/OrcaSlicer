@@ -1,0 +1,28 @@
+diff --git a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_ModelPreProcessor.cxx b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_ModelPreProcessor.cxx
+index 6f63781..9b1c08e 100644
+--- a/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_ModelPreProcessor.cxx
++++ b/src/ModelingAlgorithms/TKMesh/BRepMesh/BRepMesh_ModelPreProcessor.cxx
+@@ -210,10 +210,10 @@ private:
+ 
+     // Define two pcurves of the seam-edge.
+     occ::handle<Geom2d_Curve> aPC1, aPC2;
+-    double                    af, al;
++    double                    af, al, af1, al1;
+ 
+     aE.Orientation(TopAbs_FORWARD);
+-    aPC1 = BRep_Tool::CurveOnSurface(aE, aF, af, al);
++    aPC1 = BRep_Tool::CurveOnSurface(aE, aF, af1, al1);
+ 
+     aE.Orientation(TopAbs_REVERSED);
+     aPC2 = BRep_Tool::CurveOnSurface(aE, aF, af, al);
+@@ -224,7 +224,9 @@ private:
+     }
+ 
+     // Select the correct pcurve of the seam-edge.
+-    const gp_Pnt2d& aFPntOfPC1 = aPC1->Value(aPC1->FirstParameter());
++    // Use the edge's first parameter. A Geom2d_Line's FirstParameter() is -Precision::Infinite(),
++    // where a direction of (2e-16, -1) from rounding error gives an X far outside the U range.
++    const gp_Pnt2d aFPntOfPC1 = aPC1->Value(af1);
+ 
+     if (std::abs(aLPntOfIPC1.X() - aFPntOfPC1.X()) > Precision::Confusion())
+     {

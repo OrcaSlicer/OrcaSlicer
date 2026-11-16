@@ -1,6 +1,7 @@
 #ifndef __CREALITY_PRINT_AGENT_HPP__
 #define __CREALITY_PRINT_AGENT_HPP__
 
+#include "IPrinterAgent.hpp"
 #include "MoonrakerPrinterAgent.hpp"
 
 #include <string>
@@ -30,8 +31,8 @@ public:
         int         box_id  = 0;   // CFS unit index (0 for first box, 1 for chained second box)
         int         slot_id = 0;   // Slot index within the box (0..3)
         std::string color_hex;     // "#RRGGBB"
-        std::string filament_type; // "PLA", "ABS", "PETG", ...
-        std::string brand_name;    // "Hyper PLA", ...
+        std::string filament_type; // "PLA", "ABS", "PETG", ... or "" if the printer cannot name the spool
+        std::string brand_name;    // "Hyper PLA", ... or ""
         std::string vendor;        // "Creality", "eSUN", or "" if unknown
     };
 
@@ -41,7 +42,7 @@ public:
     static AgentInfo get_agent_info_static();
     AgentInfo        get_agent_info() override { return get_agent_info_static(); }
 
-    bool fetch_filament_info(std::string dev_id) override;
+    bool fetch_filament_info(std::string dev_id, FilamentSyncMode sync_mode = FilamentSyncMode::pull) override;
 
     // Parse the boxsInfo JSON returned by CrealityPrint::query_boxes_info() into
     // a flat list of loaded slots, plus the count of CFS boxes the printer reports.

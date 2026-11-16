@@ -9,6 +9,23 @@
 		"Snapmaker U1 (0.4 nozzle)"
 	],
 	"filament_minimal_purge_on_wipe_tower": [
+		"15",
 		"15"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow"
+	],
+	"fan_min_speed": [
+		"100",
+		"100"
+	],
+	"fan_max_speed": [
+		"100",
+		"100"
+	],
+	"additional_cooling_fan_speed": [
+		"0",
+		"0"
 	]
 }

@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PC @FlyingBear",
-	"inherits": "fdm_filament_pc",
 	"renamed_from": "FlyingBear Generic PC",
+	"inherits": "fdm_filament_pc",
 	"from": "system",
 	"setting_id": "HU6kkNtEXGubYV0U",
 	"filament_id": "OFLakOUI",

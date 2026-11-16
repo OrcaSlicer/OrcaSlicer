@@ -1,8 +1,8 @@
 {
 	"type": "filament",
 	"name": "Generic PLA @InfiMech",
-	"inherits": "fdm_filament_pla",
 	"renamed_from": "InfiMech Generic PLA",
+	"inherits": "fdm_filament_pla",
 	"from": "system",
 	"setting_id": "tdnlzJyNB6zpQS8w",
 	"filament_id": "OFDSrzZ8",

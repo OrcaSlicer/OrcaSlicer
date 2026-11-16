@@ -1,5 +1,8 @@
 #include "BoundingBox.hpp"
+#include "Point.hpp"
 #include "Polygon.hpp"
+#include "libslic3r.h"
+#include <Eigen/Core>
 #include <algorithm>
 #include <assert.h>
 

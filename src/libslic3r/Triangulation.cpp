@@ -1,10 +1,27 @@
 #include "Triangulation.hpp"
 #include "IntersectionPoints.hpp"
+#include <algorithm>
+#include <CGAL/Constrained_triangulation_face_base_2.h>
+#include <CGAL/Triangulation_data_structure_2.h>
+#include <CGAL/Constrained_triangulation_2.h>
+#include <CGAL/Spatial_sort_traits_adapter_2.h>
+#include <CGAL/property_map.h>
 #include <boost/next_prior.hpp>
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Constrained_Delaunay_triangulation_2.h>
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
 #include <CGAL/spatial_sort.h>
+#include <cstdint>
+#include "libslic3r/Polygon.hpp"
+#include "libslic3r/Point.hpp"
+#include <utility>
+#include "libslic3r/Line.hpp"
+#include <cassert>
+#include <vector>
+#include <cstddef>
+#include "libslic3r/libslic3r.h"
+#include "libslic3r/ExPolygon.hpp"
+#include <limits>
 
 using namespace Slic3r;
 namespace priv{
