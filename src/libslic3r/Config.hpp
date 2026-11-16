@@ -3083,7 +3083,7 @@ public:
     int&                opt_int(const t_config_option_key &opt_key)                             { return this->option<ConfigOptionInt>(opt_key)->value; }
     int                 opt_int(const t_config_option_key &opt_key) const                       { return dynamic_cast<const ConfigOptionInt*>(this->option(opt_key))->value; }
     int&                opt_int(const t_config_option_key &opt_key, unsigned int idx)           { return this->option<ConfigOptionInts>(opt_key)->get_at(idx); }
-    int                 opt_int(const t_config_option_key &opt_key, unsigned int idx) const     { return dynamic_cast<const ConfigOptionInts*>(this->option(opt_key))->get_at(idx); }
+    int                 opt_int(const t_config_option_key &opt_key, unsigned int idx) const     { auto* opt = dynamic_cast<const ConfigOptionInts*>(this->option(opt_key)); return (opt != nullptr && !opt->values.empty()) ? opt->get_at(idx) : 0; }
     int&                opt_int_nullable(const t_config_option_key &opt_key, unsigned int idx)  { return this->option<ConfigOptionIntsNullable>(opt_key)->get_at(idx);}
     const int &         opt_int_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionIntsNullable*>(this->option(opt_key))->get_at(idx);}
 
