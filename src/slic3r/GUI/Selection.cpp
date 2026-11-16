@@ -547,9 +547,9 @@ void Selection::center()
     PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_selected_plate();
 
     // calc distance
-    Vec3d src_pos = this->get_bounding_box().center();
-    Vec3d tar_pos = plate->get_center_origin();
-    Vec3d distance = Vec3d(tar_pos.x() - src_pos.x(), tar_pos.y() - src_pos.y(), 0);
+    const Vec3d src_pos = this->get_bounding_box().center();
+    const Vec3d tar_pos = plate->get_center_origin();
+    const Vec3d distance = Vec3d(tar_pos.x() - src_pos.x(), tar_pos.y() - src_pos.y(), 0);
 
     this->move_to_center(distance);
     wxGetApp().plater()->get_view3D_canvas3D()->do_move(L("Move object"));
