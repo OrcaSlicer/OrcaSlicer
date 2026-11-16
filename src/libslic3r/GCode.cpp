@@ -10263,9 +10263,6 @@ std::string GCode::_extrude_piece(const ExtrusionPath &path, const std::string &
         bool cur_fan_enabled = false;
         if( m_enable_cooling_markers && enable_overhang_bridge_fan)
             pre_fan_enabled = overhang_fan_active(new_points[0].overlap, overhang_fan_threshold, path.role());
-        
-        if(path.role() == erInternalBridgeInfill) // ORCA: Add support for separate internal bridge fan speed control
-            pre_fan_enabled = true;
 
         double path_length = 0.;
         for (size_t i = 1; i < new_points.size(); i++) {
