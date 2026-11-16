@@ -665,7 +665,8 @@ bool install_plugin(const boost::filesystem::path& filepath,
                     const std::string&             cloud_user_id,
                     PluginDescriptor&              plugin_descriptor,
                     std::string&                   error,
-                    bool*                          install_target_intact)
+                    bool*                          install_target_intact,
+                    const PluginInstallState*      preserved_state)
 {
     namespace fs = boost::filesystem;
 
@@ -801,7 +802,18 @@ bool install_plugin(const boost::filesystem::path& filepath,
         PluginDescriptor            installed_entry = plugin_descriptor;
         if (is_cloud_install)
             installed_entry.cloud = CloudPluginState{cloud_uuid, true, false, false, plugin_descriptor.cloud->is_mine};
-        if (!write_install_state(final_dir, installed_entry)) {
+
+        // Seed the metadata of the package being installed. An update supplies the previous
+        // activation and capability choices; permissions are always reset because the new
+        // executable code must request them again.
+        PluginInstallState state;
+        seed_install_metadata(state, installed_entry);
+        if (preserved_state != nullptr) {
+            state.enabled      = preserved_state->enabled;
+            state.capabilities = preserved_state->capabilities;
+        }
+
+        if (!write_install_state(final_dir, state)) {
             // Roll back: remove new files and restore backup.
             restore_backup();
             return fail(GUI::format(_u8L("Failed to write plugin install state: %1%"), (final_dir / INSTALL_STATE_FILE).string()));

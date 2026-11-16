@@ -372,32 +372,31 @@ private:
 
     // Installs a package. The caller holds no manager lock. cloud_user_id_override, when given, is
     // the account directory resolved and validated by an update; otherwise the current cloud user
-    // is read after the discovery wait.
+    // is read after the discovery wait. preserved_state, when given, carries the previous
+    // activation and capability choices into the installer's sidecar. mark_error_on_failure is
+    // false when the caller owns the failure (an update that may restore the previous package).
     bool install_plugin_impl(const boost::filesystem::path& filepath,
                              PluginDescriptor&              plugin_descriptor,
                              const std::string*             cloud_user_id_override,
                              std::string&                   error,
-                             bool*                          install_target_intact);
+                             bool*                          install_target_intact,
+                             const PluginInstallState*      preserved_state      = nullptr,
+                             bool                           mark_error_on_failure = true);
 
     // Installs an already downloaded cloud package and updates the in-memory descriptor. The
     // caller owns the package file: it is removed here on both success and failure. cloud_user_id,
     // when given, is the account directory the caller validated the install target against;
     // otherwise the current cloud user is used. When the call fails, `failure` (if given) reports
     // what was left on disk so the caller can decide whether restoring the previous package's
-    // state and reloading it is meaningful.
+    // state and reloading it is meaningful; the caller then also owns marking the plugin error.
     bool install_cloud_plugin_package(const std::string& plugin_key,
                                       const std::string& requested_version,
                                       const boost::filesystem::path& package_path,
                                       const PluginDescriptor& descriptor,
                                       const std::string* cloud_user_id,
                                       std::string& error,
-                                      CloudUpdateFailure* failure = nullptr);
-    // Rewrites the freshly installed sidecar after a successful update: retains the previous
-    // per-capability choices, clears every permission, and records the pre-update auto-load intent.
-    bool write_plugin_state_after_update(const PluginDescriptor& installed,
-                                         const std::vector<std::pair<std::string, bool>>& capabilities,
-                                         bool enabled,
-                                         std::string& error);
+                                      CloudUpdateFailure* failure = nullptr,
+                                      const PluginInstallState* preserved_state = nullptr);
     // Puts back the sidecar (permissions, capability choices and enabled flag) that the unload
     // step overwrote when a replacement failed and the previous package is still in place.
     void restore_plugin_state_after_failed_update(const PluginDescriptor& previous,

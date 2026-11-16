@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-namespace Slic3r { struct PluginDescriptor; }
+namespace Slic3r { struct PluginDescriptor; struct PluginInstallState; }
 
 namespace Slic3r {
 struct Plugin;
@@ -48,11 +48,18 @@ bool inspect_local_plugin_package(const boost::filesystem::path& filepath,
 // restoring its backup, false once the replacement is committed or when restoring that directory's
 // backup failed. A previously installed package at a different root is unaffected by such a
 // failed restore; the update path re-checks that separately.
+//
+// preserved_state, when given, supplies the user's activation and per-capability choices for the
+// sidecar written for the installed package. Only enabled and capabilities are taken from it; the
+// sidecar metadata describes the new package and every permission is cleared, because the new
+// executable code must request them again. The sidecar is written before the backup is removed, so
+// a failed write rolls the package back and keeps the previous installation intact.
 bool install_plugin(const boost::filesystem::path& filepath,
                     const std::string&             cloud_user_id,
                     PluginDescriptor&              plugin_descriptor,
                     std::string&                   error,
-                    bool*                          install_target_intact = nullptr);
+                    bool*                          install_target_intact = nullptr,
+                    const PluginInstallState*      preserved_state      = nullptr);
 bool install_plugin(const boost::filesystem::path& filepath, const std::string& cloud_user_id, std::string& error);
 
 } // namespace Slic3r::plugin_loader

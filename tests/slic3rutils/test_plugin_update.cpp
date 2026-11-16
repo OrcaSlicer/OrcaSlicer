@@ -431,6 +431,132 @@ TEST_CASE("A failed install leaves the installed package and activation intent u
     check_untouched_state(plugin_dir, entry_path, /*expected_enabled=*/false);
 }
 
+TEST_CASE("A failed install that reloads the previous version does not mark the working plugin erroneous",
+          "[PluginUpdate][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string user_id = "update-user";
+    const std::string uuid    = "88888888-9999-aaaa-bbbb-cccccccccccc";
+    const fs::path plugin_dir = write_cloud_package(user_id, uuid, "1.0", true, {{"Echo", false}}, {"/old/grant"});
+    const fs::path entry_path = plugin_dir / "Cloud_Update_Plugin.py";
+
+    // The downloaded package is rejected while its metadata is read, before the installer backs up
+    // the working package, so the old version stays in place and is reloaded by the update.
+    OneShotHttpServer package_server("# /// script\n"
+                                     "# dependencies = [\n"
+                                     "# ///\n",
+                                     "application/octet-stream");
+    OneShotHttpServer api_server(download_response(uuid, package_server.url() + "/broken.py"), "application/json");
+
+    auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
+    agent->set_api_base_url(api_server.url());
+    sign_in_without_persisting(*agent, user_id);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.set_cloud_agent(agent);
+    manager.set_cloud_user(user_id);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string load_error;
+    manager.load_plugin(uuid, /*skip_deps=*/true);
+    REQUIRE(manager.wait_for_plugin_load(uuid, std::chrono::seconds(120), load_error));
+    REQUIRE(manager.is_plugin_loaded(uuid));
+
+    ScopedEnvVar no_proxy{"no_proxy", "127.0.0.1"};
+
+    std::string error;
+    CHECK_FALSE(manager.update_cloud_plugin(uuid, error, "2.0"));
+    INFO("update error: " << error);
+    REQUIRE_FALSE(error.empty());
+
+    // The update failed, but its rollback put the previous version back in service.
+    CHECK(manager.is_plugin_loaded(uuid));
+    check_untouched_state(plugin_dir, entry_path, /*expected_enabled=*/true);
+
+    // A running plugin that was restored successfully is not in an error state. Reporting the
+    // failed install to the caller must not leave the install error on the plugin's descriptor,
+    // where it would turn a working plugin's status into an error.
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_plugin_descriptor(uuid, descriptor));
+    INFO("plugin error: " << descriptor.normalized_error());
+    CHECK_FALSE(descriptor.has_error());
+
+    // The capability choice from the old package still applies to the reloaded plugin.
+    const auto echo = manager.get_plugin_capability({PluginCapabilityType::Unknown, "Echo", uuid},
+                                                    /*only_enabled=*/false);
+    REQUIRE(echo != nullptr);
+    CHECK_FALSE(echo->is_enabled());
+
+    manager.unload_plugin(uuid);
+}
+
+TEST_CASE("A failed update keeps a previously broken plugin's load error visible",
+          "[PluginUpdate][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    const std::string user_id = "update-user";
+    const std::string uuid    = "99999999-aaaa-bbbb-cccc-dddddddddddd";
+    const fs::path plugin_dir = write_cloud_package(user_id, uuid, "1.0", true, {{"Echo", false}}, {"/old/grant"});
+    const fs::path entry_path = plugin_dir / "Cloud_Update_Plugin.py";
+
+    // Keep the package metadata valid and make the module itself raise on import, so the plugin is
+    // enabled but not loaded and carries a real load error.
+    {
+        std::ofstream out(entry_path.string(), std::ios::binary | std::ios::trunc);
+        out << cloud_plugin_source("1.0") << "\nraise RuntimeError(\"load failure marker\")\n";
+    }
+
+    OneShotHttpServer package_server("# /// script\n"
+                                     "# dependencies = [\n"
+                                     "# ///\n",
+                                     "application/octet-stream");
+    OneShotHttpServer api_server(download_response(uuid, package_server.url() + "/broken.py"), "application/json");
+
+    auto agent = std::make_shared<OrcaCloudServiceAgent>((plugin_system.python_data_dir.dir / "cloud-agent").string());
+    agent->set_api_base_url(api_server.url());
+    sign_in_without_persisting(*agent, user_id);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.set_cloud_agent(agent);
+    manager.set_cloud_user(user_id);
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string load_error;
+    manager.load_plugin(uuid, /*skip_deps=*/true);
+    REQUIRE_FALSE(manager.wait_for_plugin_load(uuid, std::chrono::seconds(120), load_error));
+    REQUIRE_FALSE(manager.is_plugin_loaded(uuid));
+    REQUIRE_FALSE(load_error.empty());
+
+    PluginDescriptor broken;
+    REQUIRE(manager.try_get_plugin_descriptor(uuid, broken));
+    REQUIRE(broken.has_error());
+    const std::string prior_error = broken.normalized_error();
+
+    ScopedEnvVar no_proxy{"no_proxy", "127.0.0.1"};
+
+    std::string error;
+    CHECK_FALSE(manager.update_cloud_plugin(uuid, error, "2.0"));
+    INFO("update error: " << error);
+    REQUIRE_FALSE(error.empty());
+
+    // The update could not replace the package. The previous one was restored, but it was not
+    // loaded before and is not reloaded now, so its real load error must still be visible.
+    CHECK_FALSE(manager.is_plugin_loaded(uuid));
+    check_untouched_state(plugin_dir, entry_path, /*expected_enabled=*/true);
+
+    PluginDescriptor after;
+    REQUIRE(manager.try_get_plugin_descriptor(uuid, after));
+    CHECK(after.has_error());
+    INFO("plugin error: " << after.normalized_error());
+    CHECK(after.normalized_error() == prior_error);
+}
+
 TEST_CASE("An update is refused while the plugin is still loading", "[PluginUpdate][Python]")
 {
     ScopedPluginManager plugin_system;
