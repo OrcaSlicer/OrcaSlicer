@@ -3,8 +3,10 @@
 
 Runs from a Linux job in build_check_cache.yml, once per macOS arch, in a single
 repo-wide line (a concurrency group with queue: max), so only the job at the
-front of the line polls. It lets its arch in when the runners every active Build
-all run holds or still needs, plus one for this arch, fit in MACOS_RUNNER_LIMIT:
+front of the line polls. It lets its arch in when the runners every active run
+of the workflows with macOS builds (build_all.yml, and build_optional.yml for a
+pull request's x86_64 build) holds or still needs, plus one for this arch, fit
+in MACOS_RUNNER_LIMIT:
 
 - A push, nightly or manual run holds RESERVE runners until its macOS work is
   done. The jobs API lists only the jobs a run has reached, so what it still
@@ -15,9 +17,8 @@ all run holds or still needs, plus one for this arch, fit in MACOS_RUNNER_LIMIT:
   pull request that waits for that runner.
 - A run holds at least the macOS jobs it has queued or running.
 
-A pull request's universal build and tests skip the line and are not held for
-in advance. They take minutes, and holding two runners for them through the
-slower arch's build left runners idle while other builds waited.
+A pull request's macOS tests skip the line and are not held for in advance:
+they take minutes.
 - In the minutes around the nightly's cron time, RESERVE runners are held for it
   until its run appears.
 
@@ -28,8 +29,10 @@ waiting as holding a runner, so the next free runners go to it.
 Any API error repeated FAILURES_BEFORE_ADMIT times, and the WAIT_MINUTES limit,
 let the arch in, so a fault here never blocks pull requests.
 
-Environment: GH_TOKEN, REPO, WORKFLOW_REF, GITHUB_RUN_ID, and optionally PRIORITY,
-MACOS_RUNNER_LIMIT, WAIT_MINUTES, POLL_SECONDS and GITHUB_API_URL.
+Environment: GH_TOKEN, REPO, MACOS_WORKFLOWS (the workflow files with macOS
+builds, the first of them the one that runs the pushes and the nightly),
+GITHUB_RUN_ID, and optionally PRIORITY, MACOS_RUNNER_LIMIT, WAIT_MINUTES,
+POLL_SECONDS and GITHUB_API_URL.
 """
 
 import datetime
@@ -178,9 +181,10 @@ def latest_run(api, repo, workflow, **params):
     return runs[0] if runs else None
 
 
-def measure(api, repo, workflow, run_id, now, priority=False):
+def measure(api, repo, workflows, run_id, now, priority=False):
     """Total macOS runners held or needed, and one line per run that holds any.
-    The priority line does not count the priority runs waiting behind it."""
+    The priority line does not count the priority runs waiting behind it. The
+    first of the workflows runs the pushes and the nightly."""
     total, lines = 0, []
     # A run is listed as queued whenever one of its jobs waits for a runner, and
     # as pending whenever one waits in a concurrency group, so runs in any of these
@@ -189,9 +193,11 @@ def measure(api, repo, workflow, run_id, now, priority=False):
     # runs created recently are listed by creation time as well, and this run is
     # read directly.
     since = (now - RECENT).strftime("%Y-%m-%dT%H:%M:%SZ")
-    runs = {run["id"]: run for status in ("in_progress", "queued", "pending", "waiting")
+    runs = {run["id"]: run for workflow in workflows
+            for status in ("in_progress", "queued", "pending", "waiting")
             for run in list_runs(api, repo, workflow, status=status)}
-    runs.update((run["id"], run) for run in list_runs(api, repo, workflow, created=f">={since}")
+    runs.update((run["id"], run) for workflow in workflows
+                for run in list_runs(api, repo, workflow, created=f">={since}")
                 if run["status"] != "completed")
     runs[run_id] = api.get(f"repos/{repo}/actions/runs/{run_id}")
     for run in runs.values():
@@ -207,7 +213,7 @@ def measure(api, repo, workflow, run_id, now, priority=False):
     # build_all.yml runs the nightly only in the main repository.
     start, end = nightly_window(now)
     if repo == NIGHTLY_REPO and start <= now < end:
-        last = latest_run(api, repo, workflow, event="schedule")
+        last = latest_run(api, repo, workflows[0], event="schedule")
         if not last or parse_time(last["created_at"]) < start:
             total += RESERVE
             lines.append(f"  {RESERVE}  the nightly, due at {NIGHTLY_UTC:%H:%M} UTC")
@@ -241,7 +247,7 @@ def wait(measure_now, limit, wait_minutes, poll_seconds,
 
 def main():
     repo = os.environ["REPO"]
-    workflow = os.environ["WORKFLOW_REF"].split("@")[0].rsplit("/", 1)[-1]
+    workflows = os.environ["MACOS_WORKFLOWS"].split()
     api = Api(os.environ["GH_TOKEN"], os.environ.get("GITHUB_API_URL", "https://api.github.com"))
     run_id = int(os.environ["GITHUB_RUN_ID"])
     limit = int(os.environ.get("MACOS_RUNNER_LIMIT") or 5)
@@ -249,7 +255,7 @@ def main():
     def measure_now():
         calls_before = api.calls
         try:
-            total, lines = measure(api, repo, workflow, run_id, datetime.datetime.now(datetime.timezone.utc),
+            total, lines = measure(api, repo, workflows, run_id, datetime.datetime.now(datetime.timezone.utc),
                                    priority=os.environ.get("PRIORITY") == "true")
         except Exception:
             print(api.usage(calls_before).strip())
